@@ -32,9 +32,7 @@ describe('adminResponseCodec', () => {
             gamesPlayed: 0,
           },
         ],
-        total: 1,
-        page: 1,
-        limit: 50,
+        nextCursor: null,
       }).users[0]?.id,
     ).toBe('user-1');
 

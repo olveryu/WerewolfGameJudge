@@ -73,6 +73,13 @@
   --size-appearance-avatar-cell-min: 72px;
   --size-min-touch-target: 44px;
   --size-max-content-width: 600px;
+  --size-admin-sidebar: 236px;
+  --size-admin-content: 1280px;
+  --size-admin-row: 40px;
+  --size-admin-drawer: 480px;
+  --size-admin-login: 400px;
+  --font-admin-table: 13px;
+  --font-admin-metric: 26px;
 
   /* Borders and states */
   --border-width: 1px;
@@ -88,4 +95,50 @@
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
+}
+
+/* Admin palettes are scoped: toggling the console never changes game screens. */
+.admin-console {
+  --admin-canvas: #f7f8fb;
+  --admin-panel: #ffffff;
+  --admin-subtle: #f1f3f8;
+  --admin-border: #e0e4ed;
+  --admin-border-strong: #bec6d5;
+  --admin-text: #1b2233;
+  --admin-secondary: #596477;
+  --admin-muted: #637086;
+  --admin-accent: #5145cd;
+  --admin-accent-soft: #eeedfc;
+  --admin-accent-ink: #ffffff;
+  --admin-success: #146c43;
+  --admin-success-soft: #e9f5ee;
+  --admin-warning: #85520b;
+  --admin-warning-soft: #fff3da;
+  --admin-danger: #ba2938;
+  --admin-danger-soft: #fff0f1;
+  --admin-backdrop: rgb(18 24 40 / 35%);
+  --admin-overlay-shadow: 0 16px 48px rgb(18 24 40 / 16%);
+}
+
+.admin-console[data-admin-theme='dark'] {
+  --admin-canvas: #11141c;
+  --admin-panel: #191d28;
+  --admin-subtle: #222837;
+  --admin-border: #30384a;
+  --admin-border-strong: #505d76;
+  --admin-text: #eef0f7;
+  --admin-secondary: #b7c0d3;
+  --admin-muted: #a0adc5;
+  --admin-accent: #aaa1ff;
+  --admin-accent-soft: #302c4d;
+  --admin-accent-ink: #181332;
+  --admin-success: #79d5a4;
+  --admin-success-soft: #1b352b;
+  --admin-warning: #f3c572;
+  --admin-warning-soft: #3a3020;
+  --admin-danger: #ff9aab;
+  --admin-danger-soft: #402531;
+  --admin-backdrop: rgb(0 0 0 / 60%);
+  --admin-overlay-shadow: 0 16px 48px rgb(0 0 0 / 40%);
+  color-scheme: dark;
 }

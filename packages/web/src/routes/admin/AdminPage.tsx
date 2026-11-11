@@ -1,241 +1,141 @@
-/**
- * AdminPage — the admin portal.
- *
- * A password gate leads to a seven-tab dashboard. The password is cached in local storage and
- * verified again on the next entry. The portal does not use the player JWT; requests carry a
- * standalone admin token.
- */
-import './AdminPage.css';
+/** Password-gated layout for the independent admin workspace. */
+import './admin.css';
 
-import {
-  type ComponentType,
-  type FormEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useState } from 'react';
 
-import { Button } from '@/components/Button';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { Spinner } from '@/components/Spinner';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
+  ADMIN_SESSION_EXPIRED_EVENT,
   clearAdminCredential,
   readAdminCredential,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
+import { readAdminTheme, writeAdminTheme } from '@/features/admin/services/adminTheme';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
-import IconBarChartOutline from '~icons/ion/bar-chart-outline';
-import IconGameControllerOutline from '~icons/ion/game-controller-outline';
-import IconHomeOutline from '~icons/ion/home-outline';
-import IconLockClosed from '~icons/ion/lock-closed';
-import IconPeopleOutline from '~icons/ion/people-outline';
-import IconPulseOutline from '~icons/ion/pulse-outline';
-import IconSparklesOutline from '~icons/ion/sparkles-outline';
-import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
+import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 
-import { AITab } from './tabs/AITab';
-import { AnalyticsTab } from './tabs/AnalyticsTab';
-import { GamesTab } from './tabs/GamesTab';
-import { RequestTrafficTab } from './tabs/RequestTrafficTab';
-import { RoomsTab } from './tabs/RoomsTab';
-import { StatsTab } from './tabs/StatsTab';
-import { UsersTab } from './tabs/UsersTab';
+import { AdminShell } from './AdminShell';
 
-type TabId = 'users' | 'rooms' | 'stats' | 'analytics' | 'requests' | 'ai' | 'games';
+const adminLog = log.extend('Admin');
 
-interface AdminTab {
-  readonly id: TabId;
-  readonly label: string;
-  readonly Icon: ComponentType<{ 'aria-hidden'?: boolean }>;
-  readonly Panel: ComponentType;
-}
-
-const TABS: readonly AdminTab[] = [
-  { id: 'users', label: '用户', Icon: IconPeopleOutline, Panel: UsersTab },
-  { id: 'rooms', label: '房间', Icon: IconHomeOutline, Panel: RoomsTab },
-  { id: 'stats', label: '统计', Icon: IconBarChartOutline, Panel: StatsTab },
-  { id: 'analytics', label: '性能', Icon: IconSpeedometerOutline, Panel: AnalyticsTab },
-  { id: 'requests', label: '请求', Icon: IconPulseOutline, Panel: RequestTrafficTab },
-  { id: 'ai', label: 'AI', Icon: IconSparklesOutline, Panel: AITab },
-  { id: 'games', label: '游戏', Icon: IconGameControllerOutline, Panel: GamesTab },
-];
-
-const PANEL_ID = 'admin-tab-panel';
-const adminPageLog = log.extend('AdminScreen');
-
-function adminTabId(tab: TabId): string {
-  return `admin-tab-${tab}`;
-}
-
-function getTab(index: number): AdminTab {
-  const tab = TABS[(index + TABS.length) % TABS.length];
-  if (tab === undefined) throw new Error(`[FAIL-FAST] No admin tab at ${index}`);
-  return tab;
-}
-
-/** Admin portal page. */
+/** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
-  const [cachedCredential] = useState(readAdminCredential);
+  const client = useQueryClient();
+  const [theme, setTheme] = useState(readAdminTheme);
+  const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
-  const [verifying, setVerifying] = useState(cachedCredential !== null);
+  const [verifying, setVerifying] = useState(cached !== null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // On mount, check whether the cached password is still valid.
+  function logout() {
+    clearAdminCredential();
+    setAuthenticated(false);
+    setPassword('');
+    void client.cancelQueries({ queryKey: ['admin'] });
+    client.removeQueries({ queryKey: ['admin'] });
+  }
+
   useEffect(() => {
-    if (cachedCredential === null) return;
-    void verifyAdminPassword(cachedCredential)
+    let active = true;
+    if (cached === null) return;
+    void verifyAdminPassword(cached)
       .then((valid) => {
-        if (valid) {
-          setAuthenticated(true);
-        } else {
-          clearAdminCredential();
-        }
+        if (!active) return;
+        if (valid) setAuthenticated(true);
+        else clearAdminCredential();
       })
       .catch((cause: unknown) => {
-        handleError(cause, { label: '验证管理员身份', logger: adminPageLog, feedback: false });
-        setError('验证失败，请重试');
+        if (!active) return;
+        handleError(cause, { label: '验证管理员身份', logger: adminLog, feedback: false });
+        setError('验证失败，请重新输入密码重试');
       })
       .finally(() => {
-        setVerifying(false);
+        if (active) setVerifying(false);
       });
-  }, [cachedCredential]);
+    return () => {
+      active = false;
+    };
+  }, [cached]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    function expired() {
+      setAuthenticated(false);
+      setPassword('');
+      setError('管理员身份已失效，请重新登录');
+      void client.cancelQueries({ queryKey: ['admin'] });
+      client.removeQueries({ queryKey: ['admin'] });
+    }
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, expired);
+    return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, expired);
+  }, [client]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = password.trim();
-    if (!trimmed) return;
-    setError(null);
     setVerifying(true);
+    setError(null);
     try {
-      const valid = await verifyAdminPassword(trimmed);
-      if (valid) {
-        writeAdminCredential(trimmed);
+      const credential = password.trim();
+      if (await verifyAdminPassword(credential)) {
+        writeAdminCredential(credential);
         setAuthenticated(true);
-      } else {
-        setError('密码错误');
-      }
+        setPassword('');
+      } else setError('密码错误，请重试');
     } catch (cause: unknown) {
-      handleError(cause, { label: '验证管理员身份', logger: adminPageLog, feedback: false });
-      setError('网络错误，请重试');
+      handleError(cause, { label: '验证管理员身份', logger: adminLog, feedback: false });
+      setError('无法验证管理员身份，请重试');
     } finally {
       setVerifying(false);
     }
-  };
-
-  if (verifying) {
-    return (
-      <div className="admin-page">
-        <ScreenHeader title="Admin Portal" />
-        <div className="admin-page-status">
-          <Spinner label="正在验证管理员身份" size="lg" />
-        </div>
-      </div>
-    );
   }
 
-  if (!authenticated) {
-    return (
-      <div className="admin-page">
-        <ScreenHeader title="Admin Portal" />
-        <div className="admin-page-status">
-          <form className="admin-auth-card" onSubmit={(event) => void handleSubmit(event)}>
-            <IconLockClosed className="admin-auth-icon" aria-hidden />
-            <h2 className="admin-auth-title">Admin 验证</h2>
+  function toggleTheme() {
+    const next = theme === 'light' ? 'dark' : 'light';
+    writeAdminTheme(next);
+    setTheme(next);
+  }
+
+  return (
+    <div className="admin-console" data-admin-theme={theme}>
+      {authenticated ? (
+        <AdminShell onLogout={logout} theme={theme} onThemeChange={toggleTheme} />
+      ) : (
+        <main className="admin-login">
+          <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
+            <div className="admin-brand-mark">
+              <IconLockClosedOutline aria-hidden />
+            </div>
+            <span className="admin-eyebrow">GAME JUDGE / CONSOLE</span>
+            <h1>管理后台</h1>
+            <p className="admin-muted">数据、运营与运行状况，尽在一个工作台。</p>
+            <label htmlFor="admin-password">管理密码</label>
             <input
-              className="admin-auth-input"
+              id="admin-password"
               type="password"
-              placeholder="输入管理密码"
-              aria-label="管理密码"
               autoComplete="current-password"
+              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              autoFocus
+              disabled={verifying}
             />
             {error !== null && (
-              <p role="alert" className="admin-auth-error">
+              <p role="alert" className="admin-error">
                 {error}
               </p>
             )}
-            <Button type="submit" className="admin-auth-submit">
-              确认进入
-            </Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  return <AdminDashboard />;
-}
-
-/** The tabbed dashboard shown once the password is verified. */
-function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabId>('users');
-  const listRef = useRef<HTMLDivElement>(null);
-  const activeIndex = TABS.findIndex((tab) => tab.id === activeTab);
-  const ActivePanel = getTab(activeIndex).Panel;
-
-  const focusTab = (index: number) => {
-    const tab = getTab(index);
-    setActiveTab(tab.id);
-    listRef.current?.querySelector<HTMLElement>(`#${adminTabId(tab.id)}`)?.focus();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const target: Partial<Record<string, number>> = {
-      ArrowRight: activeIndex + 1,
-      ArrowLeft: activeIndex - 1,
-      Home: 0,
-      End: TABS.length - 1,
-    };
-    const index = target[event.key];
-    if (index === undefined) return;
-    event.preventDefault();
-    focusTab(index);
-  };
-
-  return (
-    <div className="admin-page">
-      <ScreenHeader title="Admin Portal" />
-      <div
-        ref={listRef}
-        className="admin-tab-bar"
-        role="tablist"
-        aria-label="管理面板"
-        onKeyDown={handleKeyDown}
-      >
-        {TABS.map((tab) => {
-          const isActive = tab.id === activeTab;
-          return (
             <button
-              key={tab.id}
-              id={adminTabId(tab.id)}
-              type="button"
-              role="tab"
-              className="admin-tab-item"
-              aria-selected={isActive}
-              aria-controls={PANEL_ID}
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => setActiveTab(tab.id)}
+              type="submit"
+              className="admin-primary"
+              disabled={verifying || !password.trim()}
             >
-              <tab.Icon aria-hidden />
-              <span>{tab.label}</span>
+              {verifying ? '正在验证…' : '进入工作台'}
             </button>
-          );
-        })}
-      </div>
-      <div
-        id={PANEL_ID}
-        className="admin-page-scroll"
-        role="tabpanel"
-        aria-labelledby={adminTabId(activeTab)}
-      >
-        <ActivePanel />
-      </div>
+            <a href="/">返回游戏首页</a>
+          </form>
+        </main>
+      )}
     </div>
   );
 }

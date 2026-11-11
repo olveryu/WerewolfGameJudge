@@ -11,7 +11,7 @@
  * @throws 502 — Cloudflare analytics provider failed or returned an invalid response
  */
 
-import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';
+import { count, desc, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -30,19 +30,21 @@ import {
   triggerGameWordSupply,
   triggerSupplySchema,
 } from './gameWords';
+import { queryGrowthStats } from './growthStats';
 import {
   queryAIUsageAnalytics,
   queryLoadTimingAnalytics,
   queryRealtimeTrafficAnalytics,
   queryRequestTrafficAnalytics,
 } from './providers/analyticsEngine';
-import { queryWorkerInvocationAnalytics } from './providers/workerAnalytics';
+import { queryD1UsageAnalytics, queryWorkerInvocationAnalytics } from './providers/workerAnalytics';
 import {
   createAdminRequestTrafficSummary,
   createRequestTrafficQueryPlan,
   REQUEST_TRAFFIC_MAX_RANGE_MS,
 } from './requestTrafficSummary';
 import { rewardGrantRoutes } from './rewardGrants';
+import { queryUserDirectory } from './userDirectory';
 
 const log = createLogger('admin');
 
@@ -83,92 +85,13 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 adminRoutes.use('*', requireAdmin);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
+adminRoutes.get('/session', (c) => c.body(null, 204));
+adminRoutes.get('/d1-usage', async (c) => c.json(await queryD1UsageAnalytics(c.env)));
 
 // ── GET /admin/users ────────────────────────────────────────────────────────
 
 adminRoutes.get('/users', async (c) => {
-  const db = createDb(c.env.DB);
-
-  const page = Math.max(1, Number(c.req.query('page') || '1'));
-  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '50')));
-  const offset = (page - 1) * limit;
-
-  const sortField = c.req.query('sort') || 'created_at';
-  const order = c.req.query('order') === 'asc' ? 'asc' : 'desc';
-  const country = c.req.query('country');
-  const type = c.req.query('type'); // 'registered' | 'anonymous'
-  const search = c.req.query('search');
-
-  // Build WHERE conditions
-  const conditions = [];
-  if (country) {
-    conditions.push(eq(users.lastCountry, country));
-  }
-  if (type === 'registered') {
-    conditions.push(eq(users.isAnonymous, 0));
-  } else if (type === 'anonymous') {
-    conditions.push(eq(users.isAnonymous, 1));
-  }
-  if (search) {
-    conditions.push(like(users.displayName, `%${search}%`));
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  // Count total
-  const [totalRow] = await db.select({ count: count() }).from(users).where(whereClause);
-  const total = totalRow.count;
-
-  // Query with join — use raw SQL for flexible ORDER BY
-  const orderDir = order === 'asc' ? sql`ASC` : sql`DESC`;
-  const orderColumn =
-    sortField === 'level'
-      ? sql`COALESCE(user_stats.level, 0)`
-      : sortField === 'games_played'
-        ? sql`COALESCE(user_stats.games_played, 0)`
-        : sortField === 'updated_at'
-          ? sql`users.updated_at`
-          : sql`users.created_at`;
-
-  const rows = await db
-    .select({
-      id: users.id,
-      displayName: users.displayName,
-      email: users.email,
-      isAnonymous: users.isAnonymous,
-      lastCountry: users.lastCountry,
-      lastColo: users.lastColo,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-      level: userStats.level,
-      xp: userStats.xp,
-      gamesPlayed: userStats.gamesPlayed,
-    })
-    .from(users)
-    .leftJoin(userStats, eq(users.id, userStats.userId))
-    .where(whereClause)
-    .orderBy(sql`${orderColumn} ${orderDir}`)
-    .limit(limit)
-    .offset(offset);
-
-  return c.json({
-    users: rows.map((r) => ({
-      id: r.id,
-      displayName: r.displayName,
-      email: r.email,
-      isAnonymous: r.isAnonymous === 1,
-      lastCountry: r.lastCountry,
-      lastColo: r.lastColo,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      level: r.level ?? 0,
-      xp: r.xp ?? 0,
-      gamesPlayed: r.gamesPlayed ?? 0,
-    })),
-    total,
-    page,
-    limit,
-  });
+  return c.json(await queryUserDirectory(c.env.DB, c.req.query()));
 });
 
 // ── GET /admin/rooms ────────────────────────────────────────────────────────
@@ -274,74 +197,16 @@ adminRoutes.get('/rooms/:roomCode/players', async (c) => {
 // ── GET /admin/stats ────────────────────────────────────────────────────────
 
 adminRoutes.get('/stats', async (c) => {
-  const db = createDb(c.env.DB);
-
   const from = c.req.query('from');
   const to = c.req.query('to');
   if (!from || !to) {
     throw new HTTPException(400, { message: 'MISSING_TIME_RANGE' });
   }
 
-  // New registrations in range
-  const [regRow] = await db
-    .select({ count: count() })
-    .from(users)
-    .where(and(sql`${users.createdAt} >= ${from}`, sql`${users.createdAt} < ${to}`));
-
-  // Active users (updated_at in range)
-  const [activeRow] = await db
-    .select({ count: count() })
-    .from(users)
-    .where(and(sql`${users.updatedAt} >= ${from}`, sql`${users.updatedAt} < ${to}`));
-
-  // Total games played in range (sum of games for users active in range)
-  const [gamesRow] = await db
-    .select({ total: sql<number>`COALESCE(SUM(${userStats.gamesPlayed}), 0)` })
-    .from(userStats)
-    .innerJoin(users, eq(userStats.userId, users.id))
-    .where(and(sql`${users.updatedAt} >= ${from}`, sql`${users.updatedAt} < ${to}`));
-
-  // Country distribution (active in range)
-  const countries = await db
-    .select({
-      country: users.lastCountry,
-      count: count(),
-    })
-    .from(users)
-    .where(
-      and(
-        sql`${users.updatedAt} >= ${from}`,
-        sql`${users.updatedAt} < ${to}`,
-        sql`${users.lastCountry} IS NOT NULL`,
-      ),
-    )
-    .groupBy(users.lastCountry)
-    .orderBy(desc(count()));
-
-  // Colo distribution (active in range)
-  const colos = await db
-    .select({
-      colo: users.lastColo,
-      count: count(),
-    })
-    .from(users)
-    .where(
-      and(
-        sql`${users.updatedAt} >= ${from}`,
-        sql`${users.updatedAt} < ${to}`,
-        sql`${users.lastColo} IS NOT NULL`,
-      ),
-    )
-    .groupBy(users.lastColo)
-    .orderBy(desc(count()));
-
-  return c.json({
-    registered: regRow.count,
-    active: activeRow.count,
-    totalGames: gamesRow.total,
-    countries: countries.map((r) => ({ country: r.country ?? '', count: r.count })),
-    colos: colos.map((r) => ({ colo: r.colo ?? '', count: r.count })),
-  });
+  if (!Number.isFinite(Date.parse(from)) || !Number.isFinite(Date.parse(to)) || from >= to) {
+    throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
+  }
+  return c.json(await queryGrowthStats(c.env.DB, from, to));
 });
 
 // ── GET /admin/analytics ────────────────────────────────────────────────────

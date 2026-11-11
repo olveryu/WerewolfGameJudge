@@ -121,9 +121,16 @@ export interface AdminRequestTraffic {
 
 export interface AdminUsersResponse {
   users: AdminUser[];
-  total: number;
-  page: number;
-  limit: number;
+  nextCursor: string | null;
+}
+
+export interface AdminD1Usage {
+  day: string;
+  rowsRead: number;
+  rowsWritten: number;
+  rowsReadLimit: number;
+  rowsWrittenLimit: number;
+  generatedAt: string;
 }
 
 export interface AdminRoomsResponse {

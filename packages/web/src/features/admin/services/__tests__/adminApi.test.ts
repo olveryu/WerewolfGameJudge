@@ -1,13 +1,16 @@
 import {
   fetchRequestTraffic,
   fetchUserRewards,
+  fetchUsers,
   getTimeRange,
   grantUserReward,
 } from '@/features/admin/services/adminApi';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
+import { expireAdminSession } from '@/features/admin/services/adminCredentialStore';
 
 vi.mock('@/features/admin/services/adminCredentialStore', () => ({
   readAdminCredential: vi.fn(() => 'credential'),
+  expireAdminSession: vi.fn(),
 }));
 
 const mockFetch = vi.fn<(...args: [RequestInfo | URL, RequestInit?]) => Promise<Response>>();
@@ -21,6 +24,40 @@ describe('adminApi', () => {
   it.each([401, 403])('treats status %s as an invalid credential', async (status) => {
     mockFetch.mockResolvedValue(new Response(null, { status }));
     await expect(verifyAdminPassword('credential')).resolves.toBe(false);
+  });
+
+  it('checks credentials with the no-content session endpoint, without a stats query', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(verifyAdminPassword('credential')).resolves.toBe(true);
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(/\/admin\/session$/),
+      expect.any(Object),
+    );
+  });
+
+  it('sends cursor/search filters without offset pagination and decodes the next cursor', async () => {
+    mockFetch.mockResolvedValue(Response.json({ users: [], nextCursor: 'next-page' }));
+    await expect(fetchUsers({ q: 'player@example.com', cursor: 'current-page' })).resolves.toEqual({
+      users: [],
+      nextCursor: 'next-page',
+    });
+    const input = mockFetch.mock.calls[0]?.[0];
+    if (typeof input !== 'string') throw new Error('Expected URL string');
+    const url = new URL(input);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      q: 'player@example.com',
+      cursor: 'current-page',
+      sort: 'created_at',
+      order: 'desc',
+    });
+  });
+
+  it('revokes an expired session before surfacing a failed API request', async () => {
+    mockFetch.mockResolvedValue(
+      Response.json({ success: false, reason: 'INVALID_ADMIN_TOKEN' }, { status: 403 }),
+    );
+    await expect(fetchUsers()).rejects.toThrow('INVALID_ADMIN_TOKEN');
+    expect(expireAdminSession).toHaveBeenCalledOnce();
   });
 
   it('surfaces non-authentication failures instead of reporting a bad password', async () => {
