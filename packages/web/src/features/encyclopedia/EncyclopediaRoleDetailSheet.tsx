@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
-import { DescriptionFields } from '@/features/room/components/RoleCard';
+import { RoleDescription } from '@/features/room/components/RoleCard';
 
 import type { EncyclopediaRoleEntry } from './encyclopediaSource';
 
@@ -58,11 +58,11 @@ export function EncyclopediaRoleDetailSheet({
         )}
 
         <div className="encyclopedia-detail-description">
-          {entry.structuredFields.length > 0 ? (
-            <DescriptionFields fields={entry.structuredFields} />
-          ) : (
-            <p className="encyclopedia-detail-text">{entry.description}</p>
-          )}
+          <RoleDescription
+            fields={entry.structuredFields}
+            fallbackText={entry.description ?? ''}
+            title="技能介绍"
+          />
         </div>
 
         <Button className="encyclopedia-detail-confirm" onClick={onClose}>

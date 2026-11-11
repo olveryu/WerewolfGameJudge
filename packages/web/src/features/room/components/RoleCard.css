@@ -35,32 +35,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-small);
   height: calc(min(82vw, 360px) * 1.5);
-  padding: var(--space-large) var(--space-medium) var(--space-medium);
+  padding: var(--space-large);
   overflow: hidden;
-  border: var(--border-width-thick) solid var(--faction-color);
+  border: var(--border-width-highlight) solid var(--faction-color);
   border-radius: var(--radius-xlarge);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card);
+  container-type: inline-size;
 }
 
 .role-card-faction {
   position: absolute;
-  top: var(--space-small);
-  right: var(--space-small);
-  padding: var(--space-micro) var(--space-small);
-  border-radius: var(--radius-full);
+  top: 0;
+  right: 0;
+  left: 0;
+  padding: var(--space-tight) 0;
   background: var(--faction-color);
   color: var(--color-text-inverse);
-  font-size: var(--font-caption);
-  font-weight: var(--weight-bold);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+  text-align: center;
 }
 
 .role-card-portrait {
   flex-shrink: 0;
   width: 38%;
   aspect-ratio: 1;
+  margin: var(--space-xlarge) 0 var(--space-small);
   object-fit: contain;
 }
 
@@ -71,7 +74,8 @@
   border-radius: var(--radius-large);
   background: var(--faction-color);
   color: var(--color-text-inverse);
-  font-size: var(--font-hero);
+  /* 40% of the 38%-wide portrait */
+  font-size: calc(38cqi * 0.4);
   font-weight: var(--weight-bold);
 }
 
@@ -84,10 +88,11 @@
 }
 
 .role-card-divider {
-  width: 60%;
-  margin: 0;
+  flex-shrink: 0;
+  width: 80%;
+  margin: var(--space-medium) 0;
   border: none;
-  border-top: var(--border-width) solid var(--color-border-light);
+  border-top: var(--border-width) solid var(--color-border);
 }
 
 .role-card-description {
@@ -98,19 +103,26 @@
   overscroll-behavior: contain;
 }
 
-.role-card-description-title {
+.role-card-description:has(> .role-card-fields) {
+  padding: var(--space-tight) 0 var(--space-medium);
+  mask-image: linear-gradient(to bottom, black calc(100% - var(--space-medium)), transparent);
+}
+
+.role-description-title {
   margin: 0 0 var(--space-tight);
   color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  font-weight: var(--weight-semibold);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-normal);
   text-align: center;
 }
 
-.role-card-description-text {
+.role-description-text {
   margin: 0;
+  padding: 0 var(--space-small);
   color: var(--color-text);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
   text-align: center;
 }
 
@@ -124,8 +136,9 @@
   --field-accent: var(--faction-color);
   --field-label: var(--color-text-secondary);
 
-  padding-left: var(--space-small);
-  border-left: var(--space-micro) solid var(--field-accent);
+  padding-left: calc(var(--space-tight) + var(--space-micro));
+  border-left: var(--border-width-thick) solid
+    color-mix(in srgb, var(--field-accent) 30%, transparent);
 }
 
 .role-card-field[data-tone='warning'] {
@@ -141,10 +154,11 @@
 .role-card-field-label {
   display: flex;
   align-items: center;
-  gap: var(--space-tight);
+  gap: var(--space-micro);
   margin: 0 0 var(--space-micro);
   color: var(--field-label);
   font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
   font-weight: var(--weight-semibold);
 }
 
@@ -152,12 +166,23 @@
 .role-card-field-bullets {
   margin: 0;
   color: var(--color-text);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
 }
 
 .role-card-field-bullets {
-  padding-left: var(--space-medium);
+  padding: 0;
+  list-style: none;
+}
+
+.role-card-field-bullets > li {
+  display: flex;
+  gap: var(--space-tight);
+}
+
+.role-card-field-bullets > li::before {
+  content: '•';
+  color: var(--color-text-muted);
 }
 
 .role-card-confirm {
