@@ -226,7 +226,7 @@ flaky 是概率事件，单次全绿不算证明。三次推送等于把全部 s
 - `pnpm exec eslint <改动的文件>`、`pnpm exec prettier --check <改动的文件>`、`pnpm run knip`。
 - `.agents/skills/new-e2e-spec/scripts/check-e2e.sh .`。
 - 改了 agent 文件以后跑 `pnpm run validate:agents`。
-- `e2e/` 没有干净的独立类型检查。`pnpm exec tsc --noEmit -p e2e/tsconfig.json` 在 `main` 上本来就报 1 个错（`@/` 别名解析不了），只能用来对比有没有新增错误。
+- `pnpm exec tsc --noEmit -p e2e/tsconfig.json` 可独立检查 E2E，也已接入 root `pnpm run typecheck` / CI。原有的 `@/` 别名错误在用户追加范围后修复，见 12.4。
 - 本地能起服务时，挑一个 3 人局、首步是 `guardProtect` 的用例加 `--repeat-each` 反复跑。`werewolf-night-completion.spec.ts` 第 175 行附近和 `werewolf-night-protect.spec.ts` 第 46 行附近各有一个。主持人是守卫的概率每次三分之一，日志里出现 `rolePage=P0` 才算覆盖到了这次出问题的路径。
 
 ### 8.4 阶段 0：推送前先做的事
@@ -265,7 +265,7 @@ flaky 是概率事件，单次全绿不算证明。三次推送等于把全部 s
 - 不加固定等待，不放大超时，不增加重试次数。
 - 不重写另外 18 个 spec。
 - 不改产品行为。
-- 不修 `e2e/tsconfig.json` 的 `@/` 别名问题，它和这次的事无关。
+- 原方案不修 `e2e/tsconfig.json` 的 `@/` 别名问题；用户随后要求一并修复，追加范围见 12.4。
 
 ## 12. 实施记录
 
@@ -288,7 +288,7 @@ flaky 是概率事件，单次全绿不算证明。三次推送等于把全部 s
 - 新增确定性 helper 回归测试，覆盖开局弹窗退出但语音未结束、已解锁、重复夜晚、面板未挂载、语音超时、步骤变化、无有效步骤和弹窗替换/节点卸载。不启动游戏服务器，不依赖随机角色分配。
 - driver、E2E shard 覆盖和架构合同共 5997 项通过。
 - root TypeScript、改动文件 ESLint/Prettier、knip、E2E policy check 通过；agent 校验 0 failures（756 个现有 warnings）。
-- E2E 独立 TypeScript 检查仍只有原有的 `RoomBottomActions.ts:3` `@/components/icons/IonIcon` 解析错误，没有新增错误。
+- 阶段 1–3 的 E2E 独立 TypeScript 检查只有原有的 `RoomBottomActions.ts:3` `@/components/icons/IonIcon` 解析错误，没有新增错误；之后追加修复，见 12.4。
 - 不复用共享环境中的游戏服务做本地实局；完整构建和实局 E2E 由隔离的 PR CI 验证。
 
 ### 12.3 CI 记录
@@ -301,3 +301,11 @@ flaky 是概率事件，单次全绿不算证明。三次推送等于把全部 s
 第一批 blob 的旧 20 秒 prompt fallback、旧吞错 cap、座位确认重试、扫描点击延迟计数均为 0。该次不是零 flaky 的验收样本；以上弹窗修复必须在后续 CI 重新验证。
 
 第二批的上述计数也全部为 0，且 126 个 attempt 全部通过；其中 2 次明确覆盖主持人是守卫（`rolePage=P0`）的等待路径。`60279a5dc` 对应的 run 在补正女巫 schema 的实际提示标题后被后续推送取代，已取消，不计入验收。
+
+### 12.4 追加：修复独立 E2E typecheck
+
+用户要求把原有别名错误也修复。`e2e/tsconfig.json` 补齐 web 的 `@/*` 路径映射、`react-jsx` 模式和 `unplugin-icons/types/react` 声明，让经由房间模型引入的图标组件按真实类型检查，而不是用空声明或排除文件绕过错误。
+
+root 同时声明与 web 相同版本范围的 `unplugin-icons` 开发依赖并更新 lockfile：E2E 直接使用该包的类型，不能只依赖 web 的间接安装，也不通过 knip 忽略项隐藏依赖缺失。
+
+root `typecheck` 脚本追加 `tsc -p e2e/tsconfig.json --noEmit`，现有 CI 的 Turbo typecheck 会一并执行。独立 E2E typecheck 和 root typecheck 已无错误通过；不再接受带原有错误的基线比较。
