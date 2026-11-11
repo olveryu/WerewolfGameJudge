@@ -13,8 +13,22 @@ const STARTUP_ENTRY = 'index.html';
 // Every route page ships in the start-up entry (docs/web-client-rewrite.md §5.10), so the
 // start-up closure already contains them all; only the boot splash is a separate entry.
 const HOME_ENTRIES = [STARTUP_ENTRY, 'src/boot/bootSplash.ts'];
-// Start-up code decodes with `zod/mini`; classic `zod` costs ~20 KiB gzip on the home budget.
-const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
+/** Modules that must stay out of the home closure, matched against each chunk's source-map sources. */
+const HOME_FORBIDDEN_SOURCES = [
+  {
+    name: 'Classic zod',
+    pattern: /\/node_modules\/zod\/v4\/classic\//,
+    // Classic `zod` costs ~20 KiB gzip on the home budget.
+    fix: "start-up modules must import from 'zod/mini'",
+  },
+  {
+    name: 'PixiJS',
+    pattern: /\/node_modules\/pixi\.js\//,
+    // The scene layer costs ~130 KiB gzip on the home budget, and the scene budget below counts
+    // only what loads beyond start-up, so PixiJS in the entry would escape that budget too.
+    fix: 'start-up modules must reach the scene layer through a dynamic import',
+  },
+];
 
 /**
  * Each budget names the manifest entries a user loads for that step. A budget with
@@ -22,10 +36,10 @@ const CLASSIC_ZOD_SOURCE = /\/node_modules\/zod\/v4\/classic\//;
  */
 const BUDGETS = [
   {
-    // Measured 2026-11-10 with every route static: 527.2 KiB gzip; ~4% headroom.
+    // Measured 2026-11-11 with every route static: 398.0 KiB gzip; ~4% headroom.
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
-    maxGzipBytes: 550 * KIB,
+    maxGzipBytes: 415 * KIB,
   },
   {
     // PixiJS loads its browser extensions and the selected renderer as dynamic chunks; the stage
@@ -83,32 +97,38 @@ function gzipSize(file) {
   return gzipSync(readFileSync(path.join(distDirectory, file))).length;
 }
 
-/** The home-closure chunks whose (hidden) source maps include classic Zod modules. */
-function findClassicZodChunks() {
+/** The source-map sources of each home-closure chunk, keyed by chunk file. */
+function readHomeChunkSources() {
   const entryMap = path.join(distDirectory, `${manifest[STARTUP_ENTRY].file}.map`);
   if (!existsSync(entryMap)) {
-    throw new Error(`Missing ${entryMap}: the classic-Zod check needs build.sourcemap enabled`);
+    throw new Error(`Missing ${entryMap}: the home-closure checks need build.sourcemap enabled`);
   }
   const files = new Set();
   for (const entry of HOME_ENTRIES) collectLoadClosure(resolveManifestKey(entry), files);
-  return [...files].filter((file) => {
+  const sourcesByChunk = new Map();
+  for (const file of files) {
     // Rolldown's injected runtime and helper chunks carry no source map.
     const mapFile = path.join(distDirectory, `${file}.map`);
-    if (!file.endsWith('.js') || !existsSync(mapFile)) return false;
-    const { sources } = JSON.parse(readFileSync(mapFile, 'utf8'));
-    return sources.some((source) => CLASSIC_ZOD_SOURCE.test(source));
-  });
+    if (!file.endsWith('.js') || !existsSync(mapFile)) continue;
+    sourcesByChunk.set(file, JSON.parse(readFileSync(mapFile, 'utf8')).sources);
+  }
+  return sourcesByChunk;
 }
 
 const startupFiles = collectLoadClosure(STARTUP_ENTRY);
 const failures = [];
 
-const classicZodChunks = findClassicZodChunks();
-if (classicZodChunks.length > 0) {
-  failures.push(
-    `Classic zod is in the home closure (${classicZodChunks.join(', ')}); ` +
-      "start-up modules must import from 'zod/mini'. Find the importer in the chunk's .map sources.",
-  );
+const homeChunkSources = readHomeChunkSources();
+for (const forbidden of HOME_FORBIDDEN_SOURCES) {
+  const chunks = [...homeChunkSources]
+    .filter(([, sources]) => sources.some((source) => forbidden.pattern.test(source)))
+    .map(([file]) => file);
+  if (chunks.length > 0) {
+    failures.push(
+      `${forbidden.name} is in the home closure (${chunks.join(', ')}); ${forbidden.fix}. ` +
+        "Find the importer in the chunk's .map sources.",
+    );
+  }
 }
 
 for (const budget of BUDGETS) {
