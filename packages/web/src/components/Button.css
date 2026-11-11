@@ -80,3 +80,9 @@
   background: transparent;
   color: var(--color-primary);
 }
+
+.button[data-variant='outline'] {
+  border: var(--border-width) solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+}

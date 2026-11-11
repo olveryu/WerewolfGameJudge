@@ -8,6 +8,7 @@ import { memo } from 'react';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { IndeterminateProgressBar } from '@/components/IndeterminateProgressBar';
 import { useNowMs } from '@/features/room/hooks/useNowMs';
 import { getLinkCloseMessage } from '@/features/room/model/linkCloseMessages';
 import type { RoomSeatConfirmationModel } from '@/features/room/model/RoomSeatConfirmation';
@@ -91,11 +92,7 @@ function ConnectionStatusBarComponent({
       data-testid={isLive ? TESTIDS.connectionPendingContainer : TESTIDS.connectionStatusContainer}
     >
       <span className="connection-bar-text">{text}</span>
-      {isAnimating && (
-        <span className="connection-bar-track" aria-hidden>
-          <span className="connection-bar-indeterminate" />
-        </span>
-      )}
+      {isAnimating && <IndeterminateProgressBar className="connection-bar-progress" />}
     </div>
   );
 }
