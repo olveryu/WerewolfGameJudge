@@ -1,8 +1,9 @@
 /**
  * Structured Description Contract Tests
  *
- * Validates that all 41 roles have structuredDescription defined
- * and that structured content is semantically consistent with the flat description.
+ * Validates that every role has structuredDescription defined, that the flat description is
+ * exactly the structured fields joined in render order, and that the fields follow the writing
+ * rules documented on `RoleDescription`.
  */
 
 import {
@@ -13,7 +14,7 @@ import type { RoleDescription } from '@game-judge/game-engine/games/werewolf/dom
 import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
 import { getRoleStructuredDescription } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/specs';
 
-/** Valid field keys in RoleDescription */
+/** Valid field keys in RoleDescription, in render order */
 const VALID_FIELDS: readonly (keyof RoleDescription)[] = [
   'skill',
   'passive',
@@ -22,6 +23,25 @@ const VALID_FIELDS: readonly (keyof RoleDescription)[] = [
   'special',
   'winCondition',
 ];
+
+/** Each clause between these separators renders as one bullet. */
+const CLAUSE_SEPARATOR = '；';
+
+/** Wording variants replaced by one house phrase; the key is banned, the value is what to write. */
+const BANNED_WORDING: Readonly<Record<string, string>> = {
+  不可: '不能',
+  公投: '投票放逐',
+  投票出局: '投票放逐',
+  狼队全灭: '其他狼人全部出局',
+  第二天起: '从第二夜起',
+  '。': CLAUSE_SEPARATOR,
+};
+
+/** A longer clause is several rules in one bullet; split it. */
+const MAX_CLAUSE_LENGTH = 45;
+
+/** Arabic digits directly before a counter word; counts are written in Chinese numerals. */
+const ARABIC_COUNT = /\d\s*[名张次瓶人票]/;
 
 describe('structuredDescription contract', () => {
   const allRoles = getAllRoleIds();
@@ -60,37 +80,67 @@ describe('structuredDescription contract', () => {
     }
   });
 
-  it('structuredDescription content should be covered by the flat description', () => {
-    // Each structured field's text (after removing punctuation) should appear
-    // as a substring or semantic segment in the flat description.
-    // This is a loose check — we verify each clause appears in the original.
+  it('flat description is exactly the structured fields joined in render order', () => {
+    const drifted: string[] = [];
     for (const id of allRoles) {
       const spec: RoleSpec = ROLE_SPECS[id];
       const desc = spec.structuredDescription;
       if (!desc) continue;
-      const flat = spec.description;
+      const joined = VALID_FIELDS.map((key) => desc[key])
+        .filter((value) => value != null)
+        .join(CLAUSE_SEPARATOR);
+      if (spec.description !== joined) drifted.push(id);
+    }
+    expect(drifted).toEqual([]);
+  });
 
+  it('structuredDescription fields are declared in render order', () => {
+    const misordered: string[] = [];
+    for (const id of allRoles) {
+      const desc = getRoleStructuredDescription(id);
+      if (!desc) continue;
+      const declared = Object.keys(desc);
+      const expected = VALID_FIELDS.filter((key) => desc[key] != null);
+      if (declared.join(',') !== expected.join(',')) misordered.push(id);
+    }
+    expect(misordered).toEqual([]);
+  });
+
+  it('every clause is a non-empty, trimmed bullet of one rule', () => {
+    const malformed: string[] = [];
+    for (const id of allRoles) {
+      const desc = getRoleStructuredDescription(id);
+      if (!desc) continue;
       for (const key of VALID_FIELDS) {
         const value = desc[key];
         if (value == null) continue;
-        // Split by semicolons and check each clause
-        const clauses = value.split('；');
-        for (const clause of clauses) {
-          // At least one 4-character window from the clause should exist in flat.
-          // Uses a sliding window instead of a fixed prefix to tolerate minor
-          // rewording (e.g. "绑定时胜利条件" vs "绑定胜利条件").
-          const windowSize = Math.min(4, clause.length);
-          let found = false;
-          for (let i = 0; i <= clause.length - windowSize; i++) {
-            if (flat.includes(clause.slice(i, i + windowSize))) {
-              found = true;
-              break;
-            }
-          }
-          expect(found).toBe(true);
+        for (const clause of value.split(CLAUSE_SEPARATOR)) {
+          const isBullet =
+            clause.length > 0 && clause === clause.trim() && clause.length <= MAX_CLAUSE_LENGTH;
+          if (!isBullet) malformed.push(`${id}.${key}: "${clause}"`);
         }
       }
     }
+    expect(malformed).toEqual([]);
+  });
+
+  it('uses one house phrase per concept and Chinese numerals for counts', () => {
+    const violations: string[] = [];
+    for (const id of allRoles) {
+      const desc = getRoleStructuredDescription(id);
+      if (!desc) continue;
+      for (const key of VALID_FIELDS) {
+        const value = desc[key];
+        if (value == null) continue;
+        for (const [banned, preferred] of Object.entries(BANNED_WORDING)) {
+          if (value.includes(banned)) {
+            violations.push(`${id}.${key}: "${banned}" → "${preferred}"`);
+          }
+        }
+        if (ARABIC_COUNT.test(value)) violations.push(`${id}.${key}: Arabic count`);
+      }
+    }
+    expect(violations).toEqual([]);
   });
 
   describe('getRoleStructuredDescription()', () => {
