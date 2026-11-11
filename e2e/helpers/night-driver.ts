@@ -151,8 +151,8 @@ async function logHeartbeat(pages: Page[], waitingFor: string): Promise<void> {
 }
 
 /**
- * Click with the shared cap; a failed click is logged, never thrown, so
- * a stuck element degrades to a missed sweep instead of a hung test.
+ * Cap a scan click at one second. Actionability timeouts defer the sweep;
+ * other failures propagate instead of being silently treated as a missed click.
  */
 async function clickCapped(locator: Locator, label: string): Promise<boolean> {
   try {
@@ -227,7 +227,7 @@ export async function clickSeatAndReadNotice(
  * Click a single-target seat and confirm it. Only unsubmitted taps may be
  * repeated, within the original step; draft/toggle steps must never use this.
  */
-export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<boolean> {
+export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<void> {
   log(`clickSeatAndConfirm seat=${seatIdx}`);
   const stepBefore = await readRoomStep(page);
   const tile = page.getByTestId(TESTIDS.seatTilePressable(seatIdx));
@@ -276,7 +276,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
       await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
       await confirmButton.waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
       log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
-      return true;
+      return;
     }
     throw new Error(`No seat confirmation within ${CONFIRM_TIMEOUT_MS}ms`);
   } catch (error) {
@@ -464,7 +464,7 @@ export async function waitForStepAndSettle(
   page: Page,
   stepId: string,
   timeoutMs = WOLF_STEP_WAIT_MS,
-): Promise<boolean> {
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   if (!(await waitForRoomStep(page, stepId, timeoutMs))) {
     return failNightAction(`Step ${stepId} not reached within ${timeoutMs}ms`, [page]);
@@ -472,7 +472,6 @@ export async function waitForStepAndSettle(
   if (!(await waitForStepUnlock(page, stepId, deadline))) {
     return failNightAction(`Step ${stepId} moved before the audio lock lifted`, [page]);
   }
-  return true;
 }
 
 /** Budget for the host's audio ack (the night-end clip alone runs ~7.6s). */
@@ -547,7 +546,7 @@ export async function waitForRoleTurn(
   stepId: string,
   allPages: Page[],
   timeoutMs = DEFAULT_STEP_WAIT_MS,
-): Promise<boolean> {
+): Promise<void> {
   log(`waitForRoleTurn step=${stepId} rolePage=${pageId(rolePage, allPages)}`);
   const deadline = Date.now() + timeoutMs;
   let lastHeartbeat = 0;
@@ -555,7 +554,7 @@ export async function waitForRoleTurn(
     if ((await readRoomStep(rolePage)) === stepId) {
       if (await waitForStepUnlock(rolePage, stepId, deadline)) {
         log(`waitForRoleTurn — step ${stepId} reached, audio unlocked`);
-        return true;
+        return;
       }
       log(`waitForRoleTurn — step ${stepId} moved on during audio`);
     }
@@ -592,7 +591,7 @@ export async function waitForRoleTurn(
 export async function waitForNightEnd(
   pages: Page[],
   timeoutMs = DEFAULT_STEP_WAIT_MS,
-): Promise<boolean> {
+): Promise<void> {
   log('waitForNightEnd — start');
   const ended = await pollUntil(
     pages,
@@ -610,7 +609,7 @@ export async function waitForNightEnd(
   // settle window before reporting.
   for (let i = 0; i < 10; i++) {
     if (await isNightEnded(pages[0]!)) {
-      return true;
+      return;
     }
     await pages[0]!.waitForTimeout(POLL_INTERVAL_MS);
   }
@@ -667,13 +666,9 @@ export async function driveWolfVote(
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
     log(`driveWolfVote — P${wIdx} waiting for step wolfKill`);
-    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
-      throw new Error(`Wolf step not reached for page ${wIdx}`);
-    }
+    await waitForStepAndSettle(wPage, 'wolfKill');
     log(`driveWolfVote — P${wIdx} wolfKill reached, clicking seat`);
-    if (!(await clickSeatAndConfirm(wPage, targetSeat))) {
-      throw new Error(`Wolf vote confirmation failed for page ${wIdx}, target seat ${targetSeat}`);
-    }
+    await clickSeatAndConfirm(wPage, targetSeat);
     log(`driveWolfVote — P${wIdx} vote done`);
   }
 }
@@ -687,12 +682,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
     log(`driveWolfEmptyVote — P${wIdx} waiting for step wolfKill`);
-    if (!(await waitForStepAndSettle(wPage, 'wolfKill'))) {
-      throw new Error(`Wolf step not reached for page ${wIdx}`);
-    }
-    // Dismiss the step prompt before interacting — after the settle,
-    // not before: dismissing first would eat the very prompt whose
-    // transition the settle observes, stalling it to the cap.
+    await waitForStepAndSettle(wPage, 'wolfKill');
     await dismissAlert(wPage);
 
     await clickNightButton(wPage, 'wolfEmpty', '放弃袭击');
@@ -781,13 +771,13 @@ export async function waitForGroupConfirmStep(
   pages: Page[],
   statusButtonText: string,
   maxIterations = 60,
-): Promise<boolean> {
+): Promise<void> {
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     for (const page of pages) {
       const statusButton = nightButton(page, 'groupConfirmAck');
       if (await statusButton.isVisible().catch(() => false)) {
         await expect(statusButton).toHaveText(statusButtonText);
-        return true;
+        return;
       }
     }
     for (const page of pages) {
@@ -848,11 +838,7 @@ export async function clickNightButton(page: Page, key: string, label: string): 
  * Drive the magician to swap two seats.
  * Clicks seat1, confirms first target prompt, clicks seat2, confirms swap.
  */
-export async function driveMagicianSwap(
-  page: Page,
-  seat1: number,
-  seat2: number,
-): Promise<boolean> {
+export async function driveMagicianSwap(page: Page, seat1: number, seat2: number): Promise<void> {
   try {
     // Dismiss any existing alert (e.g. "夜间行动") before interacting with seats
     await dismissAlert(page);
@@ -870,7 +856,6 @@ export async function driveMagicianSwap(
     await tile2.click({ timeout: CLICK_TIMEOUT_MS });
     await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('确认交换');
     await pressConfirm(page);
-    return true;
   } catch (error) {
     return failNightAction(`Magician swap ${seat1}/${seat2} failed`, [page], error);
   }
