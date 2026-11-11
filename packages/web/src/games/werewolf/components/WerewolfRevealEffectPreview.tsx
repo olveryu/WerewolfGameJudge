@@ -12,14 +12,16 @@ import RevealEffectStage from '@/features/room/components/RoleRevealEffects/Reve
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
-const PREVIEW_ROLE: RevealRoleData = { id: 'villager', name: '村民', alignment: 'villager' };
+import { toRevealRoleData } from './WerewolfRoleCardAdapter';
+
+const PREVIEW_ROLE = toRevealRoleData('villager');
 const PREVIEW_ROLES: readonly RevealRoleData[] = [
   PREVIEW_ROLE,
-  { id: 'wolf', name: '狼人', alignment: 'wolf' },
-  { id: 'seer', name: '预言家', alignment: 'god' },
-  { id: 'witch', name: '女巫', alignment: 'god' },
-  { id: 'hunter', name: '猎人', alignment: 'god' },
-  { id: 'guard', name: '守卫', alignment: 'god' },
+  toRevealRoleData('wolf'),
+  toRevealRoleData('seer'),
+  toRevealRoleData('witch'),
+  toRevealRoleData('hunter'),
+  toRevealRoleData('guard'),
 ];
 
 /** Plays `effectId` for a villager among six roles and reports completion. */

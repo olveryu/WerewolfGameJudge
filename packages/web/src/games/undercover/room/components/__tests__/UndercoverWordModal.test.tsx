@@ -40,7 +40,8 @@ describe('UndercoverWordModal', () => {
     renderModal({ ...baseProps, card: wordCard });
 
     expect(screen.getByTestId('undercover-word')).toHaveTextContent('苹果');
-    expect(screen.getByText('?')).toBeInTheDocument();
+    expect(screen.getByTestId('role-badge')).toHaveTextContent('?');
+    expect(screen.getAllByText('?')).toHaveLength(2);
   });
 
   it('tells the blank card holder that they are the blank', async () => {
@@ -48,6 +49,7 @@ describe('UndercoverWordModal', () => {
 
     expect(screen.getByTestId('undercover-word')).toHaveTextContent('你是白板');
     expect(screen.getByText('白板')).toBeInTheDocument();
+    expect(screen.getByTestId('role-badge')).toHaveTextContent('白');
   });
 
   it('plays the equipped animation first; the confirm action appears only on the static card', async () => {

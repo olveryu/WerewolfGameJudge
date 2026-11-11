@@ -51,6 +51,11 @@ interface ToRevealRoleDataOptions {
   readonly seerLabel?: number;
 }
 
+type WerewolfRevealRoleData = RevealRoleData & {
+  readonly id: RoleId;
+  readonly displayId: RoleId;
+};
+
 /**
  * 把狼人杀结构化介绍转成共享 DescriptionField[]（卡链与图鉴共用一份字段表）。
  * 6 字段完整保留（含胜利条件），带中文标签、图标、语义色调。
@@ -99,7 +104,10 @@ export function toWerewolfDescriptionFields(roleId: RoleId): readonly Descriptio
 }
 
 /** 将狼人杀 RoleId 转为通用 RevealRoleData。 */
-export function toRevealRoleData(roleId: RoleId, opts?: ToRevealRoleDataOptions): RevealRoleData {
+export function toRevealRoleData(
+  roleId: RoleId,
+  opts?: ToRevealRoleDataOptions,
+): WerewolfRevealRoleData {
   const showRealIdentity = opts?.showRealIdentity ?? false;
   // displayAs 伪装：翻牌时玩家看到伪装身份，法官视角看真实身份
   const displayId = showRealIdentity ? roleId : (getRoleDisplayAs(roleId) ?? roleId);

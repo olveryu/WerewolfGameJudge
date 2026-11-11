@@ -109,7 +109,7 @@ function RoleCardContent({
         />
       ) : (
         <span className="role-card-portrait role-card-placeholder" data-testid={TESTIDS.roleBadge}>
-          {role.name.charAt(0)}
+          {role.placeholderText ?? role.name.charAt(0)}
         </span>
       )}
       <h2 className="role-card-name" data-testid={nameTestId}>

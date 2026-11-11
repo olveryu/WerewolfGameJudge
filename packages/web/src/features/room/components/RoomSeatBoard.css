@@ -299,13 +299,26 @@
 .seat-level-badge {
   position: absolute;
   bottom: calc(-1 * var(--space-tight));
-  z-index: 1;
+  left: 50%;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
   padding: 1px calc(var(--space-tight) + var(--space-micro));
+  border: var(--border-width) solid var(--color-text-secondary);
   border-radius: var(--radius-full);
-  background: var(--color-background-a85);
-  color: var(--color-text-muted);
+  background: var(--color-text);
+  color: var(--color-primary-light);
   font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
   font-weight: var(--weight-bold);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.seat-level-badge > span {
+  color: var(--color-text-inverse);
 }
 
 .seat-number-badge {

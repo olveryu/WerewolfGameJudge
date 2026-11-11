@@ -1,10 +1,9 @@
 /**
- * werewolfReview tests — the review contribution's gate. The report exists
- * from dawn (Day) through the end of the game: the host and spectators
- * read it, a seated player only once the host granted the seat
- * (`nightReviewAllowedSeats`); only the host and granted seats may export
- * the image; every reader confirms first, and a Day confirmation warns
- * that the report can sway the sheriff election.
+ * werewolfReview tests — the review contribution's gate. During Day, the
+ * host and spectators read it, while a seated player needs the host's grant
+ * (`nightReviewAllowedSeats`). Once ended, every room user may read and
+ * export it. Every reader confirms first, and a Day confirmation warns that
+ * the report can sway the sheriff election.
  */
 import {
   type GameState,
@@ -77,13 +76,13 @@ describe('werewolfReview', () => {
     });
   });
 
-  it('is available to a spectator, who may not share it', () => {
+  it('is available to a spectator, who may share it', () => {
     const state = makeSettledNightState({ nightReviewAllowedSeats: [1] });
 
     expect(resolveFor(state, SPECTATOR)).toEqual({
       kind: 'available',
       document: documentFor(state),
-      sharing: { isAllowed: false, reason: '仅房主和已获授权的玩家可以分享战报' },
+      sharing: { isAllowed: true },
       confirmation: DAY_CONFIRMATION,
     });
   });
@@ -99,19 +98,28 @@ describe('werewolfReview', () => {
     });
   });
 
-  it('is notPermitted for a seated player the host has not granted', () => {
-    for (const status of [GameStatus.Day, GameStatus.Ended]) {
-      expect(resolveFor(makeSettledNightState({ status }), seatedViewer(1))).toEqual(NOT_PERMITTED);
-      expect(
-        resolveFor(makeSettledNightState({ status, nightReviewAllowedSeats: [] }), seatedViewer(1)),
-      ).toEqual(NOT_PERMITTED);
-      expect(
-        resolveFor(
-          makeSettledNightState({ status, nightReviewAllowedSeats: [2] }),
-          seatedViewer(1),
-        ),
-      ).toEqual(NOT_PERMITTED);
-    }
+  it('is notPermitted for a seated player the host has not granted during Day', () => {
+    expect(resolveFor(makeSettledNightState(), seatedViewer(1))).toEqual(NOT_PERMITTED);
+    expect(
+      resolveFor(makeSettledNightState({ nightReviewAllowedSeats: [] }), seatedViewer(1)),
+    ).toEqual(NOT_PERMITTED);
+    expect(
+      resolveFor(makeSettledNightState({ nightReviewAllowedSeats: [2] }), seatedViewer(1)),
+    ).toEqual(NOT_PERMITTED);
+  });
+
+  it('lets an ungranted seated player read and share once the game has ended', () => {
+    const state = makeSettledNightState({
+      status: GameStatus.Ended,
+      nightReviewAllowedSeats: [],
+    });
+
+    expect(resolveFor(state, seatedViewer(1))).toEqual({
+      kind: 'available',
+      document: documentFor(state),
+      sharing: { isAllowed: true },
+      confirmation: ENDED_CONFIRMATION,
+    });
   });
 
   it('confirms first, warning about the sheriff election only during Day', () => {

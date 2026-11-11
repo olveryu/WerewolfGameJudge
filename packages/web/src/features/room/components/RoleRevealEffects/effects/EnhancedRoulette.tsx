@@ -498,7 +498,7 @@ export default function EnhancedRoulette({
                       }}
                     >
                       <span style={{ fontSize: 36, marginRight: 'var(--space-medium)' }}>
-                        {entry.name.charAt(0)}
+                        {entry.placeholderText ?? entry.name.charAt(0)}
                       </span>
                       <span
                         style={{

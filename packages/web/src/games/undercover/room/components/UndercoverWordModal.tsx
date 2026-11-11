@@ -64,6 +64,7 @@ export function UndercoverWordModal({
     id: 'undercover-word',
     name: isBlank ? '你是白板' : card.word,
     alignment: 'neutral',
+    placeholderText: isBlank ? '白' : '?',
     factionName: `${formatRoomSeat(card.seat)}词卡`,
     description: fields,
   };

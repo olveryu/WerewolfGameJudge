@@ -1,9 +1,9 @@
 /**
  * The werewolf review contribution. The report exists from dawn (Day)
- * through the end of the game, so reading it mid-game is gated: the host
- * and spectators read it, a seated player only once the host granted the
- * seat (the engine's `nightReviewAllowedSeats`); only the host and granted
- * seats may export the image. Every reader confirms before opening — the
+ * through the end of the game. During Day, the host and spectators read it,
+ * while a seated player needs the host's grant (`nightReviewAllowedSeats`);
+ * once ended, every room user may read and export it. Every reader confirms
+ * before opening — the
  * report carries every identity and can sway the sheriff election.
  */
 
@@ -24,10 +24,10 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
     }
     const isGrantedSeat =
       viewer.seat !== null && (state.nightReviewAllowedSeats ?? []).includes(viewer.seat);
-    if (!viewer.isHost && viewer.seat !== null && !isGrantedSeat) {
+    const isEnded = state.status === GameStatus.Ended;
+    if (!isEnded && !viewer.isHost && viewer.seat !== null && !isGrantedSeat) {
       return { kind: 'notPermitted', reason: '房主尚未向你开放复盘' };
     }
-    const isEnded = state.status === GameStatus.Ended;
     return {
       kind: 'available',
       document: toWerewolfReviewDocument({
@@ -35,10 +35,7 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
         roomCode,
         gameSequence: state.gameSequence,
       }),
-      sharing:
-        viewer.isHost || isGrantedSeat
-          ? { isAllowed: true }
-          : { isAllowed: false, reason: '仅房主和已获授权的玩家可以分享战报' },
+      sharing: { isAllowed: true },
       confirmation: {
         title: '查看本局复盘？',
         message: isEnded

@@ -67,6 +67,8 @@ export interface RevealRoleData {
   readonly alignment: RevealAlignment;
   /** 立绘 URL（可选，无图时显示阵营色卡背） */
   readonly imageUrl?: string;
+  /** 无立绘时的占位文字，缺省为显示名的首字。 */
+  readonly placeholderText?: string;
   /**
    * 角色描述：结构化字段数组，或简单字符串。
    * 结构化：狼人杀/阿瓦隆多字段；简单：单段文本（居中显示）。

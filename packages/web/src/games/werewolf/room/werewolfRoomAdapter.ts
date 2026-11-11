@@ -247,7 +247,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
             : { label: formatWolfVoteBadge(wolfVote), tone: 'danger' }),
         indicators: null,
         isStatusEmphasized: false,
-        showLevel: showLevelsAndDecorations,
+        showLevel: isWerewolfSetup(status),
         decorationsEnabled: showLevelsAndDecorations,
       };
     },
@@ -468,8 +468,8 @@ const EMPTY_LAYOUT: RoomBottomActionLayout = { primary: [], secondary: [], ghost
  * The bottom button layout per status and audience: identity viewing from
  * the deal on, the night step's own buttons for the actioner, the review
  * entry for every non-host from the day on (spectators read it, a seat
- * reads it once the host granted it — otherwise it shows why not); the
- * host reaches the review through host management. Nothing while
+ * needs a grant during Day, and every room user can read it once ended);
+ * the host reaches the review through host management. Nothing while
  * narration plays.
  */
 export function createWerewolfBottomActionLayout(

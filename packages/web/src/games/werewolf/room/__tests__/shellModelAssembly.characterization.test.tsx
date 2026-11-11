@@ -140,7 +140,6 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       actionKey: 'last-night-info',
       steps: [
         { key: 'lastNightInfo', state: 'current' },
-        { key: 'grantReview', state: 'upcoming' },
         { key: 'closing', state: 'upcoming' },
       ],
     });
@@ -158,8 +157,8 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     if (model.bottomActions.kind === 'stacked') {
       // The flow is the host's alone: a player gets no host management
       // and no host buttons at Ended — only their own secondary tool and
-      // the review entry, which an ungranted seat sees disabled with the
-      // reason; no guide line (the night step is cleared when the night ends).
+      // the review entry, now public to every seat; no guide line (the
+      // night step is cleared when the night ends).
       expect(model.hostManagement).toBeNull();
       expect(model.bottomActions.message).toBeNull();
       expect(model.bottomActions.layout.primary).toEqual([]);
@@ -171,8 +170,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
           key: 'review',
           label: '本局复盘',
           variant: 'ghost',
-          isEnabled: false,
-          disabledReason: '房主尚未向你开放复盘',
+          isEnabled: true,
         },
       ]);
     }

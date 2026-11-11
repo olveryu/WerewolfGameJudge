@@ -11,6 +11,7 @@ import './faction.css';
 import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
+import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 
@@ -30,7 +31,7 @@ interface RoleCardSimpleProps {
   readonly activeVariant?: RoleId;
   /** Called when the user taps a variant pill. */
   readonly onVariantSelect?: (variantId: RoleId) => void;
-  /** Shows the AI 攻略 pill; receives the displayed roleId (after a variant switch). */
+  /** Overrides the mounted-chat handler; receives the card's presented identity. */
   readonly onAskAI?: (displayRoleId: RoleId) => void;
 }
 
@@ -45,9 +46,12 @@ export function RoleCardSimple({
   onVariantSelect,
   onAskAI,
 }: RoleCardSimpleProps) {
+  const isAIChatAvailable = useAIChatAvailable();
   if (!visible || roleId === null) return null;
   const displayRoleId = activeVariant ?? roleId;
   const role = toRevealRoleData(displayRoleId, { showRealIdentity, seerLabel });
+  const handleAskAI =
+    onAskAI ?? (isAIChatAvailable ? (id: RoleId) => askAIAboutRole(id, onClose) : undefined);
   const showVariantBar =
     variantIds !== undefined && variantIds.length > 1 && onVariantSelect !== undefined;
 
@@ -58,13 +62,13 @@ export function RoleCardSimple({
       confirmText="知道了"
       footer={
         <>
-          {onAskAI !== undefined && (
+          {handleAskAI !== undefined && (
             <button
               type="button"
               className="role-ai-pill"
               data-alignment={role.alignment}
               data-faction={role.alignment}
-              onClick={() => onAskAI(displayRoleId)}
+              onClick={() => handleAskAI(role.displayId)}
             >
               <IconSparklesOutline aria-hidden />
               AI 攻略
