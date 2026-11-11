@@ -1004,7 +1004,12 @@ class SceneStage implements EntranceHost {
     const shouldRun = (hasSeatWork || this.overlay?.animating === true) && !document.hidden;
     const ticker = this.application.ticker;
     if (shouldRun && !ticker.started) ticker.start();
-    if (!shouldRun && ticker.started) ticker.stop();
+    if (!shouldRun && ticker.started) {
+      ticker.stop();
+      // A stopped ticker keeps its last frame on the canvas: draw the stage as it is now, so a
+      // decoration unmounted since that frame (its tile scrolled out of view) does not linger.
+      if (!document.hidden) this.application.render();
+    }
   }
 
   private createNode(node: DecorationNode, decorationId: string, context: NodeContext): SceneNode {
