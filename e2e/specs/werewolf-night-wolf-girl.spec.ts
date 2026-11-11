@@ -12,7 +12,6 @@ import {
   driveWolfDisabledEmptyVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  readRoomStep,
   viewLastNightInfo,
   waitForGroupConfirmStep,
   waitForNightEnd,
@@ -53,17 +52,31 @@ test.setTimeout(300_000);
  * nothing at all; either way the step must stay put. The open step
  * prompt is dismissed first so the tap reaches the seat.
  */
-async function expectWolfSeatNotConfessable(page: Page, seat: number): Promise<void> {
-  const stepBefore = await readRoomStep(page);
+async function expectWolfSeatNotConfessable(
+  page: Page,
+  seat: number,
+  selectableSeat: number,
+): Promise<void> {
+  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute(
+    'data-step',
+    'wolfGirlConfess',
+  );
+  await expect(page.getByTestId(TESTIDS.seatTilePressable(selectableSeat))).toHaveAttribute(
+    'data-inert',
+    'false',
+  );
+  const wolfTile = page.getByTestId(TESTIDS.seatTilePressable(seat));
+  await expect(wolfTile).toHaveAttribute('data-inert', 'true');
   await dismissAlert(page);
-  await page.getByTestId(TESTIDS.seatTilePressable(seat)).click({ timeout: 10_000 });
-  await page.waitForTimeout(300);
+  await wolfTile.click({ timeout: 10_000 });
 
-  const alertTitle = page.getByTestId(TESTIDS.alertTitle);
-  const alertTitleText = (await alertTitle.count()) > 0 ? await alertTitle.textContent() : '';
-  expect(alertTitleText, 'No confess confirm dialog for a wolf seat').not.toContain('确认表白');
-  expect(await readRoomStep(page), 'Night step must not move after tapping a wolf seat').toBe(
-    stepBefore,
+  await expect(
+    page.getByTestId(TESTIDS.alertButton(1)),
+    'No confess confirm dialog for a wolf seat',
+  ).toHaveCount(0);
+  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute(
+    'data-step',
+    'wolfGirlConfess',
   );
   await dismissAlert(page);
 }
@@ -180,7 +193,11 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             'Confess step prompt should show the 表白 verb',
           ).toContainText('请选择要表白的玩家');
 
-          await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!);
+          await expectWolfSeatNotConfessable(
+            pages[wolfGirlPageIndex]!,
+            wolfSeats[0]!,
+            confessTargetSeat,
+          );
 
           const confirmed = await clickSeatAndConfirm(pages[wolfGirlPageIndex]!, confessTargetSeat);
           expect(confirmed, 'Wolf Girl should confirm the confession').toBe(true);
@@ -270,7 +287,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           );
           expect(confessTurn, 'Wolf Girl confess turn should become active').toBe(true);
 
-          await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!);
+          await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!, seerSeat);
 
           const confirmed = await clickSeatAndConfirm(pages[wolfGirlPageIndex]!, seerSeat);
           expect(confirmed, 'Wolf Girl should confirm the confession').toBe(true);

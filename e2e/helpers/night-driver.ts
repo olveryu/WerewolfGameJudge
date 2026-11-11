@@ -206,6 +206,23 @@ async function pressConfirm(page: Page): Promise<void> {
 // Seat interaction
 // ---------------------------------------------------------------------------
 
+/** Tap an enabled seat that produces a notice rather than a submission dialog. */
+export async function clickSeatAndReadNotice(
+  page: Page,
+  seat: number,
+  title: string,
+): Promise<string> {
+  try {
+    await dismissAlert(page);
+    const tile = page.getByTestId(TESTIDS.seatTilePressable(seat));
+    await expect(tile).toHaveAttribute('data-inert', 'false');
+    await tile.click({ timeout: CLICK_TIMEOUT_MS });
+    return await readAlertText(page, CONFIRM_TIMEOUT_MS, title);
+  } catch (error) {
+    return failNightAction(`Seat ${seat} notice "${title}" failed`, [page], error);
+  }
+}
+
 /**
  * Click a single-target seat and confirm it. Only unsubmitted taps may be
  * repeated, within the original step; draft/toggle steps must never use this.
