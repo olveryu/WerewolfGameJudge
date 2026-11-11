@@ -30,6 +30,13 @@ Drive roles in `NIGHT_STEP_ORDER` (see
 `waitForNightEnd` takes the pages array. Roles act from their own
 page's role card.
 
+Night helpers wait for the step anchor and audio lock to lift, not a
+dialog transition. Seat actions wait for `data-inert="false"` and verify
+their effect. Never retry a draft/toggle tap. Required actions throw with
+room anchors on failure; scan predicates still return booleans. Before a
+negative assertion, prove that the page is unlocked and the intended
+target restriction is present.
+
 ## Naming
 
 Filename families in `e2e/specs/` at drafting time:

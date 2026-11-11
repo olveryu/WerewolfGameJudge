@@ -21,6 +21,7 @@ Scope: `e2e/**` plus the workflows that run it. Unit and contract tests live und
 
 ## Interaction rules
 
+- Night actions wait for the step/audio state and seat `data-inert`; never infer readiness from dialog changes. Read expected prompts by title, and prove readiness before negative assertions (see `e2e/helpers/README.md`).
 - `page.waitForTimeout()` in new specs is polling cadence only, at most 300 ms, except duration holds in `e2e/specs/resilience-reconnect.spec.ts` where the held duration itself is the test condition (offline 5s, flap 1s, hidden 30s).
 
 ## Logging

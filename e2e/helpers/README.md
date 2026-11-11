@@ -109,6 +109,10 @@ Keep dependencies flowing from scenarios toward lower-level helpers. `ui.ts` mus
 
 - Navigate with `gotoWithRetry()` rather than direct `page.goto()` calls in specs.
 - Wait for room readiness with `waitForRoomScreenReady()`.
+- Night readiness requires the expected `data-step`, a rendered bottom action panel, and no `audioWaitingMessage`. Never infer readiness from a dialog transition or cache it across nights.
+- Use night-driver actions for seats: wait for `data-inert="false"` and verify the resulting confirmation. Only unsubmitted single-target taps may be retried within the same step; never retry draft/toggle selections.
+- Identify expected prompts by title before reading them. Dismiss only the captured alert body and wait for it to close or be replaced; leave replacement dialogs untouched. Scan helpers may defer a capped click, but required actions throw diagnostic errors.
+- Negative interaction assertions need positive readiness evidence first, so an audio-locked page cannot make them pass vacuously.
 - Dismiss an Ark UI dialog by an outside press with `dismissDialogByOutsideClick()`, not a bare `page.mouse.click()`: Ark arms its outside-press listener a task after the dialog renders, so an immediate press is dropped.
 - Use Playwright locators and assertions instead of fixed sleeps. Polling cadence is the only allowed `page.waitForTimeout()` use and must be at most 300 ms.
 - Never use `force: true` to bypass actionability for normal user interactions.
