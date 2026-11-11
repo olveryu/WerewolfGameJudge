@@ -1,6 +1,26 @@
 .center-dialog.player-profile-dialog {
+  gap: 0;
+  min-width: 0;
+  max-width: var(--size-profile-card-width);
   max-height: 85vh;
   overflow: hidden;
+  padding: 0;
+}
+
+.center-dialog.player-profile-dialog[data-has-close-button] > .center-dialog-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.player-profile-dialog .center-dialog-close {
+  z-index: 3;
+  top: var(--space-tight);
+  right: var(--space-tight);
 }
 
 .profile-card {
@@ -12,7 +32,11 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  gap: var(--space-small);
+  padding-bottom: var(--space-large);
+}
+
+.profile-card > * {
+  flex-shrink: 0;
 }
 
 .profile-card [data-tier='newbie'] {
@@ -39,32 +63,41 @@
   --tier-color: var(--color-warning);
 }
 
+.profile-header-band {
+  height: var(--space-xxlarge);
+  background: var(--tier-color);
+  opacity: 0.15;
+}
+
 /* The avatar tile; the card's scene layer draws its frame and flair, which overflow the tile. */
 .profile-avatar {
   position: relative;
   align-self: center;
-  width: var(--size-avatar-xl);
-  margin-top: var(--space-small);
+  width: calc(var(--size-avatar-xl) + var(--space-tight) * 2);
+  margin-top: calc(-1 * (var(--size-avatar-xl) / 2 + var(--space-tight)));
+  padding: var(--space-tight);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
 }
 
 /* Above the scene layer, so the frame never covers the level. */
 .profile-level {
   position: absolute;
   z-index: 2;
-  bottom: calc(-1 * var(--space-tight));
-  left: 50%;
+  bottom: 0;
+  right: calc(-1 * var(--space-tight));
   padding: var(--space-micro) var(--space-small);
+  border: var(--border-width-thick) solid var(--color-surface);
   border-radius: var(--radius-full);
   background: var(--tier-color);
   color: var(--color-text-inverse);
   font-size: var(--font-caption-small);
   font-weight: var(--weight-bold);
-  transform: translateX(-50%);
 }
 
 .profile-name {
   overflow: hidden;
-  margin: var(--space-small) 0 0;
+  margin: var(--space-small) var(--space-large) 0;
   color: var(--color-text);
   font-size: var(--font-title);
   line-height: var(--line-title);
@@ -76,12 +109,18 @@
 
 .profile-title {
   align-self: center;
+  margin-top: var(--space-tight);
   padding: var(--space-micro) var(--space-small);
-  border: var(--border-width) solid var(--tier-color);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
   color: var(--tier-color);
   font-size: var(--font-caption);
+  line-height: var(--line-caption);
   font-weight: var(--weight-semibold);
+}
+
+.profile-xp {
+  margin: var(--space-medium) var(--space-large) 0;
 }
 
 .profile-xp-row {
@@ -89,6 +128,8 @@
   justify-content: space-between;
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  margin-bottom: var(--space-tight);
 }
 
 .profile-xp-value {
@@ -97,35 +138,42 @@
 }
 
 .profile-xp-bar {
+  display: block;
   width: 100%;
-  height: var(--space-small);
+  height: calc(var(--space-tight) + var(--space-micro));
   accent-color: var(--color-primary);
 }
 
 .profile-stats {
   display: flex;
-  margin: 0;
-  padding: var(--space-small) 0;
-  border-block: var(--border-width) solid var(--color-border-light);
+  margin: var(--space-medium) var(--space-large) 0;
+  padding: 0;
 }
 
 .profile-stat {
   display: flex;
   flex: 1;
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-items: center;
+}
+
+.profile-stat + .profile-stat {
+  border-left: var(--border-width) solid var(--color-border-light);
 }
 
 .profile-stat dd {
   margin: 0;
   color: var(--color-text);
-  font-size: var(--font-title);
+  font-size: var(--font-heading);
+  line-height: var(--line-heading);
   font-weight: var(--weight-bold);
 }
 
 .profile-stat dt {
+  margin-top: var(--space-micro);
   color: var(--color-text-muted);
   font-size: var(--font-caption);
+  line-height: var(--line-caption);
 }
 
 .profile-stat-link {
@@ -138,11 +186,32 @@
 }
 
 .profile-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
   margin: 0 0 var(--space-small);
   color: var(--color-text-secondary);
-  font-size: var(--font-caption);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
   font-weight: var(--weight-semibold);
   text-align: center;
+}
+
+.profile-section-title::before,
+.profile-section-title::after {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-light);
+  content: '';
+}
+
+.profile-game-details,
+.profile-equip {
+  margin: var(--space-medium) var(--space-medium) 0;
+}
+
+.profile-card > .button {
+  margin: var(--space-medium) var(--space-large) 0;
 }
 
 .profile-status {
@@ -150,6 +219,8 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-small);
+  justify-content: center;
+  min-height: calc(var(--space-xxlarge) * 5);
   padding: var(--space-large) 0;
   color: var(--color-text-secondary);
 }
