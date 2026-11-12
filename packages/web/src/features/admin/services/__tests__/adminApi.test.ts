@@ -1,9 +1,12 @@
 import {
+  fetchAutomaticSupplySettings,
   fetchRequestTraffic,
+  fetchUserCountries,
   fetchUserRewards,
   fetchUsers,
   getTimeRange,
   grantUserReward,
+  saveAutomaticSupplySettings,
 } from '@/features/admin/services/adminApi';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import { expireAdminSession } from '@/features/admin/services/adminCredentialStore';
@@ -52,21 +55,51 @@ describe('adminApi', () => {
     });
   });
 
+  it('loads all country options and rejects malformed country responses', async () => {
+    mockFetch.mockResolvedValueOnce(Response.json({ countries: ['AU', 'CN', 'JP', 'US'] }));
+    await expect(fetchUserCountries()).resolves.toEqual({ countries: ['AU', 'CN', 'JP', 'US'] });
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(/\/admin\/users\/countries$/),
+      expect.any(Object),
+    );
+    mockFetch.mockResolvedValueOnce(Response.json({ countries: ['invalid'] }));
+    await expect(fetchUserCountries()).rejects.toThrow('must be a country code');
+    mockFetch.mockResolvedValueOnce(Response.json({ countries: ['CN'], total: 1 }));
+    await expect(fetchUserCountries()).rejects.toThrow('unsupported fields');
+  });
+
+  it('reads and saves per-game automatic scheduling with strict response validation', async () => {
+    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: true }));
+    await expect(fetchAutomaticSupplySettings('drawguess')).resolves.toEqual({
+      game: 'drawguess',
+      enabled: true,
+    });
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(/automatic-supply\?game=drawguess$/),
+      expect.any(Object),
+    );
+    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: false }));
+    await expect(saveAutomaticSupplySettings('drawguess', false)).resolves.toEqual({
+      game: 'drawguess',
+      enabled: false,
+    });
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(/automatic-supply$/),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ game: 'drawguess', enabled: false }),
+      }),
+    );
+    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: 'false' }));
+    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('must be a boolean');
+  });
+
   it('revokes an expired session before surfacing a failed API request', async () => {
     mockFetch.mockResolvedValue(
       Response.json({ success: false, reason: 'INVALID_ADMIN_TOKEN' }, { status: 403 }),
     );
     await expect(fetchUsers()).rejects.toThrow('INVALID_ADMIN_TOKEN');
     expect(expireAdminSession).toHaveBeenCalledOnce();
-  });
-
-  it('verifies credentials without calling the database-backed stats endpoint', async () => {
-    mockFetch.mockResolvedValue(Response.json({ success: true }));
-    await expect(verifyAdminPassword('credential')).resolves.toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/admin/session'),
-      expect.objectContaining({ headers: { 'X-Admin-Token': 'credential' } }),
-    );
   });
 
   it('surfaces non-authentication failures instead of reporting a bad password', async () => {

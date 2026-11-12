@@ -5,6 +5,7 @@ import type { AdminUser } from '@/features/admin/model/adminContracts';
 import { useAdminRewardGrant } from '@/features/admin/queries/useAdminRewardGrant';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
+import IconCopyOutline from '~icons/ion/copy-outline';
 
 import { DetailDrawer } from '../components/Overlays';
 import { AsyncBoundary, DateLabel, StatTile, StatusBadge } from '../components/Primitives';
@@ -37,10 +38,15 @@ export function UserDetails({ user, onClose }: { user: AdminUser; onClose: () =>
       </div>
       <dl className="admin-details">
         <dt>用户 ID</dt>
-        <dd>
+        <dd className="admin-copy-value">
           <code>{user.id}</code>
-          <button type="button" onClick={() => void copyId()}>
-            复制
+          <button
+            type="button"
+            className="admin-icon-button admin-copy-button"
+            aria-label="复制用户 ID"
+            onClick={() => void copyId()}
+          >
+            <IconCopyOutline aria-hidden />
           </button>
         </dd>
         <dt>邮箱</dt>
@@ -62,9 +68,10 @@ export function UserDetails({ user, onClose }: { user: AdminUser; onClose: () =>
       <h3>发放奖励</h3>
       <AsyncBoundary query={rewards}>
         {(data) => (
-          <p>
-            普通抽：{data.normalDraws} / 黄金抽：{data.goldenDraws}
-          </p>
+          <div className="admin-stats-grid admin-balance-grid">
+            <StatTile label="普通抽" value={data.normalDraws} />
+            <StatTile label="黄金抽" value={data.goldenDraws} />
+          </div>
         )}
       </AsyncBoundary>
       <RewardForm model={model} />
@@ -103,20 +110,18 @@ function RewardForm({ model }: { model: ReturnType<typeof useAdminRewardGrant> }
     <div className="admin-reward-form">
       {state.kind === 'draft' && (
         <>
-          <fieldset>
-            <legend>奖励类型</legend>
+          <div className="admin-segmented admin-reward-types" role="group" aria-label="奖励类型">
             {(['golden', 'normal'] as const).map((type) => (
-              <label key={type}>
-                <input
-                  type="radio"
-                  name={id}
-                  checked={model.drawType === type}
-                  onChange={() => model.setDrawType(type)}
-                />
+              <button
+                type="button"
+                key={type}
+                aria-pressed={model.drawType === type}
+                onClick={() => model.setDrawType(type)}
+              >
                 {LABELS[type]}
-              </label>
+              </button>
             ))}
-          </fieldset>
+          </div>
           <label htmlFor={`${id}-count`}>奖励数量</label>
           <input
             id={`${id}-count`}

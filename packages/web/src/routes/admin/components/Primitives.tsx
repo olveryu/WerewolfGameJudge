@@ -2,60 +2,49 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
-import IconRefreshOutline from '~icons/ion/refresh-outline';
 
-import { ThemeToggle } from '../AdminShell';
+import { formatCompactNumber } from './Charts';
 
 const adminLog = log.extend('AdminRead');
-type ReadStatus = Pick<UseQueryResult, 'dataUpdatedAt' | 'isFetching'> & { refetch: () => unknown };
+type ReadStatus = Pick<UseQueryResult, 'dataUpdatedAt' | 'isFetching'>;
 
-/** Sticky page title with an explicit refresh and the latest successful fetch time. */
+/** Page-local context below the shared header and navigation. */
 export function PageHeading({
   title,
   description,
   query,
   controls,
+  action,
 }: {
   title: string;
   description: string;
   query?: ReadStatus;
   controls?: ReactNode;
+  action?: ReactNode;
 }) {
   return (
-    <header
-      className={`admin-heading${controls === undefined ? '' : ' admin-heading-with-controls'}`}
-    >
-      <div>
-        <h1>{title}</h1>
+    <div className="admin-page-top">
+      <div className="admin-page-title-row">
+        <h2 className="admin-page-title">{title}</h2>
+        {action}
+      </div>
+      <div className="admin-page-meta">
         <p>{description}</p>
-      </div>
-      <div className="admin-heading-actions">
-        {controls}
         {query !== undefined && (
-          <>
-            <span className="admin-updated" role="status">
-              {query.isFetching
-                ? '正在更新…'
-                : query.dataUpdatedAt === 0
-                  ? '尚未更新'
-                  : `更新于 ${new Date(query.dataUpdatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`}
-            </span>
-            <button
-              type="button"
-              className="admin-icon-button"
-              aria-label="刷新当前页面"
-              disabled={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              <IconRefreshOutline aria-hidden />
-            </button>
-          </>
+          <span className="admin-updated" role="status">
+            {query.isFetching
+              ? '正在更新…'
+              : query.dataUpdatedAt === 0
+                ? '尚未更新'
+                : `更新于 ${new Date(query.dataUpdatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`}
+          </span>
         )}
-        <ThemeToggle />
       </div>
-    </header>
+      {controls !== undefined && <div className="admin-page-tools">{controls}</div>}
+    </div>
   );
 }
 
@@ -67,6 +56,7 @@ export function Panel({
   className = '',
   flush = false,
   children,
+  footer,
 }: {
   title?: string;
   description?: string;
@@ -74,6 +64,7 @@ export function Panel({
   className?: string;
   flush?: boolean;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   return (
     <section className={`admin-panel ${className}`}>
@@ -87,24 +78,40 @@ export function Panel({
         </header>
       )}
       <div className={`admin-panel-body${flush ? ' admin-panel-body-flush' : ''}`}>{children}</div>
+      {footer}
     </section>
   );
 }
 
-/** A compact, icon-free metric with tabular numeric typography. */
+function compactMetric(value: string | number): string {
+  if (typeof value === 'number') return formatCompactNumber(value);
+  return value.replace(/[\d,]+(?:\.\d+)?/g, (measurement) => {
+    const number = Number(measurement.replaceAll(',', ''));
+    return number >= 10000 ? formatCompactNumber(number) : measurement;
+  });
+}
+
+/** Compact large measurements without losing access to the exact, unit-bearing value. */
 export function StatTile({
   label,
   value,
   hint,
 }: {
   label: string;
-  value: ReactNode;
+  value: string | number;
   hint?: string;
 }) {
   return (
     <div className="admin-stat">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <button
+        type="button"
+        className="admin-stat-value"
+        aria-label={`${label}：${value}，查看完整数值`}
+        onClick={() => showAlert(label, `${value}`, [{ text: '知道了' }])}
+      >
+        <strong>{compactMetric(value)}</strong>
+      </button>
       {hint && <small>{hint}</small>}
     </div>
   );

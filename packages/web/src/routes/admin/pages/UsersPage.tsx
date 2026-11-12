@@ -8,6 +8,7 @@ import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchUsers } from '@/features/admin/services/adminApi';
 
 import { formatNumber } from '../components/Charts';
+import { CountryFilter } from '../components/CountryFilter';
 import {
   AsyncBoundary,
   CursorPager,
@@ -90,7 +91,7 @@ function UserDirectory({
         query={query}
       />
       <div className="admin-content">
-        <form className="admin-toolbar" onSubmit={submit}>
+        <form className="admin-toolbar admin-directory-toolbar" onSubmit={submit}>
           <div className="admin-search">
             <input
               type="search"
@@ -101,33 +102,28 @@ function UserDirectory({
             />
             <button type="submit">搜索</button>
           </div>
-          <div className="admin-segmented" role="group" aria-label="用户类型">
-            {[
-              ['', '全部'],
-              ['registered', '已注册'],
-              ['anonymous', '匿名'],
-            ].map(([value = '', label]) => (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={filters.type === value}
-                onClick={() => change('type', value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <label className="admin-inline-label">
-            国家
-            <select
+          <div className="admin-directory-filters">
+            <div className="admin-segmented" role="group" aria-label="用户类型">
+              {[
+                ['', '全部'],
+                ['registered', '已注册'],
+                ['anonymous', '匿名'],
+              ].map(([value = '', label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={filters.type === value}
+                  onClick={() => change('type', value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <CountryFilter
               value={filters.country}
-              onChange={(event) => change('country', event.target.value)}
-            >
-              <option value="">全部</option>
-              <option value="CN">中国 · CN</option>
-              <option value="US">美国 · US</option>
-            </select>
-          </label>
+              onChange={(country) => change('country', country)}
+            />
+          </div>
         </form>
         <Panel flush>
           <AsyncBoundary query={query}>

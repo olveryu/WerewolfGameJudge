@@ -20,7 +20,11 @@ const maintenanceLog = log.extend('AdminMaintenance');
 
 /** D1-independent maintenance controls and an exact live preview of the public page. */
 export function MaintenanceSettingsPage() {
-  const settings = useQuery(maintenanceQuery);
+  const settings = useQuery({
+    ...maintenanceQuery,
+    staleTime: 30_000,
+    refetchInterval: (query) => (query.state.data?.enabled ? 30_000 : false),
+  });
   return (
     <>
       <PageHeading

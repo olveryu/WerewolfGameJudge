@@ -61,6 +61,32 @@ function decodeCursor(query: DirectoryQuery) {
   return parsed.data;
 }
 
+/** Seek once per country in the covering index instead of scanning every user's location. */
+export async function queryUserCountries(db: D1Database) {
+  const result = await db
+    .prepare(
+      `
+      WITH RECURSIVE country_options(country) AS (
+        SELECT (
+          SELECT last_country FROM users
+          WHERE last_country GLOB '[A-Z][A-Z]'
+          ORDER BY last_country LIMIT 1
+        )
+        UNION ALL
+        SELECT (
+          SELECT last_country FROM users
+          WHERE last_country GLOB '[A-Z][A-Z]' AND last_country > country_options.country
+          ORDER BY last_country LIMIT 1
+        )
+        FROM country_options WHERE country IS NOT NULL
+      )
+      SELECT country FROM country_options WHERE country IS NOT NULL ORDER BY country
+      `,
+    )
+    .all<{ country: string }>();
+  return { countries: result.results.map((row) => row.country) };
+}
+
 /** Validate directory filters and return at most 50 users without a total-count scan. */
 export async function queryUserDirectory(db: D1Database, input: Record<string, string>) {
   const parsed = querySchema.safeParse(input);
@@ -81,8 +107,9 @@ export async function queryUserDirectory(db: D1Database, input: Record<string, s
     bindings.push(query.country);
   }
   if (query.q !== undefined) {
-    conditions.push(query.q.includes('@') ? 'u.email = ?' : "u.display_name LIKE ? ESCAPE '\\'");
-    bindings.push(query.q.includes('@') ? query.q : `%${query.q.replace(/[\\%_]/g, '\\$&')}%`);
+    const isEmail = query.q.includes('@');
+    conditions.push(isEmail ? 'u.email = ?' : "u.display_name LIKE ? ESCAPE '\\'");
+    bindings.push(isEmail ? query.q.toLowerCase() : `%${query.q.replace(/[\\%_]/g, '\\$&')}%`);
   }
   if (cursor !== null) {
     conditions.push(`(${column}, ${idColumn}) ${query.order === 'asc' ? '>' : '<'} (?, ?)`);

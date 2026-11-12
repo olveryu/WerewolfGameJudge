@@ -25,6 +25,8 @@ import {
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
+  parseAdminAutomaticSupplySettings,
+  parseAdminCountriesResponse,
   parseAdminD1UsageResponse,
   parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
@@ -134,6 +136,32 @@ interface FetchUsersParams {
   country?: string;
   type?: string;
   q?: string;
+}
+
+/** Load the indexed list of countries represented in the user directory. */
+export function fetchUserCountries(signal?: AbortSignal) {
+  return adminFetch('/admin/users/countries', parseAdminCountriesResponse, undefined, signal);
+}
+
+/** Read the per-game automatic supply policy independently of D1 inventory statistics. */
+export function fetchAutomaticSupplySettings(game: GameWordGame, signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/games/words/automatic-supply',
+    parseAdminAutomaticSupplySettings,
+    { game },
+    signal,
+  );
+}
+
+/** Only future scheduled tasks are affected; manual and already-started runs are unchanged. */
+export function saveAutomaticSupplySettings(game: GameWordGame, enabled: boolean) {
+  return adminFetch(
+    '/admin/games/words/automatic-supply',
+    parseAdminAutomaticSupplySettings,
+    undefined,
+    undefined,
+    { game, enabled },
+  );
 }
 
 export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {

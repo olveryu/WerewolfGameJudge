@@ -71,6 +71,7 @@ export function ReportRange({ traffic = false }: { traffic?: boolean }) {
           </button>
         ))}
       </div>
+      <span className="admin-range-timezone">UTC 时间</span>
       {selected === 'custom' && (
         <div className="admin-custom-range">
           <label>

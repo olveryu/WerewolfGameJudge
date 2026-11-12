@@ -73,7 +73,7 @@
   --size-appearance-avatar-cell-min: 72px;
   --size-min-touch-target: 44px;
   --size-max-content-width: 600px;
-  --size-admin-sidebar: 236px;
+  --size-admin-metric-min: 210px;
   --size-admin-content: 1280px;
   --size-admin-row: 40px;
   --size-admin-drawer: 480px;
@@ -97,48 +97,25 @@
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
 }
 
-/* Admin palettes are scoped: toggling the console never changes game screens. */
+/* Admin aliases keep the console on the same light palette as the rest of the site. */
 .admin-console {
-  --admin-canvas: #f7f8fb;
-  --admin-panel: #ffffff;
-  --admin-subtle: #f1f3f8;
-  --admin-border: #e0e4ed;
-  --admin-border-strong: #bec6d5;
-  --admin-text: #1b2233;
-  --admin-secondary: #596477;
-  --admin-muted: #637086;
-  --admin-accent: #5145cd;
-  --admin-accent-soft: #eeedfc;
-  --admin-accent-ink: #ffffff;
-  --admin-success: #146c43;
-  --admin-success-soft: #e9f5ee;
-  --admin-warning: #85520b;
-  --admin-warning-soft: #fff3da;
-  --admin-danger: #ba2938;
-  --admin-danger-soft: #fff0f1;
-  --admin-backdrop: rgb(18 24 40 / 35%);
-  --admin-overlay-shadow: 0 16px 48px rgb(18 24 40 / 16%);
-}
-
-.admin-console[data-admin-theme='dark'] {
-  --admin-canvas: #11141c;
-  --admin-panel: #191d28;
-  --admin-subtle: #222837;
-  --admin-border: #30384a;
-  --admin-border-strong: #505d76;
-  --admin-text: #eef0f7;
-  --admin-secondary: #b7c0d3;
-  --admin-muted: #a0adc5;
-  --admin-accent: #aaa1ff;
-  --admin-accent-soft: #302c4d;
-  --admin-accent-ink: #181332;
-  --admin-success: #79d5a4;
-  --admin-success-soft: #1b352b;
-  --admin-warning: #f3c572;
-  --admin-warning-soft: #3a3020;
-  --admin-danger: #ff9aab;
-  --admin-danger-soft: #402531;
-  --admin-backdrop: rgb(0 0 0 / 60%);
-  --admin-overlay-shadow: 0 16px 48px rgb(0 0 0 / 40%);
-  color-scheme: dark;
+  --admin-canvas: var(--color-background);
+  --admin-panel: var(--color-surface);
+  --admin-subtle: var(--color-surface-hover);
+  --admin-border: var(--color-border-light);
+  --admin-border-strong: var(--color-border);
+  --admin-text: var(--color-text);
+  --admin-secondary: var(--color-text-secondary);
+  --admin-muted: var(--color-text-muted);
+  --admin-accent: var(--color-primary);
+  --admin-accent-soft: var(--color-primary-a10);
+  --admin-accent-ink: var(--color-text-inverse);
+  --admin-success: var(--color-success);
+  --admin-success-soft: var(--color-success-a12);
+  --admin-warning: var(--color-warning);
+  --admin-warning-soft: var(--color-warning-a13);
+  --admin-danger: var(--color-error);
+  --admin-danger-soft: var(--color-error-a10);
+  --admin-backdrop: var(--color-overlay);
+  --admin-overlay-shadow: var(--shadow-lg);
 }

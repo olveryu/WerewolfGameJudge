@@ -1,12 +1,18 @@
 /** Range-bounded growth aggregates, shared by the admin overview and growth report. */
 import { z } from 'zod';
 
+function toSqliteUtcTimestamp(value: string) {
+  return new Date(value).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 /** Read registrations once and derive all activity measures from one grouped scan. */
 export async function queryGrowthStats(db: D1Database, from: string, to: string) {
+  const sqliteFrom = toSqliteUtcTimestamp(from);
+  const sqliteTo = toSqliteUtcTimestamp(to);
   const [registrations, activity] = await db.batch([
     db
       .prepare('SELECT COUNT(*) AS count FROM users WHERE created_at >= ? AND created_at < ?')
-      .bind(from, to),
+      .bind(sqliteFrom, sqliteTo),
     db
       .prepare(
         `
@@ -17,7 +23,7 @@ export async function queryGrowthStats(db: D1Database, from: string, to: string)
       GROUP BY u.last_country, u.last_colo
     `,
       )
-      .bind(from, to),
+      .bind(sqliteFrom, sqliteTo),
   ]);
   const registered = z
     .strictObject({ count: z.int().nonnegative() })

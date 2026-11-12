@@ -11,11 +11,11 @@ import {
   readAdminCredential,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
-import { readAdminTheme, writeAdminTheme } from '@/features/admin/services/adminTheme';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { AdminShell } from './AdminShell';
 
 const adminLog = log.extend('Admin');
@@ -23,20 +23,11 @@ const adminLog = log.extend('Admin');
 /** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
   const client = useQueryClient();
-  const [theme, setTheme] = useState(readAdminTheme);
   const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
   const [verifying, setVerifying] = useState(cached !== null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  function logout() {
-    clearAdminCredential();
-    setAuthenticated(false);
-    setPassword('');
-    void client.cancelQueries({ queryKey: ['admin'] });
-    client.removeQueries({ queryKey: ['admin'] });
-  }
 
   useEffect(() => {
     let active = true;
@@ -91,50 +82,45 @@ export function AdminPage() {
     }
   }
 
-  function toggleTheme() {
-    const next = theme === 'light' ? 'dark' : 'light';
-    writeAdminTheme(next);
-    setTheme(next);
-  }
-
   return (
-    <div className="admin-console" data-admin-theme={theme}>
+    <div className="admin-console">
       {authenticated ? (
-        <AdminShell onLogout={logout} theme={theme} onThemeChange={toggleTheme} />
+        <AdminShell />
       ) : (
-        <main className="admin-login">
-          <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
-            <div className="admin-brand-mark">
-              <IconLockClosedOutline aria-hidden />
-            </div>
-            <span className="admin-eyebrow">GAME JUDGE / CONSOLE</span>
-            <h1>管理后台</h1>
-            <p className="admin-muted">数据、运营与运行状况，尽在一个工作台。</p>
-            <label htmlFor="admin-password">管理密码</label>
-            <input
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={verifying}
-            />
-            {error !== null && (
-              <p role="alert" className="admin-error">
-                {error}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="admin-primary"
-              disabled={verifying || !password.trim()}
-            >
-              {verifying ? '正在验证…' : '进入工作台'}
-            </button>
-            <a href="/">返回游戏首页</a>
-          </form>
-        </main>
+        <>
+          <ScreenHeader title="管理后台" parentPath="/" />
+          <main className="admin-login">
+            <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
+              <div className="admin-brand-mark">
+                <IconLockClosedOutline aria-hidden />
+              </div>
+              <h2>进入管理后台</h2>
+              <p className="admin-muted">数据、运营与运行状况，尽在一个工作台。</p>
+              <label htmlFor="admin-password">管理密码</label>
+              <input
+                id="admin-password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={verifying}
+              />
+              {error !== null && (
+                <p role="alert" className="admin-error">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="admin-primary"
+                disabled={verifying || !password.trim()}
+              >
+                {verifying ? '正在验证…' : '进入工作台'}
+              </button>
+            </form>
+          </main>
+        </>
       )}
     </div>
   );

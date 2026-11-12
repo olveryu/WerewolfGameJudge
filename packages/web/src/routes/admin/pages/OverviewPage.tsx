@@ -33,6 +33,9 @@ export function OverviewPage() {
     adminQueryOptions('rooms', 1, (signal) => fetchRooms({ page: 1 }, signal)),
   );
   const all = [usage, growth, traffic, rooms];
+  const completedUpdates = all
+    .map((query) => query.dataUpdatedAt)
+    .filter((updatedAt) => updatedAt > 0);
   const reset = new Date();
   reset.setUTCHours(24, 0, 0, 0);
   const hours = Math.ceil((reset.getTime() - Date.now()) / 3600000);
@@ -42,9 +45,8 @@ export function OverviewPage() {
         title="总览"
         description="把握今天的运营与系统运行状况。"
         query={{
-          dataUpdatedAt: Math.min(...all.map((query) => query.dataUpdatedAt)),
+          dataUpdatedAt: completedUpdates.length === 0 ? 0 : Math.min(...completedUpdates),
           isFetching: all.some((query) => query.isFetching),
-          refetch: () => Promise.all(all.map((query) => query.refetch())),
         }}
       />
       <div className="admin-content admin-grid">

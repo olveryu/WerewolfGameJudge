@@ -2,7 +2,24 @@
 import { useId } from 'react';
 import { Link } from 'react-router';
 
+import { showAlert } from '@/utils/alert';
+
 export const formatNumber = (value: number) => value.toLocaleString('zh-CN');
+
+/** Use the site's Chinese units for large counts while keeping small values exact. */
+export function formatCompactNumber(value: number): string {
+  const magnitude = Math.abs(value);
+  for (const [threshold, unit] of [
+    [1e12, '万亿'],
+    [1e8, '亿'],
+    [1e4, '万'],
+  ] as const) {
+    if (magnitude >= threshold) {
+      return `${(value / threshold).toLocaleString('zh-CN', { maximumFractionDigits: 1 })}${unit}`;
+    }
+  }
+  return formatNumber(value);
+}
 
 /** Quota thresholds are shared by the linear and circular views. */
 function quotaTone(value: number, limit: number) {
@@ -16,9 +33,18 @@ export function Meter({ label, value, limit }: { label: string; value: number; l
     <div className="admin-meter" data-tone={quotaTone(value, limit)}>
       <div>
         <span>{label}</span>
-        <span>
-          {formatNumber(value)} / {formatNumber(limit)}
-        </span>
+        <button
+          type="button"
+          className="admin-numeric-detail"
+          aria-label={`${label}：${formatNumber(value)} / ${formatNumber(limit)}，查看完整数值`}
+          onClick={() =>
+            showAlert(label, `${formatNumber(value)} / ${formatNumber(limit)}`, [
+              { text: '知道了' },
+            ])
+          }
+        >
+          {formatCompactNumber(value)} / {formatCompactNumber(limit)}
+        </button>
       </div>
       <progress aria-label={label} value={value} max={Math.max(1, limit)} />
     </div>
@@ -67,7 +93,9 @@ export function BarList({
         <li key={`${item.label}:${index}`}>
           <div>
             <span title={item.label}>{item.label}</span>
-            <strong>{item.detail ?? `${formatNumber(item.value)}${unit}`}</strong>
+            <strong title={item.detail ?? `${formatNumber(item.value)}${unit}`}>
+              {item.detail ?? `${formatCompactNumber(item.value)}${unit}`}
+            </strong>
           </div>
           <progress aria-label={item.label} value={item.value} max={max} />
         </li>
@@ -159,7 +187,7 @@ export function HeatGrid({ items }: { items: { id: string; name: string; active:
           aria-label={`${item.name}，在库 ${item.active} 词，查看明细`}
         >
           <span>{item.name}</span>
-          <strong>{formatNumber(item.active)}</strong>
+          <strong>{formatCompactNumber(item.active)}</strong>
         </Link>
       ))}
     </div>

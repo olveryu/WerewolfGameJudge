@@ -1,4 +1,4 @@
-/** Inventory-first word operations with one explicit action menu and no post-trigger refetch. */
+/** Inventory-first word operations with explicit confirmation and no post-trigger refetch. */
 import { GAME_WORD_GAMES, isGameWordGame } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -11,8 +11,8 @@ import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
+import { AutomaticSupplyControl } from '../components/AutomaticSupplyControl';
 import { BarList, formatNumber, HeatGrid, Meter } from '../components/Charts';
-import { ActionMenu } from '../components/Overlays';
 import {
   AsyncBoundary,
   CursorPager,
@@ -23,14 +23,9 @@ import {
   StatTile,
   StatusBadge,
 } from '../components/Primitives';
+import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
 
 const LABELS = { fibking: '瞎掰王', undercover: '谁是卧底', drawguess: '你画我猜' } as const;
-const ACTIONS = [
-  { value: 'normal', label: '补词', force: false, count: 1 },
-  { value: 'normal-10', label: '补词 × 10', force: false, count: 10 },
-  { value: 'force', label: '强制补词', force: true, danger: true, count: 1 },
-  { value: 'force-10', label: '强制补词 × 10', force: true, danger: true, count: 10 },
-] as const;
 const CHECK_LABELS: Readonly<Record<string, string>> = {
   isEstablishedTerm: '真实词项',
   isDefinitionAccurate: '释义准确',
@@ -63,7 +58,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
   const query = useQuery(
     adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
   );
-  async function trigger(action: (typeof ACTIONS)[number]) {
+  async function trigger(action: SupplyAction) {
     if (busy.current) return;
     busy.current = true;
     setTriggering(true);
@@ -84,9 +79,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
       setTriggering(false);
     }
   }
-  function confirm(value: string) {
-    const action = ACTIONS.find((item) => item.value === value);
-    if (action === undefined) throw new Error('Unknown supply action');
+  function confirm(action: SupplyAction) {
     const limit =
       game === 'fibking'
         ? `突破本月 ${query.data?.monthlySupply?.batchLimit ?? '—'} 次配额及共享模型额度`
@@ -107,10 +100,22 @@ function WordInventory({ game }: { game: GameWordGame }) {
   const view = parameters.get('view') ?? 'low';
   return (
     <>
-      <PageHeading title="词库" description="先看库存与分类均衡，再决定是否补词。" query={query} />
+      <PageHeading
+        title="词库"
+        description="先看库存与分类均衡，再决定是否补词。"
+        query={query}
+        action={
+          <SupplyControls
+            disabled={triggering || !query.data?.supplyEnabled}
+            triggering={triggering}
+            gameLabel={LABELS[game]}
+            onSelect={confirm}
+          />
+        }
+      />
       <div className="admin-content">
         <div className="admin-toolbar">
-          <nav className="admin-segmented" aria-label="选择词库">
+          <nav className="admin-segmented admin-word-tabs" aria-label="选择词库">
             {GAME_WORD_GAMES.map((item) => (
               <Link
                 key={item}
@@ -121,18 +126,6 @@ function WordInventory({ game }: { game: GameWordGame }) {
               </Link>
             ))}
           </nav>
-          <span className="admin-toolbar-spacer" />
-          {query.data !== undefined && (
-            <StatusBadge tone={query.data.supplyEnabled ? 'success' : 'warning'}>
-              {query.data.supplyEnabled ? '供给已启用' : '供给未启用'}
-            </StatusBadge>
-          )}
-          <ActionMenu
-            label={triggering ? '正在触发…' : '补词'}
-            disabled={triggering || !query.data?.supplyEnabled}
-            items={ACTIONS}
-            onSelect={confirm}
-          />
         </div>
         {notice && (
           <p role="status" className="admin-notice">
@@ -198,11 +191,14 @@ function WordReport({
         <div className="admin-stats-grid">
           <StatTile label="在库词数" value={formatNumber(active)} />
           <StatTile
-            label="本月已发布 / 目标"
+            label="本月已发布"
             value={
+              data.monthlySupply === null ? '无月目标' : formatNumber(data.monthlySupply.published)
+            }
+            hint={
               data.monthlySupply === null
-                ? '无月目标'
-                : `${formatNumber(data.monthlySupply.published)} / ${formatNumber(data.monthlySupply.wordTarget)}`
+                ? undefined
+                : `目标 ${formatNumber(data.monthlySupply.wordTarget)}`
             }
           />
           <StatTile
@@ -212,7 +208,8 @@ function WordReport({
           />
         </div>
       </Panel>
-      <Panel title="供给额度" className="admin-span-3">
+      <Panel title="供给设置与额度" className="admin-span-3">
+        <AutomaticSupplyControl game={data.game} available={data.supplyEnabled} />
         {data.monthlySupply !== null && (
           <Meter
             label="本月批次"
@@ -290,6 +287,14 @@ function WordReport({
             title="各查询产出"
             description={`${data.queryLeaderboard.length} 条查询`}
             className="admin-span-6"
+            footer={
+              <CursorPager
+                page={page}
+                hasNext={page < pageCount}
+                onPrevious={() => setLeaderboardPage(page - 1)}
+                onNext={() => setLeaderboardPage(page + 1)}
+              />
+            }
           >
             <BarList
               items={data.queryLeaderboard.slice((page - 1) * 15, page * 15).map((row) => ({
@@ -297,12 +302,6 @@ function WordReport({
                 value: row.publishedWords,
                 detail: `${row.publishedWords} 词 / ${row.packs} 批`,
               }))}
-            />
-            <CursorPager
-              page={page}
-              hasNext={page < pageCount}
-              onPrevious={() => setLeaderboardPage(page - 1)}
-              onNext={() => setLeaderboardPage(page + 1)}
             />
           </Panel>
         </>

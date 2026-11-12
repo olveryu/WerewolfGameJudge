@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { queryGrowthStats } from '../growthStats';
 import { adminRoutes } from '../routes';
-import { queryUserDirectory } from '../userDirectory';
+import { queryUserCountries, queryUserDirectory } from '../userDirectory';
 
 beforeEach(async () => {
   await env.DB.prepare("DELETE FROM users WHERE id LIKE 'budget-%' OR id = 'without-stats'").run();
@@ -33,6 +33,38 @@ async function seedUsers(start: number, end: number) {
 }
 
 describe('admin indexed read budgets', () => {
+  it('lists every populated country with bounded index seeks as user counts grow tenfold', async () => {
+    expect(await queryUserCountries(env.DB)).toEqual({ countries: [] });
+    await seedUsers(1, 500);
+    await env.DB.prepare(
+      `UPDATE users SET last_country = CASE id
+        WHEN 'budget-00001' THEN 'JP' WHEN 'budget-00002' THEN 'US'
+        WHEN 'budget-00003' THEN NULL WHEN 'budget-00004' THEN ''
+        WHEN 'budget-00005' THEN 'invalid' ELSE last_country END`,
+    ).run();
+    const measured = createRowCountingDb(env.DB);
+    expect(await queryUserCountries(measured.db)).toEqual({ countries: ['CN', 'JP', 'US'] });
+    const smallReads = measured.counts.rowsRead;
+    expect(smallReads).toBeGreaterThan(0);
+    expect(smallReads).toBeLessThanOrEqual(16);
+    await seedUsers(501, 5000);
+    measured.reset();
+    expect(await queryUserCountries(measured.db)).toEqual({ countries: ['CN', 'JP', 'US'] });
+    expect(measured.counts.rowsRead).toBe(smallReads);
+    expect(
+      (await queryUserDirectory(env.DB, { country: 'JP' })).users.map((user) => user.id),
+    ).toEqual(['budget-00001']);
+    const response = await adminRoutes.request(
+      '/users/countries',
+      {
+        headers: { 'X-Admin-Token': env.ADMIN_PASSWORD },
+      },
+      env,
+    );
+    expect(await response.json()).toEqual({ countries: ['CN', 'JP', 'US'] });
+    expect((await adminRoutes.request('/users/countries', {}, env)).status).toBe(401);
+  });
+
   it('keeps every sort and third-page seek bounded as the directory grows tenfold', async () => {
     await seedUsers(1, 500);
     const measured = createRowCountingDb(env.DB);
@@ -69,22 +101,34 @@ describe('admin indexed read budgets', () => {
     const email = await queryUserDirectory(measured.db, { q: 'budget-00001@example.com' });
     expect(email.users.map((user) => user.id)).toEqual(['budget-00001']);
     expect(measured.counts.rowsRead).toBeLessThanOrEqual(8);
+    measured.reset();
+    const mixedCaseEmail = await queryUserDirectory(measured.db, {
+      q: 'BUDGET-00001@EXAMPLE.COM',
+    });
+    expect(mixedCaseEmail.users.map((user) => user.id)).toEqual(['budget-00001']);
+    expect(measured.counts.rowsRead).toBeLessThanOrEqual(8);
   });
 
   it('does not read out-of-range users when computing growth and preserves null distributions', async () => {
     await seedUsers(1, 500);
     await env.DB.prepare(
       `
-      UPDATE users SET created_at = '2026-11-11T00:00:00Z', updated_at = '2026-11-11T00:00:00Z'
+      UPDATE users SET created_at = '2026-11-11 00:00:00', updated_at = '2026-11-11 00:00:00'
       WHERE id IN ('budget-00001', 'budget-00002')
     `,
     ).run();
     const measured = createRowCountingDb(env.DB);
-    const small = await queryGrowthStats(measured.db, '2026-11-11', '2026-11-12');
+    const small = await queryGrowthStats(
+      measured.db,
+      '2026-11-11T00:00:00.000Z',
+      '2026-11-12T00:00:00.000Z',
+    );
     const smallReads = measured.counts.rowsRead;
     await seedUsers(501, 5000);
     measured.reset();
-    expect(await queryGrowthStats(measured.db, '2026-11-11', '2026-11-12')).toEqual(small);
+    expect(
+      await queryGrowthStats(measured.db, '2026-11-11T00:00:00.000Z', '2026-11-12T00:00:00.000Z'),
+    ).toEqual(small);
     expect(measured.counts.rowsRead).toBe(smallReads);
     expect(small).toEqual({
       registered: 2,

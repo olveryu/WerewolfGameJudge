@@ -21,6 +21,11 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
+import {
+  automaticSupplyUpdateSchema,
+  readAutomaticWordSupply,
+  writeAutomaticWordSupply,
+} from '../../platform/wordSupply/automaticSupply';
 import { users, userStats } from '../account/dbSchema';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
@@ -45,7 +50,7 @@ import {
   REQUEST_TRAFFIC_MAX_RANGE_MS,
 } from './requestTrafficSummary';
 import { rewardGrantRoutes } from './rewardGrants';
-import { queryUserDirectory } from './userDirectory';
+import { queryUserCountries, queryUserDirectory } from './userDirectory';
 
 const log = createLogger('admin');
 
@@ -107,6 +112,7 @@ adminRoutes.post('/maintenance', jsonBody(maintenanceUpdateSchema), async (c) =>
 adminRoutes.get('/users', async (c) => {
   return c.json(await queryUserDirectory(c.env.DB, c.req.query()));
 });
+adminRoutes.get('/users/countries', async (c) => c.json(await queryUserCountries(c.env.DB)));
 
 // ── GET /admin/rooms ────────────────────────────────────────────────────────
 
@@ -435,6 +441,25 @@ adminRoutes.get('/games/words/stats', async (c) => {
   if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
   return c.json(await getGameWordsStats(c.env, parsed.data));
 });
+
+adminRoutes.get('/games/words/automatic-supply', async (c) => {
+  const parsed = gameWordGameSchema.safeParse(c.req.query('game'));
+  if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
+  c.header('Cache-Control', 'no-store');
+  return c.json({ game: parsed.data, ...(await readAutomaticWordSupply(c.env, parsed.data)) });
+});
+
+adminRoutes.post(
+  '/games/words/automatic-supply',
+  jsonBody(automaticSupplyUpdateSchema),
+  async (c) => {
+    const { game, enabled } = c.req.valid('json');
+    await writeAutomaticWordSupply(c.env, game, enabled);
+    log.info('automatic word supply updated', { game, enabled });
+    c.header('Cache-Control', 'no-store');
+    return c.json({ game, enabled });
+  },
+);
 
 adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
   const { game, force } = c.req.valid('json');

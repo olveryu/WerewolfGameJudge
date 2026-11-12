@@ -65,7 +65,7 @@ function TrafficReport({ data }: { data: AdminRequestTraffic }) {
   function sort(value: string) {
     const next = new URLSearchParams(parameters);
     next.set('sort', value);
-    next.set('order', parameters.get('sort') === value && !ascending ? 'asc' : 'desc');
+    next.set('order', parameters.get('sort') === value ? (ascending ? 'desc' : 'asc') : 'asc');
     setParameters(next);
   }
   const connections = data.http.successfulWebSocketConnections;

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchAdminMaintenance, saveAdminMaintenance } from '@/features/admin/services/adminApi';
@@ -7,7 +8,6 @@ import { formatMaintenanceEnd } from '@/features/maintenance/maintenance';
 
 import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
 
-vi.mock('../AdminShell', () => ({ ThemeToggle: () => null }));
 vi.mock('@/features/admin/services/adminApi', () => ({
   fetchAdminMaintenance: vi.fn(),
   saveAdminMaintenance: vi.fn(),
@@ -23,7 +23,9 @@ const configuration = {
 function mountTab() {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MaintenanceSettingsPage />
+      <MemoryRouter>
+        <MaintenanceSettingsPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
