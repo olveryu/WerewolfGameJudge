@@ -21,6 +21,7 @@ const workflowSchema = z.object({
       steps: z
         .array(
           z.object({
+            if: z.string().optional(),
             run: z.string().optional(),
             uses: z.string().optional(),
             with: z.record(z.string(), z.unknown()).optional(),
@@ -90,6 +91,28 @@ describe('CI production deployment gates', () => {
       'test-api-worker',
       'e2e',
     ]);
+  });
+
+  it('keeps fork failure digests in the step summary without attempting PR writes', () => {
+    const steps = jobs['failure-digest']?.steps ?? [];
+    const postComment = steps.find((step) => step.run?.includes('--pr '));
+    const forkSummary = steps.find(
+      (step) =>
+        step.run?.includes('node scripts/e2e-failure-digest.mjs') &&
+        step.if?.includes('head.repo.full_name != github.repository'),
+    );
+
+    expect(postComment?.if).toBe(
+      "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository",
+    );
+    expect(forkSummary?.if).toBe(
+      "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository",
+    );
+    expect(forkSummary?.run).toContain('--bundles failure-bundles-in');
+    expect(forkSummary?.run).toContain('--test-results test-results-in');
+    expect(forkSummary?.run).toContain('--e2e-result ${{ needs.e2e.result }}');
+    expect(forkSummary?.run).not.toContain('--pr');
+    expect(forkSummary?.run).not.toContain('--ledger');
   });
 
   it('includes every workspace quality task and builds the engine before its consumers', () => {

@@ -8,6 +8,9 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { reservePasswordAttemptBudget } from '../passwordAttemptBudget';
+
 // ── Response type contracts ─────────────────────────────────────────────────
 
 interface AuthSuccessResponse {
@@ -70,6 +73,23 @@ async function putJson(path: string, body: unknown, token: string): Promise<Resp
     },
     body: JSON.stringify(body),
   });
+}
+
+async function createMergeAccounts() {
+  const email = 'merge@test.local';
+  const password = 'pass123';
+  const targetResponse = await postJson('/auth/signup', { email, password });
+  expect(targetResponse.status).toBe(200);
+  const target = await targetResponse.json<AuthSuccessResponse>();
+  const sourceResponse = await postJson('/auth/anonymous', {});
+  expect(sourceResponse.status).toBe(200);
+  const source = await sourceResponse.json<AuthSuccessResponse>();
+  await env.DB.prepare(
+    "UPDATE users SET wechat_openid = 'merge-openid', is_anonymous = 0 WHERE id = ?",
+  )
+    .bind(source.user.id)
+    .run();
+  return { email, password, target, source };
 }
 
 /** Clean all test data between tests */
@@ -142,6 +162,41 @@ describe('POST /auth/anonymous', () => {
 // ── POST /auth/signup ───────────────────────────────────────────────────────
 
 describe('POST /auth/signup', () => {
+  it.each([true, false])(
+    'preserves shards when merging accounts with target stats present=%s',
+    async (hasTargetStats) => {
+      const { email, password, target, source } = await createMergeAccounts();
+      if (hasTargetStats) {
+        await env.DB.prepare('UPDATE user_stats SET shards = 10 WHERE user_id = ?')
+          .bind(target.user.id)
+          .run();
+      } else {
+        await env.DB.prepare('DELETE FROM user_stats WHERE user_id = ?').bind(target.user.id).run();
+      }
+      await env.DB.prepare('INSERT INTO user_stats (user_id, shards) VALUES (?, 200)')
+        .bind(source.user.id)
+        .run();
+
+      const response = await postJson('/auth/signup', { email, password }, source.access_token);
+
+      expect(response.status).toBe(200);
+      expect((await response.json<AuthSuccessResponse>()).user.id).toBe(target.user.id);
+      expect(
+        await env.DB.prepare('SELECT shards FROM user_stats WHERE user_id = ?')
+          .bind(target.user.id)
+          .first(),
+      ).toEqual({ shards: hasTargetStats ? 210 : 200 });
+      expect(
+        await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(source.user.id).first(),
+      ).toBeNull();
+      expect(
+        await env.DB.prepare('SELECT user_id FROM user_stats WHERE user_id = ?')
+          .bind(source.user.id)
+          .first(),
+      ).toBeNull();
+    },
+  );
+
   it.each([2, 8])(
     'merges seen words of every pool when the source has seen %i Fib questions',
     async (sourceProgress) => {
@@ -358,6 +413,120 @@ describe('POST /auth/signin', () => {
   });
 });
 
+describe('shared email password attempt budget', () => {
+  it.each([
+    ['/auth/signin', '/auth/signup'],
+    ['/auth/signup', '/auth/signin'],
+    ['/auth/signup', '/auth/signup'],
+  ])('shares failed attempts from %s with %s', async (attemptPath, blockedPath) => {
+    const { email, password, source } = await createMergeAccounts();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const response = await postJson(
+        attemptPath,
+        { email: 'MERGE@Test.LOCAL', password: 'wrong' },
+        source.access_token,
+      );
+      expect(response.status).toBe(401);
+    }
+
+    const response = await postJson(blockedPath, { email, password }, source.access_token);
+
+    expect(response.status).toBe(429);
+    expect(await response.json<AuthErrorResponse>()).toEqual({
+      success: false,
+      reason: 'TOO_MANY_ATTEMPTS',
+    });
+    expect(
+      await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(source.user.id).first(),
+    ).not.toBeNull();
+  });
+
+  it('caps concurrent merge password checks at the shared attempt limit', async () => {
+    const { source } = await createMergeAccounts();
+
+    const responses = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        postJson(
+          '/auth/signup',
+          { email: 'MERGE@Test.LOCAL', password: 'wrong' },
+          source.access_token,
+        ),
+      ),
+    );
+
+    expect(responses.filter((response) => response.status === 401)).toHaveLength(10);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(10);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM login_attempts').first()).toEqual({
+      count: 10,
+    });
+  });
+
+  it.each(['/auth/signin', '/auth/signup'])(
+    'clears the shared failures after successful authentication through %s',
+    async (successPath) => {
+      const { email, password, source } = await createMergeAccounts();
+      for (let attempt = 0; attempt < 9; attempt++) {
+        expect(
+          (await postJson('/auth/signup', { email, password: 'wrong' }, source.access_token))
+            .status,
+        ).toBe(401);
+      }
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM login_attempts').first()).toEqual({
+        count: 9,
+      });
+
+      const response = await postJson(successPath, { email, password }, source.access_token);
+
+      expect(response.status).toBe(200);
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM login_attempts').first()).toEqual({
+        count: 0,
+      });
+    },
+  );
+
+  it('ignores attempts outside the 15-minute window when merging', async () => {
+    const { email, password, source } = await createMergeAccounts();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await postJson('/auth/signin', { email, password: 'wrong' });
+    }
+    await env.DB.prepare(
+      "UPDATE login_attempts SET attempted_at = datetime('now', '-16 minutes')",
+    ).run();
+
+    expect((await postJson('/auth/signup', { email, password }, source.access_token)).status).toBe(
+      200,
+    );
+  });
+
+  it('bounds budget-query reads as unrelated login attempts grow tenfold', async () => {
+    const { email } = await createMergeAccounts();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await postJson('/auth/signin', { email, password: 'wrong' });
+    }
+    const measured = createRowCountingDb(env.DB);
+    let smallReads = 0;
+    for (const size of [500, 5000]) {
+      await env.DB.prepare(
+        `WITH RECURSIVE n(i) AS (SELECT ? UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+         INSERT INTO login_attempts (email_hash, attempted_at)
+         SELECT 'unrelated-' || i, datetime('now') FROM n`,
+      )
+        .bind(size === 500 ? 1 : 501, size)
+        .run();
+      measured.reset();
+      const budget = await reservePasswordAttemptBudget(measured.db, email);
+
+      expect(budget.isLimited).toBe(true);
+      // At most ten matching table/index rows each; unrelated hashes use the email index.
+      expect(measured.counts.rowsRead).toBeGreaterThan(0);
+      expect(measured.counts.rowsRead).toBeLessThanOrEqual(20);
+      expect(measured.counts.rowsWritten).toBe(0);
+      if (size === 500) smallReads = measured.counts.rowsRead;
+      else expect(measured.counts.rowsRead).toBe(smallReads);
+    }
+  });
+});
+
 // ── PUT /auth/password ──────────────────────────────────────────────────────
 
 describe('PUT /auth/password', () => {
@@ -543,6 +712,42 @@ describe('POST /auth/refresh', () => {
 // ── POST /auth/forgot-password + POST /auth/reset-password ──────────────────
 
 describe('password reset flow', () => {
+  it.each(['earlier today', 'just expired'])(
+    'rejects a reset token expired %s without changing the password',
+    async (expiryCase) => {
+      const email = 'expired-reset@test.local';
+      const signup = await postJson('/auth/signup', { email, password: 'oldpass' });
+      const user = await signup.json<AuthSuccessResponse>();
+      const code = '123456';
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code + email));
+      const tokenHash = Array.from(new Uint8Array(hash), (byte) =>
+        byte.toString(16).padStart(2, '0'),
+      ).join('');
+      const expiresAt = new Date();
+      if (expiryCase === 'earlier today') expiresAt.setUTCHours(0, 0, 0, 0);
+      else expiresAt.setTime(Date.now() - 1);
+      await env.DB.prepare(
+        'INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)',
+      )
+        .bind('expired-reset', user.user.id, tokenHash, expiresAt.toISOString())
+        .run();
+
+      const response = await postJson('/auth/reset-password', {
+        email,
+        code,
+        newPassword: 'newpass',
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json<AuthErrorResponse>()).toEqual({
+        success: false,
+        reason: 'INVALID_OR_EXPIRED_CODE',
+      });
+      expect((await postJson('/auth/signin', { email, password: 'oldpass' })).status).toBe(200);
+      expect((await postJson('/auth/signin', { email, password: 'newpass' })).status).toBe(401);
+    },
+  );
+
   it('forgot-password returns success for non-existent email (no enumeration)', async () => {
     const res = await postJson('/auth/forgot-password', {
       email: 'ghost@test.local',
