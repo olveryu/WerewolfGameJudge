@@ -14,7 +14,7 @@ import type { WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import { claimEditorialModelRequest } from '../ai/editorialBudget';
+import { claimEditorialModelRequest, isEditorialBudgetAvailable } from '../ai/editorialBudget';
 import { createLogger } from '../observability/logger';
 import { measureDatabaseCapacity } from '../storage/capacity';
 import type { WordPackRef, WordPacksTable } from './wordPackLedger';
@@ -100,6 +100,11 @@ export async function runWordSupplyWorkflow<
   const runId = z.string().min(1).max(64).optional().parse(payload.runId);
   const totalBatches = config.dailyBatchLimit + (force ? config.dailyBatchLimit : 0);
   for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += 1) {
+    if (
+      !force &&
+      !(await step.do(`budget-${batchIndex}`, () => isEditorialBudgetAvailable(env.DB)))
+    )
+      return { status: 'budget_exhausted' };
     const capacity = await step.do(`capacity-${batchIndex}`, () => measureDatabaseCapacity(env.DB));
     if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
     const pack = await step.do(`reserve-${batchIndex}`, () =>

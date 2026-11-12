@@ -109,6 +109,17 @@ function WordInventory({ game }: { game: GameWordGame }) {
             disabled={triggering || !query.data?.supplyEnabled}
             triggering={triggering}
             gameLabel={LABELS[game]}
+            remainingBudget={
+              query.data === undefined
+                ? 0
+                : Math.max(
+                    0,
+                    Math.min(
+                      query.data.modelBudget.dailyLimit - query.data.modelBudget.dailyUsed,
+                      query.data.modelBudget.monthlyLimit - query.data.modelBudget.monthlyUsed,
+                    ),
+                  )
+            }
             onSelect={confirm}
           />
         }

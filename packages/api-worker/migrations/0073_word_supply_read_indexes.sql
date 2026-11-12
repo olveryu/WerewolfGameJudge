@@ -1,0 +1,4 @@
+CREATE INDEX idx_drawguess_word_packs_category_created ON drawguess_word_packs(category, created_at);
+CREATE INDEX idx_undercover_word_packs_category_created ON undercover_word_packs(category, created_at);
+CREATE INDEX idx_drawguess_words_category_status ON drawguess_words(category, status);
+CREATE INDEX idx_fib_word_reviews_retention ON fib_word_candidate_reviews(reviewed_at);

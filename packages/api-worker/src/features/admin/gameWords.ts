@@ -12,6 +12,7 @@ import {
   type GameWordsStats,
   type TriggerSupplyResult,
 } from '@game-judge/game-engine/product/wordSupply';
+import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
@@ -26,6 +27,7 @@ import { FIB_WORD_TOPIC_IDS, FIB_WORD_TOPICS } from '../../games/fibking/wordTop
 import {
   EDITORIAL_DAILY_REQUEST_LIMIT,
   EDITORIAL_MONTHLY_REQUEST_LIMIT,
+  isEditorialBudgetAvailable,
 } from '../../platform/ai/editorialBudget';
 import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
@@ -364,6 +366,8 @@ export async function triggerGameWordSupply(
 ): Promise<TriggerSupplyResult> {
   const parsed = triggerSupplySchema.parse(input);
   const force = parsed.force === true;
+  if (!force && !(await isEditorialBudgetAvailable(env.DB)))
+    throw new HTTPException(429, { message: '共享模型额度已用完，请稍后重试或选择强制补词' });
   const day = new Date().toISOString().slice(0, 10);
   const runId = crypto.randomUUID();
   const workflowId = `${parsed.game}-manual-${runId}`;

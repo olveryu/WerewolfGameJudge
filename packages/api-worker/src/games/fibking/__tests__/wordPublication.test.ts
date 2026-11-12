@@ -543,6 +543,17 @@ describe('Fib word publication', () => {
       (await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all()).results,
     ).toEqual([{ word: '测试甲', status: 'claimed' }]);
   });
+
+  it('uses the restored retention index to find old reviews', async () => {
+    const plan = await env.DB.prepare(
+      'EXPLAIN QUERY PLAN SELECT id FROM fib_word_candidate_reviews WHERE reviewed_at < ? ORDER BY reviewed_at LIMIT ?',
+    )
+      .bind('2026-01-01', 100)
+      .all<{ detail: string }>();
+    expect(plan.results.some((row) => row.detail.includes('idx_fib_word_reviews_retention'))).toBe(
+      true,
+    );
+  });
 });
 
 describe('Fib word force reservation', () => {

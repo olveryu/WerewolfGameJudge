@@ -14,11 +14,13 @@ export function SupplyControls({
   disabled,
   triggering,
   gameLabel,
+  remainingBudget,
   onSelect,
 }: {
   disabled: boolean;
   triggering: boolean;
   gameLabel: string;
+  remainingBudget: number;
   onSelect: (action: SupplyAction) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -37,6 +39,7 @@ export function SupplyControls({
       {open && (
         <SupplyDialog
           gameLabel={gameLabel}
+          remainingBudget={remainingBudget}
           onClose={() => setOpen(false)}
           onSelect={(action) => {
             setOpen(false);
@@ -50,10 +53,12 @@ export function SupplyControls({
 
 function SupplyDialog({
   gameLabel,
+  remainingBudget,
   onClose,
   onSelect,
 }: {
   gameLabel: string;
+  remainingBudget: number;
   onClose: () => void;
   onSelect: (action: SupplyAction) => void;
 }) {
@@ -69,6 +74,7 @@ function SupplyDialog({
             <button
               type="button"
               key={value}
+              disabled={!force && value > remainingBudget}
               aria-pressed={value === count}
               onClick={() => setCount(value)}
             >
@@ -88,19 +94,27 @@ function SupplyDialog({
           role="switch"
           aria-label="强制补词"
           checked={force}
-          onChange={(event) => setForce(event.target.checked)}
+          onChange={(event) => {
+            setForce(event.target.checked);
+            if (!event.target.checked && count > remainingBudget) setCount(1);
+          }}
         />
       </label>
       <p className={`admin-supply-notice${force ? ' is-warning' : ''}`}>
         {force
           ? '强制模式将突破供给配额，请确认剩余额度后操作。'
-          : '任务通常需要几分钟，完成后请手动刷新。'}
+          : `共享模型剩余额度 ${remainingBudget} 次；一次任务可能消耗多次额度。完成后请手动刷新。`}
       </p>
       <div className="admin-sheet-actions">
         <button type="button" onClick={onClose}>
           取消
         </button>
-        <button type="button" className="admin-primary" onClick={() => onSelect({ count, force })}>
+        <button
+          type="button"
+          className="admin-primary"
+          disabled={!force && count > remainingBudget}
+          onClick={() => onSelect({ count, force })}
+        >
           提交 {count} 次任务
         </button>
       </div>

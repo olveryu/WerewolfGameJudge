@@ -36,6 +36,7 @@ const postTriggerSupply = (path: string, token: string, body: unknown): Promise<
 
 beforeEach(async () => {
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
@@ -332,6 +333,28 @@ describe('GET /admin/games/words/stats', () => {
 });
 
 describe('POST /admin/games/words/trigger-supply', () => {
+  it('rejects exhausted normal requests without enqueueing, while allowing force', async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 8)
+       INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+       SELECT 'budget-' || i, 'test', 'model', ? FROM n`,
+    )
+      .bind(new Date().toISOString())
+      .run();
+    const workflow = vi.spyOn(env.DRAWGUESS_WORD_SUPPLY, 'createBatch').mockResolvedValue([]);
+    const rejected = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
+      game: 'drawguess',
+    });
+    expect(rejected.status).toBe(429);
+    expect(workflow).not.toHaveBeenCalled();
+    const forced = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
+      game: 'drawguess',
+      force: true,
+    });
+    expect(forced.status).toBe(202);
+    expect(workflow).toHaveBeenCalledOnce();
+  });
+
   it.each(GAME_WORD_GAMES)('enqueues a %s workflow run and echoes the request', async (game) => {
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
       game,

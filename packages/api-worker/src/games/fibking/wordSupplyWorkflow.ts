@@ -3,7 +3,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
+import {
+  claimEditorialModelRequest,
+  isEditorialBudgetAvailable,
+} from '../../platform/ai/editorialBudget';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
@@ -84,6 +87,8 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     );
     if (!isEnabled) return { status: 'disabled' };
     if (day.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return { status: 'expired' };
+    if (!force && !(await step.do('budget-initial', () => isEditorialBudgetAvailable(this.env.DB))))
+      return { status: 'budget_exhausted' };
     await step.do('retention', () => cleanupFibWordAudit(this.env.DB, Date.now()));
     try {
       await step.do('classify-history', MODEL_STEP, async () => {
@@ -107,6 +112,11 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
       });
     }
     for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
+      if (
+        !force &&
+        !(await step.do(`budget-${batchIndex}`, () => isEditorialBudgetAvailable(this.env.DB)))
+      )
+        return { status: 'budget_exhausted' };
       const capacity = await step.do(`capacity-${batchIndex}`, () =>
         measureDatabaseCapacity(this.env.DB),
       );

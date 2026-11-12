@@ -20,6 +20,82 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('DrawGuess supply workflow', () => {
+  it.each([
+    { initialRequests: 6, force: false, expectedStatus: 'budget_exhausted' },
+    { initialRequests: 8, force: true, expectedStatus: 'paused' },
+  ])(
+    'rechecks the budget between batches and honors force (force=$force)',
+    async ({ initialRequests, force, expectedStatus }) => {
+      await env.DB.prepare(
+        `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+         INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+         SELECT 'budget-' || i, 'test', 'model', ? FROM n`,
+      )
+        .bind(initialRequests, new Date().toISOString())
+        .run();
+      mockWordSupplyModel(
+        { word: '大熊猫', difficulty: 'easy', potentialIssues: [] },
+        {
+          word: '大熊猫',
+          qualityChecks: {
+            isConcreteAndDrawable: true,
+            isSimplifiedChinese: true,
+            isLengthValid: true,
+            isCategoryAccurate: true,
+            isAppropriate: true,
+            isUnambiguous: true,
+          },
+          reason: '模拟独立审核通过。',
+        },
+      );
+      const id = crypto.randomUUID();
+      await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
+      await instance.modify(async (modifier) => {
+        await modifier.disableSleeps();
+        await modifier.mockStepResult({ name: 'enabled' }, true);
+        await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+      });
+      await env.DRAWGUESS_WORD_SUPPLY.create({
+        id,
+        params: { day: new Date().toISOString().slice(0, 10), force, runId: id },
+      });
+      await instance.waitForStatus('complete');
+      expect(await instance.getOutput()).toEqual({ status: expectedStatus });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_word_packs').first(),
+      ).toEqual({
+        count: 1,
+      });
+    },
+  );
+
+  it('stops before reserving a pack when the shared budget is exhausted', async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 8)
+       INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+       SELECT 'budget-' || i, 'test', 'model', ? FROM n`,
+    )
+      .bind(new Date().toISOString())
+      .run();
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+    });
+    await env.DRAWGUESS_WORD_SUPPLY.create({
+      id,
+      params: { day: new Date().toISOString().slice(0, 10) },
+    });
+    await instance.waitForStatus('complete');
+    expect(await instance.getOutput()).toEqual({ status: 'budget_exhausted' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_word_packs').first(),
+    ).toEqual({
+      count: 0,
+    });
+  });
+
   it('stores actual generation material and publishes independently reviewed words', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
