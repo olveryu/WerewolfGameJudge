@@ -682,8 +682,8 @@ describe('admin workspace', () => {
     await screen.findByRole('heading', { name: '分类库存' });
     await userEvent.click(screen.getByRole('button', { name: '补词' }));
     let sheet = await screen.findByRole('dialog', { name: '补充词库' });
-    await userEvent.click(within(sheet).getByRole('button', { name: '10 次' }));
     await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
+    await userEvent.click(within(sheet).getByRole('button', { name: '10 次' }));
     await userEvent.click(within(sheet).getByRole('button', { name: '取消' }));
     expect(showAlert).not.toHaveBeenCalled();
     expect(triggerGameWordSupply).not.toHaveBeenCalled();
@@ -704,10 +704,51 @@ describe('admin workspace', () => {
     view.client.clear();
   });
 
+  it('disables normal options beyond the remaining quota and allows explicit force', async () => {
+    vi.mocked(fetchGameWordsStats).mockResolvedValueOnce({
+      ...words,
+      modelBudget: { ...words.modelBudget, monthlyUsed: 120 },
+    });
+    const view = mount('/admin/words/fibking');
+    await screen.findByRole('heading', { name: '分类库存' });
+    await userEvent.click(screen.getByRole('button', { name: '补词' }));
+    const sheet = await screen.findByRole('dialog', { name: '补充词库' });
+    expect(within(sheet).getByRole('button', { name: '1 次' })).toBeDisabled();
+    expect(within(sheet).getByRole('button', { name: '提交 1 次任务' })).toBeDisabled();
+    await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
+    await userEvent.click(within(sheet).getByRole('button', { name: '100 次' }));
+    expect(within(sheet).getByRole('button', { name: '提交 100 次任务' })).toBeEnabled();
+    await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
+    expect(within(sheet).getByRole('button', { name: '提交 1 次任务' })).toBeDisabled();
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('stops triggering when the server rejects an exhausted budget', async () => {
+    vi.mocked(fetchGameWordsStats).mockResolvedValueOnce({
+      ...words,
+      modelBudget: { ...words.modelBudget, dailyLimit: 20 },
+    });
+    vi.mocked(triggerGameWordSupply)
+      .mockResolvedValueOnce({ game: 'fibking', workflowId: 'run', force: false })
+      .mockRejectedValueOnce(new Error('共享模型额度已用完'));
+    const view = mount('/admin/words/fibking');
+    await screen.findByRole('heading', { name: '分类库存' });
+    await userEvent.click(screen.getByRole('button', { name: '补词' }));
+    const sheet = await screen.findByRole('dialog', { name: '补充词库' });
+    await userEvent.click(within(sheet).getByRole('button', { name: '10 次' }));
+    await userEvent.click(within(sheet).getByRole('button', { name: '提交 10 次任务' }));
+    const buttons = vi.mocked(showAlert).mock.calls.at(-1)?.[2];
+    await act(async () => buttons?.find((button) => button.text === '确定')?.onPress?.());
+    expect(await screen.findByRole('alert')).toHaveTextContent('已确认触发 1 次');
+    expect(triggerGameWordSupply).toHaveBeenCalledTimes(2);
+    view.unmount();
+    view.client.clear();
+  });
+
   it.each([
     { count: 10, force: true },
     { count: 100, force: true },
-    { count: 100, force: false },
   ])(
     'confirms $count supplies (force=$force) without rereading inventory',
     async ({ count, force }) => {
@@ -720,8 +761,8 @@ describe('admin workspace', () => {
       await screen.findByRole('heading', { name: '分类库存' });
       await userEvent.click(screen.getByRole('button', { name: /补词/ }));
       const sheet = await screen.findByRole('dialog', { name: '补充词库' });
-      await userEvent.click(within(sheet).getByRole('button', { name: `${count} 次` }));
       if (force) await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
+      await userEvent.click(within(sheet).getByRole('button', { name: `${count} 次` }));
       await userEvent.click(within(sheet).getByRole('button', { name: `提交 ${count} 次任务` }));
       await waitFor(() => expect(showAlert).toHaveBeenCalled());
       expect(triggerGameWordSupply).not.toHaveBeenCalled();

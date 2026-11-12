@@ -1,7 +1,9 @@
 /** Real D1 queue recovery, exact review publication, and stable pair retirement. */
+import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import type { UndercoverWordCandidate, UndercoverWordReview } from '../wordEditorial';
 import {
   failUndercoverWordPack,
@@ -22,6 +24,20 @@ beforeEach(async () => {
 });
 
 describe('Undercover editorial publication', () => {
+  it('keeps reservation reads bounded as pack history grows', async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)
+       INSERT INTO undercover_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
+       SELECT 'history-' || i, json_extract(?, '$[' || (i % 40) || ']'), 'token-' || i,
+         'failed', 'test', '1', '1', '2020-01-01' FROM n`,
+    )
+      .bind(JSON.stringify(UNDERCOVER_CATEGORIES))
+      .run();
+    const measured = createRowCountingDb(env.DB);
+    expect(await reserveUndercoverWordPack(measured.db, '2026-09-01', 1)).not.toBeNull();
+    expect(measured.counts.rowsRead).toBeLessThan(400);
+  });
+
   it('spreads concurrent empty-inventory reservations across categories', async () => {
     const packs = await Promise.all(
       Array.from({ length: 10 }, (_, index) =>

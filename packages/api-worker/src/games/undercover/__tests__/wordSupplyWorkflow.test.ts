@@ -21,6 +21,33 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Undercover supply workflow', () => {
+  it('stops before reserving a pack when the shared budget is exhausted', async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 8)
+       INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+       SELECT 'budget-' || i, 'test', 'model', ? FROM n`,
+    )
+      .bind(new Date().toISOString())
+      .run();
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+    });
+    await env.UNDERCOVER_WORD_SUPPLY.create({
+      id,
+      params: { day: new Date().toISOString().slice(0, 10) },
+    });
+    await instance.waitForStatus('complete');
+    expect(await instance.getOutput()).toEqual({ status: 'budget_exhausted' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM undercover_word_packs').first(),
+    ).toEqual({
+      count: 0,
+    });
+  });
+
   it('stores actual generation material and publishes independently reviewed pairs', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
