@@ -30,6 +30,7 @@ import {
   triggerGameWordSupply,
   triggerSupplySchema,
 } from './gameWords';
+import { maintenanceUpdateSchema, readMaintenance, writeMaintenance } from './maintenance';
 import {
   queryAIUsageAnalytics,
   queryLoadTimingAnalytics,
@@ -83,6 +84,20 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 adminRoutes.use('*', requireAdmin);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
+
+// These endpoints must remain usable while D1 is unavailable.
+adminRoutes.get('/session', (c) => c.json({ success: true }));
+adminRoutes.get('/maintenance', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await readMaintenance(c.env));
+});
+adminRoutes.post('/maintenance', jsonBody(maintenanceUpdateSchema), async (c) => {
+  const configuration = c.req.valid('json');
+  await writeMaintenance(c.env, configuration);
+  log.info('site maintenance updated', { enabled: configuration.enabled });
+  c.header('Cache-Control', 'no-store');
+  return c.json(configuration);
+});
 
 // ── GET /admin/users ────────────────────────────────────────────────────────
 

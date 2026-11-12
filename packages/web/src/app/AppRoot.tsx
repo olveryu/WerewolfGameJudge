@@ -1,6 +1,6 @@
 import { Portal } from '@ark-ui/react/portal';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useCallback, useLayoutEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
 import { Outlet, useMatches } from 'react-router';
 import { Toaster } from 'sonner';
 
@@ -13,6 +13,7 @@ import { AccountInboxHost } from '@/features/account/AccountInboxHost';
 import { LoginDialogSlot } from '@/features/auth/LoginDialogSlot';
 import { WechatLoginEntry } from '@/features/auth/WechatLoginEntry';
 import { DailyRewardHost } from '@/features/gacha/DailyRewardHost';
+import { MaintenanceGate } from '@/features/maintenance/MaintenanceGate';
 import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientModules';
 
 /**
@@ -20,27 +21,39 @@ import { ClientGameModulesProvider, ClientGameOverlays } from '@/games/clientMod
  * the global alert dialog and toast region. Services are created once per page load.
  */
 export function AppRoot() {
-  const services = getAppServices();
   return (
     <QueryClientProvider client={queryClient}>
-      <ServiceProvider services={services}>
-        <AuthProvider>
-          <ClientGameModulesProvider>
-            <RoomLinkScope />
-            <AccountInboxHost />
-            <DailyRewardHost />
-            <AppContent />
-            <ClientGameOverlays />
-          </ClientGameModulesProvider>
-          <AlertHostSlot />
-          <LoginDialogSlot />
-          {/* Body-level like the dialogs, so its own z-index puts toasts above an open dialog. */}
-          <Portal>
-            <Toaster position="top-center" />
-          </Portal>
-        </AuthProvider>
-      </ServiceProvider>
+      <MaintenanceGate>
+        <PlayerAppRoot />
+      </MaintenanceGate>
     </QueryClientProvider>
+  );
+}
+
+function PlayerAppRoot() {
+  const services = getAppServices();
+  useEffect(
+    () => () => services.releaseRoomLinksOutside({ roomCode: null, userId: null }),
+    [services],
+  );
+  return (
+    <ServiceProvider services={services}>
+      <AuthProvider>
+        <ClientGameModulesProvider>
+          <RoomLinkScope />
+          <AccountInboxHost />
+          <DailyRewardHost />
+          <AppContent />
+          <ClientGameOverlays />
+        </ClientGameModulesProvider>
+        <AlertHostSlot />
+        <LoginDialogSlot />
+        {/* Body-level like the dialogs, so its own z-index puts toasts above an open dialog. */}
+        <Portal>
+          <Toaster position="top-center" />
+        </Portal>
+      </AuthProvider>
+    </ServiceProvider>
   );
 }
 

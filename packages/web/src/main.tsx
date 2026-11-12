@@ -5,10 +5,12 @@ import './boot/markBootStart';
 import './instrument';
 
 import { reactErrorHandler } from '@sentry/react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 
+import { queryClient } from '@/app/queryClient';
 import { router } from '@/app/router';
 import { dismissBootSplash } from '@/boot/dismissBootSplash';
 import { reportLoadTiming } from '@/boot/loadTiming';
@@ -16,6 +18,7 @@ import { capturePwaInstallPrompt } from '@/boot/pwaInstallPrompt';
 import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
 import { installStaleTabReload, removeLegacyServiceWorkers } from '@/boot/tabLifecycle';
 import { WechatBrowserGuide } from '@/boot/WechatBrowserGuide';
+import { MaintenanceGate } from '@/features/maintenance/MaintenanceGate';
 import { applyColorTokens } from '@/theme/colors';
 
 const rootElement = document.getElementById('root');
@@ -51,7 +54,11 @@ void resolveRuntimeEnvironment().then((environment) => {
   root.render(
     <StrictMode>
       {environment === 'wechatBrowser' ? (
-        <WechatBrowserGuide />
+        <QueryClientProvider client={queryClient}>
+          <MaintenanceGate>
+            <WechatBrowserGuide />
+          </MaintenanceGate>
+        </QueryClientProvider>
       ) : (
         <RouterProvider router={router} />
       )}

@@ -1,8 +1,8 @@
 import { type RouteObject } from 'react-router';
 
+import { AdminRoot } from '@/app/AdminRoot';
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
-import { AdminPage } from '@/routes/admin/AdminPage';
 import { AppearancePage } from '@/routes/appearance/AppearancePage';
 import { SceneBenchPage } from '@/routes/bench/SceneBenchPage';
 import { GachaPage } from '@/routes/gacha/GachaPage';
@@ -25,6 +25,11 @@ import { UnlocksPage } from '@/routes/unlocks/UnlocksPage';
  * current client, including `/room/:code`.
  */
 export const routes: RouteObject[] = [
+  {
+    path: '/admin',
+    Component: AdminRoot,
+    errorElement: <RouteErrorPage />,
+  },
   {
     path: '/',
     element: <AppRoot />,
@@ -78,10 +83,6 @@ export const routes: RouteObject[] = [
       {
         path: 'shard-exchange/:roomCode?',
         Component: ShardExchangePage,
-      },
-      {
-        path: 'admin',
-        Component: AdminPage,
       },
       {
         path: '__bench/scene',

@@ -28,6 +28,7 @@ import type { AppEnv, Env } from './env';
 import { accountAuthRoutes } from './features/account/authRoutes';
 import { avatarRoutes } from './features/account/avatarRoutes';
 import { accountRoutes } from './features/account/routes';
+import { readMaintenance } from './features/admin/maintenance';
 import { adminRoutes } from './features/admin/routes';
 import { authRoutes } from './features/auth/routes';
 import { authenticateAccessToken, requireAuth } from './features/auth/tokenAuth';
@@ -139,6 +140,11 @@ app.notFound((c) => c.json({ error: 'not found' }, 404));
 // ── Health ──────────────────────────────────────────────────────────────────
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
+
+app.get('/maintenance', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json(await readMaintenance(c.env));
+});
 
 // ── WebSocket upgrade → Durable Object ──────────────────────────────────────
 

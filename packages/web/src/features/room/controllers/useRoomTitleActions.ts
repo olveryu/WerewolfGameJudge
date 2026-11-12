@@ -3,6 +3,7 @@
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
+import { useAdminShortcut } from '@/features/admin/hooks/useAdminShortcut';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
   clearAdminCredential,
@@ -14,14 +15,12 @@ import { debugLogStore } from '@/utils/debugLogStore';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-const TAP_THRESHOLD = 4;
-const TAP_TIMEOUT_MS = 3000;
-
 /** Compose title callbacks without reading or mutating game state. */
 export function useRoomTitleActions() {
   const navigate = useNavigate();
-  const lastTap = useRef<number | null>(null);
-  const tapCountRef = useRef(0);
+  const { onPress: handleTitlePress, reset: resetAdminShortcut } = useAdminShortcut(() => {
+    void navigate('/admin');
+  });
   const isVerifying = useRef(false);
 
   const verifyAndToggle = useCallback(async (credential: string) => {
@@ -44,24 +43,8 @@ export function useRoomTitleActions() {
     }
   }, []);
 
-  const handleTitlePress = useCallback(() => {
-    const now = Date.now();
-    tapCountRef.current =
-      lastTap.current !== null && now - lastTap.current <= TAP_TIMEOUT_MS
-        ? tapCountRef.current + 1
-        : 1;
-    if (tapCountRef.current >= TAP_THRESHOLD) {
-      lastTap.current = null;
-      tapCountRef.current = 0;
-      void navigate('/admin');
-      return;
-    }
-    lastTap.current = now;
-  }, [navigate]);
-
   const handleTitleLongPress = useCallback(() => {
-    lastTap.current = null;
-    tapCountRef.current = 0;
+    resetAdminShortcut();
     const cached = readAdminCredential();
     if (cached) {
       void verifyAndToggle(cached);
@@ -74,7 +57,7 @@ export function useRoomTitleActions() {
         if (credential) void verifyAndToggle(credential);
       },
     });
-  }, [verifyAndToggle]);
+  }, [resetAdminShortcut, verifyAndToggle]);
 
   return { handleTitlePress, handleTitleLongPress };
 }
