@@ -45,6 +45,7 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
       <NavLink
         key={item.path}
         to={item.path + (MONITORING_PATHS.includes(item.path) ? monitoringSearch : '')}
+        replace
         end={item.path === '/admin'}
         className={
           menu

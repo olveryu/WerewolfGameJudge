@@ -43,7 +43,9 @@ export function WordsPage() {
     return (
       <div className="admin-content">
         <h1>未知词库</h1>
-        <Link to="/admin/words/fibking">返回词库管理</Link>
+        <Link to="/admin/words/fibking" replace>
+          返回词库管理
+        </Link>
       </div>
     );
   return <WordInventory key={game} game={game} />;
@@ -131,6 +133,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
               <Link
                 key={item}
                 to={`/admin/words/${item}`}
+                replace
                 aria-current={item === game ? 'page' : undefined}
               >
                 {LABELS[item]}
@@ -163,7 +166,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
               onViewChange={(value) => {
                 const next = new URLSearchParams(parameters);
                 next.set('view', value);
-                setParameters(next);
+                setParameters(next, { replace: true });
               }}
             />
           )}

@@ -43,7 +43,7 @@ export function RoomsPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     if (key === 'page') next.delete('room');
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   const columns: TableColumn<AdminRoom>[] = [
     {

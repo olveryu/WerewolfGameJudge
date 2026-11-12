@@ -66,7 +66,7 @@ function TrafficReport({ data }: { data: AdminRequestTraffic }) {
     const next = new URLSearchParams(parameters);
     next.set('sort', value);
     next.set('order', parameters.get('sort') === value ? (ascending ? 'desc' : 'asc') : 'asc');
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   const connections = data.http.successfulWebSocketConnections;
   const diagnostics = `非法消息 ${data.realtime.invalidClientMessages}；状态同步/连接 ${connections === 0 ? '无成功连接，无法计算' : (data.realtime.stateSyncRequests / connections).toFixed(2)}；命令/连接 ${connections === 0 ? '无成功连接，无法计算' : (data.realtime.commandRequests / connections).toFixed(2)}`;

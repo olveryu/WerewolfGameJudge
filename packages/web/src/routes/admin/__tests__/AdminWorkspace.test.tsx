@@ -1,7 +1,7 @@
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, Navigate, parsePath, RouterProvider, useNavigate } from 'react-router';
 
 import type {
   AdminAutomaticSupplySettings,
@@ -37,6 +37,7 @@ import { AdminPage } from '../AdminPage';
 import { StatTile } from '../components/Primitives';
 import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
 import { GrowthPage } from '../pages/MonitoringPages';
+import { OverviewPage } from '../pages/OverviewPage';
 import { RoomsPage } from '../pages/RoomsPage';
 import { TrafficPage } from '../pages/TrafficPage';
 import { UsersPage } from '../pages/UsersPage';
@@ -123,6 +124,41 @@ const words: GameWordsStats = {
   ],
 };
 
+const traffic: AdminRequestTraffic = {
+  generatedAt: '2026-11-11T00:00:00Z',
+  platform: { requests: 2, errors: 0, subrequests: 0 },
+  requestCountDelta: 0,
+  http: {
+    totalRequests: 2,
+    clientErrorRequests: 0,
+    serverErrorRequests: 0,
+    successfulWebSocketConnections: 0,
+    failedWebSocketConnections: 0,
+    routes: [
+      {
+        method: 'GET',
+        route: '/higher',
+        count: 2,
+        errorCount: 0,
+        avgDurationMs: 1,
+        sharePercent: 100,
+        statusCounts: [],
+      },
+    ],
+    series: [],
+  },
+  realtime: {
+    stateSyncRequests: 0,
+    commandRequests: 0,
+    stateUpdateBroadcasts: 0,
+    stateUpdateDeliveries: 0,
+    stateUpdateBytes: 0,
+    downlinkDeliveries: 0,
+    downlinkBytes: 0,
+    invalidClientMessages: 0,
+  },
+};
+
 function deferred<Value>() {
   let resolve!: (value: Value) => void;
   const promise = new Promise<Value>((complete) => {
@@ -131,26 +167,37 @@ function deferred<Value>() {
   return { promise, resolve };
 }
 
+function AdminEntryPage() {
+  const navigate = useNavigate();
+  return <button onClick={() => void navigate('/admin')}>进入后台</button>;
+}
+
 function mount(path = '/admin/users', previousPath?: string) {
   const client = new QueryClient();
   const router = createMemoryRouter(
     [
+      { path: '/', Component: AdminEntryPage },
+      { path: '/room/:roomCode', Component: AdminEntryPage },
       {
         path: '/admin',
         Component: AdminPage,
         children: [
+          { index: true, Component: OverviewPage },
           { path: 'users', Component: UsersPage },
           { path: 'rooms', Component: RoomsPage },
           { path: 'growth', Component: GrowthPage },
           { path: 'traffic', Component: TrafficPage },
           { path: 'maintenance', Component: MaintenanceSettingsPage },
+          { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
           { path: 'words/:game', Component: WordsPage },
         ],
       },
     ],
     {
       initialEntries:
-        previousPath === undefined ? [path] : [previousPath, { pathname: path, key: 'default' }],
+        previousPath === undefined
+          ? [path]
+          : [previousPath, { ...parsePath(path), key: 'default' }],
     },
   );
   const view = render(
@@ -187,6 +234,7 @@ beforeEach(() => {
   vi.mocked(fetchUserCountries).mockResolvedValue({ countries: ['CN', 'JP', 'US'] });
   vi.mocked(fetchUserRewards).mockResolvedValue({ normalDraws: 0, goldenDraws: 5, grants: [] });
   vi.mocked(fetchRooms).mockResolvedValue({ rooms: [], total: 0, page: 1, limit: 50 });
+  vi.mocked(fetchRequestTraffic).mockResolvedValue(traffic);
   vi.mocked(fetchStats).mockResolvedValue({
     registered: 2,
     active: 3,
@@ -228,6 +276,53 @@ describe('admin workspace', () => {
     },
   );
 
+  it.each([
+    { source: '/', mobile: false },
+    { source: '/room/1234?tab=players#seats', mobile: true },
+  ])(
+    'returns directly to $source after switching admin sections and searching (mobile=$mobile)',
+    async ({ source, mobile }) => {
+      const view = mount(source);
+      await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+      let navigation = await screen.findByRole('navigation', { name: '管理后台导航' });
+      if (mobile) {
+        await userEvent.click(screen.getByRole('button', { name: '切换页面，当前：总览' }));
+        navigation = await screen.findByRole('dialog', { name: '切换页面' });
+      }
+      await userEvent.click(within(navigation).getByRole('link', { name: '用户' }));
+      await screen.findByText('测试用户');
+      await userEvent.type(screen.getByRole('searchbox', { name: '搜索用户' }), '测试');
+      await userEvent.click(screen.getByRole('button', { name: '搜索' }));
+      await waitFor(() => expect(view.router.state.location.search).toContain('q='));
+      await userEvent.click(screen.getByRole('button', { name: '返回' }));
+      await waitFor(() => {
+        const { pathname, search, hash } = view.router.state.location;
+        expect(`${pathname}${search}${hash}`).toBe(source);
+      });
+      view.unmount();
+      view.client.clear();
+    },
+  );
+
+  it('keeps overview shortcuts, word tabs and inventory views in one history entry', async () => {
+    const view = mount('/');
+    await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+    await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
+    const navigation = await screen.findByRole('navigation', { name: '选择词库' });
+    await userEvent.click(within(navigation).getByRole('link', { name: '谁是卧底' }));
+    await userEvent.click(
+      within(await screen.findByRole('group', { name: '分类范围' })).getByRole('button', {
+        name: '全部',
+      }),
+    );
+    await waitFor(() => expect(view.router.state.location.search).toBe('?view=all'));
+    expect(view.router.state.location.pathname).toBe('/admin/words/undercover');
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
+    view.unmount();
+    view.client.clear();
+  });
+
   it('switches pages through grouped navigation, highlights the current page and closes the sheet', async () => {
     const view = mount();
     await screen.findByText('测试用户');
@@ -263,7 +358,7 @@ describe('admin workspace', () => {
 
   it('preserves monitoring dates when using the page switcher to leave and return', async () => {
     const search = '?range=custom&from=2026-11-01&to=2026-11-07';
-    const view = mount(`/admin/growth${search}`);
+    const view = mount(`/admin/growth${search}`, '/');
     await screen.findByText('活跃用户');
     for (const label of ['用户', '增长']) {
       await userEvent.click(screen.getByRole('button', { name: /切换页面，当前：/ }));
@@ -273,6 +368,10 @@ describe('admin workspace', () => {
     await screen.findByText('活跃用户');
     expect(view.router.state.location.search).toBe(search);
     expect(fetchStats).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('button', { name: '7 天' }));
+    await waitFor(() => expect(view.router.state.location.search).toContain('range=7d'));
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
     view.client.clear();
   });
@@ -341,45 +440,12 @@ describe('admin workspace', () => {
   });
 
   it('starts request-route sorting in ascending order on the first click', async () => {
-    const traffic: AdminRequestTraffic = {
-      generatedAt: '2026-11-11T00:00:00Z',
-      platform: { requests: 2, errors: 0, subrequests: 0 },
-      requestCountDelta: 0,
-      http: {
-        totalRequests: 2,
-        clientErrorRequests: 0,
-        serverErrorRequests: 0,
-        successfulWebSocketConnections: 0,
-        failedWebSocketConnections: 0,
-        routes: [
-          {
-            method: 'GET',
-            route: '/higher',
-            count: 2,
-            errorCount: 0,
-            avgDurationMs: 1,
-            sharePercent: 100,
-            statusCounts: [],
-          },
-        ],
-        series: [],
-      },
-      realtime: {
-        stateSyncRequests: 0,
-        commandRequests: 0,
-        stateUpdateBroadcasts: 0,
-        stateUpdateDeliveries: 0,
-        stateUpdateBytes: 0,
-        downlinkDeliveries: 0,
-        downlinkBytes: 0,
-        invalidClientMessages: 0,
-      },
-    };
-    vi.mocked(fetchRequestTraffic).mockResolvedValue(traffic);
-    const view = mount('/admin/traffic');
+    const view = mount('/admin/traffic', '/');
     await screen.findByText('/higher');
     fireEvent.click(screen.getByRole('button', { name: '请求数' }));
     await waitFor(() => expect(view.router.state.location.search).toContain('order=asc'));
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
     view.client.clear();
   });
@@ -398,7 +464,7 @@ describe('admin workspace', () => {
       if (element !== null) element.scrollIntoView = scroll;
       return element;
     });
-    const view = mount('/admin/words/fibking');
+    const view = mount('/admin/words/fibking', '/');
     await screen.findByRole('heading', { name: '分类库存' });
     expect(screen.queryByRole('row', { name: /高库存分类/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: '高库存分类，在库 100 词，查看明细' }));
@@ -406,6 +472,8 @@ describe('admin workspace', () => {
     expect(row).toHaveAttribute('data-highlighted', 'true');
     expect(scroll).toHaveBeenCalled();
     expect(fetchGameWordsStats).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
     view.client.clear();
   });
@@ -536,7 +604,7 @@ describe('admin workspace', () => {
   it('reads room participants only after expansion and supports retry', async () => {
     vi.mocked(fetchRooms).mockResolvedValue({
       rooms: [room],
-      total: 1,
+      total: 51,
       page: 1,
       limit: 50,
     });
@@ -557,7 +625,7 @@ describe('admin workspace', () => {
           },
         ],
       });
-    const view = mount('/admin/rooms');
+    const view = mount('/admin/rooms', '/');
     await screen.findByRole('button', { name: '#1234' });
     expect(fetchRoomPlayers).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '#1234' }));
@@ -575,6 +643,10 @@ describe('admin workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '#1234' }));
     await screen.findByRole('table', { name: '1234 的参与者' });
     expect(fetchRoomPlayers).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+    await waitFor(() => expect(view.router.state.location.search).toBe('?page=2'));
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
     view.client.clear();
   });
