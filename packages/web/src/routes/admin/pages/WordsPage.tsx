@@ -137,10 +137,17 @@ function WordInventory({ game }: { game: GameWordGame }) {
             {triggerError}
           </p>
         )}
-        <AsyncBoundary query={query}>
-          {(data) => (
+        <div className="admin-grid">
+          <Panel className="admin-span-9">
+            <AsyncBoundary query={query}>{(data) => <WordSummary data={data} />}</AsyncBoundary>
+          </Panel>
+          <Panel title="供给设置与额度" className="admin-span-3">
+            <AutomaticSupplyControl game={game} />
+            {query.data !== undefined && <SupplyQuota data={query.data} />}
+          </Panel>
+          {query.data !== undefined && (
             <WordReport
-              data={data}
+              data={query.data}
               view={view}
               onViewChange={(value) => {
                 const next = new URLSearchParams(parameters);
@@ -149,8 +156,66 @@ function WordInventory({ game }: { game: GameWordGame }) {
               }}
             />
           )}
-        </AsyncBoundary>
+        </div>
       </div>
+    </>
+  );
+}
+
+function WordSummary({ data }: { data: GameWordsStats }) {
+  const active = data.categories.reduce((sum, item) => sum + item.active, 0);
+  const accepted = data.reviewDecisions.find((item) => item.decision === 'accepted')?.count ?? 0;
+  const reviews = data.reviewDecisions.reduce((sum, item) => sum + item.count, 0);
+  return (
+    <div className="admin-stats-grid">
+      <StatTile label="在库词数" value={formatNumber(active)} />
+      <StatTile
+        label="本月已发布"
+        value={
+          data.monthlySupply === null ? '无月目标' : formatNumber(data.monthlySupply.published)
+        }
+        hint={
+          data.monthlySupply === null
+            ? undefined
+            : `目标 ${formatNumber(data.monthlySupply.wordTarget)}`
+        }
+      />
+      <StatTile
+        label="审核通过率"
+        value={reviews === 0 ? '—' : `${Math.round((accepted / reviews) * 100)}%`}
+        hint="近 30 天"
+      />
+    </div>
+  );
+}
+
+function SupplyQuota({ data }: { data: GameWordsStats }) {
+  return (
+    <>
+      {data.monthlySupply !== null && (
+        <Meter
+          label="本月批次"
+          value={data.monthlySupply.reserved}
+          limit={data.monthlySupply.batchLimit}
+        />
+      )}
+      <Meter
+        label="模型 · 近 24 小时"
+        value={data.modelBudget.dailyUsed}
+        limit={data.modelBudget.dailyLimit}
+      />
+      <Meter
+        label="模型 · 近 30 天"
+        value={data.modelBudget.monthlyUsed}
+        limit={data.modelBudget.monthlyLimit}
+      />
+      {data.tavilyRequestsUsed !== null && data.tavilyMonthlyQuota !== null && (
+        <Meter
+          label="Tavily · 本月"
+          value={data.tavilyRequestsUsed}
+          limit={data.tavilyMonthlyQuota}
+        />
+      )}
     </>
   );
 }
@@ -174,67 +239,16 @@ function WordReport({
   const categories = [...data.categories].sort(
     (a, b) => a.active - b.active || a.id.localeCompare(b.id),
   );
-  const active = categories.reduce((sum, item) => sum + item.active, 0);
   const maximum = Math.max(0, ...categories.map((item) => item.active));
   const middle = Math.floor(categories.length / 2);
   const median =
     categories.length % 2 === 1
       ? (categories[middle]?.active ?? 0)
       : ((categories[middle - 1]?.active ?? 0) + (categories[middle]?.active ?? 0)) / 2;
-  const accepted = data.reviewDecisions.find((item) => item.decision === 'accepted')?.count ?? 0;
-  const reviews = data.reviewDecisions.reduce((sum, item) => sum + item.count, 0);
   const pageCount = Math.max(1, Math.ceil(data.queryLeaderboard.length / 15));
   const page = Math.min(leaderboardPage, pageCount);
   return (
-    <div className="admin-grid">
-      <Panel className="admin-span-9">
-        <div className="admin-stats-grid">
-          <StatTile label="在库词数" value={formatNumber(active)} />
-          <StatTile
-            label="本月已发布"
-            value={
-              data.monthlySupply === null ? '无月目标' : formatNumber(data.monthlySupply.published)
-            }
-            hint={
-              data.monthlySupply === null
-                ? undefined
-                : `目标 ${formatNumber(data.monthlySupply.wordTarget)}`
-            }
-          />
-          <StatTile
-            label="审核通过率"
-            value={reviews === 0 ? '—' : `${Math.round((accepted / reviews) * 100)}%`}
-            hint="近 30 天"
-          />
-        </div>
-      </Panel>
-      <Panel title="供给设置与额度" className="admin-span-3">
-        <AutomaticSupplyControl game={data.game} available={data.supplyEnabled} />
-        {data.monthlySupply !== null && (
-          <Meter
-            label="本月批次"
-            value={data.monthlySupply.reserved}
-            limit={data.monthlySupply.batchLimit}
-          />
-        )}
-        <Meter
-          label="模型 · 近 24 小时"
-          value={data.modelBudget.dailyUsed}
-          limit={data.modelBudget.dailyLimit}
-        />
-        <Meter
-          label="模型 · 近 30 天"
-          value={data.modelBudget.monthlyUsed}
-          limit={data.modelBudget.monthlyLimit}
-        />
-        {data.tavilyRequestsUsed !== null && data.tavilyMonthlyQuota !== null && (
-          <Meter
-            label="Tavily · 本月"
-            value={data.tavilyRequestsUsed}
-            limit={data.tavilyMonthlyQuota}
-          />
-        )}
-      </Panel>
+    <>
       <Panel
         title="分类库存"
         className="admin-span-12"
@@ -306,7 +320,7 @@ function WordReport({
           </Panel>
         </>
       )}
-    </div>
+    </>
   );
 }
 

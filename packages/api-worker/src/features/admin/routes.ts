@@ -23,6 +23,7 @@ import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import {
   automaticSupplyUpdateSchema,
+  isWordSupplyAvailable,
   readAutomaticWordSupply,
   writeAutomaticWordSupply,
 } from '../../platform/wordSupply/automaticSupply';
@@ -446,7 +447,11 @@ adminRoutes.get('/games/words/automatic-supply', async (c) => {
   const parsed = gameWordGameSchema.safeParse(c.req.query('game'));
   if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
   c.header('Cache-Control', 'no-store');
-  return c.json({ game: parsed.data, ...(await readAutomaticWordSupply(c.env, parsed.data)) });
+  return c.json({
+    game: parsed.data,
+    available: isWordSupplyAvailable(c.env, parsed.data),
+    ...(await readAutomaticWordSupply(c.env, parsed.data)),
+  });
 });
 
 adminRoutes.post(
@@ -457,7 +462,7 @@ adminRoutes.post(
     await writeAutomaticWordSupply(c.env, game, enabled);
     log.info('automatic word supply updated', { game, enabled });
     c.header('Cache-Control', 'no-store');
-    return c.json({ game, enabled });
+    return c.json({ game, enabled, available: isWordSupplyAvailable(c.env, game) });
   },
 );
 

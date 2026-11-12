@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import type {
+  AdminAutomaticSupplySettings,
   AdminRequestTraffic,
   AdminUser,
   GameWordsStats,
@@ -105,6 +106,14 @@ const words: GameWordsStats = {
   ],
 };
 
+function deferred<Value>() {
+  let resolve!: (value: Value) => void;
+  const promise = new Promise<Value>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
 function mount(path = '/admin/users') {
   const client = new QueryClient();
   const router = createMemoryRouter(
@@ -169,10 +178,12 @@ beforeEach(() => {
   vi.mocked(fetchAutomaticSupplySettings).mockImplementation(async (game) => ({
     game,
     enabled: true,
+    available: true,
   }));
   vi.mocked(saveAutomaticSupplySettings).mockImplementation(async (game, enabled) => ({
     game,
     enabled,
+    available: true,
   }));
 });
 
@@ -526,6 +537,104 @@ describe('admin workspace', () => {
     expect(fetchGameWordsStats).toHaveBeenCalledOnce();
     view.unmount();
     view.client.clear();
+  });
+
+  it.each([
+    { enabled: true, duringSave: false },
+    { enabled: false, duringSave: false },
+    { enabled: true, duringSave: true },
+    { enabled: false, duringSave: true },
+  ])(
+    'does not let a delayed refresh overwrite a saved policy (enabled=$enabled, duringSave=$duringSave)',
+    async ({ enabled, duringSave }) => {
+      const initial: AdminAutomaticSupplySettings = { game: 'fibking', enabled, available: true };
+      const saved = { ...initial, enabled: !enabled };
+      const refresh = deferred<AdminAutomaticSupplySettings>();
+      const saving = deferred<AdminAutomaticSupplySettings>();
+      let refreshSignal: AbortSignal | undefined;
+      vi.mocked(fetchAutomaticSupplySettings)
+        .mockResolvedValueOnce(initial)
+        .mockImplementationOnce((_game, signal) => {
+          refreshSignal = signal;
+          return refresh.promise;
+        });
+      vi.mocked(saveAutomaticSupplySettings).mockReturnValueOnce(saving.promise);
+      const view = mount('/admin/words/fibking');
+      const automatic = await screen.findByRole('switch', { name: '自动供给' });
+      if (!duringSave) {
+        await userEvent.click(screen.getByRole('button', { name: '刷新当前页面' }));
+        await waitFor(() => expect(fetchAutomaticSupplySettings).toHaveBeenCalledTimes(2));
+      }
+      await userEvent.click(automatic);
+      const confirmation = vi
+        .mocked(showAlert)
+        .mock.calls.at(-1)?.[2]
+        ?.find((button) => button.text === (enabled ? '暂停' : '启用'));
+      await act(async () => confirmation?.onPress?.());
+      await waitFor(() => expect(saveAutomaticSupplySettings).toHaveBeenCalledOnce());
+      if (duringSave) {
+        await userEvent.click(screen.getByRole('button', { name: '刷新当前页面' }));
+        await waitFor(() => expect(fetchAutomaticSupplySettings).toHaveBeenCalledTimes(2));
+      }
+      await act(async () => saving.resolve(saved));
+      await waitFor(() => expect(automatic).not.toBeDisabled());
+      expect(refreshSignal?.aborted).toBe(true);
+      await act(async () => {
+        refresh.resolve(initial);
+        await refresh.promise;
+      });
+      expect(automatic).toHaveProperty('checked', saved.enabled);
+      expect(view.client.getQueryData(['admin', 'automatic-supply', 'fibking'])).toEqual(saved);
+      view.unmount();
+      view.client.clear();
+    },
+  );
+
+  it.each(['fibking', 'undercover', 'drawguess'] as const)(
+    'can pause %s automatically when D1 inventory statistics are unavailable',
+    async (game) => {
+      vi.mocked(fetchGameWordsStats).mockRejectedValue(new Error('D1 unavailable'));
+      const view = mount(`/admin/words/${game}`);
+      const automatic = await screen.findByRole('switch', { name: '自动供给' });
+      expect(await screen.findByRole('alert')).toHaveTextContent('D1 unavailable');
+      expect(automatic).toBeEnabled();
+      await userEvent.click(automatic);
+      const pause = vi
+        .mocked(showAlert)
+        .mock.calls.at(-1)?.[2]
+        ?.find((button) => button.text === '暂停');
+      await act(async () => pause?.onPress?.());
+      await waitFor(() => expect(automatic).not.toBeChecked());
+      expect(saveAutomaticSupplySettings).toHaveBeenCalledExactlyOnceWith(game, false);
+      expect(fetchGameWordsStats).toHaveBeenCalledOnce();
+      view.unmount();
+      view.client.clear();
+    },
+  );
+
+  it('uses the independent deployment availability instead of the inventory flag', async () => {
+    vi.mocked(fetchAutomaticSupplySettings).mockResolvedValueOnce({
+      game: 'fibking',
+      enabled: true,
+      available: false,
+    });
+    const view = mount('/admin/words/fibking');
+    const automatic = await screen.findByRole('switch', { name: '自动供给' });
+    expect(automatic).not.toBeChecked();
+    expect(automatic).toBeDisabled();
+    expect(screen.getByText('部署尚未开启供给')).toBeVisible();
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('shows settings read failures without blocking the inventory report', async () => {
+    vi.mocked(fetchAutomaticSupplySettings).mockRejectedValue(new Error('R2 unavailable'));
+    const unavailable = mount('/admin/words/fibking');
+    expect(await screen.findByRole('alert')).toHaveTextContent('R2 unavailable');
+    expect(screen.queryByRole('switch', { name: '自动供给' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '分类库存' })).toBeVisible();
+    unavailable.unmount();
+    unavailable.client.clear();
   });
 
   it('keeps the authoritative automatic policy when saving fails and shows the error', async () => {

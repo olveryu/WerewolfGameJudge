@@ -258,9 +258,13 @@ export function parseAdminCountriesResponse(value: unknown): { countries: string
 /** Decode the selected game's persisted automatic scheduling policy. */
 export function parseAdminAutomaticSupplySettings(value: unknown): AdminAutomaticSupplySettings {
   const object = requireObject(value, 'Automatic supply settings');
-  assertExactKeys(object, ['game', 'enabled'], 'Automatic supply settings');
+  assertExactKeys(object, ['game', 'enabled', 'available'], 'Automatic supply settings');
   if (!isGameWordGame(object.game)) throw new Error('Unsupported automatic supply game');
-  return { game: object.game, enabled: parseBoolean(object.enabled, 'Automatic supply enabled') };
+  return {
+    game: object.game,
+    enabled: parseBoolean(object.enabled, 'Automatic supply enabled'),
+    available: parseBoolean(object.available, 'Word supply deployment availability'),
+  };
 }
 
 /** Decode the account-wide UTC-day D1 analytics response. */

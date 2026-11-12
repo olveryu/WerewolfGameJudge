@@ -40,17 +40,54 @@ describe('automatic word supply settings', () => {
           headers,
           body: JSON.stringify({ game, enabled: false }),
         },
-        env,
+        enabledEnvironment,
       );
       expect(saved.status).toBe(200);
-      expect(await saved.json()).toEqual({ game, enabled: false });
-      const response = await adminRoutes.request(`${endpoint}?game=${game}`, { headers }, env);
+      expect(await saved.json()).toEqual({ game, enabled: false, available: true });
+      const response = await adminRoutes.request(
+        `${endpoint}?game=${game}`,
+        { headers },
+        enabledEnvironment,
+      );
       expect(response.headers.get('Cache-Control')).toBe('no-store');
-      expect(await response.json()).toEqual({ game, enabled: false });
+      expect(await response.json()).toEqual({ game, enabled: false, available: true });
     }
     await writeAutomaticWordSupply(env, 'fibking', true);
     expect(await readAutomaticWordSupply(env, 'fibking')).toEqual({ enabled: true });
     expect(await readAutomaticWordSupply(env, 'undercover')).toEqual({ enabled: false });
+    expect(database).not.toHaveBeenCalled();
+  });
+
+  it('reports deployment availability independently from the persisted preference and D1', async () => {
+    const database = vi.spyOn(env.DB, 'prepare').mockImplementation(() => {
+      throw new Error('D1 unavailable');
+    });
+    const disabledEnvironment = {
+      ...env,
+      FIB_WORD_SUPPLY_ENABLED: 'false',
+      UNDERCOVER_WORD_SUPPLY_ENABLED: 'false',
+      DRAWGUESS_WORD_SUPPLY_ENABLED: 'false',
+    };
+    for (const game of GAME_WORD_GAMES) {
+      const response = await adminRoutes.request(
+        `${endpoint}?game=${game}`,
+        { headers },
+        disabledEnvironment,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ game, enabled: true, available: false });
+      const saved = await adminRoutes.request(
+        endpoint,
+        {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game, enabled: false }),
+        },
+        disabledEnvironment,
+      );
+      expect(saved.status).toBe(200);
+      expect(await saved.json()).toEqual({ game, enabled: false, available: false });
+    }
     expect(database).not.toHaveBeenCalled();
   });
 

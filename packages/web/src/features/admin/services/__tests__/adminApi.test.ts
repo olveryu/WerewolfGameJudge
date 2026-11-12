@@ -69,19 +69,25 @@ describe('adminApi', () => {
   });
 
   it('reads and saves per-game automatic scheduling with strict response validation', async () => {
-    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: true }));
+    mockFetch.mockResolvedValueOnce(
+      Response.json({ game: 'drawguess', enabled: true, available: true }),
+    );
     await expect(fetchAutomaticSupplySettings('drawguess')).resolves.toEqual({
       game: 'drawguess',
       enabled: true,
+      available: true,
     });
     expect(mockFetch).toHaveBeenLastCalledWith(
       expect.stringMatching(/automatic-supply\?game=drawguess$/),
       expect.any(Object),
     );
-    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: false }));
+    mockFetch.mockResolvedValueOnce(
+      Response.json({ game: 'drawguess', enabled: false, available: true }),
+    );
     await expect(saveAutomaticSupplySettings('drawguess', false)).resolves.toEqual({
       game: 'drawguess',
       enabled: false,
+      available: true,
     });
     expect(mockFetch).toHaveBeenLastCalledWith(
       expect.stringMatching(/automatic-supply$/),
@@ -90,8 +96,16 @@ describe('adminApi', () => {
         body: JSON.stringify({ game: 'drawguess', enabled: false }),
       }),
     );
-    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: 'false' }));
+    mockFetch.mockResolvedValueOnce(
+      Response.json({ game: 'drawguess', enabled: 'false', available: true }),
+    );
     await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('must be a boolean');
+    mockFetch.mockResolvedValueOnce(
+      Response.json({ game: 'drawguess', enabled: true, available: 'true' }),
+    );
+    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('must be a boolean');
+    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: true }));
+    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('unsupported fields');
   });
 
   it('revokes an expired session before surfacing a failed API request', async () => {

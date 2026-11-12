@@ -27,6 +27,7 @@ import {
   EDITORIAL_DAILY_REQUEST_LIMIT,
   EDITORIAL_MONTHLY_REQUEST_LIMIT,
 } from '../../platform/ai/editorialBudget';
+import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
 import { DRAWGUESS_DASHBOARD_CATEGORIES } from './drawGuessWordLabels';
@@ -274,7 +275,7 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
     tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
     tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
     queryLeaderboard,
-    supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
+    supplyEnabled: isWordSupplyAvailable(env, 'fibking'),
   };
 }
 
@@ -298,7 +299,7 @@ async function getUndercoverWordStats(env: Env): Promise<DashboardBase> {
     })),
     reviewCheckStats: [],
     queryLeaderboard: [],
-    supplyEnabled: env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
+    supplyEnabled: isWordSupplyAvailable(env, 'undercover'),
   };
 }
 
@@ -322,7 +323,7 @@ async function getDrawGuessWordStats(env: Env): Promise<DashboardBase> {
     })),
     reviewCheckStats: [],
     queryLeaderboard: [],
-    supplyEnabled: env.DRAWGUESS_WORD_SUPPLY_ENABLED === 'true',
+    supplyEnabled: isWordSupplyAvailable(env, 'drawguess'),
   };
 }
 

@@ -128,6 +128,7 @@ export interface AdminUsersResponse {
 export interface AdminAutomaticSupplySettings {
   game: GameWordGame;
   enabled: boolean;
+  available: boolean;
 }
 
 export interface AdminD1Usage {

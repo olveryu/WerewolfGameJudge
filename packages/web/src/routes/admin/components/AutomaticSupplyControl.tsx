@@ -16,13 +16,7 @@ import { AsyncBoundary } from './Primitives';
 const supplyLog = log.extend('AdminAutomaticSupply');
 
 /** Persist confirmed scheduling changes without automatically rereading D1 inventory. */
-export function AutomaticSupplyControl({
-  game,
-  available,
-}: {
-  game: GameWordGame;
-  available: boolean;
-}) {
+export function AutomaticSupplyControl({ game }: { game: GameWordGame }) {
   const client = useQueryClient();
   const options = adminQueryOptions('automatic-supply', game, (signal) =>
     fetchAutomaticSupplySettings(game, signal),
@@ -36,6 +30,7 @@ export function AutomaticSupplyControl({
     setError(null);
     try {
       const saved = await saveAutomaticSupplySettings(game, enabled);
+      await client.cancelQueries({ queryKey: options.queryKey, exact: true });
       client.setQueryData(options.queryKey, saved);
     } catch (cause: unknown) {
       handleError(cause, { label: '保存自动供给设置', logger: supplyLog, feedback: false });
@@ -63,7 +58,7 @@ export function AutomaticSupplyControl({
             <span>
               自动供给
               <small>
-                {!available
+                {!data.available
                   ? '部署尚未开启供给'
                   : saving
                     ? '正在保存…'
@@ -77,8 +72,8 @@ export function AutomaticSupplyControl({
               role="switch"
               className="admin-switch"
               aria-label="自动供给"
-              checked={available && data.enabled}
-              disabled={!available || saving}
+              checked={data.available && data.enabled}
+              disabled={!data.available || saving}
               onChange={(event) => confirm(event.target.checked)}
             />
           </label>
