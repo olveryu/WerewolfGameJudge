@@ -114,7 +114,7 @@ function deferred<Value>() {
   return { promise, resolve };
 }
 
-function mount(path = '/admin/users') {
+function mount(path = '/admin/users', previousPath?: string) {
   const client = new QueryClient();
   const router = createMemoryRouter(
     [
@@ -131,7 +131,10 @@ function mount(path = '/admin/users') {
         ],
       },
     ],
-    { initialEntries: [path] },
+    {
+      initialEntries:
+        previousPath === undefined ? [path] : [previousPath, { pathname: path, key: 'default' }],
+    },
   );
   const view = render(
     <QueryClientProvider client={client}>
@@ -193,6 +196,21 @@ afterEach(() => {
 });
 
 describe('admin workspace', () => {
+  it.each([true, false])(
+    'returns to the previous page after a direct navigation, authenticated: %s',
+    async (authenticated) => {
+      if (!authenticated) window.localStorage.clear();
+      const view = mount('/admin/users', '/admin/rooms');
+      if (authenticated) await screen.findByText('测试用户');
+      else await screen.findByRole('heading', { name: '进入管理后台' });
+
+      await userEvent.click(screen.getByRole('button', { name: '返回' }));
+      await waitFor(() => expect(view.router.state.location.pathname).toBe('/admin/rooms'));
+      view.unmount();
+      view.client.clear();
+    },
+  );
+
   it('switches pages through grouped navigation, highlights the current page and closes the sheet', async () => {
     const view = mount();
     await screen.findByText('测试用户');

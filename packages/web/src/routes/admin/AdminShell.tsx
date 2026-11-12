@@ -105,7 +105,7 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
 }
 
 /** Keep the shared site header above navigation, refreshing only mounted admin reads. */
-export function AdminShell() {
+export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   const client = useQueryClient();
   const fetching = useIsFetching({ queryKey: ['admin'] });
   const location = useLocation();
@@ -119,7 +119,7 @@ export function AdminShell() {
   return (
     <div className="admin-workspace">
       <div className="admin-workspace-header">
-        <ScreenHeader title="管理后台" parentPath="/">
+        <ScreenHeader title="管理后台" onBack={onBack}>
           <button
             type="button"
             className="admin-icon-button"
