@@ -2,6 +2,7 @@
 import { env } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { cleanupFibWordAudit } from '../maintenance';
 import { updateFibWordCandidateEvidence } from '../wordCandidatePool';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
@@ -544,15 +545,40 @@ describe('Fib word publication', () => {
     ).toEqual([{ word: '测试甲', status: 'claimed' }]);
   });
 
-  it('uses the restored retention index to find old reviews', async () => {
-    const plan = await env.DB.prepare(
-      'EXPLAIN QUERY PLAN SELECT id FROM fib_word_candidate_reviews WHERE reviewed_at < ? ORDER BY reviewed_at LIMIT ?',
-    )
-      .bind('2026-01-01', 100)
-      .all<{ detail: string }>();
-    expect(plan.results.some((row) => row.detail.includes('idx_fib_word_reviews_retention'))).toBe(
-      true,
-    );
+  it('keeps retention reads bounded as recent review history grows', async () => {
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('retention-cycle', 'running', 'gemini', 'test', '11', '2026-01-01')`,
+    ).run();
+    async function addReviews(start: number, end: number) {
+      await env.DB.prepare(
+        `WITH RECURSIVE n(i) AS (SELECT CAST(? AS INTEGER) UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+       INSERT INTO fib_word_candidate_reviews
+         (id, word, core_meaning, usage_note, category, source, is_established_term,
+          is_definition_accurate, is_meaning_unfamiliar_to_most_players,
+          is_meaning_distinct_from_literal_reading, has_multiple_plausible_wrong_definitions,
+          has_reveal_value, decision, reason, review_version, generation_cycle_id, reviewed_at)
+       SELECT 'review-' || i, 'word-' || i, 'meaning', 'note', 'literary', 'local',
+         1, 1, 1, 1, 1, 1, 'accepted', 'reason', '11', 'retention-cycle',
+         CASE WHEN i = 0 THEN '2026-01-01' ELSE '2026-09-01' END FROM n`,
+      )
+        .bind(start, end)
+        .run();
+    }
+    await addReviews(0, 50);
+    const measured = createRowCountingDb(env.DB);
+    await cleanupFibWordAudit(measured.db, Date.parse('2026-09-11T00:00:00.000Z'));
+    expect(measured.counts.rowsRead).toBeLessThan(50);
+    await env.DB.prepare(
+      "UPDATE fib_word_candidate_reviews SET reviewed_at = '2026-01-01' WHERE id = 'review-1'",
+    ).run();
+    await addReviews(51, 500);
+    measured.reset();
+    await cleanupFibWordAudit(measured.db, Date.parse('2026-09-11T00:00:00.000Z'));
+    expect(measured.counts.rowsRead).toBeLessThan(50);
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidate_reviews').first(),
+    ).toEqual({ count: 499 });
   });
 });
 

@@ -31,6 +31,8 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 - Migrations are hand-written SQL files applied by Wrangler: 72 files, `0001_init.sql` through `0073_word_supply_read_indexes.sql`, with no `0002` file.
 - 32 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
+- When adding or changing a D1 query, examine its filters, joins, ordering, indexes, and invocation frequency, including retries and scheduled jobs. For queries on growing tables or high-frequency paths, use `test/rowCountingDb.ts` against migrated D1 to test realistic small and larger datasets and assert a justified read/write budget; verify the query plan when useful. A small fixture or a correct result alone does not establish a cost bound.
+- When rebuilding a table, compare its indexes, constraints, and triggers before and after the migration; preserve required ones or document intentional removal. Register critical word-supply index prefixes in `src/platform/wordSupply/__tests__/wordSupplyIndexes.contract.test.ts` and keep the affected query's row-budget test. Estimate one-time D1 reads and writes for table copies and index creation before deployment; the local tests do not measure production billing.
 
 ## Worker game catalog and modules
 
