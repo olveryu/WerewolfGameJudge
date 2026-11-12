@@ -6,7 +6,7 @@
  *
  * @throws HTTP error codes thrown/returned by each route:
  * - POST /auth/anonymous — no special errors
- * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 500 ACCOUNT_MERGE_FAILED
+ * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 429 TOO_MANY_ATTEMPTS | 500 ACCOUNT_MERGE_FAILED
  * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS (10/15min) | 401 INVALID_CREDENTIALS
  * - PUT /auth/password — 400 NO_PASSWORD (anonymous/WeChat user) | 401 old password incorrect
  * - POST /auth/signout — no special errors
@@ -39,6 +39,7 @@ import { users, userStats } from '../account/dbSchema';
 import { createEmptyUserMetadata, selectAuthUserResponse } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
 import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
+import { readPasswordAttemptBudget } from './passwordAttemptBudget';
 import { hashPassword, verifyPassword } from './passwordHash';
 import { sendPasswordResetEmail } from './passwordResetEmail';
 import {
@@ -117,7 +118,7 @@ async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string
 
 /**
  * Merge user_stats from sourceId into targetId before account deletion.
- * - xp / games_played / draws: sum
+ * - xp / games_played / draws / shards: sum
  * - pity: max (preserve progress toward guaranteed)
  * - unlocked_items: union; duplicates compensated as draw tickets
  *   (legendary/mythic → 1 golden, others → 1 normal)
@@ -154,6 +155,7 @@ async function mergeUserStats(
         goldenDraws: sourceStats.goldenDraws,
         normalPity: sourceStats.normalPity,
         goldenPity: sourceStats.goldenPity,
+        shards: sourceStats.shards,
         version: sourceStats.version + 1,
         lastLoginRewardAt: latestLoginRewardTimestamp(sourceStats.lastLoginRewardAt, null),
         updatedAt: sql`datetime('now')`,
@@ -201,6 +203,7 @@ async function mergeUserStats(
       goldenDraws: targetStats.goldenDraws + sourceStats.goldenDraws + goldenCompensation,
       normalPity: Math.max(sourceStats.normalPity, targetStats.normalPity),
       goldenPity: Math.max(sourceStats.goldenPity, targetStats.goldenPity),
+      shards: sourceStats.shards + targetStats.shards,
       unlockedItems: mergedItems,
       version: Math.max(sourceStats.version, targetStats.version) + 1,
       lastRoomCode:
@@ -336,11 +339,18 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         return c.json({ success: false, reason: 'EMAIL_ALREADY_REGISTERED' }, 409);
       }
 
-      // Password is required for merge verification
+      const budget = await readPasswordAttemptBudget(env.DB, email);
+      if (budget.isLimited) {
+        return c.json({ success: false, reason: 'TOO_MANY_ATTEMPTS' }, 429);
+      }
+
+      // Email password verification shares its failure budget with normal sign-in.
       const mergeResult = await verifyPassword(parsed.password, existing.passwordHash);
       if (!mergeResult.valid) {
+        await recordFailedLogin(env, budget.emailHash);
         return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
       }
+      await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, budget.emailHash));
 
       // Migrate openid to the email account and delete the WeChat shell account.
       // Merge growth data first (before CASCADE deletes source user_stats).
@@ -460,29 +470,16 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 // POST /auth/signin — email + password login
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Max failed login attempts per email within the rate limit window */
-const SIGN_IN_MAX_ATTEMPTS = 10;
-/** Rate limit window in minutes */
-const SIGN_IN_WINDOW_MINUTES = 15;
-
 authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
   const env = c.env;
   const db = createDb(env.DB);
   const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
-  const emailHash = await sha256(email);
+  const budget = await readPasswordAttemptBudget(env.DB, email);
 
-  // Rate limit check BEFORE password verification to limit brute-force
-  const recentAttempts = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(loginAttempts)
-    .where(
-      sql`${loginAttempts.emailHash} = ${emailHash} AND ${loginAttempts.attemptedAt} > datetime('now', ${`-${SIGN_IN_WINDOW_MINUTES}`} || ' minutes')`,
-    )
-    .get();
-
-  if (recentAttempts && recentAttempts.count >= SIGN_IN_MAX_ATTEMPTS) {
+  // Rate limit check BEFORE password verification to limit brute-force.
+  if (budget.isLimited) {
     return c.json({ success: false, reason: 'TOO_MANY_ATTEMPTS' }, 429);
   }
 
@@ -497,18 +494,18 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
     .get();
 
   if (!user || !user.passwordHash) {
-    await recordFailedLogin(env, emailHash);
+    await recordFailedLogin(env, budget.emailHash);
     return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
   const result = await verifyPassword(parsed.password, user.passwordHash);
   if (!result.valid) {
-    await recordFailedLogin(env, emailHash);
+    await recordFailedLogin(env, budget.emailHash);
     return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
   // Successful login — clear failed attempts for this email
-  await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, emailHash));
+  await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, budget.emailHash));
 
   // Update geo + lazy migration: bcrypt → PBKDF2 rehash on first successful login
   const geo = requestGeo(c.req.raw);
@@ -719,7 +716,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
     .from(passwordResetTokens)
     .innerJoin(users, eq(passwordResetTokens.userId, users.id))
     .where(
-      sql`${users.email} = ${email} AND ${passwordResetTokens.isUsed} = 0 AND ${passwordResetTokens.expiresAt} > datetime('now')`,
+      sql`${users.email} = ${email} AND ${passwordResetTokens.isUsed} = 0 AND ${passwordResetTokens.expiresAt} > ${new Date().toISOString()}`,
     )
     .orderBy(sql`${passwordResetTokens.createdAt} DESC`)
     .limit(1)
