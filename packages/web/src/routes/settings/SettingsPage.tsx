@@ -30,6 +30,7 @@ import {
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import { syncActiveRoomProfile } from '@/features/account/syncActiveRoomProfile';
 import { useSignOut } from '@/features/auth/authMutations';
+import { COLLECTION_PREVIEW_NOTICE } from '@/features/auth/guestPolicy';
 import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -181,7 +182,7 @@ const PREVIEW_STRIP_PORTRAITS = (() => {
   });
 })();
 
-/** Anonymous-user teaser: what binding an email unlocks. */
+/** Anonymous-user collection preview. */
 function AvatarTeaser() {
   const appearancePath = useAppearancePath();
   return (
@@ -194,9 +195,7 @@ function AvatarTeaser() {
           <IconLockClosed aria-hidden />
         </span>
       </div>
-      <p className="settings-teaser-text">
-        {`绑定邮箱，解锁 ${HAND_DRAWN_PORTRAITS.length} 款暗黑头像、自定义昵称和头像框`}
-      </p>
+      <p className="settings-teaser-text">{COLLECTION_PREVIEW_NOTICE}</p>
       <Link className="settings-teaser-link" to={appearancePath}>
         浏览全部头像 ›
       </Link>

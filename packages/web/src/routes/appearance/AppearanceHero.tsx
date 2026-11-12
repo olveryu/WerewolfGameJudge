@@ -46,7 +46,7 @@ export function HeroPreview({
           {displayName}
         </NameStyleText>
         <p className="appearance-hero-meta">当前框：{state.frameLabel}</p>
-        {state.readOnly && <p className="appearance-hero-muted">绑定后可上传</p>}
+        {state.readOnly && <p className="appearance-hero-muted">注册或绑定邮箱后可上传</p>}
       </div>
     </section>
   );
@@ -156,11 +156,13 @@ export function AppearanceFooter({
   if (readOnly) {
     return (
       <div className="appearance-upgrade">
-        <p className="appearance-upgrade-title">绑定邮箱，解锁自定义形象</p>
+        <p className="appearance-upgrade-title">
+          {hasUser ? '绑定邮箱' : '注册账号'}，打造专属形象
+        </p>
         <ul className="appearance-upgrade-benefits">
-          <li>· 选择任意头像</li>
+          <li>· 收集并使用头像</li>
           <li>· 上传自定义头像</li>
-          <li>· 装备头像框</li>
+          <li>· 收集并装备头像框</li>
           <li>· 设置昵称</li>
         </ul>
         <Button onClick={onUpgrade}>{hasUser ? '立即绑定' : '立即注册'}</Button>
