@@ -30,7 +30,7 @@ describe('site maintenance without D1', () => {
     });
     const headers = { 'X-Admin-Token': ADMIN_TOKEN, 'Content-Type': 'application/json' };
     const session = await adminRoutes.request('/session', { headers }, env);
-    expect(session.status).toBe(200);
+    expect(session.status).toBe(204);
     const saved = await adminRoutes.request(
       '/maintenance',
       { method: 'POST', headers, body: JSON.stringify(configuration) },

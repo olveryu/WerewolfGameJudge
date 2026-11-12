@@ -1,8 +1,15 @@
-import { type RouteObject } from 'react-router';
+import { Navigate, type RouteObject } from 'react-router';
 
 import { AdminRoot } from '@/app/AdminRoot';
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
+import { MaintenanceSettingsPage } from '@/routes/admin/pages/MaintenanceSettingsPage';
+import { AiPage, GrowthPage, PerformancePage } from '@/routes/admin/pages/MonitoringPages';
+import { OverviewPage } from '@/routes/admin/pages/OverviewPage';
+import { RoomsPage } from '@/routes/admin/pages/RoomsPage';
+import { TrafficPage } from '@/routes/admin/pages/TrafficPage';
+import { UsersPage } from '@/routes/admin/pages/UsersPage';
+import { WordsPage } from '@/routes/admin/pages/WordsPage';
 import { AppearancePage } from '@/routes/appearance/AppearancePage';
 import { SceneBenchPage } from '@/routes/bench/SceneBenchPage';
 import { GachaPage } from '@/routes/gacha/GachaPage';
@@ -29,6 +36,18 @@ export const routes: RouteObject[] = [
     path: '/admin',
     Component: AdminRoot,
     errorElement: <RouteErrorPage />,
+    children: [
+      { index: true, Component: OverviewPage },
+      { path: 'maintenance', Component: MaintenanceSettingsPage },
+      { path: 'users', Component: UsersPage },
+      { path: 'rooms', Component: RoomsPage },
+      { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
+      { path: 'words/:game', Component: WordsPage },
+      { path: 'growth', Component: GrowthPage },
+      { path: 'performance', Component: PerformancePage },
+      { path: 'traffic', Component: TrafficPage },
+      { path: 'ai', Component: AiPage },
+    ],
   },
   {
     path: '/',

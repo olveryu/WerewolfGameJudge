@@ -1,6 +1,7 @@
 /** Typed response contracts for the standalone admin portal. */
 
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { GameWordGame } from '@game-judge/game-engine/product/wordSupply';
 
 export type {
   GameWordGame,
@@ -121,9 +122,22 @@ export interface AdminRequestTraffic {
 
 export interface AdminUsersResponse {
   users: AdminUser[];
-  total: number;
-  page: number;
-  limit: number;
+  nextCursor: string | null;
+}
+
+export interface AdminAutomaticSupplySettings {
+  game: GameWordGame;
+  enabled: boolean;
+  available: boolean;
+}
+
+export interface AdminD1Usage {
+  day: string;
+  rowsRead: number;
+  rowsWritten: number;
+  rowsReadLimit: number;
+  rowsWrittenLimit: number;
+  generatedAt: string;
 }
 
 export interface AdminRoomsResponse {

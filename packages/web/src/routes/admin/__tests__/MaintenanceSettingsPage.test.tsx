@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchAdminMaintenance, saveAdminMaintenance } from '@/features/admin/services/adminApi';
 import { formatMaintenanceEnd } from '@/features/maintenance/maintenance';
 
-import { MaintenanceTab } from '../MaintenanceTab';
+import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
 
 vi.mock('@/features/admin/services/adminApi', () => ({
   fetchAdminMaintenance: vi.fn(),
@@ -22,7 +23,9 @@ const configuration = {
 function mountTab() {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MaintenanceTab />
+      <MemoryRouter>
+        <MaintenanceSettingsPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -51,7 +54,7 @@ describe('maintenance admin editor', () => {
         endsAt,
       }),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent('维护已开启');
+    expect(await screen.findByText(/维护已开启。新访客立即/)).toBeInTheDocument();
   });
 
   it('shows a save failure instead of claiming the switch has changed', async () => {
@@ -64,7 +67,7 @@ describe('maintenance admin editor', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: '保存维护设置' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('保存失败：R2 unavailable');
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText(/维护已开启。新访客立即/)).not.toBeInTheDocument();
   });
 
   it('rejects a past recovery time before saving', async () => {

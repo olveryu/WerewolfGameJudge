@@ -7,6 +7,8 @@ import { isGameWordGame } from '@game-judge/game-engine/product/wordSupply';
 import type {
   AdminAIUsage,
   AdminAnalytics,
+  AdminAutomaticSupplySettings,
+  AdminD1Usage,
   AdminRequestTraffic,
   AdminRoom,
   AdminRoomPlayer,
@@ -233,12 +235,53 @@ function parseNamedCount(
 
 export function parseAdminUsersResponse(value: unknown): AdminUsersResponse {
   const object = requireObject(value, 'Admin users response');
-  assertExactKeys(object, ['users', 'total', 'page', 'limit'], 'Admin users response');
+  assertExactKeys(object, ['users', 'nextCursor'], 'Admin users response');
   return {
     users: parseArray(object.users, 'Admin users', parseAdminUser),
-    total: parseNonnegativeInteger(object.total, 'Admin users total'),
-    page: parseNonnegativeInteger(object.page, 'Admin users page'),
-    limit: parseNonnegativeInteger(object.limit, 'Admin users limit'),
+    nextCursor: parseNullableString(object.nextCursor, 'Admin users next cursor'),
+  };
+}
+
+/** Decode the populated country codes; arbitrary values cannot become directory filters. */
+export function parseAdminCountriesResponse(value: unknown): { countries: string[] } {
+  const object = requireObject(value, 'Admin countries response');
+  assertExactKeys(object, ['countries'], 'Admin countries response');
+  return {
+    countries: parseArray(object.countries, 'Admin countries', (item, label) => {
+      const country = parseString(item, label);
+      if (!/^[A-Z]{2}$/.test(country)) throw new Error(`${label} must be a country code`);
+      return country;
+    }),
+  };
+}
+
+/** Decode the selected game's persisted automatic scheduling policy. */
+export function parseAdminAutomaticSupplySettings(value: unknown): AdminAutomaticSupplySettings {
+  const object = requireObject(value, 'Automatic supply settings');
+  assertExactKeys(object, ['game', 'enabled', 'available'], 'Automatic supply settings');
+  if (!isGameWordGame(object.game)) throw new Error('Unsupported automatic supply game');
+  return {
+    game: object.game,
+    enabled: parseBoolean(object.enabled, 'Automatic supply enabled'),
+    available: parseBoolean(object.available, 'Word supply deployment availability'),
+  };
+}
+
+/** Decode the account-wide UTC-day D1 analytics response. */
+export function parseAdminD1UsageResponse(value: unknown): AdminD1Usage {
+  const object = requireObject(value, 'D1 usage');
+  assertExactKeys(
+    object,
+    ['day', 'rowsRead', 'rowsWritten', 'rowsReadLimit', 'rowsWrittenLimit', 'generatedAt'],
+    'D1 usage',
+  );
+  return {
+    day: parseNonEmptyString(object.day, 'D1 day'),
+    rowsRead: parseNonnegativeInteger(object.rowsRead, 'D1 rows read'),
+    rowsWritten: parseNonnegativeInteger(object.rowsWritten, 'D1 rows written'),
+    rowsReadLimit: parseNonnegativeInteger(object.rowsReadLimit, 'D1 read limit'),
+    rowsWrittenLimit: parseNonnegativeInteger(object.rowsWrittenLimit, 'D1 write limit'),
+    generatedAt: parseNonEmptyString(object.generatedAt, 'D1 generated at'),
   };
 }
 

@@ -18,10 +18,16 @@ import {
   adminUserRewardsSchema,
 } from '@/features/admin/model/adminRewards';
 import { AdminApiError, parseAdminErrorResponse } from '@/features/admin/services/adminAuth';
-import { readAdminCredential } from '@/features/admin/services/adminCredentialStore';
+import {
+  expireAdminSession,
+  readAdminCredential,
+} from '@/features/admin/services/adminCredentialStore';
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
+  parseAdminAutomaticSupplySettings,
+  parseAdminCountriesResponse,
+  parseAdminD1UsageResponse,
   parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
@@ -67,6 +73,7 @@ async function adminFetch<T>(
       ...(requestBody !== undefined && { method: 'POST', body: JSON.stringify(requestBody) }),
       signal: composed.signal,
     });
+    if (resp.status === 401 || resp.status === 403) expireAdminSession();
     const body: unknown = await resp.json();
     if (!resp.ok) throw new AdminApiError(resp.status, parseAdminErrorResponse(body));
     return parseResponse(body);
@@ -123,13 +130,38 @@ export function saveAdminMaintenance(configuration: MaintenanceConfig) {
 }
 
 interface FetchUsersParams {
-  page?: number;
-  limit?: number;
+  cursor?: string;
   sort?: string;
   order?: string;
   country?: string;
   type?: string;
-  search?: string;
+  q?: string;
+}
+
+/** Load the indexed list of countries represented in the user directory. */
+export function fetchUserCountries(signal?: AbortSignal) {
+  return adminFetch('/admin/users/countries', parseAdminCountriesResponse, undefined, signal);
+}
+
+/** Read the per-game automatic supply policy independently of D1 inventory statistics. */
+export function fetchAutomaticSupplySettings(game: GameWordGame, signal?: AbortSignal) {
+  return adminFetch(
+    '/admin/games/words/automatic-supply',
+    parseAdminAutomaticSupplySettings,
+    { game },
+    signal,
+  );
+}
+
+/** Only future scheduled tasks are affected; manual and already-started runs are unchanged. */
+export function saveAutomaticSupplySettings(game: GameWordGame, enabled: boolean) {
+  return adminFetch(
+    '/admin/games/words/automatic-supply',
+    parseAdminAutomaticSupplySettings,
+    undefined,
+    undefined,
+    { game, enabled },
+  );
 }
 
 export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {
@@ -137,13 +169,12 @@ export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) 
     '/admin/users',
     parseAdminUsersResponse,
     {
-      page: String(params.page ?? 1),
-      limit: String(params.limit ?? 50),
+      ...(params.cursor && { cursor: params.cursor }),
       sort: params.sort ?? 'created_at',
       order: params.order ?? 'desc',
       ...(params.country && { country: params.country }),
       ...(params.type && { type: params.type }),
-      ...(params.search && { search: params.search }),
+      ...(params.q && { q: params.q }),
     },
     signal,
   );
@@ -195,6 +226,11 @@ export function fetchStats(from: string, to: string, signal?: AbortSignal) {
   return adminFetch('/admin/stats', parseAdminStatsResponse, { from, to }, signal);
 }
 
+/** Read account-wide analytics without consuming D1 rows. */
+export function fetchD1Usage(signal?: AbortSignal) {
+  return adminFetch('/admin/d1-usage', parseAdminD1UsageResponse, undefined, signal);
+}
+
 export function fetchAnalytics(from: string, to: string, signal?: AbortSignal) {
   return adminFetch('/admin/analytics', parseAdminAnalyticsResponse, { from, to }, signal);
 }
@@ -212,8 +248,11 @@ export function fetchRequestTraffic(from: string, to: string, signal?: AbortSign
   );
 }
 
-export function fetchGameWordsStats(game: GameWordGame): Promise<GameWordsStats> {
-  return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game });
+export function fetchGameWordsStats(
+  game: GameWordGame,
+  signal?: AbortSignal,
+): Promise<GameWordsStats> {
+  return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game }, signal);
 }
 
 export function triggerGameWordSupply(

@@ -61,10 +61,13 @@ describe('routes', () => {
     expect(screen.getByText(formatMaintenanceEnd(maintenance.endsAt))).toBeInTheDocument();
   });
 
-  it('keeps admin login outside the player maintenance and authentication boundary', async () => {
-    vi.mocked(fetchMaintenance).mockRejectedValue(new Error('D1 unavailable'));
-    renderAt('/admin');
-    expect(await screen.findByLabelText('管理密码')).toBeInTheDocument();
-    expect(fetchMaintenance).not.toHaveBeenCalled();
-  });
+  it.each(['/admin', '/admin/users', '/admin/maintenance'])(
+    'keeps %s login outside the player maintenance and authentication boundary',
+    async (path) => {
+      vi.mocked(fetchMaintenance).mockRejectedValue(new Error('D1 unavailable'));
+      renderAt(path);
+      expect(await screen.findByLabelText('管理密码')).toBeInTheDocument();
+      expect(fetchMaintenance).not.toHaveBeenCalled();
+    },
+  );
 });

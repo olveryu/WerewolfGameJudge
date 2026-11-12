@@ -27,6 +27,7 @@ import {
   EDITORIAL_DAILY_REQUEST_LIMIT,
   EDITORIAL_MONTHLY_REQUEST_LIMIT,
 } from '../../platform/ai/editorialBudget';
+import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
 import { DRAWGUESS_DASHBOARD_CATEGORIES } from './drawGuessWordLabels';
@@ -212,10 +213,10 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
   const tavilyRow = await db
     .prepare(
       `SELECT COUNT(*) AS used FROM fib_word_provider_requests
-         WHERE pack_id LIKE ?
+         WHERE pack_id >= ? AND pack_id < ?
            AND (operation IN ('discovery', 'extraction') OR operation LIKE 'verification-%')`,
     )
-    .bind(`${currentMonth}-%`)
+    .bind(`${currentMonth}-`, `${currentMonth}.`)
     .first<{ used: number }>();
   const boardRows = await db
     .prepare(
@@ -274,7 +275,7 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
     tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
     tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
     queryLeaderboard,
-    supplyEnabled: env.FIB_WORD_SUPPLY_ENABLED === 'true',
+    supplyEnabled: isWordSupplyAvailable(env, 'fibking'),
   };
 }
 
@@ -287,17 +288,6 @@ async function getUndercoverWordStats(env: Env): Promise<DashboardBase> {
        GROUP BY status ORDER BY status`,
     )
     .all<{ decision: string; count: number }>();
-  const boardRows = await db
-    .prepare(
-      `SELECT p.category AS category,
-              COUNT(DISTINCT p.id) AS packs, COUNT(DISTINCT pair.id) AS publishedPairs
-       FROM undercover_word_packs p
-       LEFT JOIN undercover_word_candidates c
-         ON c.claimed_pack_id = p.id AND c.status = 'accepted'
-       LEFT JOIN undercover_word_pairs pair ON pair.id = c.id AND pair.status = 'active'
-       GROUP BY p.category ORDER BY publishedPairs DESC`,
-    )
-    .all<{ category: string; packs: number; publishedPairs: number }>();
   return {
     game: 'undercover',
     monthlySupply: null,
@@ -308,13 +298,8 @@ async function getUndercoverWordStats(env: Env): Promise<DashboardBase> {
       count: Number(r.count),
     })),
     reviewCheckStats: [],
-    queryLeaderboard: (boardRows.results ?? []).map((r) => ({
-      label: r.category,
-      detail: 'active 词对',
-      publishedWords: Number(r.publishedPairs),
-      packs: Number(r.packs),
-    })),
-    supplyEnabled: env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
+    queryLeaderboard: [],
+    supplyEnabled: isWordSupplyAvailable(env, 'undercover'),
   };
 }
 
@@ -327,17 +312,6 @@ async function getDrawGuessWordStats(env: Env): Promise<DashboardBase> {
        GROUP BY status ORDER BY status`,
     )
     .all<{ decision: string; count: number }>();
-  const boardRows = await db
-    .prepare(
-      `SELECT p.category AS category,
-              COUNT(DISTINCT p.id) AS packs, COUNT(DISTINCT w.id) AS publishedWords
-       FROM drawguess_word_packs p
-       LEFT JOIN drawguess_word_candidates c
-         ON c.claimed_pack_id = p.id AND c.status = 'accepted'
-       LEFT JOIN drawguess_words w ON w.id = c.id AND w.status = 'active'
-       GROUP BY p.category ORDER BY publishedWords DESC`,
-    )
-    .all<{ category: string; packs: number; publishedWords: number }>();
   return {
     game: 'drawguess',
     monthlySupply: null,
@@ -348,13 +322,8 @@ async function getDrawGuessWordStats(env: Env): Promise<DashboardBase> {
       count: Number(r.count),
     })),
     reviewCheckStats: [],
-    queryLeaderboard: (boardRows.results ?? []).map((r) => ({
-      label: r.category,
-      detail: 'active 题目',
-      publishedWords: Number(r.publishedWords),
-      packs: Number(r.packs),
-    })),
-    supplyEnabled: env.DRAWGUESS_WORD_SUPPLY_ENABLED === 'true',
+    queryLeaderboard: [],
+    supplyEnabled: isWordSupplyAvailable(env, 'drawguess'),
   };
 }
 

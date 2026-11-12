@@ -15,7 +15,8 @@ import {
 import { env, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { triggerGameWordSupply } from '../gameWords';
+import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { getGameWordsStats, triggerGameWordSupply } from '../gameWords';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
 
@@ -42,6 +43,9 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
     env.DB.prepare('DELETE FROM fib_word_packs'),
     env.DB.prepare('DELETE FROM fib_word_supply_months'),
+    env.DB.prepare('DELETE FROM undercover_word_candidates'),
+    env.DB.prepare('DELETE FROM drawguess_word_candidates'),
+    env.DB.prepare('DELETE FROM drawguess_word_packs'),
     env.DB.prepare('DELETE FROM undercover_word_pairs'),
     env.DB.prepare('DELETE FROM undercover_word_packs'),
     env.DB.prepare("UPDATE database_capacity SET state = 'normal' WHERE id = 1"),
@@ -57,6 +61,81 @@ beforeEach(async () => {
 });
 
 describe('GET /admin/games/words/stats', () => {
+  it('keeps fibking leaderboard reads linear in inventory, not packs times inventory', async () => {
+    await env.DB.prepare(
+      `
+      WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 30)
+      INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
+      SELECT 'budget-pack-' || i, '2026-09', 'budget-token-' || i, 'literary', 'published', datetime('now'), i FROM n
+    `,
+    ).run();
+    await env.DB.prepare(
+      `
+      INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at, completed_at)
+      SELECT id, 'completed', 'gemini', 'gemini', '11', created_at, created_at FROM fib_word_packs
+    `,
+    ).run();
+    const measured = createRowCountingDb(env.DB);
+    async function addWords(start: number, end: number) {
+      await env.DB.prepare(
+        `
+        WITH RECURSIVE n(i) AS (SELECT CAST(? AS INTEGER) UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+        INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at)
+        SELECT 'budget-word-' || i, '预算词' || i, '含义', '用法', 'literary', 'local', 'active', 100 + i,
+          'budget-pack-' || ((i % 30) + 1), datetime('now'), datetime('now') FROM n
+      `,
+      )
+        .bind(start, end)
+        .run();
+    }
+    await addWords(1, 50);
+    await getGameWordsStats({ ...env, DB: measured.db }, 'fibking');
+    const before = measured.counts.rowsRead;
+    await addWords(51, 500);
+    measured.reset();
+    const result = await getGameWordsStats({ ...env, DB: measured.db }, 'fibking');
+    expect(result.queryLeaderboard.reduce((sum, row) => sum + row.publishedWords, 0)).toBe(500);
+    expect(measured.counts.rowsRead - before).toBeLessThanOrEqual(450 * 8);
+  });
+
+  it.each(['undercover', 'drawguess'] as const)(
+    'does not rescan %s candidates once per pack',
+    async (game) => {
+      const packs = `${game}_word_packs`;
+      const candidates = `${game}_word_candidates`;
+      await env.DB.prepare(
+        `
+      WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 30)
+      INSERT INTO ${packs} (id, category, request_token, status, model, prompt_version, review_version, created_at)
+      SELECT 'budget-pack-' || i, 'food', 'token-' || i, 'published', 'gemini', '1', '1', datetime('now') FROM n
+    `,
+      ).run();
+      async function addCandidates(start: number, end: number) {
+        const words = game === 'undercover' ? 'word_a, word_b' : 'word, difficulty';
+        const values = game === 'undercover' ? "'A' || i, 'B' || i" : "'画词' || i, 'easy'";
+        await env.DB.prepare(
+          `
+        WITH RECURSIVE n(i) AS (SELECT CAST(? AS INTEGER) UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+        INSERT INTO ${candidates} (id, ${words}, category, material_json, status, claimed_pack_id, created_at, reviewed_at)
+        SELECT 'budget-candidate-' || i, ${values}, 'food', '{}', 'accepted',
+          'budget-pack-' || ((i % 30) + 1), datetime('now'), datetime('now') FROM n
+      `,
+        )
+          .bind(start, end)
+          .run();
+      }
+      const measured = createRowCountingDb(env.DB);
+      await addCandidates(1, 50);
+      await getGameWordsStats({ ...env, DB: measured.db }, game);
+      const before = measured.counts.rowsRead;
+      await addCandidates(51, 500);
+      measured.reset();
+      const result = await getGameWordsStats({ ...env, DB: measured.db }, game);
+      expect(result.queryLeaderboard).toEqual([]);
+      expect(measured.counts.rowsRead - before).toBeLessThanOrEqual(450 * 5);
+    },
+  );
+
   it.each([
     ['drawguess', 'actionComedy', '动作喜剧', 40],
     ['undercover', 'dating', '约会场景', 40],
