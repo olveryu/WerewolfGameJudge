@@ -845,6 +845,7 @@ describe('Worker ownership: source tree is exact', () => {
     expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'auth'))).toEqual([
       'dbSchema.ts',
       'maintenance.ts',
+      'passwordAttemptBudget.ts',
       'passwordHash.ts',
       'passwordResetEmail.ts',
       'routes.ts',
