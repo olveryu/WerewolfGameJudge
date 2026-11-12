@@ -105,7 +105,17 @@ export function BarList({
 }
 
 /** Smoothed area series, with exact count/time values exposed in a native disclosure. */
-export function AreaChart({ points }: { points: { timestamp: string; count: number }[] }) {
+export function AreaChart({
+  points,
+  label = '请求趋势',
+  unit = '次',
+  onSelectPoint,
+}: {
+  points: { timestamp: string; count: number }[];
+  label?: string;
+  unit?: string;
+  onSelectPoint?: (timestamp: string) => void;
+}) {
   const id = useId();
   if (points.length === 0) return <p className="admin-empty">所选范围暂无趋势记录</p>;
   const max = Math.max(1, ...points.map((point) => point.count));
@@ -130,7 +140,7 @@ export function AreaChart({ points }: { points: { timestamp: string; count: numb
       <svg
         viewBox="0 0 600 180"
         role="img"
-        aria-label={`请求趋势，共 ${points.length} 个采样时段，最高 ${formatNumber(max)} 次`}
+        aria-label={`${label}，共 ${points.length} 个时段，最高 ${formatNumber(max)} ${unit}`}
       >
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
@@ -156,7 +166,17 @@ export function AreaChart({ points }: { points: { timestamp: string; count: numb
         <ul className="admin-chart-data">
           {points.map((point) => (
             <li key={point.timestamp}>
-              {new Date(point.timestamp).toLocaleString('zh-CN')} · {formatNumber(point.count)} 次
+              {onSelectPoint === undefined ? (
+                <>
+                  {new Date(point.timestamp).toLocaleString('zh-CN')} · {formatNumber(point.count)}{' '}
+                  {unit}
+                </>
+              ) : (
+                <button type="button" onClick={() => onSelectPoint(point.timestamp)}>
+                  {new Date(point.timestamp).toLocaleString('zh-CN')} · {formatNumber(point.count)}{' '}
+                  {unit} · 查看该时段查询
+                </button>
+              )}
             </li>
           ))}
         </ul>

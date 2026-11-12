@@ -14,6 +14,7 @@ import IconLibraryOutline from '~icons/ion/library-outline';
 import IconPeopleOutline from '~icons/ion/people-outline';
 import IconPulseOutline from '~icons/ion/pulse-outline';
 import IconRefreshOutline from '~icons/ion/refresh-outline';
+import IconServerOutline from '~icons/ion/server-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
 
@@ -29,6 +30,7 @@ const NAVIGATION = [
   { path: '/admin/growth', label: '增长', icon: IconBarChartOutline },
   { path: '/admin/performance', label: '性能', icon: IconSpeedometerOutline },
   { path: '/admin/traffic', label: '请求', icon: IconPulseOutline },
+  { path: '/admin/d1', label: 'D1 用量', icon: IconServerOutline },
   { path: '/admin/ai', label: 'AI', icon: IconSparklesOutline },
 ];
 

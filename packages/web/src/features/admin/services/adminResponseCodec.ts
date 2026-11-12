@@ -8,6 +8,7 @@ import type {
   AdminAIUsage,
   AdminAnalytics,
   AdminAutomaticSupplySettings,
+  AdminD1Insights,
   AdminD1Usage,
   AdminRequestTraffic,
   AdminRoom,
@@ -282,6 +283,39 @@ export function parseAdminD1UsageResponse(value: unknown): AdminD1Usage {
     rowsReadLimit: parseNonnegativeInteger(object.rowsReadLimit, 'D1 read limit'),
     rowsWrittenLimit: parseNonnegativeInteger(object.rowsWrittenLimit, 'D1 write limit'),
     generatedAt: parseNonEmptyString(object.generatedAt, 'D1 generated at'),
+  };
+}
+
+/** Decode sampled D1 insights without accepting raw SQL from the server. */
+export function parseAdminD1InsightsResponse(value: unknown): AdminD1Insights {
+  const object = requireObject(value, 'D1 insights');
+  assertExactKeys(object, ['from', 'to', 'generatedAt', 'queries', 'series'], 'D1 insights');
+  return {
+    from: parseNonEmptyString(object.from, 'D1 insights from'),
+    to: parseNonEmptyString(object.to, 'D1 insights to'),
+    generatedAt: parseNonEmptyString(object.generatedAt, 'D1 insights generated at'),
+    queries: parseArray(object.queries, 'D1 queries', (item, label) => {
+      const row = requireObject(item, label);
+      assertExactKeys(row, ['id', 'label', 'reads', 'writes', 'count'], label);
+      return {
+        id: parseNonEmptyString(row.id, `${label}.id`),
+        label: parseNonEmptyString(row.label, `${label}.label`),
+        reads: parseNonnegativeNumber(row.reads, `${label}.reads`),
+        writes: parseNonnegativeNumber(row.writes, `${label}.writes`),
+        count: parseNonnegativeNumber(row.count, `${label}.count`),
+      };
+    }),
+    series: parseArray(object.series, 'D1 trend', (item, label) => {
+      const row = requireObject(item, label);
+      assertExactKeys(row, ['timestamp', 'reads', 'writes'], label);
+      const timestamp = parseNonEmptyString(row.timestamp, `${label}.timestamp`);
+      if (!Number.isFinite(Date.parse(timestamp))) throw new Error(`${label}.timestamp is invalid`);
+      return {
+        timestamp,
+        reads: parseNonnegativeNumber(row.reads, `${label}.reads`),
+        writes: parseNonnegativeNumber(row.writes, `${label}.writes`),
+      };
+    }),
   };
 }
 

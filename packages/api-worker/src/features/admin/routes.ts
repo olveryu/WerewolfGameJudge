@@ -44,6 +44,7 @@ import {
   queryRealtimeTrafficAnalytics,
   queryRequestTrafficAnalytics,
 } from './providers/analyticsEngine';
+import { queryD1Insights } from './providers/d1Insights';
 import { queryD1UsageAnalytics, queryWorkerInvocationAnalytics } from './providers/workerAnalytics';
 import {
   createAdminRequestTrafficSummary,
@@ -94,6 +95,30 @@ adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
 adminRoutes.get('/session', (c) => c.body(null, 204));
 adminRoutes.get('/d1-usage', async (c) => c.json(await queryD1UsageAnalytics(c.env)));
+adminRoutes.get('/d1-insights', async (c) => {
+  const range = c.req.query('range');
+  const sort = c.req.query('sort');
+  if (range !== 'today' && range !== '24h' && range !== '7d') {
+    throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
+  }
+  if (sort !== 'reads' && sort !== 'writes') {
+    throw new HTTPException(400, { message: 'INVALID_SORT' });
+  }
+  const bucket = c.req.query('bucket');
+  let selectedBucket: Date | undefined;
+  if (bucket !== undefined) {
+    selectedBucket = new Date(bucket);
+    if (
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(bucket) ||
+      !Number.isFinite(selectedBucket.getTime()) ||
+      selectedBucket.toISOString().replace('.000Z', 'Z') !== bucket
+    ) {
+      throw new HTTPException(400, { message: 'INVALID_TIME_BUCKET' });
+    }
+  }
+  c.header('Cache-Control', 'no-store');
+  return c.json(await queryD1Insights(c.env, range, sort, new Date(), fetch, selectedBucket));
+});
 
 // These endpoints must remain usable while D1 is unavailable.
 adminRoutes.get('/maintenance', async (c) => {

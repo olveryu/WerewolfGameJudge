@@ -54,6 +54,7 @@ export function OverviewPage() {
           title="D1 今日用量"
           description={`账号级 · UTC 日 · 约 ${hours} 小时后重置`}
           className="admin-span-5"
+          action={<Link to="/admin/d1">查看用量 →</Link>}
         >
           <AsyncBoundary query={usage}>
             {(data) => (

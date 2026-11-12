@@ -4,6 +4,7 @@ import { parseAdminErrorResponse } from '@/features/admin/services/adminAuth';
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
+  parseAdminD1InsightsResponse,
   parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
@@ -14,6 +15,29 @@ import {
 } from '@/features/admin/services/adminResponseCodec';
 
 describe('adminResponseCodec', () => {
+  it('rejects raw SQL and invalid metrics in D1 insights', () => {
+    const base = {
+      from: '2026-11-12T00:00:00Z',
+      to: '2026-11-12T01:00:00Z',
+      generatedAt: '2026-11-12T01:00:00Z',
+      queries: [{ id: 'id', label: '未识别查询', reads: 12, writes: 1, count: 2 }],
+      series: [{ timestamp: '2026-11-12T00:00:00Z', reads: 12, writes: 1 }],
+    };
+    expect(parseAdminD1InsightsResponse(base)).toEqual(base);
+    expect(() =>
+      parseAdminD1InsightsResponse({
+        ...base,
+        queries: [{ ...base.queries[0], query: 'secret' }],
+      }),
+    ).toThrow();
+    expect(() =>
+      parseAdminD1InsightsResponse({
+        ...base,
+        series: [{ timestamp: 'invalid', reads: -1, writes: 0 }],
+      }),
+    ).toThrow();
+  });
+
   it('decodes every current admin response contract', () => {
     expect(
       parseAdminUsersResponse({
