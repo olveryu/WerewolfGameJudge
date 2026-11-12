@@ -4,7 +4,7 @@
  * Verifies GET /admin/rooms returns the per-room game-start visibility fields
  * (gamesStarted / lastStartedAt) added in migration 0031, so the admin portal can
  * tell played vs never-played rooms without opening each room. Runs in the Workers
- * runtime via @cloudflare/vitest-pool-workers with D1.
+ * runtime via @cloudflare/vitest-plugin with D1.
  */
 
 import { env, SELF } from 'cloudflare:test';

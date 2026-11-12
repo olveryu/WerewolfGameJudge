@@ -59,5 +59,5 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 ## Tests for this package
 
-- Runner: Vitest under the Workers pool. The config loads D1 migrations via `readD1Migrations` and applies them in `test/applyMigrations.ts`; it includes `src/**/__tests__/**/*.test.ts`.
+- Runner: Vitest with `@cloudflare/vitest-plugin` in the Workers runtime. The config loads D1 migrations via `readD1Migrations` and applies them in `test/applyMigrations.ts`; it includes `src/**/__tests__/**/*.test.ts`.
 - The catalog test pins one module per game type and the HTTP-route projection. The worker entrypoint's workflow re-exports are pinned by the root contract `contracts/architecture.contract.test.ts` against the registry's declared workflows.

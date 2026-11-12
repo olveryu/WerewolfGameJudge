@@ -4,7 +4,7 @@
  * Verifies GET /admin/games/words/stats returns the per-game dashboard shape,
  * rejects unknown games, requires the admin token, and POST
  * /admin/games/words/trigger-supply enqueues a workflow run.
- * Runs in the Workers runtime via @cloudflare/vitest-pool-workers with D1.
+ * Runs in the Workers runtime via @cloudflare/vitest-plugin with D1.
  */
 
 import {
