@@ -174,6 +174,7 @@ export function HeatGrid({ items }: { items: { id: string; name: string; active:
         <Link
           key={item.id}
           to={{ search: '?view=all', hash: `#category-${item.id}` }}
+          replace
           data-level={
             item.active === 0
               ? 'empty'

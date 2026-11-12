@@ -1,8 +1,8 @@
 /** Shared room title gestures: admin navigation and password-gated debug visibility. */
 
 import { useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
 
-import { useAdminEntry } from '@/features/admin/hooks/useAdminNavigation';
 import { useAdminShortcut } from '@/features/admin/hooks/useAdminShortcut';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
@@ -17,8 +17,10 @@ import { roomScreenLog } from '@/utils/logger';
 
 /** Compose title callbacks without reading or mutating game state. */
 export function useRoomTitleActions() {
-  const openAdmin = useAdminEntry();
-  const { onPress: handleTitlePress, reset: resetAdminShortcut } = useAdminShortcut(openAdmin);
+  const navigate = useNavigate();
+  const { onPress: handleTitlePress, reset: resetAdminShortcut } = useAdminShortcut(() => {
+    void navigate('/admin');
+  });
   const isVerifying = useRef(false);
 
   const verifyAndToggle = useCallback(async (credential: string) => {

@@ -48,14 +48,14 @@ export function useReportRange(traffic = false) {
   };
 }
 
-/** Compact toolbar controls; selected dates survive refresh and browser history. */
+/** Compact toolbar controls; selected dates stay in the URL without adding history entries. */
 export function ReportRange({ traffic = false }: { traffic?: boolean }) {
   const [parameters, setParameters] = useSearchParams();
   const selected = parameters.get('range') ?? (traffic ? '24h' : 'today');
   function update(key: string, value: string) {
     const next = new URLSearchParams(parameters);
     next.set(key, value);
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   return (
     <div className="admin-report-range">

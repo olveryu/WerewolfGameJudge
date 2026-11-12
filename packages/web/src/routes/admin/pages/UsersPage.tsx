@@ -21,14 +21,14 @@ import {
 } from '../components/Primitives';
 import { UserDetails } from './UserDetails';
 
-/** Filter changes remount the cursor stack; history and refresh preserve the filter itself. */
+/** Filter changes remount the cursor stack; the URL preserves filters across refreshes. */
 export function UsersPage() {
   const [parameters, setParameters] = useSearchParams();
   return (
     <UserDirectory
       key={parameters.toString()}
       parameters={parameters}
-      onChange={(next) => setParameters(next)}
+      onChange={(next) => setParameters(next, { replace: true })}
     />
   );
 }

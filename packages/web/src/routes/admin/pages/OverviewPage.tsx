@@ -97,7 +97,11 @@ export function OverviewPage() {
           title="近 24 小时请求"
           description="应用记录的 HTTP 请求"
           className="admin-span-8"
-          action={<Link to="/admin/traffic">查看请求 →</Link>}
+          action={
+            <Link to="/admin/traffic" replace>
+              查看请求 →
+            </Link>
+          }
         >
           <AsyncBoundary query={traffic}>
             {(data) => <AreaChart points={data.http.series} />}
@@ -119,13 +123,17 @@ export function OverviewPage() {
                     <ul className="admin-link-list">
                       {failed.map((room) => (
                         <li key={room.id}>
-                          <Link to={`/admin/rooms?room=${room.code}`}>#{room.code}</Link>
+                          <Link to={`/admin/rooms?room=${room.code}`} replace>
+                            #{room.code}
+                          </Link>
                           <StatusBadge tone="danger">恢复失败</StatusBadge>
                         </li>
                       ))}
                     </ul>
                   )}
-                  <Link to="/admin/rooms">查看房间目录 →</Link>
+                  <Link to="/admin/rooms" replace>
+                    查看房间目录 →
+                  </Link>
                 </>
               );
             }}
@@ -134,17 +142,17 @@ export function OverviewPage() {
           <h3>词库管理</h3>
           <ul className="admin-link-list">
             <li>
-              <Link to="/admin/words/fibking">
+              <Link to="/admin/words/fibking" replace>
                 瞎掰王 <span aria-hidden>↗</span>
               </Link>
             </li>
             <li>
-              <Link to="/admin/words/undercover">
+              <Link to="/admin/words/undercover" replace>
                 谁是卧底 <span aria-hidden>↗</span>
               </Link>
             </li>
             <li>
-              <Link to="/admin/words/drawguess">
+              <Link to="/admin/words/drawguess" replace>
                 你画我猜 <span aria-hidden>↗</span>
               </Link>
             </li>
