@@ -309,3 +309,13 @@ flaky 是概率事件，单次全绿不算证明。三次推送等于把全部 s
 root 同时声明与 web 相同版本范围的 `unplugin-icons` 开发依赖并更新 lockfile：E2E 直接使用该包的类型，不能只依赖 web 的间接安装，也不通过 knip 忽略项隐藏依赖缺失。
 
 root `typecheck` 脚本追加 `tsc -p e2e/tsconfig.json --noEmit`，现有 CI 的 Turbo typecheck 会一并执行。独立 E2E typecheck 和 root typecheck 已无错误通过；不再接受带原有错误的基线比较。
+
+### 12.5 追加：维护查询与身份缓存隔离
+
+[43124242821](https://github.com/olveryu/WerewolfGameJudge/actions/runs/43124242821) 测试的是 PR 与新增维护模式的 main 合并结果，8/9 个 E2E shard 失败，13 条失败、5 条 flaky。此前引用的 `43124003382` 是 CodeQL，并非 E2E CI。
+
+根因是身份变化时 `AuthProvider` 全量取消、删除 Query，误删了应用级维护状态。下一次 60 秒轮询重建查询，短暂回到 `pending`，`MaintenanceGate` 因而卸载游戏；重新挂载会重连房间、关闭管理面板并丢失组件内草稿。Trace 中维护状态返回 200、`enabled: false`，仍紧接着出现 `/room/get` 和新 WebSocket。
+
+修复使用 TanStack Query 的 typed `meta.authScope` 与查询过滤器：维护状态明确属于 `application`，身份变化只取消、删除会话查询；未标记的既有查询仍按会话处理，不能遗留旧用户数据。没有修改 E2E 断言、等待预算、维护错误处理或实际维护时的卸载行为。
+
+新增真实 `AuthProvider` + `MaintenanceGate` 的确定性集成测试：登录、换号、退出后首次轮询期间游戏保持挂载且保留草稿；身份变化取消私有请求但保留进行中的维护请求；真正开启维护仍卸载游戏。4 项用例在修复前全部失败，修复后与既有维护和路由测试共 17 项通过。
