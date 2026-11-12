@@ -3,6 +3,7 @@ import { Navigate, type RouteObject } from 'react-router';
 import { AdminRoot } from '@/app/AdminRoot';
 import { AppRoot } from '@/app/AppRoot';
 import { RouteErrorPage } from '@/app/RouteErrorPage';
+import { D1UsagePage } from '@/routes/admin/pages/D1UsagePage';
 import { MaintenanceSettingsPage } from '@/routes/admin/pages/MaintenanceSettingsPage';
 import { AiPage, GrowthPage, PerformancePage } from '@/routes/admin/pages/MonitoringPages';
 import { OverviewPage } from '@/routes/admin/pages/OverviewPage';
@@ -46,6 +47,7 @@ export const routes: RouteObject[] = [
       { path: 'growth', Component: GrowthPage },
       { path: 'performance', Component: PerformancePage },
       { path: 'traffic', Component: TrafficPage },
+      { path: 'd1', Component: D1UsagePage },
       { path: 'ai', Component: AiPage },
     ],
   },

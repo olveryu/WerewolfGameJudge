@@ -13,6 +13,7 @@ import type {
 import {
   fetchAdminMaintenance,
   fetchAutomaticSupplySettings,
+  fetchD1Insights,
   fetchD1Usage,
   fetchGameWordsStats,
   fetchRequestTraffic,
@@ -35,6 +36,7 @@ import { showAlert } from '@/utils/alert';
 
 import { AdminPage } from '../AdminPage';
 import { StatTile } from '../components/Primitives';
+import { D1UsagePage } from '../pages/D1UsagePage';
 import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
 import { GrowthPage } from '../pages/MonitoringPages';
 import { RoomsPage } from '../pages/RoomsPage';
@@ -50,6 +52,7 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   fetchRoomPlayers: vi.fn(),
   fetchStats: vi.fn(),
   fetchD1Usage: vi.fn(),
+  fetchD1Insights: vi.fn(),
   fetchAdminMaintenance: vi.fn(),
   fetchAutomaticSupplySettings: vi.fn(),
   saveAutomaticSupplySettings: vi.fn(),
@@ -143,6 +146,7 @@ function mount(path = '/admin/users', previousPath?: string) {
           { path: 'rooms', Component: RoomsPage },
           { path: 'growth', Component: GrowthPage },
           { path: 'traffic', Component: TrafficPage },
+          { path: 'd1', Component: D1UsagePage },
           { path: 'maintenance', Component: MaintenanceSettingsPage },
           { path: 'words/:game', Component: WordsPage },
         ],
@@ -182,6 +186,15 @@ beforeEach(() => {
     rowsWrittenLimit: 100_000,
     generatedAt: '2026-11-11T00:00:00Z',
   });
+  vi.mocked(fetchD1Insights).mockResolvedValue({
+    from: '2026-11-11T00:00:00Z',
+    to: '2026-11-11T12:00:00Z',
+    generatedAt: '2026-11-11T12:00:00Z',
+    queries: [
+      { id: 'abcdef1234567890', label: '可能涉及：你画我猜词库', reads: 100, writes: 10, count: 2 },
+    ],
+    series: [{ timestamp: '2026-11-11T08:00:00Z', reads: 100, writes: 10 }],
+  });
 
   vi.mocked(fetchUsers).mockResolvedValue({ users: [user], nextCursor: null });
   vi.mocked(fetchUserCountries).mockResolvedValue({ countries: ['CN', 'JP', 'US'] });
@@ -213,6 +226,46 @@ afterEach(() => {
 });
 
 describe('admin workspace', () => {
+  it('shows D1 totals separately from sampled insights and changes the requested range and sort', async () => {
+    const view = mount('/admin/d1');
+    await screen.findByText('可能涉及：你画我猜词库');
+    expect(screen.getByText(/不能用账号总量减去排行/)).toBeVisible();
+    expect(fetchD1Insights).toHaveBeenCalledWith('today', 'reads', null, expect.any(AbortSignal));
+    await userEvent.click(screen.getByText('可能涉及：你画我猜词库'));
+    expect(screen.getByText(/估算单次平均：读取 50 行/)).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: '按写入' }));
+    await waitFor(() =>
+      expect(fetchD1Insights).toHaveBeenCalledWith(
+        'today',
+        'writes',
+        null,
+        expect.any(AbortSignal),
+      ),
+    );
+    const trendPanel = screen.getByRole('heading', { name: '读取趋势 · 估算' }).closest('section');
+    if (trendPanel === null) throw new Error('Expected trend panel');
+    const trend = within(trendPanel);
+    await userEvent.click(trend.getByText('查看趋势数据'));
+    await userEvent.click(trend.getByRole('button', { name: /查看该时段查询/ }));
+    await waitFor(() =>
+      expect(fetchD1Insights).toHaveBeenCalledWith(
+        'today',
+        'writes',
+        '2026-11-11T08:00:00Z',
+        expect.any(AbortSignal),
+      ),
+    );
+    await userEvent.click(screen.getByRole('button', { name: '查看完整时间范围' }));
+    expect(view.router.state.location.search).not.toContain('bucket=');
+    await userEvent.click(screen.getByRole('button', { name: '7 天' }));
+    await waitFor(() =>
+      expect(fetchD1Insights).toHaveBeenCalledWith('7d', 'writes', null, expect.any(AbortSignal)),
+    );
+    expect(view.router.state.location.search).toContain('range=7d');
+    view.unmount();
+    view.client.clear();
+  });
+
   it.each([true, false])(
     'returns to the previous page after a direct navigation, authenticated: %s',
     async (authenticated) => {
@@ -236,7 +289,7 @@ describe('admin workspace', () => {
     const menu = await screen.findByRole('dialog', { name: '切换页面' });
     expect(within(menu).getByRole('heading', { name: '管理' })).toBeVisible();
     expect(within(menu).getByRole('heading', { name: '分析' })).toBeVisible();
-    expect(within(menu).getAllByRole('link')).toHaveLength(9);
+    expect(within(menu).getAllByRole('link')).toHaveLength(10);
     expect(within(menu).getByRole('link', { name: '用户' })).toHaveAttribute(
       'aria-current',
       'page',

@@ -7,6 +7,8 @@
 
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
+  AdminD1Range,
+  AdminD1Sort,
   GameWordGame,
   GameWordsStats,
   TimePreset,
@@ -27,6 +29,7 @@ import {
   parseAdminAnalyticsResponse,
   parseAdminAutomaticSupplySettings,
   parseAdminCountriesResponse,
+  parseAdminD1InsightsResponse,
   parseAdminD1UsageResponse,
   parseAdminRequestTrafficResponse,
   parseAdminRoomPlayersResponse,
@@ -229,6 +232,25 @@ export function fetchStats(from: string, to: string, signal?: AbortSignal) {
 /** Read account-wide analytics without consuming D1 rows. */
 export function fetchD1Usage(signal?: AbortSignal) {
   return adminFetch('/admin/d1-usage', parseAdminD1UsageResponse, undefined, signal);
+}
+
+/** Read sampled query rankings and trends without querying D1. */
+export function fetchD1Insights(
+  range: AdminD1Range,
+  sort: AdminD1Sort,
+  bucket: string | null,
+  signal?: AbortSignal,
+) {
+  return adminFetch(
+    '/admin/d1-insights',
+    parseAdminD1InsightsResponse,
+    {
+      range,
+      sort,
+      ...(bucket === null ? {} : { bucket }),
+    },
+    signal,
+  );
 }
 
 export function fetchAnalytics(from: string, to: string, signal?: AbortSignal) {

@@ -140,6 +140,17 @@ export interface AdminD1Usage {
   generatedAt: string;
 }
 
+export type AdminD1Range = 'today' | '24h' | '7d';
+export type AdminD1Sort = 'reads' | 'writes';
+
+export interface AdminD1Insights {
+  from: string;
+  to: string;
+  generatedAt: string;
+  queries: Array<{ id: string; label: string; reads: number; writes: number; count: number }>;
+  series: Array<{ timestamp: string; reads: number; writes: number }>;
+}
+
 export interface AdminRoomsResponse {
   rooms: AdminRoom[];
   total: number;
