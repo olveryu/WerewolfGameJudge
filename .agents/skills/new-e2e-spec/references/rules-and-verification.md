@@ -83,6 +83,10 @@ From `e2e/helpers/README.md`, "Required Test Patterns":
   `forbidOnly`; skip detection by CI was not found.
 - No `.isVisible({ timeout })` — none exists in the suite, and the
   timeout parameter is ignored by the framework.
+- Wait on step/audio state rather than dialog transitions. Read step prompts
+  by expected title. Dismiss only the captured alert body and wait for its
+  closure or replacement; never let a locator retarget a replacement.
+  Negative assertions require positive readiness evidence first.
 
 ## Non-determinism rule
 

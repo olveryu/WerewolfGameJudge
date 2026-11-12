@@ -83,8 +83,8 @@ test.describe('Werewolf Night — Flow Verification', () => {
       // so the click below must not land inside the audio window.
       // (The old gate polled the action-message copy, which rendered
       // only after the audio ended and so waited it out implicitly.)
-      const wolfStepReady = await waitForStepAndSettle(wolfPage, 'wolfKill', 30_000);
-      expect(wolfStepReady, 'Wolf step should become active').toBe(true);
+      await test.step('Wolf step should become active', () =>
+        waitForStepAndSettle(wolfPage, 'wolfKill', 30_000));
 
       // PR-B G-4: while the wolf acts, the non-actioner's bottom
       // panel names the step it is waiting on (same derived progress
@@ -95,12 +95,11 @@ test.describe('Werewolf Night — Flow Verification', () => {
       );
 
       // Wolf clicks the villager's seat
-      const confirmed = await clickSeatAndConfirm(wolfPage, villagerSeat);
-      expect(confirmed, 'Wolf vote should be confirmed').toBe(true);
+      await test.step('Wolf vote should be confirmed', () =>
+        clickSeatAndConfirm(wolfPage, villagerSeat));
 
       // Wait for night to end
-      const nightDone = await waitForNightEnd(pages, 90_000);
-      expect(nightDone, 'Night should have ended').toBe(true);
+      await test.step('Night should have ended', () => waitForNightEnd(pages, 90_000));
 
       // Verify the death message mentions the correct seat number (1-based display)
       const expectedSeatDisplay = formatSeat(villagerSeat);
@@ -199,13 +198,12 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await driveWolfVote(pages, wolfIndices, killTargetSeat);
 
       // --- Phase 2: Wait for seer's turn ---
-      const seerTurnDetected = await waitForRoleTurn(seerPage, 'seerCheck', pages);
-
-      expect(seerTurnDetected, 'Seer turn should appear during night').toBe(true);
+      await test.step('Seer turn should appear during night', () =>
+        waitForRoleTurn(seerPage, 'seerCheck', pages));
 
       // --- Phase 3: Seer checks a known wolf ---
-      const seerConfirmed = await clickSeatAndConfirm(seerPage, targetWolfSeat);
-      expect(seerConfirmed, 'Seer check should be confirmed').toBe(true);
+      await test.step('Seer check should be confirmed', () =>
+        clickSeatAndConfirm(seerPage, targetWolfSeat));
 
       // Wait for the reveal dialog
       const revealText = await readAlertText(seerPage);
@@ -219,8 +217,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await dismissAlert(seerPage);
 
       // --- Phase 4: Wait for night to complete ---
-      const nightDone = await waitForNightEnd(pages, 90_000);
-      expect(nightDone, 'Night should have ended').toBe(true);
+      await test.step('Night should have ended', () => waitForNightEnd(pages, 90_000));
       // NB: no day-phase assertion here — with sheriff election off
       // (helper default), the engine moves straight to Ended when
       // the night resolves (handleEndNight): the day is hosted in

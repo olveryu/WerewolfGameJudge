@@ -81,6 +81,11 @@ the current URL on the next successful check. Visitors can also check manually.
 Hidden/offline pages check when they become active/reconnect; this is a UI gate, not
 an API lockdown or a forced disconnection of older frontend deployments.
 
+Maintenance status is an application-scoped Query (`meta.authScope: 'application'`).
+Login, account switching, and logout cancel and remove session queries only; queries
+without an explicit scope remain session-scoped. Authentication changes must not
+cancel maintenance checks or reset the gate to its startup loader during gameplay.
+
 An enabled configuration requires a future recovery time. At or after that instant,
 the server reports maintenance as disabled, without a cron job, D1 query, or read-time
 R2 write. A saved expired setting cannot keep the site locked; to extend maintenance,

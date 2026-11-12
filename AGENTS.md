@@ -30,7 +30,7 @@ The version number is authoritative in the root `package.json` only; `packages/w
 | All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                      |
 | Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                          |
 | Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                 |
-| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`                                |
+| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                        |
 | Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                           |
 | Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                           |
 | Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                              |
