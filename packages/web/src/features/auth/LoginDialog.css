@@ -34,17 +34,6 @@
   object-fit: cover;
 }
 
-.login-strip-lock {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-overlay);
-  color: var(--color-text-inverse);
-  font-size: var(--font-title);
-}
-
 .login-strip-text {
   margin: 0;
   color: var(--color-text-secondary);
