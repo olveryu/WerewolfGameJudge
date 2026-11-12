@@ -34,13 +34,11 @@ const MAGMA_ARTS: readonly StaticArt[] = MAGMA_SEEDS.map((seed) => (context, siz
   context.circle(0, r * 0.5, r * 1.3).fill({ color: 'rgb(255,80,0)', alpha: 0.12 });
 });
 
-const nodes = MAGMA_SEEDS.map(
-  (_, i): LayerNode => ({
-    kind: 'layer',
-    sample: MAGMA_SAMPLERS[i]!,
-    art: MAGMA_ARTS[i]!,
-    durationMs: LOOP_MS,
-  }),
-);
+const nodes = MAGMA_SEEDS.map((_, i): LayerNode => ({
+  kind: 'layer',
+  sample: MAGMA_SAMPLERS[i]!,
+  art: MAGMA_ARTS[i]!,
+  durationMs: LOOP_MS,
+}));
 
 export const magmaFloatFlair: DecorationSpec = { id: 'magmaFloat', nodes };

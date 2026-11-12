@@ -92,16 +92,14 @@ function arcArt(seed: FlareSeed, layer: ArcLayer): StaticArt {
 }
 
 const nodes = FLARE_SEEDS.flatMap((seed): DecorationNode[] => [
-  ...ARC_LAYERS.map(
-    (layer, l): DecorationNode => ({
-      kind: 'layer',
-      sample: ARC_SAMPLERS[l]!,
-      box: (size) => ({ width: size, height: size }),
-      art: arcArt(seed, layer),
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-    }),
-  ),
+  ...ARC_LAYERS.map((layer, l): DecorationNode => ({
+    kind: 'layer',
+    sample: ARC_SAMPLERS[l]!,
+    box: (size) => ({ width: size, height: size }),
+    art: arcArt(seed, layer),
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+  })),
   {
     kind: 'dot',
     sample: tipSampler(seed),

@@ -72,24 +72,20 @@ function waveArt(layer: number): StaticArt {
 }
 
 const nodes: DecorationNode[] = [
-  ...RAIN_SEEDS.map(
-    (seed, i): DecorationNode => ({
-      kind: 'line',
-      sample: RAIN_SAMPLERS[i]!,
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-      color: 'rgb(150,180,210)',
-    }),
-  ),
-  ...WAVE_INDICES.map(
-    (layer): DecorationNode => ({
-      kind: 'layer',
-      sample: waveSampler(layer),
-      box: (size) => ({ width: size, height: size }),
-      art: waveArt(layer),
-      durationMs: LOOP_MS,
-    }),
-  ),
+  ...RAIN_SEEDS.map((seed, i): DecorationNode => ({
+    kind: 'line',
+    sample: RAIN_SAMPLERS[i]!,
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+    color: 'rgb(150,180,210)',
+  })),
+  ...WAVE_INDICES.map((layer): DecorationNode => ({
+    kind: 'layer',
+    sample: waveSampler(layer),
+    box: (size) => ({ width: size, height: size }),
+    art: waveArt(layer),
+    durationMs: LOOP_MS,
+  })),
 ];
 
 export const stormSurgeFlair: DecorationSpec = { id: 'stormSurge', nodes };

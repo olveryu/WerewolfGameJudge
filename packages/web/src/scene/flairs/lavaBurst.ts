@@ -54,15 +54,13 @@ function trailSampler(seed: BlobSeed, trail: (typeof TRAILS)[number]): DotSample
 const nodes = BLOB_SEEDS.flatMap((seed): DecorationNode[] => {
   const color = COLORS[seed.ci]!;
   return [
-    ...TRAILS.map(
-      (trail): DecorationNode => ({
-        kind: 'dot',
-        sample: trailSampler(seed, trail),
-        durationMs: LOOP_MS,
-        phase: seed.phase,
-        color,
-      }),
-    ),
+    ...TRAILS.map((trail): DecorationNode => ({
+      kind: 'dot',
+      sample: trailSampler(seed, trail),
+      durationMs: LOOP_MS,
+      phase: seed.phase,
+      color,
+    })),
     { kind: 'dot', sample: mainSampler(seed), durationMs: LOOP_MS, phase: seed.phase, color },
   ];
 });

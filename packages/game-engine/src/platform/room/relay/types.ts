@@ -52,13 +52,7 @@ export interface RelayParticipant {
 
 /** The phase set every relay game runs; no game adds or renames a phase. */
 export type RelayPhase =
-  | 'lobby'
-  | 'answering'
-  | 'settling'
-  | 'transition'
-  | 'gallery'
-  | 'ended'
-  | 'aborted';
+  'lobby' | 'answering' | 'settling' | 'transition' | 'gallery' | 'ended' | 'aborted';
 
 /**
  * One seat's current task. The projection is the privacy boundary of

@@ -30,15 +30,13 @@ const TRAIL_SAMPLERS: readonly DotSampler[] = TRAIL_INDICES.map((trailIndex) => 
 
 /** One flame per colour; flame `index` only shifts the orbit by `index / 8` of the loop (`phase`). */
 const nodes: DotNode[] = FLAME_COLORS.flatMap((color, flameIndex) =>
-  TRAIL_SAMPLERS.map(
-    (sample): DotNode => ({
-      kind: 'dot',
-      sample,
-      durationMs: LOOP_MS,
-      phase: flameIndex / FLAME_COLORS.length,
-      color,
-    }),
-  ),
+  TRAIL_SAMPLERS.map((sample): DotNode => ({
+    kind: 'dot',
+    sample,
+    durationMs: LOOP_MS,
+    phase: flameIndex / FLAME_COLORS.length,
+    color,
+  })),
 );
 
 export const fireRingFlair: DecorationSpec = { id: 'fireRing', nodes };

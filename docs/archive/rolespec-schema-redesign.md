@@ -314,13 +314,7 @@ export type AbilityTiming = 'night' | 'day' | 'onDeath' | 'onExile' | 'passive';
 
 /** The action kind for UI / input handling */
 export type ActionKind =
-  | 'chooseSeat'
-  | 'multiChooseSeat'
-  | 'wolfVote'
-  | 'compound'
-  | 'swap'
-  | 'confirm'
-  | 'groupConfirm';
+  'chooseSeat' | 'multiChooseSeat' | 'wolfVote' | 'compound' | 'swap' | 'confirm' | 'groupConfirm';
 
 /**
  * Active ability — 需要玩家主动操作
@@ -378,12 +372,7 @@ export interface TriggeredAbility {
 }
 
 export type TriggerCondition =
-  | 'onDeath'
-  | 'onExile'
-  | 'onDayExile'
-  | 'onCheckedByNonWolf'
-  | 'onPoisoned'
-  | 'onSelfDeath';
+  'onDeath' | 'onExile' | 'onDayExile' | 'onCheckedByNonWolf' | 'onPoisoned' | 'onSelfDeath';
 
 export type TriggeredEffectKind =
   | 'shoot' // hunter / darkWolfKing: 出局开枪
@@ -2421,7 +2410,8 @@ const badVillager = {
 // TargetCount 带编译期 min <= max 约束
 type ValidTargetCount<T extends TargetCount> = T['min'] extends number
   ? T['max'] extends number
-    ? T['min'] extends T['max'] | number // 基本范围检查
+    ? T['min'] extends
+        T['max'] | number // 基本范围检查
       ? T
       : 'ERROR: min > max in target count'
     : never

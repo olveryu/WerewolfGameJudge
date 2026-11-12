@@ -70,7 +70,7 @@
     "knip": "^6.45.1",
     "lint-staged": "^16.4.0",
     "miniprogram-ci": "^2.1.31",
-    "prettier": "^3.8.3",
+    "prettier": "^3.10.0",
     "serve": "^14.2.7",
     "turbo": "^2.11.11",
     "typescript": "~6.0.3",

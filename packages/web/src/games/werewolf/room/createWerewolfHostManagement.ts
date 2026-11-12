@@ -49,11 +49,7 @@ import { TESTIDS } from '@/testids';
 
 /** The host flow controls the panel can trigger; each opens its confirm dialog. */
 export type WerewolfHostControlAction =
-  | 'prepareToFlip'
-  | 'startGame'
-  | 'abort'
-  | 'redeal'
-  | 'returnToLobby';
+  'prepareToFlip' | 'startGame' | 'abort' | 'redeal' | 'returnToLobby';
 
 interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;

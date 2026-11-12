@@ -192,9 +192,7 @@ export interface UndercoverRound {
 }
 
 export type UndercoverPreparationFailure =
-  | 'selectionFailed'
-  | 'inventoryEmpty'
-  | 'inventoryExhausted';
+  'selectionFailed' | 'inventoryEmpty' | 'inventoryExhausted';
 
 interface UndercoverStateBase extends BaseGameState<'undercover'> {
   readonly config: UndercoverConfig;

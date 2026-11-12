@@ -62,16 +62,14 @@ function waveArt(seed: WaveSeed): StaticArt {
   };
 }
 
-const waves = WAVE_SEEDS.map(
-  (seed): LayerNode => ({
-    kind: 'layer',
-    sample: waveSampler(seed),
-    box: (size) => ({ width: size * CURVE_WIDTH_FACTOR, height: size }),
-    art: waveArt(seed),
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const waves = WAVE_SEEDS.map((seed): LayerNode => ({
+  kind: 'layer',
+  sample: waveSampler(seed),
+  box: (size) => ({ width: size * CURVE_WIDTH_FACTOR, height: size }),
+  art: waveArt(seed),
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const mirageHeatFlair: DecorationSpec = {
   id: 'mirageHeat',

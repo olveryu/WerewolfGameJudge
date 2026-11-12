@@ -124,9 +124,7 @@ export interface StoryRelayTask {
   readonly chainId: string;
   readonly authorSeat: number;
   readonly previousEntry:
-    | { readonly kind: 'text'; readonly text: string }
-    | { readonly kind: 'empty' }
-    | null;
+    { readonly kind: 'text'; readonly text: string } | { readonly kind: 'empty' } | null;
   readonly isSubmitted: boolean;
 }
 

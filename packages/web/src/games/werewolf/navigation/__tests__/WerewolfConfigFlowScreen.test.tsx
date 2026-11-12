@@ -36,9 +36,12 @@ interface Probes {
   configMounts: number;
 }
 
-const probes = vi.hoisted(
-  (): Probes => ({ board: null, config: null, rules: null, configMounts: 0 }),
-);
+const probes = vi.hoisted((): Probes => ({
+  board: null,
+  config: null,
+  rules: null,
+  configMounts: 0,
+}));
 
 vi.mock('@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen', () => ({
   BoardPickerScreen: (props: BoardPickerProbeProps) => {

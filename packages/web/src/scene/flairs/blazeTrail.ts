@@ -61,15 +61,13 @@ const ARC_ARTS: readonly StaticArt[] = ARC_SEEDS.map((seed, i) => (context, size
     .fill({ color: core, alpha: 0.7 });
 });
 
-const nodes = ARC_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: arcSampler,
-    box: (size) => ({ width: size, height: size }),
-    art: ARC_ARTS[i]!,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = ARC_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: arcSampler,
+  box: (size) => ({ width: size, height: size }),
+  art: ARC_ARTS[i]!,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const blazeTrailFlair: DecorationSpec = { id: 'blazeTrail', nodes };

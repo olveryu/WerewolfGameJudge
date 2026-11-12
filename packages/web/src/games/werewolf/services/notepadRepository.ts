@@ -20,8 +20,7 @@ const STATE_FIELDS = [
 ] as const;
 
 export type WerewolfNotepadRoundId =
-  | typeof FIRST_ROUND_ID
-  | `${typeof RESTARTED_ROUND_PREFIX}${string}`;
+  typeof FIRST_ROUND_ID | `${typeof RESTARTED_ROUND_PREFIX}${string}`;
 
 export interface WerewolfNotepadOwner {
   readonly userId: string;

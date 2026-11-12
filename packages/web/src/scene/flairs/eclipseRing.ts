@@ -39,23 +39,19 @@ const SPARK_SAMPLERS: readonly DotSampler[] = SPARK_SEEDS.map((seed) => (t, size
 });
 
 const nodes: DecorationNode[] = [
-  ...CORONA_LAYERS.map(
-    (layer, i): DecorationNode => ({
-      kind: 'ring',
-      sample: CORONA_SAMPLERS[i]!,
-      durationMs: LOOP_MS,
-      color: layer.color,
-    }),
-  ),
-  ...SPARK_SEEDS.map(
-    (seed, i): DecorationNode => ({
-      kind: 'dot',
-      sample: SPARK_SAMPLERS[i]!,
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-      color: 'rgb(255,200,80)',
-    }),
-  ),
+  ...CORONA_LAYERS.map((layer, i): DecorationNode => ({
+    kind: 'ring',
+    sample: CORONA_SAMPLERS[i]!,
+    durationMs: LOOP_MS,
+    color: layer.color,
+  })),
+  ...SPARK_SEEDS.map((seed, i): DecorationNode => ({
+    kind: 'dot',
+    sample: SPARK_SAMPLERS[i]!,
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+    color: 'rgb(255,200,80)',
+  })),
 ];
 
 export const eclipseRingFlair: DecorationSpec = { id: 'eclipseRing', nodes };

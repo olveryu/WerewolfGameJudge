@@ -18,11 +18,7 @@ import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 export type StoryRelayFinalizationStatus =
-  | 'idle'
-  | 'submitting'
-  | 'retrying'
-  | 'waiting'
-  | 'failed';
+  'idle' | 'submitting' | 'retrying' | 'waiting' | 'failed';
 
 function getStoryRelayOwnedTasks(state: StoryRelayState, userId: string) {
   const mySeat = getStoryRelayUserSeat(state, userId);

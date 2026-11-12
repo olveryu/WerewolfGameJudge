@@ -93,15 +93,13 @@ function buildCosmeticGrid<Id extends string>(
     isActive: !currentId,
     rarity: null,
   };
-  const items = ids.map(
-    (id): CosmeticGridItem<Id> => ({
-      id,
-      name: cosmeticName(names, id),
-      unlocked: isUnlocked(id, unlockedIds),
-      isActive: currentId === id,
-      rarity: getItemRarity(id),
-    }),
-  );
+  const items = ids.map((id): CosmeticGridItem<Id> => ({
+    id,
+    name: cosmeticName(names, id),
+    unlocked: isUnlocked(id, unlockedIds),
+    isActive: currentId === id,
+    rarity: getItemRarity(id),
+  }));
   return [none, ...items.sort(compareUnlockedThenRarity)];
 }
 

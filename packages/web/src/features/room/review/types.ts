@@ -172,8 +172,7 @@ export interface RoomReviewDocument {
 
 /** Whether this viewer may export the document they can read. */
 export type RoomReviewSharing =
-  | { readonly isAllowed: true }
-  | { readonly isAllowed: false; readonly reason: string };
+  { readonly isAllowed: true } | { readonly isAllowed: false; readonly reason: string };
 
 /** A confirmation shown before the dialog opens （a mid-game review warns about spoilers）. */
 export interface RoomReviewConfirmation {

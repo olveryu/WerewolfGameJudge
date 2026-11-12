@@ -121,15 +121,13 @@ export const constellationTemplate: FlairTemplate = (colors) => {
   };
   return [
     { kind: 'static', art: starsArt },
-    ...LINKS.map(
-      (_, i): DecorationNode => ({
-        kind: 'line',
-        sample: LINK_SAMPLERS[i]!,
-        durationMs: CONSTELLATION_MS,
-        phase: i / LINKS.length,
-        color: colors.rgbLight,
-      }),
-    ),
+    ...LINKS.map((_, i): DecorationNode => ({
+      kind: 'line',
+      sample: LINK_SAMPLERS[i]!,
+      durationMs: CONSTELLATION_MS,
+      phase: i / LINKS.length,
+      color: colors.rgbLight,
+    })),
   ];
 };
 

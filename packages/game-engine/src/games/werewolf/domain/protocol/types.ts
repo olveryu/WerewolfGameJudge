@@ -59,10 +59,7 @@ export type SeedWolfConfirmStatus =
 
 /** Discriminated union (discriminant: role). */
 export type ConfirmStatus =
-  | ShootConfirmStatus
-  | FactionConfirmStatus
-  | WolfTeammatesConfirmStatus
-  | SeedWolfConfirmStatus;
+  ShootConfirmStatus | FactionConfirmStatus | WolfTeammatesConfirmStatus | SeedWolfConfirmStatus;
 
 /** Seed Wolf's final infection outcome, decided before the final group-confirm step. */
 export type SeedWolfInfectionResult =

@@ -38,10 +38,7 @@ interface RoleActionMagicianSwap {
 
 /** Discriminated union for all role actions */
 export type RoleAction =
-  | RoleActionNone
-  | RoleActionTarget
-  | RoleActionWitch
-  | RoleActionMagicianSwap;
+  RoleActionNone | RoleActionTarget | RoleActionWitch | RoleActionMagicianSwap;
 
 // =============================================================================
 // Factory Functions

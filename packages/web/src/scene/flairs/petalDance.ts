@@ -54,14 +54,12 @@ function petalArt(seed: PetalSeed): StaticArt {
   };
 }
 
-const nodes = PETAL_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: PETAL_SAMPLERS[i]!,
-    art: petalArt(seed),
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = PETAL_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: PETAL_SAMPLERS[i]!,
+  art: petalArt(seed),
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const petalDanceFlair: DecorationSpec = { id: 'petalDance', nodes };
