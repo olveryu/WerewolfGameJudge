@@ -262,7 +262,7 @@ function AvalonRoomContent(
             }
       }
       leadingExtraActions={
-        screen.isHost ? (
+        screen.isHost && isNight ? (
           <IconButton
             className="avalon-bgm-toggle"
             data-playing={screen.bgm.isBgmPlaying}

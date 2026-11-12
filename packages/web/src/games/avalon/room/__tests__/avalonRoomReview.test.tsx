@@ -77,6 +77,33 @@ describe('AvalonRoomScreen review', () => {
     expect(screen.queryByTestId(TESTIDS.roomReviewOpenButton)).toBeNull();
   });
 
+  describe('AvalonRoomScreen host music toggle', () => {
+    it('shows only for the host during the night', () => {
+      const state = playAvalonTestGame(0);
+      const nightState: AvalonState = {
+        ...state,
+        phase: { kind: 'night', step: 'merlinReveal', confirmedSeats: [] },
+      };
+      renderRoom(nightState, avalonTestSeatUser(0));
+      expect(screen.getByTestId(TESTIDS.bgmToggleButton)).toBeInTheDocument();
+    });
+
+    it('does not show for the host during the day or for a player at night', () => {
+      renderRoom(playAvalonTestGame(0), avalonTestSeatUser(0));
+      expect(screen.queryByTestId(TESTIDS.bgmToggleButton)).toBeNull();
+
+      const state = playAvalonTestGame(0);
+      renderRoom(
+        {
+          ...state,
+          phase: { kind: 'night', step: 'merlinReveal', confirmedSeats: [] },
+        },
+        avalonTestSeatUser(1),
+      );
+      expect(screen.queryByTestId(TESTIDS.bgmToggleButton)).toBeNull();
+    });
+  });
+
   it('opens the shared dialog on the Avalon document from a seat bottom entry', () => {
     renderRoom(playAvalonTestGame(3), avalonTestSeatUser(1));
     fireEvent.click(screen.getByTestId(TESTIDS.roomReviewOpenButton));
