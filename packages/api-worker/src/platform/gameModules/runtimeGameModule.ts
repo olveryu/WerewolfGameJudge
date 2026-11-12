@@ -27,8 +27,7 @@ export interface RuntimeCommittedDecision {
 }
 
 export type RuntimeDecision =
-  | RuntimeCommittedDecision
-  | { readonly kind: 'reject'; readonly reason: string };
+  RuntimeCommittedDecision | { readonly kind: 'reject'; readonly reason: string };
 
 export type RuntimeCreateResult =
   | {

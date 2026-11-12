@@ -152,9 +152,7 @@ export function resolveLadyInstruction(viewModel: AvalonViewModel): AvalonLadyIn
 }
 
 export type AvalonAssassinInstruction =
-  | { readonly kind: 'assassinPick' }
-  | { readonly kind: 'evilWait' }
-  | { readonly kind: 'goodWait' };
+  { readonly kind: 'assassinPick' } | { readonly kind: 'evilWait' } | { readonly kind: 'goodWait' };
 
 /** Assassination stage: only the assassin picks; everyone else waits (D11 不亮牌）. */
 export function resolveAssassinInstruction(viewModel: AvalonViewModel): AvalonAssassinInstruction {

@@ -44,10 +44,7 @@ type CheckResultRevealKey = 'seerReveal' | 'mirrorSeerReveal' | 'drunkSeerReveal
 
 /** RevealKind keys that use identityResult (identity-check family) */
 type IdentityResultRevealKey =
-  | 'psychicReveal'
-  | 'gargoyleReveal'
-  | 'pureWhiteReveal'
-  | 'wolfWitchReveal';
+  'psychicReveal' | 'gargoyleReveal' | 'pureWhiteReveal' | 'wolfWitchReveal';
 
 // ---------------------------------------------------------------------------
 // Generic reveal handler factories (DRY)

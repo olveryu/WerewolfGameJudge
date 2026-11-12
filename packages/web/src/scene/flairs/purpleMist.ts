@@ -40,13 +40,11 @@ function mistArt(seed: MistSeed): StaticArt {
   };
 }
 
-const nodes = MIST_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: MIST_SAMPLERS[i]!,
-    art: mistArt(seed),
-    durationMs: LOOP_MS,
-  }),
-);
+const nodes = MIST_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: MIST_SAMPLERS[i]!,
+  art: mistArt(seed),
+  durationMs: LOOP_MS,
+}));
 
 export const purpleMistFlair: DecorationSpec = { id: 'purpleMist', nodes };

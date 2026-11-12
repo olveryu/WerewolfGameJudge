@@ -57,22 +57,18 @@ const SPARK_SAMPLERS: readonly DotSampler[] = SPARK_SEEDS.map((seed) => (t, size
 });
 
 const nodes: DecorationNode[] = [
-  ...BOLT_LAYERS.map(
-    (_, i): DecorationNode => ({
-      kind: 'path',
-      sample: BOLT_SAMPLERS[i]!,
-      art: BOLT_ARTS[i]!,
-      durationMs: LOOP_MS,
-    }),
-  ),
-  ...SPARK_SAMPLERS.map(
-    (sample): DecorationNode => ({
-      kind: 'dot',
-      sample,
-      durationMs: LOOP_MS,
-      color: 'rgb(255,255,255)',
-    }),
-  ),
+  ...BOLT_LAYERS.map((_, i): DecorationNode => ({
+    kind: 'path',
+    sample: BOLT_SAMPLERS[i]!,
+    art: BOLT_ARTS[i]!,
+    durationMs: LOOP_MS,
+  })),
+  ...SPARK_SAMPLERS.map((sample): DecorationNode => ({
+    kind: 'dot',
+    sample,
+    durationMs: LOOP_MS,
+    color: 'rgb(255,255,255)',
+  })),
 ];
 
 export const thunderClapFlair: DecorationSpec = { id: 'thunderClap', nodes };

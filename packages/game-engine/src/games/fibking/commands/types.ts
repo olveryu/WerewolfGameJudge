@@ -48,7 +48,5 @@ export interface FibFailPreparationCommand {
 }
 
 export type FibInternalCommand =
-  | FibCompleteRoundCommand
-  | FibUpdatePreparationStageCommand
-  | FibFailPreparationCommand;
+  FibCompleteRoundCommand | FibUpdatePreparationStageCommand | FibFailPreparationCommand;
 export type FibCommand = FibPublicCommand | FibInternalCommand;

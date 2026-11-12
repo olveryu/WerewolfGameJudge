@@ -56,6 +56,11 @@ export interface ClientGameModeOption extends GameModePresentation {
   readonly gameType: GameType;
 }
 
+/** Resolve a game's localized name, including non-production directory entries. */
+export function gameDisplayName(gameType: GameType): string {
+  return CLIENT_GAMES[gameType].home.mode.displayName;
+}
+
 /**
  * Mode options for the Home picker, in catalog order. Games the registry marks non-production
  * stay joinable by code but are not offered on Home.

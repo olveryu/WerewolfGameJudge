@@ -260,9 +260,7 @@ export type TriggeredEffectKind =
   | 'reverseVote';
 
 export type Ability<TRoleId extends string = string> =
-  | ActiveAbility<TRoleId>
-  | PassiveAbility
-  | TriggeredAbility;
+  ActiveAbility<TRoleId> | PassiveAbility | TriggeredAbility;
 
 // ---------------------------------------------------------------------------
 // Immunities

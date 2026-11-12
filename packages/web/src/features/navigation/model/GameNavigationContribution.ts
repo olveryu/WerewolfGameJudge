@@ -15,8 +15,7 @@ export interface UnsupportedGameNavigationRoute {
 }
 
 export type GameNavigationRouteDefinition =
-  | SupportedGameNavigationRoute
-  | UnsupportedGameNavigationRoute;
+  SupportedGameNavigationRoute | UnsupportedGameNavigationRoute;
 
 export interface GameNavigationDefinition<
   TGameType extends string = GameType,
@@ -35,8 +34,7 @@ export interface GameNavigationScreenCapability extends SupportedGameNavigationR
 }
 
 export type GameNavigationCapability =
-  | GameNavigationScreenCapability
-  | UnsupportedGameNavigationRoute;
+  GameNavigationScreenCapability | UnsupportedGameNavigationRoute;
 
 export interface GameNavigationContribution<TGameType extends string = GameType> {
   readonly gameType: TGameType;

@@ -73,6 +73,13 @@
   --size-appearance-avatar-cell-min: 72px;
   --size-min-touch-target: 44px;
   --size-max-content-width: 600px;
+  --size-admin-metric-min: 210px;
+  --size-admin-content: 1280px;
+  --size-admin-row: 40px;
+  --size-admin-drawer: 480px;
+  --size-admin-login: 400px;
+  --font-admin-table: 13px;
+  --font-admin-metric: 26px;
 
   /* Borders and states */
   --border-width: 1px;
@@ -88,4 +95,27 @@
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
+}
+
+/* Admin aliases keep the console on the same light palette as the rest of the site. */
+.admin-console {
+  --admin-canvas: var(--color-background);
+  --admin-panel: var(--color-surface);
+  --admin-subtle: var(--color-surface-hover);
+  --admin-border: var(--color-border-light);
+  --admin-border-strong: var(--color-border);
+  --admin-text: var(--color-text);
+  --admin-secondary: var(--color-text-secondary);
+  --admin-muted: var(--color-text-muted);
+  --admin-accent: var(--color-primary);
+  --admin-accent-soft: var(--color-primary-a10);
+  --admin-accent-ink: var(--color-text-inverse);
+  --admin-success: var(--color-success);
+  --admin-success-soft: var(--color-success-a12);
+  --admin-warning: var(--color-warning);
+  --admin-warning-soft: var(--color-warning-a13);
+  --admin-danger: var(--color-error);
+  --admin-danger-soft: var(--color-error-a10);
+  --admin-backdrop: var(--color-overlay);
+  --admin-overlay-shadow: var(--shadow-lg);
 }

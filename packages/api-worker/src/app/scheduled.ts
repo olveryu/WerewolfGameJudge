@@ -12,6 +12,10 @@ import { cleanupFibWordAudit } from '../games/fibking/maintenance';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
 import { measureDatabaseCapacity } from '../platform/storage/capacity';
+import {
+  isWordSupplyAvailable,
+  readAutomaticWordSupply,
+} from '../platform/wordSupply/automaticSupply';
 
 const log = createLogger('scheduled');
 
@@ -64,17 +68,26 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
       await runDailyCleanup(env, nowMs);
       return;
     case FIB_WORD_SUPPLY_CRON:
-      if (env.FIB_WORD_SUPPLY_ENABLED === 'true') {
+      if (
+        isWordSupplyAvailable(env, 'fibking') &&
+        (await readAutomaticWordSupply(env, 'fibking')).enabled
+      ) {
         const day = new Date(nowMs).toISOString().slice(0, 10);
         await env.FIB_WORD_SUPPLY.createBatch([{ id: `fib-${day}`, params: { day } }]);
       }
-      if (env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true') {
+      if (
+        isWordSupplyAvailable(env, 'undercover') &&
+        (await readAutomaticWordSupply(env, 'undercover')).enabled
+      ) {
         const day = new Date(nowMs).toISOString().slice(0, 10);
         await env.UNDERCOVER_WORD_SUPPLY.createBatch([
           { id: `undercover-${day}`, params: { day } },
         ]);
       }
-      if (env.DRAWGUESS_WORD_SUPPLY_ENABLED === 'true') {
+      if (
+        isWordSupplyAvailable(env, 'drawguess') &&
+        (await readAutomaticWordSupply(env, 'drawguess')).enabled
+      ) {
         const day = new Date(nowMs).toISOString().slice(0, 10);
         await env.DRAWGUESS_WORD_SUPPLY.createBatch([{ id: `drawguess-${day}`, params: { day } }]);
       }

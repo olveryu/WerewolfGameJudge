@@ -17,8 +17,7 @@ import { useRoomCreationController } from './useRoomCreationController';
 
 interface RoomConfigSubmissionInput<TState extends BaseGameState<string>> {
   readonly params:
-    | { readonly mode: 'create' }
-    | { readonly mode: 'edit'; readonly roomCode: string };
+    { readonly mode: 'create' } | { readonly mode: 'edit'; readonly roomCode: string };
   readonly navigate: NavigateFunction;
   readonly getFailureMessage: (result: DispatchOutcome<TState>) => string;
   readonly createRequest: () => RoomCreationRequest;

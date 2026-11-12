@@ -4,13 +4,15 @@
     "noUncheckedIndexedAccess": true,
     "module": "preserve",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "target": "ESNext",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node"],
+    "types": ["node", "unplugin-icons/types/react"],
     "paths": {
+      "@/*": ["../packages/web/src/*"],
       "@game-judge/game-engine/*": ["../packages/game-engine/src/*"]
     }
   },

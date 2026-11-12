@@ -60,6 +60,7 @@ No per-environment E2E JSON configuration is used.
 | `pnpm run e2e:core`                                    | Single worker, line reporter, full trace, stop after the first failure |
 | `pnpm run e2e:night`                                   | Night-flow subset with the list reporter                               |
 | `pnpm run e2e:ui`                                      | Playwright UI mode                                                     |
+| `pnpm exec tsc --noEmit -p e2e/tsconfig.json`          | E2E-only typecheck; also included in root `pnpm run typecheck` and CI  |
 | `pnpm exec playwright test e2e/specs/app-home.spec.ts` | One spec using the standard config                                     |
 
 Playwright runs Chromium desktop tests in parallel. Home, configuration, and FibKing responsive coverage also run in a `320 x 640` Chromium project. Each spec must create an independent room so parallel workers cannot share state.
@@ -109,6 +110,10 @@ Keep dependencies flowing from scenarios toward lower-level helpers. `ui.ts` mus
 
 - Navigate with `gotoWithRetry()` rather than direct `page.goto()` calls in specs.
 - Wait for room readiness with `waitForRoomScreenReady()`.
+- Night readiness requires the expected `data-step`, a rendered bottom action panel, and no `audioWaitingMessage`. Never infer readiness from a dialog transition or cache it across nights.
+- Use night-driver actions for seats: wait for `data-inert="false"` and verify the resulting confirmation. Only unsubmitted single-target taps may be retried within the same step; never retry draft/toggle selections.
+- Identify expected prompts by title before reading them. Dismiss only the captured alert body and wait for it to close or be replaced; leave replacement dialogs untouched. Scan helpers may defer a capped click, but required actions throw diagnostic errors.
+- Negative interaction assertions need positive readiness evidence first, so an audio-locked page cannot make them pass vacuously.
 - Dismiss an Ark UI dialog by an outside press with `dismissDialogByOutsideClick()`, not a bare `page.mouse.click()`: Ark arms its outside-press listener a task after the dialog renders, so an immediate press is dropped.
 - Use Playwright locators and assertions instead of fixed sleeps. Polling cadence is the only allowed `page.waitForTimeout()` use and must be at most 300 ms.
 - Never use `force: true` to bypass actionability for normal user interactions.

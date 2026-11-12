@@ -57,9 +57,7 @@ export type RequestTrafficAnalyticsRow = z.output<typeof requestTrafficRowSchema
 export type RealtimeTrafficAnalyticsRow = z.output<typeof realtimeTrafficRowSchema>;
 
 type AnalyticsQueryFailureReason =
-  | 'ANALYTICS_QUERY_FAILED'
-  | 'AI_USAGE_QUERY_FAILED'
-  | 'REQUEST_TRAFFIC_QUERY_FAILED';
+  'ANALYTICS_QUERY_FAILED' | 'AI_USAGE_QUERY_FAILED' | 'REQUEST_TRAFFIC_QUERY_FAILED';
 
 async function queryAnalyticsEngine<TRow>(
   env: Env,

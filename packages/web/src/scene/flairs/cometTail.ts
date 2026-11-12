@@ -47,13 +47,11 @@ const COMET_ARTS: readonly StaticArt[] = COMET_SEEDS.map((seed) => (context, siz
     .fill({ color: 'rgb(220,235,255)', alpha: 0.3 });
 });
 
-const nodes = COMET_SEEDS.map(
-  (_, i): LayerNode => ({
-    kind: 'layer',
-    sample: COMET_SAMPLERS[i]!,
-    art: COMET_ARTS[i]!,
-    durationMs: LOOP_MS,
-  }),
-);
+const nodes = COMET_SEEDS.map((_, i): LayerNode => ({
+  kind: 'layer',
+  sample: COMET_SAMPLERS[i]!,
+  art: COMET_ARTS[i]!,
+  durationMs: LOOP_MS,
+}));
 
 export const cometTailFlair: DecorationSpec = { id: 'cometTail', nodes };

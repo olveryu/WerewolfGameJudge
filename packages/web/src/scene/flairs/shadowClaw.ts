@@ -48,15 +48,12 @@ function sparkSampler(seed: ClawSeed): DotSampler {
 }
 
 const nodes = CLAW_SEEDS.flatMap((seed): DecorationNode[] => [
-  ...Array.from(
-    { length: SCRATCH_COUNT },
-    (_, k): DecorationNode => ({
-      kind: 'line',
-      sample: scratchSampler(seed, k),
-      durationMs: LOOP_MS,
-      color: 'rgb(120,40,160)',
-    }),
-  ),
+  ...Array.from({ length: SCRATCH_COUNT }, (_, k): DecorationNode => ({
+    kind: 'line',
+    sample: scratchSampler(seed, k),
+    durationMs: LOOP_MS,
+    color: 'rgb(120,40,160)',
+  })),
   { kind: 'dot', sample: sparkSampler(seed), durationMs: LOOP_MS, color: 'rgb(180,100,220)' },
 ]);
 

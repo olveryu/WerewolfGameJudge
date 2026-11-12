@@ -175,16 +175,14 @@ function buildSchema(
         displayName: step.displayName,
         kind: 'compound',
         ui,
-        steps: step.compoundSteps.map(
-          (sub): InlineSubStepSchema => ({
-            key: sub.key,
-            displayName: sub.displayName,
-            kind: sub.kind,
-            constraints: [...sub.constraints],
-            canSkip: sub.canSkip,
-            ui: sub.ui ? resolveSeatActionUi(sub.ui) : undefined,
-          }),
-        ),
+        steps: step.compoundSteps.map((sub): InlineSubStepSchema => ({
+          key: sub.key,
+          displayName: sub.displayName,
+          kind: sub.kind,
+          constraints: [...sub.constraints],
+          canSkip: sub.canSkip,
+          ui: sub.ui ? resolveSeatActionUi(sub.ui) : undefined,
+        })),
       };
     }
 

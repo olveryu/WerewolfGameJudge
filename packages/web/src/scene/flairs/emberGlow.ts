@@ -27,14 +27,12 @@ const EMBER_SAMPLERS: readonly DotSampler[] = EMBER_SEEDS.map((seed) => (t, size
   return { cx: x, cy: y, r, opacity: alpha * 0.8 };
 });
 
-const nodes = EMBER_SEEDS.map(
-  (seed, i): DecorationNode => ({
-    kind: 'dot',
-    sample: EMBER_SAMPLERS[i]!,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-    color: COLORS[seed.ci]!,
-  }),
-);
+const nodes = EMBER_SEEDS.map((seed, i): DecorationNode => ({
+  kind: 'dot',
+  sample: EMBER_SAMPLERS[i]!,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+  color: COLORS[seed.ci]!,
+}));
 
 export const emberGlowFlair: DecorationSpec = { id: 'emberGlow', nodes };

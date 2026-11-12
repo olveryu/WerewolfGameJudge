@@ -3,7 +3,7 @@
 import { getPictionaryRelayStepCount } from '@game-judge/game-engine/games/pictionary/public';
 import { expect, type Page, test } from '@playwright/test';
 
-import { FETCH_RETRY_COUNT } from '../../packages/web/src/config/networkRetry';
+import { FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '../../packages/web/src/config/networkRetry';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { observeCommandFrames } from '../helpers/command-frames';
@@ -294,7 +294,12 @@ test.describe('Pictionary', () => {
             '发送暂未成功，正在自动重试。',
             { timeout: 120_000 },
           );
-          expect(failedUploads).toBeGreaterThanOrEqual(FETCH_RETRY_COUNT + 1);
+          await expect
+            .poll(() => failedUploads, {
+              // One reconnect window, the longest upload delay, fetch backoff and scheduling.
+              timeout: 30_000 + 10_000 + FETCH_RETRY_BASE_MS * (2 ** FETCH_RETRY_COUNT - 1) + 2_000,
+            })
+            .toBeGreaterThanOrEqual(FETCH_RETRY_COUNT + 1);
           await expect(hostPage.getByTestId(TESTIDS.pictionaryTaskTitle)).toHaveText(
             '正在收取最终内容',
           );

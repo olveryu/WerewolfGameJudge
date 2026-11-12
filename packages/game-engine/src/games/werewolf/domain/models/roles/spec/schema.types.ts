@@ -46,10 +46,7 @@ export interface InfectionConfirmUi {
 
 /** Confirm status dialog UI (discriminant: kind). */
 export type ConfirmStatusUi =
-  | ShootConfirmUi
-  | FactionConfirmUi
-  | WolfTeammatesConfirmUi
-  | InfectionConfirmUi;
+  ShootConfirmUi | FactionConfirmUi | WolfTeammatesConfirmUi | InfectionConfirmUi;
 
 /**
  * Default UI text for nightmare-blocked actions.

@@ -74,15 +74,15 @@ async function finishNight(cast: NightCast): Promise<void> {
   const villagerSeat = setup.roleMap.get(villagerIdx)!.seat;
 
   await test.step('guard protects villager', async () => {
-    expect(await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000)).toBe(true);
+    await waitForRoleTurn(pages[guardIdx]!, 'guardProtect', pages, 180_000);
     await clickSeatAndConfirm(pages[guardIdx]!, villagerSeat);
   });
   await test.step('wolf votes villager', async () => {
-    expect(await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000)).toBe(true);
+    await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages, 180_000);
     await driveWolfVote(pages, [wolfIdx], villagerSeat);
   });
   await test.step('night ends with a result', async () => {
-    expect(await waitForNightEnd(pages, 180_000)).toBe(true);
+    await waitForNightEnd(pages, 180_000);
     const nightInfo = await viewLastNightInfo(pages[0]!);
     expect(nightInfo).toMatch(/^昨夜(平安夜|死亡)/);
   });

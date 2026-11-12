@@ -55,14 +55,12 @@ function starArt(seed: StarSeed): StaticArt {
   };
 }
 
-const nodes = STAR_SEEDS.map(
-  (seed): LayerNode => ({
-    kind: 'layer',
-    sample: starSampler(seed),
-    art: starArt(seed),
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = STAR_SEEDS.map((seed): LayerNode => ({
+  kind: 'layer',
+  sample: starSampler(seed),
+  art: starArt(seed),
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const starDustFlair: DecorationSpec = { id: 'starDust', nodes };

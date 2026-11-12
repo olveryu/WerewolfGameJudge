@@ -56,6 +56,20 @@ The frontend CI build provides these values directly:
 | `VITE_SENTRY_DSN`   | Public client DSN embedded in the web bundle                          |
 | `SENTRY_AUTH_TOKEN` | Build-only source-map upload credential; never embedded in the bundle |
 
+### Worker Error Reporting
+
+The Worker uses Sentry Cloudflare 11 with `nodejs_compat`. Shared options in
+`packages/api-worker/src/platform/observability/sentryOptions.ts` avoid the broader
+v11 collection defaults: user/IP collection stays enabled for HTTP requests and disabled
+for Durable Objects. Cookies, request/response bodies, AI inputs/outputs, database
+query data, and GraphQL documents/variables are explicitly disabled.
+
+Clients remain per invocation (`cacheClient: false`) and tracing stays in transaction
+mode (`traceLifecycle: 'static'`) so this SDK upgrade does not change request isolation,
+cross-request error counts, or trace delivery. Transaction mode is a compatibility
+setting; migrate dashboards before switching to streamed spans. Sentry logs no longer
+require `enableLogs` in v11. Self-hosted Sentry must be version 26.4.2 or newer.
+
 ### Site Maintenance Mode
 
 After deploying the API Worker and frontend, open `/admin` and sign in with the admin
@@ -80,6 +94,11 @@ maintenance unmounts the player UI and closes its room links; disabling it resto
 the current URL on the next successful check. Visitors can also check manually.
 Hidden/offline pages check when they become active/reconnect; this is a UI gate, not
 an API lockdown or a forced disconnection of older frontend deployments.
+
+Maintenance status is an application-scoped Query (`meta.authScope: 'application'`).
+Login, account switching, and logout cancel and remove session queries only; queries
+without an explicit scope remain session-scoped. Authentication changes must not
+cancel maintenance checks or reset the gate to its startup loader during gameplay.
 
 An enabled configuration requires a future recovery time. At or after that instant,
 the server reports maintenance as disabled, without a cron job, D1 query, or read-time

@@ -18,6 +18,8 @@ import {
 import { showAlert } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
+import { adminQueryOptions } from './adminQueryOptions';
+
 const adminLog = log.extend('AdminRewards');
 type GrantState =
   | { kind: 'draft' }
@@ -38,11 +40,7 @@ export function useAdminRewardGrant(userId: string) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const rewards = useQuery({
-    queryKey: ['adminUserRewards', userId],
-    queryFn: ({ signal }) => fetchUserRewards(userId, signal),
-    staleTime: 0,
-    gcTime: 0,
-    retry: false,
+    ...adminQueryOptions('rewards', userId, (signal) => fetchUserRewards(userId, signal)),
   });
 
   function review() {

@@ -33,14 +33,12 @@ const featherArt: StaticArt = (context, size) => {
   context.circle(0, 0, size * 0.025).fill({ color: 'rgb(255,100,20)', alpha: 0.3 });
 };
 
-const nodes = FEATHER_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: FEATHER_SAMPLERS[i]!,
-    art: featherArt,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = FEATHER_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: FEATHER_SAMPLERS[i]!,
+  art: featherArt,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const phoenixFeatherFlair: DecorationSpec = { id: 'phoenixFeather', nodes };

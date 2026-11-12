@@ -65,10 +65,7 @@ export interface WorkerModuleCommittedDecision<
   readonly lifecycle: CommonGameLifecycle;
 }
 
-export type WorkerModuleDecision<
-  TState extends BaseGameState<string>,
-  TEffect extends GameEffect,
-> =
+export type WorkerModuleDecision<TState extends BaseGameState<string>, TEffect extends GameEffect> =
   | WorkerModuleCommittedDecision<TState, TEffect>
   | { readonly kind: 'reject'; readonly reason: string };
 

@@ -83,8 +83,7 @@ export interface AuthorizeRoomDeletionCommand extends RoomInstanceIdentity {
 }
 
 export type AuthorizeRoomDeletionResult =
-  | { readonly success: true }
-  | { readonly success: false; readonly reason: string };
+  { readonly success: true } | { readonly success: false; readonly reason: string };
 
 export interface DeleteRoomStorageCommand extends RoomInstanceIdentity {
   /** Whether scheduled expiry may discard effects that exhausted delivery. */
@@ -92,8 +91,7 @@ export interface DeleteRoomStorageCommand extends RoomInstanceIdentity {
 }
 
 export type DeleteRoomStorageResult =
-  | { readonly success: true }
-  | { readonly success: false; readonly reason: string };
+  { readonly success: true } | { readonly success: false; readonly reason: string };
 
 export interface StoredRoomRow {
   readonly roomCode: string;

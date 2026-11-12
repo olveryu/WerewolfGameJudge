@@ -20,8 +20,7 @@ export interface RoomSeatTapInput<TTarget> {
 
 /** Outcome of an in-game seat tap that no game-specific flow consumed. */
 export type RoomInGameSeatTapOutcome =
-  | { readonly kind: 'alert'; readonly reason: string }
-  | { readonly kind: 'noop' };
+  { readonly kind: 'alert'; readonly reason: string } | { readonly kind: 'noop' };
 
 /**
  * In-game seat-tap adjudication, the single implementation for every

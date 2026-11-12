@@ -73,20 +73,20 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         const villagerSeat = roleMap.get(villagerIdx)!.seat;
 
         await test.step('eclipseWolfQueen banishes the regular wolf', async () => {
-          const ewqTurn = await waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages);
-          expect(ewqTurn, 'EclipseWolfQueen turn should be detected').toBe(true);
+          await test.step('EclipseWolfQueen turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages));
           await clickSeatAndConfirm(pages[ewqIdx]!, wolfSeat);
         });
 
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages);
-          expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
+          await test.step('Wolf vote turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages));
           await driveWolfVote(pages, [ewqIdx, wolfIdx], villagerSeat);
         });
 
         await test.step('seer checks banished wolf → redirect reveals 好人', async () => {
-          const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
-          expect(seerTurn, 'Seer turn should be detected').toBe(true);
+          await test.step('Seer turn should be detected', () =>
+            waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages));
           await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
           // Redirect: seer checked the banished wolf, but the check is
@@ -97,8 +97,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         });
 
         await test.step('night ends', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should end').toBe(true);
+          await test.step('Night should end', () => waitForNightEnd(pages));
         });
       },
     );
@@ -134,8 +133,8 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         const villagerSeat = roleMap.get(villagerIdx)!.seat;
 
         await test.step('eclipseWolfQueen skips banish', async () => {
-          const ewqTurn = await waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages);
-          expect(ewqTurn, 'EclipseWolfQueen turn should be detected').toBe(true);
+          await test.step('EclipseWolfQueen turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages));
           await dismissAlert(pages[ewqIdx]!);
           await clickNightButton(pages[ewqIdx]!, 'skip', '不用技能');
           // Confirm skip if alert appears
@@ -143,14 +142,14 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         });
 
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages);
-          expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
+          await test.step('Wolf vote turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages));
           await driveWolfVote(pages, [ewqIdx, wolfIdx], villagerSeat);
         });
 
         await test.step('seer checks wolf → reveals 狼人 (no redirect)', async () => {
-          const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
-          expect(seerTurn, 'Seer turn should be detected').toBe(true);
+          await test.step('Seer turn should be detected', () =>
+            waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages));
           await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
           // No redirect active -> checking wolf shows Wolf
@@ -160,8 +159,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         });
 
         await test.step('night ends with death', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should end').toBe(true);
+          await test.step('Night should end', () => waitForNightEnd(pages));
 
           // Villager was killed -> should not be peaceful night
           const alertText = await viewLastNightInfo(pages[0]!);
@@ -204,20 +202,20 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         const witchSeat = roleMap.get(witchIdx)!.seat;
 
         await test.step('eclipseWolfQueen banishes the villager', async () => {
-          const ewqTurn = await waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages);
-          expect(ewqTurn, 'EclipseWolfQueen turn should be detected').toBe(true);
+          await test.step('EclipseWolfQueen turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'eclipseWolfQueenShelter', pages));
           await clickSeatAndConfirm(pages[ewqIdx]!, villagerSeat);
         });
 
         await test.step('wolves self-knife', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages);
-          expect(wolfTurn, 'Wolf vote turn should be detected').toBe(true);
+          await test.step('Wolf vote turn should be detected', () =>
+            waitForRoleTurn(pages[ewqIdx]!, 'wolfKill', pages));
           await driveWolfVote(pages, [ewqIdx, wolfIdx], wolfSeat);
         });
 
         await test.step('witch poisons banished villager → redirects to witch', async () => {
-          const witchTurn = await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
-          expect(witchTurn, 'Witch turn should be detected').toBe(true);
+          await test.step('Witch turn should be detected', () =>
+            waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages));
 
           // Dismiss the witch info alert, then poison the banished villager
           await dismissAlert(pages[witchIdx]!);
@@ -225,8 +223,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
         });
 
         await test.step('night ends — wolf dies (self-knife), witch dies (redirected poison)', async () => {
-          const ended = await waitForNightEnd(pages);
-          expect(ended, 'Night should end').toBe(true);
+          await test.step('Night should end', () => waitForNightEnd(pages));
 
           const alertText = await viewLastNightInfo(pages[0]!);
           // Should NOT be peaceful night — wolf + witch die
@@ -285,15 +282,14 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
 
         // Step 1: Wolf kill (wolfKill step)
         const villagerIdx = findRolePageIndex(roleMap, '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
         // Step 2: HiddenWolf confirm (hiddenWolfReveal step)
         // Confirm steps show an initial prompt alert → dismiss → then bottom button appears
-        const hwTurn = await waitForRoleTurn(pages[hiddenWolfIdx]!, 'hiddenWolfReveal', pages);
-        expect(hwTurn, 'HiddenWolf turn should be detected').toBe(true);
+        await test.step('HiddenWolf turn should be detected', () =>
+          waitForRoleTurn(pages[hiddenWolfIdx]!, 'hiddenWolfReveal', pages));
 
         // Dismiss the initial "隐狼行动" prompt alert
         await dismissAlert(pages[hiddenWolfIdx]!);
@@ -308,8 +304,8 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         await dismissAlert(pages[hiddenWolfIdx]!);
 
         // Step 3: Seer check (seerCheck step)
-        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages);
-        expect(seerTurn, 'Seer turn should be detected').toBe(true);
+        await test.step('Seer turn should be detected', () =>
+          waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages));
 
         // Seer checks the hiddenWolf → should reveal Good
         const checkSeat = roleMap.get(hiddenWolfIdx)!.seat;
@@ -322,8 +318,7 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         await dismissAlert(pages[seerIdx]!);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 90_000);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages, 90_000);
       },
     );
   });
@@ -353,22 +348,20 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         const villagerIndices = findAllRolePageIndices(roleMap, '平民');
 
         // Step 1: Crow curse (crowCurse step — BEFORE wolfKill)
-        const crowTurn = await waitForRoleTurn(pages[crowIdx]!, 'crowCurse', pages);
-        expect(crowTurn, 'Crow turn should be detected').toBe(true);
+        await test.step('Crow turn should be detected', () =>
+          waitForRoleTurn(pages[crowIdx]!, 'crowCurse', pages));
 
         // Crow curses a villager
         const curseTarget = roleMap.get(villagerIndices[0]!)!.seat;
         await clickSeatAndConfirm(pages[crowIdx]!, curseTarget);
 
         // Step 2: Wolf kill (wolfKill step)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         const killTarget = roleMap.get(villagerIndices[1]!)!.seat;
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 90_000);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages, 90_000);
       },
     );
   });
@@ -396,8 +389,8 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         expect(crowIdx).not.toBe(-1);
 
         // Step 1: Crow skip (crowCurse step — BEFORE wolfKill)
-        const crowTurn = await waitForRoleTurn(pages[crowIdx]!, 'crowCurse', pages);
-        expect(crowTurn, 'Crow turn should be detected').toBe(true);
+        await test.step('Crow turn should be detected', () =>
+          waitForRoleTurn(pages[crowIdx]!, 'crowCurse', pages));
 
         // Dismiss initial prompt alert, then skip
         await dismissAlert(pages[crowIdx]!);
@@ -408,14 +401,12 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
 
         // Step 2: Wolf kill (wolfKill step)
         const villagerIdx = findRolePageIndex(roleMap, '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
-        expect(wolfTurn).toBe(true);
+        await waitForRoleTurn(pages[wolfIdx]!, 'wolfKill', pages);
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
         // Finish night
-        const ended = await waitForNightEnd(pages, 90_000);
-        expect(ended).toBe(true);
+        await waitForNightEnd(pages, 90_000);
       },
     );
   });

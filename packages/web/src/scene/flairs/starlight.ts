@@ -48,8 +48,11 @@ const starArt: StaticArt = (context, size) => {
   context.circle(0, 0, size * 0.008).fill({ color: 'rgb(255,255,240)', alpha: 0.9 });
 };
 
-const nodes = STAR_SAMPLERS.map(
-  (sample): LayerNode => ({ kind: 'layer', sample, art: starArt, durationMs: LOOP_MS }),
-);
+const nodes = STAR_SAMPLERS.map((sample): LayerNode => ({
+  kind: 'layer',
+  sample,
+  art: starArt,
+  durationMs: LOOP_MS,
+}));
 
 export const starlightFlair: DecorationSpec = { id: 'starlight', nodes };

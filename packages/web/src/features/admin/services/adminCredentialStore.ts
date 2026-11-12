@@ -3,6 +3,14 @@
 import { ADMIN_PASSWORD_KEY } from '@/config/storageKeys';
 import { storage } from '@/services/infra/localStorage';
 
+export const ADMIN_SESSION_EXPIRED_EVENT = 'admin-session-expired';
+
+/** Revoke the local credential and return any mounted admin workspace to its login gate. */
+export function expireAdminSession(): void {
+  clearAdminCredential();
+  window.dispatchEvent(new Event(ADMIN_SESSION_EXPIRED_EVENT));
+}
+
 function requireAdminCredential(credential: string): string {
   if (credential.length === 0 || credential !== credential.trim()) {
     throw new Error('[FAIL-FAST] Admin credential must be a trimmed non-empty string');

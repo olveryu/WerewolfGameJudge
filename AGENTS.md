@@ -12,7 +12,7 @@ A multi-game judge app for in-person play: a React web client that runs in brows
 
 The client was rewritten per `docs/web-client-rewrite.md`; every game has a lazy web module in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`).
 
-Versions: React `^19.3.1`, Vite `^8.3.6`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.13.0` (`.nvmrc` pins `22.22.1`), pnpm `10.32.1`.
+Versions: React `^19.3.1`, Vite `^8.3.8`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.13.0` (`.nvmrc` pins `22.22.1`), pnpm `10.32.1`.
 
 TypeScript strictness is per config: the root and web configs set `strict` and `noUncheckedIndexedAccess`; the game-engine build config and the worker config set `strict` only.
 
@@ -34,7 +34,7 @@ The version number is authoritative in the root `package.json` only; `packages/w
 | All tests         | `pnpm run test:all`                                                      | Full run; CI only                                                      |
 | Engine build      | `pnpm --filter @game-judge/game-engine run build`                        | As needed; CI builds it first                                          |
 | Web build         | `pnpm --filter @game-judge/web run build`                                | Vite build plus per-route gzip budgets                                 |
-| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`                                |
+| Root typecheck    | `pnpm run typecheck`                                                     | Pages types, `contracts/`, `functions/`, `e2e/`                        |
 | Web typecheck     | `pnpm --filter @game-judge/web run typecheck`                            | Local, scoped where possible                                           |
 | Worker typecheck  | `pnpm --filter @game-judge/api-worker run typecheck`                     | Local, scoped where possible                                           |
 | Lint              | `pnpm exec eslint <changed files>`                                       | Local, changed files only; full run in CI                              |

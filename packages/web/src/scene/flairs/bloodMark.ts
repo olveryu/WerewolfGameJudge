@@ -38,14 +38,12 @@ const DROP_ARTS: readonly StaticArt[] = DROP_SEEDS.map((seed) => (context, size)
   context.circle(0, mainCy, r).fill('rgb(180,20,20)');
 });
 
-const nodes = DROP_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: DROP_SAMPLERS[i]!,
-    art: DROP_ARTS[i]!,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = DROP_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: DROP_SAMPLERS[i]!,
+  art: DROP_ARTS[i]!,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const bloodMarkFlair: DecorationSpec = { id: 'bloodMark', nodes };

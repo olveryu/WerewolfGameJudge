@@ -98,8 +98,7 @@ export type RoomReviewAvailability =
     };
 
 export type RoomReviewSharing =
-  | { readonly isAllowed: true }
-  | { readonly isAllowed: false; readonly reason: string };
+  { readonly isAllowed: true } | { readonly isAllowed: false; readonly reason: string };
 
 export interface RoomReviewDocument {
   /** 本局标识；进导出缓存作用域，换局即变，打开着的对话框随之关闭。 */
