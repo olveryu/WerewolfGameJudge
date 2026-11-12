@@ -39,6 +39,7 @@ import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
 import { publicGameStatsRoutes } from './games/publicStatsRoutes';
 import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
 import { createLogger } from './platform/observability/logger';
+import { createSentryOptions } from './platform/observability/sentryOptions';
 import { createRoomSocketHandler } from './platform/realtime/gatewayRoute';
 import { createRoomRoutes } from './platform/room/routes';
 import {
@@ -172,12 +173,8 @@ app.route('/telemetry', telemetryRoutes);
 
 export default Sentry.withSentry(
   (env: Env) => ({
-    dsn: env.SENTRY_DSN,
+    ...createSentryOptions(env, true),
     release: env.CF_VERSION_METADATA.id,
-    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
-    environment: env.ENVIRONMENT,
-    sendDefaultPii: true,
-    enableLogs: true,
   }),
   {
     fetch: app.fetch,

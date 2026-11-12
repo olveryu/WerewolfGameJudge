@@ -56,6 +56,20 @@ The frontend CI build provides these values directly:
 | `VITE_SENTRY_DSN`   | Public client DSN embedded in the web bundle                          |
 | `SENTRY_AUTH_TOKEN` | Build-only source-map upload credential; never embedded in the bundle |
 
+### Worker Error Reporting
+
+The Worker uses Sentry Cloudflare 11 with `nodejs_compat`. Shared options in
+`packages/api-worker/src/platform/observability/sentryOptions.ts` avoid the broader
+v11 collection defaults: user/IP collection stays enabled for HTTP requests and disabled
+for Durable Objects. Cookies, request/response bodies, AI inputs/outputs, database
+query data, and GraphQL documents/variables are explicitly disabled.
+
+Clients remain per invocation (`cacheClient: false`) and tracing stays in transaction
+mode (`traceLifecycle: 'static'`) so this SDK upgrade does not change request isolation,
+cross-request error counts, or trace delivery. Transaction mode is a compatibility
+setting; migrate dashboards before switching to streamed spans. Sentry logs no longer
+require `enableLogs` in v11. Self-hosted Sentry must be version 26.4.2 or newer.
+
 ### Site Maintenance Mode
 
 After deploying the API Worker and frontend, open `/admin` and sign in with the admin

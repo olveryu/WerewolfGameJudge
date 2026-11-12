@@ -20,6 +20,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import type { Env } from '../../../env';
+import { createSentryOptions } from '../../../platform/observability/sentryOptions';
 
 /** WeChat owns this response and may add unrelated fields. */
 const wxCode2SessionResultSchema = z.object({
@@ -64,11 +65,7 @@ class WeChatAuthProxyBase extends DurableObject<Env> {
 }
 
 export const WeChatAuthProxy = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
-    environment: env.ENVIRONMENT,
-  }),
+  (env: Env) => createSentryOptions(env),
   WeChatAuthProxyBase,
 );
 export type WeChatAuthProxy = InstanceType<typeof WeChatAuthProxy>;
