@@ -8,6 +8,8 @@ import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { getFibWatermarkConversion } from '../../../../test/fibWordWatermarkMigration';
+
 const NOW = '2026-11-01T00:00:00.000Z';
 
 async function indexMembers(pool: string, partition: string): Promise<number[]> {
@@ -229,13 +231,19 @@ describe('word draw index', () => {
 });
 
 describe('fibking watermark migration', () => {
-  it('turns each high-watermark into a seen range ending at the watermark', async () => {
-    const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0067_shared_word_draw.sql');
-    if (migration === undefined) throw new Error('Missing shared word draw migration');
-    const conversion = migration.queries.find((query) =>
-      /^INSERT INTO word_seen\s[\s\S]*FROM fib_word_progress/.test(query.trim()),
+  it('rejects missing or duplicate watermark conversion statements', () => {
+    const conversion = getFibWatermarkConversion(env.TEST_MIGRATIONS);
+    const name = '0067_shared_word_draw.sql';
+    expect(() => getFibWatermarkConversion([{ name, queries: [] }])).toThrow(
+      'Expected one fibking watermark conversion statement, found 0',
     );
-    if (conversion === undefined) throw new Error('Missing watermark conversion statement');
+    expect(() => getFibWatermarkConversion([{ name, queries: [conversion, conversion] }])).toThrow(
+      'Expected one fibking watermark conversion statement, found 2',
+    );
+  });
+
+  it('turns each high-watermark into a seen range ending at the watermark', async () => {
+    const conversion = getFibWatermarkConversion(env.TEST_MIGRATIONS);
     await env.DB.prepare("DELETE FROM users WHERE id IN ('watermark-a', 'watermark-b')").run();
     await env.DB.prepare('DELETE FROM fib_word_progress').run();
     await env.DB.prepare("INSERT INTO users (id) VALUES ('watermark-a'), ('watermark-b')").run();

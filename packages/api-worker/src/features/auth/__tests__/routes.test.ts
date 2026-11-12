@@ -2,7 +2,7 @@
  * Auth Handler — integration tests
  *
  * Tests all /auth/* endpoints against the real Hono app running in
- * the @cloudflare/vitest-pool-workers runtime with D1.
+ * the @cloudflare/vitest-plugin runtime with D1.
  */
 
 import { env, SELF } from 'cloudflare:test';

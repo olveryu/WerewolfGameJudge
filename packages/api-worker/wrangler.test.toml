@@ -1,6 +1,6 @@
 #:schema ./node_modules/wrangler/config-schema.json
 # ── Test-only wrangler config ────────────────────────────────────────────────
-# Used by vitest-pool-workers. Excludes remote-only routes and triggers so tests
+# Used by the Cloudflare Vitest plugin. Excludes remote-only routes and triggers so tests
 # run locally via miniflare without Cloudflare auth.
 name = "werewolf-api"
 main = "src/index.ts"
