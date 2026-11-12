@@ -76,6 +76,8 @@
   --size-admin-metric-min: 210px;
   --size-admin-content: 1280px;
   --size-admin-row: 40px;
+  --size-admin-room-host: 160px;
+  --size-admin-room-host-mobile: 44px;
   --size-admin-drawer: 480px;
   --size-admin-login: 400px;
   --font-admin-table: 13px;
