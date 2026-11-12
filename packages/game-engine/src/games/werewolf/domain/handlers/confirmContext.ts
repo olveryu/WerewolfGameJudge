@@ -13,9 +13,9 @@
  * - Symmetric with witchContext.ts: step-entry context, ready before the step begins
  *
  * @remarks Exact canShoot conditions:
- *   canShoot = true only when the cause of death is wolfKill or exile (daytime exile vote).
- *   The following causes cannot shoot: poison (witch/poisoner), couple (lover suicide), dream (dreamcatcher chain), charm (eclipse wolf queen charm).
- *   Check order: resolvedWolfKillTarget (settled) -> witchContext.killedSeat -> coupleDeathVictim -> dreamLinkedDeath -> wolfQueenCharm.
+ *   Living players retain eligibility for a later wolf kill or daytime exile.
+ *   A night death permits shooting only when all damage sources are wolfKill or its magician transfer.
+ *   The authoritative death pipeline applies protection, reflection, links and swaps to known actions.
  *   deriveConfirmStepRoleMap() builds a static mapping from ROLE_SPECS at module load time.
  */
 
@@ -31,6 +31,8 @@ import type {
 } from '../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
 import { getRoleAfterSwap } from '../resolvers/types';
+import { calculateNightDeaths } from './deathResolution';
+import { getLegacyWolfKillTarget } from './wolfKillResolution';
 
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf' | 'seedWolf';
 
@@ -75,12 +77,11 @@ const CONFIRM_STEP_ROLE = deriveConfirmStepRoleMap();
  * Shared by confirmContext (Hunter / DarkWolfKing) and actionHandler (wolfRobot learning Hunter).
  */
 export function computeCanShootForSeat(seat: number, state: GameState): boolean {
-  const results = state.currentNightResults;
+  const { deathSources } = calculateNightDeaths(state, getLegacyWolfKillTarget(state) ?? null);
+  const sources = deathSources[seat];
   return (
-    results?.poisonedSeat !== seat &&
-    !isCoupleDeathVictim(seat, state) &&
-    !isDreamLinkedDeath(seat, state) &&
-    !isWolfQueenCharmVictim(seat, state)
+    sources === undefined ||
+    sources.every((source) => source === 'wolfKill' || source === 'magicianSwap')
   );
 }
 
@@ -176,80 +177,6 @@ function computeHiddenWolfConfirmStatus(state: GameState): WolfTeammatesConfirmS
     }
   }
   return { role: 'hiddenWolf', wolfTeammates };
-}
-
-// =============================================================================
-// Abnormal night-death checks (conditions where canShoot = false)
-// =============================================================================
-
-/**
- * Determine whether a seat will die at night (wolf-killed and not saved / poisoned).
- *
- * Used only as a sub-condition for chain-death checks.
- * Called during hunterConfirm / darkWolfKingConfirm steps (after wolf/witch have acted).
- */
-function willDieTonight(seat: number, state: GameState): boolean {
-  const results = state.currentNightResults;
-
-  // Poisoned
-  if (results?.poisonedSeat === seat) return true;
-
-  // Wolf-killed and not saved by witch. The settled target wins
-  // over witchContext, which is cleared on the advance out of the
-  // witch step and therefore is usually absent by confirm time.
-  const storedTarget = state.resolvedWolfKillTarget;
-  const wolfKillTarget = storedTarget !== undefined ? storedTarget : state.witchContext?.killedSeat;
-  if (wolfKillTarget !== null && wolfKillTarget !== undefined && wolfKillTarget >= 0) {
-    if (wolfKillTarget === seat) {
-      if (results?.savedSeat === seat) return false;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Determine whether the seat will die due to lover suicide.
- *
- * Checks whether the seat is one of the lovers and whether the partner will die at night.
- */
-function isCoupleDeathVictim(seat: number, state: GameState): boolean {
-  const loverSeats = state.loverSeats;
-  if (!loverSeats || !loverSeats.includes(seat)) return false;
-
-  const partnerSeat = loverSeats[0] === seat ? loverSeats[1] : loverSeats[0];
-  return willDieTonight(partnerSeat, state);
-}
-
-/**
- * Determine whether the seat will die due to the dreamcatcher chain.
- *
- * Condition: the seat is the dream target (dreamingSeat) and the dreamcatcher will die that night.
- */
-function isDreamLinkedDeath(seat: number, state: GameState): boolean {
-  const results = state.currentNightResults;
-  if (results?.dreamingSeat !== seat) return false;
-
-  const dreamcatcherActor = resolveNightStepActor(state, 'dreamcatcher');
-  if (dreamcatcherActor === null) return false;
-
-  return willDieTonight(dreamcatcherActor.seat, state);
-}
-
-/**
- * Determine whether the seat will die due to the Eclipse Wolf Queen charm chain.
- *
- * Condition: the seat is the charm target (charmedSeat) and the Eclipse Wolf Queen will die that night.
- */
-function isWolfQueenCharmVictim(seat: number, state: GameState): boolean {
-  const results = state.currentNightResults;
-  if (results?.charmedSeat !== seat) return false;
-
-  const wolfQueenActor = resolveNightStepActor(state, 'wolfQueen');
-  if (wolfQueenActor === null) return false;
-
-  return willDieTonight(wolfQueenActor.seat, state);
 }
 
 /**

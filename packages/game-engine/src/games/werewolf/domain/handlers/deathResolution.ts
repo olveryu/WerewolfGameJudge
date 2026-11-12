@@ -3,16 +3,16 @@
  *
  * Pure function module, responsible for:
  * - Building NightActions from state (wolf kill, guard, witch, wolf queen charm, etc.)
- * - Building effective role -> seat map (magician swap aware)
+ * - Building effective seat -> role map (magician swap aware, preserving duplicate roles)
  * - Building RoleSeatMap (deathCalcRole driven, consumed by DeathCalculator)
  * - Building reflection source list (checkSource / poisonSource)
  *
  * Only consumed by handleEndNight. No IO, does not mutate state.
  *
- * @remarks effective seat (effectiveRoleSeatMap) vs physical seat (roleSeatMap):
- *   After magician/thief swap, effectiveRoleSeatMap reflects runtime role positions,
+ * @remarks effective role (effectiveSeatRoleMap) vs initial assignment:
+ *   After magician/thief swap, effectiveSeatRoleMap reflects runtime role positions,
  *   while state.players reflects initial assignment. Death calculation uses effective.
- *   Death priority is determined internally by DeathCalculator: wolfKill > poison > couple > dream > charm.
+ *   DeathCalculator settles protection before links, propagates reflection, then swaps deaths once.
  */
 
 import {
@@ -32,7 +32,7 @@ import {
 } from '../models/actions/WitchAction';
 import { getRoleSpec } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
-import { buildSeatRoleMap } from '../playerHelpers';
+import { buildSeatRoleMap, getBottomCardEffectiveRole } from '../playerHelpers';
 import type { GameState, ProtocolAction, SeedWolfInfectionResult } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
 
@@ -47,29 +47,32 @@ import { getRoleAfterSwap } from '../resolvers/types';
  * Constraint validation still uses the original players map (players don't know about
  * swap; action legality is judged by known information).
  */
-function buildEffectiveRoleSeatMap(state: GameState): Map<RoleId, number> {
+function buildEffectiveSeatRoleMap(state: GameState): Map<number, RoleId> {
   const swappedSeats = state.currentNightResults?.swappedSeats;
   const players = buildSeatRoleMap(state.players);
 
-  const effectiveRoleSeatMap = new Map<RoleId, number>();
+  const effectiveSeatRoleMap = new Map<number, RoleId>();
   for (const [seat] of players) {
     const effectiveRole = getRoleAfterSwap(seat, players, swappedSeats);
     if (effectiveRole) {
-      effectiveRoleSeatMap.set(effectiveRole, seat);
+      effectiveSeatRoleMap.set(
+        seat,
+        getBottomCardEffectiveRole(effectiveRole, state.currentNightResults),
+      );
     }
   }
-  return effectiveRoleSeatMap;
+  return effectiveSeatRoleMap;
 }
 
 /**
- * Build RoleSeatMap from effectiveRoleSeatMap (deathCalcRole driven)
+ * Build RoleSeatMap from effectiveSeatRoleMap (deathCalcRole driven)
  *
  * Single-loop scan over each role's deathCalcRole + immunities + abilities,
  * replacing the previous hardcoded lookup of 7 roleId strings.
  * reflectionSources is built by buildReflectionSources then injected.
  */
 function buildRoleSeatMap(
-  effectiveRoleSeatMap: Map<RoleId, number>,
+  effectiveSeatRoleMap: ReadonlyMap<number, RoleId>,
   reflectionSources: readonly ReflectionSource[],
   isBonded: boolean,
   coupleLinkSeats: RoleSeatMap['coupleLinkSeats'],
@@ -85,7 +88,7 @@ function buildRoleSeatMap(
   let guardProtectorSeat = -1;
   let poisonSourceSeat = -1;
 
-  for (const [roleId, seat] of effectiveRoleSeatMap) {
+  for (const [seat, roleId] of effectiveSeatRoleMap) {
     const spec = getRoleSpec(roleId);
 
     // Flag-driven seat arrays
@@ -155,14 +158,14 @@ function buildRoleSeatMap(
  * Used to compute checkDeathTargetSeats (intersection with checkDeathVulnerable).
  */
 function buildCheckedSeats(
-  effectiveRoleSeatMap: Map<RoleId, number>,
+  effectiveSeatRoleMap: ReadonlyMap<number, RoleId>,
   protocolActions: readonly ProtocolAction[],
   nightActions: NightActions,
 ): number[] {
   const checkedSeats: number[] = [];
   const { nightmareBlock } = nightActions;
 
-  for (const [roleId, seat] of effectiveRoleSeatMap) {
+  for (const [seat, roleId] of effectiveSeatRoleMap) {
     const spec = getRoleSpec(roleId);
     if (spec.deathCalcRole !== 'checkSource') continue;
 
@@ -191,14 +194,14 @@ function buildCheckedSeats(
  * Sources blocked by nightmare are excluded here (sourceSeat === nightmareBlock -> no entry generated).
  */
 function buildReflectionSources(
-  effectiveRoleSeatMap: Map<RoleId, number>,
+  effectiveSeatRoleMap: ReadonlyMap<number, RoleId>,
   protocolActions: readonly ProtocolAction[],
   nightActions: NightActions,
 ): readonly ReflectionSource[] {
   const sources: ReflectionSource[] = [];
   const { nightmareBlock } = nightActions;
 
-  for (const [roleId, seat] of effectiveRoleSeatMap) {
+  for (const [seat, roleId] of effectiveSeatRoleMap) {
     const spec = getRoleSpec(roleId);
     if (!spec.deathCalcRole) continue;
 
@@ -266,7 +269,9 @@ function extractWitchAction(currentNightResults?: {
  * Data source design:
  * - currentNightResults (resolver output): wolfVotesBySeat, witchAction, swappedSeats
  *   -> these fields are processed by resolvers, representing final semantic results (e.g. witch save/poison distinction).
- * - ProtocolAction[] (raw submissions): guardProtect, wolfQueenCharm, dreamcatcherDream, nightmareBlock
+ * - currentNightResults.charmedSeat / dreamingSeat: confirmed charm and dream targets.
+ *   ProtocolAction.targetSeat remains a fallback for older states without these result slots.
+ * - ProtocolAction[] (raw submissions): guardProtect, nightmareBlock
  *   -> these fields are simple chooseSeat targets, resolvers do no extra transformation, targetSeat is the final value.
  * - Check-type reflection sources (seerCheck etc.) are no longer collected into NightActions, driven by buildReflectionSources instead.
  *
@@ -315,14 +320,16 @@ function buildNightActions(state: GameState, wolfKillResolution: WolfKillResolut
 
   // Wolf Queen charm
   const wolfQueenAction = findActionBySchemaId(actions, 'wolfQueenCharm');
-  if (wolfQueenAction?.targetSeat !== undefined) {
-    nightActions.wolfQueenCharm = wolfQueenAction.targetSeat;
+  const charmedSeat = state.currentNightResults?.charmedSeat ?? wolfQueenAction?.targetSeat;
+  if (charmedSeat !== undefined) {
+    nightActions.wolfQueenCharm = charmedSeat;
   }
 
   // Dreamcatcher dream
   const dreamcatcherAction = findActionBySchemaId(actions, 'dreamcatcherDream');
-  if (dreamcatcherAction?.targetSeat !== undefined) {
-    nightActions.dreamcatcherDream = dreamcatcherAction.targetSeat;
+  const dreamingSeat = state.currentNightResults?.dreamingSeat ?? dreamcatcherAction?.targetSeat;
+  if (dreamingSeat !== undefined) {
+    nightActions.dreamcatcherDream = dreamingSeat;
   }
 
   // Magician swap - read from currentNightResults.swappedSeats
@@ -345,7 +352,7 @@ function calculateNightDeathsFromActions(
   state: GameState,
   nightActions: NightActions,
 ): DeathsDetailed {
-  const effectiveMap = buildEffectiveRoleSeatMap(state);
+  const effectiveMap = buildEffectiveSeatRoleMap(state);
   const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
   const checkedSeats = buildCheckedSeats(effectiveMap, state.actions, nightActions);
   const roleSeatMap = buildRoleSeatMap(
