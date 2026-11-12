@@ -19,6 +19,7 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
   const status = useQuery({
     queryKey: MAINTENANCE_QUERY_KEY,
     queryFn: ({ signal }) => fetchMaintenance(signal),
+    meta: { authScope: 'application' },
     refetchInterval: MAINTENANCE_POLL_MS,
     refetchOnWindowFocus: 'always',
     staleTime: 0,

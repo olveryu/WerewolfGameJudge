@@ -13,6 +13,17 @@ import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtil
 
 const PROFILE_STALE_MS = 2 * 60 * 1000;
 
+/** Queries belong to the session unless explicitly independent of authentication. */
+interface AppQueryMeta extends Record<string, unknown> {
+  readonly authScope?: 'session' | 'application';
+}
+
+declare module '@tanstack/react-query' {
+  interface Register {
+    queryMeta: AppQueryMeta;
+  }
+}
+
 focusManager.setEventListener((setFocused) => {
   const syncFocus = (): void => setFocused(platformEnvironment.getSnapshot().visible);
   const unsubscribe = platformEnvironment.subscribe(syncFocus);

@@ -2,7 +2,7 @@
  * AuthContext composes the service identity snapshot and the current-user Query cache.
  * Owns initialization feedback and cache isolation, not credentials or game state.
  */
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { type QueryFilters, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { createContext, use, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
@@ -51,6 +51,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const sessionQueries: QueryFilters = {
+  predicate: (query) => query.meta?.authScope !== 'application',
+};
+
 /** Normalize empty string to null (server may send "" for unequipped fields). */
 function emptyToNull(val: string | null): string | null {
   return val && val !== '' ? val : null;
@@ -89,8 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (onChange: () => void) =>
       authService.subscribeAuth(() => {
         setInitError(null);
-        void queryClient.cancelQueries();
-        queryClient.removeQueries();
+        void queryClient.cancelQueries(sessionQueries);
+        queryClient.removeQueries(sessionQueries);
         const session = authService.getAuthSession();
         if (session !== null && session.initialUser !== null) {
           queryClient.setQueryData(authQueryKeys.user(session.userId), session.initialUser);
