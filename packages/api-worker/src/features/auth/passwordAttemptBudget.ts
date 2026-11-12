@@ -1,20 +1,25 @@
-/** Shared email-keyed failure budget for password authentication entry points. */
+/** Shared email-keyed attempt budget for password authentication entry points. */
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 
 const MAX_ATTEMPTS = 10;
 const WINDOW_MINUTES = 15;
 
-/** The caller supplies the normalized email used for account lookup. */
-export async function readPasswordAttemptBudget(db: D1Database, email: string) {
+/** Atomically reserves an attempt when the email has not reached its limit. */
+export async function reservePasswordAttemptBudget(db: D1Database, email: string) {
   const emailHash = await sha256Hex(email);
-  const recentAttempts = await db
+  const reservation = await db
     .prepare(
-      `SELECT COUNT(*) AS count FROM login_attempts
-       WHERE email_hash = ? AND attempted_at > datetime('now', ? || ' minutes')`,
+      `INSERT INTO login_attempts (email_hash, attempted_at)
+       SELECT ?, datetime('now')
+       WHERE (
+         SELECT COUNT(*) FROM login_attempts
+         WHERE email_hash = ? AND attempted_at > datetime('now', ? || ' minutes')
+       ) < ?
+       RETURNING id`,
     )
-    .bind(emailHash, -WINDOW_MINUTES)
-    .first<{ count: number }>();
+    .bind(emailHash, emailHash, -WINDOW_MINUTES, MAX_ATTEMPTS)
+    .first<{ id: string }>();
 
-  return { emailHash, isLimited: recentAttempts !== null && recentAttempts.count >= MAX_ATTEMPTS };
+  return { emailHash, isLimited: reservation === null };
 }

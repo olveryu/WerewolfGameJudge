@@ -9,7 +9,7 @@ import { env, SELF } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import { readPasswordAttemptBudget } from '../passwordAttemptBudget';
+import { reservePasswordAttemptBudget } from '../passwordAttemptBudget';
 
 // ── Response type contracts ─────────────────────────────────────────────────
 
@@ -441,6 +441,26 @@ describe('shared email password attempt budget', () => {
     ).not.toBeNull();
   });
 
+  it('caps concurrent merge password checks at the shared attempt limit', async () => {
+    const { source } = await createMergeAccounts();
+
+    const responses = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        postJson(
+          '/auth/signup',
+          { email: 'MERGE@Test.LOCAL', password: 'wrong' },
+          source.access_token,
+        ),
+      ),
+    );
+
+    expect(responses.filter((response) => response.status === 401)).toHaveLength(10);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(10);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM login_attempts').first()).toEqual({
+      count: 10,
+    });
+  });
+
   it.each(['/auth/signin', '/auth/signup'])(
     'clears the shared failures after successful authentication through %s',
     async (successPath) => {
@@ -494,7 +514,7 @@ describe('shared email password attempt budget', () => {
         .bind(size === 500 ? 1 : 501, size)
         .run();
       measured.reset();
-      const budget = await readPasswordAttemptBudget(measured.db, email);
+      const budget = await reservePasswordAttemptBudget(measured.db, email);
 
       expect(budget.isLimited).toBe(true);
       // At most ten matching table/index rows each; unrelated hashes use the email index.

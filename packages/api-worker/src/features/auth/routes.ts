@@ -39,7 +39,7 @@ import { users, userStats } from '../account/dbSchema';
 import { createEmptyUserMetadata, selectAuthUserResponse } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
 import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
-import { readPasswordAttemptBudget } from './passwordAttemptBudget';
+import { reservePasswordAttemptBudget } from './passwordAttemptBudget';
 import { hashPassword, verifyPassword } from './passwordHash';
 import { sendPasswordResetEmail } from './passwordResetEmail';
 import {
@@ -339,7 +339,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         return c.json({ success: false, reason: 'EMAIL_ALREADY_REGISTERED' }, 409);
       }
 
-      const budget = await readPasswordAttemptBudget(env.DB, email);
+      const budget = await reservePasswordAttemptBudget(env.DB, email);
       if (budget.isLimited) {
         return c.json({ success: false, reason: 'TOO_MANY_ATTEMPTS' }, 429);
       }
@@ -347,7 +347,6 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       // Email password verification shares its failure budget with normal sign-in.
       const mergeResult = await verifyPassword(parsed.password, existing.passwordHash);
       if (!mergeResult.valid) {
-        await recordFailedLogin(env, budget.emailHash);
         return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
       }
       await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, budget.emailHash));
@@ -476,7 +475,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
   const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
-  const budget = await readPasswordAttemptBudget(env.DB, email);
+  const budget = await reservePasswordAttemptBudget(env.DB, email);
 
   // Rate limit check BEFORE password verification to limit brute-force.
   if (budget.isLimited) {
@@ -494,13 +493,11 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
     .get();
 
   if (!user || !user.passwordHash) {
-    await recordFailedLogin(env, budget.emailHash);
     return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
   const result = await verifyPassword(parsed.password, user.passwordHash);
   if (!result.valid) {
-    await recordFailedLogin(env, budget.emailHash);
     return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
@@ -603,15 +600,6 @@ async function sha256(input: string): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-}
-
-async function recordFailedLogin(env: Env, emailHash: string): Promise<void> {
-  const db = createDb(env.DB);
-  await db.insert(loginAttempts).values({
-    id: sql`lower(hex(randomblob(16)))`,
-    emailHash,
-    attemptedAt: sql`datetime('now')`,
-  });
 }
 
 /** Fetch the stored token_hash for a given token id (used after attempt-count check). */
