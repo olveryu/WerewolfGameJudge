@@ -3,6 +3,7 @@ import './admin.css';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
@@ -23,6 +24,8 @@ const adminLog = log.extend('Admin');
 /** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const goBack = () => void navigate(-1);
   const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
   const [verifying, setVerifying] = useState(cached !== null);
@@ -85,10 +88,10 @@ export function AdminPage() {
   return (
     <div className="admin-console">
       {authenticated ? (
-        <AdminShell />
+        <AdminShell onBack={goBack} />
       ) : (
         <>
-          <ScreenHeader title="管理后台" parentPath="/" />
+          <ScreenHeader title="管理后台" onBack={goBack} />
           <main className="admin-login">
             <form className="admin-login-panel" onSubmit={(event) => void submit(event)}>
               <div className="admin-brand-mark">

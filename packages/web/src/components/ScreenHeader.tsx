@@ -11,6 +11,8 @@ interface ScreenHeaderProps {
   title: ReactNode;
   /** Where Back goes when the page was opened directly and has no history entry to return to. */
   parentPath?: string;
+  /** Override the default history-or-parent navigation. */
+  onBack?: () => void;
   backTestId?: string;
   /** Trailing actions. */
   children?: ReactNode;
@@ -30,7 +32,13 @@ export function useScreenBack(parentPath: string): () => void {
 }
 
 /** Page header with a back button that runs {@link useScreenBack}. */
-export function ScreenHeader({ title, parentPath = '/', backTestId, children }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  parentPath = '/',
+  onBack,
+  backTestId,
+  children,
+}: ScreenHeaderProps) {
   const goBack = useScreenBack(parentPath);
   return (
     <header className="screen-header">
@@ -38,7 +46,7 @@ export function ScreenHeader({ title, parentPath = '/', backTestId, children }: 
         type="button"
         className="screen-header-back"
         aria-label="返回"
-        onClick={goBack}
+        onClick={onBack ?? goBack}
         data-testid={backTestId}
       >
         <IconChevronBack aria-hidden />

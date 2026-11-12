@@ -151,7 +151,8 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await expect(abort).toBeEnabled({ timeout: 45_000 });
       await abort.click();
       await hostRoom.confirmHostActionDialog('中止本局？');
-      await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
+      await waitForPhase(hostPage, 'lobby');
+      await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
       await expect
         .poll(() => hostAudio.evaluate((elements) => [...elements].every((audio) => audio.paused)))
         .toBe(true);
