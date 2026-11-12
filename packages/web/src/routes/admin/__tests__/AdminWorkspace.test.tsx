@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import type {
   AdminAutomaticSupplySettings,
   AdminRequestTraffic,
+  AdminRoom,
   AdminUser,
   GameWordsStats,
 } from '@/features/admin/model/adminContracts';
@@ -79,6 +80,22 @@ const user: AdminUser = {
   level: 2,
   xp: 10,
   gamesPlayed: 4,
+};
+const room: AdminRoom = {
+  id: 'room',
+  code: '1234',
+  gameType: 'werewolf',
+  status: 'failed',
+  reconciliationAttemptCount: 3,
+  reconcileAfter: null,
+  lastError: 'RECOVERY_ERROR',
+  hostUserId: '12345678-1234-1234-1234-123456789abc',
+  hostName: '测试房主',
+  hostCountry: 'CN',
+  gamesStarted: 2,
+  lastStartedAt: null,
+  participantCount: 3,
+  createdAt: '2026-11-11T00:00:00Z',
 };
 const words: GameWordsStats = {
   game: 'fibking',
@@ -485,33 +502,61 @@ describe('admin workspace', () => {
     view.client.clear();
   });
 
+  it.each([
+    { label: 'short name', hostName: '测试房主' },
+    { label: 'long Chinese name', hostName: '这是一个很长的房主名字'.repeat(12) },
+    { label: 'long unbroken name', hostName: 'LongHostNameWithoutSpaces'.repeat(12) },
+    { label: 'user ID fallback', hostName: null },
+  ])('keeps the host visible and opens its full identity: $label', async ({ hostName }) => {
+    vi.mocked(fetchRooms).mockResolvedValue({
+      rooms: [{ ...room, hostName }],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
+    const view = mount('/admin/rooms');
+    const table = await screen.findByRole('table', { name: '房间目录' });
+    const hostHeading = within(table).getByRole('columnheader', { name: '房主' });
+    const identity = hostName ?? room.hostUserId;
+    const accessibleName = `房主：${identity}，查看完整名字`;
+    const hostCell = within(table).getByRole('cell', { name: identity });
+    const hostButton = within(hostCell).getByRole('button', { name: accessibleName });
+    expect(hostHeading).not.toHaveClass('admin-secondary-column');
+    expect(hostCell).not.toHaveClass('admin-secondary-column');
+    expect(hostButton).toBeVisible();
+    await userEvent.click(hostButton);
+    expect(showAlert).toHaveBeenCalledWith('房主', identity, [
+      { text: '知道了', style: 'default' },
+    ]);
+    expect(fetchRoomPlayers).not.toHaveBeenCalled();
+    view.unmount();
+    view.client.clear();
+  });
+
   it('reads room participants only after expansion and supports retry', async () => {
     vi.mocked(fetchRooms).mockResolvedValue({
-      rooms: [
-        {
-          id: 'room',
-          code: '1234',
-          gameType: 'werewolf',
-          status: 'failed',
-          reconciliationAttemptCount: 3,
-          reconcileAfter: null,
-          lastError: 'RECOVERY_ERROR',
-          hostUserId: 'host',
-          hostName: '房主',
-          hostCountry: 'CN',
-          gamesStarted: 2,
-          lastStartedAt: null,
-          participantCount: 3,
-          createdAt: '2026-11-11T00:00:00Z',
-        },
-      ],
+      rooms: [room],
       total: 1,
       page: 1,
       limit: 50,
     });
     vi.mocked(fetchRoomPlayers)
       .mockRejectedValueOnce(new Error('participants unavailable'))
-      .mockResolvedValueOnce({ players: [] });
+      .mockResolvedValueOnce({
+        players: [
+          {
+            userId: 'participant',
+            displayName: '参与者甲',
+            lastCountry: 'CN',
+            lastColo: 'HKG',
+            createdAt: '2026-11-01T00:00:00Z',
+            joinedAt: '2026-11-11T00:00:00Z',
+            level: 2,
+            xp: 20,
+            gamesPlayed: 7,
+          },
+        ],
+      });
     const view = mount('/admin/rooms');
     await screen.findByRole('button', { name: '#1234' });
     expect(fetchRoomPlayers).not.toHaveBeenCalled();
@@ -520,6 +565,16 @@ describe('admin workspace', () => {
     expect(screen.getByText(/RECOVERY_ERROR/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
     await waitFor(() => expect(fetchRoomPlayers).toHaveBeenCalledTimes(2));
+    const participants = await screen.findByRole('table', { name: '1234 的参与者' });
+    expect(within(participants).getByRole('cell', { name: '参与者甲' })).toBeVisible();
+    expect(within(participants).getByRole('columnheader', { name: '局数' })).toBeVisible();
+    expect(within(participants).getByRole('cell', { name: '7' })).toBeVisible();
+    expect(fetchRoomPlayers).toHaveBeenLastCalledWith('1234', expect.any(AbortSignal));
+    fireEvent.click(screen.getByRole('button', { name: '#1234' }));
+    expect(screen.queryByRole('table', { name: '1234 的参与者' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '#1234' }));
+    await screen.findByRole('table', { name: '1234 的参与者' });
+    expect(fetchRoomPlayers).toHaveBeenCalledTimes(2);
     view.unmount();
     view.client.clear();
   });

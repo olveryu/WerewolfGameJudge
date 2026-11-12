@@ -7,6 +7,7 @@ import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { enterRoomFromAdmin } from '@/features/room/navigation/roomFlowNavigation';
 import { gameDisplayName } from '@/games/catalog';
+import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
 
 import {
   AsyncBoundary,
@@ -71,8 +72,20 @@ export function RoomsPage() {
     {
       key: 'host',
       label: '房主',
-      secondary: true,
-      render: (room) => room.hostName ?? room.hostUserId,
+      render: (room) => {
+        const identity = room.hostName ?? room.hostUserId;
+        return (
+          <button
+            type="button"
+            className="admin-text-button admin-room-host"
+            aria-label={`房主：${identity}，查看完整名字`}
+            title={identity}
+            onClick={() => showAlert('房主', identity, [DISMISS_BUTTON])}
+          >
+            {identity}
+          </button>
+        );
+      },
     },
     {
       key: 'started',
@@ -111,7 +124,11 @@ export function RoomsPage() {
   const selected = query.data?.rooms.find((room) => room.code === expanded);
   return (
     <>
-      <PageHeading title="房间" description="查看运行状态、参与者与开局记录。" query={query} />
+      <PageHeading
+        title="房间"
+        description="查看运行状态与开局记录，点击房间号查看参与者及其累计局数。"
+        query={query}
+      />
       <div className="admin-content">
         {!validPage ? (
           <p role="alert" className="admin-error">

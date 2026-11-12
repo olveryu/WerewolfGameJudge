@@ -69,6 +69,7 @@ button {
 
 .alert-message {
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .visually-hidden {

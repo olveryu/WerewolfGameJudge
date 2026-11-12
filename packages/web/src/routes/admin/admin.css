@@ -624,6 +624,14 @@
   border: 0;
   padding: 0;
 }
+.admin-room-host {
+  display: block;
+  max-width: var(--size-admin-room-host);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
 .admin-pagination {
   display: flex;
   justify-content: space-between;
@@ -1369,6 +1377,9 @@
   }
   .admin-table button {
     min-height: var(--size-min-touch-target);
+  }
+  .admin-room-host {
+    max-width: var(--size-admin-room-host-mobile);
   }
   .admin-console button,
   .admin-console select,
