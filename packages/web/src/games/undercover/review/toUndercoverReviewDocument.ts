@@ -51,8 +51,7 @@ const ROLE_TONES: Readonly<Record<UndercoverRole, ReviewTone>> = {
 
 /** How the reviewed round concluded: a side won, or the host aborted it. */
 export type UndercoverRoundConclusion =
-  | { readonly kind: 'won'; readonly winner: UndercoverRole }
-  | { readonly kind: 'aborted' };
+  { readonly kind: 'won'; readonly winner: UndercoverRole } | { readonly kind: 'aborted' };
 
 /** The facts of one concluded round. */
 export interface UndercoverReviewInput {

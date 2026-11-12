@@ -53,15 +53,13 @@ function diamondArt(seed: ShapeSeed): StaticArt {
   };
 }
 
-const nodes = SHAPE_SEEDS.map(
-  (seed): LayerNode => ({
-    kind: 'layer',
-    sample: diamondSampler,
-    box: (size) => ({ width: size, height: size }),
-    art: diamondArt(seed),
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = SHAPE_SEEDS.map((seed): LayerNode => ({
+  kind: 'layer',
+  sample: diamondSampler,
+  box: (size) => ({ width: size, height: size }),
+  art: diamondArt(seed),
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const obsidianPulseFlair: DecorationSpec = { id: 'obsidianPulse', nodes };

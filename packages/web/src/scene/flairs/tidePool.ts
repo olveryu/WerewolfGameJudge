@@ -32,16 +32,13 @@ function createRingSampler(seed: RippleSeed, ri: number): RingSampler {
 }
 
 const nodes = RIPPLE_SEEDS.flatMap((seed) =>
-  Array.from(
-    { length: RINGS_PER_RIPPLE },
-    (_, ri): DecorationNode => ({
-      kind: 'ring',
-      sample: createRingSampler(seed, ri),
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-      color: 'rgb(100,180,220)',
-    }),
-  ),
+  Array.from({ length: RINGS_PER_RIPPLE }, (_, ri): DecorationNode => ({
+    kind: 'ring',
+    sample: createRingSampler(seed, ri),
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+    color: 'rgb(100,180,220)',
+  })),
 );
 
 export const tidePoolFlair: DecorationSpec = { id: 'tidePool', nodes };

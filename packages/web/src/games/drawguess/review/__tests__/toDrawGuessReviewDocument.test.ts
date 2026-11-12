@@ -42,9 +42,10 @@ const SCRIPT: readonly DrawGuessTestTurn[] = [
   { guessers: [1], filesDrawing: false },
 ];
 
-const loadDrawing = vi.fn<DrawGuessDrawingLoader>(
-  async (): Promise<ReviewImageLoadResult> => ({ kind: 'loaded', dataUri: DATA_URI }),
-);
+const loadDrawing = vi.fn<DrawGuessDrawingLoader>(async (): Promise<ReviewImageLoadResult> => ({
+  kind: 'loaded',
+  dataUri: DATA_URI,
+}));
 
 function documentFor(state: DrawGuessState): RoomReviewDocument {
   return toDrawGuessReviewDocument({ state, roomCode: 'ABCD', loadDrawing });

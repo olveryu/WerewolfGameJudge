@@ -67,14 +67,12 @@ const nodes = WISP_SEEDS.flatMap((seed): DecorationNode[] => [
     durationMs: LOOP_MS,
     color: 'rgb(180,230,255)',
   },
-  ...TAILS.map(
-    (tail): DecorationNode => ({
-      kind: 'dot',
-      sample: tailSampler(seed, tail),
-      durationMs: LOOP_MS,
-      color: 'rgb(100,200,255)',
-    }),
-  ),
+  ...TAILS.map((tail): DecorationNode => ({
+    kind: 'dot',
+    sample: tailSampler(seed, tail),
+    durationMs: LOOP_MS,
+    color: 'rgb(100,200,255)',
+  })),
 ]);
 
 export const ghostWispFlair: DecorationSpec = { id: 'ghostWisp', nodes };

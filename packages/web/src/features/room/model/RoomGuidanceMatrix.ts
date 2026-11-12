@@ -23,8 +23,7 @@ import type { RoomViewerAudience } from './RoomViewer';
 export type RoomGuidanceViewer = RoomViewerAudience;
 
 export type RoomGuidanceCell =
-  | { readonly kind: 'message' }
-  | { readonly kind: 'exempt'; readonly reason: string };
+  { readonly kind: 'message' } | { readonly kind: 'exempt'; readonly reason: string };
 
 export type RoomGuidanceMatrix<Phase extends string> = Readonly<
   Record<Phase, Readonly<Record<RoomGuidanceViewer, RoomGuidanceCell>>>

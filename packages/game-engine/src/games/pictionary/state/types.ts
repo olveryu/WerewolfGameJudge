@@ -31,13 +31,7 @@ export type PictionaryGuessDuration = (typeof PICTIONARY_GUESS_DURATIONS)[number
 export type PictionaryTransitionDuration = (typeof PICTIONARY_TRANSITION_DURATIONS)[number];
 export type PictionaryGalleryItemDuration = (typeof PICTIONARY_GALLERY_ITEM_DURATIONS)[number];
 export type PictionaryPhase =
-  | 'lobby'
-  | 'answering'
-  | 'settling'
-  | 'transition'
-  | 'gallery'
-  | 'aborted'
-  | 'ended';
+  'lobby' | 'answering' | 'settling' | 'transition' | 'gallery' | 'aborted' | 'ended';
 export type PictionaryExpectedEntryKind = 'text' | 'drawing';
 
 export interface PictionaryConfig {

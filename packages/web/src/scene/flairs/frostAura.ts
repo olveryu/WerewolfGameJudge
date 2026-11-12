@@ -25,13 +25,11 @@ const FROST_SAMPLERS: readonly DotSampler[] = FROST_SEEDS.map((seed) => (t, size
   return { cx: x, cy: y, r, opacity: alpha };
 });
 
-const nodes = FROST_SAMPLERS.map(
-  (sample): DecorationNode => ({
-    kind: 'dot',
-    sample,
-    durationMs: LOOP_MS,
-    color: 'rgb(140,220,255)',
-  }),
-);
+const nodes = FROST_SAMPLERS.map((sample): DecorationNode => ({
+  kind: 'dot',
+  sample,
+  durationMs: LOOP_MS,
+  color: 'rgb(140,220,255)',
+}));
 
 export const frostAuraFlair: DecorationSpec = { id: 'frostAura', nodes };

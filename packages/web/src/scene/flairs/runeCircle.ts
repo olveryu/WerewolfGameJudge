@@ -77,14 +77,12 @@ const orbitArt: StaticArt = (context, size) => {
 
 const nodes: DecorationNode[] = [
   { kind: 'static', art: orbitArt },
-  ...RUNE_SEEDS.map(
-    (seed): DecorationNode => ({
-      kind: 'layer',
-      sample: runeSampler(seed),
-      art: runeArt(seed),
-      durationMs: LOOP_MS,
-    }),
-  ),
+  ...RUNE_SEEDS.map((seed): DecorationNode => ({
+    kind: 'layer',
+    sample: runeSampler(seed),
+    art: runeArt(seed),
+    durationMs: LOOP_MS,
+  })),
 ];
 
 export const runeCircleFlair: DecorationSpec = { id: 'runeCircle', nodes };

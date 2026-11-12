@@ -64,15 +64,12 @@ function glowSampler(corner: Corner, cornerIndex: number, step: number): DotSamp
 }
 
 const nodes = CORNERS.flatMap((corner, cornerIndex): DecorationNode[] => [
-  ...Array.from(
-    { length: GLOW_STEPS },
-    (_, step): DecorationNode => ({
-      kind: 'dot',
-      sample: glowSampler(corner, cornerIndex, step),
-      durationMs: PILLAR_CYCLE,
-      color: 'rgb(255,230,130)',
-    }),
-  ),
+  ...Array.from({ length: GLOW_STEPS }, (_, step): DecorationNode => ({
+    kind: 'dot',
+    sample: glowSampler(corner, cornerIndex, step),
+    durationMs: PILLAR_CYCLE,
+    color: 'rgb(255,230,130)',
+  })),
   {
     kind: 'line',
     sample: beamSampler(corner, cornerIndex),

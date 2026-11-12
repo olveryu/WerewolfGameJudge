@@ -32,8 +32,7 @@ interface RoomAccountLink<TState extends BaseGameState<string>> {
 }
 
 type RoomAccountCommand =
-  | RoomProfileUpdateCommand<RoomProfileUpdate>
-  | RoomSeatCommand<RoomSeatProfile>;
+  RoomProfileUpdateCommand<RoomProfileUpdate> | RoomSeatCommand<RoomSeatProfile>;
 
 interface RoomAccountCommandLink<TState extends BaseGameState<string>>
   extends RoomAccountLink<TState>, RoomCommandContext<TState, RoomAccountCommand> {}

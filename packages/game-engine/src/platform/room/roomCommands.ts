@@ -161,9 +161,7 @@ export interface DecideRoomCommandsOptions<
 
 /** The commands the skeleton decides: the shared room commands plus the game's config update. */
 export type RoomCommandsCommand<TConfigCommand extends GameCommand> =
-  | RoomSeatCommand<RoomSeatProfile>
-  | RoomProfileUpdateCommand<RoomProfileUpdate>
-  | TConfigCommand;
+  RoomSeatCommand<RoomSeatProfile> | RoomProfileUpdateCommand<RoomProfileUpdate> | TConfigCommand;
 
 type TakeSeatCommand = Extract<RoomSeatCommand<RoomSeatProfile>, { type: 'room.seat.take' }>;
 type LeaveSeatCommand = Extract<RoomSeatCommand<RoomSeatProfile>, { type: 'room.seat.leave' }>;

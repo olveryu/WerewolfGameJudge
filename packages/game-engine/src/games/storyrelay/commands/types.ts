@@ -30,9 +30,7 @@ export type StoryRelayPublicCommand =
   | { readonly type: 'storyrelay.config.update'; readonly config: StoryRelayConfig }
   | {
       readonly type:
-        | 'storyrelay.game.begin'
-        | 'storyrelay.game.next'
-        | 'storyrelay.game.returnToLobby';
+        'storyrelay.game.begin' | 'storyrelay.game.next' | 'storyrelay.game.returnToLobby';
     }
   | (StoryRelayTaskIdentity & {
       readonly type: 'storyrelay.task.ready.set';

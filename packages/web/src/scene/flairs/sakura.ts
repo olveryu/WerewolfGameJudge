@@ -35,14 +35,12 @@ const petalArt: StaticArt = (context, size) => {
   context.circle(0, dx, r * 0.6).fill({ color: 'rgb(255,210,220)', alpha: 0.6 });
 };
 
-const nodes = PETAL_SEEDS.map(
-  (seed, i): LayerNode => ({
-    kind: 'layer',
-    sample: PETAL_SAMPLERS[i]!,
-    art: petalArt,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-  }),
-);
+const nodes = PETAL_SEEDS.map((seed, i): LayerNode => ({
+  kind: 'layer',
+  sample: PETAL_SAMPLERS[i]!,
+  art: petalArt,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+}));
 
 export const sakuraFlair: DecorationSpec = { id: 'sakura', nodes };

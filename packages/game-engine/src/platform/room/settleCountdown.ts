@@ -30,9 +30,7 @@ export const SETTLE_COUNTDOWN_MS = 5000;
 
 /** Result type for the settle countdown arm decision pure function. */
 export type SettleCountdownArmAction =
-  | { type: 'set'; deadlineAt: number }
-  | { type: 'clear' }
-  | { type: 'noop' };
+  { type: 'set'; deadlineAt: number } | { type: 'clear' } | { type: 'noop' };
 
 /** Inputs for {@link decideSettleCountdownArm}. */
 export interface SettleCountdownArmInput {

@@ -27,8 +27,7 @@ export interface InitializedDirectoryRoom {
 }
 
 export type ResumedRoomDeletion =
-  | { readonly kind: 'deleted' }
-  | { readonly kind: 'blocked'; readonly reason: string };
+  { readonly kind: 'deleted' } | { readonly kind: 'blocked'; readonly reason: string };
 
 function parseCanonicalConfig(room: RoomDirectoryRecord): unknown {
   const config: unknown = JSON.parse(room.configJson);

@@ -97,8 +97,7 @@ export function createStoryRelayAssignment(numberOfPlayers: number, randomSeed: 
 }
 
 type StoryRelayPreviousEntry =
-  | { readonly kind: 'text'; readonly text: string }
-  | { readonly kind: 'empty' };
+  { readonly kind: 'text'; readonly text: string } | { readonly kind: 'empty' };
 
 /** Strips a previous entry to the kind and text the next author may see. */
 function stripStoryRelayPreviousEntry(entry: StoryRelayEntry): StoryRelayPreviousEntry {
@@ -172,9 +171,7 @@ type TaskCommand = Extract<
   StoryRelayCommand,
   {
     readonly type:
-      | 'storyrelay.task.ready.set'
-      | 'storyrelay.text.submit'
-      | 'storyrelay.task.empty.submit';
+      'storyrelay.task.ready.set' | 'storyrelay.text.submit' | 'storyrelay.task.empty.submit';
   }
 >;
 

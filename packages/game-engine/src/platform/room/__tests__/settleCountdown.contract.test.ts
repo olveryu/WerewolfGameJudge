@@ -113,15 +113,10 @@ const gamesDirectory = path.resolve(__dirname, '..', '..', '..', 'games');
 const relayTasksPath = path.resolve(__dirname, '..', 'relay', 'tasks.ts');
 
 type SettleCountdownAccessPointId =
-  | 'werewolf:wolf-vote'
-  | 'werewolf:sheriff-vote'
-  | 'avalon:vote'
-  | 'avalon:quest';
+  'werewolf:wolf-vote' | 'werewolf:sheriff-vote' | 'avalon:vote' | 'avalon:quest';
 
 type ClearRegistration =
-  | 'reachable'
-  | 'unreachable-ballotsAppendOnly'
-  | 'unreachable-submissionIrrevocable';
+  'reachable' | 'unreachable-ballotsAppendOnly' | 'unreachable-submissionIrrevocable';
 
 type ManualCloseRegistration =
   | { readonly kind: 'none' }
@@ -203,11 +198,7 @@ const ACCESS_POINT_IDS = Object.keys(
 const engineSourceDirectory = path.resolve(__dirname, '..', '..', '..');
 
 type DeadlineArithmeticDomain =
-  | 'skeleton'
-  | 'avalonPending'
-  | 'e2StageDeadline'
-  | 'relayClock'
-  | 'werewolfInlineAutoSkip';
+  'skeleton' | 'avalonPending' | 'e2StageDeadline' | 'relayClock' | 'werewolfInlineAutoSkip';
 
 interface DeadlineArithmeticRegistration {
   /** File relative to `packages/game-engine/src` (posix separators). */

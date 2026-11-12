@@ -276,9 +276,7 @@ type TaskCommand = Extract<
   PictionaryCommand,
   {
     readonly type:
-      | 'pictionary.task.ready.set'
-      | 'pictionary.text.submit'
-      | 'pictionary.task.empty.submit';
+      'pictionary.task.ready.set' | 'pictionary.text.submit' | 'pictionary.task.empty.submit';
   }
 >;
 

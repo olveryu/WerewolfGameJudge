@@ -27,12 +27,10 @@ import { pictionaryAlbumPageKey, toPictionaryReviewDocument } from '../toPiction
 
 const MISSED_LEG_TEXT = '这一棒交了空白';
 
-const loadDrawing = vi.fn(
-  async (entryId: string): Promise<ReviewImageLoadResult> => ({
-    kind: 'loaded',
-    dataUri: `data:image/png;base64,${entryId}`,
-  }),
-);
+const loadDrawing = vi.fn(async (entryId: string): Promise<ReviewImageLoadResult> => ({
+  kind: 'loaded',
+  dataUri: `data:image/png;base64,${entryId}`,
+}));
 
 function build(state: PictionaryState) {
   return toPictionaryReviewDocument({ state, roomCode: 'ABCD', loadDrawing });
@@ -70,16 +68,14 @@ function longestAlbum(template: PictionaryChain): PictionaryChain {
   }
   return {
     ...template,
-    entries: Array.from(
-      { length: PICTIONARY_MAX_PLAYERS },
-      (_, index): PictionaryEntry =>
-        index % 2 === 0
-          ? {
-              ...prompt,
-              id: `${prompt.id}:${index}`,
-              text: '字'.repeat(PICTIONARY_TEXT_MAX_LENGTH),
-            }
-          : { ...drawing, id: `${drawing.id}:${index}` },
+    entries: Array.from({ length: PICTIONARY_MAX_PLAYERS }, (_, index): PictionaryEntry =>
+      index % 2 === 0
+        ? {
+            ...prompt,
+            id: `${prompt.id}:${index}`,
+            text: '字'.repeat(PICTIONARY_TEXT_MAX_LENGTH),
+          }
+        : { ...drawing, id: `${drawing.id}:${index}` },
     ),
   };
 }

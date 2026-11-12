@@ -84,15 +84,13 @@ const nodes = STREAM_SEEDS.flatMap((seed, i): DecorationNode[] => [
     mode: 'crossfade',
     art: STREAM_ARTS[i]!,
   },
-  ...GLEAM_SEEDS.map(
-    (gleam): DecorationNode => ({
-      kind: 'dot',
-      sample: createGleamSampler(seed.side, gleam.idx, gleam.frac),
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-      color: 'rgb(240,245,255)',
-    }),
-  ),
+  ...GLEAM_SEEDS.map((gleam): DecorationNode => ({
+    kind: 'dot',
+    sample: createGleamSampler(seed.side, gleam.idx, gleam.frac),
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+    color: 'rgb(240,245,255)',
+  })),
 ]);
 
 export const silverStreamFlair: DecorationSpec = { id: 'silverStream', nodes };

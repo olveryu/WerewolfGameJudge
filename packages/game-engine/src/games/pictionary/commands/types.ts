@@ -14,8 +14,7 @@ import type {
 } from '../state/types';
 
 type PictionaryRoomCommand =
-  | RoomSeatCommand<PictionarySeatProfile>
-  | RoomProfileUpdateCommand<PictionaryProfileUpdate>;
+  RoomSeatCommand<PictionarySeatProfile> | RoomProfileUpdateCommand<PictionaryProfileUpdate>;
 
 export type PictionaryCommandInput =
   | PictionaryRoomCommand

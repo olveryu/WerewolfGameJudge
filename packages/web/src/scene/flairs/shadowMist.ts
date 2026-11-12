@@ -18,14 +18,12 @@ const MIST_SAMPLERS: readonly DotSampler[] = MIST_SEEDS.map((seed) => (t, size) 
   return { cx: x, cy: y, r, opacity: alpha };
 });
 
-const nodes = MIST_SEEDS.map(
-  (seed, i): DecorationNode => ({
-    kind: 'dot',
-    sample: MIST_SAMPLERS[i]!,
-    durationMs: LOOP_MS,
-    phase: seed.phase,
-    color: 'rgb(42,16,64)',
-  }),
-);
+const nodes = MIST_SEEDS.map((seed, i): DecorationNode => ({
+  kind: 'dot',
+  sample: MIST_SAMPLERS[i]!,
+  durationMs: LOOP_MS,
+  phase: seed.phase,
+  color: 'rgb(42,16,64)',
+}));
 
 export const shadowMistFlair: DecorationSpec = { id: 'shadowMist', nodes };

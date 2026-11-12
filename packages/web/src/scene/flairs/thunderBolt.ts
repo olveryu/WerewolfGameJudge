@@ -90,15 +90,13 @@ const BOLT_ARTS: readonly (readonly PathArt[])[] = BOLT_SEEDS.map((seed) =>
 );
 
 const nodes = BOLT_SEEDS.flatMap((seed, i): DecorationNode[] => [
-  ...LAYERS.map(
-    (_, l): DecorationNode => ({
-      kind: 'path',
-      sample: LAYER_SAMPLERS[l]!,
-      art: BOLT_ARTS[i]![l]!,
-      durationMs: LOOP_MS,
-      phase: seed.phase,
-    }),
-  ),
+  ...LAYERS.map((_, l): DecorationNode => ({
+    kind: 'path',
+    sample: LAYER_SAMPLERS[l]!,
+    art: BOLT_ARTS[i]![l]!,
+    durationMs: LOOP_MS,
+    phase: seed.phase,
+  })),
   {
     kind: 'dot',
     sample: SPARK_SAMPLERS[i]!,

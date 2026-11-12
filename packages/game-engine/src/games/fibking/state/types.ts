@@ -34,12 +34,7 @@ export const FIB_PREPARATION_STAGES = {
 export const FIB_PREPARATION_FAILURE_CODES = ['selectionFailed', 'inventoryExhausted'] as const;
 
 export type FibPhase =
-  | 'lobby'
-  | 'preparing'
-  | 'preparationFailed'
-  | 'viewing'
-  | 'ongoing'
-  | 'ended';
+  'lobby' | 'preparing' | 'preparationFailed' | 'viewing' | 'ongoing' | 'ended';
 export type FibRole = 'guesser' | 'honest' | 'fibber';
 export type FibWordSource = (typeof FIB_WORD_SOURCES)[number];
 export type FibPreparationStage =

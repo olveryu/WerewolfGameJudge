@@ -98,10 +98,7 @@ export type CommandResultFrame<TState extends BaseGameState<string>> =
   | { readonly type: 'COMMAND_RESULT'; readonly commandId: string; readonly outcome: 'throttled' };
 
 export type ServerFrame<TState extends BaseGameState<string>> =
-  | SyncResultFrame<TState>
-  | StateUpdateFrame<TState>
-  | CommandResultFrame<TState>
-  | InboxHintFrame;
+  SyncResultFrame<TState> | StateUpdateFrame<TState> | CommandResultFrame<TState> | InboxHintFrame;
 
 /**
  * Server frame schemas close over the game codec. Building one per parse keeps the schema typed

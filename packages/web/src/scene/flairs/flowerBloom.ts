@@ -46,14 +46,12 @@ function createCenterSampler(f: number): DotSampler {
 }
 
 const nodes = FLOWER_INDICES.flatMap((f): DecorationNode[] => [
-  ...PETAL_INDICES.map(
-    (p): DecorationNode => ({
-      kind: 'dot',
-      sample: createPetalSampler(f, p),
-      durationMs: LOOP_MS,
-      color: COLORS[f],
-    }),
-  ),
+  ...PETAL_INDICES.map((p): DecorationNode => ({
+    kind: 'dot',
+    sample: createPetalSampler(f, p),
+    durationMs: LOOP_MS,
+    color: COLORS[f],
+  })),
   {
     kind: 'dot',
     sample: createCenterSampler(f),

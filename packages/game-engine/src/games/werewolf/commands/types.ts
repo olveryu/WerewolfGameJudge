@@ -31,8 +31,7 @@ export interface WerewolfExpectedStep {
 }
 
 type WerewolfRoomCommand =
-  | RoomSeatCommand<WerewolfSeatProfile>
-  | RoomProfileUpdateCommand<WerewolfProfileUpdate>;
+  RoomSeatCommand<WerewolfSeatProfile> | RoomProfileUpdateCommand<WerewolfProfileUpdate>;
 
 export interface WerewolfMvpSelection {
   readonly roleRevealRandomNonce: string | null;
@@ -99,7 +98,6 @@ export interface WerewolfSettleExpiredCommand {
 }
 
 export type WerewolfInternalCommand =
-  | WerewolfApplyRosterLevelsCommand
-  | WerewolfSettleExpiredCommand;
+  WerewolfApplyRosterLevelsCommand | WerewolfSettleExpiredCommand;
 
 export type WerewolfCommand = WerewolfPublicCommand | WerewolfInternalCommand;

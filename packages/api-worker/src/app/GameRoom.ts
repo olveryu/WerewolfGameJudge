@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/cloudflare';
 import type { Env } from '../env';
 import { getWorkerGameModule } from '../games/catalog';
 import type { RuntimeWorkerGameModule } from '../platform/gameModules/runtimeGameModule';
+import { createSentryOptions } from '../platform/observability/sentryOptions';
 import { GameRoomRuntime } from '../platform/room/GameRoomRuntime';
 
 class ComposedGameRoom extends GameRoomRuntime {
@@ -15,11 +16,7 @@ class ComposedGameRoom extends GameRoomRuntime {
 }
 
 export const GameRoom = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
-    environment: env.ENVIRONMENT,
-  }),
+  (env: Env) => createSentryOptions(env),
   ComposedGameRoom,
 );
 
