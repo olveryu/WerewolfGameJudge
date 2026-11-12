@@ -9,6 +9,8 @@ export const ROOM_COMMAND_OUTBOX_KEY = '@room_command_outbox_v2';
 export const USER_SETTINGS_KEY = '@user_settings';
 /** Admin portal password cache */
 export const ADMIN_PASSWORD_KEY = 'admin_password';
+/** Player-page destination retained while the current tab visits the admin workspace. */
+export const ADMIN_RETURN_TO_KEY = '@admin_return_to';
 /** Unresolved admin ticket grants, partitioned by recipient ID. */
 export const ADMIN_REWARD_OPERATION_KEY = '@admin_reward_operation';
 

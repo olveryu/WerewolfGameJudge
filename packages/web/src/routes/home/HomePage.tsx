@@ -7,6 +7,7 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
+import { useAdminEntry } from '@/features/admin/hooks/useAdminNavigation';
 import { requestLogin } from '@/features/auth/loginRequests';
 import {
   hasSeenAnnouncement,
@@ -56,6 +57,7 @@ function displayNameOf(user: User): string {
  */
 export function HomePage() {
   const navigate = useNavigate();
+  const openAdmin = useAdminEntry();
   const { user, loading: authLoading, error: authError } = useAuthContext();
   const [dialog, setDialog] = useState<'join' | 'recent' | null>(null);
   // Like the announcement modal: mounted on first open, then kept for the exit motion.
@@ -120,7 +122,7 @@ export function HomePage() {
     taps.lastTapMs = now;
     if (taps.count >= ADMIN_TAP_COUNT) {
       taps.count = 0;
-      void navigate('/admin');
+      openAdmin();
     }
   };
 

@@ -1,5 +1,5 @@
 /**
- * App-wide synchronous key-value storage over `localStorage`.
+ * Synchronous key-value storage for durable settings and tab-scoped state.
  *
  * Keys keep the `mmkv.default\` prefix the React Native client's MMKV web backend wrote, so
  * sessions and settings already on users' devices stay readable after the switch.
@@ -14,7 +14,7 @@ export function prefixedStorageKey(key: string): string {
   return `${KEY_PREFIX}${key}`;
 }
 
-/** Synchronous storage API used across the client. */
+/** Durable storage API used across the client. */
 export const storage = {
   getString(key: string): string | undefined {
     return window.localStorage.getItem(prefixedStorageKey(key)) ?? undefined;
@@ -28,5 +28,18 @@ export const storage = {
   },
   remove(key: string): void {
     window.localStorage.removeItem(prefixedStorageKey(key));
+  },
+};
+
+/** Tab-local storage that survives reloads without sharing navigation state across tabs. */
+export const tabStorage = {
+  getString(key: string): string | undefined {
+    return window.sessionStorage.getItem(prefixedStorageKey(key)) ?? undefined;
+  },
+  set(key: string, value: string): void {
+    window.sessionStorage.setItem(prefixedStorageKey(key), value);
+  },
+  remove(key: string): void {
+    window.sessionStorage.removeItem(prefixedStorageKey(key));
   },
 };

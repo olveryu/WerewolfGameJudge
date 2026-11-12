@@ -3,8 +3,8 @@ import './admin.css';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
 
+import { useAdminExit } from '@/features/admin/hooks/useAdminNavigation';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
   ADMIN_SESSION_EXPIRED_EVENT,
@@ -24,8 +24,7 @@ const adminLog = log.extend('Admin');
 /** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
   const client = useQueryClient();
-  const navigate = useNavigate();
-  const goBack = () => void navigate(-1);
+  const goBack = useAdminExit();
   const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
   const [verifying, setVerifying] = useState(cached !== null);

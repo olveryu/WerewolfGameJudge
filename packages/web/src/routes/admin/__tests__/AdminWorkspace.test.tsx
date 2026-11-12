@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
+import { useAdminEntry } from '@/features/admin/hooks/useAdminNavigation';
 import type {
   AdminAutomaticSupplySettings,
   AdminRequestTraffic,
@@ -31,6 +32,10 @@ import {
   expireAdminSession,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
+import {
+  readAdminReturnTo,
+  rememberAdminReturnTo,
+} from '@/features/admin/services/adminNavigationStore';
 import { showAlert } from '@/utils/alert';
 
 import { AdminPage } from '../AdminPage';
@@ -131,10 +136,17 @@ function deferred<Value>() {
   return { promise, resolve };
 }
 
-function mount(path = '/admin/users', previousPath?: string) {
+function AdminEntryPage() {
+  const openAdmin = useAdminEntry();
+  return <button onClick={openAdmin}>进入后台</button>;
+}
+
+function mount(path = '/admin/users', state?: unknown) {
   const client = new QueryClient();
   const router = createMemoryRouter(
     [
+      { path: '/', Component: AdminEntryPage },
+      { path: '/room/:roomCode', Component: AdminEntryPage },
       {
         path: '/admin',
         Component: AdminPage,
@@ -149,8 +161,7 @@ function mount(path = '/admin/users', previousPath?: string) {
       },
     ],
     {
-      initialEntries:
-        previousPath === undefined ? [path] : [previousPath, { pathname: path, key: 'default' }],
+      initialEntries: state === undefined ? [path] : [{ pathname: path, state }],
     },
   );
   const view = render(
@@ -172,6 +183,7 @@ beforeEach(() => {
   );
   vi.resetAllMocks();
   window.localStorage.clear();
+  window.sessionStorage.clear();
   writeAdminCredential('test-credential');
   vi.mocked(verifyAdminPassword).mockResolvedValue(true);
   vi.mocked(fetchD1Usage).mockResolvedValue({
@@ -214,19 +226,78 @@ afterEach(() => {
 
 describe('admin workspace', () => {
   it.each([true, false])(
-    'returns to the previous page after a direct navigation, authenticated: %s',
+    'exits to the entry page instead of the previous admin tab, authenticated: %s',
     async (authenticated) => {
       if (!authenticated) window.localStorage.clear();
-      const view = mount('/admin/users', '/admin/rooms');
-      if (authenticated) await screen.findByText('测试用户');
-      else await screen.findByRole('heading', { name: '进入管理后台' });
+      const source = '/room/1234?tab=players#seats';
+      const view = mount(source);
+      await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+      if (authenticated) {
+        const navigation = await screen.findByRole('navigation', { name: '管理后台导航' });
+        await userEvent.click(within(navigation).getByRole('link', { name: '用户' }));
+        await screen.findByText('测试用户');
+      } else {
+        await screen.findByRole('heading', { name: '进入管理后台' });
+        await act(() => view.router.navigate('/admin/users'));
+      }
 
       await userEvent.click(screen.getByRole('button', { name: '返回' }));
-      await waitFor(() => expect(view.router.state.location.pathname).toBe('/admin/rooms'));
+      await waitFor(() => expect(view.router.state.location.pathname).toBe('/room/1234'));
+      expect(view.router.state.location.search).toBe('?tab=players');
+      expect(view.router.state.location.hash).toBe('#seats');
+      await waitFor(() => expect(readAdminReturnTo()).toBeNull());
       view.unmount();
       view.client.clear();
     },
   );
+
+  it('keeps the entry destination after internal navigation and a reload', async () => {
+    const source = '/room/1234?tab=players#seats';
+    const view = mount(source);
+    await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+    const navigation = await screen.findByRole('navigation', { name: '管理后台导航' });
+    await userEvent.click(within(navigation).getByRole('link', { name: '用户' }));
+    await screen.findByText('测试用户');
+    await act(() => view.router.navigate('/admin/users?q=someone#results'));
+    expect(view.router.state.location.search).toBe('?q=someone');
+    expect(view.router.state.location.hash).toBe('#results');
+    const returnTo = readAdminReturnTo();
+    if (returnTo === null) throw new Error('Expected the admin entry destination');
+    view.unmount();
+    view.client.clear();
+
+    rememberAdminReturnTo(returnTo);
+    const reloaded = mount('/admin/users');
+    await screen.findByText('测试用户');
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(reloaded.router.state.location.pathname).toBe('/room/1234'));
+    expect(reloaded.router.state.location.search).toBe('?tab=players');
+    expect(reloaded.router.state.location.hash).toBe('#seats');
+    reloaded.unmount();
+    reloaded.client.clear();
+  });
+
+  it('returns to Home when the admin workspace was opened without an entry destination', async () => {
+    const view = mount();
+    await screen.findByText('测试用户');
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('uses the same-origin referring page after a full-document admin entry', async () => {
+    vi.spyOn(document, 'referrer', 'get').mockReturnValue(
+      `${window.location.origin}/room/1234?from=maintenance`,
+    );
+    const view = mount();
+    await screen.findByText('测试用户');
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/room/1234'));
+    expect(view.router.state.location.search).toBe('?from=maintenance');
+    view.unmount();
+    view.client.clear();
+  });
 
   it('switches pages through grouped navigation, highlights the current page and closes the sheet', async () => {
     const view = mount();
