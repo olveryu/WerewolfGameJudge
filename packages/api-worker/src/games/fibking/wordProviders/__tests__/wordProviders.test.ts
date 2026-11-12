@@ -164,7 +164,7 @@ describe('Fib word candidate batches', () => {
 
   it('accepts separate dictionary headings and preserves the original quote whitespace', () => {
     const request = createWordRequest();
-    const evidenceQuote = '荷花的别称，\n古人常在诗文中用来称呼荷花。';
+    const evidenceQuote = '荷花的别称，\n古人常在诗文中\n用来称呼荷花。';
     const evidence = request.evidence.map((source) => ({
       ...source,
       content: `菡萏\n词目与读音\n${evidenceQuote}`,
@@ -173,7 +173,7 @@ describe('Fib word candidate batches', () => {
       {
         candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1).map((candidate) => ({
           ...candidate,
-          citations: [{ evidenceIndex: 0, quote: evidenceQuote.replace('\n', ' ') }],
+          citations: [{ evidenceIndex: 0, quote: evidenceQuote.replaceAll('\n', ' ') }],
         })),
       },
       'gemini',
@@ -184,7 +184,7 @@ describe('Fib word candidate batches', () => {
         reviews: REVIEWS_RESPONSE.reviews.slice(0, 1).map((review) => ({
           ...review,
           qualityChecks: PASSING_QUALITY_CHECKS,
-          evidenceQuote: evidenceQuote.replace('\n', ' '),
+          evidenceQuote: evidenceQuote.replaceAll('\n', ' '),
         })),
       },
       candidates,

@@ -9,7 +9,7 @@
  * - Bottom action buttons are NOT rendered when audio is playing
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { waitFor } from '@testing-library/react';
 
 import {
@@ -23,6 +23,7 @@ import {
   type WerewolfRoomMockOptions,
   wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -48,6 +49,28 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
   beforeEach(() => {
     harness = new RoomScreenTestHarness();
     detachAlerts = recordAlerts(harness);
+  });
+
+  describe('host music toggle visibility', () => {
+    it.each(Object.values(GameStatus))(
+      'only shows during the night, not %s otherwise',
+      async (status) => {
+        const view = await mount({
+          ...seerStep(false),
+          isHost: true,
+          gameStateOverrides: { status },
+        });
+
+        expect(view.queryByTestId(TESTIDS.bgmToggleButton) !== null).toBe(
+          status === GameStatus.Ongoing,
+        );
+      },
+    );
+
+    it('does not show for a non-host at night', async () => {
+      const view = await mount(seerStep(false));
+      expect(view.queryByTestId(TESTIDS.bgmToggleButton)).not.toBeInTheDocument();
+    });
   });
   afterEach(() => detachAlerts());
 

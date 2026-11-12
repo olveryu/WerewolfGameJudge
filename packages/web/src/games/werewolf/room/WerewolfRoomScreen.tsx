@@ -229,7 +229,8 @@ function WerewolfRoomContent(
           ),
       }}
       leadingExtraActions={
-        isHost && (
+        isHost &&
+        status === GameStatus.Ongoing && (
           <IconButton
             className="werewolf-bgm-toggle"
             data-playing={bgm.isBgmPlaying}

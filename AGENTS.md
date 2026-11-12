@@ -2,6 +2,10 @@
 
 Global rules for this repository. Area rules live in the nested files listed at the end; read the nested file for the area being changed. When this file and the code disagree, the code and its contract tests decide; fix this file.
 
+## Change isolation
+
+For every change request in this repository, use a separate Git worktree visible in the session's VS Code workspace and Changes view. Reuse it for that request's follow-ups; leave other chats and worktrees unchanged.
+
 ## Project snapshot
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.

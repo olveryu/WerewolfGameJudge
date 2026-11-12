@@ -1,9 +1,8 @@
 /**
- * werewolfReview tests — the review contribution's gate. During Day, the
- * host and spectators read it, while a seated player needs the host's grant
- * (`nightReviewAllowedSeats`). Once ended, every room user may read and
- * export it. Every reader confirms first, and a Day confirmation warns that
- * the report can sway the sheriff election.
+ * werewolfReview tests — the host-only-or-granted-seat gate. The host and
+ * explicitly authorized seats may read it during Day and after the game ends.
+ * Every reader confirms first, and a Day confirmation warns that the report
+ * can sway the sheriff election.
  */
 import {
   type GameState,
@@ -76,15 +75,10 @@ describe('werewolfReview', () => {
     });
   });
 
-  it('is available to a spectator, who may share it', () => {
+  it('does not permit an unseated spectator to read the review', () => {
     const state = makeSettledNightState({ nightReviewAllowedSeats: [1] });
 
-    expect(resolveFor(state, SPECTATOR)).toEqual({
-      kind: 'available',
-      document: documentFor(state),
-      sharing: { isAllowed: true },
-      confirmation: DAY_CONFIRMATION,
-    });
+    expect(resolveFor(state, SPECTATOR)).toEqual(NOT_PERMITTED);
   });
 
   it('is available to a seat the host granted, which may share it', () => {
@@ -108,10 +102,20 @@ describe('werewolfReview', () => {
     ).toEqual(NOT_PERMITTED);
   });
 
-  it('lets an ungranted seated player read and share once the game has ended', () => {
+  it('requires host authorization even after the game has ended', () => {
     const state = makeSettledNightState({
       status: GameStatus.Ended,
       nightReviewAllowedSeats: [],
+    });
+
+    expect(resolveFor(state, seatedViewer(1))).toEqual(NOT_PERMITTED);
+    expect(resolveFor(state, SPECTATOR)).toEqual(NOT_PERMITTED);
+  });
+
+  it('allows an authorized seat to read and share after the game has ended', () => {
+    const state = makeSettledNightState({
+      status: GameStatus.Ended,
+      nightReviewAllowedSeats: [1],
     });
 
     expect(resolveFor(state, seatedViewer(1))).toEqual({

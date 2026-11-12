@@ -1,10 +1,9 @@
 /**
  * The werewolf review contribution. The report exists from dawn (Day)
- * through the end of the game. During Day, the host and spectators read it,
- * while a seated player needs the host's grant (`nightReviewAllowedSeats`);
- * once ended, every room user may read and export it. Every reader confirms
- * before opening — the
- * report carries every identity and can sway the sheriff election.
+ * through the end of the game, but only the host and seats explicitly
+ * authorized by the host (`nightReviewAllowedSeats`) may read it. Every
+ * reader confirms before opening — the report carries every identity and
+ * can sway the sheriff election.
  */
 
 import {
@@ -25,7 +24,7 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
     const isGrantedSeat =
       viewer.seat !== null && (state.nightReviewAllowedSeats ?? []).includes(viewer.seat);
     const isEnded = state.status === GameStatus.Ended;
-    if (!isEnded && !viewer.isHost && viewer.seat !== null && !isGrantedSeat) {
+    if (!viewer.isHost && !isGrantedSeat) {
       return { kind: 'notPermitted', reason: '房主尚未向你开放复盘' };
     }
     return {
