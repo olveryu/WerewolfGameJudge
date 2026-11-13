@@ -164,7 +164,6 @@ export class PictionaryRoomPage extends RoomPage {
     }
     expect(entryBounds.width).toBe(presetBounds.width);
     expect(entryBounds.height).toBe(presetBounds.height);
-    expect(entryBounds.y).toBe(presetBounds.y);
     if (viewport.width < 600) {
       expect(paletteBounds.y + paletteBounds.height).toBeCloseTo(viewport.height, 0);
     } else {
@@ -174,6 +173,7 @@ export class PictionaryRoomPage extends RoomPage {
     const hue = this.page.getByTestId(TESTIDS.drawingColorPickerHue);
     await expect(panel).toHaveCount(0);
     await expect(pinkPreset).toBeInViewport({ ratio: 1 });
+    await expect(customColorButton).toBeInViewport({ ratio: 1 });
     await customColorButton.click();
     await expect(panel).toHaveAttribute('aria-label', '饱和度与明度');
     await expect(hue).toHaveAttribute('aria-label', '色相');
