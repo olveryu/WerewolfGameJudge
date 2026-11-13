@@ -73,6 +73,17 @@ const pictionaryMediaSchema = z.strictObject({
   height: z.literal(PICTIONARY_DRAWING_HEIGHT),
   byteLength: z.int().positive().max(PICTIONARY_DRAWING_MAX_BYTES),
   sha256: z.string().min(1),
+  replay: z
+    .strictObject({
+      objectKey: z.string().min(1),
+      byteLength: z
+        .int()
+        .positive()
+        .max(1024 * 1024),
+      sha256: z.string().regex(/^[a-f0-9]{64}$/),
+      durationMs: z.int().min(2000).max(8000),
+    })
+    .nullable(),
 });
 
 export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalCommand> =

@@ -49,6 +49,7 @@ describe('GalleryAlbumStage', () => {
 });
 
 describe('GalleryAlbumStage follow behaviour', () => {
+  afterEach(() => vi.restoreAllMocks());
   const setGeometry = (list: HTMLElement, scrollHeight: number, clientHeight: number) => {
     Object.defineProperty(list, 'scrollHeight', { configurable: true, value: scrollHeight });
     Object.defineProperty(list, 'clientHeight', { configurable: true, value: clientHeight });
@@ -80,6 +81,29 @@ describe('GalleryAlbumStage follow behaviour', () => {
     const list = screen.getByTestId('gallery-shell-list');
     setGeometry(list, 1000, 600);
     view.rerender(shell('none', entries));
+    expect(list.scrollTop).toBe(0);
+  });
+
+  it('bottom: shows the start of a tall reserved paragraph rather than its unrevealed tail', () => {
+    const view = render(shell('bottom', [entries[0]!]));
+    const list = screen.getByTestId('gallery-shell-list');
+    setGeometry(list, 1000, 600);
+    let latestOffset = 200;
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(800);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return new DOMRect(0, this === list ? 0 : latestOffset - list.scrollTop, 100, 800);
+    });
+    view.rerender(shell('bottom', [entries[0]!, entries[1]!]));
+    expect(list.scrollTop).toBe(200);
+    fireEvent.scroll(list);
+    latestOffset = 400;
+    view.rerender(shell('bottom', [entries[0]!, entries[1]!, entries[2]!]));
+    expect(list.scrollTop).toBe(400);
+    list.scrollTop = 0;
+    fireEvent.scroll(list);
+    view.rerender(shell('bottom', entries));
     expect(list.scrollTop).toBe(0);
   });
 });

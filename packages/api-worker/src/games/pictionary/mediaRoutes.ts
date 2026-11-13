@@ -5,14 +5,30 @@
  * disallowed media access, 404 for missing rooms/media, 409 for stale reservations, 410 for
  * a filed drawing whose stored object expired with the bucket lifecycle, and 413 for
  * oversized uploads.
+ *
+ * Stroke replays: a client stages `<drawing key>.strokes.json` with the replay
+ * PUT before uploading the PNG; the PNG route then validates the staged object
+ * and commits its server-derived hash, size and duration with the drawing. The
+ * PNG stays authoritative: without a staged replay (old clients, failed replay
+ * upload) the drawing commits with `replay: null`, while a staged object that
+ * fails validation is an explicit 500, never a silent fallback. Both objects
+ * are written immutably, and identical retries succeed while different bytes
+ * get 409, including after the entry is final.
+ *
+ * Cleanup lifecycle (deliberate): these routes never delete objects. A rejected
+ * or lost commit, or a replay write racing its PNG commit, leaves an orphan
+ * that the bucket's object lifecycle expires; deleting here could remove
+ * an object a concurrent or earlier request already committed.
  */
 
 import {
+  getPictionaryReplayDuration,
   getPictionaryTaskForSeat,
   getPictionaryUserSeat,
   isBotSeat,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
+  PICTIONARY_DRAWING_REPLAY_SCHEMA,
   PICTIONARY_DRAWING_WIDTH,
   PICTIONARY_STATE_CODEC,
   type PictionaryDrawingEntry,
@@ -29,6 +45,7 @@ import {
   type DrawingUploadOptions,
   failMediaRequest,
   putImmutableDrawing,
+  readBoundedBody,
   readDrawingUpload,
 } from '../../platform/room/mediaDrawing';
 import { createMediaRoomAccess } from '../../platform/room/mediaRoomAccess';
@@ -73,6 +90,42 @@ function buildObjectKey(
   return `pictionary/${room.creationId}/${state.roundId}/${submissionId}.png`;
 }
 
+function replayKey(objectKey: string): string {
+  return objectKey.replace(/\.png$/, '.strokes.json');
+}
+
+async function validateReplayBytes(bytes: Uint8Array<ArrayBuffer>, invalidStatus: 400 | 500 = 400) {
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes));
+  } catch {
+    return failMediaRequest(invalidStatus, 'PICTIONARY_REPLAY_INVALID');
+  }
+  const parsed = PICTIONARY_DRAWING_REPLAY_SCHEMA.safeParse(value);
+  if (!parsed.success) return failMediaRequest(invalidStatus, 'PICTIONARY_REPLAY_INVALID');
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const sha256 = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+  return { bytes, digest, sha256, durationMs: getPictionaryReplayDuration(parsed.data) };
+}
+
+async function readStagedReplay(bucket: R2Bucket, objectKey: string) {
+  const object = await bucket.get(objectKey);
+  if (object === null) return null;
+  if (object.size > 1024 * 1024) return failMediaRequest(500, 'PICTIONARY_REPLAY_INVALID');
+  const replay = await validateReplayBytes(new Uint8Array(await object.arrayBuffer()), 500);
+  if (object.size !== replay.bytes.byteLength || object.customMetadata?.sha256 !== replay.sha256) {
+    return failMediaRequest(500, 'PICTIONARY_REPLAY_INVALID');
+  }
+  return {
+    objectKey,
+    byteLength: replay.bytes.byteLength,
+    sha256: replay.sha256,
+    durationMs: replay.durationMs,
+  };
+}
+
 function findDrawingEntry(state: PictionaryState, entryId: string): PictionaryDrawingEntry | null {
   for (const chain of state.chains) {
     const entry = chain.entries.find((candidate) => candidate.id === entryId);
@@ -96,6 +149,65 @@ export function canReadDrawing(
 }
 
 export const pictionaryMediaRoutes = new Hono<AppEnv>();
+
+pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId/replay', requireAuth, async (c) => {
+  const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
+  const seat = mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
+  if (seat === null) return failMediaRequest(403, 'NOT_SEATED');
+  const submissionId = c.req.param('submissionId');
+  const pngKey = buildObjectKey(roomContext.room, roomContext.state, submissionId);
+  const objectKey = replayKey(pngKey);
+  const reservation = roomContext.state.reservations.find(
+    (candidate) => candidate.submissionId === submissionId && candidate.authorSeat === seat,
+  );
+  const entry = roomContext.state.chains
+    .flatMap((chain) => chain.entries)
+    .find(
+      (candidate): candidate is PictionaryDrawingEntry =>
+        candidate.kind === 'drawing' &&
+        candidate.authorSeat === seat &&
+        candidate.media.objectKey === pngKey,
+    );
+  if (reservation === undefined && entry === undefined)
+    return failMediaRequest(409, 'PICTIONARY_UPLOAD_INVALID');
+  if (c.req.header('content-type')?.split(';')[0]?.trim() !== 'application/json') {
+    return failMediaRequest(415, 'PICTIONARY_REPLAY_CONTENT_TYPE_INVALID');
+  }
+  const body = await readBoundedBody(c.req.raw, {
+    ...PICTIONARY_DRAWING_UPLOAD_OPTIONS,
+    maxBytes: 1024 * 1024,
+  });
+  if ('status' in body) return failMediaRequest(body.status, body.reason);
+  const replay = await validateReplayBytes(body);
+  if (entry !== undefined) {
+    const stored = entry.media.replay;
+    if (
+      stored === null ||
+      stored.objectKey !== objectKey ||
+      stored.byteLength !== body.byteLength ||
+      stored.sha256 !== replay.sha256 ||
+      stored.durationMs !== replay.durationMs
+    ) {
+      return failMediaRequest(409, 'PICTIONARY_UPLOAD_CONFLICT');
+    }
+    return c.json({ success: true as const });
+  }
+  const stored = await c.env.GAME_MEDIA.put(objectKey, body, {
+    onlyIf: { etagDoesNotMatch: '*' },
+    httpMetadata: { contentType: 'application/json' },
+    customMetadata: { sha256: replay.sha256 },
+    sha256: replay.digest,
+  });
+  if (stored === null) {
+    const existing = await c.env.GAME_MEDIA.head(objectKey);
+    if (existing === null)
+      throw new Error('Conditional replay write failed without an existing object');
+    if (existing.size !== body.byteLength || existing.customMetadata?.sha256 !== replay.sha256)
+      return failMediaRequest(409, 'PICTIONARY_UPLOAD_CONFLICT');
+  }
+  return c.json({ success: true as const });
+});
 
 pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, async (c) => {
   const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
@@ -130,6 +242,10 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
     conflictReason: 'PICTIONARY_UPLOAD_CONFLICT',
     writeFailedMessage: 'Conditional R2 write failed without an existing object',
   });
+  const replay =
+    entry === undefined
+      ? await readStagedReplay(c.env.GAME_MEDIA, replayKey(objectKey))
+      : entry.media.replay;
 
   const dispatched = await callDurableObject(() =>
     roomContext.stub.dispatchInternalCommand({
@@ -148,19 +264,43 @@ pictionaryMediaRoutes.put('/:roomCode/submissions/:submissionId', requireAuth, a
           height: PICTIONARY_DRAWING_HEIGHT,
           byteLength: upload.bytes.byteLength,
           sha256: upload.sha256,
+          replay,
         },
       },
     }),
   );
   if (dispatched.kind === 'unavailable') {
-    await c.env.GAME_MEDIA.delete(objectKey);
     return c.json({ success: false as const, reason: dispatched.reason }, 404);
   }
   if (dispatched.result.kind === 'rejected') {
-    if (entry === undefined) await c.env.GAME_MEDIA.delete(objectKey);
     return c.json(dispatched.result, 409);
   }
   return c.json(dispatched.result, 200);
+});
+
+pictionaryMediaRoutes.get('/:roomCode/media/:entryId/replay', requireAuth, async (c) => {
+  const roomContext = await mediaRoomAccess.readRoom(c.env, c.req.raw, c.req.param('roomCode'));
+  const controlledSeat = mediaRoomAccess.parseControlledSeat(c.req.query('controlledSeat'));
+  mediaRoomAccess.resolveSeat(roomContext.state, c.var.userId, controlledSeat);
+  const entry = findDrawingEntry(roomContext.state, c.req.param('entryId'));
+  if (entry === null || entry.media.replay === null)
+    return failMediaRequest(404, 'PICTIONARY_MEDIA_NOT_FOUND');
+  if (
+    roomContext.state.phase !== 'gallery' &&
+    roomContext.state.phase !== 'ended' &&
+    roomContext.state.phase !== 'aborted'
+  ) {
+    return failMediaRequest(403, 'PICTIONARY_MEDIA_FORBIDDEN');
+  }
+  const object = await c.env.GAME_MEDIA.get(entry.media.replay.objectKey);
+  if (object === null) return failMediaRequest(410, 'PICTIONARY_MEDIA_EXPIRED');
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, max-age=3600',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 });
 
 pictionaryMediaRoutes.get('/:roomCode/media/:entryId', requireAuth, async (c) => {

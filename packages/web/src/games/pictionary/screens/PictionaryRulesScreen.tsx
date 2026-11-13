@@ -36,7 +36,7 @@ export function PictionaryRulesScreen() {
         <RuleItem
           icon="images-outline"
           title="一起揭晓"
-          description="最后按顺序播放每条接龙，看题目如何一路变形。"
+          description="最后同步揭晓每条接龙，文字逐字出现，画作按保留的笔画顺序回放，看题目如何一路变形。"
         />
       </GameGuideSection>
       <GameNotice text="作答时只展示当前需要接续的一项，作者会在结果播放时揭晓。" />

@@ -39,6 +39,8 @@ export interface RelayChain<TEntry> {
 export interface RelayGalleryState {
   readonly position: number;
   readonly revealedPosition: number;
+  readonly revealStartedAt: number | null;
+  readonly revealDurationMs: number;
   readonly isPlaying: boolean;
   readonly remainingMs: number | null;
 }
@@ -127,6 +129,7 @@ export interface RelayEventKit<
 > {
   readonly reasons: RelayReasons;
   readonly shape: RelayShape;
+  revealDuration(entry: TEntry): number;
   commit(events: readonly TEvent[], effects?: readonly TEffect[]): Decision<TEvent, TEffect>;
   phaseChanged(
     phase: RelayPhase,

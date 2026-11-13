@@ -262,7 +262,8 @@ describe('Story Relay settle arming', () => {
     const galleryDecision = session.expireSettle();
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).toMatchObject({ position: 0, isPlaying: true });
-    expect(session.state.deadlineAt).toBe(session.now + 10_000);
+    expect(session.state.gallery?.revealDurationMs).toBe(1040);
+    expect(session.state.deadlineAt).toBe(session.now + 11_040);
     session.expectPinMatchesState(galleryDecision);
   });
 
@@ -277,7 +278,8 @@ describe('Story Relay settle arming', () => {
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).toMatchObject({ position: 1, isPlaying: true });
     expect(session.state.stepIndex).toBe(stepIndex);
-    expect(session.state.deadlineAt).toBe(session.now + 10_000);
+    expect(session.state.gallery?.revealDurationMs).toBe(1040);
+    expect(session.state.deadlineAt).toBe(session.now + 11_040);
     session.expectPinMatchesState(decision);
   });
 

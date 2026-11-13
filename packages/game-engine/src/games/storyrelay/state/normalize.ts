@@ -169,6 +169,14 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
         state.gallery.revealedPosition < count * count,
       'gallery position',
     );
+    invariant(
+      (state.gallery.revealStartedAt === null ||
+        (Number.isSafeInteger(state.gallery.revealStartedAt) &&
+          state.gallery.revealStartedAt >= 0)) &&
+        Number.isSafeInteger(state.gallery.revealDurationMs) &&
+        state.gallery.revealDurationMs >= 0,
+      'gallery reveal timing',
+    );
   } else invariant(state.gallery === null, 'unexpected gallery');
   return state;
 }

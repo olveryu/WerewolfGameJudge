@@ -347,6 +347,113 @@ describe('Pictionary spectator media', () => {
     return { host, guest, room, state, mediaUrl };
   }
 
+  it('stages immutable replay before PNG commit and restricts reads until reveal', async () => {
+    const host = await createAnonymousSession();
+    const viewer = await createAnonymousSession();
+    const room = await createPictionaryRoom(host.access_token);
+    await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } },
+      null,
+    );
+    await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
+    let state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.game.begin' },
+      null,
+    );
+    state = await markEverySeatReady(room, host.access_token, state);
+    for (let seat = 0; seat < 4; seat += 1) {
+      state = await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.text.submit', text: 'prompt' },
+        seat === 0 ? null : seat,
+      );
+    }
+    state = await advancePhaseViaAlarm(room);
+    state = await markEverySeatReady(room, host.access_token, state);
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.drawing.reserve' },
+      null,
+    );
+    const reservation = requireReservation(state, 0);
+    const replayUrl = `https://test.local/api/games/pictionary/rooms/${room.roomCode}/submissions/${reservation.submissionId}/replay`;
+    const replay = {
+      version: 1,
+      elements: [
+        { id: 'stroke', kind: 'brush', color: '#000000', width: 5, points: [{ x: 0, y: 1 }] },
+      ],
+    };
+    const conflictingReplay = {
+      ...replay,
+      elements: replay.elements.map((element) => ({ ...element, color: '#ff0000' })),
+    };
+    const put = (body: unknown) =>
+      SELF.fetch(replayUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${host.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+    expect((await put({ ...replay, extra: true })).status).toBe(400);
+    expect((await put({ version: 1, elements: [] })).status).toBe(400);
+    expect((await put({ version: 1, elements: [], padding: 'x'.repeat(1024 * 1024) })).status).toBe(
+      413,
+    );
+    expect((await put(replay)).status).toBe(200);
+    expect((await put(replay)).status).toBe(200);
+    expect((await put(conflictingReplay)).status).toBe(409);
+    const committed = await putDrawing(room, host.access_token, reservation, null);
+    expect(committed.status).toBe(200);
+    const result = parseRoomCommandResult(await committed.json(), PICTIONARY_STATE_CODEC);
+    if (result.kind !== 'committed') throw new Error('Drawing commit rejected');
+    const entry = result.snapshot.state.chains
+      .flatMap((chain) => chain.entries)
+      .find((candidate) => candidate.id === reservation.entryId);
+    if (entry?.kind !== 'drawing') throw new Error('Drawing missing');
+    expect(entry.media.replay).toMatchObject({
+      durationMs: 2000,
+      byteLength: new TextEncoder().encode(JSON.stringify(replay)).byteLength,
+    });
+    expect((await put(replay)).status).toBe(200);
+    expect((await put(conflictingReplay)).status).toBe(409);
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.drawing.reserve' },
+      1,
+    );
+    const legacyReservation = requireReservation(state, 1);
+    expect((await putDrawing(room, host.access_token, legacyReservation, '1')).status).toBe(200);
+    const lateReplay = await SELF.fetch(
+      `https://test.local/api/games/pictionary/rooms/${room.roomCode}/submissions/${legacyReservation.submissionId}/replay?controlledSeat=1`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${host.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(replay),
+      },
+    );
+    expect(lateReplay.status).toBe(409);
+    const readUrl = `https://test.local/api/games/pictionary/rooms/${room.roomCode}/media/${entry.id}/replay`;
+    const get = () =>
+      SELF.fetch(readUrl, { headers: { Authorization: `Bearer ${viewer.access_token}` } });
+    expect((await get()).status).toBe(403);
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
+    const read = await get();
+    expect(read.status).toBe(200);
+    expect(await read.json()).toEqual(replay);
+  });
+
   it('invalidates aborted uploads while preserving accepted artwork', async () => {
     const host = await createAnonymousSession();
     const viewer = await createAnonymousSession();

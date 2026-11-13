@@ -62,7 +62,8 @@ export const STORY_RELAY_CONFIG_SCHEMA: GameConfigSchema<StoryRelayConfig> = {
     },
     galleryItemDurationSeconds: {
       kind: 'duration',
-      label: '每段回放',
+      label: '每段停留',
+      hint: '每段先播放揭晓动画，再停留所选时间',
       values: STORY_RELAY_GALLERY_DURATIONS,
       nullLabel: '手动翻页',
     },
@@ -92,6 +93,8 @@ export interface StoryRelayGallery {
   readonly revealedPosition: number;
   readonly isPlaying: boolean;
   readonly remainingMs: number | null;
+  readonly revealStartedAt: number | null;
+  readonly revealDurationMs: number;
 }
 
 export interface StoryRelayState extends BaseGameState<typeof STORY_RELAY_GAME_TYPE> {

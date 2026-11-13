@@ -125,6 +125,8 @@ function gallery(value: unknown, path: string): NonNullable<StoryRelayState['gal
       revealedPosition: parseInteger(raw.revealedPosition, `${path}.revealedPosition`),
       isPlaying: parseBoolean(raw.isPlaying, `${path}.isPlaying`),
       remainingMs: parseNullable(raw.remainingMs, `${path}.remainingMs`, parseInteger),
+      revealStartedAt: parseNullable(raw.revealStartedAt, `${path}.revealStartedAt`, parseInteger),
+      revealDurationMs: parseInteger(raw.revealDurationMs, `${path}.revealDurationMs`),
     },
     path,
   );
@@ -174,6 +176,7 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
  */
 export function migratePersistedStoryRelayState(value: unknown): StoryRelayState {
   const raw = parseObject(value, 'StoryRelayState');
+  if (raw.stateVersion === 2) return upgradeStoryRelayV2(raw);
   if (raw.stateVersion !== 1) return parseStoryRelayState(raw);
   const merged: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {
     ...legacyRealSeats(raw.realSeats, 'StoryRelayState.realSeats'),
@@ -184,9 +187,21 @@ export function migratePersistedStoryRelayState(value: unknown): StoryRelayState
     merged[seat] = { seat, kind: 'bot' };
   }
   const { realSeats: _legacyRealSeats, botSeats: _legacyBotSeats, ...rest } = raw;
-  return parseStoryRelayState({
+  return upgradeStoryRelayV2({
     ...rest,
-    stateVersion: STORY_RELAY_STATE_VERSION,
+    stateVersion: 2,
     roster: merged,
   });
+}
+
+function upgradeStoryRelayV2(raw: Record<string, unknown>): StoryRelayState {
+  const gallery =
+    raw.gallery === null
+      ? null
+      : {
+          ...parseObject(raw.gallery, 'StoryRelayState.gallery'),
+          revealStartedAt: null,
+          revealDurationMs: 0,
+        };
+  return parseStoryRelayState({ ...raw, stateVersion: STORY_RELAY_STATE_VERSION, gallery });
 }

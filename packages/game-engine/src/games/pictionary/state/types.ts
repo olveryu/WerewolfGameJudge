@@ -78,8 +78,8 @@ export const PICTIONARY_CONFIG_SCHEMA: GameConfigSchema<PictionaryConfig> = {
     },
     galleryItemDurationSeconds: {
       kind: 'duration',
-      label: '结果播放',
-      hint: '不限时会改为房主手动翻页',
+      label: '揭晓后停留',
+      hint: '每幅先播放揭晓动画，再停留所选时间；不限时会改为房主手动翻页',
       values: PICTIONARY_GALLERY_ITEM_DURATIONS,
     },
   },
@@ -101,6 +101,12 @@ export interface PictionaryMedia {
   readonly height: typeof PICTIONARY_DRAWING_HEIGHT;
   readonly byteLength: number;
   readonly sha256: string;
+  readonly replay: {
+    readonly objectKey: string;
+    readonly byteLength: number;
+    readonly sha256: string;
+    readonly durationMs: number;
+  } | null;
 }
 
 export interface PictionaryTextEntry {
@@ -155,6 +161,8 @@ export interface PictionaryGalleryState {
   readonly isPlaying: boolean;
   readonly revealedPosition: number;
   readonly remainingMs: number | null;
+  readonly revealStartedAt: number | null;
+  readonly revealDurationMs: number;
 }
 
 export interface PictionaryState extends BaseGameState<PictionaryGameType> {
