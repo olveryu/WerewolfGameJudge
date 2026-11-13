@@ -1,3 +1,4 @@
+import type { WordSubmissionBatch } from '@game-judge/game-engine/product/wordSupply';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,6 +33,7 @@ import {
   expireAdminSession,
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
+import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 import { showAlert } from '@/utils/alert';
 
 import { AdminPage } from '../AdminPage';
@@ -70,6 +72,15 @@ vi.mock('@/features/admin/services/adminAuth', async (importOriginal) => ({
 vi.mock('@/utils/alert', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/utils/alert')>()),
   showAlert: vi.fn(),
+}));
+vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/admin/services/wordSubmissionsApi')>()),
+  wordSubmissionsApi: {
+    settings: vi.fn(),
+    agents: vi.fn(),
+    batches: vi.fn(),
+    batch: vi.fn(),
+  },
 }));
 
 const user: AdminUser = {
@@ -405,6 +416,64 @@ describe('admin workspace', () => {
     view.unmount();
     view.client.clear();
   });
+
+  it.each(['/', '/room/1234?tab=players#seats'])(
+    'returns to %s after submission sections, filters, and batch navigation',
+    async (source) => {
+      const batch: WordSubmissionBatch = {
+        id: '10000000-0000-4000-8000-000000000001',
+        game: 'fibking',
+        agentId: '20000000-0000-4000-8000-000000000001',
+        agentName: 'Navigation fixture',
+        createdAt: '2026-11-13T00:00:00.000Z',
+        items: [],
+      };
+      vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
+        accepting: true,
+        pending: 0,
+        pendingLimit: 5000,
+        awaitingReview: 0,
+        awaitingPublication: 0,
+        failed: 0,
+        published: 0,
+        submittedToday: 0,
+        dailyLimit: 1000,
+        modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+      });
+      vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
+      vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+        batches: [{ ...batch, counts: {} }],
+        nextCursor: null,
+      });
+      vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
+      const view = mount(source);
+      await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+      await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
+      await userEvent.click(screen.getByRole('link', { name: '外部投稿' }));
+      await screen.findByRole('link', { name: batch.id });
+      await userEvent.click(screen.getByRole('link', { name: 'Agent 授权' }));
+      await screen.findByRole('button', { name: '新建授权' });
+      await userEvent.click(screen.getByRole('link', { name: '外部投稿' }));
+      await screen.findByRole('link', { name: batch.id });
+      await userEvent.type(screen.getByRole('textbox', { name: '搜索批次或词语' }), 'lotus');
+      await userEvent.click(screen.getByRole('button', { name: '搜索' }));
+      await waitFor(() => expect(view.router.state.location.search).toContain('search=lotus'));
+      await userEvent.click(screen.getByRole('button', { name: '清空筛选' }));
+      await waitFor(() => expect(view.router.state.location.search).toBe('?section=submissions'));
+      await userEvent.click(screen.getByRole('link', { name: batch.id }));
+      await screen.findByRole('link', { name: '返回外部投稿' });
+      await userEvent.click(screen.getByRole('link', { name: '返回外部投稿' }));
+      await userEvent.click(await screen.findByRole('link', { name: batch.id }));
+      await screen.findByRole('link', { name: '返回外部投稿' });
+      await userEvent.click(screen.getByRole('button', { name: '返回' }));
+      await waitFor(() => {
+        const { pathname, search, hash } = view.router.state.location;
+        expect(`${pathname}${search}${hash}`).toBe(source);
+      });
+      view.unmount();
+      view.client.clear();
+    },
+  );
 
   it('switches pages through grouped navigation, highlights the current page and closes the sheet', async () => {
     const view = mount();

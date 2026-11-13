@@ -25,7 +25,7 @@ export const SUBMISSION_STATUS_LABELS = {
   duplicate: '重复内容',
 } as const;
 
-/** Navigation is URL-backed, including browser back and deep-linked batch details. */
+/** Internal word navigation replaces the workspace entry so the header exits to Home/Room. */
 export function WordSections({ game, section }: { game: GameWordGame; section: string }) {
   return (
     <nav className="admin-segmented admin-submission-sections" aria-label="词库工作区">
@@ -37,6 +37,7 @@ export function WordSections({ game, section }: { game: GameWordGame; section: s
         <Link
           key={value}
           to={`/admin/words/${game}${value === 'inventory' ? '' : `?section=${value}`}`}
+          replace
           aria-current={section === value ? 'page' : undefined}
         >
           {label}

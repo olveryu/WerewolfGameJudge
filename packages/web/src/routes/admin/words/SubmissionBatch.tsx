@@ -53,7 +53,9 @@ export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; bat
         }
       />
       <div className="admin-content admin-submission-content">
-        <Link to={`/admin/words/${game}?section=submissions`}>返回外部投稿</Link>
+        <Link to={`/admin/words/${game}?section=submissions`} replace>
+          返回外部投稿
+        </Link>
         {settings.error !== null && (
           <p role="alert" className="admin-error-box">
             额度读取失败：{settings.error.message}。发布操作不消耗模型额度。

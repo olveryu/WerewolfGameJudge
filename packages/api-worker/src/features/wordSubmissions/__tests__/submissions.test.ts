@@ -1,8 +1,11 @@
 /** Real D1, HTTP authorization, durable review, and atomic publication boundaries. */
 import {
   type WordSubmissionAction,
+  wordSubmissionAgentsSchema,
   wordSubmissionBatchSchema,
   type WordSubmissionInput,
+  wordSubmissionListSchema,
+  wordSubmissionSettingsSchema,
   wordSubmissionValidationSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { env, introspectWorkflowInstance, SELF } from 'cloudflare:test';
@@ -140,6 +143,28 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('External word submissions', () => {
+  it('serves the empty submission workspace reads through the authenticated HTTP routes', async () => {
+    const responses = await Promise.all(
+      ['settings', 'batches', 'agents'].map((path) =>
+        SELF.fetch(`https://test.invalid/admin/word-submissions/${path}`, {
+          headers: { 'X-Admin-Token': env.ADMIN_PASSWORD },
+        }),
+      ),
+    );
+    for (const response of responses) expect(response.status).toBe(200);
+    const [settings, batches, agents] = await Promise.all(
+      responses.map((response) => response.json()),
+    );
+    expect(wordSubmissionSettingsSchema.parse(settings)).toMatchObject({
+      accepting: true,
+      pending: 0,
+      awaitingReview: 0,
+      awaitingPublication: 0,
+    });
+    expect(wordSubmissionListSchema.parse(batches)).toEqual({ batches: [], nextCursor: null });
+    expect(wordSubmissionAgentsSchema.parse(agents)).toEqual({ agents: [] });
+  });
+
   it('authenticates separate scopes and never stores or returns raw tokens on reads', async () => {
     const issued = await agent();
     expect(await (await request('/v1/word-submission-spec', issued.token)).json()).toMatchObject({
@@ -158,7 +183,11 @@ describe('External word submissions', () => {
     const read = await SELF.fetch('https://test.invalid/admin/word-submissions/agents', {
       headers: { 'X-Admin-Token': env.ADMIN_PASSWORD },
     });
-    expect(await read.text()).not.toContain(issued.token);
+    expect(read.status).toBe(200);
+    const text = await read.text();
+    expect(text).not.toContain(issued.token);
+    const body: unknown = JSON.parse(text);
+    expect(wordSubmissionAgentsSchema.parse(body).agents).toEqual([issued.agent]);
     expect(fetch).not.toHaveBeenCalled();
   });
 

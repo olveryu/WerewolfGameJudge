@@ -65,7 +65,7 @@ function SubmissionList({ game }: { game: GameWordGame }) {
     if (key !== 'cursor') next.delete('cursor');
     if (value) next.set(key, value);
     else next.delete(key);
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   function toggle() {
     if (settings.data === undefined) return;
@@ -109,7 +109,7 @@ function SubmissionList({ game }: { game: GameWordGame }) {
           <SubmissionFilters
             filter={filter}
             onChange={change}
-            onClear={() => setParameters({ section: 'submissions' })}
+            onClear={() => setParameters({ section: 'submissions' }, { replace: true })}
           />
           <AsyncBoundary query={batches}>
             {(data) => (
@@ -292,6 +292,7 @@ function SubmissionBatchesTable({
             <Link
               className="admin-submission-id"
               to={`?${new URLSearchParams({ ...filter, section: 'submissions', batch: batch.id })}`}
+              replace
             >
               {batch.id}
             </Link>
