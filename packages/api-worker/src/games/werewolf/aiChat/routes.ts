@@ -10,6 +10,8 @@ import { Hono } from 'hono';
 
 import type { AppEnv } from '../../../env';
 import { requireAuth } from '../../../features/auth/tokenAuth';
+import { AiProviderError } from '../../../platform/ai/aiError';
+import { requestGemini } from '../../../platform/ai/geminiRequest';
 import { jsonBody } from '../../../platform/http/jsonBody';
 import { readCloudflareRequestMetadata } from '../../../platform/http/requestMetadata';
 import { createLogger } from '../../../platform/observability/logger';
@@ -57,62 +59,66 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
   });
 
   const maxAttempts = 2; // 1 initial + 1 retry on 503
+  const requestId = crypto.randomUUID();
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const geminiResponse = await fetch(`${GEMINI_OPENAI_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${env.GEMINI_API_KEY}`,
+      const signal = AbortSignal.timeout(GEMINI_TIMEOUT_MS);
+      const geminiResponse = await requestGemini({
+        apiKey: env.GEMINI_API_KEY,
+        context: {
+          game: 'werewolf',
+          model: GEMINI_MODEL,
+          operation: 'chat',
+          attempt: attempt + 1,
+          requestId,
         },
-        body: geminiBody,
-        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+        signal,
+        privateValues: [env.GEMINI_API_KEY, messages],
+        shouldRetry: (status) => status === 503 && attempt === 0,
+        request: () =>
+          fetch(`${GEMINI_OPENAI_BASE}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${env.GEMINI_API_KEY}`,
+            },
+            body: geminiBody,
+            signal,
+          }),
+        // A 200 response starts forwarding; it does not attest that an SSE stream completed.
+        parseResponse: (response) => Promise.resolve(response),
       });
 
-      if (geminiResponse.ok) {
-        writeUsage('ok');
-        if (stream) {
-          return new Response(geminiResponse.body, {
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache',
-            },
-          });
-        }
+      writeUsage('ok');
+      if (stream) {
         return new Response(geminiResponse.body, {
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          },
         });
       }
-
-      const status = geminiResponse.status;
-
-      // 503 overload — retry once
-      if (status === 503 && attempt === 0) {
-        log.info('Gemini 503, retrying once', { model: GEMINI_MODEL });
-        continue;
-      }
-
-      const errorText = await geminiResponse.text();
-      log.warn('Gemini request failed', {
-        model: GEMINI_MODEL,
-        status,
-        error: errorText.slice(0, 200),
+      return new Response(geminiResponse.body, {
+        headers: { 'Content-Type': 'application/json' },
       });
+    } catch (error) {
+      const status = error instanceof AiProviderError ? error.diagnostic.httpStatus : undefined;
+      if (status === 503 && attempt === 0) continue;
       writeUsage('error');
       if (status === 429) {
         return c.json({ success: false, reason: 'QUOTA_EXHAUSTED' }, 429);
       }
-      if (status >= 500) {
+      if (status === undefined || status >= 500) {
+        if (!(error instanceof AiProviderError))
+          log.error('Unexpected Gemini request error', {
+            model: GEMINI_MODEL,
+            requestId,
+            attempt: attempt + 1,
+            errorType: error instanceof Error ? error.constructor.name : typeof error,
+          });
         return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
       }
       return c.json({ success: false, reason: 'GEMINI_REQUEST_REJECTED' }, 400);
-    } catch (error) {
-      log.error('Gemini request error', {
-        model: GEMINI_MODEL,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      writeUsage('error');
-      return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
     }
   }
 

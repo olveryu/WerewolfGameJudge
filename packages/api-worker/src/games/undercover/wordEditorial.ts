@@ -6,6 +6,8 @@ import {
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
+import { AiOutputValidationError } from '../../platform/ai/aiError';
+
 export const UNDERCOVER_WORD_BATCH_LIMIT = 30;
 export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v3';
 export const UNDERCOVER_WORD_REVIEW_VERSION = 'undercover-review-v2';
@@ -56,7 +58,8 @@ export type UndercoverWordReview = z.output<typeof undercoverReviewsSchema>['rev
 function canonicalizeUndercoverPair(wordA: string, wordB: string) {
   const first = wordSchema.parse(toSimplified(wordA.normalize('NFKC')).trim().toLowerCase());
   const second = wordSchema.parse(toSimplified(wordB.normalize('NFKC')).trim().toLowerCase());
-  if (first === second) throw new Error('Undercover pair contains identical words');
+  if (first === second)
+    throw new AiOutputValidationError('identicalWords', 'Undercover pair contains identical words');
   return first < second ? { wordA: first, wordB: second } : { wordA: second, wordB: first };
 }
 
@@ -77,7 +80,11 @@ export function parseUndercoverCandidates(
 ): UndercoverWordCandidate[] {
   const seen = new Set<string>();
   return undercoverCandidatesSchema.parse(value).candidates.flatMap((candidate) => {
-    if (candidate.category !== category) throw new Error('Undercover generated category mismatch');
+    if (candidate.category !== category)
+      throw new AiOutputValidationError(
+        'categoryMismatch',
+        'Undercover generated category mismatch',
+      );
     const pair = canonicalizeUndercoverPair(candidate.wordA, candidate.wordB);
     const key = JSON.stringify(pair);
     if (seen.has(key)) return [];
@@ -92,12 +99,16 @@ export function parseUndercoverReviews(
   candidates: readonly UndercoverWordCandidate[],
 ): UndercoverWordReview[] {
   const { reviews } = undercoverReviewsSchema.parse(value);
-  if (reviews.length !== candidates.length) throw new Error('Undercover review count mismatch');
+  if (reviews.length !== candidates.length)
+    throw new AiOutputValidationError('reviewCountMismatch', 'Undercover review count mismatch');
   return reviews.map((review, index) => {
     const candidate = candidates[index];
     const pair = canonicalizeUndercoverPair(review.wordA, review.wordB);
     if (candidate === undefined || pair.wordA !== candidate.wordA || pair.wordB !== candidate.wordB)
-      throw new Error('Undercover review pair mismatch');
+      throw new AiOutputValidationError(
+        'reviewIdentityMismatch',
+        'Undercover review pair mismatch',
+      );
     return { ...review, ...pair };
   });
 }

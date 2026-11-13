@@ -1,6 +1,7 @@
 /** Bounded Gemini editorial requests; generation and review use separate prompts and outputs. */
 import type { UndercoverCategory } from '@game-judge/game-engine/games/undercover/public';
 
+import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
   parseUndercoverReviews,
@@ -76,25 +77,27 @@ export function createUndercoverWordProvider(apiKey: string, fetchImpl: typeof f
     generateBatch(
       category: UndercoverCategory,
       history: readonly { wordA: string; wordB: string }[],
+      context: AiCorrelation = {},
     ) {
       return requestStructuredOutput({
         apiKey,
         model: UNDERCOVER_WORD_MODEL,
-        providerLabel: 'Undercover',
+        context: { ...context, game: 'undercover', operation: 'generate' },
         schema: undercoverCandidatesSchema,
         systemPrompt: GENERATION_PROMPT,
         payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
       });
     },
-    async reviewBatch(
+    reviewBatch(
       category: UndercoverCategory,
       candidates: readonly UndercoverWordCandidate[],
+      context: AiCorrelation = {},
     ) {
-      const output = await requestStructuredOutput({
+      return requestStructuredOutput({
         apiKey,
         model: UNDERCOVER_WORD_MODEL,
-        providerLabel: 'Undercover',
+        context: { ...context, game: 'undercover', operation: 'review' },
         schema: undercoverReviewsSchema,
         systemPrompt: REVIEW_PROMPT,
         payload: {
@@ -103,8 +106,8 @@ export function createUndercoverWordProvider(apiKey: string, fetchImpl: typeof f
           candidates: candidates.map(({ wordA, wordB }) => ({ wordA, wordB })),
         },
         fetchImpl,
+        parseOutput: (output) => parseUndercoverReviews(output, candidates),
       });
-      return parseUndercoverReviews(output, candidates);
     },
   };
 }

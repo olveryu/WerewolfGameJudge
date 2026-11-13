@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import { AiOutputValidationError } from '../../../platform/ai/aiError';
 import type { FibWordEvidence } from './tavily';
 import type { FibWordEditorialCandidate } from './types';
 
@@ -25,7 +26,10 @@ type EvidenceQuotes = ReturnType<typeof createFibWordEvidenceQuotes>;
 function resolveQuote(quoteOptions: EvidenceQuotes, evidenceIndex: number, id: string): string {
   const reference = quoteOptions.find((option) => option.id === id);
   if (reference === undefined || reference.evidenceIndex !== evidenceIndex) {
-    throw new Error(`Invalid Fib word evidence reference: ${id}`);
+    throw new AiOutputValidationError(
+      'invalidEvidenceReference',
+      `Invalid Fib word evidence reference: ${id}`,
+    );
   }
   return reference.quote;
 }
@@ -71,16 +75,22 @@ export function resolveFibWordReviewReferences(
     })
     .parse(value);
   if (payload.reviews.length !== candidates.length) {
-    throw new Error('Fib word review batch size mismatch');
+    throw new AiOutputValidationError('reviewCountMismatch', 'Fib word review batch size mismatch');
   }
   const candidateWords = new Set(candidates.map(({ word }) => word));
   const reviewsByWord = new Map<string, (typeof payload.reviews)[number]>();
   for (const review of payload.reviews) {
     if (!candidateWords.has(review.word)) {
-      throw new Error(`Fib word review returned an unknown candidate: ${review.word}`);
+      throw new AiOutputValidationError(
+        'unknownCandidate',
+        `Fib word review returned an unknown candidate: ${review.word}`,
+      );
     }
     if (reviewsByWord.has(review.word)) {
-      throw new Error(`Fib word review returned a duplicate candidate: ${review.word}`);
+      throw new AiOutputValidationError(
+        'duplicateCandidate',
+        `Fib word review returned a duplicate candidate: ${review.word}`,
+      );
     }
     reviewsByWord.set(review.word, review);
   }
@@ -89,13 +99,23 @@ export function resolveFibWordReviewReferences(
     reviews: candidates.map((candidate, index) => {
       const review = reviewsByWord.get(candidate.word);
       if (review === undefined) {
-        throw new Error(`Fib word review is missing candidate: ${candidate.word}`);
+        throw new AiOutputValidationError(
+          'missingCandidate',
+          `Fib word review is missing candidate: ${candidate.word}`,
+        );
       }
       const options = quoteOptions[index];
-      if (options === undefined) throw new Error('Fib word review batch size mismatch');
+      if (options === undefined)
+        throw new AiOutputValidationError(
+          'reviewCountMismatch',
+          'Fib word review batch size mismatch',
+        );
       if (review.evidenceIndex === null && review.evidenceQuote === null) return review;
       if (review.evidenceIndex === null || review.evidenceQuote === null) {
-        throw new Error('Fib word review reference requires both source and quote');
+        throw new AiOutputValidationError(
+          'incompleteEvidenceReference',
+          'Fib word review reference requires both source and quote',
+        );
       }
       return {
         ...review,

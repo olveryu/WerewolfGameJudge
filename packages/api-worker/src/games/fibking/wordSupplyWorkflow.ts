@@ -3,6 +3,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import { getAiDiagnostic } from '../../platform/ai/aiError';
 import {
   claimEditorialModelRequest,
   isEditorialBudgetAvailable,
@@ -13,6 +14,7 @@ import { cleanupFibWordAudit } from './maintenance';
 import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
+import { getFibWordProviderFailureKind } from './wordProviders/providerError';
 import {
   extractFibWordEvidence,
   type FibWordEvidence,
@@ -103,13 +105,18 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           Date.now(),
           { force },
         );
-        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words);
+        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words, {
+          workflowId: identity,
+        });
         await storeFibWordTopics(this.env.DB, words, classifications);
       });
     } catch (error) {
-      log.error('historical topic classification failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      if (getAiDiagnostic(error) !== undefined)
+        log.warn('historical topic classification failed', { day, runId });
+      else
+        log.error('historical topic classification failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
     }
     for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
       if (
@@ -171,6 +178,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
                 return [
                   ...(await createConfiguredFibWordProvider(this.env).generateBatch(
                     createRequest(pack.category, extraction.evidence, search.topic),
+                    { packId: pack.id },
                   )),
                 ];
               },
@@ -241,6 +249,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
                 ...(await createConfiguredFibWordProvider(this.env).reviewBatch(
                   createRequest(pack.category, []),
                   verifiedCandidates,
+                  { packId: pack.id },
                 )),
               ];
             });
@@ -255,19 +264,26 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         }),
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const diagnostic = getAiDiagnostic(error);
       const failureKind =
-        message.match(
-          /\[(timedOut|authenticationFailed|rateLimited|serviceUnavailable|invalidOutput|requestFailed)\]/,
-        )?.[1] ?? 'unclassified';
+        diagnostic?.failureKind === 'configuration'
+          ? 'unclassified'
+          : diagnostic?.failureKind === 'cancelled'
+            ? 'timedOut'
+            : (diagnostic?.failureKind ?? getFibWordProviderFailureKind(error) ?? 'unclassified');
       await step.do(`fail-${batchIndex}`, async () => {
         await failFibWordPack(this.env.DB, pack, `${failureStage}:${failureKind}`);
-        log.error('editorial pack failed', {
+        const context = {
           packId: pack.id,
           failureStage,
           failureKind,
-          error: message,
-        });
+        };
+        if (diagnostic !== undefined) log.warn('editorial pack failed', context);
+        else
+          log.error('editorial pack failed', {
+            ...context,
+            error: error instanceof Error ? error.message : String(error),
+          });
       });
       throw error;
     }

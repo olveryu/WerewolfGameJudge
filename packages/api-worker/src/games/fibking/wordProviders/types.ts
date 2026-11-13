@@ -5,6 +5,7 @@ import type {
   FibWordSource,
 } from '@game-judge/game-engine/games/fibking/public';
 
+import type { AiCorrelation } from '../../../platform/ai/aiError';
 import type { FibWordLabel, FibWordTopic } from '../wordTopics';
 import type { FibWordEvidence } from './tavily';
 
@@ -57,11 +58,15 @@ export interface FibWordReview {
 
 export interface FibWordProvider {
   /** Extract source-backed candidates without deciding which enter the active inventory. */
-  generateBatch(request: FibWordRequest): Promise<readonly FibWordEditorialCandidate[]>;
+  generateBatch(
+    request: FibWordRequest,
+    context?: AiCorrelation,
+  ): Promise<readonly FibWordEditorialCandidate[]>;
 
   /** Review a generated batch in an independent model request. */
   reviewBatch(
     request: FibWordRequest,
     candidates: readonly FibWordEditorialCandidate[],
+    context?: AiCorrelation,
   ): Promise<readonly FibWordReview[]>;
 }
