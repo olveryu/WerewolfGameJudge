@@ -28,10 +28,6 @@ interface AvalonVoteResultPanelProps {
   readonly onConfirm: () => void;
 }
 
-function seatLabel(seat: number, name: string): string {
-  return `${seat + 1} 号 · ${name}`;
-}
-
 /** 投票结算面板，展示确认进度并等待全员确认。 */
 export function AvalonVoteResultPanel({
   result,
@@ -57,12 +53,18 @@ export function AvalonVoteResultPanel({
         onConfirm,
       }}
     >
-      {result.ballots === null ? (
-        <p className="avalon-result-summary" data-testid={TESTIDS.avalonVoteResultCounts}>
-          赞成 {result.approveCount} · 反对 {result.rejectCount} · 弃权 {result.abstainCount}
-        </p>
-      ) : (
-        <>
+      <p
+        className="avalon-result-summary"
+        data-testid={
+          result.ballots === null ? TESTIDS.avalonVoteResultCounts : TESTIDS.avalonVoteResultSummary
+        }
+      >
+        {result.ballots !== null && '汇总：'}赞成 {result.approveCount} · 反对 {result.rejectCount}{' '}
+        · 弃权 {result.abstainCount}
+      </p>
+      {result.ballots !== null && (
+        <section className="avalon-vote-details" aria-label="投票明细">
+          <p className="avalon-vote-section-title">投票明细</p>
           <ul className="avalon-result-list">
             {orderedSeats.map((seatView) => {
               const ballot = result.ballots?.[seatView.seat];
@@ -70,19 +72,25 @@ export function AvalonVoteResultPanel({
                 <li
                   key={seatView.seat}
                   className="avalon-result-row"
+                  data-ballot={ballot ?? 'abstain'}
                   data-testid={TESTIDS.avalonVoteResultRow(seatView.seat)}
                 >
-                  {seatLabel(seatView.seat, seatView.displayName)} ·{' '}
-                  {ballot === undefined ? '弃权' : BALLOT_LABEL[ballot]}
+                  <span className="avalon-vote-seat">
+                    {seatView.seat + 1}
+                    <span className="visually-hidden">号</span>
+                  </span>{' '}
+                  <span className="avalon-vote-name">{seatView.displayName}</span>{' '}
+                  <span className="avalon-vote-separator" aria-hidden="true">
+                    ·
+                  </span>{' '}
+                  <span className="avalon-vote-ballot">
+                    {ballot === undefined ? '弃权' : BALLOT_LABEL[ballot]}
+                  </span>
                 </li>
               );
             })}
           </ul>
-          <p className="avalon-result-summary" data-testid={TESTIDS.avalonVoteResultSummary}>
-            汇总：赞成 {result.approveCount} · 反对 {result.rejectCount} · 弃权{' '}
-            {result.abstainCount}
-          </p>
-        </>
+        </section>
       )}
       <div
         className="avalon-result-confirmation"
@@ -92,12 +100,19 @@ export function AvalonVoteResultPanel({
         <p>
           已确认 {seats.length - pendingSeats.length} / {seats.length}
         </p>
+        <progress
+          className="avalon-vote-progress"
+          aria-label="确认进度"
+          value={seats.length - pendingSeats.length}
+          max={Math.max(seats.length, 1)}
+        />
         <p>
           {pendingSeats.length > 0
             ? `等待：${pendingSeats.map((seat) => `${seat.seat + 1}号`).join('、')}`
             : '全员已确认'}
         </p>
       </div>
+      <p className="avalon-vote-hint">全员确认后继续</p>
     </AvalonResultDialog>
   );
 }

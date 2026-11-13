@@ -60,7 +60,12 @@ export function AvalonResultDialog({
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog" data-testid={TESTIDS.avalonResultPanel(kind)}>
+          <Dialog.Content
+            className="center-dialog"
+            data-kind={kind}
+            data-testid={TESTIDS.avalonResultPanel(kind)}
+          >
+            {kind === 'vote' && <p className="avalon-vote-result-eyebrow">圆桌投票</p>}
             <Dialog.Title
               className="avalon-result-banner"
               data-outcome={outcome}
@@ -70,8 +75,8 @@ export function AvalonResultDialog({
             </Dialog.Title>
             {children}
             <Button
-              variant="secondary"
-              size="lg"
+              variant={requiresConfirmation ? 'primary' : 'secondary'}
+              size={requiresConfirmation ? 'md' : 'lg'}
               onClick={confirmation?.onConfirm ?? onClose}
               disabled={confirmation?.disabled || confirmation?.confirmed}
               data-testid={TESTIDS.avalonResultClose(kind)}
