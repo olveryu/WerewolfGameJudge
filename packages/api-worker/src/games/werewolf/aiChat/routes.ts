@@ -65,6 +65,8 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
       const signal = AbortSignal.timeout(GEMINI_TIMEOUT_MS);
       const geminiResponse = await requestGemini({
         apiKey: env.GEMINI_API_KEY,
+        protocol: 'openaiCompatible',
+        requestBytes: new TextEncoder().encode(geminiBody).byteLength,
         context: {
           game: 'werewolf',
           model: GEMINI_MODEL,

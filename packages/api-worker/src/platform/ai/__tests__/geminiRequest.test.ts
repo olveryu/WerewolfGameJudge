@@ -22,11 +22,13 @@ const context = {
 } as const;
 const options = {
   context,
+  protocol: 'native',
+  requestBytes: 123,
   apiKey: 'private-api-key',
   signal: new AbortController().signal,
   privateValues: ['private-api-key', 'private-candidate'],
   parseResponse: (response: Response) => response.json(),
-};
+} as const;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -73,6 +75,134 @@ describe('Gemini attempt diagnostics', () => {
     });
     expect(request).not.toHaveBeenCalled();
   });
+
+  it.each([
+    { protocol: 'native', wrapped: false, code: 503, status: 'UNAVAILABLE', type: undefined },
+    {
+      protocol: 'openaiCompatible',
+      wrapped: false,
+      code: 'server_error',
+      status: undefined,
+      type: 'server_error',
+    },
+    {
+      protocol: 'openaiCompatible',
+      wrapped: true,
+      code: 503,
+      status: 'UNAVAILABLE',
+      type: undefined,
+    },
+  ] as const)(
+    'preserves safe $protocol error fields (array envelope: $wrapped) across serialization',
+    async ({ protocol, wrapped, code, status, type }) => {
+      const error = {
+        code,
+        status,
+        type,
+        message: `Overloaded private-api-key private-candidate Bearer credential ${'x'.repeat(600)}`,
+        debugInfo: 'private-model-output',
+      };
+      const envelope = { error };
+      const request = vi.fn().mockResolvedValue(
+        Response.json(wrapped ? [envelope] : envelope, {
+          status: 503,
+          headers: { 'x-request-id': 'provider-request', 'retry-after': '30' },
+        }),
+      );
+      let diagnostic: ReturnType<typeof getAiDiagnostic>;
+      try {
+        await requestGemini({ ...options, protocol, request });
+      } catch (failure) {
+        expect(failure).toBeInstanceOf(AiProviderError);
+        diagnostic = getAiDiagnostic(new Error(String(failure)));
+      }
+      expect(diagnostic).toMatchObject({
+        protocol,
+        stage: 'http',
+        httpStatus: 503,
+        failureKind: 'serviceUnavailable',
+        providerCode: code,
+        providerRequestId: 'provider-request',
+        retryAfter: '30',
+        responseContentType: 'application/json',
+      });
+      expect(diagnostic?.providerStatus).toBe(status);
+      expect(diagnostic?.providerType).toBe(type);
+      expect(diagnostic?.providerMessage).toHaveLength(500);
+      const serialized = JSON.stringify(diagnostic);
+      for (const secret of [
+        'private-api-key',
+        'private-candidate',
+        'credential',
+        'private-model-output',
+      ])
+        expect(serialized).not.toContain(secret);
+      expect(request).toHaveBeenCalledOnce();
+      expect(reportError).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each([
+    { body: { error: ['private-model-output'] }, shape: 'object.error:array' },
+    {
+      body: [{ secret: 'private-model-output' }, { error: { message: 'do not select one' } }],
+      shape: 'array',
+    },
+    { body: 'private-model-output', shape: 'string' },
+  ])(
+    'retains only structural evidence for an unknown error shape: $shape',
+    async ({ body, shape }) => {
+      const request = vi.fn().mockResolvedValue(Response.json(body, { status: 503 }));
+      const failure = requestGemini({ ...options, request });
+      await expect(failure).rejects.toMatchObject({
+        diagnostic: { httpStatus: 503, errorBody: 'unrecognized', errorBodyShape: shape },
+      });
+      await expect(failure).rejects.not.toThrow('private-model-output');
+      await expect(failure).rejects.not.toThrow('do not select one');
+      expect(request).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(['http', 'responseEnvelope'] as const)(
+    'persists request metrics and protocol for %s failures, including adapter parser errors',
+    async (stage) => {
+      const request = vi
+        .fn()
+        .mockResolvedValue(
+          Response.json(
+            { error: { message: 'Unavailable private-api-key' } },
+            { status: stage === 'http' ? 503 : 200 },
+          ),
+        );
+      vi.spyOn(performance, 'now').mockReturnValueOnce(100).mockReturnValue(137);
+      const failure = requestGemini({
+        ...options,
+        protocol: 'openaiCompatible',
+        request,
+        parseResponse: async () =>
+          parseAiOutput(context, 'responseEnvelope', () =>
+            z.strictObject({ count: z.number() }).parse({ count: 'private-model-output' }),
+          ),
+      });
+      let diagnostic: ReturnType<typeof getAiDiagnostic>;
+      try {
+        await failure;
+      } catch (error) {
+        expect(error).toBeInstanceOf(AiProviderError);
+        diagnostic = getAiDiagnostic(new Error(String(error)));
+      }
+      expect(diagnostic).toMatchObject({
+        ...context,
+        stage,
+        protocol: 'openaiCompatible',
+        requestBytes: 123,
+        durationMs: 37,
+      });
+      expect(JSON.stringify(diagnostic)).not.toContain('private-model-output');
+      expect(reportError).toHaveBeenCalledOnce();
+      expect(request).toHaveBeenCalledOnce();
+    },
+  );
 
   it.each([
     { reason: new DOMException('private reason', 'TimeoutError'), failureKind: 'timedOut' },
