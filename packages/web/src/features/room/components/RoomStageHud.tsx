@@ -137,6 +137,7 @@ function RosterRow({
       {takeOver !== null && (
         <Button
           variant="secondary"
+          size="sm"
           onClick={takeOver}
           aria-label={`接管 ${entry.seat + 1} 号位（${entry.displayName}）`}
           data-testid={TESTIDS.roomStageTakeOverButton(entry.seat)}

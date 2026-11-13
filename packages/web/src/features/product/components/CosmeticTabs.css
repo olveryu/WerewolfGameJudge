@@ -9,10 +9,7 @@
 
 .cosmetic-tab {
   flex: 1;
-  min-height: var(--size-min-touch-target);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: var(--size-button-sm);
   border: none;
   border-radius: var(--radius-medium);
   background: transparent;
@@ -48,11 +45,6 @@
 .rarity-filter {
   /* Share the row when the chips fit; scroll sideways when they do not. */
   flex: 1 0 auto;
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: var(--space-tight) var(--space-small);
   border: none;
   border-radius: var(--radius-full);

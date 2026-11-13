@@ -2,7 +2,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-micro);
-  min-height: var(--size-min-touch-target);
   padding: var(--space-micro) var(--space-small);
   border: none;
   border-radius: var(--radius-small);

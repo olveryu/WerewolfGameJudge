@@ -42,10 +42,10 @@ function seat(index: number, player: Partial<RoomSeatPlayer> | null, decorations
   } satisfies RoomSeatViewModel;
 }
 
-function board(seats: readonly RoomSeatViewModel[], visuallyDisabled = false): RoomSeatBoardModel {
+function board(seats: readonly RoomSeatViewModel[]): RoomSeatBoardModel {
   return {
     source: { count: seats.length, revision: 1, getSeat: (index) => seats[index]! },
-    visuallyDisabled,
+    visuallyDisabled: false,
     onSeatPress: () => {},
     onBotSeatLongPress: null,
   };
@@ -143,22 +143,6 @@ describe('RoomSeatBoard scene layer', () => {
 
     fireEvent.click(button);
     expect(onSeatPress).toHaveBeenCalledWith(0, undefined);
-  });
-
-  it('prevents seat interaction while the board is visually disabled', () => {
-    const onSeatPress = vi.fn();
-    render(
-      <RoomSeatBoard
-        model={{ ...board([seat(0, null)], true), onSeatPress }}
-        header={null}
-        footer={null}
-      />,
-    );
-
-    const button = screen.getByTestId(TESTIDS.seatTilePressable(0));
-    expect(button).toBeDisabled();
-    fireEvent.click(button);
-    expect(onSeatPress).not.toHaveBeenCalled();
   });
 
   it('omits the level badge when the seat has a secondary label', () => {

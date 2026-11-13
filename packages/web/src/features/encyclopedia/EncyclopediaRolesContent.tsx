@@ -48,7 +48,6 @@ export function EncyclopediaRolesContent({
           <input
             type="search"
             className="encyclopedia-search-input"
-            aria-label="搜索角色名/技能"
             placeholder="搜索角色名/技能"
             value={state.searchQuery}
             onChange={(event) => state.setSearchQuery(event.currentTarget.value)}

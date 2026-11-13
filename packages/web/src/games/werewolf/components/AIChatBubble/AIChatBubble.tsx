@@ -15,7 +15,6 @@ import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { RoomIdentity } from '@/platform/realtime/types';
-import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 import IconClose from '~icons/ion/close';
 import IconHandLeftOutline from '~icons/ion/hand-left-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
@@ -38,7 +37,6 @@ interface AIChatBubbleProps {
 
 export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubbleProps) {
   const chat = useAIChat(session, identity);
-  const prefersReducedMotion = usePrefersReducedMotion();
   const { messages } = chat;
 
   // ── Pulse after roles are assigned (a false → true edge, not the initial value) ──
@@ -76,11 +74,6 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
 
   const lastMessage = messages.at(-1);
   const isSendDisabled = !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0;
-  const sendButtonLabel = chat.isLoading
-    ? '发送中'
-    : chat.cooldownRemaining > 0
-      ? `发送，冷却中，剩余 ${chat.cooldownRemaining} 秒`
-      : '发送';
 
   const renderSendContent = () => {
     if (chat.isLoading) return <Spinner label="发送中" />;
@@ -94,17 +87,11 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
         className="ai-chat-bubble-anchor"
         style={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}
       >
-        <span id="ai-chat-bubble-keyboard-hint" className="visually-hidden">
-          聚焦后使用方向键移动助手，按回车或空格打开。
-        </span>
         {pulseCount > 0 && <span key={pulseCount} className="ai-chat-pulse" aria-hidden />}
         <button
           type="button"
           className="ai-chat-bubble"
           aria-haspopup="dialog"
-          aria-describedby="ai-chat-bubble-keyboard-hint"
-          aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
-          onKeyDown={chat.bubble.handleKeyDown}
           onPointerDown={chat.bubble.handlePointerDown}
           onPointerMove={chat.bubble.handlePointerMove}
           onPointerUp={chat.bubble.handlePointerUp}
@@ -178,7 +165,7 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
                     onClick={() =>
                       listRef.current?.scrollTo({
                         top: listRef.current.scrollHeight,
-                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                        behavior: 'smooth',
                       })
                     }
                   >
@@ -215,7 +202,7 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
                 <button
                   type="button"
                   className="ai-chat-send"
-                  aria-label={sendButtonLabel}
+                  aria-label="发送"
                   disabled={isSendDisabled}
                   onClick={() => void chat.handleSend()}
                 >

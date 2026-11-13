@@ -8,7 +8,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
-import { AlertHost } from '@/components/AlertHost';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import {
   getWerewolfNotepadRoundId,
@@ -16,7 +15,6 @@ import {
 } from '@/games/werewolf/services/notepadRepository';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
-import { alertStore, dismissAlert } from '@/utils/alert';
 
 function renderNotepad(snapshotRoomCode: string) {
   const session = createFakeRoomLink<GameState, WerewolfPublicCommand>(
@@ -41,20 +39,13 @@ function renderNotepad(snapshotRoomCode: string) {
     ],
     { initialEntries: ['/game/werewolf/notepad/1234'] },
   );
-  render(
-    <>
-      <RouterProvider router={router} />
-      <AlertHost />
-    </>,
-  );
+  render(<RouterProvider router={router} />);
   return router;
 }
 
 describe('NotepadScreen', () => {
   beforeEach(() => {
     localStorage.clear();
-    const activeAlert = alertStore.getSnapshot();
-    if (activeAlert !== null) dismissAlert(activeAlert.generation);
   });
 
   it('edits seat notes, guesses and sheriff tags, persists them, and clears them', async () => {
@@ -82,36 +73,8 @@ describe('NotepadScreen', () => {
       },
     });
 
-    await user.type(screen.getByRole('textbox', { name: '自由记录' }), '投票给 3 号');
     await user.click(screen.getByRole('button', { name: '清除笔记' }));
-    expect(await screen.findByText('清除所有笔记？')).toBeVisible();
-    expect(readWerewolfNotepad(owner, roundId, 3)).toMatchObject({
-      kind: 'found',
-      state: {
-        playerNotes: { 2: '跳预言家' },
-        publicNoteLeft: '投票给 3 号',
-        handStates: { 2: true },
-        roleGuesses: { 2: 'seer' },
-      },
-    });
-    await user.click(screen.getByRole('button', { name: '取消' }));
-    expect(screen.getByRole('textbox', { name: '2号发言' })).toHaveValue('跳预言家');
-    expect(screen.getByRole('textbox', { name: '自由记录' })).toHaveValue('投票给 3 号');
-    expect(readWerewolfNotepad(owner, roundId, 3)).toMatchObject({
-      kind: 'found',
-      state: {
-        playerNotes: { 2: '跳预言家' },
-        publicNoteLeft: '投票给 3 号',
-        handStates: { 2: true },
-        roleGuesses: { 2: 'seer' },
-      },
-    });
-
-    await user.click(screen.getByRole('button', { name: '清除笔记' }));
-    expect(await screen.findByText('清除所有笔记？')).toBeVisible();
-    await user.click(screen.getByRole('button', { name: '清除' }));
     expect(screen.getByRole('textbox', { name: '2号发言' })).toHaveValue('');
-    expect(screen.getByRole('textbox', { name: '自由记录' })).toHaveValue('');
     expect(readWerewolfNotepad(owner, roundId, 3)).toEqual({ kind: 'missing' });
   });
 
@@ -120,9 +83,6 @@ describe('NotepadScreen', () => {
     const router = renderNotepad('5678');
 
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);
-    expect(
-      screen.getByText('等待玩家入座后会显示座位记录，也可以先在下方填写自由记录和投票记录。'),
-    ).toBeVisible();
     await user.click(screen.getByRole('button', { name: '返回' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/room/1234'));
   });

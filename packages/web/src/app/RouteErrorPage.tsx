@@ -1,5 +1,3 @@
-import './RouteErrorPage.css';
-
 import { captureException } from '@sentry/react';
 import { useEffect } from 'react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
@@ -22,9 +20,7 @@ export function RouteErrorPage() {
     return (
       <main className="route-error">
         <h1>页面不存在</h1>
-        <Link className="route-error-home" to="/">
-          返回首页
-        </Link>
+        <Link to="/">返回首页</Link>
       </main>
     );
   }
@@ -36,9 +32,6 @@ export function RouteErrorPage() {
       <button type="button" onClick={() => window.location.reload()}>
         重新加载
       </button>
-      <Link className="route-error-home" to="/">
-        返回首页
-      </Link>
     </main>
   );
 }

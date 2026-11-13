@@ -3,51 +3,33 @@
   position: relative;
   flex: none;
   width: 48px;
-  height: var(--size-min-touch-target);
+  height: 28px;
   margin: 0;
   border-radius: var(--radius-full);
-  background: transparent;
-  cursor: pointer;
-}
-
-.switch::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 28px;
-  border-radius: var(--radius-full);
   background: var(--color-border);
-  transform: translateY(-50%);
+  cursor: pointer;
   transition: background-color 150ms ease-out;
 }
 
 .switch::after {
   content: '';
   position: absolute;
-  top: 50%;
+  top: 3px;
   left: 3px;
   width: 22px;
   height: 22px;
   border-radius: var(--radius-full);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  transform: translateY(-50%);
   transition: transform 150ms ease-out;
 }
 
-.switch:checked::before {
+.switch:checked {
   background: var(--color-primary);
 }
 
-.switch[data-tone='warning']:checked::before {
+.switch[data-tone='warning']:checked {
   background: var(--color-warning);
-}
-
-.switch:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: var(--space-micro);
 }
 
 .switch:disabled {
@@ -56,5 +38,5 @@
 }
 
 .switch:checked::after {
-  transform: translate(20px, -50%);
+  transform: translateX(20px);
 }

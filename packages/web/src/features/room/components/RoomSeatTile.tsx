@@ -117,20 +117,19 @@ function RoomSeatTileComponent({
         data-framed={residents !== null && residents.frameId !== null}
         data-highlight={model.highlight}
         data-inert={isBoardDisabled || model.disabledReason !== undefined}
-        disabled={isBoardDisabled}
         aria-label={describeSeat(model)}
         aria-pressed={
           indicators?.selection === undefined || indicators.selection === null
             ? undefined
             : indicators.selection.kind === 'selected'
         }
-        onPointerDown={isBoardDisabled ? undefined : longPress.onPointerDown}
-        onPointerUp={isBoardDisabled ? undefined : longPress.onPointerUp}
-        onPointerLeave={isBoardDisabled ? undefined : longPress.onPointerLeave}
-        onPointerCancel={isBoardDisabled ? undefined : longPress.onPointerCancel}
-        onContextMenu={isBoardDisabled ? undefined : longPress.onContextMenu}
+        onPointerDown={longPress.onPointerDown}
+        onPointerUp={longPress.onPointerUp}
+        onPointerLeave={longPress.onPointerLeave}
+        onPointerCancel={longPress.onPointerCancel}
+        onContextMenu={longPress.onContextMenu}
         onClick={() => {
-          if (isBoardDisabled || longPress.consumeLongPress()) return;
+          if (longPress.consumeLongPress()) return;
           onPress(seat, model.disabledReason);
         }}
       >

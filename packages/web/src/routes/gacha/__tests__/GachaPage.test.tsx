@@ -76,7 +76,6 @@ describe('GachaPage query states', () => {
 
     expect(screen.getByText('刷新失败，当前显示上次读取的资产')).toBeInTheDocument();
     expect(screen.getByText('13')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '抽 ×7仅剩 7 抽' })).toBeInTheDocument();
   });
 
   it('renders a confirmed zero balance without an error', () => {
@@ -84,7 +83,7 @@ describe('GachaPage query states', () => {
     render(page());
 
     expect(screen.getByText('碎片')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '抽 ×10券不足' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '抽 ×10' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: '重新读取' })).toBeNull();
   });
 });

@@ -13,7 +13,6 @@
   align-items: center;
   gap: var(--space-medium);
   width: 100%;
-  min-height: var(--size-min-touch-target);
   margin-bottom: var(--space-tight);
   padding: var(--space-small) var(--space-medium);
   border: none;

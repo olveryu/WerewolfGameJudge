@@ -4,7 +4,6 @@
   top: var(--space-xlarge);
   right: var(--space-small);
   display: inline-flex;
-  min-height: var(--size-min-touch-target);
   align-items: center;
   gap: var(--space-tight);
   padding: var(--space-tight) var(--space-small);
@@ -27,7 +26,6 @@
 }
 
 .role-variant-pill {
-  min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);

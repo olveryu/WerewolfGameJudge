@@ -6,7 +6,7 @@
  */
 import './FeedbackTab.css';
 
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Spinner } from '@/components/Spinner';
@@ -112,17 +112,13 @@ function FeedbackCompose({
   onSubmit,
   onBack,
 }: FeedbackComposeProps) {
-  const inputId = useId();
   const isSubmitDisabled = text.trim().length === 0 || isSubmitting;
   return (
     <div className="feedback-area">
       <BackButton onBack={onBack} />
-      <label className="feedback-input-label" htmlFor={inputId}>
-        反馈内容
-      </label>
       <textarea
-        id={inputId}
         className="feedback-input"
+        aria-label="反馈内容"
         value={text}
         onChange={(event) => onTextChange(event.target.value)}
         placeholder="说说你的建议或遇到的问题…"

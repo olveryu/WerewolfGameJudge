@@ -246,8 +246,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
+  width: var(--size-button-sm);
+  height: var(--size-button-sm);
   padding: 0;
   border: none;
   border-radius: var(--radius-full);
@@ -349,7 +349,6 @@
 .ai-chat-quick-question {
   flex: 0 1 calc(50% - var(--space-small) / 2);
   min-width: 0;
-  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) var(--space-medium);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
@@ -379,23 +378,9 @@
   background: var(--color-background);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ai-chat-bubble {
-    transition: none;
-  }
-
-  .ai-chat-pulse,
-  .ai-chat-backdrop[data-state='open'],
-  .ai-chat-window[data-state='open'],
-  .ai-chat-cursor,
-  .ai-chat-typing-dot {
-    animation: none;
-  }
-}
-
 .ai-chat-input {
   flex: 1;
-  min-height: var(--size-min-touch-target);
+  min-height: var(--size-button-sm);
   max-height: 80px;
   padding: var(--space-tight) var(--space-small);
   border: none;
@@ -414,8 +399,8 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
+  width: var(--size-button-sm);
+  height: var(--size-button-sm);
   padding: 0;
   border: none;
   border-radius: var(--radius-full);

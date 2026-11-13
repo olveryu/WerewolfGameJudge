@@ -351,11 +351,7 @@ function GameAudioSection({
             onClick={() => togglePreview(preview)}
           >
             {isPreviewing ? <IconStopCircle aria-hidden /> : <IconPlayCircle aria-hidden />}
-            <span>
-              {isPreviewing
-                ? `停止${preview.label}（${preview.gameLabel}）`
-                : `${preview.label}（${preview.gameLabel}）`}
-            </span>
+            <span>{isPreviewing ? '停止试听' : preview.label}</span>
           </button>
         );
       })}

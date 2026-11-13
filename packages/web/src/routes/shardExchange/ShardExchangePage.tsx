@@ -152,7 +152,7 @@ function ExchangeCell({
           disabled={!canAfford || isExchanging}
           onClick={() => onExchange(item, displayName)}
         >
-          <IconDiamondOutline aria-hidden /> {item.cost}
+          ✦ {item.cost}
         </button>
       )}
       {!item.isOwned && !canAfford && (
