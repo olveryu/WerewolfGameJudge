@@ -36,6 +36,7 @@ export function UndercoverCategoryField({
   value,
   onChange,
   issueMessage,
+  issueId,
   testId,
 }: ConfigFieldRendererProps) {
   if (spec.kind !== 'choice') {
@@ -80,10 +81,13 @@ export function UndercoverCategoryField({
           optionTestId={(option) =>
             TESTIDS.gameConfigFieldOption('undercover', 'category', String(option))
           }
+          issueId={issueMessage === null ? undefined : issueId}
+          isInvalid={issueMessage !== null}
         />
       )}
       {issueMessage !== null && (
         <p
+          id={issueId}
           className="game-settings-issue"
           aria-live="polite"
           data-testid={TESTIDS.gameConfigFieldIssue('undercover', 'category')}

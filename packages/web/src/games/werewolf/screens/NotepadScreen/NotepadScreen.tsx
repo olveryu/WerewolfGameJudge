@@ -20,7 +20,7 @@ import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSes
 import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { requestAIChatMessage, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import IconClipboardOutline from '~icons/ion/clipboard-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconTrashOutline from '~icons/ion/trash-outline';
@@ -89,7 +89,14 @@ export function NotepadScreen({ session }: { readonly session: WerewolfRoomSessi
           label="清除笔记"
           icon={<IconTrashOutline aria-hidden />}
           className="notepad-header-button"
-          onClick={notepad.clearAll}
+          onClick={() =>
+            showDestructiveAlert(
+              '清除所有笔记？',
+              '本局的发言记录、角色猜测、上警标记和公共记录都会被删除，且无法恢复。',
+              '清除',
+              notepad.clearAll,
+            )
+          }
         />
       </ScreenHeader>
 

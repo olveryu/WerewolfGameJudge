@@ -6,6 +6,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-tight);
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  justify-content: center;
   padding: var(--space-tight) var(--space-small);
   border: none;
   border-radius: var(--radius-full);

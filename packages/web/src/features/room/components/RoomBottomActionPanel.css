@@ -141,7 +141,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-micro);
-  padding: 0;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-tight);
   border: none;
   background: none;
   color: var(--color-text-muted);

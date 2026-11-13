@@ -7,6 +7,7 @@ import {
   Suspense,
   useEffect,
   useEffectEvent,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -206,55 +207,85 @@ function AvatarTeaser() {
 
 function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const changePassword = useChangePassword();
+  const formId = useId();
+  const errorId = `${formId}-error`;
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{
+    message: string;
+    field?: 'oldPassword' | 'newPassword' | 'confirmPassword';
+  } | null>(null);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!oldPassword) return setError('请输入旧密码');
-    if (!newPassword) return setError('请输入新密码');
-    if (newPassword.length < MIN_PASSWORD_LENGTH) return setError('新密码至少 6 个字符');
-    if (newPassword !== confirmPassword) return setError('两次输入的新密码不一致');
-    if (newPassword === oldPassword) return setError('新密码不能与旧密码相同');
+    if (!oldPassword) return setError({ field: 'oldPassword', message: '请输入旧密码' });
+    if (!newPassword) return setError({ field: 'newPassword', message: '请输入新密码' });
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      return setError({ field: 'newPassword', message: '新密码至少 6 个字符' });
+    }
+    if (newPassword !== confirmPassword) {
+      return setError({ field: 'confirmPassword', message: '两次输入的新密码不一致' });
+    }
+    if (newPassword === oldPassword) {
+      return setError({ field: 'newPassword', message: '新密码不能与旧密码相同' });
+    }
     setError(null);
     try {
       await changePassword.mutateAsync({ oldPassword, newPassword });
       toast.success('密码已修改');
       onDone();
     } catch (caught: unknown) {
-      setError(getUserFacingMessage(caught));
+      setError({ message: getUserFacingMessage(caught) });
     }
   };
 
   return (
     <form className="settings-form" onSubmit={(event) => void submit(event)}>
-      <input
-        className="text-input"
-        type="password"
-        placeholder="旧密码"
-        autoComplete="current-password"
-        value={oldPassword}
-        onChange={(event) => setOldPassword(event.target.value)}
-      />
-      <input
-        className="text-input"
-        type="password"
-        placeholder="新密码（至少 6 位）"
-        autoComplete="new-password"
-        value={newPassword}
-        onChange={(event) => setNewPassword(event.target.value)}
-      />
-      <input
-        className="text-input"
-        type="password"
-        placeholder="确认新密码"
-        autoComplete="new-password"
-        value={confirmPassword}
-        onChange={(event) => setConfirmPassword(event.target.value)}
-      />
-      {error && <p className="settings-error">{error}</p>}
+      <label className="settings-form-field" htmlFor={`${formId}-old-password`}>
+        <span>旧密码</span>
+        <input
+          id={`${formId}-old-password`}
+          className="text-input"
+          type="password"
+          autoComplete="current-password"
+          value={oldPassword}
+          aria-invalid={error?.field === 'oldPassword'}
+          aria-describedby={error?.field === 'oldPassword' ? errorId : undefined}
+          onChange={(event) => setOldPassword(event.target.value)}
+        />
+      </label>
+      <label className="settings-form-field" htmlFor={`${formId}-new-password`}>
+        <span>新密码（至少 6 位）</span>
+        <input
+          id={`${formId}-new-password`}
+          className="text-input"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          aria-invalid={error?.field === 'newPassword'}
+          aria-describedby={error?.field === 'newPassword' ? errorId : undefined}
+          onChange={(event) => setNewPassword(event.target.value)}
+        />
+      </label>
+      <label className="settings-form-field" htmlFor={`${formId}-confirm-password`}>
+        <span>确认新密码</span>
+        <input
+          id={`${formId}-confirm-password`}
+          className="text-input"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          aria-invalid={error?.field === 'confirmPassword'}
+          aria-describedby={error?.field === 'confirmPassword' ? errorId : undefined}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+        />
+      </label>
+      {error !== null && (
+        <p id={errorId} className="settings-error" role="alert">
+          {error.message}
+        </p>
+      )}
       <div className="settings-row-actions">
         <Button variant="secondary" onClick={onDone}>
           取消
@@ -624,8 +655,17 @@ function DisplaySection() {
 
 function AboutSection() {
   const copyWechat = async () => {
-    await navigator.clipboard.writeText(DEVELOPER_WECHAT_ID);
-    toast.success('已复制微信号');
+    try {
+      await navigator.clipboard.writeText(DEVELOPER_WECHAT_ID);
+      toast.success('已复制微信号');
+    } catch (error: unknown) {
+      handleError(error, {
+        label: '复制微信号',
+        logger: settingsLog,
+        feedback: 'toast',
+        alertMessage: '复制失败，请检查剪贴板权限后重试',
+      });
+    }
   };
   return (
     <section className="settings-card">

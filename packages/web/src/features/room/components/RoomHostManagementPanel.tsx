@@ -18,15 +18,17 @@ import { DisabledReasonCaption } from './RoomControls';
 function ManagementAction({
   action,
   isTaskAction,
+  showTaskActionReason,
   onClose,
 }: {
   readonly action: RoomHostManagementAction;
   /** The task card already renders this action's blocked reason; the sheet row carries none. */
   readonly isTaskAction: boolean;
+  readonly showTaskActionReason: boolean;
   readonly onClose: () => void;
 }) {
   const reason =
-    !action.isEnabled && !isTaskAction && action.disabledReason !== null
+    !action.isEnabled && (!isTaskAction || showTaskActionReason) && action.disabledReason !== null
       ? action.disabledReason
       : null;
   return (
@@ -56,9 +58,11 @@ function ManagementAction({
 function ManagementContent({
   model,
   onClose,
+  showTaskActionReasons,
 }: {
   readonly model: RoomHostManagementModel;
   readonly onClose: () => void;
+  readonly showTaskActionReasons: boolean;
 }) {
   return (
     <>
@@ -83,6 +87,7 @@ function ManagementContent({
                   isTaskAction={
                     model.task?.kind === 'action' && model.task.actionKey === action.key
                   }
+                  showTaskActionReason={showTaskActionReasons}
                   onClose={onClose}
                 />
               ))}
@@ -111,7 +116,7 @@ export function RoomHostManagementPanel({
         aria-label={HOST_MANAGEMENT_LABEL}
         data-testid={TESTIDS.roomHostManagementPanel}
       >
-        <ManagementContent model={model} onClose={onClose} />
+        <ManagementContent model={model} onClose={onClose} showTaskActionReasons={false} />
       </aside>
     );
   }
@@ -121,7 +126,7 @@ export function RoomHostManagementPanel({
       onClose={onClose}
       testId={TESTIDS.roomHostManagementPanel}
     >
-      <ManagementContent model={model} onClose={onClose} />
+      <ManagementContent model={model} onClose={onClose} showTaskActionReasons />
     </BottomSheet>
   );
 }

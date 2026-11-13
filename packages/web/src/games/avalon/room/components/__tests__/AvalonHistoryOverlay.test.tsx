@@ -124,6 +124,31 @@ function voteCountText(text: string) {
 }
 
 describe('AvalonHistoryOverlay', () => {
+  it('navigates round tabs with arrow keys and exposes the selected panel', () => {
+    const { getByTestId, getByRole } = renderOverlay([settledRound, openRound]);
+    const firstTab = getByTestId('avalon-history-tab-1');
+    const lastTab = getByTestId('avalon-history-tab-2');
+    expect(firstTab).toHaveAttribute('tabindex', '-1');
+    expect(lastTab).toHaveAttribute('tabindex', '0');
+
+    lastTab.focus();
+    fireEvent.keyDown(lastTab, { key: 'ArrowLeft' });
+    expect(firstTab).toHaveFocus();
+    expect(firstTab).toHaveAttribute('aria-selected', 'true');
+    expect(getByRole('tabpanel', { name: '任务一' })).toHaveAttribute(
+      'id',
+      firstTab.getAttribute('aria-controls'),
+    );
+
+    fireEvent.keyDown(firstTab, { key: 'End' });
+    expect(lastTab).toHaveFocus();
+    expect(lastTab).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(lastTab, { key: 'Home' });
+    expect(firstTab).toHaveFocus();
+    fireEvent.keyDown(firstTab, { key: 'ArrowLeft' });
+    expect(lastTab).toHaveFocus();
+  });
+
   it('defaults to the latest round and switches rounds by tab', () => {
     const { getByTestId, queryByTestId } = renderOverlay([settledRound, openRound]);
     expect(getByTestId('avalon-history-round-2')).toBeTruthy();

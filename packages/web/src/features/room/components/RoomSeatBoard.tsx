@@ -1,7 +1,15 @@
 /** Paged seat board used by every game room; a page holds 12 rows. */
 import './RoomSeatBoard.css';
 
-import { memo, type ReactNode, Suspense, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  memo,
+  type ReactNode,
+  Suspense,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { useSeatDecorationsPreference } from '@/features/product/hooks/useSeatDecorationsPreference';
@@ -34,10 +42,13 @@ function SeatPagination({
   readonly pageCount: number;
   readonly onPageChange: (page: number) => void;
 }) {
+  const errorId = useId();
   const [draft, setDraft] = useState<{ readonly page: number; readonly text: string } | null>(null);
+  const [errorPage, setErrorPage] = useState<number | null>(null);
   const text = draft !== null && draft.page === page ? draft.text : String(page);
   const requested = /^\d+$/.test(text) ? Number(text) : Number.NaN;
   const isInvalid = !(Number.isSafeInteger(requested) && requested >= 1 && requested <= pageCount);
+  const showsError = isInvalid && errorPage === page;
   return (
     <nav className="seat-pagination" aria-label="座位分页" data-testid={TESTIDS.roomSeatPagination}>
       <IconButton
@@ -47,28 +58,45 @@ function SeatPagination({
         onClick={() => onPageChange(page - 1)}
         data-testid={TESTIDS.roomSeatPreviousPage}
       />
-      <form
-        className="seat-pagination-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!isInvalid) onPageChange(requested);
-        }}
-      >
-        <span>第</span>
-        <input
-          className="seat-pagination-input"
-          inputMode="numeric"
-          enterKeyHint="go"
-          maxLength={String(pageCount).length}
-          value={text}
-          aria-invalid={isInvalid}
-          aria-label="座位页码"
-          data-testid={TESTIDS.roomSeatPageInput}
-          onFocus={(event) => event.currentTarget.select()}
-          onChange={(event) => setDraft({ page, text: event.currentTarget.value })}
-        />
-        <span>/ {pageCount} 页</span>
-      </form>
+      <div className="seat-pagination-control">
+        <form
+          className="seat-pagination-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (isInvalid) {
+              setErrorPage(page);
+              return;
+            }
+            setErrorPage(null);
+            onPageChange(requested);
+          }}
+        >
+          <span>第</span>
+          <input
+            className="seat-pagination-input"
+            inputMode="numeric"
+            enterKeyHint="go"
+            maxLength={String(pageCount).length}
+            value={text}
+            aria-invalid={showsError}
+            aria-describedby={showsError ? errorId : undefined}
+            aria-label="座位页码"
+            data-testid={TESTIDS.roomSeatPageInput}
+            onFocus={(event) => event.currentTarget.select()}
+            onBlur={() => setErrorPage(isInvalid ? page : null)}
+            onChange={(event) => {
+              setDraft({ page, text: event.currentTarget.value });
+              setErrorPage(null);
+            }}
+          />
+          <span>/ {pageCount} 页</span>
+        </form>
+        {showsError && (
+          <span id={errorId} className="seat-pagination-error" aria-live="polite">
+            请输入 1 至 {pageCount} 之间的页码
+          </span>
+        )}
+      </div>
       <IconButton
         label="下一页座位"
         icon={<IconChevronForward aria-hidden />}

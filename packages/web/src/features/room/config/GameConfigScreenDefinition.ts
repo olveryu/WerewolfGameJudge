@@ -27,6 +27,8 @@ export interface ConfigFieldRendererProps {
   readonly onChange: (value: ConfigFieldValue) => void;
   /** Inline validation message for this field, or null. */
   readonly issueMessage: string | null;
+  /** Id of the inline validation message for this field. */
+  readonly issueId: string;
   readonly testId: string;
 }
 

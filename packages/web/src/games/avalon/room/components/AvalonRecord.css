@@ -486,6 +486,7 @@ button.avalon-rejected-header {
   flex-direction: column;
   gap: var(--space-tight);
   width: 100%;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-medium);
   border: none;
   border-radius: var(--radius-medium);
@@ -565,6 +566,7 @@ button.avalon-rejected-header {
 
 .avalon-history-tab {
   flex: 1;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) var(--space-small);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-full);

@@ -9,9 +9,11 @@ describe('loadClientGameAudioPreviews', () => {
 
     const previews = await loadClientGameAudioPreviews(audioService);
 
-    expect(previews.map(({ gameType, label }) => ({ gameType, label }))).toEqual([
-      { gameType: 'werewolf', label: '试听效果' },
-      { gameType: 'avalon', label: '试听效果' },
+    expect(
+      previews.map(({ gameType, gameLabel, label }) => ({ gameType, gameLabel, label })),
+    ).toEqual([
+      { gameType: 'werewolf', gameLabel: '狼人杀', label: '试听效果' },
+      { gameType: 'avalon', gameLabel: '阿瓦隆', label: '试听效果' },
     ]);
     const [werewolf, avalon] = previews;
     await werewolf!.play();

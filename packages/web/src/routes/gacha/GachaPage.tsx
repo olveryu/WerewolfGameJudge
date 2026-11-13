@@ -241,7 +241,7 @@ function GachaSession() {
           <p className="gacha-status-message" role="alert">
             刷新失败，当前显示上次读取的资产
           </p>
-          <Button variant="ghost" size="sm" loading={isFetching} onClick={() => void refetch()}>
+          <Button variant="ghost" loading={isFetching} onClick={() => void refetch()}>
             重新读取
           </Button>
         </div>

@@ -14,7 +14,7 @@ import {
   REVIEW_CAPTURE_TIMEOUT_MS,
 } from '../helpers/image-sharing';
 import { setOffline } from '../helpers/resilience';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { linkStatusBanner, waitForLinkLive, waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -434,6 +434,9 @@ test('phase advances past the deadline with zero expire commands while every cli
       // so 52 seconds clears the deadline plus settle latency.
       const startedAt = Date.now();
       for (const context of fixture.contexts) await setOffline(context, true);
+      await Promise.all(
+        fixture.pages.map((page) => linkStatusBanner(page).waitFor({ state: 'visible' })),
+      );
       await expect
         .poll(async () => Date.now() - startedAt, { timeout: 60_000, intervals: [300] })
         .toBeGreaterThan(52_000);
@@ -448,6 +451,7 @@ test('phase advances past the deadline with zero expire commands while every cli
       // the reconnect moment: the full observed list must be empty.
       // Collection after reconnect is expected — clients submit their
       // (empty) inputs — and is not acceleration.
+      await Promise.all(fixture.pages.map((page) => waitForLinkLive(page, 60_000)));
       await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
         '上一段留白',
         {

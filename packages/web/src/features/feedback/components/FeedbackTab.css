@@ -4,6 +4,12 @@
   gap: var(--space-small);
 }
 
+.feedback-input-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
 .feedback-center {
   align-items: center;
   justify-content: center;
@@ -29,7 +35,8 @@
   align-items: center;
   align-self: flex-start;
   gap: var(--space-tight);
-  padding: var(--space-tight) 0;
+  min-height: var(--size-min-touch-target);
+  padding: 0;
   border: 0;
   background: none;
   color: var(--color-primary);
@@ -97,6 +104,10 @@
 }
 
 .feedback-filter-pill {
+  display: inline-flex;
+  min-height: var(--size-min-touch-target);
+  align-items: center;
+  justify-content: center;
   padding: var(--space-tight) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
@@ -205,6 +216,7 @@
 
 .feedback-status-chip {
   display: inline-flex;
+  min-height: var(--size-min-touch-target);
   align-items: center;
   align-self: flex-start;
   gap: var(--space-tight);
@@ -292,6 +304,7 @@
 
 .feedback-resolve-prompt {
   display: flex;
+  min-height: var(--size-min-touch-target);
   align-items: center;
   justify-content: center;
   gap: var(--space-small);

@@ -2,9 +2,10 @@
  * Settings: rendering, signed-out login options, the decorated avatar, growth details and
  * appearance / unlocks entries.
  */
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
+import { toast } from 'sonner';
 
 import type { User } from '@/contexts/AuthContext';
 import type { UserStats } from '@/features/account/services/accountApi';
@@ -241,9 +242,28 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: '登出' })).toHaveAttribute('data-tone', 'danger');
     await userEvent.click(screen.getByRole('button', { name: '修改密码' }));
 
-    expect(screen.getByPlaceholderText('旧密码')).toBeInTheDocument();
+    expect(screen.getByLabelText('旧密码')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '切换账号' })).toBeNull();
     expect(screen.queryByRole('button', { name: '登出' })).toBeNull();
+  });
+
+  it('labels password fields and associates validation feedback with the invalid field', async () => {
+    mocks.auth.user = REGISTERED_USER;
+    await renderSettings();
+    await userEvent.click(screen.getByRole('button', { name: '修改密码' }));
+
+    const oldPassword = screen.getByLabelText('旧密码');
+    const newPassword = screen.getByLabelText('新密码（至少 6 位）');
+    const confirmPassword = screen.getByLabelText('确认新密码');
+    await userEvent.type(oldPassword, 'old-password');
+    await userEvent.type(newPassword, 'new-password');
+    await userEvent.type(confirmPassword, 'different-password');
+    await userEvent.click(screen.getByRole('button', { name: '确认修改' }));
+
+    const error = screen.getByRole('alert');
+    expect(error).toHaveTextContent('两次输入的新密码不一致');
+    expect(confirmPassword).toHaveAttribute('aria-invalid', 'true');
+    expect(confirmPassword).toHaveAttribute('aria-describedby', error.id);
   });
 
   it('hides the gacha entry from anonymous users', async () => {
@@ -252,5 +272,26 @@ describe('SettingsPage', () => {
     await renderSettings();
 
     expect(screen.queryByRole('link', { name: /^扭蛋抽奖/ })).toBeNull();
+  });
+
+  it('reports when copying the contact WeChat ID fails', async () => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const writeText = vi.fn().mockRejectedValue(new Error('Clipboard permission denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    try {
+      await renderSettings();
+      await userEvent.click(screen.getByRole('button', { name: '复制微信号' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('复制失败，请检查剪贴板权限后重试'),
+      );
+    } finally {
+      if (clipboardDescriptor === undefined) Reflect.deleteProperty(navigator, 'clipboard');
+      else Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+    }
   });
 });

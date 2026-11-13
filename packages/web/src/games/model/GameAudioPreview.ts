@@ -2,6 +2,8 @@
 import type { AudioService } from '@/services/infra/AudioService';
 
 export interface GameAudioPreview {
+  /** Human-readable game name used to distinguish this preview from other games. */
+  readonly gameLabel: string;
   readonly label: string;
   readonly play: () => Promise<void>;
   readonly stop: () => void;

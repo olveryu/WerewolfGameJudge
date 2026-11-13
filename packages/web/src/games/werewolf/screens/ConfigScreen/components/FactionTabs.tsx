@@ -7,6 +7,7 @@
 import { Tabs } from '@ark-ui/react/tabs';
 import type { Faction } from '@game-judge/game-engine/games/werewolf/public';
 
+import { handleHorizontalTabKeyDown } from '@/components/horizontalTabKeyboardNavigation';
 import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { TESTIDS } from '@/testids';
 
@@ -19,7 +20,11 @@ export interface FactionTabItem {
 
 export function FactionTabs({ tabs }: { readonly tabs: readonly FactionTabItem[] }) {
   return (
-    <Tabs.List className="config-faction-tabs" aria-label="阵营">
+    <Tabs.List
+      className="config-faction-tabs"
+      aria-label="阵营"
+      onKeyDown={handleHorizontalTabKeyDown}
+    >
       {tabs.map((tab) => (
         <Tabs.Trigger
           key={tab.key}

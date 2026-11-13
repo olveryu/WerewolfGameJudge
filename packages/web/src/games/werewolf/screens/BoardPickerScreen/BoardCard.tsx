@@ -105,7 +105,6 @@ export function BoardCard({
             {hasStrategy && (
               <Button
                 variant={onSelect === undefined ? 'primary' : 'secondary'}
-                size="sm"
                 onClick={() => onStrategyPress(template.name)}
               >
                 <IconBookOutline aria-hidden />
@@ -115,7 +114,6 @@ export function BoardCard({
             {onSelect !== undefined && (
               <Button
                 variant="primary"
-                size="sm"
                 className="board-card-select"
                 data-testid={TESTIDS.boardCardSelectButton(template.name)}
                 onClick={() => onSelect(template.name)}

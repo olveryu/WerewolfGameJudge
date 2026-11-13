@@ -8,6 +8,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-tight);
+  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
@@ -50,7 +51,7 @@
 
 .config-faction-tabs {
   display: flex;
-  gap: var(--space-tight);
+  gap: var(--space-small);
   padding: var(--space-tight);
 }
 
@@ -119,6 +120,7 @@
 .config-role-chip {
   flex: 1 1 28%;
   max-width: 32%;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) 0;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
@@ -172,8 +174,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--space-large) + var(--space-tight));
-  height: calc(var(--space-large) + var(--space-tight));
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
   padding: 0;
   border: none;
   border-radius: var(--radius-full);

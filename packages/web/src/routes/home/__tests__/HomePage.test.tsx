@@ -1,6 +1,6 @@
 /** Home: create / join entries, hero folding, guide entry, announcements and the ticket badge. */
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
@@ -200,6 +200,26 @@ describe('HomePage', () => {
       await userEvent.click(screen.getByText('进入房间'));
 
       expect(await screen.findByText('输入4位房间号码')).toBeInTheDocument();
+    });
+
+    it('accepts keyboard input changes and announces invalid submissions', async () => {
+      mocks.useAuthContext.mockReturnValue(SIGNED_IN);
+      await renderHome();
+      await userEvent.click(screen.getByText('进入房间'));
+
+      const dialog = await screen.findByTestId(TESTIDS.joinRoomDialog);
+      const roomCode = within(dialog).getByRole('textbox', { name: '房间号（4位数字）' });
+      await userEvent.type(roomCode, '12');
+      fireEvent.change(roomCode, { target: { value: '1234' } });
+      expect(roomCode).toHaveValue('1234');
+
+      await userEvent.clear(roomCode);
+      await userEvent.click(within(dialog).getByRole('button', { name: '加入' }));
+
+      const error = within(dialog).getByRole('alert');
+      expect(error).toHaveTextContent('请输入4位数字房间号');
+      expect(roomCode).toHaveAttribute('aria-invalid', 'true');
+      expect(roomCode).toHaveAttribute('aria-describedby', error.id);
     });
   });
 

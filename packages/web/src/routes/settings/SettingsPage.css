@@ -128,6 +128,9 @@
 }
 
 .settings-teaser-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-min-touch-target);
   color: var(--color-primary);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
@@ -289,6 +292,15 @@
   padding: var(--space-small) 0;
 }
 
+.settings-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
 .settings-error {
   margin: 0;
   color: var(--color-error);
@@ -401,7 +413,12 @@
 
 .settings-copy button {
   display: inline-flex;
-  padding: var(--space-tight);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
+  padding: 0;
   border: none;
   background: none;
   color: var(--color-primary);
@@ -421,8 +438,16 @@
   opacity: 0;
 }
 
+.segmented-option {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-min-touch-target);
+}
+
 .segmented-option span {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) var(--space-small);
   border-radius: var(--radius-small);
   color: var(--color-text-secondary);
