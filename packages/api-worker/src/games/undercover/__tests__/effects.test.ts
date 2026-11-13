@@ -10,9 +10,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { undercoverWorkerModule } from '../module';
 
-function applyCommand(state: UndercoverState, command: UndercoverPublicCommand, commandId: string) {
+function applyCommand(
+  state: UndercoverState,
+  command: UndercoverPublicCommand,
+  commandId: string,
+  userId = 'host',
+) {
   const decision = undercoverWorkerModule.decidePublic(state, command, {
-    actor: { kind: 'user', userId: 'host' },
+    actor: { kind: 'user', userId },
     controlledSeat: null,
     nowMs: 1000,
     commandId,
@@ -22,20 +27,25 @@ function applyCommand(state: UndercoverState, command: UndercoverPublicCommand, 
   return decision;
 }
 
-function prepare() {
+function prepare(humanCount = 1) {
   const initial = undercoverWorkerModule.createInitialState(
     { numberOfPlayers: 4, hasBlank: false, category: 'all' },
     { roomCode: '8765', hostUserId: 'host', nowMs: 1, commandId: 'create' },
   );
   if (initial.kind !== 'created') throw new Error(initial.reason);
-  const seated = applyCommand(
-    initial.state,
-    { type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } },
-    'seat',
-  );
-  const full = applyCommand(seated.state, { type: 'room.seat.fillBots' }, 'fill');
+  let state = initial.state;
+  for (let seat = 0; seat < humanCount; seat += 1) {
+    const userId = seat === 0 ? 'host' : `u${seat}`;
+    state = applyCommand(
+      state,
+      { type: 'room.seat.take', seat, profile: { displayName: userId } },
+      `seat-${seat}`,
+      userId,
+    ).state;
+  }
+  if (humanCount < 4) state = applyCommand(state, { type: 'room.seat.fillBots' }, 'fill').state;
   return applyCommand(
-    full.state,
+    state,
     { type: 'undercover.roles.assign', shouldAllowRepeated: false },
     'start',
   );
@@ -47,7 +57,7 @@ describe('Undercover Worker effects', () => {
       `INSERT INTO users (id, display_name, is_anonymous, created_at, updated_at)
       VALUES ('host', 'Host', 0, datetime('now'), datetime('now'))`,
     ).run();
-    const preparing = prepare();
+    const preparing = prepare(4);
     if (preparing.state.phase !== 'preparing') throw new Error('Expected preparing round');
     const roundId = preparing.state.pendingRound.roundId;
     const reading = undercoverWorkerModule.decideInternal(
@@ -66,17 +76,16 @@ describe('Undercover Worker effects', () => {
       },
     );
     if (reading.kind === 'reject') throw new Error(reading.reason);
-    const confirmed = applyCommand(
-      reading.state,
-      { type: 'undercover.role.viewed', roundId },
-      'confirm',
-    );
-    const marked = applyCommand(
-      confirmed.state,
-      { type: 'undercover.bots.markAllBotsViewed', roundId },
-      'bots',
-    );
-    let decision = applyCommand(marked.state, { type: 'undercover.game.begin', roundId }, 'begin');
+    let viewedState = reading.state;
+    for (const userId of ['host', 'u1', 'u2', 'u3']) {
+      viewedState = applyCommand(
+        viewedState,
+        { type: 'undercover.role.viewed', roundId },
+        `confirm-${userId}`,
+        userId,
+      ).state;
+    }
+    let decision = applyCommand(viewedState, { type: 'undercover.game.begin', roundId }, 'begin');
     for (let seat = 0; decision.state.phase === 'ongoing'; seat += 1) {
       decision = applyCommand(
         decision.state,
@@ -89,7 +98,7 @@ describe('Undercover Worker effects', () => {
     if (effect === undefined) throw new Error('Missing completion effect');
     expect(effect).toMatchObject({
       type: 'undercover.game.completed',
-      payload: { participantUserIds: ['host'] },
+      payload: { completionVersion: 2, participantUserIds: ['host', 'u1', 'u2', 'u3'] },
     });
     expect(undercoverWorkerModule.canReplayFailedEffect(effect)).toBe(true);
     expect(undercoverWorkerModule.getEffectFailureCommand(effect, preparing.state)).toBeNull();
@@ -130,6 +139,11 @@ describe('Undercover Worker effects', () => {
         "SELECT xp, normal_draws, games_played FROM user_stats WHERE user_id = 'host'",
       ).first(),
     ).toEqual({ xp: 5, normal_draws: 1, games_played: 1 });
+    expect(
+      await env.DB.prepare(
+        "SELECT SUM(games_played) AS games_played FROM undercover_user_stats WHERE user_id = 'host'",
+      ).first(),
+    ).toEqual({ games_played: 1 });
     expect(context.dispatchInternal).not.toHaveBeenCalled();
   });
 
