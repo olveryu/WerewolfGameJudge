@@ -80,6 +80,8 @@ async function requestGeminiStructuredOutput<Output>(
   });
   return requestGemini({
     context,
+    protocol: 'openaiCompatible',
+    requestBytes: new TextEncoder().encode(body).byteLength,
     apiKey: input.apiKey,
     signal: input.request.signal,
     privateValues,
