@@ -10,8 +10,10 @@ import { Button } from '@/components/Button';
 import { GalleryAlbumHeading } from '@/features/room/components/GalleryAlbumHeading';
 import { GalleryAlbumStage } from '@/features/room/components/GalleryAlbumStage';
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
+import { GalleryRevealText } from '@/features/room/components/GalleryRevealText';
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { useGalleryClock } from '@/features/room/hooks/useGalleryClock';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import IconImageOutline from '~icons/ion/image-outline';
@@ -60,6 +62,7 @@ export function StoryRelayGallery({
 }) {
   const [selectedStory, setSelectedStory] = useState(0);
   const isPlayback = state.phase === 'gallery';
+  const clock = useGalleryClock(isPlayback);
   const playback = isPlayback ? state.gallery : null;
   if (isPlayback && playback === null) throw new Error('Story Relay gallery playback missing');
   const storyLength = state.config.numberOfPlayers;
@@ -160,7 +163,21 @@ export function StoryRelayGallery({
             第 {index + 1} 棒 · {getStoryRelayAuthorName(state, item.authorSeat)}
           </p>
           <p className="storyrelay-text" data-testid={TESTIDS.storyRelayEntry(index)}>
-            {item.kind === 'text' ? item.text : STORY_RELAY_BLANK_ENTRY_TEXT}
+            {item.kind === 'text' ? (
+              <GalleryRevealText
+                text={item.text}
+                timing={
+                  playback !== null &&
+                  playback.position === playback.revealedPosition &&
+                  chainIndex * storyLength + index === playback.revealedPosition
+                    ? playback
+                    : null
+                }
+                clock={clock}
+              />
+            ) : (
+              STORY_RELAY_BLANK_ENTRY_TEXT
+            )}
           </p>
         </article>
       )}

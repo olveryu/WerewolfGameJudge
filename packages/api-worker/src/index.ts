@@ -151,6 +151,11 @@ app.notFound((c) => c.json({ error: 'not found' }, 404));
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
+app.get('/time', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({ serverNowMs: Date.now() });
+});
+
 app.get('/maintenance', async (c) => {
   c.header('Cache-Control', 'no-store');
   return c.json(await readMaintenance(c.env));

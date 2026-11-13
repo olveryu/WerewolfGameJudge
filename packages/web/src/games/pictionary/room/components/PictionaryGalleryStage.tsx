@@ -6,7 +6,8 @@ import {
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { GalleryAlbumHeading } from '@/features/room/components/GalleryAlbumHeading';
@@ -15,8 +16,13 @@ import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlayb
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
+import { useGalleryClock } from '@/features/room/hooks/useGalleryClock';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
 import { pictionaryAlbumPageKey } from '@/games/pictionary/review/toPictionaryReviewDocument';
+import {
+  pictionaryGalleryImageOptions,
+  pictionaryReplayOptions,
+} from '@/games/pictionary/services/pictionaryReplayTransport';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import IconPeopleOutline from '~icons/ion/people-outline';
@@ -42,6 +48,25 @@ export function PictionaryGalleryStage({
   readonly remainingSeconds: number | null;
   readonly isOverdue: boolean;
 }) {
+  const clock = useGalleryClock(state.phase === 'gallery');
+  const queryClient = useQueryClient();
+  const activePosition =
+    state.gallery === null
+      ? -1
+      : state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex;
+  const nextPosition = activePosition + 1;
+  const nextEntry =
+    state.chains[Math.floor(nextPosition / (state.stepIndex + 1))]?.entries[
+      nextPosition % (state.stepIndex + 1)
+    ];
+  const nextDrawingId = nextEntry?.kind === 'drawing' ? nextEntry.id : null;
+  const nextHasReplay = nextEntry?.kind === 'drawing' && nextEntry.media.replay !== null;
+  useEffect(() => {
+    if (nextDrawingId === null) return;
+    void queryClient.prefetchQuery(pictionaryGalleryImageOptions(state.roomCode, nextDrawingId));
+    if (nextHasReplay)
+      void queryClient.prefetchQuery(pictionaryReplayOptions(state.roomCode, nextDrawingId));
+  }, [nextDrawingId, nextHasReplay, queryClient, state.roomCode]);
   if (state.phase !== 'gallery' || state.gallery === null) {
     throw new Error('[FAIL-FAST] Gallery stage requires active Pictionary gallery state');
   }
@@ -123,7 +148,18 @@ export function PictionaryGalleryStage({
       key={chain.id}
       entries={visibleEntries}
       renderEntry={(entry, index) => (
-        <PictionaryGalleryEntryView state={state} entry={entry} entryIndex={index} />
+        <PictionaryGalleryEntryView
+          state={state}
+          entry={entry}
+          entryIndex={index}
+          timing={
+            activePosition === gallery.revealedPosition &&
+            gallery.chainIndex * chain.entries.length + index === gallery.revealedPosition
+              ? gallery
+              : null
+          }
+          clock={clock}
+        />
       )}
       heading={
         <GalleryAlbumHeading

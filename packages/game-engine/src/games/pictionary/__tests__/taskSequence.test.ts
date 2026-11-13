@@ -384,7 +384,7 @@ describe('Pictionary task sequence', () => {
     );
     for (let step = 0; step < 4; step += 1) state = advancePastAnsweringStep(state);
     for (let chainIndex = 0; chainIndex < 4; chainIndex += 1) {
-      expect(state.gallery).toEqual({
+      expect(state.gallery).toMatchObject({
         chainIndex,
         entryIndex: 0,
         isPlaying: true,
@@ -392,7 +392,7 @@ describe('Pictionary task sequence', () => {
         remainingMs: null,
       });
       for (let entryIndex = 1; entryIndex < 4; entryIndex += 1) state = expireCurrentPhase(state);
-      expect(state.gallery).toEqual({
+      expect(state.gallery).toMatchObject({
         chainIndex,
         entryIndex: 3,
         isPlaying: false,

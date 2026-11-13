@@ -101,7 +101,7 @@ function parseContentLength(
   return length;
 }
 
-async function readBoundedBody(
+export async function readBoundedBody(
   request: Request,
   options: DrawingUploadOptions,
 ): Promise<Uint8Array<ArrayBuffer> | DrawingUploadRejection> {

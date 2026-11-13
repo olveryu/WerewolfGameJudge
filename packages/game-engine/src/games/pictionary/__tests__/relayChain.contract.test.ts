@@ -46,7 +46,7 @@ import {
 } from '../domain/reasons';
 import { getPictionaryTaskForSeat } from '../domain/visibility';
 import { pictionaryEngine } from '../engine';
-import { parsePictionaryState } from '../state/parseState';
+import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -120,6 +120,7 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
         media: {
           objectKey: `test/drawing-${stepIndex}-${seat}.png`,
           contentType: 'image/png',
+          replay: null,
           width: PICTIONARY_DRAWING_WIDTH,
           height: PICTIONARY_DRAWING_HEIGHT,
           byteLength: 1024,
@@ -167,6 +168,46 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
 }
 
 describe('Pictionary relay-chain contract', () => {
+  it('migrates v9 galleries and drawing metadata without replay', () => {
+    const session = game();
+    session.playRound();
+    const gallery = session.state.gallery;
+    if (gallery === null) throw new Error('Missing gallery');
+    const { revealStartedAt: _start, revealDurationMs: _duration, ...legacyGallery } = gallery;
+    const chains = session.state.chains.map((chain) => ({
+      ...chain,
+      entries: chain.entries.map((entry) => {
+        if (entry.kind !== 'drawing') return entry;
+        const { replay: _replay, ...media } = entry.media;
+        return { ...entry, media };
+      }),
+    }));
+    const migrated = migratePersistedPictionaryState({
+      ...session.state,
+      stateVersion: 9,
+      chains,
+      gallery: legacyGallery,
+    });
+    expect(migrated.stateVersion).toBe(10);
+    expect(migrated.gallery).toEqual({
+      ...legacyGallery,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+    expect(
+      migrated.chains
+        .flatMap((chain) => chain.entries)
+        .filter((entry) => entry.kind === 'drawing')
+        .every((entry) => entry.media.replay === null),
+    ).toBe(true);
+  });
+  it('anchors the first text in a manual gallery', () => {
+    const session = game(null);
+    session.playRound();
+    expect(session.state.gallery?.revealStartedAt).not.toBeNull();
+    expect(session.state.gallery?.revealDurationMs).toBe(1040);
+    expect(session.state.deadlineAt).toBeNull();
+  });
   it('starts rounds whose offsets are a permutation beginning at 0', () => {
     const session = game();
     const { seatOrder, stepOffsets } = session.state;
@@ -271,6 +312,8 @@ describe('Pictionary relay-chain contract', () => {
       chainIndex: 0,
       entryIndex: 0,
       revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
     });
     session.gallery('advance');
     const deadlineAt = session.state.deadlineAt;
