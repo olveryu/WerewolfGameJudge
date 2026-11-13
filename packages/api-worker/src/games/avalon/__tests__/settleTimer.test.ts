@@ -267,7 +267,7 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     await fireAlarm(stub);
 
     const settled = await readState(stub);
-    expect(settled.phase.kind).toBe('quest');
+    expect(settled.phase.kind).toBe('voteResult');
     expect(settled.lastVoteResult?.approveCount).toBe(5);
     expect(await readSettleRow(stub, 'vote')).toBeNull();
     const revisionAfter = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
@@ -275,7 +275,7 @@ describe('Avalon scheduled settle (Durable Object)', () => {
 
     // A repeated alarm never settles twice.
     await fireAlarm(stub);
-    expect((await readState(stub)).phase.kind).toBe('quest');
+    expect((await readState(stub)).phase.kind).toBe('voteResult');
     expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfter);
   });
 
@@ -285,6 +285,9 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     // No manual finish exists: the armed vote countdown settles on alarm.
     await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
     await fireAlarm(stub);
+    for (let seat = 0; seat < 5; seat += 1) {
+      await send(stub, seatUser(seat), { type: 'avalon.voteResult.confirm' });
+    }
     await send(stub, seatUser(0), { type: 'avalon.quest.play', play: 'success' });
     await send(stub, seatUser(1), { type: 'avalon.quest.play', play: 'success' });
     const armed = await readState(stub);

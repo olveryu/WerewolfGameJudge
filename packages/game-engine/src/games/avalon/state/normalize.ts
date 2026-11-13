@@ -192,7 +192,10 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
   );
   // 记录不得超前于对局进度：当前轮之前的轮次才可能有任务结论。
   const roundCap =
-    state.phase.kind === 'nominate' || state.phase.kind === 'vote' || state.phase.kind === 'quest'
+    state.phase.kind === 'nominate' ||
+    state.phase.kind === 'vote' ||
+    state.phase.kind === 'voteResult' ||
+    state.phase.kind === 'quest'
       ? state.phase.round
       : state.phase.kind === 'lady'
         ? state.phase.afterRound
@@ -204,7 +207,10 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     'round history progress',
   );
   const inProgressRound =
-    state.phase.kind === 'nominate' || state.phase.kind === 'vote' || state.phase.kind === 'quest'
+    state.phase.kind === 'nominate' ||
+    state.phase.kind === 'vote' ||
+    state.phase.kind === 'voteResult' ||
+    state.phase.kind === 'quest'
       ? state.phase.round
       : null;
   invariant(
@@ -322,6 +328,44 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
         'vote proposal',
       );
       invariant(isValidBallots(phase.ballots, state, isSeat), 'vote ballots');
+      return state;
+    }
+    case 'voteResult': {
+      const phase = state.phase;
+      invariant(isAvalonQuestRound(phase.round), 'vote result round');
+      invariant(
+        phase.proposedSeats.length === getAvalonQuestSize(count, phase.round) &&
+          phase.proposedSeats.every((seat) => isSeat(seat) && isAvalonOccupiedSeat(state, seat)) &&
+          new Set(phase.proposedSeats).size === phase.proposedSeats.length,
+        'vote result proposal',
+      );
+      invariant(
+        phase.confirmedSeats.every((seat) => isSeat(seat) && isAvalonOccupiedSeat(state, seat)) &&
+          new Set(phase.confirmedSeats).size === phase.confirmedSeats.length,
+        'vote result confirmed seats',
+      );
+      const lastVote = state.lastVoteResult;
+      const proposals = state.roundHistory.find(
+        (record) => record.round === phase.round,
+      )?.proposals;
+      const proposal = proposals?.[proposals.length - 1];
+      invariant(
+        lastVote !== null &&
+          proposal !== undefined &&
+          proposal.leaderSeat === state.leaderSeat &&
+          proposal.approved === lastVote.approved &&
+          lastVote.approved === lastVote.approveCount > lastVote.rejectCount &&
+          lastVote.rejectStreak === (lastVote.approved ? 0 : state.rejectStreak + 1) &&
+          proposal.approveCount === lastVote.approveCount &&
+          proposal.rejectCount === lastVote.rejectCount &&
+          proposal.abstainCount === lastVote.abstainCount &&
+          proposal.teamSeats.length === phase.proposedSeats.length &&
+          proposal.teamSeats.every((seat, index) => seat === phase.proposedSeats[index]) &&
+          Object.entries(proposal.ballots).every(
+            ([seat, ballot]) => lastVote.ballots[Number(seat)] === ballot,
+          ),
+        'vote result history',
+      );
       return state;
     }
     case 'quest': {

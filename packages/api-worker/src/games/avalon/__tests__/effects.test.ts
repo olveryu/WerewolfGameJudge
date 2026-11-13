@@ -293,7 +293,7 @@ describe('Avalon settle effect', () => {
     const { context, box } = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), context);
     expect(box.commands).toEqual([{ type: 'avalon.phase.settleExpired' }]);
-    expect(box.current.phase.kind).toBe('quest');
+    expect(box.current.phase.kind).toBe('voteResult');
     expect(box.current.lastVoteResult?.approveCount).toBe(5);
   });
 
@@ -302,6 +302,14 @@ describe('Avalon settle effect', () => {
     const voteSettle = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), voteSettle.context);
     state = voteSettle.box.current;
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = applyPublic(
+        state,
+        { type: 'avalon.voteResult.confirm' },
+        seatUser(seat),
+        `confirm-${seat}`,
+      );
+    }
     state = applyPublic(
       state,
       { type: 'avalon.quest.play', play: 'success' },

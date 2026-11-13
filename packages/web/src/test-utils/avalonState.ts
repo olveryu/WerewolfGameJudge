@@ -122,6 +122,7 @@ export function playAvalonTestGame(failedQuests: 0 | 1 | 2 | 3): AvalonState {
     asSeat({ type: 'avalon.team.propose', seats: team }, leaderSeat);
     for (const seat of seats) asSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     settle();
+    for (const seat of seats) asSeat({ type: 'avalon.voteResult.confirm' }, seat);
     for (const seat of team) {
       asSeat({ type: 'avalon.quest.play', play: seat === evilSeat ? 'fail' : 'success' }, seat);
     }

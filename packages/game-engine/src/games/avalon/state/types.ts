@@ -272,6 +272,12 @@ export type AvalonPhase =
       readonly deadlineAt: number | null;
     }
   | {
+      readonly kind: 'voteResult';
+      readonly round: AvalonQuestRound;
+      readonly proposedSeats: readonly number[];
+      readonly confirmedSeats: readonly number[];
+    }
+  | {
       readonly kind: 'quest';
       readonly round: AvalonQuestRound;
       readonly teamSeats: readonly number[];
@@ -311,6 +317,7 @@ export const AVALON_PHASES = [
   'night',
   'nominate',
   'vote',
+  'voteResult',
   'quest',
   'lady',
   'assassin',

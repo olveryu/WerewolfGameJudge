@@ -1,6 +1,6 @@
 /**
  * 阿瓦隆结算面板外壳（投票结算 / 任务结算同范式）：彩色结论横幅 + 内容 + "知道了"。
- * 挂载即开始自动关闭倒计时，到时、手动"知道了"、Escape、点背景都走 onClose。
+ * 任务结果可自动关闭；投票结果等待全员确认。
  */
 import '@/components/CenterDialog.css';
 import './AvalonResultPanel.css';
@@ -21,6 +21,7 @@ export function AvalonResultDialog({
   outcome,
   kind,
   onClose,
+  confirmation,
   children,
 }: {
   readonly banner: string;
@@ -28,24 +29,43 @@ export function AvalonResultDialog({
   /** Which settlement this is; keys the panel / banner / close test ids. */
   readonly kind: 'vote' | 'quest';
   readonly onClose: () => void;
+  readonly confirmation?: {
+    readonly confirmed: boolean;
+    readonly disabled: boolean;
+    readonly spectator: boolean;
+    readonly onConfirm: () => void;
+  };
   readonly children: ReactNode;
 }) {
   const autoDismiss = useEffectEvent(() => onClose());
+  const requiresConfirmation = confirmation !== undefined;
   useEffect(() => {
+    if (requiresConfirmation) return;
     const timer = setTimeout(() => autoDismiss(), RESULT_AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [requiresConfirmation]);
   return (
     <Dialog.Root
       open
+      onEscapeKeyDown={(event) => {
+        if (confirmation !== undefined) event.preventDefault();
+      }}
+      onInteractOutside={(event) => {
+        if (confirmation !== undefined) event.preventDefault();
+      }}
       onOpenChange={(details) => {
-        if (!details.open) onClose();
+        if (!details.open && confirmation === undefined) onClose();
       }}
     >
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="center-dialog" data-testid={TESTIDS.avalonResultPanel(kind)}>
+          <Dialog.Content
+            className="center-dialog"
+            data-kind={kind}
+            data-testid={TESTIDS.avalonResultPanel(kind)}
+          >
+            {kind === 'vote' && <p className="avalon-vote-result-eyebrow">圆桌投票</p>}
             <Dialog.Title
               className="avalon-result-banner"
               data-outcome={outcome}
@@ -55,12 +75,19 @@ export function AvalonResultDialog({
             </Dialog.Title>
             {children}
             <Button
-              variant="secondary"
-              size="lg"
-              onClick={onClose}
+              variant={requiresConfirmation ? 'primary' : 'secondary'}
+              size={requiresConfirmation ? 'md' : 'lg'}
+              onClick={confirmation?.onConfirm ?? onClose}
+              disabled={confirmation?.disabled || confirmation?.confirmed}
               data-testid={TESTIDS.avalonResultClose(kind)}
             >
-              知道了
+              {confirmation === undefined
+                ? '知道了'
+                : confirmation.spectator
+                  ? '等待玩家确认'
+                  : confirmation.confirmed
+                    ? '已确认，等待其他玩家'
+                    : '我已看过'}
             </Button>
           </Dialog.Content>
         </Dialog.Positioner>

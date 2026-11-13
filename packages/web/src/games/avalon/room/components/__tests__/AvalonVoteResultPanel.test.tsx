@@ -1,4 +1,4 @@
-/** 投票结算面板：结论横幅 + 公投逐人 / 暗投汇总 + 6 秒自动关闭 + 手动关闭。 */
+/** 投票结算面板：公投/暗投结果和全员确认进度。 */
 
 import type {
   AvalonLastVoteResultView,
@@ -28,9 +28,18 @@ function renderPanel(
   result: AvalonLastVoteResultView = REJECTED_RESULT,
   seats: readonly AvalonSeatView[] = SEATS,
 ) {
-  const onClose = vi.fn();
-  const utils = render(<AvalonVoteResultPanel result={result} seats={seats} onClose={onClose} />);
-  return { ...utils, onClose };
+  const onConfirm = vi.fn();
+  const utils = render(
+    <AvalonVoteResultPanel
+      result={result}
+      seats={seats}
+      confirmedSeats={[2]}
+      mySeat={0}
+      isSubmitting={false}
+      onConfirm={onConfirm}
+    />,
+  );
+  return { ...utils, onConfirm };
 }
 
 describe('AvalonVoteResultPanel', () => {
@@ -45,37 +54,59 @@ describe('AvalonVoteResultPanel', () => {
   });
 
   it('lists every seat with its ballot in public mode, abstainers included', () => {
-    const { getByText, getByTestId } = renderPanel();
-    expect(getByText('1 号 · 阿明 · 赞成')).toBeTruthy();
-    expect(getByText('2 号 · 小红 · 反对')).toBeTruthy();
-    expect(getByText('3 号 · 机器人3号 · 反对')).toBeTruthy();
-    expect(getByText('4 号 · 阿强 · 弃权')).toBeTruthy();
-    expect(getByTestId('avalon-vote-result-row-0')).toBeTruthy();
+    const { getByTestId } = renderPanel();
+    expect(getByTestId('avalon-vote-result-row-0')).toHaveTextContent('1号 阿明 · 赞成');
+    expect(getByTestId('avalon-vote-result-row-1')).toHaveTextContent('2号 小红 · 反对');
+    expect(getByTestId('avalon-vote-result-row-2')).toHaveTextContent('3号 机器人3号 · 反对');
+    expect(getByTestId('avalon-vote-result-row-3')).toHaveTextContent('4号 阿强 · 弃权');
+    expect(getByTestId('avalon-vote-result-summary')).toHaveTextContent(
+      '汇总：赞成 1 · 反对 2 · 弃权 1',
+    );
   });
 
   it('shows only counts in secret mode (D7)', () => {
-    const { getByTestId, queryByText } = renderPanel({ ...REJECTED_RESULT, ballots: null });
+    const { getByTestId, queryByTestId } = renderPanel({ ...REJECTED_RESULT, ballots: null });
     expect(getByTestId('avalon-vote-result-counts')).toHaveTextContent('赞成 1 · 反对 2 · 弃权 1');
-    expect(queryByText('1 号 · 阿明 · 赞成')).toBeNull();
+    expect(queryByTestId('avalon-vote-result-row-0')).toBeNull();
   });
 
-  it('closes on the manual button', () => {
-    const { getByTestId, onClose } = renderPanel();
+  it('reports pending seats and confirms without closing', () => {
+    const { getByTestId, getByText, onConfirm } = renderPanel();
+    expect(getByText('已确认 1 / 4')).toBeTruthy();
+    expect(getByText('等待：1号、2号、4号')).toBeTruthy();
+    expect(getByTestId('avalon-vote-result-confirmation').querySelector('progress')).toHaveValue(1);
     fireEvent.click(getByTestId('avalon-vote-result-close'));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
   });
 
-  it('auto-closes after 6 seconds', () => {
+  it('does not auto-confirm after 6 seconds', () => {
     vi.useFakeTimers();
     try {
-      const { onClose } = renderPanel();
-      expect(onClose).not.toHaveBeenCalled();
+      const { onConfirm, getByTestId } = renderPanel();
       act(() => {
         vi.advanceTimersByTime(6000);
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('lets spectators see progress without offering a confirmation action', () => {
+    const onConfirm = vi.fn();
+    const { getByTestId } = render(
+      <AvalonVoteResultPanel
+        result={REJECTED_RESULT}
+        seats={SEATS}
+        confirmedSeats={[2]}
+        mySeat={null}
+        isSubmitting={false}
+        onConfirm={onConfirm}
+      />,
+    );
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByTestId('avalon-vote-result-close')).toHaveTextContent('等待玩家确认');
   });
 });
