@@ -3,6 +3,7 @@ import './admin.css';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
@@ -15,7 +16,7 @@ import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 
-import { ScreenHeader, useScreenBack } from '../../components/ScreenHeader';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { AdminShell } from './AdminShell';
 
 const adminLog = log.extend('Admin');
@@ -23,7 +24,13 @@ const adminLog = log.extend('Admin');
 /** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
   const client = useQueryClient();
-  const goBack = useScreenBack('/');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [hasEntryHistory] = useState(() => location.key !== 'default');
+  const goBack = () => {
+    if (hasEntryHistory) void navigate(-1);
+    else void navigate('/', { replace: true });
+  };
   const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
   const [verifying, setVerifying] = useState(cached !== null);

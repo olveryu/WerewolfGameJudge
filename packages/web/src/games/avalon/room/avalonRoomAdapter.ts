@@ -72,6 +72,7 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
   RoomSeatIndicators,
@@ -122,6 +123,7 @@ const AVALON_DAY_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   night: false,
   nominate: true,
   vote: true,
+  voteResult: true,
   quest: true,
   lady: true,
   assassin: true,
@@ -138,7 +140,8 @@ function avalonSeatIndicators(
   const isDay = AVALON_DAY_BADGE_PHASES[phase.kind];
   const isPicker = isDay && state.leaderSeat === seat;
   const isTeamMember =
-    (phase.kind === 'vote' && phase.proposedSeats.includes(seat)) ||
+    ((phase.kind === 'vote' || phase.kind === 'voteResult') &&
+      phase.proposedSeats.includes(seat)) ||
     (phase.kind === 'quest' && phase.teamSeats.includes(seat));
   const isPreselected = phase.kind === 'nominate' && phase.preselectedSeats.includes(seat);
   const markers: RoomSeatMarker[] = [];
@@ -265,6 +268,7 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       );
     case 'nominate':
     case 'vote':
+    case 'voteResult':
     case 'quest': {
       const round = phase.round;
       const questLabel = formatAvalonQuestLabel(round);
@@ -585,6 +589,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       }
       break;
     }
+    case 'voteResult':
+      message = '等待全员确认投票结果';
+      break;
     case 'quest': {
       const instruction = resolveQuestInstruction(vm);
       if (instruction.isTeamMember) {
@@ -691,6 +698,7 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
+  readonly gameDetails?: RoomProfileCardModel['gameDetails'];
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
@@ -975,6 +983,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       capabilities: input.capabilities,
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
+      gameDetails: input.gameDetails,
     }),
     bottomActions: createAvalonBottomActions({
       state,

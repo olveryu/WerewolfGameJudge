@@ -146,6 +146,14 @@ drawerGain（一次猜中即时加）= 首个猜中者：round(该猜中者得�
 - 不提供画手提前结束本轮的操作，作画统一等倒计时结束。
 - 房主可在主持管理中确认「中止本局」（`drawguess.game.abort`），直接返回大厅；清除本局画作、猜词记录和比分，保留座位、设置及对局序号，不发完成奖励。
 
+### 3.6 鲜花、鸡蛋、番茄与个人统计
+
+- 作画中及 `roundEnd` 阶段，画手以外的每座位每回合可以向当轮画手送一次互动，在鲜花、鸡蛋、番茄中三选一；显示发送者，不影响比分。房主接管机器人时，互动归机器人座位，不归房主账号，不另设机器人禁送规则。
+- 一次互动由引擎验证当前回合、阶段和发送座位是否已经送过，并进入权威状态与回合记录，不能只在客户端扣次数。重连不恢复发送额度，旧回合命令不能影响新回合。
+- 引擎接受的猜词提交（正确或错误）计入猜词次数；拒绝、限流、过期提交不计。猜中用时从作画开始算至首次猜中，与随后缩短的倒计时无关。
+- 个人资料显示累计收到的三种互动、猜词次数、猜中率、平均猜中用时、作画回合及被猜中的作画回合、累计得分。未猜中和历史未采集用时的回合不进入平均用时分母，不额外保存猜词正文。
+- 正常终局且至少 4 名真人时，奖励与统计一起结算；匿名真人计人数但不获得账号奖励和战绩，机器人不计人数。中止不结算。完整口径见 [多游戏统计方案](non-werewolf-game-stats-proposal.md)。
+
 ## 4. 房间设置
 
 配置页使用数值 stepper、预设选项和预计时长摘要。只有大厅阶段可以修改设置。
@@ -359,6 +367,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 | `drawguess.stroke.undo`        | 画手（或接管人）                           | `drawing`                             | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
 | `drawguess.stroke.clear`       | 画手（或接管人）                           | `drawing`                             | 清空画布（客户端二次确认）                                         |
 | `drawguess.guess.submit`       | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`                             | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
+| `drawguess.reaction.send`      | 已入座的非画手玩家（或接管人）             | `drawing` / `roundEnd`                | 向当轮画手送鲜花、鸡蛋或番茄；每座位每回合一次，不影响比分         |
 | `drawguess.drawing.reserve`    | 画手                                       | `roundEnd`                            | 获取终稿 PNG 的一次性 `submissionId`                               |
 | `drawguess.game.abort`         | 房主                                       | `wordSelect` / `drawing` / `roundEnd` | 中止整局并清除本局数据，保留座位和设置返回大厅，不发完成奖励       |
 | `drawguess.game.returnToLobby` | 房主                                       | `ended`                               | 返回大厅                                                           |
@@ -367,9 +376,11 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 `word.choose` / `stroke.*` / `guess.submit` 必须携带 `phaseRevision`（和 `turnIndex`），客户端在用户操作时绑定当时的快照；旧回合命令明确拒绝。`phaseRevision` 只随阶段跃迁推进（开局、换轮、选词完成、结算、终局、回大厅）；同一阶段内的出题、笔画、猜词、画作预留/入册不推进版本号，在途猜词不被作画活动作废。作画截止后提交用独立原因（本轮已结束），与跨阶段的 stale 区分。
 
+`reaction.send` 同样绑定 `turnIndex` 和 `phaseRevision`，`reaction` 只能取 `flower`、`egg`、`tomato`。当前互动保存在 `reactionsBySeat` 并随回合结束写入历史；重复发送明确拒绝，不能通过重连或替换互动种类重复赠送。
+
 `game.abort` 必须携带当前 `gameSequence`，旧确认不能中止新一局。该命令绑定整局而非笔画版本，确认期间的正常作画、猜词或阶段推进不使其失效；房主以未接管身份发送，服务端校验权限和局中阶段。
 
-`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v4（v3 新增 `drawerZeroed` 字段；v4 新增 `turnHistory` 与 `roundEnd.guessedSeats`，见 §6）；v1/v2/v3 payload 经 `migratePersistedDrawGuessState` 一步升级，旧房间不作废。
+`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v5（v3 新增 `drawerZeroed`；v4 新增 `turnHistory` 与 `roundEnd.guessedSeats`；v5 新增互动及猜词次数、用时采集，见 §3.6）；v1/v2/v3/v4 payload 经 `migratePersistedDrawGuessState` 升级，旧房间不作废，迁移前未采集的指标不伪造历史记录。
 
 ### 7.2 Internal commands
 

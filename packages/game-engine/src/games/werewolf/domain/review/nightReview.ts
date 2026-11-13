@@ -18,6 +18,7 @@ import type { DeathReason } from '../DeathCalculator';
 import { computeCanShootForSeat } from '../handlers/confirmContext';
 import { ROLE_SPECS, type RoleId, Team } from '../models';
 import { getRoleStepId } from '../models/roles/spec/nightSteps';
+import { resolveNightStepActor } from '../playerHelpers';
 import type {
   GameState,
   Player,
@@ -82,12 +83,12 @@ function findSeatByRole(players: Players, roleId: RoleId): number | undefined {
  * whose actor cannot be resolved is a corrupt fact set — fail fast here
  * rather than letting a surface invent or drop the actor downstream.
  */
-function requireSeatByRole(players: Players, roleId: RoleId): number {
-  const seat = findSeatByRole(players, roleId);
-  if (seat === undefined) {
+function requireSeatByRole(state: GameState, roleId: RoleId): number {
+  const actor = resolveNightStepActor(state, roleId);
+  if (actor === null) {
     throw new Error(`[FAIL-FAST] Night review cannot resolve an actor seat for role ${roleId}`);
   }
-  return seat;
+  return actor.seat;
 }
 
 /** The recorded target of a role's single night step, if its action is recorded. */
@@ -756,7 +757,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.treasureMasterChosenCard) {
     entries.push({
       kind: 'cardChoice',
-      actorSeat: requireSeatByRole(state.players, 'treasureMaster'),
+      actorSeat: requireSeatByRole(state, 'treasureMaster'),
       actorRoleId: 'treasureMaster',
       chosenRoleId: nr.treasureMasterChosenCard,
     });
@@ -764,7 +765,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.thiefChosenCard) {
     entries.push({
       kind: 'cardChoice',
-      actorSeat: requireSeatByRole(state.players, 'thief'),
+      actorSeat: requireSeatByRole(state, 'thief'),
       actorRoleId: 'thief',
       chosenRoleId: nr.thiefChosenCard,
     });
@@ -772,7 +773,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (state.loverSeats && state.loverSeats.length === 2) {
     entries.push({
       kind: 'cupidLink',
-      actorSeat: requireSeatByRole(state.players, 'cupid'),
+      actorSeat: requireSeatByRole(state, 'cupid'),
       seats: [state.loverSeats[0], state.loverSeats[1]],
     });
   }
@@ -830,7 +831,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     const blockedPlayer = playerAt(state.players, nr.blockedSeat);
     entries.push({
       kind: 'nightmareBlock',
-      actorSeat: requireSeatByRole(state.players, 'nightmare'),
+      actorSeat: requireSeatByRole(state, 'nightmare'),
       targetSeat: nr.blockedSeat,
       targetRoleId: blockedPlayer?.role ?? null,
     });
@@ -845,7 +846,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.shelteredSeat != null) {
     entries.push({
       kind: 'shelter',
-      actorSeat: requireSeatByRole(state.players, 'eclipseWolfQueen'),
+      actorSeat: requireSeatByRole(state, 'eclipseWolfQueen'),
       targetSeat: nr.shelteredSeat,
     });
   } else {
@@ -865,7 +866,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.guardedSeat != null) {
     entries.push({
       kind: 'guard',
-      actorSeat: requireSeatByRole(state.players, 'guard'),
+      actorSeat: requireSeatByRole(state, 'guard'),
       targetSeat: nr.guardedSeat,
     });
   } else {
@@ -879,7 +880,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.silencedSeat != null) {
     entries.push({
       kind: 'silence',
-      actorSeat: requireSeatByRole(state.players, 'silenceElder'),
+      actorSeat: requireSeatByRole(state, 'silenceElder'),
       targetSeat: nr.silencedSeat,
     });
   } else {
@@ -893,7 +894,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.votebannedSeat != null) {
     entries.push({
       kind: 'voteban',
-      actorSeat: requireSeatByRole(state.players, 'votebanElder'),
+      actorSeat: requireSeatByRole(state, 'votebanElder'),
       targetSeat: nr.votebannedSeat,
     });
   } else {
@@ -907,7 +908,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.savedSeat != null) {
     entries.push({
       kind: 'save',
-      actorSeat: requireSeatByRole(state.players, 'witch'),
+      actorSeat: requireSeatByRole(state, 'witch'),
       targetSeat: nr.savedSeat,
     });
   }
@@ -915,7 +916,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     const poisonerSeat = findSeatByRole(state.players, 'poisoner');
     entries.push({
       kind: 'poison',
-      actorSeat: poisonerSeat ?? requireSeatByRole(state.players, 'witch'),
+      actorSeat: poisonerSeat ?? requireSeatByRole(state, 'witch'),
       actorRoleId: poisonerSeat !== undefined ? 'poisoner' : 'witch',
       targetSeat: nr.poisonedSeat,
     });
@@ -951,7 +952,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.cursedSeat != null) {
     entries.push({
       kind: 'curse',
-      actorSeat: requireSeatByRole(state.players, 'crow'),
+      actorSeat: requireSeatByRole(state, 'crow'),
       targetSeat: nr.cursedSeat,
     });
   } else {
@@ -965,7 +966,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.dreamingSeat != null) {
     entries.push({
       kind: 'dream',
-      actorSeat: requireSeatByRole(state.players, 'dreamcatcher'),
+      actorSeat: requireSeatByRole(state, 'dreamcatcher'),
       targetSeat: nr.dreamingSeat,
     });
   } else {
@@ -979,7 +980,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.swappedSeats) {
     entries.push({
       kind: 'swap',
-      actorSeat: requireSeatByRole(state.players, 'magician'),
+      actorSeat: requireSeatByRole(state, 'magician'),
       seats: [nr.swappedSeats[0], nr.swappedSeats[1]],
     });
   } else {
@@ -994,7 +995,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (slackerIdol !== undefined) {
     entries.push({
       kind: 'idolChoice',
-      actorSeat: requireSeatByRole(state.players, 'slacker'),
+      actorSeat: requireSeatByRole(state, 'slacker'),
       actorRoleId: 'slacker',
       targetSeat: slackerIdol,
     });
@@ -1005,7 +1006,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (wildChildIdol !== undefined) {
     entries.push({
       kind: 'idolChoice',
-      actorSeat: requireSeatByRole(state.players, 'wildChild'),
+      actorSeat: requireSeatByRole(state, 'wildChild'),
       actorRoleId: 'wildChild',
       targetSeat: wildChildIdol,
     });
@@ -1015,7 +1016,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.shadowMimicTarget != null) {
     entries.push({
       kind: 'mimic',
-      actorSeat: requireSeatByRole(state.players, 'shadow'),
+      actorSeat: requireSeatByRole(state, 'shadow'),
       targetSeat: nr.shadowMimicTarget,
       isBound: nr.avengerFaction === Team.Third,
     });
@@ -1032,7 +1033,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (wolfQueenCharm !== undefined) {
     entries.push({
       kind: 'charm',
-      actorSeat: requireSeatByRole(state.players, 'wolfQueen'),
+      actorSeat: requireSeatByRole(state, 'wolfQueen'),
       targetSeat: wolfQueenCharm,
     });
   } else {
@@ -1046,7 +1047,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.convertedSeat != null) {
     entries.push({
       kind: 'convert',
-      actorSeat: requireSeatByRole(state.players, 'awakenedGargoyle'),
+      actorSeat: requireSeatByRole(state, 'awakenedGargoyle'),
       targetSeat: nr.convertedSeat,
     });
   }
@@ -1055,7 +1056,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.wolfGirlConfessedSeat != null) {
     entries.push({
       kind: 'wolfGirlConfess',
-      actorSeat: requireSeatByRole(state.players, 'wolfGirl'),
+      actorSeat: requireSeatByRole(state, 'wolfGirl'),
       targetSeat: nr.wolfGirlConfessedSeat,
     });
   }
@@ -1064,7 +1065,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
     entries.push({
       kind: 'hypnotize',
-      actorSeat: requireSeatByRole(state.players, 'piper'),
+      actorSeat: requireSeatByRole(state, 'piper'),
       targetSeats: [...nr.hypnotizedSeats],
     });
   } else {
@@ -1096,7 +1097,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     if (reveal) {
       entries.push({
         kind: 'check',
-        actorSeat: requireSeatByRole(state.players, roleId),
+        actorSeat: requireSeatByRole(state, roleId),
         actorRoleId: roleId,
         targetSeat: reveal.targetSeat,
         result: reveal.result,
@@ -1115,7 +1116,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     const wr = state.wolfRobotReveal;
     entries.push({
       kind: 'learn',
-      actorSeat: requireSeatByRole(state.players, 'wolfRobot'),
+      actorSeat: requireSeatByRole(state, 'wolfRobot'),
       targetSeat: wr.targetSeat,
       learnedRoleId: wr.learnedRoleId,
     });
@@ -1128,7 +1129,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
 
   // 9. Hunter / DarkWolfKing canShoot status — confirmStatus is cleared on
   // step advance, so the engine's own step-entry rule is applied again here.
-  const hunterSeat = findSeatByRole(state.players, 'hunter');
+  const hunterSeat = resolveNightStepActor(state, 'hunter')?.seat;
   if (hunterSeat !== undefined) {
     entries.push({
       kind: 'shootStatus',
@@ -1138,7 +1139,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     });
   }
 
-  const darkWolfKingSeat = findSeatByRole(state.players, 'darkWolfKing');
+  const darkWolfKingSeat = resolveNightStepActor(state, 'darkWolfKing')?.seat;
   if (darkWolfKingSeat !== undefined) {
     entries.push({
       kind: 'shootStatus',

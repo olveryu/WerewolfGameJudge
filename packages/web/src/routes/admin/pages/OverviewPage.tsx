@@ -119,7 +119,12 @@ export function OverviewPage() {
                     仅检查最新 {data.rooms.length} 个房间，不代表全部房间。
                   </p>
                   {failed.length === 0 ? (
-                    <StatusBadge tone="success">本页未发现恢复失败</StatusBadge>
+                    <div className="admin-recovery-summary">
+                      <StatusBadge tone="success">本页未发现恢复失败</StatusBadge>
+                      <Link to="/admin/rooms" replace>
+                        查看房间目录 →
+                      </Link>
+                    </div>
                   ) : (
                     <ul className="admin-link-list">
                       {failed.map((room) => (
@@ -132,9 +137,11 @@ export function OverviewPage() {
                       ))}
                     </ul>
                   )}
-                  <Link to="/admin/rooms" replace>
-                    查看房间目录 →
-                  </Link>
+                  {failed.length > 0 && (
+                    <Link to="/admin/rooms" replace>
+                      查看房间目录 →
+                    </Link>
+                  )}
                 </>
               );
             }}

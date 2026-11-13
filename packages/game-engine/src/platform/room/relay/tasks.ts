@@ -29,6 +29,7 @@
 import {
   type CommandContext,
   type Decision,
+  type GameCompletionPayload,
   type GameEffect,
   type GameEvent,
   reject,
@@ -130,6 +131,7 @@ export interface RelayTaskHooks<
   TPrevious,
   TEvent extends GameEvent,
   TEffect extends GameEffect,
+  TCompletionPayload extends GameCompletionPayload = GameCompletionPayload,
 > {
   /** Strips a previous entry to what the next author may see (privacy boundary). */
   readonly stripPreviousEntry: (entry: TEntry) => TPrevious;
@@ -161,7 +163,7 @@ export interface RelayTaskHooks<
    * the event and effect shapes are game-owned.
    */
   readonly onRoundCompleted: (
-    kit: RelayEventKit<TEntry, TEvent, TEffect>,
+    kit: RelayEventKit<TEntry, TEvent, TEffect, TCompletionPayload>,
     state: RelayRoundSlice<TEntry> & RelayActorSlice,
     appended: readonly { readonly chainId: string; readonly entry: TEntry }[],
     nowMs: number,
@@ -182,13 +184,14 @@ export function appendRelayEntryTail<
   TPrevious,
   TEvent extends GameEvent,
   TEffect extends GameEffect,
+  TCompletionPayload extends GameCompletionPayload = GameCompletionPayload,
 >(
-  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+  kit: RelayEventKit<TEntry, TEvent, TEffect, TCompletionPayload>,
   state: RelayRoundSlice<TEntry> & RelayActorSlice,
   firstEvent: TEvent,
   appended: { readonly chainId: string; readonly entry: TEntry },
   nowMs: number,
-  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
+  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect, TCompletionPayload>,
 ): Decision<TEvent, TEffect> {
   const events: TEvent[] = [firstEvent];
   const effects: TEffect[] = [];
@@ -208,12 +211,18 @@ export function appendRelayEntryTail<
   return kit.commit(events, effects);
 }
 
-function appendRelayEntry<TEntry, TPrevious, TEvent extends GameEvent, TEffect extends GameEffect>(
-  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+function appendRelayEntry<
+  TEntry,
+  TPrevious,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  TCompletionPayload extends GameCompletionPayload = GameCompletionPayload,
+>(
+  kit: RelayEventKit<TEntry, TEvent, TEffect, TCompletionPayload>,
   state: RelayRoundSlice<TEntry> & RelayActorSlice,
   appended: { readonly chainId: string; readonly entry: TEntry },
   nowMs: number,
-  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
+  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect, TCompletionPayload>,
 ): Decision<TEvent, TEffect> {
   return appendRelayEntryTail(
     kit,
@@ -231,12 +240,13 @@ export function decideRelayTask<
   TPrevious,
   TEvent extends GameEvent,
   TEffect extends GameEffect,
+  TCompletionPayload extends GameCompletionPayload = GameCompletionPayload,
 >(
-  kit: RelayEventKit<TEntry, TEvent, TEffect>,
+  kit: RelayEventKit<TEntry, TEvent, TEffect, TCompletionPayload>,
   state: RelayRoundSlice<TEntry> & RelayActorSlice,
   command: RelayTaskCommand,
   context: CommandContext,
-  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect>,
+  hooks: RelayTaskHooks<TEntry, TPrevious, TEvent, TEffect, TCompletionPayload>,
 ): Decision<TEvent, TEffect> {
   const phase = command.kind === 'ready' ? 'answering' : 'settling';
   const gated = resolveRelayTaskGate(kit, state, phase, command, context, hooks.stripPreviousEntry);

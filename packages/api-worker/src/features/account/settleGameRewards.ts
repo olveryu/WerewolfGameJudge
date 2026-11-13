@@ -37,6 +37,11 @@ type GameRewardPolicy =
 
 export type GameRewardInput = RewardIdentity & GameRewardPolicy;
 
+export interface GameStatsSettlement<T extends { readonly userId: string }> {
+  readonly facts: readonly T[];
+  createStatement(db: D1Database, settlementId: string, fact: T): D1PreparedStatement;
+}
+
 const rewardResultSchema = z.strictObject({
   userId: z.string().min(1),
   xpEarned: z.number().int().nonnegative(),
@@ -99,7 +104,11 @@ function insertResult(db: D1Database, input: GameRewardInput, userId: string): D
 }
 
 /** Settle a server-authored round once; retries return its original committed rewards. */
-export async function settleGameRewards(db: D1Database, input: GameRewardInput) {
+export async function settleGameRewards<T extends { readonly userId: string }>(
+  db: D1Database,
+  input: GameRewardInput,
+  gameStats?: GameStatsSettlement<T>,
+) {
   if (!input.settlementId || !Number.isSafeInteger(input.completedAt) || input.completedAt < 0) {
     throw new Error('[FAIL-FAST] Invalid game reward identity');
   }
@@ -113,7 +122,24 @@ export async function settleGameRewards(db: D1Database, input: GameRewardInput) 
   if (input.kind === 'mvp' && participantUserIds.length !== 1) {
     throw new Error('[FAIL-FAST] MVP requires exactly one recipient');
   }
-  const inputJson = canonicalJson({ ...input, participantUserIds });
+  const facts =
+    gameStats === undefined
+      ? undefined
+      : [...gameStats.facts].sort((a, b) =>
+          a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0,
+        );
+  if (
+    facts !== undefined &&
+    (facts.length !== participantUserIds.length ||
+      facts.some((fact, index) => fact.userId !== participantUserIds[index]))
+  ) {
+    throw new Error('[FAIL-FAST] Game stats roster mismatch');
+  }
+  const inputJson = canonicalJson({
+    ...input,
+    participantUserIds,
+    ...(facts === undefined ? {} : { stats: facts }),
+  });
   const statements = [
     db
       .prepare(
@@ -125,7 +151,7 @@ export async function settleGameRewards(db: D1Database, input: GameRewardInput) 
       )
       .bind(input.settlementId, inputJson),
   ];
-  for (const userId of participantUserIds) {
+  for (const [index, userId] of participantUserIds.entries()) {
     statements.push(
       insertResult(db, input, userId),
       createApplyStatsStatement(db, {
@@ -136,6 +162,11 @@ export async function settleGameRewards(db: D1Database, input: GameRewardInput) 
         gamesPlayedSql: "CASE WHEN reward_kind = 'completion' THEN 1 ELSE 0 END",
         trackSettledAt: false,
       }),
+    );
+    if (gameStats !== undefined && facts !== undefined) {
+      statements.push(gameStats.createStatement(db, input.settlementId, facts[index]));
+    }
+    statements.push(
       createMarkStatsAppliedStatement(db, {
         resultsTable: 'product_game_reward_results',
         keyColumn: 'settlement_id',
@@ -169,7 +200,7 @@ export async function settleGameRewards(db: D1Database, input: GameRewardInput) 
 }
 
 /** Deliver completion or MVP results through the existing durable account inbox. */
-export async function publishGameRewards(
+export async function publishGameRewards<T extends { readonly userId: string }>(
   reward: Omit<RewardIdentity, 'settlementId'> & GameRewardPolicy & { readonly roundId: string },
   context: {
     readonly bindings: Pick<Env, 'DB'>;
@@ -177,6 +208,7 @@ export async function publishGameRewards(
     readonly createdRevision: number;
     publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
   },
+  gameStats?: GameStatsSettlement<T>,
 ): Promise<void> {
   const settlementId = canonicalJson([
     context.roomIdentity.roomId,
@@ -186,7 +218,7 @@ export async function publishGameRewards(
     reward.kind,
   ]);
   const input: GameRewardInput = { ...reward, settlementId };
-  const results = await settleGameRewards(context.bindings.DB, input);
+  const results = await settleGameRewards(context.bindings.DB, input, gameStats);
   for (const { userId, ...result } of results) {
     const eventId = canonicalJson([settlementId, userId]);
     await context.publishUserEvent(userId, eventId, {

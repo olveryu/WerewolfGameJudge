@@ -18,6 +18,7 @@ export {
   UNDERCOVER_MAX_PLAYERS,
   UNDERCOVER_MIN_PLAYERS,
   UNDERCOVER_ROLE_NAMES,
+  UNDERCOVER_ROLES,
   UNDERCOVER_TIERS,
   type UndercoverRole,
   type UndercoverRoleCounts,
@@ -25,6 +26,14 @@ export {
 } from './domain/rules';
 export { getUndercoverWordCard, type UndercoverWordCard } from './domain/visibility';
 export { type UndercoverEngine, undercoverEngine } from './engine';
+export {
+  parseUndercoverPublicStats,
+  type UndercoverCompletionPayload,
+  undercoverCompletionPayloadSchema,
+  type UndercoverCompletionStatsFact,
+  type UndercoverPublicStats,
+  undercoverPublicStatsSchema,
+} from './publicStats';
 export { UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverWordPair } from './state/normalize';
 export { migratePersistedUndercoverState } from './state/parseState';

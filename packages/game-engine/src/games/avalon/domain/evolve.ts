@@ -2,7 +2,7 @@
 
 import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
-import { applyRosterChanges } from '../../../platform/room/seating';
+import { applyRosterChanges, isBotSeat } from '../../../platform/room/seating';
 import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
@@ -205,7 +205,34 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         abstainCount: event.abstainCount,
         approved: event.approved,
       });
-      if (event.vetoLimitReached) {
+      return {
+        ...bumped,
+        phase: {
+          kind: 'voteResult',
+          round: state.phase.round,
+          proposedSeats: [...state.phase.proposedSeats],
+          confirmedSeats: Object.keys(state.roster)
+            .map(Number)
+            .filter((seat) => isBotSeat(state.roster, seat)),
+        },
+        lastVoteResult,
+        roundHistory,
+      };
+    }
+    case 'avalon.voteResult.confirmed': {
+      if (state.phase.kind !== 'voteResult') return state;
+      return {
+        ...bumped,
+        phase: {
+          ...state.phase,
+          confirmedSeats: [...state.phase.confirmedSeats, event.seat],
+        },
+      };
+    }
+    case 'avalon.voteResult.completed': {
+      if (state.phase.kind !== 'voteResult' || state.lastVoteResult === null) return state;
+      const lastVoteResult = state.lastVoteResult;
+      if (!lastVoteResult.approved && lastVoteResult.rejectStreak >= state.config.vetoLimit) {
         return {
           ...bumped,
           phase: {
@@ -214,12 +241,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             reason: 'vetoLimitReached',
             accusedSeat: null,
           },
-          lastVoteResult,
-          roundHistory,
           xpSettled: true,
         };
       }
-      if (event.approved) {
+      if (lastVoteResult.approved) {
         return {
           ...bumped,
           phase: {
@@ -228,13 +253,11 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             teamSeats: [...state.phase.proposedSeats],
             plays: {},
             deadlineAt: null,
-            ballots: { ...event.ballots },
-            approveCount: event.approveCount,
-            rejectCount: event.rejectCount,
-            abstainCount: event.abstainCount,
+            ballots: { ...lastVoteResult.ballots },
+            approveCount: lastVoteResult.approveCount,
+            rejectCount: lastVoteResult.rejectCount,
+            abstainCount: lastVoteResult.abstainCount,
           },
-          lastVoteResult,
-          roundHistory,
           rejectStreak: 0,
         };
       }
@@ -246,9 +269,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, state.phase.round),
           preselectedSeats: [],
         },
-        lastVoteResult,
-        roundHistory,
-        leaderSeat: event.nextLeaderSeat,
+        leaderSeat: nextAvalonLeaderSeat(state.leaderSeat, state.config.numberOfPlayers),
         rejectStreak: state.rejectStreak + 1,
       };
     }

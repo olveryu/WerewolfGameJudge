@@ -6,6 +6,9 @@
 //#end
 
 import {
+//#cap businessStats
+  __GAME_CAMEL__CompletionPayloadSchema,
+//#end
 //#cap stageDeadline
   __GAME_UPPER___REASONS,
 //#end
@@ -23,10 +26,18 @@ import {
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 //#end
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+//#cap businessStats
+import { __GAME_CAMEL__StatsSettlement } from './publicUserStats';
+//#end
 
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('__GAME_ID__.game.completed'),
+//#cap businessStats
+  payload: z.union([gameCompletionPayloadSchema, __GAME_CAMEL__CompletionPayloadSchema]),
+//#end
+//#cap !businessStats
   payload: gameCompletionPayloadSchema,
+//#end
 });
 
 //#cap stageDeadline
@@ -116,6 +127,9 @@ export async function handle__GAME_PASCAL__Effect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: '__GAME_ID__' },
         context,
+//#cap businessStats
+        'stats' in effect.payload ? __GAME_CAMEL__StatsSettlement(effect.payload.stats) : undefined,
+//#end
       );
       return;
 //#cap stageDeadline

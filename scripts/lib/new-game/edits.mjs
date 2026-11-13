@@ -303,22 +303,44 @@ export function editWorkerCatalog(content, { gameId, camel }) {
 }
 
 /** Register the game's Home contribution in the exhaustive web client catalog. */
-export function editClientCatalog(content, { gameId, camel }) {
+export function editClientCatalog(content, { gameId, camel, pascal, businessStats }) {
   const file = 'packages/web/src/games/catalog.ts';
   if (content.includes(`'@/games/${gameId}/home'`))
     fail(file, `'${gameId}' is already in the client catalog.`);
   const withImport = insertImportsSorted(
     file,
     content,
-    [`import { ${camel}Home } from '@/games/${gameId}/home';`],
+    [
+      `import { ${camel}Home } from '@/games/${gameId}/home';`,
+      ...(businessStats
+        ? [
+            `import { ${pascal}StatsPanel } from '@/games/${gameId}/components/${pascal}StatsPanel';`,
+          ]
+        : []),
+    ],
     /^@\/games\//,
   );
   return replaceOnce(
     file,
     withImport,
     /(const CLIENT_GAMES: \{ readonly \[TGameType in GameType\]: ClientGameModule \} = \{[\s\S]*?)(\n\};)/,
-    (_match, head, tail) => `${head}\n  ${gameId}: { home: ${camel}Home },${tail}`,
+    (_match, head, tail) =>
+      `${head}\n  ${gameId}: { home: ${camel}Home${businessStats ? `, AccountStats: ${pascal}StatsPanel` : ''} },${tail}`,
   );
+}
+
+/** Register the generated owned table without relaxing the exhaustive ownership contract. */
+export function editStatsTableOwner(content, { gameId }) {
+  const file = 'contracts/architecture.contract.test.ts';
+  const table = `${gameId}_user_stats`;
+  const pattern = /(const expectedOwners = new Map<string, string>\(\[\n)([\s\S]*?)(    \]\);)/;
+  return replaceOnce(file, content, pattern, (_match, head, body, tail) => {
+    if (body.includes(`'${table}'`)) fail(file, `${table} is already registered.`);
+    const lines = body.trimEnd().split('\n');
+    lines.push(`      ['${table}', 'packages/api-worker/src/games/${gameId}/dbSchema.ts'],`);
+    lines.sort((left, right) => left.localeCompare(right));
+    return `${head}${lines.join('\n')}\n${tail}`;
+  });
 }
 
 /**

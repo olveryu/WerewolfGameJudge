@@ -7,6 +7,9 @@ import { Converter } from 'opencc-js/t2cn';
 import { pinyin } from 'pinyin-pro';
 import { z } from 'zod';
 
+import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
+import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
+
 export const DRAWGUESS_WORD_BATCH_LIMIT = 30;
 export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v2';
 export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v2';
@@ -22,7 +25,7 @@ const wordSchema = z
 const explanationSchema = z.string().trim().min(2).max(180);
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 
-const drawGuessCandidateSchema = z.strictObject({
+export const drawGuessCandidateSchema = z.strictObject({
   word: wordSchema,
   category: z.enum(DRAWGUESS_WORD_CATEGORIES),
   difficulty: difficultySchema,
@@ -78,26 +81,57 @@ export function toPinyinInitials(word: string): string {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   if (initials.length !== [...canonical].length) {
-    throw new Error(`DrawGuess 拼音首字母数量与字数不符: ${canonical}`);
+    throw new AiOutputValidationError(
+      'pinyinInitialsMismatch',
+      `DrawGuess 拼音首字母数量与字数不符: ${canonical}`,
+    );
   }
   if (!initials.every((part) => /^[a-z]+$/.test(part))) {
-    throw new Error(`DrawGuess 拼音首字母含非法字符: ${canonical}`);
+    throw new AiOutputValidationError(
+      'invalidPinyinInitials',
+      `DrawGuess 拼音首字母含非法字符: ${canonical}`,
+    );
   }
   return initials.join(' ');
 }
 
-/** Validate all generated material before storage, then remove batch duplicates. */
+function normalizeDrawGuessCandidate(
+  candidate: DrawGuessWordCandidate,
+  category: DrawGuessWordCategory,
+): DrawGuessWordCandidate {
+  if (candidate.category !== category)
+    throw new AiOutputValidationError('categoryMismatch', 'DrawGuess generated category mismatch', [
+      'category',
+    ]);
+  return { ...candidate, word: canonicalizeDrawGuessWord(candidate.word) };
+}
+
+/** Only model generation may reject individual candidates and return a validation summary. */
+export function decodeGeneratedDrawGuessCandidates(
+  value: unknown,
+  category: DrawGuessWordCategory,
+  context: AiContext,
+) {
+  return parseGeneratedCandidateBatch(value, {
+    limit: DRAWGUESS_WORD_BATCH_LIMIT,
+    context,
+    parseCandidate: (item) =>
+      normalizeDrawGuessCandidate(drawGuessCandidateSchema.parse(item), category),
+    getIdentity: ({ word }) => word,
+  });
+}
+
+/** Strictly validate all material before storage, then remove batch duplicates. */
 export function parseDrawGuessCandidates(
   value: unknown,
   category: DrawGuessWordCategory,
 ): DrawGuessWordCandidate[] {
   const seen = new Set<string>();
-  return drawGuessCandidatesSchema.parse(value).candidates.flatMap((candidate) => {
-    if (candidate.category !== category) throw new Error('DrawGuess generated category mismatch');
-    const word = canonicalizeDrawGuessWord(candidate.word);
-    if (seen.has(word)) return [];
-    seen.add(word);
-    return [{ ...candidate, word }];
+  return drawGuessCandidatesSchema.parse(value).candidates.flatMap((item) => {
+    const candidate = normalizeDrawGuessCandidate(item, category);
+    if (seen.has(candidate.word)) return [];
+    seen.add(candidate.word);
+    return [candidate];
   });
 }
 
@@ -107,12 +141,13 @@ export function parseDrawGuessReviews(
   candidates: readonly DrawGuessWordCandidate[],
 ): DrawGuessWordReview[] {
   const { reviews } = drawGuessReviewsSchema.parse(value);
-  if (reviews.length !== candidates.length) throw new Error('DrawGuess review count mismatch');
+  if (reviews.length !== candidates.length)
+    throw new AiOutputValidationError('reviewCountMismatch', 'DrawGuess review count mismatch');
   return reviews.map((review, index) => {
     const candidate = candidates[index];
     const word = canonicalizeDrawGuessWord(review.word);
     if (candidate === undefined || word !== candidate.word)
-      throw new Error('DrawGuess review word mismatch');
+      throw new AiOutputValidationError('reviewIdentityMismatch', 'DrawGuess review word mismatch');
     return { ...review, word };
   });
 }

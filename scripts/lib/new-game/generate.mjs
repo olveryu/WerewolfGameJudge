@@ -30,8 +30,10 @@ import {
   editRegistry,
   editReviewContractRegistry,
   editWorkerCatalog,
+  editStatsTableOwner,
 } from './edits.mjs';
 import {
+  assertRegistrationGameTypes,
   buildRegistrationMigration,
   findLatestRegistrationMigration,
   nextMigrationName,
@@ -116,16 +118,20 @@ export const PACK_SEGMENT_SWITCHES = {
 };
 
 /**
- * Whole-file capability gates for the single game template tree:
- * a gated file is collected only when the pack enables the key.
- * The first two are the identity-viewing chain's whole-file
- * products (identity card adapter and the viewing-protocol
- * contract); the last is the audio chain's client binding hook —
- * the engine/client wiring inside shared files rides `//#cap`
- * segments, but the binding itself is a file only audio games have
- * (it binds the web RoomAudioOrchestrator core to the room link).
+ * Whole-file gates for game capabilities and pack assembly choices.
+ * businessStats is an internal assembly switch, not an engine capability.
+ * In-file wiring uses the same switches through `//#cap` segments.
  */
 export const FILE_CAPABILITY_GATES = {
+  'packages/game-engine/src/games/__GAME_ID__/publicStats.ts': 'businessStats',
+  'packages/game-engine/src/games/__GAME_ID__/__tests__/publicStats.test.ts': 'businessStats',
+  'packages/api-worker/src/games/__GAME_ID__/dbSchema.ts': 'businessStats',
+  'packages/api-worker/src/games/__GAME_ID__/publicUserStats.ts': 'businessStats',
+  'packages/api-worker/src/games/__GAME_ID__/__tests__/publicUserStats.test.ts': 'businessStats',
+  'packages/web/src/games/__GAME_ID__/components/__GAME_PASCAL__StatsPanel.tsx': 'businessStats',
+  'packages/web/src/games/__GAME_ID__/components/__tests__/__GAME_PASCAL__StatsPanel.test.tsx':
+    'businessStats',
+  'packages/web/src/games/__GAME_ID__/services/__GAME_CAMEL__Stats.ts': 'businessStats',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/phaseDeadlineProtocol.contract.test.ts':
     'stageDeadline',
   'packages/game-engine/src/games/__GAME_ID__/__tests__/identityViewingProtocol.contract.test.ts':
@@ -138,7 +144,7 @@ export const FILE_CAPABILITY_GATES = {
 
 export const DEFAULT_REWARDS = { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 };
 
-const SHARED_EDITS = [
+export const SHARED_EDITS = [
   {
     file: 'packages/game-engine/src/platform/protocol/gameTypes.ts',
     apply: (content, ctx) => editGameTypes(content, ctx),
@@ -202,6 +208,10 @@ const SHARED_EDITS = [
   {
     file: 'packages/web/src/__tests__/roomReview.contract.test.ts',
     apply: (content, ctx) => editReviewContractRegistry(content, ctx),
+  },
+  {
+    file: 'contracts/architecture.contract.test.ts',
+    apply: (content, ctx) => (ctx.businessStats ? editStatsTableOwner(content, ctx) : content),
   },
 ];
 
@@ -312,6 +322,28 @@ function collectTemplateFiles(layer, capabilities = null) {
   return collected;
 }
 
+/** Read-only counts use the same gates and file list as generation. */
+export function generatorFacts() {
+  const allSwitches = Object.fromEntries(
+    Object.values(FILE_CAPABILITY_GATES).map((gate) => [gate, true]),
+  );
+  const templateCount =
+    collectTemplateFiles('shared', allSwitches).size +
+    collectTemplateFiles('game', allSwitches).size;
+  const filesByPreset = Object.fromEntries(
+    Object.entries(PRESET_CAPABILITIES).map(([preset, capabilities]) => {
+      const switches = { ...capabilities, businessStats: true };
+      return [
+        preset,
+        collectTemplateFiles('shared', switches).size +
+          collectTemplateFiles('game', switches).size +
+          1,
+      ];
+    }),
+  );
+  return { sharedFiles: SHARED_EDITS.map(({ file }) => file), templateCount, filesByPreset };
+}
+
 /** Render the destination path of a template (path segments carry name tokens too). */
 function renderDestination(relativeTemplatePath, names, capabilities, extraTokens) {
   return renderTemplateFile(relativeTemplatePath.split(path.sep).join('/'), {
@@ -366,7 +398,16 @@ export function generateNewGame(options) {
     tier = 'mini',
     rewards = DEFAULT_REWARDS,
     production = false,
+    businessStats = true,
   } = options;
+  if (
+    typeof businessStats !== 'boolean' ||
+    (!businessStats && (gameId !== 'demo' || production || preset !== 'demo-hybrid'))
+  ) {
+    throw new Error(
+      'Business statistics may be disabled only for non-production demo reference regeneration.',
+    );
+  }
   if (!Object.hasOwn(PRESET_CAPABILITIES, preset)) {
     throw new Error(
       `Invalid preset "${String(preset)}": expected "identity", "stage" or "demo-hybrid".`,
@@ -382,7 +423,7 @@ export function generateNewGame(options) {
   const capabilities = PRESET_CAPABILITIES[preset];
   // Rendering sees the capability row plus the pack's segment
   // switches; edits and the report keep the pure capability row.
-  const renderCapabilities = { ...capabilities, ...PACK_SEGMENT_SWITCHES[preset] };
+  const renderCapabilities = { ...capabilities, ...PACK_SEGMENT_SWITCHES[preset], businessStats };
   const home = { displayName, subtitle, iconName, tier };
   const extraTokens = {
     __GAME_DISPLAY_NAME__: displayName,
@@ -391,6 +432,11 @@ export function generateNewGame(options) {
     __GAME_ICON_COMPONENT__: iconComponent,
     __GAME_TIER__: tier,
     __GAME_PRESET__: preset,
+    __GAME_COMPLETION_TYPE__: businessStats ? `${names.pascal}CompletionPayload | ` : '',
+    __GAME_REQUIREMENT_COUNT__: businessStats ? '11' : '10',
+    __GAME_TEST_BEGIN__: capabilities.identityViewing
+      ? 'viewAllAndBegin(session);'
+      : `session.send({ type: '${gameId}.game.begin' });`,
   };
   const ctx = {
     gameId,
@@ -400,13 +446,14 @@ export function generateNewGame(options) {
     capabilities,
     home,
     production,
+    businessStats,
   };
 
   // Phase 1: compute everything in memory. Nothing below writes until
   // every render and every edit has succeeded.
   const templates = new Map([
-    ...collectTemplateFiles('shared'),
-    ...collectTemplateFiles('game', capabilities),
+    ...collectTemplateFiles('shared', renderCapabilities),
+    ...collectTemplateFiles('game', renderCapabilities),
   ]);
   const created = new Map();
   for (const [relative, sourcePath] of templates) {
@@ -431,6 +478,13 @@ export function generateNewGame(options) {
     .filter((name) => name.endsWith('.sql'))
     .map((name) => ({ name, content: fs.readFileSync(path.join(migrationsDir, name), 'utf8') }));
   const source = findLatestRegistrationMigration(migrationFiles);
+  const gameTypeSource = edited.get('packages/game-engine/src/platform/protocol/gameTypes.ts');
+  const gameTypeList = /export const GAME_TYPES = \[([\s\S]*?)\] as const;/.exec(gameTypeSource);
+  if (gameTypeList === null) throw new Error('Cannot verify the canonical game set.');
+  const existingGameTypes = [...gameTypeList[1].matchAll(/'([a-z][a-z0-9]*)'/g)]
+    .map((match) => match[1])
+    .filter((id) => id !== gameId);
+  assertRegistrationGameTypes(source.content, existingGameTypes);
   const migrationName = nextMigrationName(
     migrationFiles.map((file) => file.name),
     gameId,
@@ -440,6 +494,7 @@ export function generateNewGame(options) {
     sourceContent: source.content,
     gameId,
     displayName,
+    businessStats,
   });
   created.set(`packages/api-worker/migrations/${migrationName}`, migrationContent);
 
@@ -457,6 +512,7 @@ export function generateNewGame(options) {
     editedFiles,
     migrationName,
     production,
+    businessStats,
   });
 
   // Phase 2: duplicate guard — no target may already exist, including

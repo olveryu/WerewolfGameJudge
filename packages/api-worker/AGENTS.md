@@ -11,7 +11,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## Runtime bindings (`wrangler.toml`)
 
 - D1 database `DB` (`werewolf-db`); Durable Object bindings `GAME_ROOM` (`GameRoom`) and `WECHAT_AUTH` (`WeChatAuthProxy`); R2 buckets `AVATARS` (`werewolf-avatars`) and `GAME_MEDIA` (`werewolf-game-media`).
-- Rate limits `ROOM_LOOKUP_LIMITER` and `ANONYMOUS_SIGNUP_LIMITER`; Analytics Engine datasets `LOAD_TIMING`, `AI_USAGE`, `REQUEST_TRAFFIC`; three workflow bindings (`fib-word-supply`, `undercover-word-supply`, `drawguess-word-supply`); cron triggers every 5 minutes, at 03:00, and at 04:00 (saga reconciliation, expiry/cleanup, editorial dispatch).
+- Rate limits `ROOM_LOOKUP_LIMITER`, `ANONYMOUS_SIGNUP_LIMITER`, and `WORD_SUBMISSION_LIMITER`; Analytics Engine datasets `LOAD_TIMING`, `AI_USAGE`, `REQUEST_TRAFFIC`; four workflow bindings (`fib-word-supply`, `undercover-word-supply`, `drawguess-word-supply`, `word-submission-review`); cron triggers every 5 minutes, at 03:00, and at 04:00 (saga reconciliation, expiry/cleanup, editorial dispatch). External submissions are isolated in `features/wordSubmissions`; their review workflow never publishes. See `docs/agent-word-submissions.md`.
 - `compatibility_date` is `2026-10-01`.
 
 ## Room authority: Durable Object and its SQLite storage
@@ -28,8 +28,8 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## D1 and Drizzle
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
-- Migrations are hand-written SQL files applied by Wrangler: 72 files, `0001_init.sql` through `0073_word_supply_read_indexes.sql`, with no `0002` file.
-- 32 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
+- Migrations are hand-written SQL files applied by Wrangler: 75 files, `0001_init.sql` through `0076_agent_word_submissions.sql`, with no `0002` file.
+- 39 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 - When adding or changing a D1 query, examine its filters, joins, ordering, indexes, and invocation frequency, including retries and scheduled jobs. For queries on growing tables or high-frequency paths, use `test/rowCountingDb.ts` against migrated D1 to test realistic small and larger datasets and assert a justified read/write budget; verify the query plan when useful. A small fixture or a correct result alone does not establish a cost bound.
 - Before adding an index, compare the expected read savings with ongoing write amplification and one-time build costs, using representative query and insert/update/delete frequencies; state any unknowns rather than assuming a net saving. For critical write paths, measure and assert a justified `rows_written` budget with `test/rowCountingDb.ts`; verify actual usage after deployment because local measurements do not establish production billing.
@@ -59,5 +59,5 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 ## Tests for this package
 
-- Runner: Vitest under the Workers pool. The config loads D1 migrations via `readD1Migrations` and applies them in `test/applyMigrations.ts`; it includes `src/**/__tests__/**/*.test.ts`.
+- Runner: Vitest with `@cloudflare/vitest-plugin` in the Workers runtime. The config loads D1 migrations via `readD1Migrations` and applies them in `test/applyMigrations.ts`; it includes `src/**/__tests__/**/*.test.ts`.
 - The catalog test pins one module per game type and the HTTP-route projection. The worker entrypoint's workflow re-exports are pinned by the root contract `contracts/architecture.contract.test.ts` against the registry's declared workflows.

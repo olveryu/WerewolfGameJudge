@@ -3,6 +3,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import { getAiDiagnostic, outputValidationSummarySchema } from '../../platform/ai/aiError';
 import {
   claimEditorialModelRequest,
   isEditorialBudgetAvailable,
@@ -12,16 +13,19 @@ import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
 import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
+import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
+import { getFibWordProviderFailureKind } from './wordProviders/providerError';
 import {
   extractFibWordEvidence,
   type FibWordEvidence,
   searchFibWordEvidence,
 } from './wordProviders/tavily';
-import type {
-  FibWordCategory,
-  FibWordEditorialCandidate,
-  FibWordRequest,
+import {
+  FIB_WORD_GENERATION_BATCH_LIMIT,
+  type FibWordCategory,
+  type FibWordEditorialCandidate,
+  type FibWordRequest,
 } from './wordProviders/types';
 import {
   claimFibWordProviderRequest,
@@ -47,6 +51,22 @@ const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 s
 const REQUEST_TIMEOUT_MS = 120_000;
 const MODEL_STEP = { ...EXTERNAL_STEP, timeout: '130 seconds' } as const;
 const log = createLogger('fib-word-supply');
+const generatedCandidatesSchema = z.array(z.unknown()).max(FIB_WORD_GENERATION_BATCH_LIMIT);
+const persistedGenerationSchema = z.union([
+  generatedCandidatesSchema,
+  z.strictObject({
+    candidates: generatedCandidatesSchema,
+    validation: outputValidationSummarySchema,
+  }),
+]);
+
+/** Old generate checkpoints were arrays; validate either durable format without regenerating. */
+function readGeneratedCandidates(value: unknown): FibWordEditorialCandidate[] {
+  const generated = persistedGenerationSchema.parse(value);
+  return (Array.isArray(generated) ? generated : generated.candidates).map(
+    parseFibWordEditorialCandidate,
+  );
+}
 
 interface FibWordSupplyParams {
   readonly day: string;
@@ -103,13 +123,18 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           Date.now(),
           { force },
         );
-        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words);
+        const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words, {
+          workflowId: identity,
+        });
         await storeFibWordTopics(this.env.DB, words, classifications);
       });
     } catch (error) {
-      log.error('historical topic classification failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      if (getAiDiagnostic(error) !== undefined)
+        log.warn('historical topic classification failed', { day, runId });
+      else
+        log.error('historical topic classification failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
     }
     for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
       if (
@@ -168,16 +193,19 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
               MODEL_STEP,
               async () => {
                 await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
-                return [
-                  ...(await createConfiguredFibWordProvider(this.env).generateBatch(
-                    createRequest(pack.category, extraction.evidence, search.topic),
-                  )),
-                ];
+                return createConfiguredFibWordProvider(this.env).generateBatch(
+                  createRequest(pack.category, extraction.evidence, search.topic),
+                  { packId: pack.id },
+                );
               },
             );
             failureStage = 'candidateStorage';
             await step.do(`store-candidates-${batchIndex}`, () =>
-              storeFibWordCandidates(this.env.DB, pack, generatedCandidates),
+              storeFibWordCandidates(
+                this.env.DB,
+                pack,
+                readGeneratedCandidates(generatedCandidates),
+              ),
             );
             candidates = await step.do(`generated-review-candidates-${batchIndex}`, () =>
               getFibWordReviewCandidates(this.env.DB, pack),
@@ -241,6 +269,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
                 ...(await createConfiguredFibWordProvider(this.env).reviewBatch(
                   createRequest(pack.category, []),
                   verifiedCandidates,
+                  { packId: pack.id },
                 )),
               ];
             });
@@ -255,19 +284,26 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         }),
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const diagnostic = getAiDiagnostic(error);
       const failureKind =
-        message.match(
-          /\[(timedOut|authenticationFailed|rateLimited|serviceUnavailable|invalidOutput|requestFailed)\]/,
-        )?.[1] ?? 'unclassified';
+        diagnostic?.failureKind === 'configuration'
+          ? 'unclassified'
+          : diagnostic?.failureKind === 'cancelled'
+            ? 'timedOut'
+            : (diagnostic?.failureKind ?? getFibWordProviderFailureKind(error) ?? 'unclassified');
       await step.do(`fail-${batchIndex}`, async () => {
         await failFibWordPack(this.env.DB, pack, `${failureStage}:${failureKind}`);
-        log.error('editorial pack failed', {
+        const context = {
           packId: pack.id,
           failureStage,
           failureKind,
-          error: message,
-        });
+        };
+        if (diagnostic !== undefined) log.warn('editorial pack failed', context);
+        else
+          log.error('editorial pack failed', {
+            ...context,
+            error: error instanceof Error ? error.message : String(error),
+          });
       });
       throw error;
     }

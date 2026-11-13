@@ -12,6 +12,7 @@ import {
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_MAX_BYTES,
   PICTIONARY_DRAWING_WIDTH,
+  pictionaryCompletionPayloadSchema,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { z } from 'zod';
 
@@ -86,7 +87,7 @@ export const pictionaryInternalCommandSchema: z.ZodType<PictionaryInternalComman
 
 const pictionaryGameCompletedEffectSchema = z.strictObject({
   type: z.literal('pictionary.game.completed'),
-  payload: gameCompletionPayloadSchema,
+  payload: z.union([gameCompletionPayloadSchema, pictionaryCompletionPayloadSchema]),
 });
 
 const pictionarySettleDueEffectSchema = z.strictObject({

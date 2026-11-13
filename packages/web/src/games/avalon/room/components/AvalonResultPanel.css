@@ -14,28 +14,173 @@
   color: var(--color-error);
 }
 
-.avalon-result-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-tight);
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
+.center-dialog[data-kind='vote'] {
+  gap: var(--space-small);
+  max-width: var(--size-admin-drawer);
+  border: var(--border-width) solid var(--color-border-light);
 }
 
-.avalon-result-row {
+.avalon-vote-result-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.center-dialog[data-kind='vote'] .avalon-result-banner {
   color: var(--color-text);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
+  font-size: var(--font-heading);
+  line-height: var(--line-heading);
+}
+
+.center-dialog[data-kind='vote'] .avalon-result-banner[data-outcome='positive'] {
+  color: var(--report-good-medal-text);
+}
+
+.center-dialog[data-kind='vote'] .avalon-result-banner[data-outcome='negative'] {
+  color: var(--color-error);
 }
 
 .avalon-result-summary {
   margin: 0;
+  padding: var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a6);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
+  text-align: center;
+}
+
+.avalon-vote-details {
+  min-width: 0;
+  margin-top: var(--space-small);
+}
+
+.avalon-vote-section-title {
+  margin: 0 0 var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-result-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.avalon-result-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  min-width: 0;
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-vote-seat {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-avatar-xs);
+  height: var(--size-avatar-xs);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-vote-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.avalon-vote-separator {
+  color: var(--color-text-secondary);
+}
+
+.avalon-vote-ballot {
+  flex: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-result-row[data-ballot='approve'] .avalon-vote-ballot {
+  color: var(--report-good-medal-text);
+}
+
+.avalon-result-row[data-ballot='reject'] .avalon-vote-ballot {
+  color: var(--color-error);
+}
+
+.avalon-result-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin-top: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.avalon-result-confirmation p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.avalon-result-confirmation p:first-child {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.avalon-vote-progress {
+  width: 100%;
+  height: var(--space-tight);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+  accent-color: var(--color-primary);
+}
+
+.avalon-vote-progress::-webkit-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.avalon-vote-progress::-webkit-progress-value {
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+.avalon-vote-progress::-moz-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+.avalon-vote-hint {
+  margin: 0 0 var(--space-tight);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
   text-align: center;
 }
 

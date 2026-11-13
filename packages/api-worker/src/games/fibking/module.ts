@@ -9,6 +9,7 @@ import {
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { fibEffectSchema, getFibEffectFailureCommand, handleFibEffect } from './effects';
+import { getFibPublicUserStats } from './publicUserStats';
 import { fibCreateConfigSchema, fibInternalCommandSchema, fibPublicCommandSchema } from './schemas';
 
 export const fibWorkerModule = defineWorkerGameModule({
@@ -22,6 +23,7 @@ export const fibWorkerModule = defineWorkerGameModule({
   effectSchema: fibEffectSchema,
   httpRoutes: [],
   parsePublicUserStats: parseFibPublicStats,
+  getPublicUserStats: getFibPublicUserStats,
   handleEffect: handleFibEffect,
   getEffectFailureCommand: getFibEffectFailureCommand,
   canReplayFailedEffect: (effect) => effect.type === 'fibking.game.completed',

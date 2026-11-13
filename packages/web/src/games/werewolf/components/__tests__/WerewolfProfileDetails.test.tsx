@@ -27,7 +27,6 @@ describe('WerewolfProfileDetails', () => {
 
     render(<WerewolfProfileDetails userId="user-1" />);
 
-    expect(screen.getByText('统计 4 局')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
     expect(mockUseWerewolfPublicStats).toHaveBeenCalledWith('user-1');
   });

@@ -41,6 +41,7 @@ import {
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -110,6 +111,7 @@ export interface DrawGuessRoomShellModelInput extends Omit<
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
+  readonly gameDetails?: RoomProfileCardModel['gameDetails'];
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
@@ -277,6 +279,7 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       capabilities: input.capabilities,
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
+      gameDetails: input.gameDetails,
     }),
     bottomActions: {
       kind: 'stacked',

@@ -4,7 +4,9 @@
 import { acknowledgeAudioQueue, guardAudioPlayback } from '../../platform/audio';
 //#end
 import {
+//#cap !businessStats
   buildGameCompletionPayload,
+//#end
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -53,8 +55,12 @@ import {
   __GAME_UPPER___GAME_TYPE,
   type __GAME_PASCAL__Config,
   type __GAME_PASCAL__State,
+  __GAME_UPPER___MIN_PLAYERS,
 } from './state/types';
 import { __GAME_UPPER___STATE_VERSION } from './state/version';
+//#cap businessStats
+import { buildGameCompletionPayloadV2 } from '../../platform/engine/completionEffect';
+//#end
 
 function createInitialState(
   config: __GAME_PASCAL__Config,
@@ -85,14 +91,32 @@ function createInitialState(
 }
 
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
-function completionEffect(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Effect {
+function completionEffect(
+  state: __GAME_PASCAL__State,
+  context: CommandContext,
+): __GAME_PASCAL__Effect | null {
+//#cap businessStats
+  const humans = Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers));
+  const payload = buildGameCompletionPayloadV2({
+    roundId: `__GAME_ID__:game:${state.gameSequence}`,
+    completedAt: context.nowMs,
+    humans,
+    minimumHumanPlayers: __GAME_UPPER___MIN_PLAYERS,
+    stats: humans.map(({ userId }) => ({ userId, gamesPlayed: 1 as const })),
+  });
+//#end
+//#cap !businessStats
+  const payload = buildGameCompletionPayload({
+    roundId: `__GAME_ID__:game:${state.gameSequence}`,
+    completedAt: context.nowMs,
+    humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    minimumHumanPlayers: __GAME_UPPER___MIN_PLAYERS,
+  });
+//#end
+  if (payload === null) return null;
   return {
     type: '__GAME_ID__.game.completed',
-    payload: buildGameCompletionPayload({
-      roundId: `__GAME_ID__:game:${state.gameSequence}`,
-      completedAt: context.nowMs,
-      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-    }),
+    payload,
   };
 }
 
@@ -332,10 +356,19 @@ export function end__GAME_PASCAL__Game(
   context: CommandContext,
 ): __GAME_PASCAL__Decision {
   if (state.phase.kind !== 'playing') return reject(__GAME_UPPER___REASONS.phase);
+//#cap businessStats
+  const events: readonly __GAME_PASCAL__Event[] = [{ type: '__GAME_ID__.game.ended' }];
+  const ended = events.reduce(evolve__GAME_PASCAL__State, state);
+  const effect = state.xpSettled ? null : completionEffect(ended, context);
+  return commit__GAME_PASCAL__(events, effect === null ? [] : [effect]);
+//#end
+//#cap !businessStats
+  const effect = state.xpSettled ? null : completionEffect(state, context);
   return commit__GAME_PASCAL__(
     [{ type: '__GAME_ID__.game.ended' }],
-    state.xpSettled ? [] : [completionEffect(state, context)],
+    effect === null ? [] : [effect],
   );
+//#end
 }
 
 function decideCommand(

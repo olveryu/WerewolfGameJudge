@@ -1,0 +1,6 @@
+import { parse__GAME_PASCAL__PublicStats } from '@game-judge/game-engine/games/__GAME_ID__/public';
+
+import { publicGameStatsOptions } from '@/games/model/publicGameStats';
+
+export const __GAME_CAMEL__PublicStatsOptions = (userId: string) =>
+  publicGameStatsOptions('__GAME_ID__', userId, parse__GAME_PASCAL__PublicStats);

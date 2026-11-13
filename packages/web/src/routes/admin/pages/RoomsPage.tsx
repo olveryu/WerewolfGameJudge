@@ -45,6 +45,9 @@ export function RoomsPage() {
     if (key === 'page') next.delete('room');
     setParameters(next, { replace: true });
   }
+  function toggleRoom(room: AdminRoom) {
+    change('room', expanded === room.code ? '' : room.code);
+  }
   const columns: TableColumn<AdminRoom>[] = [
     {
       key: 'code',
@@ -54,7 +57,8 @@ export function RoomsPage() {
           type="button"
           className="admin-mono admin-text-button"
           aria-expanded={expanded === room.code}
-          onClick={() => change('room', expanded === room.code ? '' : room.code)}
+          aria-controls={expanded === room.code ? `admin-room-detail-${room.code}` : undefined}
+          onClick={() => toggleRoom(room)}
         >
           #{room.code}
         </button>
@@ -121,12 +125,11 @@ export function RoomsPage() {
       ),
     },
   ];
-  const selected = query.data?.rooms.find((room) => room.code === expanded);
   return (
     <>
       <PageHeading
         title="房间"
-        description="查看运行状态与开局记录，点击房间号查看参与者及其累计局数。"
+        description="查看运行状态与开局记录，点击房间查看参与者及其累计局数。"
         query={query}
       />
       <div className="admin-content">
@@ -146,6 +149,22 @@ export function RoomsPage() {
                       (a, b) => Number(b.status === 'failed') - Number(a.status === 'failed'),
                     )}
                     rowKey={(room) => room.id}
+                    onRowClick={toggleRoom}
+                    expandedRow={(room) =>
+                      room.code === expanded ? (
+                        <div id={`admin-room-detail-${room.code}`} className="admin-room-detail">
+                          <Panel title={`#${room.code} · 参与者`}>
+                            {room.status === 'failed' && (
+                              <p className="admin-error">
+                                已重试 {room.reconciliationAttemptCount} 次 ·{' '}
+                                {room.lastError ?? '无错误详情'}
+                              </p>
+                            )}
+                            <RoomPlayers roomCode={room.code} />
+                          </Panel>
+                        </div>
+                      ) : null
+                    }
                   />
                   <CursorPager
                     page={page}
@@ -158,17 +177,6 @@ export function RoomsPage() {
                 </>
               )}
             </AsyncBoundary>
-          </Panel>
-        )}
-        {selected !== undefined && (
-          <Panel title={`#${selected.code} · 参与者`} className="admin-room-detail">
-            {selected.status === 'failed' && (
-              <p className="admin-error">
-                已重试 {selected.reconciliationAttemptCount} 次 ·{' '}
-                {selected.lastError ?? '无错误详情'}
-              </p>
-            )}
-            <RoomPlayers roomCode={selected.code} />
           </Panel>
         )}
       </div>

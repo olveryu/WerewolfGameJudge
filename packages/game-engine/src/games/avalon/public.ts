@@ -38,6 +38,14 @@ export {
   getAvalonViewModel,
 } from './domain/visibility';
 export { avalonEngine, decideAvalonCommand, getAvalonLifecycle } from './engine';
+export {
+  type AvalonCompletionPayload,
+  avalonCompletionPayloadSchema,
+  type AvalonCompletionStatsFact,
+  type AvalonPublicStats,
+  avalonPublicStatsSchema,
+  parseAvalonPublicStats,
+} from './publicStats';
 export { AVALON_STATE_CODEC } from './state/codec';
 export {
   migratePersistedAvalonState,

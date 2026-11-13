@@ -15,10 +15,10 @@ import {
 import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
 
 const CAMP_LABEL: Readonly<Record<keyof WerewolfCampStats['counts'], string>> = {
-  wolf: '🐺 狼人',
-  god: '✨ 神',
-  villager: '🧑 平民',
-  third: '🎭 第三方',
+  wolf: '狼人',
+  god: '神',
+  villager: '平民',
+  third: '第三方',
 };
 
 /** Integer percentage of a camp count within the visible total. */

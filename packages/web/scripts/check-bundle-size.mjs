@@ -32,10 +32,10 @@ const HOME_FORBIDDEN_SOURCES = [
  */
 const BUDGETS = [
   {
-    // Measured 2026-11-11: ~1340 KiB gzip with application code eager; ~4% headroom.
+    // Measured 2026-11-13: ~1407 KiB gzip including external word curation; approved ceiling 2000 KiB.
     name: 'home (start-up to interactive home)',
     entries: HOME_ENTRIES,
-    maxGzipBytes: 1400 * KIB,
+    maxGzipBytes: 2000 * KIB,
   },
 ];
 

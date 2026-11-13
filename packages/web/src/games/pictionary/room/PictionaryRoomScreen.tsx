@@ -10,6 +10,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { PictionaryStatsPanel } from '@/games/pictionary/components/PictionaryStatsPanel';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { TESTIDS } from '@/testids';
 
@@ -87,6 +88,9 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <PictionaryStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       gameOverlays={screen.reviewOverlay}
     />
   );

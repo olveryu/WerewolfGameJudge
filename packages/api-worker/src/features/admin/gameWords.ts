@@ -214,11 +214,13 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const tavilyRow = await db
     .prepare(
-      `SELECT COUNT(*) AS used FROM fib_word_provider_requests
+      `SELECT (SELECT COUNT(*) FROM fib_word_provider_requests
          WHERE pack_id >= ? AND pack_id < ?
-           AND (operation IN ('discovery', 'extraction') OR operation LIKE 'verification-%')`,
+           AND (operation IN ('discovery', 'extraction') OR operation LIKE 'verification-%'))
+         + (SELECT COUNT(*) FROM word_submission_evidence_requests
+           WHERE claimed_at >= ? AND claimed_at < ?) AS used`,
     )
-    .bind(`${currentMonth}-`, `${currentMonth}.`)
+    .bind(`${currentMonth}-`, `${currentMonth}.`, `${currentMonth}-`, `${currentMonth}.`)
     .first<{ used: number }>();
   const boardRows = await db
     .prepare(

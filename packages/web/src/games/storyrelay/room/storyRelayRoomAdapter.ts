@@ -38,6 +38,7 @@ import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActi
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
@@ -131,6 +132,7 @@ export interface StoryRelayRoomShellModelInput extends Omit<
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
+  readonly gameDetails?: RoomProfileCardModel['gameDetails'];
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
@@ -294,6 +296,7 @@ export function createStoryRelayRoomShellModel(
       capabilities: input.capabilities,
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
+      gameDetails: input.gameDetails,
     }),
     bottomActions: {
       kind: 'stacked',

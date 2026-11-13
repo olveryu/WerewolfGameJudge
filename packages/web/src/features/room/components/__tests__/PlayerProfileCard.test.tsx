@@ -2,6 +2,7 @@
  * Player profile card: the unlock count opens that player's collection in the same room, and the
  * card shows the player's equipped cosmetics, with the frame and flair drawn on the avatar.
  */
+import { TOTAL_UNLOCKABLE_COUNT } from '@game-judge/game-engine/product/rewards';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -90,7 +91,11 @@ it('closes the card and opens the player unlocks with their name', async () => {
   const onClose = vi.fn();
   renderCard(onClose);
 
-  await userEvent.click(screen.getByRole('button', { name: '已解锁 ›' }));
+  await userEvent.click(
+    screen.getByRole('button', {
+      name: `已解锁 ${PROFILE.unlockedItemCount} 件，共 ${TOTAL_UNLOCKABLE_COUNT} 件，查看收藏`,
+    }),
+  );
 
   expect(onClose).toHaveBeenCalledOnce();
   const search = new URLSearchParams({ userId: 'user-2', displayName: PROFILE.displayName });

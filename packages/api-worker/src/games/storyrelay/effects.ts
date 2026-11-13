@@ -10,6 +10,7 @@ import {
 import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { storyRelayStatsSettlement } from './publicUserStats';
 
 type StoryRelaySettleDueEffect = Extract<StoryRelayEffect, { type: 'storyrelay.settle.due' }>;
 
@@ -58,6 +59,7 @@ export async function handleStoryRelayEffect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'storyrelay' },
         context,
+        'stats' in effect.payload ? storyRelayStatsSettlement(effect.payload.stats) : undefined,
       );
       return;
     case 'storyrelay.settle.due':

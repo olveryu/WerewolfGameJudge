@@ -36,6 +36,7 @@ import { buildEndedWaitingMessage } from '@/features/room/model/RoomBottomAction
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { DrawGuessStatsPanel } from '@/games/drawguess/components/DrawGuessStatsPanel';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
 import { drawGuessMediaTransport } from '@/games/drawguess/services/drawGuessMediaTransport';
 import {
@@ -52,6 +53,7 @@ import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNot
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
 import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
 import { DrawGuessGuessPeek } from './components/DrawGuessGuessPeek';
+import { DrawGuessReactionPicker } from './components/DrawGuessReactionPicker';
 import { DrawGuessScoreboard, type DrawGuessScoreboardRow } from './components/DrawGuessScoreboard';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
@@ -134,6 +136,9 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <DrawGuessStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       gameOverlays={screen.reviewOverlay}
     />
   );
@@ -330,39 +335,52 @@ function DrawGuessDrawingView({
       maxWidth={isWideLayout ? DRAWGUESS_WIDE_STAGE_MAX_WIDTH : DRAWGUESS_STAGE_MAX_WIDTH}
       header={<DrawGuessSettleRescue screen={screen} />}
       footer={
-        isDrawer ? (
-          <DrawingToolbar
-            tool={tool}
-            color={color}
-            strokeWidth={strokeWidth}
-            canUndo={sync.elements.length > 0}
-            canRedo={sync.canRedo}
-            disabled={!canDraw}
-            palette={DRAWING_PALETTE}
-            widths={DRAWING_WIDTHS}
-            onToolChange={setTool}
-            onColorChange={(nextColor) => {
-              if (isDrawingColor(nextColor)) setColor(nextColor);
-            }}
-            onWidthChange={(nextWidth) => {
-              const width = DRAWING_WIDTHS.find((candidate) => candidate === nextWidth);
-              if (width !== undefined) setStrokeWidth(width);
-            }}
-            onUndo={sync.undo}
-            onRedo={sync.redo}
-            onClear={() =>
-              showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', sync.clear)
-            }
+        <div className="drawguess-task-footer">
+          <DrawGuessReactionPicker
+            drawerSeat={phase.drawerSeat}
+            reactionsBySeat={viewModel.reactionsBySeat}
+            seats={viewModel.seats}
+            effectiveSeat={effectiveSeat}
+            controlledSeat={controlledSeat}
+            isSubmitting={screen.isSubmitting}
+            phaseRevision={state.phaseRevision}
+            turnIndex={state.turnIndex}
+            submit={screen.submit}
           />
-        ) : (
-          <DrawGuessGuessComposer
-            draft={draft}
-            onDraftChange={setDraft}
-            isLocked={isLocked}
-            canGuess={canGuess}
-            onSubmitGuess={submitGuess}
-          />
-        )
+          {isDrawer ? (
+            <DrawingToolbar
+              tool={tool}
+              color={color}
+              strokeWidth={strokeWidth}
+              canUndo={sync.elements.length > 0}
+              canRedo={sync.canRedo}
+              disabled={!canDraw}
+              palette={DRAWING_PALETTE}
+              widths={DRAWING_WIDTHS}
+              onToolChange={setTool}
+              onColorChange={(nextColor) => {
+                if (isDrawingColor(nextColor)) setColor(nextColor);
+              }}
+              onWidthChange={(nextWidth) => {
+                const width = DRAWING_WIDTHS.find((candidate) => candidate === nextWidth);
+                if (width !== undefined) setStrokeWidth(width);
+              }}
+              onUndo={sync.undo}
+              onRedo={sync.redo}
+              onClear={() =>
+                showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', sync.clear)
+              }
+            />
+          ) : (
+            <DrawGuessGuessComposer
+              draft={draft}
+              onDraftChange={setDraft}
+              isLocked={isLocked}
+              canGuess={canGuess}
+              onSubmitGuess={submitGuess}
+            />
+          )}
+        </div>
       }
     >
       <div className="drawguess-drawing-body" data-layout={isWideLayout ? 'wide' : 'narrow'}>
@@ -561,7 +579,7 @@ function DrawGuessRoundEndView({
   readonly screen: DrawGuessRoomScreenState;
   readonly phase: DrawGuessRoundEndPhase;
 }) {
-  const { viewModel } = screen;
+  const { state, viewModel, effectiveSeat, controlledSeat } = screen;
   useDrawGuessFinalDrawingUpload(screen, phase);
   const pngUri = useDrawGuessFinalDrawingUri(screen, phase);
   const roundRows = buildScoreboardRows(screen, (seat) => ({
@@ -593,6 +611,17 @@ function DrawGuessRoundEndView({
       )}
       <DrawGuessDrawerZeroedNote visible={viewModel.drawerZeroed} />
       <DrawGuessScoreboard title="本轮得分" competitionRanking rows={roundRows} />
+      <DrawGuessReactionPicker
+        drawerSeat={phase.drawerSeat}
+        reactionsBySeat={viewModel.reactionsBySeat}
+        seats={viewModel.seats}
+        effectiveSeat={effectiveSeat}
+        controlledSeat={controlledSeat}
+        isSubmitting={screen.isSubmitting}
+        phaseRevision={state.phaseRevision}
+        turnIndex={state.turnIndex}
+        submit={screen.submit}
+      />
     </DrawGuessStageColumn>
   );
 }

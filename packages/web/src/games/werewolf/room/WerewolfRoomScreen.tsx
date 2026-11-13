@@ -60,9 +60,10 @@ import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoom
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 const STRATEGY_MATCH_THRESHOLD = 0.1;
 
-const renderProfileDetails = (statsUserId: string) => (
-  <WerewolfProfileDetails userId={statsUserId} />
-);
+const renderProfileDetails = (
+  statsUserId: string,
+  onGamesPlayedChange: (gamesPlayed: number | null) => void,
+) => <WerewolfProfileDetails userId={statsUserId} onGamesPlayedChange={onGamesPlayedChange} />;
 
 type WerewolfRoomScreenProps = GameRoomScreenProps<'werewolf'> & {
   readonly session: WerewolfRoomSession;

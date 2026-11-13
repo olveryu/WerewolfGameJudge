@@ -50,12 +50,38 @@ describe('Undercover editorial publication', () => {
     expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
   });
 
-  it('reserves one batch for queued reviews and one for the least stocked category', async () => {
+  it('prioritizes the least stocked category over its recent-pack cooldown', async () => {
+    await env.DB.batch(
+      UNDERCOVER_CATEGORIES.filter((category) => category !== 'food').map((category) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_pairs
+            (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+           VALUES (?, ?, ?, ?, 'active', '2026-01-01', '2026-01-01', '{}')`,
+        ).bind(`stock-${category}`, `${category}-a`, `${category}-b`, category),
+      ),
+    );
     await env.DB.prepare(
-      `INSERT INTO undercover_word_pairs
-        (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
-       VALUES ('existing', '咖啡', '茶', 'food', 'active', '2026-09-01', '2026-09-01', '{}')`,
-    ).run();
+      `INSERT INTO undercover_word_packs
+        (id, category, request_token, status, model, prompt_version, review_version, created_at)
+       VALUES ('recent-food', 'food', 'recent-food', 'failed', 'test', '1', '1', ?)`,
+    )
+      .bind(new Date().toISOString())
+      .run();
+
+    const pack = await reserveUndercoverWordPack(env.DB, '2026-09-02', 1);
+    expect(pack?.category).toBe('food');
+  });
+
+  it('reserves one batch for queued reviews and one for the least stocked category', async () => {
+    await env.DB.batch(
+      UNDERCOVER_CATEGORIES.map((category) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_pairs
+            (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+           VALUES (?, ?, ?, ?, 'active', '2026-09-01', '2026-09-01', '{}')`,
+        ).bind(`existing-${category}`, `${category}-a`, `${category}-b`, category),
+      ),
+    );
     await env.DB.prepare(
       `INSERT INTO undercover_word_candidates
         (id, word_a, word_b, category, material_json, status, created_at)
@@ -71,6 +97,15 @@ describe('Undercover editorial publication', () => {
   it('resumes failed material, publishes once, and retires only after a negative review', async () => {
     const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');
+    await env.DB.batch(
+      UNDERCOVER_CATEGORIES.filter((category) => category !== first.category).map((category) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_pairs
+            (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
+           VALUES (?, ?, ?, ?, 'active', '2026-01-01', '2026-01-01', '{}')`,
+        ).bind(`stock-${category}`, `${category}-a`, `${category}-b`, category),
+      ),
+    );
     expect(await reserveUndercoverWordPack(env.DB, '2026-09-01', 0)).toBeNull();
     const candidate: UndercoverWordCandidate = {
       wordA: '熬夜',
@@ -108,25 +143,38 @@ describe('Undercover editorial publication', () => {
     await publishUndercoverWordPack(env.DB, second, candidates, [reviewPayload]);
     await publishUndercoverWordPack(env.DB, second, candidates, [reviewPayload]);
     expect(
-      await env.DB.prepare('SELECT COUNT(*) AS count FROM undercover_word_pairs').first(),
+      await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
+      )
+        .bind(candidate.wordA, candidate.wordB)
+        .first(),
     ).toEqual({ count: 1 });
     await env.DB.prepare("UPDATE undercover_word_candidates SET reviewed_at = '2000-01-01'").run();
     const third = await reserveUndercoverWordPack(env.DB, '2026-09-03', 0);
     if (third === null) throw new Error('Expected review reservation');
     const rereview = await getUndercoverReviewCandidates(env.DB, third);
     expect(rereview).toHaveLength(1);
-    expect(await env.DB.prepare('SELECT status FROM undercover_word_pairs').first()).toEqual({
-      status: 'active',
-    });
+    await expect(publishUndercoverWordPack(env.DB, third, rereview, [])).rejects.toThrow('count');
+    expect(
+      await env.DB.prepare(
+        'SELECT status FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
+      )
+        .bind(candidate.wordA, candidate.wordB)
+        .first(),
+    ).toEqual({ status: 'active' });
     await publishUndercoverWordPack(env.DB, third, rereview, [
       {
         ...reviewPayload,
         qualityChecks: { ...reviewPayload.qualityChecks, isPlayableBothWays: false },
       },
     ]);
-    expect(await env.DB.prepare('SELECT status FROM undercover_word_pairs').first()).toEqual({
-      status: 'disabled',
-    });
+    expect(
+      await env.DB.prepare(
+        'SELECT status FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
+      )
+        .bind(candidate.wordA, candidate.wordB)
+        .first(),
+    ).toEqual({ status: 'disabled' });
   });
 });
 

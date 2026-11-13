@@ -2,7 +2,7 @@
 
 import { DRAWGUESS_GAME_TYPE } from './types';
 
-export const DRAWGUESS_STATE_VERSION = 4;
+export const DRAWGUESS_STATE_VERSION = 5;
 
 export const DRAWGUESS_STATE_IDENTITY = {
   gameType: DRAWGUESS_GAME_TYPE,

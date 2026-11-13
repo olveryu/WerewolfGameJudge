@@ -49,6 +49,7 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { getBoardRolePortraits } from '@/games/avalon/assets/roleAvatars';
 import { type AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
 import { toRevealRoleData } from '../../components/AvalonRoleCardAdapter';
@@ -279,6 +280,7 @@ export function useAvalonRoomState(
     });
 
   const selection = profile.selection;
+  const gameDetails = useGameProfileDetails(selection, '阿瓦隆战绩', '本游戏局数');
   // 组队选人 modal 确认：队伍随命令发出（preselect / propose），引擎校验尺寸与座位。
   const confirmTeamPick = (seats: readonly number[]): Promise<void> => {
     const kind = teamPickModal;
@@ -312,6 +314,7 @@ export function useAvalonRoomState(
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
     profileSelection: selection,
+    gameDetails,
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,

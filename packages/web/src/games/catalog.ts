@@ -7,14 +7,21 @@ import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/prot
 import type { ComponentType } from 'react';
 
 import { createAvalonAudioPreview } from '@/games/avalon/audio/audioPreview';
+import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import { avalonHome } from '@/games/avalon/home';
 import { demoHome } from '@/games/demo/home';
+import { DrawGuessStatsPanel } from '@/games/drawguess/components/DrawGuessStatsPanel';
 import { drawGuessHome } from '@/games/drawguess/home';
+import { FibStatsPanel } from '@/games/fibking/components/FibStatsPanel';
 import { fibHome } from '@/games/fibking/home';
 import type { GameAudioPreview, GameAudioPreviewFactory } from '@/games/model/GameAudioPreview';
 import type { GameHomeContribution, GameModePresentation } from '@/games/model/GameHome';
+import type { GameStatsProps } from '@/games/model/GameStatsProps';
+import { PictionaryStatsPanel } from '@/games/pictionary/components/PictionaryStatsPanel';
 import { pictionaryHome } from '@/games/pictionary/home';
+import { StoryRelayStatsPanel } from '@/games/storyrelay/components/StoryRelayStatsPanel';
 import { storyRelayHome } from '@/games/storyrelay/home';
+import { UndercoverStatsPanel } from '@/games/undercover/components/UndercoverStatsPanel';
 import { undercoverHome } from '@/games/undercover/home';
 import { createWerewolfAudioPreview } from '@/games/werewolf/audio/audioPreview';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
@@ -26,12 +33,9 @@ interface ClientGameModule {
   /** Narrated games create a music-settings preview only when that page requests it. */
   readonly loadAudioPreview?: () => Promise<GameAudioPreviewFactory>;
   /** Game-owned statistics, mounted only on the account settings page. */
-  readonly AccountStats?: ComponentType<GameAccountStatsProps>;
-}
-
-/** Props of a game-owned account statistics section. */
-interface GameAccountStatsProps {
-  readonly userId: string;
+  readonly AccountStats?: ComponentType<GameStatsProps>;
+  /** The initial game selected by the account statistics picker. */
+  readonly defaultAccountStats?: true;
 }
 
 const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
@@ -39,15 +43,17 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
     home: werewolfHome,
     loadAudioPreview: async () => createWerewolfAudioPreview,
     AccountStats: WerewolfAccountStatsSection,
+    defaultAccountStats: true,
   },
-  fibking: { home: fibHome },
-  pictionary: { home: pictionaryHome },
-  undercover: { home: undercoverHome },
-  drawguess: { home: drawGuessHome },
-  storyrelay: { home: storyRelayHome },
+  fibking: { home: fibHome, AccountStats: FibStatsPanel },
+  pictionary: { home: pictionaryHome, AccountStats: PictionaryStatsPanel },
+  undercover: { home: undercoverHome, AccountStats: UndercoverStatsPanel },
+  drawguess: { home: drawGuessHome, AccountStats: DrawGuessStatsPanel },
+  storyrelay: { home: storyRelayHome, AccountStats: StoryRelayStatsPanel },
   avalon: {
     home: avalonHome,
     loadAudioPreview: async () => createAvalonAudioPreview,
+    AccountStats: AvalonStatsPanel,
   },
   demo: { home: demoHome },
 };
@@ -109,7 +115,9 @@ export const GAME_ANNOUNCEMENT_TABS: readonly ClientGameAnnouncementTab[] = GAME
 
 export interface ClientGameAccountStatsSection {
   readonly gameType: GameType;
-  readonly Section: ComponentType<GameAccountStatsProps>;
+  readonly displayName: string;
+  readonly isDefault: boolean;
+  readonly Section: ComponentType<GameStatsProps>;
 }
 
 /** Game-owned account statistics sections, in catalog order. */
@@ -117,8 +125,23 @@ export const GAME_ACCOUNT_STATS_SECTIONS: readonly ClientGameAccountStatsSection
   GAME_TYPES.flatMap((gameType) => {
     const { AccountStats } = CLIENT_GAMES[gameType];
     if (AccountStats === undefined) return [];
-    return [{ gameType, Section: AccountStats }];
+    return [
+      {
+        gameType,
+        displayName: CLIENT_GAMES[gameType].home.mode.displayName,
+        isDefault: CLIENT_GAMES[gameType].defaultAccountStats === true,
+        Section: AccountStats,
+      },
+    ];
   });
+
+const DEFAULT_ACCOUNT_STATS_SECTION = GAME_ACCOUNT_STATS_SECTIONS.find(
+  (section) => section.isDefault,
+);
+if (DEFAULT_ACCOUNT_STATS_SECTION === undefined) {
+  throw new Error('[FAIL-FAST] The game catalog must declare a default account statistics game');
+}
+export const DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE = DEFAULT_ACCOUNT_STATS_SECTION.gameType;
 
 export interface ClientGameAudioPreview extends GameAudioPreview {
   readonly gameType: GameType;

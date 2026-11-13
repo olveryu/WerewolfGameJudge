@@ -90,9 +90,13 @@ describe('createRoomProfileCardModel', () => {
       capabilities,
       onClose,
       onLeaveSeat,
-      gameDetails: { title: '阵营分布', statsUserId: 'me' },
+      gameDetails: { title: '狼人杀战绩', statsUserId: 'me', countLabel: '本游戏局数' },
     });
-    expect(withDetails?.gameDetails).toEqual({ title: '阵营分布', statsUserId: 'me' });
+    expect(withDetails?.gameDetails).toEqual({
+      title: '狼人杀战绩',
+      statsUserId: 'me',
+      countLabel: '本游戏局数',
+    });
     const without = createRoomProfileCardModel({
       selection: SELF,
       capabilities,

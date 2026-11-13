@@ -18,6 +18,7 @@ import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { UndercoverStatsPanel } from '@/games/undercover/components/UndercoverStatsPanel';
 import { TESTIDS } from '@/testids';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
@@ -71,6 +72,9 @@ function UndercoverRoomContent(
       model={shellModel}
       leadingExtraActions={null}
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <UndercoverStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       content={{
         kind: 'seats',
         contextHeader: null,

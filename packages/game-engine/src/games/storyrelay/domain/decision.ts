@@ -1,7 +1,9 @@
 /** Story Relay decision outcomes and common permission gates; no IO. */
 
 import { commit, type Decision } from '../../../platform/engine';
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import type { RosterChange } from '../../../platform/room/seating';
+import type { StoryRelayCompletionPayload } from '../publicStats';
 import type {
   StoryRelayConfig,
   StoryRelayEntry,
@@ -70,11 +72,7 @@ export interface StoryRelaySettleDueEffect {
 export type StoryRelayEffect =
   | {
       readonly type: 'storyrelay.game.completed';
-      readonly payload: {
-        readonly roundId: string;
-        readonly completedAt: number;
-        readonly participantUserIds: readonly string[];
-      };
+      readonly payload: GameCompletionPayload | StoryRelayCompletionPayload;
     }
   | StoryRelaySettleDueEffect;
 export type StoryRelayDecision = Decision<StoryRelayEvent, StoryRelayEffect>;

@@ -575,6 +575,9 @@
 .admin-table tr:hover td {
   background: var(--admin-canvas);
 }
+.admin-table tr[data-clickable='true'] {
+  cursor: pointer;
+}
 .admin-table th button {
   background: transparent;
   border: 0;
@@ -671,7 +674,9 @@
   padding: var(--space-tight) var(--space-small);
 }
 .admin-room-detail {
-  margin-top: var(--space-medium);
+  position: sticky;
+  left: 0;
+  width: min(100%, calc(100vw - 2 * var(--space-medium) - 2 * var(--space-small)));
 }
 .admin-meter {
   display: grid;
@@ -894,6 +899,25 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
+}
+.admin-recovery-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+.admin-recovery-summary .admin-badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.admin-recovery-summary > a {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--size-min-touch-target);
+  overflow-wrap: anywhere;
 }
 .admin-section-divider {
   height: 1px;
@@ -1414,6 +1438,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
   @media (max-width: 640px) {
+    .admin-recovery-summary {
+      align-items: flex-start;
+      flex-direction: column;
+    }
     .admin-stats-grid {
       grid-template-columns: minmax(0, 1fr);
     }

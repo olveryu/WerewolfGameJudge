@@ -1,19 +1,9 @@
 /** Shared word-supply admin contracts; no storage, workflow, or UI dependencies. */
 
-import type { GameType } from '../../platform/protocol/gameTypes';
+import type { GameWordGame } from './games';
 
-export const GAME_WORD_GAMES = [
-  'fibking',
-  'undercover',
-  'drawguess',
-] as const satisfies readonly GameType[];
-
-export type GameWordGame = (typeof GAME_WORD_GAMES)[number];
-
-/** Narrow an untrusted value to a supported word-supply game. */
-export function isGameWordGame(value: unknown): value is GameWordGame {
-  return GAME_WORD_GAMES.some((game) => game === value);
-}
+export * from './games';
+export * from './submissions';
 
 /** Dashboard response shared by the Worker and admin client. */
 export interface GameWordsStats {

@@ -28,6 +28,7 @@ import {
   writeAutomaticWordSupply,
 } from '../../platform/wordSupply/automaticSupply';
 import { users, userStats } from '../account/dbSchema';
+import { adminWordSubmissionRoutes } from '../wordSubmissions/routes';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
@@ -91,6 +92,7 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
   new Hono<AppEnv>();
 
 adminRoutes.use('*', requireAdmin);
+adminRoutes.route('/word-submissions', adminWordSubmissionRoutes);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
 adminRoutes.get('/session', (c) => c.body(null, 204));

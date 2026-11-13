@@ -12,6 +12,7 @@ export interface WerewolfCampStats {
 export interface WerewolfPublicStats {
   readonly gameType: 'werewolf';
   readonly campStats: WerewolfCampStats;
+  readonly nextVisibilityAt?: number | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,5 +53,11 @@ export function parseWerewolfPublicStats(value: unknown): WerewolfPublicStats {
     throw new Error('werewolfPublicStats.campStats.total must equal the camp count sum');
   }
 
-  return { gameType: 'werewolf', campStats: { total, counts } };
+  const parsed = { gameType: 'werewolf' as const, campStats: { total, counts } };
+  if (!Object.prototype.hasOwnProperty.call(stats, 'nextVisibilityAt')) return parsed;
+  const nextVisibilityAt =
+    stats.nextVisibilityAt === null
+      ? null
+      : parseCount(stats.nextVisibilityAt, 'werewolfPublicStats.nextVisibilityAt');
+  return { ...parsed, nextVisibilityAt };
 }

@@ -25,9 +25,8 @@
  */
 
 import {
-  buildGameCompletionPayload,
+  buildGameCompletionPayloadV2,
   type CommandContext,
-  type GameCompletionPayload,
   reject,
 } from '../../../platform/engine';
 import { PICTIONARY_GAME_TYPE } from '../../../platform/protocol/gameTypes';
@@ -55,6 +54,7 @@ import type {
 } from '../../../platform/room/relay/types';
 import type { PictionaryCommand } from '../commands/types';
 import type { PictionaryEffect } from '../effects/types';
+import type { PictionaryCompletionPayload } from '../publicStats';
 import {
   getPictionaryExpectedKind,
   getPictionaryRelayStepCount,
@@ -132,7 +132,7 @@ export function pictionarySettleDueEffect(identity: RelaySettleIdentity): Pictio
 /** Binds the shared machine to Pictionary's reasons, shape, events and effects. */
 function createPictionaryRelayKit(
   state: PictionaryState,
-): RelayEventKit<PictionaryEntry, PictionaryEvent, PictionaryEffect> {
+): RelayEventKit<PictionaryEntry, PictionaryEvent, PictionaryEffect, PictionaryCompletionPayload> {
   return {
     reasons: {
       phase: REASON_PICTIONARY_PHASE_INVALID,
@@ -186,25 +186,39 @@ function buildPictionaryCompletionPayload(
   state: Pick<PictionaryState, 'roundId' | 'chains' | 'participants'>,
   appendedEntries: readonly PictionaryEntry[],
   nowMs: number,
-): GameCompletionPayload {
+): PictionaryCompletionPayload | null {
   if (state.roundId === null) throw new Error('[FAIL-FAST] Completion requires a round');
-  const authors = new Set(
-    [...state.chains.flatMap((chain) => chain.entries), ...appendedEntries]
-      .filter(
-        (entry) =>
-          entry.kind === 'drawing' || (entry.kind === 'text' && entry.text.trim().length > 0),
-      )
-      .map((entry) => entry.authorSeat),
-  );
-  return buildGameCompletionPayload({
+  const entries = [...state.chains.flatMap((chain) => chain.entries), ...appendedEntries];
+  const countsBySeat = new Map<number, { textSubmissions: number; drawingSubmissions: number }>();
+  for (const entry of entries) {
+    if (entry.kind !== 'drawing' && !(entry.kind === 'text' && entry.text.trim().length > 0)) {
+      continue;
+    }
+    const counts = countsBySeat.get(entry.authorSeat) ?? {
+      textSubmissions: 0,
+      drawingSubmissions: 0,
+    };
+    if (entry.kind === 'drawing') counts.drawingSubmissions += 1;
+    else counts.textSubmissions += 1;
+    countsBySeat.set(entry.authorSeat, counts);
+  }
+  const humans = [...state.participants]
+    .sort((left, right) => left.seat - right.seat)
+    .flatMap((participant) =>
+      participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
+    );
+  const stats = humans.flatMap((human) => {
+    const counts = countsBySeat.get(human.seat);
+    if (counts === undefined) return [];
+    return [{ userId: human.userId, gamesPlayed: 1 as const, ...counts }];
+  });
+  return buildGameCompletionPayloadV2({
     roundId: state.roundId,
     completedAt: nowMs,
-    humans: [...state.participants]
-      .sort((left, right) => left.seat - right.seat)
-      .flatMap((participant) =>
-        participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
-      ),
-    includeSeat: (player) => authors.has(player.seat),
+    humans,
+    minimumHumanPlayers: PICTIONARY_MIN_PLAYERS,
+    includeSeat: (player) => countsBySeat.has(player.seat),
+    stats,
   });
 }
 
@@ -233,7 +247,13 @@ export function getPictionaryAnswerDurationSeconds(
 
 function createPictionaryTaskHooks(
   state: PictionaryState,
-): RelayTaskHooks<PictionaryEntry, PictionaryEntry, PictionaryEvent, PictionaryEffect> {
+): RelayTaskHooks<
+  PictionaryEntry,
+  PictionaryEntry,
+  PictionaryEvent,
+  PictionaryEffect,
+  PictionaryCompletionPayload
+> {
   return {
     stripPreviousEntry: (entry) => entry,
     validateText: isValidPictionaryText,
@@ -257,18 +277,17 @@ function createPictionaryTaskHooks(
             authorSeat: seat,
             expectedKind: getPictionaryExpectedKind(task.stepIndex),
           },
-    onRoundCompleted: (kit, state, appended, nowMs) => ({
-      events: [],
-      effects: [
-        kit.completionEffect(
-          buildPictionaryCompletionPayload(
-            state,
-            appended.map((item) => item.entry),
-            nowMs,
-          ),
-        ),
-      ],
-    }),
+    onRoundCompleted: (kit, state, appended, nowMs) => {
+      const payload = buildPictionaryCompletionPayload(
+        state,
+        appended.map((item) => item.entry),
+        nowMs,
+      );
+      return {
+        events: [],
+        effects: payload === null ? [] : [kit.completionEffect(payload)],
+      };
+    },
   };
 }
 

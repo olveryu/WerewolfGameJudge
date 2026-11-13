@@ -83,6 +83,9 @@ it('plays through the dawn tail, stops on the dawn ack, and never auto-plays dur
   expect(audio.startBgm).toHaveBeenCalledTimes(1);
   act(() => result.current.playBgm());
   audio.stopBgm.mockClear();
+  rerender({ isHost: true, phase: 'voteResult', isAudioPlaying: false });
+  expect(result.current.isBgmPlaying).toBe(true);
+  expect(audio.stopBgm).not.toHaveBeenCalled();
   rerender({ isHost: true, phase: 'quest', isAudioPlaying: false });
   expect(result.current.isBgmPlaying).toBe(true);
   expect(audio.stopBgm).not.toHaveBeenCalled();

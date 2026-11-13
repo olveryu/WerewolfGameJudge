@@ -7,7 +7,10 @@ const requestSchema = z.object({
 const payloadSchema = z.looseObject({ category: z.string() });
 
 /** Replace model HTTP requests while preserving the real provider and workflow steps. */
-export function mockWordSupplyModel(candidate: Record<string, unknown>, review: unknown) {
+export function mockWordSupplyModel(
+  candidate: Record<string, unknown> | Record<string, unknown>[],
+  review: unknown,
+) {
   const requests: z.output<typeof payloadSchema>[] = [];
   vi.stubGlobal(
     'fetch',
@@ -17,7 +20,12 @@ export function mockWordSupplyModel(candidate: Record<string, unknown>, review: 
       requests.push(payload);
       let output: unknown;
       if (requests.length === 1)
-        output = { candidates: [{ ...candidate, category: payload.category }] };
+        output = {
+          candidates: (Array.isArray(candidate) ? candidate : [candidate]).map((item) => ({
+            ...item,
+            category: payload.category,
+          })),
+        };
       else if (requests.length === 2) output = { reviews: [review] };
       else throw new Error('Unexpected external HTTP request');
       return Response.json({

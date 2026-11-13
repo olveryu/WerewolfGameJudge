@@ -1,6 +1,8 @@
 /** Durable effects emitted by the pure FibKing engine. */
 
 import type { GameEffect } from '../../../platform/engine';
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
+import type { FibCompletionPayload } from '../publicStats';
 
 export interface FibSelectWordEffect extends GameEffect {
   readonly type: 'fibking.word.select';
@@ -24,11 +26,7 @@ export interface FibRecordWordUsageEffect extends GameEffect {
 
 export interface FibCompletedEffect extends GameEffect {
   readonly type: 'fibking.game.completed';
-  readonly payload: {
-    readonly roundId: string;
-    readonly completedAt: number;
-    readonly participantUserIds: readonly string[];
-  };
+  readonly payload: GameCompletionPayload | FibCompletionPayload;
 }
 
 export type FibEffect = FibSelectWordEffect | FibRecordWordUsageEffect | FibCompletedEffect;

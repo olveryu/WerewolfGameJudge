@@ -95,6 +95,9 @@ function session() {
         send({ type: 'avalon.team.vote', vote: ballot }, userOf(seat));
       }
       settlePhase();
+      for (let seat = 0; seat < 5; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, userOf(seat));
+      }
       return team;
     },
     /** Settles the in-flight quest; the first evil team member (if any) fails it. */

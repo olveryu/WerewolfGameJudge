@@ -111,11 +111,22 @@ describe('AppearancePage', () => {
     mocks.auth.user = null;
     const router = await renderAt('/appearance');
 
-    expect(await screen.findByText('绑定后可上传')).toBeInTheDocument();
+    expect(await screen.findByText('注册或绑定邮箱后可上传')).toBeInTheDocument();
+    expect(screen.getByText('注册账号，打造专属形象')).toBeInTheDocument();
+    expect(screen.getByText('· 收集并使用头像')).toBeInTheDocument();
     expect(screen.queryByTestId(TESTIDS.appearanceAvatarInput)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '立即注册' }));
 
     expect(router.state.location.pathname).toBe('/settings');
+  });
+
+  it('offers email binding to anonymous players without promising all avatars', async () => {
+    mocks.auth.user = { ...REGISTERED_USER, email: null, isAnonymous: true };
+    await renderAt('/appearance');
+
+    expect(await screen.findByText('绑定邮箱，打造专属形象')).toBeInTheDocument();
+    expect(screen.getByText('· 收集并使用头像')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '立即绑定' })).toBeInTheDocument();
   });
 
   it('offers a retry when the collection fails to load', async () => {

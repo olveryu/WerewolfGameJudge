@@ -1,5 +1,6 @@
 import './SettingsPage.css';
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   type FormEvent,
   type ReactNode,
@@ -31,6 +32,7 @@ import {
 import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import { syncActiveRoomProfile } from '@/features/account/syncActiveRoomProfile';
 import { useSignOut } from '@/features/auth/authMutations';
+import { COLLECTION_PREVIEW_NOTICE } from '@/features/auth/guestPolicy';
 import { LoginOptions } from '@/features/auth/LoginDialog';
 import { requestLogin } from '@/features/auth/loginRequests';
 import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
@@ -47,7 +49,7 @@ import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { displaySettings } from '@/features/settings/displaySettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
-import { GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
+import { DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE, GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
 import { useActiveRoomAccount } from '@/games/clientModules';
 import { resolveResidentDecorations } from '@/scene/residentDecorations';
 import type { SceneFrameRate } from '@/scene/stage';
@@ -182,7 +184,7 @@ const PREVIEW_STRIP_PORTRAITS = (() => {
   });
 })();
 
-/** Anonymous-user teaser: what binding an email unlocks. */
+/** Anonymous-user collection preview. */
 function AvatarTeaser() {
   const appearancePath = useAppearancePath();
   return (
@@ -195,9 +197,7 @@ function AvatarTeaser() {
           <IconLockClosed aria-hidden />
         </span>
       </div>
-      <p className="settings-teaser-text">
-        {`绑定邮箱，解锁 ${HAND_DRAWN_PORTRAITS.length} 款暗黑头像、自定义昵称和头像框`}
-      </p>
+      <p className="settings-teaser-text">{COLLECTION_PREVIEW_NOTICE}</p>
       <Link className="settings-teaser-link" to={appearancePath}>
         浏览全部头像 ›
       </Link>
@@ -305,6 +305,15 @@ function AccountSection({ user }: { user: User }) {
   const appearancePath = useAppearancePath();
   const signOut = useSignOut();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [selectedStatsGame, setSelectedStatsGame] = useState<GameType>(
+    DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE,
+  );
+  const selectedStatsSection = GAME_ACCOUNT_STATS_SECTIONS.find(
+    (section) => section.gameType === selectedStatsGame,
+  );
+  if (selectedStatsSection === undefined) {
+    throw new Error(`[FAIL-FAST] Missing account statistics section for ${selectedStatsGame}`);
+  }
   const sceneHostRef = useRef<HTMLDivElement>(null);
   const inMiniProgram = isMiniProgram();
   const activeRoom = useActiveRoomAccount();
@@ -498,10 +507,29 @@ function AccountSection({ user }: { user: User }) {
           <h2 className="settings-card-title">
             <IconStatsChartOutline aria-hidden /> 战绩
           </h2>
+          <fieldset className="settings-game-stats-picker">
+            <legend>选择游戏</legend>
+            <div className="settings-game-stats-options">
+              {GAME_ACCOUNT_STATS_SECTIONS.map((statsSection) => (
+                <label
+                  key={statsSection.gameType}
+                  className="settings-game-stats-option"
+                  data-selected={statsSection.gameType === selectedStatsGame}
+                >
+                  <input
+                    type="radio"
+                    name="account-stats-game"
+                    value={statsSection.gameType}
+                    checked={statsSection.gameType === selectedStatsGame}
+                    onChange={() => setSelectedStatsGame(statsSection.gameType)}
+                  />
+                  <span>{statsSection.displayName}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <Suspense fallback={<Spinner label="加载战绩" />}>
-            {GAME_ACCOUNT_STATS_SECTIONS.map((statsSection) => (
-              <statsSection.Section key={statsSection.gameType} userId={user.id} />
-            ))}
+            <selectedStatsSection.Section key={selectedStatsSection.gameType} userId={user.id} />
           </Suspense>
         </section>
       )}

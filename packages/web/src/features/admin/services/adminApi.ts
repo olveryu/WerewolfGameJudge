@@ -51,7 +51,8 @@ function getAdminToken(): string {
   return token;
 }
 
-async function adminFetch<T>(
+/** Shared administrator transport with credential expiry, cancellation and response validation. */
+export async function adminFetch<T>(
   path: string,
   parseResponse: (value: unknown) => T,
   query?: Record<string, string>,

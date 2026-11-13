@@ -19,6 +19,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
+import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
 import IconMusicalNotes from '~icons/ion/musical-notes';
@@ -116,22 +117,8 @@ function AvalonRoomContent(
       ? ''
       : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
         `座位${strikeConfirm.seat + 1}`);
-  // 投票结算面板：只在结算后的 nominate/quest 展示一次（ended 由终局视图接管）。
-  // 水位语义见 useRevealWatermark：进房前已结算的结果只作基线、不重弹。
-  // lastVoteResult 本身没有序号字段，它恒等于 roundHistory 最后一条已结算
-  // 提案，故以对局代次 + 全量已结算提案数给它定身份键。
+  // 结果确认是权威阶段，重连也必须显示，直到全员确认。
   const voteResult = viewModel?.lastVoteResult ?? null;
-  const settledProposalCount =
-    viewModel?.roundHistory.reduce((total, record) => total + record.proposals.length, 0) ?? 0;
-  const voteResultWatermark = useRevealWatermark(
-    voteResult === null ? null : `${screen.state.gameSequence}:vote:${settledProposalCount}`,
-    viewModel !== null,
-  );
-  const showVoteResult =
-    voteResult !== null &&
-    voteResultWatermark.shouldReveal &&
-    viewModel !== null &&
-    (viewModel.phase === 'nominate' || viewModel.phase === 'quest');
   // 投票/出牌弹窗：每轮自动弹一次（按轮次键去重），关后不重弹，底部按钮可重开。
   // 开关状态住在 hook（screen.setVoteModalOpen 等），与底部动作区共用。
   const { setVoteModalOpen, setQuestModalOpen } = screen;
@@ -276,6 +263,9 @@ function AvalonRoomContent(
         ) : null
       }
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <AvalonStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       gameOverlays={
         <>
           {viewModel === null ? null : (
@@ -286,11 +276,19 @@ function AvalonRoomContent(
                   onClose={() => setHistoryVisible(false)}
                 />
               )}
-              {showVoteResult && voteResult !== null ? (
+              {/* Wait for the vote dialog to unmount before opening its successor layer. */}
+              {screen.state.phase.kind === 'voteResult' &&
+              voteResult !== null &&
+              !screen.voteModalOpen ? (
                 <AvalonVoteResultPanel
                   result={voteResult}
                   seats={viewModel.seats}
-                  onClose={voteResultWatermark.dismiss}
+                  confirmedSeats={screen.state.phase.confirmedSeats}
+                  mySeat={screen.mySeat}
+                  isSubmitting={screen.isSubmitting}
+                  onConfirm={() =>
+                    void screen.submit('确认投票结果', { type: 'avalon.voteResult.confirm' })
+                  }
                 />
               ) : null}
               {questResultEntry !== undefined ? (

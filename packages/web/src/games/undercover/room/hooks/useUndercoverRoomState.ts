@@ -32,6 +32,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { getBoardRolePortraits } from '@/games/undercover/assets/roleAvatars';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -107,6 +108,7 @@ export function useUndercoverRoomState({
   const configure = () => void navigate(gameConfigEditPath('undercover', room.roomCode));
   // 座位 / 资料卡：资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
   const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
+  const gameDetails = useGameProfileDetails(profile.selection, '谁是卧底战绩', '本游戏局数');
   const capabilities = createUndercoverRoomCapabilities({
     ...actions,
     state,
@@ -191,6 +193,7 @@ export function useUndercoverRoomState({
       capabilities,
       onClose: profile.close,
       onLeaveSeat: profile.leaveSelf,
+      gameDetails,
     }),
     share,
     controls,

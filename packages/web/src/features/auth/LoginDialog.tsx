@@ -16,7 +16,7 @@ import {
   useSignOut,
   useSignUpWithEmail,
 } from '@/features/auth/authMutations';
-import { GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
+import { COLLECTION_PREVIEW_NOTICE, GUEST_GROWTH_NOTICE } from '@/features/auth/guestPolicy';
 import {
   type LoginOutcome,
   type LoginRequest,
@@ -30,13 +30,11 @@ import { authLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 import IconEyeOffOutline from '~icons/ion/eye-off-outline';
 import IconEyeOutline from '~icons/ion/eye-outline';
-import IconLockClosed from '~icons/ion/lock-closed';
 import IconMailOutline from '~icons/ion/mail-outline';
 import IconPersonOutline from '~icons/ion/person-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 
 const STRIP_COUNT = 5;
-const UNLOCKED_COUNT = 3;
 const STRIP_STEP = Math.floor(HAND_DRAWN_PORTRAITS.length / STRIP_COUNT);
 const STRIP_PORTRAITS = Array.from({ length: STRIP_COUNT }, (_, index) => {
   const url = HAND_DRAWN_PORTRAITS[index * STRIP_STEP];
@@ -180,20 +178,13 @@ export function LoginOptions({
     <div className="login-options">
       <div className="login-strip">
         <div className="login-strip-row">
-          {STRIP_PORTRAITS.map((url, index) => (
+          {STRIP_PORTRAITS.map((url) => (
             <span key={url} className="login-strip-portrait">
               <img src={url} alt="" decoding="async" />
-              {index >= UNLOCKED_COUNT && (
-                <span className="login-strip-lock">
-                  <IconLockClosed aria-hidden />
-                </span>
-              )}
             </span>
           ))}
         </div>
-        <p className="login-strip-text">
-          {`绑定邮箱，解锁 ${HAND_DRAWN_PORTRAITS.length} 款暗黑头像、自定义昵称和头像框`}
-        </p>
+        <p className="login-strip-text">{COLLECTION_PREVIEW_NOTICE}</p>
         <button type="button" className="login-strip-link" onClick={onBrowseAvatars}>
           浏览全部头像 ›
         </button>
@@ -209,7 +200,7 @@ export function LoginOptions({
           {isGuest ? '绑定邮箱' : '邮箱注册'}
         </span>
         <span className="login-method-caption">
-          {isGuest ? '保留游戏数据，解锁完整功能' : '选头像起昵称，解锁绚丽头像框'}
+          {isGuest ? '绑定后可累计成长与战绩' : '注册后可设置昵称和自定义头像'}
         </span>
         <span className="login-method-caption login-method-caption-muted">
           <IconSparklesOutline aria-hidden /> 免验证，输入即注册

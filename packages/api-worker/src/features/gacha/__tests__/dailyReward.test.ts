@@ -2,7 +2,7 @@
  * Daily login reward — integration tests
  *
  * Tests the POST /api/gacha/daily-reward endpoint and GET /api/gacha/status.
- * Runs in Workers runtime via @cloudflare/vitest-pool-workers with D1.
+ * Runs in Workers runtime via @cloudflare/vitest-plugin with D1.
  */
 
 import { env, SELF } from 'cloudflare:test';

@@ -10,7 +10,22 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
+import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
+
+/** @public Undercover cumulative statistics by account and role. */
+export const undercoverUserStats = sqliteTable(
+  'undercover_user_stats',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(),
+    gamesPlayed: integer('games_played').notNull(),
+    wins: integer('wins').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.role] })],
+);
 
 /** @public Reviewed pairs; disabled records retain their identity and room references. */
 export const undercoverWordPairs = sqliteTable(

@@ -15,6 +15,30 @@ describe('DrawGuess public command schema', () => {
     expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
   });
 
+  it.each(['flower', 'egg', 'tomato'] as const)('accepts a scoped %s reaction', (reaction) => {
+    const command = { type: 'drawguess.reaction.send', phaseRevision: 2, turnIndex: 1, reaction };
+    expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
+  });
+
+  it('rejects invalid or unscoped reactions and extra fields', () => {
+    const command = {
+      type: 'drawguess.reaction.send',
+      phaseRevision: 2,
+      turnIndex: 1,
+      reaction: 'flower',
+    };
+    for (const invalid of [
+      { ...command, reaction: 'heart' },
+      { ...command, reaction: undefined },
+      { ...command, phaseRevision: -1 },
+      { ...command, turnIndex: 0.5 },
+      { ...command, turnIndex: undefined },
+      { ...command, userId: 'host' },
+    ]) {
+      expect(drawGuessPublicCommandSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
   it.each([undefined, null, -1, 0.5, '1'])('rejects invalid game sequence %s', (gameSequence) => {
     expect(
       drawGuessPublicCommandSchema.safeParse({ type: 'drawguess.game.abort', gameSequence })

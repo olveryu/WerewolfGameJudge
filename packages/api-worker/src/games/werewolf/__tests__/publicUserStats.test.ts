@@ -2,7 +2,7 @@
  * Werewolf public statistics — integration tests
  *
  * Verifies the game-routed stats endpoint and its two-hour anti-cheat visibility boundary.
- * Runs in Workers runtime via @cloudflare/vitest-pool-workers with D1.
+ * Runs in Workers runtime via @cloudflare/vitest-plugin with D1.
  */
 
 import { env, SELF } from 'cloudflare:test';

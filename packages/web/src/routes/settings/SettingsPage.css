@@ -307,6 +307,71 @@
   font-size: var(--font-secondary);
 }
 
+.settings-game-stats-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings-game-stats-picker legend {
+  margin-bottom: var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.settings-game-stats-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-small);
+}
+
+.settings-game-stats-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  cursor: pointer;
+}
+
+.settings-game-stats-option[data-selected='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a6);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.settings-game-stats-option:focus-within {
+  outline: var(--border-width-thick) solid var(--color-primary-light);
+  outline-offset: var(--space-micro);
+}
+
+.settings-game-stats-option input {
+  flex: 0 0 auto;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.settings-game-stats-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-row-actions {
   display: flex;
   gap: var(--space-small);

@@ -51,9 +51,9 @@ export async function reserveUndercoverWordPack(
         OR (candidate.status = 'accepted' AND (candidate.reviewed_at < ? OR EXISTS (SELECT 1 FROM undercover_word_pairs pair WHERE pair.id = candidate.id AND json_extract(pair.review_json, '$.reviewVersion') != ?))))) AS pending_count,
       (SELECT COUNT(*) FROM undercover_word_pairs pair WHERE pair.category = category_list.value AND pair.status = 'active') AS active_count
     FROM (SELECT value, value AS category FROM json_each(?)) category_list
-    ORDER BY CASE WHEN ? = 0 THEN -pending_count ELSE 0 END ASC,
+    ORDER BY active_count ASC,
+      CASE WHEN ? = 0 THEN -pending_count ELSE 0 END ASC,
       COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') > ? ASC,
-      active_count ASC,
       COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') ASC,
       category ASC LIMIT 1)`,
     categoryBinds: [

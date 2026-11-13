@@ -209,7 +209,10 @@ function roundRecordViews(
   const showBallots = state.config.voteMode === 'public';
   const phase = state.phase;
   const currentRound: AvalonQuestRound | null =
-    phase.kind === 'nominate' || phase.kind === 'vote' || phase.kind === 'quest'
+    phase.kind === 'nominate' ||
+    phase.kind === 'vote' ||
+    phase.kind === 'voteResult' ||
+    phase.kind === 'quest'
       ? phase.round
       : phase.kind === 'lady'
         ? phase.afterRound
@@ -347,6 +350,8 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     proposedSeats = phase.proposedSeats;
     myBallot = viewerSeat === null ? null : (phase.ballots[viewerSeat] ?? null);
     pendingVoteSeats = getPendingSeats(getAvalonOccupiedSeats(state), phase.ballots);
+  } else if (phase.kind === 'voteResult') {
+    proposedSeats = phase.proposedSeats;
   } else if (phase.kind === 'quest') {
     teamSeats = phase.teamSeats;
     myPlay = viewerSeat === null ? null : (phase.plays[viewerSeat] ?? null);

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import type { User } from '@/contexts/AuthContext';
 import type { UserStats } from '@/features/account/services/accountApi';
+import { LoginOptions } from '@/features/auth/LoginDialog';
 import { SettingsPage } from '@/routes/settings/SettingsPage';
 import type { ResidentDecorations } from '@/scene/residentDecorations';
 
@@ -51,15 +52,17 @@ vi.mock('@/games/clientModules', () => ({
 }));
 vi.mock('@/games/catalog', async () => {
   const { lazy } = await import('react');
+  const section = (gameType: string, displayName: string) => ({
+    gameType,
+    displayName,
+    isDefault: gameType === 'werewolf',
+    Section: lazy(async () => ({
+      default: ({ userId }: { userId: string }) => <p>{`战绩 ${gameType} ${userId}`}</p>,
+    })),
+  });
   return {
-    GAME_ACCOUNT_STATS_SECTIONS: [
-      {
-        gameType: 'werewolf',
-        Section: lazy(async () => ({
-          default: ({ userId }: { userId: string }) => <p>{`战绩 ${userId}`}</p>,
-        })),
-      },
-    ],
+    DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE: 'werewolf',
+    GAME_ACCOUNT_STATS_SECTIONS: [section('werewolf', '狼人杀'), section('fibking', '瞎掰王')],
   };
 });
 vi.mock('@/utils/alertPresets', () => ({
@@ -133,6 +136,8 @@ describe('SettingsPage', () => {
 
     expect(screen.getByText('邮箱登录')).toBeInTheDocument();
     expect(screen.getByText('匿名登录')).toBeInTheDocument();
+    expect(screen.getByText('注册或绑定邮箱后，游玩积累成长，收集头像和装扮')).toBeInTheDocument();
+    expect(screen.getByText('注册后可设置昵称和自定义头像')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '浏览全部头像 ›' }));
 
     expect(await screen.findByText('at /appearance')).toBeInTheDocument();
@@ -142,11 +147,20 @@ describe('SettingsPage', () => {
     mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
     await renderSettings();
 
-    expect(screen.getByText(/^绑定邮箱，解锁 \d+ 款暗黑头像/)).toBeInTheDocument();
+    expect(screen.getByText('注册或绑定邮箱后，游玩积累成长，收集头像和装扮')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '更换头像与装扮' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: '浏览全部头像 ›' }));
 
     expect(await screen.findByText('at /appearance')).toBeInTheDocument();
+  });
+
+  it('explains the benefits of binding to an anonymous player', () => {
+    mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
+    render(<LoginOptions onEmail={vi.fn()} onBrowseAvatars={vi.fn()} />);
+
+    expect(screen.getByText('绑定邮箱')).toBeInTheDocument();
+    expect(screen.getByText('绑定后可累计成长与战绩')).toBeInTheDocument();
+    expect(screen.queryByText('匿名登录')).not.toBeInTheDocument();
   });
 
   it('shows the level, XP progress and game-owned account stats', async () => {
@@ -157,7 +171,21 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Lv.2')).toBeInTheDocument();
     expect(await screen.findByRole('progressbar', { name: '经验进度' })).toBeInTheDocument();
     expect(screen.getByText(/^7 局 · 已解锁 \d+\/\d+$/)).toBeInTheDocument();
-    expect(await screen.findByText('战绩 user-1')).toBeInTheDocument();
+    expect(await screen.findByText('战绩 werewolf user-1')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '狼人杀' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '瞎掰王' })).not.toBeChecked();
+  });
+
+  it('switches the selected game statistics without mounting other panels', async () => {
+    mocks.auth.user = REGISTERED_USER;
+    mocks.stats = { xp: 30, level: 2, gamesPlayed: 7, unlockedItems: [] };
+    await renderSettings();
+
+    await userEvent.click(screen.getByRole('radio', { name: '瞎掰王' }));
+
+    expect(await screen.findByText('战绩 fibking user-1')).toBeInTheDocument();
+    expect(screen.queryByText('战绩 werewolf user-1')).toBeNull();
+    expect(screen.getByRole('radio', { name: '瞎掰王' })).toBeChecked();
   });
 
   it('links the avatar, the wardrobe entry and the unlocks row, staying in the room', async () => {

@@ -30,6 +30,7 @@ import {
 import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine, getFibLifecycle } from '../engine';
+import { fibkingCompletionPayloadSchema } from '../publicStats';
 import {
   FIB_MAX_PLAYERS,
   FIB_PREPARATION_STAGES,
@@ -107,9 +108,10 @@ function takeSeat(state: FibState, seat: number, userId: string, displayName = u
   );
 }
 
-function createFullLobby(): FibState {
-  const withHost = takeSeat(createLobby(), 0, 'host', '房主');
-  return dispatch(withHost, { type: 'room.seat.fillBots' }, userContext('host'));
+function createFullLobby(humanCount = 1): FibState {
+  let state = takeSeat(createLobby(), 0, 'host', '房主');
+  for (let seat = 1; seat < humanCount; seat += 1) state = takeSeat(state, seat, `u${seat}`);
+  return dispatch(state, { type: 'room.seat.fillBots' }, userContext('host'));
 }
 
 function startPreparing(state: FibState, commandId = 'round-command-1'): FibState {
@@ -134,18 +136,21 @@ function confirmAllRoleViews(state: FibState): FibState {
   // The host confirms their own view, then marks the bot seats
   // through the scaffold action (the engine never auto-marks);
   // play itself opens only on the host's begin command.
-  const confirmed = dispatch(state, { type: 'fibking.role.viewed' }, userContext('host'));
-  const marked = dispatch(
-    confirmed,
-    { type: 'fibking.bots.markAllBotsViewed' },
-    userContext('host'),
-  );
+  let marked: FibState = state;
+  for (const occupant of Object.values(state.roster)) {
+    if (occupant != null && !isBotOccupant(occupant)) {
+      marked = dispatch(marked, { type: 'fibking.role.viewed' }, userContext(occupant.userId));
+    }
+  }
+  if (getBotSeats(state.roster).length > 0) {
+    marked = dispatch(marked, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
+  }
   return dispatch(marked, { type: 'fibking.game.begin' }, userContext('host'));
 }
 
 it('emits a completion reward roster only on the first host reveal', () => {
   const state = confirmAllRoleViews(
-    completeRound(startPreparing(createFullLobby()), '云朵', '悬浮在空中的水滴或冰晶集合'),
+    completeRound(startPreparing(createFullLobby(4)), '云朵', '悬浮在空中的水滴或冰晶集合'),
   );
   const decision = decideFibCommand(state, { type: 'fibking.round.reveal' }, userContext('host'));
   expect(decision.kind).toBe('commit');
@@ -156,7 +161,21 @@ it('emits a completion reward roster only on the first host reveal', () => {
       payload: {
         roundId: state.round!.roundId,
         completedAt: 2000,
-        participantUserIds: ['host'],
+        completionVersion: 2,
+        participantUserIds: ['host', 'u1', 'u2', 'u3'],
+        stats: ['host', 'u1', 'u2', 'u3'].map((userId, seat) => ({
+          userId,
+          gamesPlayed: 1,
+          guesserRounds: state.round?.roles.guesserSeat === seat ? 1 : 0,
+          honestRounds: state.round?.roles.honestSeat === seat ? 1 : 0,
+          fibberRounds:
+            state.round?.roles.guesserSeat !== seat && state.round?.roles.honestSeat !== seat
+              ? 1
+              : 0,
+          honestFoundRounds: 0,
+          honestRevealedRounds: 0,
+          fibberRevealedCount: 0,
+        })),
       },
     },
   ]);
@@ -166,10 +185,24 @@ it('emits a completion reward roster only on the first host reveal', () => {
   );
 });
 
+it('does not emit completion for three humans', () => {
+  const state = confirmAllRoleViews(
+    completeRound(startPreparing(createFullLobby(3)), '云朵', '悬浮在空中的水滴或冰晶集合'),
+  );
+  const decision = decideFibCommand(state, { type: 'fibking.round.reveal' }, userContext('host'));
+  if (decision.kind === 'reject') throw new Error(decision.reason);
+  expect(decision.effects).toEqual([]);
+  expect(applyDecision(state, decision).phase).toBe('ended');
+});
+
 describe('FibKing host guess flow', () => {
-  function dealtOngoing(): FibState {
+  function dealtOngoing(humanCount = 1): FibState {
     return confirmAllRoleViews(
-      completeRound(startPreparing(createFullLobby()), '云朵', '悬浮在空中的水滴或冰晶集合'),
+      completeRound(
+        startPreparing(createFullLobby(humanCount)),
+        '云朵',
+        '悬浮在空中的水滴或冰晶集合',
+      ),
     );
   }
 
@@ -236,9 +269,11 @@ describe('FibKing host guess flow', () => {
   });
 
   it('ends the round on the honest seat through the same path as reveal', () => {
-    const ongoing = dealtOngoing();
+    const ongoing = dealtOngoing(4);
     if (ongoing.round === null) throw new Error('Expected an active round');
-    const { honestSeat } = ongoing.round.roles;
+    const { honestSeat, guesserSeat } = ongoing.round.roles;
+    const guesserUserId = guesserSeat === 0 ? 'host' : `u${guesserSeat}`;
+    const honestUserId = honestSeat === 0 ? 'host' : `u${honestSeat}`;
     const guessDecision = decideFibCommand(
       ongoing,
       { type: 'fibking.round.guess', seat: honestSeat },
@@ -256,8 +291,29 @@ describe('FibKing host guess flow', () => {
       'fibking.round.guessed',
       'fibking.round.ended',
     ]);
-    // Exactly one completion effect, identical to the reveal path's.
-    expect(guessDecision.effects).toEqual(revealDecision.effects);
+    // Both paths complete once; only the guessed ending credits finding the honest seat.
+    const guessCompletion = guessDecision.effects.find(
+      (effect) => effect.type === 'fibking.game.completed',
+    );
+    const revealCompletion = revealDecision.effects.find(
+      (effect) => effect.type === 'fibking.game.completed',
+    );
+    const guessPayload = fibkingCompletionPayloadSchema.parse(guessCompletion?.payload);
+    const revealPayload = fibkingCompletionPayloadSchema.parse(revealCompletion?.payload);
+    expect(guessPayload.completionVersion).toBe(2);
+    expect(guessPayload.stats.find((fact) => fact.userId === guesserUserId)).toMatchObject({
+      userId: guesserUserId,
+      honestFoundRounds: 1,
+    });
+    expect(guessPayload.stats.find((fact) => fact.userId === honestUserId)).toMatchObject({
+      userId: honestUserId,
+      honestRevealedRounds: 1,
+    });
+    expect(revealPayload.completionVersion).toBe(2);
+    expect(revealPayload.stats.find((fact) => fact.userId === honestUserId)).toMatchObject({
+      userId: honestUserId,
+      honestRevealedRounds: 0,
+    });
     expect(
       guessDecision.effects.filter((effect) => effect.type === 'fibking.game.completed'),
     ).toHaveLength(1);
@@ -273,6 +329,32 @@ describe('FibKing host guess flow', () => {
         userContext('host'),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_ONGOING });
+  });
+
+  it('credits a revealed fibber only to that seat after the terminal guess', () => {
+    let state = dealtOngoing(4);
+    if (state.round === null) throw new Error('Expected round');
+    const missedSeat = fibberSeat(state);
+    const { honestSeat } = state.round.roles;
+    state = dispatch(state, { type: 'fibking.round.guess', seat: missedSeat }, userContext('host'));
+    const decision = decideFibCommand(
+      state,
+      { type: 'fibking.round.guess', seat: honestSeat },
+      userContext('host'),
+    );
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    const completion = decision.effects.find((effect) => effect.type === 'fibking.game.completed');
+    const payload = fibkingCompletionPayloadSchema.parse(completion?.payload);
+    expect(payload.completionVersion).toBe(2);
+    expect(
+      payload.stats.find((fact) => fact.userId === (missedSeat === 0 ? 'host' : `u${missedSeat}`)),
+    ).toMatchObject({
+      userId: missedSeat === 0 ? 'host' : `u${missedSeat}`,
+      fibberRounds: 1,
+      fibberRevealedCount: 1,
+      honestFoundRounds: 0,
+      honestRevealedRounds: 0,
+    });
   });
 });
 

@@ -1,20 +1,27 @@
 /** Werewolf-only statistics rendered inside the shared player profile card. */
 import './CampDistributionBar.css';
 
-import { Spinner } from '@/components/Spinner';
+import { GameStatsPanel } from '@/components/GameStatsPanel';
+import type { GameStatsProps } from '@/games/model/GameStatsProps';
 import { useWerewolfPublicStats } from '@/games/werewolf/hooks/useWerewolfPublicStats';
 
 import { CampDistributionBar } from './CampDistributionBar';
 
-export function WerewolfProfileDetails({ userId }: { readonly userId: string }) {
+export function WerewolfProfileDetails({ userId, onGamesPlayedChange }: GameStatsProps) {
   const { data, isPending, isError } = useWerewolfPublicStats(userId);
 
-  if (isPending) return <Spinner label="加载阵营统计" />;
-  if (isError) return <p className="camp-distribution-error">阵营统计加载失败</p>;
   return (
-    <>
-      <p className="camp-distribution-count">统计 {data.campStats.total} 局</p>
-      <CampDistributionBar campStats={data.campStats} compact />
-    </>
+    <GameStatsPanel
+      gamesPlayed={data?.campStats.total}
+      onGamesPlayedChange={onGamesPlayedChange}
+      isLoading={isPending}
+      isError={isError}
+      loadingLabel="加载阵营统计"
+      errorLabel="阵营统计加载失败"
+      emptyTitle="暂无阵营数据"
+      emptyDescription="符合结算条件的对局结束两小时后，这里会显示阵营记录。"
+    >
+      {data !== undefined && <CampDistributionBar campStats={data.campStats} compact />}
+    </GameStatsPanel>
   );
 }

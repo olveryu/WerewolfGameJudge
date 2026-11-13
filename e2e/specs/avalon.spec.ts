@@ -213,9 +213,7 @@ async function findMarkedSeat(page: Page, kind: 'leader' | 'lady'): Promise<numb
 }
 
 /**
- * Settlement panels open on every page once its snapshot leaves the settled
- * phase and auto-dismiss after 6 s. Wait per page until the phase has moved
- * on (the result has landed there), then until the panel is gone.
+ * Wait per page until a settlement panel is gone and the phase has moved on.
  */
 async function waitForResultPanelsClosed(pages: Page[], kind: 'vote' | 'quest'): Promise<void> {
   for (const page of pages) {
@@ -463,8 +461,6 @@ async function expectAndDismissVoteResult(
       await expect(page.getByTestId(TESTIDS.avalonVoteResultRow(seat))).toContainText(`· ${label}`);
     }
   }
-  await page.getByTestId(TESTIDS.avalonResultClose('vote')).click();
-  await expect(panel).toBeHidden({ timeout: 10_000 });
 }
 
 async function playQuestCard(page: Page, play: Play, role: RoleName): Promise<void> {
@@ -581,10 +577,34 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     }
   });
 
-  // Pick a page without a quest modal on top for the strict vote assertions:
-  // any non-team page (for a rejected proposal every page qualifies).
-  const assertSeat = script.questResult ? pages.findIndex((_, seat) => !team.includes(seat)) : 0;
-  await expectAndDismissVoteResult(pages[assertSeat]!, script.voteResult);
+  await test.step(`任务${script.round}：全员确认投票结果`, async () => {
+    await expectAndDismissVoteResult(pages[0]!, script.voteResult);
+    for (let seat = 0; seat < pages.length; seat += 1) {
+      const page = pages[seat]!;
+      await expect(page.getByTestId(TESTIDS.avalonResultPanel('vote'))).toBeVisible();
+      await page.getByTestId(TESTIDS.avalonResultClose('vote')).click();
+      if (seat < pages.length - 1) {
+        await expect(page.getByTestId(TESTIDS.avalonResultClose('vote'))).toHaveText(
+          '已确认，等待其他玩家',
+          { timeout: 10_000 },
+        );
+        await waitForPhase(page, 'voteResult');
+        await expect(page.getByTestId(TESTIDS.avalonQuestModal)).toHaveCount(0);
+        if (seat === 0) {
+          await expect(pages[1]!.getByTestId(TESTIDS.avalonVoteResultConfirmation)).toContainText(
+            `已确认 1 / ${PLAYER_COUNT}`,
+            {
+              timeout: 10_000,
+            },
+          );
+          await expect(pages[1]!.getByTestId(TESTIDS.avalonVoteResultConfirmation)).toContainText(
+            '等待：2号、3号、4号、5号、6号、7号、8号、9号、10号',
+          );
+        }
+      }
+    }
+    await waitForResultPanelsClosed(pages, 'vote');
+  });
 
   if (script.questResult !== undefined) {
     await test.step(`任务${script.round}：队员出牌`, async () => {
@@ -596,10 +616,7 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     // 结算面板 6 秒自动关闭：最后一张牌落地后先直奔房主页断言任务结果，
     // 再等每个页面都已离开结算阶段、面板自动关闭。
     await expectAndDismissQuestResult(pages[0]!, script.questResult);
-    await waitForResultPanelsClosed(pages, 'vote');
     await waitForResultPanelsClosed(pages, 'quest');
-  } else {
-    await waitForResultPanelsClosed(pages, 'vote');
   }
   return leaderSeat;
 }

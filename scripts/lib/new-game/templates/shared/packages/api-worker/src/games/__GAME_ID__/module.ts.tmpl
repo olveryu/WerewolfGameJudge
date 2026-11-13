@@ -1,6 +1,9 @@
 /** Worker runtime module for __GAME_PASCAL__ (__GAME_DISPLAY_NAME__). */
 
 import {
+//#cap businessStats
+  parse__GAME_PASCAL__PublicStats,
+//#end
   migratePersisted__GAME_PASCAL__State,
   __GAME_UPPER___STATE_CODEC,
   __GAME_CAMEL__Engine,
@@ -11,6 +14,9 @@ import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameMo
 //#end
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handle__GAME_PASCAL__Effect, __GAME_CAMEL__EffectSchema } from './effects';
+//#cap businessStats
+import { get__GAME_PASCAL__PublicUserStats } from './publicUserStats';
+//#end
 import {
   __GAME_CAMEL__CreateConfigSchema,
   __GAME_CAMEL__InternalCommandSchema,
@@ -26,6 +32,10 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   publicCommandSchema: __GAME_CAMEL__PublicCommandSchema,
   internalCommandSchema: __GAME_CAMEL__InternalCommandSchema,
   effectSchema: __GAME_CAMEL__EffectSchema,
+//#cap businessStats
+  parsePublicUserStats: parse__GAME_PASCAL__PublicStats,
+  getPublicUserStats: get__GAME_PASCAL__PublicUserStats,
+//#end
   httpRoutes: [],
   getEffectBusinessKey: (effect, context) =>
 //#cap stageDeadline

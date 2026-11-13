@@ -30,6 +30,9 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+//#cap businessStats
+import { __GAME_PASCAL__StatsPanel } from '../components/__GAME_PASCAL__StatsPanel';
+//#end
 
 //#cap identityViewing
 import { toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
@@ -92,6 +95,11 @@ function __GAME_PASCAL__RoomContent(
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
+//#cap businessStats
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <__GAME_PASCAL__StatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
+//#end
 //#cap identityViewing
       gameOverlays={
         <>
