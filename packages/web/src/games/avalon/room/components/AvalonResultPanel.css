@@ -46,3 +46,14 @@
   line-height: var(--line-body);
   text-align: center;
 }
+
+.avalon-result-confirmation {
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: center;
+}
+
+.avalon-result-confirmation p {
+  margin: 0;
+}

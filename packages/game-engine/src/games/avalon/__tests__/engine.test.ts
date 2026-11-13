@@ -7,7 +7,7 @@ import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
 import { normalizeAvalonState } from '../state/normalize';
-import { parseAvalonState } from '../state/parseState';
+import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
 import {
   AVALON_BOARDS,
   AVALON_QUEST_SIZES,
@@ -167,6 +167,14 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
       if (phase.kind !== 'vote' || phase.deadlineAt === null) return;
       api.setNow(phase.deadlineAt);
       api.sendSystem({ type: 'avalon.phase.settleExpired' });
+      api.confirmVoteResult();
+    },
+    confirmVoteResult() {
+      for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+        if (!isBotSeat(session.state.roster, seat)) {
+          send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
+        }
+      }
     },
     playAll(plays: Readonly<Record<number, AvalonPlay>>) {
       for (const [seat, play] of Object.entries(plays)) {
@@ -220,6 +228,85 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
 }
 
 describe('Avalon engine', () => {
+  it('waits for each human to confirm the vote result, including after a persistence round trip', () => {
+    const session = game({ numberOfPlayers: 6 }, 4);
+    session.send({ type: 'room.seat.fillBots' });
+    session.startGame();
+    session.passNight();
+    const leader = session.state.leaderSeat;
+    session.send(
+      { type: 'avalon.team.preselect', seats: [0, 1] },
+      isBotSeat(session.state.roster, leader) ? 'host' : session.seatUser(leader),
+      isBotSeat(session.state.roster, leader) ? leader : null,
+    );
+    session.send(
+      { type: 'avalon.team.propose', seats: [0, 1] },
+      isBotSeat(session.state.roster, leader) ? 'host' : session.seatUser(leader),
+      isBotSeat(session.state.roster, leader) ? leader : null,
+    );
+    for (let seat = 0; seat < 6; seat += 1) {
+      session.send(
+        { type: 'avalon.team.vote', vote: 'approve' },
+        seat < 4 ? session.seatUser(seat) : 'host',
+        seat < 4 ? null : seat,
+      );
+    }
+    const phase = session.state.phase;
+    if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('expected vote');
+    session.setNow(phase.deadlineAt);
+    session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    expect(session.state.phase).toMatchObject({ kind: 'voteResult', confirmedSeats: [4, 5] });
+    session.expectReject({ type: 'avalon.quest.play', play: 'success' }, 'avalon_phase_invalid');
+    expect(session.decideAs({ type: 'avalon.voteResult.confirm' }, 'spectator').kind).toBe(
+      'reject',
+    );
+    session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(0));
+    session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(0));
+    expect(session.state.phase).toMatchObject({ kind: 'voteResult', confirmedSeats: [4, 5, 0] });
+    expect(parseAvalonState(JSON.parse(JSON.stringify(session.state)))).toEqual(session.state);
+    for (const seat of [1, 2]) {
+      session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(seat));
+    }
+    expect(session.state.phase.kind).toBe('voteResult');
+    session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(3));
+    expect(session.state.phase.kind).toBe('quest');
+    expect(migratePersistedAvalonState({ ...session.state, stateVersion: 10 })).toEqual(
+      session.state,
+    );
+  });
+
+  it('defers a veto-limit ending and its completion effect until the last confirmation', () => {
+    const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
+    session.startGame();
+    session.passNight();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      session.proposeTeam([0, 1]);
+      session.voteAll('reject');
+      session.settleVote();
+    }
+    session.proposeTeam([0, 1]);
+    session.voteAll('reject');
+    const phase = session.state.phase;
+    if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('expected vote');
+    session.setNow(phase.deadlineAt);
+    session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    for (let seat = 0; seat < 4; seat += 1) {
+      session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(seat));
+    }
+    expect(session.state.phase.kind).toBe('voteResult');
+    expect(
+      session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
+    ).toHaveLength(0);
+    session.send({ type: 'avalon.voteResult.confirm' }, session.seatUser(4));
+    expect(session.state.phase).toMatchObject({ kind: 'ended', reason: 'vetoLimitReached' });
+    expect(
+      session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
+    ).toHaveLength(1);
+    expect(session.decideAs({ type: 'avalon.voteResult.confirm' }, session.seatUser(4)).kind).toBe(
+      'reject',
+    );
+  });
+
   it('rejects configs outside 5–10 players / 3–5 veto limit', () => {
     for (const numberOfPlayers of [4, 11]) {
       expect(() =>
@@ -676,6 +763,8 @@ describe('Avalon engine', () => {
     session.expectSettleReject('avalon_deadline_not_reached');
     session.setNow(1000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    expect(session.state.phase.kind).toBe('voteResult');
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     expect(session.state.lastVoteResult?.approveCount).toBe(5);
   });
@@ -690,6 +779,7 @@ describe('Avalon engine', () => {
     expect(session.state.phase.kind).toBe('vote');
     session.setNow(1000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('nominate');
     expect(session.state.rejectStreak).toBe(1);
     expect(session.state.leaderSeat).toBe((firstLeader + 1) % 5);
@@ -712,6 +802,7 @@ describe('Avalon engine', () => {
     expect(session.state.phase.deadlineAt).toBe(1000 + 5000);
     session.setNow(1000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     expect(session.state.lastVoteResult?.approveCount).toBe(3);
     expect(session.state.lastVoteResult?.rejectCount).toBe(2);
@@ -729,6 +820,7 @@ describe('Avalon engine', () => {
       now += 5000;
       session.setNow(now);
       session.sendSystem({ type: 'avalon.phase.settleExpired' });
+      session.confirmVoteResult();
       if (round < 2) expect(session.state.phase.kind).toBe('nominate');
     }
     expect(session.state.phase.kind).toBe('ended');
@@ -760,6 +852,7 @@ describe('Avalon engine', () => {
     expect(controlled.kind).toBe('reject');
     if (controlled.kind === 'reject') expect(controlled.reason).toBe('system_actor_required');
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     // Once settled, a late settle from a user actor still hits the actor
     // gate instead of double-settling.
@@ -848,6 +941,7 @@ describe('Avalon engine', () => {
     session.voteAll('approve');
     session.setNow(1000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     expect(session.state.lastVoteResult?.approveCount).toBe(5);
   });
@@ -907,6 +1001,7 @@ describe('Avalon engine', () => {
     expect(session.state.phase.kind).toBe('vote');
     // The system actor commits the settle.
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     expect(session.state.lastVoteResult?.approveCount).toBe(5);
   });
@@ -931,6 +1026,7 @@ describe('Avalon engine', () => {
     session.voteAll('approve');
     session.setNow(1000 + 5000);
     session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    session.confirmVoteResult();
     expect(session.state.phase.kind).toBe('quest');
     expect(session.state.lastVoteResult?.approveCount).toBe(5);
     // A duplicate delivery after settlement hits the deadline guard: the

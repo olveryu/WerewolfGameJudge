@@ -146,7 +146,19 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
 }
 
 /** Current leader proposes the first requiredSize seats; everyone casts `ballot`; countdown settles. */
-function proposeAndSettleVote(game: DrivenGame, ballot: 'approve' | 'reject'): void {
+function confirmVoteResult(game: DrivenGame): void {
+  for (let seat = 0; seat < game.state.config.numberOfPlayers; seat += 1) {
+    if (!isBotSeat(game.state.roster, seat)) {
+      game.actAs(seat, { type: 'avalon.voteResult.confirm' });
+    }
+  }
+}
+
+function proposeAndSettleVote(
+  game: DrivenGame,
+  ballot: 'approve' | 'reject',
+  confirm = true,
+): void {
   const phase = game.state.phase;
   if (phase.kind !== 'nominate') throw new Error(`expected nominate, got ${phase.kind}`);
   const seats = Array.from({ length: phase.requiredSize }, (_, index) => index);
@@ -157,6 +169,7 @@ function proposeAndSettleVote(game: DrivenGame, ballot: 'approve' | 'reject'): v
     game.actAs(seat, { type: 'avalon.team.vote', vote: ballot });
   }
   game.settle();
+  if (confirm) confirmVoteResult(game);
 }
 
 /** Every team member plays success; the countdown settles the quest. */
@@ -241,7 +254,7 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     unmount();
   });
 
-  it('reveals a vote settled after entry exactly once', async () => {
+  it('keeps the vote result visible until every player confirms', async () => {
     const game = midGameAfterFirstQuest();
     const { session, push } = createMutableSession(game.state, 'host');
     const { queryByTestId, getByTestId, rerender } = render(screenElement(session), {
@@ -249,11 +262,19 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     });
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
 
-    proposeAndSettleVote(game, 'reject');
+    proposeAndSettleVote(game, 'reject', false);
     await pushState(push, game.state);
     expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
 
-    fireEvent.click(getByTestId('avalon-vote-result-close'));
+    game.actAs(0, { type: 'avalon.voteResult.confirm' });
+    await pushState(push, game.state);
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
+
+    for (let seat = 1; seat < 5; seat += 1) {
+      game.actAs(seat, { type: 'avalon.voteResult.confirm' });
+    }
+    await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
 
     rerender(screenElement(session));
@@ -269,12 +290,14 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
 
-    proposeAndSettleVote(game, 'approve');
+    proposeAndSettleVote(game, 'approve', false);
     await pushState(push, game.state);
     expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
-    fireEvent.click(getByTestId('avalon-vote-result-close'));
+    confirmVoteResult(game);
+    await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
+    expect(getByTestId('avalon-quest-modal')).toBeVisible();
 
     playQuestAndSettle(game);
     await pushState(push, game.state);
@@ -286,6 +309,41 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
+  });
+
+  it('shows an outstanding vote result on reconnect', () => {
+    const game = midGameAfterFirstQuest();
+    proposeAndSettleVote(game, 'approve', false);
+    game.actAs(0, { type: 'avalon.voteResult.confirm' });
+    const { session } = createMutableSession(game.state, 'host');
+    const { getByTestId, getByText } = render(screenElement(session), {
+      wrapper: AvalonRoomTestProviders,
+    });
+    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByText('等待：2号、3号、4号、5号')).toBeVisible();
+  });
+
+  it('replaces an open voting dialog with the result without closing the new dialog', async () => {
+    const game = midGameAfterFirstQuest();
+    const { session, push } = createMutableSession(game.state, 'host');
+    const { getByTestId, queryByTestId } = render(screenElement(session), {
+      wrapper: AvalonRoomTestProviders,
+    });
+    const phase = game.state.phase;
+    if (phase.kind !== 'nominate') throw new Error('expected nominate');
+    const seats = Array.from({ length: phase.requiredSize }, (_, seat) => seat);
+    game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect', seats });
+    game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose', seats });
+    await pushState(push, game.state);
+    expect(getByTestId('avalon-vote-modal')).toBeVisible();
+    for (let seat = 0; seat < 5; seat += 1) {
+      game.actAs(seat, { type: 'avalon.team.vote', vote: 'approve' });
+    }
+    game.settle();
+    await pushState(push, game.state);
+    expect(queryByTestId('avalon-vote-modal')).toBeNull();
+    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
   });
 
   it('does not replay any of the three results when entering with all of them projected', async () => {

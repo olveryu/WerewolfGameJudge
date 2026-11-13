@@ -54,7 +54,15 @@ function dispatchSettle(state: AvalonState): AvalonState {
     },
   );
   if (decision.kind === 'reject') throw new Error(`Rejected settleExpired: ${decision.reason}`);
-  return avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
+  let settled = avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
+  if (settled.phase.kind === 'voteResult') {
+    for (const occupant of Object.values(
+      getHumanSeatMap(settled.roster, settled.config.numberOfPlayers),
+    )) {
+      settled = dispatch(settled, { type: 'avalon.voteResult.confirm' }, occupant.userId);
+    }
+  }
+  return settled;
 }
 
 function lobby(humans: number): AvalonState {

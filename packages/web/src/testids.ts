@@ -197,6 +197,7 @@ export const TESTIDS = {
   avalonResultClose: (kind: 'vote' | 'quest') => `avalon-${kind}-result-close`,
   avalonVoteResultCounts: 'avalon-vote-result-counts',
   avalonVoteResultSummary: 'avalon-vote-result-summary',
+  avalonVoteResultConfirmation: 'avalon-vote-result-confirmation',
   avalonVoteResultRow: (seat: number) => `avalon-vote-result-row-${seat}`,
   avalonQuestResultCounts: 'avalon-quest-result-counts',
 
