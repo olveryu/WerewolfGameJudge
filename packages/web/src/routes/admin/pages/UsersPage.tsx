@@ -131,9 +131,12 @@ function UserDirectory({
               <>
                 <DataTable
                   caption="用户目录"
+                  tableClassName="admin-user-table"
                   columns={columns}
                   rows={data.users}
                   rowKey={(user) => user.id}
+                  rowLabel={(user) => `查看用户${user.displayName ?? '匿名用户'}详情`}
+                  onRowClick={setSelected}
                 />
                 <CursorPager
                   page={cursors.length}
@@ -179,7 +182,7 @@ function userColumns(
           <span className="admin-avatar" data-anonymous={user.isAnonymous}>
             {(user.displayName ?? '匿').slice(0, 1)}
           </span>
-          <span>
+          <span className="admin-user-identity">
             {user.displayName ?? '匿名用户'}
             <small>{user.email ?? user.id}</small>
           </span>

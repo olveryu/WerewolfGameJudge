@@ -5,6 +5,8 @@ import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
+import IconChevronDown from '~icons/ion/chevron-down';
+import IconChevronUp from '~icons/ion/chevron-up';
 
 import { formatCompactNumber } from './Charts';
 
@@ -195,24 +197,33 @@ export function DataTable<T>({
   caption,
   columns,
   rows,
+  tableClassName,
   rowKey,
   rowId,
   highlightedRow,
   expandedRow,
   onRowClick,
+  rowLabel,
 }: {
   caption: string;
   columns: TableColumn<T>[];
   rows: T[];
+  tableClassName?: string;
   rowKey: (row: T) => string;
   rowId?: (row: T) => string;
   highlightedRow?: string;
   expandedRow?: (row: T) => ReactNode;
-  onRowClick?: (row: T) => void;
+  onRowClick?: (row: T, element: HTMLTableRowElement) => void;
+  rowLabel?: (row: T) => string;
 }) {
+  function activateRow(row: T, element: HTMLTableRowElement) {
+    if (onRowClick === undefined) return;
+    element.focus({ preventScroll: true });
+    onRowClick(row, element);
+  }
   return (
     <div className="admin-table-scroll">
-      <table className="admin-table">
+      <table className={tableClassName ? `admin-table ${tableClassName}` : 'admin-table'}>
         <caption className="admin-sr-only">{caption}</caption>
         <thead>
           <tr>
@@ -221,17 +232,18 @@ export function DataTable<T>({
                 key={column.key}
                 scope="col"
                 aria-sort={column.sort}
-                className={`${column.numeric ? 'admin-number' : ''} ${column.secondary ? 'admin-secondary-column' : ''}`}
+                className={`${column.numeric ? 'admin-number' : ''} ${column.secondary ? 'admin-secondary-column' : ''} ${column.onSort ? 'admin-sortable-column' : ''}`}
               >
                 {column.onSort ? (
-                  <button type="button" onClick={column.onSort}>
+                  <button type="button" className="admin-sort-button" onClick={column.onSort}>
                     {column.label}
-                    <span aria-hidden>
-                      {column.sort === 'ascending'
-                        ? ' ↑'
-                        : column.sort === 'descending'
-                          ? ' ↓'
-                          : ' ↕'}
+                    <span
+                      className="admin-sort-indicator"
+                      data-sort={column.sort ?? 'none'}
+                      aria-hidden="true"
+                    >
+                      <IconChevronUp />
+                      <IconChevronDown />
                     </span>
                   </button>
                 ) : (
@@ -249,6 +261,8 @@ export function DataTable<T>({
                 <tr
                   id={rowId?.(row)}
                   data-clickable={onRowClick !== undefined || undefined}
+                  tabIndex={onRowClick === undefined ? undefined : 0}
+                  aria-label={onRowClick === undefined ? undefined : rowLabel?.(row)}
                   data-highlighted={
                     (highlightedRow !== undefined && rowId?.(row) === highlightedRow) || undefined
                   }
@@ -256,9 +270,20 @@ export function DataTable<T>({
                     if (
                       onRowClick !== undefined &&
                       event.target instanceof Element &&
-                      !event.target.closest('button, a, input, select, textarea, [role="button"]')
+                      !event.target.closest(
+                        'button, a, input, select, textarea, label, [role="button"]',
+                      )
                     ) {
-                      onRowClick(row);
+                      activateRow(row, event.currentTarget);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      event.target === event.currentTarget &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
+                      event.preventDefault();
+                      activateRow(row, event.currentTarget);
                     }
                   }}
                 >

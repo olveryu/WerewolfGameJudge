@@ -10,3 +10,4 @@ functions/types.d.ts
 .venv
 tsconfig.json
 *.log
+.agents/skills/impeccable/**

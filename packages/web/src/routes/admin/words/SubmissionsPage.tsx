@@ -5,7 +5,7 @@ import {
   wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -20,6 +20,10 @@ import {
   StatTile,
 } from '../components/Primitives';
 import { SubmissionBatchPage } from './SubmissionBatch';
+import {
+  isSubmissionBatchOpenedFromList,
+  SUBMISSION_BATCH_ORIGIN_STATE,
+} from './submissionBatchNavigation';
 import { useSubmissionCommand } from './useSubmissionCommand';
 import {
   SUBMISSION_STATUS_LABELS,
@@ -31,12 +35,27 @@ import {
 
 /** Keep batch navigation in the URL rather than transient drawer state. */
 export function SubmissionsPage({ game }: { game: GameWordGame }) {
-  const [parameters] = useSearchParams();
+  const [parameters, setParameters] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const batchId = parameters.get('batch');
-  return batchId === null ? (
-    <SubmissionList game={game} />
-  ) : (
-    <SubmissionBatchPage key={batchId} game={game} batchId={batchId} />
+  const openedFromList = isSubmissionBatchOpenedFromList(location.state);
+  function closeBatch() {
+    if (isSubmissionBatchOpenedFromList(location.state)) {
+      void navigate(-1);
+      return;
+    }
+    const next = new URLSearchParams(location.search);
+    next.delete('batch');
+    setParameters(next, { replace: true });
+  }
+  return (
+    <>
+      {(batchId === null || openedFromList) && <SubmissionList game={game} />}
+      {batchId !== null && (
+        <SubmissionBatchPage key={batchId} batchId={batchId} onClose={closeBatch} />
+      )}
+    </>
   );
 }
 
@@ -276,11 +295,24 @@ function SubmissionBatchesTable({
   batches: Awaited<ReturnType<typeof wordSubmissionsApi.batches>>['batches'];
   filter: Record<string, string>;
 }) {
+  const navigate = useNavigate();
+  function batchSearch(batchId: string) {
+    return `?${new URLSearchParams({
+      ...filter,
+      section: 'submissions',
+      batch: batchId,
+    })}`;
+  }
+  function openBatch(batchId: string) {
+    void navigate(batchSearch(batchId), { state: SUBMISSION_BATCH_ORIGIN_STATE });
+  }
   return (
     <DataTable
       caption="投稿批次"
       rows={batches}
       rowKey={(batch) => batch.id}
+      rowLabel={(batch) => `打开投稿批次 ${batch.id}`}
+      onRowClick={(batch) => openBatch(batch.id)}
       columns={[
         {
           key: 'id',
@@ -288,8 +320,8 @@ function SubmissionBatchesTable({
           render: (batch) => (
             <Link
               className="admin-submission-id"
-              to={`?${new URLSearchParams({ ...filter, section: 'submissions', batch: batch.id })}`}
-              replace
+              to={batchSearch(batch.id)}
+              state={SUBMISSION_BATCH_ORIGIN_STATE}
             >
               {batch.id}
             </Link>

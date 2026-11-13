@@ -1,7 +1,7 @@
 /** Responsive navigation and outlet for the admin workspace. */
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import IconBarChartOutline from '~icons/ion/bar-chart-outline';
@@ -19,6 +19,7 @@ import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
 
 import { DetailDrawer } from './components/Overlays';
+import { isSubmissionBatchOpenedFromList } from './words/submissionBatchNavigation';
 
 const MONITORING_PATHS = ['/admin/growth', '/admin/performance', '/admin/ai'];
 const NAVIGATION = [
@@ -110,8 +111,14 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
 /** Keep the shared site header above navigation, refreshing only mounted admin reads. */
 export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   const client = useQueryClient();
+  const navigate = useNavigate();
   const fetching = useIsFetching({ queryKey: ['admin'] });
   const location = useLocation();
+  const searchParameters = new URLSearchParams(location.search);
+  const submissionBatchOpen =
+    location.pathname.startsWith('/admin/words/') &&
+    searchParameters.get('section') === 'submissions' &&
+    searchParameters.has('batch');
   const monitoring = MONITORING_PATHS.includes(location.pathname);
   const [monitoringSearch, setMonitoringSearch] = useState(monitoring ? location.search : '');
   const [previousSearch, setPreviousSearch] = useState(location.search);
@@ -134,10 +141,26 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
     setPreviousSearch(location.search);
     setMonitoringSearch(location.search);
   }
+  function handleBack() {
+    if (!submissionBatchOpen) {
+      onBack();
+      return;
+    }
+    if (isSubmissionBatchOpenedFromList(location.state)) {
+      void navigate(-1);
+      return;
+    }
+    searchParameters.delete('batch');
+    const search = searchParameters.toString();
+    void navigate(
+      { pathname: location.pathname, search: search === '' ? '' : `?${search}` },
+      { replace: true },
+    );
+  }
   return (
     <div className="admin-workspace" ref={workspace}>
       <div className="admin-workspace-header" ref={header}>
-        <ScreenHeader title="管理后台" onBack={onBack}>
+        <ScreenHeader title="管理后台" onBack={handleBack}>
           <button
             type="button"
             className="admin-icon-button"
