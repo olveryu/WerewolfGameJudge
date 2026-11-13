@@ -686,7 +686,7 @@ describe('admin workspace', () => {
 
   it('reads room participants only after expansion and supports retry', async () => {
     vi.mocked(fetchRooms).mockResolvedValue({
-      rooms: [room],
+      rooms: [room, { ...room, id: 'other-room', code: '5678', status: 'active' }],
       total: 51,
       page: 1,
       limit: 50,
@@ -711,8 +711,22 @@ describe('admin workspace', () => {
     const view = mount('/admin/rooms', '/');
     await screen.findByRole('button', { name: '#1234' });
     expect(fetchRoomPlayers).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '#1234' }));
+    const roomButton = screen.getByRole('button', { name: '#1234' });
+    const roomRow = roomButton.closest('tr');
+    if (roomRow === null) throw new Error('Room row not found');
+    expect(roomButton).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(within(roomRow).getByRole('cell', { name: '3' }));
     await screen.findByText('participants unavailable');
+    const detail = screen
+      .getByRole('heading', { name: '#1234 · 参与者' })
+      .closest<HTMLElement>('.admin-room-detail');
+    expect(detail).not.toBeNull();
+    expect(roomButton).toHaveAttribute('aria-expanded', 'true');
+    expect(roomButton).toHaveAttribute('aria-controls', detail?.id);
+    expect(roomRow?.nextElementSibling).toContainElement(detail);
+    expect(roomRow?.nextElementSibling?.nextElementSibling).toContainElement(
+      screen.getByRole('button', { name: '#5678' }),
+    );
     expect(screen.getByText(/RECOVERY_ERROR/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
     await waitFor(() => expect(fetchRoomPlayers).toHaveBeenCalledTimes(2));
@@ -721,7 +735,8 @@ describe('admin workspace', () => {
     expect(within(participants).getByRole('columnheader', { name: '局数' })).toBeVisible();
     expect(within(participants).getByRole('cell', { name: '7' })).toBeVisible();
     expect(fetchRoomPlayers).toHaveBeenLastCalledWith('1234', expect.any(AbortSignal));
-    fireEvent.click(screen.getByRole('button', { name: '#1234' }));
+    fireEvent.click(within(roomRow).getByRole('cell', { name: '3' }));
+    expect(roomButton).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('table', { name: '1234 的参与者' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '#1234' }));
     await screen.findByRole('table', { name: '1234 的参与者' });
@@ -730,6 +745,40 @@ describe('admin workspace', () => {
     await waitFor(() => expect(view.router.state.location.search).toBe('?page=2'));
     await userEvent.click(screen.getByRole('button', { name: '返回' }));
     await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('switches expanded rooms on row clicks without changing the host or enter actions', async () => {
+    vi.mocked(fetchRooms).mockResolvedValue({
+      rooms: [room, { ...room, id: 'other-room', code: '5678', status: 'active' }],
+      total: 2,
+      page: 1,
+      limit: 50,
+    });
+    vi.mocked(fetchRoomPlayers).mockResolvedValue({ players: [] });
+    const view = mount('/admin/rooms');
+    const firstButton = await screen.findByRole('button', { name: '#1234' });
+    const secondButton = screen.getByRole('button', { name: '#5678' });
+    const firstRow = firstButton.closest('tr');
+    const secondRow = secondButton.closest('tr');
+    if (firstRow === null || secondRow === null) throw new Error('Room row not found');
+
+    await userEvent.click(within(firstRow).getByRole('cell', { name: '3' }));
+    await screen.findByRole('heading', { name: '#1234 · 参与者' });
+    await userEvent.click(within(firstRow).getByRole('button', { name: /房主：/ }));
+    expect(firstButton).toHaveAttribute('aria-expanded', 'true');
+    expect(showAlert).toHaveBeenCalled();
+
+    await userEvent.click(within(secondRow).getByRole('cell', { name: '3' }));
+    await screen.findByRole('heading', { name: '#5678 · 参与者' });
+    expect(firstButton).toHaveAttribute('aria-expanded', 'false');
+    expect(secondButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('heading', { name: '#1234 · 参与者' })).not.toBeInTheDocument();
+
+    await userEvent.click(within(secondRow).getByRole('button', { name: '进入房间 5678' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/room/5678'));
+    expect(fetchRoomPlayers).toHaveBeenCalledTimes(2);
     view.unmount();
     view.client.clear();
   });
