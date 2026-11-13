@@ -7,6 +7,8 @@ import { Converter } from 'opencc-js/t2cn';
 import { pinyin } from 'pinyin-pro';
 import { z } from 'zod';
 
+import { AiOutputValidationError } from '../../platform/ai/aiError';
+
 export const DRAWGUESS_WORD_BATCH_LIMIT = 30;
 export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v2';
 export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v2';
@@ -93,7 +95,11 @@ export function parseDrawGuessCandidates(
 ): DrawGuessWordCandidate[] {
   const seen = new Set<string>();
   return drawGuessCandidatesSchema.parse(value).candidates.flatMap((candidate) => {
-    if (candidate.category !== category) throw new Error('DrawGuess generated category mismatch');
+    if (candidate.category !== category)
+      throw new AiOutputValidationError(
+        'categoryMismatch',
+        'DrawGuess generated category mismatch',
+      );
     const word = canonicalizeDrawGuessWord(candidate.word);
     if (seen.has(word)) return [];
     seen.add(word);
@@ -107,12 +113,13 @@ export function parseDrawGuessReviews(
   candidates: readonly DrawGuessWordCandidate[],
 ): DrawGuessWordReview[] {
   const { reviews } = drawGuessReviewsSchema.parse(value);
-  if (reviews.length !== candidates.length) throw new Error('DrawGuess review count mismatch');
+  if (reviews.length !== candidates.length)
+    throw new AiOutputValidationError('reviewCountMismatch', 'DrawGuess review count mismatch');
   return reviews.map((review, index) => {
     const candidate = candidates[index];
     const word = canonicalizeDrawGuessWord(review.word);
     if (candidate === undefined || word !== candidate.word)
-      throw new Error('DrawGuess review word mismatch');
+      throw new AiOutputValidationError('reviewIdentityMismatch', 'DrawGuess review word mismatch');
     return { ...review, word };
   });
 }

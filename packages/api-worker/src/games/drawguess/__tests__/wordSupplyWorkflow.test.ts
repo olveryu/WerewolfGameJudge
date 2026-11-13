@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { mockWordSupplyModel } from '../../../../test/wordSupplyModelMock';
+import { getAiDiagnostic } from '../../../platform/ai/aiError';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
@@ -20,6 +21,54 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('DrawGuess supply workflow', () => {
+  it('persists safe HTTP diagnostics while retaining failure bookkeeping and request count', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () =>
+      Response.json(
+        {
+          error: {
+            status: 'UNAVAILABLE',
+            message: `Model overloaded ${env.GEMINI_API_KEY}`,
+            debug: 'private-provider-body',
+          },
+        },
+        { status: 503, headers: { 'x-request-id': 'durable-provider-request' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchImpl);
+    const id = crypto.randomUUID();
+    const day = new Date().toISOString().slice(0, 10);
+    await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+    });
+    const workflow = await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day } });
+    await instance.waitForStatus('errored');
+    const status = await workflow.status();
+    expect(status.error).toBeDefined();
+    const persistedError = new Error(status.error?.message);
+    expect(getAiDiagnostic(persistedError)).toMatchObject({
+      game: 'drawguess',
+      operation: 'generate',
+      packId: `${day}-0`,
+      attempt: 1,
+      stage: 'http',
+      httpStatus: 503,
+      failureKind: 'serviceUnavailable',
+      providerMessage: 'Model overloaded [REDACTED]',
+      providerRequestId: 'durable-provider-request',
+    });
+    expect(persistedError.message).not.toContain(env.GEMINI_API_KEY);
+    expect(persistedError.message).not.toContain('private-provider-body');
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(
+      await env.DB.prepare('SELECT status, failure_reason FROM drawguess_word_packs').first(),
+    ).toEqual({ status: 'failed', failure_reason: 'generation' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 1 });
+  });
+
   it.each([
     { initialRequests: 6, force: false, expectedStatus: 'budget_exhausted' },
     { initialRequests: 8, force: true, expectedStatus: 'paused' },

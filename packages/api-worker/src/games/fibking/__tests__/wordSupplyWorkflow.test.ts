@@ -2,6 +2,8 @@
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getAiDiagnostic } from '../../../platform/ai/aiError';
+import { FibWordProviderError } from '../wordProviders/providerError';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import {
   FIB_WORD_DAILY_BATCH_LIMIT,
@@ -28,9 +30,61 @@ beforeEach(async () => {
   ]);
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('Fib word supply workflow', () => {
+  it('retains the model failure kind and safe summary across real Workflow checkpoints', async () => {
+    const evidence = [
+      {
+        query: '词源',
+        url: 'https://example.test/source',
+        title: '词源资料',
+        content: '候选词：用于测试的真实来源原文及其固定释义。',
+      },
+    ];
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () =>
+        Response.json(
+          { error: { status: 'UNAVAILABLE', message: `Model overloaded ${env.GEMINI_API_KEY}` } },
+          { status: 503 },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchImpl);
+    const id = crypto.randomUUID();
+    const day = new Date().toISOString().slice(0, 10);
+    await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'discover-0' }, evidence);
+      await modifier.mockStepResult({ name: 'extract-0' }, { evidence, failedUrls: [] });
+    });
+    const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    await instance.waitForStatus('errored');
+    const status = await workflow.status();
+    const persistedError = new Error(status.error?.message);
+    expect(getAiDiagnostic(persistedError)).toMatchObject({
+      game: 'fibking',
+      operation: 'generate',
+      packId: `${day}-0`,
+      stage: 'http',
+      failureKind: 'serviceUnavailable',
+      httpStatus: 503,
+    });
+    expect(persistedError.message).not.toContain(env.GEMINI_API_KEY);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(
+      await env.DB.prepare('SELECT error_code FROM fib_word_generation_cycles').first(),
+    ).toEqual({ error_code: 'generation:serviceUnavailable' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 1 });
+  });
+
   it('exits before retention, classification and reservation when budget is exhausted', async () => {
     await env.DB.prepare(
       `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 8)
@@ -84,6 +138,19 @@ describe('Fib word supply workflow', () => {
   });
 
   it('continues supplying words when historical topic classification fails', async () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () =>
+      Response.json(
+        {
+          error: {
+            status: 'UNAVAILABLE',
+            message: `Model overloaded ${env.GEMINI_API_KEY} 旧词`,
+          },
+        },
+        { status: 503 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchImpl);
     await env.DB.prepare(
       `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
        VALUES ('legacy', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
@@ -103,6 +170,13 @@ describe('Fib word supply workflow', () => {
     });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(reportError).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('"operation":"classify"'),
+    );
+    const diagnostics = JSON.stringify(reportError.mock.calls);
+    expect(diagnostics).not.toContain(env.GEMINI_API_KEY);
+    expect(diagnostics).not.toContain('旧词');
     expect(
       await env.DB.prepare('SELECT status, topic FROM fib_words WHERE id = ?')
         .bind('legacy')
@@ -458,7 +532,7 @@ describe('Fib word supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
       await modifier.mockStepError(
         { name: 'discover-0' },
-        new Error('[rateLimited] quota exhausted'),
+        new FibWordProviderError('quota exhausted', 'rateLimited'),
       );
     });
     await env.FIB_WORD_SUPPLY.create({ id, params: { day } });

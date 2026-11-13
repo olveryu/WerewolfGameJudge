@@ -9,6 +9,9 @@ const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-p
 const GEMINI_COMPLETIONS_URL =
   'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
+const reportError = vi.fn();
+const reportWarning = vi.fn();
+
 async function mintToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return new SignJWT({ sub: USER_ID, ver: 0, iat: now, exp: now + 3600 })
@@ -17,6 +20,10 @@ async function mintToken(): Promise<string> {
 }
 
 beforeEach(async () => {
+  reportError.mockClear();
+  reportWarning.mockClear();
+  vi.spyOn(console, 'error').mockImplementation(reportError);
+  vi.spyOn(console, 'warn').mockImplementation(reportWarning);
   await env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(USER_ID).run();
   await env.DB.prepare(
     `INSERT INTO users (id, display_name, is_anonymous, token_version, created_at, updated_at)
@@ -92,30 +99,36 @@ describe('Werewolf AI chat route', () => {
     );
   });
 
-  it('returns quota exhausted when Gemini responds with 429', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementationOnce(() =>
-        Promise.resolve(new Response('quota exhausted', { status: 429 })),
-      );
+  it.each([false, true])(
+    'returns quota exhausted on 429 before forwarding (stream=%s)',
+    async (stream) => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementationOnce(() =>
+          Promise.resolve(new Response('quota exhausted', { status: 429 })),
+        );
 
-    const response = await requestAiChat({ messages: [{ role: 'user', content: 'test' }] });
+      const response = await requestAiChat({
+        messages: [{ role: 'user', content: 'test' }],
+        stream,
+      });
 
-    expect(response.status).toBe(429);
-    await expect(response.json()).resolves.toEqual({
-      success: false,
-      reason: 'QUOTA_EXHAUSTED',
-    });
-    expect(fetchSpy).toHaveBeenCalledOnce();
-  });
+      expect(response.status).toBe(429);
+      await expect(response.json()).resolves.toEqual({
+        success: false,
+        reason: 'QUOTA_EXHAUSTED',
+      });
+      expect(fetchSpy).toHaveBeenCalledOnce();
+    },
+  );
 
-  it('retries Gemini once after a 503 response', async () => {
+  it.each([false, true])('retries Gemini once after a 503 response (stream=%s)', async (stream) => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockImplementationOnce(() => Promise.resolve(new Response('overloaded', { status: 503 })))
       .mockImplementationOnce(() => Promise.resolve(Response.json({ choices: [] })));
 
-    const response = await requestAiChat({ messages: [{ role: 'user', content: 'test' }] });
+    const response = await requestAiChat({ messages: [{ role: 'user', content: 'test' }], stream });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ choices: [] });
@@ -135,12 +148,17 @@ describe('Werewolf AI chat route', () => {
       reason: 'AI_UNAVAILABLE',
     });
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(reportWarning).toHaveBeenCalledWith(
+      expect.stringContaining('"msg":"AI attempt failed; retrying"'),
+    );
+    expect(reportError).toHaveBeenCalledWith(expect.stringContaining('"attempt":2'));
+    expect(reportError).toHaveBeenCalledOnce();
   });
 
   it('returns unavailable when the Gemini request fails', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockImplementationOnce(() => Promise.reject(new Error('network unavailable')));
+      .mockImplementationOnce(() => Promise.reject(new TypeError('network unavailable')));
 
     const response = await requestAiChat({ messages: [{ role: 'user', content: 'test' }] });
 
@@ -150,6 +168,60 @@ describe('Werewolf AI chat route', () => {
       reason: 'AI_UNAVAILABLE',
     });
     expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(reportError).toHaveBeenCalledWith(
+      expect.stringContaining('"failureKind":"requestFailed"'),
+    );
+  });
+
+  it.each([401, 403])(
+    'keeps HTTP %i diagnostics private and the rejection response unchanged',
+    async (status) => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async () =>
+        Response.json(
+          {
+            error: {
+              status: 'PERMISSION_DENIED',
+              message: `Invalid credentials ${env.GEMINI_API_KEY} private-chat-content`,
+              debug: 'private-provider-debug',
+            },
+          },
+          { status },
+        ),
+      );
+      const response = await requestAiChat({
+        messages: [{ role: 'user', content: 'private-chat-content' }],
+      });
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        success: false,
+        reason: 'GEMINI_REQUEST_REJECTED',
+      });
+      expect(fetchSpy).toHaveBeenCalledOnce();
+      expect(reportError).toHaveBeenCalledWith(
+        expect.stringContaining('"failureKind":"authenticationFailed"'),
+      );
+      const logged = JSON.stringify(reportError.mock.calls);
+      for (const secret of [env.GEMINI_API_KEY, 'private-chat-content', 'private-provider-debug'])
+        expect(logged).not.toContain(secret);
+    },
+  );
+
+  it('forwards SSE bytes without JSON parsing, buffering, or another request', async () => {
+    const body = 'data: {"choices":[{"delta":{"content":"hello"}}]}\n\ndata: [DONE]\n\n';
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementationOnce(
+        async () => new Response(body, { headers: { 'Content-Type': 'text/event-stream' } }),
+      );
+    const response = await requestAiChat({
+      messages: [{ role: 'user', content: 'test' }],
+      stream: true,
+    });
+    expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+    expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    expect(await response.text()).toBe(body);
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(reportError).not.toHaveBeenCalled();
   });
 
   it('does not retain the removed provider-named route', async () => {

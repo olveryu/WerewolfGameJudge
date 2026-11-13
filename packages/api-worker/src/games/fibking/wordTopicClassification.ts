@@ -1,6 +1,7 @@
 /** Bounded classification of published words without altering their quality or draw identity. */
 import { z } from 'zod';
 
+import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_ALL_TOPIC_IDS, FIB_WORD_TOPICS } from './wordTopics';
@@ -37,11 +38,12 @@ export async function getFibWordsToClassify(db: D1Database): Promise<WordToClass
 export async function classifyFibWords(
   apiKey: string,
   words: readonly WordToClassify[],
+  context: AiCorrelation = {},
 ): Promise<Classification[]> {
   const result = await requestStructuredOutput({
     apiKey,
     model: GEMINI_FIB_WORD_MODEL,
-    providerLabel: 'Fib topic classification',
+    context: { ...context, game: 'fibking', operation: 'classify' },
     schema: classificationsSchema,
     systemPrompt:
       '根据释义选择最贴近的主题，不按词面猜测。无法归类时选 other。返回输入的零起始序号 index 和 topic；只返回 JSON。',

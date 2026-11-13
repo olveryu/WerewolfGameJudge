@@ -474,6 +474,21 @@ describe('Fib word candidate batches', () => {
 });
 
 describe('Gemini Fib word provider', () => {
+  it('fails before constructing an unconfigured provider without inventing an operation', () => {
+    expect(() => createGeminiFibWordProvider('')).toThrowError(
+      expect.objectContaining({
+        diagnostic: {
+          provider: 'gemini',
+          game: 'fibking',
+          model: 'gemini-3.5-flash-lite',
+          attempt: 1,
+          stage: 'request',
+          failureKind: 'configuration',
+        },
+      }),
+    );
+  });
+
   it('binds reordered reviews to each candidate before resolving local quote references', async () => {
     const request = createWordRequest();
     const candidates = parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', request).map(
@@ -533,11 +548,17 @@ describe('Gemini Fib word provider', () => {
           createWordRequest(),
           candidates,
         ),
-      ).rejects.toThrow(
-        failureKind === 'missing'
-          ? 'Fib word review batch size mismatch'
-          : `Fib word review returned ${failureKind === 'unknown' ? 'an unknown' : 'a duplicate'} candidate`,
-      );
+      ).rejects.toMatchObject({
+        diagnostic: {
+          stage: 'outputValidation',
+          validationCode:
+            failureKind === 'missing'
+              ? 'reviewCountMismatch'
+              : failureKind === 'unknown'
+                ? 'unknownCandidate'
+                : 'duplicateCandidate',
+        },
+      });
     },
   );
 
@@ -575,9 +596,9 @@ describe('Gemini Fib word provider', () => {
         createWordRequest(),
         candidates,
       ),
-    ).rejects.toThrow(
-      '[invalidOutput] Gemini Fib word response was invalid (outputValidation): Invalid Fib word evidence reference: source0quote0',
-    );
+    ).rejects.toMatchObject({
+      diagnostic: { stage: 'outputValidation', validationCode: 'invalidEvidenceReference' },
+    });
   });
 
   it('does not generate without bounded source sentences and can reject unsourced reviews', async () => {
@@ -779,9 +800,11 @@ describe('Gemini Fib word provider', () => {
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
     ).rejects.toMatchObject({
-      message:
-        '[requestFailed] Gemini Fib word request failed: Invalid header Bearer [REDACTED] at [URL]',
       failureKind: 'requestFailed',
+      diagnostic: {
+        stage: 'request',
+        transportMessage: 'Invalid header Bearer [REDACTED] at [URL]',
+      },
     });
   });
 
@@ -791,7 +814,13 @@ describe('Gemini Fib word provider', () => {
 
     await expect(
       createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
-    ).rejects.toThrow(/\[invalidOutput\][\s\S]*outputValidation[\s\S]*candidates/);
+    ).rejects.toMatchObject({
+      diagnostic: {
+        failureKind: 'invalidOutput',
+        stage: 'outputValidation',
+        issueCodes: ['invalid_type'],
+      },
+    });
   });
 
   it('redacts credentials from invalid-output diagnostics', async () => {
@@ -807,11 +836,12 @@ describe('Gemini Fib word provider', () => {
         }),
       );
 
-    await expect(
-      createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
-    ).rejects.toMatchObject({
-      message:
-        '[invalidOutput] Gemini Fib word response was invalid (outputValidation): Invalid Fib word evidence reference: [REDACTED]',
+    const failure = createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(
+      createWordRequest(),
+    );
+    await expect(failure).rejects.toMatchObject({
+      diagnostic: { stage: 'outputValidation', validationCode: 'invalidEvidenceReference' },
     });
+    await expect(failure).rejects.not.toThrow('test-key');
   });
 });

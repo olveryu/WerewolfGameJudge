@@ -47,7 +47,7 @@ describe('Undercover provider', () => {
     );
     await expect(
       createUndercoverWordProvider('test-key', fetchImpl).generateBatch('food', []),
-    ).rejects.toThrow('[invalidOutput]');
+    ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
   });
   it.each(['word length', 'batch size', 'trait count'])(
     'still enforces local %s bounds',
@@ -76,7 +76,7 @@ describe('Undercover provider', () => {
       );
       await expect(
         createUndercoverWordProvider('test-key', fetchImpl).generateBatch('food', []),
-      ).rejects.toThrow('[invalidOutput]');
+      ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
     },
   );
   it('never exposes response bodies or retries rejected requests', async () => {
@@ -85,7 +85,40 @@ describe('Undercover provider', () => {
       .mockResolvedValue(new Response('secret provider details', { status: 429 }));
     await expect(
       createUndercoverWordProvider('test-key', fetchImpl).generateBatch('food', []),
-    ).rejects.toThrow('HTTP 429');
+    ).rejects.toMatchObject({ diagnostic: { httpStatus: 429 } });
     expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it('diagnoses domain review failures without exposing candidate pairs', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '{"reviews":[]}' }] } }],
+      }),
+    );
+    const failure = createUndercoverWordProvider('test-key', fetchImpl).reviewBatch(
+      'food',
+      [
+        {
+          wordA: '测试甲',
+          wordB: '测试乙',
+          category: 'food',
+          commonTraits: ['共同特点甲', '共同特点乙'],
+          differences: ['不同特点甲', '不同特点乙'],
+          potentialIssues: [],
+        },
+      ],
+      { packId: 'undercover-review-pack' },
+    );
+    await expect(failure).rejects.toMatchObject({
+      diagnostic: {
+        game: 'undercover',
+        operation: 'review',
+        packId: 'undercover-review-pack',
+        stage: 'outputValidation',
+        validationCode: 'reviewCountMismatch',
+      },
+    });
+    await expect(failure).rejects.not.toThrow('测试甲');
+    await expect(failure).rejects.not.toThrow('测试乙');
   });
 });

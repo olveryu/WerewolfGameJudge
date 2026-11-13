@@ -1,6 +1,7 @@
 /** Bounded Gemini editorial requests; generation and review use separate prompts and outputs. */
 import type { DrawGuessWordCategory } from '@game-judge/game-engine/games/drawguess/public';
 
+import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
   DRAWGUESS_WORD_BATCH_LIMIT,
@@ -68,25 +69,30 @@ const REVIEW_PROMPT = `你独立审核中文聚会游戏「你画我猜」的题
 /** Provider output remains unapproved until a separate review request and publication transaction. */
 export function createDrawGuessWordProvider(apiKey: string, fetchImpl: typeof fetch = fetch) {
   return {
-    generateBatch(category: DrawGuessWordCategory, history: readonly string[]) {
+    generateBatch(
+      category: DrawGuessWordCategory,
+      history: readonly string[],
+      context: AiCorrelation = {},
+    ) {
       return requestStructuredOutput({
         apiKey,
         model: DRAWGUESS_WORD_MODEL,
-        providerLabel: 'DrawGuess',
+        context: { ...context, game: 'drawguess', operation: 'generate' },
         schema: drawGuessCandidatesSchema,
         systemPrompt: GENERATION_PROMPT,
         payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
       });
     },
-    async reviewBatch(
+    reviewBatch(
       category: DrawGuessWordCategory,
       candidates: readonly DrawGuessWordCandidate[],
+      context: AiCorrelation = {},
     ) {
-      const output = await requestStructuredOutput({
+      return requestStructuredOutput({
         apiKey,
         model: DRAWGUESS_WORD_MODEL,
-        providerLabel: 'DrawGuess',
+        context: { ...context, game: 'drawguess', operation: 'review' },
         schema: drawGuessReviewsSchema,
         systemPrompt: REVIEW_PROMPT,
         payload: {
@@ -95,8 +101,8 @@ export function createDrawGuessWordProvider(apiKey: string, fetchImpl: typeof fe
           candidates: candidates.map(({ word }) => ({ word })),
         },
         fetchImpl,
+        parseOutput: (output) => parseDrawGuessReviews(output, candidates),
       });
-      return parseDrawGuessReviews(output, candidates);
     },
   };
 }

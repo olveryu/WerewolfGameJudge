@@ -11,6 +11,7 @@ import {
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
+import { AiOutputValidationError } from '../../../platform/ai/aiError';
 import { FIB_WORD_ALL_TOPIC_IDS } from '../wordTopics';
 import { FIB_WORD_EVIDENCE_SOURCE_LIMIT, fibWordEvidenceSchema } from './tavily';
 import {
@@ -235,7 +236,10 @@ function assertDistinctCandidates(candidates: readonly { readonly word: string }
   const words = new Set<string>();
   for (const candidate of candidates) {
     if (words.has(candidate.word)) {
-      throw new Error(`Fib word provider returned duplicate candidate: ${candidate.word}`);
+      throw new AiOutputValidationError(
+        'duplicateCandidate',
+        `Fib word provider returned duplicate candidate: ${candidate.word}`,
+      );
     }
     words.add(candidate.word);
   }
@@ -248,7 +252,10 @@ export function parseFibWordCandidate(
 ): FibWordCandidate {
   const payload = fibWordCandidatePayloadSchema.parse(value);
   if (avoidWords.includes(payload.word)) {
-    throw new Error(`Fib word provider ${source} returned an avoided word: ${payload.word}`);
+    throw new AiOutputValidationError(
+      'avoidedWord',
+      `Fib word provider ${source} returned an avoided word: ${payload.word}`,
+    );
   }
   return { ...payload, source };
 }
@@ -291,7 +298,10 @@ export function parseGeneratedFibWordCandidates(
         !containsFibWord(evidence.content, word) ||
         resolveFibWordEvidenceQuote(evidence.content, quote) === null
       ) {
-        throw new Error(`Fib word candidate has an invalid evidence citation: ${word}`);
+        throw new AiOutputValidationError(
+          'invalidEvidenceCitation',
+          `Fib word candidate has an invalid evidence citation: ${word}`,
+        );
       }
       return evidence;
     }),
@@ -323,7 +333,10 @@ export function assertFibWordReviewEvidence(
     !evidence.content.includes(evidenceQuote) ||
     !containsFibWord(evidence.content, candidate.word)
   ) {
-    throw new Error(`Fib word review has an invalid evidence citation: ${candidate.word}`);
+    throw new AiOutputValidationError(
+      'invalidEvidenceCitation',
+      `Fib word review has an invalid evidence citation: ${candidate.word}`,
+    );
   }
 }
 
@@ -336,13 +349,16 @@ export function parseFibWordReviews(
   }
   const payload = fibWordReviewsPayloadSchema.parse(value);
   if (payload.reviews.length !== candidates.length) {
-    throw new Error('Fib word review batch size mismatch');
+    throw new AiOutputValidationError('reviewCountMismatch', 'Fib word review batch size mismatch');
   }
   assertDistinctCandidates(payload.reviews);
   return payload.reviews.map((review, index) => {
     const candidate = candidates[index];
     if (candidate === undefined || review.word !== candidate.word) {
-      throw new Error(`Fib word review did not preserve candidate order at index ${index}`);
+      throw new AiOutputValidationError(
+        'reviewOrderMismatch',
+        `Fib word review did not preserve candidate order at index ${index}`,
+      );
     }
     const result: FibWordReview = {
       ...review,
@@ -355,7 +371,10 @@ export function parseFibWordReviews(
         ? null
         : resolveFibWordEvidenceQuote(evidence.content, review.evidenceQuote);
     if (review.evidenceQuote !== null && evidenceQuote === null) {
-      throw new Error(`Fib word review has an invalid evidence citation: ${candidate.word}`);
+      throw new AiOutputValidationError(
+        'invalidEvidenceCitation',
+        `Fib word review has an invalid evidence citation: ${candidate.word}`,
+      );
     }
     const resolvedReview = { ...result, evidenceQuote };
     assertFibWordReviewEvidence(candidate, resolvedReview);
