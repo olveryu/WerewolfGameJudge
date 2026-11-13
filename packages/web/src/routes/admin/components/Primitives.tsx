@@ -1,6 +1,6 @@
 /** Small semantic building blocks for the admin workspace. */
 import type { UseQueryResult } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
 
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
@@ -198,6 +198,8 @@ export function DataTable<T>({
   rowKey,
   rowId,
   highlightedRow,
+  expandedRow,
+  onRowClick,
 }: {
   caption: string;
   columns: TableColumn<T>[];
@@ -205,6 +207,8 @@ export function DataTable<T>({
   rowKey: (row: T) => string;
   rowId?: (row: T) => string;
   highlightedRow?: string;
+  expandedRow?: (row: T) => ReactNode;
+  onRowClick?: (row: T) => void;
 }) {
   return (
     <div className="admin-table-scroll">
@@ -238,24 +242,43 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={rowKey(row)}
-              id={rowId?.(row)}
-              data-highlighted={
-                (highlightedRow !== undefined && rowId?.(row) === highlightedRow) || undefined
-              }
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.key}
-                  className={`${column.numeric ? 'admin-number' : ''} ${column.secondary ? 'admin-secondary-column' : ''}`}
+          {rows.map((row) => {
+            const details = expandedRow?.(row);
+            return (
+              <Fragment key={rowKey(row)}>
+                <tr
+                  id={rowId?.(row)}
+                  data-clickable={onRowClick !== undefined || undefined}
+                  data-highlighted={
+                    (highlightedRow !== undefined && rowId?.(row) === highlightedRow) || undefined
+                  }
+                  onClick={(event) => {
+                    if (
+                      onRowClick !== undefined &&
+                      event.target instanceof Element &&
+                      !event.target.closest('button, a, input, select, textarea, [role="button"]')
+                    ) {
+                      onRowClick(row);
+                    }
+                  }}
                 >
-                  {column.render(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className={`${column.numeric ? 'admin-number' : ''} ${column.secondary ? 'admin-secondary-column' : ''}`}
+                    >
+                      {column.render(row)}
+                    </td>
+                  ))}
+                </tr>
+                {details != null && (
+                  <tr>
+                    <td colSpan={columns.length}>{details}</td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
       {rows.length === 0 && <p className="admin-empty">暂无记录</p>}
