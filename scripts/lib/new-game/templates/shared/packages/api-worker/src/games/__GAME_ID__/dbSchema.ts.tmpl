@@ -1,0 +1,15 @@
+import { sql } from 'drizzle-orm';
+import { check, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+import { users } from '../../features/account/dbSchema';
+
+/** @public __GAME_DISPLAY_NAME__ cumulative completed games. */
+export const __GAME_CAMEL__UserStats = sqliteTable('__GAME_ID___user_stats', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  gamesPlayed: integer('games_played').notNull(),
+}, (table) => [
+  check('__GAME_ID___user_stats_games_played_check',
+    sql`typeof(${table.gamesPlayed}) = 'integer' AND ${table.gamesPlayed} >= 0`),
+]);

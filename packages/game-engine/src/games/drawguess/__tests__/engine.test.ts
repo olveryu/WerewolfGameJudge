@@ -20,6 +20,7 @@ import {
 } from '../domain/rules';
 import { getDrawGuessViewModel } from '../domain/visibility';
 import { drawGuessEngine } from '../engine';
+import { drawGuessCompletionPayloadSchema } from '../publicStats';
 import { parseDrawGuessState } from '../state/parseState';
 import {
   DEFAULT_DRAWGUESS_CONFIG,
@@ -49,7 +50,7 @@ function testStroke(id: string, seat: number): DrawGuessStroke {
   };
 }
 
-function game(numberOfPlayers = 4) {
+function game(numberOfPlayers = 4, humanCount = 4) {
   const session = createEngineSession(drawGuessEngine, {
     config: { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers },
     parse: parseDrawGuessState,
@@ -58,7 +59,12 @@ function game(numberOfPlayers = 4) {
     command: DrawGuessPublicCommand,
     userId = 'host',
     controlledSeat: number | null = null,
-  ) => session.send(command, userId, controlledSeat);
+  ) => {
+    const userSeat = userId.startsWith('u') ? Number(userId.slice(1)) : 0;
+    return isBotSeat(session.state.roster, userSeat) && userId !== 'host'
+      ? session.send(command, 'host', userSeat)
+      : session.send(command, userId, controlledSeat);
+  };
   const sendInternal = (command: DrawGuessCommand) =>
     session.sendAs(command, session.systemContext('effect:1'));
   const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
@@ -67,9 +73,10 @@ function game(numberOfPlayers = 4) {
     turnIndex: session.state.turnIndex,
   });
   // Seat 4 real humans (host at seat 0).
-  for (let seat = 0; seat < 4; seat += 1) {
+  for (let seat = 0; seat < humanCount; seat += 1) {
     send({ type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } }, seatUser(seat));
   }
+  if (humanCount < 4) send({ type: 'room.seat.fillBots' });
   return {
     get state() {
       return session.state;
@@ -135,6 +142,59 @@ describe('DrawGuess engine', () => {
         { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
       ),
     ).toThrow();
+  });
+
+  it('lets each non-drawer seat react once during drawing and exposes the reaction in the view', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    const beforeRevision = session.state.phaseRevision;
+    session.send(
+      { type: 'drawguess.reaction.send', reaction: 'flower', ...session.revision() },
+      'u1',
+    );
+    expect(session.state.phase).toMatchObject({
+      kind: 'drawing',
+      reactionsBySeat: { 1: 'flower' },
+    });
+    expect(getDrawGuessViewModel(session.state, 2, session.nowMs).reactionsBySeat).toEqual({
+      1: 'flower',
+    });
+    expect(session.state.phaseRevision).toBe(beforeRevision);
+    expect(
+      session.decide(
+        { type: 'drawguess.reaction.send', reaction: 'egg', ...session.revision() },
+        'u1',
+      ),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.reactionAlreadySent });
+    expect(
+      session.decide(
+        { type: 'drawguess.reaction.send', reaction: 'tomato', ...session.revision() },
+        'host',
+      ),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.reactionSelf });
+  });
+
+  it('allows reactions during roundEnd while retaining the already-sent turn reaction', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.send(
+      { type: 'drawguess.reaction.send', reaction: 'flower', ...session.revision() },
+      'u1',
+    );
+    session.settleExpired();
+    session.send({ type: 'drawguess.reaction.send', reaction: 'egg', ...session.revision() }, 'u2');
+    expect(session.state.phase).toMatchObject({
+      kind: 'roundEnd',
+      reactionsBySeat: { 1: 'flower', 2: 'egg' },
+    });
+    expect(
+      session.decide(
+        { type: 'drawguess.reaction.send', reaction: 'tomato', ...session.revision() },
+        'u1',
+      ),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.reactionAlreadySent });
   });
 
   it('rejects starting when the room is not full', () => {
@@ -1086,10 +1146,144 @@ describe('DrawGuess turn history', () => {
     }
   }
 
+  it.each([3, 4])(
+    'finishes a legitimate all-zero game and gates completion at four humans (%i)',
+    (humanCount) => {
+      const session = game(4, humanCount);
+      session.startGame();
+      playToEnd(session);
+      expect(session.state.scores).toEqual({});
+      expect(session.state.phase).toEqual({
+        kind: 'ended',
+        totalScores: { 0: 0, 1: 0, 2: 0, 3: 0 },
+      });
+      const completions = session.effects.filter(
+        (effect) => effect.type === 'drawguess.game.completed',
+      );
+      expect(completions).toHaveLength(humanCount === 4 ? 1 : 0);
+      if (humanCount === 4) {
+        expect(completions[0]?.payload).toMatchObject({
+          completionVersion: 2,
+          stats: Array.from({ length: 4 }, (_, seat) => ({
+            userId: session.seatUser(seat),
+            gamesPlayed: 1,
+            guessAttempts: 0,
+            guessRounds: 6,
+            guessedRounds: 0,
+            guessTimeMs: 0,
+            guessTimedRounds: 0,
+            drawingRounds: 2,
+            guessedDrawingRounds: 0,
+            totalScore: 0,
+            flowersReceived: 0,
+            eggsReceived: 0,
+            tomatoesReceived: 0,
+          })),
+        });
+      }
+    },
+  );
+
+  it('counts accepted wrong/correct guesses, first-hit elapsed time and reactions through the final turn', () => {
+    const session = game();
+    session.startGame();
+    for (let turn = 0; turn < 8; turn += 1) {
+      chooseWord(session, CHOICES[0]!.word);
+      if (turn === 0) {
+        session.advanceTime(1000);
+        session.guess(1, 'wrong-only-not-retained');
+        session.advanceTime(2500);
+        session.guess(1, CHOICES[0]!.word);
+        session.send(
+          { type: 'drawguess.reaction.send', reaction: 'flower', ...session.revision() },
+          'u2',
+        );
+      } else if (turn === 7) {
+        session.advanceTime(2000);
+        session.guess(1, CHOICES[0]!.word);
+        session.send(
+          { type: 'drawguess.reaction.send', reaction: 'tomato', ...session.revision() },
+          'host',
+        );
+      }
+      session.settleExpired();
+      closeRoundEnd(session);
+    }
+    const completion = session.effects.find((effect) => effect.type === 'drawguess.game.completed');
+    const payload = drawGuessCompletionPayloadSchema.parse(completion?.payload);
+    expect(payload.completionVersion).toBe(2);
+    expect(payload.stats.find((fact) => fact.userId === 'u1')).toMatchObject({
+      userId: 'u1',
+      guessAttempts: 3,
+      guessRounds: 6,
+      guessedRounds: 2,
+      guessTimeMs: 5500,
+      guessTimedRounds: 2,
+      totalScore:
+        computeGuesserScore(session.state.config.drawingDurationSeconds * 1000 - 3500) +
+        computeGuesserScore(session.state.config.drawingDurationSeconds * 1000 - 2000),
+    });
+    expect(payload.stats.find((fact) => fact.userId === 'host')).toMatchObject({
+      userId: 'host',
+      drawingRounds: 2,
+      guessedDrawingRounds: 1,
+      flowersReceived: 1,
+    });
+    expect(payload.stats.find((fact) => fact.userId === 'u3')).toMatchObject({
+      userId: 'u3',
+      drawingRounds: 2,
+      guessedDrawingRounds: 1,
+      tomatoesReceived: 1,
+    });
+    expect(payload.stats.find((fact) => fact.userId === 'u2')).toMatchObject({
+      userId: 'u2',
+      guessedRounds: 0,
+      guessTimedRounds: 0,
+    });
+    expect(session.state.turnHistory[7]?.guessTimeMsBySeat).toEqual({ 1: 2000 });
+    expect(JSON.stringify(session.state.turnHistory)).not.toContain('wrong-only-not-retained');
+  });
+
+  it('accepts host-takeover reactions from bots without assigning a bot drawer’s received reactions to the host', () => {
+    const session = game(5);
+    session.send({ type: 'room.seat.fillBots' });
+    session.startGame();
+    for (let turn = 0; turn < 10; turn += 1) {
+      chooseWord(session, CHOICES[0]!.word);
+      if (turn === 0) {
+        session.send(
+          { type: 'drawguess.reaction.send', reaction: 'flower', ...session.revision() },
+          'host',
+          4,
+        );
+        expect(session.state.phase).toMatchObject({ reactionsBySeat: { 4: 'flower' } });
+      } else if (turn === 9) {
+        session.send({ type: 'drawguess.reaction.send', reaction: 'egg', ...session.revision() });
+      }
+      session.settleExpired();
+      closeRoundEnd(session);
+    }
+    const completion = session.effects.find((effect) => effect.type === 'drawguess.game.completed');
+    expect(completion?.payload).toMatchObject({
+      participantUserIds: ['host', 'u1', 'u2', 'u3'],
+      stats: [
+        expect.objectContaining({ userId: 'host', flowersReceived: 1, eggsReceived: 0 }),
+        expect.objectContaining({ userId: 'u1', flowersReceived: 0, eggsReceived: 0 }),
+        expect.objectContaining({ userId: 'u2', flowersReceived: 0, eggsReceived: 0 }),
+        expect.objectContaining({ userId: 'u3', flowersReceived: 0, eggsReceived: 0 }),
+      ],
+    });
+    expect(session.state.turnHistory[9]?.reactionsBySeat).toEqual({ 0: 'egg' });
+  });
+
   it('freezes each closed turn with its drawer, word, guess order, scores and drawing', () => {
     const session = game();
     session.startGame();
     session.chooseFirstWord(0);
+    session.send(
+      { type: 'drawguess.reaction.send', reaction: 'flower', ...session.revision() },
+      'u3',
+    );
     session.guess(2, '大熊猫');
     session.advanceTime(10_000);
     session.guess(1, '大熊猫');
@@ -1107,12 +1301,13 @@ describe('DrawGuess turn history', () => {
 
     expect(session.state.turnIndex).toBe(2);
     expect(session.state.turnHistory).toHaveLength(2);
-    expect(session.state.turnHistory).toEqual([
+    expect(session.state.turnHistory).toMatchObject([
       {
         turnIndex: 0,
         drawerSeat: 0,
         word: '大熊猫',
         guessedSeats: [2, 1],
+        reactionsBySeat: { 3: 'flower' },
         roundScores: { 0: 120, 1: 180, 2: 200 },
         drawerZeroed: false,
         entryId,
@@ -1130,11 +1325,17 @@ describe('DrawGuess turn history', () => {
         drawerSeat: 1,
         word: '火锅',
         guessedSeats: [],
+        reactionsBySeat: {},
         roundScores: {},
         drawerZeroed: false,
         entryId: null,
         pngEntry: null,
       },
+    ]);
+    expect(session.state.turnHistory[0]?.guessAttemptsBySeat).toEqual({ 2: 1, 1: 1, 3: 1 });
+    expect(Object.keys(session.state.turnHistory[0]?.guessTimeMsBySeat ?? {}).sort()).toEqual([
+      '1',
+      '2',
     ]);
   });
 

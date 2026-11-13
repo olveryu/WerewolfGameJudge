@@ -37,7 +37,14 @@ export {
 } from './domain/visibility';
 export type { FibEffect, FibRecordWordUsageEffect, FibSelectWordEffect } from './effects/types';
 export { decideFibCommand, type FibEngine, fibEngine, getFibLifecycle } from './engine';
-export { type FibPublicStats, parseFibPublicStats } from './publicStats';
+export {
+  type FibCompletionPayload,
+  type FibCompletionStatsFact,
+  fibkingCompletionPayloadSchema,
+  type FibPublicStats,
+  fibPublicStatsSchema,
+  parseFibPublicStats,
+} from './publicStats';
 export { FIB_STATE_CODEC } from './state/codec';
 export { migratePersistedFibState, parseFibState } from './state/parseState';
 export {

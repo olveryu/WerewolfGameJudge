@@ -25,6 +25,33 @@ beforeEach(async () => {
 });
 
 describe('runScheduledCron', () => {
+  it('continues camp aggregation when periodic room reconciliation fails', async () => {
+    await env.DB.prepare(
+      `INSERT INTO users (id, is_anonymous) VALUES ('periodic-camp-user', 0)`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO camp_settlements (user_id, settle_key, camp, settled_at)
+       VALUES ('periodic-camp-user', 'periodic-game', 'wolf', '2026-07-10T09:00:00.000Z')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO rooms (
+        id, code, game_type, host_user_id, creation_id, config_json, status,
+        reconcile_after, created_at, updated_at, games_started
+      ) VALUES ('not-a-durable-object-id', '8765', 'werewolf', 'host-1',
+        'periodic-corrupt-room', '{}', 'creating',
+        '2026-07-10T11:00:00.000Z', '2026-07-10T11:00:00.000Z',
+        '2026-07-10T11:00:00.000Z', 0)`,
+    ).run();
+    await expect(runScheduledCron(env, '*/5 * * * *', NOW_MS)).rejects.toThrow(
+      'periodic maintenance tasks failed',
+    );
+    expect(
+      await env.DB.prepare(
+        "SELECT wolf_count FROM werewolf_user_camp_stats WHERE user_id = 'periodic-camp-user'",
+      ).first(),
+    ).toEqual({ wolf_count: 1 });
+  });
+
   it('runs later daily cleanup tasks even when room reconciliation fails', async () => {
     await env.DB.prepare(
       `INSERT INTO rooms (

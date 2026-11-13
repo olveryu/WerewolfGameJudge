@@ -55,6 +55,9 @@ import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
 //#end
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+//#cap businessStats
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
+//#end
 
 import {
   create__GAME_PASCAL__HostManagement,
@@ -160,6 +163,9 @@ export function use__GAME_PASCAL__RoomState(
     configureGame: () => void navigate(gameConfigEditPath('__GAME_ID__', room.roomCode)),
     shareRoom: share.open,
   });
+//#cap businessStats
+  const gameDetails = useGameProfileDetails(profile.selection, '__GAME_DISPLAY_NAME__战绩', '本游戏局数');
+//#end
 //#cap audioOrchestration
   // 播报绑定：房主端按权威队列顺序播放、播完提交 ack（共享运行核的薄绑定）。
   // 音频运行时是本游戏资产（播放器 + 资源 registry），骨架阶段传 null 保持
@@ -262,6 +268,9 @@ export function use__GAME_PASCAL__RoomState(
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
     profileSelection: profile.selection,
+//#cap businessStats
+    gameDetails,
+//#end
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,

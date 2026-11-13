@@ -39,11 +39,12 @@
 
 ## 3. 产品模块
 
-| 文档                                                       | 说明                                      |
-| ---------------------------------------------------------- | ----------------------------------------- |
-| [gacha-system-design.md](gacha-system-design.md)           | 扭蛋收集系统                              |
-| [gacha-operation-recovery.md](gacha-operation-recovery.md) | 抽卡 / 兑换操作的本地持久化与未知投递恢复 |
-| [growth-system-design.md](growth-system-design.md)         | XP / 等级成长系统                         |
+| 文档                                                                       | 说明                                         |
+| -------------------------------------------------------------------------- | -------------------------------------------- |
+| [gacha-system-design.md](gacha-system-design.md)                           | 扭蛋收集系统                                 |
+| [gacha-operation-recovery.md](gacha-operation-recovery.md)                 | 抽卡 / 兑换操作的本地持久化与未知投递恢复    |
+| [growth-system-design.md](growth-system-design.md)                         | XP / 等级成长系统                            |
+| [non-werewolf-game-stats-proposal.md](non-werewolf-game-stats-proposal.md) | 六款游戏统计、狼人杀延迟累计优化及画我猜互动 |
 
 ## 4. 部署与运维
 

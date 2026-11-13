@@ -73,6 +73,39 @@ function viewAllAndBegin(session: ReturnType<typeof game>): void {
 }
 
 //#end
+//#cap businessStats
+describe('__GAME_PASCAL__ completion statistics eligibility', () => {
+  it('emits ordered v2 facts at the exact human threshold and never settles twice', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    __GAME_TEST_BEGIN__
+    const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    const effect = decision.effects.find((entry) => entry.type === '__GAME_ID__.game.completed');
+    expect(effect?.payload).toMatchObject({
+      completionVersion: 2,
+      participantUserIds: ['host', 'u1', 'u2', 'u3'],
+      stats: ['host', 'u1', 'u2', 'u3'].map((userId) => ({ userId, gamesPlayed: 1 })),
+    });
+    const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
+    expect(end__GAME_PASCAL__Game(ended, session.session.context('host')).kind).toBe('reject');
+  });
+
+  it('does not settle a bot-filled game below the human threshold', () => {
+    const session = game({ numberOfPlayers: 4 }, 3);
+    __GAME_TEST_BEGIN__
+    const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+    expect(decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state).phase.kind).toBe('ended');
+  });
+
+  it('does not settle a game that has not reached its terminal seam', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    expect(end__GAME_PASCAL__Game(session.state, session.session.context('host')).kind).toBe('reject');
+    expect(session.effects.some((effect) => effect.type === '__GAME_ID__.game.completed')).toBe(false);
+  });
+});
+//#end
 describe('__GAME_PASCAL__ lobby and seating', () => {
   it('creates an empty lobby and rejects an invalid config', () => {
     const session = game({ numberOfPlayers: 4 });
@@ -184,7 +217,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
   });
 
   it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
     const early = __GAME_CAMEL__Engine.decide(
       session.state,
@@ -204,7 +237,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
       (effect) => effect.type === '__GAME_ID__.game.completed',
     );
     expect(completions).toHaveLength(1);
-    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
   });
 
   it('rejects the internal settle channel for a user actor', () => {
@@ -240,7 +273,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
   });
 
   it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     viewAllAndBegin(session);
     const early = __GAME_CAMEL__Engine.decide(
       session.state,
@@ -260,7 +293,7 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
       (effect) => effect.type === '__GAME_ID__.game.completed',
     );
     expect(completions).toHaveLength(1);
-    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
   });
 
   it('rejects the internal settle channel for a user actor', () => {
@@ -383,7 +416,7 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
   });
 
   it('ends through the terminal seam with exactly one completion effect', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     viewAllAndBegin(session);
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
@@ -392,7 +425,7 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
     const completion = decision.effects[0];
     expect(completion?.type).toBe('__GAME_ID__.game.completed');
     if (completion?.type === '__GAME_ID__.game.completed') {
-      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
     }
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
@@ -412,13 +445,17 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
   });
 
   it('ends through the terminal seam with exactly one completion effect', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;
     expect(decision.effects).toHaveLength(1);
     expect(decision.effects[0]?.type).toBe('__GAME_ID__.game.completed');
+    const completion = decision.effects[0];
+    if (completion?.type === '__GAME_ID__.game.completed') {
+      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
+    }
     const ended = decision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');
     expect(ended.xpSettled).toBe(true);

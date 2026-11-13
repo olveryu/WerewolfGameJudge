@@ -42,6 +42,7 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { FIBKING_ROLE_PORTRAITS } from '@/games/fibking/assets/roleAvatars';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getFibRevealRolePool } from '../components/FibRoleCardAdapter';
@@ -119,6 +120,7 @@ export function useFibRoomState({
   const { controlledSeat, effectiveSeat } = bots;
   // 资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
   const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
+  const gameDetails = useGameProfileDetails(profile.selection, '瞎掰王战绩', '本游戏轮数');
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
     gameDisplayName: FIB_DISPLAY_NAME,
@@ -344,6 +346,7 @@ export function useFibRoomState({
       capabilities,
       onClose: profile.close,
       onLeaveSeat: profile.leaveSelf,
+      gameDetails,
     }),
     share,
     bottomActions: createFibBottomActions({

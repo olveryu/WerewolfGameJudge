@@ -808,6 +808,65 @@ describe('Avalon engine', () => {
     expect(session.state.lastVoteResult?.rejectCount).toBe(2);
   });
 
+  it.each([4, 5])(
+    'gates completion at five humans after the veto-limit ending (%i humans)',
+    (humanCount) => {
+      const session = game({ numberOfPlayers: 5, vetoLimit: 3 }, humanCount);
+      if (humanCount < 5) session.send({ type: 'room.seat.fillBots' });
+      session.startGame();
+      session.passNight();
+      let now = 1000;
+      for (let round = 0; round < 3; round += 1) {
+        const leader = session.state.leaderSeat;
+        const leaderIsBot = isBotSeat(session.state.roster, leader);
+        for (const type of ['avalon.team.preselect', 'avalon.team.propose'] as const) {
+          session.send(
+            { type, seats: [leader, (leader + 1) % 5] },
+            leaderIsBot ? 'host' : session.seatUser(leader),
+            leaderIsBot ? leader : null,
+          );
+        }
+        for (let seat = 0; seat < 5; seat += 1) {
+          const bot = isBotSeat(session.state.roster, seat);
+          session.send(
+            { type: 'avalon.team.vote', vote: 'reject' },
+            bot ? 'host' : session.seatUser(seat),
+            bot ? seat : null,
+          );
+        }
+        now += 5000;
+        session.setNow(now);
+        session.sendSystem({ type: 'avalon.phase.settleExpired' });
+        expect(session.state.phase.kind).toBe('voteResult');
+        expect(
+          session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
+        ).toHaveLength(0);
+        session.confirmVoteResult();
+        if (round < 2) expect(session.state.phase.kind).toBe('nominate');
+      }
+      expect(session.state.phase.kind).toBe('ended');
+      if (session.state.phase.kind === 'ended') {
+        expect(session.state.phase.winner).toBe('evil');
+        expect(session.state.phase.reason).toBe('vetoLimitReached');
+      }
+      const completions = session.effects.filter(
+        (effect) => effect.type === 'avalon.game.completed',
+      );
+      expect(completions).toHaveLength(humanCount === 5 ? 1 : 0);
+      if (humanCount === 5) {
+        expect(completions[0]?.payload).toMatchObject({
+          completionVersion: 2,
+          participantUserIds: ['host', 'u1', 'u2', 'u3', 'u4'],
+          stats: Array.from({ length: 5 }, (_, seat) => ({
+            userId: session.seatUser(seat),
+            role: session.state.roles[seat],
+            won: isAvalonEvilRole(session.state.roles[seat]!),
+          })),
+        });
+      }
+    },
+  );
+
   it('ends the game when countdown settlements hit the veto limit (no manual finish)', () => {
     const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
     session.startGame();

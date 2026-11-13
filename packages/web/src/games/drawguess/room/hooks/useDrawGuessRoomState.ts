@@ -37,6 +37,7 @@ import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
 import type { DrawGuessRoomSession } from '@/games/drawguess/model/DrawGuessRoomSession';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 
 import {
   createDrawGuessHostManagement,
@@ -149,6 +150,7 @@ export function useDrawGuessRoomState({
     configureGame,
     shareRoom: share.open,
   });
+  const gameDetails = useGameProfileDetails(profile.selection, '你画我猜战绩', '本游戏局数');
   // 阶段截止只做剩余秒数展示；到期推进由服务端定时结算完成，任何手机都不发 expire。
   // isOverdue 是房主自救的共享判定：截止后宽限期已过、结算仍未到达。
   const deadlineAt =
@@ -200,6 +202,7 @@ export function useDrawGuessRoomState({
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
     profileSelection: profile.selection,
+    gameDetails,
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,

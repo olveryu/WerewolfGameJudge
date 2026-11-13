@@ -15,6 +15,7 @@ import {
 import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { pictionaryStatsSettlement } from './publicUserStats';
 
 type PictionarySettleDueEffect = Extract<PictionaryEffect, { type: 'pictionary.settle.due' }>;
 
@@ -62,6 +63,7 @@ export async function handlePictionaryEffect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'pictionary' },
         context,
+        'stats' in effect.payload ? pictionaryStatsSettlement(effect.payload.stats) : undefined,
       );
       return;
     case 'pictionary.settle.due':

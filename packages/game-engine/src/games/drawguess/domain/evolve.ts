@@ -58,9 +58,35 @@ function closeRoundEnd(
       guessedSeats: phase.guessedSeats,
       roundScores: phase.roundScores,
       drawerZeroed: phase.drawerZeroed,
+      reactionsBySeat: phase.reactionsBySeat,
+      ...(phase.guessAttemptsBySeat === undefined
+        ? {}
+        : { guessAttemptsBySeat: phase.guessAttemptsBySeat }),
+      ...(phase.guessTimeMsBySeat === undefined
+        ? {}
+        : { guessTimeMsBySeat: phase.guessTimeMsBySeat }),
       ...filedDrawing(phase),
     },
   ];
+}
+
+function getGuessStatsBySeat(phase: Extract<DrawGuessPhase, { readonly kind: 'drawing' }>): {
+  readonly guessAttemptsBySeat: Readonly<Record<number, number>>;
+  readonly guessTimeMsBySeat: Readonly<Record<number, number>>;
+} {
+  const guessAttemptsBySeat: Record<number, number> = {};
+  const guessTimeMsBySeat: Record<number, number> = {};
+  for (const entry of phase.guessLog) {
+    guessAttemptsBySeat[entry.seat] = (guessAttemptsBySeat[entry.seat] ?? 0) + 1;
+    if (entry.correct && guessTimeMsBySeat[entry.seat] === undefined) {
+      const elapsedMs = entry.at - phase.phaseStartAt;
+      if (!Number.isSafeInteger(elapsedMs) || elapsedMs < 0) {
+        throw new Error('DrawGuess accepted guess time precedes drawing start');
+      }
+      guessTimeMsBySeat[entry.seat] = elapsedMs;
+    }
+  }
+  return { guessAttemptsBySeat, guessTimeMsBySeat };
 }
 
 /** Logs a guess; a correct one locks the seat and credits guesser and drawer. */
@@ -102,6 +128,7 @@ function endRound(state: DrawGuessState, event: RoundEndedEvent): DrawGuessState
   // 全员猜中 = 画得太简单：画手本轮收入清零，猜中者得分不动。
   // 口径与“全员猜中压到 3 秒”一致（猜题者数 = 席位数 − 画手）。
   const drawerSeat = event.drawerSeat;
+  const guessStats = fromDrawing ? getGuessStatsBySeat(state.phase) : null;
   const allGuessed =
     fromDrawing && state.phase.guessedSeats.length >= state.config.numberOfPlayers - 1;
   const drawerZeroed = allGuessed && (roundScores[drawerSeat] ?? 0) > 0;
@@ -119,6 +146,8 @@ function endRound(state: DrawGuessState, event: RoundEndedEvent): DrawGuessState
       guessedSeats: fromDrawing ? [...state.phase.guessedSeats] : [],
       roundScores,
       drawerZeroed,
+      reactionsBySeat: fromDrawing ? { ...state.phase.reactionsBySeat } : {},
+      ...(guessStats === null ? {} : guessStats),
       pngEntry: null,
       reservation: null,
       deadlineAt: event.deadlineAt,
@@ -174,6 +203,7 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
           strokes: [],
           guessedSeats: [],
           guessLog: [],
+          reactionsBySeat: {},
           turnScores: {},
           phaseStartAt: event.phaseStartAt,
           deadlineAt: event.deadlineAt,
@@ -207,6 +237,19 @@ export function evolveDrawGuessState(state: DrawGuessState, event: DrawGuessEven
     }
     case 'drawguess.guess.submitted':
       return applyGuess(state, event);
+    case 'drawguess.reaction.sent': {
+      if (state.turnIndex !== event.turnIndex) return state;
+      if (state.phase.kind === 'drawing' || state.phase.kind === 'roundEnd') {
+        return {
+          ...state,
+          phase: {
+            ...state.phase,
+            reactionsBySeat: { ...state.phase.reactionsBySeat, [event.seat]: event.reaction },
+          },
+        };
+      }
+      return state;
+    }
     case 'drawguess.round.ended':
       return endRound(state, event);
     case 'drawguess.drawing.reserved': {

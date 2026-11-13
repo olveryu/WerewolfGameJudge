@@ -66,8 +66,16 @@ function createLobby(settings: UndercoverConfig = config): UndercoverState {
   return state;
 }
 
-function prepare(): UndercoverState {
-  const state = dispatch(createLobby(), { type: 'room.seat.fillBots' });
+function prepare(humanCount = 1): UndercoverState {
+  let state = createLobby();
+  for (let seat = 1; seat < humanCount; seat += 1) {
+    state = dispatch(
+      state,
+      { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+      user(`u${seat}`),
+    );
+  }
+  state = dispatch(state, { type: 'room.seat.fillBots' });
   return dispatch(state, { type: 'undercover.roles.assign', shouldAllowRepeated: false });
 }
 
@@ -84,15 +92,15 @@ function complete(state: UndercoverState): UndercoverState {
   );
 }
 
-function ongoing(): UndercoverState {
-  let state = complete(prepare());
+function ongoing(humanCount = 1): UndercoverState {
+  let state = complete(prepare(humanCount));
   if (state.round === null) throw new Error('Expected round');
   const roundId = state.round.roundId;
   for (let seat = 0; seat < config.numberOfPlayers; seat += 1) {
     state = dispatch(
       state,
       { type: 'undercover.role.viewed', roundId },
-      user('host', seat === 0 ? null : seat),
+      seat > 0 && seat < humanCount ? user(`u${seat}`) : user('host', seat === 0 ? null : seat),
     );
   }
   return dispatch(state, { type: 'undercover.game.begin', roundId });
@@ -348,7 +356,7 @@ describe('Undercover authoritative engine', () => {
     ['undercover', ['blank', 'civilian', 'civilian', 'civilian']],
     ['blank', ['civilian', 'civilian', 'civilian', 'civilian', 'civilian', 'undercover']],
   ])('emits one human-only completion reward for %s victory', (winner, roles) => {
-    let state = ongoing();
+    let state = ongoing(4);
     for (const [index, role] of roles.entries()) {
       if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
       const round = state.round;
@@ -372,7 +380,13 @@ describe('Undercover authoritative engine', () => {
                 payload: {
                   roundId: state.round.roundId,
                   completedAt: 1000,
-                  participantUserIds: ['host'],
+                  completionVersion: 2,
+                  participantUserIds: ['host', 'u1', 'u2', 'u3'],
+                  stats: ['host', 'u1', 'u2', 'u3'].map((userId, seat) => ({
+                    userId,
+                    role: state.round?.roles[seat],
+                    won: state.round?.roles[seat] === winner,
+                  })),
                 },
               },
             ]
@@ -381,6 +395,27 @@ describe('Undercover authoritative engine', () => {
       state = dispatch(state, command);
     }
     expect(state).toMatchObject({ phase: 'ended', winner });
+  });
+
+  it('does not emit completion below four humans even after a valid terminal reveal', () => {
+    let state = ongoing(3);
+    state = reveal(reveal(state, 'blank'), 'undercover');
+    if (state.round === null) throw new Error('Expected round');
+    const seat = state.round.roles.findIndex(
+      (role, seat) =>
+        role === 'undercover' && !state.round?.revelations.some((item) => item.seat === seat),
+    );
+    const decision = undercoverEngine.decide(
+      state,
+      { type: 'undercover.round.reveal', roundId: state.round.roundId, seat },
+      user(),
+    );
+    if (decision.kind === 'reject') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+    expect(
+      dispatch(state, { type: 'undercover.round.reveal', roundId: state.round.roundId, seat })
+        .phase,
+    ).toBe('ended');
   });
 
   it('does not reward an aborted round', () => {

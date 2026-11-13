@@ -56,12 +56,12 @@ function dealViewAndBegin(session: ReturnType<typeof game>): void {
 }
 
 describe('Demo full chain', () => {
-  it('create → seat → deal → view → deadline → settle, exactly one completion', () => {
-    const session = game(2);
+  it.each([3, 4])('runs the full chain with %i human players', (humanCount) => {
+    const session = game(humanCount);
 
     // create: an empty lobby.
     expect(session.state.phase).toEqual({ kind: 'lobby' });
-    // seat: two humans took seats, the roster fill seated bots.
+    // seat: humans took seats, with bots filling any remaining seats.
     expect(Object.keys(session.state.roster)).toHaveLength(4);
 
     // deal: identities are dealt into the viewing stage, nobody has
@@ -73,9 +73,10 @@ describe('Demo full chain', () => {
 
     // view: humans mark themselves; the host marks the bot seats
     // through the test scaffold.
-    session.send({ type: 'demo.role.viewed' }, session.seatUser(0));
-    session.send({ type: 'demo.role.viewed' }, session.seatUser(1));
-    session.send({ type: 'demo.bots.markAllBotsViewed' });
+    for (let seat = 0; seat < humanCount; seat += 1) {
+      session.send({ type: 'demo.role.viewed' }, session.seatUser(seat));
+    }
+    if (humanCount < 4) session.send({ type: 'demo.bots.markAllBotsViewed' });
 
     // begin: the playing stage opens with its deadline armed and the
     // scheduled settle effect emitted exactly once.
@@ -104,11 +105,12 @@ describe('Demo full chain', () => {
     expect(settled.phase.kind).toBe('ended');
     expect(settled.xpSettled).toBe(true);
 
-    // settle: exactly one completion effect naming the human
-    // participants, and identities are public in the terminal view.
+    // Only the minimum-human roster produces a completion effect.
     const completions = session.effects.filter((effect) => effect.type === 'demo.game.completed');
-    expect(completions).toHaveLength(1);
-    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1']);
+    expect(completions).toHaveLength(humanCount === 4 ? 1 : 0);
+    if (humanCount === 4) {
+      expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
+    }
     const view = getDemoViewModel(session.state, 0);
     expect(view.seats.every((seat) => seat.identity !== null)).toBe(true);
 

@@ -2,6 +2,7 @@
 
 import {
   migratePersistedStoryRelayState,
+  parseStoryRelayPublicStats,
   STORY_RELAY_STATE_CODEC,
   storyRelayEngine,
 } from '@game-judge/game-engine/games/storyrelay/public';
@@ -9,6 +10,7 @@ import {
 import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handleStoryRelayEffect } from './effects';
+import { getStoryRelayPublicUserStats } from './publicUserStats';
 import {
   storyRelayCreateConfigSchema,
   storyRelayEffectSchema,
@@ -25,6 +27,8 @@ export const storyRelayWorkerModule = defineWorkerGameModule({
   publicCommandSchema: storyRelayPublicCommandSchema,
   internalCommandSchema: storyRelayInternalCommandSchema,
   effectSchema: storyRelayEffectSchema,
+  parsePublicUserStats: parseStoryRelayPublicStats,
+  getPublicUserStats: getStoryRelayPublicUserStats,
   httpRoutes: [],
   getEffectBusinessKey: (effect) =>
     effect.type === 'storyrelay.settle.due'

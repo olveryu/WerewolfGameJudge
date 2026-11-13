@@ -19,6 +19,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer';
+import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
 import IconMusicalNotes from '~icons/ion/musical-notes';
@@ -262,6 +263,9 @@ function AvalonRoomContent(
         ) : null
       }
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <AvalonStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       gameOverlays={
         <>
           {viewModel === null ? null : (

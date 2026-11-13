@@ -64,6 +64,109 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
+.drawguess-task-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+}
+
+.drawguess-reactions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+}
+
+.drawguess-reaction-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-small);
+}
+
+.drawguess-reaction-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: 0;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  cursor: pointer;
+}
+
+.drawguess-reaction-button:disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
+}
+
+.drawguess-reaction-button:active:not(:disabled) {
+  opacity: var(--opacity-pressed);
+}
+
+.drawguess-reaction-button svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.drawguess-reaction-button:nth-child(1) svg {
+  color: var(--color-success);
+}
+
+.drawguess-reaction-button:nth-child(2) svg {
+  color: var(--color-warning);
+}
+
+.drawguess-reaction-button:nth-child(3) svg {
+  color: var(--color-error);
+}
+
+.drawguess-reaction-button[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a6);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.drawguess-reaction-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-around;
+  gap: var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.drawguess-reaction-hint {
+  color: var(--color-text-muted);
+  font-variant-numeric: normal;
+}
+
+.drawguess-reaction-senders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-tight) var(--space-small);
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  list-style: none;
+}
+
 /* Narrow: canvas over the peek strip. Wide: canvas beside the guess log aside. */
 .drawguess-drawing-body {
   display: flex;

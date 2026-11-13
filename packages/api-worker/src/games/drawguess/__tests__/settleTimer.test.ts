@@ -17,8 +17,10 @@ import {
   type DrawGuessWordChoice,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
-import { runInDurableObject } from 'cloudflare:test';
+import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import { runInDurableObject, SELF } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
+import { SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
@@ -296,6 +298,51 @@ describe('DrawGuess scheduled settle (Durable Object)', () => {
     expect((await readState(stub)).phase.kind).toBe('drawing');
     expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(revisionAfter);
     expect(await readSettleRows(stub)).toHaveLength(1);
+  });
+
+  it('accepts a reaction over HTTP and persists it in the room snapshot', async () => {
+    const stub = getStub();
+    const armed = await armedWordSelectRoom(stub);
+    await send(stub, HOST, {
+      type: 'drawguess.word.choose',
+      word: CHOICES[0].word,
+      phaseRevision: armed.phaseRevision,
+      turnIndex: armed.turnIndex,
+    });
+    const drawing = await readState(stub);
+    if (drawing.phase.kind !== 'drawing') throw new Error('Expected drawing phase');
+    const senderSeat = drawing.phase.drawerSeat === 1 ? 2 : 1;
+    const now = Math.floor(Date.now() / 1000);
+    const token = await new SignJWT({
+      sub: seatUser(senderSeat),
+      ver: 0,
+      iat: now,
+      exp: now + 3600,
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .sign(new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production'));
+    const response = await SELF.fetch('https://test.local/room/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        roomCode: ROOM_CODE,
+        roomId: stub.id.toString(),
+        commandId: 'http-reaction',
+        controlledSeat: null,
+        command: {
+          type: 'drawguess.reaction.send',
+          phaseRevision: drawing.phaseRevision,
+          turnIndex: drawing.turnIndex,
+          reaction: 'flower',
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const result = parseRoomCommandResult(await response.json(), DRAWGUESS_STATE_CODEC);
+    expect(result.kind).toBe('committed');
+    const updated = await readState(stub);
+    if (updated.phase.kind !== 'drawing') throw new Error('Expected drawing phase');
+    expect(updated.phase.reactionsBySeat[senderSeat]).toBe('flower');
   });
 
   it('re-arms on guess compression and no-ops the parked old row', async () => {

@@ -1,4 +1,4 @@
-/** Strict DrawGuess persistence and transport codec; v1, v2 and v3
+/** Strict DrawGuess persistence and transport codec; v1 through v4
  * payloads migrate through migratePersistedDrawGuessState. */
 
 import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
@@ -22,6 +22,7 @@ import {
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS,
   DRAWGUESS_PHASES,
+  DRAWGUESS_REACTIONS,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_WORD_SELECT_SECONDS,
@@ -31,6 +32,7 @@ import {
   type DrawGuessHumanSeat,
   type DrawGuessMedia,
   type DrawGuessPhase,
+  type DrawGuessReaction,
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessTurnRecord,
@@ -220,6 +222,35 @@ function scores(value: unknown, path: string): Readonly<Record<number, number>> 
   return result;
 }
 
+function nonnegativeSeatCounts(value: unknown, path: string): Readonly<Record<number, number>> {
+  const raw = parseObject(value, path);
+  const result: Record<number, number> = {};
+  for (const [key, count] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    const parsedCount = parseInteger(count, `${path}.${key}`);
+    if (parsedCount < 0) failDecode(`${path}.${key}`, 'a non-negative integer');
+    result[parseSeat(Number(key), `${path}.${key}`)] = parsedCount;
+  }
+  return result;
+}
+
+function reactionsBySeat(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, DrawGuessReaction>> {
+  const raw = parseObject(value, path);
+  const result: Record<number, DrawGuessReaction> = {};
+  for (const [key, reaction] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    result[parseSeat(Number(key), `${path}.${key}`)] = parseChoice(
+      reaction,
+      `${path}.${key}`,
+      DRAWGUESS_REACTIONS,
+    );
+  }
+  return result;
+}
+
 function phase(value: unknown, path: string): DrawGuessPhase {
   const raw = parseObject(value, path);
   const kind = parseChoice(raw.kind, `${path}.kind`, DRAWGUESS_PHASES);
@@ -249,6 +280,7 @@ function phase(value: unknown, path: string): DrawGuessPhase {
           strokes: parseArray(raw.strokes, `${path}.strokes`, stroke),
           guessedSeats: parseArray(raw.guessedSeats, `${path}.guessedSeats`, parseSeat),
           guessLog: parseArray(raw.guessLog, `${path}.guessLog`, guessLogEntry),
+          reactionsBySeat: reactionsBySeat(raw.reactionsBySeat, `${path}.reactionsBySeat`),
           turnScores: scores(raw.turnScores, `${path}.turnScores`),
           phaseStartAt: parseInteger(raw.phaseStartAt, `${path}.phaseStartAt`),
           deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
@@ -266,6 +298,23 @@ function phase(value: unknown, path: string): DrawGuessPhase {
           guessedSeats: parseArray(raw.guessedSeats, `${path}.guessedSeats`, parseSeat),
           roundScores: scores(raw.roundScores, `${path}.roundScores`),
           drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
+          reactionsBySeat: reactionsBySeat(raw.reactionsBySeat, `${path}.reactionsBySeat`),
+          ...(Object.prototype.hasOwnProperty.call(raw, 'guessAttemptsBySeat')
+            ? {
+                guessAttemptsBySeat: nonnegativeSeatCounts(
+                  raw.guessAttemptsBySeat,
+                  `${path}.guessAttemptsBySeat`,
+                ),
+              }
+            : {}),
+          ...(Object.prototype.hasOwnProperty.call(raw, 'guessTimeMsBySeat')
+            ? {
+                guessTimeMsBySeat: nonnegativeSeatCounts(
+                  raw.guessTimeMsBySeat,
+                  `${path}.guessTimeMsBySeat`,
+                ),
+              }
+            : {}),
           pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
           reservation: parseNullable(raw.reservation, `${path}.reservation`, reservation),
           deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
@@ -295,6 +344,23 @@ function turnRecord(value: unknown, path: string): DrawGuessTurnRecord {
       guessedSeats: parseArray(raw.guessedSeats, `${path}.guessedSeats`, parseSeat),
       roundScores: scores(raw.roundScores, `${path}.roundScores`),
       drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
+      reactionsBySeat: reactionsBySeat(raw.reactionsBySeat, `${path}.reactionsBySeat`),
+      ...(Object.prototype.hasOwnProperty.call(raw, 'guessAttemptsBySeat')
+        ? {
+            guessAttemptsBySeat: nonnegativeSeatCounts(
+              raw.guessAttemptsBySeat,
+              `${path}.guessAttemptsBySeat`,
+            ),
+          }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(raw, 'guessTimeMsBySeat')
+        ? {
+            guessTimeMsBySeat: nonnegativeSeatCounts(
+              raw.guessTimeMsBySeat,
+              `${path}.guessTimeMsBySeat`,
+            ),
+          }
+        : {}),
       entryId: parseNullable(raw.entryId, `${path}.entryId`, parseNonEmptyString),
       pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
     },
@@ -356,7 +422,7 @@ function upgradeV2ToV3(raw: Record<string, unknown>): Record<string, unknown> {
  */
 function upgradeV3ToV4(raw: Record<string, unknown>): Record<string, unknown> {
   const path = 'DrawGuessState.phase';
-  const next = { ...raw, stateVersion: DRAWGUESS_STATE_VERSION, turnHistory: [] };
+  const next = { ...raw, stateVersion: 4, turnHistory: [] };
   const phase = parseObject(raw.phase, path);
   if (phase.kind !== 'roundEnd') return next;
   const drawerSeat = parseSeat(phase.drawerSeat, `${path}.drawerSeat`);
@@ -368,12 +434,31 @@ function upgradeV3ToV4(raw: Record<string, unknown>): Record<string, unknown> {
   return { ...next, phase: { ...phase, guessedSeats } };
 }
 
+/** Adds per-turn reactions. Existing closed turns keep guess stats unknown. */
+function upgradeV4ToV5(raw: Record<string, unknown>): Record<string, unknown> {
+  const path = 'DrawGuessState';
+  const phase = parseObject(raw.phase, `${path}.phase`);
+  const migratedPhase =
+    phase.kind === 'drawing' || phase.kind === 'roundEnd'
+      ? { ...phase, reactionsBySeat: {} }
+      : phase;
+  const turnHistory = parseArray(raw.turnHistory, `${path}.turnHistory`, parseObject).map(
+    (record) => ({ ...record, reactionsBySeat: {} }),
+  );
+  return {
+    ...raw,
+    stateVersion: DRAWGUESS_STATE_VERSION,
+    phase: migratedPhase,
+    turnHistory,
+  };
+}
+
 /**
  * Upgrades stored v1 rooms: v1 stored the roster as realSeats plus an
  * excluded-seat list, with the bot-fill flag inside the config; the v2
  * roster materializes exactly the seats the old derivation called bots
- * and the config flag retires. Stored v2 and v3 rooms continue through
- * upgradeV2ToV3 and upgradeV3ToV4. Anything else goes through the
+ * and the config flag retires. Older rooms continue through sequential
+ * version upgrades. Anything else goes through the
  * strict parser, which rejects unsupported versions.
  * @throws When the stored state is malformed or invalid after migration.
  */
@@ -381,8 +466,10 @@ export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   const path = 'DrawGuessState';
   const raw = parseObject(value, path);
   if (raw.stateVersion === DRAWGUESS_STATE_VERSION) return parseDrawGuessState(raw);
-  if (raw.stateVersion === 3) return parseDrawGuessState(upgradeV3ToV4(raw));
-  if (raw.stateVersion === 2) return parseDrawGuessState(upgradeV3ToV4(upgradeV2ToV3(raw)));
+  if (raw.stateVersion === 4) return parseDrawGuessState(upgradeV4ToV5(raw));
+  if (raw.stateVersion === 3) return parseDrawGuessState(upgradeV4ToV5(upgradeV3ToV4(raw)));
+  if (raw.stateVersion === 2)
+    return parseDrawGuessState(upgradeV4ToV5(upgradeV3ToV4(upgradeV2ToV3(raw))));
   if (raw.stateVersion !== 1) return parseDrawGuessState(raw);
   const rawConfig = parseObject(raw.config, `${path}.config`);
   const fill = parseBoolean(
@@ -401,13 +488,15 @@ export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
   });
   const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
   return parseDrawGuessState(
-    upgradeV3ToV4(
-      upgradeV2ToV3({
-        ...rest,
-        stateVersion: 2,
-        config,
-        roster: nextRoster,
-      }),
+    upgradeV4ToV5(
+      upgradeV3ToV4(
+        upgradeV2ToV3({
+          ...rest,
+          stateVersion: 2,
+          config,
+          roster: nextRoster,
+        }),
+      ),
     ),
   );
 }

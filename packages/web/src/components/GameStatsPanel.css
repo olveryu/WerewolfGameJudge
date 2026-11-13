@@ -1,0 +1,201 @@
+.game-stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.game-stats-empty {
+  padding: var(--space-medium) var(--space-small);
+  text-align: center;
+}
+
+.game-stats-empty h4 {
+  margin: 0 0 var(--space-tight);
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.game-stats-empty p,
+.game-stats-error {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.game-stats-error {
+  color: var(--color-error);
+}
+
+.game-stats-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.game-stats-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-small);
+  min-height: var(--line-secondary);
+  padding: var(--space-micro) 0;
+}
+
+.game-stats-row strong {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.game-stats-group + .game-stats-group {
+  margin-top: var(--space-small);
+  padding-top: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.game-stats-subheading {
+  margin: var(--space-small) 0 var(--space-tight);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.game-stats-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+}
+
+.game-stats-bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(40px, 1.4fr) auto auto;
+  align-items: center;
+  gap: var(--space-tight);
+  min-height: var(--line-secondary);
+}
+
+.game-stats-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-stats-bar-track {
+  height: var(--space-tight);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+}
+
+.game-stats-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.game-stats-bar-row[data-tone='good'] .game-stats-bar-fill {
+  background: var(--color-success);
+}
+
+.game-stats-bar-row[data-tone='evil'] .game-stats-bar-fill {
+  background: var(--color-error);
+}
+
+.game-stats-bar-row[data-tone='special'] .game-stats-bar-fill {
+  background: var(--color-warning);
+}
+
+.game-stats-bar-value,
+.game-stats-bar-share {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.game-stats-bar-share {
+  min-width: 3.5em;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.game-stats-reactions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-small);
+}
+
+.game-stats-reaction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+
+.game-stats-reaction svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.game-stats-reaction[data-reaction='flower'] {
+  color: var(--color-success);
+}
+
+.game-stats-reaction[data-reaction='egg'] {
+  color: var(--color-warning);
+}
+
+.game-stats-reaction[data-reaction='tomato'] {
+  color: var(--color-error);
+}
+
+.game-stats-reaction strong {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-stats-identities {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.game-stats-identities > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--size-min-touch-target);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.game-stats-identities > summary::-webkit-details-marker {
+  display: none;
+}
+
+.game-stats-identities > summary::after {
+  color: var(--color-primary);
+  content: '+';
+  font-size: var(--font-subtitle);
+}
+
+.game-stats-identities[open] > summary::after {
+  content: '−';
+}
+
+.game-stats-identities[open] .game-stats-bars {
+  padding-bottom: var(--space-small);
+}

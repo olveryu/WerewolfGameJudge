@@ -7,7 +7,14 @@ export {
   resolveUserActorId,
 } from './actor';
 export { defineGameEngineCatalog } from './catalog';
-export { buildGameCompletionPayload, type GameCompletionPayload } from './completionEffect';
+export {
+  buildGameCompletionPayload,
+  buildGameCompletionPayloadV2,
+  type GameCompletionPayload,
+  type GameCompletionPayloadV2,
+  gameCompletionPayloadV2Schema,
+  type GameCompletionStatsFact,
+} from './completionEffect';
 export { commit, commitDomainRejection, reject } from './decision';
 export type {
   CommandActor,

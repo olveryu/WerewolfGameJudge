@@ -5,6 +5,7 @@ import {
   UNDERCOVER_CATEGORIES,
   UNDERCOVER_CONFIG_SCHEMA,
   UNDERCOVER_MAX_PLAYERS,
+  undercoverCompletionPayloadSchema,
   type UndercoverConfig,
   type UndercoverEffect,
   type UndercoverInternalCommand,
@@ -91,6 +92,6 @@ export const undercoverEffectSchema: z.ZodType<UndercoverEffect> = z.discriminat
   }),
   z.strictObject({
     type: z.literal('undercover.game.completed'),
-    payload: gameCompletionPayloadSchema,
+    payload: z.union([gameCompletionPayloadSchema, undercoverCompletionPayloadSchema]),
   }),
 ]);

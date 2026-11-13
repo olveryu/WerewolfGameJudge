@@ -5,7 +5,12 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
-import type { DrawGuessConfig, DrawGuessStroke, DrawGuessWordChoice } from '../state/types';
+import type {
+  DrawGuessConfig,
+  DrawGuessReaction,
+  DrawGuessStroke,
+  DrawGuessWordChoice,
+} from '../state/types';
 
 type PhaseRevisionCommand = { readonly phaseRevision: number; readonly turnIndex: number } & {
   readonly type:
@@ -13,7 +18,8 @@ type PhaseRevisionCommand = { readonly phaseRevision: number; readonly turnIndex
     | 'drawguess.stroke.add'
     | 'drawguess.stroke.undo'
     | 'drawguess.stroke.clear'
-    | 'drawguess.guess.submit';
+    | 'drawguess.guess.submit'
+    | 'drawguess.reaction.send';
 };
 
 export type DrawGuessPublicCommand =
@@ -39,6 +45,10 @@ export type DrawGuessPublicCommand =
   | (PhaseRevisionCommand & {
       readonly type: 'drawguess.guess.submit';
       readonly text: string;
+    })
+  | (PhaseRevisionCommand & {
+      readonly type: 'drawguess.reaction.send';
+      readonly reaction: DrawGuessReaction;
     });
 
 /** Server-originated commands: word dealing (D1), media commit (R2), and scheduled phase settlement. */

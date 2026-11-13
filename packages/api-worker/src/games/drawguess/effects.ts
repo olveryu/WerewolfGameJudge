@@ -2,6 +2,7 @@
 
 import {
   DRAWGUESS_REASONS,
+  drawGuessCompletionPayloadSchema,
   type DrawGuessEffect,
   type DrawGuessInternalCommand,
   type DrawGuessState,
@@ -17,6 +18,7 @@ import {
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { drawGuessStatsSettlement } from './publicUserStats';
 import { dealDrawGuessWords, recordDrawGuessWordSeen } from './wordDeal';
 
 const dealWordsEffectSchema = z.strictObject({
@@ -38,7 +40,7 @@ const recordSeenWordEffectSchema = z.strictObject({
 
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('drawguess.game.completed'),
-  payload: gameCompletionPayloadSchema,
+  payload: z.union([gameCompletionPayloadSchema, drawGuessCompletionPayloadSchema]),
 });
 
 const settleDueEffectSchema = z.strictObject({
@@ -157,6 +159,7 @@ export async function handleDrawGuessEffect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'drawguess' },
         context,
+        'stats' in effect.payload ? drawGuessStatsSettlement(effect.payload.stats) : undefined,
       );
       return;
     case 'drawguess.settle.due':

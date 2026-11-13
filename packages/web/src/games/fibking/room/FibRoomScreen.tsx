@@ -12,6 +12,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { FibStatsPanel } from '@/games/fibking/components/FibStatsPanel';
 import { TESTIDS } from '@/testids';
 
 import type { FibRoomSession } from '../model/FibRoomSession';
@@ -52,6 +53,9 @@ function FibRoomContent(
       model={screen.shellModel}
       leadingExtraActions={null}
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <FibStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       content={{
         kind: 'seats',
         contextHeader: null,

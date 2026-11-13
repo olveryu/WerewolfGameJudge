@@ -8,7 +8,7 @@ import {
   cleanupOldLoginAttempts,
 } from '../features/auth/maintenance';
 import { cleanupExpiredIdempotencyKeys } from '../features/gacha/maintenance';
-import { cleanupFibWordAudit } from '../games/fibking/maintenance';
+import { WORKER_GAME_MAINTENANCE_TASKS } from '../games/catalog';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
 import { measureDatabaseCapacity } from '../platform/storage/capacity';
@@ -23,13 +23,39 @@ const ROOM_RECONCILIATION_CRON = '*/5 * * * *';
 const DAILY_CLEANUP_CRON = '0 3 * * *';
 const FIB_WORD_SUPPLY_CRON = '0 4 * * *';
 
+function getGameMaintenanceTasks(env: Env, cron: string, nowMs: number) {
+  return WORKER_GAME_MAINTENANCE_TASKS.filter((task) => task.cron === cron).map((task) => ({
+    name: task.name,
+    run: () => task.run(env.DB, nowMs),
+  }));
+}
+
+async function runMaintenanceTasks(
+  tasks: readonly { readonly name: string; run(): Promise<unknown> }[],
+  scope: string,
+): Promise<void> {
+  const failures: Error[] = [];
+  for (const task of tasks) {
+    try {
+      await task.run();
+    } catch (error) {
+      const cause = error instanceof Error ? error : new Error(String(error));
+      failures.push(cause);
+      log.error(`${scope} task failed`, { task: task.name, error: cause.message });
+    }
+  }
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} ${scope} tasks failed`);
+  }
+}
+
 /** Run daily retention tasks after marking stale rooms for saga deletion. */
 async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
   const tasks = [
     { name: 'room expiry', run: () => expireStaleRooms(env, nowMs) },
     { name: 'room reconciliation', run: () => reconcileRooms(env, nowMs) },
     { name: 'anonymous user cleanup', run: () => cleanupAnonymousUsers(env) },
-    { name: 'Fib audit cleanup', run: () => cleanupFibWordAudit(env.DB, nowMs) },
+    ...getGameMaintenanceTasks(env, DAILY_CLEANUP_CRON, nowMs),
     { name: 'database capacity', run: () => measureDatabaseCapacity(env.DB) },
     { name: 'login attempt cleanup', run: () => cleanupOldLoginAttempts(env) },
     {
@@ -39,21 +65,7 @@ async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
     { name: 'idempotency cleanup', run: () => cleanupExpiredIdempotencyKeys(env) },
     { name: 'WeChat claim cleanup', run: () => cleanupExpiredWechatClaims(env) },
   ] as const;
-  const failures: Error[] = [];
-
-  for (const task of tasks) {
-    try {
-      await task.run();
-    } catch (error) {
-      const cause = error instanceof Error ? error : new Error(String(error));
-      failures.push(cause);
-      log.error('daily cleanup task failed', { task: task.name, error: cause.message });
-    }
-  }
-
-  if (failures.length > 0) {
-    throw new AggregateError(failures, `${failures.length} daily cleanup tasks failed`);
-  }
+  await runMaintenanceTasks(tasks, 'daily cleanup');
   log.info('cleanup complete');
 }
 
@@ -61,8 +73,14 @@ async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
 export async function runScheduledCron(env: Env, cron: string, nowMs: number): Promise<void> {
   switch (cron) {
     case ROOM_RECONCILIATION_CRON:
-      await reconcileRooms(env, nowMs);
-      await measureDatabaseCapacity(env.DB);
+      await runMaintenanceTasks(
+        [
+          { name: 'room reconciliation', run: () => reconcileRooms(env, nowMs) },
+          { name: 'database capacity', run: () => measureDatabaseCapacity(env.DB) },
+          ...getGameMaintenanceTasks(env, ROOM_RECONCILIATION_CRON, nowMs),
+        ],
+        'periodic maintenance',
+      );
       return;
     case DAILY_CLEANUP_CRON:
       await runDailyCleanup(env, nowMs);

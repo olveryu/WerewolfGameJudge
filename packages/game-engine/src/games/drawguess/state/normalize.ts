@@ -10,6 +10,7 @@ import { isValidWordChoice } from '../domain/rules';
 import {
   DRAWGUESS_GUESS_TEXT_MAX_LENGTH,
   DRAWGUESS_MAX_STROKES_PER_TURN,
+  DRAWGUESS_REACTIONS,
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_WORD_CHOICE_COUNT,
   type DrawGuessHumanSeat,
@@ -98,6 +99,45 @@ function isValidGuessedSeats(
   );
 }
 
+function areValidSeatCounts(counts: Readonly<Record<number, number>>, isSeat: SeatCheck): boolean {
+  return Object.entries(counts).every(
+    ([seat, count]) => isSeat(Number(seat)) && Number.isSafeInteger(count) && count >= 0,
+  );
+}
+
+function areValidReactionsBySeat(
+  reactions: DrawGuessTurnRecord['reactionsBySeat'],
+  drawerSeat: number,
+  isSeat: SeatCheck,
+): boolean {
+  return Object.entries(reactions).every(
+    ([seat, reaction]) =>
+      isSeat(Number(seat)) &&
+      Number(seat) !== drawerSeat &&
+      DRAWGUESS_REACTIONS.some((candidate) => candidate === reaction),
+  );
+}
+
+function areValidGuessStats(
+  attempts: Readonly<Record<number, number>> | undefined,
+  times: Readonly<Record<number, number>> | undefined,
+  guessedSeats: readonly number[],
+  drawerSeat: number,
+  isSeat: SeatCheck,
+): boolean {
+  if ((attempts === undefined) !== (times === undefined)) return false;
+  if (attempts === undefined || times === undefined) return true;
+  return (
+    areValidSeatCounts(attempts, isSeat) &&
+    areValidSeatCounts(times, isSeat) &&
+    Object.values(attempts).every((count) => count > 0) &&
+    Object.keys(times).every((key) => {
+      const seat = Number(key);
+      return seat !== drawerSeat && guessedSeats.includes(seat) && (attempts[seat] ?? 0) > 0;
+    })
+  );
+}
+
 function isValidTurnRecord(
   record: DrawGuessTurnRecord,
   drawerQueue: readonly number[],
@@ -109,6 +149,14 @@ function isValidTurnRecord(
     areValidRoundScores(record.roundScores, isSeat) &&
     isValidGuessedSeats(record.guessedSeats, record.drawerSeat, record.roundScores) &&
     typeof record.drawerZeroed === 'boolean' &&
+    areValidReactionsBySeat(record.reactionsBySeat, record.drawerSeat, isSeat) &&
+    areValidGuessStats(
+      record.guessAttemptsBySeat,
+      record.guessTimeMsBySeat,
+      record.guessedSeats,
+      record.drawerSeat,
+      isSeat,
+    ) &&
     (record.entryId === null
       ? record.pngEntry === null
       : record.entryId.length > 0 && record.pngEntry !== null && isValidPngEntry(record.pngEntry))
@@ -190,6 +238,7 @@ function assertDrawingPhase(state: DrawGuessState, phase: DrawingPhase, isSeat: 
     ),
     'guess log',
   );
+  invariant(areValidReactionsBySeat(phase.reactionsBySeat, phase.drawerSeat, isSeat), 'reactions');
   invariant(Number.isSafeInteger(phase.phaseStartAt) && phase.phaseStartAt >= 0, 'phase start');
   invariant(
     Number.isSafeInteger(phase.deadlineAt) && phase.deadlineAt > phase.phaseStartAt,
@@ -210,6 +259,17 @@ function assertRoundEndPhase(state: DrawGuessState, phase: RoundEndPhase, isSeat
     'roundEnd guessed seats',
   );
   invariant(typeof phase.drawerZeroed === 'boolean', 'drawer zeroed');
+  invariant(areValidReactionsBySeat(phase.reactionsBySeat, phase.drawerSeat, isSeat), 'reactions');
+  invariant(
+    areValidGuessStats(
+      phase.guessAttemptsBySeat,
+      phase.guessTimeMsBySeat,
+      phase.guessedSeats,
+      phase.drawerSeat,
+      isSeat,
+    ),
+    'guess stats',
+  );
   const reservation = phase.reservation;
   invariant(
     reservation === null ||

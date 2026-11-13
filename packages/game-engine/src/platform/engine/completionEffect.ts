@@ -19,10 +19,75 @@
  * xpSettled state flag and checks it at every emission site.
  */
 
+import { z } from 'zod';
+
 export interface GameCompletionPayload {
   readonly roundId: string;
   readonly completedAt: number;
   readonly participantUserIds: readonly string[];
+}
+
+export interface GameCompletionStatsFact {
+  readonly userId: string;
+}
+
+export interface GameCompletionPayloadV2<
+  TFact extends GameCompletionStatsFact,
+> extends GameCompletionPayload {
+  readonly completionVersion: 2;
+  readonly stats: readonly TFact[];
+}
+
+export function gameCompletionPayloadV2Schema<TFact extends GameCompletionStatsFact>(
+  factSchema: z.ZodType<TFact>,
+) {
+  return z
+    .strictObject({
+      roundId: z.string().min(1),
+      completedAt: z.number().refine((value) => Number.isSafeInteger(value) && value >= 0),
+      participantUserIds: z.array(z.string().min(1)),
+      completionVersion: z.literal(2),
+      stats: z.array(factSchema),
+    })
+    .superRefine((payload, context) => {
+      const participantUserIds = payload.participantUserIds;
+      const statsUserIds = payload.stats.map((fact) => fact.userId);
+      if (
+        new Set(participantUserIds).size !== participantUserIds.length ||
+        new Set(statsUserIds).size !== statsUserIds.length ||
+        participantUserIds.length !== statsUserIds.length ||
+        participantUserIds.some((userId, index) => statsUserIds[index] !== userId)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'stats users must match participantUserIds in seat order',
+          path: ['stats'],
+        });
+      }
+    });
+}
+
+export function buildGameCompletionPayloadV2<
+  TSeat extends { readonly seat: number; readonly userId: string },
+  TFact extends GameCompletionStatsFact,
+>(input: {
+  readonly roundId: string;
+  readonly completedAt: number;
+  readonly humans: readonly TSeat[];
+  readonly minimumHumanPlayers: number;
+  readonly includeSeat?: (seat: TSeat) => boolean;
+  readonly stats: readonly TFact[];
+}): GameCompletionPayloadV2<TFact> | null {
+  const payload = buildGameCompletionPayload(input);
+  if (payload === null) return null;
+  const statsUserIds = input.stats.map((fact) => fact.userId);
+  if (
+    payload.participantUserIds.length !== statsUserIds.length ||
+    payload.participantUserIds.some((userId, index) => statsUserIds[index] !== userId)
+  ) {
+    throw new Error('Completion stats users must match the filtered participants in seat order');
+  }
+  return { ...payload, completionVersion: 2, stats: input.stats };
 }
 
 export function buildGameCompletionPayload<
@@ -32,9 +97,14 @@ export function buildGameCompletionPayload<
   readonly completedAt: number;
   /** The game's human seats, in seat order. */
   readonly humans: readonly TSeat[];
+  readonly minimumHumanPlayers: number;
   /** Narrows the rewarded humans (authorship filters); defaults to every supplied human. */
   readonly includeSeat?: (seat: TSeat) => boolean;
-}): GameCompletionPayload {
+}): GameCompletionPayload | null {
+  if (!Number.isSafeInteger(input.minimumHumanPlayers) || input.minimumHumanPlayers < 0) {
+    throw new Error('Minimum human player count must be a non-negative safe integer');
+  }
+  if (input.humans.length < input.minimumHumanPlayers) return null;
   const participantUserIds = input.humans
     .filter((seat) => input.includeSeat === undefined || input.includeSeat(seat))
     .map((seat) => seat.userId);

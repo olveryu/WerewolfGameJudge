@@ -13,11 +13,19 @@ import {
 import { avalonWorkerModule } from './avalon/module';
 import { demoWorkerModule } from './demo/module';
 import { drawGuessWorkerModule } from './drawguess/module';
+import { cleanupFibWordAudit } from './fibking/maintenance';
 import { fibWorkerModule } from './fibking/module';
 import { pictionaryWorkerModule } from './pictionary/module';
 import { storyRelayWorkerModule } from './storyrelay/module';
 import { undercoverWorkerModule } from './undercover/module';
+import { aggregateWerewolfCampStats } from './werewolf/campAggregation';
 import { werewolfWorkerModule } from './werewolf/module';
+
+/** Owner-local game maintenance composed at the same boundary as game modules. */
+export const WORKER_GAME_MAINTENANCE_TASKS = [
+  { cron: '0 3 * * *', name: 'Fib audit cleanup', run: cleanupFibWordAudit },
+  { cron: '*/5 * * * *', name: 'Werewolf camp aggregation', run: aggregateWerewolfCampStats },
+] as const;
 
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, {
   werewolf: registerWorkerGameModule(werewolfWorkerModule),

@@ -38,6 +38,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { type RoomReviewController, useRoomReview } from '@/features/room/review/useRoomReview';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -160,6 +161,7 @@ export function usePictionaryRoomState({
     roomCode: room.roomCode,
     onOpened: null,
   });
+  const gameDetails = useGameProfileDetails(profile.selection, '你画我猜接龙战绩', '本游戏局数');
 
   // 房主流程命令：不带接管座位（房主门只认未接管身份）。
   const startRound = () => void submit('开始游戏', { type: 'pictionary.game.begin' });
@@ -216,6 +218,7 @@ export function usePictionaryRoomState({
       capabilities,
       onClose: profile.close,
       onLeaveSeat: profile.leaveSelf,
+      gameDetails,
     }),
     share,
     review: review.entry,

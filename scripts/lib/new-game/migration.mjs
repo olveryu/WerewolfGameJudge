@@ -52,12 +52,40 @@ export function extendGameTypeLists(content, gameId) {
   return extended;
 }
 
+/** Fail before writing if the registration source no longer describes the canonical game set. */
+export function assertRegistrationGameTypes(sourceContent, expectedGameTypes) {
+  const lists = [...sourceContent.matchAll(/game_type IN \(([^)]*)\)/g)];
+  if (lists.length === 0) throw new Error('Registration source has no game_type CHECK lists.');
+  const expected = [...expectedGameTypes].sort();
+  for (const [, list] of lists) {
+    const actual = [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]);
+    if (
+      new Set(actual).size !== actual.length ||
+      JSON.stringify(actual.sort()) !== JSON.stringify(expected)
+    ) {
+      throw new Error(
+        'Registration source game_type CHECK does not match the canonical game set; review the current schema before generation.',
+      );
+    }
+  }
+}
+
 /** Build the registration migration for the new game from the latest one. */
-export function buildRegistrationMigration({ sourceName, sourceContent, gameId, displayName }) {
+export function buildRegistrationMigration({
+  sourceName,
+  sourceContent,
+  gameId,
+  displayName,
+  businessStats = true,
+}) {
   const extended = extendGameTypeLists(sourceContent, gameId);
   const bodyStart = extended.indexOf('PRAGMA defer_foreign_keys = true;');
   if (bodyStart < 0) throw new Error(`Source migration ${sourceName} has no PRAGMA body start.`);
-  const body = extended.slice(bodyStart);
+  const bodyEnd = extended.indexOf('PRAGMA defer_foreign_keys = false;', bodyStart);
+  if (bodyEnd < 0) throw new Error(`Source migration ${sourceName} has no PRAGMA body end.`);
+  const body = businessStats
+    ? `${extended.slice(bodyStart, bodyEnd + 'PRAGMA defer_foreign_keys = false;'.length)}\n`
+    : extended.slice(bodyStart);
   const header = [
     `-- Register ${displayName} (${gameId}) in the room directory game-type`,
     `-- constraints. ${gameId} needs no new tables yet (game-owned tables are`,
@@ -77,5 +105,22 @@ export function buildRegistrationMigration({ sourceName, sourceContent, gameId, 
     `-- with no owned tables needs nothing beyond the rebuilds above.`,
     ``,
   ].join('\n');
-  return `${header}${body}${todo}`;
+  if (!businessStats) return `${header}${body}${todo}`;
+  const stats = [
+    '',
+    `-- Cumulative completed games only; no fabricated outcomes or history backfill.`,
+    `CREATE TABLE ${gameId}_user_stats (`,
+    `  user_id TEXT PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,`,
+    `  games_played INTEGER NOT NULL CHECK (typeof(games_played) = 'integer' AND games_played >= 0)`,
+    `);`,
+    '',
+    `-- TODO(gameplay): review current rebuild constraints, indexes, triggers and copy costs;`,
+    `-- add only approved gameplay-specific metrics with an explicit migration policy.`,
+    '',
+  ].join('\n');
+  const statsHeader = header.replace(
+    `-- constraints. ${gameId} needs no new tables yet (game-owned tables are\n-- a TODO below, to be filled in with the gameplay design).`,
+    `-- constraints and the game-owned cumulative completed-games table.`,
+  );
+  return `${statsHeader}${body}${stats}`;
 }

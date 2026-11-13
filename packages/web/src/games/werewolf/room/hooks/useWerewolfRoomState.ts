@@ -44,7 +44,6 @@ import {
 } from '@/features/room/controllers/useRoomAudioResume';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
-import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
 import { useScopedDraft } from '@/features/room/hooks/useScopedDraft';
@@ -53,8 +52,6 @@ import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
-import { getRoomOccupantUserId } from '@/features/room/model/RoomOccupant';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -62,6 +59,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { getBoardRolePortraits } from '@/games/werewolf/assets/roleAvatars';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type {
@@ -189,15 +187,6 @@ function buildCurseInfo(state: GameState): string | null {
   return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;
 }
 
-/** The profile card's 阵营分布 section: humans only, bots have no statistics. */
-function getProfileGameDetails(
-  selection: RoomProfileSelection | null,
-): RoomProfileCardModel['gameDetails'] {
-  if (selection === null) return null;
-  const statsUserId = getRoomOccupantUserId(selection.target.occupant);
-  return statsUserId === null ? null : { title: '阵营分布', statsUserId };
-}
-
 export function useWerewolfRoomState(
   props: GameRoomScreenProps<'werewolf'> & {
     readonly session: WerewolfRoomSession;
@@ -260,6 +249,7 @@ export function useWerewolfRoomState(
     user,
     mySeat,
   });
+  const gameDetails = useGameProfileDetails(profile.selection, '狼人杀战绩', '本游戏局数');
   const capabilities = createWerewolfRoomCapabilities({
     status,
     isHost,
@@ -450,7 +440,7 @@ export function useWerewolfRoomState(
       capabilities,
       onClose: profile.close,
       onLeaveSeat: profile.leaveSelf,
-      gameDetails: getProfileGameDetails(profile.selection),
+      gameDetails,
     }),
     share,
     onSeatPress,

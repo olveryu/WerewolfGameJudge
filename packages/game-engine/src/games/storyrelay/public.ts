@@ -10,6 +10,14 @@ export type {
 export { STORY_RELAY_REASONS, type StoryRelayEffect } from './domain/decision';
 export { getStoryRelayTaskForSeat } from './domain/relay';
 export { decideStoryRelayCommand, getStoryRelayLifecycle, storyRelayEngine } from './engine';
+export {
+  parseStoryRelayPublicStats,
+  type StoryRelayCompletionPayload,
+  storyRelayCompletionPayloadSchema,
+  type StoryRelayCompletionStatsFact,
+  type StoryRelayPublicStats,
+  storyRelayPublicStatsSchema,
+} from './publicStats';
 export { STORY_RELAY_STATE_CODEC } from './state/codec';
 export {
   migratePersistedStoryRelayState,

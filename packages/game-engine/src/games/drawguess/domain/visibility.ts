@@ -3,7 +3,12 @@
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView, getSeatDisplayName } from '../../../platform/room/seatIdentity';
 import { isBotOccupant, isBotSeat } from '../../../platform/room/seating';
-import type { DrawGuessPhaseKind, DrawGuessState, DrawGuessTurnRecord } from '../state/types';
+import type {
+  DrawGuessPhaseKind,
+  DrawGuessReaction,
+  DrawGuessState,
+  DrawGuessTurnRecord,
+} from '../state/types';
 import { buildHintText, computeRevealedCount } from './rules';
 
 export interface DrawGuessSeatView {
@@ -46,6 +51,8 @@ export interface DrawGuessViewModel {
   readonly scores: Readonly<Record<number, number>>;
   /** 本局已结束回合：内容在各自 roundEnd 已对全员公开，对所有观看者原样投影。 */
   readonly turnHistory: readonly DrawGuessTurnRecord[];
+  /** Current-turn seat→reaction mapping, visible to all; history carries frozen copies. */
+  readonly reactionsBySeat: Readonly<Record<number, DrawGuessReaction>>;
 }
 
 function buildSeatViews(state: DrawGuessState, drawerSeat: number | null): DrawGuessSeatView[] {
@@ -149,5 +156,7 @@ export function getDrawGuessViewModel(
     deadlineAt,
     scores: state.scores,
     turnHistory: state.turnHistory,
+    reactionsBySeat:
+      phase.kind === 'drawing' || phase.kind === 'roundEnd' ? phase.reactionsBySeat : {},
   };
 }

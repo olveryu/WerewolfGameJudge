@@ -1,7 +1,7 @@
 /** Authoritative DrawGuess engine; delegates persistence and delivery to the platform. */
 
 import {
-  buildGameCompletionPayload,
+  buildGameCompletionPayloadV2,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -42,14 +42,18 @@ import {
   isValidGuessText,
 } from './domain/rules';
 import { decideDrawGuessRoom } from './domain/seating';
+import type { DrawGuessCompletionStatsFact } from './publicStats';
 import { normalizeDrawGuessState } from './state/normalize';
 import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
   DRAWGUESS_GAME_TYPE,
   DRAWGUESS_MAX_STROKES_PER_TURN,
+  DRAWGUESS_MIN_PLAYERS,
+  DRAWGUESS_REACTIONS,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessConfig,
+  type DrawGuessReaction,
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessWordChoice,
@@ -83,15 +87,83 @@ function dealEffect(turnIndex: number): DrawGuessEffect {
   return { type: 'drawguess.words.deal', payload: { turnIndex } };
 }
 
-/** 对局结束时发结算 effect，Worker 据此发 XP/抽卡奖励。 */
-function completionEffect(state: DrawGuessState, context: CommandContext): DrawGuessEffect {
+/** Builds completed-game facts from the state after the terminal event is applied. */
+function completionEffect(
+  state: DrawGuessState,
+  terminalEvent: Extract<DrawGuessEvent, { readonly type: 'drawguess.game.ended' }>,
+  context: CommandContext,
+): DrawGuessEffect | null {
+  const completedState = evolveDrawGuessState(state, terminalEvent);
+  if (completedState.phase.kind !== 'ended') {
+    throw new Error('DrawGuess completion requires an ended state');
+  }
+  const totalScores = completedState.phase.totalScores;
+  const humans = Object.values(
+    getHumanSeatMap(completedState.roster, completedState.config.numberOfPlayers),
+  );
+  const stats: DrawGuessCompletionStatsFact[] = humans.map((human) => {
+    let guessAttempts = 0;
+    let guessRounds = 0;
+    let guessedRounds = 0;
+    let guessTimeMs = 0;
+    let guessTimedRounds = 0;
+    let drawingRounds = 0;
+    let guessedDrawingRounds = 0;
+    let flowersReceived = 0;
+    let eggsReceived = 0;
+    let tomatoesReceived = 0;
+    for (const turn of completedState.turnHistory) {
+      if (turn.drawerSeat === human.seat) {
+        drawingRounds += 1;
+        if (turn.guessedSeats.length > 0) guessedDrawingRounds += 1;
+        for (const reaction of Object.values(turn.reactionsBySeat)) {
+          if (reaction === 'flower') flowersReceived += 1;
+          else if (reaction === 'egg') eggsReceived += 1;
+          else tomatoesReceived += 1;
+        }
+        continue;
+      }
+      guessRounds += 1;
+      if (turn.guessedSeats.includes(human.seat)) guessedRounds += 1;
+      const attempts = turn.guessAttemptsBySeat?.[human.seat];
+      if (attempts !== undefined) guessAttempts += attempts;
+      const elapsedMs = turn.guessTimeMsBySeat?.[human.seat];
+      if (elapsedMs !== undefined) {
+        guessTimeMs += elapsedMs;
+        guessTimedRounds += 1;
+      }
+    }
+    const totalScore = totalScores[human.seat];
+    if (totalScore === undefined) {
+      throw new Error(`Missing final score for seat ${human.seat}`);
+    }
+    return {
+      userId: human.userId,
+      gamesPlayed: 1,
+      guessAttempts,
+      guessRounds,
+      guessedRounds,
+      guessTimeMs,
+      guessTimedRounds,
+      drawingRounds,
+      guessedDrawingRounds,
+      totalScore,
+      flowersReceived,
+      eggsReceived,
+      tomatoesReceived,
+    };
+  });
+  const payload = buildGameCompletionPayloadV2({
+    roundId: `drawguess:game:${completedState.gameSequence}`,
+    completedAt: context.nowMs,
+    humans,
+    minimumHumanPlayers: DRAWGUESS_MIN_PLAYERS,
+    stats,
+  });
+  if (payload === null) return null;
   return {
     type: 'drawguess.game.completed',
-    payload: buildGameCompletionPayload({
-      roundId: `drawguess:game:${state.gameSequence}`,
-      completedAt: context.nowMs,
-      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-    }),
+    payload,
   };
 }
 
@@ -394,6 +466,41 @@ function submitGuess(
   );
 }
 
+function sendReaction(
+  state: DrawGuessState,
+  reaction: DrawGuessReaction,
+  phaseRevision: number,
+  turnIndex: number,
+  context: CommandContext,
+): DrawGuessDecision {
+  const stale = checkRevision(state, phaseRevision, turnIndex);
+  if (stale !== null) return stale;
+  if (state.phase.kind !== 'drawing' && state.phase.kind !== 'roundEnd')
+    return reject(DRAWGUESS_REASONS.phase);
+  if (!DRAWGUESS_REACTIONS.some((candidate) => candidate === reaction))
+    return reject(DRAWGUESS_REASONS.reaction);
+  const expired = rejectIfPastDeadline<DrawGuessEvent, DrawGuessEffect>(
+    state.phase.deadlineAt,
+    context.nowMs,
+    DRAWGUESS_REASONS.expired,
+  );
+  if (expired !== null) return expired;
+  const actingSeat = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (actingSeat.kind === 'rejected') return reject(actingSeat.reason);
+  if (actingSeat.value === state.phase.drawerSeat) return reject(DRAWGUESS_REASONS.reactionSelf);
+  if (Object.prototype.hasOwnProperty.call(state.phase.reactionsBySeat, actingSeat.value)) {
+    return reject(DRAWGUESS_REASONS.reactionAlreadySent);
+  }
+  return commitDrawGuess([
+    {
+      type: 'drawguess.reaction.sent',
+      turnIndex,
+      seat: actingSeat.value,
+      reaction,
+    },
+  ]);
+}
+
 function reserveDrawing(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   if (state.phase.kind !== 'roundEnd') return reject(DRAWGUESS_REASONS.phase);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
@@ -483,10 +590,15 @@ function dispatchExpiredPhase(state: DrawGuessState, context: CommandContext): D
     case 'roundEnd': {
       const nextTurn = state.turnIndex + 1;
       if (nextTurn >= getDrawGuessTotalTurns(state)) {
-        return commitDrawGuess(
-          [{ type: 'drawguess.game.ended', totalScores: { ...state.scores } }],
-          [completionEffect(state, context)],
-        );
+        const event: Extract<DrawGuessEvent, { readonly type: 'drawguess.game.ended' }> = {
+          type: 'drawguess.game.ended',
+          // Running scores are sparse: a seat that never earned points has zero.
+          totalScores: Object.fromEntries(
+            state.drawerQueue.map((seat) => [seat, state.scores[seat] ?? 0]),
+          ),
+        };
+        const effect = completionEffect(state, event, context);
+        return commitDrawGuess([event], effect === null ? [] : [effect]);
       }
       const drawerSeat = state.drawerQueue[nextTurn % state.drawerQueue.length];
       if (drawerSeat === undefined) return reject(DRAWGUESS_REASONS.phase);
@@ -564,6 +676,14 @@ function decidePublicCommand(
       return clearStrokes(state, command.phaseRevision, command.turnIndex, context);
     case 'drawguess.guess.submit':
       return submitGuess(state, command.text, command.phaseRevision, command.turnIndex, context);
+    case 'drawguess.reaction.send':
+      return sendReaction(
+        state,
+        command.reaction,
+        command.phaseRevision,
+        command.turnIndex,
+        context,
+      );
     case 'drawguess.drawing.reserve':
       return reserveDrawing(state, context);
     case 'drawguess.game.abort':

@@ -3,6 +3,7 @@
 import {
   STORY_RELAY_CONFIG_SCHEMA,
   STORY_RELAY_TEXT_MAX_LENGTH,
+  storyRelayCompletionPayloadSchema,
   type StoryRelayConfig,
   type StoryRelayEffect,
   type StoryRelayInternalCommand,
@@ -73,7 +74,7 @@ export const storyRelayInternalCommandSchema: z.ZodType<StoryRelayInternalComman
 
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('storyrelay.game.completed'),
-  payload: gameCompletionPayloadSchema,
+  payload: z.union([gameCompletionPayloadSchema, storyRelayCompletionPayloadSchema]),
 });
 
 const settleDueEffectSchema = z.strictObject({

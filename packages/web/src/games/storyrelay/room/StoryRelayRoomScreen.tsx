@@ -10,6 +10,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { StoryRelayStatsPanel } from '@/games/storyrelay/components/StoryRelayStatsPanel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import { StoryRelayStage } from './components/StoryRelayStage';
@@ -81,6 +82,9 @@ function StoryRelayRoomContent(
       }
       leadingExtraActions={null}
       trailingExtraActions={null}
+      profileDetailsRenderer={(userId, onGamesPlayedChange) => (
+        <StoryRelayStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
+      )}
       gameOverlays={screen.reviewOverlay}
     />
   );

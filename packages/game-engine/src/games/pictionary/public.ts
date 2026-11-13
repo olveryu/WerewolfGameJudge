@@ -32,6 +32,14 @@ export {
   type PictionaryEngine,
   pictionaryEngine,
 } from './engine';
+export {
+  parsePictionaryPublicStats,
+  type PictionaryCompletionPayload,
+  pictionaryCompletionPayloadSchema,
+  type PictionaryCompletionStatsFact,
+  type PictionaryPublicStats,
+  pictionaryPublicStatsSchema,
+} from './publicStats';
 export { PICTIONARY_STATE_CODEC } from './state/codec';
 export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {

@@ -1,14 +1,12 @@
 /** Immutable completion roster emitted when all relay work enters the gallery. */
 
 import type { GameEffect } from '../../../platform/engine';
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
+import type { PictionaryCompletionPayload } from '../publicStats';
 
 export interface PictionaryGameCompletedEffect extends GameEffect {
   readonly type: 'pictionary.game.completed';
-  readonly payload: {
-    readonly roundId: string;
-    readonly completedAt: number;
-    readonly participantUserIds: readonly string[];
-  };
+  readonly payload: GameCompletionPayload | PictionaryCompletionPayload;
 }
 
 /**
