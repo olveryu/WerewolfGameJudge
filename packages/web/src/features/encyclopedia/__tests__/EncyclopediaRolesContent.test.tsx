@@ -105,14 +105,15 @@ describe('EncyclopediaRolesContent', () => {
 
     fireEvent.click(screen.getByTestId(TESTIDS.encyclopediaFactionTab('dark')));
     fireEvent.click(screen.getByRole('button', { name: '搜索' }));
-    fireEvent.change(screen.getByPlaceholderText('搜索角色名/技能'), { target: { value: '骑' } });
+    const search = screen.getByRole('searchbox', { name: '搜索角色名/技能' });
+    fireEvent.change(search, { target: { value: '骑' } });
     expect(visibleRoleIds()).toEqual(['knight']);
 
-    fireEvent.change(screen.getByPlaceholderText('搜索角色名/技能'), { target: { value: '无' } });
+    fireEvent.change(search, { target: { value: '无' } });
     expect(screen.getByText('没有找到匹配的角色')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: '搜索' }));
-    expect(screen.queryByPlaceholderText('搜索角色名/技能')).toBeNull();
+    expect(screen.queryByRole('searchbox', { name: '搜索角色名/技能' })).toBeNull();
     expect(visibleRoleIds()).toEqual(['shade']);
   });
 

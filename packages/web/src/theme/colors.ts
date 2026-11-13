@@ -19,14 +19,16 @@ export const colors = {
 
   text: '#1A1A2E',
   textSecondary: '#5C5C70',
-  textMuted: '#8E8EA0',
+  textMuted: '#666678',
   textInverse: '#FFFFFF',
 
   border: '#D1D1D6',
   borderLight: '#E5E5EA',
 
   success: '#1A9A4A',
+  successBadge: '#16723D',
   warning: '#B87D08',
+  warningBadge: '#8A5D00',
   error: '#D13438',
   info: '#2563EB',
 
@@ -36,6 +38,7 @@ export const colors = {
   third: '#B87D08',
 
   overlay: 'rgba(26, 26, 46, 0.6)',
+  overlayMedium: 'rgba(26, 26, 46, 0.3)',
   overlayLight: 'rgba(26, 26, 46, 0.25)',
 } as const;
 

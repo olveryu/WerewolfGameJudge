@@ -1,5 +1,5 @@
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
@@ -17,8 +17,15 @@ interface JoinRoomDialogProps {
 
 /** Room-code entry: four digit boxes over a numeric keypad. */
 export function JoinRoomDialog({ open, onClose, onJoin }: JoinRoomDialogProps) {
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const updateRoomCode = (value: string) => {
+    setRoomCode(value);
+    setError(null);
+  };
 
   const close = () => {
     setRoomCode('');
@@ -44,27 +51,57 @@ export function JoinRoomDialog({ open, onClose, onJoin }: JoinRoomDialogProps) {
       subtitle="输入4位房间号码"
       testId={TESTIDS.joinRoomDialog}
     >
-      <div className="join-code" aria-label={`房间号 ${roomCode}`}>
-        {DIGIT_SLOTS.map((slot) => (
-          <span key={slot} className="join-code-digit">
-            {roomCode[slot] ?? ''}
-          </span>
-        ))}
-      </div>
-      {error && (
-        <p className="join-error" data-testid={TESTIDS.joinRoomError}>
-          {error}
-        </p>
-      )}
-      <NumPad value={roomCode} onValueChange={setRoomCode} maxLength={ROOM_CODE_LENGTH} />
-      <div className="center-dialog-actions">
-        <Button variant="secondary" onClick={close} data-testid={TESTIDS.joinRoomCancelButton}>
-          取消
-        </Button>
-        <Button onClick={join} data-testid={TESTIDS.joinRoomSubmitButton}>
-          加入
-        </Button>
-      </div>
+      <form
+        className="join-room-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          join();
+        }}
+      >
+        <div className="join-code">
+          <div className="join-code-display" aria-hidden="true">
+            {DIGIT_SLOTS.map((slot) => (
+              <span key={slot} className="join-code-digit">
+                {roomCode[slot] ?? ''}
+              </span>
+            ))}
+          </div>
+          <input
+            id={inputId}
+            className="join-code-input"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={ROOM_CODE_LENGTH}
+            aria-label="房间号（4位数字）"
+            aria-invalid={error !== null}
+            aria-describedby={error !== null ? errorId : undefined}
+            value={roomCode}
+            onChange={(event) =>
+              updateRoomCode(event.target.value.replace(/\D/g, '').slice(0, ROOM_CODE_LENGTH))
+            }
+          />
+        </div>
+        {error !== null && (
+          <p id={errorId} className="join-error" role="alert" data-testid={TESTIDS.joinRoomError}>
+            {error}
+          </p>
+        )}
+        <NumPad value={roomCode} onValueChange={updateRoomCode} maxLength={ROOM_CODE_LENGTH} />
+        <div className="center-dialog-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={close}
+            data-testid={TESTIDS.joinRoomCancelButton}
+          >
+            取消
+          </Button>
+          <Button type="submit" data-testid={TESTIDS.joinRoomSubmitButton}>
+            加入
+          </Button>
+        </div>
+      </form>
     </CenterDialog>
   );
 }

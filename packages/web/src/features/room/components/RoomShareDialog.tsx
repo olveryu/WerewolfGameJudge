@@ -79,6 +79,7 @@ function ShareCard({ model }: { readonly model: RoomShareModel }) {
               alt=""
               crossOrigin="anonymous"
               onLoad={() => setIsLogoLoaded(true)}
+              onError={() => setIsLogoLoaded(true)}
             />
           </QrCode.Overlay>
         </QrCode.Root>

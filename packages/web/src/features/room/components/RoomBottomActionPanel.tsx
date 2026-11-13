@@ -4,7 +4,7 @@
  */
 import './RoomBottomActionPanel.css';
 
-import { type CSSProperties, Fragment, memo } from 'react';
+import { type CSSProperties, Fragment, memo, useId } from 'react';
 
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
@@ -45,17 +45,25 @@ function visibleDisabledReason(reason: string | null, hideAudioLockReason: boole
 /** Progress of the active step sequence: "第n步 / 共m步", an optional label, and a bar. */
 function RoomProgressIndicator({ progress }: { readonly progress: NightStepProgress }) {
   const percent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+  const stepLabelId = useId();
+  const progressLabelId = useId();
+  const labelledBy = progress.label === '' ? stepLabelId : `${stepLabelId} ${progressLabelId}`;
   return (
     <div className="room-progress" data-testid={TESTIDS.roomProgressIndicator}>
       <div className="room-progress-header">
-        <span className="room-progress-step">
+        <span id={stepLabelId} className="room-progress-step">
           第{progress.current}步 / 共{progress.total}步
         </span>
-        {progress.label !== '' && <span className="room-progress-label">{progress.label}</span>}
+        {progress.label !== '' && (
+          <span id={progressLabelId} className="room-progress-label">
+            {progress.label}
+          </span>
+        )}
       </div>
       <div
         className="room-progress-track"
         role="progressbar"
+        aria-labelledby={labelledBy}
         aria-valuemin={0}
         aria-valuemax={progress.total}
         aria-valuenow={progress.current}

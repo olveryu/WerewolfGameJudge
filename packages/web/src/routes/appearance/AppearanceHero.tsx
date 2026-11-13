@@ -112,7 +112,6 @@ export function EffectHeroPreview({
         <div className="appearance-hero-actions">
           <Button
             variant="secondary"
-            size="sm"
             aria-disabled={!canPreview}
             onClick={canPreview ? state.handlePreviewEffect : state.handlePreviewEffectUnavailable}
           >
@@ -120,7 +119,6 @@ export function EffectHeroPreview({
           </Button>
           <Button
             variant={state.heroEffectIsEquipped ? 'secondary' : 'primary'}
-            size="sm"
             loading={saving}
             aria-disabled={!canEquip}
             onClick={canEquip ? onEquip : onEquipUnavailable}

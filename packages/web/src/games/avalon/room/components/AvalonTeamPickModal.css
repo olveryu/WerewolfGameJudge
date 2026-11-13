@@ -48,6 +48,7 @@
   align-items: center;
   gap: var(--space-small);
   width: 100%;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-small) 0;
   border: none;
   border-bottom: var(--border-width) solid var(--color-border);

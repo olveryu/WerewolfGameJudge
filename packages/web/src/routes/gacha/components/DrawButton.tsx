@@ -33,7 +33,6 @@ export function DrawButton({
       className="draw-button"
       data-golden={golden}
       disabled={disabled}
-      aria-label={label}
       onClick={onPress}
     >
       {showShimmer && <span className="draw-button-shimmer" data-testid="draw-button-shimmer" />}

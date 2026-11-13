@@ -20,6 +20,11 @@
 
 .boards-guide-active-filter-clear {
   display: inline-flex;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   padding: 0;
   border: none;
   background: none;

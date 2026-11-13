@@ -51,6 +51,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-micro);
+  min-height: var(--size-min-touch-target);
   padding: var(--space-small);
   border: 0;
   border-bottom: var(--border-width-thick) solid transparent;

@@ -7,3 +7,18 @@ export function dismissBootSplash(): void {
   });
   splash.classList.add('boot-splash-leaving');
 }
+
+/** Dismisses after a paint when possible, with a timer fallback if animation frames are paused. */
+export function scheduleBootSplashDismiss(): void {
+  let dismissed = false;
+  let fallbackTimer = 0;
+  const dismissOnce = (): void => {
+    if (dismissed) return;
+    dismissed = true;
+    window.clearTimeout(fallbackTimer);
+    dismissBootSplash();
+  };
+
+  fallbackTimer = window.setTimeout(dismissOnce, 1000);
+  window.requestAnimationFrame(dismissOnce);
+}

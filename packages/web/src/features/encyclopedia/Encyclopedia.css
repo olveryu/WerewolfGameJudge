@@ -102,7 +102,11 @@
 }
 
 .encyclopedia-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-small) 0;
   border: none;
   border-radius: var(--radius-small);
@@ -155,6 +159,11 @@
   color: var(--color-text-muted);
 }
 
+.encyclopedia-search:focus-within {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
+}
+
 .encyclopedia-search-input {
   flex: 1;
   min-width: 0;
@@ -177,7 +186,11 @@
 }
 
 .encyclopedia-filter-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-small) 0;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
@@ -207,6 +220,7 @@
 
 .encyclopedia-option {
   display: flex;
+  min-height: var(--size-min-touch-target);
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-small);

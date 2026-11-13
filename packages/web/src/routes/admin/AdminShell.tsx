@@ -121,6 +121,9 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   }
   return (
     <div className="admin-workspace">
+      <a className="admin-skip-link" href="#admin-main">
+        跳到主内容
+      </a>
       <div className="admin-workspace-header">
         <ScreenHeader title="管理后台" onBack={onBack}>
           <button
@@ -135,7 +138,7 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
         </ScreenHeader>
         <AdminNavigation monitoringSearch={monitoring ? location.search : monitoringSearch} />
       </div>
-      <main className="admin-main">
+      <main id="admin-main" className="admin-main" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

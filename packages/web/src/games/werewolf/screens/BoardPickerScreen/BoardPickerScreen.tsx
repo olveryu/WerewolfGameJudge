@@ -89,6 +89,7 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
           <input
             type="search"
             className="board-picker-search-input"
+            aria-label="搜索模板或角色"
             placeholder="搜索模板或角色"
             value={state.searchQuery}
             onChange={(event) => state.setSearchQuery(event.currentTarget.value)}
@@ -203,11 +204,11 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
         <p className="board-picker-filter-hint">部分角色不在预设板子中，可通过“自定义配置”添加</p>
         <div className="board-picker-filter-footer">
           {filterCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={state.handleClearFilter}>
+            <Button variant="ghost" onClick={state.handleClearFilter}>
               清除筛选
             </Button>
           )}
-          <Button variant="primary" size="sm" onClick={state.toggleFilter}>
+          <Button variant="primary" onClick={state.toggleFilter}>
             确认
           </Button>
         </div>

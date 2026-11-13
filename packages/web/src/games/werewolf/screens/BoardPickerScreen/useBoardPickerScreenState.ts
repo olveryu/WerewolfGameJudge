@@ -74,7 +74,7 @@ export function useBoardPickerScreenState() {
     allSections.map((section) => [section.category, section.data.length]),
   );
   const sections =
-    activeCategory === null
+    activeCategory === null || searchVisible
       ? allSections
       : allSections.filter((section) => section.category === activeCategory);
 

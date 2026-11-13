@@ -5,6 +5,18 @@
   gap: var(--space-small);
 }
 
+.login-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-micro);
+}
+
+.login-form-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
 .login-strip {
   display: flex;
   flex-direction: column;
@@ -54,6 +66,9 @@
 }
 
 .login-strip-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) 0;
   border: 0;
   background: none;

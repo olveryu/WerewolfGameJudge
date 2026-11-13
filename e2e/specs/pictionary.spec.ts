@@ -290,6 +290,22 @@ test.describe('Pictionary', () => {
             failedUploads += 1;
             await route.abort('failed');
           });
+          const settleRetryButton = hostPage.getByTestId(TESTIDS.stageSettleRescueRetryButton);
+          await expect
+            .poll(
+              async () => {
+                const isCollecting = (
+                  await hostPage.getByTestId(TESTIDS.pictionaryTaskTitle).allTextContents()
+                ).includes('正在收取最终内容');
+                return isCollecting || (await settleRetryButton.isVisible());
+              },
+              { timeout: 120_000, intervals: [300] },
+            )
+            .toBe(true);
+          if (await settleRetryButton.isVisible()) {
+            await expect(settleRetryButton).toHaveAccessibleName('重新推进');
+            await settleRetryButton.click();
+          }
           await expect(unfinishedPage.getByTestId(TESTIDS.pictionaryTaskDescription)).toHaveText(
             '发送暂未成功，正在自动重试。',
             { timeout: 120_000 },

@@ -183,6 +183,7 @@ export const AVALON_CONFIG_SCHEMA: GameConfigSchema<AvalonConfig> = {
     vetoLimit: {
       kind: 'count',
       label: '否决上限',
+      unit: '次',
       hint: '单轮连续否决达到上限，坏人直接获胜（官方规则为 5）。',
       min: AVALON_VETO_LIMIT_MIN,
       max: AVALON_VETO_LIMIT_MAX,
