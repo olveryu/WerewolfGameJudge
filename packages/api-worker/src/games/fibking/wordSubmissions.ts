@@ -17,11 +17,6 @@ import { createGeminiFibWordProvider, GEMINI_FIB_WORD_MODEL } from './wordProvid
 import { FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import { extractFibWordEvidence, searchFibWordEvidence } from './wordProviders/tavily';
 import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_BATCH_LIMIT } from './wordProviders/types';
-import {
-  FIB_WORD_MONTHLY_BATCH_LIMIT,
-  FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
-  FIB_WORD_TAVILY_REQUEST_LIMIT,
-} from './wordPublication';
 import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
 
 const toSimplified = Converter({ from: 't', to: 'cn' });
@@ -51,9 +46,6 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
   model: GEMINI_FIB_WORD_MODEL,
   reviewVersion: FIB_WORD_REVIEW_VERSION,
   reviewBatchLimit: FIB_WORD_REVIEW_BATCH_LIMIT,
-  evidenceMonthlyLimit:
-    FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS -
-    FIB_WORD_MONTHLY_BATCH_LIMIT * FIB_WORD_TAVILY_REQUEST_LIMIT,
   inventoryExistsSql: 'EXISTS (SELECT 1 FROM fib_words WHERE word = item.identity)',
   async normalize(value) {
     const { references, ...input } = inputSchema.parse(value);

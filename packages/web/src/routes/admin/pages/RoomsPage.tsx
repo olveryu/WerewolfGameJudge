@@ -16,15 +16,14 @@ import {
   DateLabel,
   PageHeading,
   Panel,
-  StatusBadge,
   type TableColumn,
 } from '../components/Primitives';
 
 const STATUS = {
-  active: { label: '活跃', tone: 'success' },
-  creating: { label: '创建中', tone: 'warning' },
-  deleting: { label: '删除中', tone: 'warning' },
-  failed: { label: '恢复失败', tone: 'danger' },
+  active: '活跃',
+  creating: '创建中',
+  deleting: '删除中',
+  failed: '恢复失败',
 } as const;
 
 /** Room status priority applies only within the returned page. */
@@ -53,25 +52,10 @@ export function RoomsPage() {
       key: 'code',
       label: '房间',
       render: (room) => (
-        <button
-          type="button"
-          className="admin-mono admin-text-button"
-          aria-expanded={expanded === room.code}
-          aria-controls={expanded === room.code ? `admin-room-detail-${room.code}` : undefined}
-          onClick={() => toggleRoom(room)}
-        >
-          #{room.code}
-        </button>
+        <RoomCodeButton room={room} expanded={expanded === room.code} onToggle={toggleRoom} />
       ),
     },
     { key: 'game', label: '游戏', render: (room) => gameDisplayName(room.gameType) },
-    {
-      key: 'status',
-      label: '状态',
-      render: (room) => (
-        <StatusBadge tone={STATUS[room.status].tone}>{STATUS[room.status].label}</StatusBadge>
-      ),
-    },
     { key: 'count', label: '人数', numeric: true, render: (room) => room.participantCount },
     {
       key: 'host',
@@ -181,6 +165,35 @@ export function RoomsPage() {
         )}
       </div>
     </>
+  );
+}
+
+function RoomCodeButton({
+  room,
+  expanded,
+  onToggle,
+}: {
+  room: AdminRoom;
+  expanded: boolean;
+  onToggle: (room: AdminRoom) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="admin-mono admin-text-button admin-room-code"
+      aria-label={`#${room.code}`}
+      aria-describedby={`admin-room-status-${room.id}`}
+      title={STATUS[room.status]}
+      aria-expanded={expanded}
+      aria-controls={expanded ? `admin-room-detail-${room.code}` : undefined}
+      onClick={() => onToggle(room)}
+    >
+      <span className="admin-room-status-dot" data-status={room.status} aria-hidden="true" />
+      <span>#{room.code}</span>
+      <span id={`admin-room-status-${room.id}`} className="admin-sr-only">
+        {STATUS[room.status]}
+      </span>
+    </button>
   );
 }
 

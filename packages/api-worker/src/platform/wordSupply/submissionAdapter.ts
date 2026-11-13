@@ -37,7 +37,6 @@ export interface WordSubmissionAdapter {
   readonly model: string;
   readonly reviewVersion: string;
   readonly reviewBatchLimit: number;
-  readonly evidenceMonthlyLimit?: number;
   readonly normalize: (value: unknown) => Promise<SubmissionMaterial>;
   readonly inventoryExistsSql: string;
   readonly prepareReview?: (

@@ -47,18 +47,17 @@ async function loadJob(db: D1Database, actionId: string) {
   return { game: action.game, batchId: action.batch_id, items: rows.results };
 }
 
-async function claimEvidenceRequest(db: D1Database, id: string, limit: number) {
+async function claimEvidenceRequest(db: D1Database, id: string) {
   const now = new Date().toISOString();
   const row = await db
     .prepare(
       `INSERT INTO word_submission_evidence_requests (id, claimed_at)
-    SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM word_submission_evidence_requests
-      WHERE claimed_at >= ? LIMIT 1 OFFSET ?)
+    VALUES (?, ?)
     ON CONFLICT (id) DO NOTHING RETURNING id`,
     )
-    .bind(id, now, `${now.slice(0, 7)}-01T00:00:00.000Z`, limit - 1)
+    .bind(id, now)
     .first();
-  if (row === null) throw new Error('SUBMISSION_EVIDENCE_BUDGET_EXHAUSTED_OR_REQUEST_CONSUMED');
+  if (row === null) throw new Error('SUBMISSION_EVIDENCE_REQUEST_CONSUMED');
 }
 
 function reviewGroups(items: Awaited<ReturnType<typeof loadJob>>['items'], limit: number) {
@@ -133,17 +132,10 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
           const serialized = await step.do(`prepare-${item.id}`, EXTERNAL_STEP, async () => {
             const content = parseSubmissionObject(item.material_json);
             if (adapter.prepareReview === undefined) return JSON.stringify(content);
-            const limit = adapter.evidenceMonthlyLimit;
-            if (limit === undefined)
-              throw new Error('Evidence preparation has no configured quota');
             return JSON.stringify(
               await adapter.prepareReview(this.env, content, async (operation) => {
                 stage = 'evidence-budget';
-                await claimEvidenceRequest(
-                  this.env.DB,
-                  `${actionId}:${item.id}:${operation}`,
-                  limit,
-                );
+                await claimEvidenceRequest(this.env.DB, `${actionId}:${item.id}:${operation}`);
                 stage = 'evidence';
               }),
             );
@@ -158,6 +150,8 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
             `submission:${actionId}:${index}`,
             job.game,
             adapter.model,
+            Date.now(),
+            { force: true },
           );
           stage = 'model-review';
           return JSON.stringify(await adapter.review(this.env, prepared, { workflowId: actionId }));

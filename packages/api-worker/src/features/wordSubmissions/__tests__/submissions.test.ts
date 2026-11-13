@@ -1,6 +1,8 @@
 /** Real D1, HTTP authorization, durable review, and atomic publication boundaries. */
 import {
   type WordSubmissionAction,
+  wordSubmissionActionSchema,
+  wordSubmissionAgentSchema,
   wordSubmissionAgentsSchema,
   wordSubmissionBatchSchema,
   type WordSubmissionInput,
@@ -17,8 +19,11 @@ import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
   authenticateSubmissionToken,
   createSubmissionAgent,
+  deleteSubmissionAgent,
+  listSubmissionAgents,
   rotateSubmissionCredential,
   setSubmissionAgentStatus,
+  updateSubmissionAgent,
 } from '../credentials';
 import { storeSubmission, validateSubmission } from '../ingestion';
 import { applySubmissionAction } from '../operations';
@@ -143,6 +148,173 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('External word submissions', () => {
+  it.each(['PATCH', 'DELETE'])(
+    'permits browser preflight for administrator authorization %s commands',
+    async (method) => {
+      const response = await SELF.fetch(
+        'https://test.invalid/admin/word-submissions/agents/20000000-0000-4000-8000-000000000001',
+        {
+          method: 'OPTIONS',
+          headers: {
+            Origin: 'https://werewolfgamejudge.pages.dev',
+            'Access-Control-Request-Method': method,
+            'Access-Control-Request-Headers': 'x-admin-token,content-type',
+          },
+        },
+      );
+      expect(response.status).toBe(204);
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Access-Control-Allow-Methods')?.split(',')).toContain(method);
+      expect(response.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
+        'x-admin-token',
+      );
+    },
+  );
+
+  it('edits authorization parameters on the existing key without resetting usage or expiry by default', async () => {
+    const issued = await agent();
+    await submit(issued.token);
+    await submit(issued.token, {
+      ...payload,
+      items: [{ clientItemId: 'giraffe', content: { ...candidate, word: '长颈鹿' } }],
+    });
+    const input = {
+      name: 'Muse updated',
+      description: '个人投稿',
+      games: ['undercover'],
+      dailyQuota: 2,
+      pendingQuota: 2,
+    };
+    const send = (body: unknown, authenticated = true) =>
+      SELF.fetch(`https://test.invalid/admin/word-submissions/agents/${issued.agent.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authenticated
+            ? { 'X-Admin-Token': env.ADMIN_PASSWORD }
+            : { Authorization: `Bearer ${issued.token}` }),
+        },
+        body: JSON.stringify(body),
+      });
+    expect((await send(input, false)).status).toBe(401);
+    expect((await send({ ...input, dailyQuota: 0 })).status).toBe(400);
+    expect((await send({ ...input, pendingQuota: 1 })).status).toBe(409);
+    const response = await send(input);
+    expect(response.status).toBe(200);
+    const updated = wordSubmissionAgentSchema.parse(await response.json());
+    expect(updated).toMatchObject({
+      ...input,
+      pending: 2,
+      submittedToday: 2,
+      credential: issued.agent.credential,
+    });
+    expect((await request('/v1/word-submissions', issued.token, payload)).status).toBe(403);
+    const before = Date.now();
+    const renewed = await send({ ...input, games: ['drawguess'], expiresInDays: 90 });
+    expect(renewed.status).toBe(200);
+    const renewedAgent = wordSubmissionAgentSchema.parse(await renewed.json());
+    expect(renewedAgent.credential?.id).toBe(issued.agent.credential?.id);
+    expect(Date.parse(renewedAgent.credential?.expiresAt ?? '')).toBeGreaterThanOrEqual(
+      before + 90 * 86_400_000,
+    );
+    expect((await request('/v1/word-submission-spec', issued.token)).status).toBe(200);
+    expect(
+      (
+        await request('/v1/word-submissions', issued.token, {
+          ...payload,
+          items: [{ clientItemId: 'bear', content: { ...candidate, word: '北极熊' } }],
+        })
+      ).status,
+    ).toBe(429);
+    const audit = await env.DB.prepare(
+      "SELECT action FROM word_submission_control_events WHERE action IN ('agent_updated', 'credential_expiry_changed') ORDER BY id",
+    ).all();
+    expect(audit.results.map((entry) => entry.action)).toEqual([
+      'agent_updated',
+      'agent_updated',
+      'credential_expiry_changed',
+    ]);
+    await setSubmissionAgentStatus(env.DB, issued.agent.id, 'revoked');
+    expect((await send(input)).status).toBe(409);
+  });
+
+  it('deletes only revoked authorizations from the list, retaining their submissions and audit history', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    const remove = (authenticated = true) =>
+      SELF.fetch(`https://test.invalid/admin/word-submissions/agents/${issued.agent.id}`, {
+        method: 'DELETE',
+        headers: authenticated
+          ? { 'X-Admin-Token': env.ADMIN_PASSWORD }
+          : { Authorization: `Bearer ${issued.token}` },
+      });
+    expect((await remove(false)).status).toBe(401);
+    expect((await remove()).status).toBe(409);
+    await setSubmissionAgentStatus(env.DB, issued.agent.id, 'revoked');
+    expect((await remove()).status).toBe(200);
+    expect((await remove()).status).toBe(200);
+    expect(await listSubmissionAgents(env.DB)).toEqual([]);
+    expect(await readSubmissionBatch(env.DB, batch.id)).toEqual(batch);
+    expect((await request('/v1/word-submission-spec', issued.token)).status).toBe(401);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM word_submission_control_events WHERE action = 'agent_deleted'",
+      ).first(),
+    ).toEqual({ count: 1 });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM word_submission_credentials').first(),
+    ).toEqual({ count: 1 });
+    expect((await agent()).agent.id).not.toBe(issued.agent.id);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([100, 10000])(
+    'keeps visible authorization queries and mutations bounded with %i deleted identities',
+    async (size) => {
+      await env.DB.prepare(
+        `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+      INSERT INTO word_submission_agents (id, name, description, games_json, status, daily_quota,
+        pending_quota, created_at, deleted_at)
+      SELECT printf('90000000-0000-4000-8000-%012d', i), 'archived', '', '["drawguess"]', 'revoked',
+        1, 1, '2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z' FROM n`,
+      )
+        .bind(size)
+        .run();
+      const issued = await agent();
+      const measured = createRowCountingDb(env.DB);
+      expect((await listSubmissionAgents(measured.db)).map((entry) => entry.id)).toEqual([
+        issued.agent.id,
+      ]);
+      expect(measured.counts.rowsRead).toBeLessThan(50);
+      measured.reset();
+      await createSubmissionAgent(measured.db, {
+        name: 'Second',
+        description: '',
+        games: ['drawguess'],
+        dailyQuota: 100,
+        pendingQuota: 100,
+        expiresInDays: 30,
+      });
+      expect(measured.counts.rowsRead).toBeLessThan(60);
+      expect(measured.counts.rowsWritten).toBeLessThan(20);
+      measured.reset();
+      await updateSubmissionAgent(measured.db, issued.agent.id, {
+        name: 'Edited',
+        description: '',
+        games: ['drawguess'],
+        dailyQuota: 100,
+        pendingQuota: 100,
+      });
+      expect(measured.counts.rowsRead).toBeLessThan(60);
+      expect(measured.counts.rowsWritten).toBeLessThan(20);
+      await setSubmissionAgentStatus(env.DB, issued.agent.id, 'revoked');
+      measured.reset();
+      await deleteSubmissionAgent(measured.db, issued.agent.id);
+      expect(measured.counts.rowsRead).toBeLessThan(30);
+      expect(measured.counts.rowsWritten).toBeLessThan(20);
+    },
+  );
+
   it('serves the empty submission workspace reads through the authenticated HTTP routes', async () => {
     const responses = await Promise.all(
       ['settings', 'batches', 'agents'].map((path) =>
@@ -566,7 +738,7 @@ describe('External word submissions', () => {
     { period: 'daily', count: 7, age: 0, limit: 8 },
     { period: 'monthly', count: 119, age: 2, limit: 120 },
   ])(
-    'stops at the exact shared $period model ceiling, including automatic supply claims',
+    'continues administrator review at the shared $period model ceiling',
     async ({ count, age, limit }) => {
       const issued = await agent();
       const batch = await submit(issued.token);
@@ -584,17 +756,93 @@ describe('External word submissions', () => {
       await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
       await instance.waitForStatus('complete');
       const reviewed = await readSubmissionBatch(env.DB, batch.id);
-      await expect(
-        applySubmissionAction(env, batch.id, action(reviewed, 'review')),
-      ).rejects.toThrow('EDITORIAL_MODEL_BUDGET_EXHAUSTED');
+      const nextId = crypto.randomUUID();
+      await using next = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, nextId);
+      await applySubmissionAction(env, batch.id, action(reviewed, 'review', '', nextId));
+      await next.waitForStatus('complete');
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
-      ).toEqual({ count: limit });
-      expect(fetch).toHaveBeenCalledOnce();
-      await applySubmissionAction(env, batch.id, action(reviewed, 'publish'));
+      ).toEqual({ count: limit + 1 });
+      expect(fetch).toHaveBeenCalledTimes(2);
+      await applySubmissionAction(
+        env,
+        batch.id,
+        action(await readSubmissionBatch(env.DB, batch.id), 'publish'),
+      );
       expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('published');
     },
   );
+
+  it.each([
+    { period: 'daily', count: 8, age: 0 },
+    { period: 'monthly', count: 120, age: 2 },
+  ])(
+    'reviews without a reason beyond the $period ceiling without bypassing its verdict or replaying HTTP',
+    async ({ count, age }) => {
+      const issued = await agent();
+      const batch = await submit(issued.token);
+      await env.DB.prepare(
+        `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+       INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+       SELECT 'automatic-' || i, 'fibking', 'test-model', ? FROM n`,
+      )
+        .bind(count, new Date(Date.now() - age * 86_400_000).toISOString())
+        .run();
+      const id = crypto.randomUUID();
+      const input = action(batch, 'review', '', id);
+      const url = `https://test.invalid/admin/word-submissions/batches/${batch.id}/actions`;
+      const send = (body: WordSubmissionAction, authenticated = true) =>
+        SELF.fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authenticated
+              ? { 'X-Admin-Token': env.ADMIN_PASSWORD }
+              : { Authorization: `Bearer ${issued.token}` }),
+          },
+          body: JSON.stringify(body),
+        });
+      expect((await send(input, false)).status).toBe(401);
+      modelReview(false);
+      await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+      expect((await send(input)).status).toBe(202);
+      await instance.waitForStatus('complete');
+      expect((await send(input)).status).toBe(202);
+      expect((await send({ ...input, reason: 'different payload' })).status).toBe(409);
+      const reviewed = await readSubmissionBatch(env.DB, batch.id);
+      expect(reviewed.items[0]).toMatchObject({ status: 'rejected', review: { passed: false } });
+      await expect(
+        applySubmissionAction(env, batch.id, action(reviewed, 'publish')),
+      ).rejects.toThrow();
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual(
+        { count: 0 },
+      );
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+      ).toEqual({ count: count + 1 });
+      expect(
+        await env.DB.prepare(
+          "SELECT action, reason FROM word_submission_events WHERE action_id = ? AND actor = 'shared-admin'",
+        )
+          .bind(id)
+          .all(),
+      ).toMatchObject({
+        results: [{ action: 'review', reason: '' }],
+      });
+      expect(fetch).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('rejects force on non-review commands instead of changing publication eligibility', () => {
+    const input = {
+      id: crypto.randomUUID(),
+      action: 'publish',
+      reason: '',
+      force: true,
+      items: [{ id: crypto.randomUUID(), contentHash: 'a'.repeat(64), revision: 0 }],
+    };
+    expect(wordSubmissionActionSchema.safeParse(input).success).toBe(false);
+  });
 
   it('reviews and publishes Undercover through its game-owned canonical identity and stable draw index', async () => {
     const issued = await agent();
@@ -673,123 +921,150 @@ describe('External word submissions', () => {
     ).toEqual({ ...inventory, status: 'disabled' });
   });
 
-  it('retrieves Fib evidence independently, ignores agent URLs, and publishes only after separate human confirmation', async () => {
-    const issued = await agent();
-    const definition = {
-      coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
-      usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
-    };
-    const batch = await submit(issued.token, {
-      schemaVersion: 1,
-      game: 'fibking',
-      items: [
-        {
-          clientItemId: 'lotus',
-          content: {
-            word: '菡萏',
-            category: 'literary',
-            topic: 'plants',
-            definition,
-            references: [{ url: 'http://127.0.0.1/private', note: 'untrusted' }],
-          },
-        },
-      ],
-    });
-    const url = 'https://dictionary.example/lotus';
-    const proof = `菡萏：${definition.coreMeaning}`;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
-        const target =
-          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-        if (target === 'https://api.tavily.com/search')
-          return Response.json({
-            results: [{ url, title: '独立词典', content: proof }],
-            usage: { credits: 1 },
-          });
-        if (target === 'https://api.tavily.com/extract') {
-          expect(typeof init?.body).toBe('string');
-          if (typeof init?.body !== 'string') throw new Error('Expected serialized Tavily request');
-          const extraction: unknown = JSON.parse(init.body);
-          expect(extraction).toMatchObject({ urls: [url] });
-          return Response.json({
-            results: [{ url, raw_content: proof }],
-            failed_results: [],
-            usage: { credits: 1 },
-          });
-        }
-        if (!target.startsWith('https://generativelanguage.googleapis.com/'))
-          throw new Error('Unapproved provider URL');
-        return Response.json({
-          choices: [
-            {
-              finish_reason: 'stop',
-              message: {
-                content: JSON.stringify({
-                  reviews: [
-                    {
-                      word: '菡萏',
-                      reason: '证据支持，释义准确且有揭晓价值。',
-                      qualityChecks: {
-                        isEstablishedTerm: true,
-                        isDefinitionAccurate: true,
-                        isMeaningUnfamiliarToMostPlayers: true,
-                        isMeaningDistinctFromLiteralReading: true,
-                        hasMultiplePlausibleWrongDefinitions: true,
-                        hasRevealValue: true,
-                      },
-                      evidenceIndex: 0,
-                      evidenceQuote: 'source0quote0',
-                    },
-                  ],
-                }),
-              },
+  it.each([false, true])(
+    'retrieves Fib evidence independently and publishes only after human confirmation (exhausted=%s)',
+    async (exhausted) => {
+      const issued = await agent();
+      const definition = {
+        coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
+        usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
+      };
+      const batch = await submit(issued.token, {
+        schemaVersion: 1,
+        game: 'fibking',
+        items: [
+          {
+            clientItemId: 'lotus',
+            content: {
+              word: '菡萏',
+              category: 'literary',
+              topic: 'plants',
+              definition,
+              references: [{ url: 'http://127.0.0.1/private', note: 'untrusted' }],
             },
-          ],
-        });
-      }),
-    );
-    const id = crypto.randomUUID();
-    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
-    await instance.waitForStatus('complete');
-    const reviewed = await readSubmissionBatch(env.DB, batch.id);
-    expect(reviewed.items[0]).toMatchObject({
-      status: 'passed',
-      review: { canOverride: true, passed: true },
-    });
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
-      count: 0,
-    });
-    expect(
-      await env.DB.prepare(
-        'SELECT COUNT(*) AS count FROM word_submission_evidence_requests',
-      ).first(),
-    ).toEqual({ count: 2 });
-    expect(fetch).toHaveBeenCalledTimes(3);
-    await applySubmissionAction(env, batch.id, action(reviewed, 'publish'));
-    expect(await env.DB.prepare('SELECT word, status FROM fib_words').first()).toEqual({
-      word: '菡萏',
-      status: 'active',
-    });
-    const sequence = await env.DB.prepare('SELECT * FROM fib_word_sequence WHERE word = ?')
-      .bind('菡萏')
-      .first();
-    expect(sequence).not.toBeNull();
-    await applySubmissionAction(
-      env,
-      batch.id,
-      action(await readSubmissionBatch(env.DB, batch.id), 'unpublish', '保留已见历史下架'),
-    );
-    expect(
-      await env.DB.prepare('SELECT * FROM fib_word_sequence WHERE word = ?').bind('菡萏').first(),
-    ).toEqual(sequence);
-    expect(
-      await env.DB.prepare('SELECT status FROM fib_words WHERE word = ?').bind('菡萏').first(),
-    ).toEqual({ status: 'disabled' });
-  });
+          },
+        ],
+      });
+      const url = 'https://dictionary.example/lotus';
+      const proof = `菡萏：${definition.coreMeaning}`;
+      if (exhausted) {
+        await env.DB.prepare(
+          `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 454)
+         INSERT INTO word_submission_evidence_requests (id, claimed_at)
+         SELECT 'previous-' || i, ? FROM n`,
+        )
+          .bind(new Date().toISOString())
+          .run();
+        await env.DB.prepare(
+          `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 120)
+         INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
+         SELECT 'previous-' || i, 'fibking', 'test-model', ? FROM n`,
+        )
+          .bind(new Date().toISOString())
+          .run();
+      }
+      vi.stubGlobal(
+        'fetch',
+        vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+          const target =
+            typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+          if (target === 'https://api.tavily.com/search')
+            return Response.json({
+              results: [{ url, title: '独立词典', content: proof }],
+              usage: { credits: 1 },
+            });
+          if (target === 'https://api.tavily.com/extract') {
+            expect(typeof init?.body).toBe('string');
+            if (typeof init?.body !== 'string')
+              throw new Error('Expected serialized Tavily request');
+            const extraction: unknown = JSON.parse(init.body);
+            expect(extraction).toMatchObject({ urls: [url] });
+            return Response.json({
+              results: [{ url, raw_content: proof }],
+              failed_results: [],
+              usage: { credits: 1 },
+            });
+          }
+          if (!target.startsWith('https://generativelanguage.googleapis.com/'))
+            throw new Error('Unapproved provider URL');
+          return Response.json({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: {
+                  content: JSON.stringify({
+                    reviews: [
+                      {
+                        word: '菡萏',
+                        reason: '证据支持，释义准确且有揭晓价值。',
+                        qualityChecks: {
+                          isEstablishedTerm: true,
+                          isDefinitionAccurate: true,
+                          isMeaningUnfamiliarToMostPlayers: true,
+                          isMeaningDistinctFromLiteralReading: true,
+                          hasMultiplePlausibleWrongDefinitions: true,
+                          hasRevealValue: true,
+                        },
+                        evidenceIndex: 0,
+                        evidenceQuote: 'source0quote0',
+                      },
+                    ],
+                  }),
+                },
+              },
+            ],
+          });
+        }),
+      );
+      const id = crypto.randomUUID();
+      await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+      const command = action(batch, 'review', '', id);
+      await applySubmissionAction(env, batch.id, command);
+      await instance.waitForStatus('complete');
+      const reviewed = await readSubmissionBatch(env.DB, batch.id);
+      expect(reviewed.items[0]).toMatchObject({
+        status: 'passed',
+        review: { canOverride: true, passed: true },
+      });
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
+        count: 0,
+      });
+      expect(
+        await env.DB.prepare(
+          'SELECT COUNT(*) AS count FROM word_submission_evidence_requests',
+        ).first(),
+      ).toEqual({ count: exhausted ? 456 : 2 });
+      if (exhausted) {
+        await applySubmissionAction(env, batch.id, command);
+        expect(
+          await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+        ).toEqual({ count: 121 });
+      }
+      expect(fetch).toHaveBeenCalledTimes(3);
+      await applySubmissionAction(env, batch.id, action(reviewed, 'publish'));
+      expect(await env.DB.prepare('SELECT word, status FROM fib_words').first()).toEqual({
+        word: '菡萏',
+        status: 'active',
+      });
+      const sequence = await env.DB.prepare('SELECT * FROM fib_word_sequence WHERE word = ?')
+        .bind('菡萏')
+        .first();
+      expect(sequence).not.toBeNull();
+      await applySubmissionAction(
+        env,
+        batch.id,
+        action(await readSubmissionBatch(env.DB, batch.id), 'unpublish', '保留已见历史下架'),
+      );
+      expect(
+        await env.DB.prepare('SELECT * FROM fib_word_sequence WHERE word = ?').bind('菡萏').first(),
+      ).toEqual(sequence);
+      expect(
+        await env.DB.prepare('SELECT status FROM fib_words WHERE word = ?').bind('菡萏').first(),
+      ).toEqual({ status: 'disabled' });
+    },
+  );
 
-  it('stops independent evidence at exactly 454 monthly claims without extraction or model retries', async () => {
+  it('continues evidence past its former ceiling but does not retry a provider failure', async () => {
     const issued = await agent();
     const batch = await submit(issued.token, {
       schemaVersion: 1,
@@ -821,6 +1096,7 @@ describe('External word submissions', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn<typeof fetch>().mockImplementation(async (input) => {
+        if (input === 'https://api.tavily.com/extract') throw new Error('Provider unavailable');
         expect(input).toBe('https://api.tavily.com/search');
         return Response.json({
           results: [
@@ -841,18 +1117,18 @@ describe('External word submissions', () => {
     const failed = await readSubmissionBatch(env.DB, batch.id);
     expect(failed.items[0]).toMatchObject({
       status: 'failed',
-      failure: 'evidence-budget:quota_claim_failed',
+      failure: 'evidence:infrastructure_failure',
       review: null,
     });
     expect(
       await env.DB.prepare(
         'SELECT COUNT(*) AS count FROM word_submission_evidence_requests',
       ).first(),
-    ).toEqual({ count: 454 });
+    ).toEqual({ count: 455 });
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 0 });
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
     await expect(
       applySubmissionAction(env, batch.id, action(failed, 'approve', '不能绕过证据要求')),
     ).rejects.toThrow();
@@ -948,7 +1224,9 @@ describe('External word submissions', () => {
     modelReview();
     const nextId = crypto.randomUUID();
     await using next = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, nextId);
-    await applySubmissionAction(env, batch.id, action(failed, 'review', '', nextId));
+    await applySubmissionAction(env, batch.id, {
+      ...action(failed, 'review', '', nextId),
+    });
     await next.waitForStatus('complete');
     expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('passed');
     expect(fetch).toHaveBeenCalledOnce();

@@ -25,7 +25,7 @@ import { FIB_WORD_TOPIC_IDS } from './wordTopics';
 export const FIB_WORD_MONTHLY_TARGET = 100;
 export const FIB_WORD_MONTHLY_BATCH_LIMIT = 78;
 export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
-export const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
+const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 /**
  * Tavily free (Researcher) plan: 1,000 credits/month. Every fibking Tavily
  * operation uses basic search/extract, so each ledger row costs at most one

@@ -31,14 +31,6 @@ export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; bat
       wordSubmissionsApi.batch(batchId, signal),
     ),
   );
-  const settings = useQuery(
-    adminQueryOptions('word-submissions', { kind: 'settings' }, wordSubmissionsApi.settings),
-  );
-  const budget = settings.data?.modelBudget;
-  const canReview =
-    budget !== undefined &&
-    budget.dailyUsed < budget.dailyLimit &&
-    budget.monthlyUsed < budget.monthlyLimit;
   return (
     <>
       <PageHeading
@@ -56,19 +48,8 @@ export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; bat
         <Link to={`/admin/words/${game}?section=submissions`} replace>
           返回外部投稿
         </Link>
-        {settings.error !== null && (
-          <p role="alert" className="admin-error-box">
-            额度读取失败：{settings.error.message}。发布操作不消耗模型额度。
-          </p>
-        )}
         <AsyncBoundary query={query}>
-          {(batch) => (
-            <BatchCandidates
-              batch={batch}
-              canReview={canReview}
-              onRefresh={() => void query.refetch()}
-            />
-          )}
+          {(batch) => <BatchCandidates batch={batch} onRefresh={() => void query.refetch()} />}
         </AsyncBoundary>
       </div>
     </>
@@ -77,11 +58,9 @@ export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; bat
 
 function BatchCandidates({
   batch,
-  canReview,
   onRefresh,
 }: {
   batch: WordSubmissionBatch;
-  canReview: boolean;
   onRefresh: () => void;
 }) {
   const [filter, setFilter] = useState('all');
@@ -124,21 +103,22 @@ function BatchCandidates({
           </p>
         </div>
         {awaiting.length > 0 && (
-          <button
-            type="button"
-            className="admin-primary"
-            disabled={!canReview}
-            onClick={(event) => {
-              opener.current = event.currentTarget;
-              openAction({ action: 'review', items: awaiting });
-            }}
-          >
-            审核全部待审 ({awaiting.length})
-          </button>
+          <div className="admin-submission-actions">
+            <button
+              type="button"
+              className="admin-primary"
+              onClick={(event) => {
+                opener.current = event.currentTarget;
+                openAction({ action: 'review', items: awaiting });
+              }}
+            >
+              审核全部待审 ({awaiting.length})
+            </button>
+          </div>
         )}
       </div>
       <p className="admin-submission-note">
-        审核不自动发布；“全部待审”包含待启动和审核失败项。模型额度用完仍可发布已通过项。
+        审核不自动发布；“全部待审”包含待启动和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
       </p>
       <ReviewDispatchNotice batch={batch} onRefresh={onRefresh} />
       <section className="admin-panel" aria-label="批次候选">
@@ -159,7 +139,6 @@ function BatchCandidates({
             selected={selected}
             selectedItems={selectedItems}
             onSelect={setSelected}
-            canReview={canReview}
             onAction={(value, button) => {
               opener.current = button;
               openAction(value);
@@ -181,7 +160,6 @@ function BatchCandidates({
         <SubmissionItemDrawer
           batch={batch}
           item={activeItem}
-          canReview={canReview}
           onClose={close}
           onAction={openAction}
         />
@@ -353,14 +331,12 @@ function SelectionToolbar({
   selected,
   selectedItems,
   onSelect,
-  canReview,
   onAction,
 }: {
   visible: WordSubmissionItem[];
   selected: Set<string>;
   selectedItems: WordSubmissionItem[];
   onSelect: (ids: Set<string>) => void;
-  canReview: boolean;
   onAction: (confirmation: SubmissionConfirmation, button: HTMLButtonElement) => void;
 }) {
   const all = useRef<HTMLInputElement>(null);
@@ -409,7 +385,6 @@ function SelectionToolbar({
           {reviewable.length > 0 && (
             <button
               type="button"
-              disabled={!canReview}
               onClick={(event) =>
                 onAction({ action: 'review', items: reviewable }, event.currentTarget)
               }

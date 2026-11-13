@@ -1,11 +1,12 @@
 .admin-submission-sections {
   display: flex;
   width: 100%;
-  overflow-x: auto;
 }
 .admin-submission-sections > a {
   flex: 1;
-  min-width: max-content;
+  min-width: 0;
+  flex-basis: 0;
+  overflow-wrap: anywhere;
   min-height: var(--size-min-touch-target);
   display: flex;
   align-items: center;
@@ -98,6 +99,9 @@
   padding: 0;
   margin-bottom: var(--space-small);
 }
+.admin-submission-form .admin-expiry-keep {
+  flex: 2;
+}
 .admin-drawer-footer {
   flex-shrink: 0;
   display: flex;
@@ -112,6 +116,9 @@
 .admin-submission-actions button,
 .admin-submission-status-tabs button {
   min-height: var(--size-min-touch-target);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .admin-submission-batch-heading {
   display: flex;
@@ -139,13 +146,12 @@
 }
 .admin-submission-status-tabs {
   display: flex;
+  flex-wrap: wrap;
   margin-top: var(--space-small);
   max-width: 100%;
-  overflow-x: auto;
 }
 .admin-submission-status-tabs > button {
-  flex: none;
-  white-space: nowrap;
+  flex: 0 1 auto;
 }
 .admin-submission-selection {
   display: grid;
@@ -197,4 +203,16 @@
 .admin-submission-instructions li {
   padding-bottom: var(--space-medium);
   overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .admin-submission-batch-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-submission-batch-heading > .admin-submission-actions {
+    flex: initial;
+  }
+  .admin-submission-batch-heading > .admin-submission-actions > button {
+    flex: 1;
+  }
 }

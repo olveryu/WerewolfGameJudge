@@ -116,13 +116,11 @@ function MaterialValue({ value }: { value: unknown }) {
 export function SubmissionItemDrawer({
   batch,
   item,
-  canReview,
   onClose,
   onAction,
 }: {
   batch: WordSubmissionBatch;
   item: WordSubmissionItem;
-  canReview: boolean;
   onClose: () => void;
   onAction: (confirmation: SubmissionConfirmation) => void;
 }) {
@@ -147,12 +145,7 @@ export function SubmissionItemDrawer({
             </button>
           )}
           {['pending', 'failed'].includes(item.status) && (
-            <button
-              type="button"
-              className="admin-primary"
-              disabled={!canReview}
-              onClick={() => act('review')}
-            >
+            <button type="button" className="admin-primary" onClick={() => act('review')}>
               {item.status === 'failed' ? '重试审核…' : '启动审核…'}
             </button>
           )}
@@ -171,7 +164,7 @@ export function SubmissionItemDrawer({
             </button>
           )}
           {['rejected', 'passed'].includes(item.status) && (
-            <button type="button" disabled={!canReview} onClick={() => act('review')}>
+            <button type="button" onClick={() => act('review')}>
               重新审核…
             </button>
           )}
@@ -231,7 +224,9 @@ function SubmissionReviewDetails({ item }: { item: WordSubmissionItem }) {
       {item.review === null ? (
         item.failure !== null ? (
           <>
-            <p role="alert">审核未完成，不能发布。请检查服务配置、额度及下方诊断码，再手动重试。</p>
+            <p role="alert">
+              审核未完成，不能发布。请检查服务配置、供应商限制及下方诊断码，再手动重试。
+            </p>
             <p className="admin-submission-note">诊断码：{item.failure}</p>
           </>
         ) : (

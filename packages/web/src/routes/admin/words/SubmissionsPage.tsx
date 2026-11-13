@@ -11,7 +11,6 @@ import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 
-import { Meter } from '../components/Charts';
 import {
   AsyncBoundary,
   DataTable,
@@ -238,7 +237,7 @@ function SubmissionSummary({ data }: { data: WordSubmissionSettings }) {
             <StatTile
               label="待启动审核"
               value={data.awaitingReview}
-              hint="由管理员启动，才消耗模型额度"
+              hint="由管理员启动，调用会记账"
             />
             <StatTile
               label="待确认发布"
@@ -248,19 +247,17 @@ function SubmissionSummary({ data }: { data: WordSubmissionSettings }) {
             <StatTile label="审核失败" value={data.failed} hint="请求失败，不代表内容不合格" />
           </div>
         </Panel>
-        <Panel title="审核设置与额度" className="admin-span-3">
+        <Panel title="审核与调用" className="admin-span-3">
           <p className="admin-muted">外部投稿需人工启动审核，确认后发布。</p>
-          <Meter
-            label="模型 · 近 24 小时"
-            value={data.modelBudget.dailyUsed}
-            limit={data.modelBudget.dailyLimit}
-          />
-          <Meter
-            label="模型 · 近 30 天"
-            value={data.modelBudget.monthlyUsed}
-            limit={data.modelBudget.monthlyLimit}
-          />
-          <p className="admin-muted">与自动补词共用额度；发布已通过项不再调用模型。</p>
+          <dl className="admin-details">
+            <dt>模型 · 近 24 小时</dt>
+            <dd>{data.modelBudget.dailyUsed} 次</dd>
+            <dt>模型 · 近 30 天</dt>
+            <dd>{data.modelBudget.monthlyUsed} 次</dd>
+          </dl>
+          <p className="admin-muted">
+            包含自动补词调用。外部审核不受应用额度限制；发布已通过项不再调用模型。
+          </p>
         </Panel>
       </div>
       {!data.accepting && (

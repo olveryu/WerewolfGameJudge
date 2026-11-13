@@ -8,7 +8,6 @@ import { HTTPException } from 'hono/http-exception';
 
 import type { Env } from '../../env';
 import { WORKER_WORD_SUBMISSION_ADAPTERS } from '../../games/catalog';
-import { isEditorialBudgetAvailable } from '../../platform/ai/editorialBudget';
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 import { createLogger } from '../../platform/observability/logger';
 import type {
@@ -218,8 +217,6 @@ export async function applySubmissionAction(
     new Set(items.map((item) => item.identity)).size !== items.length
   )
     throw new HTTPException(409, { message: 'SUBMISSION_SELECTION_HAS_DUPLICATE_IDENTITIES' });
-  if (input.action === 'review' && !(await isEditorialBudgetAvailable(env.DB)))
-    throw new HTTPException(429, { message: 'EDITORIAL_MODEL_BUDGET_EXHAUSTED' });
   const now = new Date().toISOString();
   const { gate, bindings } = actionGate(adapter, input);
   const statements: D1PreparedStatement[] = [
