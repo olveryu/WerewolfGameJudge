@@ -421,7 +421,7 @@
   font-weight: var(--weight-semibold);
   line-height: var(--line-heading);
   letter-spacing: var(--letter-tight);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .admin-stat small {
   display: block;
@@ -1037,6 +1037,10 @@
   margin-top: var(--space-tight);
   font-size: var(--font-caption);
 }
+.admin-error-box > div {
+  min-width: 0;
+  flex: 1;
+}
 .admin-notice {
   padding: var(--space-medium);
   color: var(--admin-success);
@@ -1115,6 +1119,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  max-height: 30dvh;
+  overflow: auto;
   padding: var(--space-medium) var(--space-large);
   border-bottom: 1px solid var(--admin-border);
   font-size: var(--font-title);
@@ -1125,6 +1131,7 @@
   overflow-wrap: anywhere;
 }
 .admin-drawer-body {
+  flex: 1 1 auto;
   min-height: 0;
   padding: var(--space-large);
   overflow: auto;
@@ -1460,7 +1467,7 @@
     }
     .admin-stat {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: center;
       column-gap: var(--space-small);
     }

@@ -50,6 +50,8 @@
 }
 .admin-submission-actions > span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .admin-submission-check {
   display: inline-flex;
@@ -108,6 +110,8 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-small);
+  max-height: 30dvh;
+  overflow: auto;
   padding: var(--space-medium) var(--space-large);
   border-top: 1px solid var(--admin-border);
   background: var(--admin-panel);
