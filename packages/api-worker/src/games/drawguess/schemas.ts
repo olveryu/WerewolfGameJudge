@@ -9,6 +9,7 @@ import type {
 } from '@game-judge/game-engine/games/drawguess/public';
 import {
   DRAWGUESS_CONFIG_SCHEMA,
+  DRAWGUESS_REACTIONS,
   isValidGuessText,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
@@ -113,6 +114,11 @@ const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>(
     type: z.literal('drawguess.guess.submit'),
     ...phaseIdentityShape,
     text: z.string().refine(isValidGuessText),
+  }),
+  z.strictObject({
+    type: z.literal('drawguess.reaction.send'),
+    ...phaseIdentityShape,
+    reaction: z.enum(DRAWGUESS_REACTIONS),
   }),
 ]);
 

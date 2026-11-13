@@ -6,6 +6,9 @@ import type { AudioEffect } from '../../../platform/audio';
 //#end
 import { type RosterChange } from '../../../platform/room/seating';
 import type { __GAME_PASCAL__HumanSeat, __GAME_PASCAL__State } from '../state/types';
+//#cap businessStats
+import type { __GAME_PASCAL__CompletionPayload } from '../publicStats';
+//#end
 
 /**
  * Stable English rejection codes (AU-48). The user-facing copy for each
@@ -90,7 +93,7 @@ export type __GAME_PASCAL__Event =
 export type __GAME_PASCAL__Effect = {
   /** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
   readonly type: '__GAME_ID__.game.completed';
-  readonly payload: {
+  readonly payload: __GAME_COMPLETION_TYPE__{
     readonly roundId: string;
     readonly completedAt: number;
     readonly participantUserIds: readonly string[];
@@ -102,7 +105,7 @@ export type __GAME_PASCAL__Effect =
   | {
       /** 终局 growth settlement effect：Worker 据此发 XP 奖励，xpSettled 保证恰好一次。 */
       readonly type: '__GAME_ID__.game.completed';
-      readonly payload: {
+      readonly payload: __GAME_COMPLETION_TYPE__{
         readonly roundId: string;
         readonly completedAt: number;
         readonly participantUserIds: readonly string[];

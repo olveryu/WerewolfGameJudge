@@ -8,7 +8,7 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
-import { buildGameCompletionPayload } from '../../platform/engine/completionEffect';
+import { buildGameCompletionPayloadV2 } from '../../platform/engine/completionEffect';
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../platform/protocol/gameTypes';
 import { REASON_NOT_SEATED } from '../../platform/protocol/reasons';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
@@ -52,6 +52,7 @@ import {
 import { assignFibRoles } from './domain/roles';
 import { decideFibRoom } from './domain/seating';
 import type { FibEffect } from './effects/types';
+import type { FibCompletionStatsFact } from './publicStats';
 import { normalizeFibState } from './state/normalize';
 import {
   FIB_MAX_PLAYERS,
@@ -164,19 +165,44 @@ function commitFibRoundEnded(
   context: CommandContext,
   leadingEvents: readonly FibEvent[],
 ): FibDecision {
-  return commitFib(
-    [...leadingEvents, { type: 'fibking.round.ended' }],
-    [
-      {
-        type: 'fibking.game.completed',
-        payload: buildGameCompletionPayload({
-          roundId: state.round.roundId,
-          completedAt: context.nowMs,
-          humans: Object.values(getHumanSeatMap(state.roster, state.numberOfPlayers)),
-        }),
-      },
-    ],
+  const events: readonly FibEvent[] = [...leadingEvents, { type: 'fibking.round.ended' }];
+  let completedState: FibState = state;
+  for (const event of events) completedState = evolveFibState(completedState, event);
+  if (completedState.phase !== 'ended' || completedState.round === null) {
+    throw new Error('Fib completion requires an ended round');
+  }
+  const completedRound = completedState.round;
+  const humans = Object.values(
+    getHumanSeatMap(completedState.roster, completedState.numberOfPlayers),
   );
+  const honestSeat = completedRound.roles.honestSeat;
+  const honestFound = completedRound.guesses.some((guess) => guess.seat === honestSeat);
+  const stats: FibCompletionStatsFact[] = humans.map((human) => {
+    const role = getFibRole(completedRound.roles, human.seat);
+    return {
+      userId: human.userId,
+      gamesPlayed: 1,
+      guesserRounds: role === 'guesser' ? 1 : 0,
+      honestRounds: role === 'honest' ? 1 : 0,
+      fibberRounds: role === 'fibber' ? 1 : 0,
+      honestFoundRounds: role === 'guesser' && honestFound ? 1 : 0,
+      honestRevealedRounds: role === 'honest' && honestFound ? 1 : 0,
+      fibberRevealedCount:
+        role === 'fibber' && completedRound.guesses.some((guess) => guess.seat === human.seat)
+          ? 1
+          : 0,
+    };
+  });
+  const payload = buildGameCompletionPayloadV2({
+    roundId: completedRound.roundId,
+    completedAt: context.nowMs,
+    humans,
+    minimumHumanPlayers: FIB_MIN_PLAYERS,
+    stats,
+  });
+  const effects: FibEffect[] =
+    payload === null ? [] : [{ type: 'fibking.game.completed', payload }];
+  return commitFib(events, effects);
 }
 
 function decideRevealFibRound(state: FibState, context: CommandContext): FibDecision {

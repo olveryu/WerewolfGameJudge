@@ -34,7 +34,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
   | pictionary | 9       | 8 only                           |
   | undercover | 5       | 1, 2, 3, 4                       |
   | storyrelay | 2       | 1 only                           |
-  | drawguess  | 4       | 1, 2, 3                          |
+  | drawguess  | 5       | 1, 2, 3, 4                       |
   | demo       | 1       | none (strict parser only)        |
 
 - A strict parser rejects every other version. A migration function upgrades field by field, then runs the strict parser.

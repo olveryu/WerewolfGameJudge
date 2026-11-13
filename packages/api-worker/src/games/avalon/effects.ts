@@ -2,6 +2,7 @@
 
 import {
   AVALON_REASONS,
+  avalonCompletionPayloadSchema,
   type AvalonEffect,
   type AvalonInternalCommand,
   type AvalonState,
@@ -14,10 +15,11 @@ import {
 } from '../../features/account/settleGameRewards';
 import { createSettleDueHandler } from '../../platform/gameModules/settleDue';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { avalonStatsSettlement } from './publicUserStats';
 
 const gameCompletedEffectSchema = z.strictObject({
   type: z.literal('avalon.game.completed'),
-  payload: gameCompletionPayloadSchema,
+  payload: z.union([gameCompletionPayloadSchema, avalonCompletionPayloadSchema]),
 });
 
 const settleDueEffectSchema = z.strictObject({
@@ -94,6 +96,7 @@ export async function handleAvalonEffect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'avalon' },
         context,
+        'stats' in effect.payload ? avalonStatsSettlement(effect.payload.stats) : undefined,
       );
       return;
     case 'avalon.settle.due':

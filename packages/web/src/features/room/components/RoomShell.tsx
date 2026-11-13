@@ -121,7 +121,10 @@ export function RoomShell({
   readonly trailingExtraActions: ReactNode;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
-  readonly profileDetailsRenderer?: (statsUserId: string) => ReactNode;
+  readonly profileDetailsRenderer?: (
+    statsUserId: string,
+    onGamesPlayedChange: (gamesPlayed: number | null) => void,
+  ) => ReactNode;
 }) {
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
   const [isHostManagementOpen, setIsHostManagementOpen] = useState(false);

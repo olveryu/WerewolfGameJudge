@@ -86,6 +86,11 @@ export function AccountInboxHost() {
           queryClient.invalidateQueries({
             queryKey: userStatsOptions(session.userId).queryKey,
           }),
+          ...decoded.map((event) =>
+            queryClient.invalidateQueries({
+              queryKey: ['games', event.gameType, 'users', session.userId, 'stats'],
+            }),
+          ),
         ]);
         if (signal.aborted) return;
         for (const event of decoded) showSettleToast(event);

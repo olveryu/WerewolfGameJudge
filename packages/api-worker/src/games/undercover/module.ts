@@ -2,12 +2,14 @@
 
 import {
   migratePersistedUndercoverState,
+  parseUndercoverPublicStats,
   UNDERCOVER_STATE_CODEC,
   undercoverEngine,
 } from '@game-judge/game-engine/games/undercover/public';
 
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { getUndercoverEffectFailureCommand, handleUndercoverEffect } from './effects';
+import { getUndercoverPublicUserStats } from './publicUserStats';
 import { undercoverInventoryRoutes } from './routes';
 import {
   undercoverCreateConfigSchema,
@@ -25,6 +27,8 @@ export const undercoverWorkerModule = defineWorkerGameModule({
   publicCommandSchema: undercoverPublicCommandSchema,
   internalCommandSchema: undercoverInternalCommandSchema,
   effectSchema: undercoverEffectSchema,
+  parsePublicUserStats: parseUndercoverPublicStats,
+  getPublicUserStats: getUndercoverPublicUserStats,
   httpRoutes: [{ path: '/api/games/undercover/inventory', router: undercoverInventoryRoutes }],
   handleEffect: handleUndercoverEffect,
   getEffectFailureCommand: getUndercoverEffectFailureCommand,

@@ -10,7 +10,11 @@
  * seats that authored text.
  */
 
-import { buildGameCompletionPayload, type CommandContext, reject } from '../../../platform/engine';
+import {
+  buildGameCompletionPayloadV2,
+  type CommandContext,
+  reject,
+} from '../../../platform/engine';
 import { buildSettleDueEffect } from '../../../platform/room/phaseDeadline';
 import { createRelayAssignment } from '../../../platform/room/relay/assignment';
 import {
@@ -31,6 +35,7 @@ import type {
   RelayTaskCommand,
 } from '../../../platform/room/relay/types';
 import type { StoryRelayCommand } from '../commands/types';
+import type { StoryRelayCompletionPayload } from '../publicStats';
 import {
   STORY_RELAY_GAME_TYPE,
   STORY_RELAY_MAX_PLAYERS,
@@ -67,7 +72,7 @@ function storyRelaySettleDueEffect(identity: RelaySettleIdentity): StoryRelayEff
 /** Binds the shared machine to Story Relay's reasons, shape, events and effects. */
 export function createStoryRelayRelayKit(
   state: StoryRelayState,
-): RelayEventKit<StoryRelayEntry, StoryRelayEvent, StoryRelayEffect> {
+): RelayEventKit<StoryRelayEntry, StoryRelayEvent, StoryRelayEffect, StoryRelayCompletionPayload> {
   return {
     reasons: STORY_RELAY_REASONS,
     shape: {
@@ -121,7 +126,8 @@ const STORY_RELAY_TASK_HOOKS: RelayTaskHooks<
   StoryRelayEntry,
   StoryRelayPreviousEntry,
   StoryRelayEvent,
-  StoryRelayEffect
+  StoryRelayEffect,
+  StoryRelayCompletionPayload
 > = {
   stripPreviousEntry: stripStoryRelayPreviousEntry,
   validateText: (text) => text.trim().length > 0 && text.length <= STORY_RELAY_TEXT_MAX_LENGTH,
@@ -142,27 +148,38 @@ const STORY_RELAY_TASK_HOOKS: RelayTaskHooks<
         },
   onRoundCompleted: (kit, state, appended, nowMs) => {
     if (state.roundId === null) throw new Error('Story Relay completion requires a round');
-    const authors = new Set(
-      [...state.chains.flatMap((chain) => chain.entries), ...appended.map((item) => item.entry)]
-        .filter((entry) => entry.kind === 'text')
-        .map((entry) => entry.authorSeat),
-    );
+    const entries = [
+      ...state.chains.flatMap((chain) => chain.entries),
+      ...appended.map((item) => item.entry),
+    ];
+    const paragraphsBySeat = new Map<number, number>();
+    for (const entry of entries) {
+      if (entry.kind === 'text') {
+        paragraphsBySeat.set(entry.authorSeat, (paragraphsBySeat.get(entry.authorSeat) ?? 0) + 1);
+      }
+    }
+    const humans = [...state.participants]
+      .sort((left, right) => left.seat - right.seat)
+      .flatMap((participant) =>
+        participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
+      );
+    const stats = humans.flatMap((human) => {
+      const paragraphsSubmitted = paragraphsBySeat.get(human.seat);
+      return paragraphsSubmitted === undefined
+        ? []
+        : [{ userId: human.userId, gamesPlayed: 1 as const, paragraphsSubmitted }];
+    });
+    const payload = buildGameCompletionPayloadV2({
+      roundId: state.roundId,
+      completedAt: nowMs,
+      humans,
+      minimumHumanPlayers: STORY_RELAY_MIN_PLAYERS,
+      includeSeat: (human) => paragraphsBySeat.has(human.seat),
+      stats,
+    });
     return {
       events: [kit.roundCompleted(nowMs)],
-      effects: [
-        kit.completionEffect(
-          buildGameCompletionPayload({
-            roundId: state.roundId,
-            completedAt: nowMs,
-            humans: state.participants.flatMap((participant) =>
-              participant.userId !== null
-                ? [{ seat: participant.seat, userId: participant.userId }]
-                : [],
-            ),
-            includeSeat: (seat) => authors.has(seat.seat),
-          }),
-        ),
-      ],
+      effects: payload === null ? [] : [kit.completionEffect(payload)],
     };
   },
 };

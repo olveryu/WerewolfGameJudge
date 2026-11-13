@@ -12,6 +12,7 @@ import {
 import { publishGameRewards } from '../../features/account/settleGameRewards';
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { undercoverStatsSettlement } from './publicUserStats';
 import {
   getOrCreateUndercoverWordSelection,
   UndercoverWordInventoryExhaustedError,
@@ -49,6 +50,7 @@ export async function handleUndercoverEffect(
     await publishGameRewards(
       { ...effect.payload, kind: 'completion', gameType: 'undercover' },
       context,
+      'stats' in effect.payload ? undercoverStatsSettlement(effect.payload.stats) : undefined,
     );
     return;
   }

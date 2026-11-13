@@ -7,8 +7,10 @@ import {
   commit,
   type Decision,
 } from '../../../platform/engine';
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
+import type { AvalonCompletionPayload } from '../publicStats';
 import type {
   AvalonBallot,
   AvalonEndReason,
@@ -140,11 +142,7 @@ export type AvalonEvent =
 export type AvalonEffect =
   | {
       readonly type: 'avalon.game.completed';
-      readonly payload: {
-        readonly roundId: string;
-        readonly completedAt: number;
-        readonly participantUserIds: readonly string[];
-      };
+      readonly payload: GameCompletionPayload | AvalonCompletionPayload;
     }
   | {
       /**

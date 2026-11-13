@@ -33,23 +33,25 @@ type PictionaryInput = PictionaryCommandInput | PictionaryInternalCommand;
 
 const bind = bindPictionaryCommand;
 
-function game(numberOfPlayers = 4) {
+function game(numberOfPlayers = 4, humanCount = numberOfPlayers) {
   const session = createEngineSession(pictionaryEngine, {
     config: { ...DEFAULT_PICTIONARY_CONFIG, numberOfPlayers, drawingDurationSeconds: 90 },
     create: { hostUserId: 'user-0', roomCode: '2468' },
     parse: parsePictionaryState,
   });
   const send = (input: PictionaryInput, userId = 'user-0') => {
-    const context = session.context(userId);
+    const seat = Number(userId.slice('user-'.length));
+    const context = seat >= humanCount ? session.context('user-0', seat) : session.context(userId);
     return session.sendAs(bind(session.state, input, context), context);
   };
   const takeAllSeats = () => {
-    for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+    for (let seat = 0; seat < humanCount; seat += 1) {
       send(
         { type: 'room.seat.take', seat, profile: { displayName: `玩家 ${seat + 1}` } },
         `user-${seat}`,
       );
     }
+    if (humanCount < numberOfPlayers) send({ type: 'room.seat.fillBots' });
   };
   const phaseNow = (): PictionaryState['phase'] => session.state.phase;
   // D3: the public expire command is deleted; the phase is settled
@@ -147,10 +149,31 @@ describe('Pictionary engine', () => {
       'user-2',
       'user-3',
     ]);
+    expect(completions[0]?.payload).toMatchObject({
+      completionVersion: 2,
+      stats: Array.from({ length: 4 }, (_, seat) => ({
+        userId: `user-${seat}`,
+        gamesPlayed: 1,
+        textSubmissions: 2,
+        drawingSubmissions: 2,
+      })),
+    });
 
     send({ type: 'pictionary.game.returnToLobby' });
     expect(session.state.phase).toBe('lobby');
     expect(session.state.participants).toEqual([]);
+  });
+
+  it.each([3, 4])('gates relay completion at four humans (%i humans)', (humanCount) => {
+    const { session, send, takeAllSeats, completeCurrentStep } = game(4, humanCount);
+    takeAllSeats();
+    send({ type: 'pictionary.game.begin' });
+    for (let step = 0; step < 4; step += 1) completeCurrentStep();
+    expect(session.state.phase).toBe('gallery');
+    const completions = session.effects.filter(
+      (effect) => effect.type === 'pictionary.game.completed',
+    );
+    expect(completions).toHaveLength(humanCount === 4 ? 1 : 0);
   });
 
   it('settles when the last drawing of the final step lands, before the gallery opens', () => {

@@ -1,0 +1,25 @@
+import {
+  type __GAME_PASCAL__CompletionPayload,
+  type __GAME_PASCAL__PublicStats,
+  parse__GAME_PASCAL__PublicStats,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { getTableName } from 'drizzle-orm';
+
+import type { Env } from '../../env';
+import { countGameStats, readCountGameStats } from '../../features/account/gameStats';
+import { __GAME_CAMEL__UserStats } from './dbSchema';
+
+const table = getTableName(__GAME_CAMEL__UserStats);
+
+export const __GAME_CAMEL__StatsSettlement = (facts: __GAME_PASCAL__CompletionPayload['stats']) =>
+  countGameStats(facts, table, (fact) => ({ games_played: fact.gamesPlayed }));
+
+export async function get__GAME_PASCAL__PublicUserStats(
+  userId: string,
+  bindings: Env,
+): Promise<__GAME_PASCAL__PublicStats> {
+  return parse__GAME_PASCAL__PublicStats({
+    gameType: '__GAME_ID__',
+    ...(await readCountGameStats(bindings.DB, userId, table, { gamesPlayed: 'games_played' })),
+  });
+}

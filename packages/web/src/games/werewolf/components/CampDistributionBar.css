@@ -60,20 +60,3 @@
 .camp-distribution-hint {
   margin-top: var(--space-tight);
 }
-
-/* Profile card details: game count above the bars, or the load failure. */
-.camp-distribution-count {
-  margin: 0 0 var(--space-small);
-  color: var(--color-text-muted);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  text-align: right;
-}
-
-.camp-distribution-error {
-  margin: 0;
-  padding: var(--space-small) 0;
-  color: var(--color-error);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-}

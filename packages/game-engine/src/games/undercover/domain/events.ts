@@ -1,6 +1,8 @@
 /** Pure Undercover events and deferred word-selection and completion-reward effects. */
 
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import type { RosterChange } from '../../../platform/room/seating';
+import type { UndercoverCompletionPayload } from '../publicStats';
 import type {
   UndercoverConfig,
   UndercoverHumanSeat,
@@ -42,9 +44,5 @@ export type UndercoverEffect =
     }
   | {
       readonly type: 'undercover.game.completed';
-      readonly payload: {
-        readonly roundId: string;
-        readonly completedAt: number;
-        readonly participantUserIds: readonly string[];
-      };
+      readonly payload: GameCompletionPayload | UndercoverCompletionPayload;
     };

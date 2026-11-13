@@ -10,11 +10,26 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
+import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
 import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_DECISIONS } from './wordProviders/types';
 import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
+
+/** @public FibKing cumulative round statistics. */
+export const fibkingUserStats = sqliteTable('fibking_user_stats', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  gamesPlayed: integer('games_played').notNull(),
+  guesserRounds: integer('guesser_rounds').notNull(),
+  honestRounds: integer('honest_rounds').notNull(),
+  fibberRounds: integer('fibber_rounds').notNull(),
+  honestFoundRounds: integer('honest_found_rounds').notNull(),
+  honestRevealedRounds: integer('honest_revealed_rounds').notNull(),
+  fibberRevealedCount: integer('fibber_revealed_count').notNull(),
+});
 export const FIB_WORD_SELECTION_TIERS = [
   'category_unseen',
   'any_unseen',

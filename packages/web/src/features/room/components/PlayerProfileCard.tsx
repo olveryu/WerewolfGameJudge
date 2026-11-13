@@ -10,8 +10,9 @@ import {
   getLevelThreshold,
   getLevelTitle,
 } from '@game-judge/game-engine/product/growth';
+import { TOTAL_UNLOCKABLE_COUNT } from '@game-judge/game-engine/product/rewards';
 import { useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, Suspense, useRef } from 'react';
+import { type ReactNode, Suspense, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/Button';
@@ -78,7 +79,10 @@ export function PlayerProfileCard({
   /** The room the card opens in; the unlocks page returns to it. */
   readonly roomCode: string;
   /** Renders the game-specific stats section when the model carries `gameDetails`. */
-  readonly profileDetailsRenderer?: (statsUserId: string) => ReactNode;
+  readonly profileDetailsRenderer?: (
+    statsUserId: string,
+    onGamesPlayedChange: (gamesPlayed: number | null) => void,
+  ) => ReactNode;
 }) {
   const { target } = model;
   const isBot = target.occupant.kind === 'bot';
@@ -88,7 +92,24 @@ export function PlayerProfileCard({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const sceneHostRef = useRef<HTMLDivElement>(null);
+  const [gameCountState, setGameCountState] = useState<{
+    readonly statsUserId: string;
+    readonly count: number | null;
+  } | null>(null);
   const seatName = `${target.seat + 1}号座位`;
+  const handleGameCountChange = useCallback(
+    (count: number | null) => {
+      const statsUserId = model.gameDetails?.statsUserId;
+      if (statsUserId !== undefined) setGameCountState({ statsUserId, count });
+    },
+    [model.gameDetails?.statsUserId],
+  );
+  const gameCount =
+    gameCountState !== null &&
+    model.gameDetails !== null &&
+    gameCountState.statsUserId === model.gameDetails.statsUserId
+      ? gameCountState.count
+      : null;
 
   const viewUnlocks = (displayName: string) => {
     if (humanUserId === null) throw new Error('Unlocks are only viewable for a human occupant');
@@ -174,18 +195,19 @@ export function PlayerProfileCard({
           </div>
           <progress className="profile-xp-bar" value={progress} max={1} />
         </div>
-        <dl className="profile-stats">
+        <dl className="profile-stats" data-game-scope={model.gameDetails !== null}>
           <div className="profile-stat">
-            <dd>{profile.gamesPlayed}</dd>
-            <dt>总局数</dt>
+            <dd>{model.gameDetails === null ? profile.gamesPlayed : (gameCount ?? '—')}</dd>
+            <dt>{model.gameDetails?.countLabel ?? '总局数'}</dt>
           </div>
           <div className="profile-stat">
-            <dd>{profile.unlockedItemCount}</dd>
+            <dd>{`${profile.unlockedItemCount}/${TOTAL_UNLOCKABLE_COUNT}`}</dd>
             <dt>
               <button
                 type="button"
                 className="profile-stat-link"
                 onClick={() => viewUnlocks(profile.displayName)}
+                aria-label={`已解锁 ${profile.unlockedItemCount} 件，共 ${TOTAL_UNLOCKABLE_COUNT} 件，查看收藏`}
               >
                 已解锁 ›
               </button>
@@ -195,7 +217,7 @@ export function PlayerProfileCard({
         {model.gameDetails !== null && (
           <section className="profile-game-details">
             <h3 className="profile-section-title">{model.gameDetails.title}</h3>
-            {profileDetailsRenderer?.(model.gameDetails.statsUserId)}
+            {profileDetailsRenderer?.(model.gameDetails.statsUserId, handleGameCountChange)}
           </section>
         )}
         <Suspense fallback={<Spinner label="加载中" />}>

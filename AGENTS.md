@@ -10,7 +10,7 @@ For every change request in this repository, use a separate Git worktree visible
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.
 
-The client was rewritten per `docs/web-client-rewrite.md`; every game has a lazy web module in `CLIENT_GAME_LOADERS` (`packages/web/src/games/clientModules.tsx`).
+The client was rewritten per `docs/web-client-rewrite.md`; every game has a statically imported factory in `CLIENT_GAME_FACTORIES` (`packages/web/src/games/clientModules.tsx`), with sessions initialized on demand.
 
 Versions: React `^19.3.1`, Vite `^8.3.8`, React Router `^8.5.1` (web package); TypeScript `~6.0.3` (root and web package); Vitest `~4.1.10` and Zod `^4.4.3` (root and every package); ESLint `^9.39.4`, Turbo `^2.11.7` (root); Node `>=22.13.0` (`.nvmrc` pins `22.22.1`), pnpm `10.32.1`.
 
@@ -20,7 +20,7 @@ Layout: a pnpm workspace with four parts — the root (cross-package contracts i
 
 Games (8): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, demo. Demo is the hand-built reference the generator templates mirror; it is not generator output, and it is the only game marked non-production.
 
-State versions: werewolf 17, avalon 10, fibking 8, pictionary 9, undercover 5, storyrelay 2, drawguess 4, demo 1.
+State versions: werewolf 17, avalon 10, fibking 8, pictionary 9, undercover 5, storyrelay 2, drawguess 5, demo 1.
 Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.
@@ -61,9 +61,9 @@ Room link and state identity: the client link lives in `packages/web/src/platfor
 
 Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 
-Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (32, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
+Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (39, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
 
-A new game is registered in the engine registry, the engine catalog, the worker catalog, the web client catalog, and the web module loaders, with a D1 registration migration and the contract-test whitelists updated; the generator performs the mechanical edits. See the nested engine and worker files and the new-game skill for the full list.
+A new game is registered in the engine registry, the engine catalog, the worker catalog, the web client catalog, and the static web factories, with a D1 registration migration and contract-test whitelists updated. The generator also wires completed-games statistics end to end; approved gameplay metrics and reward/stat semantics remain go-live requirements. See the new-game skill.
 
 ## Enforced conventions
 

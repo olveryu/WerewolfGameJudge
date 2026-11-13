@@ -50,15 +50,17 @@ vi.mock('@/games/clientModules', () => ({
 }));
 vi.mock('@/games/catalog', async () => {
   const { lazy } = await import('react');
+  const section = (gameType: string, displayName: string) => ({
+    gameType,
+    displayName,
+    isDefault: gameType === 'werewolf',
+    Section: lazy(async () => ({
+      default: ({ userId }: { userId: string }) => <p>{`战绩 ${gameType} ${userId}`}</p>,
+    })),
+  });
   return {
-    GAME_ACCOUNT_STATS_SECTIONS: [
-      {
-        gameType: 'werewolf',
-        Section: lazy(async () => ({
-          default: ({ userId }: { userId: string }) => <p>{`战绩 ${userId}`}</p>,
-        })),
-      },
-    ],
+    DEFAULT_GAME_ACCOUNT_STATS_GAME_TYPE: 'werewolf',
+    GAME_ACCOUNT_STATS_SECTIONS: [section('werewolf', '狼人杀'), section('fibking', '瞎掰王')],
   };
 });
 vi.mock('@/utils/alertPresets', () => ({
@@ -156,7 +158,21 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Lv.2')).toBeInTheDocument();
     expect(await screen.findByRole('progressbar', { name: '经验进度' })).toBeInTheDocument();
     expect(screen.getByText(/^7 局 · 已解锁 \d+\/\d+$/)).toBeInTheDocument();
-    expect(await screen.findByText('战绩 user-1')).toBeInTheDocument();
+    expect(await screen.findByText('战绩 werewolf user-1')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '狼人杀' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '瞎掰王' })).not.toBeChecked();
+  });
+
+  it('switches the selected game statistics without mounting other panels', async () => {
+    mocks.auth.user = REGISTERED_USER;
+    mocks.stats = { xp: 30, level: 2, gamesPlayed: 7, unlockedItems: [] };
+    await renderSettings();
+
+    await userEvent.click(screen.getByRole('radio', { name: '瞎掰王' }));
+
+    expect(await screen.findByText('战绩 fibking user-1')).toBeInTheDocument();
+    expect(screen.queryByText('战绩 werewolf user-1')).toBeNull();
+    expect(screen.getByRole('radio', { name: '瞎掰王' })).toBeChecked();
   });
 
   it('links the avatar, the wardrobe entry and the unlocks row, staying in the room', async () => {

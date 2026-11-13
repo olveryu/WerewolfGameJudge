@@ -1,0 +1,32 @@
+import { z } from 'zod';
+
+import {
+  type GameCompletionPayloadV2,
+  gameCompletionPayloadV2Schema,
+  type GameCompletionStatsFact,
+} from '../../platform/engine/completionEffect';
+
+/** Cumulative eligible terminal completions; gameplay-specific metrics require a design. */
+export interface __GAME_PASCAL__PublicStats {
+  readonly gameType: '__GAME_ID__';
+  readonly gamesPlayed: number;
+}
+
+/** Decode the exact public shape, rejecting missing and invalid counts. */
+export function parse__GAME_PASCAL__PublicStats(value: unknown): __GAME_PASCAL__PublicStats {
+  return z.strictObject({
+    gameType: z.literal('__GAME_ID__'),
+    gamesPlayed: z.int().nonnegative(),
+  }).parse(value);
+}
+
+export interface __GAME_PASCAL__CompletionStatsFact extends GameCompletionStatsFact {
+  readonly gamesPlayed: 1;
+}
+
+/** One fact per eligible human, in seat order; no inferred gameplay outcomes. */
+export const __GAME_CAMEL__CompletionPayloadSchema = gameCompletionPayloadV2Schema(
+  z.strictObject({ userId: z.string().min(1), gamesPlayed: z.literal(1) }),
+);
+
+export type __GAME_PASCAL__CompletionPayload = GameCompletionPayloadV2<__GAME_PASCAL__CompletionStatsFact>;

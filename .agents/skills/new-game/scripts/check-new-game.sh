@@ -1,24 +1,32 @@
 #!/bin/sh
 # Read-only generator-count checks. Run from the repo root:
 #   sh .agents/skills/new-game/scripts/check-new-game.sh [repo-root]
-# Re-derive the expected numbers from the generator code if they change;
-# never edit this script to match stale documentation.
+# Counts and gates come from the generator itself, not documentation literals.
 set -eu
 ROOT="${1:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
-python3 - "$ROOT" <<'PY'
-import re, sys, pathlib
-root = pathlib.Path(sys.argv[1])
-gen = (root / "scripts/lib/new-game/generate.mjs").read_text()
-block = gen[gen.index("const SHARED_EDITS = ["):gen.index("];", gen.index("const SHARED_EDITS = ["))]
-edits = block.count("file:")
-templates = list((root / "scripts/lib/new-game/templates").rglob("*.tmpl"))
-report = (root / "scripts/lib/new-game/report.mjs").read_text()
-steps = sorted({int(m) for m in re.findall(r"^(\d+)\.\s+\*\*", report, re.M)})
-migrations = list((root / "packages/api-worker/migrations").glob("*.sql"))
-print(f"SHARED_EDITS entries: {edits} (expected 16)")
-print(f"template files: {len(templates)} (expected 42)")
-print(f"report steps: {steps} (expected 1..9)")
-print(f"migration files: {len(migrations)}")
-fail = edits != 16 or len(templates) != 42 or steps != list(range(1, 10))
-sys.exit(1 if fail else 0)
-PY
+node --input-type=module - "$ROOT" <<'JS'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+const root = path.resolve(process.argv[2]);
+const load = (file) => import(pathToFileURL(path.join(root, file)).href);
+const { generatorFacts } = await load('scripts/lib/new-game/generate.mjs');
+const { REPORT_STEP_COUNT } = await load('scripts/lib/new-game/report.mjs');
+const { findLatestRegistrationMigration, nextMigrationName } = await load('scripts/lib/new-game/migration.mjs');
+const facts = generatorFacts();
+assert.equal(new Set(facts.sharedFiles).size, facts.sharedFiles.length);
+for (const file of facts.sharedFiles) assert.ok(fs.existsSync(path.join(root, file)), file);
+const report = fs.readFileSync(path.join(root, 'scripts/lib/new-game/report.mjs'), 'utf8');
+const steps = [...new Set([...report.matchAll(/^(\d+)\.\s+\*\*/gm)].map((match) => Number(match[1])))].sort((a, b) => a - b);
+assert.deepEqual(steps, Array.from({ length: REPORT_STEP_COUNT }, (_, index) => index + 1));
+const dir = path.join(root, 'packages/api-worker/migrations');
+const migrations = fs.readdirSync(dir).filter((name) => name.endsWith('.sql')).map((name) => ({
+  name, content: fs.readFileSync(path.join(dir, name), 'utf8'),
+}));
+console.log(`SHARED_EDITS entries: ${facts.sharedFiles.length}`);
+console.log(`template files: ${facts.templateCount}`);
+console.log(`files by preset (including migration): ${JSON.stringify(facts.filesByPreset)}`);
+console.log(`report steps: ${steps.join(', ')}`);
+console.log(`migration files: ${migrations.length}; registration source: ${findLatestRegistrationMigration(migrations).name}; next: ${nextMigrationName(migrations.map(({ name }) => name), 'newgame')}`);
+JS

@@ -146,7 +146,7 @@ describe('Demo stage deadline settlement', () => {
   });
 
   it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     viewAllAndBegin(session);
     const early = demoEngine.decide(
       session.state,
@@ -164,7 +164,7 @@ describe('Demo stage deadline settlement', () => {
     expect(state.xpSettled).toBe(true);
     const completions = session.effects.filter((effect) => effect.type === 'demo.game.completed');
     expect(completions).toHaveLength(1);
-    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+    expect(completions[0]?.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
   });
 
   it('rejects the internal settle channel for a user actor', () => {
@@ -186,7 +186,7 @@ describe('Demo gameplay seam', () => {
   });
 
   it('ends through the terminal seam with exactly one completion effect', () => {
-    const session = game({ numberOfPlayers: 4 }, 3);
+    const session = game({ numberOfPlayers: 4 }, 4);
     viewAllAndBegin(session);
     const decision = endDemoGame(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
@@ -195,7 +195,7 @@ describe('Demo gameplay seam', () => {
     const completion = decision.effects[0];
     expect(completion?.type).toBe('demo.game.completed');
     if (completion?.type === 'demo.game.completed') {
-      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2']);
+      expect(completion.payload.participantUserIds).toEqual(['host', 'u1', 'u2', 'u3']);
     }
     const ended = decision.events.reduce(demoEngine.evolve, session.state);
     expect(ended.phase.kind).toBe('ended');

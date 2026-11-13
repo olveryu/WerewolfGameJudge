@@ -119,7 +119,12 @@ export interface RelaySettleIdentity {
  * strings and shape, its commit, and factories that build its own
  * event/effect shapes from the machine's canonical payloads.
  */
-export interface RelayEventKit<TEntry, TEvent extends GameEvent, TEffect extends GameEffect> {
+export interface RelayEventKit<
+  TEntry,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  TCompletionPayload extends GameCompletionPayload = GameCompletionPayload,
+> {
   readonly reasons: RelayReasons;
   readonly shape: RelayShape;
   commit(events: readonly TEvent[], effects?: readonly TEffect[]): Decision<TEvent, TEffect>;
@@ -132,7 +137,7 @@ export interface RelayEventKit<TEntry, TEvent extends GameEvent, TEffect extends
   taskReady(seat: number, isReady: boolean): TEvent;
   entryAppended(chainId: string, entry: TEntry): TEvent;
   roundCompleted(completedAt: number): TEvent;
-  completionEffect(payload: GameCompletionPayload): TEffect;
+  completionEffect(payload: TCompletionPayload): TEffect;
   /**
    * Builds the game's settle.due effect for a deadline the machine
    * just wrote, or undefined while the game has no scheduled settle

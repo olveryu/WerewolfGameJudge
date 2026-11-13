@@ -21,9 +21,16 @@ import { editEngineContractsTest } from './lib/new-game/edits.mjs';
 import {
   FILE_CAPABILITY_GATES,
   generateNewGame,
+  generatorFacts,
   PACK_SEGMENT_SWITCHES,
   PRESET_CAPABILITIES,
+  SHARED_EDITS,
 } from './lib/new-game/generate.mjs';
+import {
+  assertRegistrationGameTypes,
+  findLatestRegistrationMigration,
+  nextMigrationName,
+} from './lib/new-game/migration.mjs';
 import {
   applyCapabilityBlocks,
   deriveGameNames,
@@ -33,27 +40,15 @@ import {
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Every shared file the generator edits; the fixture copies the real ones. */
-const SHARED_FILES = [
-  'packages/game-engine/src/platform/protocol/gameTypes.ts',
-  'packages/game-engine/src/games/registry.ts',
-  'packages/game-engine/src/product/rewards/earnings.ts',
-  'packages/game-engine/package.json',
-  'packages/game-engine/src/platform/__tests__/architecture.contract.test.ts',
-  'packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts',
-  'packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
-  'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
-  'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
-  'packages/game-engine/src/games/catalog.ts',
-  'packages/api-worker/src/games/catalog.ts',
-  'packages/web/src/games/catalog.ts',
-  'packages/web/src/games/clientModules.tsx',
-  'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
-  'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
-  'packages/web/src/__tests__/roomReview.contract.test.ts',
-];
+const SHARED_FILES = SHARED_EDITS.map(({ file }) => file);
+const fixtureRoots = new Set();
+test.after(() => {
+  for (const root of fixtureRoots) fs.rmSync(root, { recursive: true, force: true });
+});
 
 function makeFixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-fixture-'));
+  fixtureRoots.add(root);
   for (const file of SHARED_FILES) {
     const target = path.join(root, file);
     fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -79,6 +74,7 @@ function makeFixtureRepo() {
  */
 function makeRealRepoCopy() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-real-repo-'));
+  fixtureRoots.add(root);
   fs.cpSync(REPO_ROOT, root, {
     recursive: true,
     filter: (source) => {
@@ -86,7 +82,10 @@ function makeRealRepoCopy() {
       if (relative === '') return true;
       const segments = relative.split(path.sep);
       return (
-        segments[0] !== '.git' && segments[0] !== 'assets' && !segments.includes('node_modules')
+        segments[0] !== '.git' &&
+        segments[0] !== 'assets' &&
+        !segments[0].startsWith('.new-game-') &&
+        !segments.includes('node_modules')
       );
     },
   });
@@ -112,6 +111,22 @@ function resolveVitestBin(root, packageDir) {
     path.dirname(vitestPackageJson),
     JSON.parse(fs.readFileSync(vitestPackageJson, 'utf8')).bin.vitest,
   );
+}
+
+function typecheckFixture(root, project) {
+  const require = createRequire(path.join(root, 'package.json'));
+  try {
+    execFileSync(
+      process.execPath,
+      [require.resolve('typescript/bin/tsc'), '--noEmit', '--project', project],
+      { cwd: root, stdio: 'pipe', encoding: 'utf8' },
+    );
+  } catch (error) {
+    throw new Error(
+      `Fixture typecheck failed (${project}, ${root})\n${error.stdout ?? ''}${error.stderr ?? ''}`,
+      { cause: error },
+    );
+  }
 }
 
 /**
@@ -164,6 +179,14 @@ function expectedCreatedFiles(gameId, preset) {
     `${worker}/effects.ts`,
     `${worker}/module.ts`,
     `${worker}/__tests__/schemas.test.ts`,
+    `${engine}/publicStats.ts`,
+    `${engine}/__tests__/publicStats.test.ts`,
+    `${worker}/dbSchema.ts`,
+    `${worker}/publicUserStats.ts`,
+    `${worker}/__tests__/publicUserStats.test.ts`,
+    `${client}/components/${pascal}StatsPanel.tsx`,
+    `${client}/components/__tests__/${pascal}StatsPanel.test.tsx`,
+    `${client}/services/${gameId}Stats.ts`,
     `${client}/module.ts`,
     `${client}/home.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
@@ -344,7 +367,11 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     );
     const clientCatalog = readFixture(root, 'packages/web/src/games/catalog.ts');
     assert.ok(clientCatalog.includes(`import { demoprotoHome } from '@/games/demoproto/home';`));
-    assert.ok(clientCatalog.includes('  demoproto: { home: demoprotoHome },'));
+    assert.ok(
+      clientCatalog.includes(
+        '  demoproto: { home: demoprotoHome, AccountStats: DemoprotoStatsPanel },',
+      ),
+    );
     const clientModules = readFixture(root, 'packages/web/src/games/clientModules.tsx');
     assert.ok(clientModules.includes('demoproto: createDemoprotoClientModule,'));
     assert.ok(
@@ -437,6 +464,51 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(lists.length >= 2, 'expected both game_type CHECK lists');
     for (const list of lists) assert.ok(list[1].includes(`'demoproto'`));
     assert.ok(migration.includes('TODO(gameplay)'));
+    assert.ok(migration.includes('CREATE TABLE demoproto_user_stats'));
+    assert.ok(migration.includes("typeof(games_played) = 'integer'"));
+    assert.ok(migration.includes('ON DELETE CASCADE'));
+    const statsOwnerContract = readFixture(root, 'contracts/architecture.contract.test.ts');
+    assert.ok(
+      statsOwnerContract.includes(
+        "['demoproto_user_stats', 'packages/api-worker/src/games/demoproto/dbSchema.ts']",
+      ),
+    );
+    const statsModule = readFixture(root, 'packages/api-worker/src/games/demoproto/module.ts');
+    assert.ok(statsModule.includes('parsePublicUserStats: parseDemoprotoPublicStats'));
+    assert.ok(statsModule.includes('getPublicUserStats: getDemoprotoPublicUserStats'));
+    const statsEffects = readFixture(root, 'packages/api-worker/src/games/demoproto/effects.ts');
+    assert.ok(
+      statsEffects.includes(
+        'z.union([gameCompletionPayloadSchema, demoprotoCompletionPayloadSchema])',
+      ),
+    );
+    assert.ok(
+      statsEffects.includes(
+        "'stats' in effect.payload ? demoprotoStatsSettlement(effect.payload.stats) : undefined",
+      ),
+    );
+    const roomHook = readFixture(
+      root,
+      'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
+    );
+    assert.ok(
+      roomHook.includes("useGameProfileDetails(profile.selection, '演示原型战绩', '本游戏局数')"),
+    );
+    assert.ok(roomHook.includes('    gameDetails,'));
+    assert.ok(
+      readFixture(root, 'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx').includes(
+        'profileDetailsRenderer=',
+      ),
+    );
+    assert.ok(
+      readFixture(root, 'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts').includes(
+        'gameDetails: input.gameDetails',
+      ),
+    );
+    assert.ok(report.includes('不需要额外指标也必须记录批准理由'));
+    assert.ok(
+      report.includes('名单同步不是上线充分条件') || report.includes('两处齐不是上线充分条件'),
+    );
 
     // Preset wiring markers the capability welds depend on.
     const engineGameDir = summary.createdFiles
@@ -668,8 +740,15 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     __GAME_ICON_COMPONENT__: 'IconGameControllerOutline',
     __GAME_TIER__: 'mini',
     __GAME_PRESET__: 'identity',
+    __GAME_COMPLETION_TYPE__: 'DemoprotoCompletionPayload | ',
+    __GAME_REQUIREMENT_COUNT__: '11',
+    __GAME_TEST_BEGIN__: 'viewAllAndBegin(session);',
   };
-  const baseRecord = { ...PRESET_CAPABILITIES.identity, ...PACK_SEGMENT_SWITCHES.identity };
+  const baseRecord = {
+    ...PRESET_CAPABILITIES.identity,
+    ...PACK_SEGMENT_SWITCHES.identity,
+    businessStats: true,
+  };
   const renderTree = (capabilities) => {
     const rendered = new Map();
     for (const layer of ['shared', 'game']) {
@@ -682,7 +761,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
           } else if (entry.name.endsWith('.tmpl')) {
             const relative = path.relative(layerDir, entryPath).slice(0, -'.tmpl'.length);
             const gate = FILE_CAPABILITY_GATES[relative];
-            if (layer === 'game' && gate !== undefined && capabilities[gate] !== true) continue;
+            if (gate !== undefined && capabilities[gate] !== true) continue;
             const destination = renderTemplateFile(relative.split(path.sep).join('/'), {
               names,
               capabilities,
@@ -781,16 +860,11 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.writeFileSync(destination, content);
     }
-    const require = createRequire(path.join(root, 'package.json'));
     for (const project of [
       'packages/web/tsconfig.json',
       'packages/game-engine/tsconfig.test.json',
     ]) {
-      execFileSync(
-        process.execPath,
-        [require.resolve('typescript/bin/tsc'), '--noEmit', '--project', project],
-        { cwd: root, stdio: 'pipe', encoding: 'utf8' },
-      );
+      typecheckFixture(root, project);
     }
     execFileSync(
       process.execPath,
@@ -805,6 +879,104 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('counts share generator facts and numbering does not confuse physical and registration migrations', () => {
+  const facts = generatorFacts();
+  assert.deepEqual(facts.sharedFiles, SHARED_FILES);
+  const files = fs
+    .readdirSync(path.join(REPO_ROOT, 'packages/api-worker/migrations'))
+    .filter((name) => name.endsWith('.sql'))
+    .map((name) => ({
+      name,
+      content: readFixture(REPO_ROOT, `packages/api-worker/migrations/${name}`),
+    }));
+  assert.equal(findLatestRegistrationMigration(files).name, '0065_demo.sql');
+  assert.equal(
+    nextMigrationName(
+      files.map(({ name }) => name),
+      'probe',
+    ),
+    '0076_probe.sql',
+  );
+  for (const preset of Object.keys(PRESET_CAPABILITIES)) {
+    assert.equal(facts.filesByPreset[preset], expectedCreatedFiles('probe', preset).length + 1);
+  }
+});
+
+test('new formal games cannot disable stats, even when non-production or demo-hybrid', () => {
+  const root = makeFixtureRepo();
+  for (const preset of Object.keys(PRESET_CAPABILITIES)) {
+    assert.throws(
+      () =>
+        generateNewGame({
+          rootDir: root,
+          gameId: 'probe',
+          preset,
+          businessStats: false,
+        }),
+      /only for non-production demo reference/,
+    );
+  }
+  assert.throws(
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'demo',
+        preset: 'demo-hybrid',
+        production: true,
+        businessStats: false,
+      }),
+    /only for non-production demo reference/,
+  );
+  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
+});
+
+test('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {
+  const root = makeFixtureRepo();
+  const first = generateNewGame({ rootDir: root, gameId: 'firstprobe', preset: 'stage' });
+  const second = generateNewGame({ rootDir: root, gameId: 'secondprobe', preset: 'identity' });
+  const migration = readFixture(root, `packages/api-worker/migrations/${second.migrationName}`);
+  assert.ok(migration.includes(`from ${first.migrationName}`));
+  assert.ok(migration.includes('CREATE TABLE secondprobe_user_stats'));
+  assert.ok(!migration.includes('CREATE TABLE firstprobe_user_stats'));
+  const checks = [...migration.matchAll(/game_type IN \(([^)]*)\)/g)];
+  assert.ok(checks.length >= 2);
+  for (const [, list] of checks) {
+    assert.ok(list.includes("'firstprobe'"));
+    assert.ok(list.includes("'secondprobe'"));
+  }
+});
+
+test('stale registration CHECK lists fail before any generated file is written', () => {
+  assert.doesNotThrow(() =>
+    assertRegistrationGameTypes("game_type IN ('demo', 'werewolf')", ['werewolf', 'demo']),
+  );
+  assert.throws(
+    () =>
+      assertRegistrationGameTypes("game_type IN ('werewolf', 'demo', 'demo')", [
+        'werewolf',
+        'demo',
+      ]),
+    /does not match the canonical game set/,
+  );
+  assert.throws(
+    () =>
+      assertRegistrationGameTypes("game_type IN ('werewolf', 'demo')", [
+        'werewolf',
+        'demo',
+        'probe',
+      ]),
+    /does not match the canonical game set/,
+  );
+  const root = makeFixtureRepo();
+  const file = path.join(root, 'packages/api-worker/migrations/0065_demo.sql');
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replaceAll(", 'demo'", ''));
+  assert.throws(
+    () => generateNewGame({ rootDir: root, gameId: 'probe', preset: 'stage' }),
+    /does not match the canonical game set/,
+  );
+  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
 });
 
 test('production: true registers the new game as production and reports the list-only go-live step', () => {
@@ -880,17 +1052,12 @@ test('generated output passes format, lint, typecheck, engine and client tests w
             .join(' '),
         },
       });
-      const typescriptBin = require.resolve('typescript/bin/tsc');
       for (const project of [
         'packages/web/tsconfig.json',
         'packages/game-engine/tsconfig.test.json',
         'packages/api-worker/tsconfig.json',
       ]) {
-        execFileSync(process.execPath, [typescriptBin, '--noEmit', '--project', project], {
-          cwd: root,
-          stdio: 'pipe',
-          encoding: 'utf8',
-        });
+        typecheckFixture(root, project);
       }
       // The generated web tests (guidance matrix, review, failure copy)
       // render a different begin path per pack, so each pack proves its
@@ -915,6 +1082,11 @@ test('generated output passes format, lint, typecheck, engine and client tests w
           stdio: 'pipe',
           encoding: 'utf8',
         },
+      );
+      execFileSync(
+        process.execPath,
+        [resolveVitestBin(root, 'packages/api-worker'), 'run', 'src/games/aaprobe'],
+        { cwd: path.join(root, 'packages/api-worker'), stdio: 'pipe', encoding: 'utf8' },
       );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
@@ -1241,6 +1413,7 @@ test('regenerating demo with the demo-hybrid pack reproduces the shipped demo', 
       subtitle: '模板参照游戏',
       iconName: 'game-controller-outline',
       tier: 'mini',
+      businessStats: false,
     });
     const consumed = new Set();
     for (const file of [...summary.createdFiles, ...summary.editedFiles]) {

@@ -41,7 +41,7 @@ The generator writes `new-game-<gameId>-report.md` at the repo root
 manual steps. Do not delete the report until every step is disposed
 of; record the disposition in the PR description.
 
-1. Finalise the design: fill the 10-item requirements table in the
+1. Finalise the design: fill the 11-item requirements table in the
    generated design doc with the approved design. Display name,
    subtitle, icon, and default player counts in the skeleton are
    placeholders. Identity presets also replace the `TODO_IDENTITY`
@@ -62,13 +62,19 @@ of; record the disposition in the PR description.
    update `review/__tests__/<gameId>Review.test.ts` with them. The
    block vocabulary is closed (`packages/web/src/features/room/review/types.ts`):
    extend the platform vocabulary first; a game writes no review JSX.
-4. Confirm reward numbers: the three flat amounts are placeholders;
-   change them in `product/rewards/earnings.ts` (the registry entry
-   references the same constants).
+4. Confirm reward policy/numbers and statistics semantics. The generator
+   keeps flat rewards; approve flat or levelRoll explicitly, and confirm
+   values in `packages/game-engine/src/product/rewards/earnings.ts`
+   (registry references the same constants). The generated count is one
+   completed game per eligible terminal completion. Approve and implement
+   gameplay metrics or explicitly approve count-only; specify units/round
+   labels, facts/ownership, denominators, time precision, missing history,
+   migration and visibility/cache policy.
 5. Review the migration: the generated file is mechanically derived
    from the latest registration migration. Verify the rebuild set
    against the current schema by hand; add game-owned tables to the
-   same file at its TODO.
+   same file under an approved policy. The default cumulative stats table
+   is already generated; no extra history or index is implied.
 6. E2E activation: the spec skeleton is
    `e2e/specs/<gameId>.spec.ts.tmpl` and is not in CI by default.
    Activating it means renaming it to `<gameId>.spec.ts` and adding
@@ -77,9 +83,11 @@ of; record the disposition in the PR description.
 7. Word supply, if needed: three registrations (see
    `references/skeleton-and-wiring.md`). The skeleton carries no
    workflow body.
-8. Re-run the gates: root `tsc --noEmit`, the `packages/web`
-   `tsc --noEmit`, engine / worker / web vitest, `pnpm run knip`, and
-   prettier/eslint on the changed files — all green before opening a PR.
+8. Re-run scoped engine/Worker/web tests and affected contracts, root
+   `tsc --noEmit`, changed-package typechecks, `knip`, the skill check
+   and changed-file prettier/eslint. Full suites/quality/E2E belong to CI.
+   Include stats eligibility, strict legacy/v2, atomic rollback/replay,
+   HTTP/profile/settings/count/unlock/cache and D1 cost evidence.
 9. Go live: if generated with `--production`, add the id to
    `PRODUCTION_GAME_TYPES` in
    `packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts` in
@@ -88,3 +96,8 @@ of; record the disposition in the PR description.
    that list. Changing only one is caught by the contract test
    (`homeProductionFilter.contract.test.ts` expects the production
    list to equal the `isProduction` games exactly).
+
+Each step's disposition is implementation plus verification, or an
+explicitly approved not-applicable reason. Matching the production list
+and green contracts is not sufficient: unapproved semantics, unimplemented
+metrics, missing migration review or incomplete verification block go-live.

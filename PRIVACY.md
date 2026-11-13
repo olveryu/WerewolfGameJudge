@@ -21,6 +21,8 @@
 
 密码以 PBKDF2-SHA256 哈希形式保存；刷新令牌、登录限流邮箱和密码重置验证码也只在服务端保存哈希或不可逆摘要。请勿在昵称、AI 对话、反馈、笔记或图片中填写不必要的敏感个人信息。
 
+符合结算条件的游戏会保存按账号累计的游戏统计，包括完成局数、身份与胜负、猜词次数及用时、创作次数、得分，以及你画我猜收到的鲜花、鸡蛋和番茄数量。统计可被其他已登录用户通过玩家资料查看；狼人杀阵营统计和对应局数延迟两小时展示，其他游戏结算后展示。你画我猜局内互动会显示发送者，猜词正文不因累计统计而额外留存。狼人杀已有逐局阵营记录继续保留，以支持延迟展示和幂等结算。
+
 ### 2. 设备本地存储
 
 应用通过 MMKV（Web 端使用浏览器站点存储）在设备上保存认证令牌、用户 ID、登录状态、设置、最近房间、待恢复的房间命令和创建请求、AI 气泡位置等运行数据。狼人杀笔记和每个用户/房间最近最多 50 条 AI 对话也保存在本地。
@@ -128,6 +130,8 @@ The project does not sell personal data or use it for targeted advertising. The 
 | Diagnostics and usage      | Request method and route label, status, duration, browser or device details, resource URLs and load performance, country, Cloudflare data center, network provider/ASN, AI model, and call status | Diagnosing faults, monitoring availability, measuring performance, limiting abuse, and improving the service |
 
 Passwords are stored as PBKDF2-SHA256 hashes. Refresh tokens, login-rate-limit emails, and password-reset codes are also stored server-side only as hashes or irreversible digests. Do not place unnecessary sensitive personal data in a display name, AI chat, feedback, note, or image.
+
+Eligible completed games retain per-account cumulative statistics, including completed games, roles and wins, guess attempts and elapsed times, creative submissions, scores, and flowers, eggs, and tomatoes received in Draw and Guess. Other signed-in users can view these statistics in player profiles. Werewolf camp statistics and their game count become visible after two hours; other games are visible after settlement. In-room Draw and Guess reactions identify their senders. Cumulative statistics do not additionally retain guessed text. Existing per-game Werewolf camp records are retained for delayed visibility and idempotent settlement.
 
 ### 2. On-Device Storage
 

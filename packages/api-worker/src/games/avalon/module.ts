@@ -4,11 +4,13 @@ import {
   AVALON_STATE_CODEC,
   avalonEngine,
   migratePersistedAvalonState,
+  parseAvalonPublicStats,
 } from '@game-judge/game-engine/games/avalon/public';
 
 import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { avalonEffectSchema, handleAvalonEffect } from './effects';
+import { getAvalonPublicUserStats } from './publicUserStats';
 import {
   avalonCreateConfigSchema,
   avalonInternalCommandSchema,
@@ -25,6 +27,8 @@ export const avalonWorkerModule = defineWorkerGameModule({
   internalCommandSchema: avalonInternalCommandSchema,
   effectSchema: avalonEffectSchema,
   httpRoutes: [],
+  parsePublicUserStats: parseAvalonPublicStats,
+  getPublicUserStats: getAvalonPublicUserStats,
   getEffectBusinessKey: (effect) =>
     effect.type === 'avalon.settle.due'
       ? settleDueBusinessKey('avalon:settle', effect.payload)

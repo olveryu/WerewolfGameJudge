@@ -169,6 +169,16 @@
   font-weight: var(--weight-bold);
 }
 
+.profile-stats[data-game-scope='true'] .profile-stat dd {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.profile-stats[data-game-scope='true'] .profile-stat dt {
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+}
+
 .profile-stat dt {
   margin-top: var(--space-micro);
   color: var(--color-text-muted);

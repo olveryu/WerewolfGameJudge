@@ -72,6 +72,7 @@ import type {
   RoomHostManagementAction,
   RoomHostManagementSection,
 } from '@/features/room/model/RoomHostManagement';
+import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
   RoomSeatIndicators,
@@ -691,6 +692,7 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
+  readonly gameDetails?: RoomProfileCardModel['gameDetails'];
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
@@ -975,6 +977,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       capabilities: input.capabilities,
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
+      gameDetails: input.gameDetails,
     }),
     bottomActions: createAvalonBottomActions({
       state,

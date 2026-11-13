@@ -36,6 +36,7 @@ import { decideDemoRoom } from './domain/seating';
 import { normalizeDemoState } from './state/normalize';
 import {
   DEMO_GAME_TYPE,
+  DEMO_MIN_PLAYERS,
   type DemoConfig,
   type DemoState,
   getDemoViewingParticipants,
@@ -62,14 +63,17 @@ function createInitialState(config: DemoConfig, context: CreateGameContext): Dem
 }
 
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
-function completionEffect(state: DemoState, context: CommandContext): DemoEffect {
+function completionEffect(state: DemoState, context: CommandContext): DemoEffect | null {
+  const payload = buildGameCompletionPayload({
+    roundId: `demo:game:${state.gameSequence}`,
+    completedAt: context.nowMs,
+    humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
+    minimumHumanPlayers: DEMO_MIN_PLAYERS,
+  });
+  if (payload === null) return null;
   return {
     type: 'demo.game.completed',
-    payload: buildGameCompletionPayload({
-      roundId: `demo:game:${state.gameSequence}`,
-      completedAt: context.nowMs,
-      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-    }),
+    payload,
   };
 }
 
@@ -219,10 +223,8 @@ function returnToLobby(state: DemoState, context: CommandContext): DemoDecision 
  */
 export function endDemoGame(state: DemoState, context: CommandContext): DemoDecision {
   if (state.phase.kind !== 'playing') return reject(DEMO_REASONS.phase);
-  return commitDemo(
-    [{ type: 'demo.game.ended' }],
-    state.xpSettled ? [] : [completionEffect(state, context)],
-  );
+  const effect = state.xpSettled ? null : completionEffect(state, context);
+  return commitDemo([{ type: 'demo.game.ended' }], effect === null ? [] : [effect]);
 }
 
 function decideCommand(

@@ -7,6 +7,7 @@ import {
   FIB_WORD_SOURCES,
   type FibEffect,
   type FibInternalCommand,
+  fibkingCompletionPayloadSchema,
   type FibRecordWordUsageEffect,
   type FibSelectWordEffect,
   type FibState,
@@ -21,6 +22,7 @@ import {
 } from '../../features/account/settleGameRewards';
 import { dispatchEffectCommand } from '../../platform/gameModules/effectDispatch';
 import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
+import { fibStatsSettlement } from './publicUserStats';
 import { FibWordInventoryExhaustedError, getOrCreateFibWordSelection } from './wordSelection';
 import { recordFibWordUsage } from './wordUsage';
 
@@ -49,7 +51,7 @@ export const fibEffectSchema: z.ZodType<FibEffect> = z.discriminatedUnion('type'
   recordWordUsageEffectSchema,
   z.strictObject({
     type: z.literal('fibking.game.completed'),
-    payload: gameCompletionPayloadSchema,
+    payload: z.union([gameCompletionPayloadSchema, fibkingCompletionPayloadSchema]),
   }),
 ]);
 
@@ -201,6 +203,7 @@ export async function handleFibEffect(
       await publishGameRewards(
         { ...effect.payload, kind: 'completion', gameType: 'fibking' },
         context,
+        'stats' in effect.payload ? fibStatsSettlement(effect.payload.stats) : undefined,
       );
       return;
   }

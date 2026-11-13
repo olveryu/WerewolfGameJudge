@@ -4,12 +4,14 @@ import {
   DRAWGUESS_STATE_CODEC,
   drawGuessEngine,
   migratePersistedDrawGuessState,
+  parseDrawGuessPublicStats,
 } from '@game-judge/game-engine/games/drawguess/public';
 
 import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { drawGuessEffectSchema, handleDrawGuessEffect } from './effects';
 import { drawGuessMediaRoutes } from './mediaRoutes';
+import { getDrawGuessPublicUserStats } from './publicUserStats';
 import {
   drawGuessCreateConfigSchema,
   drawGuessInternalCommandSchema,
@@ -25,6 +27,8 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
   publicCommandSchema: drawGuessPublicCommandSchema,
   internalCommandSchema: drawGuessInternalCommandSchema,
   effectSchema: drawGuessEffectSchema,
+  parsePublicUserStats: parseDrawGuessPublicStats,
+  getPublicUserStats: getDrawGuessPublicUserStats,
   httpRoutes: [
     {
       path: '/api/games/drawguess/rooms',

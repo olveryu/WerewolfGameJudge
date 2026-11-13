@@ -2,6 +2,7 @@
 
 import {
   migratePersistedPictionaryState,
+  parsePictionaryPublicStats,
   PICTIONARY_STATE_CODEC,
   pictionaryEngine,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -10,6 +11,7 @@ import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameMo
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handlePictionaryEffect } from './effects';
 import { pictionaryMediaRoutes } from './mediaRoutes';
+import { getPictionaryPublicUserStats } from './publicUserStats';
 import {
   pictionaryCreateConfigSchema,
   pictionaryEffectSchema,
@@ -26,6 +28,8 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
   publicCommandSchema: pictionaryPublicCommandSchema,
   internalCommandSchema: pictionaryInternalCommandSchema,
   effectSchema: pictionaryEffectSchema,
+  parsePublicUserStats: parsePictionaryPublicStats,
+  getPublicUserStats: getPictionaryPublicUserStats,
   httpRoutes: [
     {
       path: '/api/games/pictionary/rooms',

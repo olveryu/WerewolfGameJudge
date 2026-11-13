@@ -1,0 +1,33 @@
+import { __GAME_CAMEL__CompletionPayloadSchema, parse__GAME_PASCAL__PublicStats } from '../publicStats';
+import { describe, expect, it } from 'vitest';
+
+describe('__GAME_PASCAL__ statistics contracts', () => {
+  it('rejects missing, invalid and unknown public counts instead of defaulting them', () => {
+    expect(parse__GAME_PASCAL__PublicStats({ gameType: '__GAME_ID__', gamesPlayed: 0 })).toEqual({
+      gameType: '__GAME_ID__', gamesPlayed: 0,
+    });
+    for (const gamesPlayed of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1, undefined]) {
+      expect(() => parse__GAME_PASCAL__PublicStats({ gameType: '__GAME_ID__', gamesPlayed })).toThrow();
+    }
+    expect(() => parse__GAME_PASCAL__PublicStats({
+      gameType: '__GAME_ID__', gamesPlayed: 1, wins: 1,
+    })).toThrow();
+  });
+
+  it('requires exact v2 facts matching the completion roster in seat order', () => {
+    const payload = {
+      roundId: 'round', completedAt: 1, participantUserIds: ['u1', 'u2'],
+      completionVersion: 2, stats: [{ userId: 'u1', gamesPlayed: 1 }, { userId: 'u2', gamesPlayed: 1 }],
+    };
+    expect(__GAME_CAMEL__CompletionPayloadSchema.parse(payload)).toEqual(payload);
+    for (const stats of [
+      [payload.stats[0]],
+      [payload.stats[1], payload.stats[0]],
+      [payload.stats[0], payload.stats[0]],
+      [{ ...payload.stats[0], wins: 1 }, payload.stats[1]],
+      [{ userId: 'u1', gamesPlayed: 2 }, payload.stats[1]],
+    ]) {
+      expect(__GAME_CAMEL__CompletionPayloadSchema.safeParse({ ...payload, stats }).success).toBe(false);
+    }
+  });
+});

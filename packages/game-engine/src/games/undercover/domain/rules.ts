@@ -7,7 +7,8 @@ export const UNDERCOVER_BLANK_MIN_PLAYERS = 6;
 /** 白板独赢的存活总人数：白板加最后一名对手。 */
 export const UNDERCOVER_BLANK_WIN_TOTAL_SURVIVORS = 2;
 
-export type UndercoverRole = 'civilian' | 'undercover' | 'blank';
+export const UNDERCOVER_ROLES = ['civilian', 'undercover', 'blank'] as const;
+export type UndercoverRole = (typeof UNDERCOVER_ROLES)[number];
 
 /** Single source of the role display names (Chinese), shared by every client surface. */
 export const UNDERCOVER_ROLE_NAMES: Readonly<Record<UndercoverRole, string>> = {

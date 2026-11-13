@@ -130,6 +130,9 @@ export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
   readonly controlledSeat: number | null;
   readonly seatController: RoomSeatController;
   readonly profileSelection: RoomProfileSelection | null;
+//#cap businessStats
+  readonly gameDetails: Parameters<typeof createRoomProfileCardModel>[0]['gameDetails'];
+//#end
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
@@ -383,6 +386,9 @@ export function create__GAME_PASCAL__RoomShellModel(
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
+//#cap businessStats
+      gameDetails: input.gameDetails,
+//#end
       capabilities: input.capabilities,
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,

@@ -6,9 +6,16 @@ import {
   commit,
   type Decision,
 } from '../../../platform/engine';
+import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import { type RosterChange } from '../../../platform/room/seating';
-import type { DrawGuessMedia, DrawGuessStroke, DrawGuessWordChoice } from '../state/types';
+import type { DrawGuessCompletionPayload } from '../publicStats';
+import type {
+  DrawGuessMedia,
+  DrawGuessReaction,
+  DrawGuessStroke,
+  DrawGuessWordChoice,
+} from '../state/types';
 import { type DrawGuessHumanSeat, type DrawGuessState } from '../state/types';
 
 export const DRAWGUESS_REASONS = {
@@ -31,6 +38,9 @@ export const DRAWGUESS_REASONS = {
   occupied: 'drawguess_occupied_seat_out_of_range',
   deadline: 'drawguess_deadline_not_reached',
   rateLimited: 'drawguess_rate_limited',
+  reaction: 'drawguess_reaction_invalid',
+  reactionAlreadySent: 'drawguess_reaction_already_sent',
+  reactionSelf: 'drawguess_reaction_self',
 } as const;
 
 export type DrawGuessEvent =
@@ -84,6 +94,12 @@ export type DrawGuessEvent =
       readonly deadlineAt: number;
     }
   | {
+      readonly type: 'drawguess.reaction.sent';
+      readonly turnIndex: number;
+      readonly seat: number;
+      readonly reaction: DrawGuessReaction;
+    }
+  | {
       readonly type: 'drawguess.round.ended';
       readonly turnIndex: number;
       readonly drawerSeat: number;
@@ -114,11 +130,7 @@ export type DrawGuessEffect =
   | DrawGuessRecordSeenWordEffect
   | {
       readonly type: 'drawguess.game.completed';
-      readonly payload: {
-        readonly roundId: string;
-        readonly completedAt: number;
-        readonly participantUserIds: readonly string[];
-      };
+      readonly payload: GameCompletionPayload | DrawGuessCompletionPayload;
     }
   | DrawGuessSettleDueEffect;
 

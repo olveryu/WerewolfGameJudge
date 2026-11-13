@@ -32,6 +32,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { type RoomReviewController, useRoomReview } from '@/features/room/review/useRoomReview';
+import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { type StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
 
 import {
@@ -117,6 +118,7 @@ export function useStoryRelayRoomState(
     configureGame: () => void navigate(gameConfigEditPath('storyrelay', room.roomCode)),
     shareRoom: share.open,
   });
+  const gameDetails = useGameProfileDetails(profile.selection, '故事接龙战绩', '本游戏局数');
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
@@ -168,6 +170,7 @@ export function useStoryRelayRoomState(
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     seatController,
     profileSelection: profile.selection,
+    gameDetails,
     onProfileClose: profile.close,
     onProfileLeaveSeat: profile.leaveSelf,
     share,

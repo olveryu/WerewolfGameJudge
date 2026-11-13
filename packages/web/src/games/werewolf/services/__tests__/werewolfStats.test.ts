@@ -1,6 +1,10 @@
 import { requestSpecAt, respondWithJson as queueJson, spyOnApiJson } from '@/test-utils/apiClient';
 
-import { fetchWerewolfPublicStats, werewolfPublicStatsOptions } from '../werewolfStats';
+import {
+  fetchWerewolfPublicStats,
+  getWerewolfStatsRefetchDelay,
+  werewolfPublicStatsOptions,
+} from '../werewolfStats';
 
 const jsonSpy = spyOnApiJson();
 
@@ -59,5 +63,12 @@ describe('werewolfStats', () => {
       'stats',
     ]);
     expect(werewolfPublicStatsOptions('user-1').staleTime).toBe(0);
+  });
+
+  it('only schedules a refetch for a future visibility boundary', () => {
+    expect(getWerewolfStatsRefetchDelay(15_000, 10_000)).toBe(5_000);
+    expect(getWerewolfStatsRefetchDelay(9_000, 10_000)).toBe(false);
+    expect(getWerewolfStatsRefetchDelay(null, 10_000)).toBe(false);
+    expect(getWerewolfStatsRefetchDelay(undefined, 10_000)).toBe(false);
   });
 });

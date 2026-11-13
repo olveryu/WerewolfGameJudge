@@ -4,7 +4,7 @@
  */
 
 import {
-  buildGameCompletionPayload,
+  buildGameCompletionPayloadV2,
   type CommandContext,
   reject,
   resolveHostActorId,
@@ -42,8 +42,14 @@ import {
   type UndercoverState,
 } from '../state/types';
 import { commitUndercover, UNDERCOVER_REASONS, type UndercoverDecision } from './decision';
-import type { UndercoverEffect } from './events';
-import { getUndercoverRoleCounts, getUndercoverWinner, type UndercoverRole } from './rules';
+import type { UndercoverEffect, UndercoverEvent } from './events';
+import { evolveUndercoverState } from './evolve';
+import {
+  getUndercoverRoleCounts,
+  getUndercoverWinner,
+  UNDERCOVER_MIN_PLAYERS,
+  type UndercoverRole,
+} from './rules';
 
 type RoundCommand = Exclude<
   UndercoverCommand,
@@ -210,21 +216,41 @@ function decideRevelation(
   const winner = getUndercoverWinner(
     state.round.roles.filter((_, index) => !eliminated.has(index)),
   );
-  return commitUndercover(
-    [{ type: 'undercover.round.revealed', revelation, winner }],
-    winner === null
-      ? []
-      : [
-          {
-            type: 'undercover.game.completed',
-            payload: buildGameCompletionPayload({
-              roundId: state.round.roundId,
-              completedAt: context.nowMs,
-              humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-            }),
-          },
-        ],
-  );
+  const event: Extract<UndercoverEvent, { readonly type: 'undercover.round.revealed' }> = {
+    type: 'undercover.round.revealed',
+    revelation,
+    winner,
+  };
+  const effects: UndercoverEffect[] = [];
+  if (winner !== null) {
+    const completedState = evolveUndercoverState(state, event);
+    if (completedState.phase !== 'ended') {
+      throw new Error('Undercover completion requires an ended round');
+    }
+    const humans = Object.values(
+      getHumanSeatMap(completedState.roster, completedState.config.numberOfPlayers),
+    );
+    const stats = humans.map((human) => {
+      const role = completedState.round.roles[human.seat];
+      if (role === undefined) {
+        throw new Error(`Undercover completion is missing role for seat ${human.seat}`);
+      }
+      return {
+        userId: human.userId,
+        role,
+        won: role === completedState.winner,
+      };
+    });
+    const payload = buildGameCompletionPayloadV2({
+      roundId: completedState.round.roundId,
+      completedAt: context.nowMs,
+      humans,
+      minimumHumanPlayers: UNDERCOVER_MIN_PLAYERS,
+      stats,
+    });
+    if (payload !== null) effects.push({ type: 'undercover.game.completed', payload });
+  }
+  return commitUndercover([event], effects);
 }
 
 /** Decides one round operation; @pre actor identity is authenticated by the platform. */

@@ -337,7 +337,18 @@ describe('Pictionary task sequence', () => {
                     payload: {
                       roundId: state.roundId,
                       completedAt: context.nowMs,
+                      completionVersion: 2,
                       participantUserIds: hasContent ? ['user-0'] : [],
+                      stats: hasContent
+                        ? [
+                            {
+                              userId: 'user-0',
+                              gamesPlayed: 1,
+                              textSubmissions: 1,
+                              drawingSubmissions: 0,
+                            },
+                          ]
+                        : [],
                     },
                   },
                 ]

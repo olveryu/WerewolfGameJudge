@@ -1,6 +1,7 @@
 /** Werewolf-owned D1 table definitions imported directly by Werewolf persistence. */
 
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { users } from '../../features/account/dbSchema';
 
@@ -17,10 +18,40 @@ export const campSettlements = sqliteTable(
     camp: text('camp').notNull(),
     /** ISO 8601 UTC; drives the two-hour public visibility delay. */
     settledAt: text('settled_at').notNull(),
+    isAggregated: integer('is_aggregated').notNull().default(0),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.settleKey] }),
-    index('idx_camp_settlements_user_settled').on(table.userId, table.settledAt),
+    index('idx_camp_pending_user')
+      .on(table.userId, sql`datetime(${table.settledAt})`, table.camp)
+      .where(sql`${table.isAggregated} = 0`),
+    index('idx_camp_pending_due')
+      .on(sql`datetime(${table.settledAt})`, table.userId, table.settleKey)
+      .where(sql`${table.isAggregated} = 0`),
+    check(
+      'camp_settlements_valid_row',
+      sql`${table.isAggregated} IN (0, 1) AND ${table.camp} IN ('wolf', 'god', 'villager', 'third') AND datetime(${table.settledAt}) IS NOT NULL`,
+    ),
+  ],
+);
+
+/** Public camp counts whose original settlement records have been atomically aggregated. */
+export const werewolfUserCampStats = sqliteTable(
+  'werewolf_user_camp_stats',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    wolfCount: integer('wolf_count').notNull().default(0),
+    godCount: integer('god_count').notNull().default(0),
+    villagerCount: integer('villager_count').notNull().default(0),
+    thirdCount: integer('third_count').notNull().default(0),
+  },
+  (table) => [
+    check(
+      'werewolf_camp_counts_nonnegative',
+      sql`${table.wolfCount} >= 0 AND ${table.godCount} >= 0 AND ${table.villagerCount} >= 0 AND ${table.thirdCount} >= 0`,
+    ),
   ],
 );
 

@@ -15,6 +15,14 @@ export {
   expiringPhaseDeadlineAt,
   getDrawGuessLifecycle,
 } from './engine';
+export {
+  type DrawGuessCompletionPayload,
+  drawGuessCompletionPayloadSchema,
+  type DrawGuessCompletionStatsFact,
+  type DrawGuessPublicStats,
+  drawGuessPublicStatsSchema,
+  parseDrawGuessPublicStats,
+} from './publicStats';
 export { DRAWGUESS_STATE_CODEC } from './state/codec';
 export {
   migratePersistedDrawGuessState,
@@ -34,6 +42,7 @@ export {
   DRAWGUESS_HINT_REVEAL_INTERVAL_SECONDS,
   DRAWGUESS_MAX_PLAYERS,
   DRAWGUESS_MIN_PLAYERS,
+  DRAWGUESS_REACTIONS,
   DRAWGUESS_ROUND_END_SECONDS,
   DRAWGUESS_ROUNDS_PER_DRAWER,
   DRAWGUESS_WORD_CATEGORIES,
@@ -44,6 +53,7 @@ export {
   type DrawGuessDrawingReservation,
   type DrawGuessMedia,
   type DrawGuessPhase,
+  type DrawGuessReaction,
   type DrawGuessState,
   type DrawGuessStroke,
   type DrawGuessTurnRecord,

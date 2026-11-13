@@ -11,6 +11,7 @@ function game(
   numberOfPlayers = 4,
   galleryItemDurationSeconds: 10 | null = null,
   writingDurationSeconds = DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds,
+  humanCount = 1,
 ) {
   const session = createEngineSession(storyRelayEngine, {
     config: {
@@ -24,8 +25,16 @@ function game(
     randomSeed: 'round',
   });
   const send = (command: StoryRelayCommand, seat: number | null = null) =>
-    session.send(command, 'host', seat);
+    seat !== null && seat < humanCount
+      ? session.send(command, `u${seat}`)
+      : session.send(command, 'host', seat);
   send({ type: 'room.seat.take', seat: 0, profile: { displayName: 'Host' } });
+  for (let seat = 1; seat < humanCount; seat += 1) {
+    session.send(
+      { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+      `u${seat}`,
+    );
+  }
   send({ type: 'room.seat.fillBots' });
   send({ type: 'storyrelay.game.begin' });
   return {
@@ -65,7 +74,12 @@ describe('Story Relay engine', () => {
   it.each([4, 5, 6, 20])(
     'completes exactly %i turns and rewards only participating humans',
     (numberOfPlayers) => {
-      const session = game(numberOfPlayers);
+      const session = game(
+        numberOfPlayers,
+        null,
+        DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds,
+        4,
+      );
       expect(session.state.startedAt).toBe(1000);
       for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
         expect(session.state.stepIndex).toBe(stepIndex);
@@ -105,7 +119,18 @@ describe('Story Relay engine', () => {
       expect(
         session.effects.filter((effect) => effect.type === 'storyrelay.game.completed')[0]!.payload
           .participantUserIds,
-      ).toEqual(['host']);
+      ).toEqual(['host', 'u1', 'u2', 'u3']);
+      const completion = session.effects.find(
+        (effect) => effect.type === 'storyrelay.game.completed',
+      );
+      expect(completion?.payload).toMatchObject({
+        completionVersion: 2,
+        stats: ['host', 'u1', 'u2', 'u3'].map((userId) => ({
+          userId,
+          gamesPlayed: 1,
+          paragraphsSubmitted: numberOfPlayers,
+        })),
+      });
       session.send({
         type: 'storyrelay.gallery.advance',
         phaseRevision: session.state.phaseRevision,
@@ -128,6 +153,33 @@ describe('Story Relay engine', () => {
       expect(session.state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
     },
   );
+
+  it.each([3, 4])('gates %i humans before applying the paragraph-author filter', (humanCount) => {
+    const session = game(4, null, DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds, humanCount);
+    for (let step = 0; step < 4; step += 1) {
+      session.finish();
+      for (let seat = 0; seat < 4; seat += 1) {
+        session.send(
+          seat === 0
+            ? { type: 'storyrelay.text.submit', ...session.task(seat), text: 'A paragraph' }
+            : { type: 'storyrelay.task.empty.submit', ...session.task(seat) },
+          seat === 0 ? null : seat,
+        );
+      }
+      session.expire();
+    }
+    const completions = session.effects.filter(
+      (effect) => effect.type === 'storyrelay.game.completed',
+    );
+    expect(completions).toHaveLength(humanCount === 4 ? 1 : 0);
+    if (humanCount === 4) {
+      expect(completions[0]?.payload).toMatchObject({
+        completionVersion: 2,
+        participantUserIds: ['host'],
+        stats: [{ userId: 'host', gamesPlayed: 1, paragraphsSubmitted: 4 }],
+      });
+    }
+  });
 
   it('collects empty tasks and rejects duplicate and late submissions', () => {
     const session = game();

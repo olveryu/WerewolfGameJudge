@@ -54,8 +54,54 @@ Roster and takeover use the platform structures:
 `packages/game-engine/src/platform/room/seating/` (roster decisions
 and selectors) and the shared `useBotTakeover` assembly in
 `packages/web/src/features/room/controllers/`. Read the platform files before
-implementing; details beyond these names were not verified for this
-draft.
+implementing and preserve each game's in-game click and lifecycle policies.
+
+## Statistics and settlement
+
+Every formal generated game ships a truthful completed-games baseline:
+
+- Engine `publicStats.ts` owns its typed public DTO/parser and exact v2
+  completion schema. `public.ts` is the only cross-package export.
+- The terminal seam first evolves terminal events, then builds facts
+  using `buildGameCompletionPayloadV2`. The minimum-human gate counts
+  pre-filter humans in seat order; anonymous humans count toward the
+  threshold, bots do not. Creative games must freeze their roster and
+  apply author filtering after counting, mapping facts to the same
+  filtered ordered recipients. Host-controlled bot actions belong to bots.
+- Worker `effects.ts` accepts a union of two strict shapes: old completion
+  payload (original rewards only), or complete v2 facts. Partial/malformed
+  v2 cannot downgrade to legacy. Do not remove compatibility without
+  reviewing in-flight and replayable effects and explicit approval.
+- `<id>_user_stats` is a game-owned cumulative table declared once in
+  `dbSchema.ts`, created by the registration migration, keyed by user,
+  with account-delete cascade and a nonnegative integer count. It has no
+  `game_type` constraint or per-game history ledger.
+- `publicUserStats.ts` supplies `countGameStats` to `publishGameRewards`.
+  The existing account helpers apply game counters and rewards in the
+  same D1 batch/`stats_applied` boundary; only registered reward recipients
+  accumulate and retries do not recount. Do not create a second deduper.
+- Worker module hooks `parsePublicUserStats` / `getPublicUserStats` bind
+  the existing authenticated `/api/games/:gameType/users/:userId/stats`
+  route; no additional game HTTP route is required.
+- Web query service uses `publicGameStatsOptions`, and `CLIENT_GAMES`
+  binds `AccountStats` to the game-owned shared `GameStatsPanel`.
+  Settings resolve that catalog contribution; the room hook calls
+  `useGameProfileDetails` and its screen binds the same panel through
+  `profileDetailsRenderer`. The
+  callback supplies unknown on pending/error and the actual count on
+  success, without changing existing item-unlock/equipment permissions. The account inbox
+  invalidates this query key on rewards; do not add another cache channel.
+
+The baseline counts one terminal completion, not wins/scores or a promise
+of complete gameplay metrics. Before go-live approve and implement metric
+sources/ownership, units (including round-settled labels), denominators,
+time precision, history gaps/backfill, state/payload/D1 migration policy
+and immediate/delayed visibility. Default is immediate and no invented
+historical facts; delay requires explicit visible-time/cache wiring.
+Tests must cover terminal/repeated/restart/abort, threshold boundaries,
+anonymous/bot/author ownership, strict legacy/v2, D1 atomic rollback/replay/
+cascade/cost, HTTP and profile/settings loading/error/empty/count states.
+Demo alone remains the explicit non-production/no-business-stat reference.
 
 ## Word supply: three registrations, no fewer
 
@@ -70,9 +116,9 @@ workflows — fibking, undercover, drawguess — are the examples):
 
 The first is pinned by the wordLibrary weld in
 `capabilities.contract.test.ts`; the second by the workflow
-re-export check in `architecture.contract.test.ts`; the third has no
-contract test and fails silently at deploy time if missed
-(`report.mjs`, step 7). The workflow body is hand-written at
+re-export check in `architecture.contract.test.ts`; also inspect the
+third's actual binding and generated Env types, rather than treating a
+registry test as deployment evidence. The workflow body is hand-written at
 `packages/api-worker/src/games/<game>/wordSupplyWorkflow.ts`. The
 in-game preparation protocol
 (`packages/game-engine/src/platform/room/preparation.ts`) and the

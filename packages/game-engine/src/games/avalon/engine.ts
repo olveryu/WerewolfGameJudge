@@ -2,7 +2,7 @@
 
 import { acknowledgeAudioQueue, guardAudioPlayback } from '../../platform/audio';
 import {
-  buildGameCompletionPayload,
+  buildGameCompletionPayloadV2,
   type CommandContext,
   type CommonGameLifecycle,
   type CreateGameContext,
@@ -50,6 +50,7 @@ import { normalizeAvalonState } from './state/normalize';
 import {
   AVALON_GAME_TYPE,
   AVALON_LADY_MIN_PLAYERS,
+  AVALON_MIN_PLAYERS,
   AVALON_NIGHT_STEPS,
   AVALON_QUESTS_TO_WIN,
   type AvalonBallot,
@@ -121,16 +122,52 @@ function settleDueEffect(
   });
 }
 
-/** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
-function completionEffect(state: AvalonState, context: CommandContext): AvalonEffect {
+/** Builds settlement facts only after applying the terminal event(s). */
+function completionEffect(
+  state: AvalonState,
+  terminalEvents: readonly AvalonEvent[],
+  context: CommandContext,
+): AvalonEffect | null {
+  let completedState = state;
+  for (const event of terminalEvents) completedState = evolveAvalonState(completedState, event);
+  if (completedState.phase.kind !== 'ended') {
+    throw new Error('Avalon completion requires a terminal state');
+  }
+  const winner = completedState.phase.winner;
+  const humans = Object.values(
+    getHumanSeatMap(completedState.roster, completedState.config.numberOfPlayers),
+  );
+  const stats = humans.map((human) => {
+    const role = completedState.roles[human.seat];
+    if (role === undefined)
+      throw new Error(`Avalon completion is missing role for seat ${human.seat}`);
+    return {
+      userId: human.userId,
+      role,
+      won: isAvalonEvilRole(role) === (winner === 'evil'),
+    };
+  });
+  const payload = buildGameCompletionPayloadV2({
+    roundId: `avalon:game:${completedState.gameSequence}`,
+    completedAt: context.nowMs,
+    humans,
+    minimumHumanPlayers: AVALON_MIN_PLAYERS,
+    stats,
+  });
+  if (payload === null) return null;
   return {
     type: 'avalon.game.completed',
-    payload: buildGameCompletionPayload({
-      roundId: `avalon:game:${state.gameSequence}`,
-      completedAt: context.nowMs,
-      humans: Object.values(getHumanSeatMap(state.roster, state.config.numberOfPlayers)),
-    }),
+    payload,
   };
+}
+
+function completionEffects(
+  state: AvalonState,
+  events: readonly AvalonEvent[],
+  context: CommandContext,
+): readonly AvalonEffect[] {
+  const effect = completionEffect(state, events, context);
+  return effect === null ? [] : [effect];
 }
 
 /**
@@ -371,20 +408,19 @@ function buildVoteSettlement(
   const abstainCount = getAvalonOccupiedSeatCount(state) - approveCount - rejectCount;
   const approved = approveCount > rejectCount;
   const vetoLimitReached = !approved && state.rejectStreak + 1 >= state.config.vetoLimit;
+  const event: AvalonEvent = {
+    type: 'avalon.vote.settled',
+    approved,
+    ballots: { ...ballots },
+    approveCount,
+    rejectCount,
+    abstainCount,
+    nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
+    vetoLimitReached,
+  };
   return {
-    events: [
-      {
-        type: 'avalon.vote.settled',
-        approved,
-        ballots: { ...ballots },
-        approveCount,
-        rejectCount,
-        abstainCount,
-        nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
-        vetoLimitReached,
-      },
-    ],
-    effects: vetoLimitReached && !state.xpSettled ? [completionEffect(state, context)] : [],
+    events: [event],
+    effects: vetoLimitReached && !state.xpSettled ? completionEffects(state, [event], context) : [],
   };
 }
 
@@ -504,19 +540,20 @@ function commitQuestSettled(
   // 只有失败数到 3 才真正终局（threeFail）；成功数到 3 进刺杀阶段，
   // 结算 effect 在刺杀指认后才发。
   const gameEnded = failures >= AVALON_QUESTS_TO_WIN;
+  const events: readonly AvalonEvent[] = [
+    ...priorEvents,
+    {
+      type: 'avalon.quest.settled',
+      round: state.phase.round,
+      successCount,
+      failCount,
+      result,
+      historyEntry,
+    },
+  ];
   return commitAvalon(
-    [
-      ...priorEvents,
-      {
-        type: 'avalon.quest.settled',
-        round: state.phase.round,
-        successCount,
-        failCount,
-        result,
-        historyEntry,
-      },
-    ],
-    gameEnded && !state.xpSettled ? [completionEffect(state, context)] : [],
+    events,
+    gameEnded && !state.xpSettled ? completionEffects(state, events, context) : [],
   );
 }
 
@@ -644,17 +681,13 @@ function accuseAssassin(
   );
   if (targetRejection !== null) return targetRejection;
   const hit = state.roles[target] === 'merlin';
-  return commitAvalon(
-    [
-      {
-        type: 'avalon.game.ended',
-        winner: hit ? 'evil' : 'good',
-        reason: hit ? 'assassinationHit' : 'assassinationMiss',
-        accusedSeat: target,
-      },
-    ],
-    state.xpSettled ? [] : [completionEffect(state, context)],
-  );
+  const event: AvalonEvent = {
+    type: 'avalon.game.ended',
+    winner: hit ? 'evil' : 'good',
+    reason: hit ? 'assassinationHit' : 'assassinationMiss',
+    accusedSeat: target,
+  };
+  return commitAvalon([event], state.xpSettled ? [] : completionEffects(state, [event], context));
 }
 
 /**
@@ -680,17 +713,13 @@ function earlyStrike(state: AvalonState, target: number, context: CommandContext
   );
   if (targetRejection !== null) return targetRejection;
   const hit = state.roles[target] === 'merlin';
-  return commitAvalon(
-    [
-      {
-        type: 'avalon.game.ended',
-        winner: hit ? 'evil' : 'good',
-        reason: hit ? 'earlyAssassinationHit' : 'earlyAssassinationMiss',
-        accusedSeat: target,
-      },
-    ],
-    state.xpSettled ? [] : [completionEffect(state, context)],
-  );
+  const event: AvalonEvent = {
+    type: 'avalon.game.ended',
+    winner: hit ? 'evil' : 'good',
+    reason: hit ? 'earlyAssassinationHit' : 'earlyAssassinationMiss',
+    accusedSeat: target,
+  };
+  return commitAvalon([event], state.xpSettled ? [] : completionEffects(state, [event], context));
 }
 
 /** Aborts an unfinished game without completion rewards or roster changes. */

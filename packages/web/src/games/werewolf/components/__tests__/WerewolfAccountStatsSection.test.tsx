@@ -27,8 +27,6 @@ describe('WerewolfAccountStatsSection', () => {
 
     render(<WerewolfAccountStatsSection userId="user-1" />);
 
-    expect(screen.getByRole('heading', { name: '狼人杀阵营分布' })).toBeInTheDocument();
-    expect(screen.getByText('4 局')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
     expect(mockUseWerewolfPublicStats).toHaveBeenCalledWith('user-1');
   });

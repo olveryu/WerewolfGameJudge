@@ -1,0 +1,31 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { GameStatsNote, GameStatsPanel, GameStatsRow } from '@/components/GameStatsPanel';
+import type { GameStatsProps } from '@/games/model/GameStatsProps';
+
+import { __GAME_CAMEL__PublicStatsOptions } from '../services/__GAME_CAMEL__Stats';
+
+export function __GAME_PASCAL__StatsPanel({ userId, onGamesPlayedChange }: GameStatsProps) {
+  const { data, isPending, isError } = useQuery(__GAME_CAMEL__PublicStatsOptions(userId));
+  return (
+    <GameStatsPanel
+      gamesPlayed={data?.gamesPlayed}
+      onGamesPlayedChange={onGamesPlayedChange}
+      isLoading={isPending}
+      isError={isError}
+      loadingLabel="加载__GAME_DISPLAY_NAME__战绩"
+      errorLabel="__GAME_DISPLAY_NAME__战绩加载失败"
+      emptyTitle="暂无__GAME_DISPLAY_NAME__战绩"
+      emptyDescription="完成一局符合结算条件的游戏后，这里会留下你的记录。"
+    >
+      {data !== undefined && (
+        <>
+          {onGamesPlayedChange === undefined && (
+            <GameStatsRow label="完成局数" value={`${data.gamesPlayed}局`} />
+          )}
+          <GameStatsNote>仅记录符合真人门槛的正常终局，不推算胜率或得分。</GameStatsNote>
+        </>
+      )}
+    </GameStatsPanel>
+  );
+}

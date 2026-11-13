@@ -16,5 +16,6 @@ export interface RoomProfileCardModel {
   readonly gameDetails: {
     readonly title: string;
     readonly statsUserId: string;
+    readonly countLabel: string;
   } | null;
 }
