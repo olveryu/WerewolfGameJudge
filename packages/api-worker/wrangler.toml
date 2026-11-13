@@ -143,6 +143,18 @@ name = "drawguess-word-supply"
 binding = "DRAWGUESS_WORD_SUPPLY"
 class_name = "DrawGuessWordSupplyWorkflow"
 
+[[workflows]]
+name = "word-submission-review"
+binding = "WORD_SUBMISSION_REVIEW"
+class_name = "WordSubmissionReviewWorkflow"
+
+[[ratelimits]]
+name = "WORD_SUBMISSION_LIMITER"
+namespace_id = "1003"
+[ratelimits.simple]
+limit = 30
+period = 60
+
 # ── Local Dev Server ─────────────────────────────────────────────────────────
 # Bind to localhost so Expo Web (localhost:8081) and wrangler share the same
 # hostname, avoiding cross-origin preflight issues in the browser.

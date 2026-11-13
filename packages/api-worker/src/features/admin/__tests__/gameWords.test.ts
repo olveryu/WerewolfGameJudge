@@ -38,6 +38,7 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
+    env.DB.prepare('DELETE FROM word_submission_evidence_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
     env.DB.prepare('DELETE FROM fib_words'),
@@ -269,12 +270,20 @@ describe('GET /admin/games/words/stats', () => {
                 (?, 'extraction'),
                 (?, 'discovery')`,
       ).bind(packA, packA, packA, packA, packB, packPrev),
+      env.DB.prepare(
+        `INSERT INTO word_submission_evidence_requests (id, claimed_at)
+         VALUES ('external-search', ?), ('external-extract', ?), ('previous-external', ?)`,
+      ).bind(
+        `${month}-01T00:00:00.000Z`,
+        `${month}-02T00:00:00.000Z`,
+        `${prevMonth}-01T00:00:00.000Z`,
+      ),
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
     const body = await resp.json<GameWordsStats>();
     // generation/review are Gemini model calls; the previous-month pack is another month.
-    expect(body.tavilyRequestsUsed).toBe(3);
+    expect(body.tavilyRequestsUsed).toBe(5);
     expect(body.tavilyMonthlyQuota).toBe(1000);
   });
 

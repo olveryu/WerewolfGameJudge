@@ -1,4 +1,6 @@
 /** Inventory-first word operations with explicit confirmation and no post-trigger refetch. */
+import '../words/wordSubmissions.css';
+
 import { GAME_WORD_GAMES, isGameWordGame } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -24,6 +26,9 @@ import {
   StatusBadge,
 } from '../components/Primitives';
 import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
+import { SubmissionAgentsPage } from '../words/SubmissionAgents';
+import { SubmissionsPage } from '../words/SubmissionsPage';
+import { WordSections } from '../words/WordSections';
 
 const LABELS = { fibking: '瞎掰王', undercover: '谁是卧底', drawguess: '你画我猜' } as const;
 const CHECK_LABELS: Readonly<Record<string, string>> = {
@@ -39,6 +44,7 @@ const wordLog = log.extend('AdminWords');
 /** Unknown game links fail explicitly rather than quietly selecting another inventory. */
 export function WordsPage() {
   const { game } = useParams();
+  const [parameters] = useSearchParams();
   if (!isGameWordGame(game))
     return (
       <div className="admin-content">
@@ -46,6 +52,16 @@ export function WordsPage() {
         <Link to="/admin/words/fibking" replace>
           返回词库管理
         </Link>
+      </div>
+    );
+  const section = parameters.get('section') ?? 'inventory';
+  if (section === 'agents') return <SubmissionAgentsPage game={game} />;
+  if (section === 'submissions') return <SubmissionsPage game={game} />;
+  if (section !== 'inventory')
+    return (
+      <div className="admin-content">
+        <h1>未知词库页面</h1>
+        <Link to={`/admin/words/${game}`}>返回库存与供给</Link>
       </div>
     );
   return <WordInventory key={game} game={game} />;
@@ -106,6 +122,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
         title="词库"
         description="先看库存与分类均衡，再决定是否补词。"
         query={query}
+        controls={<WordSections game={game} section="inventory" />}
         action={
           <SupplyControls
             disabled={triggering || !query.data?.supplyEnabled}

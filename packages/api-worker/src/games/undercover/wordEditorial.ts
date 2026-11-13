@@ -15,7 +15,7 @@ const toSimplified = Converter({ from: 't', to: 'cn' });
 const wordSchema = z.string().trim().min(1).max(16);
 const explanationSchema = z.string().trim().min(2).max(180);
 
-const undercoverCandidateSchema = z.strictObject({
+export const undercoverCandidateSchema = z.strictObject({
   wordA: wordSchema,
   wordB: wordSchema,
   category: z.enum(UNDERCOVER_CATEGORIES),

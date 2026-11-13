@@ -62,3 +62,15 @@ binding = "CF_VERSION_METADATA"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[workflows]]
+name = "word-submission-review"
+binding = "WORD_SUBMISSION_REVIEW"
+class_name = "WordSubmissionReviewWorkflow"
+
+[[ratelimits]]
+name = "WORD_SUBMISSION_LIMITER"
+namespace_id = "1003"
+[ratelimits.simple]
+limit = 10000
+period = 60
