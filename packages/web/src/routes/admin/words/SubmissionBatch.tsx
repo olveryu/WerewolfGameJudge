@@ -267,13 +267,14 @@ function CandidateTable({
   items: WordSubmissionItem[];
   selected: Set<string>;
   onSelect: (ids: Set<string>) => void;
-  onOpen: (item: WordSubmissionItem, button: HTMLButtonElement) => void;
+  onOpen: (item: WordSubmissionItem, button: HTMLButtonElement | null) => void;
 }) {
   return (
     <DataTable
       caption="投稿候选明细"
       rows={items}
       rowKey={(item) => item.id}
+      onRowClick={(item) => onOpen(item, null)}
       columns={[
         {
           key: 'select',

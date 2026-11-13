@@ -249,6 +249,7 @@ export function DataTable<T>({
                 <tr
                   id={rowId?.(row)}
                   data-clickable={onRowClick !== undefined || undefined}
+                  tabIndex={onRowClick === undefined ? undefined : 0}
                   data-highlighted={
                     (highlightedRow !== undefined && rowId?.(row) === highlightedRow) || undefined
                   }
@@ -256,8 +257,20 @@ export function DataTable<T>({
                     if (
                       onRowClick !== undefined &&
                       event.target instanceof Element &&
-                      !event.target.closest('button, a, input, select, textarea, [role="button"]')
+                      !event.target.closest(
+                        'button, a, input, label, select, textarea, [role="button"]',
+                      )
                     ) {
+                      onRowClick(row);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      onRowClick !== undefined &&
+                      event.target === event.currentTarget &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
+                      event.preventDefault();
                       onRowClick(row);
                     }
                   }}

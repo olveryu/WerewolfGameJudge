@@ -5,7 +5,7 @@ import {
   wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -276,11 +276,18 @@ function SubmissionBatchesTable({
   batches: Awaited<ReturnType<typeof wordSubmissionsApi.batches>>['batches'];
   filter: Record<string, string>;
 }) {
+  const navigate = useNavigate();
   return (
     <DataTable
       caption="投稿批次"
       rows={batches}
       rowKey={(batch) => batch.id}
+      onRowClick={(batch) =>
+        void navigate(
+          `?${new URLSearchParams({ ...filter, section: 'submissions', batch: batch.id })}`,
+          { replace: true },
+        )
+      }
       columns={[
         {
           key: 'id',

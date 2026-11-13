@@ -134,6 +134,7 @@ function UserDirectory({
                   columns={columns}
                   rows={data.users}
                   rowKey={(user) => user.id}
+                  onRowClick={setSelected}
                 />
                 <CursorPager
                   page={cursors.length}

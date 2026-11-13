@@ -105,18 +105,8 @@
   flex: 2;
 }
 .admin-drawer-footer {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-small);
-  max-height: 30dvh;
-  overflow: auto;
-  padding: var(--space-medium) var(--space-large);
-  border-top: 1px solid var(--admin-border);
-  background: var(--admin-panel);
+  align-items: center;
 }
-.admin-drawer-footer button,
 .admin-submission-actions button,
 .admin-submission-status-tabs button {
   min-height: var(--size-min-touch-target);

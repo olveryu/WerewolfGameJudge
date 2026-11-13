@@ -240,6 +240,51 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByText('已选 1 / 当前可选 1')).toBeInTheDocument();
 });
 
+it('opens an agent detail from its row without using the detail button', async () => {
+  vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [authorization] });
+  const { user } = mount('agents');
+  await user.click(await screen.findByRole('cell', { name: '3 / 100' }));
+  expect(await screen.findByRole('dialog', { name: 'Muse' })).toBeVisible();
+});
+
+it('opens candidate details from the row while leaving selection controls independent', async () => {
+  const { user } = mount();
+  const checkbox = await screen.findByRole('checkbox', { name: '选择词语0' });
+  const row = checkbox.closest('tr');
+  if (row === null) throw new Error('Candidate row not found');
+
+  await user.click(checkbox);
+  expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument();
+
+  await user.click(within(row).getByRole('cell', { name: 'animals' }));
+  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+  expect(drawer).toBeVisible();
+  await user.click(within(drawer).getByRole('button', { name: '关闭详情' }));
+  row.focus();
+  await user.keyboard('{Enter}');
+  expect(await screen.findByRole('dialog', { name: '词条详情' })).toBeVisible();
+});
+
+it('opens a submission batch from its row without following only the batch link', async () => {
+  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+    batches: [
+      {
+        id: batch.id,
+        game: batch.game,
+        agentId: batch.agentId,
+        agentName: batch.agentName,
+        createdAt: batch.createdAt,
+        counts: { pending: 1 },
+      },
+    ],
+    nextCursor: null,
+  });
+  const { router, user } = mount('submissions');
+  const source = await screen.findByRole('cell', { name: 'Muse' });
+  await user.click(source);
+  await waitFor(() => expect(router.state.location.search).toContain(`batch=${batch.id}`));
+});
+
 it('starts all pending/failed items independently of selection and never includes locked items', async () => {
   const { user } = mount();
   await user.click(await screen.findByRole('button', { name: '审核全部待审 (2)' }));
