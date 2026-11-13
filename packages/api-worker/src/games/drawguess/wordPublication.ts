@@ -47,8 +47,8 @@ export async function reserveDrawGuessWordPack(
     packId: createWordPackId(day, batchIndex, opts),
     categorySql: `SELECT value AS category
       FROM (SELECT value FROM json_each(?)) c
-      ORDER BY COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
-        (SELECT COUNT(*) FROM drawguess_words w WHERE w.category = c.value AND w.status = 'active') ASC,
+      ORDER BY (SELECT COUNT(*) FROM drawguess_words w WHERE w.category = c.value AND w.status = 'active') ASC,
+        COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
         COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') ASC,
         category ASC LIMIT 1`,
     categoryBinds: [JSON.stringify(DRAWGUESS_WORD_CATEGORIES), wordCategoryCooldownCutoff()],

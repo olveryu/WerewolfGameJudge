@@ -161,8 +161,8 @@ export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
      SET (search_index, topic) = (
        WITH focus AS (
          SELECT value AS topic FROM json_each(?) categories
-         ORDER BY COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), '') > ?,
-           (SELECT COUNT(*) FROM fib_words WHERE status = 'active' AND topic = categories.value),
+         ORDER BY (SELECT COUNT(*) FROM fib_words WHERE status = 'active' AND topic = categories.value),
+           COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), '') > ?,
            COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), ''),
            value LIMIT 1
        ), choice AS (
