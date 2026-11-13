@@ -56,7 +56,8 @@
  * never a whole file or directory. The registered points are
  * the skeleton's set branch and the out-of-registry baselines:
  * demo and drawguess stage-entry arming (E-2 domain), the relay
- * clock helper and gallery resume re-arm (relay domain), and
+ * clock helper, gallery resume, and each game's first gallery reveal
+ * (relay domain), and
  * the werewolf inline AUTO_SKIP second writer. The switched
  * adopters contribute no local arithmetic: their call sites
  * pass `nowMs` into the skeleton, whose set branch is the one
@@ -278,12 +279,25 @@ const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = 
     domain: 'relayClock',
   },
   {
-    // Resume re-arm in the gallery control path; gallery moves
-    // proper go through `relayDeadline` above and add no second
-    // arithmetic point.
+    // The scan matches nowMs inside revealEndAt(gallery, nowMs) + duration;
+    // the actual anchor is the later of now and the reveal's end.
     file: 'platform/room/relay/gallery.ts',
     symbol: 'controlRelayGallery',
     expression: 'nowMs + duration',
+    domain: 'relayClock',
+  },
+  {
+    // The scanner names the preceding function declaration: the actual
+    // arithmetic is inside the resolveTransition arrow in the hooks object.
+    file: 'games/pictionary/domain/relay.ts',
+    symbol: 'controlPictionaryGallery',
+    expression: 'nowMs + revealDurationMs',
+    domain: 'relayClock',
+  },
+  {
+    file: 'games/storyrelay/domain/relay.ts',
+    symbol: 'controlStoryRelayGallery',
+    expression: 'nowMs + revealDurationMs',
     domain: 'relayClock',
   },
   {
