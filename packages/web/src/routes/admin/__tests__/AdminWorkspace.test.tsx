@@ -753,6 +753,33 @@ describe('admin workspace', () => {
     view.client.clear();
   });
 
+  it.each([
+    ['active', '活跃'],
+    ['creating', '创建中'],
+    ['deleting', '删除中'],
+    ['failed', '恢复失败'],
+  ] as const)(
+    'exposes %s beside the room code without a separate status column',
+    async (status, label) => {
+      vi.mocked(fetchRooms).mockResolvedValue({
+        rooms: [{ ...room, status }],
+        total: 1,
+        page: 1,
+        limit: 50,
+      });
+      const view = mount('/admin/rooms');
+      const table = await screen.findByRole('table', { name: '房间目录' });
+      expect(within(table).queryByRole('columnheader', { name: '状态' })).not.toBeInTheDocument();
+      const button = within(table).getByRole('button', { name: '#1234' });
+      expect(button).toHaveAccessibleDescription(label);
+      expect(button).toHaveAttribute('title', label);
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+      expect(fetchRoomPlayers).not.toHaveBeenCalled();
+      view.unmount();
+      view.client.clear();
+    },
+  );
+
   it('reads room participants only after expansion and supports retry', async () => {
     vi.mocked(fetchRooms).mockResolvedValue({
       rooms: [room, { ...room, id: 'other-room', code: '5678', status: 'active' }],

@@ -10,6 +10,7 @@ import {
 } from '@/features/admin/services/adminApi';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import { expireAdminSession } from '@/features/admin/services/adminCredentialStore';
+import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 
 vi.mock('@/features/admin/services/adminCredentialStore', () => ({
   readAdminCredential: vi.fn(() => 'credential'),
@@ -22,6 +23,48 @@ describe('adminApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = mockFetch;
+  });
+
+  it('sends authorization edits as PATCH and deletion as DELETE through the shared admin transport', async () => {
+    const id = '20000000-0000-4000-8000-000000000001';
+    const input = {
+      name: 'Muse',
+      description: '',
+      games: ['drawguess'] as const,
+      dailyQuota: 10,
+      pendingQuota: 20,
+    };
+    const body = {
+      ...input,
+      games: [...input.games],
+      id,
+      status: 'active',
+      pending: 0,
+      submittedToday: 0,
+      createdAt: '2026-11-13T00:00:00.000Z',
+      credential: null,
+    };
+    mockFetch.mockResolvedValueOnce(Response.json(body));
+    await expect(
+      wordSubmissionsApi.updateAgent(id, { ...input, games: [...input.games] }),
+    ).resolves.toEqual(body);
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(new RegExp(`/agents/${id}$`)),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ ...input, games: [...input.games] }),
+        headers: { 'X-Admin-Token': 'credential', 'Content-Type': 'application/json' },
+      }),
+    );
+    mockFetch.mockResolvedValueOnce(Response.json({ success: true }));
+    await expect(wordSubmissionsApi.deleteAgent(id)).resolves.toEqual({ success: true });
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(new RegExp(`/agents/${id}$`)),
+      expect.objectContaining({ method: 'DELETE', headers: { 'X-Admin-Token': 'credential' } }),
+    );
+    expect(mockFetch.mock.calls.at(-1)?.[1]?.body).toBeUndefined();
+    mockFetch.mockResolvedValueOnce(Response.json({ success: 'true' }));
+    await expect(wordSubmissionsApi.deleteAgent(id)).rejects.toThrow();
   });
 
   it.each([401, 403])('treats status %s as an invalid credential', async (status) => {

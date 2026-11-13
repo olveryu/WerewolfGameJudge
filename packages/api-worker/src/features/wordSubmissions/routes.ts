@@ -6,6 +6,7 @@ import {
   WORD_SUBMISSION_PENDING_LIMIT,
   wordSubmissionActionSchema,
   wordSubmissionAgentInputSchema,
+  wordSubmissionAgentUpdateSchema,
   wordSubmissionGameSchema,
   wordSubmissionInputSchema,
   wordSubmissionStatusSchema,
@@ -23,10 +24,12 @@ import { jsonBody } from '../../platform/http/jsonBody';
 import {
   authenticateSubmissionToken,
   createSubmissionAgent,
+  deleteSubmissionAgent,
   listSubmissionAgents,
   rotateSubmissionCredential,
   setSubmissionAgentStatus,
   type SubmissionPrincipal,
+  updateSubmissionAgent,
 } from './credentials';
 import { findSubmissionReplay, storeSubmission, validateSubmission } from './ingestion';
 import { applySubmissionAction, dispatchSubmissionReview } from './operations';
@@ -173,6 +176,23 @@ adminWordSubmissionRoutes.post(
   jsonBody(wordSubmissionAgentInputSchema),
   async (context) =>
     context.json(await createSubmissionAgent(context.env.DB, context.req.valid('json')), 201),
+);
+adminWordSubmissionRoutes.patch(
+  '/agents/:id',
+  jsonBody(wordSubmissionAgentUpdateSchema),
+  async (context) =>
+    context.json(
+      await updateSubmissionAgent(
+        context.env.DB,
+        requireIdentifier(context.req.param('id')),
+        context.req.valid('json'),
+      ),
+    ),
+);
+adminWordSubmissionRoutes.delete('/agents/:id', async (context) =>
+  context.json(
+    await deleteSubmissionAgent(context.env.DB, requireIdentifier(context.req.param('id'))),
+  ),
 );
 const rotationSchema = pick(wordSubmissionAgentInputSchema, { expiresInDays: true });
 adminWordSubmissionRoutes.post('/agents/:id/rotate', jsonBody(rotationSchema), async (context) =>

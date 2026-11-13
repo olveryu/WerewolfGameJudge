@@ -28,7 +28,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## D1 and Drizzle
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
-- Migrations are hand-written SQL files applied by Wrangler: 75 files, `0001_init.sql` through `0076_agent_word_submissions.sql`, with no `0002` file.
+- Migrations are hand-written SQL files applied by Wrangler: 76 files, `0001_init.sql` through `0077_submission_agent_archive.sql`, with no `0002` file.
 - 39 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 - When adding or changing a D1 query, examine its filters, joins, ordering, indexes, and invocation frequency, including retries and scheduled jobs. For queries on growing tables or high-frequency paths, use `test/rowCountingDb.ts` against migrated D1 to test realistic small and larger datasets and assert a justified read/write budget; verify the query plan when useful. A small fixture or a correct result alone does not establish a cost bound.

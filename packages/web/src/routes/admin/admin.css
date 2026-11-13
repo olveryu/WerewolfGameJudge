@@ -61,6 +61,10 @@
   padding: var(--space-small) var(--space-medium);
 }
 .admin-console button:where(:not(.maintenance-moon)) {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: pointer;
   transition:
     background 120ms,
@@ -283,7 +287,15 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-medium);
+  flex-wrap: wrap;
   margin-bottom: var(--space-small);
+}
+.admin-page-title-row > h2,
+.admin-page-meta > p,
+.admin-panel-body,
+.admin-drawer-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .admin-page-title-row > .admin-supply-trigger {
   flex-shrink: 0;
@@ -500,6 +512,7 @@
 }
 .admin-segmented {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   padding: var(--space-micro);
   border: 1px solid var(--admin-border);
@@ -627,13 +640,29 @@
   border: 0;
   padding: 0;
 }
-.admin-room-host {
+.admin-console .admin-room-host {
   display: block;
   max-width: var(--size-admin-room-host);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
+}
+.admin-console .admin-room-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-small);
+  white-space: nowrap;
+}
+.admin-room-status-dot {
+  width: var(--size-icon-xs);
+  height: var(--size-icon-xs);
+  border-radius: var(--radius-full);
+  background: var(--admin-danger);
+  flex-shrink: 0;
+}
+.admin-room-status-dot[data-status='active'] {
+  background: var(--admin-success);
 }
 .admin-pagination {
   display: flex;
@@ -1402,7 +1431,7 @@
   .admin-table button {
     min-height: var(--size-min-touch-target);
   }
-  .admin-room-host {
+  .admin-console .admin-room-host {
     max-width: var(--size-admin-room-host-mobile);
   }
   .admin-console button,

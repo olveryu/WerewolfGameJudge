@@ -1,4 +1,5 @@
 import type {
+  WordSubmissionAgent,
   WordSubmissionBatch,
   WordSubmissionItem,
   WordSubmissionSettings,
@@ -9,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
+import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 
 import { SubmissionAgentsPage } from '../words/SubmissionAgents';
@@ -20,6 +22,8 @@ vi.mock('@/features/admin/services/wordSubmissionsApi', () => ({
     setAccepting: vi.fn(),
     agents: vi.fn(),
     createAgent: vi.fn(),
+    updateAgent: vi.fn(),
+    deleteAgent: vi.fn(),
     rotate: vi.fn(),
     setAgentStatus: vi.fn(),
     batches: vi.fn(),
@@ -30,6 +34,10 @@ vi.mock('@/features/admin/services/wordSubmissionsApi', () => ({
   },
 }));
 vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
+vi.mock('@/utils/alert', () => ({
+  CANCEL_BUTTON: { text: '取消', style: 'cancel' },
+  showAlert: vi.fn(),
+}));
 
 const settings: WordSubmissionSettings = {
   accepting: true,
@@ -89,6 +97,24 @@ const batch: WordSubmissionBatch = {
     ] as const
   ).map(candidate),
 };
+const authorization: WordSubmissionAgent = {
+  id: batch.agentId,
+  name: 'Muse',
+  description: '个人词库助手',
+  games: ['drawguess'],
+  status: 'active',
+  dailyQuota: 100,
+  pendingQuota: 200,
+  pending: 2,
+  submittedToday: 3,
+  createdAt: batch.createdAt,
+  credential: {
+    id: '30000000-0000-4000-8000-000000000001',
+    prefix: 'wst_test',
+    expiresAt: '2026-12-13T00:00:00.000Z',
+    revokedAt: null,
+  },
+};
 function mount(section = 'batch', extraSearch = '') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter(
@@ -125,6 +151,73 @@ beforeEach(() => {
   vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({ batches: [], nextCursor: null });
 });
 
+it.each([false, true])(
+  'edits authorization parameters without issuing another credential (renew=%s)',
+  async (renew) => {
+    vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [authorization] });
+    vi.mocked(wordSubmissionsApi.updateAgent).mockResolvedValue(authorization);
+    const { user } = mount('agents');
+    await user.click(await screen.findByRole('button', { name: '查看 Muse 授权' }));
+    const details = await screen.findByRole('dialog', { name: 'Muse' });
+    await user.click(within(details).getByRole('button', { name: '修改授权参数' }));
+    const editor = await screen.findByRole('dialog', { name: '修改 Agent 授权' });
+    const fields = within(editor);
+    expect(fields.getByRole('textbox', { name: '名称' })).toHaveValue('Muse');
+    expect(fields.getByRole('button', { name: '保持到期时间' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.clear(fields.getByRole('textbox', { name: '名称' }));
+    await user.type(fields.getByRole('textbox', { name: '名称' }), 'Muse edited');
+    await user.clear(fields.getByRole('textbox', { name: '用途说明' }));
+    await user.type(fields.getByRole('textbox', { name: '用途说明' }), '新用途');
+    await user.click(fields.getByRole('checkbox', { name: '瞎掰王' }));
+    await user.clear(fields.getByRole('spinbutton', { name: '每日投稿上限' }));
+    await user.type(fields.getByRole('spinbutton', { name: '每日投稿上限' }), '50');
+    await user.clear(fields.getByRole('spinbutton', { name: '未处理候选上限' }));
+    await user.type(fields.getByRole('spinbutton', { name: '未处理候选上限' }), '80');
+    if (renew) await user.click(fields.getByRole('button', { name: '90 天' }));
+    await user.click(fields.getByRole('button', { name: '保存授权参数' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.updateAgent).toHaveBeenCalledWith(authorization.id, {
+        name: 'Muse edited',
+        description: '新用途',
+        games: ['drawguess', 'fibking'],
+        dailyQuota: 50,
+        pendingQuota: 80,
+        ...(renew ? { expiresInDays: 90 } : {}),
+      }),
+    );
+    expect(wordSubmissionsApi.createAgent).not.toHaveBeenCalled();
+    expect(wordSubmissionsApi.rotate).not.toHaveBeenCalled();
+  },
+);
+
+it('confirms deletion of revoked authorizations and removes them from the refreshed list', async () => {
+  vi.mocked(wordSubmissionsApi.agents)
+    .mockResolvedValueOnce({ agents: [{ ...authorization, status: 'revoked' }] })
+    .mockResolvedValue({ agents: [] });
+  vi.mocked(wordSubmissionsApi.deleteAgent).mockResolvedValue({ success: true });
+  const { user } = mount('agents');
+  await user.click(await screen.findByRole('button', { name: '查看 Muse 授权' }));
+  const details = await screen.findByRole('dialog', { name: 'Muse' });
+  expect(within(details).queryByRole('button', { name: '修改授权参数' })).not.toBeInTheDocument();
+  await user.click(within(details).getByRole('button', { name: '删除授权…' }));
+  expect(wordSubmissionsApi.deleteAgent).not.toHaveBeenCalled();
+  const confirmation = vi
+    .mocked(showAlert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === '删除');
+  if (confirmation?.onPress === undefined) throw new Error('Expected delete confirmation');
+  await act(() => confirmation.onPress?.());
+  await waitFor(() =>
+    expect(wordSubmissionsApi.deleteAgent).toHaveBeenCalledWith(authorization.id),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole('button', { name: '查看 Muse 授权' })).not.toBeInTheDocument(),
+  );
+});
+
 it('selects only unlocked visible candidates, maintains indeterminate state, and clears on filtering', async () => {
   const { user } = mount();
   const all = await screen.findByRole('checkbox', { name: '全选当前结果' });
@@ -155,6 +248,59 @@ it('starts all pending/failed items independently of selection and never include
   expect(within(dialog).getByText('词语3')).toBeInTheDocument();
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
+});
+
+it('reviews at exhausted quotas without a reason and freezes retries', async () => {
+  vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
+    ...settings,
+    modelBudget: { dailyUsed: 93, dailyLimit: 8, monthlyUsed: 696, monthlyLimit: 120 },
+  });
+  vi.mocked(wordSubmissionsApi.action)
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'queued' });
+  const { user } = mount();
+  const review = await screen.findByRole('button', { name: '审核全部待审 (2)' });
+  expect(review).toBeEnabled();
+  expect(screen.queryByRole('button', { name: /强制审核/ })).not.toBeInTheDocument();
+  await user.click(review);
+  const dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
+  expect(within(dialog).getByText(/可能产生费用/)).toBeInTheDocument();
+  expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
+  expect(within(dialog).queryByRole('textbox', { name: '操作原因' })).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '启动独立审核 (2)' }));
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('offline');
+  await user.click(within(dialog).getByRole('button', { name: '重试同一请求' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(2));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]).toEqual(calls[1]);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'review',
+    reason: '',
+    items: [{ id: batch.items[0]?.id }, { id: batch.items[3]?.id }],
+  });
+});
+
+it('offers selected and single-item review without separate force controls', async () => {
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
+  await user.click(screen.getByRole('button', { name: '审核所选 (2)' }));
+  let dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
+  expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '取消' }));
+  await user.click(screen.getByRole('button', { name: '查看词语2审核详情' }));
+  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+  await user.click(within(drawer).getByRole('button', { name: '重新审核…' }));
+  dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
+  expect(within(dialog).getByText('词语2')).toBeInTheDocument();
+  expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
+});
+
+it('does not depend on the budget request for administrator review', async () => {
+  vi.mocked(wordSubmissionsApi.settings).mockRejectedValue(new Error('settings offline'));
+  mount();
+  expect(await screen.findByRole('button', { name: '审核全部待审 (2)' })).toBeEnabled();
+  expect(wordSubmissionsApi.settings).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', { name: /强制审核/ })).not.toBeInTheDocument();
 });
 
 it('bulk publishes only passed items and retries the same immutable action after network uncertainty', async () => {

@@ -5,6 +5,7 @@ import {
   type WordSubmissionAgentInput,
   wordSubmissionAgentSchema,
   wordSubmissionAgentsSchema,
+  type WordSubmissionAgentUpdate,
   wordSubmissionAuditSchema,
   wordSubmissionBatchSchema,
   wordSubmissionIssuedCredentialSchema,
@@ -50,6 +51,24 @@ export const wordSubmissionsApi = {
       undefined,
       undefined,
       input,
+    ),
+  updateAgent: (id: string, input: WordSubmissionAgentUpdate) =>
+    adminFetch(
+      `${ROOT}/agents/${id}`,
+      (value) => wordSubmissionAgentSchema.parse(value),
+      undefined,
+      undefined,
+      input,
+      'PATCH',
+    ),
+  deleteAgent: (id: string) =>
+    adminFetch(
+      `${ROOT}/agents/${id}`,
+      (value) => z.strictObject({ success: z.literal(true) }).parse(value),
+      undefined,
+      undefined,
+      undefined,
+      'DELETE',
     ),
   rotate: (id: string, expiresInDays: 30 | 90 | 365) =>
     adminFetch(

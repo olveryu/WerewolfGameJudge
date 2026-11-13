@@ -3,6 +3,7 @@ import {
   type WordSubmissionAgent,
   type WordSubmissionAgentInput,
   wordSubmissionAgentSchema,
+  type WordSubmissionAgentUpdate,
 } from '@game-judge/game-engine/product/wordSupply';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
@@ -35,7 +36,7 @@ function decodeAgent(value: Record<string, unknown>): WordSubmissionAgent {
 /** Return metadata only; hashes and raw credentials are excluded from all reads. */
 async function readSubmissionAgent(db: D1Database, id: string): Promise<WordSubmissionAgent> {
   const row = await db
-    .prepare(`${agentSelect} WHERE a.id = ?`)
+    .prepare(`${agentSelect} WHERE a.id = ? AND a.deleted_at IS NULL`)
     .bind(new Date().toISOString().slice(0, 10), id)
     .first<Record<string, unknown>>();
   if (row === null) throw new HTTPException(404, { message: 'SUBMISSION_AGENT_NOT_FOUND' });
@@ -45,7 +46,9 @@ async function readSubmissionAgent(db: D1Database, id: string): Promise<WordSubm
 /** The agent registry has a hard capacity of 100; this read is consequently bounded. */
 export async function listSubmissionAgents(db: D1Database): Promise<WordSubmissionAgent[]> {
   const rows = await db
-    .prepare(`${agentSelect} ORDER BY a.created_at DESC, a.id DESC LIMIT 100`)
+    .prepare(
+      `${agentSelect} WHERE a.deleted_at IS NULL ORDER BY a.created_at DESC, a.id DESC LIMIT 100`,
+    )
     .bind(new Date().toISOString().slice(0, 10))
     .all();
   return rows.results.map(decodeAgent);
@@ -93,7 +96,7 @@ export async function createSubmissionAgent(db: D1Database, input: WordSubmissio
         `INSERT INTO word_submission_agents
       (id, name, description, games_json, status, daily_quota, pending_quota, created_at, current_credential_id)
       SELECT ?, ?, ?, ?, 'active', ?, ?, ?, ?
-      WHERE NOT EXISTS (SELECT 1 FROM word_submission_agents LIMIT 1 OFFSET 99) RETURNING id`,
+      WHERE NOT EXISTS (SELECT 1 FROM word_submission_agents WHERE deleted_at IS NULL LIMIT 1 OFFSET 99) RETURNING id`,
       )
       .bind(
         id,
@@ -110,6 +113,69 @@ export async function createSubmissionAgent(db: D1Database, input: WordSubmissio
   if (result[0]?.results.length !== 1)
     throw new HTTPException(409, { message: 'SUBMISSION_AGENT_CAPACITY_REACHED' });
   return { agent: await readSubmissionAgent(db, id), token: credential.token };
+}
+
+/** Update the existing principal without issuing a key or resetting its usage counters. */
+export async function updateSubmissionAgent(
+  db: D1Database,
+  id: string,
+  input: WordSubmissionAgentUpdate,
+) {
+  const agent = await readSubmissionAgent(db, id);
+  if (agent.status === 'revoked')
+    throw new HTTPException(409, { message: 'SUBMISSION_AGENT_REVOKED' });
+  if (input.pendingQuota < agent.pending)
+    throw new HTTPException(409, { message: 'SUBMISSION_PENDING_QUOTA_BELOW_CURRENT_USAGE' });
+  const statements = [
+    db
+      .prepare(
+        `UPDATE word_submission_agents SET name = ?, description = ?, games_json = ?,
+      daily_quota = ?, pending_quota = ?
+      WHERE id = ? AND status <> 'revoked' AND deleted_at IS NULL AND pending_count <= ? RETURNING id`,
+      )
+      .bind(
+        input.name,
+        input.description,
+        JSON.stringify([...new Set(input.games)]),
+        input.dailyQuota,
+        input.pendingQuota,
+        id,
+        input.pendingQuota,
+      ),
+  ];
+  if (input.expiresInDays !== undefined) {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE word_submission_credentials SET expires_at = ?
+      WHERE id = (SELECT current_credential_id FROM word_submission_agents
+        WHERE id = ? AND status <> 'revoked' AND deleted_at IS NULL AND pending_count <= ?)
+        AND revoked_at IS NULL`,
+        )
+        .bind(
+          new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString(),
+          id,
+          input.pendingQuota,
+        ),
+    );
+  }
+  const result = await db.batch(statements);
+  if (result[0]?.results.length !== 1)
+    throw new HTTPException(409, { message: 'SUBMISSION_AGENT_NOT_MUTABLE_OR_QUOTA_TOO_LOW' });
+  return readSubmissionAgent(db, id);
+}
+
+/** Hide only revoked authorizations; foreign-key provenance and usage records remain intact. */
+export async function deleteSubmissionAgent(db: D1Database, id: string) {
+  const row = await db
+    .prepare(
+      `UPDATE word_submission_agents SET deleted_at = COALESCE(deleted_at, ?)
+    WHERE id = ? AND status = 'revoked' RETURNING id`,
+    )
+    .bind(new Date().toISOString(), id)
+    .first();
+  if (row === null) throw new HTTPException(409, { message: 'SUBMISSION_AGENT_MUST_BE_REVOKED' });
+  return { success: true } as const;
 }
 
 /** Replacement invalidates all prior keys without replacing the principal or its quotas. */
@@ -142,7 +208,7 @@ export async function setSubmissionAgentStatus(
   const result = await db
     .prepare(
       `UPDATE word_submission_agents SET status = ?
-    WHERE id = ? AND status <> 'revoked' RETURNING id`,
+    WHERE id = ? AND status <> 'revoked' AND deleted_at IS NULL RETURNING id`,
     )
     .bind(status, id)
     .first();
@@ -166,7 +232,9 @@ export async function authenticateSubmissionToken(
   const credential = await db
     .prepare(
       `SELECT id, agent_id FROM word_submission_credentials
-    WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?`,
+    WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?
+      AND EXISTS (SELECT 1 FROM word_submission_agents a
+        WHERE a.id = word_submission_credentials.agent_id AND a.deleted_at IS NULL)`,
     )
     .bind(tokenHash, new Date().toISOString())
     .first<{ id: string; agent_id: string }>();

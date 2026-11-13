@@ -58,6 +58,7 @@ export async function adminFetch<T>(
   query?: Record<string, string>,
   signal?: AbortSignal,
   requestBody?: Record<string, unknown>,
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE',
 ): Promise<T> {
   const url = new URL(`${API_BASE_URL}${path}`);
   if (query) {
@@ -74,7 +75,8 @@ export async function adminFetch<T>(
         'X-Admin-Token': getAdminToken(),
         ...(requestBody !== undefined && { 'Content-Type': 'application/json' }),
       },
-      ...(requestBody !== undefined && { method: 'POST', body: JSON.stringify(requestBody) }),
+      method: method ?? (requestBody !== undefined ? 'POST' : 'GET'),
+      ...(requestBody !== undefined && { body: JSON.stringify(requestBody) }),
       signal: composed.signal,
     });
     if (resp.status === 401 || resp.status === 403) expireAdminSession();

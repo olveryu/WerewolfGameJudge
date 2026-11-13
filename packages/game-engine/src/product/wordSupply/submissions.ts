@@ -49,6 +49,11 @@ export const wordSubmissionAgentInputSchema = z.strictObject({
   expiresInDays: z.union([z.literal(30), z.literal(90), z.literal(365)]),
 });
 export type WordSubmissionAgentInput = z.output<typeof wordSubmissionAgentInputSchema>;
+export const wordSubmissionAgentUpdateSchema = z.extend(
+  z.omit(wordSubmissionAgentInputSchema, { expiresInDays: true }),
+  { expiresInDays: z.optional(wordSubmissionAgentInputSchema.shape.expiresInDays) },
+);
+export type WordSubmissionAgentUpdate = z.output<typeof wordSubmissionAgentUpdateSchema>;
 export const wordSubmissionAgentSchema = z.extend(
   z.omit(wordSubmissionAgentInputSchema, { expiresInDays: true }),
   {

@@ -4,6 +4,8 @@ import {
   type GameWordGame,
   type WordSubmissionAgent,
   wordSubmissionAgentInputSchema,
+  type WordSubmissionAgentUpdate,
+  wordSubmissionAgentUpdateSchema,
   type wordSubmissionIssuedCredentialSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
@@ -33,6 +35,7 @@ type IssuedCredential = z.output<typeof wordSubmissionIssuedCredentialSchema>;
 type AgentDialog =
   | { kind: 'new' }
   | { kind: 'detail'; id: string }
+  | { kind: 'edit'; id: string }
   | { kind: 'credential'; issued: IssuedCredential };
 const logger = log.extend('SubmissionCredential');
 
@@ -44,7 +47,7 @@ export function SubmissionAgentsPage({ game }: { game: GameWordGame }) {
   const [dialog, setDialog] = useState<AgentDialog | null>(null);
   const now = query.dataUpdatedAt;
   const selected =
-    dialog?.kind === 'detail'
+    dialog?.kind === 'detail' || dialog?.kind === 'edit'
       ? query.data?.agents.find((agent) => agent.id === dialog.id)
       : undefined;
   return (
@@ -145,15 +148,25 @@ export function SubmissionAgentsPage({ game }: { game: GameWordGame }) {
         <ConnectionInstructions />
       </div>
       {dialog?.kind === 'new' && (
-        <AgentCreation
+        <AgentEditor
           onClose={() => setDialog(null)}
           onIssued={(issued) => setDialog({ kind: 'credential', issued })}
+          onSaved={() => setDialog(null)}
         />
       )}
-      {selected !== undefined && (
+      {selected !== undefined && dialog?.kind === 'detail' && (
         <AgentDetails
           agent={selected}
           onClose={() => setDialog(null)}
+          onIssued={(issued) => setDialog({ kind: 'credential', issued })}
+          onEdit={() => setDialog({ kind: 'edit', id: selected.id })}
+        />
+      )}
+      {selected !== undefined && dialog?.kind === 'edit' && (
+        <AgentEditor
+          agent={selected}
+          onClose={() => setDialog({ kind: 'detail', id: selected.id })}
+          onSaved={() => setDialog({ kind: 'detail', id: selected.id })}
           onIssued={(issued) => setDialog({ kind: 'credential', issued })}
         />
       )}
@@ -215,36 +228,45 @@ function ConnectionInstructions() {
   );
 }
 
-function AgentCreation({
+function AgentEditor({
+  agent,
   onClose,
   onIssued,
+  onSaved,
 }: {
+  agent?: WordSubmissionAgent;
   onClose: () => void;
   onIssued: (issued: IssuedCredential) => void;
+  onSaved: () => void;
 }) {
   const formId = useId();
-  const [games, setGames] = useState<GameWordGame[]>([...GAME_WORD_GAMES]);
-  const [days, setDays] = useState<30 | 90 | 365>(30);
+  const [games, setGames] = useState<GameWordGame[]>(agent?.games ?? [...GAME_WORD_GAMES]);
+  const [days, setDays] = useState<30 | 90 | 365 | undefined>(agent === undefined ? 30 : undefined);
   const [validationError, setValidationError] = useState('');
-  const create = useSubmissionCommand(
-    async (input: z.output<typeof wordSubmissionAgentInputSchema>) => {
-      const issued = await wordSubmissionsApi.createAgent(input);
+  const save = useSubmissionCommand(async (input: WordSubmissionAgentUpdate) => {
+    if (agent === undefined) {
+      const issued = await wordSubmissionsApi.createAgent(
+        wordSubmissionAgentInputSchema.parse(input),
+      );
       onIssued(issued);
-    },
-  );
+    } else {
+      await wordSubmissionsApi.updateAgent(agent.id, input);
+      onSaved();
+    }
+  });
   return (
     <DetailDrawer
       variant="sheet"
-      title="新建 Agent 授权"
+      title={agent === undefined ? '新建 Agent 授权' : '修改 Agent 授权'}
       onClose={onClose}
-      preventClose={create.isPending}
+      preventClose={save.isPending}
       footer={
         <>
-          <button type="button" disabled={create.isPending} onClick={onClose}>
+          <button type="button" disabled={save.isPending} onClick={onClose}>
             取消
           </button>
-          <button type="submit" form={formId} className="admin-primary" disabled={create.isPending}>
-            {create.isPending ? '正在创建…' : '创建并显示凭证'}
+          <button type="submit" form={formId} className="admin-primary" disabled={save.isPending}>
+            {save.isPending ? '正在保存…' : agent === undefined ? '创建并显示凭证' : '保存授权参数'}
           </button>
         </>
       }
@@ -255,11 +277,11 @@ function AgentCreation({
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
-          const result = wordSubmissionAgentInputSchema.safeParse({
+          const result = wordSubmissionAgentUpdateSchema.safeParse({
             name: data.get('name'),
             description: data.get('description'),
             games,
-            expiresInDays: days,
+            ...(days === undefined ? {} : { expiresInDays: days }),
             dailyQuota: Number(data.get('dailyQuota')),
             pendingQuota: Number(data.get('pendingQuota')),
           });
@@ -268,63 +290,23 @@ function AgentCreation({
             return;
           }
           setValidationError('');
-          create.mutate(result.data);
+          save.mutate(result.data);
         }}
       >
-        <label>
-          名称
-          <input name="name" required maxLength={80} autoComplete="off" placeholder="例如 Muse" />
-        </label>
-        <label>
-          用途说明
-          <textarea name="description" maxLength={300} rows={2} />
-        </label>
-        <fieldset>
-          <legend>允许投稿的游戏</legend>
-          {GAME_WORD_GAMES.map((item) => (
-            <label className="admin-submission-check" key={item}>
-              <input
-                type="checkbox"
-                checked={games.includes(item)}
-                onChange={(event) =>
-                  setGames(
-                    event.target.checked
-                      ? [...games, item]
-                      : games.filter((entry) => entry !== item),
-                  )
-                }
-              />
-              {WORD_GAME_LABELS[item]}
-            </label>
-          ))}
-        </fieldset>
-        <label>
-          每日投稿上限
-          <input
-            name="dailyQuota"
-            type="number"
-            min={1}
-            max={1000}
-            step={1}
-            defaultValue={100}
-            required
-          />
-        </label>
-        <label>
-          未处理候选上限
-          <input
-            name="pendingQuota"
-            type="number"
-            min={1}
-            max={1000}
-            step={1}
-            defaultValue={200}
-            required
-          />
-        </label>
+        <AuthorizationFields agent={agent} games={games} onGamesChange={setGames} />
         <fieldset>
           <legend>有效期</legend>
           <div className="admin-segmented" role="group" aria-label="凭证有效期">
+            {agent !== undefined && (
+              <button
+                type="button"
+                className="admin-expiry-keep"
+                aria-pressed={days === undefined}
+                onClick={() => setDays(undefined)}
+              >
+                保持到期时间
+              </button>
+            )}
             {([30, 90, 365] as const).map((value) => (
               <button
                 type="button"
@@ -337,13 +319,18 @@ function AgentCreation({
             ))}
           </div>
         </fieldset>
+        {agent !== undefined && (
+          <p className="admin-submission-note">
+            保存不更换凭证、不重置已用额度；选择天数将从保存时间重新计算现有凭证的有效期。
+          </p>
+        )}
         <p className="admin-muted">
           仅保存凭证哈希。完整凭证请交给对应 Agent，不要共享管理员口令。
         </p>
-        {(validationError || create.error !== null) && (
+        {(validationError || save.error !== null) && (
           <p role="alert" className="admin-error-box">
-            {validationError || create.error?.message}
-            。请求失败时请先刷新授权列表核对，不要连续创建。
+            {validationError || save.error?.message}
+            。请求失败时请先刷新授权列表核对。
           </p>
         )}
       </form>
@@ -351,14 +338,92 @@ function AgentCreation({
   );
 }
 
+function AuthorizationFields({
+  agent,
+  games,
+  onGamesChange,
+}: {
+  agent?: WordSubmissionAgent;
+  games: GameWordGame[];
+  onGamesChange: (games: GameWordGame[]) => void;
+}) {
+  return (
+    <>
+      <label>
+        名称
+        <input
+          name="name"
+          required
+          maxLength={80}
+          autoComplete="off"
+          placeholder="例如 Muse"
+          defaultValue={agent?.name ?? ''}
+        />
+      </label>
+      <label>
+        用途说明
+        <textarea
+          name="description"
+          maxLength={300}
+          rows={2}
+          defaultValue={agent?.description ?? ''}
+        />
+      </label>
+      <fieldset>
+        <legend>允许投稿的游戏</legend>
+        {GAME_WORD_GAMES.map((item) => (
+          <label className="admin-submission-check" key={item}>
+            <input
+              type="checkbox"
+              checked={games.includes(item)}
+              onChange={(event) =>
+                onGamesChange(
+                  event.target.checked ? [...games, item] : games.filter((entry) => entry !== item),
+                )
+              }
+            />
+            {WORD_GAME_LABELS[item]}
+          </label>
+        ))}
+      </fieldset>
+      <label>
+        每日投稿上限
+        <input
+          name="dailyQuota"
+          type="number"
+          min={1}
+          max={1000}
+          step={1}
+          defaultValue={agent?.dailyQuota ?? 100}
+          required
+        />
+      </label>
+      <label>
+        未处理候选上限
+        <input
+          name="pendingQuota"
+          type="number"
+          min={Math.max(1, agent?.pending ?? 0)}
+          max={1000}
+          step={1}
+          defaultValue={agent?.pendingQuota ?? 200}
+          required
+        />
+      </label>
+    </>
+  );
+}
+
 function AgentDetails({
   agent,
   onClose,
   onIssued,
+  onEdit,
 }: {
   agent: WordSubmissionAgent;
   onClose: () => void;
   onIssued: (issued: IssuedCredential) => void;
+  onEdit: () => void;
 }) {
   const update = useSubmissionCommand(async (status: WordSubmissionAgent['status']) => {
     await wordSubmissionsApi.setAgentStatus(agent.id, status);
@@ -367,7 +432,11 @@ function AgentDetails({
     const issued = await wordSubmissionsApi.rotate(agent.id, 30);
     onIssued(issued);
   });
-  const busy = update.isPending || rotate.isPending;
+  const remove = useSubmissionCommand(async () => {
+    await wordSubmissionsApi.deleteAgent(agent.id);
+    onClose();
+  });
+  const busy = update.isPending || rotate.isPending || remove.isPending;
   function confirmRevoke() {
     showAlert('撤销授权', `永久撤销 ${agent.name} 的请求权限，已有批次和审核记录仍保留。`, [
       CANCEL_BUTTON,
@@ -385,8 +454,28 @@ function AgentDetails({
             关闭
           </button>
           {agent.status !== 'revoked' && (
-            <button type="button" className="admin-error" disabled={busy} onClick={confirmRevoke}>
-              撤销授权…
+            <>
+              <button type="button" className="admin-primary" disabled={busy} onClick={onEdit}>
+                修改授权参数
+              </button>
+              <button type="button" className="admin-error" disabled={busy} onClick={confirmRevoke}>
+                撤销授权…
+              </button>
+            </>
+          )}
+          {agent.status === 'revoked' && (
+            <button
+              type="button"
+              className="admin-error"
+              disabled={busy}
+              onClick={() =>
+                showAlert('删除授权', `将 ${agent.name} 从授权列表移除，已有投稿和审核历史保留。`, [
+                  CANCEL_BUTTON,
+                  { text: '删除', style: 'destructive', onPress: () => remove.mutate() },
+                ])
+              }
+            >
+              删除授权…
             </button>
           )}
         </>
@@ -438,9 +527,9 @@ function AgentDetails({
           </button>
         </div>
       )}
-      {(update.error !== null || rotate.error !== null) && (
+      {(update.error !== null || rotate.error !== null || remove.error !== null) && (
         <p role="alert" className="admin-error-box">
-          {update.error?.message ?? rotate.error?.message}
+          {update.error?.message ?? rotate.error?.message ?? remove.error?.message}
         </p>
       )}
     </DetailDrawer>

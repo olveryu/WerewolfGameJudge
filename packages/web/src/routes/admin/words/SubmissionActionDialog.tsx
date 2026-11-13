@@ -96,7 +96,7 @@ export function SubmissionActionDialog({
       >
         <p>
           {confirmation.action === 'review'
-            ? '按分类分组调用现有独立审核器，消耗共享模型额度。审核不会自动发布；预算不足或服务故障可能使部分候选失败，请刷新查看。'
+            ? '按分类分组调用现有独立审核器，不受应用模型或资料检索额度限制，调用仍记账且可能产生费用。供应商限制和内容校验不变，审核不会自动发布；服务故障可能使部分候选失败，请刷新查看。'
             : confirmation.action === 'publish'
               ? '这些词条将进入游戏可抽词库。只发布当前内容和当前审核版本，操作会留下记录。'
               : confirmation.action === 'approve'
