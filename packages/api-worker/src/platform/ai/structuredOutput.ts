@@ -62,6 +62,8 @@ export async function requestStructuredOutput<Output, Result>(
   });
   return requestGemini({
     context,
+    protocol: 'native',
+    requestBytes: new TextEncoder().encode(body).byteLength,
     apiKey: options.apiKey,
     signal,
     privateValues,

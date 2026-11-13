@@ -16,6 +16,8 @@ export function GameSettingsStepper({
   testId,
   decrementTestId,
   incrementTestId,
+  issueId,
+  isInvalid = false,
   onDecrement,
   onIncrement,
   isDecrementDisabled,
@@ -27,17 +29,20 @@ export function GameSettingsStepper({
   readonly testId: string;
   readonly decrementTestId: string;
   readonly incrementTestId: string;
+  readonly issueId?: string;
+  readonly isInvalid?: boolean;
   readonly onDecrement: () => void;
   readonly onIncrement: () => void;
   readonly isDecrementDisabled: boolean;
   readonly isIncrementDisabled: boolean;
 }) {
+  const actionLabel = label === '玩家人数' ? '人数' : label;
   return (
     <div className="game-settings-row">
       <span className="game-settings-label">{label}</span>
       <span className="game-settings-stepper">
         <IconButton
-          label="减少人数"
+          label={`减少${actionLabel}`}
           icon={<IconRemove aria-hidden />}
           disabled={isDecrementDisabled}
           onClick={onDecrement}
@@ -48,12 +53,14 @@ export function GameSettingsStepper({
           inputMode="numeric"
           value={value}
           aria-label={label}
+          aria-describedby={issueId}
+          aria-invalid={isInvalid || undefined}
           data-testid={testId}
           onFocus={(event) => event.currentTarget.select()}
           onChange={(event) => onChangeText(event.currentTarget.value)}
         />
         <IconButton
-          label="增加人数"
+          label={`增加${actionLabel}`}
           icon={<IconAdd aria-hidden />}
           disabled={isIncrementDisabled}
           onClick={onIncrement}
@@ -71,12 +78,16 @@ export function GameSettingsSwitch({
   onValueChange,
   tone,
   testId,
+  issueId,
+  isInvalid = false,
 }: {
   readonly label: string;
   readonly value: boolean;
   readonly onValueChange: (value: boolean) => void;
   readonly tone: 'primary' | 'warning';
   readonly testId: string;
+  readonly issueId?: string;
+  readonly isInvalid?: boolean;
 }) {
   return (
     <label className="game-settings-row">
@@ -85,6 +96,8 @@ export function GameSettingsSwitch({
         checked={value}
         tone={tone}
         data-testid={testId}
+        aria-describedby={issueId}
+        aria-invalid={isInvalid || undefined}
         onChange={(event) => onValueChange(event.currentTarget.checked)}
       />
     </label>
@@ -103,6 +116,8 @@ export function GameSettingsChoice<TValue extends string | number | null>({
   value,
   onChange,
   optionTestId,
+  issueId,
+  isInvalid = false,
 }: {
   readonly title: string;
   readonly hint: string | undefined;
@@ -110,6 +125,8 @@ export function GameSettingsChoice<TValue extends string | number | null>({
   readonly value: TValue;
   readonly onChange: (value: TValue) => void;
   readonly optionTestId: (value: TValue) => string;
+  readonly issueId?: string;
+  readonly isInvalid?: boolean;
 }) {
   const titleId = useId();
   const selectedIndex = options.findIndex((option) => option.value === value);
@@ -140,6 +157,8 @@ export function GameSettingsChoice<TValue extends string | number | null>({
         className="game-settings-options"
         role="radiogroup"
         aria-labelledby={titleId}
+        aria-describedby={issueId}
+        aria-invalid={isInvalid || undefined}
         onKeyDown={moveSelection}
       >
         {options.map((option, index) => {

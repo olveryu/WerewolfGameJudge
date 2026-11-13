@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router';
 import { gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import IconChevronForward from '~icons/ion/chevron-forward';
+import IconHelpCircleOutline from '~icons/ion/help-circle-outline';
 import IconRefresh from '~icons/ion/refresh';
 
 const FLIP_DURATION = 600;
@@ -92,17 +93,11 @@ export function WerewolfHomeSpotlight() {
     <section className="werewolf-spotlight" aria-label="今日角色">
       <div className="werewolf-spotlight-flipper" data-phase={phase}>
         <div className="werewolf-spotlight-face werewolf-spotlight-back" aria-hidden={showsFront}>
-          <span className="werewolf-spotlight-back-emoji" aria-hidden>
-            🐺
-          </span>
+          <IconHelpCircleOutline className="werewolf-spotlight-back-icon" aria-hidden />
           <span className="werewolf-spotlight-back-text">猜猜今天是谁？</span>
         </div>
 
-        <div
-          className="werewolf-spotlight-face werewolf-spotlight-front"
-          aria-hidden={!showsFront}
-          inert={!showsFront}
-        >
+        <div className="werewolf-spotlight-face werewolf-spotlight-front" inert={!showsFront}>
           <div className="werewolf-spotlight-row">
             <img className="werewolf-spotlight-avatar" src={getRoleAvatar(roleId)} alt="" />
             <div className="werewolf-spotlight-info">

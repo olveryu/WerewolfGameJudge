@@ -19,6 +19,8 @@ export interface CountFieldSpec {
   readonly kind: 'count';
   readonly label: string;
   readonly hint?: string;
+  /** Display unit for the range hint; player-count fields default to 人. */
+  readonly unit?: string;
   readonly min: number;
   readonly max: number;
   readonly isRemembered?: boolean;
@@ -93,7 +95,7 @@ export type ConfigFieldValue = number | boolean | string | null;
 
 /** Hint text derived from a count range so copy cannot drift from the limit. */
 export function describeCountRange(spec: CountFieldSpec): string {
-  return `支持 ${spec.min} 至 ${spec.max} 人`;
+  return `支持 ${spec.min} 至 ${spec.max} ${spec.unit ?? '人'}`;
 }
 
 export interface ConfigValidationIssue<TConfig extends object> {

@@ -154,6 +154,22 @@
 .admin-workspace {
   min-height: 100%;
 }
+.admin-skip-link {
+  position: fixed;
+  top: var(--space-small);
+  left: var(--space-small);
+  z-index: 6;
+  padding: var(--space-small) var(--space-medium);
+  transform: translateY(calc(-100% - var(--space-small)));
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--radius-small);
+  background: var(--admin-panel);
+  color: var(--admin-text) !important;
+  box-shadow: var(--shadow-md);
+}
+.admin-skip-link:focus {
+  transform: translateY(0);
+}
 .admin-workspace-header {
   position: sticky;
   top: 0;

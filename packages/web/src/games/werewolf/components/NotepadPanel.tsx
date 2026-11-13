@@ -168,21 +168,27 @@ export function NotepadPanel({
 
   return (
     <div className="notepad-panel">
-      <ul className="notepad-list">
-        {seats.map((seat) => (
-          <NotepadCard
-            key={seat}
-            seat={seat}
-            sheriffCandidateStatus={sheriffCandidateStatuses[seat] ?? null}
-            isSheriffCandidateStatusAuthoritative={isSheriffCandidateStatusAuthoritative}
-            selectedTag={findTag(state.roleGuesses[seat] ?? null)}
-            noteText={state.playerNotes[seat] ?? ''}
-            onNoteChange={onNoteChange}
-            onToggleHand={onToggleHand}
-            onSeatPress={setPickerSeat}
-          />
-        ))}
-      </ul>
+      {seats.length === 0 ? (
+        <p className="notepad-empty">
+          等待玩家入座后会显示座位记录，也可以先在下方填写自由记录和投票记录。
+        </p>
+      ) : (
+        <ul className="notepad-list">
+          {seats.map((seat) => (
+            <NotepadCard
+              key={seat}
+              seat={seat}
+              sheriffCandidateStatus={sheriffCandidateStatuses[seat] ?? null}
+              isSheriffCandidateStatusAuthoritative={isSheriffCandidateStatusAuthoritative}
+              selectedTag={findTag(state.roleGuesses[seat] ?? null)}
+              noteText={state.playerNotes[seat] ?? ''}
+              onNoteChange={onNoteChange}
+              onToggleHand={onToggleHand}
+              onSeatPress={setPickerSeat}
+            />
+          ))}
+        </ul>
+      )}
       {pickerSeat !== null && (
         <RolePickerDialog
           seat={pickerSeat}

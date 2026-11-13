@@ -120,6 +120,45 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('自定义');
   });
 
+  it('navigates and activates faction tabs with horizontal keyboard keys', async () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    const villagerTab = screen.getByTestId(TESTIDS.configFactionTab('Villager'));
+    const wolfTab = screen.getByTestId(TESTIDS.configFactionTab('Wolf'));
+    const specialTab = screen.getByTestId(TESTIDS.configFactionTab('Special'));
+    villagerTab.focus();
+
+    fireEvent.keyDown(villagerTab, { key: 'ArrowRight' });
+    await waitFor(() => {
+      expect(wolfTab).toHaveFocus();
+      expect(wolfTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    fireEvent.keyDown(wolfTab, { key: 'ArrowRight' });
+    await waitFor(() => {
+      expect(specialTab).toHaveFocus();
+      expect(specialTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    fireEvent.keyDown(specialTab, { key: 'ArrowRight' });
+    await waitFor(() => {
+      expect(villagerTab).toHaveFocus();
+      expect(villagerTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    fireEvent.keyDown(villagerTab, { key: 'ArrowLeft' });
+    await waitFor(() => {
+      expect(specialTab).toHaveFocus();
+      expect(specialTab).toHaveAttribute('aria-selected', 'true');
+    });
+
+    fireEvent.keyDown(specialTab, { key: 'Home' });
+    await waitFor(() => {
+      expect(villagerTab).toHaveFocus();
+      expect(villagerTab).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
   it('switches a variant from the role card opened by a long press', () => {
     vi.useFakeTimers();
     try {

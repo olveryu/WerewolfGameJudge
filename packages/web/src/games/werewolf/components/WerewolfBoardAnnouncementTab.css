@@ -104,7 +104,8 @@
   align-items: center;
   align-self: flex-start;
   gap: var(--space-tight);
-  padding: var(--space-tight) 0;
+  min-height: var(--size-min-touch-target);
+  padding: 0;
   border: 0;
   background: none;
   color: var(--color-primary);

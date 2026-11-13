@@ -69,6 +69,7 @@ it('reuses the operation after a lost response, shows uncertainty, and reconcile
   renderFeedbackTab();
 
   await user.click(await screen.findByTestId(TESTIDS.feedbackNewButton));
+  expect(screen.getByText('反馈内容', { selector: 'label' })).toBeVisible();
   await user.type(screen.getByTestId(TESTIDS.feedbackInput), '反馈内容');
   await user.click(screen.getByTestId(TESTIDS.feedbackSubmitButton));
   expect(screen.getByTestId(TESTIDS.feedbackSubmitButton)).toBeEnabled();

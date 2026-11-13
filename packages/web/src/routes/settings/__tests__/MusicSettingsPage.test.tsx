@@ -32,6 +32,14 @@ const previewPlay = vi.fn(
 );
 const werewolfPreview: ClientGameAudioPreview = {
   gameType: 'werewolf',
+  gameLabel: '狼人杀',
+  label: '试听效果',
+  play: previewPlay,
+  stop: previewStop,
+};
+const avalonPreview: ClientGameAudioPreview = {
+  gameType: 'avalon',
+  gameLabel: '阿瓦隆',
   label: '试听效果',
   play: previewPlay,
   stop: previewStop,
@@ -98,27 +106,35 @@ describe('MusicSettingsPage', () => {
   it('plays and stops the game-owned audio preview contribution', async () => {
     renderPage();
 
-    await userEvent.click(await screen.findByText('试听效果'));
+    await userEvent.click(await screen.findByRole('button', { name: '试听效果（狼人杀）' }));
     expect(previewPlay).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('停止试听')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '停止试听效果（狼人杀）' })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('停止试听'));
+    await userEvent.click(screen.getByRole('button', { name: '停止试听效果（狼人杀）' }));
     expect(previewStop).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('试听效果')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '试听效果（狼人杀）' })).toBeInTheDocument();
+  });
+
+  it('distinguishes preview actions by game', async () => {
+    (loadClientGameAudioPreviews as Mock).mockResolvedValue([werewolfPreview, avalonPreview]);
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: '试听效果（狼人杀）' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '试听效果（阿瓦隆）' })).toBeInTheDocument();
   });
 
   it('ignores completion from a stopped invocation after the same preview restarts', async () => {
     renderPage();
 
-    await userEvent.click(await screen.findByText('试听效果'));
-    await userEvent.click(screen.getByText('停止试听'));
-    await userEvent.click(screen.getByText('试听效果'));
+    await userEvent.click(await screen.findByRole('button', { name: '试听效果（狼人杀）' }));
+    await userEvent.click(screen.getByRole('button', { name: '停止试听效果（狼人杀）' }));
+    await userEvent.click(screen.getByRole('button', { name: '试听效果（狼人杀）' }));
 
     await act(async () => {
       previewResolvers[0]?.();
     });
 
     expect(previewPlay).toHaveBeenCalledTimes(2);
-    expect(screen.getByText('停止试听')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '停止试听效果（狼人杀）' })).toBeInTheDocument();
   });
 });

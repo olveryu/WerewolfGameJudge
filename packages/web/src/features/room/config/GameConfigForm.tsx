@@ -37,10 +37,12 @@ function toChoiceValue(value: unknown, fieldKey: string): ChoiceValue {
 }
 
 function IssueText({
+  id,
   gameType,
   fieldKey,
   message,
 }: {
+  readonly id: string;
   readonly gameType: GameType;
   readonly fieldKey: string;
   readonly message: string | null;
@@ -48,6 +50,7 @@ function IssueText({
   if (message === null) return null;
   return (
     <p
+      id={id}
       className="game-settings-issue"
       aria-live="polite"
       data-testid={TESTIDS.gameConfigFieldIssue(gameType, fieldKey)}
@@ -79,7 +82,11 @@ function FieldView({
   readonly onStep: (delta: number) => void;
 }) {
   const testId = TESTIDS.gameConfigField(gameType, fieldKey);
-  const issue = <IssueText gameType={gameType} fieldKey={fieldKey} message={issueMessage} />;
+  const issueId = TESTIDS.gameConfigFieldIssue(gameType, fieldKey);
+  const hasIssue = issueMessage !== null;
+  const issue = (
+    <IssueText id={issueId} gameType={gameType} fieldKey={fieldKey} message={issueMessage} />
+  );
   switch (spec.kind) {
     case 'fixed':
       return null;
@@ -101,6 +108,8 @@ function FieldView({
             testId={testId}
             decrementTestId={TESTIDS.gameConfigFieldDecrement(gameType, fieldKey)}
             incrementTestId={TESTIDS.gameConfigFieldIncrement(gameType, fieldKey)}
+            issueId={hasIssue ? issueId : undefined}
+            isInvalid={hasIssue}
           />
           <p className="game-settings-hint">
             {spec.hint === undefined ? range : `${range}，${spec.hint}`}
@@ -131,6 +140,8 @@ function FieldView({
             onValueChange={apply}
             tone={spec.tone === 'warning' ? 'warning' : 'primary'}
             testId={testId}
+            issueId={hasIssue ? issueId : undefined}
+            isInvalid={hasIssue}
           />
           {spec.hint !== undefined && <p className="game-settings-hint">{spec.hint}</p>}
           {issue}
@@ -152,6 +163,8 @@ function FieldView({
             optionTestId={(option) =>
               TESTIDS.gameConfigFieldOption(gameType, fieldKey, optionKey(option))
             }
+            issueId={hasIssue ? issueId : undefined}
+            isInvalid={hasIssue}
           />
           {issue}
         </div>
@@ -174,6 +187,8 @@ function FieldView({
             optionTestId={(option) =>
               TESTIDS.gameConfigFieldOption(gameType, fieldKey, optionKey(option))
             }
+            issueId={hasIssue ? issueId : undefined}
+            isInvalid={hasIssue}
           />
           {issue}
         </div>
@@ -219,6 +234,7 @@ export function GameConfigForm<TConfig extends object>({
               value={value}
               onChange={(next) => onFieldChange(key, next)}
               issueMessage={issueMessage}
+              issueId={TESTIDS.gameConfigFieldIssue(gameType, key)}
               testId={TESTIDS.gameConfigField(gameType, key)}
             />
           );

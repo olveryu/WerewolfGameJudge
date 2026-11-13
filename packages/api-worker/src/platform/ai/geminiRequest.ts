@@ -13,6 +13,12 @@ import {
 const ERROR_BODY_BYTE_LIMIT = 16_384;
 const recordSchema = z.record(z.string(), z.unknown());
 
+function jsonType(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
+}
+
 async function readErrorBody(response: Response): Promise<unknown> {
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error('emptyBody');
@@ -46,18 +52,29 @@ async function describeHttpFailure(
 ): Promise<Partial<AiDiagnostic>> {
   const diagnostics: Partial<AiDiagnostic> = {};
   const safe = (value: string) => redactAiDiagnostic(value, privateValues);
+  const contentType = response.headers.get('content-type');
+  if (contentType !== null) diagnostics.responseContentType = safe(contentType);
   const retryAfter = response.headers.get('retry-after');
   const requestId =
     response.headers.get('x-goog-request-id') ?? response.headers.get('x-request-id');
   if (retryAfter !== null) diagnostics.retryAfter = safe(retryAfter);
   if (requestId !== null) diagnostics.providerRequestId = safe(requestId);
   try {
-    const body = recordSchema.safeParse(await readErrorBody(response));
+    const value = await readErrorBody(response);
+    const envelope: unknown = Array.isArray(value) && value.length === 1 ? value[0] : value;
+    const body = recordSchema.safeParse(envelope);
     const error = recordSchema.safeParse(body.success ? body.data.error : undefined);
     if (!error.success) {
       diagnostics.errorBody = 'unrecognized';
+      diagnostics.errorBodyShape = body.success
+        ? `${jsonType(value)}.error:${jsonType(body.data.error)}`
+        : jsonType(value);
       return diagnostics;
     }
+    if (typeof error.data.code === 'string') diagnostics.providerCode = safe(error.data.code);
+    else if (typeof error.data.code === 'number' && Number.isFinite(error.data.code))
+      diagnostics.providerCode = error.data.code;
+    if (typeof error.data.type === 'string') diagnostics.providerType = safe(error.data.type);
     if (typeof error.data.status === 'string') diagnostics.providerStatus = safe(error.data.status);
     if (typeof error.data.message === 'string')
       diagnostics.providerMessage = safe(error.data.message);
@@ -97,6 +114,8 @@ async function describeHttpFailure(
 /** Fetch and parse one model attempt; never retry or log raw requests, responses, or causes. */
 export async function requestGemini<Output>(options: {
   readonly context: AiContext;
+  readonly protocol: NonNullable<AiDiagnostic['protocol']>;
+  readonly requestBytes: number;
   readonly apiKey: string;
   readonly signal: AbortSignal;
   readonly privateValues: unknown;
@@ -104,7 +123,9 @@ export async function requestGemini<Output>(options: {
   readonly parseResponse: (response: Response) => Promise<Output>;
   readonly shouldRetry?: (status: number) => boolean;
 }): Promise<Output> {
-  const { context, signal } = options;
+  const { signal } = options;
+  const context = { ...options.context, protocol: options.protocol };
+  const started = performance.now();
   try {
     if (options.apiKey.length === 0) throw new AiProviderError(context, 'request', 'configuration');
     let response: Response;
@@ -131,11 +152,23 @@ export async function requestGemini<Output>(options: {
     return await options.parseResponse(response);
   } catch (error) {
     if (error instanceof AiProviderError) {
-      reportAiFailure(
-        error,
-        error.diagnostic.httpStatus !== undefined &&
-          options.shouldRetry?.(error.diagnostic.httpStatus) === true,
+      const diagnosed = new AiProviderError(
+        error.diagnostic,
+        error.diagnostic.stage,
+        error.failureKind,
+        {
+          protocol: options.protocol,
+          requestBytes: options.requestBytes,
+          durationMs: Math.round(performance.now() - started),
+        },
       );
+      if (error.stack !== undefined) diagnosed.stack = error.stack;
+      reportAiFailure(
+        diagnosed,
+        diagnosed.diagnostic.httpStatus !== undefined &&
+          options.shouldRetry?.(diagnosed.diagnostic.httpStatus) === true,
+      );
+      throw diagnosed;
     }
     throw error;
   }

@@ -24,6 +24,7 @@ function Settings() {
         value="all"
         onChange={() => {}}
         issueMessage={null}
+        issueId="category-error"
         testId="category"
       />
       <span>{gate.isReady ? '允许保存' : '不能保存'}</span>
@@ -41,5 +42,25 @@ describe('Undercover category availability', () => {
     expect(await screen.findByText('允许保存')).toBeDefined();
     expect(screen.getByRole('radio', { name: '全部分类' })).toBeDefined();
     expect(screen.queryByRole('radio', { name: '吃喝美食' })).toBeNull();
+  });
+
+  it('associates the category validation message with its radio group', async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <UndercoverCategoryField
+          spec={UNDERCOVER_CONFIG_SCHEMA.fields.category}
+          value="all"
+          onChange={() => {}}
+          issueMessage="请选择有效分类"
+          issueId="category-error"
+          testId="category"
+        />
+      </QueryClientProvider>,
+    );
+
+    const group = await screen.findByRole('radiogroup', { name: '词语分类' });
+    expect(group).toHaveAttribute('aria-invalid', 'true');
+    expect(group).toHaveAttribute('aria-describedby', 'category-error');
+    expect(screen.getByText('请选择有效分类')).toHaveAttribute('id', 'category-error');
   });
 });

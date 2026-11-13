@@ -187,6 +187,9 @@
 }
 
 .profile-stat-link {
+  display: inline-flex;
+  min-height: var(--size-min-touch-target);
+  align-items: center;
   padding: 0;
   border: none;
   background: none;
