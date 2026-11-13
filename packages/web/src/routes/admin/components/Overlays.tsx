@@ -11,12 +11,14 @@ export function DetailDrawer({
   children,
   preventClose = false,
   variant = 'drawer',
+  footer,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   preventClose?: boolean;
   variant?: 'drawer' | 'sheet';
+  footer?: ReactNode;
 }) {
   return (
     <Dialog.Root
@@ -43,6 +45,7 @@ export function DetailDrawer({
             </button>
           </header>
           <div className="admin-drawer-body">{children}</div>
+          {footer !== undefined && <footer className="admin-drawer-footer">{footer}</footer>}
         </Dialog.Content>
       </Dialog.Positioner>
     </Dialog.Root>

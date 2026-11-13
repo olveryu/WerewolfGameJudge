@@ -25,7 +25,7 @@ const wordSchema = z
 const explanationSchema = z.string().trim().min(2).max(180);
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 
-const drawGuessCandidateSchema = z.strictObject({
+export const drawGuessCandidateSchema = z.strictObject({
   word: wordSchema,
   category: z.enum(DRAWGUESS_WORD_CATEGORIES),
   difficulty: difficultySchema,
@@ -81,10 +81,16 @@ export function toPinyinInitials(word: string): string {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   if (initials.length !== [...canonical].length) {
-    throw new Error(`DrawGuess 拼音首字母数量与字数不符: ${canonical}`);
+    throw new AiOutputValidationError(
+      'pinyinInitialsMismatch',
+      `DrawGuess 拼音首字母数量与字数不符: ${canonical}`,
+    );
   }
   if (!initials.every((part) => /^[a-z]+$/.test(part))) {
-    throw new Error(`DrawGuess 拼音首字母含非法字符: ${canonical}`);
+    throw new AiOutputValidationError(
+      'invalidPinyinInitials',
+      `DrawGuess 拼音首字母含非法字符: ${canonical}`,
+    );
   }
   return initials.join(' ');
 }

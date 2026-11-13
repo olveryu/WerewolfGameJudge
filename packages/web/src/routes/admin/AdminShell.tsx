@@ -1,6 +1,6 @@
 /** Responsive navigation and outlet for the admin workspace. */
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -115,13 +115,28 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   const monitoring = MONITORING_PATHS.includes(location.pathname);
   const [monitoringSearch, setMonitoringSearch] = useState(monitoring ? location.search : '');
   const [previousSearch, setPreviousSearch] = useState(location.search);
+  const workspace = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = header.current;
+    if (element === null) return;
+    const measure = () =>
+      workspace.current?.style.setProperty(
+        '--admin-workspace-header-height',
+        `${element.getBoundingClientRect().height}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   if (monitoring && previousSearch !== location.search) {
     setPreviousSearch(location.search);
     setMonitoringSearch(location.search);
   }
   return (
-    <div className="admin-workspace">
-      <div className="admin-workspace-header">
+    <div className="admin-workspace" ref={workspace}>
+      <div className="admin-workspace-header" ref={header}>
         <ScreenHeader title="管理后台" onBack={onBack}>
           <button
             type="button"

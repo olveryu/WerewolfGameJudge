@@ -834,6 +834,7 @@ describe('Worker ownership: source tree is exact', () => {
       'feedback',
       'gacha',
       'sharing',
+      'wordSubmissions',
     ]);
   });
 

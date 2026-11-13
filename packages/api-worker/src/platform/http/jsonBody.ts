@@ -2,12 +2,12 @@
 
 import type { Context } from 'hono';
 import { validator } from 'hono/validator';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /** Return a typed Hono validator that rejects the first schema issue with HTTP 400. */
-export function jsonBody<TSchema extends z.ZodType>(schema: TSchema) {
+export function jsonBody<TSchema extends z.core.$ZodType>(schema: TSchema) {
   return validator('json', (value: unknown, context: Context) => {
-    const result = schema.safeParse(value);
+    const result = z.safeParse(schema, value);
     if (!result.success) {
       const issue = result.error.issues[0];
       if (issue === undefined) {

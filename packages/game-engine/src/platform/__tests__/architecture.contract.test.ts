@@ -165,7 +165,10 @@ function findBoundaryViolations(
   allowedFiles: readonly string[] = [],
 ): readonly string[] {
   return getModuleSpecifiers(filePath, source).filter((specifier) => {
-    if (!specifier.startsWith('.')) return !declaredDependencies.has(specifier);
+    if (!specifier.startsWith('.'))
+      return ![...declaredDependencies].some(
+        (dependency) => specifier === dependency || specifier.startsWith(`${dependency}/`),
+      );
     const resolvedPath = path.resolve(path.dirname(filePath), specifier);
     return (
       !allowedDirectories.some((directory) => isPathWithin(directory, resolvedPath)) &&
@@ -294,6 +297,14 @@ describe('game-engine game module dependency boundary', () => {
 });
 
 describe('game-engine dependency boundary fixtures', () => {
+  it('accepts declared package subpaths without accepting similarly named undeclared packages', () => {
+    const filePath = path.join(productDirectory, 'fixture.ts');
+    expect(findBoundaryViolations(filePath, "import 'zod/mini';", [productDirectory])).toEqual([]);
+    expect(
+      findBoundaryViolations(filePath, "import 'zod-undeclared/mini';", [productDirectory]),
+    ).toEqual(['zod-undeclared/mini']);
+  });
+
   it.each([
     {
       filePath: path.join(platformDirectory, 'fixture.ts'),

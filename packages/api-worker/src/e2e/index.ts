@@ -9,6 +9,7 @@ import { getGameRoomStub } from '../platform/room/roomStub';
 import { E2E_CLOSE_SOCKETS_PATH } from './GameRoom';
 
 export { WeChatAuthProxy } from '../features/auth/wechat/WeChatAuthProxy';
+export { WordSubmissionReviewWorkflow } from '../index';
 export { GameRoom } from './GameRoom';
 
 const e2eApp = new Hono<AppEnv>();

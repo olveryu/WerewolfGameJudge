@@ -35,6 +35,7 @@ import { authenticateAccessToken, requireAuth } from './features/auth/tokenAuth'
 import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/routes';
 import { gachaRoutes } from './features/gacha/routes';
 import { shareRoutes } from './features/sharing/routes';
+import { wordSubmissionRoutes } from './features/wordSubmissions/routes';
 import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
 import { publicGameStatsRoutes } from './games/publicStatsRoutes';
 import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
@@ -52,6 +53,7 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
+export { WordSubmissionReviewWorkflow } from './features/wordSubmissions/reviewWorkflow';
 export { DrawGuessWordSupplyWorkflow } from './games/drawguess/wordSupplyWorkflow';
 export { FibWordSupplyWorkflow } from './games/fibking/wordSupplyWorkflow';
 export { UndercoverWordSupplyWorkflow } from './games/undercover/wordSupplyWorkflow';
@@ -111,7 +113,14 @@ app.use(
   cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id', 'x-admin-token'],
+    allowHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Idempotency-Key',
+      'x-region',
+      'x-request-id',
+      'x-admin-token',
+    ],
     maxAge: 3600,
   }),
 );
@@ -154,6 +163,7 @@ app.get('/ws', roomWebSocketHandler);
 // ── Route groups ────────────────────────────────────────────────────────────
 
 app.route('/admin', adminRoutes);
+app.route('/v1', wordSubmissionRoutes);
 app.route('/auth', authRoutes);
 app.route('/auth', accountAuthRoutes);
 app.route('/room', roomRoutes);

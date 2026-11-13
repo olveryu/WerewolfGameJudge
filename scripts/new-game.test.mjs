@@ -893,10 +893,7 @@ test('counts share generator facts and numbering does not confuse physical and r
     }));
   assert.equal(findLatestRegistrationMigration(files).name, '0065_demo.sql');
   assert.equal(
-    nextMigrationName(
-      files.map(({ name }) => name),
-      'probe',
-    ),
+    nextMigrationName(['0075_physical.sql', '0065_demo.sql', '0070_physical.sql'], 'probe'),
     '0076_probe.sql',
   );
   for (const preset of Object.keys(PRESET_CAPABILITIES)) {
