@@ -3,7 +3,7 @@ import './admin.css';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import {
@@ -25,7 +25,12 @@ const adminLog = log.extend('Admin');
 export function AdminPage() {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const goBack = () => void navigate(-1);
+  const location = useLocation();
+  const [hasEntryHistory] = useState(() => location.key !== 'default');
+  const goBack = () => {
+    if (hasEntryHistory) void navigate(-1);
+    else void navigate('/', { replace: true });
+  };
   const [cached] = useState(readAdminCredential);
   const [authenticated, setAuthenticated] = useState(false);
   const [verifying, setVerifying] = useState(cached !== null);

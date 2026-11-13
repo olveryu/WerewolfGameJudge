@@ -201,7 +201,7 @@ function mount(path = '/admin/users', previousPath?: string) {
       initialEntries:
         previousPath === undefined
           ? [path]
-          : [previousPath, { ...parsePath(path), key: 'default' }],
+          : [previousPath, { ...parsePath(path), key: 'current' }],
     },
   );
   const view = render(
@@ -310,6 +310,36 @@ describe('admin workspace', () => {
       expect(fetchD1Insights).toHaveBeenCalledWith('7d', 'writes', null, expect.any(AbortSignal)),
     );
     expect(view.router.state.location.search).toContain('range=7d');
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('returns to the room after changing D1 time ranges', async () => {
+    const view = mount('/room/1234');
+    await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
+    await screen.findByRole('navigation', { name: '管理后台导航' });
+    await userEvent.click(screen.getByRole('link', { name: 'D1 用量' }));
+    await screen.findByRole('heading', { name: 'D1 用量' });
+
+    await userEvent.click(screen.getByRole('button', { name: '24 小时' }));
+    await waitFor(() => expect(view.router.state.location.search).toContain('range=24h'));
+    await userEvent.click(screen.getByRole('button', { name: '7 天' }));
+    await waitFor(() => expect(view.router.state.location.search).toContain('range=7d'));
+
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/room/1234'));
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('returns home after admin navigation replaces a direct entry', async () => {
+    const view = mount('/admin');
+    await screen.findByRole('navigation', { name: '管理后台导航' });
+    await userEvent.click(screen.getByRole('link', { name: '用户' }));
+    await screen.findByText('测试用户');
+
+    await userEvent.click(screen.getByRole('button', { name: '返回' }));
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
     view.client.clear();
   });

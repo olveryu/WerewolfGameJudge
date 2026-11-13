@@ -80,12 +80,12 @@ export function D1UsagePage() {
     const next = new URLSearchParams(parameters);
     next.set(key, value);
     if (key === 'range') next.delete('bucket');
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   function clearBucket() {
     const next = new URLSearchParams(parameters);
     next.delete('bucket');
-    setParameters(next);
+    setParameters(next, { replace: true });
   }
   return (
     <>
