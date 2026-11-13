@@ -21,10 +21,6 @@
 }
 
 .connection-bar-retry {
-  display: inline-flex;
-  min-height: var(--size-min-touch-target);
-  align-items: center;
-  justify-content: center;
   padding: var(--space-tight) var(--space-small);
   border: none;
   border-radius: var(--radius-small);
@@ -66,10 +62,6 @@
 }
 
 .controlled-seat-banner-release {
-  display: inline-flex;
-  min-height: var(--size-min-touch-target);
-  align-items: center;
-  justify-content: center;
   padding: var(--space-tight) var(--space-small);
   border: none;
   border-radius: var(--radius-medium);

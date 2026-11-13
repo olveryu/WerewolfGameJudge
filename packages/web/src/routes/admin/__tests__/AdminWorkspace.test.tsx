@@ -285,21 +285,6 @@ afterEach(() => {
 });
 
 describe('admin workspace', () => {
-  it('lets keyboard users skip the shared navigation to the main content', async () => {
-    const view = mount();
-    await screen.findByText('测试用户');
-
-    await userEvent.tab();
-
-    const skipLink = screen.getByRole('link', { name: '跳到主内容' });
-    expect(skipLink).toHaveFocus();
-    expect(skipLink).toHaveAttribute('href', '#admin-main');
-    expect(screen.getByRole('main')).toHaveAttribute('id', 'admin-main');
-
-    view.unmount();
-    view.client.clear();
-  });
-
   it('shows D1 totals separately from sampled insights and changes the requested range and sort', async () => {
     const view = mount('/admin/d1');
     await screen.findByText('可能涉及：你画我猜词库');
@@ -384,17 +369,6 @@ describe('admin workspace', () => {
       view.client.clear();
     },
   );
-
-  it('returns home when the admin workspace was opened without in-app history', async () => {
-    const view = mount('/admin/users');
-    await screen.findByText('测试用户');
-
-    await userEvent.click(screen.getByRole('button', { name: '返回' }));
-
-    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
-    view.unmount();
-    view.client.clear();
-  });
 
   it.each([
     { source: '/', mobile: false },

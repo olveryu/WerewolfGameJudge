@@ -9,7 +9,6 @@ import './Encyclopedia.css';
 import { Tabs } from '@ark-ui/react/tabs';
 import { type ReactNode, useState } from 'react';
 
-import { handleHorizontalTabKeyDown } from '@/components/horizontalTabKeyboardNavigation';
 import { ScreenHeader } from '@/components/ScreenHeader';
 
 export interface EncyclopediaSegment {
@@ -54,11 +53,7 @@ export function EncyclopediaShell({
         value={activeTab}
         onValueChange={(details) => setActiveTab(details.value)}
       >
-        <Tabs.List
-          className="encyclopedia-segments"
-          aria-label={title}
-          onKeyDown={handleHorizontalTabKeyDown}
-        >
+        <Tabs.List className="encyclopedia-segments" aria-label={title}>
           {segments.map((segment) => (
             <Tabs.Trigger key={segment.key} value={segment.key} className="encyclopedia-segment">
               {segment.label}

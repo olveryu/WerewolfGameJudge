@@ -1,6 +1,6 @@
 import './LoginDialog.css';
 
-import { type FormEvent, type ReactNode, useId, useState, useSyncExternalStore } from 'react';
+import { type FormEvent, useState, useSyncExternalStore } from 'react';
 import { useMatches, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
@@ -43,25 +43,6 @@ const STRIP_PORTRAITS = Array.from({ length: STRIP_COUNT }, (_, index) => {
 });
 const EMAIL_DOMAINS = ['@qq.com', '@163.com', '@gmail.com', '@icloud.com', '@outlook.com'];
 const MIN_PASSWORD_LENGTH = 6;
-
-function LabeledField({
-  id,
-  label,
-  children,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div className="login-form-field">
-      <label className="login-form-label" htmlFor={id}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 type Step =
   | { kind: 'options' }
@@ -260,30 +241,26 @@ function PasswordField({
   disabled: boolean;
 }) {
   const [visible, setVisible] = useState(false);
-  const inputId = useId();
   return (
-    <LabeledField id={inputId} label={placeholder}>
-      <span className="password-field">
-        <input
-          id={inputId}
-          className="text-input"
-          type={visible ? 'text' : 'password'}
-          value={value}
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <button
-          type="button"
-          className="password-toggle"
-          aria-label={visible ? '隐藏密码' : '显示密码'}
-          onClick={() => setVisible((current) => !current)}
-        >
-          {visible ? <IconEyeOffOutline aria-hidden /> : <IconEyeOutline aria-hidden />}
-        </button>
-      </span>
-    </LabeledField>
+    <span className="password-field">
+      <input
+        className="text-input"
+        type={visible ? 'text' : 'password'}
+        value={value}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <button
+        type="button"
+        className="password-toggle"
+        aria-label={visible ? '隐藏密码' : '显示密码'}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? <IconEyeOffOutline aria-hidden /> : <IconEyeOutline aria-hidden />}
+      </button>
+    </span>
   );
 }
 
@@ -305,8 +282,6 @@ function EmailForm({
   const [email, setEmail] = useState(step.email);
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const emailFieldId = useId();
-  const displayNameFieldId = useId();
   const { isSignUp } = step;
   const busy = signIn.isPending || signUp.isPending || signOut.isPending;
   const localPart = email.split('@')[0] ?? '';
@@ -351,19 +326,16 @@ function EmailForm({
       <h3 className="login-form-title">
         {request.formTitle ?? (isSignUp ? '注册账号' : '邮箱登录')}
       </h3>
-      <LabeledField id={emailFieldId} label="邮箱">
-        <input
-          id={emailFieldId}
-          className="text-input"
-          type="email"
-          value={email}
-          placeholder="邮箱"
-          autoComplete="email"
-          list="login-email-domains"
-          disabled={busy}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </LabeledField>
+      <input
+        className="text-input"
+        type="email"
+        value={email}
+        placeholder="邮箱"
+        autoComplete="email"
+        list="login-email-domains"
+        disabled={busy}
+        onChange={(event) => setEmail(event.target.value)}
+      />
       <datalist id="login-email-domains">
         {localPart !== '' &&
           !email.includes('@') &&
@@ -377,23 +349,16 @@ function EmailForm({
         disabled={busy}
       />
       {isSignUp && request.hideDisplayName !== true && (
-        <LabeledField id={displayNameFieldId} label="昵称（可选）">
-          <input
-            id={displayNameFieldId}
-            className="text-input"
-            value={displayName}
-            placeholder="昵称（可选）"
-            autoComplete="nickname"
-            disabled={busy}
-            onChange={(event) => setDisplayName(event.target.value)}
-          />
-        </LabeledField>
+        <input
+          className="text-input"
+          value={displayName}
+          placeholder="昵称（可选）"
+          autoComplete="nickname"
+          disabled={busy}
+          onChange={(event) => setDisplayName(event.target.value)}
+        />
       )}
-      {authError && (
-        <p className="login-error" role="alert">
-          {authError}
-        </p>
-      )}
+      {authError && <p className="login-error">{authError}</p>}
       <Button type="submit" loading={busy}>
         {busy ? '处理中' : isSignUp ? '注册' : '登录'}
       </Button>
@@ -434,7 +399,6 @@ function ForgotPasswordForm({
   const forgotPassword = useForgotPassword();
   const [email, setEmail] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
-  const emailFieldId = useId();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -458,23 +422,16 @@ function ForgotPasswordForm({
     <form className="login-form" onSubmit={(event) => void submit(event)}>
       <h3 className="login-form-title">忘记密码</h3>
       <p className="login-form-subtitle">输入注册邮箱，我们将发送验证码</p>
-      <LabeledField id={emailFieldId} label="邮箱">
-        <input
-          id={emailFieldId}
-          className="text-input"
-          type="email"
-          value={email}
-          placeholder="邮箱"
-          autoComplete="email"
-          disabled={forgotPassword.isPending}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </LabeledField>
-      {error && (
-        <p className="login-error" role="alert">
-          {error}
-        </p>
-      )}
+      <input
+        className="text-input"
+        type="email"
+        value={email}
+        placeholder="邮箱"
+        autoComplete="email"
+        disabled={forgotPassword.isPending}
+        onChange={(event) => setEmail(event.target.value)}
+      />
+      {error && <p className="login-error">{error}</p>}
       <Button type="submit" loading={forgotPassword.isPending}>
         {forgotPassword.isPending ? '发送中…' : '发送验证码'}
       </Button>
@@ -491,7 +448,6 @@ function ResetPasswordForm({ email, onStep }: { email: string; onStep: (step: St
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const codeFieldId = useId();
   const busy = resetPassword.isPending || forgotPassword.isPending;
 
   const submit = async (event: FormEvent) => {
@@ -530,19 +486,16 @@ function ResetPasswordForm({ email, onStep }: { email: string; onStep: (step: St
     <form className="login-form" onSubmit={(event) => void submit(event)}>
       <h3 className="login-form-title">重置密码</h3>
       <p className="login-form-subtitle">{`验证码已发送至 ${email}`}</p>
-      <LabeledField id={codeFieldId} label="6位验证码">
-        <input
-          id={codeFieldId}
-          className="text-input"
-          value={code}
-          placeholder="6位验证码"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          disabled={busy}
-          onChange={(event) => setCode(event.target.value)}
-        />
-      </LabeledField>
+      <input
+        className="text-input"
+        value={code}
+        placeholder="6位验证码"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        disabled={busy}
+        onChange={(event) => setCode(event.target.value)}
+      />
       <PasswordField
         value={newPassword}
         onChange={setNewPassword}
@@ -550,11 +503,7 @@ function ResetPasswordForm({ email, onStep }: { email: string; onStep: (step: St
         autoComplete="new-password"
         disabled={busy}
       />
-      {error && (
-        <p className="login-error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <p className="login-error">{error}</p>}
       <Button type="submit" loading={resetPassword.isPending}>
         {resetPassword.isPending ? '重置中…' : '重置密码'}
       </Button>

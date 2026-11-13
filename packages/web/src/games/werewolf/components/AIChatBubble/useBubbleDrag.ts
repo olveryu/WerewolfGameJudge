@@ -6,13 +6,7 @@
  * Contains no game business logic.
  */
 
-import {
-  type KeyboardEvent,
-  type PointerEvent,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type PointerEvent, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   type AIChatBubblePosition,
@@ -20,21 +14,10 @@ import {
   writeAIChatBubblePosition,
 } from '@/games/werewolf/services/aiChatBubblePositionStore';
 
-import {
-  type BubblePosition,
-  type BubbleViewport,
-  clampBubblePosition,
-  getDefaultPosition,
-} from './bubbleLayout';
+import { type BubbleViewport, clampBubblePosition, getDefaultPosition } from './bubbleLayout';
 
 const DRAG_THRESHOLD = 10;
-const KEYBOARD_MOVE_STEP = 16;
-const KEYBOARD_DIRECTIONS: Record<string, BubblePosition> = {
-  ArrowUp: { x: 0, y: -KEYBOARD_MOVE_STEP },
-  ArrowDown: { x: 0, y: KEYBOARD_MOVE_STEP },
-  ArrowLeft: { x: -KEYBOARD_MOVE_STEP, y: 0 },
-  ArrowRight: { x: KEYBOARD_MOVE_STEP, y: 0 },
-};
+
 /**
  * Window size whose height ignores keyboard-induced shrinking (WeChat web-view): the height
  * changes only with the width (rotation) or when it grows (keyboard dismissed).
@@ -64,7 +47,6 @@ interface DragStart {
 
 interface UseBubbleDragReturn {
   readonly position: AIChatBubblePosition;
-  readonly handleKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   readonly handlePointerDown: (event: PointerEvent<HTMLElement>) => void;
   readonly handlePointerMove: (event: PointerEvent<HTMLElement>) => void;
   readonly handlePointerUp: (event: PointerEvent<HTMLElement>) => void;
@@ -77,11 +59,11 @@ interface UseBubbleDragReturn {
  * @param onOpen callback when bubble is tapped (opens chat window)
  */
 export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDragReturn {
+  const [viewportSource] = useState(createStableViewport);
+  const viewport = useSyncExternalStore(viewportSource.subscribe, viewportSource.getSnapshot);
   // The saved or dragged position; null keeps the default corner. Clamped to the viewport on
   // every render, so a rotation re-clamps it.
   const [placedPosition, setPlacedPosition] = useState(() => readAIChatBubblePosition(userId));
-  const [viewportSource] = useState(createStableViewport);
-  const viewport = useSyncExternalStore(viewportSource.subscribe, viewportSource.getSnapshot);
   const position = clampBubblePosition(
     placedPosition ?? getDefaultPosition(viewport.width, viewport.height),
     viewport,
@@ -89,18 +71,6 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
   const dragStartRef = useRef<DragStart | null>(null);
   const isDraggingRef = useRef(false);
   const suppressClickRef = useRef(false);
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    const direction = KEYBOARD_DIRECTIONS[event.key];
-    if (direction === undefined) return;
-    event.preventDefault();
-    const nextPosition = clampBubblePosition(
-      { x: position.x + direction.x, y: position.y + direction.y },
-      viewport,
-    );
-    setPlacedPosition(nextPosition);
-    writeAIChatBubblePosition(userId, nextPosition);
-  };
 
   const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -161,7 +131,6 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
 
   return {
     position,
-    handleKeyDown,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

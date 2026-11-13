@@ -14,11 +14,10 @@ import {
   type AvalonViewModel,
   isAvalonPlayerCount,
 } from '@game-judge/game-engine/games/avalon/public';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
-import { handleHorizontalTabKeyDown } from '@/components/horizontalTabKeyboardNavigation';
 import { TESTIDS } from '@/testids';
 
 import { formatAvalonQuestSizes, formatAvalonVoteMode } from '../avalonRecordCopy';
@@ -35,8 +34,6 @@ export function AvalonHistoryOverlay({
   readonly onClose: () => void;
 }) {
   const rounds = viewModel.roundHistory;
-  const historyId = useId();
-  const panelId = `${historyId}-panel`;
   const ended = viewModel.phase === 'ended';
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const active =
@@ -79,12 +76,7 @@ export function AvalonHistoryOverlay({
           ended={ended}
         />
         {rounds.length > 0 && (
-          <div
-            className="avalon-history-tabs"
-            role="tablist"
-            aria-label="轮次"
-            onKeyDown={handleHorizontalTabKeyDown}
-          >
+          <div className="avalon-history-tabs" role="tablist" aria-label="轮次">
             {rounds.map((record) => {
               const isActive = active !== undefined && record.round === active.round;
               return (
@@ -92,11 +84,8 @@ export function AvalonHistoryOverlay({
                   key={record.round}
                   type="button"
                   role="tab"
-                  id={`${historyId}-round-${record.round}`}
                   className="avalon-history-tab"
                   aria-selected={isActive}
-                  aria-controls={panelId}
-                  tabIndex={isActive ? 0 : -1}
                   data-testid={TESTIDS.avalonHistoryTab(record.round)}
                   onClick={() => setSelectedRound(record.round)}
                 >
@@ -106,12 +95,7 @@ export function AvalonHistoryOverlay({
             })}
           </div>
         )}
-        <div
-          id={panelId}
-          className="avalon-history-scroll"
-          role={rounds.length > 0 ? 'tabpanel' : undefined}
-          aria-labelledby={active === undefined ? undefined : `${historyId}-round-${active.round}`}
-        >
+        <div className="avalon-history-scroll" role={rounds.length > 0 ? 'tabpanel' : undefined}>
           {active === undefined ? (
             <p className="avalon-history-empty">暂无对局记录。</p>
           ) : (

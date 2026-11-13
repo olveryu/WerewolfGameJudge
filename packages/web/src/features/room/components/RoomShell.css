@@ -46,8 +46,6 @@
 
 .room-header-title-button {
   overflow: hidden;
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
   max-width: 100%;
   padding: 0;
   border: none;
@@ -62,8 +60,8 @@
 }
 
 .icon-button.room-header-share {
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
+  width: var(--size-button-sm);
+  height: var(--size-button-sm);
   font-size: var(--size-icon-sm);
 }
 
@@ -72,8 +70,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
+  width: calc(var(--size-avatar-sm) + var(--space-small));
+  height: calc(var(--size-avatar-sm) + var(--space-small));
   padding: 0;
   border: none;
   border-radius: var(--radius-full);
@@ -138,7 +136,7 @@
 /* Stage content: header host entry, information bar, then the game element filling the rest. */
 .room-header-host-button {
   flex-shrink: 0;
-  min-height: var(--size-min-touch-target);
+  min-height: var(--size-button-sm);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-full);

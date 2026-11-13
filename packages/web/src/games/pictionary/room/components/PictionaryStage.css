@@ -290,11 +290,6 @@
   outline: none;
 }
 
-.pictionary-fullscreen:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: calc(-1 * var(--border-width-thick));
-}
-
 .pictionary-fullscreen img {
   width: 100%;
   height: 100%;

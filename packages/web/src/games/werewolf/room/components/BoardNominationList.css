@@ -53,7 +53,6 @@
   align-items: center;
   gap: var(--space-small);
   width: 100%;
-  min-height: var(--size-min-touch-target);
   padding: 0;
   border: none;
   background: none;
@@ -133,8 +132,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-micro);
-  min-height: var(--size-min-touch-target);
-  padding: 0 var(--space-small);
+  padding: var(--space-micro) var(--space-small);
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-text-secondary-a12);

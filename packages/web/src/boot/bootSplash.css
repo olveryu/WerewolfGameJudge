@@ -41,21 +41,10 @@
 /* Escape hatch when loading stalls: shown after 8 s even without any script, or at once on a hint.
    `visibility` keeps it out of the tab order and accessibility tree until then. */
 .boot-refresh {
-  display: inline-flex;
-  min-height: var(--size-min-touch-target);
-  align-items: center;
-  justify-content: center;
-  padding-inline: var(--space-small);
   color: #ffffff;
   font-size: var(--font-secondary);
   visibility: hidden;
   animation: boot-refresh-reveal 0s linear 8s forwards;
-}
-
-.boot-refresh:focus-visible {
-  outline: var(--border-width-thick) solid currentColor;
-  outline-offset: var(--space-micro);
-  border-radius: var(--radius-small);
 }
 
 .boot-splash[data-stalled] .boot-refresh {

@@ -1,5 +1,5 @@
 .werewolf-spotlight {
-  height: calc(var(--size-avatar-xl) + var(--size-min-touch-target) + var(--space-medium));
+  height: calc(var(--size-avatar-xl) + var(--space-xlarge) + var(--space-medium));
   perspective: 800px;
 }
 
@@ -45,10 +45,9 @@
   gap: var(--space-small);
 }
 
-.werewolf-spotlight-back-icon {
-  width: var(--size-icon-xl);
-  height: var(--size-icon-xl);
-  color: var(--color-text-secondary);
+.werewolf-spotlight-back-emoji {
+  font-size: var(--font-display);
+  line-height: var(--line-display);
 }
 
 .werewolf-spotlight-back-text {
@@ -128,8 +127,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-tight);
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
   padding: var(--space-tight) 0;
   border: none;
   background: none;

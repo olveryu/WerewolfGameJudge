@@ -139,7 +139,7 @@ export function TenResultOverlay({
             />
             <Dialog.Title className="ten-result-title" data-golden={isGolden}>
               {isGolden ? <IconStar aria-hidden /> : <IconSparkles aria-hidden />}
-              {isGolden ? `黄金${results.length}连抽结果` : `${results.length}连抽结果`}
+              {isGolden ? '黄金10连抽结果' : '10连抽结果'}
             </Dialog.Title>
             <div ref={scrollRootRef} className="ten-result-scroll">
               {groups.map((group) => {

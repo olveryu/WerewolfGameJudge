@@ -1,5 +1,5 @@
 /** AnnouncementModal: the changelog leads the tab bar and is the default page. */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { lazy } from 'react';
 
@@ -57,21 +57,6 @@ it('switches to a game tab and back to the changelog', async () => {
   await user.click(screen.getByRole('tab', { name: '更新日志' }));
   expect(await screen.findByText(latestTitle())).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByText('板子内容')).toBeNull());
-});
-
-it('navigates announcement tabs with horizontal arrow keys', async () => {
-  renderModal();
-
-  const changelogTab = screen.getByRole('tab', { name: '更新日志' });
-  const gameTab = screen.getByRole('tab', { name: '板子' });
-  changelogTab.focus();
-  fireEvent.keyDown(changelogTab, { key: 'ArrowRight' });
-
-  await waitFor(() => {
-    expect(gameTab).toHaveFocus();
-    expect(gameTab).toHaveAttribute('aria-selected', 'true');
-  });
-  expect(await screen.findByText('板子内容')).toBeInTheDocument();
 });
 
 it('closes through the close button', async () => {

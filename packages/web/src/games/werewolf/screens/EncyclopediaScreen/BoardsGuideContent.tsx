@@ -113,7 +113,6 @@ export function BoardsGuideContent({
           <input
             type="search"
             className="encyclopedia-search-input"
-            aria-label="搜索板子名/角色名"
             placeholder="搜索板子名/角色名"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.currentTarget.value)}

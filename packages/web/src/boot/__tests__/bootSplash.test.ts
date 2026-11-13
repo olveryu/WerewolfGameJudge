@@ -1,5 +1,5 @@
 // @vitest-environment-options {"url": "https://werewolfgamer.com/"}
-import { dismissBootSplash, scheduleBootSplashDismiss } from '@/boot/dismissBootSplash';
+import { dismissBootSplash } from '@/boot/dismissBootSplash';
 
 const SPLASH_MARKUP = `
   <div id="boot-splash">
@@ -56,7 +56,6 @@ function element(id: string): HTMLElement {
 
 describe('boot splash', () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     disconnect.mockClear();
@@ -143,19 +142,5 @@ describe('boot splash', () => {
 
     splash.dispatchEvent(new Event('transitionend'));
     expect(splash.isConnected).toBe(false);
-  });
-
-  it('dismisses the splash if animation frames are paused', () => {
-    vi.useFakeTimers();
-    vi.stubGlobal('requestAnimationFrame', vi.fn());
-    document.body.innerHTML = SPLASH_MARKUP;
-
-    scheduleBootSplashDismiss();
-    expect(element('boot-splash').classList.contains('boot-splash-leaving')).toBe(false);
-
-    vi.advanceTimersByTime(1000);
-
-    expect(element('boot-splash').classList.contains('boot-splash-leaving')).toBe(true);
-    vi.useRealTimers();
   });
 });

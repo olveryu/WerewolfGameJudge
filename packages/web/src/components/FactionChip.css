@@ -20,8 +20,6 @@
 }
 
 button.faction-chip {
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
   cursor: pointer;
 }
 

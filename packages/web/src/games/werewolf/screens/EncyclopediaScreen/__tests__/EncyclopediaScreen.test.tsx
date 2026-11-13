@@ -84,27 +84,6 @@ describe('EncyclopediaScreen gameplay guide', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
-  it('navigates between guide segments with horizontal arrow keys', async () => {
-    renderGuide('/game/werewolf/guide');
-
-    const gameplayTab = screen.getByRole('tab', { name: '玩法' });
-    const rolesTab = screen.getByRole('tab', { name: /^角色/ });
-    const boardsTab = screen.getByRole('tab', { name: /^板子/ });
-    gameplayTab.focus();
-
-    fireEvent.keyDown(gameplayTab, { key: 'ArrowRight' });
-    await waitFor(() => {
-      expect(rolesTab).toHaveFocus();
-      expect(rolesTab).toHaveAttribute('aria-selected', 'true');
-    });
-
-    fireEvent.keyDown(rolesTab, { key: 'ArrowRight' });
-    await waitFor(() => {
-      expect(boardsTab).toHaveFocus();
-      expect(boardsTab).toHaveAttribute('aria-selected', 'true');
-    });
-  });
-
   it('keeps role links on the role tab', () => {
     renderGuide('/game/werewolf/guide?roleId=seer');
     expect(screen.getByRole('tab', { name: /^角色/ })).toHaveAttribute('aria-selected', 'true');

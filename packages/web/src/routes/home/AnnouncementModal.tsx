@@ -11,7 +11,6 @@ import { Portal } from '@ark-ui/react/portal';
 import { Tabs } from '@ark-ui/react/tabs';
 import { Suspense, useState } from 'react';
 
-import { handleHorizontalTabKeyDown } from '@/components/horizontalTabKeyboardNavigation';
 import { Spinner } from '@/components/Spinner';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -92,11 +91,7 @@ export function AnnouncementModal({ open, gameTabs, onClose }: AnnouncementModal
               lazyMount
               unmountOnExit
             >
-              <Tabs.List
-                className="announcement-tabs"
-                aria-label="公告与反馈"
-                onKeyDown={handleHorizontalTabKeyDown}
-              >
+              <Tabs.List className="announcement-tabs" aria-label="公告与反馈">
                 <Tabs.Trigger value={CHANGELOG_TAB} className="announcement-tab">
                   更新日志
                 </Tabs.Trigger>

@@ -221,8 +221,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
+  width: var(--space-xlarge);
+  height: var(--space-xlarge);
   padding: 0;
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);

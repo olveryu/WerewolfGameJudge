@@ -58,8 +58,6 @@
 }
 
 .room-stage-roster-chip {
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
   font-family: inherit;
   cursor: pointer;
 }
@@ -105,8 +103,7 @@
 }
 
 .room-stage-controlled-release {
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
+  min-height: var(--size-button-sm);
   padding: 0 0 0 var(--space-tight);
   border: none;
   background: none;

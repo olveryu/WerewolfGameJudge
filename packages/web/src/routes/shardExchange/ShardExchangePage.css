@@ -132,12 +132,7 @@
 }
 
 .shard-cell-exchange {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--size-min-touch-target);
-  min-height: var(--size-min-touch-target);
-  padding: 0 var(--space-small);
+  padding: var(--space-tight) var(--space-small);
   border: 0;
   border-radius: var(--radius-small);
   background: var(--color-warning-a12);

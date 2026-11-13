@@ -12,7 +12,7 @@ import { RouterProvider } from 'react-router/dom';
 
 import { queryClient } from '@/app/queryClient';
 import { router } from '@/app/router';
-import { scheduleBootSplashDismiss } from '@/boot/dismissBootSplash';
+import { dismissBootSplash } from '@/boot/dismissBootSplash';
 import { reportLoadTiming } from '@/boot/loadTiming';
 import { capturePwaInstallPrompt } from '@/boot/pwaInstallPrompt';
 import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
@@ -34,13 +34,13 @@ void removeLegacyServiceWorkers();
 /** The router renders its first route once the matched lazy route modules have loaded. */
 function dismissBootSplashOnceRouted(): void {
   if (router.state.initialized) {
-    scheduleBootSplashDismiss();
+    requestAnimationFrame(dismissBootSplash);
     return;
   }
   const unsubscribe = router.subscribe((state) => {
     if (!state.initialized) return;
     unsubscribe();
-    scheduleBootSplashDismiss();
+    requestAnimationFrame(dismissBootSplash);
   });
 }
 
@@ -66,7 +66,7 @@ void resolveRuntimeEnvironment().then((environment) => {
   );
   performance.mark('app:registered');
   if (environment === 'wechatBrowser') {
-    scheduleBootSplashDismiss();
+    requestAnimationFrame(dismissBootSplash);
   } else {
     dismissBootSplashOnceRouted();
   }

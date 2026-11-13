@@ -109,7 +109,6 @@
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);

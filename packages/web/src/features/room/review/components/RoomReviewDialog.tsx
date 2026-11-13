@@ -74,7 +74,7 @@ function ShareControls({
           <p className="review-share-status" role="status">
             {controls.status}
           </p>
-          <Button variant="ghost" onClick={controls.onCancel}>
+          <Button variant="ghost" size="sm" onClick={controls.onCancel}>
             取消
           </Button>
         </div>

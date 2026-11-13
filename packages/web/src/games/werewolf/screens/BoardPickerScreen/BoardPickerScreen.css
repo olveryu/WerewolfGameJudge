@@ -46,11 +46,6 @@
   color: var(--color-text-muted);
 }
 
-.board-picker-search:focus-within {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: var(--space-micro);
-}
-
 .board-picker-search-input {
   flex: 1;
   min-width: 0;
@@ -74,7 +69,6 @@
 
 .board-picker-tab {
   flex: 1;
-  min-height: var(--size-min-touch-target);
   padding: var(--space-small) 0;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
@@ -153,7 +147,6 @@
   justify-content: center;
   gap: var(--space-small);
   width: 100%;
-  min-height: var(--size-min-touch-target);
   padding: 0;
   border: none;
   background: none;
@@ -182,7 +175,6 @@
 .board-picker-filter-section {
   display: flex;
   align-items: center;
-  min-height: var(--size-min-touch-target);
   gap: var(--space-tight);
   width: 100%;
   margin-top: var(--space-tight);
@@ -215,7 +207,6 @@
 }
 
 .board-picker-filter-chip {
-  min-height: var(--size-min-touch-target);
   padding: calc(var(--space-micro) + var(--space-tight))
     calc(var(--space-small) + var(--space-tight));
   border: var(--border-width) solid var(--color-border);
