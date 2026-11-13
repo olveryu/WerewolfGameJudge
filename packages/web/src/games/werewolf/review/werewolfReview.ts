@@ -1,9 +1,9 @@
 /**
  * The werewolf review contribution. The report exists from dawn (Day)
- * through the end of the game, but only the host and seats explicitly
- * authorized by the host (`nightReviewAllowedSeats`) may read it. Every
- * reader confirms before opening — the report carries every identity and
- * can sway the sheriff election.
+ * through the end of the game. The host, unseated spectators, and seats
+ * explicitly authorized by the host (`nightReviewAllowedSeats`) may read it.
+ * Every reader confirms before opening — the report carries every identity
+ * and can sway the sheriff election.
  */
 
 import {
@@ -24,7 +24,8 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
     const isGrantedSeat =
       viewer.seat !== null && (state.nightReviewAllowedSeats ?? []).includes(viewer.seat);
     const isEnded = state.status === GameStatus.Ended;
-    if (!viewer.isHost && !isGrantedSeat) {
+    const mayRead = viewer.isHost || viewer.seat === null || isGrantedSeat;
+    if (!mayRead) {
       return { kind: 'notPermitted', reason: '房主尚未向你开放复盘' };
     }
     return {
@@ -34,7 +35,10 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
         roomCode,
         gameSequence: state.gameSequence,
       }),
-      sharing: { isAllowed: true },
+      sharing:
+        viewer.seat === null && !viewer.isHost
+          ? { isAllowed: false, reason: '观众可查看，但不能保存／分享复盘' }
+          : { isAllowed: true },
       confirmation: {
         title: '查看本局复盘？',
         message: isEnded

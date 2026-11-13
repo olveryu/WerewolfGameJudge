@@ -1,8 +1,8 @@
 /**
- * werewolfReview tests — the host-only-or-granted-seat gate. The host and
- * explicitly authorized seats may read it during Day and after the game ends.
- * Every reader confirms first, and a Day confirmation warns that the report
- * can sway the sheriff election.
+ * werewolfReview tests — the host, unseated spectators, and explicitly
+ * authorized seats may read it during Day and after the game ends. Spectators
+ * may not share it. Every reader confirms first, and a Day confirmation warns
+ * that the report can sway the sheriff election.
  */
 import {
   type GameState,
@@ -75,10 +75,15 @@ describe('werewolfReview', () => {
     });
   });
 
-  it('does not permit an unseated spectator to read the review', () => {
+  it('allows an unseated spectator to read during Day but not share', () => {
     const state = makeSettledNightState({ nightReviewAllowedSeats: [1] });
 
-    expect(resolveFor(state, SPECTATOR)).toEqual(NOT_PERMITTED);
+    expect(resolveFor(state, SPECTATOR)).toEqual({
+      kind: 'available',
+      document: documentFor(state),
+      sharing: { isAllowed: false, reason: '观众可查看，但不能保存／分享复盘' },
+      confirmation: DAY_CONFIRMATION,
+    });
   });
 
   it('is available to a seat the host granted, which may share it', () => {
@@ -102,14 +107,18 @@ describe('werewolfReview', () => {
     ).toEqual(NOT_PERMITTED);
   });
 
-  it('requires host authorization even after the game has ended', () => {
+  it('requires host authorization for seated players even after the game has ended', () => {
     const state = makeSettledNightState({
       status: GameStatus.Ended,
       nightReviewAllowedSeats: [],
     });
 
     expect(resolveFor(state, seatedViewer(1))).toEqual(NOT_PERMITTED);
-    expect(resolveFor(state, SPECTATOR)).toEqual(NOT_PERMITTED);
+    expect(resolveFor(state, SPECTATOR)).toMatchObject({
+      kind: 'available',
+      sharing: { isAllowed: false },
+      confirmation: ENDED_CONFIRMATION,
+    });
   });
 
   it('allows an authorized seat to read and share after the game has ended', () => {
