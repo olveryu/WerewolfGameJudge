@@ -28,15 +28,17 @@ interface StructuredOutputOptions<Output> {
   readonly fetchImpl?: typeof fetch;
 }
 
-/** One non-retried request; domain validation belongs inside this diagnostic boundary. */
+/** The provider schema stays complete; a custom decoder owns all local output validation. */
 export function requestStructuredOutput<Output, Result>(
-  options: StructuredOutputOptions<Output> & { readonly parseOutput: (output: Output) => Result },
+  options: StructuredOutputOptions<Output> & { readonly parseOutput: (output: unknown) => Result },
 ): Promise<Result>;
 export function requestStructuredOutput<Output>(
   options: StructuredOutputOptions<Output>,
 ): Promise<Output>;
 export async function requestStructuredOutput<Output, Result>(
-  options: StructuredOutputOptions<Output> & { readonly parseOutput?: (output: Output) => Result },
+  options: StructuredOutputOptions<Output> & {
+    readonly parseOutput?: (output: unknown) => Result;
+  },
 ): Promise<Output | Result> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const context = { ...options.context, model: options.model };
@@ -91,8 +93,9 @@ export async function requestStructuredOutput<Output, Result>(
         ),
       );
       return parseAiOutput(context, 'outputValidation', () => {
-        const output = options.schema.parse(content);
-        return options.parseOutput === undefined ? output : options.parseOutput(output);
+        return options.parseOutput === undefined
+          ? options.schema.parse(content)
+          : options.parseOutput(content);
       });
     },
   });

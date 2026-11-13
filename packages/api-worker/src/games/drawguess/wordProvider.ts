@@ -4,6 +4,7 @@ import type { DrawGuessWordCategory } from '@game-judge/game-engine/games/drawgu
 import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
+  decodeGeneratedDrawGuessCandidates,
   DRAWGUESS_WORD_BATCH_LIMIT,
   drawGuessCandidatesSchema,
   drawGuessReviewsSchema,
@@ -82,6 +83,13 @@ export function createDrawGuessWordProvider(apiKey: string, fetchImpl: typeof fe
         systemPrompt: GENERATION_PROMPT,
         payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
+        parseOutput: (value) =>
+          decodeGeneratedDrawGuessCandidates(value, category, {
+            ...context,
+            game: 'drawguess',
+            operation: 'generate',
+            model: DRAWGUESS_WORD_MODEL,
+          }),
       });
     },
     reviewBatch(

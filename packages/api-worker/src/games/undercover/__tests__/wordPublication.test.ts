@@ -154,6 +154,7 @@ describe('Undercover editorial publication', () => {
     if (third === null) throw new Error('Expected review reservation');
     const rereview = await getUndercoverReviewCandidates(env.DB, third);
     expect(rereview).toHaveLength(1);
+    await expect(publishUndercoverWordPack(env.DB, third, rereview, [])).rejects.toThrow('count');
     expect(
       await env.DB.prepare(
         'SELECT status FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',

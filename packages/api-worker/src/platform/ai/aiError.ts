@@ -5,6 +5,24 @@ import { readErrorDiagnostic } from '../observability/errorDiagnostic';
 import { createLogger } from '../observability/logger';
 
 const log = createLogger('ai-provider');
+export const OUTPUT_VALIDATION_SAMPLE_LIMIT = 8;
+export const outputValidationSummarySchema = z.strictObject({
+  receivedCount: z.number().int().nonnegative(),
+  validCount: z.number().int().nonnegative(),
+  rejectedCount: z.number().int().nonnegative(),
+  duplicateCount: z.number().int().nonnegative(),
+  omittedIssueCount: z.number().int().nonnegative(),
+  rejectionSamples: z
+    .array(
+      z.strictObject({
+        index: z.number().int().nonnegative(),
+        path: z.array(z.union([z.string(), z.number().int().nonnegative()])),
+        code: z.string(),
+      }),
+    )
+    .max(OUTPUT_VALIDATION_SAMPLE_LIMIT),
+});
+export type OutputValidationSummary = z.output<typeof outputValidationSummarySchema>;
 const failureKindSchema = z.enum([
   'configuration',
   'timedOut',
@@ -43,6 +61,7 @@ const diagnosticSchema = z.strictObject({
   errorBody: z.enum(['unrecognized', 'tooLarge', 'unreadable']).optional(),
   issueCodes: z.array(z.string()).optional(),
   validationCode: z.string().optional(),
+  validationSummary: outputValidationSummarySchema.optional(),
   transportMessage: z.string().optional(),
 });
 
@@ -57,6 +76,7 @@ export class AiOutputValidationError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    readonly path: readonly (string | number)[] = [],
   ) {
     super(message);
     this.name = 'AiOutputValidationError';
@@ -161,7 +181,7 @@ export function parseAiOutput<Output>(
   } catch (error) {
     if (
       !(error instanceof z.ZodError) &&
-      !(error instanceof SyntaxError) &&
+      !(stage === 'contentJson' && error instanceof SyntaxError) &&
       !(error instanceof AiOutputValidationError)
     )
       throw error;

@@ -48,7 +48,7 @@ describe('Undercover supply workflow', () => {
     });
   });
 
-  it('stores actual generation material and publishes independently reviewed pairs', async () => {
+  it('checkpoints partial validation and publishes only valid independently reviewed pairs', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
     const candidateMaterial = {
@@ -76,7 +76,15 @@ describe('Undercover supply workflow', () => {
         isFactuallyCertain: true,
       },
     };
-    const requests = mockWordSupplyModel(candidateMaterial, review);
+    const requests = mockWordSupplyModel(
+      [
+        { ...candidateMaterial, commonTraits: ['不足'] },
+        { ...candidateMaterial, wordB: candidateMaterial.wordA },
+        candidateMaterial,
+        { ...candidateMaterial, wordA: candidateMaterial.wordB, wordB: candidateMaterial.wordA },
+      ],
+      review,
+    );
     await using instance = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
@@ -86,6 +94,9 @@ describe('Undercover supply workflow', () => {
     await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day } });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
+      validation: { receivedCount: 4, validCount: 1, rejectedCount: 2, duplicateCount: 1 },
+    });
     const pack = z
       .object({
         category: z.enum(UNDERCOVER_CATEGORIES),
@@ -119,6 +130,9 @@ describe('Undercover supply workflow', () => {
       category: pack.category,
       status: 'active',
     });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 2 });
   });
 
   it('records failed generation without publishing or automatically repeating the operation', async () => {

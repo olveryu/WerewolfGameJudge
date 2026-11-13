@@ -1,6 +1,6 @@
 /** Gemini FibKing batch-provider schema and transport contracts. */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   assertFibWordReviewEvidence,
@@ -14,6 +14,7 @@ import { createGeminiFibWordProvider } from '../gemini';
 import { FIB_WORD_GENERATION_BATCH_LIMIT, type FibWordRequest } from '../types';
 
 const TEST_GENERATION_BUDGET_MS = 60_000;
+afterEach(() => vi.restoreAllMocks());
 const LITERARY_DEFINITION = {
   coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
   usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
@@ -86,11 +87,171 @@ function createGeminiResponse(
   payload: unknown = CANDIDATE_REFERENCES_RESPONSE,
 ): Record<string, unknown> {
   return {
-    choices: [{ message: { content: JSON.stringify(payload) } }],
+    choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }],
   };
 }
 
 describe('Fib word candidate batches', () => {
+  it.each(['length', undefined])(
+    'rejects unfinished generation and review even when the JSON looks complete: %s',
+    async (finishReason) => {
+      const request = createWordRequest();
+      const candidates = parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', request);
+      for (const operation of ['generate', 'review']) {
+        const output =
+          operation === 'generate' ? CANDIDATE_REFERENCES_RESPONSE : REVIEW_REFERENCES_RESPONSE;
+        const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+          Response.json({
+            choices: [
+              { finish_reason: finishReason, message: { content: JSON.stringify(output) } },
+            ],
+          }),
+        );
+        const provider = createGeminiFibWordProvider('test-key', fetchImpl);
+        const failure =
+          operation === 'generate'
+            ? provider.generateBatch(request)
+            : provider.reviewBatch(request, candidates);
+        await expect(failure).rejects.toMatchObject({
+          diagnostic: { stage: 'responseEnvelope', failureKind: 'invalidOutput' },
+        });
+        expect(fetchImpl).toHaveBeenCalledOnce();
+      }
+    },
+  );
+
+  it('rejects whole invalid candidates, then deduplicates valid ones without rebinding sources', async () => {
+    const request = createWordRequest();
+    const originalEvidence = request.evidence[0];
+    const shiftedRequest = {
+      ...request,
+      evidence: [
+        { ...originalEvidence, content: '这份资料没有候选词，不能用于证明词源。' },
+        originalEvidence,
+      ],
+    };
+    const [first, second, third] = CANDIDATES_RESPONSE.candidates;
+    const validFirst = { ...first, citations: [{ evidenceIndex: 1, quote: 'source1quote0' }] };
+    const validSecond = {
+      ...second,
+      category: 'niche',
+      citations: [{ evidenceIndex: 1, quote: 'source1quote1' }],
+    };
+    const output = {
+      candidates: [
+        { ...validFirst, citations: [{ evidenceIndex: 1, quote: 'private-reference' }] },
+        { ...validSecond, citations: [{ evidenceIndex: 0, quote: 'source1quote1' }] },
+        { ...third, word: 'invalid!', citations: [{ evidenceIndex: 1, quote: 'source1quote2' }] },
+        validFirst,
+        validSecond,
+        validFirst,
+        {
+          ...third,
+          citations: [
+            { evidenceIndex: 1, quote: 'source1quote2' },
+            { evidenceIndex: 0, quote: 'source1quote2' },
+          ],
+        },
+        { ...third, word: '不存在', citations: [{ evidenceIndex: 1, quote: 'source1quote2' }] },
+        { ...validSecond, definition: { coreMeaning: LITERARY_DEFINITION.coreMeaning } },
+      ],
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async () => Response.json(createGeminiResponse(output)))
+      .mockImplementationOnce(async () =>
+        Response.json(
+          createGeminiResponse({
+            reviews: REVIEW_REFERENCES_RESPONSE.reviews.slice(0, 2),
+          }),
+        ),
+      );
+    const provider = createGeminiFibWordProvider('test-key', fetchImpl);
+    const result = await provider.generateBatch(shiftedRequest, { packId: 'fib-partial' });
+    expect(result.candidates.map(({ word, category }) => ({ word, category }))).toEqual([
+      { word: first.word, category: first.category },
+      { word: second.word, category: 'niche' },
+    ]);
+    expect(result.candidates.map(({ evidence }) => evidence)).toEqual([
+      [originalEvidence],
+      [originalEvidence],
+    ]);
+    expect(result.validation).toMatchObject({
+      receivedCount: 9,
+      validCount: 2,
+      rejectedCount: 6,
+      duplicateCount: 1,
+    });
+    expect(result.validation.rejectionSamples).toEqual([
+      {
+        index: 0,
+        path: ['candidates', 0, 'citations', 0, 'quote'],
+        code: 'invalidEvidenceReference',
+      },
+      {
+        index: 1,
+        path: ['candidates', 1, 'citations', 0, 'quote'],
+        code: 'invalidEvidenceReference',
+      },
+      { index: 2, path: ['candidates', 2, 'word'], code: 'custom' },
+      { index: 5, path: ['candidates', 5], code: 'duplicateCandidate' },
+      {
+        index: 6,
+        path: ['candidates', 6, 'citations', 1, 'quote'],
+        code: 'invalidEvidenceReference',
+      },
+      { index: 7, path: ['candidates', 7, 'citations', 0], code: 'invalidEvidenceCitation' },
+      { index: 8, path: ['candidates', 8, 'definition', 'usageNote'], code: 'invalid_type' },
+    ]);
+    const reviews = await provider.reviewBatch(shiftedRequest, result.candidates);
+    expect(reviews.map(({ evidenceQuote }) => evidenceQuote)).toEqual(
+      REVIEWS_RESPONSE.reviews.slice(0, 2).map(({ evidenceQuote }) => evidenceQuote),
+    );
+    expect(warn).toHaveBeenCalledOnce();
+    expect(error).not.toHaveBeenCalled();
+    for (const secret of ['test-key', 'private-reference', '菡萏', '荷花', 'https://'])
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(secret);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    null,
+    {},
+    { candidates: null },
+    { candidates: [], extra: 'private' },
+    { candidates: Array.from({ length: 13 }, () => null) },
+  ])(
+    'fails an invalid generation envelope rather than silently truncating it: %j',
+    async (output) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockImplementation(async () => Response.json(createGeminiResponse(output)));
+      const failure = createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(
+        createWordRequest(),
+      );
+      await expect(failure).rejects.toMatchObject({
+        diagnostic: { stage: 'outputValidation', failureKind: 'invalidOutput' },
+      });
+      await expect(failure).rejects.not.toThrow('allCandidatesRejected');
+      expect(fetchImpl).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('accepts a model-produced empty list without mistaking it for all candidates rejected', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => Response.json(createGeminiResponse({ candidates: [] })));
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
+    ).resolves.toMatchObject({
+      candidates: [],
+      validation: { receivedCount: 0, validCount: 0, rejectedCount: 0, duplicateCount: 0 },
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
   it('returns all six strictly validated candidates', () => {
     expect(
       parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', createWordRequest()),
@@ -574,7 +735,18 @@ describe('Gemini Fib word provider', () => {
       const fetchImpl: typeof fetch = async () => Response.json(createGeminiResponse(response));
       await expect(
         createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(createWordRequest()),
-      ).rejects.toMatchObject({ failureKind: 'invalidOutput' });
+      ).rejects.toMatchObject({
+        failureKind: 'invalidOutput',
+        diagnostic: {
+          validationCode: 'allCandidatesRejected',
+          validationSummary: {
+            receivedCount: 6,
+            validCount: 0,
+            rejectedCount: 6,
+            duplicateCount: 0,
+          },
+        },
+      });
     },
   );
 
@@ -623,7 +795,10 @@ describe('Gemini Fib word provider', () => {
       );
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
-    await expect(provider.generateBatch(request)).resolves.toEqual([]);
+    await expect(provider.generateBatch(request)).resolves.toMatchObject({
+      candidates: [],
+      validation: { receivedCount: 0, validCount: 0, rejectedCount: 0, duplicateCount: 0 },
+    });
     expect(requestCount).toBe(0);
     expect(
       (await provider.reviewBatch(request, candidates)).every(
@@ -649,7 +824,7 @@ describe('Gemini Fib word provider', () => {
       return Response.json(createGeminiResponse(response));
     };
     const provider = createGeminiFibWordProvider('test-key', fetchImpl);
-    const candidates = await provider.generateBatch(createWordRequest());
+    const { candidates } = await provider.generateBatch(createWordRequest());
     expect(candidates).toHaveLength(CANDIDATES_RESPONSE.candidates.length);
 
     response = REVIEW_REFERENCES_RESPONSE;
@@ -754,9 +929,14 @@ describe('Gemini Fib word provider', () => {
     };
     const request = createWordRequest();
 
-    await expect(
-      createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(request),
-    ).resolves.toHaveLength(6);
+    const result = await createGeminiFibWordProvider('test-key', fetchImpl).generateBatch(request);
+    expect(result.candidates).toHaveLength(6);
+    expect(result.validation).toMatchObject({
+      receivedCount: 6,
+      validCount: 6,
+      rejectedCount: 0,
+      duplicateCount: 0,
+    });
     expect(requestUrl).toBe(
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
     );
@@ -840,7 +1020,23 @@ describe('Gemini Fib word provider', () => {
       createWordRequest(),
     );
     await expect(failure).rejects.toMatchObject({
-      diagnostic: { stage: 'outputValidation', validationCode: 'invalidEvidenceReference' },
+      diagnostic: {
+        stage: 'outputValidation',
+        validationCode: 'allCandidatesRejected',
+        validationSummary: {
+          receivedCount: 1,
+          validCount: 0,
+          rejectedCount: 1,
+          duplicateCount: 0,
+          rejectionSamples: [
+            {
+              index: 0,
+              path: ['candidates', 0, 'citations', 0, 'quote'],
+              code: 'invalidEvidenceReference',
+            },
+          ],
+        },
+      },
     });
     await expect(failure).rejects.not.toThrow('test-key');
   });
