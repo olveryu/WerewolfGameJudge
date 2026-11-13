@@ -7,7 +7,8 @@ import { Converter } from 'opencc-js/t2cn';
 import { pinyin } from 'pinyin-pro';
 import { z } from 'zod';
 
-import { AiOutputValidationError } from '../../platform/ai/aiError';
+import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
+import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
 
 export const DRAWGUESS_WORD_BATCH_LIMIT = 30;
 export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v2';
@@ -94,22 +95,43 @@ export function toPinyinInitials(word: string): string {
   return initials.join(' ');
 }
 
-/** Validate all generated material before storage, then remove batch duplicates. */
+function normalizeDrawGuessCandidate(
+  candidate: DrawGuessWordCandidate,
+  category: DrawGuessWordCategory,
+): DrawGuessWordCandidate {
+  if (candidate.category !== category)
+    throw new AiOutputValidationError('categoryMismatch', 'DrawGuess generated category mismatch', [
+      'category',
+    ]);
+  return { ...candidate, word: canonicalizeDrawGuessWord(candidate.word) };
+}
+
+/** Only model generation may reject individual candidates and return a validation summary. */
+export function decodeGeneratedDrawGuessCandidates(
+  value: unknown,
+  category: DrawGuessWordCategory,
+  context: AiContext,
+) {
+  return parseGeneratedCandidateBatch(value, {
+    limit: DRAWGUESS_WORD_BATCH_LIMIT,
+    context,
+    parseCandidate: (item) =>
+      normalizeDrawGuessCandidate(drawGuessCandidateSchema.parse(item), category),
+    getIdentity: ({ word }) => word,
+  });
+}
+
+/** Strictly validate all material before storage, then remove batch duplicates. */
 export function parseDrawGuessCandidates(
   value: unknown,
   category: DrawGuessWordCategory,
 ): DrawGuessWordCandidate[] {
   const seen = new Set<string>();
-  return drawGuessCandidatesSchema.parse(value).candidates.flatMap((candidate) => {
-    if (candidate.category !== category)
-      throw new AiOutputValidationError(
-        'categoryMismatch',
-        'DrawGuess generated category mismatch',
-      );
-    const word = canonicalizeDrawGuessWord(candidate.word);
-    if (seen.has(word)) return [];
-    seen.add(word);
-    return [{ ...candidate, word }];
+  return drawGuessCandidatesSchema.parse(value).candidates.flatMap((item) => {
+    const candidate = normalizeDrawGuessCandidate(item, category);
+    if (seen.has(candidate.word)) return [];
+    seen.add(candidate.word);
+    return [candidate];
   });
 }
 

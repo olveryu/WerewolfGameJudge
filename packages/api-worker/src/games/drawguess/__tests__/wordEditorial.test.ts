@@ -29,6 +29,17 @@ const review = {
 };
 
 describe('DrawGuess editorial contracts', () => {
+  it('keeps strict batch parsing for stored material even when another candidate is valid', () => {
+    expect(() =>
+      parseDrawGuessCandidates(
+        {
+          candidates: [candidate, { ...candidate, word: 'bad!' }],
+        },
+        'animals',
+      ),
+    ).toThrow();
+  });
+
   it('derives identity from the canonical simplified word alone', async () => {
     expect(await getDrawGuessWordId('大熊貓')).toBe(await getDrawGuessWordId('大熊猫'));
     const parsed = parseDrawGuessCandidates(

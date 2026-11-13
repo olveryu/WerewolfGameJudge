@@ -694,6 +694,7 @@ describe('External word submissions', () => {
         return Response.json({
           choices: [
             {
+              finish_reason: 'stop',
               message: {
                 content: JSON.stringify({
                   reviews: [

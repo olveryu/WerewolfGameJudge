@@ -36,6 +36,136 @@ afterEach(() => {
 });
 
 describe('Fib word supply workflow', () => {
+  it.each([false, true])(
+    'persists generation validation without extra calls or unreviewed inventory (allRejected=%s)',
+    async (allRejected) => {
+      const reportError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const candidate = {
+        word: '菡萏',
+        category: 'literary',
+        topic: 'plants',
+        definition: {
+          coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
+          usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
+        },
+        citations: [{ evidenceIndex: 0, quote: 'source0quote0' }],
+      };
+      const invalid = {
+        ...candidate,
+        citations: [{ evidenceIndex: 0, quote: 'private-reference' }],
+      };
+      const evidence = [
+        {
+          query: '词源',
+          url: 'https://example.test/source',
+          title: '词源资料',
+          content: '菡萏：荷花的别称，古人常在诗文中用来称呼荷花。',
+        },
+      ];
+      const candidates = allRejected
+        ? Array.from({ length: 12 }, () => invalid)
+        : [invalid, candidate, candidate];
+      const reviews = [
+        {
+          word: candidate.word,
+          reason: '有资料支持且符合游戏性标准。',
+          evidenceIndex: 0,
+          evidenceQuote: 'source0quote0',
+          qualityChecks: {
+            isEstablishedTerm: true,
+            isDefinitionAccurate: true,
+            isMeaningUnfamiliarToMostPlayers: true,
+            isMeaningDistinctFromLiteralReading: true,
+            hasMultiplePlausibleWrongDefinitions: true,
+            hasRevealValue: true,
+          },
+        },
+      ];
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockImplementationOnce(async () =>
+          Response.json({
+            choices: [
+              { finish_reason: 'stop', message: { content: JSON.stringify({ candidates }) } },
+            ],
+          }),
+        )
+        .mockImplementationOnce(async () =>
+          Response.json({
+            choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ reviews }) } }],
+          }),
+        );
+      vi.stubGlobal('fetch', fetchImpl);
+      const id = crypto.randomUUID();
+      const day = new Date().toISOString().slice(0, 10);
+      await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
+      await instance.modify(async (modifier) => {
+        await modifier.disableSleeps();
+        await modifier.mockStepResult({ name: 'enabled' }, true);
+        await modifier.mockStepResult({ name: 'discover-0' }, evidence);
+        await modifier.mockStepResult({ name: 'extract-0' }, { evidence, failedUrls: [] });
+        await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+      });
+      const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+      await instance.waitForStatus(allRejected ? 'errored' : 'complete');
+      const validation = {
+        receivedCount: allRejected ? 12 : 3,
+        validCount: allRejected ? 0 : 1,
+        rejectedCount: allRejected ? 12 : 1,
+        duplicateCount: allRejected ? 0 : 1,
+      };
+      if (allRejected) {
+        const status = await workflow.status();
+        expect(getAiDiagnostic(new Error(status.error?.message))).toMatchObject({
+          game: 'fibking',
+          operation: 'generate',
+          packId: `${day}-0`,
+          stage: 'outputValidation',
+          failureKind: 'invalidOutput',
+          validationCode: 'allCandidatesRejected',
+          validationSummary: {
+            ...validation,
+            omittedIssueCount: 4,
+            rejectionSamples: Array.from({ length: 8 }, (_, index) => ({
+              index,
+              path: ['candidates', index, 'citations', 0, 'quote'],
+              code: 'invalidEvidenceReference',
+            })),
+          },
+        });
+        expect(
+          await env.DB.prepare('SELECT error_code FROM fib_word_generation_cycles').first(),
+        ).toEqual({ error_code: 'generation:invalidOutput' });
+        expect(
+          await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
+        ).toEqual({ count: 0 });
+      } else {
+        expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
+          candidates: [{ word: candidate.word, evidence }],
+          validation,
+        });
+        expect(await env.DB.prepare('SELECT word, status FROM fib_words').all()).toMatchObject({
+          results: [{ word: candidate.word, status: 'active' }],
+        });
+      }
+      const expectedCalls = allRejected ? 1 : 2;
+      expect(fetchImpl).toHaveBeenCalledTimes(expectedCalls);
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
+        count: allRejected ? 0 : 1,
+      });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+      ).toEqual({ count: expectedCalls });
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM fib_word_provider_requests WHERE operation IN ('generation', 'review')",
+        ).first(),
+      ).toEqual({ count: expectedCalls });
+      expect(reportError).toHaveBeenCalledTimes(allRejected ? 1 : 0);
+      expect(JSON.stringify(reportError.mock.calls)).not.toContain('private-reference');
+    },
+  );
+
   it('retains the model failure kind and safe summary across real Workflow checkpoints', async () => {
     const evidence = [
       {

@@ -6,6 +6,7 @@ import type {
 } from '@game-judge/game-engine/games/fibking/public';
 
 import type { AiCorrelation } from '../../../platform/ai/aiError';
+import type { GeneratedCandidateBatch } from '../../../platform/wordSupply/generatedCandidates';
 import type { FibWordLabel, FibWordTopic } from '../wordTopics';
 import type { FibWordEvidence } from './tavily';
 
@@ -61,7 +62,7 @@ export interface FibWordProvider {
   generateBatch(
     request: FibWordRequest,
     context?: AiCorrelation,
-  ): Promise<readonly FibWordEditorialCandidate[]>;
+  ): Promise<GeneratedCandidateBatch<FibWordEditorialCandidate>>;
 
   /** Review a generated batch in an independent model request. */
   reviewBatch(
