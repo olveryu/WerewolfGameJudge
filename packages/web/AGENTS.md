@@ -35,6 +35,7 @@ Pinned by `contracts/architecture.contract.test.ts` unless another test is named
 
 ## Conventions
 
+- Admin workspace navigation (sections, filters, pagination, and submission batch details) replaces the current history entry. The shared header returns to the Home/Room screen that opened the workspace, not to another admin page; direct entries return Home. Keep batch/list navigation inside the page separate from the header. This is pinned by `AdminWorkspace.test.tsx`.
 - Style values in CSS use the custom properties published by `packages/web/src/theme/colors.ts` (`--color-*`, `--report-*`) and `packages/web/src/theme/tokens.css` (sizes, type, radii, shadows), policed by `No hardcoded style values` in `packages/web/src/__tests__/noHardcodedStyleValues.contract.test.ts` (color literals and px token properties; ratchet allowlist; 0/1px allowed).
 - Logging goes through `packages/web/src/utils/logger.ts` (`log.extend('Module')`), the only file exempt from `no-console` in this package; errors go through `handleError` in `packages/web/src/utils/errorPipeline.ts`.
 - `react/no-danger` is an error for this package in `eslint.config.mjs`: untrusted strings render only through React's escaping. The React Compiler rules of the `eslint-plugin-react-hooks` recommended config stay on, most at error.
