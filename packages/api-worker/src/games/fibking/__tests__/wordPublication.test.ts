@@ -126,6 +126,41 @@ describe('Fib word publication', () => {
     expect(next.searchIndex).not.toBe(first.searchIndex);
   });
 
+  it('prioritizes the least stocked topic over its recent-search cooldown', async () => {
+    const leastStockedTopic = FIB_WORD_TOPIC_IDS[0];
+    if (leastStockedTopic === undefined) throw new Error('Expected Fib topics');
+    const stockedTopics = FIB_WORD_TOPIC_IDS.filter((topic) => topic !== leastStockedTopic);
+    await env.DB.batch(
+      stockedTopics.map((topic, index) =>
+        env.DB.prepare(
+          `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status,
+             selection_key, created_at, activated_at, topic)
+           VALUES (?, ?, '释义', '提示', 'niche', 'local', 'active', ?, '2026-01-01', '2026-01-01', ?)`,
+        ).bind(`stock-${topic}`, `词-${topic}`, index, topic),
+      ),
+    );
+    const now = new Date().toISOString();
+    await env.DB.prepare("INSERT INTO fib_word_supply_months (id) VALUES ('2026-09')").run();
+    await env.DB.batch(
+      FIB_WORD_TOPIC_IDS.map((topic) =>
+        env.DB.prepare(
+          `INSERT INTO fib_word_packs (id, month_id, request_token, category, topic, status, created_at, search_selected_at)
+           VALUES (?, '2026-09', ?, 'niche', ?, 'published', ?, ?)`,
+        ).bind(
+          `history-${topic}`,
+          `token-${topic}`,
+          topic,
+          now,
+          topic === leastStockedTopic ? now : '2020-01-01',
+        ),
+      ),
+    );
+
+    const pack = await reserveFibWordPack(env.DB, '2026-09-02', 0);
+    if (pack === null) throw new Error('Expected reservation');
+    expect((await selectFibWordSearch(env.DB, pack)).topic).toBe(leastStockedTopic);
+  });
+
   it('classifies existing words without changing their identity or stale definitions', async () => {
     await env.DB.prepare(
       `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status,
