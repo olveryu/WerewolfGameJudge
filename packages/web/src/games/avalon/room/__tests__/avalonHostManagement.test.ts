@@ -126,6 +126,7 @@ function session() {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
+    if (phase.kind === 'vote') send({ type: 'avalon.voteResult.confirm' });
   };
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });

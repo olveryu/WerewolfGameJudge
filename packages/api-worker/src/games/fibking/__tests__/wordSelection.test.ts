@@ -4,6 +4,7 @@ import type { FibSelectWordEffect } from '@game-judge/game-engine/games/fibking/
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { getFibWatermarkConversion } from '../../../../test/fibWordWatermarkMigration';
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { type FibWordCategory } from '../wordProviders/types';
 import { getOrCreateFibWordSelection, type SelectFibWordInput } from '../wordSelection';
@@ -116,12 +117,8 @@ describe('getOrCreateFibWordSelection', () => {
       '0051_fib_word_progress.sql',
       /^INSERT INTO fib_word_(sequence|progress)\s/,
     );
-    const seenQueries = findQueries(
-      '0067_shared_word_draw.sql',
-      /^INSERT INTO word_seen\s[\s\S]*FROM fib_word_progress/,
-    );
+    const seenQuery = getFibWatermarkConversion(env.TEST_MIGRATIONS);
     expect(watermarkQueries).toHaveLength(2);
-    expect(seenQueries).toHaveLength(1);
     // Replay 0051 (exposures to watermark), then 0067 (watermark to seen record) on its output.
     await env.DB.prepare(
       "INSERT INTO fib_word_exposures (user_id, word, last_seen_at) VALUES (?, '残存旧词', '2026-08-01T00:00:00.000Z')",
@@ -137,7 +134,7 @@ describe('getOrCreateFibWordSelection', () => {
         'SELECT user_id, sequence_number = (SELECT MAX(id) FROM fib_word_sequence) AS is_at_end FROM fib_word_progress',
       ).all(),
     ).toMatchObject({ results: [{ user_id: USER_ID, is_at_end: 1 }] });
-    await env.DB.batch(seenQueries.map((query) => env.DB.prepare(query)));
+    await env.DB.prepare(seenQuery).run();
     await insertPoolWord('new-word', '打尖', 'literary', 3);
     expect(await selectWord('played-round', [USER_ID])).toBe('打尖');
     await expect(selectWord('played-exhausted', [USER_ID])).rejects.toThrow(

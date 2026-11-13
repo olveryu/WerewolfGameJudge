@@ -14,7 +14,7 @@
  *     --run-url https://github.com/owner/name/actions/runs/123 \
  *     --e2e-result failure
  *
- * Without --pr it runs summary-only (push-to-main): the digest is appended
+ * Without --pr it runs summary-only (push-to-main and fork PRs): the digest is appended
  * to $GITHUB_STEP_SUMMARY when that variable is set. Either way, a green
  * result never CREATES a PR comment — it only updates an existing one.
  *

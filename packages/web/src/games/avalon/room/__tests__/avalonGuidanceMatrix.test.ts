@@ -98,6 +98,13 @@ function session(playerCount: 5 | 9): Session {
       if (!applySystem({ type: 'avalon.phase.settleExpired' })) {
         throw new Error('rejected: avalon.phase.settleExpired');
       }
+      if (phase.kind === 'vote') {
+        for (let seat = 0; seat < playerCount; seat += 1) {
+          if (!apply({ type: 'avalon.voteResult.confirm' }, seatUser(seat))) {
+            throw new Error('rejected: avalon.voteResult.confirm');
+          }
+        }
+      }
     },
   };
 }

@@ -4,11 +4,12 @@
  * v7: ladyHistory per completed lady check (public holder/target only).
  * v8: preselectedSeats on the nominate phase (locked preselect record).
  * v9: audioBatchId (shared audio-queue slice); `avalon.audio.ack` names the batch it played.
- * v10: nominate phase drops draftSeats; preselect / propose carry the team. */
+ * v10: nominate phase drops draftSeats; preselect / propose carry the team.
+ * v11: vote results require acknowledgement before the next phase. */
 
 import { AVALON_GAME_TYPE } from './types';
 
-export const AVALON_STATE_VERSION = 10;
+export const AVALON_STATE_VERSION = 11;
 
 export const AVALON_STATE_IDENTITY = {
   gameType: AVALON_GAME_TYPE,

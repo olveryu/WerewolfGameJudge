@@ -288,6 +288,17 @@ function phase(value: unknown, path: string): AvalonPhase {
         },
         path,
       );
+    case 'voteResult':
+      return finishObject(
+        raw,
+        {
+          kind: 'voteResult' as const,
+          round: questRound(raw.round, `${path}.round`),
+          proposedSeats: parseArray(raw.proposedSeats, `${path}.proposedSeats`, parseSeat),
+          confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
+        },
+        path,
+      );
     case 'quest':
       return finishObject(
         raw,
@@ -503,6 +514,9 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
   // now travels on preselect / propose. A persisted draft was never a
   // commitment, so it is dropped.
+  if (raw.stateVersion === 10) {
+    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+  }
   if (raw.stateVersion === 9) {
     return parseAvalonState({
       ...raw,

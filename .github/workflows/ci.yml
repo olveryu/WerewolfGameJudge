@@ -692,7 +692,8 @@ jobs:
     # Maintains the single E2E failure-summary comment on the PR from the
     # per-shard failure bundles (scripts/e2e-failure-digest.mjs), and always
     # appends the same digest to the job step summary. On push-to-main runs
-    # there is no PR, so the digest goes to the step summary only. Runs even
+    # there is no PR, so the digest goes to the step summary only. Fork PRs
+    # also use summary-only mode because their token is read-only. Runs even
     # when e2e failed; skipped only when e2e itself was skipped.
     if: always() && needs.e2e.result != 'skipped' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
     # Waits for the unit-test jobs as well as e2e: their result artifacts
@@ -730,7 +731,7 @@ jobs:
           merge-multiple: true
 
       - name: Post failure digest to the PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -739,6 +740,15 @@ jobs:
           --test-results test-results-in
           --pr ${{ github.event.pull_request.number }}
           --repo ${{ github.repository }}
+          --run-url ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          --e2e-result ${{ needs.e2e.result }}
+
+      - name: Write failure digest to the step summary (fork PRs)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: >-
+          node scripts/e2e-failure-digest.mjs
+          --bundles failure-bundles-in
+          --test-results test-results-in
           --run-url ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           --e2e-result ${{ needs.e2e.result }}
 

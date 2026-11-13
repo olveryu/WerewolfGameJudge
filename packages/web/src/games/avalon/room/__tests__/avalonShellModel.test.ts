@@ -73,6 +73,11 @@ function session(humanCount: number) {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
+    if (phase.kind === 'vote') {
+      for (let seat = 0; seat < humanCount; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, seat === 0 ? 'host' : `u${seat}`);
+      }
+    }
   };
   return {
     get state() {
@@ -499,6 +504,11 @@ function ninePlayerDaytimeSession(): RunningSession {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
+    if (phase.kind === 'vote') {
+      for (let seat = 0; seat < 9; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
+      }
+    }
   };
   return {
     get state() {

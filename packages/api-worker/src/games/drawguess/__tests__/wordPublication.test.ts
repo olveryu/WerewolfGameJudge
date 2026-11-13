@@ -89,6 +89,29 @@ describe('DrawGuess editorial publication', () => {
     expect(pack?.category).not.toBe('animals');
   });
 
+  it('prioritizes the least stocked category over its recent-pack cooldown', async () => {
+    const stockedCategories = DRAWGUESS_WORD_CATEGORIES.filter(
+      (category) => category !== 'animals',
+    );
+    await env.DB.batch(
+      stockedCategories.map((category, index) =>
+        env.DB.prepare(
+          `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
+           VALUES (?, ?, 'x', ?, 'easy', 'active', '2026-01-01')`,
+        ).bind(`stock-${index}`, `词-${index}`, category),
+      ),
+    );
+    await env.DB.prepare(
+      `INSERT INTO drawguess_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
+       VALUES ('recent-animals', 'animals', 'recent-animals', 'failed', 'test', '1', '1', ?)`,
+    )
+      .bind(new Date().toISOString())
+      .run();
+
+    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
+    expect(pack?.category).toBe('animals');
+  });
+
   it('resumes failed material and atomically publishes once with pinyin initials', async () => {
     const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');

@@ -408,20 +408,46 @@ function buildVoteSettlement(
   const abstainCount = getAvalonOccupiedSeatCount(state) - approveCount - rejectCount;
   const approved = approveCount > rejectCount;
   const vetoLimitReached = !approved && state.rejectStreak + 1 >= state.config.vetoLimit;
-  const event: AvalonEvent = {
-    type: 'avalon.vote.settled',
-    approved,
-    ballots: { ...ballots },
-    approveCount,
-    rejectCount,
-    abstainCount,
-    nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
-    vetoLimitReached,
-  };
+  const allBots = Object.keys(state.roster).every((seat) => isBotSeat(state.roster, Number(seat)));
+  const events: AvalonEvent[] = [
+    {
+      type: 'avalon.vote.settled',
+      approved,
+      ballots: { ...ballots },
+      approveCount,
+      rejectCount,
+      abstainCount,
+    },
+  ];
+  if (allBots) events.push({ type: 'avalon.voteResult.completed' });
   return {
-    events: [event],
-    effects: vetoLimitReached && !state.xpSettled ? completionEffects(state, [event], context) : [],
+    events,
+    effects:
+      allBots && vetoLimitReached && !state.xpSettled
+        ? completionEffects(state, events, context)
+        : [],
   };
+}
+
+function confirmVoteResult(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'voteResult' || state.lastVoteResult === null)
+    return reject(AVALON_REASONS.phase);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (resolved.kind === 'rejected') return reject(resolved.reason);
+  if (state.phase.confirmedSeats.includes(resolved.value)) return commitAvalon([]);
+  const confirmedSeats = [...state.phase.confirmedSeats, resolved.value];
+  const allConfirmed = Object.keys(state.roster).every((seat) =>
+    confirmedSeats.includes(Number(seat)),
+  );
+  const events: AvalonEvent[] = [{ type: 'avalon.voteResult.confirmed', seat: resolved.value }];
+  if (!allConfirmed) return commitAvalon(events);
+  events.push({ type: 'avalon.voteResult.completed' });
+  const vetoLimitReached =
+    !state.lastVoteResult.approved && state.lastVoteResult.rejectStreak >= state.config.vetoLimit;
+  return commitAvalon(
+    events,
+    vetoLimitReached && !state.xpSettled ? completionEffects(state, events, context) : [],
+  );
 }
 
 /**
@@ -808,6 +834,8 @@ function decideCommand(
       return proposeTeam(state, command.seats, context);
     case 'avalon.team.vote':
       return castVote(state, command.vote, context);
+    case 'avalon.voteResult.confirm':
+      return confirmVoteResult(state, context);
     case 'avalon.quest.play':
       return playQuest(state, command.play, context);
     case 'avalon.phase.settleExpired':

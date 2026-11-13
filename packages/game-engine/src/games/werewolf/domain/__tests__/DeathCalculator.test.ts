@@ -59,6 +59,134 @@ const NO_ROLES: RoleSeatMap = {
 };
 
 describe('DeathCalculator', () => {
+  describe('linked death propagation', () => {
+    it.each([0, 1])('propagates reflection from lover %i to their partner', (sourceSeat) => {
+      const result = calculateDeathsDetailed(
+        {},
+        {
+          ...NO_ROLES,
+          coupleLinkSeats: [0, 1],
+          reflectsDamageSeats: [2],
+          reflectionSources: [{ sourceSeat, targetSeat: 2 }],
+        },
+      );
+
+      expect(result.deaths).toEqual([0, 1]);
+      expect(result.deathReasons[sourceSeat]).toBe('reflection');
+      expect(result.deathReasons[1 - sourceSeat]).toBe('coupleLink');
+      expect(result.deathSources[1 - sourceSeat]).toEqual(['coupleLink']);
+    });
+
+    it('propagates lover death through wolf queen charm', () => {
+      expect(
+        calculateDeathsDetailed(
+          { wolfKill: 1, wolfQueenCharm: 2 },
+          {
+            ...NO_ROLES,
+            wolfQueenLinkSeat: 0,
+            coupleLinkSeats: [0, 1],
+          },
+        ),
+      ).toEqual({
+        deaths: [0, 1, 2],
+        deathReasons: { 0: 'coupleLink', 1: 'wolfKill', 2: 'wolfQueenLink' },
+        deathSources: { 0: ['coupleLink'], 1: ['wolfKill'], 2: ['wolfQueenLink'] },
+      });
+    });
+
+    it('propagates reflection through lovers, a bond, charm and a dream link', () => {
+      const result = calculateDeathsDetailed(
+        { wolfQueenCharm: 3, dreamcatcherDream: 4 },
+        {
+          ...NO_ROLES,
+          coupleLinkSeats: [0, 1],
+          bondedLinkSeats: [1, 2],
+          wolfQueenLinkSeat: 2,
+          dreamcatcherLinkSeat: 3,
+          reflectsDamageSeats: [5],
+          reflectionSources: [{ sourceSeat: 0, targetSeat: 5 }],
+        },
+      );
+
+      expect(result.deaths).toEqual([0, 1, 2, 3, 4]);
+      expect(result.deathReasons).toEqual({
+        0: 'reflection',
+        1: 'coupleLink',
+        2: 'bondedLink',
+        3: 'wolfQueenLink',
+        4: 'dreamcatcherLink',
+      });
+    });
+
+    it('propagates a dream-linked death to their lover', () => {
+      expect(
+        calculateDeaths(
+          { wolfKill: 0, dreamcatcherDream: 1 },
+          {
+            ...NO_ROLES,
+            dreamcatcherLinkSeat: 0,
+            coupleLinkSeats: [1, 2],
+          },
+        ),
+      ).toEqual([0, 1, 2]);
+    });
+
+    it('does not propagate a death prevented by dream protection', () => {
+      expect(
+        calculateDeaths(
+          { wolfKill: 0, dreamcatcherDream: 0 },
+          {
+            ...NO_ROLES,
+            dreamcatcherLinkSeat: 2,
+            coupleLinkSeats: [0, 1],
+          },
+        ),
+      ).toEqual([]);
+    });
+
+    it('keeps dream protection when a late charm reaches the dream target', () => {
+      expect(
+        calculateDeaths(
+          { wolfKill: 0, wolfQueenCharm: 2, dreamcatcherDream: 2 },
+          {
+            ...NO_ROLES,
+            coupleLinkSeats: [0, 1],
+            wolfQueenLinkSeat: 1,
+            dreamcatcherLinkSeat: 3,
+          },
+        ),
+      ).toEqual([0, 1]);
+    });
+
+    it('terminates cyclic links without duplicating deaths or losing the initiating source', () => {
+      const result = calculateDeathsDetailed(
+        { wolfKill: 0, wolfQueenCharm: 0 },
+        {
+          ...NO_ROLES,
+          wolfQueenLinkSeat: 2,
+          coupleLinkSeats: [0, 1],
+          bondedLinkSeats: [1, 2],
+        },
+      );
+      expect(result.deaths).toEqual([0, 1, 2]);
+      expect(result.deathSources[0]).toEqual(['wolfKill', 'wolfQueenLink']);
+    });
+
+    it('applies magician swap once after propagating the complete chain', () => {
+      const result = calculateDeathsDetailed(
+        {
+          wolfKill: 0,
+          wolfQueenCharm: 2,
+          magicianSwap: { first: 2, second: 3 },
+        },
+        { ...NO_ROLES, coupleLinkSeats: [0, 1], wolfQueenLinkSeat: 1 },
+      );
+      expect(result.deaths).toEqual([0, 1, 3]);
+      expect(result.deathReasons[3]).toBe('magicianSwap');
+      expect(result.deathSources[3]).toEqual(['wolfQueenLink', 'magicianSwap']);
+    });
+  });
+
   // ===========================================================================
   // Basic Wolf Kill
   // ===========================================================================

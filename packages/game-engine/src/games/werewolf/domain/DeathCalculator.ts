@@ -218,20 +218,18 @@ export function calculateDeathsDetailed(
   // 2. Process poison death (witch or poisoner, with immunity and nightmare block)
   processPoisonDeath(actions, roleSeatMap, deaths, reasons, sources);
 
-  // 3. Process wolf queen link death
-  processWolfQueenLink(actions, roleSeatMap, deaths, reasons, sources);
-
-  // 3.5. Process bonded link death (shadow ↔ avenger)
-  processBondedLink(roleSeatMap, deaths, reasons, sources);
-
-  // 3.6. Process couple link death (cupid lovers — lover suicide)
-  processCoupleLink(roleSeatMap, deaths, reasons, sources);
-
-  // 4. Process dreamcatcher effect (protection + link death)
-  processDreamcatcherEffect(actions, roleSeatMap, deaths, reasons, sources);
+  // Settle dream protection before any prevented death can propagate to another seat.
+  if (actions.dreamcatcherDream !== undefined) {
+    clearDeath(actions.dreamcatcherDream, deaths, reasons, sources);
+  }
+  const links = buildDeathLinks(actions, roleSeatMap);
+  const processedLinks = new Set<DeathLink>();
+  processLinkedDeaths(links, processedLinks, actions.dreamcatcherDream, deaths, reasons, sources);
 
   // 5. Process damage reflection (seer/witch attacking reflectsDamage target dies)
   processReflection(actions, roleSeatMap, deaths, reasons, sources);
+  // Reflected deaths can start new chains; previously triggered links must not fire again.
+  processLinkedDeaths(links, processedLinks, actions.dreamcatcherDream, deaths, reasons, sources);
 
   // 6. Process magician swap (swap death between two targets)
   processMagicianSwap(actions, deaths, reasons, sources);
@@ -426,115 +424,72 @@ function processPoisonDeath(
   recordDeath(witchPoisonTarget, 'poison', deaths, reasons, sources);
 }
 
-/**
- * Process wolf queen link death.
- *
- * Rules:
- * - If wolf queen dies, her charmed target also dies
- */
-function processWolfQueenLink(
-  actions: NightActions,
-  roleSeatMap: RoleSeatMap,
-  deaths: Set<number>,
-  reasons: Map<number, DeathReason>,
-  sources: Map<number, Set<DeathReason>>,
-): void {
-  const { wolfQueenCharm } = actions;
-  const { wolfQueenLinkSeat: queenSeat } = roleSeatMap;
+/** A directed link that fires once when its source dies. */
+interface DeathLink {
+  readonly sourceSeat: number;
+  readonly targetSeat: number;
+  readonly reason: 'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink';
+}
 
-  if (wolfQueenCharm === undefined) return;
-  if (queenSeat === -1) return;
-
-  // If queen is dead, charmed target also dies
-  if (deaths.has(queenSeat)) {
-    recordDeath(wolfQueenCharm, 'wolfQueenLink', deaths, reasons, sources);
+function buildDeathLinks(actions: NightActions, roles: RoleSeatMap): readonly DeathLink[] {
+  const links: DeathLink[] = [];
+  if (roles.wolfQueenLinkSeat !== -1 && actions.wolfQueenCharm !== undefined) {
+    links.push({
+      sourceSeat: roles.wolfQueenLinkSeat,
+      targetSeat: actions.wolfQueenCharm,
+      reason: 'wolfQueenLink',
+    });
   }
+  for (const { seats, reason } of [
+    { seats: roles.bondedLinkSeats, reason: 'bondedLink' },
+    { seats: roles.coupleLinkSeats, reason: 'coupleLink' },
+  ] as const) {
+    if (seats === null) continue;
+    const [first, second] = seats;
+    links.push({ sourceSeat: first, targetSeat: second, reason });
+    links.push({ sourceSeat: second, targetSeat: first, reason });
+  }
+  if (roles.dreamcatcherLinkSeat !== -1 && actions.dreamcatcherDream !== undefined) {
+    links.push({
+      sourceSeat: roles.dreamcatcherLinkSeat,
+      targetSeat: actions.dreamcatcherDream,
+      reason: 'dreamcatcherLink',
+    });
+  }
+  return links;
 }
 
 /**
- * Process bonded link death (shadow ↔ avenger).
- *
- * Rules:
- * - When bonded (shadow mimicked avenger), if either dies the other dies too
- * - Bidirectional: shadow death → avenger death, avenger death → shadow death
- * - Only active when bondedLinkSeats is non-null (bonded state confirmed)
+ * Propagate every new death until no link can add another seat. Each directed link
+ * fires at most once, including across reflection, so cycles terminate and cannot
+ * overwrite a later reflection reason. Dream protection blocks ordinary links;
+ * the dreamcatcher's own death overrides that protection.
  */
-function processBondedLink(
-  roleSeatMap: RoleSeatMap,
+function processLinkedDeaths(
+  links: readonly DeathLink[],
+  processed: Set<DeathLink>,
+  dreamTarget: number | undefined,
   deaths: Set<number>,
   reasons: Map<number, DeathReason>,
   sources: Map<number, Set<DeathReason>>,
 ): void {
-  const { bondedLinkSeats } = roleSeatMap;
-
-  if (!bondedLinkSeats) return;
-
-  const [seatA, seatB] = bondedLinkSeats;
-  const aDead = deaths.has(seatA);
-  const bDead = deaths.has(seatB);
-
-  // If either is dead, the other dies too
-  if (aDead && !bDead) {
-    recordDeath(seatB, 'bondedLink', deaths, reasons, sources);
-  } else if (bDead && !aDead) {
-    recordDeath(seatA, 'bondedLink', deaths, reasons, sources);
-  }
-}
-
-/**
- * Process couple link death (cupid lovers — lover suicide).
- *
- * Rules:
- * - If either lover dies, the other dies too (lover suicide)
- * - Bidirectional: same logic as bonded link
- * - Only active when coupleLinkSeats is non-null (cupid chose lovers)
- */
-function processCoupleLink(
-  roleSeatMap: RoleSeatMap,
-  deaths: Set<number>,
-  reasons: Map<number, DeathReason>,
-  sources: Map<number, Set<DeathReason>>,
-): void {
-  const { coupleLinkSeats } = roleSeatMap;
-  if (!coupleLinkSeats) return;
-
-  const [seatA, seatB] = coupleLinkSeats;
-  const aDead = deaths.has(seatA);
-  const bDead = deaths.has(seatB);
-
-  if (aDead && !bDead) {
-    recordDeath(seatB, 'coupleLink', deaths, reasons, sources);
-  } else if (bDead && !aDead) {
-    recordDeath(seatA, 'coupleLink', deaths, reasons, sources);
-  }
-}
-
-/**
- * Process dreamcatcher effect.
- *
- * Rules:
- * - Dreamcatcher protects her dream target from death
- * - If dreamcatcher dies, her dream target also dies
- */
-function processDreamcatcherEffect(
-  actions: NightActions,
-  roleSeatMap: RoleSeatMap,
-  deaths: Set<number>,
-  reasons: Map<number, DeathReason>,
-  sources: Map<number, Set<DeathReason>>,
-): void {
-  const { dreamcatcherDream } = actions;
-  const { dreamcatcherLinkSeat: dreamcatcherSeat } = roleSeatMap;
-
-  if (dreamcatcherDream === undefined) return;
-
-  // Dreamcatcher dream target is protected from night deaths
-  clearDeath(dreamcatcherDream, deaths, reasons, sources);
-
-  // If dreamcatcher dies, dream target also dies
-  if (dreamcatcherSeat !== -1 && deaths.has(dreamcatcherSeat)) {
-    recordDeath(dreamcatcherDream, 'dreamcatcherLink', deaths, reasons, sources);
-  }
+  let previousSize: number;
+  do {
+    previousSize = deaths.size;
+    for (const link of links) {
+      if (processed.has(link) || !deaths.has(link.sourceSeat)) continue;
+      processed.add(link);
+      if (link.targetSeat === dreamTarget && link.reason !== 'dreamcatcherLink') continue;
+      // Bidirectional links kill only a surviving partner; charm/dream retain their reason priority.
+      if (
+        link.reason === 'wolfQueenLink' ||
+        link.reason === 'dreamcatcherLink' ||
+        !deaths.has(link.targetSeat)
+      ) {
+        recordDeath(link.targetSeat, link.reason, deaths, reasons, sources);
+      }
+    }
+  } while (deaths.size > previousSize);
 }
 
 /**

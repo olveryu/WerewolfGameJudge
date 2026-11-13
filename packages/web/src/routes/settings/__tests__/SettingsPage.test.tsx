@@ -8,6 +8,7 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 
 import type { User } from '@/contexts/AuthContext';
 import type { UserStats } from '@/features/account/services/accountApi';
+import { LoginOptions } from '@/features/auth/LoginDialog';
 import { SettingsPage } from '@/routes/settings/SettingsPage';
 import type { ResidentDecorations } from '@/scene/residentDecorations';
 
@@ -134,6 +135,8 @@ describe('SettingsPage', () => {
 
     expect(screen.getByText('邮箱登录')).toBeInTheDocument();
     expect(screen.getByText('匿名登录')).toBeInTheDocument();
+    expect(screen.getByText('注册或绑定邮箱后，游玩积累成长，收集头像和装扮')).toBeInTheDocument();
+    expect(screen.getByText('注册后可设置昵称和自定义头像')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '浏览全部头像 ›' }));
 
     expect(await screen.findByText('at /appearance')).toBeInTheDocument();
@@ -143,11 +146,20 @@ describe('SettingsPage', () => {
     mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
     await renderSettings();
 
-    expect(screen.getByText(/^绑定邮箱，解锁 \d+ 款暗黑头像/)).toBeInTheDocument();
+    expect(screen.getByText('注册或绑定邮箱后，游玩积累成长，收集头像和装扮')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '更换头像与装扮' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: '浏览全部头像 ›' }));
 
     expect(await screen.findByText('at /appearance')).toBeInTheDocument();
+  });
+
+  it('explains the benefits of binding to an anonymous player', () => {
+    mocks.auth.user = { ...REGISTERED_USER, email: null, displayName: null, isAnonymous: true };
+    render(<LoginOptions onEmail={vi.fn()} onBrowseAvatars={vi.fn()} />);
+
+    expect(screen.getByText('绑定邮箱')).toBeInTheDocument();
+    expect(screen.getByText('绑定后可累计成长与战绩')).toBeInTheDocument();
+    expect(screen.queryByText('匿名登录')).not.toBeInTheDocument();
   });
 
   it('shows the level, XP progress and game-owned account stats', async () => {

@@ -12,6 +12,7 @@ import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
 const AVALON_DAY_PHASES: ReadonlySet<AvalonPhaseKind> = new Set<AvalonPhaseKind>([
   'nominate',
   'vote',
+  'voteResult',
   'quest',
   'lady',
   'assassin',

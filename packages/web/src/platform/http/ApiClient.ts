@@ -181,22 +181,28 @@ export class ApiClient {
     const session = tokens.session;
     logger.debug(spec.method, { path: spec.path });
 
-    const first = await this.#send(spec, this.#bearer(spec.auth));
-    this.#assertSession(session, spec.path);
-    if (first.status !== 401 || spec.auth !== 'required') {
-      return this.#settle(first, spec.path, read);
-    }
+    const first = await this.#send(spec, this.#bearer(spec.auth), async (response) => {
+      this.#assertSession(session, spec.path);
+      if (response.status === 401 && spec.auth === 'required') {
+        return {
+          kind: 'unauthorized',
+          error: await this.#readHttpError(response, spec.path),
+        } as const;
+      }
+      return { kind: 'settled', value: await this.#settle(response, spec.path, read) } as const;
+    });
+    if (first.kind === 'settled') return first.value;
 
-    const unauthorized = await this.#readHttpError(first, spec.path);
     const outcome = await this.#refreshOnce(spec.signal, spec.path);
     if (outcome === 'expired') {
       throw new ApiError({ kind: 'http', path: spec.path, status: 401, reason: 'AUTH_EXPIRED' });
     }
     this.#assertSession(session, spec.path);
-    if (outcome === 'offline') throw unauthorized;
-    const retried = await this.#send(spec, this.#bearer(spec.auth));
-    this.#assertSession(session, spec.path);
-    return this.#settle(retried, spec.path, read);
+    if (outcome === 'offline') throw first.error;
+    return this.#send(spec, this.#bearer(spec.auth), async (response) => {
+      this.#assertSession(session, spec.path);
+      return this.#settle(response, spec.path, read);
+    });
   }
 
   async #settle<T>(
@@ -214,7 +220,11 @@ export class ApiClient {
     return token === null ? {} : { Authorization: `Bearer ${token}` };
   }
 
-  async #send(spec: BaseRequestSpec, authHeaders: Record<string, string>): Promise<Response> {
+  async #send<T>(
+    spec: BaseRequestSpec,
+    authHeaders: Record<string, string>,
+    read: (response: Response) => Promise<T>,
+  ): Promise<T> {
     const { baseUrl, defaultTimeoutMs, networkRetry, fetch: fetchImpl, logger } = this.#options;
     const headers: Record<string, string> = { ...spec.headers, ...authHeaders };
     let body: BodyInit | undefined;
@@ -234,9 +244,11 @@ export class ApiClient {
     const maxAttempts = spec.idempotent ? networkRetry.attempts + 1 : 1;
 
     try {
+      let response: Response;
       for (let attempt = 1; ; attempt += 1) {
         try {
-          return await fetchImpl(url, init);
+          response = await fetchImpl(url, init);
+          break;
         } catch (error) {
           if (composition.signal.aborted) throw abortReason(composition.signal, spec.path);
           if (!(error instanceof TypeError)) throw error;
@@ -248,6 +260,14 @@ export class ApiClient {
           await wait(delayMs, composition.signal, spec.path);
         }
       }
+      // Body consumption shares the fetch deadline, but body failures are never retried.
+      const result = await read(response);
+      // Error-envelope decoding can absorb a stream rejection; do not start a refresh after abort.
+      if (composition.signal.aborted) throw abortReason(composition.signal, spec.path);
+      return result;
+    } catch (error) {
+      if (composition.signal.aborted) throw abortReason(composition.signal, spec.path);
+      throw error;
     } finally {
       composition.dispose();
     }

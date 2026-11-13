@@ -108,9 +108,9 @@ export type AvalonEvent =
       readonly approveCount: number;
       readonly rejectCount: number;
       readonly abstainCount: number;
-      readonly nextLeaderSeat: number;
-      readonly vetoLimitReached: boolean;
     }
+  | { readonly type: 'avalon.voteResult.confirmed'; readonly seat: number }
+  | { readonly type: 'avalon.voteResult.completed' }
   | { readonly type: 'avalon.quest.played'; readonly seat: number; readonly play: AvalonPlay }
   | { readonly type: 'avalon.quest.allPlayed'; readonly deadlineAt: number }
   | {

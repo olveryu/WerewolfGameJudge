@@ -29,7 +29,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
   | Game       | Current | `migratePersisted*State` accepts |
   | ---------- | ------- | -------------------------------- |
   | werewolf   | 17      | 12, 13, 14, 15, 16               |
-  | avalon     | 10      | 1–9                              |
+  | avalon     | 11      | 1–10                             |
   | fibking    | 8       | 5, 6, 7                          |
   | pictionary | 9       | 8 only                           |
   | undercover | 5       | 1, 2, 3, 4                       |
