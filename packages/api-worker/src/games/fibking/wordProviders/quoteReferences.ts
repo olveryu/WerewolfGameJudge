@@ -23,36 +23,39 @@ export function createFibWordEvidenceQuotes(evidence: readonly FibWordEvidence[]
 
 type EvidenceQuotes = ReturnType<typeof createFibWordEvidenceQuotes>;
 
-function resolveQuote(quoteOptions: EvidenceQuotes, evidenceIndex: number, id: string): string {
+function resolveQuote(
+  quoteOptions: EvidenceQuotes,
+  evidenceIndex: number,
+  id: string,
+  path: readonly (string | number)[] = [],
+): string {
   const reference = quoteOptions.find((option) => option.id === id);
   if (reference === undefined || reference.evidenceIndex !== evidenceIndex) {
     throw new AiOutputValidationError(
       'invalidEvidenceReference',
       `Invalid Fib word evidence reference: ${id}`,
+      path,
     );
   }
   return reference.quote;
 }
 
-/** Resolve generation references before the domain parser validates the entire payload. */
-export function resolveFibWordCandidateReferences(value: unknown, quoteOptions: EvidenceQuotes) {
+/** Resolve all citations within the same candidate rejection boundary as its domain validation. */
+export function resolveFibWordCandidateReference(value: unknown, quoteOptions: EvidenceQuotes) {
   const payload = z
     .looseObject({
-      candidates: z.array(
-        z.looseObject({
-          citations: z.array(z.looseObject({ evidenceIndex: z.number().int(), quote: z.string() })),
-        }),
-      ),
+      citations: z.array(z.looseObject({ evidenceIndex: z.number().int(), quote: z.string() })),
     })
     .parse(value);
   return {
     ...payload,
-    candidates: payload.candidates.map((candidate) => ({
-      ...candidate,
-      citations: candidate.citations.map((citation) => ({
-        ...citation,
-        quote: resolveQuote(quoteOptions, citation.evidenceIndex, citation.quote),
-      })),
+    citations: payload.citations.map((citation, index) => ({
+      ...citation,
+      quote: resolveQuote(quoteOptions, citation.evidenceIndex, citation.quote, [
+        'citations',
+        index,
+        'quote',
+      ]),
     })),
   };
 }

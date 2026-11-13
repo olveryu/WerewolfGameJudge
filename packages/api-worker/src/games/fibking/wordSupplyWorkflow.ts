@@ -3,7 +3,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloud
 import { z } from 'zod';
 
 import type { Env } from '../../env';
-import { getAiDiagnostic } from '../../platform/ai/aiError';
+import { getAiDiagnostic, outputValidationSummarySchema } from '../../platform/ai/aiError';
 import {
   claimEditorialModelRequest,
   isEditorialBudgetAvailable,
@@ -13,6 +13,7 @@ import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
 import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
+import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { getFibWordProviderFailureKind } from './wordProviders/providerError';
 import {
@@ -20,10 +21,11 @@ import {
   type FibWordEvidence,
   searchFibWordEvidence,
 } from './wordProviders/tavily';
-import type {
-  FibWordCategory,
-  FibWordEditorialCandidate,
-  FibWordRequest,
+import {
+  FIB_WORD_GENERATION_BATCH_LIMIT,
+  type FibWordCategory,
+  type FibWordEditorialCandidate,
+  type FibWordRequest,
 } from './wordProviders/types';
 import {
   claimFibWordProviderRequest,
@@ -49,6 +51,22 @@ const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 s
 const REQUEST_TIMEOUT_MS = 120_000;
 const MODEL_STEP = { ...EXTERNAL_STEP, timeout: '130 seconds' } as const;
 const log = createLogger('fib-word-supply');
+const generatedCandidatesSchema = z.array(z.unknown()).max(FIB_WORD_GENERATION_BATCH_LIMIT);
+const persistedGenerationSchema = z.union([
+  generatedCandidatesSchema,
+  z.strictObject({
+    candidates: generatedCandidatesSchema,
+    validation: outputValidationSummarySchema,
+  }),
+]);
+
+/** Old generate checkpoints were arrays; validate either durable format without regenerating. */
+function readGeneratedCandidates(value: unknown): FibWordEditorialCandidate[] {
+  const generated = persistedGenerationSchema.parse(value);
+  return (Array.isArray(generated) ? generated : generated.candidates).map(
+    parseFibWordEditorialCandidate,
+  );
+}
 
 interface FibWordSupplyParams {
   readonly day: string;
@@ -175,17 +193,19 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
               MODEL_STEP,
               async () => {
                 await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
-                return [
-                  ...(await createConfiguredFibWordProvider(this.env).generateBatch(
-                    createRequest(pack.category, extraction.evidence, search.topic),
-                    { packId: pack.id },
-                  )),
-                ];
+                return createConfiguredFibWordProvider(this.env).generateBatch(
+                  createRequest(pack.category, extraction.evidence, search.topic),
+                  { packId: pack.id },
+                );
               },
             );
             failureStage = 'candidateStorage';
             await step.do(`store-candidates-${batchIndex}`, () =>
-              storeFibWordCandidates(this.env.DB, pack, generatedCandidates),
+              storeFibWordCandidates(
+                this.env.DB,
+                pack,
+                readGeneratedCandidates(generatedCandidates),
+              ),
             );
             candidates = await step.do(`generated-review-candidates-${batchIndex}`, () =>
               getFibWordReviewCandidates(this.env.DB, pack),

@@ -10,19 +10,25 @@ import {
   reportAiFailure,
 } from '../../../platform/ai/aiError';
 import { requestGemini } from '../../../platform/ai/geminiRequest';
+import { parseGeneratedCandidateBatch } from '../../../platform/wordSupply/generatedCandidates';
 import {
   FIB_WORD_CANDIDATES_JSON_SCHEMA,
   FIB_WORD_REVIEWS_JSON_SCHEMA,
   parseFibWordReviews,
-  parseGeneratedFibWordCandidates,
+  parseGeneratedFibWordCandidate,
 } from './candidate';
 import { createFibWordMessages, createFibWordReviewMessages } from './prompt';
 import {
   createFibWordEvidenceQuotes,
-  resolveFibWordCandidateReferences,
+  resolveFibWordCandidateReference,
   resolveFibWordReviewReferences,
 } from './quoteReferences';
-import { FIB_WORD_REVIEW_BATCH_LIMIT, type FibWordProvider, type FibWordRequest } from './types';
+import {
+  FIB_WORD_GENERATION_BATCH_LIMIT,
+  FIB_WORD_REVIEW_BATCH_LIMIT,
+  type FibWordProvider,
+  type FibWordRequest,
+} from './types';
 
 const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
 export const GEMINI_FIB_WORD_MODEL = 'gemini-3.5-flash-lite';
@@ -31,10 +37,11 @@ const geminiResponseSchema = z.object({
   choices: z
     .array(
       z.object({
+        finish_reason: z.literal('stop'),
         message: z.object({ content: z.string() }),
       }),
     )
-    .min(1),
+    .length(1),
 });
 
 interface GeminiStructuredOutputInput<Output> {
@@ -121,7 +128,24 @@ export function createGeminiFibWordProvider(
   return {
     generateBatch(request, context = {}) {
       const quoteOptions = createFibWordEvidenceQuotes(request.evidence);
-      if (quoteOptions.length === 0) return Promise.resolve([]);
+      const decode = (value: unknown) =>
+        parseGeneratedCandidateBatch(value, {
+          limit: FIB_WORD_GENERATION_BATCH_LIMIT,
+          context: {
+            ...context,
+            game: 'fibking',
+            model: GEMINI_FIB_WORD_MODEL,
+            operation: 'generate',
+          },
+          parseCandidate: (candidate) =>
+            parseGeneratedFibWordCandidate(
+              resolveFibWordCandidateReference(candidate, quoteOptions),
+              'gemini',
+              request,
+            ),
+          getIdentity: ({ word }) => word,
+        });
+      if (quoteOptions.length === 0) return Promise.resolve(decode({ candidates: [] }));
       const candidateSchema = FIB_WORD_CANDIDATES_JSON_SCHEMA.properties.candidates.items;
       return requestGeminiStructuredOutput({
         apiKey,
@@ -155,12 +179,7 @@ export function createGeminiFibWordProvider(
             },
           },
         },
-        parseOutput: (value) =>
-          parseGeneratedFibWordCandidates(
-            resolveFibWordCandidateReferences(value, quoteOptions),
-            'gemini',
-            request,
-          ),
+        parseOutput: decode,
       });
     },
     reviewBatch(request, candidates, context = {}) {

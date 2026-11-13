@@ -36,6 +36,17 @@ const review = {
 };
 
 describe('Undercover editorial contracts', () => {
+  it('keeps strict batch parsing for stored material even when another pair is valid', () => {
+    expect(() =>
+      parseUndercoverCandidates(
+        {
+          candidates: [candidate, { ...candidate, commonTraits: ['不足'] }],
+        },
+        'food',
+      ),
+    ).toThrow();
+  });
+
   it('deduplicates swapped and traditional words with a category-independent identity', async () => {
     const parsed = parseUndercoverCandidates(
       { candidates: [candidate, { ...candidate, wordA: '豆漿', wordB: '牛奶' }] },

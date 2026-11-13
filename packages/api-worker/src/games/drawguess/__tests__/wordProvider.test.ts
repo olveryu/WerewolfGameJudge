@@ -1,11 +1,68 @@
 /** Provider transport uses separate material, strict output, and redacted failures. */
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DRAWGUESS_WORD_BATCH_LIMIT } from '../wordEditorial';
 import { createDrawGuessWordProvider } from '../wordProvider';
 
+afterEach(() => vi.restoreAllMocks());
+
 describe('DrawGuess provider', () => {
+  it('isolates bad candidates before canonical deduplication and reports one safe warning', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const candidate = { word: '麵包', category: 'food', difficulty: 'easy', potentialIssues: [] };
+    const candidates = [
+      { ...candidate, word: 'leak!' },
+      { ...candidate, category: 'animals' },
+      { ...candidate, potentialIssues: [1] },
+      candidate,
+      { ...candidate, word: '面包' },
+      { ...candidate, word: '香蕉', 'private-key': 'private-value' },
+    ];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [
+          { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ candidates }) }] } },
+        ],
+      }),
+    );
+    const result = await createDrawGuessWordProvider('test-key', fetchImpl).generateBatch(
+      'food',
+      [],
+      { packId: 'partial' },
+    );
+    expect(result.candidates).toEqual([{ ...candidate, word: '面包' }]);
+    expect(result.validation).toMatchObject({
+      receivedCount: 6,
+      validCount: 1,
+      rejectedCount: 4,
+      duplicateCount: 1,
+      omittedIssueCount: 0,
+    });
+    expect(result.validation.rejectionSamples).toEqual([
+      { index: 0, path: ['candidates', 0, 'word'], code: 'invalid_format' },
+      { index: 1, path: ['candidates', 1, 'category'], code: 'categoryMismatch' },
+      { index: 2, path: ['candidates', 2, 'potentialIssues', 0], code: 'invalid_type' },
+      { index: 4, path: ['candidates', 4], code: 'duplicateCandidate' },
+      { index: 5, path: ['candidates', 5], code: 'unrecognized_keys' },
+    ]);
+    expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('"packId":"partial"'));
+    expect(error).not.toHaveBeenCalled();
+    for (const secret of [
+      '麵包',
+      '面包',
+      '香蕉',
+      'leak!',
+      'private-key',
+      'private-value',
+      'test-key',
+    ])
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(secret);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl.mock.calls[0]?.[1]?.body).toContain('pattern');
+  });
+
   it('supports at least 30 distinct editorial categories', () => {
     expect(new Set(DRAWGUESS_WORD_CATEGORIES).size).toBeGreaterThanOrEqual(30);
   });
@@ -28,7 +85,10 @@ describe('DrawGuess provider', () => {
     );
     expect(
       await createDrawGuessWordProvider('test-key', fetchImpl).generateBatch('food', []),
-    ).toEqual({ candidates: [] });
+    ).toMatchObject({
+      candidates: [],
+      validation: { receivedCount: 0, validCount: 0, rejectedCount: 0, duplicateCount: 0 },
+    });
     expect(fetchImpl).toHaveBeenCalledOnce();
     const request = fetchImpl.mock.calls[0]?.[1];
     expect(request).toMatchObject({ method: 'POST' });

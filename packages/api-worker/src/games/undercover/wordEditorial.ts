@@ -6,7 +6,8 @@ import {
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
-import { AiOutputValidationError } from '../../platform/ai/aiError';
+import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
+import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
 
 export const UNDERCOVER_WORD_BATCH_LIMIT = 30;
 export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v3';
@@ -73,23 +74,46 @@ export async function getUndercoverPairId(wordA: string, wordB: string): Promise
   return `undercover:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** Validate all generated material before storage, then remove reversed batch duplicates. */
+function normalizeUndercoverCandidate(
+  candidate: UndercoverWordCandidate,
+  category: UndercoverCategory,
+): UndercoverWordCandidate {
+  if (candidate.category !== category)
+    throw new AiOutputValidationError(
+      'categoryMismatch',
+      'Undercover generated category mismatch',
+      ['category'],
+    );
+  return { ...candidate, ...canonicalizeUndercoverPair(candidate.wordA, candidate.wordB) };
+}
+
+/** Only model generation may reject individual pairs and return a validation summary. */
+export function decodeGeneratedUndercoverCandidates(
+  value: unknown,
+  category: UndercoverCategory,
+  context: AiContext,
+) {
+  return parseGeneratedCandidateBatch(value, {
+    limit: UNDERCOVER_WORD_BATCH_LIMIT,
+    context,
+    parseCandidate: (item) =>
+      normalizeUndercoverCandidate(undercoverCandidateSchema.parse(item), category),
+    getIdentity: ({ wordA, wordB }) => JSON.stringify([wordA, wordB]),
+  });
+}
+
+/** Strictly validate all material before storage, then remove reversed batch duplicates. */
 export function parseUndercoverCandidates(
   value: unknown,
   category: UndercoverCategory,
 ): UndercoverWordCandidate[] {
   const seen = new Set<string>();
-  return undercoverCandidatesSchema.parse(value).candidates.flatMap((candidate) => {
-    if (candidate.category !== category)
-      throw new AiOutputValidationError(
-        'categoryMismatch',
-        'Undercover generated category mismatch',
-      );
-    const pair = canonicalizeUndercoverPair(candidate.wordA, candidate.wordB);
-    const key = JSON.stringify(pair);
+  return undercoverCandidatesSchema.parse(value).candidates.flatMap((item) => {
+    const candidate = normalizeUndercoverCandidate(item, category);
+    const key = JSON.stringify([candidate.wordA, candidate.wordB]);
     if (seen.has(key)) return [];
     seen.add(key);
-    return [{ ...candidate, ...pair }];
+    return [candidate];
   });
 }
 

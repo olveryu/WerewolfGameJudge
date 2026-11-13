@@ -193,6 +193,32 @@ describe('Gemini attempt diagnostics', () => {
 });
 
 describe('Native structured-output parsing', () => {
+  it.each([new Error('program bug'), new TypeError('program bug'), new SyntaxError('program bug')])(
+    'does not classify a generation decoder programming exception as invalid model output: %s',
+    async (error) => {
+      const failure = requestStructuredOutput({
+        apiKey: options.apiKey,
+        model: context.model,
+        context,
+        systemPrompt: 'instructions',
+        payload: {},
+        schema: z.strictObject({ count: z.number() }),
+        fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+          Response.json({
+            candidates: [
+              { finishReason: 'STOP', content: { parts: [{ text: '{"count":"wrong"}' }] } },
+            ],
+          }),
+        ),
+        parseOutput: () => {
+          throw error;
+        },
+      });
+      await expect(failure).rejects.toBe(error);
+      expect(reportError).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     { response: () => new Response('not json'), stage: 'responseJson' },
     { response: () => Response.json({ candidates: [] }), stage: 'responseEnvelope' },

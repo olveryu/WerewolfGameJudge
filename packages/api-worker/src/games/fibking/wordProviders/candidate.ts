@@ -285,13 +285,26 @@ export function parseGeneratedFibWordCandidates(
 ): readonly FibWordEditorialCandidate[] {
   const payload = generatedFibWordCandidatesPayloadSchema.parse(value);
   assertDistinctCandidates(payload.candidates);
-  return payload.candidates.map(({ word, definition, category, topic, citations }) => ({
+  return payload.candidates.map((candidate) =>
+    parseGeneratedFibWordCandidate(candidate, source, request),
+  );
+}
+
+/** Validate a whole candidate, including every citation, before it can enter the editorial queue. */
+export function parseGeneratedFibWordCandidate(
+  value: unknown,
+  source: FibWordSource,
+  request: FibWordRequest,
+): FibWordEditorialCandidate {
+  const { word, definition, category, topic, citations } =
+    generatedFibWordCandidatePayloadSchema.parse(value);
+  return {
     word,
     definition,
     category,
     topic,
     source,
-    evidence: citations.map(({ evidenceIndex, quote }) => {
+    evidence: citations.map(({ evidenceIndex, quote }, index) => {
       const evidence = request.evidence[evidenceIndex];
       if (
         evidence === undefined ||
@@ -301,11 +314,12 @@ export function parseGeneratedFibWordCandidates(
         throw new AiOutputValidationError(
           'invalidEvidenceCitation',
           `Fib word candidate has an invalid evidence citation: ${word}`,
+          ['citations', index],
         );
       }
       return evidence;
     }),
-  }));
+  };
 }
 
 /** Review rubric v11: four hard gates (all must pass) plus two fun signals (at least one). */

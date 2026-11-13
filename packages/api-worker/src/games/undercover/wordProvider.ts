@@ -4,6 +4,7 @@ import type { UndercoverCategory } from '@game-judge/game-engine/games/undercove
 import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
 import {
+  decodeGeneratedUndercoverCandidates,
   parseUndercoverReviews,
   UNDERCOVER_WORD_BATCH_LIMIT,
   undercoverCandidatesSchema,
@@ -87,6 +88,13 @@ export function createUndercoverWordProvider(apiKey: string, fetchImpl: typeof f
         systemPrompt: GENERATION_PROMPT,
         payload: { category, topic: CATEGORY_TOPICS[category], history },
         fetchImpl,
+        parseOutput: (value) =>
+          decodeGeneratedUndercoverCandidates(value, category, {
+            ...context,
+            game: 'undercover',
+            operation: 'generate',
+            model: UNDERCOVER_WORD_MODEL,
+          }),
       });
     },
     reviewBatch(

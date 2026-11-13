@@ -75,7 +75,7 @@ export interface WordSupplyConfig<
   TPack extends (WordPackRef & { readonly category: TCategory }) & Rpc.Serializable<TPack>,
   TCandidate extends Rpc.Serializable<TCandidate>,
   TReview extends Rpc.Serializable<TReview>,
-  TGenerated extends Rpc.Serializable<TGenerated>,
+  TGenerated extends { readonly candidates: readonly TCandidate[] } & Rpc.Serializable<TGenerated>,
   THistory extends Rpc.Serializable<THistory>,
 > {
   readonly gameLabel: string;
@@ -87,7 +87,10 @@ export interface WordSupplyConfig<
   readonly createProvider: (
     apiKey: string,
   ) => WordSupplyProvider<TCategory, TCandidate, TReview, TGenerated, THistory>;
-  readonly parseCandidates: (generated: TGenerated, category: TCategory) => readonly TCandidate[];
+  readonly parseCandidates: (
+    generated: { readonly candidates: readonly TCandidate[] },
+    category: TCategory,
+  ) => readonly TCandidate[];
   readonly publication: WordSupplyPublication<TPack, TCandidate, TReview>;
 }
 
@@ -97,7 +100,7 @@ export async function runWordSupplyWorkflow<
   TPack extends (WordPackRef & { readonly category: TCategory }) & Rpc.Serializable<TPack>,
   TCandidate extends Rpc.Serializable<TCandidate>,
   TReview extends Rpc.Serializable<TReview>,
-  TGenerated extends Rpc.Serializable<TGenerated>,
+  TGenerated extends { readonly candidates: readonly TCandidate[] } & Rpc.Serializable<TGenerated>,
   THistory extends Rpc.Serializable<THistory>,
 >(
   env: Env,
@@ -134,7 +137,7 @@ async function processPack<
   TPack extends (WordPackRef & { readonly category: TCategory }) & Rpc.Serializable<TPack>,
   TCandidate extends Rpc.Serializable<TCandidate>,
   TReview extends Rpc.Serializable<TReview>,
-  TGenerated extends Rpc.Serializable<TGenerated>,
+  TGenerated extends { readonly candidates: readonly TCandidate[] } & Rpc.Serializable<TGenerated>,
   THistory extends Rpc.Serializable<THistory>,
 >(
   env: Env,
@@ -170,10 +173,11 @@ async function processPack<
       });
       failureStage = 'candidateStorage';
       await step.do(`store-${batchIndex}`, async () => {
+        const material = { candidates: generated.candidates };
         await env.DB.prepare(
           `UPDATE ${config.packsTable} SET generation_json = ? WHERE id = ? AND request_token = ? AND status = 'reserved'`,
         )
-          .bind(JSON.stringify(generated), pack.id, pack.request_token)
+          .bind(JSON.stringify(material), pack.id, pack.request_token)
           .run();
         let parsedCandidates: readonly TCandidate[];
         try {
@@ -185,7 +189,7 @@ async function processPack<
               packId: pack.id,
             },
             'outputValidation',
-            () => config.parseCandidates(generated, pack.category),
+            () => config.parseCandidates(material, pack.category),
           );
         } catch (error) {
           if (error instanceof AiProviderError) reportAiFailure(error);
@@ -222,7 +226,7 @@ async function reviewCandidates<
   TPack extends (WordPackRef & { readonly category: TCategory }) & Rpc.Serializable<TPack>,
   TCandidate extends Rpc.Serializable<TCandidate>,
   TReview extends Rpc.Serializable<TReview>,
-  TGenerated extends Rpc.Serializable<TGenerated>,
+  TGenerated extends { readonly candidates: readonly TCandidate[] } & Rpc.Serializable<TGenerated>,
   THistory extends Rpc.Serializable<THistory>,
 >(
   env: Env,
