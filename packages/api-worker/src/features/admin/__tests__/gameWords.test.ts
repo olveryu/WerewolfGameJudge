@@ -17,7 +17,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { FIB_WORD_REVIEW_VERSION } from '../../../games/fibking/wordProviders/prompt';
-import { getGameWordsStats, triggerGameWordSupply } from '../gameWords';
+import {
+  approveWordCandidates,
+  dismissWordCandidates,
+  getGameWordsStats,
+  listWordCandidates,
+  triggerGameWordSupply,
+} from '../gameWords';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
 
@@ -41,6 +47,8 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM word_submission_evidence_requests'),
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
+    env.DB.prepare('DELETE FROM fib_word_candidates'),
+    env.DB.prepare('DELETE FROM word_candidate_approvals'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
@@ -175,6 +183,29 @@ describe('GET /admin/games/words/stats', () => {
     expect(Array.isArray(body.reviewDecisions)).toBe(true);
     expect(Array.isArray(body.queryLeaderboard)).toBe(true);
     expect(typeof body.supplyEnabled).toBe('boolean');
+  });
+
+  it('splits the model budget by operation on the dashboard', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO editorial_model_requests (id, owner, model, operation, claimed_at)
+         VALUES ('gen-1', 'fibking', 'model', 'generation', datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO editorial_model_requests (id, owner, model, operation, claimed_at)
+         VALUES ('rev-1', 'undercover', 'model', 'review', datetime('now'))`,
+      ),
+    ]);
+    const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
+    expect(resp.status).toBe(200);
+    const body = await resp.json<GameWordsStats>();
+    expect(body.modelBudget.byOperation).toEqual({
+      generation: { dailyUsed: 1, monthlyUsed: 1 },
+      review: { dailyUsed: 1, monthlyUsed: 1 },
+    });
+    // The split partitions the same totals the dashboard already shows.
+    expect(body.modelBudget.dailyUsed).toBe(2);
+    expect(body.modelBudget.monthlyUsed).toBe(2);
   });
 
   it('counts published words by their actual topic rather than their search topic', async () => {
@@ -405,5 +436,414 @@ describe('POST /admin/games/words/trigger-supply', () => {
       game: 'fibking',
     });
     expect(wrongToken.status).toBe(403);
+  });
+});
+
+describe('GET /admin/games/words/candidates', () => {
+  async function seedFibCandidates() {
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+    ).run();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES ('fib-1', '甲词', '含义', '用法', 'literary', 'gemini',
+             '[{"url": "https://example.test/a"}, {"url": "https://example.test/b"}]',
+             'test-cycle', 'pending', '2026-01-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES ('fib-2', '乙词', '含义', '用法', 'literary', 'gemini',
+             '[]', 'test-cycle', 'pending', '2026-01-02T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES ('fib-3', '丙词', '含义', '用法', 'literary', 'gemini',
+             '[]', 'test-cycle', 'approved', '2026-01-03T00:00:00.000Z')`,
+      ),
+    ]);
+  }
+
+  it('lists pending candidates per game and pages by creation order', async () => {
+    await seedFibCandidates();
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+       VALUES ('uc-1', '熬夜', '赖床', 'dailyLife', '{}', 'pending', '2026-01-01T00:00:00.000Z')`,
+    ).run();
+    const pending = await fetchWordsStats(
+      '/admin/games/words/candidates?game=fibking',
+      ADMIN_TOKEN,
+    );
+    expect(pending.status).toBe(200);
+    const pendingBody = await pending.json<{
+      candidates: Array<{ id: string; title: string; evidenceCount: number | null }>;
+      nextCursor: string | null;
+    }>();
+    expect(pendingBody.candidates.map((item) => item.id)).toEqual(['fib-1', 'fib-2']);
+    expect(pendingBody.candidates[0]).toMatchObject({ title: '甲词', evidenceCount: 2 });
+    expect(pendingBody.candidates[1]).toMatchObject({ title: '乙词', evidenceCount: 0 });
+    expect(pendingBody.nextCursor).toBeNull();
+    const approved = await fetchWordsStats(
+      '/admin/games/words/candidates?game=fibking&status=approved',
+      ADMIN_TOKEN,
+    );
+    expect(
+      (await approved.json<{ candidates: Array<{ id: string }> }>()).candidates.map(
+        (item) => item.id,
+      ),
+    ).toEqual(['fib-3']);
+    const undercover = await fetchWordsStats(
+      '/admin/games/words/candidates?game=undercover',
+      ADMIN_TOKEN,
+    );
+    expect(
+      (await undercover.json<{ candidates: Array<{ id: string; title: string }> }>()).candidates,
+    ).toEqual([expect.objectContaining({ id: 'uc-1', title: '熬夜 / 赖床' })]);
+    expect(
+      (await fetchWordsStats('/admin/games/words/candidates?game=mahjong', ADMIN_TOKEN)).status,
+    ).toBe(400);
+    expect((await fetchWordsStats('/admin/games/words/candidates?game=fibking', null)).status).toBe(
+      401,
+    );
+  });
+
+  it('rejects an invalid candidate cursor', async () => {
+    expect(
+      (
+        await fetchWordsStats(
+          '/admin/games/words/candidates?game=fibking&cursor=not-a-cursor',
+          ADMIN_TOKEN,
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await fetchWordsStats(
+          '/admin/games/words/candidates?game=fibking&cursor=2026-01-01T00:00:00.000Z|',
+          ADMIN_TOKEN,
+        )
+      ).status,
+    ).toBe(400);
+  });
+
+  it('keeps candidate list reads bounded with a large pending queue', async () => {
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+    ).run();
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 500)
+       INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+         evidence_json, generation_cycle_id, status, created_at)
+       SELECT 'bulk-' || i, '词' || i, '含义', '用法', 'literary', 'gemini',
+         '[]', 'test-cycle', 'pending', '2026-01-01T00:00:00.000Z' FROM n`,
+    ).run();
+    const measured = createRowCountingDb(env.DB);
+    const page = await listWordCandidates(measured.db, { game: 'fibking' });
+    expect(page.candidates).toHaveLength(30);
+    expect(page.nextCursor).not.toBeNull();
+    expect(measured.counts.rowsRead).toBeLessThan(200);
+    measured.reset();
+    const next = await listWordCandidates(measured.db, {
+      game: 'fibking',
+      cursor: page.nextCursor ?? undefined,
+    });
+    expect(next.candidates).toHaveLength(30);
+    expect(measured.counts.rowsRead).toBeLessThan(200);
+  });
+});
+
+describe('POST /admin/games/words/candidates/approve', () => {
+  async function seedUndercoverCandidates() {
+    await env.DB.batch(
+      ['pending', 'pending', 'approved'].map((status, index) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+           VALUES (?, ?, ?, 'dailyLife', '{}', ?, ?)`,
+        ).bind(
+          `uc-${index}`,
+          `词乙${index}`,
+          `词甲${index}`,
+          status,
+          `2026-01-0${index + 1}T00:00:00.000Z`,
+        ),
+      ),
+    );
+  }
+
+  it('approves pending candidates, skips the rest, and audits each approval', async () => {
+    await seedUndercoverCandidates();
+    const resp = await postTriggerSupply('/admin/games/words/candidates/approve', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: ['uc-0', 'uc-1', 'uc-2', 'missing'],
+      reason: '人工看过，可以送审。',
+    });
+    expect(resp.status).toBe(200);
+    expect(await resp.json()).toEqual({
+      game: 'undercover',
+      approvedIds: ['uc-0', 'uc-1'],
+      skippedIds: ['uc-2', 'missing'],
+    });
+    expect(
+      (await env.DB.prepare('SELECT id, status FROM undercover_word_candidates ORDER BY id').all())
+        .results,
+    ).toEqual([
+      { id: 'uc-0', status: 'approved' },
+      { id: 'uc-1', status: 'approved' },
+      { id: 'uc-2', status: 'approved' },
+    ]);
+    const audits = await env.DB.prepare(
+      'SELECT request_id, game, candidate_id, reason FROM word_candidate_approvals ORDER BY candidate_id',
+    ).all();
+    expect(audits.results).toHaveLength(2);
+    expect(audits.results[0]).toMatchObject({
+      game: 'undercover',
+      candidate_id: 'uc-0',
+      reason: '人工看过，可以送审。',
+    });
+    expect(audits.results[0]?.request_id).toBe(audits.results[1]?.request_id);
+    const approved = await listWordCandidates(env.DB, { game: 'undercover', status: 'approved' });
+    expect(approved.candidates.map((item) => item.id)).toEqual(['uc-0', 'uc-1', 'uc-2']);
+  });
+
+  it('does not approve a claimed candidate while its pack is still running', async () => {
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
+       VALUES ('pack-1', '2026-09', 'token-1', 'literary', 'reserved', '2026-01-01T00:00:00.000Z', 'x'),
+              ('pack-2', '2026-09', 'token-2', 'literary', 'failed', '2026-01-01T00:00:00.000Z', 'x')`,
+    ).run();
+    await env.DB.batch(
+      ['fib-claimed-running', 'fib-claimed-failed'].map((id, index) =>
+        env.DB.prepare(
+          `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+             evidence_json, generation_cycle_id, status, claimed_pack_id, claimed_at, created_at)
+             VALUES (?, ?, '含义', '用法', 'literary', 'gemini', '[]', 'test-cycle',
+               'claimed', ?, '2026-01-01T00:00:00.000Z', ?)`,
+        ).bind(
+          id,
+          `词${index}`,
+          index === 0 ? 'pack-1' : 'pack-2',
+          `2026-01-0${index + 1}T00:00:00.000Z`,
+        ),
+      ),
+    );
+    const first = await approveWordCandidates(env.DB, {
+      game: 'fibking',
+      candidateIds: ['fib-claimed-running', 'fib-claimed-failed'],
+      reason: '人工看过，可以送审。',
+    });
+    expect(first.approvedIds).toEqual(['fib-claimed-failed']);
+    expect(first.skippedIds).toEqual(['fib-claimed-running']);
+    // Once the pack fails, the stuck claim becomes approvable.
+    await env.DB.prepare("UPDATE fib_word_packs SET status = 'failed' WHERE id = 'pack-1'").run();
+    const second = await approveWordCandidates(env.DB, {
+      game: 'fibking',
+      candidateIds: ['fib-claimed-running'],
+      reason: '人工看过，可以送审。',
+    });
+    expect(second.approvedIds).toEqual(['fib-claimed-running']);
+    expect(second.skippedIds).toEqual([]);
+  });
+
+  it('rejects invalid bodies and missing tokens', async () => {
+    const empty = await postTriggerSupply('/admin/games/words/candidates/approve', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: [],
+      reason: 'x',
+    });
+    expect(empty.status).toBe(400);
+    const tooMany = await postTriggerSupply('/admin/games/words/candidates/approve', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: Array.from({ length: 31 }, (_, index) => `uc-${index}`),
+      reason: 'x',
+    });
+    expect(tooMany.status).toBe(400);
+    const noReason = await postTriggerSupply('/admin/games/words/candidates/approve', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: ['uc-0'],
+      reason: '',
+    });
+    expect(noReason.status).toBe(400);
+    const wrongGame = await postTriggerSupply(
+      '/admin/games/words/candidates/approve',
+      ADMIN_TOKEN,
+      { game: 'mahjong', candidateIds: ['uc-0'], reason: 'x' },
+    );
+    expect(wrongGame.status).toBe(400);
+    const wrongToken = await postTriggerSupply('/admin/games/words/candidates/approve', 'wrong', {
+      game: 'undercover',
+      candidateIds: ['uc-0'],
+      reason: 'x',
+    });
+    expect(wrongToken.status).toBe(403);
+  });
+
+  it('keeps approval writes bounded at the 30-item cap', async () => {
+    await seedUndercoverCandidates();
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 4 UNION ALL SELECT i + 1 FROM n WHERE i < 30)
+       INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+       SELECT 'uc-' || i, '词乙' || i, '词甲' || i, 'dailyLife', '{}', 'pending', '2026-01-01T00:00:00.000Z' FROM n`,
+    ).run();
+    const measured = createRowCountingDb(env.DB);
+    const result = await approveWordCandidates(measured.db, {
+      game: 'undercover',
+      candidateIds: Array.from({ length: 30 }, (_, index) => `uc-${index}`),
+      reason: '批量批准。',
+    });
+    expect(result.approvedIds).toHaveLength(28);
+    // uc-2 was already approved and uc-3 was never seeded: 30 requested,
+    // 28 approvable. The cap under test is the 30 requested ids, not 30 rows.
+    expect(result.skippedIds).toEqual(['uc-2', 'uc-3']);
+    // D1 counts index maintenance too: 3 counted writes per approval (the
+    // status update touches the row + 2 status indexes) and 3 per audit row
+    // (row + PK + request index) — 6 per approved candidate, linear in the
+    // 30-item cap. The bound catches super-linear blowups, not the audit.
+    expect(measured.counts.rowsWritten).toBeLessThan(200);
+  });
+});
+
+describe('POST /admin/games/words/candidates/dismiss', () => {
+  async function seedFibCandidates() {
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+    ).run();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES ('fib-1', '甲词', '含义', '用法', 'literary', 'gemini',
+             '[{"url": "https://example.test/a"}]', 'test-cycle', 'pending', '2026-01-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES ('fib-3', '丙词', '含义', '用法', 'literary', 'gemini',
+             '[]', 'test-cycle', 'approved', '2026-01-03T00:00:00.000Z')`,
+      ),
+    ]);
+  }
+
+  it('dismisses pending candidates, skips the rest, and audits each dismissal', async () => {
+    await seedFibCandidates();
+    const resp = await postTriggerSupply('/admin/games/words/candidates/dismiss', ADMIN_TOKEN, {
+      game: 'fibking',
+      candidateIds: ['fib-1', 'fib-3', 'missing'],
+      reason: '词太常见，不用审了。',
+    });
+    expect(resp.status).toBe(200);
+    expect(await resp.json()).toEqual({
+      game: 'fibking',
+      dismissedIds: ['fib-1'],
+      skippedIds: ['fib-3', 'missing'],
+    });
+    // The dismissed row is gone (fib candidates hold no terminal review
+    // state); the approved row is untouched.
+    expect(
+      (await env.DB.prepare('SELECT id, status FROM fib_word_candidates ORDER BY id').all())
+        .results,
+    ).toEqual([{ id: 'fib-3', status: 'approved' }]);
+    const audits = await env.DB.prepare(
+      'SELECT request_id, game, candidate_id, reason FROM word_candidate_dismissals ORDER BY candidate_id',
+    ).all();
+    expect(audits.results).toHaveLength(1);
+    expect(audits.results[0]).toMatchObject({
+      game: 'fibking',
+      candidate_id: 'fib-1',
+      reason: '词太常见，不用审了。',
+    });
+  });
+
+  it('dismisses pending undercover candidates the same way', async () => {
+    await env.DB.batch(
+      ['pending', 'approved'].map((status, index) =>
+        env.DB.prepare(
+          `INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+           VALUES (?, ?, ?, 'dailyLife', '{}', ?, ?)`,
+        ).bind(
+          `uc-${index}`,
+          `词乙${index}`,
+          `词甲${index}`,
+          status,
+          `2026-01-0${index + 1}T00:00:00.000Z`,
+        ),
+      ),
+    );
+    const result = await dismissWordCandidates(env.DB, {
+      game: 'undercover',
+      candidateIds: ['uc-0', 'uc-1'],
+      reason: '词对太平行，没有可玩性。',
+    });
+    expect(result).toEqual({
+      game: 'undercover',
+      dismissedIds: ['uc-0'],
+      skippedIds: ['uc-1'],
+    });
+    expect(
+      (await env.DB.prepare('SELECT id FROM undercover_word_candidates ORDER BY id').all()).results,
+    ).toEqual([{ id: 'uc-1' }]);
+  });
+
+  it('rejects invalid bodies and missing tokens', async () => {
+    const empty = await postTriggerSupply('/admin/games/words/candidates/dismiss', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: [],
+      reason: 'x',
+    });
+    expect(empty.status).toBe(400);
+    const tooMany = await postTriggerSupply('/admin/games/words/candidates/dismiss', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: Array.from({ length: 31 }, (_, index) => `uc-${index}`),
+      reason: 'x',
+    });
+    expect(tooMany.status).toBe(400);
+    const noReason = await postTriggerSupply('/admin/games/words/candidates/dismiss', ADMIN_TOKEN, {
+      game: 'undercover',
+      candidateIds: ['uc-0'],
+      reason: '',
+    });
+    expect(noReason.status).toBe(400);
+    const wrongGame = await postTriggerSupply(
+      '/admin/games/words/candidates/dismiss',
+      ADMIN_TOKEN,
+      { game: 'mahjong', candidateIds: ['uc-0'], reason: 'x' },
+    );
+    expect(wrongGame.status).toBe(400);
+    const wrongToken = await postTriggerSupply('/admin/games/words/candidates/dismiss', 'wrong', {
+      game: 'undercover',
+      candidateIds: ['uc-0'],
+      reason: 'x',
+    });
+    expect(wrongToken.status).toBe(403);
+  });
+
+  it('keeps dismissal writes bounded at the 30-item cap', async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i + 1 FROM n WHERE i < 29)
+       INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+       SELECT 'uc-' || i, '词乙' || i, '词甲' || i, 'dailyLife', '{}', 'pending', '2026-01-01T00:00:00.000Z' FROM n`,
+    ).run();
+    const measured = createRowCountingDb(env.DB);
+    const result = await dismissWordCandidates(measured.db, {
+      game: 'undercover',
+      candidateIds: Array.from({ length: 30 }, (_, index) => `uc-${index}`),
+      reason: '批量拒绝。',
+    });
+    expect(result.dismissedIds).toHaveLength(30);
+    expect(result.skippedIds).toEqual([]);
+    // D1 counts index maintenance too: the delete touches the row + its
+    // status indexes and the audit insert touches its row + PK + request
+    // index — linear in the 30-item cap. The bound catches super-linear
+    // blowups, not the audit.
+    expect(measured.counts.rowsWritten).toBeLessThan(200);
   });
 });

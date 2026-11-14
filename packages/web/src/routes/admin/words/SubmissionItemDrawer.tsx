@@ -13,6 +13,7 @@ import { AsyncBoundary, StatusBadge } from '../components/Primitives';
 import type { SubmissionConfirmation } from './SubmissionActionDialog';
 import {
   isApprovableSubmission,
+  isEndorsableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
@@ -23,6 +24,7 @@ const ACTION_LABELS: Readonly<Record<string, string>> = {
   ...SUBMISSION_STATUS_LABELS,
   review: '启动独立审核',
   approve: '人工通过',
+  endorse: '批准进入审核',
   publish: '发布',
   dismiss: '拒绝',
   unpublish: '下架',
@@ -145,7 +147,7 @@ export function SubmissionItemDrawer({
               拒绝此条…
             </button>
           )}
-          {['pending', 'failed'].includes(item.status) && (
+          {['approved', 'failed'].includes(item.status) && (
             <button type="button" className="admin-primary" onClick={() => act('review')}>
               {item.status === 'failed' ? '重试审核…' : '启动审核…'}
             </button>
@@ -153,6 +155,11 @@ export function SubmissionItemDrawer({
           {item.status === 'passed' && (
             <button type="button" className="admin-primary" onClick={() => act('publish')}>
               确认发布…
+            </button>
+          )}
+          {isEndorsableSubmission(item) && (
+            <button type="button" onClick={() => act('endorse')}>
+              批准进入审核…
             </button>
           )}
           {isApprovableSubmission(item) && (

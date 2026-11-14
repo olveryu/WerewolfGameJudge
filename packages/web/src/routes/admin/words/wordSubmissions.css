@@ -75,6 +75,22 @@
   display: grid;
   gap: var(--space-medium);
 }
+/* Confirm dialog item list (mock-dialog): unbulleted rows with dividers, semibold titles. */
+.admin-submission-form > ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-small) 0;
+  display: grid;
+}
+.admin-submission-form > ul li {
+  padding: var(--space-small) 0;
+  border-bottom: 1px solid var(--admin-border);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+.admin-submission-form > ul li:last-child {
+  border-bottom: 0;
+}
 .admin-submission-form label {
   display: grid;
   gap: var(--space-small);

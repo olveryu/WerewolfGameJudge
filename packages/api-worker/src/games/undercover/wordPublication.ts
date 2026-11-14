@@ -9,6 +9,7 @@ import {
   failWordPack,
   insertReservedWordPack,
   publishReviewedWordPack,
+  releaseClaimedWordCandidatesStatement,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
   getUndercoverPairId,
@@ -48,6 +49,7 @@ export async function reserveUndercoverWordPack(
     categorySql: `SELECT category FROM (SELECT category,
       (SELECT COUNT(*) FROM undercover_word_candidates candidate WHERE candidate.category = category_list.value AND (
         (candidate.status = 'pending' AND (candidate.claimed_pack_id IS NULL OR EXISTS (SELECT 1 FROM undercover_word_packs pack WHERE pack.id = candidate.claimed_pack_id AND pack.status = 'failed')))
+        OR (candidate.status = 'approved' AND (candidate.claimed_pack_id IS NULL OR EXISTS (SELECT 1 FROM undercover_word_packs pack WHERE pack.id = candidate.claimed_pack_id AND pack.status = 'failed')))
         OR (candidate.status = 'accepted' AND (candidate.reviewed_at < ? OR EXISTS (SELECT 1 FROM undercover_word_pairs pair WHERE pair.id = candidate.id AND json_extract(pair.review_json, '$.reviewVersion') != ?))))) AS pending_count,
       (SELECT COUNT(*) FROM undercover_word_pairs pair WHERE pair.category = category_list.value AND pair.status = 'active') AS active_count
     FROM (SELECT value, value AS category FROM json_each(?)) category_list
@@ -202,4 +204,12 @@ export async function failUndercoverWordPack(
   reason: string,
 ): Promise<void> {
   await failWordPack(db, 'undercover_word_packs', pack, reason);
+}
+
+/** Release a gated pack's claimed candidates back to the approved pool. */
+export async function releaseUndercoverWordCandidates(
+  db: D1Database,
+  pack: UndercoverWordPack,
+): Promise<void> {
+  await releaseClaimedWordCandidatesStatement(db, 'undercover_word_packs', pack).run();
 }

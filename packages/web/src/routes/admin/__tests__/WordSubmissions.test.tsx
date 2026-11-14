@@ -49,7 +49,16 @@ const settings: WordSubmissionSettings = {
   published: 1,
   submittedToday: 9,
   dailyLimit: 1000,
-  modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+  modelBudget: {
+    dailyUsed: 0,
+    dailyLimit: 8,
+    monthlyUsed: 0,
+    monthlyLimit: 120,
+    byOperation: {
+      generation: { dailyUsed: 0, monthlyUsed: 0 },
+      review: { dailyUsed: 0, monthlyUsed: 0 },
+    },
+  },
 };
 function candidate(status: WordSubmissionItem['status'], index: number): WordSubmissionItem {
   return {
@@ -94,6 +103,7 @@ const batch: WordSubmissionBatch = {
       'dismissed',
       'unpublished',
       'duplicate',
+      'approved',
     ] as const
   ).map(candidate),
 };
@@ -148,12 +158,17 @@ beforeEach(() => {
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue(settings);
   vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
   vi.mocked(wordSubmissionsApi.audit).mockResolvedValue({ events: [], statuses: [] });
-  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({ batches: [], nextCursor: null });
+  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+    batches: [],
+    totals: {},
+    nextCursor: null,
+  });
 });
 
 it('opens a batch as a URL-backed workspace overlay and browser Back restores its list context', async () => {
   vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-    batches: [{ ...batch, counts: { pending: 1 } }],
+    batches: [{ ...batch, counts: { pending: 1 }, inventoryExists: false }],
+    totals: { pending: 1 },
     nextCursor: null,
   });
   const { router, user } = mount('submissions', '&search=lotus');
@@ -172,7 +187,9 @@ it('opens a batch as a URL-backed workspace overlay and browser Back restores it
   await waitFor(() =>
     expect(router.state.location.search).toBe('?section=submissions&search=lotus'),
   );
-  expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument(),
+  );
 });
 
 it('opens candidate details from a keyboard-activated row without treating its checkbox as an action', async () => {
@@ -270,13 +287,14 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
   expect(all).toBePartiallyChecked();
   await user.click(all);
-  expect(screen.getByText('已选 4 / 当前可选 4')).toBeInTheDocument();
+  expect(screen.getByText('已选 5 / 当前可选 5')).toBeInTheDocument();
   for (const index of [4, 5, 6, 7, 8])
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
   expect(screen.getByRole('button', { name: '发布 1' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '审核 2' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '批准进入审核 3' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
-  await user.click(screen.getByRole('button', { name: '候选状态：全部 (9)' }));
+  await user.click(screen.getByRole('button', { name: '候选状态：全部 (10)' }));
   const filters = await screen.findByRole('dialog', { name: '选择候选状态' });
   await user.click(within(filters).getByRole('button', { name: '待确认发布 (1)' }));
   expect(all).not.toBeChecked();
@@ -285,12 +303,13 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByText('已选 1 / 当前可选 1')).toBeInTheDocument();
 });
 
-it('starts all pending/failed items independently of selection and never includes locked items', async () => {
+it('starts all approved/failed items independently of selection and never includes locked items', async () => {
   const { user } = mount();
   await user.click(await screen.findByRole('button', { name: '审核全部待审 (2)' }));
   const dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
-  expect(within(dialog).getByText('词语0')).toBeInTheDocument();
   expect(within(dialog).getByText('词语3')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语9')).toBeInTheDocument();
+  expect(within(dialog).queryByText('词语0')).not.toBeInTheDocument();
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
 });
@@ -298,7 +317,16 @@ it('starts all pending/failed items independently of selection and never include
 it('reviews at exhausted quotas without a reason and freezes retries', async () => {
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
     ...settings,
-    modelBudget: { dailyUsed: 93, dailyLimit: 8, monthlyUsed: 696, monthlyLimit: 120 },
+    modelBudget: {
+      dailyUsed: 93,
+      dailyLimit: 8,
+      monthlyUsed: 696,
+      monthlyLimit: 120,
+      byOperation: {
+        generation: { dailyUsed: 93, monthlyUsed: 696 },
+        review: { dailyUsed: 0, monthlyUsed: 0 },
+      },
+    },
   });
   vi.mocked(wordSubmissionsApi.action)
     .mockRejectedValueOnce(new Error('offline'))
@@ -321,7 +349,7 @@ it('reviews at exhausted quotas without a reason and freezes retries', async () 
   expect(calls[0]?.[1]).toMatchObject({
     action: 'review',
     reason: '',
-    items: [{ id: batch.items[0]?.id }, { id: batch.items[3]?.id }],
+    items: [{ id: batch.items[3]?.id }, { id: batch.items[9]?.id }],
   });
 });
 
@@ -389,8 +417,59 @@ it('bulk approves pending, failed and rejected items without a reason, but does 
   expect(calls[0]?.[1]).toMatchObject({
     action: 'approve',
     reason: '',
-    items: [{ id: batch.items[0]?.id }, { id: batch.items[2]?.id }, { id: batch.items[3]?.id }],
+    items: [
+      { id: batch.items[0]?.id, revision: 1 },
+      { id: batch.items[2]?.id, revision: 1 },
+      { id: batch.items[3]?.id, revision: 1 },
+    ],
   });
+});
+
+it('bulk endorses pending, failed and rejected items for review without calling the model', async () => {
+  vi.mocked(wordSubmissionsApi.action).mockResolvedValueOnce({
+    id: crypto.randomUUID(),
+    status: 'complete',
+  });
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
+  await user.click(screen.getByRole('button', { name: '批准进入审核 3' }));
+  const dialog = await screen.findByRole('dialog', { name: '批准进入审核' });
+  expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+  expect(within(dialog).getByText(/只表示你看过并同意送审/)).toBeInTheDocument();
+  expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语9')).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '批准进入审核 (3)' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]?.[0]).toBe(batch.id);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'endorse',
+    reason: '',
+    items: [
+      { id: batch.items[0]?.id, revision: 1 },
+      { id: batch.items[2]?.id, revision: 1 },
+      { id: batch.items[3]?.id, revision: 1 },
+    ],
+  });
+});
+
+it('offers single-item endorsement for pending without a review button', async () => {
+  const { user } = mount();
+  await user.click(await screen.findByRole('button', { name: '查看词语0审核详情' }));
+  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+  expect(within(drawer).queryByRole('button', { name: '启动审核…' })).not.toBeInTheDocument();
+  await user.click(within(drawer).getByRole('button', { name: '批准进入审核…' }));
+  const dialog = await screen.findByRole('dialog', { name: '批准进入审核' });
+  await user.click(within(dialog).getByRole('button', { name: '批准进入审核 (1)' }));
+  await waitFor(() =>
+    expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+      batch.id,
+      expect.objectContaining({
+        action: 'endorse',
+        items: [expect.objectContaining({ id: batch.items[0]?.id })],
+      }),
+    ),
+  );
 });
 
 it('keeps contextual actions in the drawer and preserves the original verdict after human approval', async () => {

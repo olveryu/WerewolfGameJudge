@@ -9,6 +9,7 @@ import {
   failWordPack,
   insertReservedWordPack,
   publishReviewedWordPack,
+  releaseClaimedWordCandidatesStatement,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
   DRAWGUESS_WORD_BATCH_LIMIT,
@@ -48,10 +49,17 @@ export async function reserveDrawGuessWordPack(
     categorySql: `SELECT value AS category
       FROM (SELECT value FROM json_each(?)) c
       ORDER BY (SELECT COUNT(*) FROM drawguess_words w WHERE w.category = c.value AND w.status = 'active') ASC,
+        CASE WHEN ? = 0 THEN -(SELECT COUNT(*) FROM drawguess_word_candidates candidate WHERE candidate.category = c.value AND (
+          (candidate.status = 'pending' AND (candidate.claimed_pack_id IS NULL OR EXISTS (SELECT 1 FROM drawguess_word_packs pack WHERE pack.id = candidate.claimed_pack_id AND pack.status = 'failed')))
+          OR (candidate.status = 'approved' AND (candidate.claimed_pack_id IS NULL OR EXISTS (SELECT 1 FROM drawguess_word_packs pack WHERE pack.id = candidate.claimed_pack_id AND pack.status = 'failed'))))) ELSE 0 END ASC,
         COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
         COALESCE((SELECT MAX(created_at) FROM drawguess_word_packs previous WHERE previous.category = c.value), '') ASC,
         category ASC LIMIT 1`,
-    categoryBinds: [JSON.stringify(DRAWGUESS_WORD_CATEGORIES), wordCategoryCooldownCutoff()],
+    categoryBinds: [
+      JSON.stringify(DRAWGUESS_WORD_CATEGORIES),
+      batchIndex % 2,
+      wordCategoryCooldownCutoff(),
+    ],
     model: DRAWGUESS_WORD_MODEL,
     promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
     reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,
@@ -187,4 +195,12 @@ export async function failDrawGuessWordPack(
   reason: string,
 ): Promise<void> {
   await failWordPack(db, 'drawguess_word_packs', pack, reason);
+}
+
+/** Release a gated pack's claimed candidates back to the approved pool. */
+export async function releaseDrawGuessWordCandidates(
+  db: D1Database,
+  pack: DrawGuessWordPack,
+): Promise<void> {
+  await releaseClaimedWordCandidatesStatement(db, 'drawguess_word_packs', pack).run();
 }

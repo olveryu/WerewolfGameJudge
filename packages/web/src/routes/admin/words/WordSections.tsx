@@ -15,6 +15,7 @@ export const WORD_GAME_LABELS = {
 } as const;
 export const SUBMISSION_STATUS_LABELS = {
   pending: '待启动审核',
+  approved: '已批准待审核',
   reviewing: '审核中',
   passed: '待确认发布',
   rejected: '模型未通过',
@@ -25,6 +26,15 @@ export const SUBMISSION_STATUS_LABELS = {
   duplicate: '重复内容',
 } as const;
 
+/** Supply-queue statuses (candidate rows, not submission items). */
+export const CANDIDATE_STATUS_LABELS = {
+  pending: '待批准',
+  approved: '已批准',
+  claimed: '已认领',
+  accepted: '已通过',
+  rejected: '未通过',
+} as const;
+
 /** Internal word navigation replaces the workspace entry so the header exits to Home/Room. */
 export function WordSections({ game, section }: { game: GameWordGame; section: string }) {
   return (
@@ -32,6 +42,7 @@ export function WordSections({ game, section }: { game: GameWordGame; section: s
       {[
         ['inventory', '库存与供给'],
         ['submissions', '外部投稿'],
+        ['library', '统一词库'],
         ['agents', 'Agent 授权'],
       ].map(([value, label]) => (
         <Link
@@ -108,7 +119,7 @@ export function SubmissionStatus({ status }: { status: WordSubmissionItem['statu
           ? 'success'
           : status === 'failed' || status === 'rejected'
             ? 'danger'
-            : status === 'reviewing' || status === 'pending'
+            : status === 'reviewing' || status === 'pending' || status === 'approved'
               ? 'warning'
               : 'neutral'
       }
@@ -120,10 +131,15 @@ export function SubmissionStatus({ status }: { status: WordSubmissionItem['statu
 
 /** Only unresolved, unlocked candidates participate in selection. */
 export function isSelectableSubmission(item: WordSubmissionItem) {
-  return ['pending', 'passed', 'failed', 'rejected'].includes(item.status);
+  return ['pending', 'approved', 'passed', 'failed', 'rejected'].includes(item.status);
 }
 
 /** Human decisions do not depend on a successful provider call or model verdict. */
 export function isApprovableSubmission(item: WordSubmissionItem) {
+  return ['pending', 'failed', 'rejected'].includes(item.status);
+}
+
+/** Endorsement only sends an item to model review; it never approves publication. */
+export function isEndorsableSubmission(item: WordSubmissionItem) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }

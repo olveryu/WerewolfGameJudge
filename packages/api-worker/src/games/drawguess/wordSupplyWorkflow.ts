@@ -14,6 +14,7 @@ import {
   failDrawGuessWordPack,
   getDrawGuessReviewCandidates,
   publishDrawGuessWordPack,
+  releaseDrawGuessWordCandidates,
   reserveDrawGuessWordPack,
   storeDrawGuessWordCandidates,
 } from './wordPublication';
@@ -56,6 +57,7 @@ export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSup
         storeCandidates: storeDrawGuessWordCandidates,
         publish: publishDrawGuessWordPack,
         fail: failDrawGuessWordPack,
+        releaseCandidates: releaseDrawGuessWordCandidates,
       },
     });
   }

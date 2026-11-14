@@ -8,7 +8,22 @@ import { log } from '@/utils/logger';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
 
-import { formatCompactNumber } from './Charts';
+export const formatNumber = (value: number) => value.toLocaleString('zh-CN');
+
+/** Use the site's Chinese units for large counts while keeping small values exact. */
+export function formatCompactNumber(value: number): string {
+  const magnitude = Math.abs(value);
+  for (const [threshold, unit] of [
+    [1e12, '万亿'],
+    [1e8, '亿'],
+    [1e4, '万'],
+  ] as const) {
+    if (magnitude >= threshold) {
+      return `${(value / threshold).toLocaleString('zh-CN', { maximumFractionDigits: 1 })}${unit}`;
+    }
+  }
+  return formatNumber(value);
+}
 
 const adminLog = log.extend('AdminRead');
 type ReadStatus = Pick<UseQueryResult, 'dataUpdatedAt' | 'isFetching'>;

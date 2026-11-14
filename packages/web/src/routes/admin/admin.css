@@ -145,6 +145,77 @@
   color: var(--admin-danger);
   font-weight: var(--weight-semibold);
 }
+.admin-console .admin-danger-solid {
+  background: var(--admin-danger);
+  border-color: var(--admin-danger);
+  color: var(--admin-accent-ink);
+  font-weight: var(--weight-semibold);
+}
+.admin-console .admin-danger-solid:hover:not(:disabled) {
+  background: var(--admin-danger);
+  filter: brightness(0.92);
+  border-color: var(--admin-danger);
+}
+.admin-required {
+  color: var(--admin-danger);
+  font-weight: var(--weight-semibold);
+}
+.admin-danger-text {
+  color: var(--admin-danger);
+}
+.admin-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-small);
+}
+/** Sticky bulk bar inside a candidate panel: stays at the panel's bottom edge, never fixed to the viewport. */
+.admin-bulk-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+  margin-top: var(--space-medium);
+  background: var(--admin-panel);
+  border-top: 1px solid var(--admin-border);
+}
+/** Five-stage pipeline summary on the unified library page. */
+.admin-flow-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-medium);
+  margin: 0 0 var(--space-large);
+  padding: 0;
+  list-style: none;
+}
+.admin-flow-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-micro);
+  padding: var(--space-small) var(--space-medium);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-small);
+  background: var(--admin-panel);
+  min-width: 0;
+}
+.admin-flow-step-value {
+  font-size: var(--font-admin-metric);
+  font-weight: var(--weight-semibold);
+  color: var(--admin-text);
+}
+.admin-flow-step-label {
+  font-size: var(--font-caption);
+  color: var(--admin-muted);
+}
+.admin-flow-step-hot {
+  border-color: var(--admin-warning);
+  background: var(--admin-warning-soft);
+}
+.admin-flow-step-hot .admin-flow-step-value {
+  color: var(--admin-warning);
+}
 .admin-workspace {
   min-height: 100%;
 }
@@ -1255,6 +1326,9 @@
   overflow-wrap: anywhere;
 }
 .admin-details .admin-copy-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding-right: var(--space-xxlarge);
 }
 .admin-details .admin-copy-button {

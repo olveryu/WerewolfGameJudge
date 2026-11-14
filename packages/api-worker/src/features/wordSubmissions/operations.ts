@@ -22,10 +22,11 @@ import {
 
 const log = createLogger('word-submission-operations');
 const eligibleStates = {
-  review: ['pending', 'failed', 'rejected', 'passed'],
+  review: ['approved', 'failed', 'rejected', 'passed'],
   publish: ['passed'],
-  dismiss: ['pending', 'failed', 'rejected', 'passed'],
+  dismiss: ['pending', 'approved', 'failed', 'rejected', 'passed'],
   approve: ['pending', 'failed', 'rejected'],
+  endorse: ['pending', 'failed', 'rejected'],
   unpublish: ['published'],
 } as const;
 
@@ -146,7 +147,9 @@ function itemMutation(
           ? 'dismissed'
           : input.action === 'approve'
             ? 'passed'
-            : 'unpublished';
+            : input.action === 'endorse'
+              ? 'approved'
+              : 'unpublished';
   return db
     .prepare(
       `UPDATE word_submission_items SET status = ?, revision = revision + 1,

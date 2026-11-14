@@ -47,7 +47,7 @@ const WORD_PACK_CANDIDATES_TABLES = {
   },
 } as const;
 
-/** Claim category-scoped pending material; callers may prepend game-owned re-review statements. */
+/** Claim category-scoped approved material; callers may prepend game-owned re-review statements. */
 export function createClaimWordCandidatesStatement(
   db: D1Database,
   packsTable: keyof typeof WORD_PACK_CANDIDATES_TABLES,
@@ -58,13 +58,28 @@ export function createClaimWordCandidatesStatement(
   return db
     .prepare(
       `UPDATE ${candidatesTable} SET claimed_pack_id = ?
-      WHERE id IN (SELECT id FROM ${candidatesTable} WHERE category = ? AND status = 'pending'
+      WHERE id IN (SELECT id FROM ${candidatesTable} WHERE category = ? AND status = 'approved'
         AND (claimed_pack_id IS NULL OR claimed_pack_id = ? OR EXISTS (SELECT 1 FROM ${packsTable} failed WHERE failed.id = claimed_pack_id AND failed.status = 'failed'))
         ORDER BY created_at, id LIMIT ?)
       AND EXISTS (SELECT 1 FROM ${packsTable} WHERE id = ? AND request_token = ? AND status = 'reserved')
       RETURNING material_json`,
     )
     .bind(pack.id, pack.category, pack.id, batchLimit, pack.id, pack.request_token);
+}
+
+/** Release a gated pack's claimed candidates back to the approved pool. */
+export function releaseClaimedWordCandidatesStatement(
+  db: D1Database,
+  packsTable: keyof typeof WORD_PACK_CANDIDATES_TABLES,
+  pack: WordPackRef,
+): D1PreparedStatement {
+  const { candidatesTable } = WORD_PACK_CANDIDATES_TABLES[packsTable];
+  return db
+    .prepare(
+      `UPDATE ${candidatesTable} SET status = 'approved', claimed_pack_id = NULL
+      WHERE claimed_pack_id = ?`,
+    )
+    .bind(pack.id);
 }
 
 interface WordCandidatePublication {

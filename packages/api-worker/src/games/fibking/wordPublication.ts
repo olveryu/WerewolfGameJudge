@@ -83,6 +83,7 @@ export async function claimFibWordProviderRequest(
       `fib:${pack.id}:${operation}`,
       'fibking',
       GEMINI_FIB_WORD_MODEL,
+      operation,
       Date.now(),
       { force: opts.force },
     );
@@ -338,10 +339,10 @@ export async function getFibWordReviewCandidates(
       .prepare(
         `UPDATE fib_word_candidates SET status = 'claimed', claimed_pack_id = ?, claimed_at = ?
          WHERE rowid IN (
-           SELECT candidate.rowid FROM fib_word_candidates AS candidate WHERE status = 'pending'
+           SELECT candidate.rowid FROM fib_word_candidates AS candidate WHERE status = 'approved'
            ORDER BY EXISTS (SELECT 1 FROM fib_words WHERE word = candidate.word AND status = 'active') DESC,
              created_at, candidate.rowid LIMIT CASE WHEN EXISTS (
-               SELECT 1 FROM fib_word_candidates WHERE status = 'pending' AND json_array_length(evidence_json) = 0
+               SELECT 1 FROM fib_word_candidates WHERE status = 'approved' AND json_array_length(evidence_json) = 0
              ) THEN ? ELSE ? END
          ) AND EXISTS (
            SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved'
@@ -529,7 +530,7 @@ export async function publishFibWordPack(
       .bind(pack.id, pack.id, pack.request_token),
     db
       .prepare(
-        `UPDATE fib_word_candidates SET status = 'pending', claimed_pack_id = NULL, claimed_at = NULL
+        `UPDATE fib_word_candidates SET status = 'approved', claimed_pack_id = NULL, claimed_at = NULL
         WHERE claimed_pack_id = ? AND EXISTS (
           SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
       )
@@ -569,10 +570,21 @@ export async function failFibWordPack(
       .bind(new Date().toISOString(), errorCode, pack.id),
     db
       .prepare(
-        `UPDATE fib_word_candidates SET status = 'pending', claimed_pack_id = NULL, claimed_at = NULL
+        `UPDATE fib_word_candidates SET status = 'approved', claimed_pack_id = NULL, claimed_at = NULL
          WHERE claimed_pack_id = ? AND EXISTS (
            SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'failed')`,
       )
       .bind(pack.id, pack.id, pack.request_token),
   ]);
+}
+
+/** Release a gated pack's claimed candidates back to the approved pool. */
+export async function releaseFibWordCandidates(db: D1Database, pack: FibWordPack): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE fib_word_candidates SET status = 'approved', claimed_pack_id = NULL, claimed_at = NULL
+         WHERE claimed_pack_id = ?`,
+    )
+    .bind(pack.id)
+    .run();
 }

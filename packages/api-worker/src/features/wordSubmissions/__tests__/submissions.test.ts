@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { getDrawGuessWordId } from '../../../games/drawguess/wordEditorial';
 import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
@@ -126,6 +127,11 @@ function action(
       revision: item.revision,
     })),
   };
+}
+/** Review only accepts endorsed items; fresh batches go through endorsement first. */
+async function endorse(batch: Awaited<ReturnType<typeof submit>>) {
+  await applySubmissionAction(env, batch.id, action(batch, 'endorse', '人工批准进入审核。'));
+  return readSubmissionBatch(env.DB, batch.id);
 }
 function modelReview(passed = true, words = [candidate.word]) {
   vi.stubGlobal(
@@ -368,8 +374,38 @@ describe('External word submissions', () => {
       awaitingReview: 0,
       awaitingPublication: 0,
     });
-    expect(wordSubmissionListSchema.parse(batches)).toEqual({ batches: [], nextCursor: null });
+    expect(wordSubmissionListSchema.parse(batches)).toEqual({
+      batches: [],
+      // No game filter on this call, so no per-game totals are computed.
+      totals: {},
+      nextCursor: null,
+    });
     expect(wordSubmissionAgentsSchema.parse(agents)).toEqual({ agents: [] });
+  });
+
+  it('splits the model budget by operation on the settings read', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO editorial_model_requests (id, owner, model, operation, claimed_at)
+         VALUES ('gen-1', 'fibking', 'model', 'generation', datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO editorial_model_requests (id, owner, model, operation, claimed_at)
+         VALUES ('rev-1', 'undercover', 'model', 'review', datetime('now'))`,
+      ),
+    ]);
+    const response = await SELF.fetch('https://test.invalid/admin/word-submissions/settings', {
+      headers: { 'X-Admin-Token': env.ADMIN_PASSWORD },
+    });
+    expect(response.status).toBe(200);
+    const parsed = wordSubmissionSettingsSchema.parse(await response.json());
+    expect(parsed.modelBudget.byOperation).toEqual({
+      generation: { dailyUsed: 1, monthlyUsed: 1 },
+      review: { dailyUsed: 1, monthlyUsed: 1 },
+    });
+    // The split partitions the same totals the settings already show.
+    expect(parsed.modelBudget.dailyUsed).toBe(2);
+    expect(parsed.modelBudget.monthlyUsed).toBe(2);
   });
 
   it('authenticates separate scopes and never stores or returns raw tokens on reads', async () => {
@@ -668,7 +704,8 @@ describe('External word submissions', () => {
     const id = crypto.randomUUID();
     modelReview();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
     expect(reviewed.items[0]?.status).toBe('passed');
@@ -768,7 +805,8 @@ describe('External word submissions', () => {
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
     await instance.modify((modifier) => modifier.disableSleeps());
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
     expect(groupSizes).toEqual([5, 1]);
@@ -793,7 +831,8 @@ describe('External word submissions', () => {
     const id = crypto.randomUUID();
     modelReview(true, [candidate.word, '长颈鹿']);
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
     await applySubmissionAction(
@@ -849,7 +888,8 @@ describe('External word submissions', () => {
       const id = crypto.randomUUID();
       modelReview();
       await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-      await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+      const endorsed = await endorse(batch);
+      await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
       await instance.waitForStatus('complete');
       const reviewed = await readSubmissionBatch(env.DB, batch.id);
       const nextId = crypto.randomUUID();
@@ -885,7 +925,8 @@ describe('External word submissions', () => {
         .bind(count, new Date(Date.now() - age * 86_400_000).toISOString())
         .run();
       const id = crypto.randomUUID();
-      const input = action(batch, 'review', '', id);
+      const endorsed = await endorse(batch);
+      const input = action(endorsed, 'review', '', id);
       const url = `https://test.invalid/admin/word-submissions/batches/${batch.id}/actions`;
       const send = (body: WordSubmissionAction, authenticated = true) =>
         SELF.fetch(url, {
@@ -997,7 +1038,8 @@ describe('External word submissions', () => {
     );
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
     expect(reviewed.items[0]?.status).toBe('passed');
@@ -1116,7 +1158,8 @@ describe('External word submissions', () => {
       );
       const id = crypto.randomUUID();
       await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-      const command = action(batch, 'review', '', id);
+      const endorsed = await endorse(batch);
+      const command = action(endorsed, 'review', '', id);
       await applySubmissionAction(env, batch.id, command);
       await instance.waitForStatus('complete');
       const reviewed = await readSubmissionBatch(env.DB, batch.id);
@@ -1246,7 +1289,8 @@ describe('External word submissions', () => {
       }),
     );
     const id = crypto.randomUUID();
-    const command = action(batch, 'review', '', id);
+    const endorsed = await endorse(batch);
+    const command = action(endorsed, 'review', '', id);
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
     await applySubmissionAction(env, batch.id, command);
     await instance.waitForStatus('complete');
@@ -1302,7 +1346,8 @@ describe('External word submissions', () => {
     await instance.modify(async (modifier) => {
       await modifier.mockStepResult({ name: `prepare-${item.id}` }, JSON.stringify(item.content));
     });
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('passed');
     expect(fetch).toHaveBeenCalledOnce();
@@ -1356,7 +1401,8 @@ describe('External word submissions', () => {
     );
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('errored');
     const failed = await readSubmissionBatch(env.DB, batch.id);
     expect(failed.items[0]).toMatchObject({
@@ -1550,7 +1596,8 @@ describe('External word submissions', () => {
     const id = crypto.randomUUID();
     modelReview(false);
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const rejected = await readSubmissionBatch(env.DB, batch.id);
     expect(rejected.items[0]?.review?.passed).toBe(false);
@@ -1580,6 +1627,65 @@ describe('External word submissions', () => {
     );
     await applySubmissionAction(env, batch.id, action(approved, 'publish'));
     expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('published');
+  });
+
+  it('endorses pending items for review and refuses direct review of unendorsed items', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    await expect(
+      applySubmissionAction(env, batch.id, action(batch, 'review', '', crypto.randomUUID())),
+    ).rejects.toThrow('SUBMISSION_SELECTION_STALE_OR_NOT_ELIGIBLE');
+    const endorsed = await endorse(batch);
+    expect(endorsed.items[0]?.status).toBe('approved');
+    expect(endorsed.items[0]?.approvalReason).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await readSubmissionSettings(env.DB)).toMatchObject({ pending: 1, awaitingReview: 1 });
+    await expect(applySubmissionAction(env, batch.id, action(endorsed, 'publish'))).rejects.toThrow(
+      // Publish needs a completed review first: the publication context
+      // rejects before the status gate is even evaluated.
+      'SUBMISSION_HAS_NO_COMPLETED_REVIEW',
+    );
+    const events = await env.DB.prepare(
+      'SELECT action, reason FROM word_submission_events WHERE item_id = ?',
+    )
+      .bind(batch.items[0]?.id)
+      .all();
+    expect(events.results).toContainEqual({ action: 'endorse', reason: '人工批准进入审核。' });
+    await applySubmissionAction(env, batch.id, action(endorsed, 'dismiss', '不需要了'));
+    expect(await readSubmissionSettings(env.DB)).toMatchObject({ pending: 0, awaitingReview: 0 });
+  });
+
+  it('deduplicates the same identity with different wording at validation and at storage', async () => {
+    const issued = await agent();
+    const first = await submit(issued.token, {
+      ...payload,
+      items: [{ clientItemId: 'one', content: { ...candidate, word: '长颈鹿' } }],
+    });
+    expect(first.items[0]?.status).toBe('pending');
+    const second = await submit(issued.token, {
+      ...payload,
+      items: [
+        {
+          clientItemId: 'two',
+          content: { ...candidate, word: '长颈鹿', potentialIssues: ['可能有歧义'] },
+        },
+      ],
+    });
+    expect(second.items[0]?.status).toBe('duplicate');
+    expect(second.items[0]?.duplicateOf).toBe('previous-submission');
+    const inBatch = await submit(issued.token, {
+      ...payload,
+      items: [
+        { clientItemId: 'a', content: { ...candidate, word: '斑马' } },
+        {
+          clientItemId: 'b',
+          content: { ...candidate, word: '斑马', potentialIssues: ['有歧义'] },
+        },
+      ],
+    });
+    expect(inBatch.items[0]?.status).toBe('pending');
+    expect(inBatch.items[1]?.status).toBe('duplicate');
+    expect(inBatch.items[1]?.duplicateOf).toBe('a');
   });
 
   it('persists infrastructure failure and never retries or publishes an uncertain model call', async () => {
@@ -1618,7 +1724,8 @@ describe('External word submissions', () => {
     );
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('errored');
     const failed = await readSubmissionBatch(env.DB, batch.id);
     expect(failed.items).toHaveLength(6);
@@ -1638,8 +1745,9 @@ describe('External word submissions', () => {
   it('settles a failed initial load and permits a fresh explicit review without replaying the old job', async () => {
     const issued = await agent();
     const batch = await submit(issued.token);
+    const endorsed = await endorse(batch);
     const id = crypto.randomUUID();
-    const command = action(batch, 'review', '', id);
+    const command = action(endorsed, 'review', '', id);
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
@@ -1654,7 +1762,9 @@ describe('External word submissions', () => {
     expect(failed.items[0]).toMatchObject({
       status: 'failed',
       failure: 'load-review:infrastructure_failure',
-      revision: 2,
+      // Revision starts at 0 and bumps once per applied write: endorse,
+      // the review action, then the failure write.
+      revision: 3,
     });
     const receipt = await env.DB.prepare(
       'SELECT status, completed_at FROM word_submission_actions WHERE id = ?',
@@ -1701,7 +1811,8 @@ describe('External word submissions', () => {
         new NonRetryableError('D1 failure write retries exhausted'),
       );
     });
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('errored');
     expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('reviewing');
     const dispatch = () =>
@@ -1715,10 +1826,12 @@ describe('External word submissions', () => {
     expect(recovered.items[0]).toMatchObject({
       status: 'failed',
       failure: 'dispatch:errored',
-      revision: 2,
+      // Revision starts at 0 and bumps once per applied write: endorse,
+      // the review action, then the dispatch failure write.
+      revision: 3,
     });
     expect((await dispatch()).status).toBe(409);
-    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.revision).toBe(2);
+    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.revision).toBe(3);
     expect(
       await env.DB.prepare(
         "SELECT COUNT(*) AS count FROM word_submission_events WHERE action_id = ? AND action = 'failed'",
@@ -1756,6 +1869,18 @@ describe('External word submissions', () => {
       )
         .bind(size, issued.agent.id)
         .run();
+      // The totals scan must ride the (game, …) index prefix, never a full
+      // table scan: with items from another game present, a scan would read
+      // them too.
+      const totalsPlan = await env.DB.prepare(
+        `EXPLAIN QUERY PLAN SELECT status, COUNT(*) AS count
+         FROM word_submission_items WHERE game = ? GROUP BY status`,
+      )
+        .bind('drawguess')
+        .all<{ detail: string }>();
+      expect(totalsPlan.results.map((row) => row.detail).join(' | ')).toContain(
+        'USING COVERING INDEX idx_word_submission_items_identity',
+      );
       await env.DB.prepare(
         `INSERT INTO word_submission_items
         (id, batch_id, game, client_item_id, identity, content_hash, title, category, material_json, status)
@@ -1775,14 +1900,18 @@ describe('External word submissions', () => {
       expect(
         (await listSubmissionBatches(measured.db, { game: 'drawguess', search: '不存在' })).batches,
       ).toEqual([]);
-      expect(measured.counts.rowsRead).toBeLessThan(100);
+      // The per-game totals ride every list call: one indexed pass over the
+      // game's items plus the status grouping (~2x the game's items). The
+      // cost is linear in the game's items, never batches x items — the
+      // size-scaled bounds below pin that shape.
+      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 100);
       const batch = await submit(issued.token);
       measured.reset();
       expect(
         (await listSubmissionBatches(measured.db, { game: 'drawguess', search: '大熊' })).batches[0]
           ?.id,
       ).toBe(batch.id);
-      expect(measured.counts.rowsRead).toBeLessThan(150);
+      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 150);
       measured.reset();
       const full = await listSubmissionBatches(measured.db, {
         game: 'drawguess',
@@ -1792,7 +1921,11 @@ describe('External word submissions', () => {
       expect(full.batches).toHaveLength(30);
       expect(full.batches.every((entry) => entry.counts.dismissed === 1)).toBe(true);
       expect(full.nextCursor).not.toBeNull();
-      expect(measured.counts.rowsRead).toBeLessThan(1000);
+      // The per-game totals ride the same call: one indexed pass over the
+      // game's items, so dismissed counts every historical item and pending
+      // counts the one live batch submitted above.
+      expect(full.totals).toEqual({ dismissed: size, pending: 1 });
+      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 1000);
       measured.reset();
       const next = await listSubmissionBatches(measured.db, {
         game: 'drawguess',
@@ -1803,7 +1936,7 @@ describe('External word submissions', () => {
       expect(
         next.batches.some((entry) => full.batches.some((previous) => previous.id === entry.id)),
       ).toBe(false);
-      expect(measured.counts.rowsRead).toBeLessThan(1000);
+      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 1000);
       measured.reset();
       const fresh = {
         ...payload,
@@ -1831,7 +1964,7 @@ describe('External word submissions', () => {
       };
       const validationQueries = vi.spyOn(measured.db, 'prepare');
       const normalized = await validateSubmission(measured.db, maximum, principal);
-      expect(validationQueries).toHaveBeenCalledTimes(2);
+      expect(validationQueries).toHaveBeenCalledTimes(3);
       validationQueries.mockRestore();
       expect(normalized.validation.items.filter((item) => item.status === 'invalid')).toEqual([]);
       const maximumBatch = await storeSubmission(
@@ -1888,4 +2021,38 @@ describe('External word submissions', () => {
       ).toBe(true);
     },
   );
+
+  it('flags a batch whose word already sits in the inventory', async () => {
+    const issued = await agent();
+    const inStock = await submit(issued.token);
+    const other = await submit(issued.token, {
+      schemaVersion: 1,
+      game: 'drawguess',
+      items: [
+        {
+          clientItemId: 'giraffe',
+          content: { word: '长颈鹿', category: 'animals', difficulty: 'easy', potentialIssues: [] },
+        },
+      ],
+    });
+    // The drawguess inventory check matches the submission identity (the
+    // word id) against drawguess_words.id.
+    await env.DB.prepare(
+      `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
+       VALUES (?, '大熊猫', 'dxm', 'animals', 'easy', 'active', '2026-01-01T00:00:00.000Z')`,
+    )
+      .bind(await getDrawGuessWordId('大熊猫'))
+      .run();
+    const measured = createRowCountingDb(env.DB);
+    const listed = await listSubmissionBatches(measured.db, {
+      game: 'drawguess',
+      agent: issued.agent.id,
+    });
+    expect(listed.batches.find((entry) => entry.id === inStock.id)?.inventoryExists).toBe(true);
+    expect(listed.batches.find((entry) => entry.id === other.id)?.inventoryExists).toBe(false);
+    // The inventory check is one UNION ALL over the page's batches, not a
+    // per-batch query: two batches, one item each, stay well under the
+    // bound even with the totals scan riding the same call.
+    expect(measured.counts.rowsRead).toBeLessThan(200);
+  });
 });

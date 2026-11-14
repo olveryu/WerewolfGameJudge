@@ -138,18 +138,22 @@ describe('Fib word supply workflow', () => {
           await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
         ).toEqual({ count: 0 });
       } else {
+        expect(await instance.getOutput()).toEqual({ status: 'awaitingApproval' });
         expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
           candidates: [{ word: candidate.word, evidence }],
           validation,
         });
-        expect(await env.DB.prepare('SELECT word, status FROM fib_words').all()).toMatchObject({
-          results: [{ word: candidate.word, status: 'active' }],
+        expect(
+          await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all(),
+        ).toMatchObject({ results: [{ word: candidate.word, status: 'pending' }] });
+        expect(await env.DB.prepare('SELECT status FROM fib_word_packs').first()).toEqual({
+          status: 'reserved',
         });
       }
-      const expectedCalls = allRejected ? 1 : 2;
+      const expectedCalls = 1;
       expect(fetchImpl).toHaveBeenCalledTimes(expectedCalls);
       expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
-        count: allRejected ? 0 : 1,
+        count: 0,
       });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
@@ -488,7 +492,52 @@ describe('Fib word supply workflow', () => {
       });
       await env.FIB_WORD_SUPPLY.create({ id, params: { day, batchLimit } });
       await instance.waitForStatus('complete');
-      expect(await instance.getOutput()).toEqual({ status: 'paused' });
+      // Newly generated candidates stop at the approval gate: no review, no
+      // publish, and the run ends with outcome 'awaitingApproval'.
+      expect(await instance.getOutput()).toEqual({ status: 'awaitingApproval' });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
+      ).toEqual({ count: 8 });
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM fib_word_candidates WHERE status = 'pending'",
+        ).first(),
+      ).toEqual({ count: 8 });
+      expect(
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
+      ).toEqual({ count: 0 });
+      expect(
+        await env.DB.prepare(
+          'SELECT requests_reserved, published_count FROM fib_word_supply_months',
+        ).first(),
+      ).toEqual({ requests_reserved: batchIndex + 1, published_count: 0 });
+
+      // Human approval (the endpoint is covered by the admin tests; here the
+      // workflow only needs approved rows) unblocks the next run, which
+      // reviews the persisted overflow one candidate per pack without
+      // repeating generation or consumed batches.
+      await env.DB.prepare(
+        "UPDATE fib_word_candidates SET status = 'approved' WHERE status = 'pending'",
+      ).run();
+      const resumeId = crypto.randomUUID();
+      await using resume = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, resumeId);
+      await resume.modify(async (modifier) => {
+        await modifier.disableSleeps();
+        await modifier.mockStepResult({ name: 'enabled' }, true);
+        await modifier.mockStepResult({ name: 'review-0' }, reviews.slice(0, 1));
+        await modifier.mockStepResult({ name: 'review-1' }, reviews.slice(1, 2));
+        await modifier.mockStepError(
+          { name: 'discover-1' },
+          new Error('Persisted candidates must not trigger discovery'),
+        );
+        await modifier.mockStepResult({ name: 'capacity-2' }, 'paused');
+      });
+      await env.FIB_WORD_SUPPLY.create({
+        id: resumeId,
+        params: { day, batchLimit, runId: 'resume' },
+      });
+      await resume.waitForStatus('complete');
+      expect(await resume.getOutput()).toEqual({ status: 'paused' });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
       ).toEqual({ count: 6 });
@@ -499,7 +548,7 @@ describe('Fib word supply workflow', () => {
         await env.DB.prepare(
           'SELECT requests_reserved, published_count FROM fib_word_supply_months',
         ).first(),
-      ).toEqual({ requests_reserved: batchIndex + 2, published_count: 2 });
+      ).toEqual({ requests_reserved: batchIndex + 3, published_count: 2 });
     },
   );
 
@@ -531,6 +580,26 @@ describe('Fib word supply workflow', () => {
         "INSERT INTO fib_word_sequence (word, published_at) VALUES (?, '2026-01-01')",
       )
         .bind(candidate.word)
+        .run();
+    }
+    // Inventory re-review is also gated: the words only enter the review
+    // queue once a human approves them.
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'gemini-3.5-flash-lite', '1', '2026-01-01')`,
+    ).run();
+    for (const candidate of candidates) {
+      await env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+           VALUES (?, ?, ?, ?, 'literary', 'local', '[]', 'test-cycle', 'approved', '2026-01-01')`,
+      )
+        .bind(
+          `test:${candidate.word}`,
+          candidate.word,
+          candidate.definition.coreMeaning,
+          candidate.definition.usageNote,
+        )
         .run();
     }
     const reviews = words.slice(0, 3).map((word) => ({
@@ -597,7 +666,11 @@ describe('Fib word supply workflow', () => {
     expect(
       (await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id').all()).results,
     ).toEqual(words.map((word) => ({ word })));
-    expect(await env.DB.prepare('SELECT word, status FROM fib_word_candidates').first()).toBeNull();
+    expect(
+      await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all(),
+    ).toMatchObject({
+      results: [{ word: '验证余词', status: 'approved' }],
+    });
     expect(
       await env.DB.prepare("SELECT status FROM fib_words WHERE word = '验证余词'").first(),
     ).toEqual({ status: 'active' });

@@ -18,6 +18,7 @@ import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import { useSubmissionCommand } from './useSubmissionCommand';
 import {
   isApprovableSubmission,
+  isEndorsableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
@@ -44,7 +45,8 @@ export function SubmissionBatchPage({
   const refreshButton = useRef<HTMLButtonElement>(null);
   const actionOpener = useRef<HTMLButtonElement | null>(null);
   const batch = query.data;
-  const awaiting = batch?.items.filter((item) => ['pending', 'failed'].includes(item.status)) ?? [];
+  const awaiting =
+    batch?.items.filter((item) => ['approved', 'failed'].includes(item.status)) ?? [];
   const selectedItems =
     batch?.items.filter((item) => selected.has(item.id) && isSelectableSubmission(item)) ?? [];
   function openAction(value: SubmissionConfirmation, button?: HTMLButtonElement) {
@@ -143,7 +145,8 @@ function SelectedCandidateActions({
   items: WordSubmissionBatch['items'];
   onAction: (confirmation: SubmissionConfirmation, button: HTMLButtonElement) => void;
 }) {
-  const reviewable = items.filter((item) => ['pending', 'failed'].includes(item.status));
+  const reviewable = items.filter((item) => ['approved', 'failed'].includes(item.status));
+  const endorsable = items.filter(isEndorsableSubmission);
   const approvable = items.filter(isApprovableSubmission);
   const publishable = items.filter((item) => item.status === 'passed');
   return (
@@ -156,6 +159,16 @@ function SelectedCandidateActions({
           }
         >
           审核 {reviewable.length}
+        </button>
+      )}
+      {endorsable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'endorse', items: endorsable }, event.currentTarget)
+          }
+        >
+          批准进入审核 {endorsable.length}
         </button>
       )}
       {approvable.length > 0 && (
@@ -240,7 +253,7 @@ function BatchCandidates({
         </div>
       </div>
       <p className="admin-submission-note">
-        审核不自动发布；“全部待审”包含待启动和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
+        审核不自动发布；“审核全部待审”包含已批准待审核和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
         也可核对材料后人工通过，再单独发布。
       </p>
       <ReviewDispatchNotice batch={batch} onRefresh={onRefresh} />
@@ -419,9 +432,11 @@ function CandidateTable({
           label: '审核摘要',
           secondary: true,
           render: (item) =>
-            item.approvalReason !== null
-              ? '人工通过；原审核记录保留'
-              : (item.review?.reason ?? item.failure ?? '尚无审核结论'),
+            item.status === 'approved'
+              ? '已批准待审核；原审核记录保留'
+              : item.approvalReason !== null
+                ? '人工通过；原审核记录保留'
+                : (item.review?.reason ?? item.failure ?? '尚无审核结论'),
         },
       ]}
     />

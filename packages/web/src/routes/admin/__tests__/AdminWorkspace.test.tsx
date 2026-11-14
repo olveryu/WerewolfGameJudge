@@ -24,6 +24,7 @@ import {
   fetchUserCountries,
   fetchUserRewards,
   fetchUsers,
+  fetchWordCandidates,
   grantUserReward,
   saveAutomaticSupplySettings,
   triggerGameWordSupply,
@@ -60,6 +61,9 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   fetchAutomaticSupplySettings: vi.fn(),
   saveAutomaticSupplySettings: vi.fn(),
   fetchGameWordsStats: vi.fn(),
+  fetchWordCandidates: vi.fn(),
+  approveWordCandidates: vi.fn(),
+  dismissWordCandidates: vi.fn(),
   fetchRequestTraffic: vi.fn(),
   triggerGameWordSupply: vi.fn(),
   fetchUserRewards: vi.fn(),
@@ -121,7 +125,16 @@ const words: GameWordsStats = {
   queryLeaderboard: [],
   tavilyRequestsUsed: 2,
   tavilyMonthlyQuota: 1000,
-  modelBudget: { dailyUsed: 1, dailyLimit: 8, monthlyUsed: 5, monthlyLimit: 120 },
+  modelBudget: {
+    dailyUsed: 1,
+    dailyLimit: 8,
+    monthlyUsed: 5,
+    monthlyLimit: 120,
+    byOperation: {
+      generation: { dailyUsed: 1, monthlyUsed: 5 },
+      review: { dailyUsed: 0, monthlyUsed: 0 },
+    },
+  },
   categories: [
     {
       id: 'food',
@@ -267,6 +280,11 @@ beforeEach(() => {
     colos: [],
   });
   vi.mocked(fetchGameWordsStats).mockResolvedValue(words);
+  vi.mocked(fetchWordCandidates).mockImplementation(async (game) => ({
+    game,
+    candidates: [],
+    nextCursor: null,
+  }));
   vi.mocked(fetchAutomaticSupplySettings).mockImplementation(async (game) => ({
     game,
     enabled: true,
@@ -451,11 +469,21 @@ describe('admin workspace', () => {
         published: 0,
         submittedToday: 0,
         dailyLimit: 1000,
-        modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+        modelBudget: {
+          dailyUsed: 0,
+          dailyLimit: 8,
+          monthlyUsed: 0,
+          monthlyLimit: 120,
+          byOperation: {
+            generation: { dailyUsed: 0, monthlyUsed: 0 },
+            review: { dailyUsed: 0, monthlyUsed: 0 },
+          },
+        },
       });
       vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
       vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-        batches: [{ ...batch, counts: {} }],
+        batches: [{ ...batch, counts: {}, inventoryExists: false }],
+        totals: {},
         nextCursor: null,
       });
       vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
@@ -510,11 +538,21 @@ describe('admin workspace', () => {
       published: 0,
       submittedToday: 0,
       dailyLimit: 1000,
-      modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+      modelBudget: {
+        dailyUsed: 0,
+        dailyLimit: 8,
+        monthlyUsed: 0,
+        monthlyLimit: 120,
+        byOperation: {
+          generation: { dailyUsed: 0, monthlyUsed: 0 },
+          review: { dailyUsed: 0, monthlyUsed: 0 },
+        },
+      },
     });
     vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
     vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-      batches: [{ ...batch, counts: {} }],
+      batches: [{ ...batch, counts: {}, inventoryExists: false }],
+      totals: {},
       nextCursor: null,
     });
     vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
