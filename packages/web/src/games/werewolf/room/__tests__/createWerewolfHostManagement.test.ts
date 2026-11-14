@@ -186,7 +186,7 @@ describe('createWerewolfHostManagement', () => {
     ]);
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['sheriff-advance', 'last-night-info'],
+      actionKeys: ['sheriff-advance', 'grant-review', 'last-night-info'],
       steps: [
         { key: 'lastNightInfo', state: 'current' },
         { key: 'grantReview', state: 'upcoming' },
@@ -201,7 +201,7 @@ describe('createWerewolfHostManagement', () => {
     expect(requestAdvance).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps sheriff advancement alone as the Day task once the info is confirmed', () => {
+  it('keeps grants beside sheriff advancement once the info is confirmed', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Day,
@@ -210,7 +210,10 @@ describe('createWerewolfHostManagement', () => {
         capabilities: deniedRoomCapabilities,
       }),
     );
-    expect(model.task).toEqual({ kind: 'action', actionKey: 'sheriff-advance' });
+    expect(model.task).toEqual({
+      kind: 'choice',
+      actionKeys: ['sheriff-advance', 'grant-review'],
+    });
   });
 
   it('puts self-destruct on the card during speeches: end speech, self-destruct, last-night info', () => {
@@ -228,7 +231,7 @@ describe('createWerewolfHostManagement', () => {
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'last-night-info'],
+      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'grant-review', 'last-night-info'],
     });
     const body = hostTaskBody(model);
     if (body?.kind !== 'choice') throw new Error('Expected a choice task');
@@ -248,7 +251,7 @@ describe('createWerewolfHostManagement', () => {
     );
     expect(confirmed.task).toEqual({
       kind: 'choice',
-      actionKeys: ['sheriff-advance', 'sheriff-self-destruct'],
+      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'grant-review'],
     });
   });
 
@@ -316,11 +319,9 @@ describe('createWerewolfHostManagement', () => {
       const actions = model.sections.flatMap((section) => section.actions);
       expect(actions.map((action) => action.label)).not.toContain('推进竞选');
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
-      // Voting has no host advance: the info stays the task, and the vote
-      // count stays out of it — it lives only in the HUD.
       expect(model.task).toMatchObject({
-        kind: 'action',
-        actionKey: 'last-night-info',
+        kind: 'choice',
+        actionKeys: ['grant-review', 'last-night-info'],
       });
       expect(model.task).not.toHaveProperty('note');
       const confirmed = createWerewolfHostManagement(
@@ -331,11 +332,34 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      // With no moves left there is no host task at all during voting:
-      // the dock still says 「等待投票完成」 and the HUD shows the count.
-      expect(hostTaskBody(confirmed)).toBeNull();
+      expect(confirmed.task).toEqual({ kind: 'action', actionKey: 'grant-review' });
     },
   );
+
+  it.each([
+    'registration',
+    'candidateSpeech',
+    'withdrawal',
+    'firstVote',
+    'runoffSpeech',
+    'runoffVote',
+  ] as const)('opens the grant picker directly from the host task during %s', (phase) => {
+    const onGrantReviewAccess = vi.fn();
+    const model = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Day,
+        panelFlow: { lastNightInfoConfirmed: true },
+        sheriffElection: createSheriffElection({ phase }),
+        onGrantReviewAccess,
+      }),
+    );
+    const body = hostTaskBody(model);
+    if (body?.kind !== 'choice') throw new Error('Expected the active election choices');
+    const grantAction = body.actions.find((action) => action.key === 'grant-review');
+    if (grantAction?.isEnabled !== true) throw new Error('Expected enabled election grant');
+    grantAction.onPress();
+    expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
+  });
 
   it.each([
     ['candidateSpeech', true],
