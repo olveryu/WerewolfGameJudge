@@ -55,11 +55,13 @@ export class SheriffElectionPage {
     await expect(hostManagementButton).toHaveAccessibleName('主持管理');
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
     await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
-    // Dawn: the host task is an equal choice between advancing the election
-    // and announcing last night's result (a self-destruct can end the election).
+    // Review grants remain available while the election and last-night info are pending.
     const consoleButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-sheriff-advance`);
+    const grantButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-grant-review`);
     const infoButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-last-night-info`);
     await expect(consoleButton).toHaveAccessibleName('结束报名');
+    await expect(grantButton).toHaveAccessibleName('授权玩家查看');
+    await expect(grantButton).toBeEnabled();
     await expect(infoButton).toHaveAccessibleName('昨夜信息');
 
     const personalBox = await personalButton.boundingBox();
@@ -71,7 +73,13 @@ export class SheriffElectionPage {
 
     const viewport = this.page.viewportSize();
     if (viewport === null) throw new Error('Room action checks require a viewport');
-    for (const button of [personalButton, consoleButton, infoButton, hostManagementButton]) {
+    for (const button of [
+      personalButton,
+      consoleButton,
+      grantButton,
+      infoButton,
+      hostManagementButton,
+    ]) {
       const bounds = await button.boundingBox();
       if (bounds === null) throw new Error('Room action button must have layout bounds');
       expect(bounds.height).toBeGreaterThanOrEqual(44);
@@ -80,8 +88,10 @@ export class SheriffElectionPage {
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
       await expect(button).toBeInViewport({ ratio: 1 });
     }
-    // Keyboard order follows the card: advance → last-night info → sheet entry.
+    // Keyboard order follows the card: advance → grant → last-night info → sheet entry.
     await consoleButton.focus();
+    await this.page.keyboard.press('Tab');
+    await expect(grantButton).toBeFocused();
     await this.page.keyboard.press('Tab');
     await expect(infoButton).toBeFocused();
     await this.page.keyboard.press('Tab');
