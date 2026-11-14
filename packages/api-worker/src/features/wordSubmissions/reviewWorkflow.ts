@@ -11,8 +11,11 @@ import { WORKER_WORD_SUBMISSION_ADAPTERS } from '../../games/catalog';
 import { getAiDiagnostic } from '../../platform/ai/aiError';
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { createLogger } from '../../platform/observability/logger';
-import type { WordSubmissionAdapter } from '../../platform/wordSupply/submissionAdapter';
-import { failSubmissionReview } from './operations';
+import {
+  SubmissionReviewItemError,
+  type WordSubmissionAdapter,
+} from '../../platform/wordSupply/submissionAdapter';
+import { failSubmissionReview, failSubmissionReviewItem } from './operations';
 import { parseSubmissionObject, refreshSubmissionSearch } from './repository';
 
 export interface WordSubmissionReviewParams {
@@ -26,6 +29,7 @@ const reviewedSchema = z.array(
     verifiedContent: z.record(z.string(), z.unknown()),
   }),
 );
+const failedPreparationSchema = z.strictObject({ reviewItemFailure: z.string().min(1) });
 
 async function loadJob(db: D1Database, actionId: string) {
   const action = await db
@@ -125,23 +129,57 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
       stage = 'review-version';
       if (job.items.some((item) => item.review_version !== adapter.reviewVersion))
         throw new Error('Submission review version changed; start a new review');
+      let hasItemFailures = false;
       for (const [index, items] of reviewGroups(job.items, adapter.reviewBatchLimit).entries()) {
         const prepared: Record<string, unknown>[] = [];
+        const preparedItems: typeof items = [];
         for (const item of items) {
           stage = 'evidence';
           const serialized = await step.do(`prepare-${item.id}`, EXTERNAL_STEP, async () => {
             const content = parseSubmissionObject(item.material_json);
-            if (adapter.prepareReview === undefined) return JSON.stringify(content);
-            return JSON.stringify(
-              await adapter.prepareReview(this.env, content, async (operation) => {
-                stage = 'evidence-budget';
-                await claimEvidenceRequest(this.env.DB, `${actionId}:${item.id}:${operation}`);
-                stage = 'evidence';
-              }),
-            );
+            try {
+              const verified =
+                adapter.prepareReview === undefined
+                  ? content
+                  : await adapter.prepareReview(
+                      this.env,
+                      content,
+                      async (operation) => {
+                        stage = 'evidence-budget';
+                        await claimEvidenceRequest(
+                          this.env.DB,
+                          `${actionId}:${item.id}:${operation}`,
+                        );
+                        stage = 'evidence';
+                      },
+                      { workflowId: actionId, itemId: item.id },
+                    );
+              return JSON.stringify(verified);
+            } catch (error) {
+              if (!(error instanceof SubmissionReviewItemError)) throw error;
+              return JSON.stringify({ reviewItemFailure: error.failure });
+            }
           });
-          prepared.push(parseSubmissionObject(serialized));
+          const result = parseSubmissionObject(serialized);
+          const itemFailure = failedPreparationSchema.safeParse(result);
+          if (itemFailure.success) {
+            stage = 'store-item-failure';
+            await step.do(`fail-item-${item.id}`, () =>
+              failSubmissionReviewItem(
+                this.env.DB,
+                actionId,
+                job.batchId,
+                item.id,
+                itemFailure.data.reviewItemFailure,
+              ),
+            );
+            hasItemFailures = true;
+            continue;
+          }
+          prepared.push(result);
+          preparedItems.push(item);
         }
+        if (preparedItems.length === 0) continue;
         stage = 'model-review';
         const serialized = await step.do(`review-${index}`, EXTERNAL_STEP, async () => {
           stage = 'model-budget';
@@ -160,25 +198,28 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
         const results = reviewedSchema.parse(parsed);
         stage = 'store-review';
         await step.do(`store-${index}`, () =>
-          storeReviewResults(this.env.DB, actionId, job.batchId, items, results),
+          storeReviewResults(this.env.DB, actionId, job.batchId, preparedItems, results),
         );
       }
+      const status = hasItemFailures ? 'failed' : 'complete';
+      stage = 'complete-review';
       await step.do('complete-review', async () => {
         await this.env.DB.prepare(
-          `UPDATE word_submission_actions SET status = 'complete', completed_at = ?
+          `UPDATE word_submission_actions SET status = ?, completed_at = ?
           WHERE id = ? AND status = 'queued'`,
         )
-          .bind(new Date().toISOString(), actionId)
+          .bind(status, new Date().toISOString(), actionId)
           .run();
       });
-      return { status: 'complete' };
+      return { status };
     } catch (error) {
-      const failure = `${stage}:${stage.endsWith('-budget') ? 'quota_claim_failed' : (getAiDiagnostic(error)?.failureKind ?? 'infrastructure_failure')}`;
+      const diagnostic = getAiDiagnostic(error);
+      const failure = `${stage}:${stage.endsWith('-budget') ? 'quota_claim_failed' : (diagnostic?.failureKind ?? 'infrastructure_failure')}`;
       await step.do('fail-review', async () => {
         await failSubmissionReview(this.env.DB, actionId, failure);
-        if (getAiDiagnostic(error) === undefined)
-          log.error('external review failed', { actionId, stage });
-        else log.warn('external review failed', { actionId, stage });
+        if (diagnostic === undefined)
+          log.error('external review failed', { actionId, stage, failure });
+        else log.warn('external review failed', { actionId, stage, failure, diagnostic });
       });
       throw error;
     }

@@ -1,6 +1,7 @@
 /** Fixed-cost Tavily discovery and extraction; source text is untrusted editorial evidence. */
 import { z } from 'zod';
 
+import { redactAiDiagnostic } from '../../../platform/ai/aiError';
 import { createFibWordProviderRequestError, FibWordProviderError } from './providerError';
 
 export const FIB_WORD_EVIDENCE_SOURCE_LIMIT = 2;
@@ -97,8 +98,12 @@ export async function searchFibWordEvidence(
 export async function extractFibWordEvidence(
   apiKey: string,
   sources: readonly FibWordEvidence[],
-  fetchImpl: typeof fetch = fetch,
-): Promise<{ evidence: FibWordEvidence[]; failedUrls: string[] }> {
+  options: { fetchImpl?: typeof fetch; privateValues?: unknown } = {},
+): Promise<{
+  evidence: FibWordEvidence[];
+  failedUrls: string[];
+  failures: { sourceIndex: number; message?: string }[];
+}> {
   z.array(fibWordEvidenceSchema).min(1).max(FIB_WORD_EVIDENCE_SOURCE_LIMIT).parse(sources);
   const response = await requestTavilyEvidence(
     apiKey,
@@ -113,16 +118,21 @@ export async function extractFibWordEvidence(
       chunks_per_source: 5,
       timeout: 20,
     },
-    fetchImpl,
+    options.fetchImpl ?? fetch,
   );
   const parsed = extractionResponseSchema.parse(response);
+  const returnedUrls = new Set<string>();
   for (const result of [...parsed.results, ...parsed.failed_results]) {
-    if (!sources.some(({ url }) => url === result.url)) {
+    if (!sources.some(({ url }) => url === result.url) || returnedUrls.has(result.url)) {
       throw new FibWordProviderError(
-        'Tavily extraction returned an unrequested source',
+        'Tavily extraction returned an unexpected or duplicate source',
         'invalidOutput',
       );
     }
+    returnedUrls.add(result.url);
+  }
+  if (returnedUrls.size !== sources.length) {
+    throw new FibWordProviderError('Tavily extraction omitted a requested source', 'invalidOutput');
   }
   return {
     evidence: parsed.results.map((result) => {
@@ -131,5 +141,11 @@ export async function extractFibWordEvidence(
       return { ...source, content: result.raw_content.slice(0, FIB_WORD_EVIDENCE_CONTENT_LIMIT) };
     }),
     failedUrls: parsed.failed_results.map(({ url }) => url),
+    failures: parsed.failed_results.map(({ url, error }) => ({
+      sourceIndex: sources.findIndex((source) => source.url === url),
+      ...(options.privateValues === undefined
+        ? {}
+        : { message: redactAiDiagnostic(error, [apiKey, sources, options.privateValues]) }),
+    })),
   };
 }
