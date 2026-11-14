@@ -133,7 +133,7 @@ export async function publishDrawGuessWordPack(
       try {
         pinyinInitials = toPinyinInitials(candidate.word);
       } catch {
-        // 拼音解析失败（无声母字等）视为不合格，不进词库。
+        // 拼音解析失败视为不合格，不进词库。
         pinyinInitials = null;
       }
       const isAccepted = pinyinInitials !== null && isDrawGuessReviewAccepted(review);

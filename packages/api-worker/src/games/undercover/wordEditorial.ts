@@ -9,9 +9,11 @@ import { z } from 'zod';
 import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
 import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
 
-export const UNDERCOVER_WORD_BATCH_LIMIT = 30;
-export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v3';
-export const UNDERCOVER_WORD_REVIEW_VERSION = 'undercover-review-v2';
+export const UNDERCOVER_WORD_BATCH_LIMIT = 5;
+export const UNDERCOVER_WORD_PROMPT_VERSION = 'undercover-generation-v4';
+export const UNDERCOVER_WORD_REVIEW_VERSION = 'undercover-review-v3';
+// Existing workflow checkpoints and published packs can contain up to 30 items.
+const STORED_BATCH_LIMIT = 30;
 const toSimplified = Converter({ from: 't', to: 'cn' });
 const wordSchema = z.string().trim().min(1).max(16);
 const explanationSchema = z.string().trim().min(2).max(180);
@@ -45,10 +47,10 @@ export const undercoverReviewsSchema = z.strictObject({
       z.strictObject({
         wordA: wordSchema,
         wordB: wordSchema,
-        qualityChecks: qualityChecksSchema,
         commonTraits: z.array(explanationSchema).max(4),
         differences: z.array(explanationSchema).max(4),
         reason: explanationSchema,
+        qualityChecks: qualityChecksSchema,
       }),
     )
     .max(UNDERCOVER_WORD_BATCH_LIMIT),
@@ -108,7 +110,10 @@ export function parseUndercoverCandidates(
   category: UndercoverCategory,
 ): UndercoverWordCandidate[] {
   const seen = new Set<string>();
-  return undercoverCandidatesSchema.parse(value).candidates.flatMap((item) => {
+  const { candidates } = undercoverCandidatesSchema
+    .extend({ candidates: z.array(undercoverCandidateSchema).max(STORED_BATCH_LIMIT) })
+    .parse(value);
+  return candidates.flatMap((item) => {
     const candidate = normalizeUndercoverCandidate(item, category);
     const key = JSON.stringify([candidate.wordA, candidate.wordB]);
     if (seen.has(key)) return [];
@@ -122,7 +127,11 @@ export function parseUndercoverReviews(
   value: unknown,
   candidates: readonly UndercoverWordCandidate[],
 ): UndercoverWordReview[] {
-  const { reviews } = undercoverReviewsSchema.parse(value);
+  const { reviews } = undercoverReviewsSchema
+    .extend({
+      reviews: z.array(undercoverReviewsSchema.shape.reviews.element).max(STORED_BATCH_LIMIT),
+    })
+    .parse(value);
   if (reviews.length !== candidates.length)
     throw new AiOutputValidationError('reviewCountMismatch', 'Undercover review count mismatch');
   return reviews.map((review, index) => {

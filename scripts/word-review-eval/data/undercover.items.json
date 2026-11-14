@@ -1,0 +1,4125 @@
+{
+  "game": "undercover",
+  "sampledAt": "2026-11-14T01:45:09.801Z",
+  "sampling": "Reviewed undercover_word_candidates; every category that has reviews; up to 5 random per category per production status.",
+  "items": [
+    {
+      "labelId": "u001",
+      "id": "undercover:a516133631cd13a34d5daf40436b6dd0ca68a763f17749f73bdc9c9e97cc3651",
+      "stratum": "accepted",
+      "category": "actions",
+      "content": {
+        "wordA": "冥想",
+        "wordB": "补觉",
+        "category": "actions",
+        "commonTraits": [
+          "都需要闭上眼睛在一个安静舒适的环境中进行",
+          "都有助于缓解身心疲劳恢复精力"
+        ],
+        "differences": [
+          "补觉是为了弥补之前睡眠不足而真正进入睡眠状态，冥想是保持清醒意识进行精神放松和自我觉察",
+          "补觉往往伴随着哈欠和沉睡，冥想往往伴随着盘腿和呼吸调整"
+        ],
+        "potentialIssues": [
+          "两者外在表现都是闭眼不动，容易被白板或卧底利用外在特征蒙混过关"
+        ]
+      },
+      "production": {
+        "wordA": "冥想",
+        "wordB": "补觉",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是人们在安静环境下进行的闭目休息行为",
+          "两者都有助于缓解精神压力和恢复精力"
+        ],
+        "differences": [
+          "冥想是保持意识清醒专注于内心或呼吸的精神训练，补觉是为了弥补睡眠不足而真的去睡觉",
+          "冥想侧重精神层面的放空与觉察，补觉侧重生理层面的睡眠补充"
+        ],
+        "reason": "静心休息状态词对，概念独立，区分清晰。"
+      }
+    },
+    {
+      "labelId": "u002",
+      "id": "undercover:a8ef9d4aa3a3788eb0e4ffb52329ecdeb35bc0527b712629c6b7120ac2ffbaa3",
+      "stratum": "accepted",
+      "category": "actions",
+      "content": {
+        "wordA": "吐槽",
+        "wordB": "夸奖",
+        "category": "actions",
+        "commonTraits": [
+          "都是针对某人某事发表个人看法和言论的动作",
+          "都需要通过语言文字表达出来"
+        ],
+        "differences": [
+          "吐槽表达的是不满、讽刺或好笑的心态，夸奖表达的是赞美、欣赏或认可的心态",
+          "吐槽的内容通常伴随缺点或槽点，夸奖的内容通常聚焦优点或成就"
+        ],
+        "potentialIssues": [
+          "存在反话正说或阴阳怪气的夸奖，可能会让卧底和hé平民的界限变模糊"
+        ]
+      },
+      "production": {
+        "wordA": "吐槽",
+        "wordB": "夸奖",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是通过语言表达对某人某事的看法和评价",
+          "两者都是日常人际沟通中的情感宣泄或互动方式"
+        ],
+        "differences": [
+          "吐槽是通过幽默或讽刺的方式表达不满和缺点，夸奖是通过正面赞美表达喜爱和优点",
+          "吐槽的基调偏向挑剔和调侃，夸奖的基调偏向肯定和赞许"
+        ],
+        "reason": "评价表达词对，一褒一贬，对立清晰，游戏效果好。"
+      }
+    },
+    {
+      "labelId": "u003",
+      "id": "undercover:4f6d1a8062acad4c8b850533a61fa7d52797622b5271fa08fa4ccdcb473d5f34",
+      "stratum": "rejected",
+      "category": "actions",
+      "content": {
+        "wordA": "出走",
+        "wordB": "失踪",
+        "category": "actions",
+        "commonTraits": [
+          "都导致某个人不在原本应该出现的地方",
+          "都会让身边的人感到担忧或四处寻找"
+        ],
+        "differences": [
+          "失踪往往是突然且原因不明的消失可能遭遇意外，出走通常带有主观故意离家的动机",
+          "失踪多涉及警方立案的被动状态，出走多是个体自主选择的主动行为"
+        ],
+        "potentialIssues": [
+          "出走时间久了也会在法律上被认定为失踪，概念上有一定的递进关系"
+        ]
+      },
+      "production": {
+        "wordA": "出走",
+        "wordB": "失踪",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都表现为离开原本熟悉的居住或生活场所",
+          "两者都会导致家属或周围人的寻找与担忧"
+        ],
+        "differences": [
+          "出走通常是主观上有意识地赌气或离家，失踪往往包含被动意外或下落不明",
+          "出走是主动行为，失踪是一个客观结果状态"
+        ],
+        "reason": "出走属于失踪的一种主观子集，且概念有些沉重，不适宜作为轻松的聚会游戏词对。"
+      }
+    },
+    {
+      "labelId": "u004",
+      "id": "undercover:a120bc044b125120d3363b61e8d734e8bb208d54a57b7147bd904dd2a275a34a",
+      "stratum": "rejected",
+      "category": "actions",
+      "content": {
+        "wordA": "吃瓜",
+        "wordB": "围观",
+        "category": "actions",
+        "commonTraits": [
+          "都形容面对网络热点或现实事件时的旁观态度",
+          "都不直接参与事件核心冲突但保持关注"
+        ],
+        "differences": [
+          "围观偏向于动作行为上的聚集或观看，吃瓜偏向于心理状态上的看热闹",
+          "围观可以使用在实体空间，吃瓜多用于互联网社交语境"
+        ],
+        "potentialIssues": [
+          "在现代网络语言中两者经常连用，可能导致描述时边界模糊"
+        ]
+      },
+      "production": {
+        "wordA": "吃瓜",
+        "wordB": "围观",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都指代旁观他人事情的态度",
+          "两者都带有局外人的特征"
+        ],
+        "differences": [
+          "吃瓜特指关注网络八卦娱乐事件，围观可以指现实中任何热闹事件",
+          "吃瓜侧重看戏的心态，围观侧重聚集观看的行为"
+        ],
+        "reason": "吃瓜本身就是一种网络围观行为，存在包含与同义模糊性，共享描述较弱，不建议采用。"
+      }
+    },
+    {
+      "labelId": "u005",
+      "id": "undercover:47dde8065355667629b97488864e9d19c37850d2736faeb089cd9e67d3c878c2",
+      "stratum": "accepted",
+      "category": "actions",
+      "content": {
+        "wordA": "散心",
+        "wordB": "解压",
+        "category": "actions",
+        "commonTraits": [
+          "都是当人们感到心情压抑或焦虑时采取的自我调节动作",
+          "目的都是为了调整心态恢复积极情绪"
+        ],
+        "differences": [
+          "散心通常需要通过出门逛街、旅行或接触大自然来转移注意力，解压可以通过玩游戏、运动、大哭或听音乐等多种方式实现",
+          "散心强调的是空间的转移和流动，解压强调的是心理压力的释放和减少"
+        ],
+        "potentialIssues": [
+          "散心本身也就是一种解压的方式，两者存在很大的包含与交叉关系"
+        ]
+      },
+      "production": {
+        "wordA": "散心",
+        "wordB": "解压",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是为了调节不良情绪、排解心理负担而采取的自我调节方式",
+          "两者都能让人在事后感到心情舒畅和放松"
+        ],
+        "differences": [
+          "散心通常通过外出走走、更换环境来排遣郁闷，解压可以通过各种丰富的方式（如运动、游戏、大哭）来释放压力",
+          "散心偏向空间和情境的转换，解压偏向心理压力的直接释放"
+        ],
+        "reason": "心理调节状态词对，常见且贴近生活，游戏效果好。"
+      }
+    },
+    {
+      "labelId": "u006",
+      "id": "undercover:703f083890324bf564b49659cc5111e98acd025addf1f8e8c5f9be569123dcf2",
+      "stratum": "rejected",
+      "category": "actions",
+      "content": {
+        "wordA": "传话",
+        "wordB": "转达",
+        "category": "actions",
+        "commonTraits": [
+          "都是通过第三方把一个人的意思告诉另一个人",
+          "都属于信息沟通的中间环节"
+        ],
+        "differences": [
+          "转达多用于较为正式的通知或工作嘱托，传话多用于日常生活中口语化的言语带到",
+          "转达往往带有一定的责任和准确度要求，传话有时容易在口口相传中走样"
+        ],
+        "potentialIssues": [
+          "两者的日常含义几乎完全重合，属于强近义词对，需要玩家通过正式程度来区分"
+        ]
+      },
+      "production": {
+        "wordA": "传话",
+        "wordB": "转达",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是指把一方的信息或意思告诉另一方的行为",
+          "两者都需要第三方作为沟通的桥梁"
+        ],
+        "differences": [
+          "传话多用于口头上的非正式日常沟通，转达多用于正式或书面消息的传遞",
+          "传话可能在口耳相传中失真，转达更加准确严谨"
+        ],
+        "reason": "传话和转达在绝大多数语境下是同义词，属于近义词辨析度过低，不符合非同义子集和独立描述要求。"
+      }
+    },
+    {
+      "labelId": "u007",
+      "id": "undercover:3f55f3bbd0ab11eda0738782a8f851640a76d16f23fb74e9ebae17c5c6af164a",
+      "stratum": "rejected",
+      "category": "actions",
+      "content": {
+        "wordA": "打卡",
+        "wordB": "签到",
+        "category": "actions",
+        "commonTraits": [
+          "都是记录某人按时到达某个地点或完成某项任务的行为",
+          "都带有一定的监督或积分奖励性质"
+        ],
+        "differences": [
+          "签到多用于线上软件每日领取奖励或活动登记，打卡多用于线下工作考勤或健身房锻炼",
+          "打卡通常对时间有严格的迟到判定，签到往往只需在当天完成即可"
+        ],
+        "potentialIssues": [
+          "现在很多办公软件也把上班登记称为签到，容易产生同义词误解"
+        ]
+      },
+      "production": {
+        "wordA": "打卡",
+        "wordB": "签到",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都用于记录个人在某地的到达或出席",
+          "两者在现代生活中多通过手机软件完成"
+        ],
+        "differences": [
+          "打卡常用于上下班考勤或旅游景点留念",
+          "签到常用于线上活动、会议或APP每日领取奖励"
+        ],
+        "reason": "打卡和签到在多数语境下几乎是同义词或高度重合，区别不够显著，不符合非同义子集和独立描述要求。"
+      }
+    },
+    {
+      "labelId": "u008",
+      "id": "undercover:96eff1c9701ef1b9edc4cfed8399fb39555eb85dd9fbb4f930ee0d138fd08d8d",
+      "stratum": "rejected",
+      "category": "actions",
+      "content": {
+        "wordA": "偷懒",
+        "wordB": "摸鱼",
+        "category": "actions",
+        "commonTraits": [
+          "都在工作或学习的正经时间里发生",
+          "都代表没有尽到全部的努力和职责"
+        ],
+        "differences": [
+          "偷懒侧重于怕累或怕苦而故意减少干活，摸鱼侧重于在体制内或工位上偷偷做与工作无关的事",
+          "摸鱼带有较强的现代职场幽默色彩，偷懒是一个更偏向传统贬义的日常用语"
+        ],
+        "potentialIssues": [
+          "两者的意思非常接近，几乎构成近义词，容易导致平民直接暴露线索"
+        ]
+      },
+      "production": {
+        "wordA": "偷懒",
+        "wordB": "摸鱼",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都指在工作或学习中不全力以赴的行为",
+          "两者都会降低当前的产出效率"
+        ],
+        "differences": [
+          "偷懒是一个传统的贬义词汇，摸鱼带有一定的现代职场幽默调侃色彩",
+          "摸鱼特指在工作时间内偷偷做与工作无关的事"
+        ],
+        "reason": "偷懒和摸鱼在很多语境下是同义词，摸鱼可以视为偷懒的一种具体网络化说法，不符合非同义子集和独立描述要求。"
+      }
+    },
+    {
+      "labelId": "u009",
+      "id": "undercover:8b48dd3cf9a71867cf94315228487e5df18cda99d430ec1c5243cf474627be8d",
+      "stratum": "accepted",
+      "category": "actions",
+      "content": {
+        "wordA": "收藏",
+        "wordB": "点赞",
+        "category": "actions",
+        "commonTraits": [
+          "都是在浏览短视频或社交文章时可以进行的快捷操作",
+          "都是对优质内容给予正面反馈的互动行为"
+        ],
+        "differences": [
+          "收藏是将内容保存以便日后重新翻看，点赞是即时表达对内容的喜爱和支持",
+          "收藏通常具有较强的私密性或分类归档性，点赞通常会公开增加作品的热度"
+        ],
+        "potentialIssues": [
+          "很多软件将收藏和点赞放在同一个底部工具栏，属于连带动作"
+        ]
+      },
+      "production": {
+        "wordA": "收藏",
+        "wordB": "点赞",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是数字内容平台上对优质信息的互动操作",
+          "两者都可以通过点击图标一键完成"
+        ],
+        "differences": [
+          "收藏是将内容保存到个人夹中以便日后重复翻看，点赞是给作者即时反馈以表达喜欢",
+          "收藏偏向个人私密的资料整理，点赞偏向公开的社交互动"
+        ],
+        "reason": "平台基础互动词对，体验极佳，区分度强。"
+      }
+    },
+    {
+      "labelId": "u010",
+      "id": "undercover:96a300eae3b1026ef66427e00c161c4dba10f112b067d1d486fbfece590a2748",
+      "stratum": "accepted",
+      "category": "actions",
+      "content": {
+        "wordA": "化妆",
+        "wordB": "整容",
+        "category": "actions",
+        "commonTraits": [
+          "都是为了改变和提升外在容貌外观的行为",
+          "都需要花费金钱和时间"
+        ],
+        "differences": [
+          "一个是通过美妆产品进行暂时的修饰，一个是通过医疗手术进行长期的改变",
+          "一个日常随时可卸妆，一个具有永久性和创伤性"
+        ],
+        "potentialIssues": [
+          "极高质量的化妆有时会被开玩笑称为换头整容"
+        ]
+      },
+      "production": {
+        "wordA": "化妆",
+        "wordB": "整容",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是为了改变外在容貌、提升颜值而采取的手段",
+          "两者都需要审美基础并涉及面部调整"
+        ],
+        "differences": [
+          "化妆是通过外用彩妆产品进行临时修饰且可随时卸除，整容是通过医疗手术对组织进行永久性改造",
+          "化妆属于日常护理和美化范畴，整容属于医疗美容和外科手术范畴"
+        ],
+        "reason": "美化容貌手段词对，共性和区别均非常扎实。"
+      }
+    },
+    {
+      "labelId": "u011",
+      "id": "undercover:f0bb8b12864d9c9b4002f54ba8a0743d1f76ab56a854b2223b1202db0f4b9a97",
+      "stratum": "rejected",
+      "category": "dailyLife",
+      "content": {
+        "wordA": "保温杯",
+        "wordB": "热水壶",
+        "category": "dailyLife",
+        "commonTraits": [
+          "两者都是与饮用水直接相关且具备隔热或加热功能的容器",
+          "两者在现代家庭和办公桌上都占据固定位置"
+        ],
+        "differences": [
+          "热水壶主要用于连接电源将生水烧开，保温杯主要用于盛放热水并随身携带",
+          "热水壶体积较大且通常需要插电使用，保温杯体积较小且依靠双层抽真空保温"
+        ],
+        "potentialIssues": [
+          "有些带加热功能的便携保温杯可能缩小两者差距"
+        ]
+      },
+      "production": {
+        "wordA": "保温杯",
+        "wordB": "热水壶",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是用于盛装热水并具有保温功能的容器",
+          "主体材质通常包含不锈钢或双层隔热结构"
+        ],
+        "differences": [
+          "保温杯主要用于个人随身携带和直接饮用，热水壶通常放在固定位置用于烧水和家庭多人倒水",
+          "保温杯容量较小且有密封盖，热水壶容量较大且带有手柄和壶嘴或出水按压阀"
+        ],
+        "reason": "热水壶和保温杯在功能上有部分包含和延伸关系，且日常描述容易混淆，不符合严格的非包含要求。"
+      }
+    },
+    {
+      "labelId": "u012",
+      "id": "undercover:ccbe113ea036806fb76ea7c0922d27dfbfab8797d601265785186c24d280e97d",
+      "stratum": "rejected",
+      "category": "dailyLife",
+      "content": {
+        "wordA": "水果刀",
+        "wordB": "菜刀",
+        "category": "dailyLife",
+        "commonTraits": [
+          "厨房常见的金属切削工具",
+          "带有锋利的刀刃和握持手柄"
+        ],
+        "differences": [
+          "菜刀体型较大用于处理肉类和蔬菜",
+          "水果刀小巧精致专门用来削果皮"
+        ],
+        "potentialIssues": [
+          "都属于刀具范畴，容易被玩家用切东西一概而过"
+        ]
+      },
+      "production": {
+        "wordA": "水果刀",
+        "wordB": "菜刀",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是带有金属刀刃和手柄的厨房切削工具",
+          "需要配合砧板在厨房或餐饮场景中使用"
+        ],
+        "differences": [
+          "水果刀体型小巧轻便，专门用于削皮和切水果",
+          "菜刀体型宽大厚重，用于切肉、切菜等主食烹饪准备"
+        ],
+        "reason": "水果刀在广义上属于菜刀的一种小型细分形态，具有包含关系，因此isNotSynonymOrSubset判定为false。"
+      }
+    },
+    {
+      "labelId": "u013",
+      "id": "undercover:36b2667767a3efe421bf8e0db116229dc4b80daa34e7c35d90f53077d67b4b7a",
+      "stratum": "rejected",
+      "category": "dailyLife",
+      "content": {
+        "wordA": "充电插座",
+        "wordB": "排插",
+        "category": "dailyLife",
+        "commonTraits": [
+          "两者都是家庭电路中提供电能接口的电力装置",
+          "两者都需要插入各种电器的插头来通电"
+        ],
+        "differences": [
+          "充电插座是固定在墙面上的暗装或明装接口，排插是带有长电线的移动式多孔插座",
+          "充电插座通常只有两到三个孔位，排插通常拥有四个以上的扩展孔位和独立开关"
+        ],
+        "potentialIssues": [
+          "部分用户会将排插简称为插座"
+        ]
+      },
+      "production": {
+        "wordA": "充电插座",
+        "wordB": "排插",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都用于连接电网并给电器提供电力插口",
+          "上面都有供插头插入的孔洞"
+        ],
+        "differences": [
+          "充电插座是固定在墙壁上的暗装或明装插座面板，排插是带有长电线和多个插孔的移动式插线板",
+          "充电插座本身直接连通墙内电线，排插则需要通过插头插入墙上插座来延伸供电"
+        ],
+        "reason": "排插（插线板）包含或从属于插座的范畴，两者概念过于接近，不符合非包含要求。"
+      }
+    },
+    {
+      "labelId": "u014",
+      "id": "undercover:eaaa4194f31baad1d71e832fe41d803ead3916e1f42ed8455a66a55cbe50071c",
+      "stratum": "rejected",
+      "category": "dailyLife",
+      "content": {
+        "wordA": "遮阳伞",
+        "wordB": "雨伞",
+        "category": "dailyLife",
+        "commonTraits": [
+          "手持撑开以遮挡外界环境",
+          "具备折叠便携的结构"
+        ],
+        "differences": [
+          "雨伞主要用于防雨防水",
+          "遮阳伞主要用于阻挡紫外线和强烈的日光"
+        ],
+        "potentialIssues": [
+          "现在很多伞标榜两用伞，容易在描述时产生混淆"
+        ]
+      },
+      "production": {
+        "wordA": "遮阳伞",
+        "wordB": "雨伞",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是用来遮挡上方环境因素的撑开式手持伞具",
+          "结构上都包含伞柄、伞骨和伞面"
+        ],
+        "differences": [
+          "遮阳伞通常带有防紫外线涂层且颜色款式更偏向防晒",
+          "雨伞主要用于防水，材质常为防泼水布料"
+        ],
+        "reason": "遮阳伞与雨伞存在极大的包含与重合关系（许多现代伞具兼具两用），且仅在功能涂层和侧重点上有细微区别，容易导致混淆或判定为子集，不符合非同义子集和独立区别的要求。"
+      }
+    },
+    {
+      "labelId": "u015",
+      "id": "undercover:abfae698f488601407a6d3b35c259e8078180aad2d45140532ae009dc7c38367",
+      "stratum": "rejected",
+      "category": "dailyLife",
+      "content": {
+        "wordA": "地毯",
+        "wordB": "浴巾",
+        "category": "dailyLife",
+        "commonTraits": [
+          "大面积的纺织织物",
+          "频繁出现在浴室周边或卧室内"
+        ],
+        "differences": [
+          "浴巾质地柔软用来擦拭身体的水分",
+          "地毯厚重铺在地面上用来防滑和保暖"
+        ],
+        "potentialIssues": [
+          "如果遇到吸水地毯，可能会在吸水特性上产生混淆"
+        ]
+      },
+      "production": {
+        "wordA": "地毯",
+        "wordB": "浴巾",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是采用织物或纤维材料制成的家居纺织品"
+        ],
+        "differences": [
+          "地毯面积较大且厚重，铺在地面上用于保暖和装饰",
+          "浴巾是个人洗浴后擦拭身体水分的个人卫生用品"
+        ],
+        "reason": "地毯和浴巾除了都是纺织品外，缺乏足够的具体共性支撑，无法形成高质量的自然关联描述，故hasSharedDescriptions判为false。"
+      }
+    },
+    {
+      "labelId": "u016",
+      "id": "undercover:a29bdbf9170014c8790c1e10aa762c17ce9765b76522335e3393d05eadbc026b",
+      "stratum": "rejected",
+      "category": "entertainment",
+      "content": {
+        "wordA": "排行榜",
+        "wordB": "热搜榜",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是互联网平台上根据数据呈现的名次列表",
+          "两者都能直观反映出某段时期内大众的关注焦点",
+          "两者的排名通常会随着时间和热度变化不断更新"
+        ],
+        "differences": [
+          "热搜榜侧重于实时发生的突发话题和娱乐新闻热度",
+          "排行榜侧重于长期积累的专业作品销量或播放量成绩"
+        ],
+        "potentialIssues": [
+          "部分平台会将两者合并在同一页面显示"
+        ]
+      },
+      "production": {
+        "wordA": "排行榜",
+        "wordB": "热搜榜",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "展示数据高低的排序列表",
+          "反映流行趋势的榜单"
+        ],
+        "differences": [
+          "排行榜范围广泛可以包含各类长期或分类数据",
+          "热搜榜特指当前实时搜索热度的榜单"
+        ],
+        "reason": "热搜榜属于排行榜的一种细分形式，存在包含关系。"
+      }
+    },
+    {
+      "labelId": "u017",
+      "id": "undercover:c3b0f5fac77dd29b6c0a17456e112838b3d7e458a9fb2b7d57674bdcacc57e52",
+      "stratum": "accepted",
+      "category": "entertainment",
+      "content": {
+        "wordA": "主题曲",
+        "wordB": "预告片",
+        "category": "entertainment",
+        "commonTraits": [
+          "都是影视作品上映前用于宣发的重要物料",
+          "都旨在吸引观众走进影院或收看节目"
+        ],
+        "differences": [
+          "预告片是剪辑了片中精彩画面的视频片段，交代剧情梗概；主题曲是专门为作品创作的音乐作品，传达作品情感内核",
+          "预告片多为视听结合的剧情剪影；主题曲可以独立作为流行音乐在电台或音乐平台传播"
+        ],
+        "potentialIssues": [
+          "音乐预告片或MV会同时包含两者的特征"
+        ]
+      },
+      "production": {
+        "wordA": "主题曲",
+        "wordB": "预告片",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是影视作品的宣传物料",
+          "都在正片上映前发布用以吸引观众"
+        ],
+        "differences": [
+          "主题曲是通过音乐和歌词来传达作品内核，预告片是通过剪辑画面展示剧情亮点",
+          "主题曲可以脱离影视作品单独作为歌曲广泛传唱，预告片服务于视听剧情的直接剧透"
+        ],
+        "reason": "宣传物料的两个不同维度，可玩性良好。"
+      }
+    },
+    {
+      "labelId": "u018",
+      "id": "undercover:06c7c3d3ddc91b82c05af0ccf43054f9255df6b16e85a49ee9219a5857b73cb3",
+      "stratum": "accepted",
+      "category": "entertainment",
+      "content": {
+        "wordA": "插曲",
+        "wordB": "片尾曲",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是影视作品中不可或缺的音乐组成部分",
+          "两者通常都会在正式发售后成为热门单曲",
+          "两者都能通过旋律辅助烘托剧情和观众的情绪"
+        ],
+        "differences": [
+          "片尾曲固定出现在整集结束时伴随演职员表播放",
+          "插曲通常穿插在故事发展的高潮或特定情节中出现"
+        ],
+        "potentialIssues": [
+          "部分短视频剪辑时容易将两者的出处混淆"
+        ]
+      },
+      "production": {
+        "wordA": "插曲",
+        "wordB": "片尾曲",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是影视作品原声带中的歌曲成分",
+          "都服务于渲染剧情氛围与情绪表达"
+        ],
+        "differences": [
+          "插曲通常穿插播放于剧情发展的高潮或特定片段中，片尾曲固定在剧集结束时伴随演职员表播放",
+          "插曲服务于当时场景的烘托，片尾曲常用来对整集或整部作品的情感进行收尾总结"
+        ],
+        "reason": "影视歌曲细分词对，熟悉且好玩。"
+      }
+    },
+    {
+      "labelId": "u019",
+      "id": "undercover:c5d31cf1b55785f7c237350a150b497b3c7a009ed423588fb41f8090da4e7394",
+      "stratum": "rejected",
+      "category": "entertainment",
+      "content": {
+        "wordA": "替补队员",
+        "wordB": "首发阵容",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是指参加文娱竞技类节目或演出活动的团队成员",
+          "两者的名单通常都会在活动开始前对外公布"
+        ],
+        "differences": [
+          "首发阵容侧重于一开始就登台亮相的主力人员",
+          "替补队员侧重于在场外等待需要时才上场的备用人员"
+        ],
+        "potentialIssues": [
+          "在竞技类综艺节目中两者的身份随时可能互换"
+        ]
+      },
+      "production": {
+        "wordA": "替补队员",
+        "wordB": "首发阵容",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是体育竞技或特定表演团队的成员构成部分",
+          "都属于同一支队伍的正式大名单"
+        ],
+        "differences": [
+          "上场的时间顺序不同，一个是比赛一开始就登场，另一个是在场边等待替换",
+          "战术地位与常规出场率不同，首发通常是主力配置，替补承担战术变招或轮换职责"
+        ],
+        "reason": "“首发阵容”是集合名词，而“替补队员”是单一个体，两者存在包含与非完全对称的词性差异，因此判定isNotSynonymOrSubset为false。"
+      }
+    },
+    {
+      "labelId": "u020",
+      "id": "undercover:ccd6c226b58080c90f964e54a83f2aed9c2c74b52ac8362474d912f703540afc",
+      "stratum": "accepted",
+      "category": "entertainment",
+      "content": {
+        "wordA": "大合唱",
+        "wordB": "独唱",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是音乐表演中常见的声乐演唱形式",
+          "两者都需要演唱者具备基本的音准和节奏感",
+          "两者在演唱时都需要通过话筒将声音传给观众"
+        ],
+        "differences": [
+          "大合唱侧重于许多人同时发声产生的气势和凝聚力",
+          "独唱侧重于单一歌手个人嗓音条件的展示"
+        ],
+        "potentialIssues": [
+          "歌手带伴唱时界限可能变得有些模糊"
+        ]
+      },
+      "production": {
+        "wordA": "大合唱",
+        "wordB": "独唱",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是声乐演唱表演形式",
+          "都需要在音乐伴奏或无伴奏下通过人声表达歌曲"
+        ],
+        "differences": [
+          "参与演唱的人数规模截然不同，一个由多人集体完成，一个由单人完成",
+          "声部配合与指挥要求不同，大合唱注重声部和谐与指挥引导，独唱更强调个人技巧与情感展现"
+        ],
+        "reason": "这是一组非常经典的强对比表演形式，互为反义但不是子集，非常适合游戏。"
+      }
+    },
+    {
+      "labelId": "u021",
+      "id": "undercover:9137cfdbed37ee5123976e004dd8b948d0e5c2ae07257437573122bf3ef6d13a",
+      "stratum": "accepted",
+      "category": "entertainment",
+      "content": {
+        "wordA": "破音",
+        "wordB": "跑调",
+        "category": "entertainment",
+        "commonTraits": [
+          "都是唱歌时出现的常见失误或车祸现场",
+          "都会让演唱效果大打折扣"
+        ],
+        "differences": [
+          "跑调是指音高偏离了正确的曲调，不在调子上；破音是指在高音或发力时声带突然失控，发出刺耳的尖叫或沙哑声",
+          "跑调通常贯穿整个音准控制问题；破音往往发生在某一个特定的高音瞬间"
+        ],
+        "potentialIssues": [
+          "唱歌时可能同时出现跑调和破音"
+        ]
+      },
+      "production": {
+        "wordA": "破音",
+        "wordB": "跑调",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是歌唱表演中常见的失误现象",
+          "都会影响声乐作品的整体听觉美感"
+        ],
+        "differences": [
+          "破音是指高音或用力过猛时声音突然沙哑或失控，跑调是指音高偏离了正确的歌曲旋律",
+          "破音多发生于情绪激动或技巧不稳的瞬间，跑调则表现为整个音准和音阶的错误"
+        ],
+        "reason": "声乐常见现象，描述具体准确。"
+      }
+    },
+    {
+      "labelId": "u022",
+      "id": "undercover:261d94b02646f53f7ba8fee1af6ea2c86c9c1b07ef617187c689063b9a496eea",
+      "stratum": "rejected",
+      "category": "entertainment",
+      "content": {
+        "wordA": "主题曲",
+        "wordB": "片尾曲",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是为特定影视作品量身定制的原创音乐作品",
+          "两者通常都会在片头或片尾播放时伴随字幕出现",
+          "两者的旋律往往能代表整部作品的核心风格"
+        ],
+        "differences": [
+          "片尾曲固定在剧集结束时播放伴随演职员表出现",
+          "主题曲通常在片头播放并在全片起到灵魂引领作用"
+        ],
+        "potentialIssues": [
+          "很多作品的主题曲同时也会作为片尾曲播放"
+        ]
+      },
+      "production": {
+        "wordA": "主题曲",
+        "wordB": "片尾曲",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是影视作品原声带中的歌曲"
+        ],
+        "differences": [
+          "出现位置不同",
+          "作用不同"
+        ],
+        "reason": "片尾曲属于主题曲的一种常见泛化形态或存在重合，且部分影视剧主题曲即为片尾曲，包含关系和共性不严谨。"
+      }
+    },
+    {
+      "labelId": "u023",
+      "id": "undercover:8be71b598ed5498a53d26b9331b258beb4cc4d4a10993601634185dbd2796b97",
+      "stratum": "rejected",
+      "category": "entertainment",
+      "content": {
+        "wordA": "周边捏",
+        "wordB": "签名照",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是粉丝在追星时非常渴望收集的衍生品",
+          "两者通常都需要通过官方购买或特定活动获取",
+          "两者都具有一定的粉丝收藏价值与纪念意义"
+        ],
+        "differences": [
+          "签名照侧重于明星个人的亲笔签名相片",
+          "周边捏侧重于影视动漫角色的玩偶挂件等实物玩具"
+        ],
+        "potentialIssues": [
+          "周边捏的说法在年轻群体中较流行年长者可能不懂",
+          "可以换成周边产品以防理解偏差"
+        ]
+      },
+      "production": {
+        "wordA": "周边捏",
+        "wordB": "签名照",
+        "qualityChecks": {
+          "isFamiliar": false,
+          "hasSimilarFamiliarity": false,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": false
+        },
+        "commonTraits": [
+          "粉丝收藏的明星相关物品",
+          "带有纪念意义"
+        ],
+        "differences": [
+          "周边捏包含网络语境造词且不够规范",
+          "签名照有明确的明星亲笔签名特征"
+        ],
+        "reason": "“周边捏”含有非标准网络后缀，熟悉度低且事实不确定。"
+      }
+    },
+    {
+      "labelId": "u024",
+      "id": "undercover:6a15bd910fa893c20e64b987ee690d57c19da1efaa8a9b8641ee56df7b5e6958",
+      "stratum": "rejected",
+      "category": "entertainment",
+      "content": {
+        "wordA": "群演",
+        "wordB": "路人甲",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都指代影视作品中的边缘低位角色",
+          "两者在拍摄现场通常都不需要展现复杂演技",
+          "两者的名字或身影往往不会出现在宣传海报上"
+        ],
+        "differences": [
+          "路人甲侧重于形容微不足道或没有具体剧情推动作用的人",
+          "群演侧重于扮演背景人群并有实际的镜头出场需求"
+        ],
+        "potentialIssues": [
+          "部分影视语境下两者容易混用",
+          "网民有时会将路人甲作为普通网民的自称"
+        ]
+      },
+      "production": {
+        "wordA": "群演",
+        "wordB": "路人甲",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "影视作品中的背景角色",
+          "没有核心戏份"
+        ],
+        "differences": [
+          "群演是职业身份或群体统称",
+          "路人甲是具体的无名角色代称"
+        ],
+        "reason": "路人甲可以看作是群演的一种具体文学化表达，存在包含关系，且区分度不够自然。"
+      }
+    },
+    {
+      "labelId": "u025",
+      "id": "undercover:4e730b7624f014f0541548e00d83bd068fb8309e22dba27483a81c397980e55b",
+      "stratum": "accepted",
+      "category": "entertainment",
+      "content": {
+        "wordA": "摄影师",
+        "wordB": "灯光师",
+        "category": "entertainment",
+        "commonTraits": [
+          "两者都是影视剧拍摄现场不可或缺的幕后技术人员",
+          "两者都需要听从导演的指挥来完成画面的捕捉",
+          "两者的专业水平直接决定了影视作品的画面质感"
+        ],
+        "differences": [
+          "摄影师侧重于操作摄像机取景和构图",
+          "灯光师侧重于调节现场光线明暗与色彩氛围"
+        ],
+        "potentialIssues": [
+          "两组人员在现场工作时通常需要紧密配合"
+        ]
+      },
+      "production": {
+        "wordA": "摄影师",
+        "wordB": "灯光师",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是影视剧组现场拍摄的核心技术工种",
+          "都对画面的视觉质感起着决定性作用"
+        ],
+        "differences": [
+          "摄影师负责操作摄像机进行构图与拍摄取景，灯光师负责现场灯光的布置与光影控制",
+          "摄影师决定镜头的运动与视觉视角，灯光师通过布光营造明暗层次与氛围"
+        ],
+        "reason": "剧组工种对比，准确且好玩。"
+      }
+    },
+    {
+      "labelId": "u026",
+      "id": "undercover:4f5abb113743b785cbda20d9572561825c7d40524e2bec1fce97e3f340eace15",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "wordA": "年糕",
+        "wordB": "汤圆",
+        "category": "food",
+        "commonTraits": [
+          "传统的中式糯米制品",
+          "常在特定节日或团聚时刻食用"
+        ],
+        "differences": [
+          "汤圆是圆球形内部通常有甜馅料带汤水煮着吃",
+          "年糕是块状或条状通常通过炒制或蒸煮食用且通常没有流心馅"
+        ],
+        "potentialIssues": [
+          "两者主要原料都是糯米，质地黏软，容易产生混淆"
+        ]
+      },
+      "production": {
+        "wordA": "年糕",
+        "wordB": "汤圆",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是以糯米为主要原料制作的传统食品",
+          "通常在春节或节庆期间大量食用"
+        ],
+        "differences": [
+          "年糕呈块状或片状可以切炒或蒸煮，汤圆呈圆形且内部含有甜馅",
+          "年糕口感紧实韧糯，汤圆口感软糯且咬开会流心"
+        ],
+        "reason": "年糕和汤圆都是糯米制品，但形态和食用方式有明显区别。"
+      }
+    },
+    {
+      "labelId": "u027",
+      "id": "undercover:149a1b24ace2803d2ddc657ea1742f725c2fbee7100f371a003f7577967f74de",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "wordA": "油条",
+        "wordB": "煎饼",
+        "category": "food",
+        "commonTraits": [
+          "经典的传统中式早餐",
+          "面食制品主要在早市或路边摊贩售"
+        ],
+        "differences": [
+          "油条是面团油炸而成的长条状酥脆食品",
+          "煎饼是面糊摊在鏊子上煎熟并卷入薄脆酱料的扁平食品"
+        ],
+        "potentialIssues": [
+          "有些煎饼果子里会夹油条，可能在描述时产生交集"
+        ]
+      },
+      "production": {
+        "wordA": "油条",
+        "wordB": "煎饼",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是常见的传统中式早餐",
+          "主要成分都包含面粉"
+        ],
+        "differences": [
+          "油条是通过油炸制成的膨松条状食物，煎饼是用面糊在鏊子上摊熟的薄饼",
+          "油条口感酥脆油润，煎饼口感软韧且常卷有脆饼或薄脆"
+        ],
+        "reason": "油条和煎饼作为早餐代表，熟悉度高，辨识度好。"
+      }
+    },
+    {
+      "labelId": "u028",
+      "id": "undercover:8bbb6417e0c56db99212019da1b3d8843766dc7ef9732b07303bcd63543c5a03",
+      "stratum": "rejected",
+      "category": "food",
+      "content": {
+        "wordA": "油焖大虾",
+        "wordB": "白灼虾",
+        "category": "food",
+        "commonTraits": [
+          "主料都是新鲜优质的大虾",
+          "都是中餐海鲜宴席或家常餐桌上的硬菜",
+          "成菜后色泽诱人且自带鲜甜海味"
+        ],
+        "differences": [
+          "一个采用重油重酱加糖和香料大火焖烧至浓郁入味，另一个直接将虾放入清水中快速烫熟并保留原汁原味",
+          "一个外表红亮油润且口味浓重，另一个肉质鲜嫩且必须依赖蘸酱提味"
+        ],
+        "potentialIssues": [
+          "两种都是虾的做法，玩家可能会直接统称为吃虾"
+        ]
+      },
+      "production": {
+        "wordA": "油焖大虾",
+        "wordB": "白灼虾",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是以新鲜大虾为主料的中式经典海鲜/河鲜菜品",
+          "两者在烹饪前都需要对虾进行清洗和清理虾线等基础处理"
+        ],
+        "differences": [
+          "油焖大虾采用重油、糖和酱汁进行焖煮，白灼虾采用沸水焯烫的方式烹制",
+          "油焖大虾口味浓油赤酱且酸甜咸香，白灼虾口味清淡并依靠蘸酱食用"
+        ],
+        "reason": "虽然两者都是虾类名菜且烹饪方式不同，但由于两词字面高度重合且属于同一食材的不同做法，在“谁是卧底”中容易形成包含或直接同类混淆，且白灼虾作为最简基础做法在对等性上略有逊色，故判定isNotSynonymOrSubset与isPlayableBothWays为false。"
+      }
+    },
+    {
+      "labelId": "u029",
+      "id": "undercover:68e3d9b9056c407ec637913ee9c42970a6b674c3cf3a3d1195ffe6d12f3abe62",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "wordA": "水饺",
+        "wordB": "馄饨",
+        "category": "food",
+        "commonTraits": [
+          "传统的中式面食面皮包裹肉馅",
+          "都需要放入沸水中煮熟后食用"
+        ],
+        "differences": [
+          "水饺外形较大皮更厚馅料更扎实通常蘸醋吃",
+          "馄饨外形较小皮薄汤料丰富连汤带水吃"
+        ],
+        "potentialIssues": [
+          "某些地方对两者的叫法有重叠，如部分地区管水饺叫扁食"
+        ]
+      },
+      "production": {
+        "wordA": "水饺",
+        "wordB": "馄饨",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是面皮包裹馅料的面食",
+          "都需要通过水煮的方式来成熟"
+        ],
+        "differences": [
+          "水饺的皮通常更厚且呈圆形，馄饨的皮通常更薄且多为梯形或方形",
+          "水饺通常作为主食单吃并配蘸料，馄饨通常带有较浓的汤底一起食用"
+        ],
+        "reason": "水饺和馄饨属于传统面食，结构相似但区分度明显，游玩体验好。"
+      }
+    },
+    {
+      "labelId": "u030",
+      "id": "undercover:74dac832aede8725ad57fdfd77ea3880981463e99f93bec28da9f7c1c68ba310",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "wordA": "烤冷面",
+        "wordB": "铁板鱿鱼",
+        "category": "food",
+        "commonTraits": [
+          "都是深受年轻人喜爱的经典街头路边摊小吃",
+          "均需使用大型平底铁板进行现场高温制作",
+          "通常会刷上浓郁的酱料并撒上葱花洋葱碎"
+        ],
+        "differences": [
+          "一个以长方形的特制面饼为底加入鸡蛋和火腿肠翻折制作，另一个以新鲜海鲜鱿鱼切块或整串在铁板上压制烤熟",
+          "一个口感筋道弹牙且偏向酸甜微辣，另一个口感爽脆弹牙且多为孜然辣椒风味"
+        ],
+        "potentialIssues": [
+          "同属夜市小吃摊常见品类，动作描述容易重合"
+        ]
+      },
+      "production": {
+        "wordA": "烤冷面",
+        "wordB": "铁板鱿鱼",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是常见的街头铁板烧烤小吃",
+          "制作时都会在铁板上刷酱并伴随滋滋声"
+        ],
+        "differences": [
+          "烤冷面以冷面皮为主料，常打入鸡蛋并刷酸甜酱汁切段食用；铁板鱿鱼以海鲜鱿鱼串为主料，刷辣椒孜然粉食用",
+          "烤冷面口感软韧弹牙，铁板鱿鱼口感Q弹有嚼劲"
+        ],
+        "reason": "烤冷面和铁板鱿鱼都是路边摊常见铁板小吃，熟悉且好玩。"
+      }
+    },
+    {
+      "labelId": "u031",
+      "id": "undercover:4837eb898f6d88a62161f8a39b71cf5377ec9712f0b15470a1f56644b043bd1e",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "wordA": "手抓饼",
+        "wordB": "肉夹馍",
+        "category": "food",
+        "commonTraits": [
+          "都是极具人气的街头快餐面食",
+          "通常可以根据个人喜好添加肉类或鸡蛋等辅料",
+          "制作快捷方便，适合打包边走边吃"
+        ],
+        "differences": [
+          "手抓饼饼皮多层酥脆并用油煎制，肉夹馍外皮是烤制或烙制的白吉馍",
+          "手抓饼通常卷入生菜火腿等食材，肉夹馍夹入剁碎的腊汁肉",
+          "手抓饼食用时用纸袋包裹，肉夹馍通常用纸袋托住防止汤汁滴落"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "手抓饼",
+        "wordB": "肉夹馍",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是常见的街头中式快餐小吃",
+          "通常作为早餐或加餐充饥食用"
+        ],
+        "differences": [
+          "手抓饼是层层酥脆的圆形饼皮，常卷入火腿生菜和酱料；肉夹馍是烤制酥脆的白吉馍夹入剁碎的腊汁肉",
+          "手抓饼多为卷起食用，肉夹馍呈饼夹肉的立体结构"
+        ],
+        "reason": "手抓饼和肉夹馍作为街头小吃对子，熟悉且容易描述。"
+      }
+    },
+    {
+      "labelId": "u032",
+      "id": "undercover:7f3fd64d39c3fd00676efb7f61c54d844aa3b4d84cda7e93defc2f67b18e53bf",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "wordA": "蜜蜂",
+        "wordB": "蝴蝶",
+        "category": "nature",
+        "commonTraits": [
+          "都是会飞的常见昆虫且在生态系统中扮演重要的传粉角色",
+          "生命周期都经历完全变态即卵幼虫蛹成虫四个阶段",
+          "都经常出现在花丛中并且对人类农业生产有益"
+        ],
+        "differences": [
+          "所属的昆虫纲目分类不同一个是膜翅目一个是鳞翅目",
+          "成虫形态和飞行姿态差异明显一个身体多毛会蛰人并能产蜜另一个翅膀宽大有鳞片且口器为吸管状"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "蜜蜂",
+        "wordB": "蝴蝶",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是会飞的昆虫",
+          "都经常在花丛中飞舞并负责给植物传粉"
+        ],
+        "differences": [
+          "蜜蜂会采花酿蜜并营群体生活，蝴蝶不酿蜜且成虫期多为单独活动",
+          "蜜蜂翅膀透明且能蜇人，蝴蝶翅膀上有绚丽的鳞片且口器为长管状"
+        ],
+        "reason": "昆虫类经典词对，共性自然，区别度极高。"
+      }
+    },
+    {
+      "labelId": "u033",
+      "id": "undercover:aeb6765c66f932122f1a29fbb2719385e1657e1c1fa4bb9ede898c0a53f12633",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "wordA": "冰雹",
+        "wordB": "迷雾",
+        "category": "nature",
+        "commonTraits": [
+          "都是由空气中的水分凝结形成的自然天气",
+          "都会对人们的出行和交通安全造成阻碍"
+        ],
+        "differences": [
+          "迷雾是浮在近地面空气中的微小水滴，冰雹是空中降落的坚硬小冰块",
+          "迷雾通常带来朦胧安静的氛围，冰雹砸落时伴随强烈的噪声甚至破坏力"
+        ],
+        "potentialIssues": [
+          "同为水汽凝结现象，词义联想可能偏向气象"
+        ]
+      },
+      "production": {
+        "wordA": "冰雹",
+        "wordB": "迷雾",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是由大气中的水汽凝结形成的自然天气现象",
+          "都会对人类的户外出行或交通安全产生干扰"
+        ],
+        "differences": [
+          "冰雹是从空中砸落的坚硬固体冰块具有破坏力，迷雾是悬浮在近地面空气中的微小水滴降低能见度",
+          "冰雹伴随雷雨天气短暂剧烈发生，迷雾通常在清晨或湿度大的天气中弥漫"
+        ],
+        "reason": "天气现象对，一个是固体降水一个是悬浮水滴，物理形态区别大。"
+      }
+    },
+    {
+      "labelId": "u034",
+      "id": "undercover:fefc0a3f5bcb15ae8d1adaf2de35faff95bd70133181edc95c76cc8350f3e2df",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "wordA": "大雁",
+        "wordB": "燕子",
+        "category": "nature",
+        "commonTraits": [
+          "都是具有季节性迁徙习性的常见鸟类",
+          "飞行时都展现出极高的群体协作能力",
+          "都在人类文学作品中被赋予了思乡或传书的意象"
+        ],
+        "differences": [
+          "大雁体型较大且秋季成群结队往南飞，燕子体型娇小且春季飞回北方筑巢",
+          "大雁飞行时常排成整齐的人字形或一字形，燕子飞行轨迹轻快且常在屋檐下筑巢",
+          "大雁属于大型水禽常在湿地活动，燕子属于小型鸣禽与人类乡村生活贴近"
+        ],
+        "potentialIssues": [
+          "两者的候鸟特征高度重合，容易被玩家用迁徙直接一笔带过",
+          "部分城市玩家对这两种鸟类的实际生活习性缺乏观察"
+        ]
+      },
+      "production": {
+        "wordA": "大雁",
+        "wordB": "燕子",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是会飞的候鸟",
+          "都会随着季节的变化进行长途迁徙"
+        ],
+        "differences": [
+          "大雁体型较大且飞行时常排成“人”字或“一”字形，燕子体型较小且尾羽呈剪刀状",
+          "大雁秋天南飞春天北归，燕子在民间常被视为春天的象征"
+        ],
+        "reason": "候鸟特性明确，飞行习惯与体型差异显著，非常适合。"
+      }
+    },
+    {
+      "labelId": "u035",
+      "id": "undercover:55cc1d809738b1a5ac9256552fc5cf51aaa3e50df3f2e771c3766ae41291bd56",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "wordA": "萤火虫",
+        "wordB": "蚊子",
+        "category": "nature",
+        "commonTraits": [
+          "两者都是体型微小的夏季昆虫",
+          "两者都具备在夜间活动的能力",
+          "两者都拥有能够飞行的翅膀"
+        ],
+        "differences": [
+          "萤火虫尾部能够发出美丽的荧光，蚊子则完全没有发光能力",
+          "萤火虫是益虫以花粉或露水为食，蚊子是害虫需要吸食人畜血液"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "萤火虫",
+        "wordB": "蚊子",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是夏夜里常见的微小飞行昆虫",
+          "都喜欢在潮湿或草木繁茂的环境中活动"
+        ],
+        "differences": [
+          "萤火虫腹部会发出柔和的荧光，蚊子不会发光但会吸血并传播疾病",
+          "萤火虫被视为浪漫的自然景观，蚊子则是令人讨厌的害虫"
+        ],
+        "reason": "夏夜小昆虫，发光与吸血特征对比极其明显。"
+      }
+    },
+    {
+      "labelId": "u036",
+      "id": "undercover:10a21e26b3e758092a1bea39e83f6d72b5f39cb849b42ca31641cdcc353899fa",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "wordA": "仙人掌",
+        "wordB": "椰子树",
+        "category": "nature",
+        "commonTraits": [
+          "都是生活在炎热少雨地区的植物",
+          "外形都有非常鲜明的辨识度"
+        ],
+        "differences": [
+          "仙人掌矮小且长满刺，椰子树高大且顶部结有果实",
+          "仙人掌常见于沙漠内陆，椰子树主要分布在热带海滨"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "仙人掌",
+        "wordB": "椰子树",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是生长在炎热少雨或热带地区的特色植物",
+          "都具备极强的耐热或耐旱生存适应能力"
+        ],
+        "differences": [
+          "仙人掌是低矮的肉质灌木且全身是刺，椰子树是高大的热带乔木且顶部长有巨大羽状叶和椰子果",
+          "椰子树常见于热带海滩，仙人掌常见于沙漠或干旱荒漠"
+        ],
+        "reason": "热带荒漠植物对，体型和外观截然不同。"
+      }
+    },
+    {
+      "labelId": "u037",
+      "id": "undercover:0c88e956f40b1ad4ff8b50fbdd036e1466c6b6dd35ade0fb3225b3e248edb56d",
+      "stratum": "rejected",
+      "category": "outdoors",
+      "content": {
+        "wordA": "沙滩排球",
+        "wordB": "飞盘",
+        "category": "outdoors",
+        "commonTraits": [
+          "都是风靡年轻人的户外团队竞技项目",
+          "都需要大量奔跑和跳跃",
+          "通常在草地或沙滩等开阔场地进行"
+        ],
+        "differences": [
+          "沙滩排球必须隔着网进行扣球和拦网，飞盘是在无身体接触的开放空间传接递进",
+          "沙滩排球限定在沙滩上，飞盘主要在标准草坪上进行"
+        ],
+        "potentialIssues": [
+          "沙滩排球的场地受限较多，飞盘场地更加灵活"
+        ]
+      },
+      "production": {
+        "wordA": "沙滩排球",
+        "wordB": "飞盘",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是在开阔户外场地进行的团队竞技运动",
+          "都需要良好的跑动和传接球配合"
+        ],
+        "differences": [
+          "沙滩排球必须在沙滩上使用排球进行隔网对抗，飞盘通常在草地上使用塑料飞盘进行团队传递得分"
+        ],
+        "reason": "现代流行户外运动，体验差异明显。"
+      }
+    },
+    {
+      "labelId": "u038",
+      "id": "undercover:d509d77017026d6d73531974d64108ca8c764412e9be0fbb78cde01cb4c14d7f",
+      "stratum": "rejected",
+      "category": "outdoors",
+      "content": {
+        "wordA": "烧烤",
+        "wordB": "野餐",
+        "category": "outdoors",
+        "commonTraits": [
+          "都是周末人们热衷结伴进行的户外美食活动",
+          "通常都在风景优美的公园或郊外草地举办",
+          "都需要携带大量的食物和饮用水"
+        ],
+        "differences": [
+          "烧烤必须生火炙烤生肉和蔬菜并产生大量油烟，野餐通常携带现成的熟食、三明治和水果无需生火",
+          "烧烤现场热闹喧嚣且带烟火气，野餐优雅轻松且更偏向休闲放松"
+        ],
+        "potentialIssues": [
+          "现代很多户外露营会把野餐和烧烤结合在一起进行"
+        ]
+      },
+      "production": {
+        "wordA": "烧烤",
+        "wordB": "野餐",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是在户外享受美食的聚会活动",
+          "都需要提前准备食材和餐具"
+        ],
+        "differences": [
+          "烧烤必须生火炙烤生肉和蔬菜，野餐通常携带现成做好的食物直接食用"
+        ],
+        "reason": "两词都是极佳的户外饮食活动，特征明确。"
+      }
+    },
+    {
+      "labelId": "u039",
+      "id": "undercover:932a252f1da0e35950a8db1ae984631e96340090863e72acde2071c82bafa631",
+      "stratum": "rejected",
+      "category": "outdoors",
+      "content": {
+        "wordA": "徒步",
+        "wordB": "登山",
+        "category": "outdoors",
+        "commonTraits": [
+          "都需要长时间步行前进",
+          "都对体力有一定要求",
+          "都需要穿着舒适的运动鞋"
+        ],
+        "differences": [
+          "登山更侧重于向高海拔山峰攀登，徒步则没有海拔限制且路线更平缓",
+          "登山往往带有挑战高峰的目的，徒步更侧重沿途风景和休闲健身"
+        ],
+        "potentialIssues": [
+          "日常生活中常有人把登山统称为徒步"
+        ]
+      },
+      "production": {
+        "wordA": "徒步",
+        "wordB": "登山",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是考验体力的户外运动",
+          "都需要穿着适合行走的运动鞋或登山鞋"
+        ],
+        "differences": [
+          "徒步路线可以平缓也可以多样，登山则明确以登高和攀爬山峰为主"
+        ],
+        "reason": "常见户外运动，特征差异明显，适合作为卧底词对。"
+      }
+    },
+    {
+      "labelId": "u040",
+      "id": "undercover:89e30b250e55a4d6cb959b5d51d48379510352482f37038d3412f21e4975e9c1",
+      "stratum": "rejected",
+      "category": "outdoors",
+      "content": {
+        "wordA": "捉泥鳅",
+        "wordB": "钓鱼",
+        "category": "outdoors",
+        "commonTraits": [
+          "都与水域环境密切相关",
+          "都需要耐心等待时机",
+          "都以水生动物为目标"
+        ],
+        "differences": [
+          "钓鱼通常在岸边使用鱼竿静止等待，捉泥鳅通常需要下水用手或网在泥土中搜寻",
+          "钓鱼门槛较高且讲究技巧装备，捉泥鳅更偏向趣味玩乐"
+        ],
+        "potentialIssues": [
+          "捉泥鳅的受众年龄层可能偏向童年回忆"
+        ]
+      },
+      "production": {
+        "wordA": "捉泥鳅",
+        "wordB": "钓鱼",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都与水域环境密切相关",
+          "都需要在户外水边进行捕捉水生生物的活动"
+        ],
+        "differences": [
+          "捉泥鳅主要在浅水田或泥地中徒手进行，钓鱼则需要使用钓竿和鱼饵静止等待"
+        ],
+        "reason": "两者都属于亲水户外活动，玩法有明显区别。"
+      }
+    },
+    {
+      "labelId": "u041",
+      "id": "undercover:3e69020363777a76e398c1f67c960905bcf166d12dea0553d3a976229197d63e",
+      "stratum": "rejected",
+      "category": "outdoors",
+      "content": {
+        "wordA": "野炊",
+        "wordB": "露营",
+        "category": "outdoors",
+        "commonTraits": [
+          "都在户外的自然环境中进行",
+          "都需要携带锅具或野外生存装备",
+          "都充满回归自然的野趣"
+        ],
+        "differences": [
+          "露营的核心在于搭帐篷过夜住宿，野炊的核心在于在野外生火做饭解决温饱",
+          "野炊通常当天往返不涉及过夜，露营时间跨度更长"
+        ],
+        "potentialIssues": [
+          "很多人露营时一定会顺便野炊，边界容易模糊"
+        ]
+      },
+      "production": {
+        "wordA": "野炊",
+        "wordB": "露营",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是亲近大自然的户外活动",
+          "都需要在野外准备炊具或食物"
+        ],
+        "differences": [
+          "野炊侧重于在户外生火做饭的烹饪体验，露营侧重于在野外搭建帐篷并过夜宿营"
+        ],
+        "reason": "经典户外组合，共性和区别均十分明确。"
+      }
+    },
+    {
+      "labelId": "u042",
+      "id": "undercover:d1457c80404107be8fc4961b0f00cc023607ab242266052b3438572ff5dfa7c5",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "wordA": "喝酒",
+        "wordB": "真心话",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是饭局聚会上的惩罚手段",
+          "都能迅速拉近陌生人距离"
+        ],
+        "differences": [
+          "一个是精神上的坦白一个是身体上的摄入酒精",
+          "一个靠语言输出一个靠液体吞咽"
+        ],
+        "potentialIssues": [
+          "部分不喝酒的玩家可能会把两者的界限混淆"
+        ]
+      },
+      "production": {
+        "wordA": "喝酒",
+        "wordB": "真心话",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": false,
+          "isAppropriate": false,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [],
+        "differences": [
+          "喝酒是一种通过饮用酒精饮料来助兴的聚会活动",
+          "真心话是一种回答隐私问题的心理互动游戏"
+        ],
+        "reason": "喝酒涉及未成年人禁忌及健康合规风险，且两者核心机制相差过大，不适合作为优质游戏词对。"
+      }
+    },
+    {
+      "labelId": "u043",
+      "id": "undercover:25a04f1dcbbde0d4af4bc336c8d59155d8e03a8476f82de5880d71941524eb57",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "wordA": "大富翁",
+        "wordB": "飞行棋",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是经典的桌面棋盘游戏",
+          "都需要掷骰子决定前进步数"
+        ],
+        "differences": [
+          "一个是纯靠运气的直观竞速一个是包含地产买卖和资金管理的策略游戏",
+          "一个胜负较快一个容易玩很久"
+        ],
+        "potentialIssues": [
+          "部分年轻玩家可能觉得过于传统而缺乏新鲜感"
+        ]
+      },
+      "production": {
+        "wordA": "大富翁",
+        "wordB": "飞行棋",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是需要掷骰子决定前进步数的经典桌面棋盘游戏",
+          "两者的最终目标都是通过移动棋子达成胜利条件"
+        ],
+        "differences": [
+          "大富翁包含买地、盖房、破产等复杂的商业经营机制",
+          "飞行棋规则更加简单纯粹且有飞机起飞和撞机机制"
+        ],
+        "reason": "两款国民级棋盘游戏，对比自然且区分度高。"
+      }
+    },
+    {
+      "labelId": "u044",
+      "id": "undercover:822d8a6bcebfb458ed5e5a2ef95f542ba58303256cbbe187f1b7ff145e1a2fe3",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "wordA": "摇骰子",
+        "wordB": "猜数字",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是酒吧聚会常用游戏",
+          "都需要用到运气和心理战"
+        ],
+        "differences": [
+          "一个是比拼点数和概率一个是范围不断缩小的数字缩小",
+          "一个依赖道具骰盅一个只需纸笔或口头说出"
+        ],
+        "potentialIssues": [
+          "对不喝酒或不常去酒吧的玩家来说规则可能需要临时解释"
+        ]
+      },
+      "production": {
+        "wordA": "摇骰子",
+        "wordB": "猜数字",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是酒吧或朋友聚会常用的破冰互动小游戏",
+          "两者都包含一定的概率运气成分与数字猜测规则"
+        ],
+        "differences": [
+          "摇骰子通常需要用到骰盅和特定数量的骰子道具",
+          "猜数字通常由一人定范围其他人逐个缩小区间排查"
+        ],
+        "reason": "常见休闲聚会游戏，规则玩法成熟，体验互补。"
+      }
+    },
+    {
+      "labelId": "u045",
+      "id": "undercover:9fd44ac83d069c754d2a6b01d59b46975db1e61e5bdb111af3be96fd7960ec71",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "wordA": "杀人游戏",
+        "wordB": "谁是卧底",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是经典的语言推理游戏",
+          "都需要多人围坐进行",
+          "都有隐藏身份的机制"
+        ],
+        "differences": [
+          "一个是淘汰制阵营对抗一个是词汇联想抓卧底",
+          "一个游戏周期较长一个节奏明快"
+        ],
+        "potentialIssues": [
+          "资深玩家可能会用专业术语直接带起节奏"
+        ]
+      },
+      "production": {
+        "wordA": "杀人游戏",
+        "wordB": "谁是卧底",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是经典的语言社交推理类聚会游戏",
+          "两者都需要玩家通过发言投票来淘汰嫌疑人"
+        ],
+        "differences": [
+          "杀人游戏更依赖阵营对抗与复杂的逻辑刀人机制",
+          "谁是卧底更侧重于词语语义的描述与抓卧底线索"
+        ],
+        "reason": "两个词属于同类知名社交推理桌游，熟悉度高且区别清晰。"
+      }
+    },
+    {
+      "labelId": "u046",
+      "id": "undercover:5f200ab7038865884a65878f297841ebd87a73585e99c4fcdba3452cc81ddcd0",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "wordA": "击鼓传花",
+        "wordB": "敲黑板",
+        "category": "partyGames",
+        "commonTraits": [
+          "都有节奏感和传递的过程",
+          "最后都会随机选出倒霉蛋"
+        ],
+        "differences": [
+          "一个是现代课堂或会议梗衍生出的互动一个是传统民俗节日游戏",
+          "一个靠临时反应一个靠道具传递"
+        ],
+        "potentialIssues": [
+          "敲黑板作为聚会游戏的具体规则在不同圈子里定义可能不太统一"
+        ]
+      },
+      "production": {
+        "wordA": "击鼓传花",
+        "wordB": "敲黑板",
+        "qualityChecks": {
+          "isFamiliar": false,
+          "hasSimilarFamiliarity": false,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [],
+        "differences": [],
+        "reason": "敲黑板不是常见的聚会互动游戏，词对不对等，无法构成有效玩法的共性与区别。"
+      }
+    },
+    {
+      "labelId": "u047",
+      "id": "undercover:08bd7dcdd2ad29d0fe4ef608807bb84b1cee314f3d6e56f19db0fcd360ed3e67",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "wordA": "斗地主",
+        "wordB": "飞行棋",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是几个人围坐一起玩的娱乐活动",
+          "都有明确的胜负输赢规则"
+        ],
+        "differences": [
+          "一个是棋盘类一个是纸牌类",
+          "一个是多人混战或双人对抗一个是三人对抗局"
+        ],
+        "potentialIssues": [
+          "一个是传统桌游一个是大众棋牌玩法差异较大"
+        ]
+      },
+      "production": {
+        "wordA": "斗地主",
+        "wordB": "飞行棋",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [],
+        "differences": [
+          "斗地主是使用扑克牌进行的纸牌对抗竞技游戏",
+          "飞行棋是使用棋盘和骰子的桌面益智游戏"
+        ],
+        "reason": "两者虽然都是常见游戏，但斗地主是扑克牌游戏，飞行棋是棋盘游戏，缺乏足够且具体的自然共性。"
+      }
+    },
+    {
+      "labelId": "u048",
+      "id": "undercover:e0c699bdde131460e5bc40012f6ce9020332a2ed637402d5d1a69cb676add0b7",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "wordA": "大冒险",
+        "wordB": "真心话",
+        "category": "partyGames",
+        "commonTraits": [
+          "都是聚会惩罚环节",
+          "都需要现场互动",
+          "都会引发哄笑"
+        ],
+        "differences": [
+          "一个是回答问题一个是执行动作",
+          "一个靠言语表达一个靠肢体操作"
+        ],
+        "potentialIssues": [
+          "部分玩家在两者的选择上有强烈的个人偏好导致开局暴露"
+        ]
+      },
+      "production": {
+        "wordA": "大冒险",
+        "wordB": "真心话",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是经典聚会惩罚或互动环节的固定选项",
+          "两者通常在同一个游戏流程中被玩家二选一或结合使用"
+        ],
+        "differences": [
+          "真心话侧重于回答隐私或暴露内心想法的问题",
+          "大冒险侧重于完成特定的肢体动作或搞怪任务"
+        ],
+        "reason": "词对高度经典且对称，共性和区别明显，非常适合聚会游戏。"
+      }
+    },
+    {
+      "labelId": "u049",
+      "id": "undercover:02b7ff23a0178d1740be96d655336209fb8ba24a0592ab708da2396a6dc0c464",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "wordA": "演戏猜词",
+        "wordB": "谁是卧底",
+        "category": "partyGames",
+        "commonTraits": [
+          "都需要玩家进行语言或肢体表达",
+          "都是活跃气氛的破冰游戏"
+        ],
+        "differences": [
+          "一个是逻辑推理和词汇对决一个是肢体比划或同义词解释",
+          "一个烧脑一个搞笑"
+        ],
+        "potentialIssues": [
+          "猜词类游戏名称较多可能存在称呼上的混淆"
+        ]
+      },
+      "production": {
+        "wordA": "演戏猜词",
+        "wordB": "谁是卧底",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [],
+        "differences": [
+          "演戏猜词主要通过肢体动作或语言提示让队友猜出词语",
+          "谁是卧底主要通过依次口头描述各自拿到的词语来进行推理"
+        ],
+        "reason": "演戏猜词更接近查理斯或比划猜词，与谁是卧底的语言描述机制存在本质不同，缺乏强力的共性。"
+      }
+    },
+    {
+      "labelId": "u050",
+      "id": "undercover:f0f2ffcbf9b228e1324a1cbece70ab96382d83974123f98920d9a9fb2f7be243",
+      "stratum": "rejected",
+      "category": "pets",
+      "content": {
+        "wordA": "冻干零食",
+        "wordB": "猫薄荷",
+        "category": "pets",
+        "commonTraits": [
+          "能让宠物表现出极大的兴奋与喜爱",
+          "属于宠物日常消费的消耗品",
+          "在喂食时有特定的互动仪式感",
+          "包装通常较小且气味明显"
+        ],
+        "differences": [
+          "一种是含有特殊植物成分能引起猫咪打滚的草本",
+          "另一种是纯肉制成的高营养脱水肉类",
+          "前者主要起精神刺激与放松作用",
+          "后者主要用于补充营养和训练奖励"
+        ],
+        "potentialIssues": [
+          "并非所有猫咪都对猫薄荷敏感"
+        ]
+      },
+      "production": {
+        "wordA": "冻干零食",
+        "wordB": "猫薄荷",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是给宠物食用的附加产品"
+        ],
+        "differences": [
+          "冻干零食是补充营养的肉类食品，猫薄荷是引起猫咪兴奋的草本植物",
+          "受众动物和作用机制完全不同"
+        ],
+        "reason": "共性过于宽泛，且猫薄荷具有强烈的物种特异性，不符合优秀的卧底词对标准。"
+      }
+    },
+    {
+      "labelId": "u051",
+      "id": "undercover:8bfde58d5be923cccc37133e05e8f0cb80b420bd4967cef8398bc07d38316fc9",
+      "stratum": "accepted",
+      "category": "pets",
+      "content": {
+        "wordA": "宠物推车",
+        "wordB": "航空箱",
+        "category": "pets",
+        "commonTraits": [
+          "用于外出时携带或安置宠物",
+          "底部平坦并空间相对封闭",
+          "能保障宠物在移动中的安全",
+          "常见于带宠物出门的场景"
+        ],
+        "differences": [
+          "一种是带轮子方便主人散步推行的载具",
+          "另一种是主要用于乘车或登机的固定箱包",
+          "前者视野开阔适合观景",
+          "后者空间紧凑更具安全感"
+        ],
+        "potentialIssues": [
+          "部分多功能航空箱也可以加装轮子推行"
+        ]
+      },
+      "production": {
+        "wordA": "宠物推车",
+        "wordB": "航空箱",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都用于带宠物出门时的出行工具",
+          "都能为宠物提供相对封闭和安全的空间"
+        ],
+        "differences": [
+          "宠物推车有轮子可推行适合长时间户外散步，航空箱通常手提或托运适合远距离运输",
+          "推车内部空间开阔便于宠物观景，航空箱相对密闭更注重安全和防逃逸"
+        ],
+        "reason": "两者都是常见的宠物出行装备，功能有交集但形态与核心使用场景区别明显。"
+      }
+    },
+    {
+      "labelId": "u052",
+      "id": "undercover:a4e98adeb50708b8be39a6aa5ac1b9823a4fa0d101076a55823b60c7addf0ea5",
+      "stratum": "accepted",
+      "category": "pets",
+      "content": {
+        "wordA": "狗咬胶",
+        "wordB": "猫抓板",
+        "category": "pets",
+        "commonTraits": [
+          "属于常见宠物的日常玩具",
+          "消耗宠物精力并保护家具",
+          "表面有特殊质感或纹理",
+          "带有供宠物啃咬抓挠的功能"
+        ],
+        "differences": [
+          "一种是给猫咪磨爪子用的平板或立柱",
+          "另一种是给狗狗洁牙啃咬的硬质零食",
+          "使用时猫咪主要用前爪抓挠",
+          "狗狗则需要用牙齿持续咀嚼"
+        ],
+        "potentialIssues": [
+          "部分猫咪也会啃咬狗咬胶"
+        ]
+      },
+      "production": {
+        "wordA": "狗咬胶",
+        "wordB": "猫抓板",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是宠物专用的日常用品",
+          "都用于满足宠物的本能天性与行为"
+        ],
+        "differences": [
+          "一个是给狗咀嚼磨牙清洁牙齿的食品或耐咬玩具，一个是给猫抓挠磨爪的板状家具",
+          "主要服务的动物种类和使用方式完全不同"
+        ],
+        "reason": "词对非常适合，熟悉度高，共性和区别明确，不是同义词或包含关系，双向可玩。"
+      }
+    },
+    {
+      "labelId": "u053",
+      "id": "undercover:f9c4adc96fab7ba81c591238964e71141b6ecee8cae36606e0e7d7a2636b8591",
+      "stratum": "rejected",
+      "category": "pets",
+      "content": {
+        "wordA": "宠物背包",
+        "wordB": "遛狗绳",
+        "category": "pets",
+        "commonTraits": [
+          "带宠物出门不可或缺的装备",
+          "需要承受一定的拉力或重量",
+          "体现了主人对宠物安全的负责",
+          "在公共场所有很高的使用频率"
+        ],
+        "differences": [
+          "一种是手握的长条状绳索用于控制狗狗行动",
+          "另一种是背在身上的封闭式容器用于容纳小型宠物",
+          "使用前者时宠物需要全程自己走路",
+          "使用后者时宠物会被主人背在背上或胸前"
+        ],
+        "potentialIssues": [
+          "大型犬背包较少见"
+        ]
+      },
+      "production": {
+        "wordA": "宠物背包",
+        "wordB": "遛狗绳",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是带宠物出门时使用的装备"
+        ],
+        "differences": [
+          "宠物背包将宠物装在内部由人背着，遛狗绳是牵引犬只让其自行行走",
+          "使用时的互动方式完全不同"
+        ],
+        "reason": "两者的共性仅停留在出门装备上，缺乏足够丰富的自然共性和可对比性，不建议使用。"
+      }
+    },
+    {
+      "labelId": "u054",
+      "id": "undercover:8d28baab335ddd5e09786a267ecdc28050c57c1aad6a5ecb3b0f7724ad5d3e7e",
+      "stratum": "accepted",
+      "category": "plants",
+      "content": {
+        "wordA": "吊兰",
+        "wordB": "绿萝",
+        "category": "plants",
+        "commonTraits": [
+          "常见室内观叶绿植",
+          "生命力顽强好养活",
+          "通过枝条扦插繁殖",
+          "能净化室内空气"
+        ],
+        "differences": [
+          "绿萝叶片较大呈心形且藤蔓会垂吊生长",
+          "吊兰叶片细长条形且会萌生小吊兰株",
+          "绿萝喜欢缠绕攀爬生长",
+          "吊兰根部有肉质的储水小萝卜根"
+        ],
+        "potentialIssues": [
+          "两者在办公室和家庭中太常见可能秒猜"
+        ]
+      },
+      "production": {
+        "wordA": "吊兰",
+        "wordB": "绿萝",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是极受大众欢迎的室内常绿观叶植物",
+          "都具有顽强的生命力且非常适合新手水培或土培"
+        ],
+        "differences": [
+          "吊兰叶片细长柔软且常长出匍匐茎的小植株",
+          "绿萝叶片呈心形且具有强健的攀援藤蔓"
+        ],
+        "reason": "吊兰与绿萝是国民级的室内绿植，两者的共性和区别非常符合大众认知，互动性好，是非常优秀的谁是卧底词对。"
+      }
+    },
+    {
+      "labelId": "u055",
+      "id": "undercover:050ffa45af93f056782b0f42f3aa3e4f72d0a5fa0f5c68a15690e0392b96ccd6",
+      "stratum": "accepted",
+      "category": "plants",
+      "content": {
+        "wordA": "睡莲",
+        "wordB": "荷花",
+        "category": "plants",
+        "commonTraits": [
+          "水生观赏植物",
+          "叶片浮在或高出水面",
+          "花朵美丽优雅",
+          "夏季盛开"
+        ],
+        "differences": [
+          "荷花的叶片和花朵高高挺出水面且叶面不沾水",
+          "睡莲的叶片贴在水面上有缺口",
+          "荷花地下茎是藕",
+          "睡莲没有可食用的藕"
+        ],
+        "potentialIssues": [
+          "部分人群可能分不清挺水植物与浮叶植物的区别"
+        ]
+      },
+      "production": {
+        "wordA": "睡莲",
+        "wordB": "荷花",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是生于水中的水生草本植物",
+          "都拥有美丽的浮水或出水花朵供人观赏"
+        ],
+        "differences": [
+          "睡莲的叶子贴在水面上且有一道缺口",
+          "荷花的叶子和花朵高高挺出水面且叶面不沾水"
+        ],
+        "reason": "睡莲和荷花是非常经典且合格的词对，大众熟悉度高，既有水生植物和美观花朵的共性，又在叶片形态和生长高度上有明显的本质区别，双向可玩性极佳。"
+      }
+    },
+    {
+      "labelId": "u056",
+      "id": "undercover:afb2100d6365369a46af4defc969275cc20b9b19a48e7a119784151a18049c73",
+      "stratum": "accepted",
+      "category": "plants",
+      "content": {
+        "wordA": "薄荷",
+        "wordB": "薰衣草",
+        "category": "plants",
+        "commonTraits": [
+          "具有特有芳香气味",
+          "常用于制作精油或香包",
+          "紫色或淡紫色小花",
+          "喜欢阳光充足环境"
+        ],
+        "differences": [
+          "薰衣草属于灌木状植物主打浪漫安神",
+          "薄荷属于草本植物主打清凉提神",
+          "薰衣草多成片种植于花海",
+          "薄荷极易在家中盆栽爆盆生吃或泡茶"
+        ],
+        "potentialIssues": [
+          "两者都有浓郁气味可能导致联想过于接近"
+        ]
+      },
+      "production": {
+        "wordA": "薄荷",
+        "wordB": "薰衣草",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是具有浓郁芳香气味的草本植物",
+          "都可以被提取精油或用于制作茶饮和日化用品"
+        ],
+        "differences": [
+          "薄荷气味清凉辛辣且叶片常用于食用或清凉油",
+          "薰衣草花朵呈紫色且气味偏向安神助眠的花香"
+        ],
+        "reason": "薄荷与薰衣草均属芳香植物，熟悉度高且区分明显，共性和区别均满足两项以上，适合作为游戏词对。"
+      }
+    },
+    {
+      "labelId": "u057",
+      "id": "undercover:69541b20940ce8a4903d111d3b550c7e8265740c3a314f0902d998526f63bbd4",
+      "stratum": "rejected",
+      "category": "plants",
+      "content": {
+        "wordA": "月季",
+        "wordB": "玫瑰",
+        "category": "plants",
+        "commonTraits": [
+          "属于蔷薇科植物",
+          "茎干上长有刺",
+          "花朵艳丽芬芳",
+          "常用于送礼表白"
+        ],
+        "differences": [
+          "玫瑰一年只开一次花且叶片较皱",
+          "月季四季开花且枝刺相对较少",
+          "玫瑰花香浓郁常用于提炼精油",
+          "月季品种繁多常见于城市绿化"
+        ],
+        "potentialIssues": [
+          "两者的外观极其相似在日常生活中常被混称"
+        ]
+      },
+      "production": {
+        "wordA": "月季",
+        "wordB": "玫瑰",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是常见的蔷薇科观赏花卉",
+          "花朵都有多种颜色且具有香气"
+        ],
+        "differences": [
+          "月季茎干刺较少且四季开花",
+          "玫瑰枝条密生刺且一年仅开花一次"
+        ],
+        "reason": "在日常生活中玫瑰和月季经常被混淆，甚至月季在商业上常被当成玫瑰出售，属于高度易混淆的上位包含或同义替代概念，不适合作为标准的谁是卧底词对。"
+      }
+    },
+    {
+      "labelId": "u058",
+      "id": "undercover:eac1967e6750ae64852ebb07b06dc57dc0ff0b268b94d443b0d97a1c82ddc52c",
+      "stratum": "rejected",
+      "category": "relationships",
+      "content": {
+        "wordA": "学徒",
+        "wordB": "顾客",
+        "category": "relationships",
+        "commonTraits": [
+          "两人的活动场景通常都在实体店铺或服务场所",
+          "都需要面对店铺内的专业服务项目或手艺展示"
+        ],
+        "differences": [
+          "学徒是为了学习技术而在店内长期劳动的内部人员",
+          "顾客是短暂进店消费并享受服务的外部人员"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "学徒",
+        "wordB": "顾客",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": false,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": false
+        },
+        "commonTraits": [
+          "两者都常见于传统手工业店铺",
+          "两者都与店内的经营活动有关"
+        ],
+        "differences": [
+          "学徒是学习技术的内部人员",
+          "顾客是购买服务的外部人员"
+        ],
+        "reason": "学徒与顾客在日常社交关系和场景中的对等性较弱，学徒属于内部学艺人员，顾客属于外部消费者，缺乏强烈的天然共性和对称平衡感，不适合作为优质词对。"
+      }
+    },
+    {
+      "labelId": "u059",
+      "id": "undercover:9711d29f6fd1162b21d759826b4ccae57ef132413fd67b614ad1f2d5cb788605",
+      "stratum": "accepted",
+      "category": "relationships",
+      "content": {
+        "wordA": "主刀",
+        "wordB": "护士",
+        "category": "relationships",
+        "commonTraits": [
+          "双方都在医院手术室的高压环境中共同工作",
+          "彼此需要高度默契以保障病人在手术中的生命安全"
+        ],
+        "differences": [
+          "主刀医生负责全面制定手术方案并执行核心切除缝合",
+          "护士负责术前器械清点准备及术中配合与术后护理"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "主刀",
+        "wordB": "护士",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都属于医疗行业的专业人员",
+          "两者都会共同出现在手术室等医疗救治场景中"
+        ],
+        "differences": [
+          "主刀通常是负责实施核心外科手术的医生，而护士是协助医生完成护理和配合操作的医护人员",
+          "主刀在手术中负责决策和主导治疗，护士主要负责执行医嘱和术中配合"
+        ],
+        "reason": "医疗场景下的搭档关系，词语属性对等且区别明显。"
+      }
+    },
+    {
+      "labelId": "u060",
+      "id": "undercover:d6b22a798a25e4044f3080f52a8ff4ea73d44f10cc282f6d02db2aa6482aae2a",
+      "stratum": "accepted",
+      "category": "relationships",
+      "content": {
+        "wordA": "偶像",
+        "wordB": "粉丝",
+        "category": "relationships",
+        "commonTraits": [
+          "两者构成了大众文娱与演艺圈的核心互动关系",
+          "彼此通过公开演出或社交平台产生远程连接"
+        ],
+        "differences": [
+          "粉丝属于进行追随支持与消费的群体",
+          "偶像则是提供才艺展示与精神示范的公众人物"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "偶像",
+        "wordB": "粉丝",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都属于文娱或粉丝文化中的常见角色",
+          "两者之间存在着紧密的互动与追随关系"
+        ],
+        "differences": [
+          "偶像通常是接受关注与支持的明星或公众人物，而粉丝是付出关注与支持的追随者",
+          "偶像在关系中处于被仰望的主导地位，粉丝则是群体性的拥护者"
+        ],
+        "reason": "偶像和粉丝是标准的强关联互补社交身份，辨识度高，双向可玩。"
+      }
+    },
+    {
+      "labelId": "u061",
+      "id": "undercover:450b8382992ce50e53a21e0d94e8f234cb74fdfa3fa26ca3e630304d4b1fea64",
+      "stratum": "accepted",
+      "category": "relationships",
+      "content": {
+        "wordA": "伴娘",
+        "wordB": "花童",
+        "category": "relationships",
+        "commonTraits": [
+          "都是婚礼上陪伴新娘入场或协助婚礼流程的角色",
+          "在婚礼现场通常穿着统一或经过精心挑选的礼服"
+        ],
+        "differences": [
+          "伴娘通常是新娘成年的闺蜜好友，负责贴身照顾",
+          "花童通常是几岁到十岁左右的小朋友，负责在前面撒花"
+        ],
+        "potentialIssues": [
+          "年龄差异极大，很难在描述时产生混淆"
+        ]
+      },
+      "production": {
+        "wordA": "伴娘",
+        "wordB": "花童",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都出现在婚礼仪式的伴随队伍中",
+          "都需要在婚礼上穿着特定礼服协助仪式进行"
+        ],
+        "differences": [
+          "伴娘通常是成年未婚女性且负责陪伴新娘处理婚礼事务",
+          "花童通常是幼童且主要负责在新人入场时撒花瓣或递戒指"
+        ],
+        "reason": "均为婚礼参与者，年龄定位和具体职责有明显区别。"
+      }
+    },
+    {
+      "labelId": "u062",
+      "id": "undercover:9c32b04a0eb4e3810486c1cdba0035e331b6ec4a8379dfaca238eae457252034",
+      "stratum": "accepted",
+      "category": "relationships",
+      "content": {
+        "wordA": "组员",
+        "wordB": "组长",
+        "category": "relationships",
+        "commonTraits": [
+          "两人同属于某一个具体的项目小组或集体内部",
+          "需要共同承担和完成分配下来的集体工作任务"
+        ],
+        "differences": [
+          "组长需要承担任务统筹、进度汇报与协调分工的职责",
+          "组员主要负责按照要求执行具体的执行层面工作"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "组员",
+        "wordB": "组长",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都属于同一个工作小组或班级小组的成员",
+          "两者都共同参与某项集体任务或项目的合作"
+        ],
+        "differences": [
+          "组长通常承担领导、分配任务和协调团队的职责，而组员主要负责具体任务的执行",
+          "组长在管理层级上高于普通组员"
+        ],
+        "reason": "经典的团队层级关系，词义互补且非常符合游戏规则。"
+      }
+    },
+    {
+      "labelId": "u063",
+      "id": "undercover:be30067bd02a26af6ae8b8d8d4afe4b05350a1fc7b31971f08f345f833f0816f",
+      "stratum": "accepted",
+      "category": "relationships",
+      "content": {
+        "wordA": "伴娘",
+        "wordB": "司仪",
+        "category": "relationships",
+        "commonTraits": [
+          "两人都是婚礼现场不可或缺的重要筹备人员",
+          "需要在仪式举行期间密切配合舞台上的流程推进"
+        ],
+        "differences": [
+          "伴娘主要贴身照顾新娘并协助完成伴手礼发放",
+          "司仪主要负责掌控全场节奏并主持婚礼各项环节"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "伴娘",
+        "wordB": "司仪",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都常见于婚礼庆典的现场",
+          "两者都是为了协助新人顺利完成婚礼而存在的特定人员"
+        ],
+        "differences": [
+          "伴娘是陪伴和协助新娘的亲友，通常由女性担任；司仪是主持婚礼流程的专业人员",
+          "伴娘侧重于贴身陪伴与伴随服务，司仪侧重于全场的节奏掌控与语言主持"
+        ],
+        "reason": "婚礼场景中的两个不同角色，熟悉度高且辨识度好。"
+      }
+    },
+    {
+      "labelId": "u064",
+      "id": "undercover:1695ca5bf0d7645fe640617d96b6c27d1f7d688178dc551b791e5fdd99c87861",
+      "stratum": "accepted",
+      "category": "school",
+      "content": {
+        "wordA": "团徽",
+        "wordB": "红领巾",
+        "category": "school",
+        "commonTraits": [
+          "都是学生阶段特定政治身份的象征标志",
+          "都需要佩戴在胸前显眼位置",
+          "都伴随着庄严的入队或入团仪式获得"
+        ],
+        "differences": [
+          "红领巾是少先队员佩戴的红布三角巾，团徽是共青团员佩戴的金黄色金属徽章",
+          "红领巾主要在小学阶段佩戴，团徽主要从初中和高中阶段开始佩戴"
+        ],
+        "potentialIssues": [
+          "随着年龄增长，学生会从佩戴红领巾自然过渡到佩戴团徽"
+        ]
+      },
+      "production": {
+        "wordA": "团徽",
+        "wordB": "红领巾",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是中国青少年佩戴的带有政治象征意义的标志物",
+          "通常在学校举行庄严的入团或入队仪式时佩戴"
+        ],
+        "differences": [
+          "团徽是共青团员佩戴的金属徽章，红领巾是少先队员佩戴的红色的三角形织物领巾",
+          "团徽通常佩戴在左胸前，红领巾佩戴在颈部并打结"
+        ],
+        "reason": "青少年标志物对比，共性自然，区别度极高。"
+      }
+    },
+    {
+      "labelId": "u065",
+      "id": "undercover:b66777b15228103ecec015c3dab7153eee5978f5e460e0f0d0d4132657715fd3",
+      "stratum": "accepted",
+      "category": "school",
+      "content": {
+        "wordA": "实验报告",
+        "wordB": "读书笔记",
+        "category": "school",
+        "commonTraits": [
+          "都是学生需要按时提交给老师批改的书面作业形式",
+          "都需要结合自身的实践操作或阅读过程来撰写心得与数据"
+        ],
+        "differences": [
+          "实验报告基于实验室里的理化生实操过程，包含数据记录与误差分析；读书笔记基于课外或课内书籍阅读，包含摘抄与感悟",
+          "实验报告重在客观科学验证，读书笔记重在主观文学思考"
+        ],
+        "potentialIssues": [
+          "文科生可能较少写实验报告，偏向理工科经验"
+        ]
+      },
+      "production": {
+        "wordA": "实验报告",
+        "wordB": "读书笔记",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学生需要按要求撰写的书面作业或总结",
+          "都需要记录详细的过程、观察和个人感悟"
+        ],
+        "differences": [
+          "实验报告基于科学实验过程和数据分析，读书笔记基于阅读文本的感悟",
+          "实验报告格式通常包含严谨的步骤与结论，读书笔记的形式则更为自由多样"
+        ],
+        "reason": "作业形式对比，共性和区别明确，双向可玩性好。"
+      }
+    },
+    {
+      "labelId": "u066",
+      "id": "undercover:7af2ffb65d1e7c5b8992c097a1544c0d18e5cb99081769e6e76328828092adc9",
+      "stratum": "accepted",
+      "category": "school",
+      "content": {
+        "wordA": "升学宴",
+        "wordB": "谢师宴",
+        "category": "school",
+        "commonTraits": [
+          "都是在毕业季举办的欢庆聚餐活动",
+          "都会邀请亲朋好友或恩师共同参与",
+          "举办地点通常选择在酒店的大包厢里"
+        ],
+        "differences": [
+          "升学宴是为了庆祝考上理想学校而举办，谢师宴是为了感谢老师多年培养之恩而举办",
+          "升学宴的主角是金榜题名的学生及其家长，谢师宴的核心是全体毕业班学生与授课老师"
+        ],
+        "potentialIssues": [
+          "很多家庭会将这两场宴席合并为同一场饭局来举办"
+        ]
+      },
+      "production": {
+        "wordA": "升学宴",
+        "wordB": "谢师宴",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学生在升学成功或毕业后举办的庆祝宴会",
+          "通常会邀请亲朋好友或恩师共同聚餐以示感谢"
+        ],
+        "differences": [
+          "升学宴侧重于庆祝考上大学并接受亲友祝贺，谢师宴侧重于向传道授业的老师表达感激之情",
+          "升学宴的主角主要是学生和家长，谢师宴的核心致谢对象是老师"
+        ],
+        "reason": "毕业升学时期的两大宴席对比，共性和区别均很明确。"
+      }
+    },
+    {
+      "labelId": "u067",
+      "id": "undercover:36a9d2f1481e043c37ca442090caffa70cecc913f1c0fa639cb390e5e9bcf6b7",
+      "stratum": "rejected",
+      "category": "school",
+      "content": {
+        "wordA": "学号",
+        "wordB": "校服",
+        "category": "school",
+        "commonTraits": [
+          "都是学校赋予每个学生独一无二的标志",
+          "都是为了便于学校进行统一管理而设立的",
+          "从新生入学的报到第一天起就会伴随使用"
+        ],
+        "differences": [
+          "校服是穿在身上带有学校标志的统一服装，学号是一串记录在档案里的数字代号",
+          "校服在校园各处显眼可见，学号主要写在作业本封面和准考证上"
+        ],
+        "potentialIssues": [
+          "部分学校会在校服上绣上学生的学号，导致两个概念产生交集"
+        ]
+      },
+      "production": {
+        "wordA": "学号",
+        "wordB": "校服",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学生在校园里代表个人身份的标识",
+          "在入学时由学校统一分配或发放"
+        ],
+        "differences": [
+          "学号是一串数字编号主要用于考试交卷和信息登记，校服是一套衣服主要用于日常穿着",
+          "学号是抽象的数字代号，校服是具象的实物服装"
+        ],
+        "reason": "虽然常见，但校服和学号的关联相对薄弱，且校服上经常会印有学号，存在部分包含或强行配对的嫌疑，故isNotSynonymOrSubset判为false。"
+      }
+    },
+    {
+      "labelId": "u068",
+      "id": "undercover:3ed35528f6071fab8132d05e6f369796892466fc4c1df5116f80bb78b64e06f1",
+      "stratum": "rejected",
+      "category": "school",
+      "content": {
+        "wordA": "体检",
+        "wordB": "视力检查",
+        "category": "school",
+        "commonTraits": [
+          "都是学校定期安排的医疗健康筛查项目",
+          "都需要学生排队前往指定教室或操场完成",
+          "检查结果会被记录在学生的健康档案卡上"
+        ],
+        "differences": [
+          "体检包含抽血、身高体重和内科等多项综合检查，视力检查仅测试双眼的屈光度或视力表",
+          "体检一年通常只大规模进行一次，视力检查在每学期开学时往往会单独复测"
+        ],
+        "potentialIssues": [
+          "视力检查本身就是学校综合体检中的其中一个固定项目"
+        ]
+      },
+      "production": {
+        "wordA": "体检",
+        "wordB": "视力检查",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学校定期组织对学生身体健康状况进行筛查的活动",
+          "通常在校医室或多功能厅统一排队进行"
+        ],
+        "differences": [
+          "体检包含身高体重、抽血和内科等多项综合指标，视力检查仅针对眼睛视力进行测试",
+          "体检是全方位的身体健康评估，视力检查项目较为单一集中"
+        ],
+        "reason": "视力检查属于体检的一部分，属于明显的包含关系，因此isNotSynonymOrSubset和hasDistinctDescriptions不成立。"
+      }
+    },
+    {
+      "labelId": "u069",
+      "id": "undercover:6307eac91d4efc2cbec921bf6f865e5d72834156e9355e92dba5d7c447e1f005",
+      "stratum": "accepted",
+      "category": "school",
+      "content": {
+        "wordA": "开学典礼",
+        "wordB": "毕业晚会",
+        "category": "school",
+        "commonTraits": [
+          "都是学校在礼堂或操场举办的大型仪式",
+          "都需要校领导上台发表公开讲话",
+          "都标志着学生生涯某个重要阶段的开启或落幕"
+        ],
+        "differences": [
+          "开学典礼象征着新的开始且气氛庄重严肃，毕业晚会充满离别伤感且带有文艺汇演性质",
+          "开学典礼通常在白天举行，毕业晚会一般安排在夜间进行"
+        ],
+        "potentialIssues": [
+          "部分学校会将毕业典礼和毕业晚会在同一天连续举办"
+        ]
+      },
+      "production": {
+        "wordA": "开学典礼",
+        "wordB": "毕业晚会",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学校在学期关键时间节点举办的标志性大型集会",
+          "通常都有校领导致辞、师生代表发言以及全校师生参与"
+        ],
+        "differences": [
+          "开学典礼在学期初举行标志着新学年的开始，毕业晚会在学期末举行充满离别与庆祝的色彩",
+          "开学典礼严肃庄重并对未来提出期望，毕业晚会则以文艺节目表演和师生告别为主"
+        ],
+        "reason": "学校学期首尾的活动对比，极具画面感且好玩。"
+      }
+    },
+    {
+      "labelId": "u070",
+      "id": "undercover:48fd0bba47d9eb6553b9801648b6d79e52c2437e52971cc1ceaee4d2ce028443",
+      "stratum": "accepted",
+      "category": "school",
+      "content": {
+        "wordA": "住校",
+        "wordB": "走读",
+        "category": "school",
+        "commonTraits": [
+          "都是学生在求学期间的日常居住状态",
+          "都需要每天按时往返于生活区与教学区",
+          "都会受到学校宿舍管理条例或作息时间的约束"
+        ],
+        "differences": [
+          "住校生周一到周五晚上住在学校宿舍，走读生每天放学后都要回家居住",
+          "住校生需要独立处理个人洗漱与内务，走读生通常有家长的后勤照顾"
+        ],
+        "potentialIssues": [
+          "部分走读生偶尔也会申请在学校午休或晚自习留宿"
+        ]
+      },
+      "production": {
+        "wordA": "住校",
+        "wordB": "走读",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是学生在求学期间针对个人居住方式的选择",
+          "直接决定了学生早晚上下学的通勤方式与作息规律"
+        ],
+        "differences": [
+          "住校生住在学校宿舍并由宿管统一管理，走读生每天回家居住并由家长照顾起居",
+          "住校省去了每天往返家校的通勤时间，走读则能享受更多家庭的关怀与独立空间"
+        ],
+        "reason": "学生生活状态对比，典型且具有天然对立面。"
+      }
+    },
+    {
+      "labelId": "u071",
+      "id": "undercover:5c9e2b2e82cacff6ee316b3fa49cf917cbfca93232fe9f03ef1f08f1050c067d",
+      "stratum": "rejected",
+      "category": "travel",
+      "content": {
+        "wordA": "急救药箱",
+        "wordB": "洗漱套装",
+        "category": "travel",
+        "commonTraits": [
+          "都是出门远行时装在行李箱里的必备生活小物件集合",
+          "都能在关键时刻解决旅途中突发的个人健康或卫生需求",
+          "通常体积较小，方便随身携带或收纳在角落"
+        ],
+        "differences": [
+          "一个里面装满了创可贴、消炎药和晕车药等应对突发伤病的医疗用品",
+          "一个里面装满了牙刷、牙膏、毛巾等每天早晚清洁身体的卫生用品"
+        ],
+        "potentialIssues": [
+          "两者都是常见的便携收纳包，可能在打包时被放在一起考虑"
+        ]
+      },
+      "production": {
+        "wordA": "急救药箱",
+        "wordB": "洗漱套装",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是旅行行李箱中的便携功能小包"
+        ],
+        "differences": [
+          "急救药箱装有创可贴、感冒药等应急药品，洗漱套装装有牙刷、牙膏等个人清洁用品",
+          "药箱用于应对身体突发不适，洗漱套装用于日常个人卫生清洁"
+        ],
+        "reason": "缺乏第二项强关联的自然共性，仅靠“行李箱自带包”略显牵强。"
+      }
+    },
+    {
+      "labelId": "u072",
+      "id": "undercover:b480e25afffc2b050350ab409062ee251f7a231156c188f089771a41e991674d",
+      "stratum": "accepted",
+      "category": "travel",
+      "content": {
+        "wordA": "乘务员",
+        "wordB": "安保人员",
+        "category": "travel",
+        "commonTraits": [
+          "都是在飞机、火车或车站等公共交通场所工作的制服人员",
+          "都负责维持现场秩序并为旅客提供必要的协助",
+          "都接受过应对突发事件的专业培训"
+        ],
+        "differences": [
+          "一个是负责在旅途中服务乘客饮食、播报行程的客舱或车厢服务人员",
+          "一个是负责检查安全隐患、处理违规行为和保护秩序的保卫人员"
+        ],
+        "potentialIssues": [
+          "高铁乘警或航空安全员有时会兼具两者的部分特征"
+        ]
+      },
+      "production": {
+        "wordA": "乘务员",
+        "wordB": "安保人员",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是交通工具或出行场所中的工作人员",
+          "都需要穿着制服为公众提供服务"
+        ],
+        "differences": [
+          "主要负责照顾旅客和提供行程服务",
+          "主要负责维护秩序和检查安全防范"
+        ],
+        "reason": "交通从业人员的对比。"
+      }
+    },
+    {
+      "labelId": "u073",
+      "id": "undercover:a6ec52847b5c9edccedb342a47509bbd3e04425bb6926bc7034095a3b609b261",
+      "stratum": "accepted",
+      "category": "travel",
+      "content": {
+        "wordA": "旅行日记",
+        "wordB": "路书",
+        "category": "travel",
+        "commonTraits": [
+          "都是在旅行过程中或前后记录行程文字的纸面材料",
+          "都凝聚了旅行者的心思与对路线的规划或感悟",
+          "都可以作为以后回忆这次出行经历的重要资料"
+        ],
+        "differences": [
+          "一个是主要记录个人一路上的所见所闻和情感体会的文学性文字",
+          "一个是详细罗列每天具体行车路线、住宿点和时间节点的专业规划手册"
+        ],
+        "potentialIssues": [
+          "普通大众对于“路书”这个专业自驾词汇的熟悉度可能略低"
+        ]
+      },
+      "production": {
+        "wordA": "旅行日记",
+        "wordB": "路书",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是以文字形式记录旅行经历的文档",
+          "都与个人的出游行程密切相关"
+        ],
+        "differences": [
+          "通常在旅行结束后写下的感悟与回忆",
+          "通常在旅行出发前做好的路线规划指南"
+        ],
+        "reason": "旅行记录文本的对比。"
+      }
+    },
+    {
+      "labelId": "u074",
+      "id": "undercover:8fac9285571d41d720cd9eb59dd0248b60f9abe334bcc7a0b7b76977e7ecfcd0",
+      "stratum": "accepted",
+      "category": "travel",
+      "content": {
+        "wordA": "纪念邮票",
+        "wordB": "风景明信片",
+        "category": "travel",
+        "commonTraits": [
+          "都是游客在旅游景点购买并用来留作纪念的纸质文创产品",
+          "通常都印有当地标志性的风景图案或文化特色",
+          "都可以通过邮局寄给远方的亲朋好友"
+        ],
+        "differences": [
+          "一种是背面可以写字、正面印有大幅风景照片的卡片",
+          "一种是贴在信封或明信片上代表已支付邮资的法定微型凭证"
+        ],
+        "potentialIssues": [
+          "许多风景明信片本身就印有假邮票图案，容易混淆"
+        ]
+      },
+      "production": {
+        "wordA": "纪念邮票",
+        "wordB": "风景明信片",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是旅行时常见的纪念品或文创产品",
+          "都可以贴上邮资进行邮寄传播"
+        ],
+        "differences": [
+          "通常尺寸较小且具有邮资凭证功能",
+          "通常印有风景图片且背面可写祝福语"
+        ],
+        "reason": "旅行纪念品的对比。"
+      }
+    },
+    {
+      "labelId": "u075",
+      "id": "undercover:05ce089746454984c71ef161e9d809eb39d38ca139031e2d5fd5e42978b3810c",
+      "stratum": "rejected",
+      "category": "travel",
+      "content": {
+        "wordA": "信用卡",
+        "wordB": "旅行支票",
+        "category": "travel",
+        "commonTraits": [
+          "都是异地旅行时用来替代大额现金的支付工具",
+          "都需要在出行前办理或向相关机构申请",
+          "都能在很大程度上提高长途旅行的安全性"
+        ],
+        "differences": [
+          "一种是预先购买并需要在指定地点签字兑换的纸质凭证",
+          "一种是通过刷卡或绑定手机进行透支消费的现代电子卡片"
+        ],
+        "potentialIssues": [
+          "随着移动支付普及，年轻一代对旅行支票可能不太熟悉"
+        ]
+      },
+      "production": {
+        "wordA": "信用卡",
+        "wordB": "旅行支票",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": false,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是境外旅行支付工具",
+          "两者都可以替代大额现金携带"
+        ],
+        "differences": [
+          "信用卡是电子透支卡片，旅行支票是纸质票据",
+          "信用卡极其普及，旅行支票在现代已经高度边缘化且不熟悉"
+        ],
+        "reason": "旅行支票属于较为冷门的过时金融工具，熟悉度不对等。"
+      }
+    },
+    {
+      "labelId": "u076",
+      "id": "undercover:1428fbf992e7387f48934643c8f8b1c42fd39937d29ec2c77081d3f69bcde3af",
+      "stratum": "rejected",
+      "category": "travel",
+      "content": {
+        "wordA": "旅游大巴",
+        "wordB": "长途汽车",
+        "category": "travel",
+        "commonTraits": [
+          "都是搭载大量乘客进行中长途陆地运输的大型客车",
+          "都在高速公路或省际公路上行驶",
+          "乘客在车程中都需要长时间坐在固定的座位上"
+        ],
+        "differences": [
+          "一种是主要用于连接不同城镇、按固定客运班次发车的普通客车",
+          "一种是专门服务于旅行团、按定制路线接送游客的包车或专线车"
+        ],
+        "potentialIssues": [
+          "旅行社有时也会租用普通长途客车运载游客"
+        ]
+      },
+      "production": {
+        "wordA": "旅游大巴",
+        "wordB": "长途汽车",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": false,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是公路客运大型客车",
+          "两者都用于载人长途出行"
+        ],
+        "differences": [
+          "旅游大巴多为旅行团定制包车，长途汽车多为客运站班线车"
+        ],
+        "reason": "旅游大巴属于长途汽车的一种亚类，属于包含关系且区别不够丰富。"
+      }
+    },
+    {
+      "labelId": "u077",
+      "id": "undercover:2b7b0eea7e45a141325f1e7e0bbd792c9d9ca379a4f0caf2c1c8a605797449d8",
+      "stratum": "rejected",
+      "category": "travel",
+      "content": {
+        "wordA": "充电宝",
+        "wordB": "转换插头",
+        "category": "travel",
+        "commonTraits": [
+          "都是现代人外出旅行时包里必备的数码配件",
+          "都是为了解决电子设备在外面电量不足或无法充电的问题",
+          "通常都需要在上飞机时遵守相关的航空安全规定"
+        ],
+        "differences": [
+          "一个是自带电池随时为手机提供电能移动补给的设备",
+          "一个是解决不同国家插座形状不统一问题的物理转接工具"
+        ],
+        "potentialIssues": [
+          "部分多功能充电宝本身也自带插头，可能导致界限模糊"
+        ]
+      },
+      "production": {
+        "wordA": "充电宝",
+        "wordB": "转换插头",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": false,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是电子数码出行配件"
+        ],
+        "differences": [
+          "充电宝是自身储能供手机充电的电池，转换插头是适配不同国家插座形状的转接口",
+          "充电宝能脱离插座独立使用，转换插头必须配合当地墙面插座使用"
+        ],
+        "reason": "缺少第二项具体的自然共性，仅因数码随身携带被强行配对。"
+      }
+    },
+    {
+      "labelId": "u078",
+      "id": "undercover:37eebfc5cc63d9d142d7dabd4ba99a9d4ae9893380d534470d15cc63ec6a7b88",
+      "stratum": "accepted",
+      "category": "travel",
+      "content": {
+        "wordA": "度假酒店",
+        "wordB": "青年旅舍",
+        "category": "travel",
+        "commonTraits": [
+          "都是外出旅行的住宿场所",
+          "都提供床铺与基本的洗漱设施"
+        ],
+        "differences": [
+          "青年旅舍多为多人床位且主打社交而度假酒店注重私密",
+          "青年旅舍价格便宜而度假酒店设施更豪华"
+        ],
+        "potentialIssues": []
+      },
+      "production": {
+        "wordA": "度假酒店",
+        "wordB": "青年旅舍",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是旅行住宿场所",
+          "都提供床铺和卫浴设施"
+        ],
+        "differences": [
+          "通常私密性好价格较高",
+          "通常以床位房为主且注重社交"
+        ],
+        "reason": "住宿场所的对比，定位清晰，特性分明。"
+      }
+    },
+    {
+      "labelId": "u079",
+      "id": "undercover:207339dbb4e9932550df703a79d0465a15f97d7820ac46520848fab478d707ba",
+      "stratum": "accepted",
+      "category": "travel",
+      "content": {
+        "wordA": "观景凉亭",
+        "wordB": "遮阳棚",
+        "category": "travel",
+        "commonTraits": [
+          "都是景区、公园或户外营地常见的遮阳避雨公共建筑",
+          "都能为路过的游客提供一块阴凉的休憩空间",
+          "通常都建在视野开阔或人流量较大的户外地段"
+        ],
+        "differences": [
+          "一种是多用支架和帆布搭成的可以临时收纳的遮阳棚户",
+          "一种是多用木材或石材建造的具有景观装饰效果的固定凉亭"
+        ],
+        "potentialIssues": [
+          "部分临时露营也会同时使用这两者"
+        ]
+      },
+      "production": {
+        "wordA": "观景凉亭",
+        "wordB": "遮阳棚",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "都是户外提供阴凉和休息的建筑设施",
+          "都可以让人在下方躲避阳光和风雨"
+        ],
+        "differences": [
+          "是通常位于公园或景区的固定木石建筑",
+          "是通常可收纳或临时搭建的遮阳布篷"
+        ],
+        "reason": "户外休息遮阳设施的对比。"
+      }
+    },
+    {
+      "labelId": "u080",
+      "id": "undercover:84d3d21447589e6afa58d494bf41a624761e8fe9ba8bc23e020946d3447d63b8",
+      "stratum": "rejected",
+      "category": "work",
+      "content": {
+        "wordA": "会计",
+        "wordB": "银行柜员",
+        "category": "work",
+        "commonTraits": [
+          "每天都要和海量的数字货币以及财务凭证打交道",
+          "对工作细心程度和防范风险能力要求极高"
+        ],
+        "differences": [
+          "会计主要在企业内部负责账目核算和财务报表编制",
+          "银行柜员主要在营业网点窗口为客户办理存取款业务"
+        ],
+        "potentialIssues": [
+          "银行内部也设有专门的会计岗位"
+        ]
+      },
+      "production": {
+        "wordA": "会计",
+        "wordB": "银行柜员",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": false,
+          "isPlayableBothWays": false,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "双方都从事与金钱数字高度相关的财务工作",
+          "双方都需要极高的细心和防范差错的能力"
+        ],
+        "differences": [
+          "会计主要负责企业内部的账目记录、做账和税务申报，银行柜员主要负责银行网点面对面处理客户的存取款和转账业务",
+          "会计的工作场所多在企业办公室，银行柜员的工作场所限定在银行营业大厅的柜台内"
+        ],
+        "reason": "银行柜员在广义上也属于从事会计或出纳性质的工作，存在包含或紧密重叠关系，不满足严格非同义非子集要求。"
+      }
+    },
+    {
+      "labelId": "u081",
+      "id": "undercover:ffa9b0ad786975b758cdb77da56a4ebdd2c4d4385d6140c6e39a005b0d8e87a7",
+      "stratum": "rejected",
+      "category": "work",
+      "content": {
+        "wordA": "相亲",
+        "wordB": "面试",
+        "category": "work",
+        "commonTraits": [
+          "双方都需要在陌生人面前表现自己",
+          "通常需要精心准备着装和自我介绍"
+        ],
+        "differences": [
+          "面试是为了获得工作岗位而进行的专业考核",
+          "相亲是为了寻找恋爱或结婚对象而进行的社交活动"
+        ],
+        "potentialIssues": [
+          "部分人会把面试开玩笑说成是在相亲"
+        ]
+      },
+      "production": {
+        "wordA": "相亲",
+        "wordB": "面试",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "双方都是需要准备正装出席的严肃场合",
+          "双方都需要向对方展示个人优势以获得认可"
+        ],
+        "differences": [
+          "相亲是为了寻找恋爱或结婚对象属于私人情感活动，而面试是为了求职属于职业活动",
+          "相亲通常在餐厅或咖啡馆进行，面试通常在公司办公场所进行"
+        ],
+        "reason": "词对质量良好但分类为职场主题，相亲属于情感婚恋范畴，分类准确性存疑。"
+      }
+    },
+    {
+      "labelId": "u082",
+      "id": "undercover:7b9ef522377df1e3e7f2b961423f473a3463a4f3086f356ea5f36cbdf228061b",
+      "stratum": "rejected",
+      "category": "work",
+      "content": {
+        "wordA": "情书",
+        "wordB": "辞职信",
+        "category": "work",
+        "commonTraits": [
+          "都是需要通过书面文字向特定对象表达心意的信件",
+          "通常字数不多但都饱含着强烈的情感变化"
+        ],
+        "differences": [
+          "辞职信是向公司领导正式表达不再继续合作的意愿",
+          "情书是向心仪的对象表达爱慕和追求之情"
+        ],
+        "potentialIssues": [
+          "有些员工开玩笑说写辞职信比写情书还要慎重"
+        ]
+      },
+      "production": {
+        "wordA": "情书",
+        "wordB": "辞职信",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "双方都是需要通过精心书写文字来向特定对象表达个人意愿的信件",
+          "双方的内容都包含着强烈的情感表达或郑重的决定宣告"
+        ],
+        "differences": [
+          "情书是向倾慕对象表达爱意和追求之情的私人浪漫信件，辞职信是向公司领导表达终止劳动合同意愿的职场正式公文",
+          "情书的目标是开启一段恋爱关系，辞职信的目标是结束一段工作关系"
+        ],
+        "reason": "情书属于极其私人的情感交流，分类在职场主题下不够准确。"
+      }
+    },
+    {
+      "labelId": "u083",
+      "id": "undercover:b649a729cf272eb3e111bdfe9e1496bb73d1f3479036f74eea356198c77d752e",
+      "stratum": "accepted",
+      "category": "work",
+      "content": {
+        "wordA": "白领",
+        "wordB": "蓝领",
+        "category": "work",
+        "commonTraits": [
+          "都是现代社会靠辛勤劳动赚取薪水的核心劳动力",
+          "都拥有各自不可替代的专业技能和工作经验"
+        ],
+        "differences": [
+          "白领通常在写字楼从事脑力劳动和文职管理工作",
+          "蓝领通常在生产一线从事体力劳动和技术操作工作"
+        ],
+        "potentialIssues": [
+          "现代很多技术工人的薪资和工作环境与白领差异缩小"
+        ]
+      },
+      "production": {
+        "wordA": "白领",
+        "wordB": "蓝领",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是对广大人群按职业类型进行的大致分类称呼",
+          "两者都是现代社会经济发展不可或缺的劳动者群体"
+        ],
+        "differences": [
+          "白领主要指从事脑力劳动、多在办公室办公的 salaried 阶层",
+          "蓝领主要指从事体力劳动、多在工厂或户外作业的技术工人"
+        ],
+        "reason": "经典的社会分工词对，对称性极佳。"
+      }
+    },
+    {
+      "labelId": "u084",
+      "id": "undercover:a31c1405ec8f14268b17ca8801d00c2108a8fa095c2f86ba3c12f78a29079c7e",
+      "stratum": "accepted",
+      "category": "work",
+      "content": {
+        "wordA": "保安",
+        "wordB": "保洁",
+        "category": "work",
+        "commonTraits": [
+          "都是现代写字楼和社区不可或缺的服务岗位",
+          "通常都有统一的工作制服"
+        ],
+        "differences": [
+          "保安主要负责安全防范、门卫和秩序维护，保洁主要负责环境卫生和清洁打扫",
+          "保安常见工具是对讲机和警戒棍，保洁常见工具是拖把和抹布"
+        ],
+        "potentialIssues": [
+          "某些物业公司会设立综合服务岗，职责有所重叠"
+        ]
+      },
+      "production": {
+        "wordA": "保安",
+        "wordB": "保洁",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是现代商业或办公场所常见的基础后勤保障岗位",
+          "两者通常都需要穿着统一的工作制服"
+        ],
+        "differences": [
+          "保安的主要职责是维护秩序和保障出入安全",
+          "保洁的主要职责是维护环境卫生和清洁打扫"
+        ],
+        "reason": "岗位类型对称，是非常经典的基层职业词对。"
+      }
+    },
+    {
+      "labelId": "u085",
+      "id": "undercover:364c5f32a5321772a8d6129b8b1928a37bb67589cd5e657d135ff7c387a21700",
+      "stratum": "rejected",
+      "category": "work",
+      "content": {
+        "wordA": "外卖",
+        "wordB": "快递",
+        "category": "work",
+        "commonTraits": [
+          "都是靠电动车穿梭于城市大街小巷的配送服务",
+          "都需要通过手机App下单并由专人送到指定地点"
+        ],
+        "differences": [
+          "快递主要运送网购商品和文件包裹等非即时物品",
+          "外卖主要运送刚出锅的餐饮食品以满足即时饥饿需求"
+        ],
+        "potentialIssues": [
+          "现在很多即时零售平台也能配送生鲜和日用品"
+        ]
+      },
+      "production": {
+        "wordA": "外卖",
+        "wordB": "快递",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "双方都是依托互联网平台通过跑腿配送服务的现代新兴行业",
+          "双方从业人员都需要经常骑电动车在大街小巷穿梭派送"
+        ],
+        "differences": [
+          "外卖主要配送餐饮熟食且强调极速送达，快递主要配送包裹物品且涵盖中长途运输和末端派送",
+          "外卖配送的时效通常在半小时到一小时内，快递的配送通常需要数天或跨城市运输"
+        ],
+        "reason": "属于生活服务与物流行业，不属于紧密围绕办公室或职业的职场主题。"
+      }
+    },
+    {
+      "labelId": "u086",
+      "id": "undercover:2b1e9f0519ffb65da7b1da96bb3504d30fe3a3e2a17b65b30fe1c5697b24ad11",
+      "stratum": "accepted",
+      "category": "work",
+      "content": {
+        "wordA": "星探",
+        "wordB": "猎头",
+        "category": "work",
+        "commonTraits": [
+          "核心工作都是在茫茫人海中寻找并挖掘具有特殊才能的人才",
+          "成功促成后可以获得丰厚的佣金回报"
+        ],
+        "differences": [
+          "猎头主要为企业搜寻高端管理和核心技术岗位的高级人才",
+          "星探主要为娱乐演艺圈发掘有潜质的年轻素人进行培养"
+        ],
+        "potentialIssues": [
+          "某些高精尖人才的挖掘过程和娱乐圈运作有相似之处"
+        ]
+      },
+      "production": {
+        "wordA": "星探",
+        "wordB": "猎头",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是专门在人群中发掘特殊人才的职业伯乐",
+          "两者都需要具备敏锐的眼光和出色的沟通说服能力"
+        ],
+        "differences": [
+          "星探主要在街头或演艺圈外挖掘具有明星潜质的演艺新人",
+          "猎头主要在职场中为企业寻找高端管理或技术人才"
+        ],
+        "reason": "文娱圈与商业职场的伯乐对比，十分巧妙且有趣。"
+      }
+    },
+    {
+      "labelId": "u087",
+      "id": "undercover:ccba1c5984c5897ce620973cfd7ada5339eb33818838c226eb85fe7eb4bb6894",
+      "stratum": "accepted",
+      "category": "work",
+      "content": {
+        "wordA": "周报",
+        "wordB": "小说",
+        "category": "work",
+        "commonTraits": [
+          "都需要创作者在文档中绞尽脑汁地编排大段文字内容",
+          "最终目的都是为了按时向他人交付成果"
+        ],
+        "differences": [
+          "周报是向领导汇报每周工作进展和下周计划的职场公文",
+          "小说是通过虚构故事情节和人物来娱乐读者的文学创作"
+        ],
+        "potentialIssues": [
+          "部分打工人在写周报时发挥的想象力不亚于写小说"
+        ]
+      },
+      "production": {
+        "wordA": "周报",
+        "wordB": "小说",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是由文字构成的长篇或中篇阅读文本",
+          "两者通常都可以通过电子文档或纸质书本进行阅读"
+        ],
+        "differences": [
+          "周报是职场中汇报工作内容和计划的纪实性公文",
+          "小说是以塑造人物形象和故事情节为主的文学创作作品"
+        ],
+        "reason": "公文与文学作品的对比，虽然跨度较大但共性和区别都清晰可查。"
+      }
+    },
+    {
+      "labelId": "u088",
+      "id": "undercover:6f40d761b1dd8738ffea5f5f98af877ad6f8723618936538b5512eb092d65f29",
+      "stratum": "rejected",
+      "category": "work",
+      "content": {
+        "wordA": "捐款",
+        "wordB": "罚款",
+        "category": "work",
+        "commonTraits": [
+          "都会导致个人银行账户里的资金发生扣减流动",
+          "都与特定的规章制度或社会责任事件相关"
+        ],
+        "differences": [
+          "罚款是因为个人违反了公司的规章制度而被动扣除的惩罚",
+          "捐款是为了帮助困难群体或灾区而自愿奉献的爱心行为"
+        ],
+        "potentialIssues": [
+          "某些企业变相的违规扣款可能会被员工误读或混淆"
+        ]
+      },
+      "production": {
+        "wordA": "捐款",
+        "wordB": "罚款",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "双方都表现为个人账户中有一笔现金支出并转移给外部机构",
+          "双方的发生往往都伴随着特定的社会事件或行为触发"
+        ],
+        "differences": [
+          "捐款是出于爱心和自愿原则对慈善公益事业进行的无偿资金资助，罚款是违反法律法规或规章制度后被强制征收的惩罚性金钱处罚",
+          "捐款的金额多少完全由个人心意决定，罚款的数额由相关执法或管理部门根据标准严格规定"
+        ],
+        "reason": "属于财务收支行为，放在职场主题下分类不够精准。"
+      }
+    },
+    {
+      "labelId": "u089",
+      "id": "undercover:bff5e11af7b6f95dde2acd58b5617179206ae268ad81400a5ad98d329a1750bf",
+      "stratum": "accepted",
+      "category": "work",
+      "content": {
+        "wordA": "学徒",
+        "wordB": "实习生",
+        "category": "work",
+        "commonTraits": [
+          "都是处于职业生涯最初阶段向资深前辈学习的人员",
+          "通常薪酬待遇较低且以积累实操经验为主要目的"
+        ],
+        "differences": [
+          "实习生主要在现代企业写字楼里熟悉白领办公流程",
+          "学徒主要在传统手工业或工厂跟随师傅学习一门手艺"
+        ],
+        "potentialIssues": [
+          "两者的培养模式在现代职业教育中经常被交叉提及"
+        ]
+      },
+      "production": {
+        "wordA": "学徒",
+        "wordB": "实习生",
+        "qualityChecks": {
+          "isFamiliar": true,
+          "hasSimilarFamiliarity": true,
+          "hasSharedDescriptions": true,
+          "hasDistinctDescriptions": true,
+          "isNotSynonymOrSubset": true,
+          "isPlayableBothWays": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isFactuallyCertain": true
+        },
+        "commonTraits": [
+          "两者都是处于学习阶段、向资深人士拜师学艺的新人",
+          "两者的主要目的都是为了积累实践经验和掌握专业技能"
+        ],
+        "differences": [
+          "学徒多见于传统手工业或技术行业，通常跟随师傅进行长期手把手学习",
+          "实习生多见于现代企业或机构，通常在办公室完成规定的短期实习期"
+        ],
+        "reason": "传统与现代身份的对应，具有很强的词义区分空间。"
+      }
+    }
+  ]
+}

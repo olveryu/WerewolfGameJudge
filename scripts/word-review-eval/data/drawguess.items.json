@@ -1,0 +1,2778 @@
+{
+  "game": "drawguess",
+  "sampledAt": "2026-11-14T01:45:08.545Z",
+  "sampling": "Reviewed drawguess_word_candidates; 15 categories (10 with most rejections + food, dailyObjects, animals, vehicles, sports); up to 4 random per category per production status.",
+  "items": [
+    {
+      "labelId": "d001",
+      "id": "drawguess:e5438843f730ea8adbadc291be1320cf0d90d19ad3d63cff1e6eeef426fd76d6",
+      "stratum": "accepted",
+      "category": "actionComedy",
+      "content": {
+        "word": "抱头鼠窜",
+        "category": "actionComedy",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "双手抱头弯腰逃跑的姿势非常经典好认。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "抱头鼠窜",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "经典喜剧逃跑姿势，双手抱头弯腰快跑，辨识度极高。"
+      }
+    },
+    {
+      "labelId": "d002",
+      "id": "drawguess:e9d06c7b018c0dde66abcaa5f3ff9dc5c4b672617ab9b2732df2a1711bb5f115",
+      "stratum": "rejected",
+      "category": "actionComedy",
+      "content": {
+        "word": "焦头烂额",
+        "category": "actionComedy",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需画出头发烧焦和满头大汗的滑稽样。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "焦头烂额",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "喜剧中常表现为头发烧焦、满脸灰烬的夸张造型，具象好画。"
+      }
+    },
+    {
+      "labelId": "d003",
+      "id": "drawguess:dd0f53a3aecb969ddb238e93e2eff0d8e3a74d9b90b231cc582e4efba1267e17",
+      "stratum": "rejected",
+      "category": "actionComedy",
+      "content": {
+        "word": "落荒而逃",
+        "category": "actionComedy",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "表现丢盔弃甲或鞋子飞出去的细节。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "落荒而逃",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "表现慌乱逃跑的场景，符合动作喜剧主题。"
+      }
+    },
+    {
+      "labelId": "d004",
+      "id": "drawguess:b575d2250c445fb9cee6259cc809bdf189b718793bf2ed9b191a382afac08224",
+      "stratum": "accepted",
+      "category": "actionComedy",
+      "content": {
+        "word": "东躲西藏",
+        "category": "actionComedy",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "可画躲在明显不够大的遮挡物后面的滑稽样。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "东躲西藏",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画人物藏在树后或桌子下的滑稽躲避姿态来表达。"
+      }
+    },
+    {
+      "labelId": "d005",
+      "id": "drawguess:e5a3466404783e56512c9a5e7440a681ee17cf7aa5b9d5fbabb2be0abcc30e85",
+      "stratum": "rejected",
+      "category": "actionComedy",
+      "content": {
+        "word": "屁滚尿流",
+        "category": "actionComedy",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "动作夸张，需注意尺度表现滑稽感。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "屁滚尿流",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": false,
+          "isUnambiguous": false
+        },
+        "reason": "含有不雅及低俗意味，不符合适宜性要求，且具象化绘制困难。"
+      }
+    },
+    {
+      "labelId": "d006",
+      "id": "drawguess:23322d328cdac5fc16c5b0adf648d0d0c8a712ea0c563c82f329eeb7ed722cb9",
+      "stratum": "rejected",
+      "category": "actionComedy",
+      "content": {
+        "word": "抱头痛哭",
+        "category": "actionComedy",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "过于悲伤反而产生喜剧效果的夸张大哭。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "抱头痛哭",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "虽然动作具体，但偏向悲伤情感，不太符合动作喜剧夸张搞怪的氛围。"
+      }
+    },
+    {
+      "labelId": "d007",
+      "id": "drawguess:0bcbd3eb9acfb9b7bab09ee96fd2ae86f4f459bc523773b0c769d6e90ea0ec91",
+      "stratum": "accepted",
+      "category": "actionComedy",
+      "content": {
+        "word": "手忙脚乱",
+        "category": "actionComedy",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出多只手臂和凌乱的姿态。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "手忙脚乱",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画多只手和凌乱的物品掉落来表现慌乱状态。"
+      }
+    },
+    {
+      "labelId": "d008",
+      "id": "drawguess:82cfd4b1f6f3e782a3d2e194852efcb9f495181af5a22c39c4548fed37277ff2",
+      "stratum": "accepted",
+      "category": "actionComedy",
+      "content": {
+        "word": "落汤鸡",
+        "category": "actionComedy",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "浑身湿透、羽毛贴在身上的滑稽形象。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "落汤鸡",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "喜剧中浑身湿透、羽毛贴在身上的人或鸡的造型非常经典且易画。"
+      }
+    },
+    {
+      "labelId": "d009",
+      "id": "drawguess:329b1290d7a178d510ad132e7fc55c1f91bf57510c7e243073206b2ec5177350",
+      "stratum": "accepted",
+      "category": "animals",
+      "content": {
+        "word": "斑马",
+        "category": "animals",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "斑马",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "斑马具有独特的黑白条纹外形，具象且没有歧义。"
+      }
+    },
+    {
+      "labelId": "d010",
+      "id": "drawguess:20ad24fb86251e328baa91c3a95b6da0c211ab387d758486800c4194851cdea6",
+      "stratum": "accepted",
+      "category": "animals",
+      "content": {
+        "word": "骆驼",
+        "category": "animals",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "标志性的驼峰能让人一眼认出"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "骆驼",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "骆驼标志性的驼峰让人一眼就能画出来。"
+      }
+    },
+    {
+      "labelId": "d011",
+      "id": "drawguess:b2b532b9581742169bec108a3c85d0853aaf67199107dd0f7d10a06fd57f9d33",
+      "stratum": "accepted",
+      "category": "animals",
+      "content": {
+        "word": "蝙蝠",
+        "category": "animals",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出独特的翼手结构，避免被误认为老鼠或鸟类"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "蝙蝠",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "蝙蝠倒挂以及独特的翼手外形具备极高的辨识度。"
+      }
+    },
+    {
+      "labelId": "d012",
+      "id": "drawguess:071872976fba85c132b8df384fbb9a5e84c92da17dde9f08d9062a92965389bc",
+      "stratum": "accepted",
+      "category": "animals",
+      "content": {
+        "word": "乌龟",
+        "category": "animals",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "乌龟",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "乌龟坚硬的硬壳和慢吞吞的四肢很易于绘画。"
+      }
+    },
+    {
+      "labelId": "d013",
+      "id": "drawguess:5edbaf078d46486bb6440ba77285fea53cfd1fefbc2af00c2c123fea60ce3fcb",
+      "stratum": "rejected",
+      "category": "animals",
+      "content": {
+        "word": "企鹅",
+        "category": "animals",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "企鹅",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "企鹅外形像穿燕尾服的绅士，特征明显，易于绘画传达。"
+      }
+    },
+    {
+      "labelId": "d014",
+      "id": "drawguess:8bca184e2eca5a7588d2407a334bc1f27146b616b8c9eab99607b1619d2b8323",
+      "stratum": "rejected",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "笑点迟钝",
+        "category": "awkwardMoments",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "大家都在笑而主角后知后觉的表情",
+          "时间差的画面表现有一定难度"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "笑点迟钝",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "笑点迟钝属于心理反应和抽象概念，难以通过单一画面准确描绘。"
+      }
+    },
+    {
+      "labelId": "d015",
+      "id": "drawguess:8d270bc4be29cb6c2a76d7ab074ae6d345b275c39b83d83cfbfd667cef89aa3d",
+      "stratum": "rejected",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "耳机线扯掉",
+        "category": "awkwardMoments",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "耳机线突然被勾住的瞬间动态表现",
+          "插头脱落的细节容易被忽略"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "耳机线扯掉",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画手机飞出、耳机线拉直断开的瞬间来表现。"
+      }
+    },
+    {
+      "labelId": "d016",
+      "id": "drawguess:a5cbc5c0af6070b3096ad51a7bd6f021acdde9c8e43736a3692669ce59f9ce74",
+      "stratum": "accepted",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "电梯遇到熟人",
+        "category": "awkwardMoments",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "密闭空间内相对无言的尴尬气氛",
+          "眼神不知道往哪里放的飘忽感"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "电梯遇到熟人",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画电梯狭窄空间内两个人表情尴尬、无处可藏的场景来表现。"
+      }
+    },
+    {
+      "labelId": "d017",
+      "id": "drawguess:e3f74019ad13d098aaf7497a523f7f0ea6fa108754825fee3ea895a43279b3b7",
+      "stratum": "accepted",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "顺拐走路",
+        "category": "awkwardMoments",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "同手同脚走路的机械姿势",
+          "需要夸张四肢来体现不协调感"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "顺拐走路",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画同手同脚走路的滑稽姿势来表现。"
+      }
+    },
+    {
+      "labelId": "d018",
+      "id": "drawguess:51b3b5cff1c2f27eb0f09b60df7f47c679993f2e6e7400e11600168299fd3980",
+      "stratum": "rejected",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "狂按电梯",
+        "category": "awkwardMoments",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "手指疯狂戳关门键的焦急动作",
+          "电梯门外正有人跑来的冲突感"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "狂按电梯",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画一个人满头大汗、手指疯狂按压电梯关闭按钮的动作来表现。"
+      }
+    },
+    {
+      "labelId": "d019",
+      "id": "drawguess:f95af0971fde59dc5afcf0bc0a430fddf4ffce06f43933d366178ff4726275ed",
+      "stratum": "accepted",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "走错卫生间",
+        "category": "awkwardMoments",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "需要画出门口的男女标志牌进行对比",
+          "主角头上冒汗探头探脑的窘态"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "走错卫生间",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画一个人站在门前，门上标志与自身性别不符并带有震惊表情来表现。"
+      }
+    },
+    {
+      "labelId": "d020",
+      "id": "drawguess:e44129c1087fc7123600623d9f69620fcdb9146d1a211811d3b9ac84084853da",
+      "stratum": "rejected",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "社死现场",
+        "category": "awkwardMoments",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "范围较大，需要画出一个人石化或倒地的标志性动作",
+          "周围人围观的表情配合"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "社死现场",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "社死现场过于宽泛和抽象，缺乏单一且标志性的固定画面。"
+      }
+    },
+    {
+      "labelId": "d021",
+      "id": "drawguess:6ffb0c4c3779e18e88ea659fa9ffb3033deda52259397c7445de1decc9615ee7",
+      "stratum": "accepted",
+      "category": "awkwardMoments",
+      "content": {
+        "word": "看错菜单",
+        "category": "awkwardMoments",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "结账时看到天价账单的目瞪口呆",
+          "钱包空空的具象化表现"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "看错菜单",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画一个人看着账单目瞪口呆、头上流汗的动作来表现。"
+      }
+    },
+    {
+      "labelId": "d022",
+      "id": "drawguess:dd63d785bf0432a6c72d412b2a172f17aaaeeae7624828503446091aa42dc5c6",
+      "stratum": "accepted",
+      "category": "dailyObjects",
+      "content": {
+        "word": "微波炉",
+        "category": "dailyObjects",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "外观与烤箱或消毒柜相似"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "微波炉",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "微波炉是带有小方窗和右侧控制面板的方块电器，特征明显。"
+      }
+    },
+    {
+      "labelId": "d023",
+      "id": "drawguess:9591e8d9647d1fcf0cdbc53cd4d89b952ae2304abc7b95e22ad9b1685fe5eeab",
+      "stratum": "accepted",
+      "category": "dailyObjects",
+      "content": {
+        "word": "热水袋",
+        "category": "dailyObjects",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "扁平的橡胶袋造型需要画出注水口"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "热水袋",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "热水袋通常为扁平橡胶袋加瓶塞口，居家日用品特征明确。"
+      }
+    },
+    {
+      "labelId": "d024",
+      "id": "drawguess:015845346aa9dc94f515bee8810b3a1dc4ed6f24fbbd434402ab8c8c0d59979f",
+      "stratum": "accepted",
+      "category": "dailyObjects",
+      "content": {
+        "word": "背包",
+        "category": "dailyObjects",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "背包",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "背包轮廓立体，带有肩带和拉链袋，好画且不容易混淆。"
+      }
+    },
+    {
+      "labelId": "d025",
+      "id": "drawguess:6acfa1db6a625946abfbac10cce619158d8026d5047309b5ba0999bf606fda43",
+      "stratum": "accepted",
+      "category": "dailyObjects",
+      "content": {
+        "word": "洗衣机",
+        "category": "dailyObjects",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出圆形的观察窗才能与普通柜子区分"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "洗衣机",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "洗衣机具有方正的机身和圆形的观察窗，非常好画。"
+      }
+    },
+    {
+      "labelId": "d026",
+      "id": "drawguess:6a124e8ee852133e244e4c19bb2dc1dca4a60d2df6e74e0ff70865e97893e378",
+      "stratum": "rejected",
+      "category": "festivals",
+      "content": {
+        "word": "守岁",
+        "category": "festivals",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要通过时钟和熬夜状态来表现"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "守岁",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "守岁是熬夜过年的时间行为，抽象概念难以通过画面准确表达，容易误导为睡觉或熬夜。"
+      }
+    },
+    {
+      "labelId": "d027",
+      "id": "drawguess:9fcff65746bdb956b325f7b50f1aee0898243bab8e189191fd769e8e014548bf",
+      "stratum": "rejected",
+      "category": "festivals",
+      "content": {
+        "word": "社火",
+        "category": "festivals",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "属于民间活动，脸谱和服饰细节复杂"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "社火",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "社火是民间大型综合文艺表演的统称，概念宏大抽象，没有单一的标志性具象画面。"
+      }
+    },
+    {
+      "labelId": "d028",
+      "id": "drawguess:e79ab4009bccbb594df7695f46f0eab9f99afeb56aada989954ab92fbfb768bc",
+      "stratum": "accepted",
+      "category": "festivals",
+      "content": {
+        "word": "福字",
+        "category": "festivals",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "福字",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "福字倒贴是常见节日习俗，可以直接画出带有福字的红方纸。"
+      }
+    },
+    {
+      "labelId": "d029",
+      "id": "drawguess:8882433bd9d5c471f580c238bffe41fa9b1bfc9e6da0ea9f9e668dd59bfa5c31",
+      "stratum": "accepted",
+      "category": "festivals",
+      "content": {
+        "word": "挂菖蒲",
+        "category": "festivals",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出门框和悬挂的植物"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "挂菖蒲",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "挂菖蒲是端午节门前插草本植物的习俗，画面表现为门上悬挂长叶植物，符合要求。"
+      }
+    },
+    {
+      "labelId": "d030",
+      "id": "drawguess:e0a61e9d6842337d61bb385e81294ea035c81c5892c4ebfabee79983805be47c",
+      "stratum": "rejected",
+      "category": "festivals",
+      "content": {
+        "word": "耍牙",
+        "category": "festivals",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "地方民俗道具较为冷门"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "耍牙",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "耍牙是地方戏曲绝技，属于冷门民俗，普通人无法通过画作准确表达和猜出。"
+      }
+    },
+    {
+      "labelId": "d031",
+      "id": "drawguess:80ab3590f6610e7d3b8a8247ec1936f88882d6c3cb06a991b2cf800ae9861a3d",
+      "stratum": "accepted",
+      "category": "festivals",
+      "content": {
+        "word": "汤圆",
+        "category": "festivals",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "白色圆球容易和普通的球类混淆，需画出碗和汤匙作为场景辅助"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "汤圆",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词为传统节日食品，外形圆润且有碗筷衬托，画面感强，易于绘制和猜出。"
+      }
+    },
+    {
+      "labelId": "d032",
+      "id": "drawguess:ada9a99635b16428854a3c57008c626cbe728fd042b304e9eefdf27b5699c0db",
+      "stratum": "accepted",
+      "category": "festivals",
+      "content": {
+        "word": "年画",
+        "category": "festivals",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "通常画胖娃娃抱大鲤鱼的经典画面来传达"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "年画",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "年画有标志性的视觉形象，如胖娃娃抱鱼，易于画出且符合传统节日习俗。"
+      }
+    },
+    {
+      "labelId": "d033",
+      "id": "drawguess:d7702e5226e2985a235c5ba92a9137aa62149a28ee64a49429708f0d979b2d11",
+      "stratum": "rejected",
+      "category": "festivals",
+      "content": {
+        "word": "压岁钱",
+        "category": "festivals",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "与普通红包基本一致，可画长辈递给晚辈的动作区分"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "压岁钱",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "压岁钱抽象概念较强，通常只能画红包，容易与红包本身混淆，存在歧义和猜词死局的可能。"
+      }
+    },
+    {
+      "labelId": "d034",
+      "id": "drawguess:c76f6a79f6dbcf632fa5db9ee437d81bf3a30ef827cb5059e2cd75e733bf6ccf",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "word": "草莓",
+        "category": "food",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "草莓",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "心形红色果实配上表面黑点和绿色叶片，特征显著。"
+      }
+    },
+    {
+      "labelId": "d035",
+      "id": "drawguess:f2290cb9d398152341e624b8123a1cd60aef62370a36877fbeb5002bd8138296",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "word": "大闸蟹",
+        "category": "food",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "螃蟹的脚比较多，绘画时细节较繁琐"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "大闸蟹",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "螃蟹的外形和八只脚以及大钳子非常容易辨认和绘制。"
+      }
+    },
+    {
+      "labelId": "d036",
+      "id": "drawguess:04f088308e37d9a7b803609465a098a2661ec6111a2be6776095555696dc20ed",
+      "stratum": "rejected",
+      "category": "food",
+      "content": {
+        "word": "皮蛋瘦肉粥",
+        "category": "food",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "液体食物很难用简笔画准确表现"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "皮蛋瘦肉粥",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "这是一种煮熟成糊状的粥，视觉上很难与普通白粥或肉粥区分，属于抽象或难以精准绘制的菜品。"
+      }
+    },
+    {
+      "labelId": "d037",
+      "id": "drawguess:f96b783946d36b12d34f5df8fe3b29afc4ff9e1f427f9d4003a404c8e49aa7ff",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "word": "糖葫芦",
+        "category": "food",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "糖葫芦",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "一串红通通的山楂串在竹签上，极具传统特色。"
+      }
+    },
+    {
+      "labelId": "d038",
+      "id": "drawguess:84f726a4eda0829e7ee94deed8b2836915cc00729e163cbd8a8b039e808f0c37",
+      "stratum": "accepted",
+      "category": "food",
+      "content": {
+        "word": "汉堡包",
+        "category": "food",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "汉堡包",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "汉堡包具有面包片夹肉饼和生菜的层叠标志性外形，很好画。"
+      }
+    },
+    {
+      "labelId": "d039",
+      "id": "drawguess:d0e8c45057d50c16b8cb7ca1a7f5875b5d7cf259f7f8f3f33f1cc262fd0a3049",
+      "stratum": "accepted",
+      "category": "internetMemes",
+      "content": {
+        "word": "工具人",
+        "category": "internetMemes",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "容易和五金工具混淆，需画出人头加扳手"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "工具人",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以画一个人的身体是各种扳手、锤子等工具的形象，非常直观形象。"
+      }
+    },
+    {
+      "labelId": "d040",
+      "id": "drawguess:d29a4817727e4aa4472fb91aa3f07d6d533881bde7f25a83e0cf77eef1f54717",
+      "stratum": "accepted",
+      "category": "internetMemes",
+      "content": {
+        "word": "躺平",
+        "category": "internetMemes",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "容易与睡觉混淆"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "躺平",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词有非常明确的标志性画面，即一个人横着躺在地上或躺椅上，适合用于你画我猜游戏。"
+      }
+    },
+    {
+      "labelId": "d041",
+      "id": "drawguess:3daa3ec3bcb856f7a6f13c2b01bc5a11056728e322c1f9e10b131662fe44cd78",
+      "stratum": "rejected",
+      "category": "internetMemes",
+      "content": {
+        "word": "硬控",
+        "category": "internetMemes",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "游戏术语演变而来，需画出人被定格住的特效"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "硬控",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "属于抽象的游戏概念词汇，缺乏标准且容易理解的具象画面。"
+      }
+    },
+    {
+      "labelId": "d042",
+      "id": "drawguess:bcc0fb0317582f5e1c1142041468ca81ccfa4018d90ceeccc5b0869f97b29a13",
+      "stratum": "accepted",
+      "category": "internetMemes",
+      "content": {
+        "word": "电子木鱼",
+        "category": "internetMemes",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "需画出手机屏幕上的木鱼和功德加一字样"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "电子木鱼",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以画一部手机上面显示着木鱼并且旁边有功德加一的字样，画面非常清晰。"
+      }
+    },
+    {
+      "labelId": "d043",
+      "id": "drawguess:15b61d749a292902d2808a2856e71c0c87d7092188fc78fa1e5c18729f0e86d3",
+      "stratum": "accepted",
+      "category": "internetMemes",
+      "content": {
+        "word": "吃瓜",
+        "category": "internetMemes",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "容易画成字面吃西瓜，需要表现出看热闹的八卦神态"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "吃瓜",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "吃瓜群众抱著西瓜看热闹的形象具有高度的具象画面，非常适合你画我猜游戏。"
+      }
+    },
+    {
+      "labelId": "d044",
+      "id": "drawguess:ffc157dfd7a892ceca6e341ef5f798725368775d9e58120bbf07b4c1dc9180a5",
+      "stratum": "rejected",
+      "category": "internetMemes",
+      "content": {
+        "word": "尊嘟假嘟",
+        "category": "internetMemes",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "谐音梗，需画出小狗歪头卖萌的标志性姿态"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "尊嘟假嘟",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "是网络萌系谐音词，本质是文字梗，画出来无法与普通小狗或疑问区分，不适合画图猜词。"
+      }
+    },
+    {
+      "labelId": "d045",
+      "id": "drawguess:c31695db7fa5424e4c205d675c89f2debdc575a13fb167592c96759bc0e38a20",
+      "stratum": "rejected",
+      "category": "internetMemes",
+      "content": {
+        "word": "智商税",
+        "category": "internetMemes",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "涉及抽象概念交税和智商，难以组合成直观画面"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "智商税",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "智商税属于抽象经济概念，虽偶有搞笑商品但无法形成统一标准的视觉画法。"
+      }
+    },
+    {
+      "labelId": "d046",
+      "id": "drawguess:75d1087b69bebf3540309854e80db228bcdeb6a46fcc822c4674e76928ce6242",
+      "stratum": "rejected",
+      "category": "internetMemes",
+      "content": {
+        "word": "全都要",
+        "category": "internetMemes",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "画一个动漫角色双手各抓一样东西或者霸气的手势"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "全都要",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "全都要源自动画表情包台词，脱离具体表情包上下文后难以画出准确画面。"
+      }
+    },
+    {
+      "labelId": "d047",
+      "id": "drawguess:08932e1b2d0f3bb176d9b1afaa7b2f311d37b7b4218268633d7995674febbc3b",
+      "stratum": "rejected",
+      "category": "landmarks",
+      "content": {
+        "word": "威尼斯水城",
+        "category": "landmarks",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出运河和贡多拉小船辅助识别。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "威尼斯水城",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "威尼斯水城是一个城市区域和概念，缺乏单一具象的建筑轮廓，画出来容易与普通运河或城市混淆，不适合作为你画我猜的建筑地标题目。"
+      }
+    },
+    {
+      "labelId": "d048",
+      "id": "drawguess:10b5de6994d05ee16f33dabc5ac3bce595cbef36c7f0a025d8303c27f5a70690",
+      "stratum": "accepted",
+      "category": "landmarks",
+      "content": {
+        "word": "科隆大教堂",
+        "category": "landmarks",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "哥特式双尖塔极其复杂，很难快速画好。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "科隆大教堂",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词为哥特式建筑代表，标志性的双尖塔轮廓极具特色，可以通过绘画传达，符合各项审核标准。"
+      }
+    },
+    {
+      "labelId": "d049",
+      "id": "drawguess:1e889b3b436a621dbcee767e5240e62d7a01583ce08707e8b076b0582731e3c4",
+      "stratum": "rejected",
+      "category": "landmarks",
+      "content": {
+        "word": "埃菲尔铁塔",
+        "category": "landmarks",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "镂空铁架结构非常考验绘画功底"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "埃菲尔铁塔",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "埃菲尔铁塔外形轮廓极具全球辨识度，完全符合要求。"
+      }
+    },
+    {
+      "labelId": "d050",
+      "id": "drawguess:1347e0a6ddabd3a0cae2dbb44e5488841a57198e805668ba4ddc185418f124ac",
+      "stratum": "accepted",
+      "category": "landmarks",
+      "content": {
+        "word": "栈道",
+        "category": "landmarks",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "依山傍水悬空的木质道路"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "栈道",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "栈道依山傍水而建，悬空在峭壁上的木质结构具有很高的画面表现力。"
+      }
+    },
+    {
+      "labelId": "d051",
+      "id": "drawguess:c9917b939d6974deb36c64f782d0a8106546a889495d7847ab49d4af58ab53c0",
+      "stratum": "accepted",
+      "category": "landmarks",
+      "content": {
+        "word": "长城",
+        "category": "landmarks",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "容易与普通城墙混淆"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "长城",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "长城轮廓极具辨识度，适合你画我猜，各项指标均符合要求。"
+      }
+    },
+    {
+      "labelId": "d052",
+      "id": "drawguess:65e64e12bc060fde0041edbbde6ffe07765aab6e75ce09ee9833b7a9665b87e0",
+      "stratum": "rejected",
+      "category": "landmarks",
+      "content": {
+        "word": "台北地标",
+        "category": "landmarks",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "竹节状的分层叠压结构需要表现清晰"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "台北地标",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "台北地标过于宽泛抽象，未指定具体某一栋建筑，玩家很难画出特定画面，存在歧义。"
+      }
+    },
+    {
+      "labelId": "d053",
+      "id": "drawguess:cafd8400522e96d71cbb99cb9c1e73bb002d2dc9e585404add1167549620c16f",
+      "stratum": "accepted",
+      "category": "landmarks",
+      "content": {
+        "word": "凯旋门",
+        "category": "landmarks",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "容易与普通的门或牌坊混淆"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "凯旋门",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "巴黎凯旋门的拱门造型辨识度高，适合绘画。"
+      }
+    },
+    {
+      "labelId": "d054",
+      "id": "drawguess:ccc839ff3602dbe75f70b5328fd22a6d4841171d94162bc4ef33d97b703c1db4",
+      "stratum": "rejected",
+      "category": "landmarks",
+      "content": {
+        "word": "时代广场",
+        "category": "landmarks",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "包含大量霓虹广告牌和巨型屏幕，作为静止画面很难完整呈现代表性元素"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "时代广场",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "时代广场是一个大型商业街区和广阔的城市空间，没有单一且固定的建筑轮廓可以准确画出，容易引起混淆。"
+      }
+    },
+    {
+      "labelId": "d055",
+      "id": "drawguess:39ef0870337c0f5524d32aefb836519105ea133936136088453f69fbfbafc134",
+      "stratum": "rejected",
+      "category": "mystery",
+      "content": {
+        "word": "莫尔斯码",
+        "category": "mystery",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "点和横的组合比较抽象，需配合纸张和滴答声波"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "莫尔斯码",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "点和横杠的组合过于抽象，极易被误认为普通乱画或数学符号。"
+      }
+    },
+    {
+      "labelId": "d056",
+      "id": "drawguess:e7c9fee8150e627b5c92b18a838c04fc4332ec0e454967ee2b65860f0f016cec",
+      "stratum": "accepted",
+      "category": "mystery",
+      "content": {
+        "word": "录音笔",
+        "category": "mystery",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "长条形外观容易被误认为普通笔，需画出声波图案"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "录音笔",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "细长的电子设备配上播放按键或声波符号，易于绘制。"
+      }
+    },
+    {
+      "labelId": "d057",
+      "id": "drawguess:3102469ebb21f4df41a7b177eefab3463a1d8bbcb88f7f4736ce0324fb81150f",
+      "stratum": "rejected",
+      "category": "mystery",
+      "content": {
+        "word": "现场勘测",
+        "category": "mystery",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "属于动作场景，需画出小人拿着尺子量证物"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "现场勘测",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "这是一个动作或流程概念，动作过于抽象，很难在画板上不通过写字直接表达清楚。"
+      }
+    },
+    {
+      "labelId": "d058",
+      "id": "drawguess:5708e742aa327f14de56baa64b691885b98698e7454402046ee99770605b3622",
+      "stratum": "rejected",
+      "category": "mystery",
+      "content": {
+        "word": "安全屋",
+        "category": "mystery",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "带有厚重防盗门和窗帘紧闭的普通房屋"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "安全屋",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以画一栋房子并标注盾牌或安全标志，符合侦探题材。"
+      }
+    },
+    {
+      "labelId": "d059",
+      "id": "drawguess:59ed2e8a027bb7d3d928090e6664a4fdcec364c183d6ebeed15a5c8f2107b421",
+      "stratum": "accepted",
+      "category": "mystery",
+      "content": {
+        "word": "定位器",
+        "category": "mystery",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "带有闪烁红灯和小磁铁的方形小盒子"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "定位器",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以画一个带有雷达波或闪烁红点的小型电子设备。"
+      }
+    },
+    {
+      "labelId": "d060",
+      "id": "drawguess:a26d30ec4b68d629c89e26de586a4068d126b1e0db93736101bc75c70ce718c2",
+      "stratum": "accepted",
+      "category": "mystery",
+      "content": {
+        "word": "手铐",
+        "category": "mystery",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "形状简单但画链条时要注意结构清晰"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "手铐",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "手铐轮廓明显，是侦探与警匪题材的标志性道具，完全合格。"
+      }
+    },
+    {
+      "labelId": "d061",
+      "id": "drawguess:157cf51adf1e072bd3a7084ee7b06e4ae18eea4a1ce55e32fde3f3046a78ef03",
+      "stratum": "rejected",
+      "category": "mystery",
+      "content": {
+        "word": "嫌疑人",
+        "category": "mystery",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "通常画戴着黑色眼罩和连帽衫的剪影人物"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "嫌疑人",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "嫌疑人偏向抽象身份，缺乏统一的外形标准，容易画成普通人或小偷导致混淆。"
+      }
+    },
+    {
+      "labelId": "d062",
+      "id": "drawguess:06472bd026dcfd10a9849b2d958b8d8642862c8997ddac2c8313200c8111b8f5",
+      "stratum": "accepted",
+      "category": "mystery",
+      "content": {
+        "word": "密室",
+        "category": "mystery",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "抽象概念，需画出上锁的房间和一把交叉的钥匙"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "密室",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以画一间上锁的房间或者带有问号的房间，容易联想和猜出。"
+      }
+    },
+    {
+      "labelId": "d063",
+      "id": "drawguess:9e7b5c23f9b214abdbbd10dd58258a8386d92f828e34abfb14c1476085845315",
+      "stratum": "rejected",
+      "category": "nature",
+      "content": {
+        "word": "月相",
+        "category": "nature",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出不同形状的月亮阴晴圆缺，可能被直接猜成月亮"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "月相",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "月相是一个抽象的天文概念，仅仅画月亮容易被直接猜成月亮，难以准确表达出相位的变化，存在严重歧义。"
+      }
+    },
+    {
+      "labelId": "d064",
+      "id": "drawguess:a25b33373a569bfe9b58e1dd6a3429550d98a5cba5104a573eee71888393bfe5",
+      "stratum": "rejected",
+      "category": "nature",
+      "content": {
+        "word": "雪人",
+        "category": "nature",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "雪人",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "雪人属于人工制品或景观，不属于纯粹的自然现象，分类不够准确。"
+      }
+    },
+    {
+      "labelId": "d065",
+      "id": "drawguess:ec2faa7c673a35e1f3542e3d953d2bd0faa2a5a16879ec4631e486f3fa18ff0e",
+      "stratum": "rejected",
+      "category": "nature",
+      "content": {
+        "word": "龙抬头",
+        "category": "nature",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "属于传统节气与天象结合，较难精准画出"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "龙抬头",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "龙抬头是传统节日民俗，并非纯粹的自然现象天气，且具体画法容易和普通的龙混淆，分类与防歧义不通过。"
+      }
+    },
+    {
+      "labelId": "d066",
+      "id": "drawguess:871e86afeabc7b92d083fbbf8ecae6a564e1fda669e398b405bca706d99cd29e",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "word": "龙吸水",
+        "category": "nature",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "需要画出水面与天空相连的水龙卷奇观",
+          "容易与普通龙卷风混淆"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "龙吸水",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "龙吸水即水龙卷的俗称，形态具象，画面表达方式与水龙卷类似，判定合格。"
+      }
+    },
+    {
+      "labelId": "d067",
+      "id": "drawguess:91b07d29510e14c2d171997de81b71e8fecee4b13c7dda6f3dd00971f3ed037b",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "word": "太阳雨",
+        "category": "nature",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要同时画出晴空太阳和斜向下的雨滴"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "太阳雨",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "太阳雨可以画出同时有太阳和雨滴的独特天气场景，辨识度高。"
+      }
+    },
+    {
+      "labelId": "d068",
+      "id": "drawguess:9466fa8b991f06afbd11e8739edf5dd41fbc6851e5ea4af60ec262a23c7aff05",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "word": "地震",
+        "category": "nature",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "抽象灾害，通常需要画裂开的地面和倒塌的房屋"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "地震",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "地震可以画成地面裂开、房屋倒塌的标志性灾害场景。"
+      }
+    },
+    {
+      "labelId": "d069",
+      "id": "drawguess:bd79bd5067deb4616813b2c6a1c494d4b2fe42bf4583c88df2c95daea592809c",
+      "stratum": "accepted",
+      "category": "nature",
+      "content": {
+        "word": "雾霾",
+        "category": "nature",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "属于抽象空气质量现象，作画时通常需要画灰蒙蒙的城市剪影和戴口罩的人来暗示"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "雾霾",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "可以通过画灰蒙蒙的城市建筑和戴口罩的人来表现雾霾，属于常见自然与环境现象。"
+      }
+    },
+    {
+      "labelId": "d070",
+      "id": "drawguess:8f837cccbc6c91c831e9b51867314f24bd6c443940eedeac3e9629e289e7869f",
+      "stratum": "rejected",
+      "category": "nature",
+      "content": {
+        "word": "喷泉",
+        "category": "nature",
+        "difficulty": "easy",
+        "potentialIssues": []
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "喷泉",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "喷泉通常是人工建筑和设施，不属于纯自然现象。"
+      }
+    },
+    {
+      "labelId": "d071",
+      "id": "drawguess:09d3c7fbc29ee5148e029e0ad9478ca5c9b528a41baab04808fd7f822764267a",
+      "stratum": "accepted",
+      "category": "occupations",
+      "content": {
+        "word": "伐木工",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "标志性大斧头和圆木桩，服装多为格子衫。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "伐木工",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "伐木工通常身穿格子衫，手持大斧头或电锯，站在树桩旁，画面感极强。"
+      }
+    },
+    {
+      "labelId": "d072",
+      "id": "drawguess:cf80aba698b91219da54590658fdf8bccd9cd8cb0a30e6c6dcac33247505923b",
+      "stratum": "rejected",
+      "category": "occupations",
+      "content": {
+        "word": "服务员",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "手中托盘和菜单是关键，否则容易和普通顾客混淆"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "服务员",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "服务员的制服和工作场景过于宽泛，容易与厨师、空乘等职业混淆，缺乏一眼能认出的绝对标志。"
+      }
+    },
+    {
+      "labelId": "d073",
+      "id": "drawguess:31125c85b02b70777e9ba3cc1866d86df2a992ee9594b2ed6b39b8f04f16b6f9",
+      "stratum": "rejected",
+      "category": "occupations",
+      "content": {
+        "word": "地质学家",
+        "category": "occupations",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "地质锤和放大镜观察岩石的姿态较难一眼识别"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "地质学家",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "地质学家属于偏学术研究的职业，缺乏一眼能认出的制服或工具特征。"
+      }
+    },
+    {
+      "labelId": "d074",
+      "id": "drawguess:ccacccafb320cb740b944ffcb049da2fc9c8677fc390ef8c797fcb2a96089b6c",
+      "stratum": "rejected",
+      "category": "occupations",
+      "content": {
+        "word": "牧场主",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "西部牛仔帽和身边的牛羊能很好地传达职业背景"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "牧场主",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "牧场主属于抽象身份，外形没有强制的统一制服或强关联工具，容易画成普通农夫或牛仔导致歧义。"
+      }
+    },
+    {
+      "labelId": "d075",
+      "id": "drawguess:b55b5d6248bdd8065c892ddb1d71023af7a1fbb4568f61a7968a2f43a8a8cfc4",
+      "stratum": "accepted",
+      "category": "occupations",
+      "content": {
+        "word": "调酒师",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "摇酒壶和高脚杯是主要特征"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "调酒师",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "调酒师有吧台、酒瓶、雪克壶等明确的标志性工具，容易作画和识别。"
+      }
+    },
+    {
+      "labelId": "d076",
+      "id": "drawguess:62de8c73422c976fa1567d43ba8293290f5d122214e39469437e199fbc187c63",
+      "stratum": "accepted",
+      "category": "occupations",
+      "content": {
+        "word": "电焊工",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "必须画出面罩和焊接时四射的火花"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "电焊工",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "电焊工有标志性的面罩和焊枪火花，具有很高的可画性。"
+      }
+    },
+    {
+      "labelId": "d077",
+      "id": "drawguess:dbfe337c8f9f6f4f889cf6ecc0bca56dfa28fff627ee496606e3a1f77fd3fff2",
+      "stratum": "accepted",
+      "category": "occupations",
+      "content": {
+        "word": "法官",
+        "category": "occupations",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "法槌和黑色长袍是辨识关键，画不好容易被误认为牧师或教师。"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "法官",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "法官拥有法袍和法槌等鲜明特征，属于通过工具和制服一眼可辨的职业。"
+      }
+    },
+    {
+      "labelId": "d078",
+      "id": "drawguess:214fa121493d6a80729ab4a283f9d41e21a7bcfffd66da455d5f4d84eccd397a",
+      "stratum": "rejected",
+      "category": "occupations",
+      "content": {
+        "word": "钟表匠",
+        "category": "occupations",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "单眼放大镜和散落的齿轮需要一定画功"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "钟表匠",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": false,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "钟表匠外形和普通工匠无显著区别，难以通过单一画面直观表现。"
+      }
+    },
+    {
+      "labelId": "d079",
+      "id": "drawguess:99522266bb84d904acb31e5e94f1aa2dd813ec4c51b9211aae60a304f73f0f43",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "word": "划拳",
+        "category": "partyGames",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "容易被误认为是在猜拳或击掌",
+          "需要画出手势动作的动态线条"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "划拳",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词为常见聚会游戏，有明确的手势动作和场景，字数符合要求，内容健康，适合你画我猜。"
+      }
+    },
+    {
+      "labelId": "d080",
+      "id": "drawguess:1c1b727c0ecd4094dc9653d5fb08b0f8d637d2d0df77232d79459ce64f0ff534",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "word": "真心话大冒险",
+        "category": "partyGames",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "字数较多且偏抽象，通常需要画出问号和惊叹号或者纸牌来辅助表达"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "真心话大冒险",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "该词偏向抽象规则与口头问答，缺乏单一且标志性的视觉画面，容易导致猜词死局，故不合格。"
+      }
+    },
+    {
+      "labelId": "d081",
+      "id": "drawguess:a48e2f950fb1ffbb758397954773eb9ac645c545d9a74a6ac78182e939e7fe68",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "word": "击鼓传花",
+        "category": "partyGames",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "需要画出鼓、花以及围坐传递的人群，元素较多"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "击鼓传花",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词有非常清晰的典故和画面，可以画鼓、花以及围坐传递的人群，判定合格。"
+      }
+    },
+    {
+      "labelId": "d082",
+      "id": "drawguess:76e91bf51abc217218a1fa2655aa2bd0063c8232ab5c717f868760341d12b9d2",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "word": "杀人游戏",
+        "category": "partyGames",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "题材偏暗黑，容易画成悬疑凶案而不是桌游聚会场景"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "杀人游戏",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": false,
+          "isUnambiguous": false
+        },
+        "reason": "该词包含暴力语义，且纯属桌面推理，缺乏明确具象的画法，综合判定不合格。"
+      }
+    },
+    {
+      "labelId": "d083",
+      "id": "drawguess:4d9568a54ba314fa154100481ca1a5e3ddf57d4536af7a151184a391c4667fbe",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "word": "国王游戏",
+        "category": "partyGames",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出带有皇冠的人和抽签纸牌的互动场景"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "国王游戏",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "该词偏向规则和抽签口令，缺乏具象的外形或标志性动作，容易产生歧义，判定不合格。"
+      }
+    },
+    {
+      "labelId": "d084",
+      "id": "drawguess:8a46eff973f9dd4d5936c716aaa1abce12d639b585b0681fc00e6cfc8de5945b",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "word": "萝卜蹲",
+        "category": "partyGames",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "需要画出人做出半蹲的滑稽姿势以及头顶萝卜叶子的特征"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "萝卜蹲",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词有非常标志性的蹲下动作和蔬菜头饰道具，画面生动且易于识别，判定合格。"
+      }
+    },
+    {
+      "labelId": "d085",
+      "id": "drawguess:c36721da13f2f7421cef69671c3b8f169486e3a49f307f1aa64dacb9935271d6",
+      "stratum": "rejected",
+      "category": "partyGames",
+      "content": {
+        "word": "剧本杀",
+        "category": "partyGames",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "剧本和侦探要素较多，容易画成看书或写字"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "剧本杀",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "该词属于室内推理角色扮演游戏，缺乏单一固定的具象动作或外形，判定不合格。"
+      }
+    },
+    {
+      "labelId": "d086",
+      "id": "drawguess:f499de18ecda18cf103ecfc43f4016d0673f3ad9bb160aa13f427e4d763f66bf",
+      "stratum": "accepted",
+      "category": "partyGames",
+      "content": {
+        "word": "斗地主",
+        "category": "partyGames",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要画出三个人打牌且其中一人头上有地主标志或农民帽子的场景"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "斗地主",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词为国民扑克游戏，有明确的打牌动作以及农民和地主的标志性帽子等元素，判定合格。"
+      }
+    },
+    {
+      "labelId": "d087",
+      "id": "drawguess:f6a3c4a91bd9f0a5853ab73106c217bd14f7ad954db3931bff3b2b456f50d32f",
+      "stratum": "rejected",
+      "category": "space",
+      "content": {
+        "word": "星云",
+        "category": "space",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "云雾状色块，需要用丰富的色彩或晕染来表达"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "星云",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "星云通常是无固定轮廓的彩色气团，画出来容易被猜成彩云或抽象画，缺乏明确画法。"
+      }
+    },
+    {
+      "labelId": "d088",
+      "id": "drawguess:dfe09bdee17429b9c770c62c489cdc2586f7cbafbfa8447ec49f8cdce4c3ac0b",
+      "stratum": "accepted",
+      "category": "space",
+      "content": {
+        "word": "人造卫星",
+        "category": "space",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "太阳能电池板的画法如果不规范，容易被误认为是一般的飞行器"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "人造卫星",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "人造卫星具有标志性的太阳能帆板和主体结构，画法明确。"
+      }
+    },
+    {
+      "labelId": "d089",
+      "id": "drawguess:433051db7048e6f425dd135c6d0f39a98c180da2dec53fd38cffec34c599e743",
+      "stratum": "rejected",
+      "category": "space",
+      "content": {
+        "word": "引力波",
+        "category": "space",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "极度抽象的物理概念，通常需要画时空网格扭曲来表达"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "引力波",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "引力波是物理学抽象概念，缺乏直观的具象外形或动作场景。"
+      }
+    },
+    {
+      "labelId": "d090",
+      "id": "drawguess:534af7f29dd58ab7ee8372172a386e4877ab0735be6c9af6842ff0c11170d797",
+      "stratum": "accepted",
+      "category": "space",
+      "content": {
+        "word": "发射塔",
+        "category": "space",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "复杂的钢架结构，若旁边没有火箭容易被猜成普通建筑塔吊"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "发射塔",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "发射塔有高耸的钢架结构，旁边通常伴随火箭，非常适合游戏绘制。"
+      }
+    },
+    {
+      "labelId": "d091",
+      "id": "drawguess:1ee65e6100c5a40412e4eef37ffdbb49e700d5e1e3662ee779b307aac022ba48",
+      "stratum": "rejected",
+      "category": "space",
+      "content": {
+        "word": "太阳系",
+        "category": "space",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "需要画出太阳和多个行星的轨道，元素较多容易画面杂乱"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "太阳系",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "太阳系是一个宏观抽象的概念，缺乏单一明确的具象画法，容易导致歧义。"
+      }
+    },
+    {
+      "labelId": "d092",
+      "id": "drawguess:b5fbfb9a9255e16015511364e4974278b1767caa22a1659003620570158efc3e",
+      "stratum": "rejected",
+      "category": "space",
+      "content": {
+        "word": "星座",
+        "category": "space",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "需要用虚线把星星连接起来形成动物或人物轮廓"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "星座",
+        "qualityChecks": {
+          "isConcreteAndDrawable": false,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": false
+        },
+        "reason": "星座是抽象概念，没有具体指代哪一个特定星座，容易导致死局。"
+      }
+    },
+    {
+      "labelId": "d093",
+      "id": "drawguess:2da6a88a3ee7f653e5548e9afca9c2023493d06f87077b667c165c2c489d60a5",
+      "stratum": "accepted",
+      "category": "space",
+      "content": {
+        "word": "探测器",
+        "category": "space",
+        "difficulty": "hard",
+        "potentialIssues": [
+          "机械结构复杂，包含天线盘和各种仪器支架"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "探测器",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "太空探测器有各种天线和仪器舱的外形，可以通过绘画表达。"
+      }
+    },
+    {
+      "labelId": "d094",
+      "id": "drawguess:c3d24aa2ba0b37f9fa2842131549eb48e729b918a47fd819338e0ef4b0816d10",
+      "stratum": "accepted",
+      "category": "space",
+      "content": {
+        "word": "北斗星",
+        "category": "space",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "必须画出标志性的勺子形状才能被猜中"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "北斗星",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "北斗星指向明确，画出几颗星连成勺子即可。"
+      }
+    },
+    {
+      "labelId": "d095",
+      "id": "drawguess:580334843753b79708585143653b79663e07dcaba0a2612ce29135c0e5b0c041",
+      "stratum": "accepted",
+      "category": "sports",
+      "content": {
+        "word": "击剑",
+        "category": "sports",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "面罩和细长的剑需要细节"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "击剑",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "击剑服、面罩和细长的剑具有清晰的视觉要素。"
+      }
+    },
+    {
+      "labelId": "d096",
+      "id": "drawguess:bd4e1662400890365109ed0e6aa7494f5b1a8d356fd67d4227a8a9e2eb23c63c",
+      "stratum": "accepted",
+      "category": "sports",
+      "content": {
+        "word": "瑜伽",
+        "category": "sports",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "高难度体式需要很好的线条表现"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "瑜伽",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "瑜伽垫和标志性的身体伸展体式可以轻松画出。"
+      }
+    },
+    {
+      "labelId": "d097",
+      "id": "drawguess:59abe8d9dd12d0e46985e9bc1ae2f28be356b52df04dc07751cd3b6ac40befb8",
+      "stratum": "rejected",
+      "category": "sports",
+      "content": {
+        "word": "高尔夫",
+        "category": "sports",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "高尔夫球杆和球洞旗帜"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "高尔夫",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "球杆、球洞和挥杆姿势很容易表现。"
+      }
+    },
+    {
+      "labelId": "d098",
+      "id": "drawguess:19e5a6b8e56551f126ae697e3c73de490db564738c0d82b0d7010ce1ef7d3ea3",
+      "stratum": "accepted",
+      "category": "sports",
+      "content": {
+        "word": "排球",
+        "category": "sports",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "需要画出网子和扣球动作区分"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "排球",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "球网和扣球姿势构成了清晰的排球运动画面。"
+      }
+    },
+    {
+      "labelId": "d099",
+      "id": "drawguess:ac4ca14fecbf860c09e202b9d02ff96acbc27762b0d4a0fca21ea3f44d6b1417",
+      "stratum": "accepted",
+      "category": "sports",
+      "content": {
+        "word": "马拉松",
+        "category": "sports",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "长跑号码布和终点拱门"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "马拉松",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "大批人群跑步以及终点拱门能够很好地表现马拉松。"
+      }
+    },
+    {
+      "labelId": "d100",
+      "id": "drawguess:ff23c3fb10a525be452628399e51cd27fbd9efbb24c43f6d7b544e4b78ec9163",
+      "stratum": "accepted",
+      "category": "vehicles",
+      "content": {
+        "word": "潜艇",
+        "category": "vehicles",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "潜望镜是辨识的关键，船体通常呈圆筒状"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "潜艇",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "潜艇呈雪茄状带有围壳，水面或水下的画法均能准确传达意图。"
+      }
+    },
+    {
+      "labelId": "d101",
+      "id": "drawguess:341394deda2bf631b66a3bfcbe4a56cf468c06b80693a53bed0b8a56dc3cf733",
+      "stratum": "accepted",
+      "category": "vehicles",
+      "content": {
+        "word": "直升机",
+        "category": "vehicles",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "顶部的巨大螺旋桨是核心特征，不可遗漏"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "直升机",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "直升机顶部的大旋翼和机身特征非常清晰，属于标准的飞行载具。"
+      }
+    },
+    {
+      "labelId": "d102",
+      "id": "drawguess:764c324ded683d08d5cd8f0e981f96580aa3e6bca40765da26de4db0f95c2439",
+      "stratum": "accepted",
+      "category": "vehicles",
+      "content": {
+        "word": "独轮车",
+        "category": "vehicles",
+        "difficulty": "medium",
+        "potentialIssues": [
+          "单轮和上方座位的结构容易画得结构不清"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "独轮车",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "独轮车单轮加扶手的结构清晰，属于非机动载具范畴。"
+      }
+    },
+    {
+      "labelId": "d103",
+      "id": "drawguess:63d2ebeaf55471550f2027e2328decdf43dbb54e87fbe47ce7f9c3e797cc1220",
+      "stratum": "accepted",
+      "category": "vehicles",
+      "content": {
+        "word": "救护车",
+        "category": "vehicles",
+        "difficulty": "easy",
+        "potentialIssues": [
+          "容易与普通货车混淆，必须画出车顶的红十字和警灯"
+        ]
+      },
+      "production": {
+        "reviewVersion": "drawguess-review-v2",
+        "word": "救护车",
+        "qualityChecks": {
+          "isConcreteAndDrawable": true,
+          "isSimplifiedChinese": true,
+          "isLengthValid": true,
+          "isCategoryAccurate": true,
+          "isAppropriate": true,
+          "isUnambiguous": true
+        },
+        "reason": "该词为常见交通工具，外形有红十字和警灯等高辨识度特征，画法明确，符合所有质量标准。"
+      }
+    }
+  ]
+}

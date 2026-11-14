@@ -13,6 +13,7 @@ import {
 import { env, introspectWorkflowInstance, SELF } from 'cloudflare:test';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
@@ -606,7 +607,7 @@ describe('External word submissions', () => {
     expect((await request('/v1/word-submissions', issued.token, invalid)).status).toBe(422);
     const invalidInitials = {
       ...payload,
-      items: [{ clientItemId: 'vowel', content: { ...candidate, word: '企鹅' } }],
+      items: [{ clientItemId: 'unreadable', content: { ...candidate, word: '㐀㐁' } }],
     };
     const invalidInitialsResult = wordSubmissionValidationSchema.parse(
       await (await request('/v1/word-submissions/validate', issued.token, invalidInitials)).json(),
@@ -716,6 +717,67 @@ describe('External word submissions', () => {
       awaitingPublication: 0,
       failed: 0,
       published: 0,
+    });
+  });
+
+  it('reviews a 6-item intake in groups of 5 and 1, charging exactly two model requests', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token, {
+      ...payload,
+      items: [...'一二三四五六'].map((suffix, index) => ({
+        clientItemId: `group-${index}`,
+        content: { ...candidate, word: `测试${suffix}` },
+      })),
+    });
+    expect(batch.items).toHaveLength(6);
+    const groupSizes: number[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+        const requestBody = z
+          .object({
+            contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
+          })
+          .parse(JSON.parse(z.string().parse(init?.body)));
+        const material = z
+          .object({ candidates: z.array(z.strictObject({ word: z.string() })) })
+          .parse(JSON.parse(z.string().parse(requestBody.contents[0]?.parts[0]?.text)));
+        groupSizes.push(material.candidates.length);
+        return Response.json({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      reviews: material.candidates.map(({ word }) => ({
+                        word,
+                        reason: '模拟审核通过，仅验证分组和记账。',
+                        qualityChecks: checks,
+                      })),
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        });
+      }),
+    );
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    await instance.modify((modifier) => modifier.disableSleeps());
+    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    await instance.waitForStatus('complete');
+    const reviewed = await readSubmissionBatch(env.DB, batch.id);
+    expect(groupSizes).toEqual([5, 1]);
+    expect(reviewed.items.every((item) => item.status === 'passed')).toBe(true);
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 2 });
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
+      count: 0,
     });
   });
 

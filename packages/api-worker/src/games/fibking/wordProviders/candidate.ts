@@ -18,6 +18,8 @@ import {
   FIB_WORD_CATEGORIES,
   FIB_WORD_GENERATION_BATCH_LIMIT,
   FIB_WORD_REVIEW_BATCH_LIMIT,
+  FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
+  FIB_WORD_STORED_REVIEW_BATCH_LIMIT,
   type FibWordCandidate,
   type FibWordEditorialCandidate,
   type FibWordQualityChecks,
@@ -64,7 +66,9 @@ const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.ext
 });
 
 const generatedFibWordCandidatesPayloadSchema = z.strictObject({
-  candidates: z.array(generatedFibWordCandidatePayloadSchema).max(FIB_WORD_GENERATION_BATCH_LIMIT),
+  candidates: z
+    .array(generatedFibWordCandidatePayloadSchema)
+    .max(FIB_WORD_STORED_GENERATION_BATCH_LIMIT),
 });
 
 const fibWordReviewsPayloadSchema = z.strictObject({
@@ -72,6 +76,9 @@ const fibWordReviewsPayloadSchema = z.strictObject({
     .array(
       z.strictObject({
         word: generatedFibWordSchema,
+        evidenceIndex: z.number().int().min(0).nullable(),
+        evidenceQuote: evidenceQuoteSchema.nullable(),
+        reason: z.string().trim().min(8).max(100),
         qualityChecks: z.strictObject({
           isEstablishedTerm: z.boolean(),
           isDefinitionAccurate: z.boolean(),
@@ -80,12 +87,9 @@ const fibWordReviewsPayloadSchema = z.strictObject({
           hasMultiplePlausibleWrongDefinitions: z.boolean(),
           hasRevealValue: z.boolean(),
         }),
-        reason: z.string().trim().min(8).max(100),
-        evidenceIndex: z.number().int().min(0).nullable(),
-        evidenceQuote: evidenceQuoteSchema.nullable(),
       }),
     )
-    .max(FIB_WORD_REVIEW_BATCH_LIMIT),
+    .max(FIB_WORD_STORED_REVIEW_BATCH_LIMIT),
 });
 
 export const FIB_WORD_JSON_SCHEMA = {
@@ -104,11 +108,12 @@ export const FIB_WORD_JSON_SCHEMA = {
       properties: {
         coreMeaning: {
           type: 'string',
-          description: '准确说明词语核心含义的完整中文句子，不得含英文字母',
+          description: '先说所属类别、再说区别于同类的关键特征的完整中文句子，不得含英文字母',
         },
         usageNote: {
           type: 'string',
-          description: '说明适用对象、语境或容易误解之处的完整中文句子，不得含英文字母',
+          description:
+            '补充资料中有依据的适用对象、语境、相关说法或来历的完整中文句子，不得含英文字母',
         },
       },
     },
@@ -172,9 +177,22 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['word', 'qualityChecks', 'reason', 'evidenceIndex', 'evidenceQuote'],
+        required: ['word', 'evidenceIndex', 'evidenceQuote', 'reason', 'qualityChecks'],
         properties: {
           word: { type: 'string', description: '与输入候选完全一致的词语' },
+          evidenceIndex: {
+            type: ['integer', 'null'],
+            minimum: 0,
+            description: '该候选资料数组中支持核心释义的零起始下标；没有证据时为 null',
+          },
+          evidenceQuote: {
+            type: ['string', 'null'],
+            minLength: FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH,
+            maxLength: FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH,
+            description:
+              '支持该词释义的连续原文，引用不必重复同一资料中的词头；没有证据时为 null 并拒绝该候选',
+          },
+          reason: { type: 'string', description: '具体说明接受或拒绝依据的中文句子' },
           qualityChecks: {
             type: 'object',
             additionalProperties: false,
@@ -193,7 +211,7 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
               },
               isDefinitionAccurate: {
                 type: 'boolean',
-                description: '核心释义是否真实准确且没有混入错误义项',
+                description: '核心释义和使用提示是否准确、说清词义并有资料支持',
               },
               isMeaningUnfamiliarToMostPlayers: {
                 type: 'boolean',
@@ -201,7 +219,7 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
               },
               isMeaningDistinctFromLiteralReading: {
                 type: 'boolean',
-                description: '逐字理解或词面意象是否无法推出接近标准释义的答案',
+                description: '逐字理解、词面意象及常见熟语搭配是否都无法说中核心真义',
               },
               hasMultiplePlausibleWrongDefinitions: {
                 type: 'boolean',
@@ -209,22 +227,9 @@ export const FIB_WORD_REVIEWS_JSON_SCHEMA = {
               },
               hasRevealValue: {
                 type: 'boolean',
-                description: '真义揭晓后是否具有反差或讨论价值',
+                description: '真义揭晓后是否有反差或谈资，且普通玩家一听就懂',
               },
             },
-          },
-          reason: { type: 'string', description: '具体说明接受或拒绝依据的中文句子' },
-          evidenceIndex: {
-            type: ['integer', 'null'],
-            minimum: 0,
-            description: '该候选资料数组中支持核心释义的零起始下标；没有证据时为 null',
-          },
-          evidenceQuote: {
-            type: ['string', 'null'],
-            minLength: FIB_WORD_EVIDENCE_QUOTE_MIN_LENGTH,
-            maxLength: FIB_WORD_EVIDENCE_QUOTE_MAX_LENGTH,
-            description:
-              '支持该词释义的连续原文，引用不必重复同一资料中的词头；没有证据时为 null 并拒绝该候选',
           },
         },
       },
@@ -278,6 +283,7 @@ function containsFibWord(content: string, word: string): boolean {
   return toSimplified(content).includes(toSimplified(word));
 }
 
+/** Strictly read generated material, including legacy batches; model requests enforce the live limit. */
 export function parseGeneratedFibWordCandidates(
   value: unknown,
   source: FibWordSource,
@@ -358,7 +364,7 @@ export function parseFibWordReviews(
   value: unknown,
   candidates: readonly FibWordEditorialCandidate[],
 ): readonly FibWordReview[] {
-  if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT) {
+  if (candidates.length > FIB_WORD_STORED_REVIEW_BATCH_LIMIT) {
     throw new Error(`Fib word review exceeds batch limit: ${candidates.length}`);
   }
   const payload = fibWordReviewsPayloadSchema.parse(value);

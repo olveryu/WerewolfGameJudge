@@ -16,6 +16,7 @@ import { env, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { FIB_WORD_REVIEW_VERSION } from '../../../games/fibking/wordProviders/prompt';
 import { getGameWordsStats, triggerGameWordSupply } from '../gameWords';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
@@ -201,7 +202,7 @@ describe('GET /admin/games/words/stats', () => {
     });
   });
 
-  it('reports per-check failure counts for rejected v11 reviews', async () => {
+  it('reports per-check failure counts for current reviews and excludes legacy reviews', async () => {
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at, completed_at)
@@ -216,15 +217,18 @@ describe('GET /admin/games/words/stats', () => {
            decision, reason, review_version, generation_cycle_id, reviewed_at
          ) VALUES
            ('stats-r1', '拒词一', '含义', '用法', 'niche', 'gemini',
-            1, 1, 0, 1, 0, 0, 'rejected', '词义太熟。', '11',
+            1, 1, 0, 1, 0, 0, 'rejected', '词义太熟。', ?,
             'stats-cycle', datetime('now')),
            ('stats-r2', '拒词二', '含义', '用法', 'niche', 'gemini',
-            1, 0, 1, 1, 1, 0, 'rejected', '释义不准。', '11',
+            1, 0, 1, 1, 1, 0, 'rejected', '释义不准。', ?,
             'stats-cycle', datetime('now')),
            ('stats-a1', '过词一', '含义', '用法', 'niche', 'gemini',
-            1, 1, 1, 1, 1, 0, 'accepted', '通过。', '11',
+            1, 1, 1, 1, 1, 0, 'accepted', '通过。', ?,
+            'stats-cycle', datetime('now')),
+           ('stats-legacy', '旧拒词', '含义', '用法', 'niche', 'gemini',
+            0, 0, 0, 0, 0, 0, 'rejected', '旧版本拒绝记录。', '11',
             'stats-cycle', datetime('now'))`,
-      ),
+      ).bind(FIB_WORD_REVIEW_VERSION, FIB_WORD_REVIEW_VERSION, FIB_WORD_REVIEW_VERSION),
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);

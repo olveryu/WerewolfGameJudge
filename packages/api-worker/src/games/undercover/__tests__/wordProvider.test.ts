@@ -1,12 +1,77 @@
 /** Provider transport uses separate material, strict output, and redacted failures. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
-import { UNDERCOVER_WORD_BATCH_LIMIT } from '../wordEditorial';
+import type { UndercoverWordCandidate } from '../wordEditorial';
 import { createUndercoverWordProvider } from '../wordProvider';
 
 afterEach(() => vi.restoreAllMocks());
 
 describe('Undercover provider', () => {
+  it('sends shared traits and reasons before verdicts and reviews at most 5 pairs', async () => {
+    const candidates = Array.from({ length: 5 }, (_, index): UndercoverWordCandidate => ({
+      wordA: `冬季${index}`,
+      wordB: `夏季${index}`,
+      category: 'food',
+      commonTraits: ['共同特点甲', '共同特点乙'],
+      differences: ['不同特点甲', '不同特点乙'],
+      potentialIssues: [],
+    }));
+    const reviews = candidates.map(({ wordA, wordB }) => ({
+      wordA,
+      wordB,
+      qualityChecks: {
+        isFamiliar: true,
+        hasSimilarFamiliarity: true,
+        hasSharedDescriptions: true,
+        hasDistinctDescriptions: true,
+        isNotSynonymOrSubset: true,
+        isPlayableBothWays: true,
+        isCategoryAccurate: true,
+        isAppropriate: true,
+        isFactuallyCertain: true,
+      },
+      commonTraits: ['共同特点甲', '共同特点乙'],
+      differences: ['不同特点甲', '不同特点乙'],
+      reason: '模拟审核，双方共性与区别明确。',
+    }));
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [
+          { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ reviews }) }] } },
+        ],
+      }),
+    );
+    const provider = createUndercoverWordProvider('test-key', fetchImpl);
+    await expect(provider.reviewBatch('food', candidates)).resolves.toEqual(reviews);
+    const body = z
+      .object({
+        generationConfig: z.object({
+          responseJsonSchema: z.object({
+            properties: z.object({
+              reviews: z.object({
+                items: z.object({ properties: z.record(z.string(), z.unknown()) }),
+              }),
+            }),
+          }),
+        }),
+        contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
+      })
+      .parse(JSON.parse(z.string().parse(fetchImpl.mock.calls[0]?.[1]?.body)));
+    expect(
+      Object.keys(body.generationConfig.responseJsonSchema.properties.reviews.items.properties),
+    ).toEqual(['wordA', 'wordB', 'commonTraits', 'differences', 'reason', 'qualityChecks']);
+    const payload = z
+      .object({ candidates: z.array(z.strictObject({ wordA: z.string(), wordB: z.string() })) })
+      .parse(JSON.parse(z.string().parse(body.contents[0]?.parts[0]?.text)));
+    expect(payload.candidates).toEqual(candidates.map(({ wordA, wordB }) => ({ wordA, wordB })));
+    expect(() => provider.reviewBatch('food', [...candidates, ...candidates.slice(0, 1)])).toThrow(
+      'batch limit: 5',
+    );
+    await expect(provider.reviewBatch('food', [])).resolves.toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
   it('validates whole pairs, retains non-CJK words and deduplicates normalized reversed pairs', async () => {
     const candidate = {
       wordA: 'Ｍｉｌｋ',
@@ -21,7 +86,6 @@ describe('Undercover provider', () => {
       candidate,
       { ...candidate, wordA: 'soy milk', wordB: 'milk' },
       { ...candidate, wordA: 'drink', wordB: 'ＤＲＩＮＫ' },
-      { ...candidate, category: 'nature' },
       { ...candidate, 'private-key': 'private-value' },
     ];
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -39,17 +103,16 @@ describe('Undercover provider', () => {
     );
     expect(result.candidates).toEqual([{ ...candidate, wordA: 'milk', wordB: 'soy milk' }]);
     expect(result.validation).toMatchObject({
-      receivedCount: 6,
+      receivedCount: 5,
       validCount: 1,
-      rejectedCount: 4,
+      rejectedCount: 3,
       duplicateCount: 1,
     });
     expect(result.validation.rejectionSamples.map(({ index, code }) => ({ index, code }))).toEqual([
       { index: 0, code: 'too_small' },
       { index: 2, code: 'duplicateCandidate' },
       { index: 3, code: 'identicalWords' },
-      { index: 4, code: 'categoryMismatch' },
-      { index: 5, code: 'unrecognized_keys' },
+      { index: 4, code: 'unrecognized_keys' },
     ]);
     expect(warn).toHaveBeenCalledOnce();
     expect(error).not.toHaveBeenCalled();
@@ -124,7 +187,7 @@ describe('Undercover provider', () => {
         potentialIssues: [],
       };
       const candidates = Array.from(
-        { length: invalidField === 'batch size' ? UNDERCOVER_WORD_BATCH_LIMIT + 1 : 1 },
+        { length: invalidField === 'batch size' ? 6 : 1 },
         () => candidate,
       );
       const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(

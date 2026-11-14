@@ -1,8 +1,9 @@
 /** Provider transport uses separate material, strict output, and redacted failures. */
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
-import { DRAWGUESS_WORD_BATCH_LIMIT } from '../wordEditorial';
+import type { DrawGuessWordCandidate } from '../wordEditorial';
 import { createDrawGuessWordProvider } from '../wordProvider';
 
 afterEach(() => vi.restoreAllMocks());
@@ -15,7 +16,6 @@ describe('DrawGuess provider', () => {
     const candidates = [
       { ...candidate, word: 'leak!' },
       { ...candidate, category: 'animals' },
-      { ...candidate, potentialIssues: [1] },
       candidate,
       { ...candidate, word: '面包' },
       { ...candidate, word: '香蕉', 'private-key': 'private-value' },
@@ -34,18 +34,17 @@ describe('DrawGuess provider', () => {
     );
     expect(result.candidates).toEqual([{ ...candidate, word: '面包' }]);
     expect(result.validation).toMatchObject({
-      receivedCount: 6,
+      receivedCount: 5,
       validCount: 1,
-      rejectedCount: 4,
+      rejectedCount: 3,
       duplicateCount: 1,
       omittedIssueCount: 0,
     });
     expect(result.validation.rejectionSamples).toEqual([
       { index: 0, path: ['candidates', 0, 'word'], code: 'invalid_format' },
       { index: 1, path: ['candidates', 1, 'category'], code: 'categoryMismatch' },
-      { index: 2, path: ['candidates', 2, 'potentialIssues', 0], code: 'invalid_type' },
-      { index: 4, path: ['candidates', 4], code: 'duplicateCandidate' },
-      { index: 5, path: ['candidates', 5], code: 'unrecognized_keys' },
+      { index: 3, path: ['candidates', 3], code: 'duplicateCandidate' },
+      { index: 4, path: ['candidates', 4], code: 'unrecognized_keys' },
     ]);
     expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('"packId":"partial"'));
     expect(error).not.toHaveBeenCalled();
@@ -65,6 +64,62 @@ describe('DrawGuess provider', () => {
 
   it('supports at least 30 distinct editorial categories', () => {
     expect(new Set(DRAWGUESS_WORD_CATEGORIES).size).toBeGreaterThanOrEqual(30);
+  });
+
+  it('sends reasons before verdicts and reviews at most 5 words without extra requests', async () => {
+    const candidates = Array.from({ length: 5 }, (_, index): DrawGuessWordCandidate => ({
+      word: `测试${String.fromCodePoint(0x4e00 + index)}`,
+      category: 'animals',
+      difficulty: 'easy',
+      potentialIssues: [],
+    }));
+    const reviews = candidates.map(({ word }) => ({
+      word,
+      qualityChecks: {
+        isConcreteAndDrawable: true,
+        isSimplifiedChinese: true,
+        isLengthValid: true,
+        isCategoryAccurate: true,
+        isAppropriate: true,
+        isUnambiguous: true,
+      },
+      reason: '模拟审核，画法和猜词依据明确。',
+    }));
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [
+          { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ reviews }) }] } },
+        ],
+      }),
+    );
+    const provider = createDrawGuessWordProvider('test-key', fetchImpl);
+    await expect(provider.reviewBatch('animals', candidates)).resolves.toEqual(reviews);
+    const body = z
+      .object({
+        generationConfig: z.object({
+          responseJsonSchema: z.object({
+            properties: z.object({
+              reviews: z.object({
+                items: z.object({ properties: z.record(z.string(), z.unknown()) }),
+              }),
+            }),
+          }),
+        }),
+        contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
+      })
+      .parse(JSON.parse(z.string().parse(fetchImpl.mock.calls[0]?.[1]?.body)));
+    expect(
+      Object.keys(body.generationConfig.responseJsonSchema.properties.reviews.items.properties),
+    ).toEqual(['word', 'reason', 'qualityChecks']);
+    const payload = z
+      .object({ candidates: z.array(z.strictObject({ word: z.string() })) })
+      .parse(JSON.parse(z.string().parse(body.contents[0]?.parts[0]?.text)));
+    expect(payload.candidates).toEqual(candidates.map(({ word }) => ({ word })));
+    expect(() =>
+      provider.reviewBatch('animals', [...candidates, ...candidates.slice(0, 1)]),
+    ).toThrow('batch limit: 5');
+    await expect(provider.reviewBatch('animals', [])).resolves.toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
   it('sends the new party category and its drawing instructions to the provider', async () => {
@@ -126,7 +181,7 @@ describe('DrawGuess provider', () => {
       potentialIssues: [],
     };
     const candidates = Array.from(
-      { length: invalidField === 'batch size' ? DRAWGUESS_WORD_BATCH_LIMIT + 1 : 1 },
+      { length: invalidField === 'batch size' ? 6 : 1 },
       () => candidate,
     );
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(

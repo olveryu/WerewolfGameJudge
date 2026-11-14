@@ -62,9 +62,7 @@ describe('Fib word supply workflow', () => {
           content: '菡萏：荷花的别称，古人常在诗文中用来称呼荷花。',
         },
       ];
-      const candidates = allRejected
-        ? Array.from({ length: 12 }, () => invalid)
-        : [invalid, candidate, candidate];
+      const candidates = [allRejected ? invalid : candidate];
       const reviews = [
         {
           word: candidate.word,
@@ -109,10 +107,10 @@ describe('Fib word supply workflow', () => {
       const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
       await instance.waitForStatus(allRejected ? 'errored' : 'complete');
       const validation = {
-        receivedCount: allRejected ? 12 : 3,
+        receivedCount: 1,
         validCount: allRejected ? 0 : 1,
-        rejectedCount: allRejected ? 12 : 1,
-        duplicateCount: allRejected ? 0 : 1,
+        rejectedCount: allRejected ? 1 : 0,
+        duplicateCount: 0,
       };
       if (allRejected) {
         const status = await workflow.status();
@@ -125,8 +123,8 @@ describe('Fib word supply workflow', () => {
           validationCode: 'allCandidatesRejected',
           validationSummary: {
             ...validation,
-            omittedIssueCount: 4,
-            rejectionSamples: Array.from({ length: 8 }, (_, index) => ({
+            omittedIssueCount: 0,
+            rejectionSamples: Array.from({ length: 1 }, (_, index) => ({
               index,
               path: ['candidates', index, 'citations', 0, 'quote'],
               code: 'invalidEvidenceReference',
@@ -480,8 +478,8 @@ describe('Fib word supply workflow', () => {
           { evidence, failedUrls: [] },
         );
         await modifier.mockStepResult({ name: `generate-${batchIndex}` }, candidates);
-        await modifier.mockStepResult({ name: `review-${batchIndex}` }, reviews.slice(0, 6));
-        await modifier.mockStepResult({ name: `review-${batchIndex + 1}` }, reviews.slice(6));
+        await modifier.mockStepResult({ name: `review-${batchIndex}` }, reviews.slice(0, 1));
+        await modifier.mockStepResult({ name: `review-${batchIndex + 1}` }, reviews.slice(1, 2));
         await modifier.mockStepError(
           { name: `discover-${batchIndex + 1}` },
           new Error('Persisted candidates must not trigger discovery'),
@@ -493,15 +491,15 @@ describe('Fib word supply workflow', () => {
       expect(await instance.getOutput()).toEqual({ status: 'paused' });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
-      ).toEqual({ count: 0 });
+      ).toEqual({ count: 6 });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
-      ).toEqual({ count: 8 });
+      ).toEqual({ count: 2 });
       expect(
         await env.DB.prepare(
           'SELECT requests_reserved, published_count FROM fib_word_supply_months',
         ).first(),
-      ).toEqual({ requests_reserved: batchIndex + 2, published_count: 8 });
+      ).toEqual({ requests_reserved: batchIndex + 2, published_count: 2 });
     },
   );
 
@@ -563,9 +561,9 @@ describe('Fib word supply workflow', () => {
             content: '搜索摘要不作为审核证据。',
           },
         ];
-        await modifier.mockStepResult({ name: `verify-0-${index}` }, sources);
+        await modifier.mockStepResult({ name: `verify-${index}-0` }, sources);
         await modifier.mockStepResult(
-          { name: `extract-verification-0-${index}` },
+          { name: `extract-verification-${index}-0` },
           {
             evidence: sources.map((source) => ({
               ...source,
@@ -574,9 +572,9 @@ describe('Fib word supply workflow', () => {
             failedUrls: [],
           },
         );
+        await modifier.mockStepResult({ name: `review-${index}` }, reviews.slice(index, index + 1));
       }
-      await modifier.mockStepResult({ name: 'review-0' }, reviews);
-      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+      await modifier.mockStepResult({ name: 'capacity-3' }, 'paused');
     });
     await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
     await instance.waitForStatus('complete');
@@ -588,7 +586,7 @@ describe('Fib word supply workflow', () => {
       await env.DB.prepare(
         'SELECT requests_reserved, published_count FROM fib_word_supply_months',
       ).first(),
-    ).toEqual({ requests_reserved: 1, published_count: 0 });
+    ).toEqual({ requests_reserved: 3, published_count: 0 });
     expect(
       (
         await env.DB.prepare(
@@ -599,10 +597,10 @@ describe('Fib word supply workflow', () => {
     expect(
       (await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id').all()).results,
     ).toEqual(words.map((word) => ({ word })));
-    expect(await env.DB.prepare('SELECT word, status FROM fib_word_candidates').first()).toEqual({
-      word: '验证余词',
-      status: 'pending',
-    });
+    expect(await env.DB.prepare('SELECT word, status FROM fib_word_candidates').first()).toBeNull();
+    expect(
+      await env.DB.prepare("SELECT status FROM fib_words WHERE word = '验证余词'").first(),
+    ).toEqual({ status: 'active' });
   });
 
   it.each(['discovery', 'extraction', 'generation'])(

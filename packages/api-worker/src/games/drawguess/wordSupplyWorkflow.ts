@@ -19,6 +19,12 @@ import {
 } from './wordPublication';
 
 const historySchema = z.array(z.strictObject({ word: z.string() }));
+/**
+ * Word identity is unique across every review status, so generation history must list pending and
+ * rejected candidates too; listing only active words made the model re-propose words that storage
+ * then discarded. The bound keeps the request size independent of inventory growth.
+ */
+const GENERATION_HISTORY_LIMIT = 400;
 
 /** Durable single-day batches with independent review and non-repeatable external operations. */
 export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSupplyParams> {
@@ -32,9 +38,13 @@ export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSup
       loadHistory: async (db, category) => {
         const rows = await db
           .prepare(
-            `SELECT word FROM drawguess_words WHERE category = ? AND status = 'active' ORDER BY created_at DESC LIMIT 60`,
+            `SELECT word FROM (
+              SELECT word, created_at FROM drawguess_word_candidates WHERE category = ?1
+              UNION ALL
+              SELECT word, created_at FROM drawguess_words WHERE category = ?1
+            ) GROUP BY word ORDER BY MAX(created_at) DESC, word LIMIT ?2`,
           )
-          .bind(category)
+          .bind(category, GENERATION_HISTORY_LIMIT)
           .all();
         return historySchema.parse(rows.results).map((row) => row.word);
       },

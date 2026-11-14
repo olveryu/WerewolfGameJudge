@@ -22,7 +22,7 @@ import {
   searchFibWordEvidence,
 } from './wordProviders/tavily';
 import {
-  FIB_WORD_GENERATION_BATCH_LIMIT,
+  FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
   type FibWordCategory,
   type FibWordEditorialCandidate,
   type FibWordRequest,
@@ -51,7 +51,7 @@ const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 s
 const REQUEST_TIMEOUT_MS = 120_000;
 const MODEL_STEP = { ...EXTERNAL_STEP, timeout: '130 seconds' } as const;
 const log = createLogger('fib-word-supply');
-const generatedCandidatesSchema = z.array(z.unknown()).max(FIB_WORD_GENERATION_BATCH_LIMIT);
+const generatedCandidatesSchema = z.array(z.unknown()).max(FIB_WORD_STORED_GENERATION_BATCH_LIMIT);
 const persistedGenerationSchema = z.union([
   generatedCandidatesSchema,
   z.strictObject({

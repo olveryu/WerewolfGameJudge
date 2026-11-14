@@ -1,0 +1,14 @@
+{
+  "kind": "ai-reference",
+  "annotator": "AI assistant using Copilot SDK in VS Code",
+  "labelledAt": "2026-11-14",
+  "humanVerified": false,
+  "strictlyBlind": false,
+  "limitations": [
+    "Earlier investigation exposed some production verdicts and real-run disagreements; this is not a strictly blinded annotation study.",
+    "Labels were assigned from candidate text and, where inspected, stored source excerpts, not copied from production verdicts.",
+    "The annotator also develops the prompts; agreement with these labels is not independent proof of player experience.",
+    "Uncertain judgments use ? and are excluded from the binary comparison.",
+    "fibking f014 is related to an existing calibration term and is marked ? to exclude it from the binary comparison."
+  ]
+}

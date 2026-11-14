@@ -11,3 +11,4 @@ functions/types.d.ts
 tsconfig.json
 *.log
 .agents/skills/impeccable/**
+scripts/word-review-eval/data
