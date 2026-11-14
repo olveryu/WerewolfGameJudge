@@ -507,8 +507,8 @@ function resolveWolfRobotGate(
 
 /**
  * The bottom-bar message for the actioner: the prompt text, then the
- * wolf status line and the wolf warning (unanimity / tie rule) when the
- * step is the wolf meeting; a skip-only / empty-vote-only hint replaces it.
+ * wolf status and warning during the wolf meeting, or the witch's
+ * self-attack status. A skip-only / empty-vote-only hint replaces it.
  */
 export function renderActionerMessage(
   model: NightInteractionModel,
@@ -537,10 +537,18 @@ export function renderActionerMessage(
     case 'ackHunterStatus':
       // The gate replaces the learn prompt until the status is viewed.
       return model.prompt.text;
+    case 'witch': {
+      const schema = requireActionSchema(viewModel, model.kind);
+      const prompt = requireSchemaText(schema, 'prompt', schema.ui?.prompt);
+      if (model.killedSeat === null || model.killedSeat !== viewModel.mySeat) return prompt;
+      const selfSaveMessage = model.canSave
+        ? '你被狼人袭击，可以使用解药自救。'
+        : '你被狼人袭击，本局规则不允许自救。';
+      return renderNightMessage([selfSaveMessage, prompt]);
+    }
     case 'pickSeat':
     case 'pickTwoSeats':
     case 'multiSelect':
-    case 'witch':
     case 'confirmStatus':
     case 'chooseCard':
     case 'skipOnly':
