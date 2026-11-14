@@ -1198,12 +1198,14 @@ describe('External word submissions', () => {
           });
         }
         if (target === 'https://api.tavily.com/extract') {
-          if (init.body.includes(firstUrl))
+          const extraction = z.object({ urls: z.array(z.string()) }).parse(JSON.parse(init.body));
+          if (extraction.urls.length === 1 && extraction.urls[0] === firstUrl)
             return Response.json({
               results: [],
               failed_results: [{ url: firstUrl, error: 'Failed to retrieve content' }],
               usage: { credits: 1 },
             });
+          expect(extraction.urls).toEqual([secondUrl, failedUrl]);
           return Response.json({
             results: [{ url: secondUrl, raw_content: proof }],
             failed_results: [{ url: failedUrl, error: 'Failed to retrieve content' }],
