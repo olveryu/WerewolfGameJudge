@@ -56,7 +56,9 @@ export const undercoverSubmissionAdapter: WordSubmissionAdapter = {
     });
   },
   publish(db, publication) {
-    const candidate = undercoverCandidateSchema.parse(publication.verifiedContent);
+    const candidate = undercoverCandidateSchema.parse(
+      publication.approvalReason !== null ? publication.content : publication.verifiedContent,
+    );
     return [
       db
         .prepare(
@@ -71,7 +73,15 @@ export const undercoverSubmissionAdapter: WordSubmissionAdapter = {
           candidate.category,
           publication.now,
           publication.now,
-          JSON.stringify(publication.review),
+          JSON.stringify(
+            publication.approvalReason !== null
+              ? {
+                  actor: 'shared-admin',
+                  reason: publication.approvalReason,
+                  modelReview: publication.review,
+                }
+              : publication.review,
+          ),
           publication.itemId,
           publication.actionId,
         ),

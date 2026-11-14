@@ -17,6 +17,7 @@ import { SubmissionActionDialog, type SubmissionConfirmation } from './Submissio
 import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import { useSubmissionCommand } from './useSubmissionCommand';
 import {
+  isApprovableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
@@ -35,7 +36,7 @@ export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; bat
     <>
       <PageHeading
         title="词库"
-        description="先审核，再由管理员明确确认发布。"
+        description="独立审核或人工通过后，再明确确认发布。"
         query={query}
         controls={<WordSections game={game} section="submissions" />}
         action={
@@ -119,6 +120,7 @@ function BatchCandidates({
       </div>
       <p className="admin-submission-note">
         审核不自动发布；“全部待审”包含待启动和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
+        也可核对材料后人工通过，再单独发布。
       </p>
       <ReviewDispatchNotice batch={batch} onRefresh={onRefresh} />
       <section className="admin-panel" aria-label="批次候选">
@@ -319,7 +321,10 @@ function CandidateTable({
           key: 'reason',
           label: '审核摘要',
           secondary: true,
-          render: (item) => item.review?.reason ?? item.failure ?? '尚无审核结论',
+          render: (item) =>
+            item.approvalReason !== null
+              ? '人工通过；原审核记录保留'
+              : (item.review?.reason ?? item.failure ?? '尚无审核结论'),
         },
       ]}
     />
@@ -347,6 +352,7 @@ function SelectionToolbar({
       all.current.indeterminate = selectedVisible > 0 && selectedVisible < eligible.length;
   }, [selectedVisible, eligible.length]);
   const reviewable = selectedItems.filter((item) => ['pending', 'failed'].includes(item.status));
+  const approvable = selectedItems.filter(isApprovableSubmission);
   const publishable = selectedItems.filter((item) => item.status === 'passed');
   return (
     <div className="admin-submission-selection" aria-label="候选批量操作">
@@ -379,7 +385,9 @@ function SelectionToolbar({
         )}
       </div>
       {selectedItems.length === 0 ? (
-        <p className="admin-muted">先勾选，再审核、发布或拒绝。已发布、审核中和已处理项不可选。</p>
+        <p className="admin-muted">
+          先勾选，再独立审核、人工通过、发布或拒绝。已发布、审核中和已处理项不可选。
+        </p>
       ) : (
         <div className="admin-submission-actions">
           {reviewable.length > 0 && (
@@ -390,6 +398,16 @@ function SelectionToolbar({
               }
             >
               审核所选 ({reviewable.length})
+            </button>
+          )}
+          {approvable.length > 0 && (
+            <button
+              type="button"
+              onClick={(event) =>
+                onAction({ action: 'approve', items: approvable }, event.currentTarget)
+              }
+            >
+              人工通过所选 ({approvable.length})
             </button>
           )}
           {publishable.length > 0 && (
