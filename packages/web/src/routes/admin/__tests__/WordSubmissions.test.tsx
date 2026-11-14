@@ -151,6 +151,52 @@ beforeEach(() => {
   vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({ batches: [], nextCursor: null });
 });
 
+it('opens a batch as a URL-backed workspace overlay and browser Back restores its list context', async () => {
+  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+    batches: [{ ...batch, counts: { pending: 1 } }],
+    nextCursor: null,
+  });
+  const { router, user } = mount('submissions', '&search=lotus');
+  const row = await screen.findByRole('row', { name: `打开投稿批次 ${batch.id}` });
+
+  await user.click(row);
+  expect(router.state.location.search).toContain(`batch=${batch.id}`);
+  expect(router.state.location.state).toMatchObject({ adminSubmissionBatchOrigin: 'list' });
+  const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
+  expect(within(dialog).queryByText('返回投稿列表')).not.toBeInTheDocument();
+  expect(within(dialog).getByRole('button', { name: '关闭投稿批次审核' })).toBeVisible();
+  expect(within(dialog).getByRole('button', { name: '刷新审核进度' })).toBeVisible();
+  expect(within(dialog).getByRole('button', { name: '审核全部待审 (2)' })).toBeVisible();
+  await user.keyboard('{Escape}');
+
+  await waitFor(() =>
+    expect(router.state.location.search).toBe('?section=submissions&search=lotus'),
+  );
+  expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
+});
+
+it('opens candidate details from a keyboard-activated row without treating its checkbox as an action', async () => {
+  const { user } = mount();
+  const row = await screen.findByRole('row', { name: '查看词条详情：词语0' });
+
+  await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
+  expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument();
+  row.focus();
+  await user.keyboard('{Enter}');
+
+  expect(await screen.findByRole('dialog', { name: '词条详情' })).toBeVisible();
+});
+
+it('opens agent details from any non-control part of the row', async () => {
+  vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [authorization] });
+  const { user } = mount('agents');
+  const row = await screen.findByRole('row', { name: '查看 Muse 授权详情' });
+
+  await user.click(row);
+
+  expect(await screen.findByRole('dialog', { name: 'Muse' })).toBeVisible();
+});
+
 it.each([false, true])(
   'edits authorization parameters without issuing another credential (renew=%s)',
   async (renew) => {
@@ -227,14 +273,12 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByText('已选 4 / 当前可选 4')).toBeInTheDocument();
   for (const index of [4, 5, 6, 7, 8])
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
-  expect(screen.getByRole('button', { name: '发布所选 (1)' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '审核所选 (2)' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '人工通过所选 (3)' })).toBeEnabled();
-  await user.click(
-    within(screen.getByRole('group', { name: '筛选候选状态' })).getByRole('button', {
-      name: '待确认发布 1',
-    }),
-  );
+  expect(screen.getByRole('button', { name: '发布 1' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '审核 2' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: '候选状态：全部 (9)' }));
+  const filters = await screen.findByRole('dialog', { name: '选择候选状态' });
+  await user.click(within(filters).getByRole('button', { name: '待确认发布 (1)' }));
   expect(all).not.toBeChecked();
   expect(screen.getByText('已选 0 / 当前可选 1')).toBeInTheDocument();
   await user.click(all);
@@ -284,7 +328,7 @@ it('reviews at exhausted quotas without a reason and freezes retries', async () 
 it('offers selected and single-item review without separate force controls', async () => {
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '审核所选 (2)' }));
+  await user.click(screen.getByRole('button', { name: '审核 2' }));
   let dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   await user.click(within(dialog).getByRole('button', { name: '取消' }));
@@ -310,7 +354,7 @@ it('bulk publishes only passed items and retries the same immutable action after
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '发布所选 (1)' }));
+  await user.click(screen.getByRole('button', { name: '发布 1' }));
   const dialog = await screen.findByRole('dialog', { name: '确认发布' });
   await user.click(within(dialog).getByRole('button', { name: '确认发布 (1)' }));
   expect(await within(dialog).findByRole('alert')).toHaveTextContent('offline');
@@ -331,7 +375,7 @@ it('bulk approves pending, failed and rejected items without a reason, but does 
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '人工通过所选 (3)' }));
+  await user.click(screen.getByRole('button', { name: '人工通过 3' }));
   const dialog = await screen.findByRole('dialog', { name: '人工通过' });
   expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
   expect(within(dialog).getByText(/通过后仍须单独确认发布/)).toBeInTheDocument();

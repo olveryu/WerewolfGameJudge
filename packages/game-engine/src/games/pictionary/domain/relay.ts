@@ -21,7 +21,7 @@
  * ({chainIndex, entryIndex}); the machine speaks a linear position.
  * The slice adapter converts on the way in and the phase-event
  * factory converts back on the way out, so the persisted shape
- * (state v9) never changes.
+ * is preserved across state versions.
  */
 
 import {
@@ -37,7 +37,11 @@ import {
   relayDeadline,
   type RelayExpireHooks,
 } from '../../../platform/room/relay/clock';
-import { controlRelayGallery } from '../../../platform/room/relay/gallery';
+import {
+  controlRelayGallery,
+  relayRevealDuration,
+  relayTextRevealDuration,
+} from '../../../platform/room/relay/gallery';
 import {
   appendRelayEntryTail,
   decideRelayTask,
@@ -90,6 +94,8 @@ function toLinearGallery(state: PictionaryState): RelayGalleryState | null {
     revealedPosition: gallery.revealedPosition,
     isPlaying: gallery.isPlaying,
     remainingMs: gallery.remainingMs,
+    revealStartedAt: gallery.revealStartedAt,
+    revealDurationMs: gallery.revealDurationMs,
   };
 }
 
@@ -101,6 +107,8 @@ function fromLinearGallery(gallery: RelayGalleryState, stepIndex: number): Picti
     isPlaying: gallery.isPlaying,
     revealedPosition: gallery.revealedPosition,
     remainingMs: gallery.remainingMs,
+    revealStartedAt: gallery.revealStartedAt,
+    revealDurationMs: gallery.revealDurationMs,
   };
 }
 
@@ -147,6 +155,12 @@ function createPictionaryRelayKit(
       transitionDurationSeconds: state.config.transitionDurationSeconds,
       galleryItemDurationSeconds: state.config.galleryItemDurationSeconds,
     },
+    revealDuration: (entry) =>
+      entry.kind === 'text'
+        ? relayTextRevealDuration(entry.text)
+        : entry.kind === 'drawing'
+          ? (entry.media.replay?.durationMs ?? 0)
+          : 0,
     commit: (events, effects = []) => commitPictionary(events, effects),
     phaseChanged: (phase, deadlineAt, stepIndex, gallery) =>
       pictionaryPhase(phase, deadlineAt, stepIndex, gallery),
@@ -430,7 +444,11 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
       );
     }
     const isPlaying = state.config.galleryItemDurationSeconds !== null;
-    const deadlineAt = relayDeadline(nowMs, state.config.galleryItemDurationSeconds);
+    const revealDurationMs = relayRevealDuration(kit, state, 0);
+    const deadlineAt = relayDeadline(
+      nowMs + revealDurationMs,
+      state.config.galleryItemDurationSeconds,
+    );
     const settleEffect =
       kit.settleDueEffect === undefined || deadlineAt === null
         ? null
@@ -447,6 +465,8 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
           revealedPosition: 0,
           isPlaying,
           remainingMs: null,
+          revealStartedAt: nowMs,
+          revealDurationMs,
         }),
       ],
       settleEffect === null ? [] : [settleEffect],

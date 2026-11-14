@@ -22,7 +22,11 @@ import {
   type RelayExpireHooks,
   relaySettleDueEffect,
 } from '../../../platform/room/relay/clock';
-import { controlRelayGallery } from '../../../platform/room/relay/gallery';
+import {
+  controlRelayGallery,
+  relayRevealDuration,
+  relayTextRevealDuration,
+} from '../../../platform/room/relay/gallery';
 import {
   decideRelayTask,
   getRelayTaskForSeat,
@@ -80,6 +84,7 @@ export function createStoryRelayRelayKit(
       transitionDurationSeconds: state.config.transitionDurationSeconds,
       galleryItemDurationSeconds: state.config.galleryItemDurationSeconds,
     },
+    revealDuration: (entry) => (entry.kind === 'text' ? relayTextRevealDuration(entry.text) : 0),
     commit: (events, effects = []) => commitStoryRelay(events, effects),
     phaseChanged: (phase, deadlineAt, stepIndex, gallery) =>
       storyRelayPhase(state, phase, deadlineAt, stepIndex, gallery),
@@ -251,7 +256,11 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
   resolveTransition: (kit, state, nowMs) => {
     if (state.completedAt !== null) {
       const isPlaying = state.config.galleryItemDurationSeconds !== null;
-      const deadlineAt = relayDeadline(nowMs, state.config.galleryItemDurationSeconds);
+      const revealDurationMs = relayRevealDuration(kit, state, 0);
+      const deadlineAt = relayDeadline(
+        nowMs + revealDurationMs,
+        state.config.galleryItemDurationSeconds,
+      );
       const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, deadlineAt);
       const effects: StoryRelayEffect[] = [];
       if (settleEffect !== null) effects.push(settleEffect);
@@ -262,6 +271,8 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
             revealedPosition: 0,
             isPlaying,
             remainingMs: null,
+            revealStartedAt: nowMs,
+            revealDurationMs,
           }),
         ],
         effects,

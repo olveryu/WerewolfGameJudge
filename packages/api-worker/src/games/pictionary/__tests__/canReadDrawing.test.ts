@@ -58,6 +58,7 @@ function createChainWithDrawing(entryId: string): PictionaryChain {
         media: {
           objectKey: 'test-key',
           contentType: 'image/png',
+          replay: null,
           width: PICTIONARY_DRAWING_WIDTH,
           height: PICTIONARY_DRAWING_HEIGHT,
           byteLength: 100,

@@ -18,7 +18,7 @@ import {
   applyRelayTaskReady,
   clearRelayRound,
 } from '../evolve';
-import { controlRelayGallery, moveRelayGallery } from '../gallery';
+import { controlRelayGallery, moveRelayGallery, relayTextRevealDuration } from '../gallery';
 import { getRelayTaskForSeat } from '../tasks';
 import type {
   RelayEventKit,
@@ -64,6 +64,7 @@ function testKit(shape: RelayShape): RelayEventKit<TestEntry, TestEvent, TestEff
   return {
     reasons: REASONS,
     shape,
+    revealDuration: (entry) => relayTextRevealDuration(entry.text),
     commit: (events, effects = []) => commit({ events, effects }),
     phaseChanged: (phase, deadlineAt, stepIndex, gallery) => ({
       type: 'phase.changed',
@@ -176,7 +177,15 @@ describe('relay gallery contract', () => {
       stepIndex: 3,
       deadlineAt,
       readySeats: [],
-      chains: [],
+      chains: [0, 1, 2, 3].map((index) => ({
+        id: `chain-${index}`,
+        originSeat: index,
+        entries: [0, 1, 2, 3].map((item) => ({
+          id: `${index}-${item}`,
+          authorSeat: item,
+          text: 'hello',
+        })),
+      })),
       gallery,
     } satisfies RelayRoundSlice<TestEntry>;
   }
@@ -192,7 +201,14 @@ describe('relay gallery contract', () => {
   it('keeps the reveal monotonic across advance and rewind', () => {
     const kit = testKit(shape);
     const start = galleryState(
-      { position: 0, revealedPosition: 0, isPlaying: true, remainingMs: null },
+      {
+        position: 0,
+        revealedPosition: 0,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: 0,
+        revealDurationMs: 400,
+      },
       10_000,
     );
     const advanced = phaseEvent(moveRelayGallery(kit, start, 1, 0));
@@ -205,13 +221,25 @@ describe('relay gallery contract', () => {
         0,
       ),
     );
-    expect(rewound.gallery).toMatchObject({ position: 0, revealedPosition: 1 });
+    expect(rewound.gallery).toMatchObject({
+      position: 0,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
   });
 
   it('freezes the remaining time on pause and restores it on resume', () => {
     const kit = testKit(shape);
     const playing = galleryState(
-      { position: 1, revealedPosition: 1, isPlaying: true, remainingMs: null },
+      {
+        position: 1,
+        revealedPosition: 1,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: null,
+        revealDurationMs: 0,
+      },
       14_000,
     );
     const paused = phaseEvent(controlRelayGallery(kit, playing, 'pause', 10_000));
@@ -232,7 +260,14 @@ describe('relay gallery contract', () => {
   it('rejects resume in manual paging mode', () => {
     const kit = testKit({ ...shape, galleryItemDurationSeconds: null });
     const manual = galleryState(
-      { position: 1, revealedPosition: 1, isPlaying: false, remainingMs: null },
+      {
+        position: 1,
+        revealedPosition: 1,
+        isPlaying: false,
+        remainingMs: null,
+        revealStartedAt: null,
+        revealDurationMs: 0,
+      },
       null,
     );
     expect(controlRelayGallery(kit, manual, 'resume', 0)).toEqual({
@@ -244,12 +279,184 @@ describe('relay gallery contract', () => {
   it('finishes at the final cell in the ended phase', () => {
     const kit = testKit(shape);
     const start = galleryState(
-      { position: 3, revealedPosition: 3, isPlaying: true, remainingMs: null },
+      {
+        position: 3,
+        revealedPosition: 3,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: null,
+        revealDurationMs: 0,
+      },
       10_000,
     );
     const finished = phaseEvent(controlRelayGallery(kit, start, 'finish', 0));
     expect(finished.phase).toBe('ended');
-    expect(finished.gallery).toMatchObject({ position: 15, revealedPosition: 15 });
+    expect(finished.gallery).toMatchObject({
+      position: 15,
+      revealedPosition: 15,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+  });
+
+  it('lets animation run while paused and freezes only the hold remainder', () => {
+    const kit = testKit(shape);
+    const start = galleryState(
+      {
+        position: 0,
+        revealedPosition: 0,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: 0,
+        revealDurationMs: 400,
+      },
+      10_400,
+    );
+    const paused = phaseEvent(controlRelayGallery(kit, start, 'pause', 100));
+    expect(paused.gallery?.remainingMs).toBe(10_000);
+    expect(paused.gallery).toMatchObject({ revealStartedAt: 0, revealDurationMs: 400 });
+    const resumedEarly = phaseEvent(
+      controlRelayGallery(
+        kit,
+        { ...start, gallery: paused.gallery, deadlineAt: null },
+        'resume',
+        200,
+      ),
+    );
+    expect(resumedEarly.deadlineAt).toBe(10_400);
+    const resumedLate = phaseEvent(
+      controlRelayGallery(
+        kit,
+        { ...start, gallery: paused.gallery, deadlineAt: null },
+        'resume',
+        5_000,
+      ),
+    );
+    expect(resumedLate.deadlineAt).toBe(15_000);
+    const pausedAfterReveal = phaseEvent(controlRelayGallery(kit, start, 'pause', 4_400));
+    expect(pausedAfterReveal.gallery?.remainingMs).toBe(6_000);
+  });
+
+  it('anchors only first reveals and never replays revisited items', () => {
+    const kit = testKit(shape);
+    const start = galleryState(
+      {
+        position: 0,
+        revealedPosition: 0,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: 0,
+        revealDurationMs: 400,
+      },
+      10_400,
+    );
+    const advanced = phaseEvent(moveRelayGallery(kit, start, 1, 500));
+    expect(advanced.gallery).toMatchObject({
+      position: 1,
+      revealedPosition: 1,
+      revealStartedAt: 500,
+      revealDurationMs: 400,
+    });
+    expect(advanced.deadlineAt).toBe(10_900);
+    const rewound = phaseEvent(
+      moveRelayGallery(
+        kit,
+        { ...start, gallery: advanced.gallery, deadlineAt: advanced.deadlineAt },
+        -1,
+        600,
+      ),
+    );
+    expect(rewound.gallery).toMatchObject({
+      position: 0,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+    expect(rewound.deadlineAt).toBe(10_600);
+    const revisited = phaseEvent(
+      moveRelayGallery(
+        kit,
+        { ...start, gallery: rewound.gallery, deadlineAt: rewound.deadlineAt },
+        1,
+        700,
+      ),
+    );
+    expect(revisited.gallery).toMatchObject({
+      position: 1,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+    expect(revisited.deadlineAt).toBe(10_700);
+    const pausedRevisit = phaseEvent(
+      controlRelayGallery(
+        kit,
+        { ...start, gallery: revisited.gallery, deadlineAt: revisited.deadlineAt },
+        'pause',
+        800,
+      ),
+    );
+    expect(pausedRevisit.gallery?.remainingMs).toBe(9_900);
+    const next = phaseEvent(
+      moveRelayGallery(
+        kit,
+        { ...start, gallery: revisited.gallery, deadlineAt: revisited.deadlineAt },
+        1,
+        900,
+      ),
+    );
+    expect(next.gallery).toMatchObject({
+      position: 2,
+      revealedPosition: 2,
+      revealStartedAt: 900,
+      revealDurationMs: 400,
+    });
+    expect(next.deadlineAt).toBe(11_300);
+  });
+
+  it('does not replay the latest item after a rewind during its active reveal', () => {
+    const kit = testKit(shape);
+    const revealing = galleryState(
+      {
+        position: 1,
+        revealedPosition: 1,
+        isPlaying: true,
+        remainingMs: null,
+        revealStartedAt: 1_000,
+        revealDurationMs: 400,
+      },
+      11_400,
+    );
+    const rewound = phaseEvent(moveRelayGallery(kit, revealing, -1, 1_100));
+    expect(rewound.gallery).toMatchObject({
+      position: 0,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+    expect(rewound.deadlineAt).toBe(11_100);
+    const forward = phaseEvent(
+      moveRelayGallery(
+        kit,
+        { ...revealing, gallery: rewound.gallery, deadlineAt: rewound.deadlineAt },
+        1,
+        1_200,
+      ),
+    );
+    expect(forward.gallery).toMatchObject({
+      position: 1,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+    expect(forward.deadlineAt).toBe(11_200);
+  });
+
+  it('counts text graphemes and clamps its reveal time', () => {
+    expect(relayTextRevealDuration('')).toBe(0);
+    expect(relayTextRevealDuration('👨‍👩‍👧‍👦')).toBe(400);
+    expect(relayTextRevealDuration('x'.repeat(7))).toBe(560);
+    expect(relayTextRevealDuration('x'.repeat(200))).toBe(8000);
   });
 });
 

@@ -86,12 +86,25 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
     if (follow !== 'bottom' || !followBottomRef.current) return;
     const list = listRef.current;
     if (list === null) throw new Error('Gallery album list missing');
-    list.scrollTop = list.scrollHeight;
+    const latest = latestEntryRef.current;
+    // Text reveals reserve their full height: keep the start of a tall entry in view, not its blank tail.
+    list.scrollTop =
+      latest !== null && latest.offsetHeight > list.clientHeight
+        ? latest.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+        : list.scrollHeight;
   }, [follow, entries.length]);
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
-    followBottomRef.current = scrollHeight - (scrollTop + clientHeight) < BOTTOM_FOLLOW_THRESHOLD;
+    const latest = latestEntryRef.current;
+    const isAtTallEntryStart =
+      latest !== null &&
+      latest.offsetHeight > clientHeight &&
+      Math.abs(
+        latest.getBoundingClientRect().top - event.currentTarget.getBoundingClientRect().top,
+      ) < BOTTOM_FOLLOW_THRESHOLD;
+    followBottomRef.current =
+      isAtTallEntryStart || scrollHeight - (scrollTop + clientHeight) < BOTTOM_FOLLOW_THRESHOLD;
   };
 
   return (

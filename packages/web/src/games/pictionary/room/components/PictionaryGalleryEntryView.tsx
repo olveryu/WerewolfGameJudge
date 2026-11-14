@@ -5,10 +5,13 @@ import type {
   PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import { GalleryRevealText } from '@/features/room/components/GalleryRevealText';
+import type { RevealTiming } from '@/features/room/hooks/useRevealProgress';
 import {
   getPictionarySeatDisplayName,
   PICTIONARY_MISSED_ENTRY_TEXT,
 } from '@/games/pictionary/model/pictionarySelectors';
+import type { ServerClock } from '@/services/serverClock';
 import { TESTIDS } from '@/testids';
 import IconBrushOutline from '~icons/ion/brush-outline';
 import IconChatboxEllipsesOutline from '~icons/ion/chatbox-ellipses-outline';
@@ -16,6 +19,7 @@ import IconCloseCircleOutline from '~icons/ion/close-circle-outline';
 import IconPersonOutline from '~icons/ion/person-outline';
 
 import { PictionaryDrawingImage } from './PictionaryDrawingImage';
+import { PictionaryGalleryDrawing } from './PictionaryGalleryDrawing';
 
 const ENTRY_KIND_LABELS = { drawing: '画作', text: '文字', missed: '未完成' } as const;
 
@@ -24,10 +28,14 @@ export function PictionaryGalleryEntryView({
   state,
   entry,
   entryIndex,
+  timing = null,
+  clock = null,
 }: {
   readonly state: PictionaryState;
   readonly entry: PictionaryEntry;
   readonly entryIndex: number;
+  readonly timing?: RevealTiming | null;
+  readonly clock?: ServerClock | null;
 }) {
   const authorName = getPictionarySeatDisplayName(state, entry.authorSeat);
   return (
@@ -39,16 +47,28 @@ export function PictionaryGalleryEntryView({
         </span>
       </div>
       {entry.kind === 'drawing' ? (
-        <PictionaryDrawingImage
-          roomCode={state.roomCode}
-          entryId={entry.id}
-          label={`${authorName} 的画作`}
-          controlledSeat={null}
-        />
+        state.phase === 'gallery' ? (
+          <PictionaryGalleryDrawing
+            roomCode={state.roomCode}
+            entry={entry}
+            label={`${authorName} 的画作`}
+            timing={timing}
+            clock={clock}
+          />
+        ) : (
+          <PictionaryDrawingImage
+            roomCode={state.roomCode}
+            entryId={entry.id}
+            label={`${authorName} 的画作`}
+            controlledSeat={null}
+          />
+        )
       ) : entry.kind === 'text' ? (
         <div className="pictionary-gallery-text-card">
           <IconChatboxEllipsesOutline aria-hidden />
-          <p>{entry.text}</p>
+          <p>
+            <GalleryRevealText text={entry.text} timing={timing} clock={clock} />
+          </p>
         </div>
       ) : (
         <div className="pictionary-gallery-text-card" data-missed>
