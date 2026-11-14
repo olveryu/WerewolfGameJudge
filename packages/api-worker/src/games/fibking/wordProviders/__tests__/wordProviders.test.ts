@@ -618,6 +618,47 @@ describe('Gemini Fib word provider', () => {
     );
   });
 
+  it.each([101, 1000])('preserves a %i-character review reason', async (length) => {
+    const request = createWordRequest();
+    const candidates = parseGeneratedFibWordCandidates(
+      SINGLE_CANDIDATE_RESPONSE,
+      'gemini',
+      request,
+    );
+    const reason = '理由'.repeat(length).slice(0, length);
+    const response = {
+      reviews: SINGLE_REVIEW_REFERENCE_RESPONSE.reviews.map((review) => ({ ...review, reason })),
+    };
+    const fetchImpl: typeof fetch = async () => Response.json(createGeminiResponse(response));
+
+    await expect(
+      createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(request, candidates),
+    ).resolves.toMatchObject([{ reason }]);
+  });
+
+  it('identifies an oversized review reason without exposing its contents', async () => {
+    const request = createWordRequest();
+    const candidates = parseGeneratedFibWordCandidates(
+      SINGLE_CANDIDATE_RESPONSE,
+      'gemini',
+      request,
+    );
+    const reason = '隐私'.repeat(501);
+    const response = {
+      reviews: SINGLE_REVIEW_REFERENCE_RESPONSE.reviews.map((review) => ({ ...review, reason })),
+    };
+    const fetchImpl: typeof fetch = async () => Response.json(createGeminiResponse(response));
+    const failure = createGeminiFibWordProvider('test-key', fetchImpl).reviewBatch(
+      request,
+      candidates,
+    );
+
+    await expect(failure).rejects.toMatchObject({
+      diagnostic: { stage: 'outputValidation', validationCode: 'reviewReasonTooLong' },
+    });
+    await expect(failure).rejects.not.toThrow(reason);
+  });
+
   it('binds the single review to its candidate before resolving local quote references', async () => {
     const request = createWordRequest();
     const candidates = parseGeneratedFibWordCandidates(

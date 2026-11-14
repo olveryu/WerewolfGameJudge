@@ -78,7 +78,7 @@ const fibWordReviewsPayloadSchema = z.strictObject({
         word: generatedFibWordSchema,
         evidenceIndex: z.number().int().min(0).nullable(),
         evidenceQuote: evidenceQuoteSchema.nullable(),
-        reason: z.string().trim().min(8).max(100),
+        reason: z.string().trim().min(8).max(1000),
         qualityChecks: z.strictObject({
           isEstablishedTerm: z.boolean(),
           isDefinitionAccurate: z.boolean(),
@@ -367,7 +367,22 @@ export function parseFibWordReviews(
   if (candidates.length > FIB_WORD_STORED_REVIEW_BATCH_LIMIT) {
     throw new Error(`Fib word review exceeds batch limit: ${candidates.length}`);
   }
-  const payload = fibWordReviewsPayloadSchema.parse(value);
+  const parsed = fibWordReviewsPayloadSchema.safeParse(value);
+  if (!parsed.success) {
+    if (
+      parsed.error.issues.some(
+        (issue) =>
+          issue.code === 'too_big' &&
+          issue.path.length === 3 &&
+          issue.path[0] === 'reviews' &&
+          typeof issue.path[1] === 'number' &&
+          issue.path[2] === 'reason',
+      )
+    )
+      throw new AiOutputValidationError('reviewReasonTooLong', 'Fib review reason exceeds limit');
+    throw parsed.error;
+  }
+  const payload = parsed.data;
   if (payload.reviews.length !== candidates.length) {
     throw new AiOutputValidationError('reviewCountMismatch', 'Fib word review batch size mismatch');
   }

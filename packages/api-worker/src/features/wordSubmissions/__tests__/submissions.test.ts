@@ -1043,6 +1043,8 @@ describe('External word submissions', () => {
       });
       const url = 'https://dictionary.example/lotus';
       const proof = `菡萏：${definition.coreMeaning}`;
+      const reviewReason =
+        '资料支持这个词的释义，词面没有直接透露其含义，揭晓后具有讨论价值。'.repeat(4);
       if (exhausted) {
         await env.DB.prepare(
           `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 454)
@@ -1092,7 +1094,7 @@ describe('External word submissions', () => {
                     reviews: [
                       {
                         word: '菡萏',
-                        reason: '证据支持，释义准确且有揭晓价值。',
+                        reason: reviewReason,
                         qualityChecks: {
                           isEstablishedTerm: true,
                           isDefinitionAccurate: true,
@@ -1120,7 +1122,7 @@ describe('External word submissions', () => {
       const reviewed = await readSubmissionBatch(env.DB, batch.id);
       expect(reviewed.items[0]).toMatchObject({
         status: 'passed',
-        review: { canOverride: true, passed: true },
+        review: { canOverride: true, passed: true, reason: reviewReason },
       });
       expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
         count: 0,

@@ -25,6 +25,7 @@ const wordSchema = z
   .max(8)
   .regex(/^[\u3400-\u4dbf\u4e00-\u9fff]+$/);
 const explanationSchema = z.string().trim().min(2).max(180);
+const reviewExplanationSchema = z.string().trim().min(2).max(1000);
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 
 export const drawGuessCandidateSchema = z.strictObject({
@@ -51,7 +52,7 @@ export const drawGuessReviewsSchema = z.strictObject({
     .array(
       z.strictObject({
         word: wordSchema,
-        reason: explanationSchema,
+        reason: reviewExplanationSchema,
         qualityChecks: qualityChecksSchema,
       }),
     )

@@ -17,6 +17,7 @@ const STORED_BATCH_LIMIT = 30;
 const toSimplified = Converter({ from: 't', to: 'cn' });
 const wordSchema = z.string().trim().min(1).max(16);
 const explanationSchema = z.string().trim().min(2).max(180);
+const reviewExplanationSchema = z.string().trim().min(2).max(1000);
 
 export const undercoverCandidateSchema = z.strictObject({
   wordA: wordSchema,
@@ -47,9 +48,9 @@ export const undercoverReviewsSchema = z.strictObject({
       z.strictObject({
         wordA: wordSchema,
         wordB: wordSchema,
-        commonTraits: z.array(explanationSchema).max(4),
-        differences: z.array(explanationSchema).max(4),
-        reason: explanationSchema,
+        commonTraits: z.array(reviewExplanationSchema).max(4),
+        differences: z.array(reviewExplanationSchema).max(4),
+        reason: reviewExplanationSchema,
         qualityChecks: qualityChecksSchema,
       }),
     )

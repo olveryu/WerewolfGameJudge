@@ -122,6 +122,45 @@ describe('DrawGuess provider', () => {
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
+  it.each([181, 1000, 1001])('bounds review reasons at %i characters', async (length) => {
+    const candidate: DrawGuessWordCandidate = {
+      word: '面包',
+      category: 'food',
+      difficulty: 'easy',
+      potentialIssues: [],
+    };
+    const review = {
+      word: candidate.word,
+      reason: '理'.repeat(length),
+      qualityChecks: {
+        isConcreteAndDrawable: true,
+        isSimplifiedChinese: true,
+        isLengthValid: true,
+        isCategoryAccurate: true,
+        isAppropriate: true,
+        isUnambiguous: true,
+      },
+    };
+    const fetchImpl: typeof fetch = async () =>
+      Response.json({
+        candidates: [
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ text: JSON.stringify({ reviews: [review] }) }] },
+          },
+        ],
+      });
+    const result = createDrawGuessWordProvider('test-key', fetchImpl).reviewBatch('food', [
+      candidate,
+    ]);
+
+    if (length <= 1000) await expect(result).resolves.toEqual([review]);
+    else
+      await expect(result).rejects.toMatchObject({
+        diagnostic: { stage: 'outputValidation', issueCodes: ['too_big'] },
+      });
+  });
+
   it('sends the new party category and its drawing instructions to the provider', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({

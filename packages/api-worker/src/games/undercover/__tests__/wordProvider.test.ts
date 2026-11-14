@@ -72,6 +72,53 @@ describe('Undercover provider', () => {
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
+  it.each([181, 1000, 1001])('bounds review explanations at %i characters', async (length) => {
+    const candidate: UndercoverWordCandidate = {
+      wordA: '牛奶',
+      wordB: '豆浆',
+      category: 'food',
+      commonTraits: ['早餐饮料', '可以加糖'],
+      differences: ['来源不同', '味道不同'],
+      potentialIssues: [],
+    };
+    const review = {
+      wordA: candidate.wordA,
+      wordB: candidate.wordB,
+      commonTraits: ['共'.repeat(length), '可以加糖'],
+      differences: ['异'.repeat(length), '味道不同'],
+      reason: '理'.repeat(length),
+      qualityChecks: {
+        isFamiliar: true,
+        hasSimilarFamiliarity: true,
+        hasSharedDescriptions: true,
+        hasDistinctDescriptions: true,
+        isNotSynonymOrSubset: true,
+        isPlayableBothWays: true,
+        isCategoryAccurate: true,
+        isAppropriate: true,
+        isFactuallyCertain: true,
+      },
+    };
+    const fetchImpl: typeof fetch = async () =>
+      Response.json({
+        candidates: [
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ text: JSON.stringify({ reviews: [review] }) }] },
+          },
+        ],
+      });
+    const result = createUndercoverWordProvider('test-key', fetchImpl).reviewBatch('food', [
+      candidate,
+    ]);
+
+    if (length <= 1000) await expect(result).resolves.toEqual([review]);
+    else
+      await expect(result).rejects.toMatchObject({
+        diagnostic: { stage: 'outputValidation', issueCodes: ['too_big'] },
+      });
+  });
+
   it('validates whole pairs, retains non-CJK words and deduplicates normalized reversed pairs', async () => {
     const candidate = {
       wordA: 'Ｍｉｌｋ',
