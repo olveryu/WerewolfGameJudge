@@ -112,6 +112,13 @@
   color: var(--color-text-inverse);
 }
 
+.home-section-title {
+  margin: 0 0 var(--space-medium);
+  font-size: var(--font-heading);
+  line-height: var(--line-heading);
+  font-weight: var(--weight-semibold);
+}
+
 .home-tasks {
   display: grid;
   gap: var(--space-medium);
@@ -135,11 +142,10 @@
   gap: var(--space-medium);
   padding: var(--space-large);
   border: none;
-  border-radius: var(--radius-xlarge);
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  border-radius: var(--radius-medium);
+  background: var(--color-primary);
   color: var(--color-text-inverse);
   text-align: left;
-  box-shadow: var(--shadow-md);
   cursor: pointer;
   transition: transform 100ms ease-out;
 }
@@ -148,6 +154,11 @@
 .home-action:active:not(:disabled),
 .home-card:active {
   transform: scale(0.98);
+}
+
+.home-hero:disabled {
+  cursor: default;
+  opacity: var(--opacity-disabled);
 }
 
 .home-hero-main {
@@ -186,7 +197,7 @@
   height: var(--size-avatar-sm);
   overflow: hidden;
   border-radius: var(--radius-full);
-  background: rgb(255 255 255 / 20%);
+  background: var(--color-text-inverse-a20);
   font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
 }
@@ -210,10 +221,9 @@
   gap: var(--space-tight);
   padding: var(--space-medium);
   border: none;
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-medium);
   background: var(--color-surface);
   text-align: left;
-  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 100ms ease-out;
 }
@@ -242,27 +252,20 @@
   align-items: center;
   gap: var(--space-medium);
   padding: var(--space-medium);
-  border-left: var(--border-width-thick) solid var(--color-warning);
-  border-radius: var(--radius-large);
+  border: none;
+  border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text-muted);
   text-decoration: none;
-  box-shadow: var(--shadow-sm);
   transition: transform 100ms ease-out;
 }
 
 button.home-card {
   width: 100%;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
+  border: none;
   font: inherit;
   text-align: left;
   cursor: pointer;
-}
-
-.home-card[data-accent='primary'] {
-  border-left-color: var(--color-primary);
 }
 
 .home-card-icon {
@@ -275,10 +278,6 @@ button.home-card {
   height: var(--size-badge-dot);
   border-radius: var(--radius-full);
   background: var(--color-error);
-}
-
-.home-card-emoji {
-  font-size: var(--font-heading);
 }
 
 .home-card-text {

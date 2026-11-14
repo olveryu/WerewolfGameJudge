@@ -1,125 +1,121 @@
-# Design System — WerewolfGameJudge
+---
+name: WerewolfGameJudge
+description: A multi-game judge for people playing together.
+colors:
+  primary: '#285F86'
+  primary-light: '#3B6D91'
+  primary-dark: '#1A405D'
+  background: '#EDF2F7'
+  surface: '#FFFFFF'
+  surface-hover: '#E0E9F1'
+  text: '#1A3149'
+  text-secondary: '#526779'
+  text-muted: '#5B6E80'
+  border: '#C4D2DE'
+  border-light: '#DEE7EE'
+  success: '#1A9A4A'
+  warning: '#B87D08'
+  error: '#D13438'
+  info: '#2563EB'
+  wolf: '#C82828'
+  villager: '#1A9A4A'
+  god: '#7B3FBF'
+  third: '#B87D08'
+typography:
+  heading:
+    fontFamily: "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    fontSize: '24px'
+    lineHeight: '34px'
+  body:
+    fontFamily: "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    fontSize: '16px'
+    lineHeight: '24px'
+  secondary:
+    fontFamily: "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
+    fontSize: '14px'
+    lineHeight: '20px'
+rounded:
+  small: '8px'
+  medium: '12px'
+  large: '16px'
+  xlarge: '16px'
+  full: '9999px'
+spacing:
+  micro: '2px'
+  tight: '4px'
+  small: '8px'
+  medium: '16px'
+  screen-h: '20px'
+  large: '24px'
+  xlarge: '32px'
+  xxlarge: '48px'
+components:
+  button-primary:
+    backgroundColor: '{colors.primary}'
+    textColor: '{colors.surface}'
+    rounded: '{rounded.small}'
+    height: '44px'
+    padding: '0 16px'
+---
 
-## Product Context
+# Design System: WerewolfGameJudge
 
-- **What this is:** Multigame face-to-face judge app; Werewolf is the primary UI reference, alongside FibKing, Pictionary and Undercover
-- **Who it's for:** Face-to-face tabletop players (Host + remote players)
-- **Platform:** Web (React DOM + CSS, PixiJS scene layer), in browsers and the WeChat mini-program web-view
-- **Theme count:** One active Moonlight color set. Historical multi-theme proposals are not implemented theme choices.
+## Overview
 
-## Aesthetic Direction
+The web client uses a restrained, directory-like interface: cool blue-grey surroundings, clear
+grouping and a single blue for primary actions. People should find room actions and game state
+quickly while playing together. Preserve game-specific imagery and meaningful faction colors.
 
-- **Cross-game baseline:** Preserve Werewolf's established config controls, compact room hierarchy and interaction patterns. Other games align with it; do not redesign Werewolf to accommodate a new shared abstraction.
-- **Integration contract:** [room-shell-contract.md](room-shell-contract.md) owns the config/guide/room component map and acceptance checklist. This includes all game-owned panels and overlay states, not only page frames.
-- **Authority:** Current theme tokens and shared component implementations define values. Tables below are a reference, not permission to duplicate numeric constants in new games.
+The active palette is defined by `packages/web/src/theme/colors.ts`; sizes, typography, radii
+and shadows live in `packages/web/src/theme/tokens.css`. These implementation files are the
+source of truth.
 
-- **Direction:** iOS native feel — clear hierarchy, token-driven, restrained decoration
-- **Mood:** Immersive tabletop atmosphere. Light themes are clean and elegant; dark themes each have personality (Eclipse = mysterious, Blood Moon = tense, Forest = secretive)
-- **Reference:** Apple HIG spacing/typography, three-layer token architecture (Primitive → Semantic → Component)
+## Colors
+
+Primary blue identifies primary actions and selections. White surfaces sit on the blue-grey
+background; navy and blue-grey text establish hierarchy. Success, warning, error, info and
+faction colors retain their semantic meanings rather than serving as decoration.
+
+Text and primary actions on the shared background and surface must maintain at least 4.5:1
+contrast. The focused palette is verified in `packages/web/src/theme/colors.test.ts`.
 
 ## Typography
 
-- **Font:** System default (SF Pro / Roboto / sans-serif)
-- **Scale (viewport-independent logical sizes, pixel-aligned):**
-  - Display: 40px
-  - Hero: 32px
-  - Heading: 24px
-  - Title: 20px
-  - Subtitle: 18px
-  - Body: 16px
-  - Secondary: 14px
-  - Caption: 12px
-  - CaptionSmall: 10px
-- **Line Heights (corresponding to each font size):**
-  - Display: 50px, Hero: 42px, Heading: 34px, Title: 28px
-  - Subtitle: 26px, Body: 24px, Secondary: 20px, Caption: 16px, CaptionSmall: 14px
-- **Weights:** normal(400), medium(500), semibold(600), bold(700)
-- **Letter Spacing:** hero(-1), tight(-0.5), normal(0), wide(0.5)
-- **Text Style Presets:** `textStyles.body`, `textStyles.titleBold` etc., pre-composed fontSize + lineHeight + fontWeight (no color), eliminating pairing errors
-
-## Color
-
-- **Historical theme proposals (not current color values or an implemented theme registry):**
-
-The active palette is exported as `colors` from `packages/web/src/theme/colors.ts`. Use those semantic
-exports; the table below is retained only as design history and must not seed a new game's palette.
-
-| Key        | Name       | Type  | Primary   | Background | Surface   | Text      |
-| ---------- | ---------- | ----- | --------- | ---------- | --------- | --------- |
-| `light`    | Moonlight  | Light | `#5B5BD6` | `#F5F5F7`  | `#FFFFFF` | `#1A1A2E` |
-| `sand`     | Warm Sand  | Light | `#886830` | `#F3EDE4`  | `#FAF6F0` | `#2D2418` |
-| `jade`     | Celadon    | Light | `#2A8A7A` | `#F3F7F6`  | `#FFFFFF` | `#182828` |
-| `sky`      | Clear Sky  | Light | `#4A7FBB` | `#F4F6FA`  | `#FFFFFF` | `#1A2030` |
-| `dark`     | Graphite   | Dark  | `#7C7CFF` | `#121214`  | `#1C1C1F` | `#F0F0F3` |
-| `midnight` | Eclipse    | Dark  | `#8B5CF6` | `#0B0B14`  | `#131320` | `#E8E8F0` |
-| `blood`    | Blood Moon | Dark  | `#DC3B3B` | `#110B0B`  | `#1C1212` | `#F5EAEA` |
-| `forest`   | Forest     | Dark  | `#3DD68C` | `#0A1210`  | `#101D18` | `#E8F5EE` |
-
-- **Active semantic colors:** `primary`, `primaryLight`, `primaryDark`, `background`, `surface`, `surfaceHover`, `card`, `text`, `textSecondary`, `textMuted`, `textInverse`, `border`, `borderLight`, `success`, `warning`, `error`, `info`
-- **Game-specific 4 faction colors:** `wolf`(red), `villager`(green), `god`(purple), `third`(yellow)
-- **Overlay:** `overlay`(dark, modal backdrop), `overlayLight`(light, subtle overlay)
-- **Active color set:** `colors`; do not assume a selectable `light` theme registry exists
-
-## Spacing
-
-- **Base unit:** Logical dimensions aligned with `PixelRatio.roundToNearestPixel`; `scale()` does not resize spacing with viewport width
-- **Scale:**
-  - micro: 2px, tight: 4px, small: 8px, medium: 16px
-  - screenH: 20px (screen horizontal margin, distinct from medium card padding)
-  - large: 24px, xlarge: 32px, xxlarge: 48px
-- **Screen margin vs card padding:** `screenH`(20px) for screen horizontal padding, `medium`(16px) for card internal padding
-
-## Border Radius
-
-- none: 0, small: 10px, medium: 14px, large: 20px, xlarge: 28px, full: 9999px
-- **Cards/panels:** Use the existing component's semantic radius; content cards use `borderRadius.large`
-- **Buttons:** Reuse `Button` variants rather than assigning radius by game
-- **Avatars/badges:** full (9999px)
-
-## Component Sizes
-
-- **Button heights:** sm(32), md(44), lg(56)
-- **Avatar:** xs(24), sm(32), md(40), lg(56), xl(80)
-- **Icon:** xs(12), sm(16), md(20), lg(24), xl(32)
-- **Badge:** dot(8), sm(16), md(20)
-- **Min touch target:** 44px (fixed)
-- **Header/TabBar:** 56px
-- **Modal min width:** 280px
-
-## Shadows
-
-```
-sm:       0px 1px 3px rgba(0,0,0,0.08)
-md:       0px 2px 8px rgba(0,0,0,0.12)
-lg:       0px 8px 24px rgba(0,0,0,0.16)
-upward:   0px -4px 16px rgba(0,0,0,0.10)
-lgUpward: 0px -8px 24px rgba(0,0,0,0.16)
-```
-
-Uses RN 0.76+ `boxShadow` property, cross-platform iOS/Android/Web.
+The interface uses the system sans-serif stack with Chinese platform fallbacks. Headings,
+body text and secondary text follow the fixed token scale; avoid copying sizes into components.
 
 ## Layout
 
-- **Content widths:** `GameScreenContent` and `GameScreenFooter` currently cap at 720; the shared catalog layout caps at 1040. Room workspaces own their responsive constraints. Reuse those owners rather than treating one width as universal.
-- **Screen padding:** horizontal=20px, vertical=24px
-- **Card padding:** 16px
-- **List item gap:** 8px
-- **Header height:** 56px
+Use the shared spacing tokens. The home task area becomes two columns at 720px; game screens,
+catalog pages and room workspaces retain their own existing width owners and responsive rules.
+Respect safe-area insets and maintain the existing 44px minimum touch target.
 
-## Fixed Values
+## Elevation & Depth
 
-- Border width: 1px (normal), 2px (thick), 3px (highlight)
-- Active opacity: 0.7 (press state)
-- Disabled opacity: 0.5
+The home page uses flat tonal surfaces. Shared shadows in `tokens.css` remain available for
+dialogs and other components that need separation; do not combine decoration with redundant
+elevation.
 
-## Motion
+## Shapes
 
-- **Approach:** Minimal functional — only transitions that aid comprehension. Role reveal animation is the exception (CSS and the PixiJS scene layer).
-- **Press feedback:** opacity 0.7 (base), some components use CSS `scale(0.97)`
+Controls and surfaces use the shared radius scale. Full-radius shapes remain appropriate for
+avatars, small badges and progress tracks.
 
-## Source of Truth
+## Components
 
-- **Token definitions:** `packages/web/src/theme/tokens.css` — CSS custom properties for sizes, type, radii and shadows
-- **Theme colors:** `packages/web/src/theme/colors.ts`, published as `--color-*` custom properties; inspect the active implementation rather than assuming a theme-context hook exists
-- **Usage rules:** Use exported colors and semantic size tokens; do not copy this document's numeric values into game components
-- **Contract maintenance:** Changes to shared controls or room surfaces update [room-shell-contract.md](room-shell-contract.md), their focused tests and applicable agent source rules together. Generated adapters are rebuilt with `pnpm run sync:agents`.
+- Reuse the shared `Button` variants for actions, `ScreenHeader` for screen navigation and the
+  existing dialog and sheet primitives for overlays.
+- The home page groups create, enter and recent-room actions before existing product links.
+  Keep the room actions, game imagery, announcements and their interaction behavior intact.
+- Configuration controls, room hierarchy and game-owned panels follow
+  [room-shell-contract.md](room-shell-contract.md). Visual consistency includes loading, error,
+  empty, disabled, selected and submitting states.
+- Keyboard focus is visible through the global focus treatment; input focus retains its
+  component-specific treatment.
+
+## Do's and Don'ts
+
+- Use the semantic color and size tokens instead of copying values into component styles.
+- Keep actions, state and text readable on phones and in the WeChat mini-program web-view.
+- Do not replace meaningful game art or faction semantics with decorative styling.
+- Do not reintroduce gradients or colored side stripes merely as decoration.

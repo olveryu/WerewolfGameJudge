@@ -51,6 +51,11 @@ button {
   color: inherit;
 }
 
+:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
+}
+
 .text-input {
   width: 100%;
   min-height: var(--size-button-md);
