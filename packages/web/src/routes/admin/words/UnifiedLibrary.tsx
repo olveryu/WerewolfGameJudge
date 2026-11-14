@@ -41,6 +41,12 @@ const SOURCE_LABELS: Record<Exclude<LibrarySource, 'all'>, string> = {
   submissions: 'Agent投稿',
 };
 
+const LIBRARY_SOURCES: readonly string[] = ['all', 'inventory', 'submissions'];
+
+function isLibrarySource(value: string): value is LibrarySource {
+  return LIBRARY_SOURCES.includes(value);
+}
+
 /** Candidate statuses share pending/approved/rejected with submission items. */
 const CANDIDATE_STATUSES: readonly string[] = [
   'pending',
@@ -75,7 +81,10 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   const [parameters, setParameters] = useSearchParams();
   const navigate = useNavigate();
   const search = parameters.get('search') ?? '';
-  const source = (parameters.get('source') as LibrarySource | null) ?? 'all';
+  const rawSource = parameters.get('source') ?? '';
+  // Unknown ?source= values fall back to 'all' instead of leaking into the
+  // segmented control as an unhandled variant.
+  const source = isLibrarySource(rawSource) ? rawSource : 'all';
   const status = parameters.get('status') ?? '';
   const candidateStatus = isCandidateStatus(status) ? status : null;
   const isCandidateOnlyStatus = candidateStatus !== null && !isSubmissionStatus(status);
