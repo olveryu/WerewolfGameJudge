@@ -19,6 +19,7 @@ import {
 } from '@/features/room/link/roomCommandResult';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { pictionaryMediaTransport } from '@/games/pictionary/services/pictionaryMediaTransport';
+import { uploadPictionaryReplay } from '@/games/pictionary/services/pictionaryReplayTransport';
 import { renderPictionaryDrawing } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { ApiError } from '@/platform/http/ApiError';
 import type { DispatchOutcome } from '@/platform/realtime/types';
@@ -140,6 +141,22 @@ async function submitDrawingInput(
   const png = await renderPictionaryDrawing(drawing.elements);
   signal.throwIfAborted();
   const reservation = await reserveDrawing(state, ownedTask, session);
+  signal.throwIfAborted();
+  try {
+    await uploadPictionaryReplay(
+      state.roomCode,
+      reservation.submissionId,
+      { version: 1, elements: drawing.elements },
+      ownedTask.controlledSeat,
+      signal,
+    );
+  } catch (error: unknown) {
+    signal.throwIfAborted();
+    roomScreenLog.warn('Pictionary replay upload failed; submitting final PNG without replay', {
+      entryId: reservation.entryId,
+      error,
+    });
+  }
   signal.throwIfAborted();
   const result = await pictionaryMediaTransport.uploadDrawing(
     state.roomCode,

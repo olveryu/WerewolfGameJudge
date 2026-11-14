@@ -285,6 +285,19 @@ afterEach(() => {
 });
 
 describe('admin workspace', () => {
+  it('opens user details from the row with the keyboard', async () => {
+    const view = mount('/admin/users');
+    await screen.findByText('测试用户');
+    const row = screen.getByRole('row', { name: '查看用户测试用户详情' });
+
+    row.focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('dialog', { name: '测试用户' })).toBeVisible();
+    view.unmount();
+    view.client.clear();
+  });
+
   it('shows D1 totals separately from sampled insights and changes the requested range and sort', async () => {
     const view = mount('/admin/d1');
     await screen.findByText('可能涉及：你画我猜词库');
@@ -461,10 +474,13 @@ describe('admin workspace', () => {
       await userEvent.click(screen.getByRole('button', { name: '清空筛选' }));
       await waitFor(() => expect(view.router.state.location.search).toBe('?section=submissions'));
       await userEvent.click(screen.getByRole('link', { name: batch.id }));
-      await screen.findByRole('link', { name: '返回外部投稿' });
-      await userEvent.click(screen.getByRole('link', { name: '返回外部投稿' }));
-      await userEvent.click(await screen.findByRole('link', { name: batch.id }));
-      await screen.findByRole('link', { name: '返回外部投稿' });
+      await screen.findByRole('dialog', { name: '投稿批次审核' });
+      await userEvent.click(
+        within(await screen.findByRole('dialog', { name: '投稿批次审核' })).getByRole('button', {
+          name: '关闭投稿批次审核',
+        }),
+      );
+      await waitFor(() => expect(view.router.state.location.search).toBe('?section=submissions'));
       await userEvent.click(screen.getByRole('button', { name: '返回' }));
       await waitFor(() => {
         const { pathname, search, hash } = view.router.state.location;
@@ -474,6 +490,50 @@ describe('admin workspace', () => {
       view.client.clear();
     },
   );
+
+  it('closes a directly opened batch to its list before the header exits admin', async () => {
+    const batch: WordSubmissionBatch = {
+      id: '10000000-0000-4000-8000-000000000001',
+      game: 'fibking',
+      agentId: '20000000-0000-4000-8000-000000000001',
+      agentName: 'Navigation fixture',
+      createdAt: '2026-11-13T00:00:00.000Z',
+      items: [],
+    };
+    vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
+      accepting: true,
+      pending: 0,
+      pendingLimit: 5000,
+      awaitingReview: 0,
+      awaitingPublication: 0,
+      failed: 0,
+      published: 0,
+      submittedToday: 0,
+      dailyLimit: 1000,
+      modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+    });
+    vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
+    vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+      batches: [{ ...batch, counts: {} }],
+      nextCursor: null,
+    });
+    vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
+    const view = mount(`/admin/words/fibking?section=submissions&batch=${batch.id}&search=lotus`);
+    await screen.findByRole('dialog', { name: '投稿批次审核' });
+
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: '投稿批次审核' })).getByRole('button', {
+        name: '关闭投稿批次审核',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(view.router.state.location.pathname).toBe('/admin/words/fibking');
+      expect(view.router.state.location.search).toBe('?section=submissions&search=lotus');
+    });
+    view.unmount();
+    view.client.clear();
+  });
 
   it('switches pages through grouped navigation, highlights the current page and closes the sheet', async () => {
     const view = mount();

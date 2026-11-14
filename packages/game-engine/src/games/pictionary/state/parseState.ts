@@ -142,6 +142,19 @@ function parseMedia(value: unknown, path: string): PictionaryMedia {
       height: parseExactInteger(raw.height, `${path}.height`, PICTIONARY_DRAWING_HEIGHT),
       byteLength: parseInteger(raw.byteLength, `${path}.byteLength`),
       sha256: parseNonEmptyString(raw.sha256, `${path}.sha256`),
+      replay: parseNullable(raw.replay, `${path}.replay`, (value, replayPath) => {
+        const replay = parseObject(value, replayPath);
+        return finishObject(
+          replay,
+          {
+            objectKey: parseNonEmptyString(replay.objectKey, `${replayPath}.objectKey`),
+            byteLength: parseInteger(replay.byteLength, `${replayPath}.byteLength`),
+            sha256: parseNonEmptyString(replay.sha256, `${replayPath}.sha256`),
+            durationMs: parseInteger(replay.durationMs, `${replayPath}.durationMs`),
+          },
+          replayPath,
+        );
+      }),
     },
     path,
   );
@@ -229,6 +242,8 @@ function parseGallery(value: unknown, path: string): PictionaryGalleryState {
       isPlaying: parseBoolean(raw.isPlaying, `${path}.isPlaying`),
       revealedPosition: parseInteger(raw.revealedPosition, `${path}.revealedPosition`),
       remainingMs: parseNullable(raw.remainingMs, `${path}.remainingMs`, parseInteger),
+      revealStartedAt: parseNullable(raw.revealStartedAt, `${path}.revealStartedAt`, parseInteger),
+      revealDurationMs: parseInteger(raw.revealDurationMs, `${path}.revealDurationMs`),
     },
     path,
   );
@@ -292,6 +307,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
  */
 export function migratePersistedPictionaryState(value: unknown): PictionaryState {
   const raw = parseObject(value, 'PictionaryState');
+  if (raw.stateVersion === 9) return upgradePictionaryV9(raw);
   if (raw.stateVersion !== 8) return parsePictionaryState(raw);
   const config = parseConfig(raw.config, 'PictionaryState.config');
   const humans = parseLegacyRealSeats(raw.realSeats, 'PictionaryState.realSeats');
@@ -309,5 +325,27 @@ export function migratePersistedPictionaryState(value: unknown): PictionaryState
     excludedBotSeats: _legacyExcluded,
     ...rest
   } = raw;
-  return parsePictionaryState({ ...rest, stateVersion: PICTIONARY_STATE_VERSION, roster });
+  return upgradePictionaryV9({ ...rest, stateVersion: 9, roster });
+}
+
+function upgradePictionaryV9(raw: Record<string, unknown>): PictionaryState {
+  const chains = parseArray(raw.chains, 'PictionaryState.chains', (value, path) => {
+    const chain = parseObject(value, path);
+    const entries = parseArray(chain.entries, `${path}.entries`, (entryValue, entryPath) => {
+      const entry = parseObject(entryValue, entryPath);
+      return entry.kind === 'drawing'
+        ? { ...entry, media: { ...parseObject(entry.media, `${entryPath}.media`), replay: null } }
+        : entry;
+    });
+    return { ...chain, entries };
+  });
+  const gallery =
+    raw.gallery === null
+      ? null
+      : {
+          ...parseObject(raw.gallery, 'PictionaryState.gallery'),
+          revealStartedAt: null,
+          revealDurationMs: 0,
+        };
+  return parsePictionaryState({ ...raw, stateVersion: PICTIONARY_STATE_VERSION, chains, gallery });
 }

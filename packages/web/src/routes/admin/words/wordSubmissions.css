@@ -125,18 +125,13 @@
   overflow-wrap: anywhere;
 }
 .admin-submission-batch-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: grid;
   gap: var(--space-medium);
+  padding-bottom: var(--space-medium);
+  border-bottom: 1px solid var(--admin-border);
 }
 .admin-submission-batch-heading > div {
   min-width: 0;
-  flex: 1;
-}
-.admin-submission-batch-heading > button {
-  min-height: var(--size-min-touch-target);
 }
 .admin-submission-candidate-controls {
   position: sticky;
@@ -146,21 +141,62 @@
   border-bottom: 1px solid var(--admin-border);
 }
 .admin-submission-candidate-controls > .admin-panel-heading {
-  display: block;
-}
-.admin-submission-status-tabs {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  margin-top: var(--space-small);
-  max-width: 100%;
+  gap: var(--space-small);
 }
-.admin-submission-status-tabs > button {
-  flex: 0 1 auto;
+.admin-submission-status-filter {
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+.admin-console .admin-submission-status-filter .admin-filter-trigger {
+  width: auto;
+  max-width: 100%;
 }
 .admin-submission-selection {
   display: grid;
   gap: var(--space-small);
   padding: var(--space-small) var(--space-medium);
+}
+.admin-submission-selection-row,
+.admin-submission-selection-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+.admin-submission-selection-row {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.admin-submission-selection-summary {
+  justify-content: flex-end;
+  min-width: 0;
+  color: var(--admin-secondary);
+  font-size: var(--font-caption);
+}
+.admin-submission-selection-summary [role='status'] {
+  white-space: nowrap;
+}
+.admin-submission-footer-actions {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-small);
+  width: 100%;
+  max-width: calc(var(--size-min-touch-target) * 10);
+  margin-left: auto;
+}
+.admin-submission-footer-actions > button:not(.admin-icon-button) {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: var(--space-micro);
+  font-size: var(--font-caption);
+  white-space: normal;
+}
+.admin-submission-footer-actions > .admin-icon-button {
+  flex: 0 0 var(--size-min-touch-target);
 }
 .admin-submission-detail {
   margin-top: var(--space-large);
@@ -209,14 +245,7 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 640px) {
-  .admin-submission-batch-heading {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .admin-submission-batch-heading > .admin-submission-actions {
-    flex: initial;
-  }
-  .admin-submission-batch-heading > .admin-submission-actions > button {
-    flex: 1;
+  .admin-submission-selection-row {
+    align-items: flex-start;
   }
 }

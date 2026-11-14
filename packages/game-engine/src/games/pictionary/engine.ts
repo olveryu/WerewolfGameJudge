@@ -134,7 +134,16 @@ function isValidMedia(media: PictionaryMedia): boolean {
     Number.isSafeInteger(media.byteLength) &&
     media.byteLength > 0 &&
     media.byteLength <= PICTIONARY_DRAWING_MAX_BYTES &&
-    media.sha256.length > 0
+    media.sha256.length > 0 &&
+    (media.replay === null ||
+      (media.replay.objectKey.length > 0 &&
+        Number.isSafeInteger(media.replay.byteLength) &&
+        media.replay.byteLength > 0 &&
+        media.replay.byteLength <= 1024 * 1024 &&
+        /^[a-f0-9]{64}$/.test(media.replay.sha256) &&
+        Number.isSafeInteger(media.replay.durationMs) &&
+        media.replay.durationMs >= 2000 &&
+        media.replay.durationMs <= 8000))
   );
 }
 

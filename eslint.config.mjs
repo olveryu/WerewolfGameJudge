@@ -57,6 +57,7 @@ export default tseslint.config(
       '**/*.config.mjs',
       'miniapp/',
       'scripts/',
+      '.agents/skills/impeccable/scripts/',
       'functions/',
       '**/worker-configuration.d.ts',
     ],

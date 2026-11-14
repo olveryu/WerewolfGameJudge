@@ -17,7 +17,7 @@ export function DetailDrawer({
   onClose: () => void;
   children: ReactNode;
   preventClose?: boolean;
-  variant?: 'drawer' | 'sheet';
+  variant?: 'drawer' | 'sheet' | 'workspace';
   footer?: ReactNode;
 }) {
   return (
@@ -38,7 +38,13 @@ export function DetailDrawer({
               type="button"
               className="admin-icon-button"
               disabled={preventClose}
-              aria-label={variant === 'sheet' ? '关闭面板' : '关闭详情'}
+              aria-label={
+                variant === 'sheet'
+                  ? '关闭面板'
+                  : variant === 'workspace'
+                    ? '关闭投稿批次审核'
+                    : '关闭详情'
+              }
               onClick={onClose}
             >
               <IconCloseOutline aria-hidden />

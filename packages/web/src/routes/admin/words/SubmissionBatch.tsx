@@ -1,79 +1,216 @@
-/** Batch curation keeps selection and all primary actions above the candidate list. */
+/** Batch curation keeps status filters and selection controls in reach while candidates scroll. */
 import {
-  type GameWordGame,
   type WordSubmissionBatch,
   type WordSubmissionItem,
   wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
+import IconRefreshOutline from '~icons/ion/refresh-outline';
 
-import { AsyncBoundary, DataTable, PageHeading } from '../components/Primitives';
+import { DetailDrawer } from '../components/Overlays';
+import { AsyncBoundary, DataTable } from '../components/Primitives';
 import { SubmissionActionDialog, type SubmissionConfirmation } from './SubmissionActionDialog';
 import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import { useSubmissionCommand } from './useSubmissionCommand';
 import {
+  isApprovableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
-  WordSections,
+  WordChoiceFilter,
 } from './WordSections';
 
 /** Review jobs run durably in the background; the shared refresh button updates their snapshots. */
-export function SubmissionBatchPage({ game, batchId }: { game: GameWordGame; batchId: string }) {
+export function SubmissionBatchPage({
+  batchId,
+  onClose,
+}: {
+  batchId: string;
+  onClose: () => void;
+}) {
   const query = useQuery(
     adminQueryOptions('word-submissions', { kind: 'batch', batch: batchId }, (signal) =>
       wordSubmissionsApi.batch(batchId, signal),
     ),
   );
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmation, setConfirmation] = useState<SubmissionConfirmation | null>(null);
+  const reviewAllButton = useRef<HTMLButtonElement>(null);
+  const refreshButton = useRef<HTMLButtonElement>(null);
+  const actionOpener = useRef<HTMLButtonElement | null>(null);
+  const batch = query.data;
+  const awaiting = batch?.items.filter((item) => ['pending', 'failed'].includes(item.status)) ?? [];
+  const selectedItems =
+    batch?.items.filter((item) => selected.has(item.id) && isSelectableSubmission(item)) ?? [];
+  function openAction(value: SubmissionConfirmation, button?: HTMLButtonElement) {
+    actionOpener.current = button ?? null;
+    setConfirmation(value);
+  }
+  function closeAction() {
+    setConfirmation(null);
+    requestAnimationFrame(() => {
+      const target = actionOpener.current ?? refreshButton.current ?? reviewAllButton.current;
+      if (target?.isConnected) target.focus({ preventScroll: true });
+    });
+  }
   return (
     <>
-      <PageHeading
-        title="词库"
-        description="先审核，再由管理员明确确认发布。"
-        query={query}
-        controls={<WordSections game={game} section="submissions" />}
-        action={
-          <button type="button" disabled={query.isFetching} onClick={() => void query.refetch()}>
-            刷新审核进度
-          </button>
+      <DetailDrawer
+        variant="workspace"
+        title="投稿批次审核"
+        onClose={onClose}
+        footer={
+          selectedItems.length > 0 ? (
+            <div className="admin-submission-footer-actions" role="group" aria-label="候选批量操作">
+              <button
+                ref={refreshButton}
+                type="button"
+                className="admin-icon-button"
+                aria-label="刷新审核进度"
+                title="刷新审核进度"
+                disabled={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                <IconRefreshOutline aria-hidden />
+              </button>
+              <SelectedCandidateActions items={selectedItems} onAction={openAction} />
+            </div>
+          ) : (
+            <>
+              <button
+                ref={refreshButton}
+                type="button"
+                disabled={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                {query.isFetching ? '正在刷新…' : '刷新审核进度'}
+              </button>
+              {awaiting.length > 0 && (
+                <button
+                  ref={reviewAllButton}
+                  type="button"
+                  className="admin-primary"
+                  onClick={(event) =>
+                    openAction({ action: 'review', items: awaiting }, event.currentTarget)
+                  }
+                >
+                  审核全部待审 ({awaiting.length})
+                </button>
+              )}
+            </>
+          )
         }
-      />
-      <div className="admin-content admin-submission-content">
-        <Link to={`/admin/words/${game}?section=submissions`} replace>
-          返回外部投稿
-        </Link>
-        <AsyncBoundary query={query}>
-          {(batch) => <BatchCandidates batch={batch} onRefresh={() => void query.refetch()} />}
-        </AsyncBoundary>
-      </div>
+      >
+        <div className="admin-submission-workspace">
+          <AsyncBoundary query={query}>
+            {(loadedBatch) => (
+              <BatchCandidates
+                batch={loadedBatch}
+                selected={selected}
+                onSelect={setSelected}
+                onAction={openAction}
+                onRefresh={() => void query.refetch()}
+              />
+            )}
+          </AsyncBoundary>
+        </div>
+      </DetailDrawer>
+      {confirmation !== null && batch !== undefined && (
+        <SubmissionActionDialog
+          batchId={batch.id}
+          confirmation={confirmation}
+          onClose={closeAction}
+          onComplete={() => {
+            setSelected(new Set());
+            closeAction();
+            void query.refetch();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function SelectedCandidateActions({
+  items,
+  onAction,
+}: {
+  items: WordSubmissionBatch['items'];
+  onAction: (confirmation: SubmissionConfirmation, button: HTMLButtonElement) => void;
+}) {
+  const reviewable = items.filter((item) => ['pending', 'failed'].includes(item.status));
+  const approvable = items.filter(isApprovableSubmission);
+  const publishable = items.filter((item) => item.status === 'passed');
+  return (
+    <>
+      {reviewable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'review', items: reviewable }, event.currentTarget)
+          }
+        >
+          审核 {reviewable.length}
+        </button>
+      )}
+      {approvable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'approve', items: approvable }, event.currentTarget)
+          }
+        >
+          人工通过 {approvable.length}
+        </button>
+      )}
+      {publishable.length > 0 && (
+        <button
+          type="button"
+          className="admin-primary"
+          onClick={(event) =>
+            onAction({ action: 'publish', items: publishable }, event.currentTarget)
+          }
+        >
+          发布 {publishable.length}
+        </button>
+      )}
+      <button
+        type="button"
+        className="admin-error"
+        onClick={(event) => onAction({ action: 'dismiss', items }, event.currentTarget)}
+      >
+        拒绝 {items.length}
+      </button>
     </>
   );
 }
 
 function BatchCandidates({
   batch,
+  selected,
+  onSelect,
+  onAction,
   onRefresh,
 }: {
   batch: WordSubmissionBatch;
+  selected: Set<string>;
+  onSelect: (ids: Set<string>) => void;
+  onAction: (confirmation: SubmissionConfirmation) => void;
   onRefresh: () => void;
 }) {
   const [filter, setFilter] = useState('all');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState<SubmissionConfirmation | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const opener = useRef<HTMLButtonElement | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const visible = batch.items.filter((item) => filter === 'all' || item.status === filter);
   const selectedItems = batch.items.filter(
     (item) => selected.has(item.id) && isSelectableSubmission(item),
   );
-  const awaiting = batch.items.filter((item) => ['pending', 'failed'].includes(item.status));
   const activeItem = batch.items.find((item) => item.id === active);
   function restoreFocus() {
     requestAnimationFrame(() => {
@@ -82,13 +219,12 @@ function BatchCandidates({
     });
   }
   function close() {
-    setConfirmation(null);
     setActive(null);
     restoreFocus();
   }
   function openAction(value: SubmissionConfirmation) {
     setActive(null);
-    setConfirmation(value);
+    onAction(value);
   }
   return (
     <>
@@ -102,23 +238,10 @@ function BatchCandidates({
             {batch.items.length} 个候选 · {new Date(batch.createdAt).toLocaleString('zh-CN')}
           </p>
         </div>
-        {awaiting.length > 0 && (
-          <div className="admin-submission-actions">
-            <button
-              type="button"
-              className="admin-primary"
-              onClick={(event) => {
-                opener.current = event.currentTarget;
-                openAction({ action: 'review', items: awaiting });
-              }}
-            >
-              审核全部待审 ({awaiting.length})
-            </button>
-          </div>
-        )}
       </div>
       <p className="admin-submission-note">
         审核不自动发布；“全部待审”包含待启动和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
+        也可核对材料后人工通过，再单独发布。
       </p>
       <ReviewDispatchNotice batch={batch} onRefresh={onRefresh} />
       <section className="admin-panel" aria-label="批次候选">
@@ -130,7 +253,7 @@ function BatchCandidates({
               filter={filter}
               onChange={(status) => {
                 setFilter(status);
-                setSelected(new Set());
+                onSelect(new Set());
               }}
             />
           </div>
@@ -138,19 +261,15 @@ function BatchCandidates({
             visible={visible}
             selected={selected}
             selectedItems={selectedItems}
-            onSelect={setSelected}
-            onAction={(value, button) => {
-              opener.current = button;
-              openAction(value);
-            }}
+            onSelect={onSelect}
           />
         </div>
         <CandidateTable
           items={visible}
           selected={selected}
-          onSelect={setSelected}
-          onOpen={(item, button) => {
-            opener.current = button;
+          onSelect={onSelect}
+          onOpen={(item, element) => {
+            opener.current = element;
             setActive(item.id);
           }}
         />
@@ -162,17 +281,6 @@ function BatchCandidates({
           item={activeItem}
           onClose={close}
           onAction={openAction}
-        />
-      )}
-      {confirmation !== null && (
-        <SubmissionActionDialog
-          batchId={batch.id}
-          confirmation={confirmation}
-          onClose={close}
-          onComplete={() => {
-            setSelected(new Set());
-            close();
-          }}
         />
       )}
     </>
@@ -232,28 +340,17 @@ function CandidateFilters({
   onChange: (status: string) => void;
 }) {
   const options = [
-    { value: 'all', label: '全部', count: items.length },
+    { value: 'all', label: `全部 (${items.length})` },
     ...wordSubmissionStatusSchema.options.flatMap((status) => {
       const count = items.filter((item) => item.status === status).length;
-      return count === 0 ? [] : [{ value: status, label: SUBMISSION_STATUS_LABELS[status], count }];
+      return count === 0
+        ? []
+        : [{ value: status, label: `${SUBMISSION_STATUS_LABELS[status]} (${count})` }];
     }),
   ];
   return (
-    <div
-      className="admin-segmented admin-submission-status-tabs"
-      role="group"
-      aria-label="筛选候选状态"
-    >
-      {options.map((option) => (
-        <button
-          type="button"
-          key={option.value}
-          aria-pressed={filter === option.value}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label} {option.count}
-        </button>
-      ))}
+    <div className="admin-submission-status-filter">
+      <WordChoiceFilter label="候选状态" value={filter} options={options} onChange={onChange} />
     </div>
   );
 }
@@ -267,13 +364,15 @@ function CandidateTable({
   items: WordSubmissionItem[];
   selected: Set<string>;
   onSelect: (ids: Set<string>) => void;
-  onOpen: (item: WordSubmissionItem, button: HTMLButtonElement) => void;
+  onOpen: (item: WordSubmissionItem, element: HTMLElement) => void;
 }) {
   return (
     <DataTable
       caption="投稿候选明细"
       rows={items}
       rowKey={(item) => item.id}
+      rowLabel={(item) => `查看词条详情：${item.title}`}
+      onRowClick={onOpen}
       columns={[
         {
           key: 'select',
@@ -319,7 +418,10 @@ function CandidateTable({
           key: 'reason',
           label: '审核摘要',
           secondary: true,
-          render: (item) => item.review?.reason ?? item.failure ?? '尚无审核结论',
+          render: (item) =>
+            item.approvalReason !== null
+              ? '人工通过；原审核记录保留'
+              : (item.review?.reason ?? item.failure ?? '尚无审核结论'),
         },
       ]}
     />
@@ -331,13 +433,11 @@ function SelectionToolbar({
   selected,
   selectedItems,
   onSelect,
-  onAction,
 }: {
   visible: WordSubmissionItem[];
   selected: Set<string>;
   selectedItems: WordSubmissionItem[];
   onSelect: (ids: Set<string>) => void;
-  onAction: (confirmation: SubmissionConfirmation, button: HTMLButtonElement) => void;
 }) {
   const all = useRef<HTMLInputElement>(null);
   const eligible = visible.filter(isSelectableSubmission);
@@ -346,11 +446,9 @@ function SelectionToolbar({
     if (all.current !== null)
       all.current.indeterminate = selectedVisible > 0 && selectedVisible < eligible.length;
   }, [selectedVisible, eligible.length]);
-  const reviewable = selectedItems.filter((item) => ['pending', 'failed'].includes(item.status));
-  const publishable = selectedItems.filter((item) => item.status === 'passed');
   return (
-    <div className="admin-submission-selection" aria-label="候选批量操作">
-      <div className="admin-submission-actions">
+    <div className="admin-submission-selection" role="group" aria-label="候选选择">
+      <div className="admin-submission-selection-row">
         <label className="admin-submission-check">
           <input
             ref={all}
@@ -369,50 +467,19 @@ function SelectionToolbar({
           />
           全选当前结果
         </label>
-        <span role="status">
-          已选 {selectedItems.length} / 当前可选 {eligible.length}
-        </span>
-        {selectedItems.length > 0 && (
-          <button type="button" className="admin-text-button" onClick={() => onSelect(new Set())}>
-            取消选择
-          </button>
-        )}
-      </div>
-      {selectedItems.length === 0 ? (
-        <p className="admin-muted">先勾选，再审核、发布或拒绝。已发布、审核中和已处理项不可选。</p>
-      ) : (
-        <div className="admin-submission-actions">
-          {reviewable.length > 0 && (
-            <button
-              type="button"
-              onClick={(event) =>
-                onAction({ action: 'review', items: reviewable }, event.currentTarget)
-              }
-            >
-              审核所选 ({reviewable.length})
+        <div className="admin-submission-selection-summary">
+          <span role="status">
+            已选 {selectedItems.length} / 当前可选 {eligible.length}
+          </span>
+          {selectedItems.length > 0 && (
+            <button type="button" className="admin-text-button" onClick={() => onSelect(new Set())}>
+              清除
             </button>
           )}
-          {publishable.length > 0 && (
-            <button
-              type="button"
-              className="admin-primary"
-              onClick={(event) =>
-                onAction({ action: 'publish', items: publishable }, event.currentTarget)
-              }
-            >
-              发布所选 ({publishable.length})
-            </button>
-          )}
-          <button
-            type="button"
-            className="admin-error"
-            onClick={(event) =>
-              onAction({ action: 'dismiss', items: selectedItems }, event.currentTarget)
-            }
-          >
-            拒绝所选 ({selectedItems.length})
-          </button>
         </div>
+      </div>
+      {selectedItems.length === 0 && (
+        <p className="admin-muted">已发布、审核中和已处理的候选不可选。</p>
       )}
     </div>
   );

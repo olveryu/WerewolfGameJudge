@@ -439,6 +439,7 @@ function reserveAndCommit(room: StoredRoom, seat: number, nowMs: number): void {
       height: PICTIONARY_DRAWING_HEIGHT,
       byteLength: 1024,
       sha256: 'test-sha',
+      replay: null,
     },
   };
   expect(room.dispatch(commit, room.system(nowMs + 500))).toBeNull();

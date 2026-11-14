@@ -66,6 +66,21 @@ function assertEntry(
     }
     assertNonEmpty(media.objectKey, 'Pictionary media objectKey');
     assertNonEmpty(media.sha256, 'Pictionary media sha256');
+    if (media.replay !== null) {
+      const replay = media.replay;
+      if (
+        !Number.isSafeInteger(replay.byteLength) ||
+        replay.byteLength <= 0 ||
+        replay.byteLength > 1024 * 1024 ||
+        !/^[a-f0-9]{64}$/.test(replay.sha256) ||
+        !Number.isSafeInteger(replay.durationMs) ||
+        replay.durationMs < 2000 ||
+        replay.durationMs > 8000 ||
+        replay.objectKey.length === 0
+      ) {
+        throw new Error('Pictionary replay metadata is invalid');
+      }
+    }
   }
 }
 
@@ -221,6 +236,8 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
       throw new Error('Pictionary gallery position is invalid');
     }
     assertSafeTimestamp(state.gallery.remainingMs, 'Pictionary gallery remaining time');
+    assertSafeTimestamp(state.gallery.revealStartedAt, 'Pictionary gallery reveal start');
+    assertSafeTimestamp(state.gallery.revealDurationMs, 'Pictionary gallery reveal duration');
   } else if (state.gallery !== null) {
     throw new Error('Pictionary gallery state is only valid during reveal');
   }

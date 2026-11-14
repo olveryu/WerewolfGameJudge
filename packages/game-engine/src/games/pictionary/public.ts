@@ -43,6 +43,11 @@ export {
 export { PICTIONARY_STATE_CODEC } from './state/codec';
 export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {
+  getPictionaryReplayDuration,
+  PICTIONARY_DRAWING_REPLAY_SCHEMA,
+  type PictionaryDrawingReplay,
+} from './state/replay';
+export {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
   getPictionaryOccupiedSeatCount,

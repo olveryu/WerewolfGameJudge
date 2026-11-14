@@ -151,6 +151,52 @@ beforeEach(() => {
   vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({ batches: [], nextCursor: null });
 });
 
+it('opens a batch as a URL-backed workspace overlay and browser Back restores its list context', async () => {
+  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+    batches: [{ ...batch, counts: { pending: 1 } }],
+    nextCursor: null,
+  });
+  const { router, user } = mount('submissions', '&search=lotus');
+  const row = await screen.findByRole('row', { name: `打开投稿批次 ${batch.id}` });
+
+  await user.click(row);
+  expect(router.state.location.search).toContain(`batch=${batch.id}`);
+  expect(router.state.location.state).toMatchObject({ adminSubmissionBatchOrigin: 'list' });
+  const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
+  expect(within(dialog).queryByText('返回投稿列表')).not.toBeInTheDocument();
+  expect(within(dialog).getByRole('button', { name: '关闭投稿批次审核' })).toBeVisible();
+  expect(within(dialog).getByRole('button', { name: '刷新审核进度' })).toBeVisible();
+  expect(within(dialog).getByRole('button', { name: '审核全部待审 (2)' })).toBeVisible();
+  await user.keyboard('{Escape}');
+
+  await waitFor(() =>
+    expect(router.state.location.search).toBe('?section=submissions&search=lotus'),
+  );
+  expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
+});
+
+it('opens candidate details from a keyboard-activated row without treating its checkbox as an action', async () => {
+  const { user } = mount();
+  const row = await screen.findByRole('row', { name: '查看词条详情：词语0' });
+
+  await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
+  expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument();
+  row.focus();
+  await user.keyboard('{Enter}');
+
+  expect(await screen.findByRole('dialog', { name: '词条详情' })).toBeVisible();
+});
+
+it('opens agent details from any non-control part of the row', async () => {
+  vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [authorization] });
+  const { user } = mount('agents');
+  const row = await screen.findByRole('row', { name: '查看 Muse 授权详情' });
+
+  await user.click(row);
+
+  expect(await screen.findByRole('dialog', { name: 'Muse' })).toBeVisible();
+});
+
 it.each([false, true])(
   'edits authorization parameters without issuing another credential (renew=%s)',
   async (renew) => {
@@ -227,13 +273,12 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByText('已选 4 / 当前可选 4')).toBeInTheDocument();
   for (const index of [4, 5, 6, 7, 8])
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
-  expect(screen.getByRole('button', { name: '发布所选 (1)' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '审核所选 (2)' })).toBeEnabled();
-  await user.click(
-    within(screen.getByRole('group', { name: '筛选候选状态' })).getByRole('button', {
-      name: '待确认发布 1',
-    }),
-  );
+  expect(screen.getByRole('button', { name: '发布 1' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '审核 2' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: '候选状态：全部 (9)' }));
+  const filters = await screen.findByRole('dialog', { name: '选择候选状态' });
+  await user.click(within(filters).getByRole('button', { name: '待确认发布 (1)' }));
   expect(all).not.toBeChecked();
   expect(screen.getByText('已选 0 / 当前可选 1')).toBeInTheDocument();
   await user.click(all);
@@ -283,7 +328,7 @@ it('reviews at exhausted quotas without a reason and freezes retries', async () 
 it('offers selected and single-item review without separate force controls', async () => {
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '审核所选 (2)' }));
+  await user.click(screen.getByRole('button', { name: '审核 2' }));
   let dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   await user.click(within(dialog).getByRole('button', { name: '取消' }));
@@ -309,7 +354,7 @@ it('bulk publishes only passed items and retries the same immutable action after
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '发布所选 (1)' }));
+  await user.click(screen.getByRole('button', { name: '发布 1' }));
   const dialog = await screen.findByRole('dialog', { name: '确认发布' });
   await user.click(within(dialog).getByRole('button', { name: '确认发布 (1)' }));
   expect(await within(dialog).findByRole('alert')).toHaveTextContent('offline');
@@ -322,6 +367,30 @@ it('bulk publishes only passed items and retries the same immutable action after
     items: [{ id: batch.items[1]?.id, revision: 1 }],
   });
   expect(calls[0]?.[1].items).toHaveLength(1);
+});
+
+it('bulk approves pending, failed and rejected items without a reason, but does not publish', async () => {
+  vi.mocked(wordSubmissionsApi.action)
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
+  await user.click(screen.getByRole('button', { name: '人工通过 3' }));
+  const dialog = await screen.findByRole('dialog', { name: '人工通过' });
+  expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+  expect(within(dialog).getByText(/通过后仍须单独确认发布/)).toBeInTheDocument();
+  expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '人工通过 (3)' }));
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('offline');
+  await user.click(within(dialog).getByRole('button', { name: '重试同一请求' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(2));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]).toEqual(calls[1]);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'approve',
+    reason: '',
+    items: [{ id: batch.items[0]?.id }, { id: batch.items[2]?.id }, { id: batch.items[3]?.id }],
+  });
 });
 
 it('keeps contextual actions in the drawer and preserves the original verdict after human approval', async () => {
@@ -339,11 +408,33 @@ it('keeps contextual actions in the drawer and preserves the original verdict af
   await user.click(await screen.findByRole('button', { name: '查看词语2审核详情' }));
   const drawer = await screen.findByRole('dialog', { name: '词条详情' });
   expect(within(drawer).getByText(/原模型结论：未通过/)).toBeInTheDocument();
-  expect(within(drawer).getByText('人工批准原因：人工已核对')).toBeInTheDocument();
+  expect(within(drawer).getByText(/人工通过说明：人工已核对/)).toBeInTheDocument();
   const publish = within(drawer).getByRole('button', { name: '确认发布…' });
   expect(publish.closest('footer')).toHaveClass('admin-drawer-footer');
   await user.click(publish);
   expect(await screen.findByRole('dialog', { name: '确认发布' })).toBeInTheDocument();
+});
+
+it('shows a reason-free human decision separately from the preserved failed review', async () => {
+  vi.mocked(wordSubmissionsApi.batch).mockResolvedValue({
+    ...batch,
+    items: [
+      {
+        ...candidate('passed', 3),
+        review: null,
+        failure: 'model-review:invalidOutput',
+        approvalReason: '',
+      },
+    ],
+  });
+  const { user } = mount();
+  await user.click(await screen.findByRole('button', { name: '查看词语3审核详情' }));
+  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+  expect(within(drawer).getByText(/已人工通过；未修改原模型结论/)).toBeInTheDocument();
+  expect(within(drawer).getByRole('alert')).toHaveTextContent('独立审核未完成；已记录人工通过');
+  expect(within(drawer).getByText('诊断码：model-review:invalidOutput')).toBeInTheDocument();
+  expect(within(drawer).getByRole('button', { name: '确认发布…' })).toBeEnabled();
+  expect(within(drawer).queryByRole('button', { name: '人工通过…' })).not.toBeInTheDocument();
 });
 
 it('uses choice-sheet filters and resets pagination when a filter changes', async () => {
@@ -361,20 +452,44 @@ it('uses choice-sheet filters and resets pagination when a filter changes', asyn
   await waitFor(() => expect(router.state.location.search).toBe('?section=submissions'));
 });
 
-it('explains review infrastructure failures without offering publication or a human bypass', async () => {
-  vi.mocked(wordSubmissionsApi.batch).mockResolvedValue({
-    ...batch,
-    items: [{ ...candidate('failed', 3), review: null, failure: 'model-review:configuration' }],
-  });
-  const { user } = mount();
-  await user.click(await screen.findByRole('button', { name: '查看词语3审核详情' }));
-  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
-  expect(within(drawer).getByRole('alert')).toHaveTextContent('审核未完成，不能发布');
-  expect(within(drawer).getByText('诊断码：model-review:configuration')).toBeInTheDocument();
-  expect(within(drawer).queryByRole('button', { name: '确认发布…' })).not.toBeInTheDocument();
-  expect(within(drawer).queryByRole('button', { name: '人工批准…' })).not.toBeInTheDocument();
-  expect(within(drawer).getByRole('button', { name: '重试审核…' })).toBeEnabled();
-});
+it.each(['pending', 'failed', 'rejected'] as const)(
+  'offers single-item human approval for %s without depending on evidence',
+  async (status) => {
+    const review = candidate('rejected', 3).review;
+    if (review === null) throw new Error('Expected model rejection fixture');
+    vi.mocked(wordSubmissionsApi.batch).mockResolvedValue({
+      ...batch,
+      items: [
+        {
+          ...candidate(status, 3),
+          review: status === 'rejected' ? { ...review, canOverride: false } : null,
+          failure: status === 'failed' ? 'model-review:configuration' : null,
+        },
+      ],
+    });
+    const { user } = mount();
+    await user.click(await screen.findByRole('button', { name: '查看词语3审核详情' }));
+    const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+    if (status === 'failed') {
+      expect(within(drawer).getByRole('alert')).toHaveTextContent('不代表词条不合格');
+      expect(within(drawer).getByText('诊断码：model-review:configuration')).toBeInTheDocument();
+    }
+    expect(within(drawer).queryByRole('button', { name: '确认发布…' })).not.toBeInTheDocument();
+    await user.click(within(drawer).getByRole('button', { name: '人工通过…' }));
+    const dialog = await screen.findByRole('dialog', { name: '人工通过' });
+    await user.click(within(dialog).getByRole('button', { name: '人工通过 (1)' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+        batch.id,
+        expect.objectContaining({
+          action: 'approve',
+          reason: '',
+          items: [expect.objectContaining({ id: candidate(status, 3).id })],
+        }),
+      ),
+    );
+  },
+);
 
 it('recomputes credential expiry when the authorization list is refreshed', async () => {
   const initialTime = Date.parse('2026-11-13T00:00:00.000Z');

@@ -15,6 +15,7 @@ import { NonRetryableError } from 'cloudflare:workflows';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
   authenticateSubmissionToken,
@@ -36,6 +37,38 @@ const candidate = {
   difficulty: 'easy',
   potentialIssues: [],
 };
+const batchWords = [
+  '长颈鹿',
+  '大象',
+  '老虎',
+  '狮子',
+  '猴子',
+  '松鼠',
+  '熊猫',
+  '猎豹',
+  '海豚',
+  '鲸鱼',
+  '鲨鱼',
+  '章鱼',
+  '水母',
+  '螃蟹',
+  '龙虾',
+  '蝴蝶',
+  '蜜蜂',
+  '蜻蜓',
+  '蚂蟥',
+  '蜘蛛',
+  '蜗牛',
+  '乌龟',
+  '野兔',
+  '青蛙',
+  '孔雀',
+  '麻雀',
+  '鹦鹉',
+  '鸵鸟',
+  '斑马',
+  '袋鼠',
+];
 const payload: WordSubmissionInput = {
   schemaVersion: 1,
   game: 'drawguess',
@@ -136,6 +169,7 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM editorial_model_requests'),
     env.DB.prepare('DELETE FROM drawguess_words'),
     env.DB.prepare('DELETE FROM undercover_word_pairs'),
+    env.DB.prepare('DELETE FROM fib_round_word_selections'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare(`UPDATE word_submission_limits SET accepting = 1, pending_count = 0,
@@ -1129,10 +1163,174 @@ describe('External word submissions', () => {
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 0 });
     expect(fetch).toHaveBeenCalledTimes(2);
-    await expect(
-      applySubmissionAction(env, batch.id, action(failed, 'approve', '不能绕过证据要求')),
-    ).rejects.toThrow();
     await expect(applySubmissionAction(env, batch.id, action(failed, 'publish'))).rejects.toThrow();
+    const approval = action(failed, 'approve');
+    await applySubmissionAction(env, batch.id, approval);
+    await applySubmissionAction(env, batch.id, approval);
+    const approved = await readSubmissionBatch(env.DB, batch.id);
+    expect(approved.items[0]).toMatchObject({
+      status: 'passed',
+      approvalReason: '',
+      failure: failed.items[0]?.failure,
+      review: null,
+    });
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
+      count: 0,
+    });
+    await expect(applySubmissionAction(env, batch.id, action(failed, 'publish'))).rejects.toThrow(
+      'SUBMISSION_SELECTION_STALE',
+    );
+    await applySubmissionAction(env, batch.id, action(approved, 'publish'));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(
+      await env.DB.prepare(
+        'SELECT review_json, verified_material_json FROM word_submission_items WHERE batch_id = ?',
+      )
+        .bind(batch.id)
+        .first(),
+    ).toEqual({ review_json: null, verified_material_json: null });
+    expect(
+      await env.DB.prepare(
+        'SELECT action, actor, reason FROM word_submission_events WHERE action_id = ?',
+      )
+        .bind(approval.id)
+        .all(),
+    ).toMatchObject({
+      results: [{ action: 'approve', actor: 'shared-admin', reason: '' }],
+    });
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO users (id) VALUES ('human-fib-player')"),
+      env.DB.prepare(`INSERT INTO rooms (id, code, game_type, host_user_id, creation_id,
+        config_json, status, created_at, updated_at) VALUES ('human-fib-room', '9012', 'fibking',
+        'human-fib-player', 'human-fib-creation', '{}', 'active',
+        '2026-11-14T00:00:00.000Z', '2026-11-14T00:00:00.000Z')`),
+    ]);
+    const selection = await getOrCreateFibWordSelection({
+      db: env.DB,
+      roomIdentity: {
+        roomId: 'human-fib-room',
+        roomCode: '9012',
+        creationId: 'human-fib-creation',
+      },
+      effectId: 'human-fib-effect',
+      effect: {
+        type: 'fibking.word.select',
+        payload: {
+          roundId: 'human-fib-round',
+          avoidWords: [],
+          participantUserIds: ['human-fib-player'],
+        },
+      },
+    });
+    expect(selection.word).toBe('菡萏');
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM word_seen WHERE user_id = 'human-fib-player' AND pool = 'fibking'",
+      ).first(),
+    ).toEqual({ count: 1 });
+  });
+
+  it.each([
+    payload,
+    {
+      schemaVersion: 1,
+      game: 'undercover',
+      items: [
+        {
+          clientItemId: 'manual-pair',
+          content: {
+            wordA: '牛奶',
+            wordB: '豆浆',
+            category: 'food',
+            commonTraits: ['可以饮用', '早餐常见'],
+            differences: ['主要原料不同', '来源不同'],
+            potentialIssues: [],
+          },
+        },
+      ],
+    } satisfies WordSubmissionInput,
+  ])(
+    'publishes $game material only after separate, authenticated human approval and publication',
+    async (input) => {
+      const issued = await agent();
+      const batch = await submit(issued.token, input);
+      const approval = action(batch, 'approve');
+      const send = (token: string, isAdmin: boolean) =>
+        SELF.fetch(`https://test.invalid/admin/word-submissions/batches/${batch.id}/actions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(isAdmin ? { 'X-Admin-Token': token } : { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(approval),
+        });
+      expect((await send(issued.token, false)).status).toBe(401);
+      expect((await send(env.ADMIN_PASSWORD, true)).status).toBe(202);
+      expect((await send(env.ADMIN_PASSWORD, true)).status).toBe(202);
+      const approved = await readSubmissionBatch(env.DB, batch.id);
+      expect(approved.items[0]).toMatchObject({
+        status: 'passed',
+        approvalReason: '',
+        review: null,
+        reviewModel: null,
+        reviewVersion: null,
+      });
+      await applySubmissionAction(env, batch.id, action(approved, 'publish'));
+      expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('published');
+      const inventory = input.game === 'drawguess' ? 'drawguess_words' : 'undercover_word_pairs';
+      expect(
+        await env.DB.prepare(
+          `SELECT COUNT(*) AS count FROM ${inventory} WHERE status = 'active'`,
+        ).first(),
+      ).toEqual({ count: 1 });
+      if (input.game === 'undercover') {
+        const row = await env.DB.prepare('SELECT review_json FROM undercover_word_pairs').first<{
+          review_json: string;
+        }>();
+        expect(JSON.parse(row?.review_json ?? '')).toEqual({
+          actor: 'shared-admin',
+          reason: '',
+          modelReview: null,
+        });
+      }
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('approves at most the exact selected revisions atomically, within the full-batch write budget', async () => {
+    const issued = await agent();
+    const input: WordSubmissionInput = {
+      ...payload,
+      items: batchWords.map((word, index) => ({
+        clientItemId: `manual-${index}`,
+        content: { ...candidate, word },
+      })),
+    };
+    const batch = await submit(issued.token, input);
+    await applySubmissionAction(env, batch.id, {
+      ...action(batch, 'dismiss', '不收录此条'),
+      items: action(batch, 'dismiss').items.slice(0, 1),
+    });
+    await expect(applySubmissionAction(env, batch.id, action(batch, 'approve'))).rejects.toThrow(
+      'SUBMISSION_SELECTION_STALE',
+    );
+    const refreshed = await readSubmissionBatch(env.DB, batch.id);
+    expect(refreshed.items.filter((item) => item.status === 'passed')).toHaveLength(0);
+    const approval = action(
+      { ...refreshed, items: refreshed.items.filter((item) => item.status === 'pending') },
+      'approve',
+    );
+    const measured = createRowCountingDb(env.DB);
+    await applySubmissionAction({ ...env, DB: measured.db }, batch.id, approval);
+    expect(measured.counts.rowsWritten).toBeGreaterThan(0);
+    expect(measured.counts.rowsWritten).toBeLessThan(1000);
+    expect(measured.counts.rowsRead).toBeLessThan(2000);
+    await applySubmissionAction(env, batch.id, approval);
+    expect(
+      (await readSubmissionBatch(env.DB, batch.id)).items.filter(
+        (item) => item.approvalReason === '',
+      ),
+    ).toHaveLength(29);
   });
 
   it('preserves the model verdict through human override and rejects stale or unreviewed publication', async () => {
@@ -1149,6 +1347,12 @@ describe('External word submissions', () => {
     await expect(
       applySubmissionAction(env, batch.id, action(rejected, 'publish')),
     ).rejects.toThrow();
+    await env.DB.prepare(
+      `UPDATE word_submission_items SET review_json = json_set(review_json, '$.canOverride', json('false')),
+        review_version = 'historical-review' WHERE batch_id = ?`,
+    )
+      .bind(batch.id)
+      .run();
     await applySubmissionAction(
       env,
       batch.id,
@@ -1158,6 +1362,7 @@ describe('External word submissions', () => {
     expect(approved.items[0]).toMatchObject({
       status: 'passed',
       review: { passed: false },
+      reviewVersion: 'historical-review',
       approvalReason: '已核对画法，人工放行。',
     });
     await expect(applySubmissionAction(env, batch.id, action(rejected, 'publish'))).rejects.toThrow(
@@ -1170,12 +1375,15 @@ describe('External word submissions', () => {
   it('persists infrastructure failure and never retries or publishes an uncertain model call', async () => {
     const issued = await agent();
     const batch = await submit(issued.token);
+    await applySubmissionAction(env, batch.id, action(batch, 'approve'));
+    const approved = await readSubmissionBatch(env.DB, batch.id);
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
-    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    await applySubmissionAction(env, batch.id, action(approved, 'review', '', id));
     await instance.waitForStatus('errored');
     const failed = await readSubmissionBatch(env.DB, batch.id);
-    expect(failed.items[0]).toMatchObject({ status: 'failed', review: null });
+    expect(failed.items[0]).toMatchObject({ status: 'failed', review: null, approvalReason: null });
+    await expect(applySubmissionAction(env, batch.id, action(failed, 'publish'))).rejects.toThrow();
     expect(fetch).toHaveBeenCalledOnce();
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
@@ -1374,38 +1582,7 @@ describe('External word submissions', () => {
       measured.reset();
       const maximum: WordSubmissionInput = {
         ...payload,
-        items: [
-          '长颈鹿',
-          '大象',
-          '老虎',
-          '狮子',
-          '猴子',
-          '松鼠',
-          '熊猫',
-          '猎豹',
-          '海豚',
-          '鲸鱼',
-          '鲨鱼',
-          '章鱼',
-          '水母',
-          '螃蟹',
-          '龙虾',
-          '蝴蝶',
-          '蜜蜂',
-          '蜻蜓',
-          '蚂蟥',
-          '蜘蛛',
-          '蜗牛',
-          '乌龟',
-          '野兔',
-          '青蛙',
-          '孔雀',
-          '麻雀',
-          '鹦鹉',
-          '鸵鸟',
-          '斑马',
-          '袋鼠',
-        ].map((word, index) => ({
+        items: batchWords.map((word, index) => ({
           clientItemId: `maximum-${index}`,
           content: { ...candidate, word },
         })),

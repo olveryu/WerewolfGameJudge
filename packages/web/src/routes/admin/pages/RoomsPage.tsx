@@ -128,11 +128,13 @@ export function RoomsPage() {
                 <>
                   <DataTable
                     caption="房间目录"
+                    tableClassName="admin-room-table"
                     columns={columns}
                     rows={[...data.rooms].sort(
                       (a, b) => Number(b.status === 'failed') - Number(a.status === 'failed'),
                     )}
                     rowKey={(room) => room.id}
+                    rowLabel={(room) => `房间 ${room.code}，展开参与者`}
                     onRowClick={toggleRoom}
                     expandedRow={(room) =>
                       room.code === expanded ? (

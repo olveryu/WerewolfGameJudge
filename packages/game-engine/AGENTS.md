@@ -31,9 +31,9 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
   | werewolf   | 17      | 12, 13, 14, 15, 16               |
   | avalon     | 11      | 1–10                             |
   | fibking    | 8       | 5, 6, 7                          |
-  | pictionary | 9       | 8 only                           |
+  | pictionary | 10      | 8, 9                             |
   | undercover | 5       | 1, 2, 3, 4                       |
-  | storyrelay | 2       | 1 only                           |
+  | storyrelay | 3       | 1, 2                             |
   | drawguess  | 5       | 1, 2, 3, 4                       |
   | demo       | 1       | none (strict parser only)        |
 

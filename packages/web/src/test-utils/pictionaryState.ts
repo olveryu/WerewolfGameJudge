@@ -135,6 +135,7 @@ export function playPictionaryTestRound(round: PictionaryTestRound = {}): Pictio
         height: PICTIONARY_DRAWING_HEIGHT,
         byteLength: 2048,
         sha256: `sha-${reservation.submissionId}`,
+        replay: null,
       },
     });
   };

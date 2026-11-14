@@ -166,6 +166,7 @@ describe('Pictionary settle arming invariant', () => {
             media: {
               objectKey: `test/drawing-${stepIndex}-${seat}.png`,
               contentType: 'image/png',
+              replay: null,
               width: PICTIONARY_DRAWING_WIDTH,
               height: PICTIONARY_DRAWING_HEIGHT,
               byteLength: 1024,
@@ -211,6 +212,7 @@ describe('Pictionary settle arming invariant', () => {
           media: {
             objectKey: 'test/drawing-1-0.png',
             contentType: 'image/png',
+            replay: null,
             width: PICTIONARY_DRAWING_WIDTH,
             height: PICTIONARY_DRAWING_HEIGHT,
             byteLength: 1024,
@@ -235,6 +237,7 @@ describe('Pictionary settle arming invariant', () => {
           media: {
             objectKey: `test/drawing-1-${seat}.png`,
             contentType: 'image/png',
+            replay: null,
             width: PICTIONARY_DRAWING_WIDTH,
             height: PICTIONARY_DRAWING_HEIGHT,
             byteLength: 1024,
@@ -299,6 +302,7 @@ describe('Pictionary settle arming invariant', () => {
             media: {
               objectKey: `test/drawing-${stepIndex}-${seat}.png`,
               contentType: 'image/png',
+              replay: null,
               width: PICTIONARY_DRAWING_WIDTH,
               height: PICTIONARY_DRAWING_HEIGHT,
               byteLength: 1024,

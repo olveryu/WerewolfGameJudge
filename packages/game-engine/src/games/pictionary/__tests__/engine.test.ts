@@ -89,6 +89,7 @@ function game(numberOfPlayers = 4, humanCount = numberOfPlayers) {
             media: {
               objectKey: `test/drawing-${stepIndex}-${seat}.png`,
               contentType: 'image/png',
+              replay: null,
               width: PICTIONARY_DRAWING_WIDTH,
               height: PICTIONARY_DRAWING_HEIGHT,
               byteLength: 1024,
@@ -199,6 +200,7 @@ describe('Pictionary engine', () => {
           media: {
             objectKey: `test/final-drawing-${seat}.png`,
             contentType: 'image/png',
+            replay: null,
             width: PICTIONARY_DRAWING_WIDTH,
             height: PICTIONARY_DRAWING_HEIGHT,
             byteLength: 1024,
@@ -239,6 +241,7 @@ describe('Pictionary engine', () => {
     const mediaFor = (seat: number): PictionaryMedia => ({
       objectKey: `test/sequence-drawing-${seat}.png`,
       contentType: 'image/png',
+      replay: null,
       width: PICTIONARY_DRAWING_WIDTH,
       height: PICTIONARY_DRAWING_HEIGHT,
       byteLength: 1024,
@@ -346,6 +349,7 @@ describe('Pictionary engine', () => {
           media: {
             objectKey: `test/snapshot-drawing-${stepIndex}-${seat}.png`,
             contentType: 'image/png',
+            replay: null,
             width: PICTIONARY_DRAWING_WIDTH,
             height: PICTIONARY_DRAWING_HEIGHT,
             byteLength: 1024,

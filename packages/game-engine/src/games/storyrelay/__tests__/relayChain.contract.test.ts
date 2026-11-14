@@ -13,7 +13,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/parseState';
+import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 const NUMBER_OF_PLAYERS = 4;
@@ -89,6 +89,31 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
 }
 
 describe('Story Relay relay-chain contract', () => {
+  it('migrates a v2 gallery without replaying its old reveal', () => {
+    const session = game();
+    session.playRound();
+    const gallery = session.state.gallery;
+    if (gallery === null) throw new Error('Missing gallery');
+    const { revealStartedAt: _start, revealDurationMs: _duration, ...legacyGallery } = gallery;
+    const migrated = migratePersistedStoryRelayState({
+      ...session.state,
+      stateVersion: 2,
+      gallery: legacyGallery,
+    });
+    expect(migrated.stateVersion).toBe(3);
+    expect(migrated.gallery).toEqual({
+      ...legacyGallery,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+  });
+  it('anchors the first text even in a manually paged gallery', () => {
+    const session = game(null);
+    session.playRound();
+    expect(session.state.gallery?.revealStartedAt).not.toBeNull();
+    expect(session.state.gallery?.revealDurationMs).toBe(1040);
+    expect(session.state.deadlineAt).toBeNull();
+  });
   it('starts rounds whose offsets are a permutation beginning at 0', () => {
     const session = game();
     const { seatOrder, stepOffsets } = session.state;
@@ -145,7 +170,12 @@ describe('Story Relay relay-chain contract', () => {
     session.gallery('advance');
     expect(session.state.gallery).toMatchObject({ position: 1, revealedPosition: 1 });
     session.gallery('rewind');
-    expect(session.state.gallery).toMatchObject({ position: 0, revealedPosition: 1 });
+    expect(session.state.gallery).toMatchObject({
+      position: 0,
+      revealedPosition: 1,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
     session.gallery('advance');
     const deadlineAt = session.state.deadlineAt;
     if (deadlineAt === null) throw new Error('Missing gallery deadline');

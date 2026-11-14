@@ -80,6 +80,8 @@ export function SubmissionAgentsPage({ game }: { game: GameWordGame }) {
                   caption="已授权的 Agent"
                   rows={data.agents}
                   rowKey={(agent) => agent.id}
+                  rowLabel={(agent) => `查看 ${agent.name} 授权详情`}
+                  onRowClick={(agent) => setDialog({ kind: 'detail', id: agent.id })}
                   columns={[
                     {
                       key: 'name',
