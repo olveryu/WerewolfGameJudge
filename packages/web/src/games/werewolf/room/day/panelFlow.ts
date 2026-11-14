@@ -5,9 +5,9 @@
  * (last night's result — the step completes only when the host confirms
  * it in the dialog, mirroring the in-person announcement). During Day,
  * the host may also grant seats access to the private review. Once the
- * game ends, review access is public and the host proceeds from the
- * last-night info directly to closing. Reading the review is not a step
- * of this flow: the host reads it from the sheet or closing task.
+ * game ends, the flow continues through granting access and closing.
+ * The grant and review tools stay above the two exits on the task card.
+ * Reading the review is not a step of this flow.
  * Progress is pure client-local state (a `useScopedDraft` draft in
  * `useWerewolfRoomState`); it never enters room state.
  *
@@ -54,7 +54,7 @@ const PANEL_FLOW_STEP_ORDER: readonly PanelFlowStepId[] = [
 interface PanelFlowInput {
   readonly roomStatus: GameStatus;
   readonly progress: PanelFlowProgress;
-  /** During Day, the host has granted the review to at least one seat. */
+  /** The host has granted the review to at least one seat. */
   readonly reviewShared: boolean;
 }
 
@@ -75,7 +75,7 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
   }
   if (input.roomStatus === GameStatus.Ended) {
     if (!input.progress.lastNightInfoConfirmed) return 'lastNightInfo';
-    return 'closing';
+    return input.reviewShared ? 'closing' : 'grantReview';
   }
   return null;
 }
@@ -88,11 +88,7 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
 export function buildPanelFlowSteps(input: PanelFlowInput): readonly RoomHostTaskStep[] | null {
   const currentStep = resolvePanelFlowCurrentStep(input);
   if (currentStep === null) return null;
-  const steps =
-    input.roomStatus === GameStatus.Ended
-      ? PANEL_FLOW_STEP_ORDER.filter((step) => step !== 'grantReview')
-      : PANEL_FLOW_STEP_ORDER;
-  return steps.map((step) => {
+  return PANEL_FLOW_STEP_ORDER.map((step) => {
     const state: RoomHostTaskStep['state'] = isStepComplete(step, input)
       ? 'complete'
       : step === currentStep

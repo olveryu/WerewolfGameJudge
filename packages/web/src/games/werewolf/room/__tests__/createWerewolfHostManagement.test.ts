@@ -445,10 +445,7 @@ describe('createWerewolfHostManagement', () => {
         }),
       );
       const actions = model.sections.flatMap((section) => section.actions);
-      const expectedActions =
-        roomStatus === GameStatus.Day
-          ? ['review', 'grant-review', 'last-night-info']
-          : ['review', 'last-night-info'];
+      const expectedActions = ['review', 'grant-review', 'last-night-info'];
       for (const key of expectedActions) {
         const action = actions.find((entry) => entry.key === key);
         expect(action).toMatchObject({
@@ -524,11 +521,13 @@ describe('createWerewolfHostManagement', () => {
 
   it('presents the terminal double-key in the ended state and includes result tools', () => {
     const openReview = vi.fn();
+    const onGrantReviewAccess = vi.fn();
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
         capabilities: deniedRoomCapabilities,
         review: { isEnabled: true, onPress: openReview },
+        onGrantReviewAccess,
       }),
     );
 
@@ -542,6 +541,7 @@ describe('createWerewolfHostManagement', () => {
       '再来一局',
       '返回大厅',
       '本局复盘',
+      '授权玩家查看',
       '昨夜信息',
       '音乐设置',
     ]);
@@ -550,40 +550,57 @@ describe('createWerewolfHostManagement', () => {
     if (reviewAction?.isEnabled !== true) throw new Error('Expected enabled post-game review');
     reviewAction.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
-    expect(actions.find((action) => action.key === 'grant-review')).toBeUndefined();
+    const grantAction = actions.find((action) => action.key === 'grant-review');
+    if (grantAction?.isEnabled !== true) throw new Error('Expected enabled post-game grant');
+    grantAction.onPress();
+    expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
   });
 
-  it('moves directly to the closing choices after the Ended info step', () => {
+  it('offers grant and review before the exits after the Ended info step', () => {
+    const onGrantReviewAccess = vi.fn();
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
         panelFlow: { lastNightInfoConfirmed: true },
         capabilities: deniedRoomCapabilities,
+        onGrantReviewAccess,
       }),
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['review', 'next-round', 'return-lobby'],
+      actionKeys: ['grant-review', 'review', 'next-round', 'return-lobby'],
       steps: [
         { key: 'lastNightInfo', state: 'complete' },
-        { key: 'closing', state: 'current' },
+        { key: 'grantReview', state: 'current' },
+        { key: 'closing', state: 'upcoming' },
       ],
+    });
+    const view = resolveHostTaskView(model);
+    if (view?.body.kind !== 'choice') throw new Error('Expected the post-game choices');
+    const [grantAction] = view.body.actions;
+    if (grantAction?.isEnabled !== true) throw new Error('Expected enabled post-game grant');
+    grantAction.onPress();
+    expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
+    expect(view.steps?.find((step) => step.key === 'grantReview')).toMatchObject({
+      onPress: onGrantReviewAccess,
     });
   });
 
-  it('keeps the review beside the exits without an Ended grant step', () => {
+  it('keeps both tools above the exits after authorization, with the grant step revisitable', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
         panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
         capabilities: deniedRoomCapabilities,
       }),
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['review', 'next-round', 'return-lobby'],
+      actionKeys: ['grant-review', 'review', 'next-round', 'return-lobby'],
       steps: [
         { key: 'lastNightInfo', state: 'complete' },
+        { key: 'grantReview', state: 'complete' },
         { key: 'closing', state: 'current' },
       ],
     });
@@ -592,6 +609,7 @@ describe('createWerewolfHostManagement', () => {
     const view = resolveHostTaskView(model);
     if (view?.body.kind !== 'choice') throw new Error('Expected a choice closing task');
     expect(view.body.actions.map((action) => action.key)).toEqual([
+      'grant-review',
       'review',
       'next-round',
       'return-lobby',
@@ -600,9 +618,10 @@ describe('createWerewolfHostManagement', () => {
       expect(action.isEnabled).toBe(true);
       expect(action).toHaveProperty('onPress');
     }
+    expect(view.steps?.find((step) => step.key === 'grantReview')).toHaveProperty('onPress');
   });
 
-  it('locks all three closing moves during audio playback', () => {
+  it('locks all four post-game moves during audio playback', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
@@ -613,6 +632,7 @@ describe('createWerewolfHostManagement', () => {
     );
     const view = resolveHostTaskView(model);
     if (view?.body.kind !== 'choice') throw new Error('Expected a choice closing task');
+    expect(view.body.actions).toHaveLength(4);
     for (const action of view.body.actions) {
       expect(action).toMatchObject({
         isEnabled: false,

@@ -55,7 +55,7 @@ interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
   /** Client-local Day/Ended flow progress (panelFlow.ts). */
   readonly panelFlow: PanelFlowProgress;
-  /** During Day, the host has granted the review to at least one seat. */
+  /** The host has granted the review to at least one seat. */
   readonly isReviewShared: boolean;
   readonly isPlagueMode: boolean;
   readonly seatedCount: number;
@@ -295,14 +295,12 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         case 'lastNightInfo':
           return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
         case 'grantReview':
-          throw new Error('[FAIL-FAST] Ended Werewolf review access is public');
         case 'closing':
         case null:
-          // Keep the host's review beside the exits before the next
-          // round starts; all room users can read it once this round ends.
           return {
             kind: 'choice',
             actionKeys: [
+              PANEL_FLOW_ACTION_KEYS.grantReview,
               HOST_ACTION_KEYS.review,
               HOST_ACTION_KEYS.nextRound,
               HOST_ACTION_KEYS.returnLobby,
@@ -382,22 +380,18 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   if (input.review === null) {
     throw new Error(`[FAIL-FAST] Werewolf ${input.roomStatus} host has no review entry`);
   }
-  const actions = [buildReviewHostAction(input.review)];
-  if (input.roomStatus === GameStatus.Day) {
-    actions.push(
-      buildEnabledHostAction(
-        {
-          key: PANEL_FLOW_ACTION_KEYS.grantReview,
-          label: '授权玩家查看',
-          icon: 'people-outline',
-          variant: 'secondary',
-          testID: TESTIDS.shareReviewButton,
-        },
-        input.onGrantReviewAccess,
-      ),
-    );
-  }
-  actions.push(
+  return [
+    buildReviewHostAction(input.review),
+    buildEnabledHostAction(
+      {
+        key: PANEL_FLOW_ACTION_KEYS.grantReview,
+        label: '授权玩家查看',
+        icon: 'people-outline',
+        variant: 'secondary',
+        testID: TESTIDS.shareReviewButton,
+      },
+      input.onGrantReviewAccess,
+    ),
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
@@ -408,8 +402,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
       },
       input.onLastNightInfo,
     ),
-  );
-  return actions;
+  ];
 }
 
 function createDangerActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {

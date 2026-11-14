@@ -29,10 +29,10 @@ describe('resolvePanelFlowCurrentStep', () => {
     expect(resolvePanelFlowCurrentStep(flow(GameStatus.Day, INFO_CONFIRMED))).toBeNull();
   });
 
-  it('Ended proceeds to closing after the info step without requiring grants', () => {
+  it('Ended continues to granting access after the info step', () => {
     // Same progress record, status flips Day → Ended mid-game
     // (e.g. a wolf self-detonates during the day).
-    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe('closing');
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe('grantReview');
   });
 
   it('does not apply outside Day/Ended', () => {
@@ -44,10 +44,12 @@ describe('resolvePanelFlowCurrentStep', () => {
     ).toBeNull();
   });
 
-  it('does not make the Ended closing step depend on Day review grants', () => {
-    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED))).toBe('closing');
+  it('reaches closing only while at least one seat is authorized', () => {
     expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, true))).toBe(
       'closing',
+    );
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, INFO_CONFIRMED, false))).toBe(
+      'grantReview',
     );
   });
 });
@@ -58,13 +60,20 @@ describe('buildPanelFlowSteps', () => {
     expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '收尾']);
   });
 
-  it('omits the no-longer-needed grant step after the game ends', () => {
+  it('keeps the Ended grant step between last-night info and closing', () => {
     const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED));
-    expect(steps?.map((step) => step.state)).toEqual(['complete', 'current']);
+    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '收尾']);
+    expect(steps?.map((step) => step.state)).toEqual(['complete', 'current', 'upcoming']);
     expect(steps?.map((step) => step.actionKey)).toEqual([
       PANEL_FLOW_ACTION_KEYS.lastNightInfo,
+      PANEL_FLOW_ACTION_KEYS.grantReview,
       undefined,
     ]);
+  });
+
+  it('marks the Ended grant complete when access was already shared during Day', () => {
+    const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED, true));
+    expect(steps?.map((step) => step.state)).toEqual(['complete', 'complete', 'current']);
   });
 
   it('marks the Day grant step complete only after the host shares access', () => {
