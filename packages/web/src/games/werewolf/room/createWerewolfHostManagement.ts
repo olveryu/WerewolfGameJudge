@@ -242,11 +242,9 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       // both the host's legitimate next moves, and during a speech a
       // wolf may self-destruct at any moment — the host must end the
       // election on the spot. Every move that applies right now is one
-      // equal choice on the card; during a vote only the info remains,
-      // with no vote note attached — the count lives only in the HUD,
-      // and the dock already says 「等待投票完成」 in the middle of the
-      // room. Once the info is confirmed the election's own moves stand
-      // alone.
+      // equal choice on the card. Review grants remain available through
+      // the election, including votes and after the night info is confirmed.
+      // Vote counts stay in the HUD, not the host task.
       const flow = {
         roomStatus: input.roomStatus,
         progress: input.panelFlow,
@@ -268,6 +266,9 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         (election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech')
       ) {
         electionMoves.push('sheriff-self-destruct');
+      }
+      if (election !== null && election.view.phase !== 'completed') {
+        electionMoves.push(PANEL_FLOW_ACTION_KEYS.grantReview);
       }
       const steps = buildPanelFlowSteps(flow) ?? undefined;
       const moves = infoPending

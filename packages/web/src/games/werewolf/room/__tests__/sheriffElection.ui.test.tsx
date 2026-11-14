@@ -21,6 +21,7 @@ const WIDE_VIEWPORT_WIDTH = 1200;
 function createDayRoomMock(
   sheriffElection: SheriffElectionState,
   nightReviewAllowedSeats: readonly number[] = [],
+  isHost = false,
 ) {
   return createWerewolfRoomMock({
     schemaId: 'seerCheck',
@@ -28,6 +29,7 @@ function createDayRoomMock(
     myRole: 'villager',
     mySeat: 3,
     numberOfPlayers: 4,
+    isHost,
     gameStateOverrides: {
       status: GameStatus.Day,
       rules: { isSheriffElectionEnabled: true },
@@ -103,6 +105,51 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.roomReviewOpenButton)).toBeInTheDocument();
   });
+
+  it.each([
+    {
+      phase: 'registration',
+      registeredSeats: [],
+      withdrawnSeats: [],
+      completedRounds: [],
+    },
+    {
+      phase: 'candidateSpeech',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [],
+      speakingStartSeat: 0,
+      speakingDirection: 'clockwise',
+    },
+    FIRST_VOTE,
+  ] satisfies readonly SheriffElectionState[])(
+    'lets the host grant review access from the task during $phase',
+    async (election) => {
+      const mock = createDayRoomMock(election, [], true);
+      const screen = await mountWerewolfRoom(mock);
+      const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+      await click(task.getByTestId(`${TESTIDS.roomHostTaskCard}-grant-review`));
+      const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
+      const [firstSeat] = within(picker).getAllByRole('checkbox');
+      if (firstSeat === undefined) throw new Error('Expected a player to authorize');
+      await click(firstSeat);
+      await click(within(picker).getByRole('button', { name: '确认（1人）' }));
+      await waitFor(() =>
+        expect(mock.dispatch).toHaveBeenCalledWith(
+          { type: 'werewolf.review.share', allowedSeats: [0] },
+          expect.anything(),
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
+      );
+      if (election.phase === 'candidateSpeech') {
+        expect(
+          task.getByTestId(`${TESTIDS.roomHostTaskCard}-sheriff-self-destruct`),
+        ).toBeInTheDocument();
+      }
+    },
+  );
 
   it.each([390, WIDE_VIEWPORT_WIDTH])(
     'keeps the Ended grant/review tools before both exits at viewport width %s',
