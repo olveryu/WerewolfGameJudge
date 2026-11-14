@@ -44,14 +44,14 @@
 .admin-console a:hover {
   text-decoration: underline;
 }
-.admin-console button:where(:not(.maintenance-moon)),
+.admin-console button:where(:not(.maintenance-moon, .screen-header-back)),
 .admin-console input,
 .admin-console select,
 .admin-console textarea {
   font: inherit;
   color: inherit;
 }
-.admin-console button:where(:not(.maintenance-moon)),
+.admin-console button:where(:not(.maintenance-moon, .screen-header-back)),
 .admin-console select,
 .admin-console input,
 .admin-console textarea {
@@ -60,7 +60,7 @@
   background: var(--admin-panel);
   padding: var(--space-small) var(--space-medium);
 }
-.admin-console button:where(:not(.maintenance-moon)) {
+.admin-console button:where(:not(.maintenance-moon, .screen-header-back)) {
   min-width: 0;
   max-width: 100%;
   white-space: normal;
@@ -70,7 +70,7 @@
     background 120ms,
     border-color 120ms;
 }
-.admin-console button:hover:not(:disabled) {
+.admin-console button:hover:not(:disabled, .screen-header-back) {
   background: var(--admin-subtle);
   border-color: var(--admin-muted);
 }
@@ -90,24 +90,6 @@
 .admin-console .screen-header {
   z-index: 4;
   background: var(--color-surface);
-}
-.admin-console .screen-header-back {
-  border: 0;
-  width: auto;
-  padding: 0;
-  background: transparent;
-  color: var(--color-text);
-  gap: var(--space-tight);
-  white-space: nowrap;
-}
-.admin-console .screen-header-back > svg {
-  width: var(--size-icon-md);
-  height: var(--size-icon-md);
-  flex-shrink: 0;
-}
-.admin-console .screen-header-back > span {
-  font-size: var(--font-caption);
-  font-weight: var(--weight-medium);
 }
 .admin-console .screen-header-title {
   font-size: var(--font-title);
