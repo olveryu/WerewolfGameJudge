@@ -29,6 +29,35 @@ const eligibleStates = {
   unpublish: ['published'],
 } as const;
 
+/** Record one candidate-specific failure without stopping the remaining review. */
+export async function failSubmissionReviewItem(
+  db: D1Database,
+  actionId: string,
+  batchId: string,
+  itemId: string,
+  failure: string,
+) {
+  const now = new Date().toISOString();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO word_submission_events (action_id, item_id, action, actor, reason, created_at)
+        SELECT ?, id, 'failed', 'review-workflow', ?, ? FROM word_submission_items
+        WHERE id = ? AND review_id = ? AND status = 'reviewing'
+          AND EXISTS (SELECT 1 FROM word_submission_actions WHERE id = ? AND status = 'queued')`,
+      )
+      .bind(actionId, failure, now, itemId, actionId, actionId),
+    db
+      .prepare(
+        `UPDATE word_submission_items SET status = 'failed', failure = ?, revision = revision + 1
+        WHERE id = ? AND review_id = ? AND status = 'reviewing'
+          AND EXISTS (SELECT 1 FROM word_submission_actions WHERE id = ? AND status = 'queued')`,
+      )
+      .bind(failure, itemId, actionId, actionId),
+    refreshSubmissionSearch(db, batchId),
+  ]);
+}
+
 /** Only this action's unfinished items transition; concurrent or repeated recovery is idempotent. */
 export async function failSubmissionReview(db: D1Database, id: string, failure: string) {
   const action = await db

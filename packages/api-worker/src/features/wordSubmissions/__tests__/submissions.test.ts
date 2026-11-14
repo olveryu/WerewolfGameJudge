@@ -28,7 +28,7 @@ import {
   updateSubmissionAgent,
 } from '../credentials';
 import { storeSubmission, validateSubmission } from '../ingestion';
-import { applySubmissionAction } from '../operations';
+import { applySubmissionAction, failSubmissionReviewItem } from '../operations';
 import { listSubmissionBatches, readSubmissionBatch } from '../repository';
 import { readSubmissionSettings } from '../settings';
 
@@ -1162,6 +1162,150 @@ describe('External word submissions', () => {
     },
   );
 
+  it('isolates unavailable Fib sources and reviews later items using only extracted evidence', async () => {
+    const issued = await agent();
+    const definition = {
+      coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
+      usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
+    };
+    const batch = await submit(issued.token, {
+      schemaVersion: 1,
+      game: 'fibking',
+      items: ['菡萏', '芙蕖'].map((word, index) => ({
+        clientItemId: `fib-${index}`,
+        content: { word, category: 'literary', topic: 'plants', definition, references: [] },
+      })),
+    });
+    const firstUrl = 'https://dictionary.example/first';
+    const secondUrl = 'https://dictionary.example/second';
+    const failedUrl = 'https://dictionary.example/unavailable';
+    const proof = `芙蕖：${definition.coreMeaning}`;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        const target =
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        if (typeof init?.body !== 'string') throw new Error('Expected request body');
+        if (target === 'https://api.tavily.com/search') {
+          const first = init.body.includes('菡萏');
+          return Response.json({
+            results: (first ? [firstUrl] : [secondUrl, failedUrl]).map((url) => ({
+              url,
+              title: '独立词典',
+              content: '搜索摘要不能替代提取正文。',
+            })),
+            usage: { credits: 1 },
+          });
+        }
+        if (target === 'https://api.tavily.com/extract') {
+          if (init.body.includes(firstUrl))
+            return Response.json({
+              results: [],
+              failed_results: [{ url: firstUrl, error: 'Failed to retrieve content' }],
+              usage: { credits: 1 },
+            });
+          return Response.json({
+            results: [{ url: secondUrl, raw_content: proof }],
+            failed_results: [{ url: failedUrl, error: 'Failed to retrieve content' }],
+            usage: { credits: 1 },
+          });
+        }
+        if (!target.startsWith('https://generativelanguage.googleapis.com/'))
+          throw new Error('Unapproved provider URL');
+        expect(init.body).toContain(proof);
+        expect(init.body).not.toContain('搜索摘要不能替代提取正文');
+        return Response.json({
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                content: JSON.stringify({
+                  reviews: [
+                    {
+                      word: '芙蕖',
+                      reason: '独立资料支持释义，词面不会直接透露答案。',
+                      qualityChecks: {
+                        isEstablishedTerm: true,
+                        isDefinitionAccurate: true,
+                        isMeaningUnfamiliarToMostPlayers: true,
+                        isMeaningDistinctFromLiteralReading: true,
+                        hasMultiplePlausibleWrongDefinitions: true,
+                        hasRevealValue: true,
+                      },
+                      evidenceIndex: 0,
+                      evidenceQuote: 'source0quote0',
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        });
+      }),
+    );
+    const id = crypto.randomUUID();
+    const command = action(batch, 'review', '', id);
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    await applySubmissionAction(env, batch.id, command);
+    await instance.waitForStatus('complete');
+
+    const reviewed = await readSubmissionBatch(env.DB, batch.id);
+    expect(reviewed.items[0]).toMatchObject({
+      status: 'failed',
+      failure: 'evidence:extractionFailed',
+      review: null,
+    });
+    expect(reviewed.items[1]).toMatchObject({ status: 'passed', review: { passed: true } });
+    expect(
+      await env.DB.prepare('SELECT status FROM word_submission_actions WHERE id = ?')
+        .bind(id)
+        .first(),
+    ).toEqual({
+      status: 'failed',
+    });
+    expect(
+      await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM word_submission_evidence_requests',
+      ).first(),
+    ).toEqual({
+      count: 4,
+    });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({
+      count: 1,
+    });
+    expect(await applySubmissionAction(env, batch.id, command)).toEqual({ id, status: 'failed' });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM word_submission_events WHERE action_id = ? AND action = 'failed'",
+      )
+        .bind(id)
+        .first(),
+    ).toEqual({ count: 1 });
+    expect(fetch).toHaveBeenCalledTimes(5);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
+      count: 0,
+    });
+  });
+
+  it('accepts a successful preparation checkpoint created by the previous workflow version', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    const item = batch.items[0];
+    if (item === undefined) throw new Error('Expected submission item');
+    const id = crypto.randomUUID();
+    modelReview();
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    await instance.modify(async (modifier) => {
+      await modifier.mockStepResult({ name: `prepare-${item.id}` }, JSON.stringify(item.content));
+    });
+    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    await instance.waitForStatus('complete');
+    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('passed');
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it('continues evidence past its former ceiling but does not retry a provider failure', async () => {
     const issued = await agent();
     const batch = await submit(issued.token, {
@@ -1457,6 +1601,38 @@ describe('External word submissions', () => {
     });
   });
 
+  it('fails fast on a model 5xx without retrying or sending later review groups', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token, {
+      ...payload,
+      items: batchWords.slice(0, 6).map((word, index) => ({
+        clientItemId: `draw-${index}`,
+        content: { ...candidate, word },
+      })),
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(new Response('', { status: 503 })),
+    );
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    await applySubmissionAction(env, batch.id, action(batch, 'review', '', id));
+    await instance.waitForStatus('errored');
+    const failed = await readSubmissionBatch(env.DB, batch.id);
+    expect(failed.items).toHaveLength(6);
+    expect(
+      failed.items.every(
+        (item) => item.status === 'failed' && item.failure === 'model-review:serviceUnavailable',
+      ),
+    ).toBe(true);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({
+      count: 1,
+    });
+  });
+
   it('settles a failed initial load and permits a fresh explicit review without replaying the old job', async () => {
     const issued = await agent();
     const batch = await submit(issued.token);
@@ -1669,6 +1845,36 @@ describe('External word submissions', () => {
       expect(measured.counts.rowsWritten).toBeGreaterThan(0);
       expect(measured.counts.rowsWritten).toBeLessThan(1000);
       expect(measured.counts.rowsRead).toBeLessThan(2000);
+      const reviewId = crypto.randomUUID();
+      await env.DB.batch([
+        env.DB.prepare(
+          `INSERT INTO word_submission_actions
+          (id, batch_id, action, request_hash, items_json, reason, status, created_at)
+          VALUES (?, ?, 'review', 'budget-test', '[]', '', 'queued', ?)`,
+        ).bind(reviewId, maximumBatch.id, new Date().toISOString()),
+        env.DB.prepare(
+          `UPDATE word_submission_items SET status = 'reviewing', review_id = ? WHERE batch_id = ?`,
+        ).bind(reviewId, maximumBatch.id),
+      ]);
+      measured.reset();
+      for (const item of maximumBatch.items) {
+        await failSubmissionReviewItem(
+          measured.db,
+          reviewId,
+          maximumBatch.id,
+          item.id,
+          'evidence:extractionFailed',
+        );
+      }
+      expect(measured.counts.rowsRead).toBeLessThan(5000);
+      expect(measured.counts.rowsWritten).toBeLessThan(3000);
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM word_submission_events WHERE action_id = ? AND action = 'failed'",
+        )
+          .bind(reviewId)
+          .first(),
+      ).toEqual({ count: 30 });
       const plan = await env.DB.prepare(
         `EXPLAIN QUERY PLAN SELECT id FROM word_submission_items
         WHERE game = ? AND content_hash = ? AND status <> 'duplicate' LIMIT 1`,

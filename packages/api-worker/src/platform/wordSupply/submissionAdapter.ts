@@ -20,6 +20,14 @@ export interface SubmissionReviewResult {
   readonly verifiedContent: Record<string, unknown>;
 }
 
+/** A candidate-specific failure that does not make the remaining review unsafe to continue. */
+export class SubmissionReviewItemError extends Error {
+  constructor(readonly failure: string) {
+    super(failure);
+    this.name = 'SubmissionReviewItemError';
+  }
+}
+
 /** SQL gates originate in trusted code, never request content. */
 export interface SubmissionPublication {
   readonly itemId: string;
@@ -45,6 +53,7 @@ export interface WordSubmissionAdapter {
     env: Env,
     content: Record<string, unknown>,
     claimEvidenceRequest: (operation: string) => Promise<void>,
+    context: AiCorrelation & { readonly itemId: string },
   ) => Promise<Record<string, unknown>>;
   readonly review: (
     env: Env,

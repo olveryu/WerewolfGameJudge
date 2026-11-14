@@ -8,18 +8,23 @@ import {
 import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
+import { redactAiDiagnostic } from '../../platform/ai/aiError';
+import { createLogger } from '../../platform/observability/logger';
 import {
   SUBMISSION_PUBLICATION_GATE,
+  SubmissionReviewItemError,
   type WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { createGeminiFibWordProvider, GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
+import { FibWordProviderError } from './wordProviders/providerError';
 import { extractFibWordEvidence, searchFibWordEvidence } from './wordProviders/tavily';
 import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_BATCH_LIMIT } from './wordProviders/types';
 import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
 
 const toSimplified = Converter({ from: 't', to: 'cn' });
+const log = createLogger('fib-submission-evidence');
 const definitionField = z
   .string()
   .trim()
@@ -68,22 +73,41 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
       },
     };
   },
-  async prepareReview(env, content, claim) {
+  async prepareReview(env, content, claim, context) {
     const { references: _references, ...input } = inputSchema.parse(content);
-    await claim('search');
-    const sources = await searchFibWordEvidence(
-      env.TAVILY_API_KEY,
-      `"${input.word}" 词典 释义 出处`,
-    );
-    let evidence: Awaited<ReturnType<typeof searchFibWordEvidence>> = [];
-    if (sources.length > 0) {
-      await claim('extract');
-      const extraction = await extractFibWordEvidence(env.TAVILY_API_KEY, sources);
-      if (extraction.failedUrls.length > 0)
-        throw new Error('Independent evidence extraction failed; retry explicitly');
-      evidence = extraction.evidence;
+    try {
+      await claim('search');
+      const sources = await searchFibWordEvidence(
+        env.TAVILY_API_KEY,
+        `"${input.word}" 词典 释义 出处`,
+      );
+      let evidence: Awaited<ReturnType<typeof searchFibWordEvidence>> = [];
+      if (sources.length > 0) {
+        await claim('extract');
+        const extraction = await extractFibWordEvidence(env.TAVILY_API_KEY, sources, {
+          privateValues: content,
+        });
+        if (extraction.failures.length > 0) {
+          log.warn('independent evidence extraction failed for sources', {
+            ...context,
+            failedSources: extraction.failures,
+            extractedCount: extraction.evidence.length,
+          });
+          if (extraction.evidence.length === 0)
+            throw new SubmissionReviewItemError('evidence:extractionFailed');
+        }
+        evidence = extraction.evidence;
+      }
+      return { ...parseFibWordEditorialCandidate({ ...input, source: 'local', evidence }) };
+    } catch (error) {
+      if (error instanceof FibWordProviderError)
+        log.warn('independent evidence provider failed', {
+          ...context,
+          failureKind: error.failureKind,
+          detail: redactAiDiagnostic(error.message, [env.TAVILY_API_KEY, content]),
+        });
+      throw error;
     }
-    return { ...parseFibWordEditorialCandidate({ ...input, source: 'local', evidence }) };
   },
   async review(env, contents, context) {
     const candidates = contents.map((content) => parseFibWordEditorialCandidate(content));
