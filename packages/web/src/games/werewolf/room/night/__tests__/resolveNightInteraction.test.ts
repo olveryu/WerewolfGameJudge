@@ -327,6 +327,30 @@ describe('witch (compound)', () => {
     expect(() => buildNightCommand(model, { kind: 'save' }, SCOPE)).toThrow('[FAIL-FAST]');
   });
 
+  it.each([
+    [false, '你被狼人袭击，本局规则不允许自救。'],
+    [true, '你被狼人袭击，可以使用解药自救。'],
+  ])('shows the self-attack hint when canSave is %s', (canSave, message) => {
+    const state = witchStep({ killedSeat: 3, canSave, canPoison: true });
+    const viewModel = viewAs(state, 3);
+    const model = resolve(viewModel);
+    expect(renderActionerMessage(model, viewModel)).toBe(
+      `${message}\n${SCHEMAS.witchAction.ui!.prompt}`,
+    );
+    const otherViewer = viewAs(state, 0);
+    expect(renderActionerMessage(resolve(otherViewer), otherViewer)).toBeNull();
+  });
+
+  it.each([4, -1])('keeps the normal message when the target is %s', (killedSeat) => {
+    const viewModel = viewAs(
+      witchStep({ killedSeat, canSave: killedSeat >= 0, canPoison: true }),
+      3,
+    );
+    expect(renderActionerMessage(resolve(viewModel), viewModel)).toBe(
+      SCHEMAS.witchAction.ui!.prompt,
+    );
+  });
+
   it('uses the empty-kill title when nobody was attacked', () => {
     const model = expectKind(
       resolve(viewAs(witchStep({ killedSeat: -1, canSave: true, canPoison: true }), 3)),

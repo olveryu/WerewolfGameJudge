@@ -26,6 +26,7 @@ import {
   successfulWerewolfCommand,
   tapSeat,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
@@ -134,4 +135,18 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
       expect(prompt!.title).toBe(WITCH_ACTION_TITLE);
     });
   });
+
+  it.each([
+    [false, '你被狼人袭击，本局规则不允许自救。'],
+    [true, '你被狼人袭击，可以使用解药自救。'],
+  ])(
+    'keeps the self-attack message visible after the dialog when canSave is %s',
+    async (canSave, message) => {
+      const view = await mountWitch({ canSave, killedSeat: 0 });
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await harness.pressPrimaryOnType('witchSavePrompt');
+      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(message);
+      expect(view.getByTestId(TESTIDS.actionMessage)).toBeVisible();
+    },
+  );
 });

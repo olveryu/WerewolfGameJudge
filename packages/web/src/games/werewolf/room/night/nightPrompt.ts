@@ -5,8 +5,9 @@
  * Every string the night dialog, the bottom message and the seat confirm
  * show comes from `schema.ui` (authored once in the role specs) or from
  * `state.ui.currentActorHint` (the engine's per-night override: a
- * nightmare block, a disabled wolf kill, a unanimity rule). A missing
- * template is a spec bug and throws; nothing falls back to generic copy.
+ * nightmare block, a disabled wolf kill, a unanimity rule), except the
+ * witch's self-attack status in the bottom message. A missing template is
+ * a spec bug and throws; nothing falls back to generic copy.
  */
 
 import type {
