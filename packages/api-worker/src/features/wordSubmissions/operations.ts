@@ -25,7 +25,7 @@ const eligibleStates = {
   review: ['pending', 'failed', 'rejected', 'passed'],
   publish: ['passed'],
   dismiss: ['pending', 'failed', 'rejected', 'passed'],
-  approve: ['rejected'],
+  approve: ['pending', 'failed', 'rejected'],
   unpublish: ['published'],
 } as const;
 
@@ -128,7 +128,7 @@ function itemMutation(
     review_json = CASE WHEN ? = 'review' THEN NULL ELSE review_json END,
     verified_material_json = CASE WHEN ? = 'review' THEN NULL ELSE verified_material_json END,
     approval_reason = CASE WHEN ? = 'review' THEN NULL WHEN ? = 'approve' THEN ? ELSE approval_reason END,
-    failure = NULL
+    failure = CASE WHEN ? = 'review' THEN NULL ELSE failure END
     WHERE id = ? AND EXISTS (SELECT 1 FROM word_submission_actions WHERE id = ? AND status = 'applying')`,
     )
     .bind(
@@ -145,6 +145,7 @@ function itemMutation(
       input.action,
       input.action,
       input.reason,
+      input.action,
       item.id,
       input.id,
     );
@@ -155,7 +156,7 @@ function publicationContext(
   input: WordSubmissionAction,
   now: string,
 ): SubmissionPublication {
-  if (item.review === null || item.verifiedContent === null)
+  if (item.approvalReason === null && (item.verifiedContent === null || item.review === null))
     throw new HTTPException(409, { message: 'SUBMISSION_HAS_NO_COMPLETED_REVIEW' });
   return {
     itemId: item.id,
@@ -163,6 +164,7 @@ function publicationContext(
     content: item.content,
     verifiedContent: item.verifiedContent,
     review: item.review,
+    approvalReason: item.approvalReason,
     actionId: input.id,
     now,
   };
@@ -171,17 +173,13 @@ function publicationContext(
 function actionGate(adapter: WordSubmissionAdapter, input: WordSubmissionAction) {
   let gate = `item.status IN (${eligibleStates[input.action].map(() => '?').join(',')})`;
   const bindings: (string | number)[] = [...eligibleStates[input.action]];
-  if (input.action === 'publish' || input.action === 'approve') {
-    gate +=
-      ' AND item.review_version = ? AND item.review_json IS NOT NULL AND item.verified_material_json IS NOT NULL';
+  if (input.action === 'publish') {
+    gate += ` AND (item.approval_reason IS NOT NULL OR (
+      item.review_version = ? AND item.review_json IS NOT NULL
+      AND item.verified_material_json IS NOT NULL AND json_extract(item.review_json, '$.passed') = 1))
+      AND NOT (${adapter.inventoryExistsSql})`;
     bindings.push(adapter.reviewVersion);
   }
-  if (input.action === 'publish') {
-    gate += ` AND (json_extract(item.review_json, '$.passed') = 1 OR item.approval_reason IS NOT NULL)
-      AND NOT (${adapter.inventoryExistsSql})`;
-  }
-  if (input.action === 'approve')
-    gate += ` AND json_extract(item.review_json, '$.canOverride') = 1`;
   return { gate, bindings };
 }
 
@@ -204,7 +202,7 @@ export async function applySubmissionAction(
       await dispatchSubmissionReview(env, batchId, input.id);
     return wordSubmissionActionResultSchema.parse({ id: input.id, status: prior.status });
   }
-  if (['approve', 'dismiss', 'unpublish'].includes(input.action) && input.reason.length === 0)
+  if (['dismiss', 'unpublish'].includes(input.action) && input.reason.length === 0)
     throw new HTTPException(400, { message: 'SUBMISSION_ACTION_REASON_REQUIRED' });
   const batch = await readStoredSubmissionBatch(env.DB, batchId);
   const adapter: WordSubmissionAdapter = WORKER_WORD_SUBMISSION_ADAPTERS[batch.game];

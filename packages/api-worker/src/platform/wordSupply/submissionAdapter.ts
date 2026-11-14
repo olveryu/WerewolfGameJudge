@@ -25,8 +25,10 @@ export interface SubmissionPublication {
   readonly itemId: string;
   readonly identity: string;
   readonly content: Record<string, unknown>;
-  readonly verifiedContent: Record<string, unknown>;
-  readonly review: WordSubmissionReview;
+  readonly verifiedContent: Record<string, unknown> | null;
+  readonly review: WordSubmissionReview | null;
+  /** Non-null means human approval, including an empty reason; it never replaces the model verdict. */
+  readonly approvalReason: string | null;
   readonly actionId: string;
   readonly now: string;
 }

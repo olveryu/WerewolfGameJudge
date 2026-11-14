@@ -1,4 +1,4 @@
-/** External Fib terms require independently retrieved evidence, never agent-supplied proof. */
+/** Model review uses independent evidence; explicit human approval remains a separate decision. */
 import {
   FIB_DEFINITION_FIELD_MAX_LENGTH,
   FIB_DEFINITION_FIELD_MIN_LENGTH,
@@ -119,8 +119,20 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
     });
   },
   publish(db, publication) {
-    const candidate = parseFibWordEditorialCandidate(publication.verifiedContent);
-    if (candidate.evidence.length === 0)
+    const material =
+      publication.approvalReason !== null ? inputSchema.parse(publication.content) : null;
+    const candidate =
+      material !== null
+        ? parseFibWordEditorialCandidate({
+            word: material.word,
+            definition: material.definition,
+            category: material.category,
+            topic: material.topic,
+            source: 'local',
+            evidence: [],
+          })
+        : parseFibWordEditorialCandidate(publication.verifiedContent);
+    if (publication.approvalReason === null && candidate.evidence.length === 0)
       throw new Error('Fib publication requires independently retrieved evidence');
     return [
       db

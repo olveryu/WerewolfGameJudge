@@ -58,7 +58,9 @@ export const drawGuessSubmissionAdapter: WordSubmissionAdapter = {
     });
   },
   publish(db, publication) {
-    const candidate = drawGuessCandidateSchema.parse(publication.verifiedContent);
+    const candidate = drawGuessCandidateSchema.parse(
+      publication.approvalReason !== null ? publication.content : publication.verifiedContent,
+    );
     return [
       db
         .prepare(

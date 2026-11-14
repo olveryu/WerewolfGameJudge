@@ -14,7 +14,7 @@ const SUBMISSION_ACTION_LABELS = {
   review: '启动独立审核',
   publish: '确认发布',
   dismiss: '拒绝候选',
-  approve: '人工批准',
+  approve: '人工通过',
   unpublish: '下架词条',
 } as const;
 export interface SubmissionConfirmation {
@@ -42,7 +42,7 @@ export function SubmissionActionDialog({
     await wordSubmissionsApi.action(batchId, input);
     onComplete();
   });
-  const needsReason = ['dismiss', 'approve', 'unpublish'].includes(confirmation.action);
+  const needsReason = ['dismiss', 'unpublish'].includes(confirmation.action);
   const title = SUBMISSION_ACTION_LABELS[confirmation.action];
   return (
     <DetailDrawer
@@ -98,9 +98,9 @@ export function SubmissionActionDialog({
           {confirmation.action === 'review'
             ? '按分类分组调用现有独立审核器，不受应用模型或资料检索额度限制，调用仍记账且可能产生费用。供应商限制和内容校验不变，审核不会自动发布；服务故障可能使部分候选失败，请刷新查看。'
             : confirmation.action === 'publish'
-              ? '这些词条将进入游戏可抽词库。只发布当前内容和当前审核版本，操作会留下记录。'
+              ? '这些词条将进入游戏可抽词库。只发布本次确认所绑定的内容与修订，操作会留下记录。'
               : confirmation.action === 'approve'
-                ? '保留原模型结论，并记录本次人工判断。批准后仍须单独确认发布。'
+                ? '由你确认这些材料可以使用，不依赖模型或独立资料检索成功，不调用外部服务。保留原审核结果并记录人工决定；通过后仍须单独确认发布。'
                 : confirmation.action === 'unpublish'
                   ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
                   : '关闭这些候选，不会修改任何线上词语。'}

@@ -17,6 +17,7 @@ import { SubmissionActionDialog, type SubmissionConfirmation } from './Submissio
 import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import { useSubmissionCommand } from './useSubmissionCommand';
 import {
+  isApprovableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
@@ -46,8 +47,6 @@ export function SubmissionBatchPage({
   const awaiting = batch?.items.filter((item) => ['pending', 'failed'].includes(item.status)) ?? [];
   const selectedItems =
     batch?.items.filter((item) => selected.has(item.id) && isSelectableSubmission(item)) ?? [];
-  const reviewable = selectedItems.filter((item) => ['pending', 'failed'].includes(item.status));
-  const publishable = selectedItems.filter((item) => item.status === 'passed');
   function openAction(value: SubmissionConfirmation, button?: HTMLButtonElement) {
     actionOpener.current = button ?? null;
     setConfirmation(value);
@@ -79,36 +78,7 @@ export function SubmissionBatchPage({
               >
                 <IconRefreshOutline aria-hidden />
               </button>
-              {reviewable.length > 0 && (
-                <button
-                  type="button"
-                  onClick={(event) =>
-                    openAction({ action: 'review', items: reviewable }, event.currentTarget)
-                  }
-                >
-                  审核 {reviewable.length}
-                </button>
-              )}
-              {publishable.length > 0 && (
-                <button
-                  type="button"
-                  className="admin-primary"
-                  onClick={(event) =>
-                    openAction({ action: 'publish', items: publishable }, event.currentTarget)
-                  }
-                >
-                  发布 {publishable.length}
-                </button>
-              )}
-              <button
-                type="button"
-                className="admin-error"
-                onClick={(event) =>
-                  openAction({ action: 'dismiss', items: selectedItems }, event.currentTarget)
-                }
-              >
-                拒绝 {selectedItems.length}
-              </button>
+              <SelectedCandidateActions items={selectedItems} onAction={openAction} />
             </div>
           ) : (
             <>
@@ -166,6 +136,60 @@ export function SubmissionBatchPage({
   );
 }
 
+function SelectedCandidateActions({
+  items,
+  onAction,
+}: {
+  items: WordSubmissionBatch['items'];
+  onAction: (confirmation: SubmissionConfirmation, button: HTMLButtonElement) => void;
+}) {
+  const reviewable = items.filter((item) => ['pending', 'failed'].includes(item.status));
+  const approvable = items.filter(isApprovableSubmission);
+  const publishable = items.filter((item) => item.status === 'passed');
+  return (
+    <>
+      {reviewable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'review', items: reviewable }, event.currentTarget)
+          }
+        >
+          审核 {reviewable.length}
+        </button>
+      )}
+      {approvable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'approve', items: approvable }, event.currentTarget)
+          }
+        >
+          人工通过 {approvable.length}
+        </button>
+      )}
+      {publishable.length > 0 && (
+        <button
+          type="button"
+          className="admin-primary"
+          onClick={(event) =>
+            onAction({ action: 'publish', items: publishable }, event.currentTarget)
+          }
+        >
+          发布 {publishable.length}
+        </button>
+      )}
+      <button
+        type="button"
+        className="admin-error"
+        onClick={(event) => onAction({ action: 'dismiss', items }, event.currentTarget)}
+      >
+        拒绝 {items.length}
+      </button>
+    </>
+  );
+}
+
 function BatchCandidates({
   batch,
   selected,
@@ -217,6 +241,7 @@ function BatchCandidates({
       </div>
       <p className="admin-submission-note">
         审核不自动发布；“全部待审”包含待启动和审核失败项。管理员审核不受应用额度限制，调用仍记账，可能产生费用。
+        也可核对材料后人工通过，再单独发布。
       </p>
       <ReviewDispatchNotice batch={batch} onRefresh={onRefresh} />
       <section className="admin-panel" aria-label="批次候选">
@@ -393,7 +418,10 @@ function CandidateTable({
           key: 'reason',
           label: '审核摘要',
           secondary: true,
-          render: (item) => item.review?.reason ?? item.failure ?? '尚无审核结论',
+          render: (item) =>
+            item.approvalReason !== null
+              ? '人工通过；原审核记录保留'
+              : (item.review?.reason ?? item.failure ?? '尚无审核结论'),
         },
       ]}
     />

@@ -12,6 +12,7 @@ import { DetailDrawer } from '../components/Overlays';
 import { AsyncBoundary, StatusBadge } from '../components/Primitives';
 import type { SubmissionConfirmation } from './SubmissionActionDialog';
 import {
+  isApprovableSubmission,
   isSelectableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
@@ -21,7 +22,7 @@ import {
 const ACTION_LABELS: Readonly<Record<string, string>> = {
   ...SUBMISSION_STATUS_LABELS,
   review: '启动独立审核',
-  approve: '人工批准',
+  approve: '人工通过',
   publish: '发布',
   dismiss: '拒绝',
   unpublish: '下架',
@@ -154,13 +155,9 @@ export function SubmissionItemDrawer({
               确认发布…
             </button>
           )}
-          {item.status === 'rejected' && (
-            <button
-              type="button"
-              disabled={item.review?.canOverride !== true}
-              onClick={() => act('approve')}
-            >
-              人工批准…
+          {isApprovableSubmission(item) && (
+            <button type="button" onClick={() => act('approve')}>
+              人工通过…
             </button>
           )}
           {['rejected', 'passed'].includes(item.status) && (
@@ -225,7 +222,9 @@ function SubmissionReviewDetails({ item }: { item: WordSubmissionItem }) {
         item.failure !== null ? (
           <>
             <p role="alert">
-              审核未完成，不能发布。请检查服务配置、供应商限制及下方诊断码，再手动重试。
+              {item.approvalReason !== null
+                ? '独立审核未完成；已记录人工通过。发布仍需单独确认。'
+                : '独立审核未完成，不代表词条不合格。可重试审核，或核对材料后人工通过，再单独发布。'}
             </p>
             <p className="admin-submission-note">诊断码：{item.failure}</p>
           </>
@@ -256,9 +255,6 @@ function SubmissionReviewDetails({ item }: { item: WordSubmissionItem }) {
               <MaterialValue value={item.review.details} />
             </details>
           )}
-          {!item.review.canOverride && (
-            <p className="admin-error">缺少独立证据，不能人工放行；可补充核对后重新审核。</p>
-          )}
         </>
       )}
       {item.reviewModel !== null && (
@@ -267,7 +263,10 @@ function SubmissionReviewDetails({ item }: { item: WordSubmissionItem }) {
         </p>
       )}
       {item.approvalReason !== null && (
-        <p className="admin-notice">人工批准原因：{item.approvalReason}</p>
+        <p className="admin-notice">
+          已人工通过；未修改原模型结论。
+          {item.approvalReason.length > 0 && <>人工通过说明：{item.approvalReason}</>}
+        </p>
       )}
     </section>
   );

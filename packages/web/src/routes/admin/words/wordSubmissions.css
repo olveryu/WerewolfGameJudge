@@ -193,7 +193,7 @@
   min-width: 0;
   padding-inline: var(--space-micro);
   font-size: var(--font-caption);
-  white-space: nowrap;
+  white-space: normal;
 }
 .admin-submission-footer-actions > .admin-icon-button {
   flex: 0 0 var(--size-min-touch-target);

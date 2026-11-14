@@ -122,3 +122,8 @@ export function SubmissionStatus({ status }: { status: WordSubmissionItem['statu
 export function isSelectableSubmission(item: WordSubmissionItem) {
   return ['pending', 'passed', 'failed', 'rejected'].includes(item.status);
 }
+
+/** Human decisions do not depend on a successful provider call or model verdict. */
+export function isApprovableSubmission(item: WordSubmissionItem) {
+  return ['pending', 'failed', 'rejected'].includes(item.status);
+}
