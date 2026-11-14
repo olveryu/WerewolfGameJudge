@@ -21,6 +21,7 @@ import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconCloudOfflineOutline from '~icons/ion/cloud-offline-outline';
+import IconGiftOutline from '~icons/ion/gift-outline';
 import IconLogInOutline from '~icons/ion/log-in-outline';
 import IconMegaphoneOutline from '~icons/ion/megaphone-outline';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
@@ -196,6 +197,7 @@ export function HomePage() {
           </div>
         )}
 
+        <h2 className="home-section-title">开始游戏</h2>
         <div className="home-tasks">
           <section className="home-column">
             <button
@@ -258,9 +260,7 @@ export function HomePage() {
 
           <section className="home-column">
             <Link to="/gacha" className="home-card">
-              <span className="home-card-emoji" aria-hidden>
-                🎰
-              </span>
+              <IconGiftOutline className="home-card-icon" aria-hidden />
               <span className="home-card-text">
                 <span className="home-card-title">扭蛋抽奖</span>
                 <span className="home-card-subtitle">用抽奖券解锁头像、头像框、装饰</span>

@@ -42,10 +42,10 @@
   --letter-hero: -1px;
 
   /* Radii */
-  --radius-small: 10px;
-  --radius-medium: 14px;
-  --radius-large: 20px;
-  --radius-xlarge: 28px;
+  --radius-small: 8px;
+  --radius-medium: 12px;
+  --radius-large: 16px;
+  --radius-xlarge: 16px;
   --radius-full: 9999px;
 
   /* Component sizes */

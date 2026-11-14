@@ -108,7 +108,7 @@
   display: block;
   height: 100%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
+  background: var(--color-primary);
   transition: width 200ms ease-out;
 }
 

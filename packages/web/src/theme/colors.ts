@@ -1,29 +1,29 @@
 import { withAlpha } from './colorUtils';
 
 /**
- * App colour palette ("月白" scheme), ported from the RN client's `src/theme/colors.ts`.
+ * App colour palette: cool neutrals and a restrained blue for primary actions.
  *
  * The single source for colours: `applyColorTokens` publishes it as `--color-*` CSS custom
  * properties for stylesheets, and TypeScript reads it directly where colours are computed
  * (gradients, scene tints).
  */
 export const colors = {
-  primary: '#4F46E5',
-  primaryLight: '#818CF8',
-  primaryDark: '#3730A3',
+  primary: '#285F86',
+  primaryLight: '#3B6D91',
+  primaryDark: '#1A405D',
 
-  background: '#F2F2F7',
+  background: '#EDF2F7',
   surface: '#FFFFFF',
-  surfaceHover: '#E5E5EA',
+  surfaceHover: '#E0E9F1',
   card: '#FFFFFF',
 
-  text: '#1A1A2E',
-  textSecondary: '#5C5C70',
-  textMuted: '#8E8EA0',
+  text: '#1A3149',
+  textSecondary: '#526779',
+  textMuted: '#5B6E80',
   textInverse: '#FFFFFF',
 
-  border: '#D1D1D6',
-  borderLight: '#E5E5EA',
+  border: '#C4D2DE',
+  borderLight: '#DEE7EE',
 
   success: '#1A9A4A',
   warning: '#B87D08',
@@ -35,8 +35,8 @@ export const colors = {
   god: '#7B3FBF',
   third: '#B87D08',
 
-  overlay: 'rgba(26, 26, 46, 0.6)',
-  overlayLight: 'rgba(26, 26, 46, 0.25)',
+  overlay: 'rgba(26, 49, 73, 0.6)',
+  overlayLight: 'rgba(26, 49, 73, 0.25)',
 } as const;
 
 function toCustomPropertyName(prefix: string, token: string): string {
@@ -105,6 +105,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['info', 8],
   ['background', 85],
   ['text', 3],
+  ['textInverse', 20],
   ['textMuted', 30],
   ...(
     ['info', 'success', 'error', 'warning', 'primaryLight', 'textSecondary', 'textMuted'] as const
