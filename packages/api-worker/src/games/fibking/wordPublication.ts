@@ -14,8 +14,9 @@ import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import {
   FIB_WORD_CATEGORIES,
-  FIB_WORD_GENERATION_BATCH_LIMIT,
   FIB_WORD_REVIEW_BATCH_LIMIT,
+  FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
+  FIB_WORD_STORED_REVIEW_BATCH_LIMIT,
   type FibWordEditorialCandidate,
   type FibWordReview,
 } from './wordProviders/types';
@@ -208,8 +209,9 @@ export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
 }
 
 const FIB_WORD_VERIFICATION_REQUEST_COUNT = 2;
-const FIB_WORD_UNVERIFIED_REVIEW_LIMIT = Math.floor(
-  FIB_WORD_TAVILY_REQUEST_LIMIT / FIB_WORD_VERIFICATION_REQUEST_COUNT,
+const FIB_WORD_UNVERIFIED_REVIEW_LIMIT = Math.min(
+  FIB_WORD_REVIEW_BATCH_LIMIT,
+  Math.floor(FIB_WORD_TAVILY_REQUEST_LIMIT / FIB_WORD_VERIFICATION_REQUEST_COUNT),
 );
 
 const candidateRowSchema = z.strictObject({
@@ -241,7 +243,7 @@ export async function storeFibWordCandidates(
   pack: FibWordPack,
   candidates: readonly FibWordEditorialCandidate[],
 ): Promise<void> {
-  if (candidates.length > FIB_WORD_GENERATION_BATCH_LIMIT) {
+  if (candidates.length > FIB_WORD_STORED_GENERATION_BATCH_LIMIT) {
     throw new Error('Fib candidate intake exceeds batch limit');
   }
   if (candidates.length === 0) return;
@@ -424,7 +426,10 @@ export async function publishFibWordPack(
   reviews: readonly FibWordReview[],
   opts: { readonly sourceUrls: readonly string[] } = { sourceUrls: [] },
 ): Promise<void> {
-  if (candidates.length > FIB_WORD_REVIEW_BATCH_LIMIT || reviews.length !== candidates.length)
+  if (
+    candidates.length > FIB_WORD_STORED_REVIEW_BATCH_LIMIT ||
+    reviews.length !== candidates.length
+  )
     throw new Error('Fib publication batch size mismatch');
   const sourceUrls = z.array(z.url()).max(14).parse(opts.sourceUrls);
   const now = new Date().toISOString();

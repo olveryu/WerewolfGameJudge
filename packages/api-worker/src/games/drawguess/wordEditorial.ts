@@ -10,9 +10,11 @@ import { z } from 'zod';
 import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
 import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
 
-export const DRAWGUESS_WORD_BATCH_LIMIT = 30;
-export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v2';
-export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v2';
+export const DRAWGUESS_WORD_BATCH_LIMIT = 5;
+export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v3';
+export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v3';
+// Existing workflow checkpoints and published packs can contain up to 30 items.
+const STORED_BATCH_LIMIT = 30;
 
 const toSimplified = Converter({ from: 't', to: 'cn' });
 /** 2–8 个汉字（CJK 主体区 + 扩展 A），只收简体。 */
@@ -49,8 +51,8 @@ export const drawGuessReviewsSchema = z.strictObject({
     .array(
       z.strictObject({
         word: wordSchema,
-        qualityChecks: qualityChecksSchema,
         reason: explanationSchema,
+        qualityChecks: qualityChecksSchema,
       }),
     )
     .max(DRAWGUESS_WORD_BATCH_LIMIT),
@@ -70,16 +72,18 @@ export async function getDrawGuessWordId(word: string): Promise<string> {
 }
 
 /**
- * 逐字取拼音首字母，空格分隔（如 "d x m"、"ch q")。
- * 多音字取拼音库默认常用读音；无声母或解析异常的字直接抛错，由发布环节判为不合格。
+ * 逐字取拼音提示，空格分隔（如 "d x m"、"ch q")。
+ * 有声母的字取声母；零声母字（鹅、安、尔等）没有声母，取拼音的第一个字母（"企鹅" → "q e"）。
+ * 多音字取拼音库默认常用读音；解析异常的字直接抛错，由发布环节判为不合格。
  * 注意：声母有双字母（zh/ch/sh），所以按空格切分后的段数才与字数相等。
  */
 export function toPinyinInitials(word: string): string {
   const canonical = canonicalizeDrawGuessWord(word);
-  const initials = pinyin(canonical, { pattern: 'initial', toneType: 'none' })
-    .split(' ')
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
+  const consonants = pinyin(canonical, { pattern: 'initial', toneType: 'none', type: 'array' });
+  const firstLetters = pinyin(canonical, { pattern: 'first', toneType: 'none', type: 'array' });
+  const initials = consonants.map((consonant, index) =>
+    consonant.length > 0 ? consonant : (firstLetters[index] ?? ''),
+  );
   if (initials.length !== [...canonical].length) {
     throw new AiOutputValidationError(
       'pinyinInitialsMismatch',
@@ -127,7 +131,10 @@ export function parseDrawGuessCandidates(
   category: DrawGuessWordCategory,
 ): DrawGuessWordCandidate[] {
   const seen = new Set<string>();
-  return drawGuessCandidatesSchema.parse(value).candidates.flatMap((item) => {
+  const { candidates } = drawGuessCandidatesSchema
+    .extend({ candidates: z.array(drawGuessCandidateSchema).max(STORED_BATCH_LIMIT) })
+    .parse(value);
+  return candidates.flatMap((item) => {
     const candidate = normalizeDrawGuessCandidate(item, category);
     if (seen.has(candidate.word)) return [];
     seen.add(candidate.word);
@@ -140,7 +147,11 @@ export function parseDrawGuessReviews(
   value: unknown,
   candidates: readonly DrawGuessWordCandidate[],
 ): DrawGuessWordReview[] {
-  const { reviews } = drawGuessReviewsSchema.parse(value);
+  const { reviews } = drawGuessReviewsSchema
+    .extend({
+      reviews: z.array(drawGuessReviewsSchema.shape.reviews.element).max(STORED_BATCH_LIMIT),
+    })
+    .parse(value);
   if (reviews.length !== candidates.length)
     throw new AiOutputValidationError('reviewCountMismatch', 'DrawGuess review count mismatch');
   return reviews.map((review, index) => {

@@ -432,9 +432,9 @@ describe('Fib word publication', () => {
     await storeFibWordCandidates(env.DB, firstPack, candidates);
     await storeFibWordCandidates(env.DB, firstPack, candidates);
     const firstClaim = await getFibWordReviewCandidates(env.DB, firstPack);
-    expect(firstClaim).toEqual(candidates.slice(0, 6));
+    expect(firstClaim).toEqual(candidates.slice(0, 1));
     expect(await getFibWordReviewCandidates(env.DB, firstPack)).toEqual(firstClaim);
-    expect(await getFibWordReviewCandidates(env.DB, secondPack)).toEqual(candidates.slice(6));
+    expect(await getFibWordReviewCandidates(env.DB, secondPack)).toEqual(candidates.slice(1, 2));
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
       count: 0,
     });
@@ -460,7 +460,7 @@ describe('Fib word publication', () => {
     );
   });
 
-  it('retains accepted candidates that do not fit the remaining monthly publication target', async () => {
+  it('retains accepted legacy-batch candidates beyond the remaining monthly publication target', async () => {
     const pack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
     if (pack === null) throw new Error('Expected limited publication pack');
     await env.DB.prepare(
@@ -500,7 +500,13 @@ describe('Fib word publication', () => {
       },
     }));
     await storeFibWordCandidates(env.DB, pack, candidates);
-    expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual(candidates);
+    expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual(candidates.slice(0, 1));
+    // Replay a second claim persisted before the model batch limit was reduced to one.
+    await env.DB.prepare(
+      "UPDATE fib_word_candidates SET status = 'claimed', claimed_pack_id = ?, claimed_at = ? WHERE word = '测试乙'",
+    )
+      .bind(pack.id, new Date().toISOString())
+      .run();
     await publishFibWordPack(env.DB, pack, candidates, reviews, {
       sourceUrls: ['https://example.com/words'],
     });

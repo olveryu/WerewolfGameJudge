@@ -62,6 +62,9 @@ package-lock.json
 assets/badges/.cache/
 assets/badges/report.json
 
+# Word-review eval run reports (scripts/word-review-eval.mjs)
+scripts/word-review-eval/reports/
+
 # Wrangler local state
 .wrangler/
 .dev.vars

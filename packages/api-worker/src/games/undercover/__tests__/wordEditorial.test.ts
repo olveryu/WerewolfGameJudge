@@ -36,6 +36,27 @@ const review = {
 };
 
 describe('Undercover editorial contracts', () => {
+  it('still reads complete 30-pair stored packs and their old-order reviews', () => {
+    const material = Array.from({ length: 30 }, (_, index) => ({
+      ...candidate,
+      wordA: `测试甲${index}`,
+      wordB: `测试乙${index}`,
+    }));
+    const parsed = parseUndercoverCandidates({ candidates: material }, 'food');
+    const reviews = parsed.map(({ wordA, wordB }) => ({ ...review, wordA, wordB }));
+    expect(parsed).toHaveLength(30);
+    expect(parseUndercoverReviews({ reviews }, parsed)).toEqual(reviews);
+    expect(() =>
+      parseUndercoverReviews({ reviews: [...reviews, ...reviews.slice(0, 1)] }, [
+        ...parsed,
+        ...parsed.slice(0, 1),
+      ]),
+    ).toThrow();
+    expect(() =>
+      parseUndercoverCandidates({ candidates: [...material, candidate] }, 'food'),
+    ).toThrow();
+  });
+
   it('keeps strict batch parsing for stored material even when another pair is valid', () => {
     expect(() =>
       parseUndercoverCandidates(

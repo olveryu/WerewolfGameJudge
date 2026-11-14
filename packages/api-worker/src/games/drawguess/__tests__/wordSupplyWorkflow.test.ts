@@ -228,11 +228,55 @@ describe('DrawGuess supply workflow', () => {
     ).toEqual({ count: 2 });
   });
 
+  it('lists rejected candidates of the category in generation history, not only active words', async () => {
+    const day = new Date().toISOString().slice(0, 10);
+    const rejectedWordOf = (index: number) => `旧${String.fromCodePoint(0x4e00 + index)}`;
+    await env.DB.batch(
+      DRAWGUESS_WORD_CATEGORIES.map((category, index) =>
+        env.DB.prepare(
+          `INSERT INTO drawguess_word_candidates
+           (id, word, category, difficulty, material_json, status, created_at, reviewed_at)
+           VALUES (?, ?, ?, 'easy', '{}', 'rejected', ?, ?)`,
+        ).bind(`rejected-${index}`, rejectedWordOf(index), category, day, day),
+      ),
+    );
+    const requests = mockWordSupplyModel(
+      { word: '大熊猫', difficulty: 'easy', potentialIssues: [] },
+      {
+        word: '大熊猫',
+        qualityChecks: {
+          isConcreteAndDrawable: true,
+          isSimplifiedChinese: true,
+          isLengthValid: true,
+          isCategoryAccurate: true,
+          isAppropriate: true,
+          isUnambiguous: true,
+        },
+        reason: '模拟独立审核通过。',
+      },
+    );
+    const id = crypto.randomUUID();
+    await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+    });
+    await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day } });
+    await instance.waitForStatus('complete');
+    const generation = requests[0];
+    expect(generation).toBeDefined();
+    const categoryIndex = DRAWGUESS_WORD_CATEGORIES.findIndex(
+      (category) => category === generation?.category,
+    );
+    expect(generation).toMatchObject({ history: [rejectedWordOf(categoryIndex)] });
+  });
+
   it('fails all-rejected output with durable diagnostics, one report and no queue or review', async () => {
     const errorReport = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const candidate = { word: 'bad!', difficulty: 'easy', potentialIssues: [] };
     const requests = mockWordSupplyModel(
-      Array.from({ length: 30 }, () => candidate),
+      Array.from({ length: 5 }, () => candidate),
       {},
     );
     const id = crypto.randomUUID();
@@ -254,12 +298,12 @@ describe('DrawGuess supply workflow', () => {
       failureKind: 'invalidOutput',
       validationCode: 'allCandidatesRejected',
       validationSummary: {
-        receivedCount: 30,
+        receivedCount: 5,
         validCount: 0,
-        rejectedCount: 30,
+        rejectedCount: 5,
         duplicateCount: 0,
-        omittedIssueCount: 22,
-        rejectionSamples: Array.from({ length: 8 }, (_, index) => ({
+        omittedIssueCount: 0,
+        rejectionSamples: Array.from({ length: 5 }, (_, index) => ({
           index,
           path: ['candidates', index, 'word'],
           code: 'invalid_format',
