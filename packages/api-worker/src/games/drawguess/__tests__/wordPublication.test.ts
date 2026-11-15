@@ -123,6 +123,8 @@ describe('DrawGuess editorial publication', () => {
       potentialIssues: [],
     };
     await storeDrawGuessWordCandidates(env.DB, first, [candidate]);
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare("UPDATE drawguess_word_candidates SET status = 'approved'").run();
     const candidates = await getDrawGuessReviewCandidates(env.DB, first);
     expect(candidates).toHaveLength(1);
     await failDrawGuessWordPack(env.DB, first, 'review:timedOut');
@@ -168,7 +170,8 @@ describe('DrawGuess editorial publication', () => {
     });
     expect(
       await env.DB.prepare('SELECT status, review_json FROM drawguess_word_candidates').first(),
-    ).toEqual({ status: 'pending', review_json: null });
+      // D2 gate: the claim leaves the candidate in the approved pool, not pending.
+    ).toEqual({ status: 'approved', review_json: null });
     expect(
       await env.DB.prepare('SELECT status FROM drawguess_word_packs WHERE id = ?')
         .bind(second.id)
@@ -191,6 +194,8 @@ describe('DrawGuess editorial publication', () => {
       potentialIssues: [],
     };
     await storeDrawGuessWordCandidates(env.DB, pack, [candidate]);
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare("UPDATE drawguess_word_candidates SET status = 'approved'").run();
     const candidates = await getDrawGuessReviewCandidates(env.DB, pack);
     expect(candidates).toHaveLength(1);
     await publishDrawGuessWordPack(env.DB, pack, candidates, [

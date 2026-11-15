@@ -93,10 +93,9 @@ describe('Undercover supply workflow', () => {
     });
     await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day } });
     await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'paused' });
-    expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
-      validation: { receivedCount: 4, validCount: 1, rejectedCount: 2, duplicateCount: 1 },
-    });
+    // Newly generated candidates stop at the approval gate: no review, no
+    // publish, and the run ends with outcome 'awaitingApproval'.
+    expect(await instance.getOutput()).toEqual({ status: 'awaitingApproval' });
     const pack = z
       .object({
         category: z.enum(UNDERCOVER_CATEGORIES),
@@ -110,12 +109,46 @@ describe('Undercover supply workflow', () => {
           .bind(`${day}-0`)
           .first(),
       );
-    expect(pack.status).toBe('published');
+    expect(pack.status).toBe('reserved');
     expect(JSON.parse(pack.generation_json)).toEqual({
       candidates: [{ ...candidateMaterial, category: pack.category }],
     });
-    expect(requests).toHaveLength(2);
+    expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
+      validation: { receivedCount: 4, validCount: 1, rejectedCount: 2, duplicateCount: 1 },
+    });
+    expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({ category: pack.category, history: [] });
+    expect(
+      await env.DB.prepare(
+        'SELECT word_a, word_b, category, status FROM undercover_word_pairs',
+      ).first(),
+    ).toBeNull();
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 1 });
+
+    // Human approval (the endpoint is covered by the admin tests; here the
+    // workflow only needs approved rows) unblocks the next run, which
+    // reviews and publishes the persisted candidate without regenerating.
+    await env.DB.prepare(
+      "UPDATE undercover_word_candidates SET status = 'approved' WHERE status = 'pending'",
+    ).run();
+    const resumeId = crypto.randomUUID();
+    await using resume = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, resumeId);
+    await resume.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+    });
+    await env.UNDERCOVER_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: 'resume' } });
+    await resume.waitForStatus('complete');
+    expect(await resume.getOutput()).toEqual({ status: 'paused' });
+    expect(
+      await env.DB.prepare('SELECT status FROM undercover_word_packs WHERE id = ?')
+        .bind(`${day}-manual-resume-0`)
+        .first(),
+    ).toEqual({ status: 'published' });
+    expect(requests).toHaveLength(2);
     expect(requests[1]).toMatchObject({
       category: pack.category,
       candidates: [{ wordA: candidateMaterial.wordA, wordB: candidateMaterial.wordB }],
@@ -133,6 +166,54 @@ describe('Undercover supply workflow', () => {
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 2 });
+  });
+
+  it('fails the pack instead of reporting awaitingApproval when every generated candidate is rejected', async () => {
+    const id = crypto.randomUUID();
+    const day = new Date().toISOString().slice(0, 10);
+    const candidateMaterial = {
+      wordA: '熬夜',
+      wordB: '赖床',
+      commonTraits: ['作息习惯', '感觉困倦'],
+      differences: ['发生时间', '是否入睡'],
+      potentialIssues: [],
+    };
+    // Both returned candidates are invalid (too-short traits; identical
+    // words), so the parsed count is 0 even though the model returned 2.
+    // Generation throws allCandidatesRejected before the store step, so the
+    // run must fail here — never report awaitingApproval with nothing new to
+    // approve, and never burn another generation round on the same pack.
+    const requests = mockWordSupplyModel(
+      [
+        { ...candidateMaterial, commonTraits: ['不足'] },
+        { ...candidateMaterial, wordB: candidateMaterial.wordA },
+      ],
+      // No candidate reaches review, so no review payload is ever requested.
+      {},
+    );
+    await using instance = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, id);
+    await instance.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+    });
+    await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day } });
+    await instance.waitForStatus('errored');
+    expect(
+      await env.DB.prepare('SELECT status, failure_reason FROM undercover_word_packs WHERE id = ?')
+        .bind(`${day}-0`)
+        .first(),
+    ).toEqual({ status: 'failed', failure_reason: 'generation' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM undercover_word_candidates').first(),
+    ).toEqual({ count: 0 });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM undercover_word_pairs').first(),
+    ).toEqual({ count: 0 });
+    expect(requests).toHaveLength(1);
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 1 });
   });
 
   it('records failed generation without publishing or automatically repeating the operation', async () => {

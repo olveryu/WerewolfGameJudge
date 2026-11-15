@@ -4,9 +4,14 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { GameWordGame } from '@game-judge/game-engine/product/wordSupply';
 
 export type {
+  ApproveWordCandidatesResult,
+  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
   TriggerSupplyResult,
+  WordCandidateList,
+  WordCandidateListItem,
+  WordCandidateListStatus,
 } from '@game-judge/game-engine/product/wordSupply';
 
 export interface AdminUser {

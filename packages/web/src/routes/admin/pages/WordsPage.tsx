@@ -26,8 +26,10 @@ import {
   StatusBadge,
 } from '../components/Primitives';
 import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
+import { PendingCandidates } from '../words/PendingCandidates';
 import { SubmissionAgentsPage } from '../words/SubmissionAgents';
 import { SubmissionsPage } from '../words/SubmissionsPage';
+import { UnifiedLibrary } from '../words/UnifiedLibrary';
 import { WordSections } from '../words/WordSections';
 
 const LABELS = { fibking: '瞎掰王', undercover: '谁是卧底', drawguess: '你画我猜' } as const;
@@ -57,6 +59,7 @@ export function WordsPage() {
   const section = parameters.get('section') ?? 'inventory';
   if (section === 'agents') return <SubmissionAgentsPage game={game} />;
   if (section === 'submissions') return <SubmissionsPage game={game} />;
+  if (section === 'library') return <UnifiedLibrary game={game} />;
   if (section !== 'inventory')
     return (
       <div className="admin-content">
@@ -176,6 +179,7 @@ function WordInventory({ game }: { game: GameWordGame }) {
             <AutomaticSupplyControl game={game} />
             {query.data !== undefined && <SupplyQuota data={query.data} />}
           </Panel>
+          <PendingCandidates game={game} />
           {query.data !== undefined && (
             <WordReport
               data={query.data}
@@ -235,11 +239,19 @@ function SupplyQuota({ data }: { data: GameWordsStats }) {
         value={data.modelBudget.dailyUsed}
         limit={data.modelBudget.dailyLimit}
       />
+      <p className="admin-muted">
+        其中生成 {data.modelBudget.byOperation.generation.dailyUsed} 次 · 审核{' '}
+        {data.modelBudget.byOperation.review.dailyUsed} 次
+      </p>
       <Meter
         label="模型 · 近 30 天"
         value={data.modelBudget.monthlyUsed}
         limit={data.modelBudget.monthlyLimit}
       />
+      <p className="admin-muted">
+        其中生成 {data.modelBudget.byOperation.generation.monthlyUsed} 次 · 审核{' '}
+        {data.modelBudget.byOperation.review.monthlyUsed} 次
+      </p>
       {data.tavilyRequestsUsed !== null && data.tavilyMonthlyQuota !== null && (
         <Meter
           label="Tavily · 本月"

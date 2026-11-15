@@ -35,6 +35,7 @@ import {
   type FibWordPack,
   getFibWordReviewCandidates,
   publishFibWordPack,
+  releaseFibWordCandidates,
   reserveFibWordPack,
   selectFibWordSearch,
   storeFibWordCandidates,
@@ -120,6 +121,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           `fib:history:${identity}`,
           'fibking',
           GEMINI_FIB_WORD_MODEL,
+          'generation',
           Date.now(),
           { force },
         );
@@ -150,18 +152,24 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         reserveFibWordPack(this.env.DB, day, batchIndex, { batchLimit, force, runId }),
       );
       if (pack === null) continue;
-      await this.processPack(step, pack, batchIndex, force);
+      if (await this.processPack(step, pack, batchIndex, force))
+        return { status: 'awaitingApproval' };
       await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
     }
     return { status: 'complete' };
   }
 
+  /**
+   * Process one pack. Returns true when the batch stopped at the approval
+   * gate (newly stored candidates are pending; the run ends with outcome
+   * 'awaitingApproval' instead of reviewing or publishing them).
+   */
   private async processPack(
     step: WorkflowStep,
     pack: FibWordPack,
     batchIndex: number,
     force: boolean,
-  ) {
+  ): Promise<boolean> {
     let failureStage = 'inventoryReviewSelection';
     try {
       let candidates = await step.do(`review-candidates-${batchIndex}`, () =>
@@ -200,16 +208,23 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
               },
             );
             failureStage = 'candidateStorage';
+            const parsedCandidates = readGeneratedCandidates(generatedCandidates);
             await step.do(`store-candidates-${batchIndex}`, () =>
-              storeFibWordCandidates(
-                this.env.DB,
-                pack,
-                readGeneratedCandidates(generatedCandidates),
-              ),
+              storeFibWordCandidates(this.env.DB, pack, parsedCandidates),
             );
             candidates = await step.do(`generated-review-candidates-${batchIndex}`, () =>
               getFibWordReviewCandidates(this.env.DB, pack),
             );
+            if (parsedCandidates.length > 0 && candidates.length === 0) {
+              // Newly stored candidates are pending until a human approves
+              // them: stop this batch — and the run — here, leave the pack
+              // reserved, and run no verification, review or publish for
+              // it. Approved candidates resume on a later run.
+              await step.do(`awaiting-approval-${batchIndex}`, () =>
+                releaseFibWordCandidates(this.env.DB, pack),
+              );
+              return true;
+            }
           }
         }
       }
@@ -283,6 +298,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           ],
         }),
       );
+      return false;
     } catch (error) {
       const diagnostic = getAiDiagnostic(error);
       const failureKind =

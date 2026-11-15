@@ -67,6 +67,7 @@ function SupplyDialog({
   return (
     <DetailDrawer variant="sheet" title="补充词库" onClose={onClose}>
       <p className="admin-muted">{gameLabel} · 触发新的词库供给任务</p>
+      <p className="admin-muted">触发后只生成并入队，不自动审核发布；批准后由下一轮继续。</p>
       <div className="admin-supply-options">
         <span>触发次数</span>
         <div className="admin-segmented" role="group" aria-label="触发次数">

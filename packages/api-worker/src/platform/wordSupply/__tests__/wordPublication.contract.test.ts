@@ -1,8 +1,8 @@
 /**
- * P2 contract: all three games export the word publication five pieces
- * (reserve / getReviewCandidates / storeCandidates / publish / fail) from
- * their wordPublication module, each piece matching the shared
- * WordSupplyPublication interface.
+ * P2 contract: all three games export the word publication six pieces
+ * (reserve / getReviewCandidates / storeCandidates / publish / fail /
+ * releaseCandidates) from their wordPublication module, each piece matching
+ * the shared WordSupplyPublication interface.
  *
  * The satisfies blocks pin runner compatibility: a missing piece, an extra
  * required parameter, or a piece moved to another module fails typecheck.
@@ -25,6 +25,7 @@ import {
   failDrawGuessWordPack,
   getDrawGuessReviewCandidates,
   publishDrawGuessWordPack,
+  releaseDrawGuessWordCandidates,
   reserveDrawGuessWordPack,
   storeDrawGuessWordCandidates,
 } from '../../../games/drawguess/wordPublication';
@@ -37,6 +38,7 @@ import {
   type FibWordPack,
   getFibWordReviewCandidates,
   publishFibWordPack,
+  releaseFibWordCandidates,
   reserveFibWordPack,
   storeFibWordCandidates,
 } from '../../../games/fibking/wordPublication';
@@ -48,6 +50,7 @@ import {
   failUndercoverWordPack,
   getUndercoverReviewCandidates,
   publishUndercoverWordPack,
+  releaseUndercoverWordCandidates,
   reserveUndercoverWordPack,
   storeUndercoverWordCandidates,
   type UndercoverWordPack,
@@ -76,6 +79,7 @@ const undercoverPublication = {
   storeCandidates: storeUndercoverWordCandidates,
   publish: publishUndercoverWordPack,
   fail: failUndercoverWordPack,
+  releaseCandidates: releaseUndercoverWordCandidates,
 } satisfies UndercoverPublication;
 
 const drawGuessPublication = {
@@ -84,6 +88,7 @@ const drawGuessPublication = {
   storeCandidates: storeDrawGuessWordCandidates,
   publish: publishDrawGuessWordPack,
   fail: failDrawGuessWordPack,
+  releaseCandidates: releaseDrawGuessWordCandidates,
 } satisfies DrawGuessPublication;
 
 const fibPublication = {
@@ -92,6 +97,7 @@ const fibPublication = {
   storeCandidates: storeFibWordCandidates,
   publish: publishFibWordPack,
   fail: failFibWordPack,
+  releaseCandidates: releaseFibWordCandidates,
 } satisfies FibPublication;
 
 type ReserveOpts = { force?: boolean; runId?: string };
@@ -118,6 +124,10 @@ const undercoverPublishPin: Exact<
   UndercoverPublication['publish']
 > = true;
 const undercoverFailPin: Exact<typeof failUndercoverWordPack, UndercoverPublication['fail']> = true;
+const undercoverReleasePin: Exact<
+  typeof releaseUndercoverWordCandidates,
+  UndercoverPublication['releaseCandidates']
+> = true;
 const drawGuessReservePin: Exact<
   typeof reserveDrawGuessWordPack,
   (
@@ -138,6 +148,10 @@ const drawGuessStoreCandidatesPin: Exact<
 const drawGuessPublishPin: Exact<typeof publishDrawGuessWordPack, DrawGuessPublication['publish']> =
   true;
 const drawGuessFailPin: Exact<typeof failDrawGuessWordPack, DrawGuessPublication['fail']> = true;
+const drawGuessReleasePin: Exact<
+  typeof releaseDrawGuessWordCandidates,
+  DrawGuessPublication['releaseCandidates']
+> = true;
 const fibReservePin: Exact<
   typeof reserveFibWordPack,
   (
@@ -166,6 +180,8 @@ const fibPublishPin: Exact<
   ) => Promise<void>
 > = true;
 const fibFailPin: Exact<typeof failFibWordPack, FibPublication['fail']> = true;
+const fibReleasePin: Exact<typeof releaseFibWordCandidates, FibPublication['releaseCandidates']> =
+  true;
 
 /**
  * Opts key sets and member types, pinned separately: conditional type
@@ -190,16 +206,19 @@ const typePins = [
   undercoverStoreCandidatesPin,
   undercoverPublishPin,
   undercoverFailPin,
+  undercoverReleasePin,
   drawGuessReservePin,
   drawGuessGetReviewCandidatesPin,
   drawGuessStoreCandidatesPin,
   drawGuessPublishPin,
   drawGuessFailPin,
+  drawGuessReleasePin,
   fibReservePin,
   fibGetReviewCandidatesPin,
   fibStoreCandidatesPin,
   fibPublishPin,
   fibFailPin,
+  fibReleasePin,
   undercoverReserveOptsKeysPin,
   drawGuessReserveOptsKeysPin,
   fibReserveOptsKeysPin,
@@ -208,17 +227,18 @@ const typePins = [
   fibPublishSourceUrlsTypePin,
 ];
 
-describe('word publication five-piece contract (P2)', () => {
+describe('word publication six-piece contract (P2)', () => {
   it('pins every piece of all three publications to the shared interface', () => {
     expect(typePins).toEqual(Array(typePins.length).fill(true));
   });
 
-  it('exposes exactly the five publication pieces per game', () => {
+  it('exposes exactly the six publication pieces per game', () => {
     for (const publication of [undercoverPublication, drawGuessPublication, fibPublication]) {
       expect(Object.keys(publication).sort()).toEqual([
         'fail',
         'getReviewCandidates',
         'publish',
+        'releaseCandidates',
         'reserve',
         'storeCandidates',
       ]);

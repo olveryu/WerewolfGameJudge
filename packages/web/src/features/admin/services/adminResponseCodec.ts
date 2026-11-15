@@ -18,9 +18,12 @@ import type {
   AdminStats,
   AdminUser,
   AdminUsersResponse,
+  ApproveWordCandidatesResult,
+  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
   TriggerSupplyResult,
+  WordCandidateList,
 } from '@/features/admin/model/adminContracts';
 
 type JsonObject = Record<string, unknown>;
@@ -712,7 +715,7 @@ function parseModelBudget(value: unknown): GameWordsStats['modelBudget'] {
   const object = requireObject(value, 'Game words model budget');
   assertExactKeys(
     object,
-    ['dailyUsed', 'dailyLimit', 'monthlyUsed', 'monthlyLimit'],
+    ['dailyUsed', 'dailyLimit', 'monthlyUsed', 'monthlyLimit', 'byOperation'],
     'Game words model budget',
   );
   return {
@@ -720,6 +723,24 @@ function parseModelBudget(value: unknown): GameWordsStats['modelBudget'] {
     dailyLimit: parseNonnegativeInteger(object.dailyLimit, 'Model budget daily limit'),
     monthlyUsed: parseNonnegativeInteger(object.monthlyUsed, 'Model budget monthly used'),
     monthlyLimit: parseNonnegativeInteger(object.monthlyLimit, 'Model budget monthly limit'),
+    byOperation: parseModelBudgetByOperation(object.byOperation),
+  };
+}
+
+function parseModelBudgetByOperation(value: unknown): GameWordsStats['modelBudget']['byOperation'] {
+  const object = requireObject(value, 'Game words model budget by operation');
+  assertExactKeys(object, ['generation', 'review'], 'Game words model budget by operation');
+  const parsePart = (part: unknown, label: string) => {
+    const o = requireObject(part, label);
+    assertExactKeys(o, ['dailyUsed', 'monthlyUsed'], label);
+    return {
+      dailyUsed: parseNonnegativeInteger(o.dailyUsed, `${label} daily used`),
+      monthlyUsed: parseNonnegativeInteger(o.monthlyUsed, `${label} monthly used`),
+    };
+  };
+  return {
+    generation: parsePart(object.generation, 'Model budget generation'),
+    review: parsePart(object.review, 'Model budget review'),
   };
 }
 
@@ -746,5 +767,83 @@ export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
     game: parseGameWordGame(object.game, 'Trigger supply game'),
     force: parseBoolean(object.force, 'Trigger supply force'),
     workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
+  };
+}
+
+export function parseWordCandidatesResponse(value: unknown): WordCandidateList {
+  const object = requireObject(value, 'Word candidates response');
+  assertExactKeys(object, ['game', 'candidates', 'nextCursor'], 'Word candidates response');
+  return {
+    game: parseGameWordGame(object.game, 'Word candidates game'),
+    candidates: parseArray(object.candidates, 'Word candidates', (item, label) => {
+      const row = requireObject(item, label);
+      assertExactKeys(
+        row,
+        ['id', 'game', 'title', 'category', 'evidenceCount', 'createdAt', 'status'],
+        label,
+      );
+      if (
+        row.status !== 'pending' &&
+        row.status !== 'approved' &&
+        row.status !== 'claimed' &&
+        row.status !== 'accepted' &&
+        row.status !== 'rejected'
+      )
+        throw new Error(`${label} has unsupported status`);
+      return {
+        id: parseNonEmptyString(row.id, `${label} id`),
+        game: parseGameWordGame(row.game, `${label} game`),
+        title: parseNonEmptyString(row.title, `${label} title`),
+        category: parseNonEmptyString(row.category, `${label} category`),
+        evidenceCount:
+          row.evidenceCount === null
+            ? null
+            : parseNonnegativeInteger(row.evidenceCount, `${label} evidenceCount`),
+        createdAt: parseNonEmptyString(row.createdAt, `${label} createdAt`),
+        status: row.status,
+      };
+    }),
+    nextCursor:
+      object.nextCursor === null
+        ? null
+        : parseNonEmptyString(object.nextCursor, 'Word candidates nextCursor'),
+  };
+}
+
+export function parseApproveWordCandidatesResponse(value: unknown): ApproveWordCandidatesResult {
+  const object = requireObject(value, 'Approve word candidates response');
+  assertExactKeys(
+    object,
+    ['game', 'approvedIds', 'skippedIds'],
+    'Approve word candidates response',
+  );
+  return {
+    game: parseGameWordGame(object.game, 'Approve word candidates game'),
+    approvedIds: parseArray(object.approvedIds, 'Approve word candidates approved', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+    skippedIds: parseArray(object.skippedIds, 'Approve word candidates skipped', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+  };
+}
+
+export function parseDismissWordCandidatesResponse(value: unknown): DismissWordCandidatesResult {
+  const object = requireObject(value, 'Dismiss word candidates response');
+  assertExactKeys(
+    object,
+    ['game', 'dismissedIds', 'skippedIds'],
+    'Dismiss word candidates response',
+  );
+  return {
+    game: parseGameWordGame(object.game, 'Dismiss word candidates game'),
+    dismissedIds: parseArray(
+      object.dismissedIds,
+      'Dismiss word candidates dismissed',
+      (item, label) => parseNonEmptyString(item, label),
+    ),
+    skippedIds: parseArray(object.skippedIds, 'Dismiss word candidates skipped', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
   };
 }

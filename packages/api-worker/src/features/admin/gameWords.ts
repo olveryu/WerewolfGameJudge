@@ -7,10 +7,14 @@
  */
 
 import {
+  type ApproveWordCandidatesResult,
+  type DismissWordCandidatesResult,
   GAME_WORD_GAMES,
   type GameWordGame,
   type GameWordsStats,
   type TriggerSupplyResult,
+  type WordCandidateList,
+  type WordCandidateListStatus,
 } from '@game-judge/game-engine/product/wordSupply';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
@@ -28,6 +32,7 @@ import {
   EDITORIAL_DAILY_REQUEST_LIMIT,
   EDITORIAL_MONTHLY_REQUEST_LIMIT,
   isEditorialBudgetAvailable,
+  readModelBudgetByOperation,
 } from '../../platform/ai/editorialBudget';
 import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
@@ -92,7 +97,7 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
       `SELECT ${bucket} AS category, SUM(status = 'active') AS active, COUNT(*) AS total FROM ${wordsTable} GROUP BY ${bucket}`,
     ),
     db.prepare(
-      `SELECT ${bucket} AS category, COUNT(*) AS count FROM ${candidatesTable} WHERE status ${isFib ? "IN ('pending', 'claimed')" : "= 'pending'"} GROUP BY ${bucket}`,
+      `SELECT ${bucket} AS category, COUNT(*) AS count FROM ${candidatesTable} WHERE status ${isFib ? "IN ('pending', 'approved', 'claimed')" : "IN ('pending', 'approved')"} GROUP BY ${bucket}`,
     ),
     db.prepare(
       `SELECT ${categoryColumn} AS category, COUNT(*) AS count, MAX(${packTime}) AS last FROM ${packsTable} ${packFilter} GROUP BY ${categoryColumn}`,
@@ -133,6 +138,7 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
   const budgetRow = z
     .strictObject({ daily: z.int().nullable(), monthly: z.int().nullable() })
     .parse(budget.results[0]);
+  const byOperation = await readModelBudgetByOperation(db);
   const cutoff = wordCategoryCooldownCutoff(now);
   return {
     categories: labels.map(({ id, name }) => {
@@ -158,6 +164,7 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
       dailyLimit: EDITORIAL_DAILY_REQUEST_LIMIT,
       monthlyUsed: budgetRow.monthly ?? 0,
       monthlyLimit: EDITORIAL_MONTHLY_REQUEST_LIMIT,
+      byOperation,
     },
   };
 }
@@ -377,4 +384,219 @@ export async function triggerGameWordSupply(
     .getWorkflow(env)
     .createBatch([{ id: workflowId, params: { day, force, runId } }]);
   return { game: parsed.game, force, workflowId };
+}
+
+// ── Candidate approval (D2) ──────────────────────────────────────────────────
+
+/** Per-game candidate table/column map. Game names are whitelisted to table
+ * mappings — user input never reaches SQL or env bindings directly. */
+const WORD_CANDIDATE_TABLES = {
+  fibking: {
+    table: 'fib_word_candidates',
+    packsTable: 'fib_word_packs',
+    titleSql: 'word',
+    categorySql: 'COALESCE(topic, category)',
+    evidenceSql: 'json_array_length(evidence_json)',
+    approveSetSql: "status = 'approved', claimed_pack_id = NULL, claimed_at = NULL",
+  },
+  undercover: {
+    table: 'undercover_word_candidates',
+    packsTable: 'undercover_word_packs',
+    titleSql: "word_a || ' / ' || word_b",
+    categorySql: 'category',
+    evidenceSql: 'NULL',
+    approveSetSql: "status = 'approved', claimed_pack_id = NULL",
+  },
+  drawguess: {
+    table: 'drawguess_word_candidates',
+    packsTable: 'drawguess_word_packs',
+    titleSql: 'word',
+    categorySql: 'category',
+    evidenceSql: 'NULL',
+    approveSetSql: "status = 'approved', claimed_pack_id = NULL",
+  },
+} as const;
+
+export const approveWordCandidatesSchema = z.strictObject({
+  game: gameWordGameSchema,
+  candidateIds: z.array(z.string().min(1)).min(1).max(30),
+  reason: z.string().check(z.trim(), z.minLength(1), z.maxLength(1000)),
+});
+export type ApproveWordCandidatesInput = z.output<typeof approveWordCandidatesSchema>;
+
+export interface ListWordCandidatesInput {
+  game: GameWordGame;
+  status?: WordCandidateListStatus;
+  cursor?: string;
+}
+
+const candidateListRowSchema = z.strictObject({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  evidenceCount: z.int().nonnegative().nullable(),
+  createdAt: z.string(),
+  status: z.enum(['pending', 'approved', 'claimed', 'accepted', 'rejected']),
+});
+
+function encodeCandidateCursor(createdAt: string, id: string): string {
+  return `${createdAt}|${id}`;
+}
+
+function decodeCandidateCursor(cursor: string): { createdAt: string; id: string } {
+  const separator = cursor.lastIndexOf('|');
+  if (separator <= 0 || separator === cursor.length - 1)
+    throw new HTTPException(400, { message: 'INVALID_CURSOR' });
+  const createdAt = cursor.slice(0, separator);
+  const id = cursor.slice(separator + 1);
+  if (Number.isNaN(Date.parse(createdAt)) || id.length === 0)
+    throw new HTTPException(400, { message: 'INVALID_CURSOR' });
+  return { createdAt, id };
+}
+
+/** List candidates awaiting (or already granted) approval, newest last, keyset-paged. */
+export async function listWordCandidates(
+  db: D1Database,
+  input: ListWordCandidatesInput,
+): Promise<WordCandidateList> {
+  const adapter = WORD_CANDIDATE_TABLES[input.game];
+  const status = input.status ?? 'pending';
+  const binds: unknown[] = [status];
+  let cursorClause = '';
+  if (input.cursor !== undefined) {
+    const { createdAt, id } = decodeCandidateCursor(input.cursor);
+    cursorClause = ' AND (created_at, id) > (?, ?)';
+    binds.push(createdAt, id);
+  }
+  const rows = await db
+    .prepare(
+      `SELECT id, ${adapter.titleSql} AS title, ${adapter.categorySql} AS category,
+        ${adapter.evidenceSql} AS evidenceCount, created_at AS createdAt, status
+       FROM ${adapter.table} WHERE status = ?${cursorClause}
+       ORDER BY created_at, id LIMIT 31`,
+    )
+    .bind(...binds)
+    .all();
+  const parsed = z.array(candidateListRowSchema).parse(rows.results);
+  const page = parsed.slice(0, 30);
+  const last = page[page.length - 1];
+  return {
+    game: input.game,
+    candidates: page.map((item) => ({ ...item, game: input.game })),
+    nextCursor:
+      parsed.length > 30 && last !== undefined
+        ? encodeCandidateCursor(last.createdAt, last.id)
+        : null,
+  };
+}
+
+function candidateApprovalEligibilitySql(table: string, packsTable: string): string {
+  return `(${table}.status = 'pending'
+    OR (${table}.status = 'claimed' AND (${table}.claimed_pack_id IS NULL OR NOT EXISTS (
+      SELECT 1 FROM ${packsTable} pack
+      WHERE pack.id = ${table}.claimed_pack_id AND pack.status <> 'failed'
+    ))))`;
+}
+
+/** Approve pending (or stuck-claimed) candidates for review; audit each approval.
+ * A claimed candidate is only stuck — and only approvable — when its pack is
+ * failed or gone. Approving one whose pack is still running would clear the
+ * claim mid-flight and break the pack's publish/delete matching. */
+export async function approveWordCandidates(
+  db: D1Database,
+  input: ApproveWordCandidatesInput,
+): Promise<ApproveWordCandidatesResult> {
+  const adapter = WORD_CANDIDATE_TABLES[input.game];
+  const candidateIds = [...new Set(input.candidateIds)];
+  const placeholders = candidateIds.map(() => '?').join(', ');
+  const eligibilitySql = candidateApprovalEligibilitySql(adapter.table, adapter.packsTable);
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const auditStatements = candidateIds.map((id) =>
+    db
+      .prepare(
+        `INSERT INTO word_candidate_approvals
+          (id, request_id, game, candidate_id, reason, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM ${adapter.table}
+           WHERE ${adapter.table}.id = ? AND ${eligibilitySql}
+         )`,
+      )
+      .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now, id),
+  );
+  const results = await db.batch([
+    ...auditStatements,
+    db
+      .prepare(
+        `UPDATE ${adapter.table} SET ${adapter.approveSetSql}
+         WHERE id IN (${placeholders}) AND ${eligibilitySql}
+         RETURNING id`,
+      )
+      .bind(...candidateIds),
+  ]);
+  const updateResult = results[results.length - 1];
+  if (updateResult === undefined) throw new Error('Candidate approval result missing');
+  const approvedIds = z
+    .array(z.strictObject({ id: z.string() }))
+    .parse(updateResult.results)
+    .map((row) => row.id);
+  const approvedSet = new Set(approvedIds);
+  const skippedIds = [...new Set(input.candidateIds.filter((id) => !approvedSet.has(id)))];
+  return { game: input.game, approvedIds, skippedIds };
+}
+
+export const dismissWordCandidatesSchema = z.strictObject({
+  game: gameWordGameSchema,
+  candidateIds: z.array(z.string().min(1)).min(1).max(30),
+  reason: z.string().check(z.trim(), z.minLength(1), z.maxLength(1000)),
+});
+export type DismissWordCandidatesInput = z.output<typeof dismissWordCandidatesSchema>;
+
+/** Dismiss pending candidates: delete the queue row and audit the reason.
+ * Only 'pending' rows are eligible — a claimed candidate belongs to a
+ * running pack, and an approved one is already headed for the next run.
+ * Deletion (not a status flip) fits all three games: fib candidates hold
+ * no terminal review state and are deleted at publish too, and no table
+ * references a candidate row. */
+export async function dismissWordCandidates(
+  db: D1Database,
+  input: DismissWordCandidatesInput,
+): Promise<DismissWordCandidatesResult> {
+  const adapter = WORD_CANDIDATE_TABLES[input.game];
+  const candidateIds = [...new Set(input.candidateIds)];
+  const placeholders = candidateIds.map(() => '?').join(', ');
+  const eligibilitySql = "status = 'pending'";
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const auditStatements = candidateIds.map((id) =>
+    db
+      .prepare(
+        `INSERT INTO word_candidate_dismissals
+          (id, request_id, game, candidate_id, reason, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM ${adapter.table} WHERE id = ? AND ${eligibilitySql}
+         )`,
+      )
+      .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now, id),
+  );
+  const results = await db.batch([
+    ...auditStatements,
+    db
+      .prepare(
+        `DELETE FROM ${adapter.table} WHERE id IN (${placeholders}) AND ${eligibilitySql}
+         RETURNING id`,
+      )
+      .bind(...candidateIds),
+  ]);
+  const deleteResult = results[results.length - 1];
+  if (deleteResult === undefined) throw new Error('Candidate dismissal result missing');
+  const dismissedIds = z
+    .array(z.strictObject({ id: z.string() }))
+    .parse(deleteResult.results)
+    .map((row) => row.id);
+  const dismissedSet = new Set(dismissedIds);
+  const skippedIds = [...new Set(input.candidateIds.filter((id) => !dismissedSet.has(id)))];
+  return { game: input.game, dismissedIds, skippedIds };
 }

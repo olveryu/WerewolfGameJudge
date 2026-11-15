@@ -32,8 +32,13 @@ import { adminWordSubmissionRoutes } from '../wordSubmissions/routes';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
+  approveWordCandidates,
+  approveWordCandidatesSchema,
+  dismissWordCandidates,
+  dismissWordCandidatesSchema,
   gameWordGameSchema,
   getGameWordsStats,
+  listWordCandidates,
   triggerGameWordSupply,
   triggerSupplySchema,
 } from './gameWords';
@@ -497,3 +502,41 @@ adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), a
   const { game, force } = c.req.valid('json');
   return c.json(await triggerGameWordSupply(c.env, { game, force }), 202);
 });
+
+adminRoutes.get('/games/words/candidates', async (c) => {
+  const game = gameWordGameSchema.safeParse(c.req.query('game'));
+  if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
+  const status = c.req.query('status');
+  if (
+    status !== undefined &&
+    status !== 'pending' &&
+    status !== 'approved' &&
+    status !== 'claimed' &&
+    status !== 'accepted' &&
+    status !== 'rejected'
+  )
+    throw new HTTPException(400, { message: 'INVALID_STATUS' });
+  return c.json(
+    await listWordCandidates(c.env.DB, {
+      game: game.data,
+      status,
+      cursor: c.req.query('cursor'),
+    }),
+  );
+});
+
+adminRoutes.post(
+  '/games/words/candidates/approve',
+  jsonBody(approveWordCandidatesSchema),
+  async (c) => {
+    return c.json(await approveWordCandidates(c.env.DB, c.req.valid('json')));
+  },
+);
+
+adminRoutes.post(
+  '/games/words/candidates/dismiss',
+  jsonBody(dismissWordCandidatesSchema),
+  async (c) => {
+    return c.json(await dismissWordCandidates(c.env.DB, c.req.valid('json')));
+  },
+);

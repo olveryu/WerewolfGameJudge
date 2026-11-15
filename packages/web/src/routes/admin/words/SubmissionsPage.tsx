@@ -271,8 +271,16 @@ function SubmissionSummary({ data }: { data: WordSubmissionSettings }) {
           <dl className="admin-details">
             <dt>模型 · 近 24 小时</dt>
             <dd>{data.modelBudget.dailyUsed} 次</dd>
+            <dt>其中生成 · 近 24 小时</dt>
+            <dd>{data.modelBudget.byOperation.generation.dailyUsed} 次</dd>
+            <dt>其中审核 · 近 24 小时</dt>
+            <dd>{data.modelBudget.byOperation.review.dailyUsed} 次</dd>
             <dt>模型 · 近 30 天</dt>
             <dd>{data.modelBudget.monthlyUsed} 次</dd>
+            <dt>其中生成 · 近 30 天</dt>
+            <dd>{data.modelBudget.byOperation.generation.monthlyUsed} 次</dd>
+            <dt>其中审核 · 近 30 天</dt>
+            <dd>{data.modelBudget.byOperation.review.monthlyUsed} 次</dd>
           </dl>
           <p className="admin-muted">
             包含自动补词调用。外部审核不受应用额度限制；发布已通过项不再调用模型。

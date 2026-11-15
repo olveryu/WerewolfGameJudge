@@ -431,6 +431,8 @@ describe('Fib word publication', () => {
     }));
     await storeFibWordCandidates(env.DB, firstPack, candidates);
     await storeFibWordCandidates(env.DB, firstPack, candidates);
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare("UPDATE fib_word_candidates SET status = 'approved'").run();
     const firstClaim = await getFibWordReviewCandidates(env.DB, firstPack);
     expect(firstClaim).toEqual(candidates.slice(0, 1));
     expect(await getFibWordReviewCandidates(env.DB, firstPack)).toEqual(firstClaim);
@@ -500,6 +502,8 @@ describe('Fib word publication', () => {
       },
     }));
     await storeFibWordCandidates(env.DB, pack, candidates);
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare("UPDATE fib_word_candidates SET status = 'approved'").run();
     expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual(candidates.slice(0, 1));
     // Replay a second claim persisted before the model batch limit was reduced to one.
     await env.DB.prepare(
@@ -521,7 +525,8 @@ describe('Fib word publication', () => {
     ).toEqual({ topic: 'plants' });
     expect(
       (await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all()).results,
-    ).toEqual([{ word: '测试乙', status: 'pending' }]);
+      // D2 gate: the unreviewed leftover returns to the approved pool, not pending.
+    ).toEqual([{ word: '测试乙', status: 'approved' }]);
   });
 
   it('preserves completed inventory verification after a later review failure', async () => {
@@ -534,6 +539,11 @@ describe('Fib word publication', () => {
     const firstPack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
     const secondPack = await reserveFibWordPack(env.DB, '2026-09-01', 1);
     if (firstPack === null || secondPack === null) throw new Error('Expected verification packs');
+    // D2 gate: the inventory re-seed lands as pending; approve it before the claim.
+    expect(await getFibWordReviewCandidates(env.DB, firstPack)).toEqual([]);
+    await env.DB.prepare(
+      "UPDATE fib_word_candidates SET status = 'approved' WHERE word = '测试甲'",
+    ).run();
     const [candidate] = await getFibWordReviewCandidates(env.DB, firstPack);
     if (candidate === undefined) throw new Error('Expected inventory candidate');
     expect(candidate.evidence).toEqual([]);
@@ -575,6 +585,10 @@ describe('Fib word publication', () => {
       ],
     }));
     await storeFibWordCandidates(env.DB, claimedPack, candidates.slice(0, 1));
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare(
+      "UPDATE fib_word_candidates SET status = 'approved' WHERE word = '测试甲'",
+    ).run();
     await getFibWordReviewCandidates(env.DB, claimedPack);
     await storeFibWordCandidates(env.DB, pendingPack, candidates.slice(1));
     await env.DB.prepare(
