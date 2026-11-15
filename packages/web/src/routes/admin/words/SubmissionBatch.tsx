@@ -25,7 +25,7 @@ import {
   SubmissionStatus,
   WORD_GAME_LABELS,
   WordChoiceFilter,
-} from './WordSections';
+} from './wordLabels';
 
 /** Review jobs run durably in the background; the shared refresh button updates their snapshots. */
 export function SubmissionBatchPage({

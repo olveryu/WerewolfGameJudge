@@ -7,7 +7,6 @@ import { isGameWordGame } from '@game-judge/game-engine/product/wordSupply';
 import type {
   AdminAIUsage,
   AdminAnalytics,
-  AdminAutomaticSupplySettings,
   AdminD1Insights,
   AdminD1Usage,
   AdminRequestTraffic,
@@ -23,7 +22,8 @@ import type {
   GameWordGame,
   GameWordsStats,
   TriggerSupplyResult,
-  WordCandidateList,
+  WordLibraryItem,
+  WordLibraryItems,
 } from '@/features/admin/model/adminContracts';
 
 type JsonObject = Record<string, unknown>;
@@ -256,18 +256,6 @@ export function parseAdminCountriesResponse(value: unknown): { countries: string
       if (!/^[A-Z]{2}$/.test(country)) throw new Error(`${label} must be a country code`);
       return country;
     }),
-  };
-}
-
-/** Decode the selected game's persisted automatic scheduling policy. */
-export function parseAdminAutomaticSupplySettings(value: unknown): AdminAutomaticSupplySettings {
-  const object = requireObject(value, 'Automatic supply settings');
-  assertExactKeys(object, ['game', 'enabled', 'available'], 'Automatic supply settings');
-  if (!isGameWordGame(object.game)) throw new Error('Unsupported automatic supply game');
-  return {
-    game: object.game,
-    enabled: parseBoolean(object.enabled, 'Automatic supply enabled'),
-    available: parseBoolean(object.available, 'Word supply deployment availability'),
   };
 }
 
@@ -770,43 +758,131 @@ export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
   };
 }
 
-export function parseWordCandidatesResponse(value: unknown): WordCandidateList {
-  const object = requireObject(value, 'Word candidates response');
-  assertExactKeys(object, ['game', 'candidates', 'nextCursor'], 'Word candidates response');
+export function parseLibraryItemsResponse(value: unknown): WordLibraryItems {
+  const object = requireObject(value, 'Library items response');
+  assertExactKeys(object, ['game', 'items', 'totals', 'nextCursor'], 'Library items response');
   return {
-    game: parseGameWordGame(object.game, 'Word candidates game'),
-    candidates: parseArray(object.candidates, 'Word candidates', (item, label) => {
-      const row = requireObject(item, label);
-      assertExactKeys(
-        row,
-        ['id', 'game', 'title', 'category', 'evidenceCount', 'createdAt', 'status'],
-        label,
-      );
-      if (
-        row.status !== 'pending' &&
-        row.status !== 'approved' &&
-        row.status !== 'claimed' &&
-        row.status !== 'accepted' &&
-        row.status !== 'rejected'
-      )
-        throw new Error(`${label} has unsupported status`);
-      return {
-        id: parseNonEmptyString(row.id, `${label} id`),
-        game: parseGameWordGame(row.game, `${label} game`),
-        title: parseNonEmptyString(row.title, `${label} title`),
-        category: parseNonEmptyString(row.category, `${label} category`),
-        evidenceCount:
-          row.evidenceCount === null
-            ? null
-            : parseNonnegativeInteger(row.evidenceCount, `${label} evidenceCount`),
-        createdAt: parseNonEmptyString(row.createdAt, `${label} createdAt`),
-        status: row.status,
-      };
-    }),
+    game: parseGameWordGame(object.game, 'Library items game'),
+    items: parseArray(object.items, 'Library items', (item, label) =>
+      parseLibraryItem(item, label),
+    ),
+    totals: parseLibraryTotals(object.totals),
     nextCursor:
       object.nextCursor === null
         ? null
-        : parseNonEmptyString(object.nextCursor, 'Word candidates nextCursor'),
+        : parseNonEmptyString(object.nextCursor, 'Library items nextCursor'),
+  };
+}
+
+function parseLibraryItem(value: unknown, label: string): WordLibraryItem {
+  const row = requireObject(value, label);
+  assertExactKeys(
+    row,
+    [
+      'key',
+      'source',
+      'id',
+      'batchId',
+      'agentName',
+      'game',
+      'title',
+      'category',
+      'definition',
+      'evidenceCount',
+      'createdAt',
+      'status',
+      'duplicateOf',
+      'contentHash',
+      'revision',
+    ],
+    label,
+  );
+  if (row.source !== 'candidate' && row.source !== 'submission')
+    throw new Error(`${label} has unsupported source`);
+  if (
+    row.status !== 'pending' &&
+    row.status !== 'approved' &&
+    row.status !== 'claimed' &&
+    row.status !== 'accepted' &&
+    row.status !== 'rejected' &&
+    row.status !== 'reviewing' &&
+    row.status !== 'passed' &&
+    row.status !== 'failed' &&
+    row.status !== 'published' &&
+    row.status !== 'dismissed' &&
+    row.status !== 'unpublished' &&
+    row.status !== 'duplicate'
+  )
+    throw new Error(`${label} has unsupported status`);
+  return {
+    key: parseNonEmptyString(row.key, `${label} key`),
+    source: row.source,
+    id: parseNonEmptyString(row.id, `${label} id`),
+    batchId: row.batchId === null ? null : parseNonEmptyString(row.batchId, `${label} batchId`),
+    agentName:
+      row.agentName === null ? null : parseNonEmptyString(row.agentName, `${label} agentName`),
+    game: parseGameWordGame(row.game, `${label} game`),
+    title: parseNonEmptyString(row.title, `${label} title`),
+    category: parseNonEmptyString(row.category, `${label} category`),
+    definition: row.definition === null ? null : parseString(row.definition, `${label} definition`),
+    evidenceCount:
+      row.evidenceCount === null
+        ? null
+        : parseNonnegativeInteger(row.evidenceCount, `${label} evidenceCount`),
+    createdAt: parseNonEmptyString(row.createdAt, `${label} createdAt`),
+    status: row.status,
+    duplicateOf:
+      row.duplicateOf === null ? null : parseString(row.duplicateOf, `${label} duplicateOf`),
+    contentHash:
+      row.contentHash === null ? null : parseString(row.contentHash, `${label} contentHash`),
+    revision:
+      row.revision === null ? null : parseNonnegativeInteger(row.revision, `${label} revision`),
+  };
+}
+
+function parseLibraryTotals(value: unknown): WordLibraryItems['totals'] {
+  const object = requireObject(value, 'Library items totals');
+  assertExactKeys(object, ['candidates', 'submissions'], 'Library items totals');
+  const parseCandidateTotals = (totals: unknown, label: string) => {
+    const entries = requireObject(totals, label);
+    const parsed: Record<string, number> = {};
+    for (const [status, count] of Object.entries(entries)) {
+      if (
+        status !== 'pending' &&
+        status !== 'approved' &&
+        status !== 'claimed' &&
+        status !== 'accepted' &&
+        status !== 'rejected'
+      )
+        throw new Error(`${label} has unsupported status`);
+      parsed[status] = parseNonnegativeInteger(count, `${label} ${status}`);
+    }
+    return parsed;
+  };
+  const parseSubmissionTotals = (totals: unknown, label: string) => {
+    const entries = requireObject(totals, label);
+    const parsed: Record<string, number> = {};
+    for (const [status, count] of Object.entries(entries)) {
+      if (
+        status !== 'pending' &&
+        status !== 'approved' &&
+        status !== 'reviewing' &&
+        status !== 'passed' &&
+        status !== 'rejected' &&
+        status !== 'failed' &&
+        status !== 'published' &&
+        status !== 'dismissed' &&
+        status !== 'unpublished' &&
+        status !== 'duplicate'
+      )
+        throw new Error(`${label} has unsupported status`);
+      parsed[status] = parseNonnegativeInteger(count, `${label} ${status}`);
+    }
+    return parsed;
+  };
+  return {
+    candidates: parseCandidateTotals(object.candidates, 'Library candidate totals'),
+    submissions: parseSubmissionTotals(object.submissions, 'Library submission totals'),
   };
 }
 

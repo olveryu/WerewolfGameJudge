@@ -11,6 +11,7 @@ import {
   parseAdminStatsResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
+  parseLibraryItemsResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 
@@ -386,5 +387,78 @@ describe('adminResponseCodec', () => {
     expect(() =>
       parseTriggerSupplyResult({ game: 'werewolf', force: false, workflowId: 'run' }),
     ).toThrow('unsupported game');
+  });
+
+  it('decodes library items with candidate and submission rows', () => {
+    const decoded = parseLibraryItemsResponse({
+      game: 'fibking',
+      items: [
+        {
+          key: 'candidate:fib-1',
+          source: 'candidate',
+          id: 'fib-1',
+          batchId: null,
+          agentName: null,
+          game: 'fibking',
+          title: '甲',
+          category: '法律制度',
+          definition: '甲含义。',
+          evidenceCount: 2,
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'pending',
+          duplicateOf: null,
+          contentHash: null,
+          revision: null,
+        },
+        {
+          key: 'submission:item-1',
+          source: 'submission',
+          id: 'item-1',
+          batchId: 'batch-1',
+          agentName: 'Muse',
+          game: 'fibking',
+          title: '乙',
+          category: '法律制度',
+          definition: '已核实的释义。',
+          evidenceCount: 1,
+          createdAt: '2026-01-02T00:00:00Z',
+          status: 'published',
+          duplicateOf: 'inventory:已发布词',
+          contentHash: 'abc',
+          revision: 1,
+        },
+      ],
+      totals: {
+        candidates: { pending: 1 },
+        submissions: { published: 1, failed: 2 },
+      },
+      nextCursor: '2026-01-02T00:00:00Z|item-1',
+    });
+    expect(decoded.game).toBe('fibking');
+    expect(decoded.items).toHaveLength(2);
+    expect(decoded.items[0]?.source).toBe('candidate');
+    expect(decoded.items[1]?.agentName).toBe('Muse');
+    expect(decoded.items[1]?.duplicateOf).toBe('inventory:已发布词');
+    expect(decoded.totals.submissions.failed).toBe(2);
+    expect(decoded.nextCursor).toBe('2026-01-02T00:00:00Z|item-1');
+    const base = {
+      game: 'fibking',
+      items: [],
+      totals: { candidates: {}, submissions: {} },
+      nextCursor: null,
+    };
+    expect(() =>
+      parseLibraryItemsResponse({
+        ...base,
+        items: [{ ...decoded.items[0], status: 'nope' }],
+      }),
+    ).toThrow('unsupported status');
+    expect(() =>
+      parseLibraryItemsResponse({
+        ...base,
+        totals: { candidates: { nope: 1 }, submissions: {} },
+      }),
+    ).toThrow('unsupported status');
+    expect(() => parseLibraryItemsResponse({ ...base, extra: true })).toThrow('unsupported fields');
   });
 });
