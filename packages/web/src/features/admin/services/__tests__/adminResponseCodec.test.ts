@@ -283,7 +283,16 @@ describe('adminResponseCodec', () => {
           menuEligible: null,
         },
       ],
-      modelBudget: { dailyUsed: 1, dailyLimit: 8, monthlyUsed: 2, monthlyLimit: 120 },
+      modelBudget: {
+        dailyUsed: 1,
+        dailyLimit: 8,
+        monthlyUsed: 2,
+        monthlyLimit: 120,
+        byOperation: {
+          generation: { dailyUsed: 1, monthlyUsed: 2 },
+          review: { dailyUsed: 0, monthlyUsed: 0 },
+        },
+      },
       monthlySupply: {
         month: '2026-09',
         reserved: 10,
@@ -312,7 +321,16 @@ describe('adminResponseCodec', () => {
       parseGameWordsStatsResponse({
         game: 'fibking',
         categories: [],
-        modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+        modelBudget: {
+          dailyUsed: 0,
+          dailyLimit: 8,
+          monthlyUsed: 0,
+          monthlyLimit: 120,
+          byOperation: {
+            generation: { dailyUsed: 0, monthlyUsed: 0 },
+            review: { dailyUsed: 0, monthlyUsed: 0 },
+          },
+        },
         monthlySupply: null,
         tavilyRequestsUsed: null,
         tavilyMonthlyQuota: null,
@@ -341,7 +359,16 @@ describe('adminResponseCodec', () => {
           menuEligible: null,
         },
       ],
-      modelBudget: { dailyUsed: 0, dailyLimit: 8, monthlyUsed: 0, monthlyLimit: 120 },
+      modelBudget: {
+        dailyUsed: 0,
+        dailyLimit: 8,
+        monthlyUsed: 0,
+        monthlyLimit: 120,
+        byOperation: {
+          generation: { dailyUsed: 0, monthlyUsed: 0 },
+          review: { dailyUsed: 0, monthlyUsed: 0 },
+        },
+      },
       monthlySupply: null,
       tavilyRequestsUsed: null,
       tavilyMonthlyQuota: null,
