@@ -9,7 +9,6 @@ import {
   wordSubmissionAuditSchema,
   wordSubmissionBatchSchema,
   wordSubmissionIssuedCredentialSchema,
-  wordSubmissionListSchema,
   wordSubmissionSettingsSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import * as z from 'zod/mini';
@@ -86,8 +85,6 @@ export const wordSubmissionsApi = {
       undefined,
       { status },
     ),
-  batches: (filter: Record<string, string>, signal: AbortSignal) =>
-    adminFetch(`${ROOT}/batches`, (value) => wordSubmissionListSchema.parse(value), filter, signal),
   batch: (id: string, signal: AbortSignal) =>
     adminFetch(
       `${ROOT}/batches/${id}`,

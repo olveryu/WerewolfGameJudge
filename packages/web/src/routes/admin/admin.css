@@ -156,10 +156,6 @@
   filter: brightness(0.92);
   border-color: var(--admin-danger);
 }
-.admin-required {
-  color: var(--admin-danger);
-  font-weight: var(--weight-semibold);
-}
 .admin-danger-text {
   color: var(--admin-danger);
 }

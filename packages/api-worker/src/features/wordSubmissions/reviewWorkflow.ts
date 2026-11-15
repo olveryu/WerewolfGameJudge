@@ -16,7 +16,7 @@ import {
   type WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
 import { failSubmissionReview, failSubmissionReviewItem } from './operations';
-import { parseSubmissionObject, refreshSubmissionSearch } from './repository';
+import { parseSubmissionObject } from './repository';
 
 export interface WordSubmissionReviewParams {
   readonly actionId: string;
@@ -111,7 +111,6 @@ async function storeReviewResults(
         ),
     );
   }
-  statements.push(refreshSubmissionSearch(db, batchId));
   await db.batch(statements);
 }
 

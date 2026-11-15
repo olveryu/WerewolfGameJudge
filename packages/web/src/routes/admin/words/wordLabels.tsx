@@ -108,12 +108,12 @@ export function isSelectableSubmission(item: WordSubmissionItem) {
 }
 
 /** Human decisions do not depend on a successful provider call or model verdict. */
-export function isApprovableSubmission(item: WordSubmissionItem) {
+export function isApprovableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }
 
 /** Endorsement only sends an item to model review; it never approves publication. */
-export function isEndorsableSubmission(item: WordSubmissionItem) {
+export function isEndorsableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }
 

@@ -14,13 +14,15 @@ import { log } from '@/utils/logger';
 import { CursorPager, DateLabel, StatusBadge } from '../components/Primitives';
 import { SubmissionActionDialog, type SubmissionConfirmation } from './SubmissionActionDialog';
 import { SubmissionItemDrawer } from './SubmissionItemDrawer';
-import { SubmissionStatus, SUPPLY_AGENT_NAME, WORD_GAME_LABELS } from './wordLabels';
+import {
+  isApprovableSubmission,
+  isEndorsableSubmission,
+  SubmissionStatus,
+  SUPPLY_AGENT_NAME,
+  WORD_GAME_LABELS,
+} from './wordLabels';
 
 const libraryLog = log.extend('AdminWordLibrary');
-
-function isEndorsableSubmission(item: WordLibraryItem): boolean {
-  return item.status === 'pending';
-}
 
 function isUnendorsableSubmission(item: WordLibraryItem): boolean {
   return item.status === 'approved';
@@ -37,12 +39,6 @@ function isReviewableSubmission(item: WordLibraryItem): boolean {
 
 function isPublishableSubmission(item: WordLibraryItem): boolean {
   return item.status === 'passed';
-}
-
-/** Mirrors isApprovableSubmission in wordLabels (pending/failed/rejected);
- * local because WordLibraryItem is a stream summary, not a WordSubmissionItem. */
-function isApprovableSubmission(item: WordLibraryItem): boolean {
-  return item.status === 'pending' || item.status === 'failed' || item.status === 'rejected';
 }
 
 /** A row takes part in bulk actions only when at least one bulk verb applies to it. */

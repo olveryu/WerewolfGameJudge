@@ -46,12 +46,13 @@ export function SubmissionActionDialog({
   const formId = useId();
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState<WordSubmissionAction | null>(null);
-  const [validation, setValidation] = useState('');
   const command = useSubmissionCommand(async (input: WordSubmissionAction) => {
     await wordSubmissionsApi.action(batchId, input);
     onComplete();
   });
-  const needsReason = ['dismiss', 'unpublish'].includes(confirmation.action);
+  // Dismiss and unpublish are destructive, so they keep the danger button;
+  // the reason is optional for every action.
+  const isDangerousAction = ['dismiss', 'unpublish'].includes(confirmation.action);
   const title = SUBMISSION_ACTION_LABELS[confirmation.action];
   return (
     <DetailDrawer
@@ -67,7 +68,7 @@ export function SubmissionActionDialog({
           <button
             type="submit"
             form={formId}
-            className={needsReason ? 'admin-danger-solid' : 'admin-primary'}
+            className={isDangerousAction ? 'admin-danger-solid' : 'admin-primary'}
             disabled={command.isPending}
           >
             {command.isPending
@@ -84,10 +85,6 @@ export function SubmissionActionDialog({
         className="admin-submission-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (needsReason && reason.trim().length === 0) {
-            setValidation('请填写具体原因。');
-            return;
-          }
           const input = request ?? {
             id: crypto.randomUUID(),
             action: confirmation.action,
@@ -98,7 +95,6 @@ export function SubmissionActionDialog({
               revision: item.revision,
             })),
           };
-          setValidation('');
           setRequest(input);
           command.mutate(input);
         }}
@@ -128,14 +124,10 @@ export function SubmissionActionDialog({
             <li key={item.id}>{item.title}</li>
           ))}
         </ul>
-        {needsReason && (
+        {isDangerousAction && (
           <label>
             操作原因{' '}
-            <span className="admin-required" aria-hidden="true">
-              *必填
-            </span>
             <textarea
-              required
               maxLength={1000}
               rows={3}
               value={reason}
@@ -143,11 +135,6 @@ export function SubmissionActionDialog({
               onChange={(event) => setReason(event.target.value)}
             />
           </label>
-        )}
-        {validation && (
-          <p role="alert" className="admin-error-box">
-            {validation}
-          </p>
         )}
         {command.error !== null && (
           <p role="alert" className="admin-error-box">

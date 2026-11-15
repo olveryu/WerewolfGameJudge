@@ -195,13 +195,9 @@ describe('unified library', () => {
     await screen.findByText('大熊猫');
     // 在库 12 + 3；通过率 4 / (4 + 6)；待批准 投稿 2。
     expect(screen.getByRole('button', { name: '在库词数：15，查看完整数值' })).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: '后台候选审核通过率：40%，查看完整数值' }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: '投稿审核通过率：40%，查看完整数值' })).toBeVisible();
     expect(screen.getByRole('button', { name: '待你批准：2，查看完整数值' })).toBeVisible();
-    expect(
-      screen.getByText('近 30 天后台候选的模型审核通过占比，不包括 Agent 投稿。'),
-    ).toBeVisible();
+    expect(screen.getByText('模型审核有结论的投稿中通过的占比，人工通过不计入。')).toBeVisible();
   });
 
   it('shows the source row from the submission totals', async () => {
@@ -449,6 +445,31 @@ describe('unified library', () => {
     expect(screen.queryByText('已选 1 / 当前可选 3')).not.toBeInTheDocument();
   });
 
+  it('clears the card selection when the page changes', async () => {
+    const page2: WordLibraryItem = {
+      ...submissionItem,
+      id: 'item-2',
+      title: '长颈鹿',
+    };
+    vi.mocked(fetchLibraryItems).mockImplementation(async (_game, params) => {
+      if (params?.cursor === 'C1') return { ...libraryData, items: [page2], nextCursor: null };
+      return { ...libraryData, items: [supplyItem], nextCursor: 'C1' };
+    });
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
+    expect(screen.getByText('已选 1 / 当前可选 1')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    await screen.findByText('长颈鹿');
+    expect(screen.getByText('第 2 页')).toBeVisible();
+    // Paging remounts the card stream, so the selection is cleared with it.
+    expect(screen.getByText('已选 0 / 当前可选 1')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '上一页' }));
+    await screen.findByText('大熊猫');
+    expect(screen.getByText('第 1 页')).toBeVisible();
+    expect(screen.getByText('已选 0 / 当前可选 1')).toBeVisible();
+  });
+
   it('never renders the removed 自带 source label anywhere on the page', async () => {
     mount();
     await screen.findByText('大熊猫');
@@ -602,6 +623,25 @@ describe('unified library', () => {
     expect(screen.queryByRole('button', { name: /确认发布/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /批量审核/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /批量发布/ })).not.toBeInTheDocument();
+  });
+
+  it('dismisses items from the bulk bar without a reason', async () => {
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('checkbox', { name: '选择玫瑰花' }));
+    await user.click(screen.getByRole('checkbox', { name: '选择月季' }));
+    await user.click(screen.getByRole('button', { name: '批量拒绝 2' }));
+    const dialog = await screen.findByRole('dialog', { name: '拒绝候选' });
+    // The reason box stays, but it is optional: submitting with it empty works.
+    expect(within(dialog).getByRole('textbox', { name: '操作原因' })).not.toBeRequired();
+    await user.click(within(dialog).getByRole('button', { name: '拒绝候选 (2)' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+        'batch-1',
+        expect.objectContaining({ action: 'dismiss', reason: '' }),
+      ),
+    );
+    expect(await screen.findByText('已拒绝 2 条。')).toBeVisible();
   });
 
   it('uses separate action payloads and request IDs for different submission batches', async () => {

@@ -165,6 +165,24 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
   };
 }
 
+/** Submission review pass rate, from the model verdicts on submission items:
+ * review_json holds the latest independent-review outcome; items passed by
+ * human override (approve) carry no review_json and are not model verdicts,
+ * and items that never reached a verdict (failed review) are not counted. */
+async function getSubmissionReviewDecisions(db: D1Database, game: GameWordGame) {
+  const rows = await db
+    .prepare(
+      `SELECT CASE WHEN json_extract(review_json, '$.passed') = 1 THEN 'accepted' ELSE 'rejected' END AS decision,
+              COUNT(*) AS count
+       FROM word_submission_items
+       WHERE game = ? AND review_json IS NOT NULL
+       GROUP BY decision ORDER BY decision`,
+    )
+    .bind(game)
+    .all<{ decision: string; count: number }>();
+  return (rows.results ?? []).map((row) => ({ decision: row.decision, count: Number(row.count) }));
+}
+
 async function getFibWordStats(env: Env): Promise<DashboardBase> {
   const db = env.DB;
   // Candidate review history is gone with the candidate tables (0085); the
@@ -232,7 +250,7 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
   });
   return {
     game: 'fibking',
-    reviewDecisions: [],
+    reviewDecisions: await getSubmissionReviewDecisions(db, 'fibking'),
     reviewCheckStats,
     tavilyRequestsUsed: Number(tavilyRow?.used ?? 0),
     tavilyMonthlyQuota: FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS,
@@ -246,7 +264,7 @@ async function getUndercoverWordStats(env: Env): Promise<DashboardBase> {
     game: 'undercover',
     tavilyRequestsUsed: null,
     tavilyMonthlyQuota: null,
-    reviewDecisions: [],
+    reviewDecisions: await getSubmissionReviewDecisions(env.DB, 'undercover'),
     reviewCheckStats: [],
     queryLeaderboard: [],
     supplyEnabled: isWordSupplyAvailable(env, 'undercover'),
@@ -258,7 +276,7 @@ async function getDrawGuessWordStats(env: Env): Promise<DashboardBase> {
     game: 'drawguess',
     tavilyRequestsUsed: null,
     tavilyMonthlyQuota: null,
-    reviewDecisions: [],
+    reviewDecisions: await getSubmissionReviewDecisions(env.DB, 'drawguess'),
     reviewCheckStats: [],
     queryLeaderboard: [],
     supplyEnabled: isWordSupplyAvailable(env, 'drawguess'),
