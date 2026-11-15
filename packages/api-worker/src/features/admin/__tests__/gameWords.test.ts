@@ -21,6 +21,7 @@ import {
   approveWordCandidates,
   dismissWordCandidates,
   getGameWordsStats,
+  listLibraryItems,
   listWordCandidates,
   triggerGameWordSupply,
 } from '../gameWords';
@@ -555,6 +556,245 @@ describe('GET /admin/games/words/candidates', () => {
     });
     expect(next.candidates).toHaveLength(30);
     expect(measured.counts.rowsRead).toBeLessThan(200);
+  });
+});
+
+describe('GET /admin/words/:game/library-items', () => {
+  async function seedLibrary() {
+    await env.DB.batch([
+      // Delete dependents first: events reference items/actions, control
+      // events and credentials reference agents (the agent insert trigger
+      // writes a control event, so agents cannot be deleted bare).
+      env.DB.prepare('DELETE FROM word_submission_events'),
+      env.DB.prepare('DELETE FROM word_submission_actions'),
+      env.DB.prepare('DELETE FROM word_submission_control_events'),
+      env.DB.prepare('DELETE FROM word_submission_credentials'),
+      env.DB.prepare('DELETE FROM word_submission_items'),
+      env.DB.prepare('DELETE FROM word_submission_batches'),
+      env.DB.prepare('DELETE FROM word_submission_agents'),
+      env.DB.prepare(
+        `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+         VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+         VALUES ('fib-1', '甲词', '甲含义', '用法', 'literary', 'gemini',
+           '[]', 'test-cycle', 'pending', '2026-01-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+           evidence_json, generation_cycle_id, status, created_at)
+         VALUES ('fib-2', '乙词', '乙含义', '用法', 'literary', 'gemini',
+           '[]', 'test-cycle', 'approved', '2026-01-03T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_agents (id, name, description, games_json, status, daily_quota, pending_quota, created_at)
+         VALUES ('agent-1', 'Muse', '', '["fibking"]', 'active', 1000, 1000, '2026-01-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_batches (id, agent_id, game, idempotency_key, request_hash, created_at)
+         VALUES ('batch-1', 'agent-1', 'fibking', 'key-1', 'hash-1', '2026-01-02T00:00:00.000Z')`,
+      ),
+    ]);
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
+           title, category, material_json, verified_material_json, status, duplicate_of, revision)
+         VALUES ('10000000-0000-4000-8000-000000000001', 'batch-1', 'fibking', 'item-1', '秋审',
+           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '秋审', 'literary',
+           '{"word":"秋审","definition":{"coreMeaning":"提交的释义。","usageNote":"用法。"},"category":"literary","topic":"history","references":[]}',
+           '{"word":"秋审","definition":{"coreMeaning":"已核实的释义。","usageNote":"用法。"},"category":"literary","topic":"history","source":"local","evidence":[]}',
+           'pending', NULL, 0)`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
+           title, category, material_json, status, duplicate_of, revision)
+         VALUES ('10000000-0000-4000-8000-000000000002', 'batch-1', 'fibking', 'item-2', '已发布词',
+           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '已发布词', 'literary',
+           '{"word":"已发布词","definition":{"coreMeaning":"已发布释义。","usageNote":"用法。"},"category":"literary","topic":"history","references":[]}',
+           'published', 'inventory:已发布词', 0)`,
+      ),
+    ]);
+  }
+
+  it('merges candidates and submissions oldest first with definitions and totals', async () => {
+    await seedLibrary();
+    const result = await listLibraryItems(env.DB, { game: 'fibking' });
+    expect(result.items.map((item) => item.key)).toEqual([
+      'candidate:fib-1',
+      'submission:10000000-0000-4000-8000-000000000001',
+      'submission:10000000-0000-4000-8000-000000000002',
+      'candidate:fib-2',
+    ]);
+    expect(result.items[0]).toMatchObject({
+      source: 'candidate',
+      title: '甲词',
+      definition: '甲含义',
+      evidenceCount: 0,
+      status: 'pending',
+      batchId: null,
+      agentName: null,
+      duplicateOf: null,
+      contentHash: null,
+      revision: null,
+    });
+    expect(result.items[1]).toMatchObject({
+      source: 'submission',
+      title: '秋审',
+      // Verified material wins over the submitted material.
+      definition: '已核实的释义。',
+      batchId: 'batch-1',
+      agentName: 'Muse',
+      status: 'pending',
+      duplicateOf: null,
+      contentHash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      revision: 0,
+    });
+    expect(result.items[2]).toMatchObject({
+      title: '已发布词',
+      definition: '已发布释义。',
+      status: 'published',
+      duplicateOf: 'inventory:已发布词',
+    });
+    expect(result.totals).toEqual({
+      candidates: { pending: 1, approved: 1 },
+      submissions: { pending: 1, published: 1 },
+    });
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it('filters by a shared status on both sides and by a submission-only status', async () => {
+    await seedLibrary();
+    const pending = await listLibraryItems(env.DB, { game: 'fibking', status: 'pending' });
+    expect(pending.items.map((item) => item.key)).toEqual([
+      'candidate:fib-1',
+      'submission:10000000-0000-4000-8000-000000000001',
+    ]);
+    // Totals ignore the filter, so the bars stay stable while filtering.
+    expect(pending.totals).toEqual({
+      candidates: { pending: 1, approved: 1 },
+      submissions: { pending: 1, published: 1 },
+    });
+    const published = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      status: 'published',
+    });
+    expect(published.items.map((item) => item.key)).toEqual([
+      'submission:10000000-0000-4000-8000-000000000002',
+    ]);
+    const candidatesOnly = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      source: 'candidate',
+    });
+    expect(candidatesOnly.items.map((item) => item.key)).toEqual([
+      'candidate:fib-1',
+      'candidate:fib-2',
+    ]);
+  });
+
+  it('searches titles with LIKE and treats wildcards literally', async () => {
+    await seedLibrary();
+    const found = await listLibraryItems(env.DB, { game: 'fibking', search: '秋审' });
+    expect(found.items.map((item) => item.title)).toEqual(['秋审']);
+    const wildcard = await listLibraryItems(env.DB, { game: 'fibking', search: '%' });
+    expect(wildcard.items).toEqual([]);
+  });
+
+  it('builds the undercover definition line from candidate material', async () => {
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_candidates (id, word_a, word_b, category, material_json, status, created_at)
+       VALUES ('uc-1', '耳机', '音箱', 'dailyLife',
+         '{"wordA":"耳机","wordB":"音箱","category":"dailyLife","commonTraits":["都是电子设备","都能出声"],"differences":["耳机贴耳私享","音箱外放共享"],"potentialIssues":[]}',
+         'pending', '2026-01-01T00:00:00.000Z')`,
+    ).run();
+    const result = await listLibraryItems(env.DB, { game: 'undercover' });
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        key: 'candidate:uc-1',
+        title: '耳机 / 音箱',
+        definition: '共性：都是电子设备、都能出声。差异：耳机贴耳私享、音箱外放共享。',
+      }),
+    ]);
+    await env.DB.prepare(
+      `INSERT INTO drawguess_word_candidates (id, word, category, difficulty, material_json, status, created_at)
+       VALUES ('dg-1', '大熊猫', 'animals', 'easy',
+         '{"word":"大熊猫","category":"animals","difficulty":"easy","potentialIssues":[]}',
+         'pending', '2026-01-01T00:00:00.000Z')`,
+    ).run();
+    const drawguess = await listLibraryItems(env.DB, { game: 'drawguess' });
+    expect(drawguess.items).toEqual([
+      expect.objectContaining({ key: 'candidate:dg-1', definition: null }),
+    ]);
+  });
+
+  it('pages the merged stream with one cursor', async () => {
+    // The file-level beforeEach clears candidate tables but not submission
+    // tables, so earlier tests' submission rows would leak into this count.
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM word_submission_events'),
+      env.DB.prepare('DELETE FROM word_submission_actions'),
+      env.DB.prepare('DELETE FROM word_submission_control_events'),
+      env.DB.prepare('DELETE FROM word_submission_credentials'),
+      env.DB.prepare('DELETE FROM word_submission_items'),
+      env.DB.prepare('DELETE FROM word_submission_batches'),
+      env.DB.prepare('DELETE FROM word_submission_agents'),
+    ]);
+    await env.DB.prepare(
+      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
+       VALUES ('test-cycle', 'running', 'gemini', 'model', '1', '2026-01-01')`,
+    ).run();
+    await env.DB.prepare(
+      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 35)
+       INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
+         evidence_json, generation_cycle_id, status, created_at)
+       SELECT 'bulk-' || i, '词' || i, '含义', '用法', 'literary', 'gemini',
+         '[]', 'test-cycle', 'pending', '2026-01-01T00:00:00.000Z' FROM n`,
+    ).run();
+    const page1 = await listLibraryItems(env.DB, { game: 'fibking' });
+    expect(page1.items).toHaveLength(30);
+    expect(page1.nextCursor).not.toBeNull();
+    const page2 = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      cursor: page1.nextCursor ?? undefined,
+    });
+    expect(page2.items).toHaveLength(5);
+    expect(page2.nextCursor).toBeNull();
+    const keys = [...page1.items, ...page2.items].map((item) => item.key);
+    expect(new Set(keys).size).toBe(35);
+  });
+
+  it('serves the merged stream over HTTP and rejects bad input', async () => {
+    await seedLibrary();
+    const ok = await fetchWordsStats('/admin/words/fibking/library-items', ADMIN_TOKEN);
+    expect(ok.status).toBe(200);
+    const body = await ok.json<{
+      items: Array<{ key: string }>;
+      totals: unknown;
+      nextCursor: string | null;
+    }>();
+    expect(body.items.map((item) => item.key)).toEqual([
+      'candidate:fib-1',
+      'submission:10000000-0000-4000-8000-000000000001',
+      'submission:10000000-0000-4000-8000-000000000002',
+      'candidate:fib-2',
+    ]);
+    expect(body.nextCursor).toBeNull();
+    expect((await fetchWordsStats('/admin/words/fibking/library-items', null)).status).toBe(401);
+    expect((await fetchWordsStats('/admin/words/mahjong/library-items', ADMIN_TOKEN)).status).toBe(
+      400,
+    );
+    expect(
+      (await fetchWordsStats('/admin/words/fibking/library-items?status=nope', ADMIN_TOKEN)).status,
+    ).toBe(400);
+    expect(
+      (await fetchWordsStats('/admin/words/fibking/library-items?source=inventory', ADMIN_TOKEN))
+        .status,
+    ).toBe(400);
+    expect(
+      (await fetchWordsStats('/admin/words/fibking/library-items?cursor=not-a-cursor', ADMIN_TOKEN))
+        .status,
+    ).toBe(400);
   });
 });
 
