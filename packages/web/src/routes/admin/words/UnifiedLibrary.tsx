@@ -1,53 +1,73 @@
-/** One page for inventory and external submissions, with unified search.
- * Merges the two existing reads (game stats + submission batches) on the
- * client; no new aggregation endpoint. Batch rows link out to the
- * submissions workspace, which owns the batch overlay. */
-import { wordSubmissionStatusSchema } from '@game-judge/game-engine/product/wordSupply';
+/**
+ * The unified word library: inventory numbers and the merged FIFO stream of
+ * supply candidates and submission items on one page. Inventory appears as
+ * numbers only; the card stream never holds inventory rows. The batch table
+ * sits below the stream, and a batch's detail opens as a workspace overlay
+ * on top of this page.
+ */
+import './wordSubmissions.css';
+
+import {
+  GAME_WORD_GAMES,
+  wordSubmissionStatusSchema,
+} from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 
 import type {
   GameWordGame,
   GameWordsStats,
   WordCandidateListStatus,
+  WordLibraryItems,
+  WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
-import { fetchGameWordsStats } from '@/features/admin/services/adminApi';
+import {
+  fetchGameWordsStats,
+  fetchLibraryItems,
+  triggerGameWordSupply,
+} from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
+import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
+import { handleError } from '@/utils/errorPipeline';
+import { log } from '@/utils/logger';
 
+import { Meter } from '../components/Charts';
 import {
   AsyncBoundary,
   DataTable,
   DateLabel,
   PageHeading,
   Panel,
+  StatTile,
   StatusBadge,
 } from '../components/Primitives';
-import { PendingCandidates } from './PendingCandidates';
-import { SUBMISSION_BATCH_ORIGIN_STATE } from './submissionBatchNavigation';
+import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
+import { LibraryCards, type LibrarySourceFilter } from './LibraryCards';
+import { SubmissionBatchPage } from './SubmissionBatch';
+import {
+  isSubmissionBatchOpenedFromLibrary,
+  SUBMISSION_BATCH_ORIGIN_STATE,
+} from './submissionBatchNavigation';
 import {
   CANDIDATE_STATUS_LABELS,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
   WordChoiceFilter,
-  WordSections,
-} from './WordSections';
+} from './wordLabels';
 
-type LibrarySource = 'all' | 'inventory' | 'submissions';
+const wordLog = log.extend('AdminWords');
 
-const SOURCE_LABELS: Record<Exclude<LibrarySource, 'all'>, string> = {
-  inventory: '库存',
-  submissions: 'Agent投稿',
-};
-
+/** Card-stream source filter values carried in the `source` URL param. */
 const LIBRARY_SOURCES: readonly string[] = ['all', 'inventory', 'submissions'];
 
-function isLibrarySource(value: string): value is LibrarySource {
+function isLibrarySource(value: string): value is LibrarySourceFilter {
   return LIBRARY_SOURCES.includes(value);
 }
 
-/** Candidate statuses share pending/approved/rejected with submission items. */
+/** Candidate statuses, in the order they appear in the status filter. */
 const CANDIDATE_STATUSES: readonly string[] = [
   'pending',
   'approved',
@@ -55,223 +75,49 @@ const CANDIDATE_STATUSES: readonly string[] = [
   'accepted',
   'rejected',
 ];
-const SUBMISSION_STATUSES: readonly string[] = wordSubmissionStatusSchema.options;
 
-function isCandidateStatus(value: string): value is WordCandidateListStatus {
-  return CANDIDATE_STATUSES.includes(value);
+/** Submission statuses, in the order they appear in the status filter. */
+const SUBMISSION_STATUSES: readonly string[] = [...wordSubmissionStatusSchema.options];
+
+function isLibraryStatus(value: string): value is WordCandidateListStatus | WordSubmissionStatus {
+  return CANDIDATE_STATUSES.includes(value) || SUBMISSION_STATUSES.includes(value);
 }
 
-function isSubmissionStatus(value: string): boolean {
-  return SUBMISSION_STATUSES.includes(value);
-}
-
+/** Status filter options: the candidate set followed by the submission set. */
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
-  ...(['pending', 'approved', 'claimed', 'accepted', 'rejected'] as const).map((value) => ({
+  ...CANDIDATE_STATUSES.map((value) => ({
     value,
-    label: CANDIDATE_STATUS_LABELS[value],
+    label: CANDIDATE_STATUS_LABELS[value as WordCandidateListStatus],
   })),
-  ...(['reviewing', 'passed', 'failed', 'published', 'dismissed'] as const).map((value) => ({
+  ...SUBMISSION_STATUSES.map((value) => ({
     value,
-    label: SUBMISSION_STATUS_LABELS[value],
+    label: SUBMISSION_STATUS_LABELS[value as WordSubmissionStatus],
   })),
 ];
 
-export function UnifiedLibrary({ game }: { game: GameWordGame }) {
-  const [parameters, setParameters] = useSearchParams();
-  const navigate = useNavigate();
-  const search = parameters.get('search') ?? '';
-  const rawSource = parameters.get('source') ?? '';
-  // Unknown ?source= values fall back to 'all' instead of leaking into the
-  // segmented control as an unhandled variant.
-  const source = isLibrarySource(rawSource) ? rawSource : 'all';
-  const status = parameters.get('status') ?? '';
-  const candidateStatus = isCandidateStatus(status) ? status : null;
-  const isCandidateOnlyStatus = candidateStatus !== null && !isSubmissionStatus(status);
-  const isSubmissionOnlyStatus = status !== '' && candidateStatus === null;
-  // Both reads stay enabled in every source: the batches totals and the
-  // stats feed the flow bar even when their panel is hidden, so neither
-  // query can be gated on the source filter.
-  const stats = useQuery(
-    adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
-  );
-  const batchFilter: Record<string, string> = { game };
-  if (search !== '') batchFilter.search = search;
-  // The batches route rejects statuses outside the submission enum, so a
-  // candidate-only status hides the batches panel instead of filtering it.
-  if (status !== '' && isSubmissionStatus(status)) batchFilter.status = status;
-  const cursor = parameters.get('cursor');
-  if (cursor !== null) batchFilter.cursor = cursor;
-  const batches = useQuery(
-    adminQueryOptions('word-submissions', { kind: 'batches', ...batchFilter }, (signal) =>
-      wordSubmissionsApi.batches(batchFilter, signal),
-    ),
-  );
-  function change(key: string, value: string) {
-    const next = new URLSearchParams(parameters);
-    if (key !== 'cursor') next.delete('cursor');
-    if (value) next.set(key, value);
-    else next.delete(key);
-    setParameters(next, { replace: true });
-  }
-  return (
-    <>
-      <PageHeading
-        title="统一词库"
-        description="库存与外部投稿放在一页：搜一次，两处都出结果；投稿行带重复提醒。"
-        query={stats}
-        controls={<WordSections game={game} section="library" />}
-      />
-      <div className="admin-content">
-        {stats.isError || batches.isError ? (
-          <p className="admin-muted">流程汇总加载失败，见下方各表。</p>
-        ) : stats.data === undefined || batches.data === undefined ? (
-          <p className="admin-muted">正在汇总流程…</p>
-        ) : (
-          <LibraryFlowBar stats={stats.data} totals={batches.data.totals} />
-        )}
-        <div className="admin-toolbar">
-          <div className="admin-segmented" role="group" aria-label="来源">
-            {(
-              [
-                ['all', '全部来源'],
-                ['inventory', '库存'],
-                ['submissions', 'Agent投稿'],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={source === value}
-                onClick={() => change('source', value === 'all' ? '' : value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <WordChoiceFilter
-            label="状态"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={(value) => change('status', value)}
-          />
-          <form
-            className="admin-submission-search"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const value = new FormData(event.currentTarget).get('search');
-              if (typeof value !== 'string') throw new Error('Search form is missing its input');
-              change('search', value.trim());
-            }}
-          >
-            <input
-              key={search}
-              name="search"
-              defaultValue={search}
-              maxLength={96}
-              aria-label="搜索分类或批次编号"
-              placeholder="分类或批次编号"
-            />
-            <button type="submit">搜索</button>
-          </form>
-          <button
-            type="button"
-            className="admin-text-button"
-            disabled={search === '' && source === 'all' && status === ''}
-            onClick={() => {
-              const next = new URLSearchParams(parameters);
-              next.delete('search');
-              next.delete('source');
-              next.delete('status');
-              next.delete('cursor');
-              setParameters(next, { replace: true });
-            }}
-          >
-            清空筛选
-          </button>
-        </div>
-        <div className="admin-grid">
-          {source !== 'submissions' && (
-            <Panel title="库存分类" className="admin-span-12">
-              <AsyncBoundary query={stats}>
-                {(data) => <InventoryTable data={data} search={search} />}
-              </AsyncBoundary>
-            </Panel>
-          )}
-          {source !== 'submissions' && !isSubmissionOnlyStatus && (
-            <PendingCandidates game={game} status={candidateStatus ?? 'pending'} />
-          )}
-          {source !== 'inventory' && !isCandidateOnlyStatus && (
-            <Panel title="外部投稿批次" className="admin-span-12">
-              <AsyncBoundary query={batches}>
-                {(data) => (
-                  <>
-                    <SubmissionBatchesTable
-                      batches={data.batches}
-                      filter={batchFilter}
-                      onOpen={(batchId) => {
-                        const next = new URLSearchParams({
-                          ...batchFilter,
-                          section: 'submissions',
-                          batch: batchId,
-                        });
-                        void navigate(`?${next}`, { state: SUBMISSION_BATCH_ORIGIN_STATE });
-                      }}
-                    />
-                    {data.batches.length === 0 && (
-                      <p className="admin-submission-empty">没有匹配的投稿，试试其他筛选条件。</p>
-                    )}
-                    <footer className="admin-pagination">
-                      <span className="admin-muted">本页 {data.batches.length} 个批次</span>
-                      <div>
-                        {cursor !== null && (
-                          <button type="button" onClick={() => change('cursor', '')}>
-                            返回第一页
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          disabled={data.nextCursor === null || batches.isFetching}
-                          onClick={() => {
-                            if (data.nextCursor !== null) change('cursor', data.nextCursor);
-                          }}
-                        >
-                          下一页
-                        </button>
-                      </div>
-                    </footer>
-                  </>
-                )}
-              </AsyncBoundary>
-            </Panel>
-          )}
-        </div>
-      </div>
-    </>
-  );
+/** Merged totals are partial records: a status with no rows is absent, not zero. */
+function statusCount(counts: Partial<Record<string, number>>, status: string): number {
+  return counts[status] ?? 0;
 }
 
-/** Five-stage pipeline summary. Stage 2 is the pre-review queue on both sides:
- * the supply queue (stats pending, per category) plus submission items still
- * waiting for endorse (pending + approved). */
 function LibraryFlowBar({
   stats,
   totals,
 }: {
   stats: GameWordsStats;
-  totals: Awaited<ReturnType<typeof wordSubmissionsApi.batches>>['totals'];
+  totals: WordLibraryItems['totals'];
 }) {
-  const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
   const awaiting =
-    stats.categories.reduce((sum, item) => sum + item.pending, 0) +
-    (totals.pending ?? 0) +
-    (totals.approved ?? 0);
+    statusCount(totals.candidates, 'pending') +
+    statusCount(totals.submissions, 'pending') +
+    statusCount(totals.submissions, 'approved');
+  const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
   const stages = [
     { label: '库存', value: inventory, hot: false },
     { label: '待审核', value: awaiting, hot: awaiting > 0 },
-    { label: '审核中', value: totals.reviewing ?? 0, hot: false },
-    { label: '待发布', value: totals.passed ?? 0, hot: false },
-    { label: '本月已发布', value: stats.monthlySupply?.published ?? 0, hot: false },
+    { label: '审核中', value: statusCount(totals.submissions, 'reviewing'), hot: false },
+    { label: '待发布', value: statusCount(totals.submissions, 'passed'), hot: false },
   ];
   return (
     <ol className="admin-flow-bar" aria-label="词库流程">
@@ -291,58 +137,429 @@ function LibraryFlowBar({
   );
 }
 
-function InventoryTable({ data, search }: { data: GameWordsStats; search: string }) {
-  const query = search.trim().toLowerCase();
-  const categories = [...data.categories]
-    .filter(
-      (item) =>
-        query === '' ||
-        item.name.toLowerCase().includes(query) ||
-        item.id.toLowerCase().includes(query),
-    )
-    .sort((a, b) => a.active - b.active || a.id.localeCompare(b.id));
-  if (categories.length === 0) return <p className="admin-muted">没有匹配的分类。</p>;
+function LibrarySummary({
+  stats,
+  totals,
+}: {
+  stats: GameWordsStats;
+  totals: WordLibraryItems['totals'];
+}) {
+  const accepted = stats.reviewDecisions.find((item) => item.decision === 'accepted')?.count ?? 0;
+  const decisions = stats.reviewDecisions.reduce((sum, item) => sum + item.count, 0);
+  const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
   return (
-    <DataTable
-      caption="库存分类"
-      rows={categories}
-      rowKey={(item) => item.id}
-      columns={[
-        { key: 'name', label: '分类', render: (item) => item.name },
-        {
-          key: 'source',
-          label: '来源',
-          render: () => <StatusBadge>{SOURCE_LABELS.inventory}</StatusBadge>,
-        },
-        {
-          key: 'stock',
-          label: '在库 / 总数',
-          numeric: true,
-          render: (item) => `${item.active} / ${item.total}`,
-        },
-        {
-          key: 'pending',
-          label: '待审',
-          numeric: true,
-          secondary: true,
-          render: (item) => item.pending,
-        },
-        {
-          key: 'yield',
-          label: '产出 / 批次',
-          numeric: true,
-          secondary: true,
-          render: (item) => `${item.yieldCount} / ${item.batches}`,
-        },
-        {
-          key: 'last',
-          label: '上次补词',
-          secondary: true,
-          render: (item) => <DateLabel value={item.lastAttempt} />,
-        },
-      ]}
-    />
+    <div className="admin-library-stats">
+      <div className="admin-library-stats-row">
+        <StatTile label="在库词数" value={inventory} hint="已入库，可直接被抽题用。" />
+        <StatTile
+          label="审核通过率"
+          value={decisions === 0 ? '—' : `${Math.round((accepted / decisions) * 100)}%`}
+          hint="人工评审通过的投稿占评审总数的比例。"
+        />
+        <span className="admin-library-stat-hot">
+          <StatTile
+            label="待你批准"
+            value={
+              statusCount(totals.candidates, 'pending') +
+              statusCount(totals.submissions, 'pending') +
+              statusCount(totals.submissions, 'approved')
+            }
+            hint="后台生成的候选与外部投稿中，还没批的。"
+          />
+        </span>
+      </div>
+      <div className="admin-library-summary-supplementary">
+        <span className="admin-library-summary-line">
+          <span className="admin-library-summary-key">已批准待审核</span>
+          <span className="admin-library-summary-value">
+            {formatNumber(statusCount(totals.submissions, 'approved'))} 条
+          </span>
+        </span>
+        <span className="admin-library-summary-line">
+          <span className="admin-library-summary-key">已拒绝</span>
+          <span className="admin-library-summary-value">
+            {formatNumber(statusCount(totals.submissions, 'dismissed'))} 条
+          </span>
+        </span>
+      </div>
+    </div>
   );
+}
+
+export function UnifiedLibrary({ game }: { game: GameWordGame }) {
+  const [parameters, setParameters] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const search = parameters.get('search') ?? '';
+  const rawSource = parameters.get('source') ?? '';
+  const source = isLibrarySource(rawSource) ? rawSource : 'all';
+  const rawStatus = parameters.get('status') ?? '';
+  const status = isLibraryStatus(rawStatus) ? rawStatus : '';
+  const batchId = parameters.get('batch');
+  const batchCursor = parameters.get('batchCursor');
+  const openedFromLibrary = isSubmissionBatchOpenedFromLibrary(location.state);
+
+  // Card-stream keyset cursors, scoped to one game and one filter set: a
+  // cursor taken from another list would silently skip rows in this one.
+  // Reset while rendering the new scope, so the query below never fires
+  // with a stale cursor.
+  const [cursors, setCursors] = useState<(string | null)[]>([null]);
+  const [prevScope, setPrevScope] = useState({ game, source, status, search });
+  if (
+    prevScope.game !== game ||
+    prevScope.source !== source ||
+    prevScope.status !== status ||
+    prevScope.search !== search
+  ) {
+    setPrevScope({ game, source, status, search });
+    setCursors([null]);
+  }
+  const cursor = cursors[cursors.length - 1] ?? null;
+
+  const stats = useQuery(
+    adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
+  );
+  const library = useQuery(
+    adminQueryOptions(
+      'words',
+      { game, section: 'library', source, status, search, cursor },
+      (signal) =>
+        fetchLibraryItems(
+          game,
+          {
+            ...(source === 'submissions' ? { source: 'submission' as const } : {}),
+            ...(status === '' ? {} : { status }),
+            ...(search === '' ? {} : { search }),
+            ...(cursor === null ? {} : { cursor }),
+          },
+          signal,
+        ),
+    ),
+  );
+  const batches = useQuery(
+    adminQueryOptions(
+      'word-submissions',
+      { kind: 'batches', game, cursor: batchCursor ?? undefined },
+      (signal) =>
+        wordSubmissionsApi.batches(
+          { game, ...(batchCursor === null ? {} : { cursor: batchCursor }) },
+          signal,
+        ),
+    ),
+  );
+
+  const [triggering, setTriggering] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+  const busy = useRef(false);
+
+  async function trigger(action: SupplyAction) {
+    if (busy.current) return;
+    busy.current = true;
+    setTriggering(true);
+    setNotice('');
+    setTriggerError(null);
+    let completed = 0;
+    try {
+      for (; completed < action.count; completed += 1)
+        await triggerGameWordSupply(game, action.force);
+      setNotice(`已触发 ${completed} 次，工作流需要几分钟，稍后手动刷新。`);
+    } catch (cause: unknown) {
+      handleError(cause, { label: '触发补词', logger: wordLog, feedback: false });
+      setTriggerError(
+        `已确认触发 ${completed} 次，其后一次结果未确认，请核对后再操作。${cause instanceof Error ? cause.message : '请求失败'}`,
+      );
+    } finally {
+      busy.current = false;
+      setTriggering(false);
+    }
+  }
+
+  function confirm(action: SupplyAction) {
+    const limit =
+      game === 'fibking'
+        ? `突破本月 ${stats.data?.monthlySupply?.batchLimit ?? '—'} 次配额及共享模型额度`
+        : '突破每日批次上限及共享模型额度';
+    void showAlert(
+      '确认补词',
+      `将为「${WORD_GAME_LABELS[game]}」${action.force ? '强制' : ''}触发 ${action.count} 次补词${action.force ? `，${limit}` : ''}，确定吗？`,
+      [
+        CANCEL_BUTTON,
+        {
+          text: '确定',
+          style: action.force ? 'destructive' : 'default',
+          onPress: () => void trigger(action),
+        },
+      ],
+    );
+  }
+
+  function change(key: string, value: string) {
+    const next = new URLSearchParams(parameters);
+    if (value === '') next.delete(key);
+    else next.set(key, value);
+    setParameters(next, { replace: true });
+  }
+
+  function openBatch(id: string) {
+    const next = new URLSearchParams(parameters);
+    next.set('batch', id);
+    setParameters(next, { replace: false, state: SUBMISSION_BATCH_ORIGIN_STATE });
+  }
+
+  function closeBatch() {
+    if (isSubmissionBatchOpenedFromLibrary(location.state)) {
+      void navigate(-1);
+      return;
+    }
+    const next = new URLSearchParams(parameters);
+    next.delete('batch');
+    setParameters(next, { replace: true });
+  }
+
+  /** Game links keep the card-stream filters and drop the batch overlay. */
+  function gameSearch() {
+    const next = new URLSearchParams();
+    if (source !== 'all') next.set('source', source);
+    if (status !== '') next.set('status', status);
+    if (search !== '') next.set('search', search);
+    const query = next.toString();
+    return query === '' ? '' : `?${query}`;
+  }
+
+  /** Batch links keep the card-stream filters and add the batch overlay. */
+  const batchLinkFilter: Record<string, string> = {};
+  if (source !== 'all') batchLinkFilter.source = source;
+  if (status !== '') batchLinkFilter.status = status;
+  if (search !== '') batchLinkFilter.search = search;
+  if (batchCursor !== null) batchLinkFilter.batchCursor = batchCursor;
+
+  const totals = library.data?.totals;
+  const inventory = stats.data?.categories.reduce((sum, item) => sum + item.active, 0) ?? 0;
+  const pendingToApprove =
+    totals === undefined
+      ? 0
+      : statusCount(totals.candidates, 'pending') +
+        statusCount(totals.submissions, 'pending') +
+        statusCount(totals.submissions, 'approved');
+  return (
+    <>
+      {(batchId === null || openedFromLibrary) && (
+        <>
+          <PageHeading
+            title="统一词库"
+            description="库存与外部投稿放在一页：搜一次，两处都出结果；投稿行带重复提醒。"
+            query={stats}
+            action={
+              <span className="admin-row-actions">
+                <button
+                  type="button"
+                  onClick={() => void navigate(`/admin/agents/${game}`, { replace: true })}
+                >
+                  Agent 授权
+                </button>
+                <SupplyControls
+                  disabled={triggering || !stats.data?.supplyEnabled}
+                  triggering={triggering}
+                  gameLabel={WORD_GAME_LABELS[game]}
+                  remainingBudget={
+                    stats.data === undefined
+                      ? 0
+                      : Math.max(
+                          0,
+                          Math.min(
+                            stats.data.modelBudget.dailyLimit - stats.data.modelBudget.dailyUsed,
+                            stats.data.modelBudget.monthlyLimit -
+                              stats.data.modelBudget.monthlyUsed,
+                          ),
+                        )
+                  }
+                  onSelect={confirm}
+                />
+              </span>
+            }
+          />
+          <div className="admin-content">
+            {notice !== '' && (
+              <p role="status" className="admin-notice">
+                {notice}
+              </p>
+            )}
+            {triggerError !== null && (
+              <p role="alert" className="admin-error-box">
+                {triggerError}
+              </p>
+            )}
+            <div className="admin-toolbar">
+              <nav className="admin-segmented" aria-label="选择词库">
+                {GAME_WORD_GAMES.map((item) => (
+                  <Link
+                    key={item}
+                    to={`/admin/words/${item}${gameSearch()}`}
+                    replace
+                    aria-current={item === game ? 'page' : undefined}
+                  >
+                    {WORD_GAME_LABELS[item]}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            {stats.isError || library.isError ? (
+              <p className="admin-muted">流程汇总加载失败，见下方各表。</p>
+            ) : stats.data === undefined || totals === undefined ? (
+              <p className="admin-muted">正在汇总流程…</p>
+            ) : (
+              <>
+                <LibrarySummary stats={stats.data} totals={totals} />
+                <dl className="admin-details admin-library-sources">
+                  <dt>库存</dt>
+                  <dd>{formatNumber(inventory)} 条</dd>
+                  <dt>Agent 已发布</dt>
+                  <dd>{formatNumber(statusCount(totals.submissions, 'published'))} 条</dd>
+                  <dt>Agent 待批准</dt>
+                  <dd>{formatNumber(pendingToApprove)} 条</dd>
+                  <dt>审核失败待重审</dt>
+                  <dd>{formatNumber(statusCount(totals.submissions, 'failed'))} 条</dd>
+                </dl>
+                <LibraryFlowBar stats={stats.data} totals={totals} />
+                {stats.data.tavilyRequestsUsed !== null &&
+                  stats.data.tavilyMonthlyQuota !== null && (
+                    <Meter
+                      label="Tavily · 本月"
+                      value={stats.data.tavilyRequestsUsed}
+                      limit={stats.data.tavilyMonthlyQuota}
+                    />
+                  )}
+              </>
+            )}
+            <form
+              className="admin-toolbar"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const next = new URLSearchParams(parameters);
+                const entry = new FormData(event.currentTarget).get('librarySearch');
+                const value = typeof entry === 'string' ? entry.trim() : '';
+                if (value !== '') next.set('search', value);
+                else next.delete('search');
+                setParameters(next, { replace: true });
+              }}
+            >
+              <nav className="admin-segmented" aria-label="筛选来源">
+                <Link
+                  to={`/admin/words/${game}`}
+                  replace
+                  aria-current={source === 'all' ? 'page' : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    change('source', '');
+                  }}
+                >
+                  全部来源
+                </Link>
+                <Link
+                  to={`/admin/words/${game}`}
+                  replace
+                  aria-current={source === 'inventory' ? 'page' : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    change('source', 'inventory');
+                  }}
+                >
+                  库存
+                </Link>
+                <Link
+                  to={`/admin/words/${game}`}
+                  replace
+                  aria-current={source === 'submissions' ? 'page' : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    change('source', 'submissions');
+                  }}
+                >
+                  Agent 投稿
+                </Link>
+              </nav>
+              <WordChoiceFilter
+                label="状态"
+                value={status}
+                options={STATUS_OPTIONS}
+                onChange={(value) => change('status', value)}
+              />
+              <input
+                type="search"
+                name="librarySearch"
+                defaultValue={search}
+                className="admin-input admin-filter"
+                placeholder="搜一个词：在不在、从哪来、什么状态"
+                aria-label="搜索词"
+              />
+              <button type="submit">搜</button>
+            </form>
+            <AsyncBoundary query={library}>
+              {(data) => (
+                <LibraryCards
+                  key={`${game}:${source}:${status}:${search}`}
+                  game={game}
+                  source={source}
+                  status={status}
+                  search={search}
+                  data={data}
+                  page={cursors.length}
+                  onPrevious={() => setCursors((current) => current.slice(0, -1))}
+                  onNext={() => {
+                    if (data.nextCursor !== null)
+                      setCursors((current) => [...current, data.nextCursor]);
+                  }}
+                />
+              )}
+            </AsyncBoundary>
+            <Panel title="外部投稿批次">
+              <AsyncBoundary query={batches}>
+                {(data) => (
+                  <>
+                    <SubmissionBatchesTable
+                      batches={data.batches}
+                      filter={batchLinkFilter}
+                      onOpen={openBatch}
+                    />
+                    {data.batches.length === 0 && (
+                      <p className="admin-submission-empty">暂无批次。</p>
+                    )}
+                    <footer className="admin-pagination">
+                      <span className="admin-muted">本页 {data.batches.length} 个批次</span>
+                      <div>
+                        {batchCursor !== null && (
+                          <button type="button" onClick={() => change('batchCursor', '')}>
+                            返回第一页
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={data.nextCursor === null || batches.isFetching}
+                          onClick={() => {
+                            if (data.nextCursor !== null) change('batchCursor', data.nextCursor);
+                          }}
+                        >
+                          下一页
+                        </button>
+                      </div>
+                    </footer>
+                  </>
+                )}
+              </AsyncBoundary>
+            </Panel>
+          </div>
+        </>
+      )}
+      {batchId !== null && (
+        <SubmissionBatchPage key={batchId} batchId={batchId} onClose={closeBatch} />
+      )}
+    </>
+  );
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 function SubmissionBatchesTable({
@@ -355,7 +572,7 @@ function SubmissionBatchesTable({
   onOpen: (batchId: string) => void;
 }) {
   function batchSearch(batchId: string) {
-    return `?${new URLSearchParams({ ...filter, section: 'submissions', batch: batchId })}`;
+    return `?${new URLSearchParams({ ...filter, batch: batchId })}`;
   }
   return (
     <DataTable
@@ -382,9 +599,7 @@ function SubmissionBatchesTable({
         {
           key: 'source',
           label: '来源',
-          render: (batch) => (
-            <StatusBadge title={batch.agentName}>{SOURCE_LABELS.submissions}</StatusBadge>
-          ),
+          render: (batch) => <StatusBadge title={batch.agentName}>Agent投稿</StatusBadge>,
         },
         {
           key: 'agent',

@@ -265,3 +265,44 @@
     align-items: flex-start;
   }
 }
+
+/** Card stream on the unified library page: one card per pending row. */
+.admin-library-cards {
+  display: grid;
+  gap: var(--space-medium);
+}
+.admin-library-card {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-small);
+  background: var(--admin-panel);
+  padding: var(--space-medium);
+}
+.admin-library-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-small);
+}
+.admin-library-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+  flex: 1;
+}
+.admin-library-word {
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+.admin-library-meta {
+  margin: var(--space-small) 0 0;
+  color: var(--admin-secondary);
+  font-size: var(--font-caption);
+}
+.admin-library-definition {
+  margin: var(--space-small) 0 0;
+  overflow-wrap: anywhere;
+}
+.admin-library-card .admin-row-actions {
+  margin-top: var(--space-medium);
+}
