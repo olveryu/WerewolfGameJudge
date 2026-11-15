@@ -235,6 +235,82 @@ describe('unified library', () => {
     expect(screen.getByText('外部投稿批次')).toBeVisible();
   });
 
+  it('resets the candidate cursor when the status changes after paging', async () => {
+    const page2: WordCandidateListItem = { ...candidate, id: 'cand-2', title: '长颈鹿' };
+    const approved: WordCandidateListItem = {
+      ...candidate,
+      id: 'cand-9',
+      title: '金丝猴',
+      status: 'approved',
+    };
+    vi.mocked(fetchWordCandidates).mockImplementation(async (_game, params) => {
+      if (params?.status === 'approved')
+        return { game: 'drawguess', candidates: [approved], nextCursor: null };
+      if (params?.cursor === 'C1')
+        return { game: 'drawguess', candidates: [page2], nextCursor: null };
+      return { game: 'drawguess', candidates: [candidate], nextCursor: 'C1' };
+    });
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    const panel = () => {
+      const section = screen.getByRole('heading', { name: '待批准候选' }).closest('section');
+      expect(section).not.toBeNull();
+      return within(section as HTMLElement);
+    };
+    await user.click(panel().getByRole('button', { name: '下一页' }));
+    await screen.findByText('长颈鹿');
+    expect(panel().getByText('第 2 页')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
+    await user.click(screen.getByRole('button', { name: '已批准' }));
+    await waitFor(() =>
+      expect(fetchWordCandidates).toHaveBeenCalledWith(
+        'drawguess',
+        { status: 'approved', cursor: undefined },
+        expect.any(AbortSignal),
+      ),
+    );
+    await screen.findByText('金丝猴');
+    expect(screen.queryByText('长颈鹿')).not.toBeInTheDocument();
+    const approvedPanel = screen.getByRole('heading', { name: '已批准候选' }).closest('section');
+    expect(approvedPanel).not.toBeNull();
+    expect(within(approvedPanel as HTMLElement).getByText('第 1 页')).toBeVisible();
+    expect(
+      within(approvedPanel as HTMLElement).getByRole('button', { name: '上一页' }),
+    ).toBeDisabled();
+  });
+
+  it('clears the candidate selection when the status changes', async () => {
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
+    expect(screen.getByText('已选 1 / 1')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
+    await user.click(screen.getByRole('button', { name: '已批准' }));
+    await screen.findByRole('heading', { name: '已批准候选' });
+    await user.click(screen.getByRole('button', { name: '状态：已批准' }));
+    await user.click(screen.getByRole('button', { name: '待批准' }));
+    await screen.findByRole('heading', { name: '待批准候选' });
+    expect(screen.getByText('已选 0 / 1')).toBeVisible();
+    expect(screen.getByRole('checkbox', { name: '选择大熊猫' })).not.toBeChecked();
+  });
+
+  it('keeps the success notice visible when the last row is dismissed', async () => {
+    let calls = 0;
+    vi.mocked(fetchWordCandidates).mockImplementation(async () => {
+      calls += 1;
+      return calls === 1
+        ? { game: 'drawguess', candidates: [candidate], nextCursor: null }
+        : { game: 'drawguess', candidates: [], nextCursor: null };
+    });
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '拒绝' }));
+    await waitFor(() => expect(screen.getByText('已拒绝 1 条。')).toBeVisible());
+    await waitFor(() => expect(screen.getByText('暂无待批准候选。')).toBeVisible());
+    expect(screen.getByText('已拒绝 1 条。')).toBeVisible();
+    expect(screen.queryByText('大熊猫')).not.toBeInTheDocument();
+  });
+
   it('dismisses a pending candidate from the row action', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');

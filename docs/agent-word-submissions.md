@@ -109,7 +109,7 @@ curl --fail-with-body "$WORD_API_BASE/v1/word-submissions" \
 
 迁移 `0077_submission_agent_archive.sql` 增加授权删除时间和仅索引可见授权的部分索引；新索引写入只影响可见授权的创建和删除，使历史授权增长不拖慢列表及容量检查。它同时扩展授权审计事件种类，复制既有控制审计表并保留事件编号、自增序列、外键、约束和原有四个审计触发器，新增参数、有效期与删除审计。一次性复制读写量与既有控制审计行数成正比，索引构建与授权行数成正比；上线前确认生产规模及费用，先迁移再部署。它不重建投稿、词库或游戏状态。
 
-迁移 `0079_word_submission_endorsement.sql` 给投稿条目加 `approved` 状态与 `endorse` 动作（表复制重建，含身份索引与计数触发器）；`0080_word_candidate_approval.sql` 给三款游戏的候选表加 `approved` 状态与 `word_candidate_approvals` 审批记录表；`0081_editorial_model_operation.sql` 给模型调用账本加 `operation`（生成/审核）分项；`0082_word_candidate_list_index.sql` 给三张候选表加（状态，创建时间，编号）列表索引。
+迁移 `0079_word_submission_endorsement.sql` 给投稿条目加 `approved` 状态与 `endorse` 动作（表复制重建，含身份索引与计数触发器）；`0080_word_candidate_approval.sql` 给三款游戏的候选表加 `approved` 状态与 `word_candidate_approvals` 审批记录表；`0081_editorial_model_operation.sql` 给模型调用账本加 `operation`（生成/审核）分项；`0082_word_candidate_list_index.sql` 给三张候选表加（状态，创建时间，编号）列表索引；`0083_word_candidate_dismissal.sql` 给候选拒绝记 `word_candidate_dismissals` 审计表（按请求编号加创建时间索引）。
 
 ## 5. 额度与成本
 

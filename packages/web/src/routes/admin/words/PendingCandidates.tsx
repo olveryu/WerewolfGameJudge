@@ -63,6 +63,18 @@ export function PendingCandidates({
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState('');
+  // The keyset cursor is scoped to one game + status list: a cursor taken
+  // from page 2 of another list would silently skip rows (or fake an empty
+  // list) in this one, and a selection from another list could be bulk
+  // approved unseen. Reset all three while rendering the new list, so the
+  // query below never fires with a stale cursor.
+  const [prevScope, setPrevScope] = useState({ game, status });
+  if (prevScope.game !== game || prevScope.status !== status) {
+    setPrevScope({ game, status });
+    setCursors([null]);
+    setSelected(new Set());
+    setNotice('');
+  }
   const cursor = cursors[cursors.length - 1] ?? null;
   const query = useQuery(
     adminQueryOptions('words', { game, section: 'candidates', status, cursor }, (signal) =>
@@ -127,17 +139,17 @@ export function PendingCandidates({
   const busy = approve.isPending || dismiss.isPending;
   return (
     <Panel title={meta.title} description={meta.description} className="admin-span-12">
+      {notice !== '' && (
+        <p role="status" className="admin-notice">
+          {notice}
+        </p>
+      )}
       <AsyncBoundary query={query}>
         {(data) => {
           const items = data.candidates;
           if (items.length === 0) return <p className="admin-muted">{meta.empty}</p>;
           return (
             <>
-              {notice !== '' && (
-                <p role="status" className="admin-notice">
-                  {notice}
-                </p>
-              )}
               {approve.isError && (
                 <p role="alert" className="admin-error-box">
                   批准失败，请稍后重试。
