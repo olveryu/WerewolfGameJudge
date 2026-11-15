@@ -115,6 +115,7 @@ function LibraryFlowBar({
 }) {
   const awaiting =
     statusCount(totals.candidates, 'pending') +
+    statusCount(totals.candidates, 'approved') +
     statusCount(totals.submissions, 'pending') +
     statusCount(totals.submissions, 'approved');
   const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
@@ -157,17 +158,15 @@ function LibrarySummary({
       <div className="admin-library-stats-row">
         <StatTile label="在库词数" value={inventory} hint="已入库，可直接被抽题用。" />
         <StatTile
-          label="审核通过率"
+          label="后台候选审核通过率"
           value={decisions === 0 ? '—' : `${Math.round((accepted / decisions) * 100)}%`}
-          hint="人工评审通过的投稿占评审总数的比例。"
+          hint="近 30 天后台候选的模型审核通过占比，不包括 Agent 投稿。"
         />
         <span className="admin-library-stat-hot">
           <StatTile
             label="待你批准"
             value={
-              statusCount(totals.candidates, 'pending') +
-              statusCount(totals.submissions, 'pending') +
-              statusCount(totals.submissions, 'approved')
+              statusCount(totals.candidates, 'pending') + statusCount(totals.submissions, 'pending')
             }
             hint="后台生成的候选与外部投稿中，还没批的。"
           />
@@ -177,7 +176,11 @@ function LibrarySummary({
         <span className="admin-library-summary-line">
           <span className="admin-library-summary-key">已批准待审核</span>
           <span className="admin-library-summary-value">
-            {formatNumber(statusCount(totals.submissions, 'approved'))} 条
+            {formatNumber(
+              statusCount(totals.candidates, 'approved') +
+                statusCount(totals.submissions, 'approved'),
+            )}{' '}
+            条
           </span>
         </span>
         <span className="admin-library-summary-line">
@@ -341,19 +344,13 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
 
   const totals = library.data?.totals;
   const inventory = stats.data?.categories.reduce((sum, item) => sum + item.active, 0) ?? 0;
-  const pendingToApprove =
-    totals === undefined
-      ? 0
-      : statusCount(totals.candidates, 'pending') +
-        statusCount(totals.submissions, 'pending') +
-        statusCount(totals.submissions, 'approved');
   return (
     <>
       {(batchId === null || openedFromLibrary) && (
         <>
           <PageHeading
             title="统一词库"
-            description="库存与外部投稿放在一页：搜一次，两处都出结果；投稿行带重复提醒。"
+            description="搜索后台候选和 Agent 投稿；库存只显示数量。"
             query={stats}
             action={
               <span className="admin-row-actions">
@@ -422,7 +419,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                   <dt>Agent 已发布</dt>
                   <dd>{formatNumber(statusCount(totals.submissions, 'published'))} 条</dd>
                   <dt>Agent 待批准</dt>
-                  <dd>{formatNumber(pendingToApprove)} 条</dd>
+                  <dd>{formatNumber(statusCount(totals.submissions, 'pending'))} 条</dd>
                   <dt>审核失败待重审</dt>
                   <dd>{formatNumber(statusCount(totals.submissions, 'failed'))} 条</dd>
                 </dl>
@@ -495,8 +492,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 name="librarySearch"
                 defaultValue={search}
                 className="admin-input admin-filter"
-                placeholder="搜一个词：在不在、从哪来、什么状态"
-                aria-label="搜索词"
+                placeholder="搜索候选或投稿的词语、分类"
+                aria-label="搜索候选或投稿"
               />
               <button type="submit">搜</button>
             </form>
@@ -511,6 +508,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                   data={data}
                   page={cursors.length}
                   onPrevious={() => setCursors((current) => current.slice(0, -1))}
+                  onOpenBatch={openBatch}
                   onNext={() => {
                     if (data.nextCursor !== null)
                       setCursors((current) => [...current, data.nextCursor]);

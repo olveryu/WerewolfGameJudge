@@ -121,6 +121,7 @@ export function LibraryCards({
   page,
   onPrevious,
   onNext,
+  onOpenBatch,
 }: {
   game: GameWordGame;
   source: LibrarySourceFilter;
@@ -130,6 +131,7 @@ export function LibraryCards({
   page: number;
   onPrevious: () => void;
   onNext: () => void;
+  onOpenBatch: (batchId: string) => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState('');
@@ -324,6 +326,10 @@ export function LibraryCards({
             onApproveCandidate={() => confirmApproveCandidate([item.id])}
             onDismissCandidate={() => confirmDismissCandidate([item.id])}
             onSubmissionAction={(action) => queueSubmissionAction(action, [item])}
+            onOpenBatch={() => {
+              if (item.batchId === null) throw new Error('Submission row is missing its batch');
+              onOpenBatch(item.batchId);
+            }}
           />
         ))}
       </div>
@@ -381,6 +387,7 @@ export function LibraryCards({
       )}
       {activeDialog !== undefined && (
         <SubmissionActionDialog
+          key={activeDialog.batchId}
           batchId={activeDialog.batchId}
           confirmation={activeDialog.confirmation}
           onClose={() => setDialogQueue((current) => current.slice(1))}
@@ -402,6 +409,7 @@ function LibraryCard({
   onApproveCandidate,
   onDismissCandidate,
   onSubmissionAction,
+  onOpenBatch,
 }: {
   item: WordLibraryItem;
   game: GameWordGame;
@@ -411,6 +419,7 @@ function LibraryCard({
   onApproveCandidate: () => void;
   onDismissCandidate: () => void;
   onSubmissionAction: (action: SubmissionConfirmation['action']) => void;
+  onOpenBatch: () => void;
 }) {
   const actionable = isBulkActionable(item);
   return (
@@ -445,6 +454,16 @@ function LibraryCard({
         </p>
       )}
       <div className="admin-row-actions">
+        {item.source === 'submission' && (
+          <button
+            type="button"
+            className="admin-text-button"
+            aria-label={`查看投稿批次：${item.title}`}
+            onClick={onOpenBatch}
+          >
+            查看投稿批次
+          </button>
+        )}
         {item.source === 'candidate' && item.status === 'pending' && (
           <>
             <button
@@ -509,5 +528,3 @@ function LibraryCard({
     </article>
   );
 }
-
-// Card rows carry no other actions: review and publish live only in the batch detail.
