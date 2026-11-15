@@ -630,9 +630,11 @@ function compareLibraryItems(a: WordLibraryItem, b: WordLibraryItem): number {
 /** Merged FIFO stream of supply candidates and submission items, oldest first.
  * Each side is keyset-paged on (created_at, id) with the same cursor, then
  * merged and cut to one page; a status value that belongs to one side only
- * simply matches no rows on the other side. Totals ignore search, cursor,
- * and source, so the stats and flow bars stay stable while paging or
- * filtering. Inventory never enters the stream; it appears as numbers only. */
+ * simply matches no rows on the other side. Search matches a row's title or
+ * its displayed category (fibking: topic, else category) on either side.
+ * Totals ignore search, cursor, and source, so the stats and flow bars stay
+ * stable while paging or filtering. Inventory never enters the stream; it
+ * appears as numbers only. */
 export async function listLibraryItems(
   db: D1Database,
   input: ListLibraryItemsInput,
@@ -655,8 +657,8 @@ export async function listLibraryItems(
       binds.push(input.status);
     }
     if (likePattern !== null) {
-      where += ` AND (${adapter.titleSql} LIKE ? ESCAPE '\\')`;
-      binds.push(likePattern);
+      where += ` AND (${adapter.titleSql} LIKE ? ESCAPE '\\' OR ${adapter.categorySql} LIKE ? ESCAPE '\\')`;
+      binds.push(likePattern, likePattern);
     }
     if (cursor !== undefined) {
       where += ' AND (created_at, id) > (?, ?)';
@@ -684,8 +686,8 @@ export async function listLibraryItems(
       binds.push(input.status);
     }
     if (likePattern !== null) {
-      where += ` AND item.title LIKE ? ESCAPE '\\'`;
-      binds.push(likePattern);
+      where += ` AND (item.title LIKE ? ESCAPE '\\' OR item.category LIKE ? ESCAPE '\\')`;
+      binds.push(likePattern, likePattern);
     }
     if (cursor !== undefined) {
       where += ' AND (batch.created_at, item.id) > (?, ?)';

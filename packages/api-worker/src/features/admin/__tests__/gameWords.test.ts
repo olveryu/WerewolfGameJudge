@@ -693,10 +693,31 @@ describe('GET /admin/words/:game/library-items', () => {
     ]);
   });
 
-  it('searches titles with LIKE and treats wildcards literally', async () => {
+  it('searches titles and categories with LIKE and treats wildcards literally', async () => {
     await seedLibrary();
     const found = await listLibraryItems(env.DB, { game: 'fibking', search: '秋审' });
     expect(found.items.map((item) => item.title)).toEqual(['秋审']);
+    // 'literary' is the stored category of every seeded row on both sides
+    // and matches no title, so a category hit returns the whole FIFO stream.
+    const byCategory = await listLibraryItems(env.DB, { game: 'fibking', search: 'literary' });
+    expect(byCategory.items.map((item) => item.title)).toEqual([
+      '甲词',
+      '秋审',
+      '已发布词',
+      '乙词',
+    ]);
+    const candidatesOnly = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      search: 'literary',
+      source: 'candidate',
+    });
+    expect(candidatesOnly.items.map((item) => item.title)).toEqual(['甲词', '乙词']);
+    const submissionsOnly = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      search: 'literary',
+      source: 'submission',
+    });
+    expect(submissionsOnly.items.map((item) => item.title)).toEqual(['秋审', '已发布词']);
     const wildcard = await listLibraryItems(env.DB, { game: 'fibking', search: '%' });
     expect(wildcard.items).toEqual([]);
   });
