@@ -14,11 +14,7 @@ import type {
   SubmissionPublication,
   WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
-import {
-  readStoredSubmissionBatch,
-  refreshSubmissionSearch,
-  type StoredSubmissionItem,
-} from './repository';
+import { readStoredSubmissionBatch, type StoredSubmissionItem } from './repository';
 
 const log = createLogger('word-submission-operations');
 const eligibleStates = {
@@ -67,7 +63,6 @@ export async function failSubmissionReviewItem(
           AND EXISTS (SELECT 1 FROM word_submission_actions WHERE id = ? AND status = 'queued')`,
       )
       .bind(failure, itemId, actionId, actionId),
-    refreshSubmissionSearch(db, batchId),
   ]);
 }
 
@@ -102,7 +97,6 @@ export async function failSubmissionReview(db: D1Database, id: string, failure: 
       WHERE id = ? AND status = 'queued'`,
       )
       .bind(now, id),
-    refreshSubmissionSearch(db, action.batch_id),
   ]);
 }
 
@@ -235,8 +229,7 @@ export async function applySubmissionAction(
       await dispatchSubmissionReview(env, batchId, input.id);
     return wordSubmissionActionResultSchema.parse({ id: input.id, status: prior.status });
   }
-  if (['dismiss', 'unpublish'].includes(input.action) && input.reason.length === 0)
-    throw new HTTPException(400, { message: 'SUBMISSION_ACTION_REASON_REQUIRED' });
+  // The reason is optional for every action; an empty reason is recorded as-is.
   const batch = await readStoredSubmissionBatch(env.DB, batchId);
   const adapter: WordSubmissionAdapter = WORKER_WORD_SUBMISSION_ADAPTERS[batch.game];
   const selected = input.items.map((entry) => batch.items.find((item) => item.id === entry.id));
@@ -289,7 +282,6 @@ export async function applySubmissionAction(
       ).bind(item.id, now, input.id),
     );
   }
-  statements.push(refreshSubmissionSearch(env.DB, batchId));
   statements.push(
     env.DB.prepare(
       `UPDATE word_submission_actions SET status = ?, completed_at = ?

@@ -310,7 +310,7 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
   expect(screen.getByRole('button', { name: '确认发布 1' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '启动独立审核 2' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '批量批准 1' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '批量批准 3' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
   await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
   const filters = await screen.findByRole('dialog', { name: '选择状态' });
@@ -450,32 +450,37 @@ it('bulk approves pending, failed and rejected items without a reason, but does 
   });
 });
 
-it('bulk endorses pending items for review without calling the model', async () => {
+it('bulk endorses pending, failed and rejected items for review without calling the model', async () => {
   vi.mocked(wordSubmissionsApi.action).mockResolvedValueOnce({
     id: crypto.randomUUID(),
     status: 'complete',
   });
   const { user } = mount();
   await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
-  await user.click(screen.getByRole('button', { name: '批量批准 1' }));
+  await user.click(screen.getByRole('button', { name: '批量批准 3' }));
   const dialog = await screen.findByRole('dialog', { name: '批准进入审核' });
   expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
   expect(within(dialog).getByText(/只表示你看过并同意送审/)).toBeInTheDocument();
   expect(within(dialog).getByText('词语0')).toBeInTheDocument();
-  // The card stream bulk endorses pending items only; failed and rejected
-  // items are still endorsable one at a time from the item drawer.
-  expect(within(dialog).queryByText('词语2')).not.toBeInTheDocument();
-  expect(within(dialog).queryByText('词语3')).not.toBeInTheDocument();
+  // The bulk bar shares the drawer's endorsement eligibility
+  // (pending/failed/rejected), so failed and rejected items are endorsed
+  // in bulk too.
+  expect(within(dialog).getByText('词语2')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语3')).toBeInTheDocument();
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   expect(within(dialog).queryByText('词语9')).not.toBeInTheDocument();
-  await user.click(within(dialog).getByRole('button', { name: '批准进入审核 (1)' }));
+  await user.click(within(dialog).getByRole('button', { name: '批准进入审核 (3)' }));
   await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
   const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
   expect(calls[0]?.[0]).toBe(batch.id);
   expect(calls[0]?.[1]).toMatchObject({
     action: 'endorse',
     reason: '',
-    items: [{ id: batch.items[0]?.id, revision: 1 }],
+    items: [
+      { id: batch.items[0]?.id, revision: 1 },
+      { id: batch.items[2]?.id, revision: 1 },
+      { id: batch.items[3]?.id, revision: 1 },
+    ],
   });
 });
 

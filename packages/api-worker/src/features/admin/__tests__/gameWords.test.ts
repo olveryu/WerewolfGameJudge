@@ -238,11 +238,35 @@ describe('GET /admin/games/words/stats', () => {
     });
   });
 
-  it('reports empty candidate review history: the candidate tables are dropped', async () => {
+  it('reports the submission review pass rate from model verdicts', async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO word_submission_agents (id, name, description, games_json, status, daily_quota, pending_quota, created_at)
+         VALUES ('agent-1', 'Muse', '', '["fibking"]', 'active', 100, 100, datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_batches (id, agent_id, game, idempotency_key, request_hash, created_at)
+         VALUES ('batch-1', 'agent-1', 'fibking', 'key-1', 'hash-1', datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_items
+         (id, batch_id, game, client_item_id, identity, content_hash, title, category, material_json, status, review_json)
+         VALUES
+         ('00000000-0000-4000-8000-000000000001', 'batch-1', 'fibking', 'passed-1', 'identity-1', '${'a'.repeat(64)}', '通过词', 'literary', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000002', 'batch-1', 'fibking', 'passed-2', 'identity-2', '${'b'.repeat(64)}', '通过词二', 'literary', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000003', 'batch-1', 'fibking', 'rejected-1', 'identity-3', '${'c'.repeat(64)}', '拒绝词', 'literary', '{}', 'rejected', '{"passed":false,"canOverride":true,"reason":"no","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000004', 'batch-1', 'fibking', 'approved-1', 'identity-4', '${'d'.repeat(64)}', '人工通过词', 'literary', '{}', 'passed', NULL)`,
+      ),
+    ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
     expect(resp.status).toBe(200);
     const body = await resp.json<GameWordsStats>();
-    expect(body.reviewDecisions).toEqual([]);
+    // Two model passes and one model rejection; the human-approved item
+    // carries no review_json and is not a model verdict, so it is not counted.
+    expect(body.reviewDecisions).toEqual([
+      { decision: 'accepted', count: 2 },
+      { decision: 'rejected', count: 1 },
+    ]);
     expect(body.reviewCheckStats).toEqual([
       { check: 'isEstablishedTerm', failCount: 0 },
       { check: 'isDefinitionAccurate', failCount: 0 },

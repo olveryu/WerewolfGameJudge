@@ -112,9 +112,9 @@ function LibrarySummary({
       <div className="admin-library-stats-row">
         <StatTile label="在库词数" value={inventory} hint="已入库，可直接被抽题用。" />
         <StatTile
-          label="后台候选审核通过率"
+          label="投稿审核通过率"
           value={decisions === 0 ? '—' : `${Math.round((accepted / decisions) * 100)}%`}
-          hint="近 30 天后台候选的模型审核通过占比，不包括 Agent 投稿。"
+          hint="模型审核有结论的投稿中通过的占比，人工通过不计入。"
         />
         <span className="admin-library-stat-hot">
           <StatTile
@@ -343,7 +343,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
         <AsyncBoundary query={library}>
           {(data) => (
             <LibraryCards
-              key={`${game}:${status}:${search}`}
+              key={`${game}:${status}:${search}:${cursors.length}`}
               game={game}
               status={status}
               search={search}

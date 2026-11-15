@@ -162,18 +162,6 @@ export const wordSubmissionAuditSchema = z.strictObject({
   reason: z.string(),
   createdAt: z.iso.datetime(),
 });
-export const wordSubmissionListSchema = z.strictObject({
-  batches: z.array(
-    z.extend(wordSubmissionBatchHeaderSchema, {
-      counts: z.partialRecord(wordSubmissionStatusSchema, z.int().check(z.nonnegative())),
-      /** Any item in the batch already exists in the game's inventory. */
-      inventoryExists: z.boolean(),
-    }),
-  ),
-  /** Per-game item totals by status, across all batches (ignores search/cursor). */
-  totals: z.partialRecord(wordSubmissionStatusSchema, z.int().check(z.nonnegative())),
-  nextCursor: z.nullable(z.string()),
-});
 export const wordSubmissionAgentsSchema = z.strictObject({
   agents: z.array(wordSubmissionAgentSchema),
 });

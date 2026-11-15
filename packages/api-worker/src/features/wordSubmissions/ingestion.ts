@@ -253,17 +253,6 @@ export async function storeSubmission(
         ),
     );
   }
-  statements.push(
-    db
-      .prepare(
-        `INSERT INTO word_submission_search (rowid, game, agent, search_text, statuses)
-    SELECT b.rowid, b.game, b.agent_id,
-      b.id || ' ' || (SELECT group_concat(title, ' ') FROM word_submission_items WHERE batch_id = b.id),
-      (SELECT group_concat(DISTINCT status) FROM word_submission_items WHERE batch_id = b.id)
-    FROM word_submission_batches b WHERE b.id = ?`,
-      )
-      .bind(id),
-  );
   const result = await db.batch(statements);
   if (result[0]?.meta.changes !== 1) {
     const concurrentReplay = await findSubmissionReplay(db, principal.agent.id, key, requestHash);
