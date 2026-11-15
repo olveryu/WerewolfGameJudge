@@ -1,4 +1,7 @@
-import type { WordSubmissionBatch } from '@game-judge/game-engine/product/wordSupply';
+import type {
+  WordLibraryItem,
+  WordSubmissionBatch,
+} from '@game-judge/game-engine/product/wordSupply';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -76,8 +79,10 @@ vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) =
   wordSubmissionsApi: {
     settings: vi.fn(),
     agents: vi.fn(),
-    batches: vi.fn(),
     batch: vi.fn(),
+    audit: vi.fn(),
+    action: vi.fn(),
+    dispatch: vi.fn(),
   },
 }));
 
@@ -270,11 +275,7 @@ beforeEach(() => {
     totals: { candidates: {}, submissions: {} },
     nextCursor: null,
   }));
-  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-    batches: [],
-    totals: {},
-    nextCursor: null,
-  });
+  vi.mocked(wordSubmissionsApi.audit).mockResolvedValue({ events: [], statuses: [] });
 });
 
 afterEach(() => {
@@ -435,7 +436,7 @@ describe('admin workspace', () => {
   });
 
   it.each(['/', '/room/1234?tab=players#seats'])(
-    'returns to %s after agent authorization, filters, and batch navigation',
+    'returns to %s after agent authorization, filters, and item drawer navigation',
     async (source) => {
       const batch: WordSubmissionBatch = {
         id: '10000000-0000-4000-8000-000000000001',
@@ -444,6 +445,20 @@ describe('admin workspace', () => {
         agentName: 'Navigation fixture',
         createdAt: '2026-11-13T00:00:00.000Z',
         items: [],
+      };
+      const libraryItem: WordLibraryItem = {
+        id: '40000000-0000-4000-8000-000000000001',
+        batchId: batch.id,
+        agentName: 'Navigation fixture',
+        game: 'fibking',
+        title: '导航词',
+        category: '饮食',
+        definition: null,
+        createdAt: batch.createdAt,
+        status: 'pending',
+        duplicateOf: null,
+        contentHash: 'a'.repeat(64),
+        revision: 1,
       };
       vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
         accepting: true,
@@ -465,34 +480,34 @@ describe('admin workspace', () => {
         },
       });
       vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
-      vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-        batches: [{ ...batch, counts: {}, inventoryExists: false }],
-        totals: {},
+      vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
+      vi.mocked(fetchLibraryItems).mockResolvedValue({
+        game: 'fibking',
+        items: [libraryItem],
+        totals: { submissions: {} },
         nextCursor: null,
       });
-      vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
       const view = mount(source);
       await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
       await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
-      await screen.findByRole('link', { name: batch.id });
+      await screen.findByRole('button', { name: '查看导航词审核详情' });
       await userEvent.click(screen.getByRole('button', { name: 'Agent 授权' }));
       await screen.findByRole('button', { name: '新建授权' });
       await userEvent.click(screen.getByRole('link', { name: '返回统一词库' }));
-      await screen.findByRole('link', { name: batch.id });
+      await screen.findByRole('button', { name: '查看导航词审核详情' });
       await userEvent.type(screen.getByRole('searchbox', { name: '搜索投稿' }), 'lotus');
       await userEvent.click(screen.getByRole('button', { name: '搜' }));
       await waitFor(() => expect(view.router.state.location.search).toContain('search=lotus'));
       await userEvent.clear(screen.getByRole('searchbox', { name: '搜索投稿' }));
       await userEvent.click(screen.getByRole('button', { name: '搜' }));
       await waitFor(() => expect(view.router.state.location.search).toBe(''));
-      await userEvent.click(screen.getByRole('link', { name: batch.id }));
-      await screen.findByRole('dialog', { name: '投稿批次审核' });
-      await userEvent.click(
-        within(await screen.findByRole('dialog', { name: '投稿批次审核' })).getByRole('button', {
-          name: '关闭投稿批次审核',
-        }),
+      await userEvent.click(await screen.findByRole('button', { name: '查看导航词审核详情' }));
+      const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+      await userEvent.click(within(drawer).getByRole('button', { name: '关闭' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument(),
       );
-      await waitFor(() => expect(view.router.state.location.search).toBe(''));
+      expect(view.router.state.location.search).toBe('');
       await userEvent.click(screen.getByRole('button', { name: '返回' }));
       await waitFor(() => {
         const { pathname, search, hash } = view.router.state.location;
@@ -503,7 +518,7 @@ describe('admin workspace', () => {
     },
   );
 
-  it('closes a directly opened batch to its list before the header exits admin', async () => {
+  it('ignores a directly opened batch parameter and keeps the search filter', async () => {
     const batch: WordSubmissionBatch = {
       id: '10000000-0000-4000-8000-000000000001',
       game: 'fibking',
@@ -532,25 +547,34 @@ describe('admin workspace', () => {
       },
     });
     vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
-    vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-      batches: [{ ...batch, counts: {}, inventoryExists: false }],
-      totals: {},
+    vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
+    vi.mocked(fetchLibraryItems).mockResolvedValue({
+      game: 'fibking',
+      items: [
+        {
+          id: '40000000-0000-4000-8000-000000000001',
+          batchId: batch.id,
+          agentName: 'Navigation fixture',
+          game: 'fibking',
+          title: '导航词',
+          category: '饮食',
+          definition: null,
+          createdAt: batch.createdAt,
+          status: 'pending',
+          duplicateOf: null,
+          contentHash: 'a'.repeat(64),
+          revision: 1,
+        },
+      ],
+      totals: { submissions: {} },
       nextCursor: null,
     });
-    vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
     const view = mount(`/admin/words/fibking?batch=${batch.id}&search=lotus`);
-    await screen.findByRole('dialog', { name: '投稿批次审核' });
-
-    await userEvent.click(
-      within(await screen.findByRole('dialog', { name: '投稿批次审核' })).getByRole('button', {
-        name: '关闭投稿批次审核',
-      }),
-    );
-
-    await waitFor(() => {
-      expect(view.router.state.location.pathname).toBe('/admin/words/fibking');
-      expect(view.router.state.location.search).toBe('?search=lotus');
-    });
+    await screen.findByRole('button', { name: '查看导航词审核详情' });
+    expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: '搜索投稿' })).toHaveValue('lotus');
+    expect(view.router.state.location.pathname).toBe('/admin/words/fibking');
+    expect(view.router.state.location.search).toBe(`?batch=${batch.id}&search=lotus`);
     view.unmount();
     view.client.clear();
   });

@@ -1,16 +1,15 @@
 /** Server review evidence is presented separately from untrusted agent material and human decisions. */
-import type {
-  WordSubmissionBatch,
-  WordSubmissionItem,
-} from '@game-judge/game-engine/product/wordSupply';
+import type { WordSubmissionItem } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 
+import type { WordLibraryItem } from '@/features/admin/model/adminContracts';
 import { adminQueryOptions } from '@/features/admin/queries/adminQueryOptions';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 
 import { DetailDrawer } from '../components/Overlays';
 import { AsyncBoundary, StatusBadge } from '../components/Primitives';
 import type { SubmissionConfirmation } from './SubmissionActionDialog';
+import { useSubmissionCommand } from './useSubmissionCommand';
 import {
   isApprovableSubmission,
   isEndorsableSubmission,
@@ -119,22 +118,32 @@ function MaterialValue({ value }: { value: unknown }) {
 
 /** Contextual actions remain in the drawer footer when long source text is expanded. */
 export function SubmissionItemDrawer({
-  batch,
+  batchId,
   item,
   onClose,
   onAction,
 }: {
-  batch: WordSubmissionBatch;
-  item: WordSubmissionItem;
+  batchId: string;
+  item: WordLibraryItem;
   onClose: () => void;
   onAction: (confirmation: SubmissionConfirmation) => void;
 }) {
-  const audit = useQuery(
-    adminQueryOptions('word-submissions', { kind: 'audit', batch: batch.id }, (signal) =>
-      wordSubmissionsApi.audit(batch.id, signal),
+  const batchQuery = useQuery(
+    adminQueryOptions('word-submissions', { kind: 'batch', batch: batchId }, (signal) =>
+      wordSubmissionsApi.batch(batchId, signal),
     ),
   );
-  const act = (action: SubmissionConfirmation['action']) => onAction({ action, items: [item] });
+  const audit = useQuery(
+    adminQueryOptions('word-submissions', { kind: 'audit', batch: batchId }, (signal) =>
+      wordSubmissionsApi.audit(batchId, signal),
+    ),
+  );
+  // The stream row is a summary: resolve the full item (material, review
+  // verdict, review id) from its batch. Footer actions wait for the batch;
+  // the row alone cannot carry them (it has no material or review id).
+  const fullItem = batchQuery.data?.items.find((entry) => entry.id === item.id);
+  const act = (action: SubmissionConfirmation['action'], target: WordSubmissionItem) =>
+    onAction({ action, items: [target] });
   return (
     <DetailDrawer
       title="词条详情"
@@ -144,87 +153,162 @@ export function SubmissionItemDrawer({
           <button type="button" onClick={onClose}>
             关闭
           </button>
-          {isSelectableSubmission(item) && (
-            <button type="button" className="admin-error" onClick={() => act('dismiss')}>
-              拒绝此条…
-            </button>
-          )}
-          {['approved', 'failed'].includes(item.status) && (
-            <button type="button" className="admin-primary" onClick={() => act('review')}>
-              {item.status === 'failed' ? '重试审核…' : '启动审核…'}
-            </button>
-          )}
-          {item.status === 'passed' && (
-            <button type="button" className="admin-primary" onClick={() => act('publish')}>
-              确认发布…
-            </button>
-          )}
-          {isEndorsableSubmission(item) && (
-            <button type="button" onClick={() => act('endorse')}>
-              批准进入审核…
-            </button>
-          )}
-          {isUnendorsableSubmission(item) && (
-            <button type="button" onClick={() => act('unendorse')}>
-              撤回批准…
-            </button>
-          )}
-          {isApprovableSubmission(item) && (
-            <button type="button" onClick={() => act('approve')}>
-              人工通过…
-            </button>
-          )}
-          {['rejected', 'passed'].includes(item.status) && (
-            <button type="button" onClick={() => act('review')}>
-              重新审核…
-            </button>
-          )}
-          {item.status === 'published' && (
-            <button type="button" className="admin-error" onClick={() => act('unpublish')}>
-              下架…
-            </button>
+          {fullItem !== undefined && (
+            <>
+              {isSelectableSubmission(fullItem) && (
+                <button
+                  type="button"
+                  className="admin-error"
+                  onClick={() => act('dismiss', fullItem)}
+                >
+                  拒绝此条…
+                </button>
+              )}
+              {['approved', 'failed'].includes(fullItem.status) && (
+                <button
+                  type="button"
+                  className="admin-primary"
+                  onClick={() => act('review', fullItem)}
+                >
+                  {fullItem.status === 'failed' ? '重试审核…' : '启动审核…'}
+                </button>
+              )}
+              {fullItem.status === 'passed' && (
+                <button
+                  type="button"
+                  className="admin-primary"
+                  onClick={() => act('publish', fullItem)}
+                >
+                  确认发布…
+                </button>
+              )}
+              {isEndorsableSubmission(fullItem) && (
+                <button type="button" onClick={() => act('endorse', fullItem)}>
+                  批准进入审核…
+                </button>
+              )}
+              {isUnendorsableSubmission(fullItem) && (
+                <button type="button" onClick={() => act('unendorse', fullItem)}>
+                  撤回批准…
+                </button>
+              )}
+              {isApprovableSubmission(fullItem) && (
+                <button type="button" onClick={() => act('approve', fullItem)}>
+                  人工通过…
+                </button>
+              )}
+              {['rejected', 'passed'].includes(fullItem.status) && (
+                <button type="button" onClick={() => act('review', fullItem)}>
+                  重新审核…
+                </button>
+              )}
+              {fullItem.status === 'published' && (
+                <button
+                  type="button"
+                  className="admin-error"
+                  onClick={() => act('unpublish', fullItem)}
+                >
+                  下架…
+                </button>
+              )}
+            </>
           )}
         </>
       }
     >
-      <p className="admin-muted">
-        {WORD_GAME_LABELS[batch.game]} / {item.category}
-      </p>
-      <h3 className="admin-submission-word">{item.title}</h3>
-      <SubmissionStatus status={item.status} />
-      <section className="admin-submission-detail">
-        <h3>投稿材料 · Agent 提供</h3>
-        <MaterialValue value={item.content} />
-      </section>
-      <SubmissionReviewDetails item={item} />
-      <section className="admin-submission-detail">
-        <h3>操作记录</h3>
-        <AsyncBoundary query={audit}>
-          {(data) => (
-            <ol className="admin-submission-audit">
-              {data.events
-                .filter((entry) => entry.itemId === item.id)
-                .map((entry) => (
-                  <li key={entry.id}>
-                    <strong>
-                      {entry.actor === 'shared-admin' ? '共享管理员' : '审核工作流'} ·{' '}
-                      {ACTION_LABELS[entry.action] ?? entry.action}
-                    </strong>
-                    <p>{entry.reason}</p>
-                    <small>{new Date(entry.createdAt).toLocaleString('zh-CN')}</small>
-                  </li>
-                ))}
-            </ol>
-          )}
-        </AsyncBoundary>
-        <p className="admin-submission-note">
-          显示最近 10 次操作中的最新 100 条记录。已发布或下架的词保留原编号与来源。
-        </p>
-      </section>
-      <p className="admin-submission-note">
-        修订 {item.revision} · 内容指纹 {item.contentHash}
-      </p>
+      <AsyncBoundary query={batchQuery}>
+        {(loadedBatch) => {
+          const resolved = loadedBatch.items.find((entry) => entry.id === item.id);
+          if (resolved === undefined) return <p className="admin-muted">该词条已不在此批次中。</p>;
+          return (
+            <>
+              <p className="admin-muted">
+                {WORD_GAME_LABELS[loadedBatch.game]} / {resolved.category}
+              </p>
+              <h3 className="admin-submission-word">{resolved.title}</h3>
+              <SubmissionStatus status={resolved.status} />
+              <section className="admin-submission-detail">
+                <h3>投稿材料 · Agent 提供</h3>
+                <MaterialValue value={resolved.content} />
+              </section>
+              <SubmissionReviewDetails item={resolved} />
+              <DrawerReviewDispatchNotice
+                batchId={batchId}
+                item={resolved}
+                onRefresh={() => void batchQuery.refetch()}
+              />
+              <section className="admin-submission-detail">
+                <h3>操作记录</h3>
+                <AsyncBoundary query={audit}>
+                  {(data) => (
+                    <ol className="admin-submission-audit">
+                      {data.events
+                        .filter((entry) => entry.itemId === resolved.id)
+                        .map((entry) => (
+                          <li key={entry.id}>
+                            <strong>
+                              {entry.actor === 'shared-admin' ? '共享管理员' : '审核工作流'} ·{' '}
+                              {ACTION_LABELS[entry.action] ?? entry.action}
+                            </strong>
+                            <p>{entry.reason}</p>
+                            <small>{new Date(entry.createdAt).toLocaleString('zh-CN')}</small>
+                          </li>
+                        ))}
+                    </ol>
+                  )}
+                </AsyncBoundary>
+                <p className="admin-submission-note">
+                  显示最近 10 次操作中的最新 100 条记录。已发布或下架的词保留原编号与来源。
+                </p>
+              </section>
+              <p className="admin-submission-note">
+                修订 {resolved.revision} · 内容指纹 {resolved.contentHash}
+              </p>
+            </>
+          );
+        }}
+      </AsyncBoundary>
     </DetailDrawer>
+  );
+}
+
+/** A review whose dispatch was never confirmed can be re-confirmed here
+ * without starting a second review. Moved from the deleted batch detail. */
+function DrawerReviewDispatchNotice({
+  batchId,
+  item,
+  onRefresh,
+}: {
+  batchId: string;
+  item: WordSubmissionItem;
+  onRefresh: () => void;
+}) {
+  const dispatch = useSubmissionCommand(async (ids: string[]) => {
+    for (const id of ids) await wordSubmissionsApi.dispatch(batchId, id);
+    onRefresh();
+  });
+  if (item.status !== 'reviewing' || item.reviewId === null) return null;
+  const reviewId = item.reviewId;
+  return (
+    <>
+      <div className="admin-notice admin-submission-actions">
+        <span>
+          审核正在后台运行。请刷新进度；启动请求未确认时，可重新确认同一任务，不会产生第二次审核。
+        </span>
+        <button
+          type="button"
+          disabled={dispatch.isPending}
+          onClick={() => dispatch.mutate([reviewId])}
+        >
+          确认审核任务启动
+        </button>
+      </div>
+      {dispatch.error !== null && (
+        <p role="alert" className="admin-error-box">
+          {dispatch.error.message}
+        </p>
+      )}
+    </>
   );
 }
 

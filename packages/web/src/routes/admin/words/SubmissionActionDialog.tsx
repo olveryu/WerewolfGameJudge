@@ -32,11 +32,14 @@ export interface SubmissionConfirmation {
 export function SubmissionActionDialog({
   batchId,
   confirmation,
+  multiBatch = false,
   onClose,
   onComplete,
 }: {
   batchId: string;
   confirmation: SubmissionConfirmation;
+  /** The selection spans several batches; each batch confirms separately. */
+  multiBatch?: boolean;
   onClose: () => void;
   onComplete: () => void;
 }) {
@@ -115,6 +118,11 @@ export function SubmissionActionDialog({
                       ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
                       : '关闭这些候选，不会修改任何线上词语。'}
         </p>
+        {multiBatch && (
+          <p className="admin-submission-note">
+            所选条目分属多个批次，将按批次分别确认；本次确认只针对当前批次的词条。
+          </p>
+        )}
         <ul>
           {confirmation.items.map((item) => (
             <li key={item.id}>{item.title}</li>
@@ -144,7 +152,7 @@ export function SubmissionActionDialog({
         {command.error !== null && (
           <p role="alert" className="admin-error-box">
             操作未确认：{command.error.message}
-            。可以重试同一请求；如选择已过期，请关闭并刷新批次后重新选择。
+            。可以重试同一请求；如选择已过期，请关闭并刷新页面后重新选择。
           </p>
         )}
         {request !== null && <p className="admin-submission-note">请求标识：{request.id}</p>}

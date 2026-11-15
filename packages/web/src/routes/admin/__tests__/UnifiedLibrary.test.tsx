@@ -3,13 +3,11 @@ import type {
   WordLibraryItem,
   WordLibraryItems,
   WordSubmissionBatch,
-  wordSubmissionListSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import type { z } from 'zod';
 
 import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -24,9 +22,10 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
 vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/wordSubmissionsApi')>()),
   wordSubmissionsApi: {
-    batches: vi.fn(),
     batch: vi.fn(),
+    audit: vi.fn(),
     action: vi.fn(),
+    dispatch: vi.fn(),
   },
 }));
 vi.mock('@/utils/alert', () => ({
@@ -129,18 +128,6 @@ const libraryData: WordLibraryItems = {
   },
   nextCursor: null,
 };
-type BatchListEntry = z.output<typeof wordSubmissionListSchema>['batches'][number];
-function batch(overrides: Partial<BatchListEntry> & { id: string }): BatchListEntry {
-  return {
-    game: 'drawguess',
-    agentId: '20000000-0000-4000-8000-000000000001',
-    agentName: 'Muse',
-    createdAt: '2026-11-13T00:00:00.000Z',
-    counts: { pending: 1 },
-    inventoryExists: false,
-    ...overrides,
-  };
-}
 const batchDetail: WordSubmissionBatch = {
   id: '10000000-0000-4000-8000-000000000001',
   game: 'drawguess',
@@ -149,7 +136,7 @@ const batchDetail: WordSubmissionBatch = {
   createdAt: '2026-11-13T00:00:00.000Z',
   items: [
     {
-      id: '30000000-0000-4000-8000-000000000001',
+      id: 'item-1',
       clientItemId: 'item-1',
       identity: '玫瑰花',
       contentHash: 'a'.repeat(64),
@@ -194,15 +181,8 @@ beforeEach(() => {
       : stats,
   );
   vi.mocked(fetchLibraryItems).mockResolvedValue(libraryData);
-  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-    batches: [
-      batch({ id: '10000000-0000-4000-8000-000000000001', inventoryExists: true }),
-      batch({ id: '10000000-0000-4000-8000-000000000002', counts: { passed: 1 } }),
-    ],
-    totals: { pending: 2, approved: 1, reviewing: 4, passed: 5 },
-    nextCursor: null,
-  });
   vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batchDetail);
+  vi.mocked(wordSubmissionsApi.audit).mockResolvedValue({ events: [], statuses: [] });
   vi.mocked(wordSubmissionsApi.action).mockResolvedValue({
     id: '40000000-0000-4000-8000-000000000001',
     status: 'complete',
@@ -289,17 +269,6 @@ describe('unified library', () => {
   });
 
   it('marks a supply-generated word as a submission from the system agent', async () => {
-    vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-      batches: [
-        batch({
-          id: '10000000-0000-4000-8000-000000000003',
-          agentName: '系统补词',
-          counts: { pending: 1 },
-        }),
-      ],
-      totals: { pending: 1, approved: 0, reviewing: 0, passed: 0 },
-      nextCursor: null,
-    });
     mount();
     await screen.findByText('大熊猫');
     // The card badge names the source by agent: system-generated words read
@@ -308,18 +277,13 @@ describe('unified library', () => {
     expect(card).not.toBeNull();
     expect(within(card as HTMLElement).getByText('后台生成')).toBeVisible();
     expect(within(card as HTMLElement).getByText(/来源 系统补词/)).toBeVisible();
-    const supplyRow = await screen.findByRole('row', {
-      name: '打开投稿批次 10000000-0000-4000-8000-000000000003',
-    });
-    expect(within(supplyRow).getByText('后台生成')).toBeVisible();
   });
 
   it('shows the duplicate reminder only on the submission row', async () => {
     mount();
     await screen.findByText('大熊猫');
     // Only the card whose word is already in the inventory shows the
-    // reminder; the supply card does not. (The batches table has its own
-    // '重复提醒' column, so the count is scoped to the cards.)
+    // reminder; the supply card does not.
     const duplicateCard = (await screen.findByText('玫瑰花')).closest('article');
     expect(duplicateCard).not.toBeNull();
     expect(within(duplicateCard as HTMLElement).getByText('已有相同词在库')).toBeVisible();
@@ -328,41 +292,78 @@ describe('unified library', () => {
     expect(within(supplyCard as HTMLElement).queryByText('已有相同词在库')).not.toBeInTheDocument();
   });
 
-  it('opens a batch row as an overlay on the library page', async () => {
-    const { router, user } = mount();
-    const row = await screen.findByRole('row', {
-      name: '打开投稿批次 10000000-0000-4000-8000-000000000001',
-    });
-    await user.click(row);
-    await waitFor(() =>
-      expect(router.state.location.search).toContain('batch=10000000-0000-4000-8000-000000000001'),
-    );
-    expect(screen.getByText('投稿批次审核')).toBeVisible();
-    expect(screen.getByText('大熊猫')).toBeVisible();
+  it('never renders a batches panel or batch links', async () => {
+    mount('drawguess', '?batch=10000000-0000-4000-8000-000000000001');
+    await screen.findByText('大熊猫');
+    expect(screen.queryByText('投稿批次')).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /打开投稿批次/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /查看投稿批次/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
   });
 
-  it('opens a submission card batch while preserving filters and returns to the library', async () => {
+  it('opens the item drawer from a card title and closes back to the list', async () => {
     vi.mocked(fetchLibraryItems).mockResolvedValue({
       ...libraryData,
       items: [{ ...submissionItem, batchId: batchDetail.id }],
     });
-    const { router, user } = mount('drawguess', '?search=玫瑰&status=pending');
-    const card = (await screen.findByText('玫瑰花')).closest('article');
-    expect(card).not.toBeNull();
-    await user.click(
-      within(card as HTMLElement).getByRole('button', { name: '查看投稿批次：玫瑰花' }),
-    );
-    expect(router.state.location.search).toContain(`batch=${batchDetail.id}`);
-    expect(router.state.location.search).toContain('status=pending');
-    const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
+    const { user } = mount('drawguess', '?search=玫瑰&status=pending');
+    await user.click(await screen.findByRole('button', { name: '查看玫瑰花审核详情' }));
+    const drawer = await screen.findByRole('dialog', { name: '词条详情' });
     expect(wordSubmissionsApi.batch).toHaveBeenCalledWith(batchDetail.id, expect.any(AbortSignal));
-    await user.click(within(dialog).getByRole('button', { name: '关闭投稿批次审核' }));
-    await waitFor(() => expect(router.state.location.search).not.toContain('batch='));
-    expect(router.state.location.search).toContain('status=pending');
+    expect(within(drawer).getByRole('heading', { name: '玫瑰花' })).toBeVisible();
+    await user.click(within(drawer).getByRole('button', { name: '关闭' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument(),
+    );
     expect(screen.getByText('玫瑰花')).toBeVisible();
   });
 
-  it('filters the card stream by status without filtering the batches zone', async () => {
+  it('confirms a stalled review dispatch from the item drawer', async () => {
+    const reviewingItem: WordLibraryItem = {
+      ...submissionItem,
+      id: 'item-5',
+      title: '茉莉',
+      status: 'reviewing',
+      duplicateOf: null,
+      contentHash: 'e'.repeat(64),
+      revision: 1,
+      batchId: batchDetail.id,
+    };
+    vi.mocked(fetchLibraryItems).mockResolvedValue({ ...libraryData, items: [reviewingItem] });
+    vi.mocked(wordSubmissionsApi.batch).mockResolvedValue({
+      ...batchDetail,
+      items: [
+        {
+          id: 'item-5',
+          clientItemId: 'item-5',
+          identity: '茉莉',
+          contentHash: 'e'.repeat(64),
+          title: '茉莉',
+          category: '饮食',
+          content: { word: '茉莉' },
+          status: 'reviewing',
+          duplicateOf: null,
+          reviewId: 'review-1',
+          reviewVersion: null,
+          reviewModel: null,
+          review: null,
+          failure: null,
+          approvalReason: null,
+          revision: 1,
+        },
+      ],
+    });
+    vi.mocked(wordSubmissionsApi.dispatch).mockResolvedValue({ success: true });
+    const { user } = mount();
+    await user.click(await screen.findByRole('button', { name: '查看茉莉审核详情' }));
+    const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+    await user.click(within(drawer).getByRole('button', { name: '确认审核任务启动' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.dispatch).toHaveBeenCalledWith(batchDetail.id, 'review-1'),
+    );
+  });
+
+  it('filters the card stream by status', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
@@ -373,10 +374,6 @@ describe('unified library', () => {
         { status: 'approved' },
         expect.any(AbortSignal),
       ),
-    );
-    expect(wordSubmissionsApi.batches).toHaveBeenCalledWith(
-      { game: 'drawguess' },
-      expect.any(AbortSignal),
     );
   });
 
@@ -415,11 +412,9 @@ describe('unified library', () => {
     });
     const { user } = mount();
     await screen.findByText('大熊猫');
-    // Two "下一页" buttons exist (card stream, then the batches zone); the
-    // stream pager renders first.
-    const nextButtons = screen.getAllByRole('button', { name: '下一页' });
-    expect(nextButtons[0]).not.toBeDisabled();
-    await user.click(nextButtons[0] as HTMLElement);
+    const nextButton = screen.getByRole('button', { name: '下一页' });
+    expect(nextButton).not.toBeDisabled();
+    await user.click(nextButton);
     await screen.findByText('长颈鹿');
     expect(screen.getByText('第 2 页')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
@@ -473,16 +468,110 @@ describe('unified library', () => {
     expect(screen.queryByText('模型 · 近 30 天')).not.toBeInTheDocument();
   });
 
-  it('never renders candidate review, publish, or approve actions', async () => {
+  it('never renders the removed candidate bulk labels', async () => {
     mount();
     await screen.findByText('大熊猫');
     expect(screen.queryByRole('button', { name: '批量审核' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '批量发布' })).not.toBeInTheDocument();
-    expect(screen.queryByText('启动独立审核')).not.toBeInTheDocument();
-    expect(screen.queryByText('确认发布')).not.toBeInTheDocument();
   });
 
-  it('endorses a pending submission through its batch dialog', async () => {
+  it('starts review for approved items from the bulk bar', async () => {
+    const { user } = mount();
+    await screen.findByText('月季');
+    await user.click(screen.getByRole('checkbox', { name: '选择月季' }));
+    expect(screen.getByRole('button', { name: '启动独立审核 1' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '启动独立审核 1' }));
+    await user.click(await screen.findByRole('button', { name: '启动独立审核 (1)' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+        'batch-1',
+        expect.objectContaining({
+          action: 'review',
+          items: [expect.objectContaining({ id: 'item-2' })],
+        }),
+      ),
+    );
+    expect(await screen.findByText(/已启动独立审核 1 条/)).toBeVisible();
+  });
+
+  it('publishes passed items from the bulk bar', async () => {
+    const passedItem: WordLibraryItem = {
+      ...submissionItem,
+      id: 'item-4',
+      title: '牡丹',
+      status: 'passed',
+      duplicateOf: null,
+      contentHash: 'd'.repeat(64),
+      revision: 1,
+    };
+    vi.mocked(fetchLibraryItems).mockResolvedValue({ ...libraryData, items: [passedItem] });
+    const { user } = mount();
+    await screen.findByText('牡丹');
+    await user.click(screen.getByRole('checkbox', { name: '选择牡丹' }));
+    expect(screen.getByRole('button', { name: '确认发布 1' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '确认发布 1' }));
+    await user.click(await screen.findByRole('button', { name: '确认发布 (1)' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+        'batch-1',
+        expect.objectContaining({
+          action: 'publish',
+          items: [expect.objectContaining({ id: 'item-4' })],
+        }),
+      ),
+    );
+    expect(await screen.findByText('已确认发布 1 条。')).toBeVisible();
+  });
+
+  it('approves pending items from the bulk bar without a reason', async () => {
+    const { user } = mount();
+    await screen.findByText('玫瑰花');
+    await user.click(screen.getByRole('checkbox', { name: '选择玫瑰花' }));
+    expect(screen.getByRole('button', { name: '人工通过 1' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '人工通过 1' }));
+    const dialog = await screen.findByRole('dialog', { name: '人工通过' });
+    expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: '人工通过 (1)' }));
+    await waitFor(() =>
+      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+        'batch-1',
+        expect.objectContaining({
+          action: 'approve',
+          items: [expect.objectContaining({ id: 'item-1' })],
+        }),
+      ),
+    );
+    expect(await screen.findByText('已人工通过 1 条。')).toBeVisible();
+  });
+
+  it('says a cross-batch selection confirms per batch', async () => {
+    const secondSubmission: WordLibraryItem = {
+      ...submissionItem,
+      id: 'item-3',
+      batchId: 'batch-2',
+      title: '向日葵',
+      contentHash: 'c'.repeat(64),
+      revision: 3,
+    };
+    vi.mocked(fetchLibraryItems).mockResolvedValue({
+      ...libraryData,
+      items: [submissionItem, secondSubmission],
+    });
+    const { user } = mount();
+    await screen.findByText('玫瑰花');
+    await user.click(screen.getByRole('checkbox', { name: '选择玫瑰花' }));
+    await user.click(screen.getByRole('checkbox', { name: '选择向日葵' }));
+    expect(screen.getByText('所选条目分属 2 个批次，将按批次分别确认。')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: '批量批准 2' }));
+    const dialog = await screen.findByRole('dialog', { name: '批准进入审核' });
+    expect(
+      within(dialog).getByText(
+        '所选条目分属多个批次，将按批次分别确认；本次确认只针对当前批次的词条。',
+      ),
+    ).toBeVisible();
+  });
+
+  it('endorses a pending submission through its action dialog', async () => {
     const { user } = mount();
     await screen.findByText('玫瑰花');
     const card = screen.getByText('玫瑰花').closest('article');
@@ -508,6 +597,9 @@ describe('unified library', () => {
     expect(screen.getByRole('button', { name: '批量批准 2' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量拒绝 3' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量撤回批准 1' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '启动独立审核 1' })).toBeVisible();
+    expect(screen.getByRole('button', { name: '人工通过 2' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /确认发布/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /批量审核/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /批量发布/ })).not.toBeInTheDocument();
   });
