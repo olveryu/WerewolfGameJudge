@@ -16,6 +16,7 @@ const SUBMISSION_ACTION_LABELS = {
   dismiss: '拒绝候选',
   approve: '人工通过',
   endorse: '批准进入审核',
+  unendorse: '撤回批准',
   unpublish: '下架词条',
 } as const;
 export interface SubmissionConfirmation {
@@ -104,9 +105,11 @@ export function SubmissionActionDialog({
                 ? '由你确认这些材料可以使用，不依赖模型或独立资料检索成功，不调用外部服务。保留原审核结果并记录人工决定；通过后仍须单独确认发布。'
                 : confirmation.action === 'endorse'
                   ? '只表示你看过并同意送审，不调用模型，不改变原审核结论；之后仍需启动独立审核，通过后单独确认发布。'
-                  : confirmation.action === 'unpublish'
-                    ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
-                    : '关闭这些候选，不会修改任何线上词语。'}
+                  : confirmation.action === 'unendorse'
+                    ? '只把已批准的词条退回待批准队列，不调用模型，不改变原审核结论；之后仍可重新批准进入审核。'
+                    : confirmation.action === 'unpublish'
+                      ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
+                      : '关闭这些候选，不会修改任何线上词语。'}
         </p>
         <ul>
           {confirmation.items.map((item) => (

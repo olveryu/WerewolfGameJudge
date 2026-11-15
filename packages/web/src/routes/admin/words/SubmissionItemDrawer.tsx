@@ -15,6 +15,7 @@ import {
   isApprovableSubmission,
   isEndorsableSubmission,
   isSelectableSubmission,
+  isUnendorsableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
@@ -25,6 +26,7 @@ const ACTION_LABELS: Readonly<Record<string, string>> = {
   review: '启动独立审核',
   approve: '人工通过',
   endorse: '批准进入审核',
+  unendorse: '撤回批准',
   publish: '发布',
   dismiss: '拒绝',
   unpublish: '下架',
@@ -160,6 +162,11 @@ export function SubmissionItemDrawer({
           {isEndorsableSubmission(item) && (
             <button type="button" onClick={() => act('endorse')}>
               批准进入审核…
+            </button>
+          )}
+          {isUnendorsableSubmission(item) && (
+            <button type="button" onClick={() => act('unendorse')}>
+              撤回批准…
             </button>
           )}
           {isApprovableSubmission(item) && (

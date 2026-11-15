@@ -472,6 +472,47 @@ it('offers single-item endorsement for pending without a review button', async (
   );
 });
 
+it('bulk withdraws approval for approved items without calling the model', async () => {
+  vi.mocked(wordSubmissionsApi.action).mockResolvedValueOnce({
+    id: crypto.randomUUID(),
+    status: 'complete',
+  });
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
+  await user.click(screen.getByRole('button', { name: '撤回批准 1' }));
+  const dialog = await screen.findByRole('dialog', { name: '撤回批准' });
+  expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+  expect(within(dialog).getByText(/只把已批准的词条退回待批准队列/)).toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '撤回批准 (1)' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]?.[0]).toBe(batch.id);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'unendorse',
+    reason: '',
+    items: [{ id: batch.items[9]?.id, revision: 1 }],
+  });
+});
+
+it('offers single-item unendorsement for approved without an endorsement button', async () => {
+  const { user } = mount();
+  await user.click(await screen.findByRole('button', { name: '查看词语9审核详情' }));
+  const drawer = await screen.findByRole('dialog', { name: '词条详情' });
+  expect(within(drawer).queryByRole('button', { name: '批准进入审核…' })).not.toBeInTheDocument();
+  await user.click(within(drawer).getByRole('button', { name: '撤回批准…' }));
+  const dialog = await screen.findByRole('dialog', { name: '撤回批准' });
+  await user.click(within(dialog).getByRole('button', { name: '撤回批准 (1)' }));
+  await waitFor(() =>
+    expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
+      batch.id,
+      expect.objectContaining({
+        action: 'unendorse',
+        items: [expect.objectContaining({ id: batch.items[9]?.id })],
+      }),
+    ),
+  );
+});
+
 it('keeps contextual actions in the drawer and preserves the original verdict after human approval', async () => {
   vi.mocked(wordSubmissionsApi.batch).mockResolvedValue({
     ...batch,

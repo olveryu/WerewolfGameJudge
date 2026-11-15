@@ -6,7 +6,7 @@
 
 1. 管理员在「词库 → Agent 授权」签发独立凭证，设置游戏范围、每日投稿和未处理上限。
 2. Agent 读取字段说明，预检，再把候选提交到隔离区。此时不调用模型，也不进入自动补词候选表。
-3. 管理员进入「外部投稿」，打开批次，先对候选「批准进入审核」（endorse），再选择「审核全部待审」或勾选审核。独立 Workflow 复用各游戏现有审核器，但没有发布步骤。未经批准的候选不能直接启动审核（返回 `409`）。
+3. 管理员进入「外部投稿」，打开批次，先对候选「批准进入审核」（endorse），再选择「审核全部待审」或勾选审核。独立 Workflow 复用各游戏现有审核器，但没有发布步骤。未经批准的候选不能直接启动审核（返回 `409`）。点错批准可用「撤回批准」（unendorse）把已批准项退回待批准，审核一旦启动就撤不回。
 4. 管理员阅读原始材料、模型结论、独立资料和操作记录，明确「确认发布」后才进入游戏抽词库。
 
 Agent 的自评、提示词和参考链接均为不可信材料，不是通过凭证。瞎掰王只从服务端固定 Tavily 接口搜索并提取独立发现的资料；不会请求 Agent 提交的 URL。模型仍可能判断错误，因此通过模型审核也不等于已发布。
@@ -109,7 +109,7 @@ curl --fail-with-body "$WORD_API_BASE/v1/word-submissions" \
 
 迁移 `0077_submission_agent_archive.sql` 增加授权删除时间和仅索引可见授权的部分索引；新索引写入只影响可见授权的创建和删除，使历史授权增长不拖慢列表及容量检查。它同时扩展授权审计事件种类，复制既有控制审计表并保留事件编号、自增序列、外键、约束和原有四个审计触发器，新增参数、有效期与删除审计。一次性复制读写量与既有控制审计行数成正比，索引构建与授权行数成正比；上线前确认生产规模及费用，先迁移再部署。它不重建投稿、词库或游戏状态。
 
-迁移 `0079_word_submission_endorsement.sql` 给投稿条目加 `approved` 状态与 `endorse` 动作（表复制重建，含身份索引与计数触发器）；`0080_word_candidate_approval.sql` 给三款游戏的候选表加 `approved` 状态与 `word_candidate_approvals` 审批记录表；`0081_editorial_model_operation.sql` 给模型调用账本加 `operation`（生成/审核）分项；`0082_word_candidate_list_index.sql` 给三张候选表加（状态，创建时间，编号）列表索引；`0083_word_candidate_dismissal.sql` 给候选拒绝记 `word_candidate_dismissals` 审计表（按请求编号加创建时间索引）。
+迁移 `0079_word_submission_endorsement.sql` 给投稿条目加 `approved` 状态与 `endorse` 动作（表复制重建，含身份索引与计数触发器）；`0080_word_candidate_approval.sql` 给三款游戏的候选表加 `approved` 状态与 `word_candidate_approvals` 审批记录表；`0081_editorial_model_operation.sql` 给模型调用账本加 `operation`（生成/审核）分项；`0082_word_candidate_list_index.sql` 给三张候选表加（状态，创建时间，编号）列表索引；`0083_word_candidate_dismissal.sql` 给候选拒绝记 `word_candidate_dismissals` 审计表（按请求编号加创建时间索引）；`0084_word_submission_unendorse.sql` 给投稿动作加 `unendorse`（撤回批准，表复制重建，审计事件行与外键保留）。
 
 ## 5. 额度与成本
 

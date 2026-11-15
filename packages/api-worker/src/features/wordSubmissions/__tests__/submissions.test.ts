@@ -1655,6 +1655,30 @@ describe('External word submissions', () => {
     expect(await readSubmissionSettings(env.DB)).toMatchObject({ pending: 0, awaitingReview: 0 });
   });
 
+  it('withdraws an endorsement back to pending and closes the review gate again', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    await expect(applySubmissionAction(env, batch.id, action(batch, 'unendorse'))).rejects.toThrow(
+      'SUBMISSION_SELECTION_STALE_OR_NOT_ELIGIBLE',
+    );
+    const endorsed = await endorse(batch);
+    expect(endorsed.items[0]?.status).toBe('approved');
+    await applySubmissionAction(env, batch.id, action(endorsed, 'unendorse'));
+    const withdrawn = await readSubmissionBatch(env.DB, batch.id);
+    expect(withdrawn.items[0]?.status).toBe('pending');
+    expect(withdrawn.items[0]?.approvalReason).toBeNull();
+    expect(await readSubmissionSettings(env.DB)).toMatchObject({ pending: 1, awaitingReview: 1 });
+    await expect(
+      applySubmissionAction(env, batch.id, action(withdrawn, 'review', '', crypto.randomUUID())),
+    ).rejects.toThrow('SUBMISSION_SELECTION_STALE_OR_NOT_ELIGIBLE');
+    const events = await env.DB.prepare(
+      'SELECT action FROM word_submission_events WHERE item_id = ?',
+    )
+      .bind(batch.items[0]?.id)
+      .all();
+    expect(events.results).toContainEqual({ action: 'unendorse' });
+  });
+
   it('deduplicates the same identity with different wording at validation and at storage', async () => {
     const issued = await agent();
     const first = await submit(issued.token, {

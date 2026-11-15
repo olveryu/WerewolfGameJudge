@@ -143,3 +143,8 @@ export function isApprovableSubmission(item: WordSubmissionItem) {
 export function isEndorsableSubmission(item: WordSubmissionItem) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }
+
+/** Withdrawing an endorsement only returns an approved item to pending; review never started. */
+export function isUnendorsableSubmission(item: WordSubmissionItem) {
+  return item.status === 'approved';
+}

@@ -20,6 +20,7 @@ import {
   isApprovableSubmission,
   isEndorsableSubmission,
   isSelectableSubmission,
+  isUnendorsableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
@@ -147,6 +148,7 @@ function SelectedCandidateActions({
 }) {
   const reviewable = items.filter((item) => ['approved', 'failed'].includes(item.status));
   const endorsable = items.filter(isEndorsableSubmission);
+  const unendorsable = items.filter(isUnendorsableSubmission);
   const approvable = items.filter(isApprovableSubmission);
   const publishable = items.filter((item) => item.status === 'passed');
   return (
@@ -169,6 +171,16 @@ function SelectedCandidateActions({
           }
         >
           批准进入审核 {endorsable.length}
+        </button>
+      )}
+      {unendorsable.length > 0 && (
+        <button
+          type="button"
+          onClick={(event) =>
+            onAction({ action: 'unendorse', items: unendorsable }, event.currentTarget)
+          }
+        >
+          撤回批准 {unendorsable.length}
         </button>
       )}
       {approvable.length > 0 && (

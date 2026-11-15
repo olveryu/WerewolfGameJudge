@@ -131,7 +131,7 @@ export type WordSubmissionValidation = z.output<typeof wordSubmissionValidationS
 
 export const wordSubmissionActionSchema = z.strictObject({
   id: z.uuid(),
-  action: z.enum(['review', 'publish', 'dismiss', 'approve', 'endorse', 'unpublish']),
+  action: z.enum(['review', 'publish', 'dismiss', 'approve', 'endorse', 'unendorse', 'unpublish']),
   reason: z.string().check(z.trim(), z.maxLength(1000)),
   items: z
     .array(
