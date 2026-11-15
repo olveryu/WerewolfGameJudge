@@ -104,6 +104,15 @@ describe('word submission unendorse migration', () => {
        VALUES ('act-3', 'batch-1', 'endorse', 'rh-3', '[]', '', 'complete', '2026-11-14T00:00:00Z')`,
     ).run();
 
+    // The CHECK whitelist itself is pinned: an unknown action is rejected.
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO word_submission_actions
+         (id, batch_id, action, request_hash, items_json, reason, status, created_at)
+         VALUES ('act-4', 'batch-1', 'bogus', 'rh-4', '[]', '', 'complete', '2026-11-14T00:00:00Z')`,
+      ).run(),
+    ).rejects.toThrow(/CHECK constraint/i);
+
     // The count triggers were untouched by this migration.
     const triggers = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'word_submission_items%'",
