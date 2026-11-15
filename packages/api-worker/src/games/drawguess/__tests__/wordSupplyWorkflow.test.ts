@@ -74,10 +74,10 @@ describe('DrawGuess supply workflow', () => {
   });
 
   it.each([
-    { initialRequests: 7, force: false, expectedStatus: 'budget_exhausted' },
-    { initialRequests: 8, force: true, expectedStatus: 'paused' },
+    { initialRequests: 8, force: false, expectedStatus: 'budget_exhausted' },
+    { initialRequests: 8, force: true, expectedStatus: 'awaitingApproval' },
   ])(
-    'rechecks the budget between batches and honors force (force=$force)',
+    'honors the shared budget gate and force bypass (force=$force)',
     async ({ initialRequests, force, expectedStatus }) => {
       await env.DB.prepare(
         `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
@@ -86,9 +86,8 @@ describe('DrawGuess supply workflow', () => {
       )
         .bind(initialRequests, new Date().toISOString())
         .run();
-      // Batch 0 reviews an already-approved candidate (one model claim);
-      // generation would stop at the approval gate instead of consuming
-      // budget, so the recheck below only fires on the review claim.
+      // An already-approved candidate waits for the manual endpoints: the
+      // workflow never reviews or publishes it, in either mode.
       const day = new Date().toISOString().slice(0, 10);
       const sortedCategories = [...DRAWGUESS_WORD_CATEGORIES].sort();
       const category = sortedCategories[0];
@@ -111,37 +110,37 @@ describe('DrawGuess supply workflow', () => {
           day,
         )
         .run();
-      const review = {
-        word: '大熊猫',
-        qualityChecks: {
-          isConcreteAndDrawable: true,
-          isSimplifiedChinese: true,
-          isLengthValid: true,
-          isCategoryAccurate: true,
-          isAppropriate: true,
-          isUnambiguous: true,
-        },
-        reason: '模拟独立审核通过。',
-      };
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation(async () =>
-          Response.json({
-            candidates: [
-              {
-                finishReason: 'STOP',
-                content: { parts: [{ text: JSON.stringify({ reviews: [review] }) }] },
+      const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () =>
+        Response.json({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      candidates: [
+                        {
+                          word: '小猫',
+                          category,
+                          difficulty: 'easy',
+                          potentialIssues: [],
+                        },
+                      ],
+                    }),
+                  },
+                ],
               },
-            ],
-          }),
-        ),
+            },
+          ],
+        }),
       );
+      vi.stubGlobal('fetch', fetchImpl);
       const id = crypto.randomUUID();
       await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
       await instance.modify(async (modifier) => {
         await modifier.disableSleeps();
         await modifier.mockStepResult({ name: 'enabled' }, true);
-        await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
       });
       await env.DRAWGUESS_WORD_SUPPLY.create({
         id,
@@ -151,17 +150,28 @@ describe('DrawGuess supply workflow', () => {
       expect(await instance.getOutput()).toEqual({ status: expectedStatus });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_word_packs').first(),
-      ).toEqual({
-        count: 1,
-      });
+      ).toEqual({ count: force ? 1 : 0 });
       expect(
         await env.DB.prepare(
-          "SELECT word, status FROM drawguess_words WHERE word = '大熊猫'",
+          "SELECT word, status FROM drawguess_word_candidates WHERE word = '大熊猫'",
         ).first(),
-      ).toEqual({ word: '大熊猫', status: 'active' });
+      ).toEqual({ word: '大熊猫', status: 'approved' });
+      expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual(
+        { count: 0 },
+      );
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
-      ).toEqual({ count: initialRequests + 1 });
+      ).toEqual({ count: initialRequests + (force ? 1 : 0) });
+      if (force) {
+        expect(fetchImpl).toHaveBeenCalledOnce();
+        expect(
+          await env.DB.prepare(
+            "SELECT word, status FROM drawguess_word_candidates WHERE word = '小猫'",
+          ).first(),
+        ).toEqual({ word: '小猫', status: 'pending' });
+      } else {
+        expect(fetchImpl).not.toHaveBeenCalled();
+      }
     },
   );
 
@@ -192,7 +202,7 @@ describe('DrawGuess supply workflow', () => {
     });
   });
 
-  it('checkpoints partial validation and publishes only valid independently reviewed words', async () => {
+  it('checkpoints partial validation and stops generated words at the approval gate', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
     const candidateMaterial = {
@@ -254,12 +264,16 @@ describe('DrawGuess supply workflow', () => {
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 1 });
 
-    // Human approval (the endpoint is covered by the admin tests; here the
-    // workflow only needs approved rows) unblocks the next run, which
-    // reviews and publishes the persisted candidate without regenerating.
+    // Human approval does not change what the workflow does: the next run
+    // generates new words and stops at the approval gate again; the approved
+    // candidate waits for the manual review/publish endpoints.
     await env.DB.prepare(
       "UPDATE drawguess_word_candidates SET status = 'approved' WHERE status = 'pending'",
     ).run();
+    const resumeRequests = mockWordSupplyModel(
+      { word: '小猫', difficulty: 'easy', potentialIssues: [] },
+      review,
+    );
     const resumeId = crypto.randomUUID();
     await using resume = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, resumeId);
     await resume.modify(async (modifier) => {
@@ -269,26 +283,29 @@ describe('DrawGuess supply workflow', () => {
     });
     await env.DRAWGUESS_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: 'resume' } });
     await resume.waitForStatus('complete');
-    expect(await resume.getOutput()).toEqual({ status: 'paused' });
+    expect(await resume.getOutput()).toEqual({ status: 'awaitingApproval' });
     expect(
       await env.DB.prepare('SELECT status FROM drawguess_word_packs WHERE id = ?')
         .bind(`${day}-manual-resume-0`)
         .first(),
-    ).toEqual({ status: 'published' });
-    expect(requests).toHaveLength(2);
-    expect(requests[1]).toMatchObject({
+    ).toEqual({ status: 'reserved' });
+    expect(resumeRequests).toHaveLength(1);
+    expect(resumeRequests[0]).toMatchObject({
       category: pack.category,
-      candidates: [{ word: candidateMaterial.word }],
+      history: [candidateMaterial.word],
     });
     expect(
-      await env.DB.prepare(
-        'SELECT word, category, pinyin_initials, status FROM drawguess_words',
-      ).first(),
-    ).toEqual({
-      word: '大熊猫',
-      category: pack.category,
-      pinyin_initials: 'd x m',
-      status: 'active',
+      (
+        await env.DB.prepare(
+          'SELECT word, status FROM drawguess_word_candidates ORDER BY word',
+        ).all()
+      ).results,
+    ).toEqual([
+      { word: '大熊猫', status: 'approved' },
+      { word: '小猫', status: 'pending' },
+    ]);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
+      count: 0,
     });
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),

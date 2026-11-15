@@ -12,6 +12,8 @@ import {
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
+  parsePublishWordCandidatesResponse,
+  parseReviewWordCandidatesResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 
@@ -460,5 +462,53 @@ describe('adminResponseCodec', () => {
       }),
     ).toThrow('unsupported status');
     expect(() => parseLibraryItemsResponse({ ...base, extra: true })).toThrow('unsupported fields');
+  });
+
+  it('decodes the manual candidate review and publish results', () => {
+    expect(
+      parseReviewWordCandidatesResponse({
+        game: 'undercover',
+        passedIds: ['a'],
+        rejectedIds: ['b'],
+        failedIds: ['c'],
+        skippedIds: ['d'],
+      }),
+    ).toEqual({
+      game: 'undercover',
+      passedIds: ['a'],
+      rejectedIds: ['b'],
+      failedIds: ['c'],
+      skippedIds: ['d'],
+    });
+    expect(() =>
+      parseReviewWordCandidatesResponse({
+        game: 'undercover',
+        passedIds: ['a'],
+        rejectedIds: [],
+        failedIds: [],
+      }),
+    ).toThrow();
+    expect(
+      parsePublishWordCandidatesResponse({
+        game: 'fibking',
+        publishedIds: ['a'],
+        rejectedIds: ['b'],
+        skippedIds: [],
+      }),
+    ).toEqual({
+      game: 'fibking',
+      publishedIds: ['a'],
+      rejectedIds: ['b'],
+      skippedIds: [],
+    });
+    expect(() =>
+      parsePublishWordCandidatesResponse({
+        game: 'fibking',
+        publishedIds: ['a'],
+        rejectedIds: [],
+        skippedIds: [],
+        extra: true,
+      }),
+    ).toThrow();
   });
 });

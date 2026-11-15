@@ -1,17 +1,10 @@
-/** Real D1 queue recovery, exact review publication, and stable pair retirement. */
+/** Real D1 queue recovery and stable reservation. */
 import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import type { UndercoverWordCandidate, UndercoverWordReview } from '../wordEditorial';
-import {
-  failUndercoverWordPack,
-  getUndercoverReviewCandidates,
-  publishUndercoverWordPack,
-  reserveUndercoverWordPack,
-  storeUndercoverWordCandidates,
-} from '../wordPublication';
+import { reserveUndercoverWordPack } from '../wordPublication';
 
 beforeEach(async () => {
   await env.DB.batch([
@@ -92,96 +85,6 @@ describe('Undercover editorial publication', () => {
     expect(review?.category).toBe('food');
     expect(replenishment).not.toBeNull();
     expect(replenishment?.category).not.toBe('food');
-  });
-
-  it('resumes failed material, publishes once, and retires only after a negative review', async () => {
-    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
-    if (first === null) throw new Error('Expected reservation');
-    await env.DB.batch(
-      UNDERCOVER_CATEGORIES.filter((category) => category !== first.category).map((category) =>
-        env.DB.prepare(
-          `INSERT INTO undercover_word_pairs
-            (id, word_a, word_b, category, status, created_at, reviewed_at, review_json)
-           VALUES (?, ?, ?, ?, 'active', '2026-01-01', '2026-01-01', '{}')`,
-        ).bind(`stock-${category}`, `${category}-a`, `${category}-b`, category),
-      ),
-    );
-    expect(await reserveUndercoverWordPack(env.DB, '2026-09-01', 0)).toBeNull();
-    const candidate: UndercoverWordCandidate = {
-      wordA: '熬夜',
-      wordB: '赖床',
-      category: first.category,
-      commonTraits: ['作息习惯', '感觉困倦'],
-      differences: ['发生时间', '是否入睡'],
-      potentialIssues: [],
-    };
-    await storeUndercoverWordCandidates(env.DB, first, [candidate]);
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare("UPDATE undercover_word_candidates SET status = 'approved'").run();
-    const candidates = await getUndercoverReviewCandidates(env.DB, first);
-    expect(candidates).toHaveLength(1);
-    await failUndercoverWordPack(env.DB, first, 'review:timedOut');
-    const second = await reserveUndercoverWordPack(env.DB, '2026-09-02', 0);
-    if (second === null) throw new Error('Expected resumed reservation');
-    expect(await getUndercoverReviewCandidates(env.DB, second)).toEqual(candidates);
-    const reviewPayload: UndercoverWordReview = {
-      wordA: candidate.wordA,
-      wordB: candidate.wordB,
-      commonTraits: candidate.commonTraits,
-      differences: candidate.differences,
-      reason: '常见且存在明确共性及差异',
-      qualityChecks: {
-        isFamiliar: true,
-        hasSimilarFamiliarity: true,
-        hasSharedDescriptions: true,
-        hasDistinctDescriptions: true,
-        isNotSynonymOrSubset: true,
-        isPlayableBothWays: true,
-        isCategoryAccurate: true,
-        isAppropriate: true,
-        isFactuallyCertain: true,
-      },
-    };
-    await publishUndercoverWordPack(env.DB, second, candidates, [reviewPayload]);
-    await publishUndercoverWordPack(env.DB, second, candidates, [reviewPayload]);
-    expect(
-      await env.DB.prepare(
-        'SELECT COUNT(*) AS count FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
-      )
-        .bind(candidate.wordA, candidate.wordB)
-        .first(),
-    ).toEqual({ count: 1 });
-    await env.DB.prepare("UPDATE undercover_word_candidates SET reviewed_at = '2000-01-01'").run();
-    const third = await reserveUndercoverWordPack(env.DB, '2026-09-03', 0);
-    if (third === null) throw new Error('Expected review reservation');
-    // D2 gate: the due re-review requeues as pending; approve it before the claim.
-    expect(await getUndercoverReviewCandidates(env.DB, third)).toEqual([]);
-    await env.DB.prepare(
-      "UPDATE undercover_word_candidates SET status = 'approved' WHERE word_a = '熬夜' AND word_b = '赖床'",
-    ).run();
-    const rereview = await getUndercoverReviewCandidates(env.DB, third);
-    expect(rereview).toHaveLength(1);
-    await expect(publishUndercoverWordPack(env.DB, third, rereview, [])).rejects.toThrow('count');
-    expect(
-      await env.DB.prepare(
-        'SELECT status FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
-      )
-        .bind(candidate.wordA, candidate.wordB)
-        .first(),
-    ).toEqual({ status: 'active' });
-    await publishUndercoverWordPack(env.DB, third, rereview, [
-      {
-        ...reviewPayload,
-        qualityChecks: { ...reviewPayload.qualityChecks, isPlayableBothWays: false },
-      },
-    ]);
-    expect(
-      await env.DB.prepare(
-        'SELECT status FROM undercover_word_pairs WHERE word_a = ? AND word_b = ?',
-      )
-        .bind(candidate.wordA, candidate.wordB)
-        .first(),
-    ).toEqual({ status: 'disabled' });
   });
 });
 

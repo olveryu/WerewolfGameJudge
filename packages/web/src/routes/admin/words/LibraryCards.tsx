@@ -5,12 +5,19 @@ import { useState } from 'react';
 
 import type {
   GameWordGame,
+  PublishWordCandidatesResult,
+  ReviewWordCandidatesResult,
   WordCandidateListStatus,
   WordLibraryItem,
   WordLibraryItems,
   WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
-import { approveWordCandidates, dismissWordCandidates } from '@/features/admin/services/adminApi';
+import {
+  approveWordCandidates,
+  dismissWordCandidates,
+  publishWordCandidates,
+  reviewWordCandidates,
+} from '@/features/admin/services/adminApi';
 import { showAlert, showPrompt } from '@/utils/alert';
 import { log } from '@/utils/logger';
 
@@ -23,8 +30,12 @@ const CANDIDATE_STATUSES: readonly string[] = [
   'pending',
   'approved',
   'claimed',
+  'reviewing',
+  'passed',
   'accepted',
   'rejected',
+  'failed',
+  'published',
 ];
 const SUBMISSION_STATUSES: readonly string[] = [
   'pending',
@@ -56,6 +67,19 @@ function isApprovableCandidate(item: WordLibraryItem): boolean {
   return item.source === 'candidate' && item.status === 'pending';
 }
 
+/** A candidate takes the manual review road from approved, from failed
+ * (retry), or from passed (re-review, e.g. after a review-version change). */
+function isReviewableCandidate(item: WordLibraryItem): boolean {
+  return (
+    item.source === 'candidate' &&
+    (item.status === 'approved' || item.status === 'failed' || item.status === 'passed')
+  );
+}
+
+function isPublishableCandidate(item: WordLibraryItem): boolean {
+  return item.source === 'candidate' && item.status === 'passed';
+}
+
 function isEndorsableSubmission(item: WordLibraryItem): boolean {
   return item.source === 'submission' && item.status === 'pending';
 }
@@ -72,6 +96,8 @@ function isDismissableSubmission(item: WordLibraryItem): boolean {
 function isBulkActionable(item: WordLibraryItem): boolean {
   return (
     isApprovableCandidate(item) ||
+    isReviewableCandidate(item) ||
+    isPublishableCandidate(item) ||
     isEndorsableSubmission(item) ||
     isUnendorsableSubmission(item) ||
     isDismissableSubmission(item)
@@ -91,9 +117,9 @@ function toConfirmationItem(item: WordLibraryItem): SubmissionConfirmation['item
 
 function CandidateStatus({ status }: { status: WordCandidateListStatus }) {
   const tone =
-    status === 'accepted'
+    status === 'accepted' || status === 'passed' || status === 'published'
       ? 'success'
-      : status === 'rejected'
+      : status === 'rejected' || status === 'failed'
         ? 'danger'
         : status === 'claimed'
           ? 'neutral'
@@ -150,8 +176,8 @@ export function LibraryCards({
       });
       setNotice(
         result.skippedIds.length === 0
-          ? `已批准 ${result.approvedIds.length} 条，下一轮将继续审核。`
-          : `已批准 ${result.approvedIds.length} 条，${result.skippedIds.length} 条已不在待批准队列。`,
+          ? `已批准 ${result.approvedIds.length} 条，请手动启动独立审核。`
+          : `已批准 ${result.approvedIds.length} 条，${result.skippedIds.length} 条已不在待批准队列。请手动启动独立审核。`,
       );
       candidateLog.info('candidates approved', { game, approved: result.approvedIds.length });
     },
@@ -174,7 +200,63 @@ export function LibraryCards({
     },
     '候选拒绝',
   );
-  const busy = approve.isPending || dismiss.isPending;
+  /** Manual independent review: the endpoint takes at most five candidates
+   * per call, so a larger selection is sent in groups of five, in order,
+   * and the outcomes are summed. */
+  const review = useSubmissionCommand(async (input: { candidateIds: string[] }) => {
+    const totals: ReviewWordCandidatesResult = {
+      game,
+      passedIds: [],
+      rejectedIds: [],
+      failedIds: [],
+      skippedIds: [],
+    };
+    for (let offset = 0; offset < input.candidateIds.length; offset += 5) {
+      const group = input.candidateIds.slice(offset, offset + 5);
+      const result = await reviewWordCandidates(game, group);
+      totals.passedIds.push(...result.passedIds);
+      totals.rejectedIds.push(...result.rejectedIds);
+      totals.failedIds.push(...result.failedIds);
+      totals.skippedIds.push(...result.skippedIds);
+    }
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const id of input.candidateIds) next.delete(`candidate:${id}`);
+      return next;
+    });
+    setNotice(
+      `独立审核完成：通过 ${totals.passedIds.length} 条，未通过 ${totals.rejectedIds.length} 条，失败 ${totals.failedIds.length} 条` +
+        (totals.skippedIds.length === 0
+          ? '。'
+          : `，${totals.skippedIds.length} 条已不在待审核队列。`),
+    );
+    candidateLog.info('candidates reviewed', {
+      game,
+      passed: totals.passedIds.length,
+      rejected: totals.rejectedIds.length,
+      failed: totals.failedIds.length,
+    });
+  }, '词语候选操作');
+  const publish = useSubmissionCommand(async (input: { candidateIds: string[] }) => {
+    const result: PublishWordCandidatesResult = await publishWordCandidates(
+      game,
+      input.candidateIds,
+    );
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const id of input.candidateIds) next.delete(`candidate:${id}`);
+      return next;
+    });
+    setNotice(
+      `已发布 ${result.publishedIds.length} 条` +
+        (result.rejectedIds.length === 0 ? '' : `，${result.rejectedIds.length} 条未通过发布门`) +
+        (result.skippedIds.length === 0
+          ? '。'
+          : `，${result.skippedIds.length} 条已不在待发布队列。`),
+    );
+    candidateLog.info('candidates published', { game, published: result.publishedIds.length });
+  }, '词语候选操作');
+  const busy = approve.isPending || dismiss.isPending || review.isPending || publish.isPending;
 
   function confirmApproveCandidate(candidateIds: string[]) {
     if (candidateIds.length === 0) return;
@@ -236,6 +318,16 @@ export function LibraryCards({
   function bulkUnendorse() {
     queueSubmissionAction('unendorse', selectedItems.filter(isUnendorsableSubmission));
   }
+  function bulkReview() {
+    const ids = selectedItems.filter(isReviewableCandidate).map((item) => item.id);
+    if (ids.length === 0) return;
+    review.mutate({ candidateIds: ids });
+  }
+  function bulkPublish() {
+    const ids = selectedItems.filter(isPublishableCandidate).map((item) => item.id);
+    if (ids.length === 0) return;
+    publish.mutate({ candidateIds: ids });
+  }
   function completeDialog(action: SubmissionConfirmation['action'], count: number) {
     const done = dialogQueue[0];
     setDialogQueue((current) => current.slice(1));
@@ -294,6 +386,8 @@ export function LibraryCards({
     (item) => isApprovableCandidate(item) || isDismissableSubmission(item),
   );
   const unendorsable = selectedItems.filter(isUnendorsableSubmission);
+  const reviewable = selectedItems.filter(isReviewableCandidate);
+  const publishable = selectedItems.filter(isPublishableCandidate);
   const actionableItems = items.filter(isBulkActionable);
   const activeDialog = dialogQueue[0];
   return (
@@ -307,6 +401,16 @@ export function LibraryCards({
       {dismiss.isError && (
         <p role="alert" className="admin-error-box">
           拒绝失败，请稍后重试。
+        </p>
+      )}
+      {review.isError && (
+        <p role="alert" className="admin-error-box">
+          独立审核失败，请稍后重试。
+        </p>
+      )}
+      {publish.isError && (
+        <p role="alert" className="admin-error-box">
+          确认发布失败，请稍后重试。
         </p>
       )}
       <div className="admin-library-cards" role="list" aria-label="待处理词条">
@@ -325,6 +429,8 @@ export function LibraryCards({
             }}
             onApproveCandidate={() => confirmApproveCandidate([item.id])}
             onDismissCandidate={() => confirmDismissCandidate([item.id])}
+            onReviewCandidate={() => review.mutate({ candidateIds: [item.id] })}
+            onPublishCandidate={() => publish.mutate({ candidateIds: [item.id] })}
             onSubmissionAction={(action) => queueSubmissionAction(action, [item])}
             onOpenBatch={() => {
               if (item.batchId === null) throw new Error('Submission row is missing its batch');
@@ -380,9 +486,29 @@ export function LibraryCards({
           >
             批量撤回批准 {unendorsable.length}
           </button>
-          {approvable.length === 0 && dismissable.length === 0 && unendorsable.length === 0 && (
-            <span className="admin-muted">所选行都已处理完毕，没有可批量操作的内容。</span>
-          )}
+          <button
+            type="button"
+            className="admin-primary"
+            disabled={reviewable.length === 0 || busy}
+            onClick={bulkReview}
+          >
+            批量审核 {reviewable.length}
+          </button>
+          <button
+            type="button"
+            className="admin-primary"
+            disabled={publishable.length === 0 || busy}
+            onClick={bulkPublish}
+          >
+            批量发布 {publishable.length}
+          </button>
+          {approvable.length === 0 &&
+            dismissable.length === 0 &&
+            unendorsable.length === 0 &&
+            reviewable.length === 0 &&
+            publishable.length === 0 && (
+              <span className="admin-muted">所选行都已处理完毕，没有可批量操作的内容。</span>
+            )}
         </div>
       )}
       {activeDialog !== undefined && (
@@ -408,6 +534,8 @@ function LibraryCard({
   onSelect,
   onApproveCandidate,
   onDismissCandidate,
+  onReviewCandidate,
+  onPublishCandidate,
   onSubmissionAction,
   onOpenBatch,
 }: {
@@ -418,6 +546,8 @@ function LibraryCard({
   onSelect: (checked: boolean) => void;
   onApproveCandidate: () => void;
   onDismissCandidate: () => void;
+  onReviewCandidate: () => void;
+  onPublishCandidate: () => void;
   onSubmissionAction: (action: SubmissionConfirmation['action']) => void;
   onOpenBatch: () => void;
 }) {
@@ -483,6 +613,27 @@ function LibraryCard({
               拒绝
             </button>
           </>
+        )}
+        {item.source === 'candidate' &&
+          (item.status === 'approved' || item.status === 'failed' || item.status === 'passed') && (
+            <button
+              type="button"
+              className="admin-text-button"
+              disabled={disabled}
+              onClick={onReviewCandidate}
+            >
+              启动独立审核
+            </button>
+          )}
+        {item.source === 'candidate' && item.status === 'passed' && (
+          <button
+            type="button"
+            className="admin-text-button"
+            disabled={disabled}
+            onClick={onPublishCandidate}
+          >
+            确认发布
+          </button>
         )}
         {item.source === 'submission' && item.status === 'pending' && (
           <>

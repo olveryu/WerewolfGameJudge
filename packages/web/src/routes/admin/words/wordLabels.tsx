@@ -32,8 +32,12 @@ export const CANDIDATE_STATUS_LABELS = {
   pending: '待批准',
   approved: '已批准',
   claimed: '已认领',
+  reviewing: '审核中',
+  passed: '已通过待发布',
   accepted: '已通过',
   rejected: '未通过',
+  failed: '审核失败',
+  published: '已发布',
 } as const;
 
 /** Match CountryFilter: a labeled trigger opens an accessible choice sheet, never a native select. */

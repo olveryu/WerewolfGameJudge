@@ -440,7 +440,17 @@ const candidateListRowSchema = z.strictObject({
   category: z.string(),
   evidenceCount: z.int().nonnegative().nullable(),
   createdAt: z.string(),
-  status: z.enum(['pending', 'approved', 'claimed', 'accepted', 'rejected']),
+  status: z.enum([
+    'pending',
+    'approved',
+    'claimed',
+    'reviewing',
+    'passed',
+    'accepted',
+    'rejected',
+    'failed',
+    'published',
+  ]),
 });
 
 function encodeLibraryCursor(createdAt: string, id: string): string {
@@ -521,7 +531,17 @@ const libraryCandidateRowSchema = z.strictObject({
   materialJson: z.string().nullable(),
   evidenceCount: z.int().nonnegative().nullable(),
   createdAt: z.string(),
-  status: z.enum(['pending', 'approved', 'claimed', 'accepted', 'rejected']),
+  status: z.enum([
+    'pending',
+    'approved',
+    'claimed',
+    'reviewing',
+    'passed',
+    'accepted',
+    'rejected',
+    'failed',
+    'published',
+  ]),
 });
 
 const librarySubmissionRowSchema = z.strictObject({

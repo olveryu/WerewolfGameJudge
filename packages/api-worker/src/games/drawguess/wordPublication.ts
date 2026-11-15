@@ -1,27 +1,23 @@
-/** Transactional editorial queue and publication; word identity survives reviews and retirement. */
+/**
+ * Transactional editorial queue; word identity survives reviews and
+ * retirement. Supply only generates and stores — review and publication
+ * live on the manual review/publish endpoints, never in the workflow.
+ */
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { z } from 'zod';
 
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import {
-  createClaimWordCandidatesStatement,
   createWordPackId,
   failWordPack,
   insertReservedWordPack,
-  publishReviewedWordPack,
-  releaseClaimedWordCandidatesStatement,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
-  DRAWGUESS_WORD_CLAIM_LIMIT,
   DRAWGUESS_WORD_PROMPT_VERSION,
   DRAWGUESS_WORD_REVIEW_VERSION,
   type DrawGuessWordCandidate,
-  type DrawGuessWordReview,
   getDrawGuessWordId,
-  isDrawGuessReviewAccepted,
   parseDrawGuessCandidates,
-  parseDrawGuessReviews,
-  toPinyinInitials,
 } from './wordEditorial';
 import { DRAWGUESS_WORD_MODEL } from './wordProvider';
 
@@ -98,96 +94,6 @@ export async function storeDrawGuessWordCandidates(
   if (statements.length > 0) await db.batch(statements);
 }
 
-/** Claim pending material; crashed requests leave the prior inventory intact. */
-export async function getDrawGuessReviewCandidates(
-  db: D1Database,
-  pack: DrawGuessWordPack,
-): Promise<DrawGuessWordCandidate[]> {
-  const rows = await createClaimWordCandidatesStatement(
-    db,
-    'drawguess_word_packs',
-    pack,
-    DRAWGUESS_WORD_CLAIM_LIMIT,
-  ).all();
-  const candidates = rows.results.map((row) => {
-    const { material_json } = z.strictObject({ material_json: z.string() }).parse(row);
-    const value: unknown = JSON.parse(material_json);
-    return value;
-  });
-  return parseDrawGuessCandidates({ candidates }, pack.category);
-}
-
-/**
- * Publish accepted words into drawguess_words (pinyin initials generated here),
- * retire rejected ones, in the same replay-safe transaction.
- */
-export async function publishDrawGuessWordPack(
-  db: D1Database,
-  pack: DrawGuessWordPack,
-  candidates: readonly DrawGuessWordCandidate[],
-  reviews: readonly DrawGuessWordReview[],
-): Promise<void> {
-  const parsedCandidates = parseDrawGuessCandidates({ candidates }, pack.category);
-  const parsedReviews = parseDrawGuessReviews({ reviews }, parsedCandidates);
-  await publishReviewedWordPack(
-    db,
-    'drawguess_word_packs',
-    pack,
-    parsedCandidates,
-    parsedReviews,
-    async (candidate, review, now) => {
-      const id = await getDrawGuessWordId(candidate.word);
-      let pinyinInitials: string | null = null;
-      try {
-        pinyinInitials = toPinyinInitials(candidate.word);
-      } catch {
-        // 拼音解析失败视为不合格，不进词库。
-        pinyinInitials = null;
-      }
-      const isAccepted = pinyinInitials !== null && isDrawGuessReviewAccepted(review);
-      const reviewJson = JSON.stringify({
-        reviewVersion: DRAWGUESS_WORD_REVIEW_VERSION,
-        promptVersion: DRAWGUESS_WORD_PROMPT_VERSION,
-        packId: pack.id,
-        pinyinInitials,
-        review,
-      });
-      const inventoryStatement =
-        isAccepted && pinyinInitials !== null
-          ? db
-              .prepare(
-                `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
-        SELECT ?, ?, ?, ?, ?, 'active', ?, NULL FROM drawguess_word_candidates candidate
-        WHERE candidate.id = ? AND candidate.claimed_pack_id = ? AND candidate.status = 'accepted'
-          AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')
-        ON CONFLICT (id) DO UPDATE SET pinyin_initials = excluded.pinyin_initials, category = excluded.category,
-          difficulty = excluded.difficulty, status = 'active', disabled_at = NULL`,
-              )
-              .bind(
-                id,
-                candidate.word,
-                pinyinInitials,
-                candidate.category,
-                candidate.difficulty,
-                now,
-                id,
-                pack.id,
-                pack.id,
-                pack.request_token,
-              )
-          : db
-              .prepare(
-                `UPDATE drawguess_words SET status = 'disabled', disabled_at = ?
-        WHERE id = ? AND status = 'active'
-          AND EXISTS (SELECT 1 FROM drawguess_word_candidates WHERE id = ? AND claimed_pack_id = ? AND status = 'rejected')
-          AND EXISTS (SELECT 1 FROM drawguess_word_packs WHERE id = ? AND request_token = ? AND status = 'reserved')`,
-              )
-              .bind(now, id, id, pack.id, pack.id, pack.request_token);
-      return { id, isAccepted, reviewJson, inventoryStatement };
-    },
-  );
-}
-
 /** Record failure without disabling inventory or discarding the unreviewed queue. */
 export async function failDrawGuessWordPack(
   db: D1Database,
@@ -195,12 +101,4 @@ export async function failDrawGuessWordPack(
   reason: string,
 ): Promise<void> {
   await failWordPack(db, 'drawguess_word_packs', pack, reason);
-}
-
-/** Release a gated pack's claimed candidates back to the approved pool. */
-export async function releaseDrawGuessWordCandidates(
-  db: D1Database,
-  pack: DrawGuessWordPack,
-): Promise<void> {
-  await releaseClaimedWordCandidatesStatement(db, 'drawguess_word_packs', pack).run();
 }
