@@ -1,8 +1,11 @@
 /** Strict validation, agent-scoped idempotency, and atomic submission quotas. No model calls. */
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import {
+  type GameWordGame,
   WORD_SUBMISSION_DAILY_LIMIT,
   WORD_SUBMISSION_PENDING_LIMIT,
+  WORD_SUBMISSION_SCHEMA_VERSION,
+  type WordSubmissionBatch,
   type WordSubmissionInput,
   type WordSubmissionValidation,
 } from '@game-judge/game-engine/product/wordSupply';
@@ -12,8 +15,11 @@ import { ZodError } from 'zod';
 import { WORKER_WORD_SUBMISSION_ADAPTERS } from '../../games/catalog';
 import { AiOutputValidationError } from '../../platform/ai/aiError';
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
-import type { SubmissionMaterial } from '../../platform/wordSupply/submissionAdapter';
-import type { SubmissionPrincipal } from './credentials';
+import type {
+  SubmissionMaterial,
+  WordSupplySubmissionItem,
+} from '../../platform/wordSupply/submissionAdapter';
+import { readSubmissionAgent, type SubmissionPrincipal } from './credentials';
 import { readSubmissionBatch } from './repository';
 
 interface ValidatedItem extends SubmissionMaterial {
@@ -134,7 +140,9 @@ export async function findSubmissionReplay(
   return readSubmissionBatch(db, row.id, agentId);
 }
 
-/** All quota claims, batch data, and queue counters commit or roll back together. */
+/** All quota claims, batch data, and queue counters commit or roll back together.
+ * A caller may fix the batch id (supply reuses its run UUID); otherwise a
+ * fresh UUID is generated, as for external submissions. */
 export async function storeSubmission(
   db: D1Database,
   input: WordSubmissionInput,
@@ -142,10 +150,11 @@ export async function storeSubmission(
   key: string,
   requestHash: string,
   items: readonly ValidatedItem[],
+  batchId?: string,
 ) {
   const replay = await findSubmissionReplay(db, principal.agent.id, key, requestHash);
   if (replay !== null) return replay;
-  const id = crypto.randomUUID();
+  const id = batchId ?? crypto.randomUUID();
   const now = new Date().toISOString();
   const day = now.slice(0, 10);
   const pending = items.filter((item) => item.duplicateOf === null).length;
@@ -286,4 +295,82 @@ export async function storeSubmission(
     throw new HTTPException(429, { message: 'SUBMISSION_QUOTA_OR_CAPACITY_EXCEEDED' });
   }
   return readSubmissionBatch(db, id, principal.agent.id);
+}
+
+/** Supply-produced words enter the submission flow directly: one batch per
+ * supply run, owned by the system agent, reviewed and published exactly like
+ * agent submissions. The candidate tables are never written. */
+
+/** Fixed system-agent id (a real UUID: the agent schema requires one). */
+export const SUPPLY_AGENT_ID = '00000000-0000-4000-8000-000000000001';
+export const SUPPLY_AGENT_NAME = '系统补词';
+/** Fixed system-credential id; the token behind its hash is never issued. */
+const SUPPLY_CREDENTIAL_ID = '00000000-0000-4000-8000-000000000002';
+/** The system credential is never issued to anyone, so its expiry is nominal. */
+const SUPPLY_CREDENTIAL_EXPIRES_AT = '2999-01-01T00:00:00.000Z';
+
+/** Create the system agent and its (never issued) credential on first use. */
+async function ensureSupplyAgent(db: D1Database): Promise<void> {
+  const now = new Date().toISOString();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO word_submission_agents
+      (id, name, description, games_json, status, daily_quota, pending_quota,
+       current_credential_id, created_at)
+      VALUES (?, ?, ?, ?, 'active', 1000, 1000, ?, ?)`,
+      )
+      .bind(
+        SUPPLY_AGENT_ID,
+        SUPPLY_AGENT_NAME,
+        '补词 workflow 生成的投稿',
+        JSON.stringify(['fibking', 'undercover', 'drawguess']),
+        SUPPLY_CREDENTIAL_ID,
+        now,
+      ),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO word_submission_credentials
+      (id, agent_id, token_hash, prefix, expires_at, created_at)
+      VALUES (?, ?, ?, 'supply', ?, ?)`,
+      )
+      .bind(
+        SUPPLY_CREDENTIAL_ID,
+        SUPPLY_AGENT_ID,
+        await sha256Hex(crypto.randomUUID()),
+        SUPPLY_CREDENTIAL_EXPIRES_AT,
+        now,
+      ),
+  ]);
+}
+
+/** Store generated candidates as pending submission items. An item the
+ * submission schema rejects is a generation bug: fail loudly instead of
+ * silently dropping it. Duplicates are stored as 'duplicate' by the same
+ * rules as agent submissions and do not enter review. */
+export async function storeSupplySubmissions(
+  db: D1Database,
+  game: GameWordGame,
+  batchId: string,
+  items: readonly WordSupplySubmissionItem[],
+): Promise<WordSubmissionBatch> {
+  await ensureSupplyAgent(db);
+  const agent = await readSubmissionAgent(db, SUPPLY_AGENT_ID);
+  if (agent.credential === null) throw new Error('Supply agent has no credential');
+  const principal: SubmissionPrincipal = { agent, credentialId: agent.credential.id };
+  const input: WordSubmissionInput = {
+    schemaVersion: WORD_SUBMISSION_SCHEMA_VERSION,
+    game,
+    items: items.map((item) => ({ clientItemId: item.clientItemId, content: item.content })),
+  };
+  const result = await validateSubmission(db, input, principal);
+  const invalid = result.validation.items.filter((item) => item.status === 'invalid');
+  if (invalid.length > 0)
+    throw new Error(
+      `Supply submission failed validation: ${invalid
+        .map((item) => `${item.clientItemId}: ${item.reason ?? 'invalid'}`)
+        .join('; ')}`,
+    );
+  const requestHash = await sha256Hex(canonicalJson(input));
+  return storeSubmission(db, input, principal, batchId, requestHash, result.items, batchId);
 }

@@ -190,7 +190,6 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
             adapter.model,
             'review',
             Date.now(),
-            { force: true },
           );
           stage = 'model-review';
           return JSON.stringify(await adapter.review(this.env, prepared, { workflowId: actionId }));

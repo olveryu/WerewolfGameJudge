@@ -39,17 +39,12 @@ export interface WordPackRef {
 }
 
 /**
- * Manual runs (normal or force) carry a unique runId so repeated triggers on
- * the same day never collide with each other or with the scheduled batches.
+ * Manual runs carry a unique runId so repeated triggers on the same day
+ * never collide with each other. One trigger runs one pack, so the pack id
+ * is the day plus the run id — no batch slots, no manual identity split.
  */
-export function createWordPackId(
-  day: string,
-  batchIndex: number,
-  opts: { readonly force?: boolean; readonly runId?: string },
-): string {
-  return opts.runId
-    ? `${day}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
-    : `${day}-${batchIndex}`;
+export function createWordPackId(day: string, runId: string): string {
+  return `${day}-${runId}`;
 }
 
 /** Insert a reserved pack row if database capacity allows; null when refused or already taken. */

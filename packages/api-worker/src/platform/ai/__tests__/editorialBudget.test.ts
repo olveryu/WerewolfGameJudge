@@ -1,76 +1,29 @@
-/** D1 serializes the shared editorial ceiling across independent game owners. */
+/** The editorial model log records every call; there is no ceiling. */
 import { env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 
-import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import {
-  claimEditorialModelRequest,
-  EDITORIAL_DAILY_REQUEST_LIMIT,
-  EDITORIAL_MONTHLY_REQUEST_LIMIT,
-  isEditorialBudgetAvailable,
-  readModelBudgetByOperation,
-} from '../editorialBudget';
+import { claimEditorialModelRequest, readModelBudgetByOperation } from '../editorialBudget';
 
-describe('editorial request budget', () => {
-  it('checks both rolling limits with bounded reads and allows expired requests', async () => {
+describe('editorial request log', () => {
+  it('records every claim exactly once and rejects a repeated id', async () => {
     await env.DB.prepare('DELETE FROM editorial_model_requests').run();
     const now = Date.parse('2026-09-22T12:00:00Z');
-    const older = new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString();
-    await env.DB.prepare(
-      `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 500)
-       INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
-       SELECT 'old-' || i, 'test', 'model', ? FROM n`,
-    )
-      .bind(older)
-      .run();
-    const measured = createRowCountingDb(env.DB);
-    expect(await isEditorialBudgetAvailable(measured.db, now)).toBe(false);
-    expect(measured.counts.rowsRead).toBeLessThanOrEqual(EDITORIAL_MONTHLY_REQUEST_LIMIT + 10);
+    await claimEditorialModelRequest(env.DB, 'gen-1', 'fibking', 'model', 'generation', now);
+    await claimEditorialModelRequest(env.DB, 'rev-1', 'undercover', 'model', 'review', now);
     await expect(
-      claimEditorialModelRequest(measured.db, 'blocked-month', 'test', 'model', 'generation', now),
-    ).rejects.toThrow('consumed or shared budget');
-    await env.DB.prepare(
-      "UPDATE editorial_model_requests SET claimed_at = '2026-01-01T00:00:00.000Z'",
-    ).run();
-    expect(await isEditorialBudgetAvailable(env.DB, now)).toBe(true);
-    for (let index = 0; index < EDITORIAL_DAILY_REQUEST_LIMIT; index += 1)
-      await claimEditorialModelRequest(
-        env.DB,
-        `daily-${index}`,
-        'test',
-        'model',
-        'generation',
-        now,
-      );
-    expect(await isEditorialBudgetAvailable(env.DB, now)).toBe(false);
+      claimEditorialModelRequest(env.DB, 'gen-1', 'fibking', 'model', 'generation', now),
+    ).rejects.toThrow('already consumed');
+    const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM editorial_model_requests').first<{
+      n: number;
+    }>();
+    expect(count?.n).toBe(2);
   });
 
-  it('excludes requests exactly at each rolling boundary', async () => {
-    await env.DB.prepare('DELETE FROM editorial_model_requests').run();
-    const now = Date.parse('2026-09-22T12:00:00Z');
-    const day = 24 * 60 * 60 * 1000;
-    for (const [label, count, age] of [
-      ['day', EDITORIAL_DAILY_REQUEST_LIMIT, day],
-      ['month', EDITORIAL_MONTHLY_REQUEST_LIMIT, 30 * day],
-    ] as const) {
-      await env.DB.prepare('DELETE FROM editorial_model_requests').run();
-      await env.DB.prepare(
-        `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
-         INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
-         SELECT ? || i, 'test', 'model', ? FROM n`,
-      )
-        .bind(count, label, new Date(now - age).toISOString())
-        .run();
-      expect(await isEditorialBudgetAvailable(env.DB, now)).toBe(true);
-      expect(await isEditorialBudgetAvailable(env.DB, now - 1)).toBe(false);
-    }
-  });
-
-  it('limits concurrent cross-game requests and never refunds uncertain calls', async () => {
+  it('never blocks on volume: concurrent claims all record', async () => {
     await env.DB.prepare('DELETE FROM editorial_model_requests').run();
     const now = Date.parse('2026-09-21T12:00:00Z');
     const results = await Promise.allSettled(
-      Array.from({ length: EDITORIAL_DAILY_REQUEST_LIMIT + 2 }, (_, index) =>
+      Array.from({ length: 10 }, (_, index) =>
         claimEditorialModelRequest(
           env.DB,
           `request-${index}`,
@@ -81,47 +34,10 @@ describe('editorial request budget', () => {
         ),
       ),
     );
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(
-      EDITORIAL_DAILY_REQUEST_LIMIT,
-    );
-    await expect(
-      claimEditorialModelRequest(env.DB, 'request-0', 'fibking', 'model', 'generation', now),
-    ).rejects.toThrow('consumed or shared budget');
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(10);
   });
 
-  it('lets force claims bypass the shared budget but keeps the idempotency ledger', async () => {
-    await env.DB.prepare('DELETE FROM editorial_model_requests').run();
-    const now = Date.parse('2026-09-22T12:00:00Z');
-    for (let index = 0; index < EDITORIAL_DAILY_REQUEST_LIMIT; index += 1) {
-      await claimEditorialModelRequest(
-        env.DB,
-        `fill-${index}`,
-        'fibking',
-        'model',
-        'generation',
-        now,
-      );
-    }
-    await expect(
-      claimEditorialModelRequest(env.DB, 'blocked', 'undercover', 'model', 'generation', now),
-    ).rejects.toThrow('consumed or shared budget');
-    // Force exceeds the budget but still records the claim exactly once.
-    await claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', 'generation', now, {
-      force: true,
-    });
-    // A repeated force claim for the same id is still rejected: the ledger stays idempotent.
-    await expect(
-      claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', 'generation', now, {
-        force: true,
-      }),
-    ).rejects.toThrow('already consumed');
-    const count = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM editorial_model_requests WHERE id = 'forced-1'",
-    ).first<{ n: number }>();
-    expect(count?.n).toBe(1);
-  });
-
-  it('splits the shared ceiling into generation and review without changing the totals', async () => {
+  it('splits usage into generation and review without changing the totals', async () => {
     await env.DB.prepare('DELETE FROM editorial_model_requests').run();
     const now = Date.parse('2026-09-22T12:00:00Z');
     await claimEditorialModelRequest(env.DB, 'gen-1', 'fibking', 'model', 'generation', now);
@@ -132,12 +48,35 @@ describe('editorial request budget', () => {
       generation: { dailyUsed: 2, monthlyUsed: 2 },
       review: { dailyUsed: 1, monthlyUsed: 1 },
     });
-    // The split is a partition of the same ceiling, not a second budget.
+    // The split is a partition of the same log, not a second budget.
     expect(byOperation.generation.dailyUsed + byOperation.review.dailyUsed).toBe(3);
     expect(byOperation.generation.monthlyUsed + byOperation.review.monthlyUsed).toBe(3);
     const stored = await env.DB.prepare(
       "SELECT operation FROM editorial_model_requests WHERE id = 'rev-1'",
     ).first<{ operation: string }>();
     expect(stored?.operation).toBe('review');
+  });
+
+  it('counts only the rolling daily and monthly windows', async () => {
+    await env.DB.prepare('DELETE FROM editorial_model_requests').run();
+    const now = Date.parse('2026-09-22T12:00:00Z');
+    const day = 24 * 60 * 60 * 1000;
+    // A request 31 days old is outside both windows; one 25 days old is
+    // inside the monthly window only; one an hour ago is inside both.
+    for (const [id, age] of [
+      ['old', 31 * day],
+      ['month-only', 25 * day],
+      ['recent', 60 * 60 * 1000],
+    ] as const) {
+      await env.DB.prepare(
+        `INSERT INTO editorial_model_requests (id, owner, model, operation, claimed_at)
+         VALUES (?, 'test', 'model', 'generation', ?)`,
+      )
+        .bind(id, new Date(now - age).toISOString())
+        .run();
+    }
+    const byOperation = await readModelBudgetByOperation(env.DB, now);
+    expect(byOperation.generation).toEqual({ dailyUsed: 1, monthlyUsed: 2 });
+    expect(byOperation.review).toEqual({ dailyUsed: 0, monthlyUsed: 0 });
   });
 });

@@ -3,17 +3,11 @@
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 export type {
-  ApproveWordCandidatesResult,
-  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
-  PublishWordCandidatesResult,
-  ReviewWordCandidatesResult,
   TriggerSupplyResult,
-  WordCandidateListStatus,
   WordLibraryItem,
   WordLibraryItems,
-  WordLibraryItemSource,
   WordSubmissionStatus,
 } from '@game-judge/game-engine/product/wordSupply';
 

@@ -6,21 +6,18 @@ import { DetailDrawer } from './Overlays';
 
 export interface SupplyAction {
   count: 1 | 10 | 100;
-  force: boolean;
 }
 
-/** Offer explicit batch sizes in a responsive sheet, with force explicitly opt-in. */
+/** Offer explicit batch sizes in a responsive sheet. */
 export function SupplyControls({
   disabled,
   triggering,
   gameLabel,
-  remainingBudget,
   onSelect,
 }: {
   disabled: boolean;
   triggering: boolean;
   gameLabel: string;
-  remainingBudget: number;
   onSelect: (action: SupplyAction) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -39,7 +36,6 @@ export function SupplyControls({
       {open && (
         <SupplyDialog
           gameLabel={gameLabel}
-          remainingBudget={remainingBudget}
           onClose={() => setOpen(false)}
           onSelect={(action) => {
             setOpen(false);
@@ -53,21 +49,18 @@ export function SupplyControls({
 
 function SupplyDialog({
   gameLabel,
-  remainingBudget,
   onClose,
   onSelect,
 }: {
   gameLabel: string;
-  remainingBudget: number;
   onClose: () => void;
   onSelect: (action: SupplyAction) => void;
 }) {
   const [count, setCount] = useState<SupplyAction['count']>(1);
-  const [force, setForce] = useState(false);
   return (
     <DetailDrawer variant="sheet" title="补充词库" onClose={onClose}>
       <p className="admin-muted">{gameLabel} · 触发新的词库供给任务</p>
-      <p className="admin-muted">触发后只生成并入队，不自动审核发布；批准后由下一轮继续。</p>
+      <p className="admin-muted">触发后生成并入队等待审核，不自动审核发布。完成后请手动刷新。</p>
       <div className="admin-supply-options">
         <span>触发次数</span>
         <div className="admin-segmented" role="group" aria-label="触发次数">
@@ -75,7 +68,6 @@ function SupplyDialog({
             <button
               type="button"
               key={value}
-              disabled={!force && value > remainingBudget}
               aria-pressed={value === count}
               onClick={() => setCount(value)}
             >
@@ -84,38 +76,11 @@ function SupplyDialog({
           ))}
         </div>
       </div>
-      <label className="admin-supply-mode">
-        <span>
-          强制补词
-          <small>忽略配额限制，可能额外消耗模型额度。</small>
-        </span>
-        <input
-          type="checkbox"
-          className="admin-switch"
-          role="switch"
-          aria-label="强制补词"
-          checked={force}
-          onChange={(event) => {
-            setForce(event.target.checked);
-            if (!event.target.checked && count > remainingBudget) setCount(1);
-          }}
-        />
-      </label>
-      <p className={`admin-supply-notice${force ? ' is-warning' : ''}`}>
-        {force
-          ? '强制模式将突破供给配额，请确认剩余额度后操作。'
-          : `共享模型剩余额度 ${remainingBudget} 次；一次任务可能消耗多次额度。完成后请手动刷新。`}
-      </p>
       <div className="admin-sheet-actions">
         <button type="button" onClick={onClose}>
           取消
         </button>
-        <button
-          type="button"
-          className="admin-primary"
-          disabled={!force && count > remainingBudget}
-          onClick={() => onSelect({ count, force })}
-        >
+        <button type="button" className="admin-primary" onClick={() => onSelect({ count })}>
           提交 {count} 次任务
         </button>
       </div>

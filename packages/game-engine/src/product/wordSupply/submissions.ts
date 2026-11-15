@@ -190,9 +190,7 @@ export const wordSubmissionSettingsSchema = z.strictObject({
   dailyLimit: z.int().check(z.positive()),
   modelBudget: z.strictObject({
     dailyUsed: z.int().check(z.nonnegative()),
-    dailyLimit: z.int().check(z.positive()),
     monthlyUsed: z.int().check(z.nonnegative()),
-    monthlyLimit: z.int().check(z.positive()),
     byOperation: z.strictObject({
       generation: z.strictObject({
         dailyUsed: z.int().check(z.nonnegative()),

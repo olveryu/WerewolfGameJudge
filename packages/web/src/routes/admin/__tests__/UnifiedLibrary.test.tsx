@@ -11,16 +11,8 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { z } from 'zod';
 
-import {
-  approveWordCandidates,
-  dismissWordCandidates,
-  fetchGameWordsStats,
-  fetchLibraryItems,
-  publishWordCandidates,
-  reviewWordCandidates,
-} from '@/features/admin/services/adminApi';
+import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
-import { showPrompt } from '@/utils/alert';
 
 import { UnifiedLibrary } from '../words/UnifiedLibrary';
 
@@ -28,10 +20,6 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
   fetchGameWordsStats: vi.fn(),
   fetchLibraryItems: vi.fn(),
-  approveWordCandidates: vi.fn(),
-  dismissWordCandidates: vi.fn(),
-  reviewWordCandidates: vi.fn(),
-  publishWordCandidates: vi.fn(),
 }));
 vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/wordSubmissionsApi')>()),
@@ -52,7 +40,6 @@ vi.mock('@/utils/alert', () => ({
 const stats: GameWordsStats = {
   game: 'drawguess',
   supplyEnabled: true,
-  monthlySupply: { month: '2026-11', published: 10, reserved: 0, batchLimit: 20, wordTarget: 100 },
   reviewDecisions: [
     { decision: 'accepted', count: 4 },
     { decision: 'rejected', count: 6 },
@@ -63,9 +50,7 @@ const stats: GameWordsStats = {
   tavilyMonthlyQuota: null,
   modelBudget: {
     dailyUsed: 0,
-    dailyLimit: 8,
     monthlyUsed: 0,
-    monthlyLimit: 120,
     byOperation: {
       generation: { dailyUsed: 0, monthlyUsed: 0 },
       review: { dailyUsed: 0, monthlyUsed: 0 },
@@ -98,26 +83,22 @@ const stats: GameWordsStats = {
     },
   ],
 };
-const candidateItem: WordLibraryItem = {
-  key: 'candidate:cand-1',
-  source: 'candidate',
-  id: 'cand-1',
-  batchId: null,
-  agentName: null,
+/** A supply-generated word: a submission from the system agent. */
+const supplyItem: WordLibraryItem = {
+  id: 'item-0',
+  batchId: 'batch-supply',
+  agentName: '系统补词',
   game: 'drawguess',
   title: '大熊猫',
   category: '动物',
   definition: '大熊猫是一种熊。',
-  evidenceCount: 2,
   createdAt: '2026-11-14T00:00:00.000Z',
   status: 'pending',
   duplicateOf: null,
-  contentHash: null,
-  revision: null,
+  contentHash: 'c'.repeat(64),
+  revision: 0,
 };
 const submissionItem: WordLibraryItem = {
-  key: 'submission:item-1',
-  source: 'submission',
   id: 'item-1',
   batchId: 'batch-1',
   agentName: 'Muse',
@@ -125,7 +106,6 @@ const submissionItem: WordLibraryItem = {
   title: '玫瑰花',
   category: '饮食',
   definition: '花。',
-  evidenceCount: 1,
   createdAt: '2026-11-13T00:00:00.000Z',
   status: 'pending',
   duplicateOf: 'inventory:玫瑰花',
@@ -134,7 +114,6 @@ const submissionItem: WordLibraryItem = {
 };
 const approvedItem: WordLibraryItem = {
   ...submissionItem,
-  key: 'submission:item-2',
   id: 'item-2',
   title: '月季',
   status: 'approved',
@@ -144,10 +123,9 @@ const approvedItem: WordLibraryItem = {
 };
 const libraryData: WordLibraryItems = {
   game: 'drawguess',
-  items: [candidateItem, submissionItem, approvedItem],
+  items: [supplyItem, submissionItem, approvedItem],
   totals: {
-    candidates: { pending: 1 },
-    submissions: { pending: 1, approved: 1, published: 2, failed: 1 },
+    submissions: { pending: 2, approved: 1, published: 2, failed: 1 },
   },
   nextCursor: null,
 };
@@ -216,29 +194,6 @@ beforeEach(() => {
       : stats,
   );
   vi.mocked(fetchLibraryItems).mockResolvedValue(libraryData);
-  vi.mocked(approveWordCandidates).mockResolvedValue({
-    game: 'drawguess',
-    approvedIds: ['cand-1'],
-    skippedIds: [],
-  });
-  vi.mocked(dismissWordCandidates).mockResolvedValue({
-    game: 'drawguess',
-    dismissedIds: ['cand-1'],
-    skippedIds: [],
-  });
-  vi.mocked(reviewWordCandidates).mockImplementation(async (_game, candidateIds) => ({
-    game: 'drawguess',
-    passedIds: candidateIds,
-    rejectedIds: [],
-    failedIds: [],
-    skippedIds: [],
-  }));
-  vi.mocked(publishWordCandidates).mockImplementation(async (_game, candidateIds) => ({
-    game: 'drawguess',
-    publishedIds: candidateIds,
-    rejectedIds: [],
-    skippedIds: [],
-  }));
   vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
     batches: [
       batch({ id: '10000000-0000-4000-8000-000000000001', inventoryExists: true }),
@@ -255,10 +210,10 @@ beforeEach(() => {
 });
 
 describe('unified library', () => {
-  it('shows the three-cell stat strip from stats plus merged totals', async () => {
+  it('shows the three-cell stat strip from stats plus submission totals', async () => {
     mount();
     await screen.findByText('大熊猫');
-    // 在库 12 + 3；通过率 4 / (4 + 6)；待批准 候选 1 + 投稿 1。
+    // 在库 12 + 3；通过率 4 / (4 + 6)；待批准 投稿 2。
     expect(screen.getByRole('button', { name: '在库词数：15，查看完整数值' })).toBeVisible();
     expect(
       screen.getByRole('button', { name: '后台候选审核通过率：40%，查看完整数值' }),
@@ -269,33 +224,32 @@ describe('unified library', () => {
     ).toBeVisible();
   });
 
-  it('shows the source row from the merged totals', async () => {
+  it('shows the source row from the submission totals', async () => {
     mount();
     await screen.findByText('大熊猫');
-    const sources = screen.getByText('Agent 已发布').closest('dl');
+    const sources = screen.getByText('已发布').closest('dl');
     expect(sources).not.toBeNull();
     expect(within(sources as HTMLElement).getByText('15 条')).toBeVisible();
-    expect(within(sources as HTMLElement).getByText('2 条')).toBeVisible();
-    expect(screen.getByText('Agent 待批准').nextElementSibling).toHaveTextContent('1 条');
+    expect(screen.getByText('已发布').nextElementSibling).toHaveTextContent('2 条');
+    expect(screen.getByText('待批准').nextElementSibling).toHaveTextContent('2 条');
     expect(screen.getByText('审核失败待重审').nextElementSibling).toHaveTextContent('1 条');
   });
 
-  it('distinguishes pending approval from approved candidates awaiting review', async () => {
+  it('distinguishes pending approval from approved submissions awaiting review', async () => {
     vi.mocked(fetchLibraryItems).mockResolvedValue({
       ...libraryData,
       totals: {
-        candidates: { pending: 3, approved: 4 },
         submissions: { pending: 2, approved: 5 },
       },
     });
     mount();
-    expect(await screen.findByRole('button', { name: '待你批准：5，查看完整数值' })).toBeVisible();
-    expect(screen.getByText('Agent 待批准').nextElementSibling).toHaveTextContent('2 条');
+    expect(await screen.findByRole('button', { name: '待你批准：2，查看完整数值' })).toBeVisible();
+    expect(screen.getByText('待批准').nextElementSibling).toHaveTextContent('2 条');
     expect(
       screen.getByText('已批准待审核', { selector: '.admin-library-summary-key' })
         .nextElementSibling,
-    ).toHaveTextContent('9 条');
-    expect(within(screen.getByRole('list', { name: '词库流程' })).getByText('14')).toBeVisible();
+    ).toHaveTextContent('5 条');
+    expect(within(screen.getByRole('list', { name: '词库流程' })).getByText('7')).toBeVisible();
   });
 
   it('shows the four-step flow bar without a monthly-published step', async () => {
@@ -323,18 +277,55 @@ describe('unified library', () => {
     expect(screen.queryByText('Tavily · 本月')).not.toBeInTheDocument();
   });
 
-  it('shows the inventory explanation instead of cards for source=inventory', async () => {
-    mount('drawguess', '?source=inventory');
-    await screen.findByText(
-      '库存词只在统计与来源行里显示，不进入这条待处理流。这条流只列还没进库的候选与投稿。',
+  it('has no source filter: the stream is submissions only', async () => {
+    mount();
+    await screen.findByText('大熊猫');
+    expect(screen.queryByText('全部来源')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent 投稿')).not.toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: '搜索投稿' })).toHaveAttribute(
+      'placeholder',
+      '搜索投稿的词语、分类',
     );
-    expect(screen.queryByText('大熊猫')).not.toBeInTheDocument();
+  });
+
+  it('marks a supply-generated word as a submission from the system agent', async () => {
+    vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+      batches: [
+        batch({
+          id: '10000000-0000-4000-8000-000000000003',
+          agentName: '系统补词',
+          counts: { pending: 1 },
+        }),
+      ],
+      totals: { pending: 1, approved: 0, reviewing: 0, passed: 0 },
+      nextCursor: null,
+    });
+    mount();
+    await screen.findByText('大熊猫');
+    // The card badge names the source by agent: system-generated words read
+    // 后台生成, agent submissions read Agent投稿.
+    const card = screen.getByText('大熊猫').closest('article');
+    expect(card).not.toBeNull();
+    expect(within(card as HTMLElement).getByText('后台生成')).toBeVisible();
+    expect(within(card as HTMLElement).getByText(/来源 系统补词/)).toBeVisible();
+    const supplyRow = await screen.findByRole('row', {
+      name: '打开投稿批次 10000000-0000-4000-8000-000000000003',
+    });
+    expect(within(supplyRow).getByText('后台生成')).toBeVisible();
   });
 
   it('shows the duplicate reminder only on the submission row', async () => {
     mount();
     await screen.findByText('大熊猫');
-    expect(screen.getAllByText('已有相同词在库')).toHaveLength(2);
+    // Only the card whose word is already in the inventory shows the
+    // reminder; the supply card does not. (The batches table has its own
+    // '重复提醒' column, so the count is scoped to the cards.)
+    const duplicateCard = (await screen.findByText('玫瑰花')).closest('article');
+    expect(duplicateCard).not.toBeNull();
+    expect(within(duplicateCard as HTMLElement).getByText('已有相同词在库')).toBeVisible();
+    const supplyCard = screen.getByText('大熊猫').closest('article');
+    expect(supplyCard).not.toBeNull();
+    expect(within(supplyCard as HTMLElement).queryByText('已有相同词在库')).not.toBeInTheDocument();
   });
 
   it('opens a batch row as an overlay on the library page', async () => {
@@ -375,7 +366,7 @@ describe('unified library', () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -389,11 +380,11 @@ describe('unified library', () => {
     );
   });
 
-  it('searches the merged stream by word', async () => {
+  it('searches the submission stream by word', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
-    expect(screen.getByText('搜索后台候选和 Agent 投稿；库存只显示数量。')).toBeVisible();
-    await user.type(screen.getByRole('searchbox', { name: '搜索候选或投稿' }), '玫瑰花');
+    expect(screen.getByText('搜索投稿；库存只显示数量。')).toBeVisible();
+    await user.type(screen.getByRole('searchbox', { name: '搜索投稿' }), '玫瑰花');
     await user.click(screen.getByRole('button', { name: '搜' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
@@ -406,15 +397,13 @@ describe('unified library', () => {
 
   it('resets the card cursor when the status changes after paging', async () => {
     const page2: WordLibraryItem = {
-      ...candidateItem,
-      key: 'candidate:cand-2',
-      id: 'cand-2',
+      ...submissionItem,
+      id: 'item-2',
       title: '长颈鹿',
     };
     const approved: WordLibraryItem = {
-      ...candidateItem,
-      key: 'candidate:cand-9',
-      id: 'cand-9',
+      ...submissionItem,
+      id: 'item-9',
       title: '金丝猴',
       status: 'approved',
     };
@@ -422,7 +411,7 @@ describe('unified library', () => {
       if (params?.status === 'approved')
         return { ...libraryData, items: [approved], nextCursor: null };
       if (params?.cursor === 'C1') return { ...libraryData, items: [page2], nextCursor: null };
-      return { ...libraryData, items: [candidateItem], nextCursor: 'C1' };
+      return { ...libraryData, items: [supplyItem], nextCursor: 'C1' };
     });
     const { user } = mount();
     await screen.findByText('大熊猫');
@@ -434,7 +423,7 @@ describe('unified library', () => {
     await screen.findByText('长颈鹿');
     expect(screen.getByText('第 2 页')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -454,7 +443,7 @@ describe('unified library', () => {
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
     expect(screen.getByText('已选 1 / 当前可选 3')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -463,42 +452,6 @@ describe('unified library', () => {
       ),
     );
     expect(screen.queryByText('已选 1 / 当前可选 3')).not.toBeInTheDocument();
-  });
-
-  it('dismisses a pending candidate from the row action', async () => {
-    const { user } = mount();
-    await screen.findByText('大熊猫');
-    const card = screen.getByText('大熊猫').closest('article');
-    expect(card).not.toBeNull();
-    await user.click(within(card as HTMLElement).getByRole('button', { name: '拒绝' }));
-    expect(showPrompt).toHaveBeenCalledWith('拒绝候选', expect.anything());
-    await waitFor(() =>
-      expect(dismissWordCandidates).toHaveBeenCalledWith(
-        'drawguess',
-        ['cand-1'],
-        '词太常见，不用审了。',
-      ),
-    );
-    expect(await screen.findByText('已拒绝 1 条。')).toBeVisible();
-  });
-
-  it('keeps the success notice visible when the last row is dismissed', async () => {
-    let calls = 0;
-    vi.mocked(fetchLibraryItems).mockImplementation(async () => {
-      calls += 1;
-      return calls === 1
-        ? libraryData
-        : { ...libraryData, items: [], totals: { candidates: {}, submissions: {} } };
-    });
-    const { user } = mount();
-    await screen.findByText('大熊猫');
-    const card = screen.getByText('大熊猫').closest('article');
-    expect(card).not.toBeNull();
-    await user.click(within(card as HTMLElement).getByRole('button', { name: '拒绝' }));
-    await waitFor(() => expect(screen.getByText('已拒绝 1 条。')).toBeVisible());
-    await waitFor(() => expect(screen.getByText('暂无待处理词条。')).toBeVisible());
-    expect(screen.getByText('已拒绝 1 条。')).toBeVisible();
-    expect(screen.queryByText('大熊猫')).not.toBeInTheDocument();
   });
 
   it('never renders the removed 自带 source label anywhere on the page', async () => {
@@ -520,6 +473,15 @@ describe('unified library', () => {
     expect(screen.queryByText('模型 · 近 30 天')).not.toBeInTheDocument();
   });
 
+  it('never renders candidate review, publish, or approve actions', async () => {
+    mount();
+    await screen.findByText('大熊猫');
+    expect(screen.queryByRole('button', { name: '批量审核' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '批量发布' })).not.toBeInTheDocument();
+    expect(screen.queryByText('启动独立审核')).not.toBeInTheDocument();
+    expect(screen.queryByText('确认发布')).not.toBeInTheDocument();
+  });
+
   it('endorses a pending submission through its batch dialog', async () => {
     const { user } = mount();
     await screen.findByText('玫瑰花');
@@ -536,7 +498,7 @@ describe('unified library', () => {
     expect(await screen.findByText('已批准进入审核 1 条。')).toBeVisible();
   });
 
-  it('splits a mixed bulk approval by row source', async () => {
+  it('shows only submission actions in the bulk bar', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
@@ -546,28 +508,13 @@ describe('unified library', () => {
     expect(screen.getByRole('button', { name: '批量批准 2' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量拒绝 3' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量撤回批准 1' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: '批量批准 2' }));
-    expect(showPrompt).toHaveBeenCalledWith('批准进入审核', expect.anything());
-    await waitFor(() =>
-      expect(approveWordCandidates).toHaveBeenCalledWith(
-        'drawguess',
-        ['cand-1'],
-        '词太常见，不用审了。',
-      ),
-    );
-    await user.click(await screen.findByRole('button', { name: '批准进入审核 (1)' }));
-    await waitFor(() =>
-      expect(wordSubmissionsApi.action).toHaveBeenCalledWith(
-        'batch-1',
-        expect.objectContaining({ action: 'endorse' }),
-      ),
-    );
+    expect(screen.queryByRole('button', { name: /批量审核/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /批量发布/ })).not.toBeInTheDocument();
   });
 
   it('uses separate action payloads and request IDs for different submission batches', async () => {
     const secondSubmission: WordLibraryItem = {
       ...submissionItem,
-      key: 'submission:item-3',
       id: 'item-3',
       batchId: 'batch-2',
       title: '向日葵',
@@ -594,135 +541,5 @@ describe('unified library', () => {
     expect(second?.[0]).toBe('batch-2');
     expect(second?.[1].items).toEqual([{ id: 'item-3', contentHash: 'c'.repeat(64), revision: 3 }]);
     expect(second?.[1].id).not.toBe(first?.[1].id);
-  });
-
-  it('starts a manual review from an approved candidate row', async () => {
-    const approvedCandidate: WordLibraryItem = {
-      ...candidateItem,
-      key: 'candidate:cand-2',
-      id: 'cand-2',
-      title: '金丝猴',
-      status: 'approved',
-    };
-    vi.mocked(fetchLibraryItems).mockResolvedValue({
-      ...libraryData,
-      items: [approvedCandidate],
-      totals: { candidates: { approved: 1 }, submissions: {} },
-    });
-    const { user } = mount();
-    await screen.findByText('金丝猴');
-    expect(screen.getByText('已批准')).toBeVisible();
-    const card = screen.getByText('金丝猴').closest('article');
-    expect(card).not.toBeNull();
-    await user.click(within(card as HTMLElement).getByRole('button', { name: '启动独立审核' }));
-    await waitFor(() => expect(reviewWordCandidates).toHaveBeenCalledWith('drawguess', ['cand-2']));
-    expect(
-      await screen.findByText('独立审核完成：通过 1 条，未通过 0 条，失败 0 条。'),
-    ).toBeVisible();
-  });
-
-  it('publishes a passed candidate from its row and offers a re-review', async () => {
-    const passedCandidate: WordLibraryItem = {
-      ...candidateItem,
-      key: 'candidate:cand-3',
-      id: 'cand-3',
-      title: '长颈鹿',
-      status: 'passed',
-    };
-    vi.mocked(fetchLibraryItems).mockResolvedValue({
-      ...libraryData,
-      items: [passedCandidate],
-      totals: { candidates: { passed: 1 }, submissions: {} },
-    });
-    const { user } = mount();
-    await screen.findByText('长颈鹿');
-    expect(screen.getByText('已通过待发布')).toBeVisible();
-    const card = screen.getByText('长颈鹿').closest('article');
-    expect(card).not.toBeNull();
-    expect(within(card as HTMLElement).getByRole('button', { name: '启动独立审核' })).toBeVisible();
-    await user.click(within(card as HTMLElement).getByRole('button', { name: '确认发布' }));
-    await waitFor(() =>
-      expect(publishWordCandidates).toHaveBeenCalledWith('drawguess', ['cand-3']),
-    );
-    expect(await screen.findByText('已发布 1 条。')).toBeVisible();
-  });
-
-  it('splits a bulk review of six approved candidates into groups of five', async () => {
-    const approved: WordLibraryItem[] = Array.from({ length: 6 }, (_, index) => ({
-      ...candidateItem,
-      key: `candidate:cand-${index + 1}`,
-      id: `cand-${index + 1}`,
-      title: `候选${index + 1}`,
-      status: 'approved' as const,
-    }));
-    vi.mocked(fetchLibraryItems).mockResolvedValue({
-      ...libraryData,
-      items: approved,
-      totals: { candidates: { approved: 6 }, submissions: {} },
-    });
-    const { user } = mount();
-    await screen.findByText('候选1');
-    for (let index = 1; index <= 6; index += 1) {
-      await user.click(screen.getByRole('checkbox', { name: `选择候选${index}` }));
-    }
-    expect(screen.getByText('已选 6 / 当前可选 6')).toBeVisible();
-    expect(screen.getByRole('button', { name: '批量审核 6' })).toBeVisible();
-    expect(screen.getByRole('button', { name: '批量发布 0' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: '批量审核 6' }));
-    await waitFor(() => expect(reviewWordCandidates).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(reviewWordCandidates).mock.calls[0]?.[1]).toEqual([
-      'cand-1',
-      'cand-2',
-      'cand-3',
-      'cand-4',
-      'cand-5',
-    ]);
-    expect(vi.mocked(reviewWordCandidates).mock.calls[1]?.[1]).toEqual(['cand-6']);
-    expect(
-      await screen.findByText('独立审核完成：通过 6 条，未通过 0 条，失败 0 条。'),
-    ).toBeVisible();
-  });
-
-  it('publishes selected passed candidates in one bulk call', async () => {
-    const passed: WordLibraryItem[] = Array.from({ length: 2 }, (_, index) => ({
-      ...candidateItem,
-      key: `candidate:cand-${index + 1}`,
-      id: `cand-${index + 1}`,
-      title: `候选${index + 1}`,
-      status: 'passed' as const,
-    }));
-    vi.mocked(fetchLibraryItems).mockResolvedValue({
-      ...libraryData,
-      items: passed,
-      totals: { candidates: { passed: 2 }, submissions: {} },
-    });
-    const { user } = mount();
-    await screen.findByText('候选1');
-    await user.click(screen.getByRole('checkbox', { name: '选择候选1' }));
-    await user.click(screen.getByRole('checkbox', { name: '选择候选2' }));
-    expect(screen.getByRole('button', { name: '批量审核 2' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: '批量发布 2' }));
-    await waitFor(() =>
-      expect(publishWordCandidates).toHaveBeenCalledWith('drawguess', ['cand-1', 'cand-2']),
-    );
-    expect(publishWordCandidates).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText('已发布 2 条。')).toBeVisible();
-  });
-
-  it('points the approval notice at the manual review instead of the next round', async () => {
-    const { user } = mount();
-    await screen.findByText('大熊猫');
-    const card = screen.getByText('大熊猫').closest('article');
-    expect(card).not.toBeNull();
-    await user.click(within(card as HTMLElement).getByRole('button', { name: '批准' }));
-    await waitFor(() =>
-      expect(approveWordCandidates).toHaveBeenCalledWith(
-        'drawguess',
-        ['cand-1'],
-        '词太常见，不用审了。',
-      ),
-    );
-    expect(await screen.findByText('已批准 1 条，请手动启动独立审核。')).toBeVisible();
-    expect(document.body.textContent).not.toMatch(/下一轮将继续审核/);
   });
 });

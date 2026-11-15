@@ -1,9 +1,10 @@
 /**
- * The unified word library: inventory numbers and the merged FIFO stream of
- * supply candidates and submission items on one page. Inventory appears as
- * numbers only; the card stream never holds inventory rows. The batch table
- * sits below the stream, and a batch's detail opens as a workspace overlay
- * on top of this page.
+ * The unified word library: inventory numbers and the submission stream on
+ * one page. Supply-produced words enter as submissions (agent '系统补词'),
+ * reviewed and published exactly like agent submissions. Inventory appears
+ * as numbers only; the card stream never holds inventory rows. The batch
+ * table sits below the stream, and a batch's detail opens as a workspace
+ * overlay on top of this page.
  */
 import './wordSubmissions.css';
 
@@ -18,7 +19,6 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import type {
   GameWordGame,
   GameWordsStats,
-  WordCandidateListStatus,
   WordLibraryItems,
   WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
@@ -44,57 +44,34 @@ import {
   StatusBadge,
 } from '../components/Primitives';
 import { type SupplyAction, SupplyControls } from '../components/SupplyControls';
-import { LibraryCards, type LibrarySourceFilter } from './LibraryCards';
+import { LibraryCards } from './LibraryCards';
 import { SubmissionBatchPage } from './SubmissionBatch';
 import {
   isSubmissionBatchOpenedFromLibrary,
   SUBMISSION_BATCH_ORIGIN_STATE,
 } from './submissionBatchNavigation';
 import {
-  CANDIDATE_STATUS_LABELS,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
+  SUPPLY_AGENT_NAME,
   WORD_GAME_LABELS,
   WordChoiceFilter,
 } from './wordLabels';
 
 const wordLog = log.extend('AdminWords');
 
-/** Card-stream source filter values carried in the `source` URL param. */
-const LIBRARY_SOURCES: readonly string[] = ['all', 'inventory', 'submissions'];
-
-function isLibrarySource(value: string): value is LibrarySourceFilter {
-  return LIBRARY_SOURCES.includes(value);
-}
-
-/** Candidate statuses, in the order they appear in the status filter. */
-const CANDIDATE_STATUSES: readonly WordCandidateListStatus[] = [
-  'pending',
-  'approved',
-  'claimed',
-  'accepted',
-  'rejected',
-];
-
 /** Submission statuses, in the order they appear in the status filter. */
 const SUBMISSION_STATUSES: readonly WordSubmissionStatus[] = [
   ...wordSubmissionStatusSchema.options,
 ];
 
-function isLibraryStatus(value: string): value is WordCandidateListStatus | WordSubmissionStatus {
-  return (
-    CANDIDATE_STATUSES.some((status) => status === value) ||
-    SUBMISSION_STATUSES.some((status) => status === value)
-  );
+function isLibraryStatus(value: string): value is WordSubmissionStatus {
+  return SUBMISSION_STATUSES.some((status) => status === value);
 }
 
-/** Status filter options: the candidate set followed by the submission set. */
+/** Status filter options: the submission set. */
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
-  ...CANDIDATE_STATUSES.map((value) => ({
-    value,
-    label: CANDIDATE_STATUS_LABELS[value],
-  })),
   ...SUBMISSION_STATUSES.map((value) => ({
     value,
     label: SUBMISSION_STATUS_LABELS[value],
@@ -114,10 +91,7 @@ function LibraryFlowBar({
   totals: WordLibraryItems['totals'];
 }) {
   const awaiting =
-    statusCount(totals.candidates, 'pending') +
-    statusCount(totals.candidates, 'approved') +
-    statusCount(totals.submissions, 'pending') +
-    statusCount(totals.submissions, 'approved');
+    statusCount(totals.submissions, 'pending') + statusCount(totals.submissions, 'approved');
   const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
   const stages = [
     { label: '库存', value: inventory, hot: false },
@@ -165,10 +139,8 @@ function LibrarySummary({
         <span className="admin-library-stat-hot">
           <StatTile
             label="待你批准"
-            value={
-              statusCount(totals.candidates, 'pending') + statusCount(totals.submissions, 'pending')
-            }
-            hint="后台生成的候选与外部投稿中，还没批的。"
+            value={statusCount(totals.submissions, 'pending')}
+            hint="投稿中，还没批的。"
           />
         </span>
       </div>
@@ -176,11 +148,7 @@ function LibrarySummary({
         <span className="admin-library-summary-line">
           <span className="admin-library-summary-key">已批准待审核</span>
           <span className="admin-library-summary-value">
-            {formatNumber(
-              statusCount(totals.candidates, 'approved') +
-                statusCount(totals.submissions, 'approved'),
-            )}{' '}
-            条
+            {formatNumber(statusCount(totals.submissions, 'approved'))} 条
           </span>
         </span>
         <span className="admin-library-summary-line">
@@ -199,8 +167,6 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   const navigate = useNavigate();
   const location = useLocation();
   const search = parameters.get('search') ?? '';
-  const rawSource = parameters.get('source') ?? '';
-  const source = isLibrarySource(rawSource) ? rawSource : 'all';
   const rawStatus = parameters.get('status') ?? '';
   const status = isLibraryStatus(rawStatus) ? rawStatus : '';
   const batchId = parameters.get('batch');
@@ -212,14 +178,9 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   // Reset while rendering the new scope, so the query below never fires
   // with a stale cursor.
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
-  const [prevScope, setPrevScope] = useState({ game, source, status, search });
-  if (
-    prevScope.game !== game ||
-    prevScope.source !== source ||
-    prevScope.status !== status ||
-    prevScope.search !== search
-  ) {
-    setPrevScope({ game, source, status, search });
+  const [prevScope, setPrevScope] = useState({ game, status, search });
+  if (prevScope.game !== game || prevScope.status !== status || prevScope.search !== search) {
+    setPrevScope({ game, status, search });
     setCursors([null]);
   }
   const cursor = cursors[cursors.length - 1] ?? null;
@@ -228,20 +189,16 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
     adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
   );
   const library = useQuery(
-    adminQueryOptions(
-      'words',
-      { game, section: 'library', source, status, search, cursor },
-      (signal) =>
-        fetchLibraryItems(
-          game,
-          {
-            ...(source === 'submissions' ? { source: 'submission' as const } : {}),
-            ...(status === '' ? {} : { status }),
-            ...(search === '' ? {} : { search }),
-            ...(cursor === null ? {} : { cursor }),
-          },
-          signal,
-        ),
+    adminQueryOptions('words', { game, section: 'library', status, search, cursor }, (signal) =>
+      fetchLibraryItems(
+        game,
+        {
+          ...(status === '' ? {} : { status }),
+          ...(search === '' ? {} : { search }),
+          ...(cursor === null ? {} : { cursor }),
+        },
+        signal,
+      ),
     ),
   );
   const batches = useQuery(
@@ -269,8 +226,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
     setTriggerError(null);
     let completed = 0;
     try {
-      for (; completed < action.count; completed += 1)
-        await triggerGameWordSupply(game, action.force);
+      for (; completed < action.count; completed += 1) await triggerGameWordSupply(game);
       setNotice(`已触发 ${completed} 次，工作流需要几分钟，稍后手动刷新。`);
     } catch (cause: unknown) {
       handleError(cause, { label: '触发补词', logger: wordLog, feedback: false });
@@ -284,18 +240,14 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   }
 
   function confirm(action: SupplyAction) {
-    const limit =
-      game === 'fibking'
-        ? `突破本月 ${stats.data?.monthlySupply?.batchLimit ?? '—'} 次配额及共享模型额度`
-        : '突破每日批次上限及共享模型额度';
     void showAlert(
       '确认补词',
-      `将为「${WORD_GAME_LABELS[game]}」${action.force ? '强制' : ''}触发 ${action.count} 次补词${action.force ? `，${limit}` : ''}，确定吗？`,
+      `将为「${WORD_GAME_LABELS[game]}」触发 ${action.count} 次补词，确定吗？`,
       [
         CANCEL_BUTTON,
         {
           text: '确定',
-          style: action.force ? 'destructive' : 'default',
+          style: 'default',
           onPress: () => void trigger(action),
         },
       ],
@@ -328,7 +280,6 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   /** Game links keep the card-stream filters and drop the batch overlay. */
   function gameSearch() {
     const next = new URLSearchParams();
-    if (source !== 'all') next.set('source', source);
     if (status !== '') next.set('status', status);
     if (search !== '') next.set('search', search);
     const query = next.toString();
@@ -337,7 +288,6 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
 
   /** Batch links keep the card-stream filters and add the batch overlay. */
   const batchLinkFilter: Record<string, string> = {};
-  if (source !== 'all') batchLinkFilter.source = source;
   if (status !== '') batchLinkFilter.status = status;
   if (search !== '') batchLinkFilter.search = search;
   if (batchCursor !== null) batchLinkFilter.batchCursor = batchCursor;
@@ -350,7 +300,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
         <>
           <PageHeading
             title="统一词库"
-            description="搜索后台候选和 Agent 投稿；库存只显示数量。"
+            description="搜索投稿；库存只显示数量。"
             query={stats}
             action={
               <span className="admin-row-actions">
@@ -364,18 +314,6 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                   disabled={triggering || !stats.data?.supplyEnabled}
                   triggering={triggering}
                   gameLabel={WORD_GAME_LABELS[game]}
-                  remainingBudget={
-                    stats.data === undefined
-                      ? 0
-                      : Math.max(
-                          0,
-                          Math.min(
-                            stats.data.modelBudget.dailyLimit - stats.data.modelBudget.dailyUsed,
-                            stats.data.modelBudget.monthlyLimit -
-                              stats.data.modelBudget.monthlyUsed,
-                          ),
-                        )
-                  }
                   onSelect={confirm}
                 />
               </span>
@@ -416,9 +354,9 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 <dl className="admin-details admin-library-sources">
                   <dt>库存</dt>
                   <dd>{formatNumber(inventory)} 条</dd>
-                  <dt>Agent 已发布</dt>
+                  <dt>已发布</dt>
                   <dd>{formatNumber(statusCount(totals.submissions, 'published'))} 条</dd>
-                  <dt>Agent 待批准</dt>
+                  <dt>待批准</dt>
                   <dd>{formatNumber(statusCount(totals.submissions, 'pending'))} 条</dd>
                   <dt>审核失败待重审</dt>
                   <dd>{formatNumber(statusCount(totals.submissions, 'failed'))} 条</dd>
@@ -446,41 +384,6 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 setParameters(next, { replace: true });
               }}
             >
-              <nav className="admin-segmented" aria-label="筛选来源">
-                <Link
-                  to={`/admin/words/${game}`}
-                  replace
-                  aria-current={source === 'all' ? 'page' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    change('source', '');
-                  }}
-                >
-                  全部来源
-                </Link>
-                <Link
-                  to={`/admin/words/${game}`}
-                  replace
-                  aria-current={source === 'inventory' ? 'page' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    change('source', 'inventory');
-                  }}
-                >
-                  库存
-                </Link>
-                <Link
-                  to={`/admin/words/${game}`}
-                  replace
-                  aria-current={source === 'submissions' ? 'page' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    change('source', 'submissions');
-                  }}
-                >
-                  Agent 投稿
-                </Link>
-              </nav>
               <WordChoiceFilter
                 label="状态"
                 value={status}
@@ -492,17 +395,16 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 name="librarySearch"
                 defaultValue={search}
                 className="admin-input admin-filter"
-                placeholder="搜索候选或投稿的词语、分类"
-                aria-label="搜索候选或投稿"
+                placeholder="搜索投稿的词语、分类"
+                aria-label="搜索投稿"
               />
               <button type="submit">搜</button>
             </form>
             <AsyncBoundary query={library}>
               {(data) => (
                 <LibraryCards
-                  key={`${game}:${source}:${status}:${search}`}
+                  key={`${game}:${status}:${search}`}
                   game={game}
-                  source={source}
                   status={status}
                   search={search}
                   data={data}
@@ -516,7 +418,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
                 />
               )}
             </AsyncBoundary>
-            <Panel title="外部投稿批次">
+            <Panel title="投稿批次">
               <AsyncBoundary query={batches}>
                 {(data) => (
                   <>
@@ -602,7 +504,11 @@ function SubmissionBatchesTable({
         {
           key: 'source',
           label: '来源',
-          render: (batch) => <StatusBadge title={batch.agentName}>Agent投稿</StatusBadge>,
+          render: (batch) => (
+            <StatusBadge title={batch.agentName}>
+              {batch.agentName === SUPPLY_AGENT_NAME ? '后台生成' : 'Agent投稿'}
+            </StatusBadge>
+          ),
         },
         {
           key: 'agent',
@@ -612,7 +518,7 @@ function SubmissionBatchesTable({
         },
         {
           key: 'count',
-          label: '候选',
+          label: '词条',
           numeric: true,
           secondary: true,
           render: (batch) =>
@@ -625,7 +531,7 @@ function SubmissionBatchesTable({
             const status = wordSubmissionStatusSchema.options.find(
               (item) => (batch.counts[item] ?? 0) > 0,
             );
-            return status === undefined ? '无候选' : <SubmissionStatus status={status} />;
+            return status === undefined ? '无词条' : <SubmissionStatus status={status} />;
           },
         },
         {
