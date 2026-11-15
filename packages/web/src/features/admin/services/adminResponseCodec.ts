@@ -21,6 +21,8 @@ import type {
   DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
+  PublishWordCandidatesResult,
+  ReviewWordCandidatesResult,
   TriggerSupplyResult,
   WordLibraryItem,
   WordLibraryItems,
@@ -899,6 +901,53 @@ export function parseApproveWordCandidatesResponse(value: unknown): ApproveWordC
       parseNonEmptyString(item, label),
     ),
     skippedIds: parseArray(object.skippedIds, 'Approve word candidates skipped', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+  };
+}
+
+export function parseReviewWordCandidatesResponse(value: unknown): ReviewWordCandidatesResult {
+  const object = requireObject(value, 'Review word candidates response');
+  assertExactKeys(
+    object,
+    ['game', 'passedIds', 'rejectedIds', 'failedIds', 'skippedIds'],
+    'Review word candidates response',
+  );
+  return {
+    game: parseGameWordGame(object.game, 'Review word candidates game'),
+    passedIds: parseArray(object.passedIds, 'Review word candidates passed', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+    rejectedIds: parseArray(object.rejectedIds, 'Review word candidates rejected', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+    failedIds: parseArray(object.failedIds, 'Review word candidates failed', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+    skippedIds: parseArray(object.skippedIds, 'Review word candidates skipped', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+  };
+}
+
+export function parsePublishWordCandidatesResponse(value: unknown): PublishWordCandidatesResult {
+  const object = requireObject(value, 'Publish word candidates response');
+  assertExactKeys(
+    object,
+    ['game', 'publishedIds', 'rejectedIds', 'skippedIds'],
+    'Publish word candidates response',
+  );
+  return {
+    game: parseGameWordGame(object.game, 'Publish word candidates game'),
+    publishedIds: parseArray(
+      object.publishedIds,
+      'Publish word candidates published',
+      (item, label) => parseNonEmptyString(item, label),
+    ),
+    rejectedIds: parseArray(object.rejectedIds, 'Publish word candidates rejected', (item, label) =>
+      parseNonEmptyString(item, label),
+    ),
+    skippedIds: parseArray(object.skippedIds, 'Publish word candidates skipped', (item, label) =>
       parseNonEmptyString(item, label),
     ),
   };

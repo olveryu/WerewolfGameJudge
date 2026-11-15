@@ -7,6 +7,8 @@ export type {
   DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
+  PublishWordCandidatesResult,
+  ReviewWordCandidatesResult,
   TriggerSupplyResult,
   WordCandidateListStatus,
   WordLibraryItem,

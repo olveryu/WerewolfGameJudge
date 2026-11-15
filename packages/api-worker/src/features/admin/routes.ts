@@ -24,6 +24,12 @@ import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
 import { adminWordSubmissionRoutes } from '../wordSubmissions/routes';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
+import {
+  publishWordCandidates,
+  publishWordCandidatesSchema,
+  reviewWordCandidates,
+  reviewWordCandidatesSchema,
+} from './candidateReview';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
   approveWordCandidates,
@@ -484,8 +490,12 @@ adminRoutes.get('/games/words/candidates', async (c) => {
     status !== 'pending' &&
     status !== 'approved' &&
     status !== 'claimed' &&
+    status !== 'reviewing' &&
+    status !== 'passed' &&
     status !== 'accepted' &&
-    status !== 'rejected'
+    status !== 'rejected' &&
+    status !== 'failed' &&
+    status !== 'published'
   )
     throw new HTTPException(400, { message: 'INVALID_STATUS' });
   return c.json(
@@ -502,6 +512,27 @@ adminRoutes.post(
   jsonBody(approveWordCandidatesSchema),
   async (c) => {
     return c.json(await approveWordCandidates(c.env.DB, c.req.valid('json')));
+  },
+);
+
+/** Manual independent review of approved candidates: the same reviewBatch +
+ * independent-review prompt the submission review uses, started by a human
+ * from the unified library page. The supply workflow never reviews. */
+adminRoutes.post(
+  '/games/words/candidates/review',
+  jsonBody(reviewWordCandidatesSchema),
+  async (c) => {
+    return c.json(await reviewWordCandidates(c.env.DB, c.env, c.req.valid('json')));
+  },
+);
+
+/** Manual confirmation of publication for passed candidates: the same
+ * publish gate as submissions, in one atomic batch. */
+adminRoutes.post(
+  '/games/words/candidates/publish',
+  jsonBody(publishWordCandidatesSchema),
+  async (c) => {
+    return c.json(await publishWordCandidates(c.env.DB, c.req.valid('json')));
   },
 );
 

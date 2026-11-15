@@ -10,17 +10,21 @@ import {
   defineWorkerGameCatalog,
   registerWorkerGameModule,
 } from '../platform/gameModules/workerModule';
+import type { WordCandidateReviewAdapter } from '../platform/wordSupply/candidateReviewAdapter';
 import type { WordSubmissionAdapter } from '../platform/wordSupply/submissionAdapter';
 import { avalonWorkerModule } from './avalon/module';
 import { demoWorkerModule } from './demo/module';
 import { drawGuessWorkerModule } from './drawguess/module';
+import { drawGuessCandidateReviewAdapter } from './drawguess/wordCandidateReview';
 import { drawGuessSubmissionAdapter } from './drawguess/wordSubmissions';
 import { cleanupFibWordAudit } from './fibking/maintenance';
 import { fibWorkerModule } from './fibking/module';
+import { fibCandidateReviewAdapter } from './fibking/wordCandidateReview';
 import { fibSubmissionAdapter } from './fibking/wordSubmissions';
 import { pictionaryWorkerModule } from './pictionary/module';
 import { storyRelayWorkerModule } from './storyrelay/module';
 import { undercoverWorkerModule } from './undercover/module';
+import { undercoverCandidateReviewAdapter } from './undercover/wordCandidateReview';
 import { undercoverSubmissionAdapter } from './undercover/wordSubmissions';
 import { aggregateWerewolfCampStats } from './werewolf/campAggregation';
 import { werewolfWorkerModule } from './werewolf/module';
@@ -33,6 +37,16 @@ export const WORKER_WORD_SUBMISSION_ADAPTERS = {
 } as const satisfies Record<
   import('@game-judge/game-engine/product/wordSupply').GameWordGame,
   WordSubmissionAdapter
+>;
+
+/** Manual candidate review/publish adapters are composed only here, never by another concrete game. */
+export const WORKER_WORD_CANDIDATE_REVIEW_ADAPTERS = {
+  fibking: fibCandidateReviewAdapter,
+  undercover: undercoverCandidateReviewAdapter,
+  drawguess: drawGuessCandidateReviewAdapter,
+} as const satisfies Record<
+  import('@game-judge/game-engine/product/wordSupply').GameWordGame,
+  WordCandidateReviewAdapter
 >;
 
 /** Owner-local game maintenance composed at the same boundary as game modules. */

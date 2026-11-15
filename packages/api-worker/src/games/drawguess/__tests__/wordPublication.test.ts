@@ -1,17 +1,10 @@
-/** Real D1 queue recovery, exact review publication with pinyin, and stable retirement. */
+/** Real D1 queue recovery and stable reservation. */
 import { DRAWGUESS_WORD_CATEGORIES } from '@game-judge/game-engine/games/drawguess/public';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import type { DrawGuessWordCandidate, DrawGuessWordReview } from '../wordEditorial';
-import {
-  failDrawGuessWordPack,
-  getDrawGuessReviewCandidates,
-  publishDrawGuessWordPack,
-  reserveDrawGuessWordPack,
-  storeDrawGuessWordCandidates,
-} from '../wordPublication';
+import { reserveDrawGuessWordPack } from '../wordPublication';
 
 beforeEach(async () => {
   await env.DB.batch([
@@ -63,7 +56,8 @@ describe('DrawGuess editorial publication', () => {
   it('tries another equally empty category after a pack produces no words', async () => {
     const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
     if (first === null) throw new Error('Expected reservation');
-    await publishDrawGuessWordPack(env.DB, first, [], []);
+    // The reserved pack's own cooldown already pushes its category down;
+    // no publish step closes it (supply only generates).
     const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
     expect(second).not.toBeNull();
     expect(second?.category).not.toBe(first.category);
@@ -110,114 +104,6 @@ describe('DrawGuess editorial publication', () => {
 
     const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
     expect(pack?.category).toBe('animals');
-  });
-
-  it('resumes failed material and atomically publishes once with pinyin initials', async () => {
-    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
-    if (first === null) throw new Error('Expected reservation');
-    expect(await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0)).toBeNull();
-    const candidate: DrawGuessWordCandidate = {
-      word: '大熊猫',
-      category: first.category,
-      difficulty: 'easy',
-      potentialIssues: [],
-    };
-    await storeDrawGuessWordCandidates(env.DB, first, [candidate]);
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare("UPDATE drawguess_word_candidates SET status = 'approved'").run();
-    const candidates = await getDrawGuessReviewCandidates(env.DB, first);
-    expect(candidates).toHaveLength(1);
-    await failDrawGuessWordPack(env.DB, first, 'review:timedOut');
-    await env.DB.prepare("UPDATE drawguess_word_packs SET created_at = '2020-01-01' WHERE id = ?")
-      .bind(first.id)
-      .run();
-    await env.DB.batch(
-      DRAWGUESS_WORD_CATEGORIES.filter((category) => category !== first.category).map((category) =>
-        env.DB.prepare(
-          `INSERT INTO drawguess_word_packs (id, category, request_token, status, model, prompt_version, review_version, created_at)
-        VALUES (?, ?, ?, 'failed', 'test', '1', '1', ?)`,
-        ).bind(`attempt-${category}`, category, category, new Date().toISOString()),
-      ),
-    );
-    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 0);
-    if (second === null) throw new Error('Expected resumed reservation');
-    expect(await getDrawGuessReviewCandidates(env.DB, second)).toEqual(candidates);
-    const reviewPayload: DrawGuessWordReview = {
-      word: candidate.word,
-      qualityChecks: {
-        isConcreteAndDrawable: true,
-        isSimplifiedChinese: true,
-        isLengthValid: true,
-        isCategoryAccurate: true,
-        isAppropriate: true,
-        isUnambiguous: true,
-      },
-      reason: '常见动物，外形特征明确，好画好猜。',
-    };
-    await env.DB.prepare(
-      `CREATE TRIGGER reject_pack_completion BEFORE UPDATE OF status ON drawguess_word_packs
-      WHEN NEW.status = 'published' BEGIN SELECT RAISE(ABORT, 'publication failed'); END`,
-    ).run();
-    try {
-      await expect(
-        publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]),
-      ).rejects.toThrow('publication failed');
-    } finally {
-      await env.DB.prepare('DROP TRIGGER reject_pack_completion').run();
-    }
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
-      count: 0,
-    });
-    expect(
-      await env.DB.prepare('SELECT status, review_json FROM drawguess_word_candidates').first(),
-      // D2 gate: the claim leaves the candidate in the approved pool, not pending.
-    ).toEqual({ status: 'approved', review_json: null });
-    expect(
-      await env.DB.prepare('SELECT status FROM drawguess_word_packs WHERE id = ?')
-        .bind(second.id)
-        .first(),
-    ).toEqual({ status: 'reserved' });
-    await publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]);
-    await publishDrawGuessWordPack(env.DB, second, candidates, [reviewPayload]);
-    expect(
-      await env.DB.prepare('SELECT word, pinyin_initials, status FROM drawguess_words').first(),
-    ).toEqual({ word: '大熊猫', pinyin_initials: 'd x m', status: 'active' });
-  });
-
-  it('keeps rejected candidates out of the word inventory', async () => {
-    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 0);
-    if (pack === null) throw new Error('Expected reservation');
-    const candidate: DrawGuessWordCandidate = {
-      word: '云朵',
-      category: pack.category,
-      difficulty: 'easy',
-      potentialIssues: [],
-    };
-    await storeDrawGuessWordCandidates(env.DB, pack, [candidate]);
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare("UPDATE drawguess_word_candidates SET status = 'approved'").run();
-    const candidates = await getDrawGuessReviewCandidates(env.DB, pack);
-    expect(candidates).toHaveLength(1);
-    await publishDrawGuessWordPack(env.DB, pack, candidates, [
-      {
-        word: candidate.word,
-        qualityChecks: {
-          isConcreteAndDrawable: false,
-          isSimplifiedChinese: true,
-          isLengthValid: true,
-          isCategoryAccurate: true,
-          isAppropriate: true,
-          isUnambiguous: true,
-        },
-        reason: '形状过于抽象，没有明确画法。',
-      },
-    ]);
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
-      count: 0,
-    });
-    expect(await env.DB.prepare('SELECT status FROM drawguess_word_candidates').first()).toEqual({
-      status: 'rejected',
-    });
   });
 });
 

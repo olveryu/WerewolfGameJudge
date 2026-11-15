@@ -13,6 +13,8 @@ import type {
   DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
+  PublishWordCandidatesResult,
+  ReviewWordCandidatesResult,
   TimePreset,
   TriggerSupplyResult,
   WordCandidateListStatus,
@@ -45,6 +47,8 @@ import {
   parseDismissWordCandidatesResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
+  parsePublishWordCandidatesResponse,
+  parseReviewWordCandidatesResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
@@ -339,6 +343,42 @@ export function dismissWordCandidates(
       game,
       candidateIds,
       reason,
+    },
+  );
+}
+
+/** Manual independent review of approved candidates: one call reviews at
+ * most five, grouped by category. The supply workflow never reviews. */
+export function reviewWordCandidates(
+  game: GameWordGame,
+  candidateIds: string[],
+): Promise<ReviewWordCandidatesResult> {
+  return adminFetch(
+    '/admin/games/words/candidates/review',
+    parseReviewWordCandidatesResponse,
+    undefined,
+    undefined,
+    {
+      game,
+      candidateIds,
+    },
+  );
+}
+
+/** Manual confirmation of publication for passed candidates: one call
+ * publishes at most thirty, in a single transaction. */
+export function publishWordCandidates(
+  game: GameWordGame,
+  candidateIds: string[],
+): Promise<PublishWordCandidatesResult> {
+  return adminFetch(
+    '/admin/games/words/candidates/publish',
+    parsePublishWordCandidatesResponse,
+    undefined,
+    undefined,
+    {
+      game,
+      candidateIds,
     },
   );
 }

@@ -1,4 +1,6 @@
-/** Free-tier editorial workflow: separately bounded search, generation, review, and publication. */
+/** Free-tier editorial workflow: separately bounded search, generation, and
+ * storage. Review and publication are manual — the workflow only generates
+ * new candidates and stops at the approval gate. */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
@@ -11,7 +13,6 @@ import {
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import { cleanupFibWordAudit } from './maintenance';
-import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
@@ -33,9 +34,6 @@ import {
   FIB_WORD_DAILY_BATCH_LIMIT,
   FIB_WORD_MONTHLY_BATCH_LIMIT,
   type FibWordPack,
-  getFibWordReviewCandidates,
-  publishFibWordPack,
-  releaseFibWordCandidates,
   reserveFibWordPack,
   selectFibWordSearch,
   storeFibWordCandidates,
@@ -160,9 +158,12 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
   }
 
   /**
-   * Process one pack. Returns true when the batch stopped at the approval
-   * gate (newly stored candidates are pending; the run ends with outcome
-   * 'awaitingApproval' instead of reviewing or publishing them).
+   * Process one pack: search, discover, extract, generate, and store new
+   * candidates, then stop at the approval gate. Returns true when the batch
+   * stored new candidates (the run ends with outcome 'awaitingApproval');
+   * false when nothing was generated and the run may continue with the
+   * next batch. Approved candidates are ignored here — they wait for the
+   * manual review/publish endpoints.
    */
   private async processPack(
     step: WorkflowStep,
@@ -170,134 +171,54 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     batchIndex: number,
     force: boolean,
   ): Promise<boolean> {
-    let failureStage = 'inventoryReviewSelection';
+    let failureStage = 'searchSelection';
     try {
-      let candidates = await step.do(`review-candidates-${batchIndex}`, () =>
-        getFibWordReviewCandidates(this.env.DB, pack),
+      const search = await step.do(`select-search-${batchIndex}`, () =>
+        selectFibWordSearch(this.env.DB, pack),
       );
-      if (candidates.length === 0) {
-        failureStage = 'searchSelection';
-        const search = await step.do(`select-search-${batchIndex}`, () =>
-          selectFibWordSearch(this.env.DB, pack),
+      failureStage = 'discovery';
+      const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
+        await claimFibWordProviderRequest(this.env.DB, pack, 'discovery', { force });
+        return searchFibWordEvidence(
+          this.env.TAVILY_API_KEY,
+          createFibWordSearchQuery(search.searchIndex),
         );
-        failureStage = 'discovery';
-        const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
-          await claimFibWordProviderRequest(this.env.DB, pack, 'discovery', { force });
-          return searchFibWordEvidence(
-            this.env.TAVILY_API_KEY,
-            createFibWordSearchQuery(search.searchIndex),
-          );
+      });
+      if (discovery.length > 0) {
+        failureStage = 'extraction';
+        const extraction = await step.do(`extract-${batchIndex}`, EXTERNAL_STEP, async () => {
+          await claimFibWordProviderRequest(this.env.DB, pack, 'extraction', { force });
+          return extractFibWordEvidence(this.env.TAVILY_API_KEY, discovery);
         });
-        if (discovery.length > 0) {
-          failureStage = 'extraction';
-          const extraction = await step.do(`extract-${batchIndex}`, EXTERNAL_STEP, async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, 'extraction', { force });
-            return extractFibWordEvidence(this.env.TAVILY_API_KEY, discovery);
-          });
-          if (extraction.evidence.length > 0) {
-            failureStage = 'generation';
-            const generatedCandidates = await step.do(
-              `generate-${batchIndex}`,
-              MODEL_STEP,
-              async () => {
-                await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
-                return createConfiguredFibWordProvider(this.env).generateBatch(
-                  createRequest(pack.category, extraction.evidence, search.topic),
-                  { packId: pack.id },
-                );
-              },
-            );
-            failureStage = 'candidateStorage';
-            const parsedCandidates = readGeneratedCandidates(generatedCandidates);
-            await step.do(`store-candidates-${batchIndex}`, () =>
-              storeFibWordCandidates(this.env.DB, pack, parsedCandidates),
-            );
-            candidates = await step.do(`generated-review-candidates-${batchIndex}`, () =>
-              getFibWordReviewCandidates(this.env.DB, pack),
-            );
-            if (parsedCandidates.length > 0 && candidates.length === 0) {
-              // Newly stored candidates are pending until a human approves
-              // them: stop this batch — and the run — here, leave the pack
-              // reserved, and run no verification, review or publish for
-              // it. Approved candidates resume on a later run.
-              await step.do(`awaiting-approval-${batchIndex}`, () =>
-                releaseFibWordCandidates(this.env.DB, pack),
-              );
-              return true;
-            }
-          }
-        }
-      }
-      const verifiedCandidates: FibWordEditorialCandidate[] = [];
-      for (const [candidateIndex, candidate] of candidates.entries()) {
-        if (candidate.evidence.length > 0) {
-          verifiedCandidates.push(candidate);
-          continue;
-        }
-        failureStage = `verification-${candidateIndex}`;
-        const sources = await step.do(
-          `verify-${batchIndex}-${candidateIndex}`,
-          EXTERNAL_STEP,
-          async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, `verification-${candidateIndex}`, {
-              force,
-            });
-            return searchFibWordEvidence(
-              this.env.TAVILY_API_KEY,
-              `"${candidate.word}" 词典 释义 出处`,
-            );
-          },
-        );
-        let evidence: FibWordEvidence[] = [];
-        if (sources.length > 0) {
-          failureStage = `verification-extraction-${candidateIndex}`;
-          const extraction = await step.do(
-            `extract-verification-${batchIndex}-${candidateIndex}`,
-            EXTERNAL_STEP,
+        if (extraction.evidence.length > 0) {
+          failureStage = 'generation';
+          const generatedCandidates = await step.do(
+            `generate-${batchIndex}`,
+            MODEL_STEP,
             async () => {
-              await claimFibWordProviderRequest(
-                this.env.DB,
-                pack,
-                `verification-extraction-${candidateIndex}`,
-                { force },
+              await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
+              return createConfiguredFibWordProvider(this.env).generateBatch(
+                createRequest(pack.category, extraction.evidence, search.topic),
+                { packId: pack.id },
               );
-              return extractFibWordEvidence(this.env.TAVILY_API_KEY, sources);
             },
           );
-          evidence = extraction.evidence;
+          failureStage = 'candidateStorage';
+          const parsedCandidates = readGeneratedCandidates(generatedCandidates);
+          await step.do(`store-candidates-${batchIndex}`, () =>
+            storeFibWordCandidates(this.env.DB, pack, parsedCandidates),
+          );
+          // Newly stored candidates are pending until a human approves
+          // them: stop this batch — and the run — here, leave the pack
+          // reserved, and run no verification, review or publish for it.
+          // (A zero-candidate store cannot happen — generation throws
+          // allCandidatesRejected on zero valid candidates — but if it
+          // ever did, the pack stays reserved like any other gated pack.)
+          return parsedCandidates.length > 0;
         }
-        const verifiedCandidate = { ...candidate, evidence };
-        await step.do(`store-evidence-${batchIndex}-${candidateIndex}`, () =>
-          updateFibWordCandidateEvidence(this.env.DB, pack, verifiedCandidate),
-        );
-        verifiedCandidates.push(verifiedCandidate);
       }
-      failureStage = 'review';
-      if (verifiedCandidates.length > 0)
-        await step.sleep(`review-spacing-${batchIndex}`, '20 seconds');
-      const reviews =
-        verifiedCandidates.length === 0
-          ? []
-          : await step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
-              await claimFibWordProviderRequest(this.env.DB, pack, 'review', { force });
-              return [
-                ...(await createConfiguredFibWordProvider(this.env).reviewBatch(
-                  createRequest(pack.category, []),
-                  verifiedCandidates,
-                  { packId: pack.id },
-                )),
-              ];
-            });
-      failureStage = 'publication';
-      await step.do(`publish-${batchIndex}`, () =>
-        publishFibWordPack(this.env.DB, pack, verifiedCandidates, reviews, {
-          sourceUrls: [
-            ...new Set(
-              verifiedCandidates.flatMap(({ evidence }) => evidence.map(({ url }) => url)),
-            ),
-          ],
-        }),
-      );
+      // No discovery or extraction produced candidates: nothing new to
+      // approve. Leave the pack reserved and continue with the next batch.
       return false;
     } catch (error) {
       const diagnostic = getAiDiagnostic(error);

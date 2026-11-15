@@ -48,7 +48,7 @@ describe('Undercover supply workflow', () => {
     });
   });
 
-  it('checkpoints partial validation and publishes only valid independently reviewed pairs', async () => {
+  it('checkpoints partial validation and stops generated pairs at the approval gate', async () => {
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
     const candidateMaterial = {
@@ -119,12 +119,22 @@ describe('Undercover supply workflow', () => {
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 1 });
 
-    // Human approval (the endpoint is covered by the admin tests; here the
-    // workflow only needs approved rows) unblocks the next run, which
-    // reviews and publishes the persisted candidate without regenerating.
+    // Human approval does not change what the workflow does: the next run
+    // generates new pairs and stops at the approval gate again; the approved
+    // candidate waits for the manual review/publish endpoints.
     await env.DB.prepare(
       "UPDATE undercover_word_candidates SET status = 'approved' WHERE status = 'pending'",
     ).run();
+    const resumeRequests = mockWordSupplyModel(
+      {
+        wordA: '早起',
+        wordB: '晚睡',
+        commonTraits: ['作息习惯', '感觉困倦'],
+        differences: ['发生时间', '是否入睡'],
+        potentialIssues: [],
+      },
+      review,
+    );
     const resumeId = crypto.randomUUID();
     await using resume = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, resumeId);
     await resume.modify(async (modifier) => {
@@ -134,27 +144,30 @@ describe('Undercover supply workflow', () => {
     });
     await env.UNDERCOVER_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: 'resume' } });
     await resume.waitForStatus('complete');
-    expect(await resume.getOutput()).toEqual({ status: 'paused' });
+    expect(await resume.getOutput()).toEqual({ status: 'awaitingApproval' });
     expect(
       await env.DB.prepare('SELECT status FROM undercover_word_packs WHERE id = ?')
         .bind(`${day}-manual-resume-0`)
         .first(),
-    ).toEqual({ status: 'published' });
-    expect(requests).toHaveLength(2);
-    expect(requests[1]).toMatchObject({
+    ).toEqual({ status: 'reserved' });
+    expect(resumeRequests).toHaveLength(1);
+    expect(resumeRequests[0]).toMatchObject({
       category: pack.category,
-      candidates: [{ wordA: candidateMaterial.wordA, wordB: candidateMaterial.wordB }],
+      history: [{ wordA: candidateMaterial.wordA, wordB: candidateMaterial.wordB }],
     });
     expect(
-      await env.DB.prepare(
-        'SELECT word_a, word_b, category, status FROM undercover_word_pairs',
-      ).first(),
-    ).toEqual({
-      word_a: '熬夜',
-      word_b: '赖床',
-      category: pack.category,
-      status: 'active',
-    });
+      (
+        await env.DB.prepare(
+          'SELECT word_a, word_b, status FROM undercover_word_candidates ORDER BY word_a',
+        ).all()
+      ).results,
+    ).toEqual([
+      { word_a: '早起', word_b: '晚睡', status: 'pending' },
+      { word_a: '熬夜', word_b: '赖床', status: 'approved' },
+    ]);
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM undercover_word_pairs').first(),
+    ).toEqual({ count: 0 });
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
     ).toEqual({ count: 2 });

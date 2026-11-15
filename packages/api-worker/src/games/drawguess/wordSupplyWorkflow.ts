@@ -12,9 +12,6 @@ import { createDrawGuessWordProvider, DRAWGUESS_WORD_MODEL } from './wordProvide
 import {
   DRAWGUESS_DAILY_BATCH_LIMIT,
   failDrawGuessWordPack,
-  getDrawGuessReviewCandidates,
-  publishDrawGuessWordPack,
-  releaseDrawGuessWordCandidates,
   reserveDrawGuessWordPack,
   storeDrawGuessWordCandidates,
 } from './wordPublication';
@@ -27,7 +24,7 @@ const historySchema = z.array(z.strictObject({ word: z.string() }));
  */
 const GENERATION_HISTORY_LIMIT = 400;
 
-/** Durable single-day batches with independent review and non-repeatable external operations. */
+/** Durable single-day generation batches; review and publication are manual. */
 export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSupplyParams> {
   async run(event: WorkflowEvent<WordSupplyParams>, step: WorkflowStep) {
     return runWordSupplyWorkflow(this.env, event.payload, step, {
@@ -53,11 +50,8 @@ export class DrawGuessWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSup
       parseCandidates: parseDrawGuessCandidates,
       publication: {
         reserve: reserveDrawGuessWordPack,
-        getReviewCandidates: getDrawGuessReviewCandidates,
         storeCandidates: storeDrawGuessWordCandidates,
-        publish: publishDrawGuessWordPack,
         fail: failDrawGuessWordPack,
-        releaseCandidates: releaseDrawGuessWordCandidates,
       },
     });
   }

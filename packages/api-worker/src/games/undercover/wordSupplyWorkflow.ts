@@ -11,9 +11,6 @@ import { parseUndercoverCandidates } from './wordEditorial';
 import { createUndercoverWordProvider, UNDERCOVER_WORD_MODEL } from './wordProvider';
 import {
   failUndercoverWordPack,
-  getUndercoverReviewCandidates,
-  publishUndercoverWordPack,
-  releaseUndercoverWordCandidates,
   reserveUndercoverWordPack,
   storeUndercoverWordCandidates,
   UNDERCOVER_DAILY_BATCH_LIMIT,
@@ -21,7 +18,7 @@ import {
 
 const historySchema = z.array(z.strictObject({ wordA: z.string(), wordB: z.string() }));
 
-/** Durable single-day batches with independent review and non-repeatable external operations. */
+/** Durable single-day generation batches; review and publication are manual. */
 export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSupplyParams> {
   async run(event: WorkflowEvent<WordSupplyParams>, step: WorkflowStep) {
     return runWordSupplyWorkflow(this.env, event.payload, step, {
@@ -43,11 +40,8 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSu
       parseCandidates: parseUndercoverCandidates,
       publication: {
         reserve: reserveUndercoverWordPack,
-        getReviewCandidates: getUndercoverReviewCandidates,
         storeCandidates: storeUndercoverWordCandidates,
-        publish: publishUndercoverWordPack,
         fail: failUndercoverWordPack,
-        releaseCandidates: releaseUndercoverWordCandidates,
       },
     });
   }

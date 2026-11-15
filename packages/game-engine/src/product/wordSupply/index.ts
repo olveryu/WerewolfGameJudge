@@ -63,10 +63,22 @@ export interface TriggerSupplyResult {
   workflowId: string;
 }
 
-/** Candidate states the admin list can filter by. Fib candidates hold no
- * terminal review state (publish deletes the row); undercover/drawguess
- * keep accepted/rejected rows. */
-export type WordCandidateListStatus = 'pending' | 'approved' | 'claimed' | 'accepted' | 'rejected';
+/** Candidate states the admin list can filter by. Manual review and publish
+ * (the single road from approval to inventory) add 'reviewing' (a manual
+ * model review is in flight), 'passed' (review accepted, awaiting manual
+ * publish), 'failed' (review errored, retryable), and 'published'
+ * (inventory written by manual publish); 'accepted' is the legacy
+ * undercover/drawguess publish state, 'claimed' a legacy pack-claim state. */
+export type WordCandidateListStatus =
+  | 'pending'
+  | 'approved'
+  | 'claimed'
+  | 'reviewing'
+  | 'passed'
+  | 'accepted'
+  | 'rejected'
+  | 'failed'
+  | 'published';
 
 /** A supply candidate awaiting human approval (or already approved). */
 export interface WordCandidateListItem {
@@ -91,6 +103,33 @@ export interface ApproveWordCandidatesResult {
   game: GameWordGame;
   approvedIds: string[];
   /** Requested ids that were already approved, unknown, or not approvable. */
+  skippedIds: string[];
+}
+
+/** One manual review call: up to five approved (or failed, for retry, or
+ * passed, for re-review after a review-version change) candidates, grouped
+ * by category and reviewed one model call each. */
+export interface ReviewWordCandidatesResult {
+  game: GameWordGame;
+  /** Review accepted: the candidate awaits manual publish. */
+  passedIds: string[];
+  /** Review rejected: the candidate stays rejected. */
+  rejectedIds: string[];
+  /** Review errored (model/service): the candidate returns to 'failed' and can be retried. */
+  failedIds: string[];
+  /** Requested ids that were not approved/failed, unknown, or already reviewed. */
+  skippedIds: string[];
+}
+
+/** One manual publish call: up to thirty passed candidates, written to the
+ * inventory in a single transaction. */
+export interface PublishWordCandidatesResult {
+  game: GameWordGame;
+  publishedIds: string[];
+  /** Passed candidates whose stored review no longer passes the publish gate
+   * (e.g. a rejected review, a stale review version, or no pinyin). */
+  rejectedIds: string[];
+  /** Requested ids that were not passed or unknown. */
   skippedIds: string[];
 }
 
