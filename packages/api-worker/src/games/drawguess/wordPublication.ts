@@ -12,7 +12,7 @@ import {
   releaseClaimedWordCandidatesStatement,
 } from '../../platform/wordSupply/wordPackLedger';
 import {
-  DRAWGUESS_WORD_BATCH_LIMIT,
+  DRAWGUESS_WORD_CLAIM_LIMIT,
   DRAWGUESS_WORD_PROMPT_VERSION,
   DRAWGUESS_WORD_REVIEW_VERSION,
   type DrawGuessWordCandidate,
@@ -107,7 +107,7 @@ export async function getDrawGuessReviewCandidates(
     db,
     'drawguess_word_packs',
     pack,
-    DRAWGUESS_WORD_BATCH_LIMIT,
+    DRAWGUESS_WORD_CLAIM_LIMIT,
   ).all();
   const candidates = rows.results.map((row) => {
     const { material_json } = z.strictObject({ material_json: z.string() }).parse(row);

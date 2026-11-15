@@ -16,7 +16,7 @@ import {
   isUndercoverReviewAccepted,
   parseUndercoverCandidates,
   parseUndercoverReviews,
-  UNDERCOVER_WORD_BATCH_LIMIT,
+  UNDERCOVER_WORD_CLAIM_LIMIT,
   UNDERCOVER_WORD_PROMPT_VERSION,
   UNDERCOVER_WORD_REVIEW_VERSION,
   type UndercoverWordCandidate,
@@ -126,7 +126,7 @@ export async function getUndercoverReviewCandidates(
       db,
       'undercover_word_packs',
       pack,
-      UNDERCOVER_WORD_BATCH_LIMIT,
+      UNDERCOVER_WORD_CLAIM_LIMIT,
     ),
   ]);
   const rows = results[1];

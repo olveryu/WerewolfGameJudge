@@ -12,6 +12,9 @@ import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generate
 
 // 每次模型调用只生成一个：一次一个、精益求精（用户 2026-11-15 定）。
 export const DRAWGUESS_WORD_BATCH_LIMIT = 1;
+// 进库取数：一个发布包一次从已批准池里取几条候选，是数据库一步搬运，
+// 不是模型 prompt 的生成个数；生成一次一个见 DRAWGUESS_WORD_BATCH_LIMIT。
+export const DRAWGUESS_WORD_CLAIM_LIMIT = 5;
 export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v3';
 export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v3';
 // Existing workflow checkpoints and published packs can contain up to 30 items.
