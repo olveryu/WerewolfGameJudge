@@ -1,7 +1,8 @@
 /** The submission card stream: one FIFO list of submission items, including
- * supply-produced ones (agent '系统补词'). Review and publish live only in
- * the batch detail. Inventory never enters the stream. */
-import { useState } from 'react';
+ * supply-produced ones (agent '系统补词'). Review and publish live in this
+ * stream (bulk bar) and in the item drawer; there is no batch panel or batch
+ * detail. Inventory never enters the stream. */
+import { useEffect, useRef, useState } from 'react';
 
 import type {
   GameWordGame,
@@ -12,6 +13,7 @@ import { log } from '@/utils/logger';
 
 import { CursorPager, DateLabel, StatusBadge } from '../components/Primitives';
 import { SubmissionActionDialog, type SubmissionConfirmation } from './SubmissionActionDialog';
+import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import { SubmissionStatus, SUPPLY_AGENT_NAME, WORD_GAME_LABELS } from './wordLabels';
 
 const libraryLog = log.extend('AdminWordLibrary');
@@ -28,14 +30,37 @@ function isDismissableSubmission(item: WordLibraryItem): boolean {
   return item.status === 'pending' || item.status === 'approved';
 }
 
+/** Review covers the batch detail's old `awaiting` set (approved/failed). */
+function isReviewableSubmission(item: WordLibraryItem): boolean {
+  return item.status === 'approved' || item.status === 'failed';
+}
+
+function isPublishableSubmission(item: WordLibraryItem): boolean {
+  return item.status === 'passed';
+}
+
+/** Mirrors isApprovableSubmission in wordLabels (pending/failed/rejected);
+ * local because WordLibraryItem is a stream summary, not a WordSubmissionItem. */
+function isApprovableSubmission(item: WordLibraryItem): boolean {
+  return item.status === 'pending' || item.status === 'failed' || item.status === 'rejected';
+}
+
 /** A row takes part in bulk actions only when at least one bulk verb applies to it. */
 function isBulkActionable(item: WordLibraryItem): boolean {
   return (
-    isEndorsableSubmission(item) || isUnendorsableSubmission(item) || isDismissableSubmission(item)
+    isEndorsableSubmission(item) ||
+    isUnendorsableSubmission(item) ||
+    isDismissableSubmission(item) ||
+    isReviewableSubmission(item) ||
+    isPublishableSubmission(item) ||
+    isApprovableSubmission(item)
   );
 }
 
-function toConfirmationItem(item: WordLibraryItem): SubmissionConfirmation['items'][number] {
+/** The action payload plus the batch it belongs to; the dialog is per batch. */
+type ActionRow = Pick<WordLibraryItem, 'id' | 'title' | 'contentHash' | 'revision' | 'batchId'>;
+
+function toConfirmationItem(item: ActionRow): SubmissionConfirmation['items'][number] {
   return {
     id: item.id,
     title: item.title,
@@ -55,7 +80,6 @@ export function LibraryCards({
   page,
   onPrevious,
   onNext,
-  onOpenBatch,
 }: {
   game: GameWordGame;
   status: string;
@@ -64,20 +88,29 @@ export function LibraryCards({
   page: number;
   onPrevious: () => void;
   onNext: () => void;
-  onOpenBatch: (batchId: string) => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState('');
+  const [drawerItem, setDrawerItem] = useState<WordLibraryItem | null>(null);
   const [dialogQueue, setDialogQueue] = useState<
-    readonly { batchId: string; confirmation: SubmissionConfirmation }[]
+    readonly { batchId: string; totalGroups: number; confirmation: SubmissionConfirmation }[]
   >([]);
+  const allRef = useRef<HTMLInputElement>(null);
   const items = data.items;
   const selectedItems = items.filter((item) => selected.has(item.id));
+  // The select-all checkbox is indeterminate while part of the page is
+  // selected; the DOM property is not a React prop, so it is set here.
+  const actionableCount = items.filter(isBulkActionable).length;
+  useEffect(() => {
+    if (allRef.current !== null)
+      allRef.current.indeterminate =
+        selectedItems.length > 0 && selectedItems.length < actionableCount;
+  }, [selectedItems.length, actionableCount]);
   function queueSubmissionAction(
     action: SubmissionConfirmation['action'],
-    rows: readonly WordLibraryItem[],
+    rows: readonly ActionRow[],
   ) {
-    const groups = new Map<string, WordLibraryItem[]>();
+    const groups = new Map<string, ActionRow[]>();
     for (const item of rows) {
       const group = groups.get(item.batchId) ?? [];
       group.push(item);
@@ -87,6 +120,7 @@ export function LibraryCards({
       ...current,
       ...[...groups.entries()].map(([batchId, group]) => ({
         batchId,
+        totalGroups: groups.size,
         confirmation: { action, items: group.map(toConfirmationItem) },
       })),
     ]);
@@ -99,6 +133,15 @@ export function LibraryCards({
   }
   function bulkUnendorse() {
     queueSubmissionAction('unendorse', selectedItems.filter(isUnendorsableSubmission));
+  }
+  function bulkReview() {
+    queueSubmissionAction('review', selectedItems.filter(isReviewableSubmission));
+  }
+  function bulkPublish() {
+    queueSubmissionAction('publish', selectedItems.filter(isPublishableSubmission));
+  }
+  function bulkApproveHuman() {
+    queueSubmissionAction('approve', selectedItems.filter(isApprovableSubmission));
   }
   function completeDialog(action: SubmissionConfirmation['action'], count: number) {
     const done = dialogQueue[0];
@@ -116,7 +159,13 @@ export function LibraryCards({
         ? `已批准进入审核 ${count} 条。`
         : action === 'unendorse'
           ? `已撤回批准 ${count} 条。`
-          : `已拒绝 ${count} 条。`,
+          : action === 'review'
+            ? `已启动独立审核 ${count} 条。审核在后台运行，可在词条详情里确认启动。`
+            : action === 'publish'
+              ? `已确认发布 ${count} 条。`
+              : action === 'approve'
+                ? `已人工通过 ${count} 条。`
+                : `已拒绝 ${count} 条。`,
     );
     libraryLog.info('library submission action complete', { action, count });
   }
@@ -144,11 +193,84 @@ export function LibraryCards({
   const approvable = selectedItems.filter(isEndorsableSubmission);
   const dismissable = selectedItems.filter(isDismissableSubmission);
   const unendorsable = selectedItems.filter(isUnendorsableSubmission);
+  const reviewable = selectedItems.filter(isReviewableSubmission);
+  const publishable = selectedItems.filter(isPublishableSubmission);
+  const humanApprovable = selectedItems.filter(isApprovableSubmission);
   const actionableItems = items.filter(isBulkActionable);
+  const selectedBatchCount = new Set(selectedItems.map((item) => item.batchId)).size;
   const activeDialog = dialogQueue[0];
   return (
     <>
       {noticeElement}
+      {actionableItems.length > 0 && (
+        <div className="admin-bulk-bar">
+          <label className="admin-submission-check">
+            <input
+              ref={allRef}
+              type="checkbox"
+              aria-label="全选本页"
+              checked={
+                actionableItems.length > 0 && actionableItems.every((item) => selected.has(item.id))
+              }
+              onChange={(event) => {
+                if (event.target.checked)
+                  setSelected(new Set(actionableItems.map((item) => item.id)));
+                else setSelected(new Set());
+              }}
+            />
+            全选本页
+            <span>
+              已选 {selectedItems.length} / 当前可选 {actionableItems.length}
+            </span>
+          </label>
+          {selectedBatchCount > 1 && (
+            <p className="admin-muted">
+              所选条目分属 {selectedBatchCount} 个批次，将按批次分别确认。
+            </p>
+          )}
+          <div className="admin-row-actions">
+            {approvable.length > 0 && (
+              <button type="button" className="admin-primary" onClick={bulkApprove}>
+                批量批准 {approvable.length}
+              </button>
+            )}
+            {reviewable.length > 0 && (
+              <button type="button" className="admin-primary" onClick={bulkReview}>
+                启动独立审核 {reviewable.length}
+              </button>
+            )}
+            {publishable.length > 0 && (
+              <button type="button" className="admin-primary" onClick={bulkPublish}>
+                确认发布 {publishable.length}
+              </button>
+            )}
+            {humanApprovable.length > 0 && (
+              <button type="button" onClick={bulkApproveHuman}>
+                人工通过 {humanApprovable.length}
+              </button>
+            )}
+            {unendorsable.length > 0 && (
+              <button type="button" onClick={bulkUnendorse}>
+                批量撤回批准 {unendorsable.length}
+              </button>
+            )}
+            {dismissable.length > 0 && (
+              <button type="button" className="admin-danger-solid" onClick={bulkDismiss}>
+                批量拒绝 {dismissable.length}
+              </button>
+            )}
+          </div>
+          {selectedItems.length > 0 &&
+            approvable.length === 0 &&
+            reviewable.length === 0 &&
+            publishable.length === 0 &&
+            humanApprovable.length === 0 &&
+            unendorsable.length === 0 &&
+            dismissable.length === 0 && (
+              <span className="admin-muted">所选行都已处理完毕，没有可批量操作的内容。</span>
+            )}
+        </div>
+      )}
       <div className="admin-library-cards" role="list" aria-label="待处理词条">
         {items.map((item) => (
           <LibraryCard
@@ -163,7 +285,7 @@ export function LibraryCards({
               setSelected(next);
             }}
             onSubmissionAction={(action) => queueSubmissionAction(action, [item])}
-            onOpenBatch={() => onOpenBatch(item.batchId)}
+            onOpenItem={() => setDrawerItem(item)}
           />
         ))}
       </div>
@@ -173,52 +295,27 @@ export function LibraryCards({
         onPrevious={onPrevious}
         onNext={onNext}
       />
-      {selectedItems.length > 0 && (
-        <div className="admin-bulk-bar">
-          <label className="admin-submission-check">
-            <input
-              type="checkbox"
-              aria-label="全选当前结果"
-              checked={
-                actionableItems.length > 0 && actionableItems.every((item) => selected.has(item.id))
-              }
-              onChange={(event) => {
-                if (event.target.checked)
-                  setSelected(new Set(actionableItems.map((item) => item.id)));
-                else setSelected(new Set());
-              }}
-            />
-            已选 {selectedItems.length} / 当前可选 {actionableItems.length}
-          </label>
-          <button
-            type="button"
-            className="admin-primary"
-            disabled={approvable.length === 0}
-            onClick={bulkApprove}
-          >
-            批量批准 {approvable.length}
-          </button>
-          <button
-            type="button"
-            className="admin-danger-solid"
-            disabled={dismissable.length === 0}
-            onClick={bulkDismiss}
-          >
-            批量拒绝 {dismissable.length}
-          </button>
-          <button type="button" disabled={unendorsable.length === 0} onClick={bulkUnendorse}>
-            批量撤回批准 {unendorsable.length}
-          </button>
-          {approvable.length === 0 && dismissable.length === 0 && unendorsable.length === 0 && (
-            <span className="admin-muted">所选行都已处理完毕，没有可批量操作的内容。</span>
-          )}
-        </div>
+      {drawerItem !== null && (
+        <SubmissionItemDrawer
+          batchId={drawerItem.batchId}
+          item={drawerItem}
+          onClose={() => setDrawerItem(null)}
+          onAction={(confirmation) => {
+            const batchId = drawerItem.batchId;
+            setDrawerItem(null);
+            queueSubmissionAction(
+              confirmation.action,
+              confirmation.items.map((entry) => ({ ...entry, batchId })),
+            );
+          }}
+        />
       )}
       {activeDialog !== undefined && (
         <SubmissionActionDialog
           key={activeDialog.batchId}
           batchId={activeDialog.batchId}
           confirmation={activeDialog.confirmation}
+          multiBatch={activeDialog.totalGroups > 1}
           onClose={() => setDialogQueue((current) => current.slice(1))}
           onComplete={() =>
             completeDialog(activeDialog.confirmation.action, activeDialog.confirmation.items.length)
@@ -235,14 +332,14 @@ function LibraryCard({
   selected,
   onSelect,
   onSubmissionAction,
-  onOpenBatch,
+  onOpenItem,
 }: {
   item: WordLibraryItem;
   game: GameWordGame;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onSubmissionAction: (action: SubmissionConfirmation['action']) => void;
-  onOpenBatch: () => void;
+  onOpenItem: () => void;
 }) {
   const actionable = isBulkActionable(item);
   return (
@@ -258,7 +355,14 @@ function LibraryCard({
           />
         </label>
         <div className="admin-library-card-title">
-          <span className="admin-library-word">{item.title}</span>
+          <button
+            type="button"
+            className="admin-text-button admin-library-word"
+            aria-label={`查看${item.title}审核详情`}
+            onClick={onOpenItem}
+          >
+            {item.title}
+          </button>
           <StatusBadge>
             {item.agentName === SUPPLY_AGENT_NAME ? '后台生成' : 'Agent投稿'}
           </StatusBadge>
@@ -277,52 +381,46 @@ function LibraryCard({
           </StatusBadge>
         </p>
       )}
-      <div className="admin-row-actions">
-        <button
-          type="button"
-          className="admin-text-button"
-          aria-label={`查看投稿批次：${item.title}`}
-          onClick={onOpenBatch}
-        >
-          查看投稿批次
-        </button>
-        {item.status === 'pending' && (
-          <>
-            <button
-              type="button"
-              className="admin-text-button"
-              onClick={() => onSubmissionAction('endorse')}
-            >
-              批准
-            </button>
-            <button
-              type="button"
-              className="admin-text-button admin-danger-text"
-              onClick={() => onSubmissionAction('dismiss')}
-            >
-              拒绝
-            </button>
-          </>
-        )}
-        {item.status === 'approved' && (
-          <>
-            <button
-              type="button"
-              className="admin-text-button"
-              onClick={() => onSubmissionAction('unendorse')}
-            >
-              撤回批准
-            </button>
-            <button
-              type="button"
-              className="admin-text-button admin-danger-text"
-              onClick={() => onSubmissionAction('dismiss')}
-            >
-              拒绝
-            </button>
-          </>
-        )}
-      </div>
+      {(item.status === 'pending' || item.status === 'approved') && (
+        <div className="admin-row-actions">
+          {item.status === 'pending' && (
+            <>
+              <button
+                type="button"
+                className="admin-text-button"
+                onClick={() => onSubmissionAction('endorse')}
+              >
+                批准
+              </button>
+              <button
+                type="button"
+                className="admin-text-button admin-danger-text"
+                onClick={() => onSubmissionAction('dismiss')}
+              >
+                拒绝
+              </button>
+            </>
+          )}
+          {item.status === 'approved' && (
+            <>
+              <button
+                type="button"
+                className="admin-text-button"
+                onClick={() => onSubmissionAction('unendorse')}
+              >
+                撤回批准
+              </button>
+              <button
+                type="button"
+                className="admin-text-button admin-danger-text"
+                onClick={() => onSubmissionAction('dismiss')}
+              >
+                拒绝
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </article>
   );
 }
