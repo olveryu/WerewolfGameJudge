@@ -8,6 +8,9 @@ export const editorialModelRequests = sqliteTable(
     id: text('id').primaryKey(),
     owner: text('owner').notNull(),
     model: text('model').notNull(),
+    operation: text('operation', { enum: ['generation', 'review'] })
+      .notNull()
+      .default('generation'),
     claimedAt: text('claimed_at').notNull(),
   },
   (table) => [index('idx_editorial_model_requests_time').on(table.claimedAt)],

@@ -28,12 +28,13 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## D1 and Drizzle
 
 - D1 is the relational store; Drizzle is the typed query layer over it (`createDb` returns `drizzle(d1)`, schema-free). There is no Drizzle Kit, no Drizzle config, and no generated schema directory.
-- Migrations are hand-written SQL files applied by Wrangler: 77 files, `0001_init.sql` through `0078_drawguess_requeue_zero_initial_words.sql`, with no `0002` file.
+- Migrations are hand-written SQL files applied by Wrangler: 83 files, `0001_init.sql` through `0084_word_submission_unendorse.sql`, with no `0002` file.
 - 39 tables are declared exactly once via `sqliteTable` in owner `dbSchema.ts` modules, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`. Further tables exist only as raw SQL in migrations; check the migrations before claiming the full physical set.
 - Registration migrations extend every `game_type` CHECK list by rebuilding the constrained tables (table-copy pattern).
 - When adding or changing a D1 query, examine its filters, joins, ordering, indexes, and invocation frequency, including retries and scheduled jobs. For queries on growing tables or high-frequency paths, use `test/rowCountingDb.ts` against migrated D1 to test realistic small and larger datasets and assert a justified read/write budget; verify the query plan when useful. A small fixture or a correct result alone does not establish a cost bound.
 - Before adding an index, compare the expected read savings with ongoing write amplification and one-time build costs, using representative query and insert/update/delete frequencies; state any unknowns rather than assuming a net saving. For critical write paths, measure and assert a justified `rows_written` budget with `test/rowCountingDb.ts`; verify actual usage after deployment because local measurements do not establish production billing.
 - When rebuilding a table, compare its indexes, constraints, and triggers before and after the migration; preserve required ones or document intentional removal. Register critical word-supply index prefixes in `src/platform/wordSupply/__tests__/wordSupplyIndexes.contract.test.ts` and keep the affected query's row-budget test. Estimate one-time D1 reads and writes for table copies and index creation before deployment; the local tests do not measure production billing.
+- Review all pending migrations for a release together: consolidate successive changes to the same table before first remote application so it is rebuilt as few times as constraints allow, and create indexes only on final tables, not intermediate tables that will be replaced. Include copied rows and index entries in the predeployment write estimate.
 
 ## Worker game catalog and modules
 

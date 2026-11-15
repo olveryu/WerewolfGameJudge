@@ -13,7 +13,9 @@ import { AsyncBoundary, StatusBadge } from '../components/Primitives';
 import type { SubmissionConfirmation } from './SubmissionActionDialog';
 import {
   isApprovableSubmission,
+  isEndorsableSubmission,
   isSelectableSubmission,
+  isUnendorsableSubmission,
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
@@ -23,6 +25,8 @@ const ACTION_LABELS: Readonly<Record<string, string>> = {
   ...SUBMISSION_STATUS_LABELS,
   review: '启动独立审核',
   approve: '人工通过',
+  endorse: '批准进入审核',
+  unendorse: '撤回批准',
   publish: '发布',
   dismiss: '拒绝',
   unpublish: '下架',
@@ -145,7 +149,7 @@ export function SubmissionItemDrawer({
               拒绝此条…
             </button>
           )}
-          {['pending', 'failed'].includes(item.status) && (
+          {['approved', 'failed'].includes(item.status) && (
             <button type="button" className="admin-primary" onClick={() => act('review')}>
               {item.status === 'failed' ? '重试审核…' : '启动审核…'}
             </button>
@@ -153,6 +157,16 @@ export function SubmissionItemDrawer({
           {item.status === 'passed' && (
             <button type="button" className="admin-primary" onClick={() => act('publish')}>
               确认发布…
+            </button>
+          )}
+          {isEndorsableSubmission(item) && (
+            <button type="button" onClick={() => act('endorse')}>
+              批准进入审核…
+            </button>
+          )}
+          {isUnendorsableSubmission(item) && (
+            <button type="button" onClick={() => act('unendorse')}>
+              撤回批准…
             </button>
           )}
           {isApprovableSubmission(item) && (

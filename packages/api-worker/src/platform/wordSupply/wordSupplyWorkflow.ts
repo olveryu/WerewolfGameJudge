@@ -55,6 +55,8 @@ export interface WordSupplyPublication<TPack, TCandidate, TReview> {
     reviews: readonly TReview[],
   ) => Promise<void>;
   readonly fail: (db: D1Database, pack: TPack, reason: string) => Promise<void>;
+  /** Release a gated pack's claimed candidates back to the approved pool. */
+  readonly releaseCandidates: (db: D1Database, pack: TPack) => Promise<void>;
 }
 
 export interface WordSupplyProvider<TCategory, TCandidate, TReview, TGenerated, THistory> {
@@ -126,12 +128,18 @@ export async function runWordSupplyWorkflow<
       config.publication.reserve(env.DB, day, batchIndex, { force, runId }),
     );
     if (pack === null) continue;
-    await processPack(env, step, config, pack, batchIndex, force);
+    if (await processPack(env, step, config, pack, batchIndex, force))
+      return { status: 'awaitingApproval' };
     await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
   }
   return { status: 'complete' };
 }
 
+/**
+ * Process one pack. Returns true when the batch stopped at the approval gate
+ * (newly stored candidates are pending; the run ends with outcome
+ * 'awaitingApproval' instead of reviewing or publishing them).
+ */
 async function processPack<
   TCategory extends string,
   TPack extends (WordPackRef & { readonly category: TCategory }) & Rpc.Serializable<TPack>,
@@ -146,7 +154,7 @@ async function processPack<
   pack: TPack,
   batchIndex: number,
   force: boolean,
-): Promise<void> {
+): Promise<boolean> {
   const log = createLogger(`${config.gameLabel}-word-supply`);
   let failureStage = 'candidateSelection';
   try {
@@ -164,6 +172,7 @@ async function processPack<
           `${config.gameLabel}:${pack.id}:generation`,
           config.gameLabel,
           config.model,
+          'generation',
           Date.now(),
           { force },
         );
@@ -172,34 +181,49 @@ async function processPack<
         });
       });
       failureStage = 'candidateStorage';
+      const material = { candidates: generated.candidates };
+      // Parse outside the store step (like fib): the gate below reads the
+      // count that actually gets stored. generated.candidates is already the
+      // validated list, so the two counts agree today — but the store step's
+      // input is parsedCandidates, and gating on it stays correct if a
+      // game's second parse ever filters further.
+      let parsedCandidates: readonly TCandidate[];
+      try {
+        parsedCandidates = parseAiOutput(
+          {
+            game: config.gameLabel,
+            model: config.model,
+            operation: 'generate',
+            packId: pack.id,
+          },
+          'outputValidation',
+          () => config.parseCandidates(material, pack.category),
+        );
+      } catch (error) {
+        if (error instanceof AiProviderError) reportAiFailure(error);
+        throw error;
+      }
       await step.do(`store-${batchIndex}`, async () => {
-        const material = { candidates: generated.candidates };
         await env.DB.prepare(
           `UPDATE ${config.packsTable} SET generation_json = ? WHERE id = ? AND request_token = ? AND status = 'reserved'`,
         )
           .bind(JSON.stringify(material), pack.id, pack.request_token)
           .run();
-        let parsedCandidates: readonly TCandidate[];
-        try {
-          parsedCandidates = parseAiOutput(
-            {
-              game: config.gameLabel,
-              model: config.model,
-              operation: 'generate',
-              packId: pack.id,
-            },
-            'outputValidation',
-            () => config.parseCandidates(material, pack.category),
-          );
-        } catch (error) {
-          if (error instanceof AiProviderError) reportAiFailure(error);
-          throw error;
-        }
         await config.publication.storeCandidates(env.DB, pack, parsedCandidates);
       });
       candidates = await step.do(`generated-candidates-${batchIndex}`, () =>
         config.publication.getReviewCandidates(env.DB, pack),
       );
+      if (parsedCandidates.length > 0 && candidates.length === 0) {
+        // Newly stored candidates are pending until a human approves them:
+        // stop this batch — and the run — here, leave the pack reserved,
+        // and run no review or publish for it. Approved candidates resume
+        // on a later run.
+        await step.do(`awaiting-approval-${batchIndex}`, () =>
+          config.publication.releaseCandidates(env.DB, pack),
+        );
+        return true;
+      }
     }
     failureStage = 'review';
     const reviews =
@@ -210,6 +234,7 @@ async function processPack<
     await step.do(`publish-${batchIndex}`, () =>
       config.publication.publish(env.DB, pack, candidates, reviews),
     );
+    return false;
   } catch (error) {
     await step.do(`fail-${batchIndex}`, async () => {
       await config.publication.fail(env.DB, pack, failureStage);
@@ -244,6 +269,7 @@ async function reviewCandidates<
       `${config.gameLabel}:${pack.id}:review`,
       config.gameLabel,
       config.model,
+      'review',
       Date.now(),
       { force },
     );

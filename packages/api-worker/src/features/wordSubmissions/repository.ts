@@ -10,6 +10,8 @@ import {
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
+import { WORKER_WORD_SUBMISSION_ADAPTERS } from '../../games/catalog';
+
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 export function parseSubmissionObject(value: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(value);
@@ -119,14 +121,64 @@ export async function listSubmissionBatches(
   const entries = rows.results
     .slice(0, 30)
     .map(({ cursor: _cursor, ...row }) => wordSubmissionBatchHeaderSchema.parse(row));
+  const idsJson = JSON.stringify(entries.map((entry) => entry.id));
   const counts = await db
     .prepare(
       `SELECT batch_id, status, COUNT(*) AS count
     FROM word_submission_items WHERE batch_id IN (SELECT value FROM json_each(?))
     GROUP BY batch_id, status`,
     )
-    .bind(JSON.stringify(entries.map((entry) => entry.id)))
+    .bind(idsJson)
     .all<{ batch_id: string; status: WordSubmissionItem['status']; count: number }>();
+  // Per-game item totals by status, for the unified library's pipeline bar.
+  // Scoped to the game only (never to the search/cursor page): the (game,
+  // identity, status) index prefix bounds the scan to the game's items.
+  // Without a game filter there is no per-game total to show, so skip the
+  // scan entirely instead of counting the whole table.
+  const totalsRows =
+    filter.game === undefined
+      ? []
+      : (
+          await db
+            .prepare(
+              `SELECT status, COUNT(*) AS count
+               FROM word_submission_items WHERE game = ? GROUP BY status`,
+            )
+            .bind(filter.game)
+            .all<{ status: WordSubmissionItem['status']; count: number }>()
+        ).results;
+  // One batched lookup per game, reusing each adapter's inventory EXISTS
+  // fragment verbatim (it pins the `item` alias); never one query per row.
+  // INDEXED BY is load-bearing: without it the planner drives each branch
+  // by the (game, identity, status) index and scans the whole game instead
+  // of seeking the page's batch ids (verified with EXPLAIN QUERY PLAN).
+  // An empty page has no batches to check, so skip the lookup entirely —
+  // the three branches would each probe an empty id set and return nothing.
+  const inventoryBatchIds =
+    entries.length === 0
+      ? new Set<string>()
+      : new Set(
+          (
+            await db
+              .prepare(
+                Object.values(WORKER_WORD_SUBMISSION_ADAPTERS)
+                  .map(
+                    (adapter) => `SELECT batch_id FROM word_submission_items item
+          INDEXED BY idx_word_submission_items_batch
+          WHERE batch_id IN (SELECT value FROM json_each(?)) AND game = ?
+          AND ${adapter.inventoryExistsSql}`,
+                  )
+                  .join(' UNION ALL '),
+              )
+              .bind(
+                ...Object.values(WORKER_WORD_SUBMISSION_ADAPTERS).flatMap((adapter) => [
+                  idsJson,
+                  adapter.game,
+                ]),
+              )
+              .all<{ batch_id: string }>()
+          ).results.map((row) => row.batch_id),
+        );
   const last = rows.results[29];
   return {
     batches: entries.map((entry) => ({
@@ -136,7 +188,9 @@ export async function listSubmissionBatches(
           .filter((row) => row.batch_id === entry.id)
           .map((row) => [row.status, row.count]),
       ),
+      inventoryExists: inventoryBatchIds.has(entry.id),
     })),
+    totals: Object.fromEntries(totalsRows.map((row) => [row.status, row.count])),
     nextCursor: rows.results.length > 30 && last !== undefined ? String(last.cursor) : null,
   };
 }

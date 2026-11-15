@@ -4,22 +4,11 @@ import { Link } from 'react-router';
 
 import { showAlert } from '@/utils/alert';
 
-export const formatNumber = (value: number) => value.toLocaleString('zh-CN');
+import { formatCompactNumber, formatNumber, StatusBadge } from './Primitives';
 
-/** Use the site's Chinese units for large counts while keeping small values exact. */
-export function formatCompactNumber(value: number): string {
-  const magnitude = Math.abs(value);
-  for (const [threshold, unit] of [
-    [1e12, '万亿'],
-    [1e8, '亿'],
-    [1e4, '万'],
-  ] as const) {
-    if (magnitude >= threshold) {
-      return `${(value / threshold).toLocaleString('zh-CN', { maximumFractionDigits: 1 })}${unit}`;
-    }
-  }
-  return formatNumber(value);
-}
+// Number formatting lives in Primitives (the other importer of these
+// helpers); Charts re-exports them so existing page imports keep working.
+export { formatNumber } from './Primitives';
 
 /** Quota thresholds are shared by the linear and circular views. */
 function quotaTone(value: number, limit: number) {
@@ -27,12 +16,25 @@ function quotaTone(value: number, limit: number) {
   return ratio >= 0.95 ? 'danger' : ratio >= 0.8 ? 'warning' : 'success';
 }
 
+/** The tone is always spelled out (mock: “注意 63%”), never carried by color alone. */
+function quotaToneWord(tone: ReturnType<typeof quotaTone>) {
+  return tone === 'danger' ? '异常' : tone === 'warning' ? '注意' : '充足';
+}
+
 /** Native progress semantics plus an untruncated textual numerator and denominator. */
 export function Meter({ label, value, limit }: { label: string; value: number; limit: number }) {
+  const tone = quotaTone(value, limit);
+  const percent = limit === 0 ? 0 : (value / limit) * 100;
+  const percentText = Number(percent.toFixed(1)).toString();
   return (
-    <div className="admin-meter" data-tone={quotaTone(value, limit)}>
+    <div className="admin-meter" data-tone={tone}>
       <div>
-        <span>{label}</span>
+        <span>
+          {label}{' '}
+          <StatusBadge tone={tone}>
+            {quotaToneWord(tone)} {percentText}%
+          </StatusBadge>
+        </span>
         <button
           type="button"
           className="admin-numeric-detail"

@@ -106,7 +106,7 @@ export const undercoverWordCandidates = sqliteTable(
     wordB: text('word_b').notNull(),
     category: text('category', { enum: UNDERCOVER_CATEGORIES }).notNull(),
     materialJson: text('material_json').notNull(),
-    status: text('status', { enum: ['pending', 'accepted', 'rejected'] }).notNull(),
+    status: text('status', { enum: ['pending', 'approved', 'accepted', 'rejected'] }).notNull(),
     claimedPackId: text('claimed_pack_id').references(() => undercoverWordPacks.id),
     createdAt: text('created_at').notNull(),
     reviewedAt: text('reviewed_at'),
@@ -114,5 +114,6 @@ export const undercoverWordCandidates = sqliteTable(
   (table) => [
     unique().on(table.wordA, table.wordB),
     index('idx_undercover_word_candidates_pending').on(table.status, table.category),
+    index('idx_undercover_word_candidates_list').on(table.status, table.createdAt, table.id),
   ],
 );

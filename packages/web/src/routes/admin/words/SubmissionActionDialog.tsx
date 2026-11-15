@@ -15,6 +15,8 @@ const SUBMISSION_ACTION_LABELS = {
   publish: '确认发布',
   dismiss: '拒绝候选',
   approve: '人工通过',
+  endorse: '批准进入审核',
+  unendorse: '撤回批准',
   unpublish: '下架词条',
 } as const;
 export interface SubmissionConfirmation {
@@ -58,7 +60,7 @@ export function SubmissionActionDialog({
           <button
             type="submit"
             form={formId}
-            className="admin-primary"
+            className={needsReason ? 'admin-danger-solid' : 'admin-primary'}
             disabled={command.isPending}
           >
             {command.isPending
@@ -101,9 +103,13 @@ export function SubmissionActionDialog({
               ? '这些词条将进入游戏可抽词库。只发布本次确认所绑定的内容与修订，操作会留下记录。'
               : confirmation.action === 'approve'
                 ? '由你确认这些材料可以使用，不依赖模型或独立资料检索成功，不调用外部服务。保留原审核结果并记录人工决定；通过后仍须单独确认发布。'
-                : confirmation.action === 'unpublish'
-                  ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
-                  : '关闭这些候选，不会修改任何线上词语。'}
+                : confirmation.action === 'endorse'
+                  ? '只表示你看过并同意送审，不调用模型，不改变原审核结论；之后仍需启动独立审核，通过后单独确认发布。'
+                  : confirmation.action === 'unendorse'
+                    ? '只把已批准的词条退回待批准队列，不调用模型，不改变原审核结论；之后仍可重新批准进入审核。'
+                    : confirmation.action === 'unpublish'
+                      ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
+                      : '关闭这些候选，不会修改任何线上词语。'}
         </p>
         <ul>
           {confirmation.items.map((item) => (
@@ -112,7 +118,10 @@ export function SubmissionActionDialog({
         </ul>
         {needsReason && (
           <label>
-            操作原因
+            操作原因{' '}
+            <span className="admin-required" aria-hidden="true">
+              *必填
+            </span>
             <textarea
               required
               maxLength={1000}

@@ -7,7 +7,10 @@ import { log } from '@/utils/logger';
 const logger = log.extend('AdminWordSubmissions');
 
 /** Callers must consume one-time credentials inside run, never return them into the mutation cache. */
-export function useSubmissionCommand<Input>(run: (input: Input) => Promise<void>) {
+export function useSubmissionCommand<Input>(
+  run: (input: Input) => Promise<void>,
+  label = '词语投稿操作',
+) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: run,
@@ -18,6 +21,6 @@ export function useSubmissionCommand<Input>(run: (input: Input) => Promise<void>
         client.invalidateQueries({ queryKey: ['admin', 'words'] }),
       ]);
     },
-    onError: (cause) => handleError(cause, { label: '词语投稿操作', logger, feedback: false }),
+    onError: (cause) => handleError(cause, { label, logger, feedback: false }),
   });
 }

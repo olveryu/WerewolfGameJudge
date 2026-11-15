@@ -9,10 +9,14 @@ import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
   AdminD1Range,
   AdminD1Sort,
+  ApproveWordCandidatesResult,
+  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
   TimePreset,
   TriggerSupplyResult,
+  WordCandidateList,
+  WordCandidateListStatus,
 } from '@/features/admin/model/adminContracts';
 import {
   adminRewardGrantSchema,
@@ -36,8 +40,11 @@ import {
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
+  parseApproveWordCandidatesResponse,
+  parseDismissWordCandidatesResponse,
   parseGameWordsStatsResponse,
   parseTriggerSupplyResult,
+  parseWordCandidatesResponse,
 } from '@/features/admin/services/adminResponseCodec';
 import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
@@ -292,6 +299,59 @@ export function triggerGameWordSupply(
     {
       game,
       force,
+    },
+  );
+}
+
+export function fetchWordCandidates(
+  game: GameWordGame,
+  options: { status?: WordCandidateListStatus; cursor?: string } = {},
+  signal?: AbortSignal,
+): Promise<WordCandidateList> {
+  return adminFetch(
+    '/admin/games/words/candidates',
+    parseWordCandidatesResponse,
+    {
+      game,
+      ...(options.status !== undefined ? { status: options.status } : {}),
+      ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
+    },
+    signal,
+  );
+}
+
+export function approveWordCandidates(
+  game: GameWordGame,
+  candidateIds: string[],
+  reason: string,
+): Promise<ApproveWordCandidatesResult> {
+  return adminFetch(
+    '/admin/games/words/candidates/approve',
+    parseApproveWordCandidatesResponse,
+    undefined,
+    undefined,
+    {
+      game,
+      candidateIds,
+      reason,
+    },
+  );
+}
+
+export function dismissWordCandidates(
+  game: GameWordGame,
+  candidateIds: string[],
+  reason: string,
+): Promise<DismissWordCandidatesResult> {
+  return adminFetch(
+    '/admin/games/words/candidates/dismiss',
+    parseDismissWordCandidatesResponse,
+    undefined,
+    undefined,
+    {
+      game,
+      candidateIds,
+      reason,
     },
   );
 }

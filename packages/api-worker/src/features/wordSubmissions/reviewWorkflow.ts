@@ -188,6 +188,7 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
             `submission:${actionId}:${index}`,
             job.game,
             adapter.model,
+            'review',
             Date.now(),
             { force: true },
           );

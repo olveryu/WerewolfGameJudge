@@ -116,6 +116,8 @@ describe('Undercover editorial publication', () => {
       potentialIssues: [],
     };
     await storeUndercoverWordCandidates(env.DB, first, [candidate]);
+    // D2 gate: stored candidates wait for human approval before any claim.
+    await env.DB.prepare("UPDATE undercover_word_candidates SET status = 'approved'").run();
     const candidates = await getUndercoverReviewCandidates(env.DB, first);
     expect(candidates).toHaveLength(1);
     await failUndercoverWordPack(env.DB, first, 'review:timedOut');
@@ -152,6 +154,11 @@ describe('Undercover editorial publication', () => {
     await env.DB.prepare("UPDATE undercover_word_candidates SET reviewed_at = '2000-01-01'").run();
     const third = await reserveUndercoverWordPack(env.DB, '2026-09-03', 0);
     if (third === null) throw new Error('Expected review reservation');
+    // D2 gate: the due re-review requeues as pending; approve it before the claim.
+    expect(await getUndercoverReviewCandidates(env.DB, third)).toEqual([]);
+    await env.DB.prepare(
+      "UPDATE undercover_word_candidates SET status = 'approved' WHERE word_a = '熬夜' AND word_b = '赖床'",
+    ).run();
     const rereview = await getUndercoverReviewCandidates(env.DB, third);
     expect(rereview).toHaveLength(1);
     await expect(publishUndercoverWordPack(env.DB, third, rereview, [])).rejects.toThrow('count');

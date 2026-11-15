@@ -63,24 +63,35 @@ export async function validateSubmission(
       .bind(input.game, JSON.stringify(items.map((item) => item.contentHash))),
     db
       .prepare(
+        `SELECT DISTINCT identity AS key FROM word_submission_items
+      WHERE game = ? AND identity IN (SELECT value FROM json_each(?)) AND status <> 'duplicate'`,
+      )
+      .bind(input.game, JSON.stringify(items.map((item) => item.identity))),
+    db
+      .prepare(
         `SELECT item.identity AS key
       FROM (SELECT value AS identity FROM json_each(?)) item WHERE ${adapter.inventoryExistsSql}`,
       )
       .bind(JSON.stringify(items.map((item) => item.identity))),
   ]);
-  const [previous, inventory] = matches;
-  if (previous === undefined || inventory === undefined)
+  const [previous, previousIdentities, inventory] = matches;
+  if (previous === undefined || previousIdentities === undefined || inventory === undefined)
     throw new Error('Submission validation query results missing');
   const previousHashes = new Set(previous.results.map((row) => row.key));
+  const previousIdentitySet = new Set(previousIdentities.results.map((row) => row.key));
   const inventoryIdentities = new Set(inventory.results.map((row) => row.key));
-  const seen = new Map<string, string>();
+  const seenHashes = new Map<string, string>();
+  const seenIdentities = new Map<string, string>();
   const validated = items.map((item) => {
     const duplicateOf = inventoryIdentities.has(item.identity)
       ? `inventory:${item.identity}`
-      : !previousHashes.has(item.contentHash)
-        ? (seen.get(item.contentHash) ?? null)
-        : 'previous-submission';
-    seen.set(item.contentHash, item.clientItemId);
+      : previousIdentitySet.has(item.identity)
+        ? 'previous-submission'
+        : previousHashes.has(item.contentHash)
+          ? 'previous-submission'
+          : (seenHashes.get(item.contentHash) ?? seenIdentities.get(item.identity) ?? null);
+    seenHashes.set(item.contentHash, item.clientItemId);
+    seenIdentities.set(item.identity, item.clientItemId);
     results.set(item.clientItemId, {
       clientItemId: item.clientItemId,
       status: duplicateOf === null ? 'valid' : 'duplicate',
@@ -199,9 +210,13 @@ export async function storeSubmission(
        material_json, status, duplicate_of)
       SELECT ?, id, game, ?, ?, ?, ?, ?, ?,
         CASE WHEN ? IS NOT NULL OR EXISTS (SELECT 1 FROM word_submission_items
+          WHERE game = ? AND identity = ? AND status <> 'duplicate')
+          OR EXISTS (SELECT 1 FROM word_submission_items
           WHERE game = ? AND content_hash = ? AND status <> 'duplicate')
           THEN 'duplicate' ELSE 'pending' END,
         CASE WHEN ? IS NOT NULL THEN ? WHEN EXISTS (SELECT 1 FROM word_submission_items
+          WHERE game = ? AND identity = ? AND status <> 'duplicate')
+          THEN 'previous-submission' WHEN EXISTS (SELECT 1 FROM word_submission_items
           WHERE game = ? AND content_hash = ? AND status <> 'duplicate')
           THEN 'previous-submission' ELSE NULL END
       FROM word_submission_batches WHERE id = ?`,
@@ -216,9 +231,13 @@ export async function storeSubmission(
           JSON.stringify(item.content),
           item.duplicateOf,
           input.game,
+          item.identity,
+          input.game,
           item.contentHash,
           item.duplicateOf,
           item.duplicateOf,
+          input.game,
+          item.identity,
           input.game,
           item.contentHash,
           id,

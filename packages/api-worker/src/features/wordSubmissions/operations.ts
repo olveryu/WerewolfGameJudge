@@ -22,11 +22,24 @@ import {
 
 const log = createLogger('word-submission-operations');
 const eligibleStates = {
-  review: ['pending', 'failed', 'rejected', 'passed'],
+  review: ['approved', 'failed', 'rejected', 'passed'],
   publish: ['passed'],
-  dismiss: ['pending', 'failed', 'rejected', 'passed'],
+  dismiss: ['pending', 'approved', 'failed', 'rejected', 'passed'],
   approve: ['pending', 'failed', 'rejected'],
+  endorse: ['pending', 'failed', 'rejected'],
+  unendorse: ['approved'],
   unpublish: ['published'],
+} as const;
+
+/** Withdrawing an endorsement only returns the item to pending; review never started. */
+const actionTargetStatus = {
+  review: 'reviewing',
+  publish: 'published',
+  dismiss: 'dismissed',
+  approve: 'passed',
+  endorse: 'approved',
+  unendorse: 'pending',
+  unpublish: 'unpublished',
 } as const;
 
 /** Record one candidate-specific failure without stopping the remaining review. */
@@ -137,16 +150,7 @@ function itemMutation(
   input: WordSubmissionAction,
   adapter: WordSubmissionAdapter,
 ) {
-  const status =
-    input.action === 'review'
-      ? 'reviewing'
-      : input.action === 'publish'
-        ? 'published'
-        : input.action === 'dismiss'
-          ? 'dismissed'
-          : input.action === 'approve'
-            ? 'passed'
-            : 'unpublished';
+  const status = actionTargetStatus[input.action];
   return db
     .prepare(
       `UPDATE word_submission_items SET status = ?, revision = revision + 1,

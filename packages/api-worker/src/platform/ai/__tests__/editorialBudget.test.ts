@@ -8,6 +8,7 @@ import {
   EDITORIAL_DAILY_REQUEST_LIMIT,
   EDITORIAL_MONTHLY_REQUEST_LIMIT,
   isEditorialBudgetAvailable,
+  readModelBudgetByOperation,
 } from '../editorialBudget';
 
 describe('editorial request budget', () => {
@@ -26,14 +27,21 @@ describe('editorial request budget', () => {
     expect(await isEditorialBudgetAvailable(measured.db, now)).toBe(false);
     expect(measured.counts.rowsRead).toBeLessThanOrEqual(EDITORIAL_MONTHLY_REQUEST_LIMIT + 10);
     await expect(
-      claimEditorialModelRequest(measured.db, 'blocked-month', 'test', 'model', now),
+      claimEditorialModelRequest(measured.db, 'blocked-month', 'test', 'model', 'generation', now),
     ).rejects.toThrow('consumed or shared budget');
     await env.DB.prepare(
       "UPDATE editorial_model_requests SET claimed_at = '2026-01-01T00:00:00.000Z'",
     ).run();
     expect(await isEditorialBudgetAvailable(env.DB, now)).toBe(true);
     for (let index = 0; index < EDITORIAL_DAILY_REQUEST_LIMIT; index += 1)
-      await claimEditorialModelRequest(env.DB, `daily-${index}`, 'test', 'model', now);
+      await claimEditorialModelRequest(
+        env.DB,
+        `daily-${index}`,
+        'test',
+        'model',
+        'generation',
+        now,
+      );
     expect(await isEditorialBudgetAvailable(env.DB, now)).toBe(false);
   });
 
@@ -68,6 +76,7 @@ describe('editorial request budget', () => {
           `request-${index}`,
           index % 2 === 0 ? 'fibking' : 'undercover',
           'model',
+          'generation',
           now,
         ),
       ),
@@ -76,7 +85,7 @@ describe('editorial request budget', () => {
       EDITORIAL_DAILY_REQUEST_LIMIT,
     );
     await expect(
-      claimEditorialModelRequest(env.DB, 'request-0', 'fibking', 'model', now),
+      claimEditorialModelRequest(env.DB, 'request-0', 'fibking', 'model', 'generation', now),
     ).rejects.toThrow('consumed or shared budget');
   });
 
@@ -84,18 +93,25 @@ describe('editorial request budget', () => {
     await env.DB.prepare('DELETE FROM editorial_model_requests').run();
     const now = Date.parse('2026-09-22T12:00:00Z');
     for (let index = 0; index < EDITORIAL_DAILY_REQUEST_LIMIT; index += 1) {
-      await claimEditorialModelRequest(env.DB, `fill-${index}`, 'fibking', 'model', now);
+      await claimEditorialModelRequest(
+        env.DB,
+        `fill-${index}`,
+        'fibking',
+        'model',
+        'generation',
+        now,
+      );
     }
     await expect(
-      claimEditorialModelRequest(env.DB, 'blocked', 'undercover', 'model', now),
+      claimEditorialModelRequest(env.DB, 'blocked', 'undercover', 'model', 'generation', now),
     ).rejects.toThrow('consumed or shared budget');
     // Force exceeds the budget but still records the claim exactly once.
-    await claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', now, {
+    await claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', 'generation', now, {
       force: true,
     });
     // A repeated force claim for the same id is still rejected: the ledger stays idempotent.
     await expect(
-      claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', now, {
+      claimEditorialModelRequest(env.DB, 'forced-1', 'undercover', 'model', 'generation', now, {
         force: true,
       }),
     ).rejects.toThrow('already consumed');
@@ -103,5 +119,25 @@ describe('editorial request budget', () => {
       "SELECT COUNT(*) AS n FROM editorial_model_requests WHERE id = 'forced-1'",
     ).first<{ n: number }>();
     expect(count?.n).toBe(1);
+  });
+
+  it('splits the shared ceiling into generation and review without changing the totals', async () => {
+    await env.DB.prepare('DELETE FROM editorial_model_requests').run();
+    const now = Date.parse('2026-09-22T12:00:00Z');
+    await claimEditorialModelRequest(env.DB, 'gen-1', 'fibking', 'model', 'generation', now);
+    await claimEditorialModelRequest(env.DB, 'gen-2', 'fibking', 'model', 'generation', now);
+    await claimEditorialModelRequest(env.DB, 'rev-1', 'undercover', 'model', 'review', now);
+    const byOperation = await readModelBudgetByOperation(env.DB, now);
+    expect(byOperation).toEqual({
+      generation: { dailyUsed: 2, monthlyUsed: 2 },
+      review: { dailyUsed: 1, monthlyUsed: 1 },
+    });
+    // The split is a partition of the same ceiling, not a second budget.
+    expect(byOperation.generation.dailyUsed + byOperation.review.dailyUsed).toBe(3);
+    expect(byOperation.generation.monthlyUsed + byOperation.review.monthlyUsed).toBe(3);
+    const stored = await env.DB.prepare(
+      "SELECT operation FROM editorial_model_requests WHERE id = 'rev-1'",
+    ).first<{ operation: string }>();
+    expect(stored?.operation).toBe('review');
   });
 });

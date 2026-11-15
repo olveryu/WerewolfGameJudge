@@ -20,7 +20,16 @@ export interface GameWordsStats {
     coolingDown: boolean;
     menuEligible: boolean | null;
   }>;
-  modelBudget: { dailyUsed: number; dailyLimit: number; monthlyUsed: number; monthlyLimit: number };
+  modelBudget: {
+    dailyUsed: number;
+    dailyLimit: number;
+    monthlyUsed: number;
+    monthlyLimit: number;
+    byOperation: {
+      generation: { dailyUsed: number; monthlyUsed: number };
+      review: { dailyUsed: number; monthlyUsed: number };
+    };
+  };
   /** Null for games without a monthly budget. */
   monthlySupply: {
     month: string;
@@ -51,4 +60,42 @@ export interface TriggerSupplyResult {
   game: GameWordGame;
   force: boolean;
   workflowId: string;
+}
+
+/** Candidate states the admin list can filter by. Fib candidates hold no
+ * terminal review state (publish deletes the row); undercover/drawguess
+ * keep accepted/rejected rows. */
+export type WordCandidateListStatus = 'pending' | 'approved' | 'claimed' | 'accepted' | 'rejected';
+
+/** A supply candidate awaiting human approval (or already approved). */
+export interface WordCandidateListItem {
+  id: string;
+  game: GameWordGame;
+  title: string;
+  category: string;
+  /** Fibking evidence links; null for games without per-candidate evidence. */
+  evidenceCount: number | null;
+  createdAt: string;
+  status: WordCandidateListStatus;
+}
+
+export interface WordCandidateList {
+  game: GameWordGame;
+  candidates: WordCandidateListItem[];
+  /** Keyset cursor over (created_at, id); null when the list is exhausted. */
+  nextCursor: string | null;
+}
+
+export interface ApproveWordCandidatesResult {
+  game: GameWordGame;
+  approvedIds: string[];
+  /** Requested ids that were already approved, unknown, or not approvable. */
+  skippedIds: string[];
+}
+
+export interface DismissWordCandidatesResult {
+  game: GameWordGame;
+  dismissedIds: string[];
+  /** Requested ids that were not pending, unknown, or already dismissed. */
+  skippedIds: string[];
 }

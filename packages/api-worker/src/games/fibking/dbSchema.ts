@@ -154,13 +154,13 @@ export const fibWordCandidates = sqliteTable(
     generationCycleId: text('generation_cycle_id')
       .notNull()
       .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }), // Intake audit identity.
-    status: text('status', { enum: ['pending', 'claimed'] }).notNull(), // Queue lifecycle, never a playable status.
+    status: text('status', { enum: ['pending', 'approved', 'claimed'] }).notNull(), // Queue lifecycle, never a playable status.
     claimedPackId: text('claimed_pack_id'), // Reviewing pack; NULL while pending.
     createdAt: text('created_at').notNull(), // UTC ISO intake time.
     claimedAt: text('claimed_at'), // UTC ISO claim time; NULL while pending.
   },
   (table) => [
-    index('idx_fib_word_candidates_pending').on(table.status, table.createdAt),
+    index('idx_fib_word_candidates_list').on(table.status, table.createdAt, table.id),
     index('idx_fib_word_candidates_claim').on(table.claimedPackId),
   ],
 );

@@ -13,6 +13,7 @@ import {
   failUndercoverWordPack,
   getUndercoverReviewCandidates,
   publishUndercoverWordPack,
+  releaseUndercoverWordCandidates,
   reserveUndercoverWordPack,
   storeUndercoverWordCandidates,
   UNDERCOVER_DAILY_BATCH_LIMIT,
@@ -46,6 +47,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSu
         storeCandidates: storeUndercoverWordCandidates,
         publish: publishUndercoverWordPack,
         fail: failUndercoverWordPack,
+        releaseCandidates: releaseUndercoverWordCandidates,
       },
     });
   }
