@@ -12,7 +12,11 @@
 -- Table-copy pattern (0080): D1 applies each migration inside a
 -- transaction, where PRAGMA foreign_keys = OFF is a no-op, so the candidate
 -- tables (children of the packs and generation-cycle tables) are rebuilt
--- the same way 0080 rebuilt them. Indexes are recreated unchanged.
+-- the same way 0080 rebuilt them. Indexes are recreated from the post-0082
+-- set: the (status, created_at, id) list index 0082 added on each table,
+-- plus each table's other pre-existing index (fib claim, undercover and
+-- drawguess pending). The fib (status, created_at) index 0082 dropped is
+-- not recreated — the list index covers its prefix.
 
 -- Rebuild fib_word_candidates with the manual review/publish states in the
 -- status CHECK and in the table-level CHECK (a candidate in any of the new
@@ -48,7 +52,7 @@ CREATE TABLE fib_word_candidates_next (
 INSERT INTO fib_word_candidates_next SELECT * FROM fib_word_candidates;
 DROP TABLE fib_word_candidates;
 ALTER TABLE fib_word_candidates_next RENAME TO fib_word_candidates;
-CREATE INDEX idx_fib_word_candidates_pending ON fib_word_candidates(status, created_at);
+CREATE INDEX idx_fib_word_candidates_list ON fib_word_candidates(status, created_at, id);
 CREATE INDEX idx_fib_word_candidates_claim ON fib_word_candidates(claimed_pack_id);
 
 -- Rebuild undercover_word_candidates with the manual review/publish states
@@ -74,6 +78,8 @@ INSERT INTO undercover_word_candidates_next
 DROP TABLE undercover_word_candidates;
 ALTER TABLE undercover_word_candidates_next RENAME TO undercover_word_candidates;
 CREATE INDEX idx_undercover_word_candidates_pending ON undercover_word_candidates(status, category);
+CREATE INDEX idx_undercover_word_candidates_list
+  ON undercover_word_candidates(status, created_at, id);
 
 -- Rebuild drawguess_word_candidates with the manual review/publish states.
 -- review_json already exists here; the stored accepted review is reused.
@@ -94,3 +100,5 @@ INSERT INTO drawguess_word_candidates_next SELECT * FROM drawguess_word_candidat
 DROP TABLE drawguess_word_candidates;
 ALTER TABLE drawguess_word_candidates_next RENAME TO drawguess_word_candidates;
 CREATE INDEX idx_drawguess_word_candidates_pending ON drawguess_word_candidates(status, category);
+CREATE INDEX idx_drawguess_word_candidates_list
+  ON drawguess_word_candidates(status, created_at, id);
