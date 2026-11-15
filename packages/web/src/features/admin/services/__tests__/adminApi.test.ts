@@ -110,35 +110,31 @@ describe('adminApi', () => {
     await expect(fetchUserCountries()).rejects.toThrow('unsupported fields');
   });
 
-  it('fetches merged library items with source/status/search/cursor filters', async () => {
+  it('fetches library items with status/search/cursor filters', async () => {
     const body = {
       game: 'drawguess',
       items: [
         {
-          key: 'candidate:cand-1',
-          source: 'candidate',
-          id: 'cand-1',
-          batchId: null,
-          agentName: null,
+          id: 'item-1',
+          batchId: 'batch-1',
+          agentName: 'Muse',
           game: 'drawguess',
           title: '大熊猫',
           category: '动物',
-          definition: null,
-          evidenceCount: null,
+          definition: '大熊猫的释义。',
           createdAt: '2026-11-14T00:00:00.000Z',
           status: 'pending',
           duplicateOf: null,
-          contentHash: null,
-          revision: null,
+          contentHash: 'abc',
+          revision: 0,
         },
       ],
-      totals: { candidates: { pending: 1 }, submissions: {} },
+      totals: { submissions: {} },
       nextCursor: 'next-page',
     };
     mockFetch.mockResolvedValueOnce(Response.json(body));
     await expect(
       fetchLibraryItems('drawguess', {
-        source: 'submission',
         status: 'approved',
         search: '玫瑰花',
         cursor: 'current-page',
@@ -149,7 +145,6 @@ describe('adminApi', () => {
     const url = new URL(input);
     expect(url.pathname).toMatch(/\/admin\/words\/drawguess\/library-items$/);
     expect(Object.fromEntries(url.searchParams)).toEqual({
-      source: 'submission',
       status: 'approved',
       search: '玫瑰花',
       cursor: 'current-page',

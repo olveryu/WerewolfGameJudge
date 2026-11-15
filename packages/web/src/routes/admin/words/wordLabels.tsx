@@ -27,18 +27,9 @@ export const SUBMISSION_STATUS_LABELS = {
   duplicate: '重复内容',
 } as const;
 
-/** Supply-queue statuses (candidate rows, not submission items). */
-export const CANDIDATE_STATUS_LABELS = {
-  pending: '待批准',
-  approved: '已批准',
-  claimed: '已认领',
-  reviewing: '审核中',
-  passed: '已通过待发布',
-  accepted: '已通过',
-  rejected: '未通过',
-  failed: '审核失败',
-  published: '已发布',
-} as const;
+/** The system agent that owns supply-produced submissions; must match the
+ * worker's SUPPLY_AGENT_NAME (ingestion.ts). Supply rows carry this name. */
+export const SUPPLY_AGENT_NAME = '系统补词';
 
 /** Match CountryFilter: a labeled trigger opens an accessible choice sheet, never a native select. */
 export function WordChoiceFilter({

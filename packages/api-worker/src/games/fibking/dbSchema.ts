@@ -12,7 +12,7 @@ import {
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
-import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_DECISIONS } from './wordProviders/types';
+import { FIB_WORD_CATEGORIES } from './wordProviders/types';
 import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
@@ -94,74 +94,6 @@ export const fibWordGenerationCycles = sqliteTable(
   },
   (table) => [
     index('idx_fib_word_generation_cycles_status_started').on(table.status, table.startedAt),
-  ],
-);
-
-/** @public Immutable editorial-review events for generated FibKing candidates. */
-export const fibWordCandidateReviews = sqliteTable(
-  'fib_word_candidate_reviews',
-  {
-    id: text('id').primaryKey(),
-    word: text('word').notNull(),
-    coreMeaning: text('core_meaning').notNull(),
-    usageNote: text('usage_note').notNull(),
-    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(),
-    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
-    isEstablishedTerm: integer('is_established_term', { mode: 'boolean' }).notNull(),
-    isDefinitionAccurate: integer('is_definition_accurate', { mode: 'boolean' }).notNull(),
-    isMeaningUnfamiliarToMostPlayers: integer('is_meaning_unfamiliar_to_most_players', {
-      mode: 'boolean',
-    }).notNull(),
-    isMeaningDistinctFromLiteralReading: integer('is_meaning_distinct_from_literal_reading', {
-      mode: 'boolean',
-    }).notNull(),
-    hasMultiplePlausibleWrongDefinitions: integer('has_multiple_plausible_wrong_definitions', {
-      mode: 'boolean',
-    }).notNull(),
-    hasRevealValue: integer('has_reveal_value', { mode: 'boolean' }).notNull(),
-    decision: text('decision', { enum: FIB_WORD_REVIEW_DECISIONS }).notNull(),
-    reason: text('reason').notNull(),
-    reviewVersion: text('review_version').notNull(),
-    generationCycleId: text('generation_cycle_id')
-      .notNull()
-      .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }),
-    reviewedAt: text('reviewed_at').notNull(),
-    evidenceJson: text('evidence_json'), // Source snapshots; NULL for reviews before provenance was recorded.
-    evidenceIndex: integer('evidence_index'), // Zero-based supporting source; NULL when none was cited.
-    evidenceQuote: text('evidence_quote'), // Exact cited excerpt; NULL when evidence was unavailable.
-  },
-  (table) => [
-    index('idx_fib_word_candidate_reviews_word_decision').on(table.word, table.decision),
-    index('idx_fib_word_candidate_reviews_cycle_decision').on(
-      table.generationCycleId,
-      table.decision,
-    ),
-  ],
-);
-
-/** @public Pending editorial candidates; claimed rows leave only after a review transaction commits. */
-export const fibWordCandidates = sqliteTable(
-  'fib_word_candidates',
-  {
-    id: text('id').primaryKey(), // Intake cycle and candidate identity.
-    word: text('word').notNull().unique(), // One pending or claimed entry per word.
-    coreMeaning: text('core_meaning').notNull(), // Proposed fixed meaning, not yet approved.
-    usageNote: text('usage_note').notNull(), // Proposed usage context.
-    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(), // Candidate category, independent of pack focus.
-    topic: text('topic', { enum: FIB_WORD_ALL_TOPIC_IDS }),
-    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(), // Original candidate provider.
-    evidenceJson: text('evidence_json').notNull(), // Bounded source snapshots; [] only for inventory awaiting verification.
-    generationCycleId: text('generation_cycle_id')
-      .notNull()
-      .references(() => fibWordGenerationCycles.id, { onDelete: 'restrict' }), // Intake audit identity.
-    status: text('status', { enum: ['pending', 'approved', 'claimed'] }).notNull(), // Queue lifecycle, never a playable status.
-    claimedPackId: text('claimed_pack_id'), // Reviewing pack; NULL while pending.
-    createdAt: text('created_at').notNull(), // UTC ISO intake time.
-    claimedAt: text('claimed_at'), // UTC ISO claim time; NULL while pending.
-  },
-  (table) => [
-    index('idx_fib_word_candidates_list').on(table.status, table.createdAt, table.id),
-    index('idx_fib_word_candidates_claim').on(table.claimedPackId),
   ],
 );
 

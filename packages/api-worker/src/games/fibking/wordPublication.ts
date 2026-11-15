@@ -1,26 +1,19 @@
-/** Bounded monthly editorial budget and pack reservation in D1. Supply only
- * generates and stores — review and publication live on the manual
- * review/publish endpoints, never in the workflow. */
+/** Pack reservation in D1. Supply only generates and stores — review and
+ * publication live on the manual review/publish endpoints, never in the
+ * workflow. There is no monthly quota: the admin controls how often to
+ * trigger by hand. */
 
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import { createFailWordPackStatement } from '../../platform/wordSupply/wordPackLedger';
-import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
-import { FIB_WORD_PROMPT_VERSION, FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
-import {
-  FIB_WORD_CATEGORIES,
-  FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
-  type FibWordEditorialCandidate,
-} from './wordProviders/types';
+import { FIB_WORD_PROMPT_VERSION } from './wordProviders/prompt';
+import { FIB_WORD_CATEGORIES } from './wordProviders/types';
 import { FIB_WORD_SEARCH_QUERY_COUNT, FIB_WORD_SEARCHES } from './wordSearchPlan';
 import { FIB_WORD_TOPIC_IDS } from './wordTopics';
 
-export const FIB_WORD_MONTHLY_TARGET = 100;
-export const FIB_WORD_MONTHLY_BATCH_LIMIT = 78;
-export const FIB_WORD_DAILY_BATCH_LIMIT = 4;
 const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 /**
  * Tavily free (Researcher) plan: 1,000 credits/month. Every fibking Tavily
@@ -56,7 +49,6 @@ export async function claimFibWordProviderRequest(
   db: D1Database,
   pack: FibWordPack,
   operation: FibWordProviderOperation,
-  opts: { force?: boolean } = {},
 ): Promise<void> {
   const result = await db
     .prepare(
@@ -80,7 +72,6 @@ export async function claimFibWordProviderRequest(
       GEMINI_FIB_WORD_MODEL,
       operation,
       Date.now(),
-      { force: opts.force },
     );
   }
 }
@@ -89,31 +80,18 @@ export async function claimFibWordProviderRequest(
 export async function reserveFibWordPack(
   db: D1Database,
   day: string,
-  batchIndex: number,
-  opts: { force?: boolean; runId?: string; batchLimit?: number } = {},
+  runId: string,
 ): Promise<FibWordPack | null> {
-  const batchLimit = opts.batchLimit ?? FIB_WORD_DAILY_BATCH_LIMIT;
   const parsedDay = z.iso.date().parse(day);
-  z.int().min(FIB_WORD_DAILY_BATCH_LIMIT).max(FIB_WORD_MONTHLY_BATCH_LIMIT).parse(batchLimit);
-  z.int()
-    .min(0)
-    .max(batchLimit - 1)
-    .parse(batchIndex);
+  z.string().min(1).max(64).parse(runId);
   const monthId = parsedDay.slice(0, 7);
-  // Manual runs (normal or force) carry a unique runId so repeated triggers on the same
-  // day never collide with each other or with the scheduled daily batches. Force mode
-  // additionally bypasses the monthly budget below.
-  const id = opts.runId
-    ? `${parsedDay}-${opts.force ? 'force' : 'manual'}-${opts.runId}-${batchIndex}`
-    : `${parsedDay}-${batchIndex}`;
+  // Manual runs carry a unique runId so repeated triggers on the same day
+  // never collide with each other. The category follows the same
+  // largest-deficit rule as the other games (fewest active words, then the
+  // largest unreviewed queue, then least recently packed): the old
+  // day-of-month rotation died with the batch index.
+  const id = `${parsedDay}-${runId}`;
   const requestToken = crypto.randomUUID();
-  const category =
-    FIB_WORD_CATEGORIES[(Number(parsedDay.slice(-2)) + batchIndex) % FIB_WORD_CATEGORIES.length];
-  if (category === undefined) throw new Error('Fib publication category unavailable');
-  const quotaClause = opts.force ? '' : 'AND requests_reserved < ? AND published_count < ?';
-  const quotaBinds: number[] = opts.force
-    ? []
-    : [FIB_WORD_MONTHLY_BATCH_LIMIT, FIB_WORD_MONTHLY_TARGET];
   const results = await db.batch([
     db
       .prepare('INSERT INTO fib_word_supply_months (id) VALUES (?) ON CONFLICT (id) DO NOTHING')
@@ -121,19 +99,28 @@ export async function reserveFibWordPack(
     db
       .prepare(
         `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at)
-      SELECT ?, id, ?, ?, 'reserved', ? FROM fib_word_supply_months
-      WHERE id = ? ${quotaClause}
+      SELECT ?, id, ?, (
+        SELECT value FROM json_each(?) c
+        ORDER BY (SELECT COUNT(*) FROM fib_words w WHERE w.category = c.value AND w.status = 'active') ASC,
+          -(SELECT COUNT(*) FROM word_submission_items item
+             WHERE item.game = 'fibking' AND item.status IN ('pending', 'approved')
+               AND json_extract(item.material_json, '$.category') = c.value) ASC,
+          COALESCE((SELECT MAX(created_at) FROM fib_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
+          COALESCE((SELECT MAX(created_at) FROM fib_word_packs previous WHERE previous.category = c.value), '') ASC,
+          value ASC LIMIT 1
+      ), 'reserved', ? FROM fib_word_supply_months
+      WHERE id = ?
         AND EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
       ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
       )
-      .bind(id, requestToken, category, new Date().toISOString(), monthId, ...quotaBinds),
-    db
-      .prepare(
-        `UPDATE fib_word_supply_months SET requests_reserved = requests_reserved + 1
-      WHERE id = ? AND EXISTS (SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ?)
-      RETURNING requests_reserved`,
-      )
-      .bind(monthId, id, requestToken),
+      .bind(
+        id,
+        requestToken,
+        JSON.stringify(FIB_WORD_CATEGORIES),
+        wordCategoryCooldownCutoff(),
+        new Date().toISOString(),
+        monthId,
+      ),
     db
       .prepare(
         `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
@@ -204,57 +191,6 @@ export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
     .parse(selected);
 }
 
-/** Keep every extracted candidate, including overflow; identical reviewed evidence is not requeued. */
-export async function storeFibWordCandidates(
-  db: D1Database,
-  pack: FibWordPack,
-  candidates: readonly FibWordEditorialCandidate[],
-): Promise<void> {
-  if (candidates.length > FIB_WORD_STORED_GENERATION_BATCH_LIMIT) {
-    throw new Error('Fib candidate intake exceeds batch limit');
-  }
-  if (candidates.length === 0) return;
-  const now = new Date().toISOString();
-  await db.batch(
-    candidates.map((value, index) => {
-      const candidate = parseFibWordEditorialCandidate(value);
-      if (candidate.evidence.length === 0)
-        throw new Error('Extracted Fib candidate has no evidence');
-      const evidenceJson = JSON.stringify(candidate.evidence);
-      return db
-        .prepare(
-          `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, topic, source,
-           evidence_json, generation_cycle_id, status, created_at)
-           SELECT ?, ?, ?, ?, ?, ?, ?, ?, id, 'pending', ? FROM fib_word_packs
-           WHERE id = ? AND request_token = ? AND status = 'reserved'
-             AND NOT EXISTS (
-               SELECT 1 FROM fib_word_candidate_reviews WHERE word = ? AND core_meaning = ?
-                 AND usage_note = ? AND review_version = ? AND evidence_json = ?
-             )
-           ON CONFLICT (word) DO NOTHING`,
-        )
-        .bind(
-          `${pack.id}:${index}`,
-          candidate.word,
-          candidate.definition.coreMeaning,
-          candidate.definition.usageNote,
-          candidate.category,
-          candidate.topic ?? null,
-          candidate.source,
-          evidenceJson,
-          now,
-          pack.id,
-          pack.request_token,
-          candidate.word,
-          candidate.definition.coreMeaning,
-          candidate.definition.usageNote,
-          FIB_WORD_REVIEW_VERSION,
-          evidenceJson,
-        );
-    }),
-  );
-}
-
 /** Mark a failed pack terminal without refunding potentially consumed external quota. */
 export async function failFibWordPack(
   db: D1Database,
@@ -268,12 +204,5 @@ export async function failFibWordPack(
         "UPDATE fib_word_generation_cycles SET status = 'failed', completed_at = ?, error_code = ? WHERE id = ? AND status = 'running'",
       )
       .bind(new Date().toISOString(), errorCode, pack.id),
-    db
-      .prepare(
-        `UPDATE fib_word_candidates SET status = 'approved', claimed_pack_id = NULL, claimed_at = NULL
-         WHERE claimed_pack_id = ? AND EXISTS (
-           SELECT 1 FROM fib_word_packs WHERE id = ? AND request_token = ? AND status = 'failed')`,
-      )
-      .bind(pack.id, pack.id, pack.request_token),
   ]);
 }

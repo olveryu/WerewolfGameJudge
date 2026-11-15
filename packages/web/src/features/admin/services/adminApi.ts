@@ -9,17 +9,11 @@ import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
   AdminD1Range,
   AdminD1Sort,
-  ApproveWordCandidatesResult,
-  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
-  PublishWordCandidatesResult,
-  ReviewWordCandidatesResult,
   TimePreset,
   TriggerSupplyResult,
-  WordCandidateListStatus,
   WordLibraryItems,
-  WordLibraryItemSource,
   WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
 import {
@@ -43,12 +37,8 @@ import {
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
-  parseApproveWordCandidatesResponse,
-  parseDismissWordCandidatesResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
-  parsePublishWordCandidatesResponse,
-  parseReviewWordCandidatesResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
@@ -272,10 +262,7 @@ export function fetchGameWordsStats(
   return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game }, signal);
 }
 
-export function triggerGameWordSupply(
-  game: GameWordGame,
-  force: boolean,
-): Promise<TriggerSupplyResult> {
+export function triggerGameWordSupply(game: GameWordGame): Promise<TriggerSupplyResult> {
   return adminFetch(
     '/admin/games/words/trigger-supply',
     parseTriggerSupplyResult,
@@ -283,7 +270,6 @@ export function triggerGameWordSupply(
     undefined,
     {
       game,
-      force,
     },
   );
 }
@@ -291,8 +277,7 @@ export function triggerGameWordSupply(
 export function fetchLibraryItems(
   game: GameWordGame,
   options: {
-    source?: WordLibraryItemSource;
-    status?: WordCandidateListStatus | WordSubmissionStatus;
+    status?: WordSubmissionStatus;
     search?: string;
     cursor?: string;
   } = {},
@@ -302,83 +287,10 @@ export function fetchLibraryItems(
     `/admin/words/${game}/library-items`,
     parseLibraryItemsResponse,
     {
-      ...(options.source !== undefined ? { source: options.source } : {}),
       ...(options.status !== undefined ? { status: options.status } : {}),
       ...(options.search !== undefined && options.search !== '' ? { search: options.search } : {}),
       ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
     },
     signal,
-  );
-}
-
-export function approveWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-  reason: string,
-): Promise<ApproveWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/approve',
-    parseApproveWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-      reason,
-    },
-  );
-}
-
-export function dismissWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-  reason: string,
-): Promise<DismissWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/dismiss',
-    parseDismissWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-      reason,
-    },
-  );
-}
-
-/** Manual independent review of approved candidates: one call reviews at
- * most five, grouped by category. The supply workflow never reviews. */
-export function reviewWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-): Promise<ReviewWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/review',
-    parseReviewWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-    },
-  );
-}
-
-/** Manual confirmation of publication for passed candidates: one call
- * publishes at most thirty, in a single transaction. */
-export function publishWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-): Promise<PublishWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/publish',
-    parsePublishWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-    },
   );
 }

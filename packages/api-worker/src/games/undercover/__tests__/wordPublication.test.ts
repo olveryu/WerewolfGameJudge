@@ -9,9 +9,17 @@ import { reserveUndercoverWordPack } from '../wordPublication';
 beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM undercover_round_word_selections'),
-    env.DB.prepare('DELETE FROM undercover_word_candidates'),
     env.DB.prepare('DELETE FROM undercover_word_packs'),
     env.DB.prepare('DELETE FROM undercover_word_pairs'),
+    // Delete dependents first: events reference items/actions, control
+    // events and credentials reference agents.
+    env.DB.prepare('DELETE FROM word_submission_events'),
+    env.DB.prepare('DELETE FROM word_submission_actions'),
+    env.DB.prepare('DELETE FROM word_submission_control_events'),
+    env.DB.prepare('DELETE FROM word_submission_credentials'),
+    env.DB.prepare('DELETE FROM word_submission_items'),
+    env.DB.prepare('DELETE FROM word_submission_batches'),
+    env.DB.prepare('DELETE FROM word_submission_agents'),
     env.DB.prepare("UPDATE database_capacity SET state = 'normal' WHERE id = 1"),
   ]);
 });
@@ -27,17 +35,14 @@ describe('Undercover editorial publication', () => {
       .bind(JSON.stringify(UNDERCOVER_CATEGORIES))
       .run();
     const measured = createRowCountingDb(env.DB);
-    expect(await reserveUndercoverWordPack(measured.db, '2026-09-01', 1)).not.toBeNull();
+    expect(await reserveUndercoverWordPack(measured.db, '2026-09-01', 'bounded')).not.toBeNull();
     expect(measured.counts.rowsRead).toBeLessThan(400);
   });
 
   it('spreads concurrent empty-inventory reservations across categories', async () => {
     const packs = await Promise.all(
       Array.from({ length: 10 }, (_, index) =>
-        reserveUndercoverWordPack(env.DB, '2026-09-01', 1, {
-          force: true,
-          runId: `parallel-${index}`,
-        }),
+        reserveUndercoverWordPack(env.DB, '2026-09-01', `parallel-${index}`),
       ),
     );
     expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
@@ -61,11 +66,11 @@ describe('Undercover editorial publication', () => {
       .bind(new Date().toISOString())
       .run();
 
-    const pack = await reserveUndercoverWordPack(env.DB, '2026-09-02', 1);
+    const pack = await reserveUndercoverWordPack(env.DB, '2026-09-02', 'least-stocked');
     expect(pack?.category).toBe('food');
   });
 
-  it('reserves one batch for queued reviews and one for the least stocked category', async () => {
+  it('picks the most-queued category on every run when stock is tied', async () => {
     await env.DB.batch(
       UNDERCOVER_CATEGORIES.map((category) =>
         env.DB.prepare(
@@ -75,39 +80,44 @@ describe('Undercover editorial publication', () => {
         ).bind(`existing-${category}`, `${category}-a`, `${category}-b`, category),
       ),
     );
-    await env.DB.prepare(
-      `INSERT INTO undercover_word_candidates
-        (id, word_a, word_b, category, material_json, status, created_at)
-       VALUES ('pending', '果汁', '汽水', 'food', '{}', 'pending', '2026-09-01')`,
-    ).run();
-    const review = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
-    const replenishment = await reserveUndercoverWordPack(env.DB, '2026-09-01', 1);
-    expect(review?.category).toBe('food');
-    expect(replenishment).not.toBeNull();
-    expect(replenishment?.category).not.toBe('food');
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO word_submission_agents (id, name, description, games_json, status, daily_quota, pending_quota, created_at)
+         VALUES ('queue-agent', 'Muse', '', '["undercover"]', 'active', 1000, 1000, '2026-09-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_batches (id, agent_id, game, idempotency_key, request_hash, created_at)
+         VALUES ('queue-batch', 'queue-agent', 'undercover', 'queue-key', 'queue-hash', '2026-09-01T00:00:00.000Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
+           title, category, material_json, status, duplicate_of, revision)
+         VALUES ('20000000-0000-4000-8000-000000000001', 'queue-batch', 'undercover', 'queue-item', '果汁/汽水',
+           'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '果汁 / 汽水', 'food',
+           '{"wordA":"果汁","wordB":"汽水","category":"food","commonTraits":["饮料"],"differences":["气泡"],"potentialIssues":[]}',
+           'pending', NULL, 0)`,
+      ),
+    ]);
+    // One trigger runs one pack, and every run applies the same rule:
+    // least stock first, then most queued submissions. There is no batch
+    // index to alternate a "review" batch against a "replenish" batch.
+    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'first');
+    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'second');
+    expect(first?.category).toBe('food');
+    expect(second?.category).toBe('food');
+    expect(first?.id).toBe('2026-09-01-first');
+    expect(second?.id).toBe('2026-09-01-second');
   });
 });
 
-describe('Undercover force reservation', () => {
-  it('allows batch indexes beyond the daily limit in its own id namespace', async () => {
-    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 0);
+describe('Undercover run-id reservation', () => {
+  it('gives each run its own pack id from the run id and refuses a replay', async () => {
+    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1');
     if (first === null) throw new Error('Expected reservation');
-    // Normal mode rejects batchIndex >= daily limit.
-    await expect(reserveUndercoverWordPack(env.DB, '2026-09-01', 2)).rejects.toThrow();
-    // Force mode accepts it with a distinct id.
-    const forced = await reserveUndercoverWordPack(env.DB, '2026-09-01', 2, {
-      force: true,
-      runId: 'r1',
-    });
-    expect(forced?.id).toBe('2026-09-01-force-r1-2');
-    // A repeated manual run on the same day gets its own id.
-    const forcedAgain = await reserveUndercoverWordPack(env.DB, '2026-09-01', 2, {
-      force: true,
-      runId: 'r2',
-    });
-    expect(forcedAgain?.id).toBe('2026-09-01-force-r2-2');
-    // Same-day scheduled ids are untouched.
-    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 1);
-    expect(second?.id).toBe('2026-09-01-1');
+    expect(first.id).toBe('2026-09-01-r1');
+    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r2');
+    expect(second?.id).toBe('2026-09-01-r2');
+    // The same run id replays the same pack id, which is already taken.
+    await expect(reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1')).resolves.toBeNull();
   });
 });

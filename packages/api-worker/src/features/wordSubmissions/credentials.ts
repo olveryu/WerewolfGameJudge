@@ -34,7 +34,11 @@ function decodeAgent(value: Record<string, unknown>): WordSubmissionAgent {
 }
 
 /** Return metadata only; hashes and raw credentials are excluded from all reads. */
-async function readSubmissionAgent(db: D1Database, id: string): Promise<WordSubmissionAgent> {
+/** Read one agent with its current credential; used by the supply entry for the system agent. */
+export async function readSubmissionAgent(
+  db: D1Database,
+  id: string,
+): Promise<WordSubmissionAgent> {
   const row = await db
     .prepare(`${agentSelect} WHERE a.id = ? AND a.deleted_at IS NULL`)
     .bind(new Date().toISOString().slice(0, 10), id)

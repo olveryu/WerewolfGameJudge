@@ -552,14 +552,6 @@ describe('External word submissions', () => {
         'SELECT submitted_today, pending_count FROM word_submission_limits',
       ).first(),
     ).toEqual({ submitted_today: 1, pending_count: 1 });
-    expect(
-      await env.DB.prepare(
-        `SELECT
-      (SELECT COUNT(*) FROM drawguess_word_candidates) +
-      (SELECT COUNT(*) FROM undercover_word_candidates) +
-      (SELECT COUNT(*) FROM fib_word_candidate_reviews) AS count`,
-      ).first(),
-    ).toEqual({ count: 0 });
     expect(fetch).not.toHaveBeenCalled();
   });
 

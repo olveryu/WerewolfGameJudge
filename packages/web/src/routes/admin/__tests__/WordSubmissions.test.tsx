@@ -58,9 +58,7 @@ const settings: WordSubmissionSettings = {
   dailyLimit: 1000,
   modelBudget: {
     dailyUsed: 0,
-    dailyLimit: 8,
     monthlyUsed: 0,
-    monthlyLimit: 120,
     byOperation: {
       generation: { dailyUsed: 0, monthlyUsed: 0 },
       review: { dailyUsed: 0, monthlyUsed: 0 },
@@ -135,7 +133,6 @@ const authorization: WordSubmissionAgent = {
 const stats: GameWordsStats = {
   game: 'drawguess',
   supplyEnabled: true,
-  monthlySupply: null,
   reviewDecisions: [],
   reviewCheckStats: [],
   queryLeaderboard: [],
@@ -143,9 +140,7 @@ const stats: GameWordsStats = {
   tavilyMonthlyQuota: null,
   modelBudget: {
     dailyUsed: 0,
-    dailyLimit: 8,
     monthlyUsed: 0,
-    monthlyLimit: 120,
     byOperation: {
       generation: { dailyUsed: 0, monthlyUsed: 0 },
       review: { dailyUsed: 0, monthlyUsed: 0 },
@@ -184,7 +179,7 @@ beforeEach(() => {
   vi.mocked(fetchLibraryItems).mockResolvedValue({
     game: 'drawguess',
     items: [],
-    totals: { candidates: {}, submissions: {} },
+    totals: { submissions: {} },
     nextCursor: null,
   });
   vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
@@ -345,14 +340,12 @@ it('starts all approved/failed items independently of selection and never includ
   expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
 });
 
-it('reviews at exhausted quotas without a reason and freezes retries', async () => {
+it('reviews without a reason and freezes retries', async () => {
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
     ...settings,
     modelBudget: {
       dailyUsed: 93,
-      dailyLimit: 8,
       monthlyUsed: 696,
-      monthlyLimit: 120,
       byOperation: {
         generation: { dailyUsed: 93, monthlyUsed: 696 },
         review: { dailyUsed: 0, monthlyUsed: 0 },

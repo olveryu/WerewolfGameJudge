@@ -96,24 +96,3 @@ export const undercoverWordPacks = sqliteTable(
   },
   (table) => [index('idx_undercover_word_packs_created').on(table.createdAt)],
 );
-
-/** @public Canonical candidate history doubles as the recoverable pending-review queue. */
-export const undercoverWordCandidates = sqliteTable(
-  'undercover_word_candidates',
-  {
-    id: text('id').primaryKey(),
-    wordA: text('word_a').notNull(),
-    wordB: text('word_b').notNull(),
-    category: text('category', { enum: UNDERCOVER_CATEGORIES }).notNull(),
-    materialJson: text('material_json').notNull(),
-    status: text('status', { enum: ['pending', 'approved', 'accepted', 'rejected'] }).notNull(),
-    claimedPackId: text('claimed_pack_id').references(() => undercoverWordPacks.id),
-    createdAt: text('created_at').notNull(),
-    reviewedAt: text('reviewed_at'),
-  },
-  (table) => [
-    unique().on(table.wordA, table.wordB),
-    index('idx_undercover_word_candidates_pending').on(table.status, table.category),
-    index('idx_undercover_word_candidates_list').on(table.status, table.createdAt, table.id),
-  ],
-);

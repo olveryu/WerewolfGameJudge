@@ -24,22 +24,11 @@ import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
 import { adminWordSubmissionRoutes } from '../wordSubmissions/routes';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
-import {
-  publishWordCandidates,
-  publishWordCandidatesSchema,
-  reviewWordCandidates,
-  reviewWordCandidatesSchema,
-} from './candidateReview';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
-  approveWordCandidates,
-  approveWordCandidatesSchema,
-  dismissWordCandidates,
-  dismissWordCandidatesSchema,
   gameWordGameSchema,
   getGameWordsStats,
   listLibraryItems,
-  listWordCandidates,
   triggerGameWordSupply,
   triggerSupplySchema,
 } from './gameWords';
@@ -477,84 +466,23 @@ adminRoutes.get('/games/words/stats', async (c) => {
 });
 
 adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
-  const { game, force } = c.req.valid('json');
-  return c.json(await triggerGameWordSupply(c.env, { game, force }), 202);
+  const { game } = c.req.valid('json');
+  return c.json(await triggerGameWordSupply(c.env, { game }), 202);
 });
 
-adminRoutes.get('/games/words/candidates', async (c) => {
-  const game = gameWordGameSchema.safeParse(c.req.query('game'));
-  if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
-  const status = c.req.query('status');
-  if (
-    status !== undefined &&
-    status !== 'pending' &&
-    status !== 'approved' &&
-    status !== 'claimed' &&
-    status !== 'reviewing' &&
-    status !== 'passed' &&
-    status !== 'accepted' &&
-    status !== 'rejected' &&
-    status !== 'failed' &&
-    status !== 'published'
-  )
-    throw new HTTPException(400, { message: 'INVALID_STATUS' });
-  return c.json(
-    await listWordCandidates(c.env.DB, {
-      game: game.data,
-      status,
-      cursor: c.req.query('cursor'),
-    }),
-  );
-});
-
-adminRoutes.post(
-  '/games/words/candidates/approve',
-  jsonBody(approveWordCandidatesSchema),
-  async (c) => {
-    return c.json(await approveWordCandidates(c.env.DB, c.req.valid('json')));
-  },
-);
-
-/** Manual independent review of approved candidates: the same reviewBatch +
- * independent-review prompt the submission review uses, started by a human
- * from the unified library page. The supply workflow never reviews. */
-adminRoutes.post(
-  '/games/words/candidates/review',
-  jsonBody(reviewWordCandidatesSchema),
-  async (c) => {
-    return c.json(await reviewWordCandidates(c.env.DB, c.env, c.req.valid('json')));
-  },
-);
-
-/** Manual confirmation of publication for passed candidates: the same
- * publish gate as submissions, in one atomic batch. */
-adminRoutes.post(
-  '/games/words/candidates/publish',
-  jsonBody(publishWordCandidatesSchema),
-  async (c) => {
-    return c.json(await publishWordCandidates(c.env.DB, c.req.valid('json')));
-  },
-);
-
-/** Merged FIFO stream behind the unified library page: candidates plus
- * submission items, oldest first. A status belongs to one side only when it
- * matches no rows on the other side; search matches titles or categories with LIKE. */
+/** Submission stream behind the unified library page, oldest first. Search
+ * matches titles or categories with LIKE. */
 adminRoutes.get('/words/:game/library-items', async (c) => {
   const game = gameWordGameSchema.safeParse(c.req.param('game'));
   if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
-  const source = c.req.query('source');
-  if (source !== undefined && source !== 'candidate' && source !== 'submission')
-    throw new HTTPException(400, { message: 'INVALID_SOURCE' });
   const status = c.req.query('status');
   if (
     status !== undefined &&
     status !== 'pending' &&
     status !== 'approved' &&
-    status !== 'claimed' &&
-    status !== 'accepted' &&
-    status !== 'rejected' &&
     status !== 'reviewing' &&
     status !== 'passed' &&
+    status !== 'rejected' &&
     status !== 'failed' &&
     status !== 'published' &&
     status !== 'dismissed' &&
@@ -565,18 +493,9 @@ adminRoutes.get('/words/:game/library-items', async (c) => {
   return c.json(
     await listLibraryItems(c.env.DB, {
       game: game.data,
-      source,
       status,
       search: c.req.query('search'),
       cursor: c.req.query('cursor'),
     }),
   );
 });
-
-adminRoutes.post(
-  '/games/words/candidates/dismiss',
-  jsonBody(dismissWordCandidatesSchema),
-  async (c) => {
-    return c.json(await dismissWordCandidates(c.env.DB, c.req.valid('json')));
-  },
-);
