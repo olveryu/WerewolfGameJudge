@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Navigate, parsePath, RouterProvider, useNavigate } from 'react-router';
 
 import type {
-  AdminAutomaticSupplySettings,
   AdminRequestTraffic,
   AdminRoom,
   AdminUser,
@@ -13,10 +12,10 @@ import type {
 } from '@/features/admin/model/adminContracts';
 import {
   fetchAdminMaintenance,
-  fetchAutomaticSupplySettings,
   fetchD1Insights,
   fetchD1Usage,
   fetchGameWordsStats,
+  fetchLibraryItems,
   fetchRequestTraffic,
   fetchRoomPlayers,
   fetchRooms,
@@ -24,9 +23,7 @@ import {
   fetchUserCountries,
   fetchUserRewards,
   fetchUsers,
-  fetchWordCandidates,
   grantUserReward,
-  saveAutomaticSupplySettings,
   triggerGameWordSupply,
 } from '@/features/admin/services/adminApi';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
@@ -47,6 +44,7 @@ import { RoomsPage } from '../pages/RoomsPage';
 import { TrafficPage } from '../pages/TrafficPage';
 import { UsersPage } from '../pages/UsersPage';
 import { WordsPage } from '../pages/WordsPage';
+import { SubmissionAgentsPage } from '../words/SubmissionAgents';
 
 vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
@@ -58,10 +56,8 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   fetchD1Usage: vi.fn(),
   fetchD1Insights: vi.fn(),
   fetchAdminMaintenance: vi.fn(),
-  fetchAutomaticSupplySettings: vi.fn(),
-  saveAutomaticSupplySettings: vi.fn(),
   fetchGameWordsStats: vi.fn(),
-  fetchWordCandidates: vi.fn(),
+  fetchLibraryItems: vi.fn(),
   approveWordCandidates: vi.fn(),
   dismissWordCandidates: vi.fn(),
   fetchRequestTraffic: vi.fn(),
@@ -186,14 +182,6 @@ const traffic: AdminRequestTraffic = {
   },
 };
 
-function deferred<Value>() {
-  let resolve!: (value: Value) => void;
-  const promise = new Promise<Value>((complete) => {
-    resolve = complete;
-  });
-  return { promise, resolve };
-}
-
 function AdminEntryPage() {
   const navigate = useNavigate();
   return <button onClick={() => void navigate('/admin')}>进入后台</button>;
@@ -218,6 +206,7 @@ function mount(path = '/admin/users', previousPath?: string) {
           { path: 'maintenance', Component: MaintenanceSettingsPage },
           { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
           { path: 'words/:game', Component: WordsPage },
+          { path: 'agents/:game', Component: SubmissionAgentsPage },
         ],
       },
     ],
@@ -280,21 +269,17 @@ beforeEach(() => {
     colos: [],
   });
   vi.mocked(fetchGameWordsStats).mockResolvedValue(words);
-  vi.mocked(fetchWordCandidates).mockImplementation(async (game) => ({
+  vi.mocked(fetchLibraryItems).mockImplementation(async (game) => ({
     game,
-    candidates: [],
+    items: [],
+    totals: { candidates: {}, submissions: {} },
     nextCursor: null,
   }));
-  vi.mocked(fetchAutomaticSupplySettings).mockImplementation(async (game) => ({
-    game,
-    enabled: true,
-    available: true,
-  }));
-  vi.mocked(saveAutomaticSupplySettings).mockImplementation(async (game, enabled) => ({
-    game,
-    enabled,
-    available: true,
-  }));
+  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
+    batches: [],
+    totals: {},
+    nextCursor: null,
+  });
 });
 
 afterEach(() => {
@@ -429,18 +414,15 @@ describe('admin workspace', () => {
     },
   );
 
-  it('keeps overview shortcuts, word tabs and inventory views in one history entry', async () => {
+  it('keeps overview shortcuts, word tabs and library filters in one history entry', async () => {
     const view = mount('/');
     await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
     await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
     const navigation = await screen.findByRole('navigation', { name: '选择词库' });
     await userEvent.click(within(navigation).getByRole('link', { name: '谁是卧底' }));
-    await userEvent.click(
-      within(await screen.findByRole('group', { name: '分类范围' })).getByRole('button', {
-        name: '全部',
-      }),
-    );
-    await waitFor(() => expect(view.router.state.location.search).toBe('?view=all'));
+    await userEvent.type(screen.getByRole('searchbox', { name: '搜索词' }), 'lotus');
+    await userEvent.click(screen.getByRole('button', { name: '搜' }));
+    await waitFor(() => expect(view.router.state.location.search).toBe('?search=lotus'));
     expect(view.router.state.location.pathname).toBe('/admin/words/undercover');
     await userEvent.click(screen.getByRole('button', { name: '返回' }));
     await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
@@ -449,7 +431,7 @@ describe('admin workspace', () => {
   });
 
   it.each(['/', '/room/1234?tab=players#seats'])(
-    'returns to %s after submission sections, filters, and batch navigation',
+    'returns to %s after agent authorization, filters, and batch navigation',
     async (source) => {
       const batch: WordSubmissionBatch = {
         id: '10000000-0000-4000-8000-000000000001',
@@ -490,17 +472,17 @@ describe('admin workspace', () => {
       const view = mount(source);
       await userEvent.click(screen.getByRole('button', { name: '进入后台' }));
       await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
-      await userEvent.click(screen.getByRole('link', { name: '外部投稿' }));
       await screen.findByRole('link', { name: batch.id });
-      await userEvent.click(screen.getByRole('link', { name: 'Agent 授权' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Agent 授权' }));
       await screen.findByRole('button', { name: '新建授权' });
-      await userEvent.click(screen.getByRole('link', { name: '外部投稿' }));
+      await userEvent.click(screen.getByRole('link', { name: '返回统一词库' }));
       await screen.findByRole('link', { name: batch.id });
-      await userEvent.type(screen.getByRole('textbox', { name: '搜索批次或词语' }), 'lotus');
-      await userEvent.click(screen.getByRole('button', { name: '搜索' }));
+      await userEvent.type(screen.getByRole('searchbox', { name: '搜索词' }), 'lotus');
+      await userEvent.click(screen.getByRole('button', { name: '搜' }));
       await waitFor(() => expect(view.router.state.location.search).toContain('search=lotus'));
-      await userEvent.click(screen.getByRole('button', { name: '清空筛选' }));
-      await waitFor(() => expect(view.router.state.location.search).toBe('?section=submissions'));
+      await userEvent.clear(screen.getByRole('searchbox', { name: '搜索词' }));
+      await userEvent.click(screen.getByRole('button', { name: '搜' }));
+      await waitFor(() => expect(view.router.state.location.search).toBe(''));
       await userEvent.click(screen.getByRole('link', { name: batch.id }));
       await screen.findByRole('dialog', { name: '投稿批次审核' });
       await userEvent.click(
@@ -508,7 +490,7 @@ describe('admin workspace', () => {
           name: '关闭投稿批次审核',
         }),
       );
-      await waitFor(() => expect(view.router.state.location.search).toBe('?section=submissions'));
+      await waitFor(() => expect(view.router.state.location.search).toBe(''));
       await userEvent.click(screen.getByRole('button', { name: '返回' }));
       await waitFor(() => {
         const { pathname, search, hash } = view.router.state.location;
@@ -556,7 +538,7 @@ describe('admin workspace', () => {
       nextCursor: null,
     });
     vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
-    const view = mount(`/admin/words/fibking?section=submissions&batch=${batch.id}&search=lotus`);
+    const view = mount(`/admin/words/fibking?batch=${batch.id}&search=lotus`);
     await screen.findByRole('dialog', { name: '投稿批次审核' });
 
     await userEvent.click(
@@ -567,7 +549,7 @@ describe('admin workspace', () => {
 
     await waitFor(() => {
       expect(view.router.state.location.pathname).toBe('/admin/words/fibking');
-      expect(view.router.state.location.search).toBe('?section=submissions&search=lotus');
+      expect(view.router.state.location.search).toBe('?search=lotus');
     });
     view.unmount();
     view.client.clear();
@@ -694,34 +676,6 @@ describe('admin workspace', () => {
     await screen.findByText('/higher');
     fireEvent.click(screen.getByRole('button', { name: '请求数' }));
     await waitFor(() => expect(view.router.state.location.search).toContain('order=asc'));
-    await userEvent.click(screen.getByRole('button', { name: '返回' }));
-    await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
-    view.unmount();
-    view.client.clear();
-  });
-
-  it('reveals and highlights a category outside the low-stock filter without another read', async () => {
-    const low = words.categories[0];
-    if (low === undefined) throw new Error('Expected category fixture');
-    vi.mocked(fetchGameWordsStats).mockResolvedValue({
-      ...words,
-      categories: [low, { ...low, id: 'high', name: '高库存分类', active: 100 }],
-    });
-    const scroll = vi.fn();
-    const getElement = document.getElementById.bind(document);
-    vi.spyOn(document, 'getElementById').mockImplementation((id) => {
-      const element = getElement(id);
-      if (element !== null) element.scrollIntoView = scroll;
-      return element;
-    });
-    const view = mount('/admin/words/fibking', '/');
-    await screen.findByRole('heading', { name: '分类库存' });
-    expect(screen.queryByRole('row', { name: /高库存分类/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('link', { name: '高库存分类，在库 100 词，查看明细' }));
-    const row = await screen.findByRole('row', { name: /高库存分类/ });
-    expect(row).toHaveAttribute('data-highlighted', 'true');
-    expect(scroll).toHaveBeenCalled();
-    expect(fetchGameWordsStats).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: '返回' }));
     await waitFor(() => expect(view.router.state.location.pathname).toBe('/'));
     view.unmount();
@@ -977,154 +931,6 @@ describe('admin workspace', () => {
     view.client.clear();
   });
 
-  it('persists a confirmed automatic pause and resume without disabling manual supply or rereading inventory', async () => {
-    const view = mount('/admin/words/fibking');
-    const automatic = await screen.findByRole('switch', { name: '自动供给' });
-    expect(automatic).toBeChecked();
-    expect(screen.getByText('已启用，每天自动创建补词任务')).toBeVisible();
-    expect(screen.queryByText('供给已启用')).not.toBeInTheDocument();
-    const manual = screen.getByRole('button', { name: '补词' });
-    expect(manual.closest('.admin-page-title-row')).not.toBeNull();
-    await userEvent.click(automatic);
-    expect(saveAutomaticSupplySettings).not.toHaveBeenCalled();
-    const pause = vi
-      .mocked(showAlert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === '暂停');
-    await act(async () => pause?.onPress?.());
-    await waitFor(() => expect(automatic).not.toBeChecked());
-    expect(screen.getByText('已暂停，仍可手动补词')).toBeVisible();
-    expect(saveAutomaticSupplySettings).toHaveBeenLastCalledWith('fibking', false);
-    expect(manual).toBeEnabled();
-    expect(fetchGameWordsStats).toHaveBeenCalledOnce();
-    await userEvent.click(automatic);
-    const resume = vi
-      .mocked(showAlert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === '启用');
-    await act(async () => resume?.onPress?.());
-    await waitFor(() => expect(automatic).toBeChecked());
-    expect(saveAutomaticSupplySettings).toHaveBeenLastCalledWith('fibking', true);
-    expect(fetchGameWordsStats).toHaveBeenCalledOnce();
-    view.unmount();
-    view.client.clear();
-  });
-
-  it.each([
-    { enabled: true, duringSave: false },
-    { enabled: false, duringSave: false },
-    { enabled: true, duringSave: true },
-    { enabled: false, duringSave: true },
-  ])(
-    'does not let a delayed refresh overwrite a saved policy (enabled=$enabled, duringSave=$duringSave)',
-    async ({ enabled, duringSave }) => {
-      const initial: AdminAutomaticSupplySettings = { game: 'fibking', enabled, available: true };
-      const saved = { ...initial, enabled: !enabled };
-      const refresh = deferred<AdminAutomaticSupplySettings>();
-      const saving = deferred<AdminAutomaticSupplySettings>();
-      let refreshSignal: AbortSignal | undefined;
-      vi.mocked(fetchAutomaticSupplySettings)
-        .mockResolvedValueOnce(initial)
-        .mockImplementationOnce((_game, signal) => {
-          refreshSignal = signal;
-          return refresh.promise;
-        });
-      vi.mocked(saveAutomaticSupplySettings).mockReturnValueOnce(saving.promise);
-      const view = mount('/admin/words/fibking');
-      const automatic = await screen.findByRole('switch', { name: '自动供给' });
-      if (!duringSave) {
-        await userEvent.click(screen.getByRole('button', { name: '刷新当前页面' }));
-        await waitFor(() => expect(fetchAutomaticSupplySettings).toHaveBeenCalledTimes(2));
-      }
-      await userEvent.click(automatic);
-      const confirmation = vi
-        .mocked(showAlert)
-        .mock.calls.at(-1)?.[2]
-        ?.find((button) => button.text === (enabled ? '暂停' : '启用'));
-      await act(async () => confirmation?.onPress?.());
-      await waitFor(() => expect(saveAutomaticSupplySettings).toHaveBeenCalledOnce());
-      if (duringSave) {
-        await userEvent.click(screen.getByRole('button', { name: '刷新当前页面' }));
-        await waitFor(() => expect(fetchAutomaticSupplySettings).toHaveBeenCalledTimes(2));
-      }
-      await act(async () => saving.resolve(saved));
-      await waitFor(() => expect(automatic).not.toBeDisabled());
-      expect(refreshSignal?.aborted).toBe(true);
-      await act(async () => {
-        refresh.resolve(initial);
-        await refresh.promise;
-      });
-      expect(automatic).toHaveProperty('checked', saved.enabled);
-      expect(view.client.getQueryData(['admin', 'automatic-supply', 'fibking'])).toEqual(saved);
-      view.unmount();
-      view.client.clear();
-    },
-  );
-
-  it.each(['fibking', 'undercover', 'drawguess'] as const)(
-    'can pause %s automatically when D1 inventory statistics are unavailable',
-    async (game) => {
-      vi.mocked(fetchGameWordsStats).mockRejectedValue(new Error('D1 unavailable'));
-      const view = mount(`/admin/words/${game}`);
-      const automatic = await screen.findByRole('switch', { name: '自动供给' });
-      expect(await screen.findByRole('alert')).toHaveTextContent('D1 unavailable');
-      expect(automatic).toBeEnabled();
-      await userEvent.click(automatic);
-      const pause = vi
-        .mocked(showAlert)
-        .mock.calls.at(-1)?.[2]
-        ?.find((button) => button.text === '暂停');
-      await act(async () => pause?.onPress?.());
-      await waitFor(() => expect(automatic).not.toBeChecked());
-      expect(saveAutomaticSupplySettings).toHaveBeenCalledExactlyOnceWith(game, false);
-      expect(fetchGameWordsStats).toHaveBeenCalledOnce();
-      view.unmount();
-      view.client.clear();
-    },
-  );
-
-  it('uses the independent deployment availability instead of the inventory flag', async () => {
-    vi.mocked(fetchAutomaticSupplySettings).mockResolvedValueOnce({
-      game: 'fibking',
-      enabled: true,
-      available: false,
-    });
-    const view = mount('/admin/words/fibking');
-    const automatic = await screen.findByRole('switch', { name: '自动供给' });
-    expect(automatic).not.toBeChecked();
-    expect(automatic).toBeDisabled();
-    expect(screen.getByText('部署尚未开启供给')).toBeVisible();
-    view.unmount();
-    view.client.clear();
-  });
-
-  it('shows settings read failures without blocking the inventory report', async () => {
-    vi.mocked(fetchAutomaticSupplySettings).mockRejectedValue(new Error('R2 unavailable'));
-    const unavailable = mount('/admin/words/fibking');
-    expect(await screen.findByRole('alert')).toHaveTextContent('R2 unavailable');
-    expect(screen.queryByRole('switch', { name: '自动供给' })).not.toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: '分类库存' })).toBeVisible();
-    unavailable.unmount();
-    unavailable.client.clear();
-  });
-
-  it('keeps the authoritative automatic policy when saving fails and shows the error', async () => {
-    vi.mocked(saveAutomaticSupplySettings).mockRejectedValue(new Error('R2 unavailable'));
-    const view = mount('/admin/words/fibking');
-    const automatic = await screen.findByRole('switch', { name: '自动供给' });
-    await userEvent.click(automatic);
-    const pause = vi
-      .mocked(showAlert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === '暂停');
-    await act(async () => pause?.onPress?.());
-    expect(await screen.findByRole('alert')).toHaveTextContent('保存失败：R2 unavailable');
-    expect(automatic).toBeChecked();
-    expect(fetchGameWordsStats).toHaveBeenCalledOnce();
-    view.unmount();
-    view.client.clear();
-  });
-
   it('resets cancelled supply options and preserves the normal single-task action', async () => {
     vi.mocked(triggerGameWordSupply).mockResolvedValue({
       game: 'fibking',
@@ -1132,7 +938,7 @@ describe('admin workspace', () => {
       force: false,
     });
     const view = mount('/admin/words/fibking');
-    await screen.findByRole('heading', { name: '分类库存' });
+    await screen.findByRole('button', { name: '补词' });
     await userEvent.click(screen.getByRole('button', { name: '补词' }));
     let sheet = await screen.findByRole('dialog', { name: '补充词库' });
     await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
@@ -1163,7 +969,7 @@ describe('admin workspace', () => {
       modelBudget: { ...words.modelBudget, monthlyUsed: 120 },
     });
     const view = mount('/admin/words/fibking');
-    await screen.findByRole('heading', { name: '分类库存' });
+    await screen.findByRole('button', { name: '补词' });
     await userEvent.click(screen.getByRole('button', { name: '补词' }));
     const sheet = await screen.findByRole('dialog', { name: '补充词库' });
     expect(within(sheet).getByRole('button', { name: '1 次' })).toBeDisabled();
@@ -1186,7 +992,7 @@ describe('admin workspace', () => {
       .mockResolvedValueOnce({ game: 'fibking', workflowId: 'run', force: false })
       .mockRejectedValueOnce(new Error('共享模型额度已用完'));
     const view = mount('/admin/words/fibking');
-    await screen.findByRole('heading', { name: '分类库存' });
+    await screen.findByRole('button', { name: '补词' });
     await userEvent.click(screen.getByRole('button', { name: '补词' }));
     const sheet = await screen.findByRole('dialog', { name: '补充词库' });
     await userEvent.click(within(sheet).getByRole('button', { name: '10 次' }));
@@ -1211,7 +1017,7 @@ describe('admin workspace', () => {
         force,
       });
       const view = mount('/admin/words/fibking');
-      await screen.findByRole('heading', { name: '分类库存' });
+      await screen.findByRole('button', { name: '补词' });
       await userEvent.click(screen.getByRole('button', { name: /补词/ }));
       const sheet = await screen.findByRole('dialog', { name: '补充词库' });
       if (force) await userEvent.click(within(sheet).getByRole('switch', { name: '强制补词' }));
