@@ -181,7 +181,7 @@
   background: var(--admin-panel);
   border-top: 1px solid var(--admin-border);
 }
-/** Five-stage pipeline summary on the unified library page. */
+/** Four-stage pipeline summary on the unified library page. */
 .admin-flow-bar {
   display: flex;
   flex-wrap: wrap;
@@ -215,6 +215,50 @@
 }
 .admin-flow-step-hot .admin-flow-step-value {
   color: var(--admin-warning);
+}
+/** Three-cell stat strip on the unified library page. */
+.admin-library-stats {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-small);
+  background: var(--admin-panel);
+  margin: 0 0 var(--space-large);
+}
+.admin-library-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  text-align: center;
+}
+.admin-library-stats-row .admin-stat {
+  padding: var(--space-medium) var(--space-small);
+}
+.admin-library-stats-row .admin-stat-value {
+  text-align: center;
+}
+.admin-library-stats-row > * + * {
+  border-inline-start: 1px solid var(--admin-border);
+}
+.admin-library-stat-hot strong {
+  color: var(--admin-warning);
+}
+.admin-library-summary-supplementary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small) var(--space-large);
+  border-top: 1px solid var(--admin-border);
+  padding: var(--space-small) var(--space-medium);
+  font-size: var(--font-caption);
+  color: var(--admin-secondary);
+}
+.admin-library-summary-line {
+  display: inline-flex;
+  gap: var(--space-small);
+}
+.admin-library-summary-value {
+  color: var(--admin-text);
+}
+/** Source breakdown under the stat strip: numbers right-aligned. */
+.admin-library-sources dd {
+  text-align: right;
 }
 .admin-workspace {
   min-height: 100%;
@@ -1703,6 +1747,14 @@
     }
     .admin-stats-grid {
       grid-template-columns: minmax(0, 1fr);
+    }
+    .admin-library-stats-row {
+      grid-template-columns: minmax(0, 1fr);
+      text-align: left;
+    }
+    .admin-library-stats-row > * + * {
+      border-inline-start: 0;
+      border-top: 1px solid var(--admin-border);
     }
     .admin-stat {
       display: grid;
