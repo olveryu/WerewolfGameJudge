@@ -79,13 +79,9 @@ describe('runScheduledCron', () => {
     await expect(runScheduledCron(env, '1 2 3 4 5', NOW_MS)).rejects.toThrow(
       'Unknown cron trigger: 1 2 3 4 5',
     );
-  });
-
-  it('does not launch external generation while the production switch is disabled', async () => {
-    await expect(runScheduledCron(env, '0 4 * * *', NOW_MS)).resolves.toBeUndefined();
-    expect(
-      await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_generation_cycles').first(),
-    ).toEqual({ count: 0 });
+    await expect(runScheduledCron(env, '0 4 * * *', NOW_MS)).rejects.toThrow(
+      'Unknown cron trigger: 0 4 * * *',
+    );
   });
 
   it('deletes stale anonymous non-hosts but preserves hosts and accounts with Fib seen words', async () => {

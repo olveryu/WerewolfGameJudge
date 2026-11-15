@@ -11,7 +11,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## Runtime bindings (`wrangler.toml`)
 
 - D1 database `DB` (`werewolf-db`); Durable Object bindings `GAME_ROOM` (`GameRoom`) and `WECHAT_AUTH` (`WeChatAuthProxy`); R2 buckets `AVATARS` (`werewolf-avatars`) and `GAME_MEDIA` (`werewolf-game-media`).
-- Rate limits `ROOM_LOOKUP_LIMITER`, `ANONYMOUS_SIGNUP_LIMITER`, and `WORD_SUBMISSION_LIMITER`; Analytics Engine datasets `LOAD_TIMING`, `AI_USAGE`, `REQUEST_TRAFFIC`; four workflow bindings (`fib-word-supply`, `undercover-word-supply`, `drawguess-word-supply`, `word-submission-review`); cron triggers every 5 minutes, at 03:00, and at 04:00 (saga reconciliation, expiry/cleanup, editorial dispatch). External submissions are isolated in `features/wordSubmissions`; their review workflow never publishes. See `docs/agent-word-submissions.md`.
+- Rate limits `ROOM_LOOKUP_LIMITER`, `ANONYMOUS_SIGNUP_LIMITER`, and `WORD_SUBMISSION_LIMITER`; Analytics Engine datasets `LOAD_TIMING`, `AI_USAGE`, `REQUEST_TRAFFIC`; four workflow bindings (`fib-word-supply`, `undercover-word-supply`, `drawguess-word-supply`, `word-submission-review`); cron triggers every 5 minutes and at 03:00 (saga reconciliation, expiry/cleanup). The 04:00 automatic word-supply dispatch was removed; the manual `POST /games/words/trigger-supply` still dispatches the same workflows. External submissions are isolated in `features/wordSubmissions`; their review workflow never publishes. See `docs/agent-word-submissions.md`.
 - `compatibility_date` is `2026-10-01`.
 
 ## Room authority: Durable Object and its SQLite storage
