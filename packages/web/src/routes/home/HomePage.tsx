@@ -197,7 +197,6 @@ export function HomePage() {
           </div>
         )}
 
-        <h2 className="home-section-title">开始游戏</h2>
         <div className="home-tasks">
           <section className="home-column">
             <button

@@ -46,8 +46,11 @@ The version number is authoritative in the root `package.json` only; `packages/w
 | Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
 | Local dev         | `pnpm run dev`                                                           | Worker plus Vite, with `VITE_CF_API_URL=http://localhost:8787`         |
 | Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
+| Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account            |
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |
 | Release           | `bash scripts/release.sh [patch\|minor\|major]`                          | Release script                                                         |
+
+The local D1 seed creates `dev@test.local` with password `dev123` (level 99, all reward items unlocked). It explicitly uses Wrangler `--local`; run it only against the local database, never production.
 
 `pnpm run quality` runs `turbo run build typecheck lint knip format test && pnpm run validate:agents`. In CI the same work is split: one job runs Turbo build/typecheck/knip plus the agent-files check, lint/format run as a parallel job, root-contract, engine, web, and worker tests run sharded, and `ci-gate` requires all of them plus E2E. E2E is not part of `quality`; it serves the `packages/web/dist` build from the `build-web` job, and the `e2e` matrix in `.github/workflows/ci.yml` runs every spec exactly once, pinned by `runs every E2E spec exactly once` in `contracts/ciE2eCoverage.contract.test.ts`. Locally, run the scoped form of the failing area (path-filtered tests, the changed package's typecheck) plus `tsc --noEmit` and `knip`; do not present a local full `quality` run as the gate.
 
