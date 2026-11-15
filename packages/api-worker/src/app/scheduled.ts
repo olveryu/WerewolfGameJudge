@@ -12,16 +12,11 @@ import { WORKER_GAME_MAINTENANCE_TASKS } from '../games/catalog';
 import { createLogger } from '../platform/observability/logger';
 import { expireStaleRooms, reconcileRooms } from '../platform/room/maintenance';
 import { measureDatabaseCapacity } from '../platform/storage/capacity';
-import {
-  isWordSupplyAvailable,
-  readAutomaticWordSupply,
-} from '../platform/wordSupply/automaticSupply';
 
 const log = createLogger('scheduled');
 
 const ROOM_RECONCILIATION_CRON = '*/5 * * * *';
 const DAILY_CLEANUP_CRON = '0 3 * * *';
-const FIB_WORD_SUPPLY_CRON = '0 4 * * *';
 
 function getGameMaintenanceTasks(env: Env, cron: string, nowMs: number) {
   return WORKER_GAME_MAINTENANCE_TASKS.filter((task) => task.cron === cron).map((task) => ({
@@ -84,31 +79,6 @@ export async function runScheduledCron(env: Env, cron: string, nowMs: number): P
       return;
     case DAILY_CLEANUP_CRON:
       await runDailyCleanup(env, nowMs);
-      return;
-    case FIB_WORD_SUPPLY_CRON:
-      if (
-        isWordSupplyAvailable(env, 'fibking') &&
-        (await readAutomaticWordSupply(env, 'fibking')).enabled
-      ) {
-        const day = new Date(nowMs).toISOString().slice(0, 10);
-        await env.FIB_WORD_SUPPLY.createBatch([{ id: `fib-${day}`, params: { day } }]);
-      }
-      if (
-        isWordSupplyAvailable(env, 'undercover') &&
-        (await readAutomaticWordSupply(env, 'undercover')).enabled
-      ) {
-        const day = new Date(nowMs).toISOString().slice(0, 10);
-        await env.UNDERCOVER_WORD_SUPPLY.createBatch([
-          { id: `undercover-${day}`, params: { day } },
-        ]);
-      }
-      if (
-        isWordSupplyAvailable(env, 'drawguess') &&
-        (await readAutomaticWordSupply(env, 'drawguess')).enabled
-      ) {
-        const day = new Date(nowMs).toISOString().slice(0, 10);
-        await env.DRAWGUESS_WORD_SUPPLY.createBatch([{ id: `drawguess-${day}`, params: { day } }]);
-      }
       return;
     default:
       throw new Error(`Unknown cron trigger: ${cron}`);

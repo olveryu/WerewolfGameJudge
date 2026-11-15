@@ -125,7 +125,6 @@ required = [
 crons = [
   "*/5 * * * *", # Reconcile interrupted room create/delete sagas
   "0 3 * * *",   # Daily room expiry and account/data retention cleanup
-  "0 4 * * *"    # Dispatch a bounded editorial workflow; monthly budget lives in D1
 ]
 
 [[workflows]]

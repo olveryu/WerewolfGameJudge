@@ -1520,8 +1520,7 @@
 .admin-choice[aria-pressed='true'] .admin-choice-mark {
   border: var(--space-tight) solid var(--admin-accent);
 }
-.admin-supply-mode,
-.admin-automatic-supply-row {
+.admin-supply-mode {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1531,26 +1530,11 @@
 .admin-supply-mode {
   margin: var(--space-large) 0;
 }
-.admin-supply-mode small,
-.admin-automatic-supply-row small {
+.admin-supply-mode small {
   display: block;
   margin-top: var(--space-tight);
   font-size: var(--font-caption);
   color: var(--admin-muted);
-}
-.admin-automatic-supply {
-  margin-bottom: var(--space-medium);
-  padding-bottom: var(--space-medium);
-  border-bottom: 1px solid var(--admin-border);
-}
-.admin-automatic-supply-row > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.admin-automatic-supply .admin-error {
-  font-size: var(--font-caption);
-  margin-top: var(--space-small);
-  overflow-wrap: anywhere;
 }
 .admin-console input.admin-switch {
   appearance: none;
