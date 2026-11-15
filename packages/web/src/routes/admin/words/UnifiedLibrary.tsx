@@ -68,7 +68,7 @@ function isLibrarySource(value: string): value is LibrarySourceFilter {
 }
 
 /** Candidate statuses, in the order they appear in the status filter. */
-const CANDIDATE_STATUSES: readonly string[] = [
+const CANDIDATE_STATUSES: readonly WordCandidateListStatus[] = [
   'pending',
   'approved',
   'claimed',
@@ -77,10 +77,15 @@ const CANDIDATE_STATUSES: readonly string[] = [
 ];
 
 /** Submission statuses, in the order they appear in the status filter. */
-const SUBMISSION_STATUSES: readonly string[] = [...wordSubmissionStatusSchema.options];
+const SUBMISSION_STATUSES: readonly WordSubmissionStatus[] = [
+  ...wordSubmissionStatusSchema.options,
+];
 
 function isLibraryStatus(value: string): value is WordCandidateListStatus | WordSubmissionStatus {
-  return CANDIDATE_STATUSES.includes(value) || SUBMISSION_STATUSES.includes(value);
+  return (
+    CANDIDATE_STATUSES.some((status) => status === value) ||
+    SUBMISSION_STATUSES.some((status) => status === value)
+  );
 }
 
 /** Status filter options: the candidate set followed by the submission set. */
@@ -88,11 +93,11 @@ const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   ...CANDIDATE_STATUSES.map((value) => ({
     value,
-    label: CANDIDATE_STATUS_LABELS[value as WordCandidateListStatus],
+    label: CANDIDATE_STATUS_LABELS[value],
   })),
   ...SUBMISSION_STATUSES.map((value) => ({
     value,
-    label: SUBMISSION_STATUS_LABELS[value as WordSubmissionStatus],
+    label: SUBMISSION_STATUS_LABELS[value],
   })),
 ];
 
