@@ -6,6 +6,10 @@
   background: var(--color-surface);
 }
 
+#root:has(.ai-chat-bubble-anchor) .room-shell .bottom-action-panel {
+  padding-right: calc(var(--size-button-lg) + var(--space-medium) + var(--space-small));
+}
+
 .bottom-action-panel[data-kind='dock'] {
   padding-top: var(--space-small);
 }
