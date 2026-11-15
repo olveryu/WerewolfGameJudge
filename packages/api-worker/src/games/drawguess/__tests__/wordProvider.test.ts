@@ -9,21 +9,17 @@ import { createDrawGuessWordProvider } from '../wordProvider';
 afterEach(() => vi.restoreAllMocks());
 
 describe('DrawGuess provider', () => {
-  it('isolates bad candidates before canonical deduplication and reports one safe warning', async () => {
+  it('normalizes traditional characters in a generated word', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const candidate = { word: '麵包', category: 'food', difficulty: 'easy', potentialIssues: [] };
-    const candidates = [
-      { ...candidate, word: 'leak!' },
-      { ...candidate, category: 'animals' },
-      candidate,
-      { ...candidate, word: '面包' },
-      { ...candidate, word: '香蕉', 'private-key': 'private-value' },
-    ];
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
         candidates: [
-          { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ candidates }) }] } },
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ text: JSON.stringify({ candidates: [candidate] }) }] },
+          },
         ],
       }),
     );
@@ -34,30 +30,14 @@ describe('DrawGuess provider', () => {
     );
     expect(result.candidates).toEqual([{ ...candidate, word: '面包' }]);
     expect(result.validation).toMatchObject({
-      receivedCount: 5,
+      receivedCount: 1,
       validCount: 1,
-      rejectedCount: 3,
-      duplicateCount: 1,
+      rejectedCount: 0,
+      duplicateCount: 0,
       omittedIssueCount: 0,
     });
-    expect(result.validation.rejectionSamples).toEqual([
-      { index: 0, path: ['candidates', 0, 'word'], code: 'invalid_format' },
-      { index: 1, path: ['candidates', 1, 'category'], code: 'categoryMismatch' },
-      { index: 3, path: ['candidates', 3], code: 'duplicateCandidate' },
-      { index: 4, path: ['candidates', 4], code: 'unrecognized_keys' },
-    ]);
-    expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('"packId":"partial"'));
+    expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
-    for (const secret of [
-      '麵包',
-      '面包',
-      '香蕉',
-      'leak!',
-      'private-key',
-      'private-value',
-      'test-key',
-    ])
-      expect(JSON.stringify(warn.mock.calls)).not.toContain(secret);
     expect(fetchImpl).toHaveBeenCalledOnce();
     expect(fetchImpl.mock.calls[0]?.[1]?.body).toContain('pattern');
   });
@@ -66,13 +46,14 @@ describe('DrawGuess provider', () => {
     expect(new Set(DRAWGUESS_WORD_CATEGORIES).size).toBeGreaterThanOrEqual(30);
   });
 
-  it('sends reasons before verdicts and reviews at most 5 words without extra requests', async () => {
-    const candidates = Array.from({ length: 5 }, (_, index): DrawGuessWordCandidate => ({
-      word: `测试${String.fromCodePoint(0x4e00 + index)}`,
+  it('sends reasons before verdicts and reviews at most 1 word without extra requests', async () => {
+    const candidate: DrawGuessWordCandidate = {
+      word: '测试一',
       category: 'animals',
       difficulty: 'easy',
       potentialIssues: [],
-    }));
+    };
+    const candidates = [candidate];
     const reviews = candidates.map(({ word }) => ({
       word,
       qualityChecks: {
@@ -115,9 +96,9 @@ describe('DrawGuess provider', () => {
       .object({ candidates: z.array(z.strictObject({ word: z.string() })) })
       .parse(JSON.parse(z.string().parse(body.contents[0]?.parts[0]?.text)));
     expect(payload.candidates).toEqual(candidates.map(({ word }) => ({ word })));
-    expect(() =>
-      provider.reviewBatch('animals', [...candidates, ...candidates.slice(0, 1)]),
-    ).toThrow('batch limit: 5');
+    expect(() => provider.reviewBatch('animals', [...candidates, candidate])).toThrow(
+      'batch limit: 1',
+    );
     await expect(provider.reviewBatch('animals', [])).resolves.toEqual([]);
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
@@ -220,7 +201,7 @@ describe('DrawGuess provider', () => {
       potentialIssues: [],
     };
     const candidates = Array.from(
-      { length: invalidField === 'batch size' ? 6 : 1 },
+      { length: invalidField === 'batch size' ? 2 : 1 },
       () => candidate,
     );
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(

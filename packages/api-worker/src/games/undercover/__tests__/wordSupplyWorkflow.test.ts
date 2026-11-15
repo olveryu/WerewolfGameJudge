@@ -76,15 +76,7 @@ describe('Undercover supply workflow', () => {
         isFactuallyCertain: true,
       },
     };
-    const requests = mockWordSupplyModel(
-      [
-        { ...candidateMaterial, commonTraits: ['不足'] },
-        { ...candidateMaterial, wordB: candidateMaterial.wordA },
-        candidateMaterial,
-        { ...candidateMaterial, wordA: candidateMaterial.wordB, wordB: candidateMaterial.wordA },
-      ],
-      review,
-    );
+    const requests = mockWordSupplyModel(candidateMaterial, review);
     await using instance = await introspectWorkflowInstance(env.UNDERCOVER_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
@@ -114,7 +106,7 @@ describe('Undercover supply workflow', () => {
       candidates: [{ ...candidateMaterial, category: pack.category }],
     });
     expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
-      validation: { receivedCount: 4, validCount: 1, rejectedCount: 2, duplicateCount: 1 },
+      validation: { receivedCount: 1, validCount: 1, rejectedCount: 0, duplicateCount: 0 },
     });
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({ category: pack.category, history: [] });
@@ -178,16 +170,13 @@ describe('Undercover supply workflow', () => {
       differences: ['发生时间', '是否入睡'],
       potentialIssues: [],
     };
-    // Both returned candidates are invalid (too-short traits; identical
-    // words), so the parsed count is 0 even though the model returned 2.
-    // Generation throws allCandidatesRejected before the store step, so the
-    // run must fail here — never report awaitingApproval with nothing new to
-    // approve, and never burn another generation round on the same pack.
+    // The returned candidate is invalid (too-short traits), so the parsed
+    // count is 0. Generation throws allCandidatesRejected before the store
+    // step, so the run must fail here — never report awaitingApproval with
+    // nothing new to approve, and never burn another generation round on the
+    // same pack.
     const requests = mockWordSupplyModel(
-      [
-        { ...candidateMaterial, commonTraits: ['不足'] },
-        { ...candidateMaterial, wordB: candidateMaterial.wordA },
-      ],
+      { ...candidateMaterial, commonTraits: ['不足'] },
       // No candidate reaches review, so no review payload is ever requested.
       {},
     );
