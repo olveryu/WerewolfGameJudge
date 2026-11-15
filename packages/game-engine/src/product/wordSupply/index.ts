@@ -1,6 +1,7 @@
 /** Shared word-supply admin contracts; no storage, workflow, or UI dependencies. */
 
 import type { GameWordGame } from './games';
+import type { WordSubmissionStatus } from './submissions';
 
 export * from './games';
 export * from './submissions';
@@ -98,4 +99,50 @@ export interface DismissWordCandidatesResult {
   dismissedIds: string[];
   /** Requested ids that were not pending, unknown, or already dismissed. */
   skippedIds: string[];
+}
+
+/** Which queue a unified-library row came from. */
+export type WordLibraryItemSource = 'candidate' | 'submission';
+
+/** One row of the merged FIFO stream: a supply candidate or a submission item.
+ * The card stream shows no inventory rows; inventory appears as numbers only. */
+export interface WordLibraryItem {
+  /** 'candidate:<id>' or 'submission:<uuid>'; unique across both sources in one game. */
+  key: string;
+  source: WordLibraryItemSource;
+  /** Candidate row id or submission item id. */
+  id: string;
+  /** Submission batch id; null for candidate rows. */
+  batchId: string | null;
+  /** Agent who submitted the item; null for candidate rows. */
+  agentName: string | null;
+  game: GameWordGame;
+  title: string;
+  category: string;
+  /** One-line definition: fib coreMeaning, undercover common traits/differences;
+   * null when the material carries none (drawguess has no definition text). */
+  definition: string | null;
+  /** Fibking evidence links; null for submissions and games without per-candidate evidence. */
+  evidenceCount: number | null;
+  createdAt: string;
+  /** Candidate queue status or submission item status. */
+  status: WordCandidateListStatus | WordSubmissionStatus;
+  /** Submission duplicate pointer (inventory:<identity> or an earlier item id);
+   * null for candidates and non-duplicates. */
+  duplicateOf: string | null;
+  /** Submission action payload fields; null for candidate rows. */
+  contentHash: string | null;
+  revision: number | null;
+}
+
+export interface WordLibraryItems {
+  game: GameWordGame;
+  items: WordLibraryItem[];
+  /** Per-source item totals by status, across all rows (ignores search/cursor/source). */
+  totals: {
+    candidates: Partial<Record<WordCandidateListStatus, number>>;
+    submissions: Partial<Record<WordSubmissionStatus, number>>;
+  };
+  /** Keyset cursor over (created_at, id); null when the list is exhausted. */
+  nextCursor: string | null;
 }

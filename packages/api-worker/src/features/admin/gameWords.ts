@@ -15,6 +15,10 @@ import {
   type TriggerSupplyResult,
   type WordCandidateList,
   type WordCandidateListStatus,
+  type WordLibraryItem,
+  type WordLibraryItems,
+  type WordLibraryItemSource,
+  type WordSubmissionStatus,
 } from '@game-judge/game-engine/product/wordSupply';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
@@ -439,11 +443,11 @@ const candidateListRowSchema = z.strictObject({
   status: z.enum(['pending', 'approved', 'claimed', 'accepted', 'rejected']),
 });
 
-function encodeCandidateCursor(createdAt: string, id: string): string {
+function encodeLibraryCursor(createdAt: string, id: string): string {
   return `${createdAt}|${id}`;
 }
 
-function decodeCandidateCursor(cursor: string): { createdAt: string; id: string } {
+function decodeLibraryCursor(cursor: string): { createdAt: string; id: string } {
   const separator = cursor.lastIndexOf('|');
   if (separator <= 0 || separator === cursor.length - 1)
     throw new HTTPException(400, { message: 'INVALID_CURSOR' });
@@ -464,7 +468,7 @@ export async function listWordCandidates(
   const binds: unknown[] = [status];
   let cursorClause = '';
   if (input.cursor !== undefined) {
-    const { createdAt, id } = decodeCandidateCursor(input.cursor);
+    const { createdAt, id } = decodeLibraryCursor(input.cursor);
     cursorClause = ' AND (created_at, id) > (?, ?)';
     binds.push(createdAt, id);
   }
@@ -485,7 +489,311 @@ export async function listWordCandidates(
     candidates: page.map((item) => ({ ...item, game: input.game })),
     nextCursor:
       parsed.length > 30 && last !== undefined
-        ? encodeCandidateCursor(last.createdAt, last.id)
+        ? encodeLibraryCursor(last.createdAt, last.id)
+        : null,
+  };
+}
+
+export interface ListLibraryItemsInput {
+  game: GameWordGame;
+  source?: WordLibraryItemSource;
+  status?: WordCandidateListStatus | WordSubmissionStatus;
+  search?: string;
+  cursor?: string;
+}
+
+const LIBRARY_ITEMS_PAGE_SIZE = 30;
+
+/** Per-game candidate definition columns. Fib stores the definition as
+ * columns; undercover stores the whole candidate JSON in material_json;
+ * drawguess carries no definition text, so its card omits the line. */
+const WORD_LIBRARY_CANDIDATE_COLUMNS = {
+  fibking: { definitionSql: 'core_meaning', materialSql: 'NULL' },
+  undercover: { definitionSql: 'NULL', materialSql: 'material_json' },
+  drawguess: { definitionSql: 'NULL', materialSql: 'NULL' },
+} as const;
+
+const libraryCandidateRowSchema = z.strictObject({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  definition: z.string().nullable(),
+  materialJson: z.string().nullable(),
+  evidenceCount: z.int().nonnegative().nullable(),
+  createdAt: z.string(),
+  status: z.enum(['pending', 'approved', 'claimed', 'accepted', 'rejected']),
+});
+
+const librarySubmissionRowSchema = z.strictObject({
+  id: z.string(),
+  batchId: z.string(),
+  agentName: z.string(),
+  title: z.string(),
+  category: z.string(),
+  createdAt: z.string(),
+  status: z.enum([
+    'pending',
+    'approved',
+    'reviewing',
+    'passed',
+    'rejected',
+    'failed',
+    'published',
+    'dismissed',
+    'unpublished',
+    'duplicate',
+  ]),
+  duplicateOf: z.string().nullable(),
+  contentHash: z.string(),
+  revision: z.int().nonnegative(),
+  materialJson: z.string(),
+  verifiedMaterialJson: z.string().nullable(),
+});
+
+const libraryTotalsRowSchema = z.strictObject({
+  status: z.string(),
+  count: z.int().nonnegative(),
+});
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+}
+
+function parseMaterialJson(raw: string | null): Record<string, unknown> | null {
+  if (raw === null) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  return isRecord(parsed) ? parsed : null;
+}
+
+/** Undercover definition line, from candidate material or submission content. */
+function buildUndercoverDefinition(materialJson: string | null): string | null {
+  const material = parseMaterialJson(materialJson);
+  if (material === null) return null;
+  const traits = stringList(material.commonTraits);
+  const differences = stringList(material.differences);
+  if (traits.length === 0 && differences.length === 0) return null;
+  const parts: string[] = [];
+  if (traits.length > 0) parts.push(`共性：${traits.join('、')}`);
+  if (differences.length > 0) parts.push(`差异：${differences.join('、')}`);
+  return `${parts.join('。')}。`;
+}
+
+function extractFibDefinition(
+  materialJson: string,
+  verifiedMaterialJson: string | null,
+): string | null {
+  // Verified material is the review-verified wording; fall back to the
+  // submitted material when the item has not been reviewed.
+  for (const raw of [verifiedMaterialJson, materialJson]) {
+    const material = parseMaterialJson(raw);
+    if (material === null) continue;
+    const definition = material.definition;
+    if (!isRecord(definition)) continue;
+    const coreMeaning = definition.coreMeaning;
+    if (typeof coreMeaning === 'string' && coreMeaning.length > 0) return coreMeaning;
+  }
+  return null;
+}
+
+function extractSubmissionDefinition(
+  game: GameWordGame,
+  materialJson: string,
+  verifiedMaterialJson: string | null,
+): string | null {
+  if (game === 'fibking') return extractFibDefinition(materialJson, verifiedMaterialJson);
+  if (game === 'undercover') return buildUndercoverDefinition(verifiedMaterialJson ?? materialJson);
+  return null;
+}
+
+/** LIKE wildcards in the search term match literally, not as patterns. */
+function escapeLikeTerm(term: string): string {
+  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+function compareLibraryItems(a: WordLibraryItem, b: WordLibraryItem): number {
+  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
+  if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+  return a.key < b.key ? -1 : 1;
+}
+
+/** Merged FIFO stream of supply candidates and submission items, oldest first.
+ * Each side is keyset-paged on (created_at, id) with the same cursor, then
+ * merged and cut to one page; a status value that belongs to one side only
+ * simply matches no rows on the other side. Totals ignore search, cursor,
+ * and source, so the stats and flow bars stay stable while paging or
+ * filtering. Inventory never enters the stream; it appears as numbers only. */
+export async function listLibraryItems(
+  db: D1Database,
+  input: ListLibraryItemsInput,
+): Promise<WordLibraryItems> {
+  const adapter = WORD_CANDIDATE_TABLES[input.game];
+  const columns = WORD_LIBRARY_CANDIDATE_COLUMNS[input.game];
+  const includeCandidates = input.source !== 'submission';
+  const includeSubmissions = input.source !== 'candidate';
+  const searchTerm = input.search?.trim();
+  const likePattern =
+    searchTerm === undefined || searchTerm === '' ? null : `%${escapeLikeTerm(searchTerm)}%`;
+  const cursor = input.cursor === undefined ? undefined : decodeLibraryCursor(input.cursor);
+
+  const candidateRows: z.output<typeof libraryCandidateRowSchema>[] = [];
+  if (includeCandidates) {
+    const binds: unknown[] = [];
+    let where = '';
+    if (input.status !== undefined) {
+      where += ' AND status = ?';
+      binds.push(input.status);
+    }
+    if (likePattern !== null) {
+      where += ` AND (${adapter.titleSql} LIKE ? ESCAPE '\\')`;
+      binds.push(likePattern);
+    }
+    if (cursor !== undefined) {
+      where += ' AND (created_at, id) > (?, ?)';
+      binds.push(cursor.createdAt, cursor.id);
+    }
+    const rows = await db
+      .prepare(
+        `SELECT id, ${adapter.titleSql} AS title, ${adapter.categorySql} AS category,
+          ${columns.definitionSql} AS definition, ${columns.materialSql} AS materialJson,
+          ${adapter.evidenceSql} AS evidenceCount, created_at AS createdAt, status
+         FROM ${adapter.table} WHERE 1 = 1${where}
+         ORDER BY created_at, id LIMIT ${LIBRARY_ITEMS_PAGE_SIZE + 1}`,
+      )
+      .bind(...binds)
+      .all();
+    candidateRows.push(...z.array(libraryCandidateRowSchema).parse(rows.results));
+  }
+
+  const submissionRows: z.output<typeof librarySubmissionRowSchema>[] = [];
+  if (includeSubmissions) {
+    const binds: unknown[] = [input.game];
+    let where = '';
+    if (input.status !== undefined) {
+      where += ' AND item.status = ?';
+      binds.push(input.status);
+    }
+    if (likePattern !== null) {
+      where += ` AND item.title LIKE ? ESCAPE '\\'`;
+      binds.push(likePattern);
+    }
+    if (cursor !== undefined) {
+      where += ' AND (batch.created_at, item.id) > (?, ?)';
+      binds.push(cursor.createdAt, cursor.id);
+    }
+    const rows = await db
+      .prepare(
+        `SELECT item.id, item.batch_id AS batchId, agent.name AS agentName, item.title, item.category,
+          batch.created_at AS createdAt, item.status, item.duplicate_of AS duplicateOf,
+          item.content_hash AS contentHash, item.revision,
+          item.material_json AS materialJson,
+          item.verified_material_json AS verifiedMaterialJson
+         FROM word_submission_items item
+         JOIN word_submission_batches batch ON batch.id = item.batch_id
+         JOIN word_submission_agents agent ON agent.id = batch.agent_id
+         WHERE item.game = ?${where}
+         ORDER BY batch.created_at, item.id LIMIT ${LIBRARY_ITEMS_PAGE_SIZE + 1}`,
+      )
+      .bind(...binds)
+      .all();
+    submissionRows.push(...z.array(librarySubmissionRowSchema).parse(rows.results));
+  }
+
+  const merged: WordLibraryItem[] = [
+    ...candidateRows.map((row) => ({
+      key: `candidate:${row.id}`,
+      source: 'candidate' as const,
+      id: row.id,
+      batchId: null,
+      agentName: null,
+      game: input.game,
+      title: row.title,
+      category: row.category,
+      definition: row.definition ?? buildUndercoverDefinition(row.materialJson),
+      evidenceCount: row.evidenceCount,
+      createdAt: row.createdAt,
+      status: row.status,
+      duplicateOf: null,
+      contentHash: null,
+      revision: null,
+    })),
+    ...submissionRows.map((row) => ({
+      key: `submission:${row.id}`,
+      source: 'submission' as const,
+      id: row.id,
+      batchId: row.batchId,
+      agentName: row.agentName,
+      game: input.game,
+      title: row.title,
+      category: row.category,
+      definition: extractSubmissionDefinition(
+        input.game,
+        row.materialJson,
+        row.verifiedMaterialJson,
+      ),
+      evidenceCount: null,
+      createdAt: row.createdAt,
+      status: row.status,
+      duplicateOf: row.duplicateOf,
+      contentHash: row.contentHash,
+      revision: row.revision,
+    })),
+  ].sort(compareLibraryItems);
+  const page = merged.slice(0, LIBRARY_ITEMS_PAGE_SIZE);
+  const last = page[page.length - 1];
+
+  const [candidateTotalsRows, submissionTotalsRows] = await Promise.all([
+    db.prepare(`SELECT status, COUNT(*) AS count FROM ${adapter.table} GROUP BY status`).all(),
+    db
+      .prepare(
+        'SELECT status, COUNT(*) AS count FROM word_submission_items WHERE game = ? GROUP BY status',
+      )
+      .bind(input.game)
+      .all(),
+  ]);
+  const candidateTotals: Partial<Record<WordCandidateListStatus, number>> = {};
+  for (const row of z.array(libraryTotalsRowSchema).parse(candidateTotalsRows.results)) {
+    const status = z
+      .enum(['pending', 'approved', 'claimed', 'accepted', 'rejected'])
+      .parse(row.status);
+    candidateTotals[status] = row.count;
+  }
+  const submissionTotals: Partial<Record<WordSubmissionStatus, number>> = {};
+  for (const row of z.array(libraryTotalsRowSchema).parse(submissionTotalsRows.results)) {
+    const status = z
+      .enum([
+        'pending',
+        'approved',
+        'reviewing',
+        'passed',
+        'rejected',
+        'failed',
+        'published',
+        'dismissed',
+        'unpublished',
+        'duplicate',
+      ])
+      .parse(row.status);
+    submissionTotals[status] = row.count;
+  }
+
+  return {
+    game: input.game,
+    items: page,
+    totals: { candidates: candidateTotals, submissions: submissionTotals },
+    nextCursor:
+      merged.length > LIBRARY_ITEMS_PAGE_SIZE && last !== undefined
+        ? encodeLibraryCursor(last.createdAt, last.id)
         : null,
   };
 }

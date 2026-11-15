@@ -23,6 +23,7 @@ export const wordSubmissionStatusSchema = z.enum([
   'unpublished',
   'duplicate',
 ]);
+export type WordSubmissionStatus = z.output<typeof wordSubmissionStatusSchema>;
 export const wordSubmissionInputSchema = z.strictObject({
   schemaVersion: z.literal(WORD_SUBMISSION_SCHEMA_VERSION),
   game: wordSubmissionGameSchema,

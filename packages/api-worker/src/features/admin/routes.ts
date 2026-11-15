@@ -38,6 +38,7 @@ import {
   dismissWordCandidatesSchema,
   gameWordGameSchema,
   getGameWordsStats,
+  listLibraryItems,
   listWordCandidates,
   triggerGameWordSupply,
   triggerSupplySchema,
@@ -532,6 +533,43 @@ adminRoutes.post(
     return c.json(await approveWordCandidates(c.env.DB, c.req.valid('json')));
   },
 );
+
+/** Merged FIFO stream behind the unified library page: candidates plus
+ * submission items, oldest first. A status belongs to one side only when it
+ * matches no rows on the other side; search matches titles with LIKE. */
+adminRoutes.get('/words/:game/library-items', async (c) => {
+  const game = gameWordGameSchema.safeParse(c.req.param('game'));
+  if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
+  const source = c.req.query('source');
+  if (source !== undefined && source !== 'candidate' && source !== 'submission')
+    throw new HTTPException(400, { message: 'INVALID_SOURCE' });
+  const status = c.req.query('status');
+  if (
+    status !== undefined &&
+    status !== 'pending' &&
+    status !== 'approved' &&
+    status !== 'claimed' &&
+    status !== 'accepted' &&
+    status !== 'rejected' &&
+    status !== 'reviewing' &&
+    status !== 'passed' &&
+    status !== 'failed' &&
+    status !== 'published' &&
+    status !== 'dismissed' &&
+    status !== 'unpublished' &&
+    status !== 'duplicate'
+  )
+    throw new HTTPException(400, { message: 'INVALID_STATUS' });
+  return c.json(
+    await listLibraryItems(c.env.DB, {
+      game: game.data,
+      source,
+      status,
+      search: c.req.query('search'),
+      cursor: c.req.query('cursor'),
+    }),
+  );
+});
 
 adminRoutes.post(
   '/games/words/candidates/dismiss',
