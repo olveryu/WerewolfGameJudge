@@ -8,7 +8,6 @@
   border: var(--border-width) solid var(--color-primary-a25);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
   color: inherit;
   text-align: left;
 }

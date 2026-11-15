@@ -72,9 +72,9 @@
   flex-direction: column;
   gap: var(--space-medium);
   padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .gacha-stats-row {

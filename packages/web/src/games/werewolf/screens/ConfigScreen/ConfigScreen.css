@@ -12,7 +12,6 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
-  box-shadow: var(--shadow-sm);
   color: var(--color-text);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
@@ -43,22 +42,24 @@
   flex-shrink: 0;
   margin: var(--space-small) var(--space-screen-h) 0;
   overflow: hidden;
-  border-radius: var(--radius-large);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
 }
 
 .config-faction-tabs {
   display: flex;
-  gap: var(--space-tight);
-  padding: var(--space-tight);
+  gap: 0;
+  padding: 0;
 }
 
 .config-faction-tab {
   flex: 1;
-  padding: calc(var(--space-small) + var(--space-tight)) 0;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small) var(--space-tight);
   border: none;
-  border-radius: var(--radius-medium);
+  border-bottom: var(--border-width-thick) solid transparent;
+  border-radius: 0;
   background: none;
   color: var(--faction-color);
   font-size: var(--font-secondary);
@@ -68,8 +69,8 @@
 }
 
 .config-faction-tab[aria-selected='true'] {
-  background: var(--faction-a15);
-  box-shadow: var(--shadow-sm);
+  border-bottom-color: var(--faction-color);
+  background: var(--faction-a8);
   font-weight: var(--weight-bold);
 }
 
@@ -84,9 +85,9 @@
 .config-card-roles {
   margin: var(--space-medium) var(--space-screen-h) 0;
   padding-bottom: calc(var(--space-small) + var(--space-tight));
-  border-radius: var(--radius-large);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
 }
 
 .config-card-divider {
@@ -101,8 +102,6 @@
 
 .config-section-title {
   margin: 0 var(--space-medium) var(--space-small);
-  padding-left: var(--space-small);
-  border-left: calc(var(--space-micro) + var(--border-width)) solid var(--color-primary);
   color: var(--color-text);
   font-size: var(--font-body);
   line-height: var(--line-body);
@@ -119,9 +118,10 @@
 .config-role-chip {
   flex: 1 1 28%;
   max-width: 32%;
-  padding: var(--space-tight) 0;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   background: var(--color-background);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
@@ -172,8 +172,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--space-large) + var(--space-tight));
-  height: calc(var(--space-large) + var(--space-tight));
+  width: var(--size-min-touch-target);
+  height: var(--size-min-touch-target);
   padding: 0;
   border: none;
   border-radius: var(--radius-full);

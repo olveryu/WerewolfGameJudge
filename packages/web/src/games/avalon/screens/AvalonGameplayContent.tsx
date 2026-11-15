@@ -96,7 +96,6 @@ export function AvalonGameplayContent() {
   return (
     <div className="encyclopedia-scroll">
       <div className="game-guide">
-        <p className="game-guide-kicker">游戏目标</p>
         <h2 className="game-guide-heading">好人做任务，坏人搞破坏</h2>
         <p className="game-guide-intro">
           {`${AVALON_MIN_PLAYERS}–${AVALON_MAX_PLAYERS} 人身份推理：好人阵营轮流组队执行 ${AVALON_QUEST_COUNT} 轮任务，先拿下 ${AVALON_QUESTS_TO_WIN} 个任务获胜；坏人混在队伍里出失败牌破坏任务，连续否决组队或终局刺杀梅林也能获胜。`}
