@@ -18,11 +18,14 @@ export function WordsPage() {
         </Link>
       </div>
     );
-  if (parameters.get('section') !== null) {
+  const section = parameters.get('section');
+  if (section !== null) {
     const next = new URLSearchParams(parameters);
     next.delete('section');
     const query = next.toString();
-    return <Navigate to={`/admin/words/${game}${query === '' ? '' : `?${query}`}`} replace />;
+    const suffix = query === '' ? '' : `?${query}`;
+    if (section === 'agents') return <Navigate to={`/admin/agents/${game}${suffix}`} replace />;
+    return <Navigate to={`/admin/words/${game}${suffix}`} replace />;
   }
   return <UnifiedLibrary key={game} game={game} />;
 }

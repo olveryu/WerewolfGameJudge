@@ -371,6 +371,15 @@ describe('admin workspace', () => {
     view.client.clear();
   });
 
+  it('redirects a legacy ?section=agents link to the agents workspace', async () => {
+    vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
+    const view = mount('/admin/words/fibking?section=agents');
+    await waitFor(() => expect(view.router.state.location.pathname).toBe('/admin/agents/fibking'));
+    expect(view.router.state.location.search).toBe('');
+    view.unmount();
+    view.client.clear();
+  });
+
   it.each([true, false])(
     'returns to the previous page after a direct navigation, authenticated: %s',
     async (authenticated) => {
