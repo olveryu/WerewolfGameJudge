@@ -254,20 +254,35 @@ export function LibraryCards({
     );
     libraryLog.info('library submission action complete', { action, count });
   }
+  // The notice outlives the stream: after the last row is actioned, the
+  // refetch returns an empty list, and the empty branch below must still
+  // show what just happened.
+  const noticeElement =
+    notice === '' ? null : (
+      <p role="status" className="admin-notice">
+        {notice}
+      </p>
+    );
   if (source === 'inventory') {
     return (
-      <p className="admin-muted">
-        库存词只在统计与来源行里显示，不进入这条待处理流。这条流只列还没进库的候选与投稿。
-      </p>
+      <>
+        {noticeElement}
+        <p className="admin-muted">
+          库存词只在统计与来源行里显示，不进入这条待处理流。这条流只列还没进库的候选与投稿。
+        </p>
+      </>
     );
   }
   if (items.length === 0) {
     return (
-      <p className="admin-muted">
-        {search !== '' || status !== '' || source !== 'all'
-          ? '没有匹配的词条，试试其他筛选条件。'
-          : '暂无待处理词条。'}
-      </p>
+      <>
+        {noticeElement}
+        <p className="admin-muted">
+          {search !== '' || status !== '' || source !== 'all'
+            ? '没有匹配的词条，试试其他筛选条件。'
+            : '暂无待处理词条。'}
+        </p>
+      </>
     );
   }
   const approvable = selectedItems.filter(
@@ -281,11 +296,7 @@ export function LibraryCards({
   const activeDialog = dialogQueue[0];
   return (
     <>
-      {notice !== '' && (
-        <p role="status" className="admin-notice">
-          {notice}
-        </p>
-      )}
+      {noticeElement}
       {approve.isError && (
         <p role="alert" className="admin-error-box">
           批准失败，请稍后重试。
