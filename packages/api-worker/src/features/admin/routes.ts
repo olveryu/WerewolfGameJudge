@@ -507,7 +507,7 @@ adminRoutes.post(
 
 /** Merged FIFO stream behind the unified library page: candidates plus
  * submission items, oldest first. A status belongs to one side only when it
- * matches no rows on the other side; search matches titles with LIKE. */
+ * matches no rows on the other side; search matches titles or categories with LIKE. */
 adminRoutes.get('/words/:game/library-items', async (c) => {
   const game = gameWordGameSchema.safeParse(c.req.param('game'));
   if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
