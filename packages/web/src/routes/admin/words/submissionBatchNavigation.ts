@@ -1,11 +1,11 @@
 export const SUBMISSION_BATCH_ORIGIN_STATE = {
-  adminSubmissionBatchOrigin: 'list',
+  adminSubmissionBatchOrigin: 'library',
 } as const;
 
-export function isSubmissionBatchOpenedFromList(state: unknown): boolean {
+export function isSubmissionBatchOpenedFromLibrary(state: unknown): boolean {
   return (
     typeof state === 'object' &&
     state !== null &&
-    Reflect.get(state, 'adminSubmissionBatchOrigin') === 'list'
+    Reflect.get(state, 'adminSubmissionBatchOrigin') === 'library'
   );
 }

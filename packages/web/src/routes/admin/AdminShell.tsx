@@ -19,7 +19,7 @@ import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
 
 import { DetailDrawer } from './components/Overlays';
-import { isSubmissionBatchOpenedFromList } from './words/submissionBatchNavigation';
+import { isSubmissionBatchOpenedFromLibrary } from './words/submissionBatchNavigation';
 
 const MONITORING_PATHS = ['/admin/growth', '/admin/performance', '/admin/ai'];
 const NAVIGATION = [
@@ -116,9 +116,7 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   const location = useLocation();
   const searchParameters = new URLSearchParams(location.search);
   const submissionBatchOpen =
-    location.pathname.startsWith('/admin/words/') &&
-    searchParameters.get('section') === 'submissions' &&
-    searchParameters.has('batch');
+    location.pathname.startsWith('/admin/words/') && searchParameters.has('batch');
   const monitoring = MONITORING_PATHS.includes(location.pathname);
   const [monitoringSearch, setMonitoringSearch] = useState(monitoring ? location.search : '');
   const [previousSearch, setPreviousSearch] = useState(location.search);
@@ -146,7 +144,7 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
       onBack();
       return;
     }
-    if (isSubmissionBatchOpenedFromList(location.state)) {
+    if (isSubmissionBatchOpenedFromLibrary(location.state)) {
       void navigate(-1);
       return;
     }

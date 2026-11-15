@@ -11,6 +11,7 @@ import { RoomsPage } from '@/routes/admin/pages/RoomsPage';
 import { TrafficPage } from '@/routes/admin/pages/TrafficPage';
 import { UsersPage } from '@/routes/admin/pages/UsersPage';
 import { WordsPage } from '@/routes/admin/pages/WordsPage';
+import { SubmissionAgentsPage } from '@/routes/admin/words/SubmissionAgents';
 import { AppearancePage } from '@/routes/appearance/AppearancePage';
 import { SceneBenchPage } from '@/routes/bench/SceneBenchPage';
 import { GachaPage } from '@/routes/gacha/GachaPage';
@@ -44,6 +45,7 @@ export const routes: RouteObject[] = [
       { path: 'rooms', Component: RoomsPage },
       { path: 'words', element: <Navigate to="/admin/words/fibking" replace /> },
       { path: 'words/:game', Component: WordsPage },
+      { path: 'agents/:game', Component: SubmissionAgentsPage },
       { path: 'growth', Component: GrowthPage },
       { path: 'performance', Component: PerformancePage },
       { path: 'traffic', Component: TrafficPage },

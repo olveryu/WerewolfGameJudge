@@ -1,4 +1,5 @@
 import type {
+  GameWordsStats,
   WordSubmissionAgent,
   WordSubmissionBatch,
   WordSubmissionItem,
@@ -9,13 +10,19 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
+import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 
 import { SubmissionAgentsPage } from '../words/SubmissionAgents';
-import { SubmissionsPage } from '../words/SubmissionsPage';
+import { UnifiedLibrary } from '../words/UnifiedLibrary';
 
+vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
+  fetchGameWordsStats: vi.fn(),
+  fetchLibraryItems: vi.fn(),
+}));
 vi.mock('@/features/admin/services/wordSubmissionsApi', () => ({
   wordSubmissionsApi: {
     settings: vi.fn(),
@@ -125,23 +132,42 @@ const authorization: WordSubmissionAgent = {
     revokedAt: null,
   },
 };
+const stats: GameWordsStats = {
+  game: 'drawguess',
+  supplyEnabled: true,
+  monthlySupply: null,
+  reviewDecisions: [],
+  reviewCheckStats: [],
+  queryLeaderboard: [],
+  tavilyRequestsUsed: null,
+  tavilyMonthlyQuota: null,
+  modelBudget: {
+    dailyUsed: 0,
+    dailyLimit: 8,
+    monthlyUsed: 0,
+    monthlyLimit: 120,
+    byOperation: {
+      generation: { dailyUsed: 0, monthlyUsed: 0 },
+      review: { dailyUsed: 0, monthlyUsed: 0 },
+    },
+  },
+  categories: [],
+};
 function mount(section = 'batch', extraSearch = '') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const query = [section === 'batch' ? `batch=${batch.id}` : '', extraSearch.replace(/^&/, '')]
+    .filter(Boolean)
+    .join('&');
   const router = createMemoryRouter(
     [
-      {
-        path: '/admin/words/drawguess',
-        element:
-          section === 'agents' ? (
-            <SubmissionAgentsPage game="drawguess" />
-          ) : (
-            <SubmissionsPage game="drawguess" />
-          ),
-      },
+      { path: '/admin/words/drawguess', element: <UnifiedLibrary game="drawguess" /> },
+      { path: '/admin/agents/:game', element: <SubmissionAgentsPage /> },
     ],
     {
       initialEntries: [
-        `/admin/words/drawguess?section=${section === 'agents' ? 'agents' : 'submissions'}${section === 'batch' ? `&batch=${batch.id}` : ''}${extraSearch}`,
+        section === 'agents'
+          ? '/admin/agents/drawguess'
+          : `/admin/words/drawguess${query === '' ? '' : `?${query}`}`,
       ],
     },
   );
@@ -154,6 +180,13 @@ function mount(section = 'batch', extraSearch = '') {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(fetchGameWordsStats).mockResolvedValue(stats);
+  vi.mocked(fetchLibraryItems).mockResolvedValue({
+    game: 'drawguess',
+    items: [],
+    totals: { candidates: {}, submissions: {} },
+    nextCursor: null,
+  });
   vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue(settings);
   vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
@@ -176,7 +209,7 @@ it('opens a batch as a URL-backed workspace overlay and browser Back restores it
 
   await user.click(row);
   expect(router.state.location.search).toContain(`batch=${batch.id}`);
-  expect(router.state.location.state).toMatchObject({ adminSubmissionBatchOrigin: 'list' });
+  expect(router.state.location.state).toMatchObject({ adminSubmissionBatchOrigin: 'library' });
   const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
   expect(within(dialog).queryByText('返回投稿列表')).not.toBeInTheDocument();
   expect(within(dialog).getByRole('button', { name: '关闭投稿批次审核' })).toBeVisible();
@@ -184,9 +217,7 @@ it('opens a batch as a URL-backed workspace overlay and browser Back restores it
   expect(within(dialog).getByRole('button', { name: '审核全部待审 (2)' })).toBeVisible();
   await user.keyboard('{Escape}');
 
-  await waitFor(() =>
-    expect(router.state.location.search).toBe('?section=submissions&search=lotus'),
-  );
+  await waitFor(() => expect(router.state.location.search).toBe('?search=lotus'));
   await waitFor(() =>
     expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument(),
   );
@@ -555,21 +586,6 @@ it('shows a reason-free human decision separately from the preserved failed revi
   expect(within(drawer).getByText('诊断码：model-review:invalidOutput')).toBeInTheDocument();
   expect(within(drawer).getByRole('button', { name: '确认发布…' })).toBeEnabled();
   expect(within(drawer).queryByRole('button', { name: '人工通过…' })).not.toBeInTheDocument();
-});
-
-it('uses choice-sheet filters and resets pagination when a filter changes', async () => {
-  const { user, router } = mount('list', '&cursor=42');
-  await user.click(await screen.findByRole('button', { name: '游戏：全部游戏' }));
-  const dialog = await screen.findByRole('dialog', { name: '选择游戏' });
-  await user.click(within(dialog).getByRole('button', { name: '谁是卧底' }));
-  await waitFor(() => expect(router.state.location.search).toContain('game=undercover'));
-  expect(router.state.location.search).not.toContain('cursor');
-  expect(wordSubmissionsApi.batches).toHaveBeenLastCalledWith(
-    { game: 'undercover' },
-    expect.any(AbortSignal),
-  );
-  await user.click(screen.getByRole('button', { name: '清空筛选' }));
-  await waitFor(() => expect(router.state.location.search).toBe('?section=submissions'));
 });
 
 it.each(['pending', 'failed', 'rejected'] as const)(
