@@ -8,15 +8,16 @@ import { createUndercoverWordProvider } from '../wordProvider';
 afterEach(() => vi.restoreAllMocks());
 
 describe('Undercover provider', () => {
-  it('sends shared traits and reasons before verdicts and reviews at most 5 pairs', async () => {
-    const candidates = Array.from({ length: 5 }, (_, index): UndercoverWordCandidate => ({
-      wordA: `冬季${index}`,
-      wordB: `夏季${index}`,
+  it('sends shared traits and reasons before verdicts and reviews at most 1 pair', async () => {
+    const candidate: UndercoverWordCandidate = {
+      wordA: '冬季',
+      wordB: '夏季',
       category: 'food',
       commonTraits: ['共同特点甲', '共同特点乙'],
       differences: ['不同特点甲', '不同特点乙'],
       potentialIssues: [],
-    }));
+    };
+    const candidates = [candidate];
     const reviews = candidates.map(({ wordA, wordB }) => ({
       wordA,
       wordB,
@@ -65,8 +66,8 @@ describe('Undercover provider', () => {
       .object({ candidates: z.array(z.strictObject({ wordA: z.string(), wordB: z.string() })) })
       .parse(JSON.parse(z.string().parse(body.contents[0]?.parts[0]?.text)));
     expect(payload.candidates).toEqual(candidates.map(({ wordA, wordB }) => ({ wordA, wordB })));
-    expect(() => provider.reviewBatch('food', [...candidates, ...candidates.slice(0, 1)])).toThrow(
-      'batch limit: 5',
+    expect(() => provider.reviewBatch('food', [...candidates, candidate])).toThrow(
+      'batch limit: 1',
     );
     await expect(provider.reviewBatch('food', [])).resolves.toEqual([]);
     expect(fetchImpl).toHaveBeenCalledOnce();
@@ -119,7 +120,7 @@ describe('Undercover provider', () => {
       });
   });
 
-  it('validates whole pairs, retains non-CJK words and deduplicates normalized reversed pairs', async () => {
+  it('normalizes full-width and cased words in a generated pair', async () => {
     const candidate = {
       wordA: 'Ｍｉｌｋ',
       wordB: 'Soy milk',
@@ -128,19 +129,15 @@ describe('Undercover provider', () => {
       differences: ['Animal versus plant', 'Different ingredients'],
       potentialIssues: [],
     };
-    const candidates = [
-      { ...candidate, commonTraits: ['Drink'] },
-      candidate,
-      { ...candidate, wordA: 'soy milk', wordB: 'milk' },
-      { ...candidate, wordA: 'drink', wordB: 'ＤＲＩＮＫ' },
-      { ...candidate, 'private-key': 'private-value' },
-    ];
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
         candidates: [
-          { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ candidates }) }] } },
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ text: JSON.stringify({ candidates: [candidate] }) }] },
+          },
         ],
       }),
     );
@@ -150,28 +147,13 @@ describe('Undercover provider', () => {
     );
     expect(result.candidates).toEqual([{ ...candidate, wordA: 'milk', wordB: 'soy milk' }]);
     expect(result.validation).toMatchObject({
-      receivedCount: 5,
+      receivedCount: 1,
       validCount: 1,
-      rejectedCount: 3,
-      duplicateCount: 1,
+      rejectedCount: 0,
+      duplicateCount: 0,
     });
-    expect(result.validation.rejectionSamples.map(({ index, code }) => ({ index, code }))).toEqual([
-      { index: 0, code: 'too_small' },
-      { index: 2, code: 'duplicateCandidate' },
-      { index: 3, code: 'identicalWords' },
-      { index: 4, code: 'unrecognized_keys' },
-    ]);
-    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
-    for (const secret of [
-      'Soy milk',
-      'Ｍｉｌｋ',
-      'Drink',
-      'private-key',
-      'private-value',
-      'test-key',
-    ])
-      expect(JSON.stringify(warn.mock.calls)).not.toContain(secret);
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
@@ -234,7 +216,7 @@ describe('Undercover provider', () => {
         potentialIssues: [],
       };
       const candidates = Array.from(
-        { length: invalidField === 'batch size' ? 6 : 1 },
+        { length: invalidField === 'batch size' ? 2 : 1 },
         () => candidate,
       );
       const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(

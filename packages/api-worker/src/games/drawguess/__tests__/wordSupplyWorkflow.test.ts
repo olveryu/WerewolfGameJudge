@@ -212,15 +212,7 @@ describe('DrawGuess supply workflow', () => {
       },
       reason: '模拟独立审核通过。',
     };
-    const requests = mockWordSupplyModel(
-      [
-        { ...candidateMaterial, word: 'bad!' },
-        { ...candidateMaterial, potentialIssues: [1] },
-        candidateMaterial,
-        candidateMaterial,
-      ],
-      review,
-    );
+    const requests = mockWordSupplyModel(candidateMaterial, review);
     await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
@@ -248,7 +240,7 @@ describe('DrawGuess supply workflow', () => {
     expect(pack.status).toBe('reserved');
     expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
       candidates: [{ ...candidateMaterial, category: pack.category }],
-      validation: { receivedCount: 4, validCount: 1, rejectedCount: 2, duplicateCount: 1 },
+      validation: { receivedCount: 1, validCount: 1, rejectedCount: 0, duplicateCount: 0 },
     });
     expect(JSON.parse(pack.generation_json)).toEqual({
       candidates: [{ ...candidateMaterial, category: pack.category }],
@@ -350,10 +342,7 @@ describe('DrawGuess supply workflow', () => {
   it('fails all-rejected output with durable diagnostics, one report and no queue or review', async () => {
     const errorReport = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const candidate = { word: 'bad!', difficulty: 'easy', potentialIssues: [] };
-    const requests = mockWordSupplyModel(
-      Array.from({ length: 5 }, () => candidate),
-      {},
-    );
+    const requests = mockWordSupplyModel(candidate, {});
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
     await using instance = await introspectWorkflowInstance(env.DRAWGUESS_WORD_SUPPLY, id);
@@ -373,16 +362,18 @@ describe('DrawGuess supply workflow', () => {
       failureKind: 'invalidOutput',
       validationCode: 'allCandidatesRejected',
       validationSummary: {
-        receivedCount: 5,
+        receivedCount: 1,
         validCount: 0,
-        rejectedCount: 5,
+        rejectedCount: 1,
         duplicateCount: 0,
         omittedIssueCount: 0,
-        rejectionSamples: Array.from({ length: 5 }, (_, index) => ({
-          index,
-          path: ['candidates', index, 'word'],
-          code: 'invalid_format',
-        })),
+        rejectionSamples: [
+          {
+            index: 0,
+            path: ['candidates', 0, 'word'],
+            code: 'invalid_format',
+          },
+        ],
       },
     });
     expect(requests).toHaveLength(1);

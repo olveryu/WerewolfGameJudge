@@ -136,8 +136,21 @@ async function endorse(batch: Awaited<ReturnType<typeof submit>>) {
 function modelReview(passed = true, words = [candidate.word]) {
   vi.stubGlobal(
     'fetch',
-    vi.fn<typeof fetch>().mockImplementation(async () =>
-      Response.json({
+    vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+      // Echo only the candidates this call actually requested: the provider
+      // rejects a response whose review count differs from the request.
+      const requestBody = z
+        .object({
+          contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
+        })
+        .parse(JSON.parse(z.string().parse(init?.body)));
+      const material = z
+        .object({ candidates: z.array(z.strictObject({ word: z.string() })) })
+        .parse(JSON.parse(z.string().parse(requestBody.contents[0]?.parts[0]?.text)));
+      const requested = material.candidates
+        .map(({ word }) => word)
+        .filter((word) => words.includes(word));
+      return Response.json({
         candidates: [
           {
             finishReason: 'STOP',
@@ -145,7 +158,7 @@ function modelReview(passed = true, words = [candidate.word]) {
               parts: [
                 {
                   text: JSON.stringify({
-                    reviews: words.map((word) => ({
+                    reviews: requested.map((word) => ({
                       word,
                       qualityChecks: { ...checks, isConcreteAndDrawable: passed },
                       reason: passed ? '外形明确，适合绘画猜词。' : '不适合本次题库。',
@@ -156,8 +169,8 @@ function modelReview(passed = true, words = [candidate.word]) {
             },
           },
         ],
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -757,7 +770,7 @@ describe('External word submissions', () => {
     });
   });
 
-  it('reviews a 6-item intake in groups of 5 and 1, charging exactly two model requests', async () => {
+  it('reviews a 6-item intake in groups of 1, charging exactly six model requests', async () => {
     const issued = await agent();
     const batch = await submit(issued.token, {
       ...payload,
@@ -809,11 +822,11 @@ describe('External word submissions', () => {
     await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
-    expect(groupSizes).toEqual([5, 1]);
+    expect(groupSizes).toEqual([1, 1, 1, 1, 1, 1]);
     expect(reviewed.items.every((item) => item.status === 'passed')).toBe(true);
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
-    ).toEqual({ count: 2 });
+    ).toEqual({ count: 6 });
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
       count: 0,
     });
