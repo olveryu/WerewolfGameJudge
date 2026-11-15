@@ -1,8 +1,5 @@
 /** Human confirmation binds the selected content snapshot and retains one request id for retries. */
-import type {
-  WordSubmissionAction,
-  WordSubmissionItem,
-} from '@game-judge/game-engine/product/wordSupply';
+import type { WordSubmissionAction } from '@game-judge/game-engine/product/wordSupply';
 import { useId, useState } from 'react';
 
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -19,9 +16,16 @@ const SUBMISSION_ACTION_LABELS = {
   unendorse: '撤回批准',
   unpublish: '下架词条',
 } as const;
+/** The dialog only binds the action payload (id + content hash + revision) and the title. */
+export interface SubmissionConfirmationItem {
+  readonly id: string;
+  readonly title: string;
+  readonly contentHash: string;
+  readonly revision: number;
+}
 export interface SubmissionConfirmation {
   readonly action: WordSubmissionAction['action'];
-  readonly items: readonly WordSubmissionItem[];
+  readonly items: readonly SubmissionConfirmationItem[];
 }
 
 /** Repeated confirmation never manufactures a fresh command after an uncertain network result. */

@@ -19,7 +19,7 @@ import {
   SUBMISSION_STATUS_LABELS,
   SubmissionStatus,
   WORD_GAME_LABELS,
-} from './WordSections';
+} from './wordLabels';
 
 const ACTION_LABELS: Readonly<Record<string, string>> = {
   ...SUBMISSION_STATUS_LABELS,

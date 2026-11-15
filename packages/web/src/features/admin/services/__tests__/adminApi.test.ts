@@ -1,12 +1,11 @@
 import {
-  fetchAutomaticSupplySettings,
+  fetchLibraryItems,
   fetchRequestTraffic,
   fetchUserCountries,
   fetchUserRewards,
   fetchUsers,
   getTimeRange,
   grantUserReward,
-  saveAutomaticSupplySettings,
 } from '@/features/admin/services/adminApi';
 import { verifyAdminPassword } from '@/features/admin/services/adminAuth';
 import { expireAdminSession } from '@/features/admin/services/adminCredentialStore';
@@ -111,44 +110,56 @@ describe('adminApi', () => {
     await expect(fetchUserCountries()).rejects.toThrow('unsupported fields');
   });
 
-  it('reads and saves per-game automatic scheduling with strict response validation', async () => {
-    mockFetch.mockResolvedValueOnce(
-      Response.json({ game: 'drawguess', enabled: true, available: true }),
-    );
-    await expect(fetchAutomaticSupplySettings('drawguess')).resolves.toEqual({
+  it('fetches merged library items with source/status/search/cursor filters', async () => {
+    const body = {
       game: 'drawguess',
-      enabled: true,
-      available: true,
-    });
-    expect(mockFetch).toHaveBeenLastCalledWith(
-      expect.stringMatching(/automatic-supply\?game=drawguess$/),
-      expect.any(Object),
-    );
-    mockFetch.mockResolvedValueOnce(
-      Response.json({ game: 'drawguess', enabled: false, available: true }),
-    );
-    await expect(saveAutomaticSupplySettings('drawguess', false)).resolves.toEqual({
-      game: 'drawguess',
-      enabled: false,
-      available: true,
-    });
-    expect(mockFetch).toHaveBeenLastCalledWith(
-      expect.stringMatching(/automatic-supply$/),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ game: 'drawguess', enabled: false }),
+      items: [
+        {
+          key: 'candidate:cand-1',
+          source: 'candidate',
+          id: 'cand-1',
+          batchId: null,
+          agentName: null,
+          game: 'drawguess',
+          title: '大熊猫',
+          category: '动物',
+          definition: null,
+          evidenceCount: null,
+          createdAt: '2026-11-14T00:00:00.000Z',
+          status: 'pending',
+          duplicateOf: null,
+          contentHash: null,
+          revision: null,
+        },
+      ],
+      totals: { candidates: { pending: 1 }, submissions: {} },
+      nextCursor: 'next-page',
+    };
+    mockFetch.mockResolvedValueOnce(Response.json(body));
+    await expect(
+      fetchLibraryItems('drawguess', {
+        source: 'submission',
+        status: 'approved',
+        search: '玫瑰花',
+        cursor: 'current-page',
       }),
-    );
+    ).resolves.toEqual(body);
+    const input = mockFetch.mock.calls[0]?.[0];
+    if (typeof input !== 'string') throw new Error('Expected URL string');
+    const url = new URL(input);
+    expect(url.pathname).toMatch(/\/admin\/words\/drawguess\/library-items$/);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      source: 'submission',
+      status: 'approved',
+      search: '玫瑰花',
+      cursor: 'current-page',
+    });
     mockFetch.mockResolvedValueOnce(
-      Response.json({ game: 'drawguess', enabled: 'false', available: true }),
+      Response.json({ ...body, items: [{ ...body.items[0], status: 'nope' }] }),
     );
-    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('must be a boolean');
-    mockFetch.mockResolvedValueOnce(
-      Response.json({ game: 'drawguess', enabled: true, available: 'true' }),
-    );
-    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('must be a boolean');
-    mockFetch.mockResolvedValueOnce(Response.json({ game: 'drawguess', enabled: true }));
-    await expect(fetchAutomaticSupplySettings('drawguess')).rejects.toThrow('unsupported fields');
+    await expect(fetchLibraryItems('drawguess')).rejects.toThrow('unsupported status');
+    mockFetch.mockResolvedValueOnce(Response.json({ ...body, extra: true }));
+    await expect(fetchLibraryItems('drawguess')).rejects.toThrow('unsupported fields');
   });
 
   it('revokes an expired session before surfacing a failed API request', async () => {

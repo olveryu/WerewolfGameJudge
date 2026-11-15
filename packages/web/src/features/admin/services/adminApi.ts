@@ -15,8 +15,10 @@ import type {
   GameWordsStats,
   TimePreset,
   TriggerSupplyResult,
-  WordCandidateList,
   WordCandidateListStatus,
+  WordLibraryItems,
+  WordLibraryItemSource,
+  WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
 import {
   adminRewardGrantSchema,
@@ -31,7 +33,6 @@ import {
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
-  parseAdminAutomaticSupplySettings,
   parseAdminCountriesResponse,
   parseAdminD1InsightsResponse,
   parseAdminD1UsageResponse,
@@ -43,8 +44,8 @@ import {
   parseApproveWordCandidatesResponse,
   parseDismissWordCandidatesResponse,
   parseGameWordsStatsResponse,
+  parseLibraryItemsResponse,
   parseTriggerSupplyResult,
-  parseWordCandidatesResponse,
 } from '@/features/admin/services/adminResponseCodec';
 import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
@@ -157,26 +158,6 @@ export function fetchUserCountries(signal?: AbortSignal) {
 }
 
 /** Read the per-game automatic supply policy independently of D1 inventory statistics. */
-export function fetchAutomaticSupplySettings(game: GameWordGame, signal?: AbortSignal) {
-  return adminFetch(
-    '/admin/games/words/automatic-supply',
-    parseAdminAutomaticSupplySettings,
-    { game },
-    signal,
-  );
-}
-
-/** Only future scheduled tasks are affected; manual and already-started runs are unchanged. */
-export function saveAutomaticSupplySettings(game: GameWordGame, enabled: boolean) {
-  return adminFetch(
-    '/admin/games/words/automatic-supply',
-    parseAdminAutomaticSupplySettings,
-    undefined,
-    undefined,
-    { game, enabled },
-  );
-}
-
 export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {
   return adminFetch(
     '/admin/users',
@@ -303,17 +284,23 @@ export function triggerGameWordSupply(
   );
 }
 
-export function fetchWordCandidates(
+export function fetchLibraryItems(
   game: GameWordGame,
-  options: { status?: WordCandidateListStatus; cursor?: string } = {},
+  options: {
+    source?: WordLibraryItemSource;
+    status?: WordCandidateListStatus | WordSubmissionStatus;
+    search?: string;
+    cursor?: string;
+  } = {},
   signal?: AbortSignal,
-): Promise<WordCandidateList> {
+): Promise<WordLibraryItems> {
   return adminFetch(
-    '/admin/games/words/candidates',
-    parseWordCandidatesResponse,
+    `/admin/words/${game}/library-items`,
+    parseLibraryItemsResponse,
     {
-      game,
+      ...(options.source !== undefined ? { source: options.source } : {}),
       ...(options.status !== undefined ? { status: options.status } : {}),
+      ...(options.search !== undefined && options.search !== '' ? { search: options.search } : {}),
       ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
     },
     signal,
