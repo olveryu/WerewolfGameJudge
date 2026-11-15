@@ -32,10 +32,7 @@ import { gameWordGameSchema } from './gameWords';
 const log = createLogger('word-candidate-review');
 
 /** One manual review call reviews at most five candidates (one model call
- * each — all three games review one at a time). Five matches the former
- * per-pack claim batch size (CLAIM_LIMIT = 5, removed with the claim step
- * in 152792b9a): one call reviews at most one pack's worth, i.e. at most
- * five model calls. */
+ * each — all three games review one at a time). */
 export const CANDIDATE_MANUAL_REVIEW_LIMIT = 5;
 /** One manual publish call publishes at most thirty candidates (pure D1,
  * same cap as approve/dismiss). */

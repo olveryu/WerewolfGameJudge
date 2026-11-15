@@ -211,10 +211,9 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           // Newly stored candidates are pending until a human approves
           // them: stop this batch — and the run — here, leave the pack
           // reserved, and run no verification, review or publish for it.
-          // (An empty generation does not throw — allCandidatesRejected
-          // fires only when the model returned candidates and every one
-          // was rejected — so a zero-candidate store just returns false
-          // below and the pack stays reserved like any other gated pack.)
+          // (A zero-candidate store cannot happen — generation throws
+          // allCandidatesRejected on zero valid candidates — but if it
+          // ever did, the pack stays reserved like any other gated pack.)
           return parsedCandidates.length > 0;
         }
       }
