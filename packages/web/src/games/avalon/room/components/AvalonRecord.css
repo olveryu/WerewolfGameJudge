@@ -253,7 +253,6 @@
   border: var(--border-width-thick) solid var(--color-primary);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .avalon-proposer-row,
@@ -579,7 +578,6 @@ button.avalon-rejected-header {
 .avalon-history-tab[aria-selected='true'] {
   border-color: var(--color-border-light);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
   color: var(--color-text);
   font-weight: var(--weight-semibold);
 }

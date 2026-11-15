@@ -19,9 +19,9 @@
   align-items: center;
   gap: var(--space-tight);
   padding: var(--space-tight);
-  border-radius: var(--radius-large);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .notepad-card[data-faction] {

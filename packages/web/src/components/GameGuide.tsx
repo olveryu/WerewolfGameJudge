@@ -36,7 +36,6 @@ export function GameGuide({
         backTestId={TESTIDS.gameGuideBackButton}
       />
       <main className="game-guide">
-        <p className="game-guide-kicker">游戏目标</p>
         <h2 className="game-guide-heading" data-testid={TESTIDS.gameGuideHeading}>
           {heading}
         </h2>

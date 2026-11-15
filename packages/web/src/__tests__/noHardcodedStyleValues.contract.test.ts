@@ -33,7 +33,6 @@ const PX_TOKEN_PROPERTY =
 const KNOWN_VIOLATIONS: Readonly<Record<string, number>> = {
   'boot/bootSplash.css': 3,
   'routes/bench/SceneBench.css': 7,
-  'routes/games/GamePickerPage.css': 4,
   'theme/nightArt.css': 7,
 };
 

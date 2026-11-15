@@ -4,10 +4,8 @@
   margin-bottom: var(--space-medium);
   padding: var(--space-medium);
   border: var(--border-width) solid var(--color-border-light);
-  border-top: var(--border-width-thick) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .board-info-header {

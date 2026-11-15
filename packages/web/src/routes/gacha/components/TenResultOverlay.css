@@ -95,7 +95,6 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
   text-align: center;
   --cell-from: 0.7;
   --cell-peak: 1;

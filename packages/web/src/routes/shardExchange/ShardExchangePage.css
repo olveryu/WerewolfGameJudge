@@ -95,7 +95,6 @@
   border: var(--border-width) solid;
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 /* The preview dims through its own opacity (stage-drawn decorations ignore CSS opacity). */

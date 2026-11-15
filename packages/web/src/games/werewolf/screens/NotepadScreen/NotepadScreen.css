@@ -56,10 +56,9 @@
   min-height: calc(var(--size-button-lg) + var(--space-large));
   max-height: calc((var(--size-button-lg) + var(--space-large)) * 2);
   padding: var(--space-small);
-  border: var(--border-width-thick) solid var(--color-border);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-body);

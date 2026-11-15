@@ -1,13 +1,13 @@
 .board-card {
   margin: 0 var(--space-screen-h) var(--space-small);
   overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .board-card[data-expanded='true'] {
-  border-left: var(--border-width-thick) solid var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .board-card-header {
