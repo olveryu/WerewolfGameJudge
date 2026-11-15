@@ -202,10 +202,9 @@ async function processPack<
     });
     // Newly stored candidates are pending until a human approves them:
     // stop this batch — and the run — here, leave the pack reserved, and
-    // run no review or publish for it. (An empty generation does not
-    // throw — allCandidatesRejected fires only when the model returned
-    // candidates and every one was rejected — so a zero-candidate store
-    // just returns false below and the pack stays reserved like any
+    // run no review or publish for it. (A zero-candidate store cannot
+    // happen — generation throws allCandidatesRejected on zero valid
+    // candidates — but if it ever did, the pack stays reserved like any
     // other gated pack, with nothing to approve.)
     return parsedCandidates.length > 0;
   } catch (error) {
