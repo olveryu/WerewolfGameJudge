@@ -420,6 +420,44 @@ describe('unified library', () => {
     expect(await screen.findByText('已拒绝 1 条。')).toBeVisible();
   });
 
+  it('keeps the success notice visible when the last row is dismissed', async () => {
+    let calls = 0;
+    vi.mocked(fetchLibraryItems).mockImplementation(async () => {
+      calls += 1;
+      return calls === 1
+        ? libraryData
+        : { ...libraryData, items: [], totals: { candidates: {}, submissions: {} } };
+    });
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    const card = screen.getByText('大熊猫').closest('article');
+    expect(card).not.toBeNull();
+    await user.click(within(card as HTMLElement).getByRole('button', { name: '拒绝' }));
+    await waitFor(() => expect(screen.getByText('已拒绝 1 条。')).toBeVisible());
+    await waitFor(() => expect(screen.getByText('暂无待处理词条。')).toBeVisible());
+    expect(screen.getByText('已拒绝 1 条。')).toBeVisible();
+    expect(screen.queryByText('大熊猫')).not.toBeInTheDocument();
+  });
+
+  it('never renders the removed 自带 source label anywhere on the page', async () => {
+    mount();
+    await screen.findByText('大熊猫');
+    expect(document.body.textContent).not.toMatch(/自带/);
+  });
+
+  it('never renders the removed monthly-published stat or quota meters', async () => {
+    mount();
+    await screen.findByText('大熊猫');
+    // The removed 本月已发布 tile carried a "目标 100" hint; the removed
+    // quota meters were 本月批次 and the two 模型 meters. Tavily · 本月
+    // stays (covered by 'shows the Tavily meter for fibking only').
+    expect(document.body.textContent).not.toMatch(/本月已发布/);
+    expect(document.body.textContent).not.toMatch(/目标 100/);
+    expect(screen.queryByText('本月批次')).not.toBeInTheDocument();
+    expect(screen.queryByText('模型 · 近 24 小时')).not.toBeInTheDocument();
+    expect(screen.queryByText('模型 · 近 30 天')).not.toBeInTheDocument();
+  });
+
   it('endorses a pending submission through its batch dialog', async () => {
     const { user } = mount();
     await screen.findByText('玫瑰花');
