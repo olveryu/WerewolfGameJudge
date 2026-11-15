@@ -1,10 +1,9 @@
-import { GAME_WORD_GAMES, type GameWordGame } from '@game-judge/game-engine/product/wordSupply';
+import type { GameWordGame } from '@game-judge/game-engine/product/wordSupply';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
 
 const settingsSchema = z.strictObject({ enabled: z.boolean() });
-export const automaticSupplyUpdateSchema = settingsSchema.extend({ game: z.enum(GAME_WORD_GAMES) });
 
 const SUPPLY_FLAGS = {
   fibking: 'FIB_WORD_SUPPLY_ENABLED',
