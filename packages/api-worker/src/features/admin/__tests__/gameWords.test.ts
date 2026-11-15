@@ -49,6 +49,7 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
     env.DB.prepare('DELETE FROM fib_word_candidates'),
     env.DB.prepare('DELETE FROM word_candidate_approvals'),
+    env.DB.prepare('DELETE FROM word_candidate_dismissals'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
@@ -610,6 +611,38 @@ describe('POST /admin/games/words/candidates/approve', () => {
     expect(approved.candidates.map((item) => item.id)).toEqual(['uc-0', 'uc-1', 'uc-2']);
   });
 
+  it('rolls back approvals when an approval audit insert fails', async () => {
+    await seedUndercoverCandidates();
+    await env.DB.prepare(
+      `CREATE TRIGGER fail_candidate_approval_audit BEFORE INSERT ON word_candidate_approvals
+       BEGIN SELECT RAISE(ABORT, 'forced approval audit failure'); END`,
+    ).run();
+    try {
+      await expect(
+        approveWordCandidates(env.DB, {
+          game: 'undercover',
+          candidateIds: ['uc-0'],
+          reason: '人工看过，可以送审。',
+        }),
+      ).rejects.toThrow('forced approval audit failure');
+    } finally {
+      await env.DB.prepare('DROP TRIGGER fail_candidate_approval_audit').run();
+    }
+
+    expect(
+      await env.DB.prepare('SELECT status FROM undercover_word_candidates WHERE id = ?')
+        .bind('uc-0')
+        .first(),
+    ).toEqual({ status: 'pending' });
+    expect(
+      await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM word_candidate_approvals WHERE candidate_id = ?',
+      )
+        .bind('uc-0')
+        .first(),
+    ).toEqual({ count: 0 });
+  });
+
   it('does not approve a claimed candidate while its pack is still running', async () => {
     await env.DB.prepare(
       `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
@@ -761,6 +794,42 @@ describe('POST /admin/games/words/candidates/dismiss', () => {
       candidate_id: 'fib-1',
       reason: '词太常见，不用审了。',
     });
+  });
+
+  it('rolls back dismissals when a dismissal audit insert fails', async () => {
+    await env.DB.prepare(
+      `INSERT INTO undercover_word_candidates
+         (id, word_a, word_b, category, material_json, status, created_at)
+       VALUES ('uc-atomic-dismiss', '词乙', '词甲', 'dailyLife', '{}', 'pending', '2026-01-01')`,
+    ).run();
+    await env.DB.prepare(
+      `CREATE TRIGGER fail_candidate_dismissal_audit BEFORE INSERT ON word_candidate_dismissals
+       BEGIN SELECT RAISE(ABORT, 'forced dismissal audit failure'); END`,
+    ).run();
+    try {
+      await expect(
+        dismissWordCandidates(env.DB, {
+          game: 'undercover',
+          candidateIds: ['uc-atomic-dismiss'],
+          reason: '词对不合适。',
+        }),
+      ).rejects.toThrow('forced dismissal audit failure');
+    } finally {
+      await env.DB.prepare('DROP TRIGGER fail_candidate_dismissal_audit').run();
+    }
+
+    expect(
+      await env.DB.prepare('SELECT status FROM undercover_word_candidates WHERE id = ?')
+        .bind('uc-atomic-dismiss')
+        .first(),
+    ).toEqual({ status: 'pending' });
+    expect(
+      await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM word_candidate_dismissals WHERE candidate_id = ?',
+      )
+        .bind('uc-atomic-dismiss')
+        .first(),
+    ).toEqual({ count: 0 });
   });
 
   it('dismisses pending undercover candidates the same way', async () => {

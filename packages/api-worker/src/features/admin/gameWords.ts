@@ -490,6 +490,14 @@ export async function listWordCandidates(
   };
 }
 
+function candidateApprovalEligibilitySql(table: string, packsTable: string): string {
+  return `(${table}.status = 'pending'
+    OR (${table}.status = 'claimed' AND (${table}.claimed_pack_id IS NULL OR NOT EXISTS (
+      SELECT 1 FROM ${packsTable} pack
+      WHERE pack.id = ${table}.claimed_pack_id AND pack.status <> 'failed'
+    ))))`;
+}
+
 /** Approve pending (or stuck-claimed) candidates for review; audit each approval.
  * A claimed candidate is only stuck — and only approvable — when its pack is
  * failed or gone. Approving one whose pack is still running would clear the
@@ -499,37 +507,42 @@ export async function approveWordCandidates(
   input: ApproveWordCandidatesInput,
 ): Promise<ApproveWordCandidatesResult> {
   const adapter = WORD_CANDIDATE_TABLES[input.game];
-  const placeholders = input.candidateIds.map(() => '?').join(', ');
-  const updated = await db
-    .prepare(
-      `UPDATE ${adapter.table} SET ${adapter.approveSetSql}
-       WHERE id IN (${placeholders}) AND (status = 'pending'
-         OR (status = 'claimed' AND (claimed_pack_id IS NULL OR NOT EXISTS (
-           SELECT 1 FROM ${adapter.packsTable} pack
-           WHERE pack.id = ${adapter.table}.claimed_pack_id AND pack.status <> 'failed'
-         ))))
-       RETURNING id`,
-    )
-    .bind(...input.candidateIds)
-    .all<{ id: string }>();
-  const approvedIds = updated.results.map((row) => row.id);
+  const candidateIds = [...new Set(input.candidateIds)];
+  const placeholders = candidateIds.map(() => '?').join(', ');
+  const eligibilitySql = candidateApprovalEligibilitySql(adapter.table, adapter.packsTable);
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const auditStatements = candidateIds.map((id) =>
+    db
+      .prepare(
+        `INSERT INTO word_candidate_approvals
+          (id, request_id, game, candidate_id, reason, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM ${adapter.table}
+           WHERE ${adapter.table}.id = ? AND ${eligibilitySql}
+         )`,
+      )
+      .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now, id),
+  );
+  const results = await db.batch([
+    ...auditStatements,
+    db
+      .prepare(
+        `UPDATE ${adapter.table} SET ${adapter.approveSetSql}
+         WHERE id IN (${placeholders}) AND ${eligibilitySql}
+         RETURNING id`,
+      )
+      .bind(...candidateIds),
+  ]);
+  const updateResult = results[results.length - 1];
+  if (updateResult === undefined) throw new Error('Candidate approval result missing');
+  const approvedIds = z
+    .array(z.strictObject({ id: z.string() }))
+    .parse(updateResult.results)
+    .map((row) => row.id);
   const approvedSet = new Set(approvedIds);
   const skippedIds = [...new Set(input.candidateIds.filter((id) => !approvedSet.has(id)))];
-  if (approvedIds.length > 0) {
-    const requestId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await db.batch(
-      approvedIds.map((id) =>
-        db
-          .prepare(
-            `INSERT INTO word_candidate_approvals
-              (id, request_id, game, candidate_id, reason, created_at)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-          )
-          .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now),
-      ),
-    );
-  }
   return { game: input.game, approvedIds, skippedIds };
 }
 
@@ -551,30 +564,39 @@ export async function dismissWordCandidates(
   input: DismissWordCandidatesInput,
 ): Promise<DismissWordCandidatesResult> {
   const adapter = WORD_CANDIDATE_TABLES[input.game];
-  const placeholders = input.candidateIds.map(() => '?').join(', ');
-  const deleted = await db
-    .prepare(
-      `DELETE FROM ${adapter.table} WHERE id IN (${placeholders}) AND status = 'pending' RETURNING id`,
-    )
-    .bind(...input.candidateIds)
-    .all<{ id: string }>();
-  const dismissedIds = deleted.results.map((row) => row.id);
+  const candidateIds = [...new Set(input.candidateIds)];
+  const placeholders = candidateIds.map(() => '?').join(', ');
+  const eligibilitySql = "status = 'pending'";
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const auditStatements = candidateIds.map((id) =>
+    db
+      .prepare(
+        `INSERT INTO word_candidate_dismissals
+          (id, request_id, game, candidate_id, reason, created_at)
+         SELECT ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1 FROM ${adapter.table} WHERE id = ? AND ${eligibilitySql}
+         )`,
+      )
+      .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now, id),
+  );
+  const results = await db.batch([
+    ...auditStatements,
+    db
+      .prepare(
+        `DELETE FROM ${adapter.table} WHERE id IN (${placeholders}) AND ${eligibilitySql}
+         RETURNING id`,
+      )
+      .bind(...candidateIds),
+  ]);
+  const deleteResult = results[results.length - 1];
+  if (deleteResult === undefined) throw new Error('Candidate dismissal result missing');
+  const dismissedIds = z
+    .array(z.strictObject({ id: z.string() }))
+    .parse(deleteResult.results)
+    .map((row) => row.id);
   const dismissedSet = new Set(dismissedIds);
   const skippedIds = [...new Set(input.candidateIds.filter((id) => !dismissedSet.has(id)))];
-  if (dismissedIds.length > 0) {
-    const requestId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await db.batch(
-      dismissedIds.map((id) =>
-        db
-          .prepare(
-            `INSERT INTO word_candidate_dismissals
-              (id, request_id, game, candidate_id, reason, created_at)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-          )
-          .bind(crypto.randomUUID(), requestId, input.game, id, input.reason, now),
-      ),
-    );
-  }
   return { game: input.game, dismissedIds, skippedIds };
 }
