@@ -41,7 +41,6 @@ const KNOWN_VIOLATIONS: Readonly<Record<string, number>> = {
   'boot/bootSplash.css': 3,
   'features/gacha/machine/CapsuleMachine.css': 1,
   'routes/bench/SceneBench.css': 7,
-  'routes/games/GamePickerPage.css': 4,
   'theme/nightArt.css': 8,
 };
 

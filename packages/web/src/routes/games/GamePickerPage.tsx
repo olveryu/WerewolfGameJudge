@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { gameConfigCreatePath, gameGuidePath } from '@/features/navigation/model/gamePaths';
 import { type ClientGameModeOption, GAME_MODE_OPTIONS } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
+import IconChevronForward from '~icons/ion/chevron-forward';
 import IconClose from '~icons/ion/close';
 
 const MAIN_OPTIONS = GAME_MODE_OPTIONS.filter((option) => option.tier === 'main');
@@ -22,7 +23,7 @@ function readPurpose(value: string | null): PickerPurpose {
   throw new Error(`Unsupported game picker purpose "${String(value)}"`);
 }
 
-function FeaturedGameCard({
+function GameOptionRow({
   option,
   onSelect,
 }: {
@@ -33,61 +34,29 @@ function FeaturedGameCard({
   return (
     <button
       type="button"
-      className="picker-featured"
-      style={{
-        backgroundImage: `linear-gradient(135deg, ${option.gradient[0]}, ${option.gradient[1]})`,
-      }}
+      className="picker-option"
       data-testid={TESTIDS.gameModePickerOption(option.gameType)}
       onClick={onSelect}
     >
-      {option.artUrl ? (
-        <>
-          <img className="picker-featured-art" src={option.artUrl} alt="" decoding="async" />
-          <span className="picker-featured-shade" />
-        </>
-      ) : (
-        <Icon className="picker-featured-watermark" aria-hidden />
-      )}
-      <span className="picker-featured-pill">主游戏</span>
-      <span className="picker-featured-text">
-        <span className="picker-featured-title">{option.displayName}</span>
-        <span className="picker-featured-subtitle">{option.subtitle}</span>
+      <span className="picker-option-art" aria-hidden="true">
+        {option.artUrl ? (
+          <img src={option.artUrl} alt="" decoding="async" />
+        ) : (
+          <span className="picker-option-icon" style={{ backgroundColor: option.gradient[1] }}>
+            <Icon aria-hidden />
+          </span>
+        )}
       </span>
+      <span className="picker-option-copy">
+        <span className="picker-option-title">{option.displayName}</span>
+        <span className="picker-option-subtitle">{option.subtitle}</span>
+      </span>
+      <IconChevronForward className="picker-option-chevron" aria-hidden />
     </button>
   );
 }
 
-function MiniGameTile({
-  option,
-  onSelect,
-}: {
-  option: ClientGameModeOption;
-  onSelect: () => void;
-}) {
-  const { Icon } = option;
-  return (
-    <button
-      type="button"
-      className="picker-mini"
-      data-testid={TESTIDS.gameModePickerOption(option.gameType)}
-      onClick={onSelect}
-    >
-      {option.artUrl ? (
-        <img className="picker-mini-art" src={option.artUrl} alt="" decoding="async" />
-      ) : (
-        <span className="picker-mini-icon" style={{ backgroundColor: option.gradient[1] }}>
-          <Icon aria-hidden />
-        </span>
-      )}
-      <span className="picker-mini-text">
-        <span className="picker-mini-title">{option.displayName}</span>
-        <span className="picker-mini-subtitle">{option.subtitle}</span>
-      </span>
-    </button>
-  );
-}
-
-/** Game picker opened from Home: flagship games as featured cards, the rest under 小游戏. */
+/** Game picker opened from Home, with production games grouped in compact catalog lists. */
 export function GamePickerPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -114,20 +83,27 @@ export function GamePickerPage() {
         </Link>
       </header>
 
-      <section className="picker-featured-list">
-        {MAIN_OPTIONS.map((option) => (
-          <FeaturedGameCard key={option.gameType} option={option} onSelect={() => select(option)} />
-        ))}
+      <section className="picker-section">
+        <h2 className="picker-section-label">主游戏</h2>
+        <div className="picker-option-list">
+          {MAIN_OPTIONS.map((option) => (
+            <GameOptionRow key={option.gameType} option={option} onSelect={() => select(option)} />
+          ))}
+        </div>
       </section>
 
       {MINI_OPTIONS.length > 0 && (
-        <section>
+        <section className="picker-section">
           <h2 className="picker-section-label" data-testid={TESTIDS.gameModePickerMiniSection}>
             小游戏
           </h2>
-          <div className="picker-mini-grid">
+          <div className="picker-option-list">
             {MINI_OPTIONS.map((option) => (
-              <MiniGameTile key={option.gameType} option={option} onSelect={() => select(option)} />
+              <GameOptionRow
+                key={option.gameType}
+                option={option}
+                onSelect={() => select(option)}
+              />
             ))}
           </div>
         </section>

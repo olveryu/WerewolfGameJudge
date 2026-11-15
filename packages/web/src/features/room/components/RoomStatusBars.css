@@ -50,7 +50,6 @@
   border: var(--border-width) solid var(--color-warning);
   border-radius: var(--radius-large);
   background: var(--color-warning-a13);
-  box-shadow: var(--shadow-sm);
 }
 
 .controlled-seat-banner-text {

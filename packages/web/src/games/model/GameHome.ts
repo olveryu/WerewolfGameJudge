@@ -3,7 +3,7 @@ import type { ComponentType, SVGProps } from 'react';
 
 /**
  * Home placement tier of a game mode.
- * - 'main': flagship games (hero placement in the create picker).
+ * - 'main': games grouped under 主游戏 in the picker.
  * - 'mini': lightweight party games, grouped under 小游戏.
  */
 export type GameHomeTier = 'main' | 'mini';
@@ -14,9 +14,9 @@ export interface GameModePresentation {
   /** Ionicons glyph from `~icons/ion/*`. */
   readonly Icon: ComponentType<SVGProps<SVGSVGElement>>;
   readonly tier: GameHomeTier;
-  /** Theme gradient stops (light → dark) owned by the game; backs picker cards and icon chips. */
+  /** Theme gradient stops (light → dark) owned by the game for its shared presentation. */
   readonly gradient: readonly [string, string];
-  /** Key art URL; games without art render `gradient` instead. */
+  /** Key art URL; games without art use the second gradient color behind their picker icon. */
   readonly artUrl?: string;
 }
 

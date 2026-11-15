@@ -46,9 +46,9 @@
   align-items: center;
   gap: var(--space-medium);
   padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
 }
 
 .unlocks-summary-ring {
@@ -144,7 +144,6 @@
   border: var(--border-width-thick) solid var(--color-background);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .unlocks-cell-frame[data-locked='true'] {
