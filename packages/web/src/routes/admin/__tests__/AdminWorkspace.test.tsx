@@ -429,7 +429,7 @@ describe('admin workspace', () => {
     await userEvent.click(await screen.findByRole('link', { name: '瞎掰王' }));
     const navigation = await screen.findByRole('navigation', { name: '选择词库' });
     await userEvent.click(within(navigation).getByRole('link', { name: '谁是卧底' }));
-    await userEvent.type(screen.getByRole('searchbox', { name: '搜索词' }), 'lotus');
+    await userEvent.type(screen.getByRole('searchbox', { name: '搜索候选或投稿' }), 'lotus');
     await userEvent.click(screen.getByRole('button', { name: '搜' }));
     await waitFor(() => expect(view.router.state.location.search).toBe('?search=lotus'));
     expect(view.router.state.location.pathname).toBe('/admin/words/undercover');
@@ -486,10 +486,10 @@ describe('admin workspace', () => {
       await screen.findByRole('button', { name: '新建授权' });
       await userEvent.click(screen.getByRole('link', { name: '返回统一词库' }));
       await screen.findByRole('link', { name: batch.id });
-      await userEvent.type(screen.getByRole('searchbox', { name: '搜索词' }), 'lotus');
+      await userEvent.type(screen.getByRole('searchbox', { name: '搜索候选或投稿' }), 'lotus');
       await userEvent.click(screen.getByRole('button', { name: '搜' }));
       await waitFor(() => expect(view.router.state.location.search).toContain('search=lotus'));
-      await userEvent.clear(screen.getByRole('searchbox', { name: '搜索词' }));
+      await userEvent.clear(screen.getByRole('searchbox', { name: '搜索候选或投稿' }));
       await userEvent.click(screen.getByRole('button', { name: '搜' }));
       await waitFor(() => expect(view.router.state.location.search).toBe(''));
       await userEvent.click(screen.getByRole('link', { name: batch.id }));

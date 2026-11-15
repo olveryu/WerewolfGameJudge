@@ -241,10 +241,15 @@ describe('unified library', () => {
   it('shows the three-cell stat strip from stats plus merged totals', async () => {
     mount();
     await screen.findByText('大熊猫');
-    // 在库 12 + 3；通过率 4 / (4 + 6)；待批准 候选 1 + 投稿待处理 1 + 已批准 1。
+    // 在库 12 + 3；通过率 4 / (4 + 6)；待批准 候选 1 + 投稿 1。
     expect(screen.getByRole('button', { name: '在库词数：15，查看完整数值' })).toBeVisible();
-    expect(screen.getByRole('button', { name: '审核通过率：40%，查看完整数值' })).toBeVisible();
-    expect(screen.getByRole('button', { name: '待你批准：3，查看完整数值' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '后台候选审核通过率：40%，查看完整数值' }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: '待你批准：2，查看完整数值' })).toBeVisible();
+    expect(
+      screen.getByText('近 30 天后台候选的模型审核通过占比，不包括 Agent 投稿。'),
+    ).toBeVisible();
   });
 
   it('shows the source row from the merged totals', async () => {
@@ -254,8 +259,26 @@ describe('unified library', () => {
     expect(sources).not.toBeNull();
     expect(within(sources as HTMLElement).getByText('15 条')).toBeVisible();
     expect(within(sources as HTMLElement).getByText('2 条')).toBeVisible();
-    expect(within(sources as HTMLElement).getByText('3 条')).toBeVisible();
-    expect(within(sources as HTMLElement).getByText('1 条')).toBeVisible();
+    expect(screen.getByText('Agent 待批准').nextElementSibling).toHaveTextContent('1 条');
+    expect(screen.getByText('审核失败待重审').nextElementSibling).toHaveTextContent('1 条');
+  });
+
+  it('distinguishes pending approval from approved candidates awaiting review', async () => {
+    vi.mocked(fetchLibraryItems).mockResolvedValue({
+      ...libraryData,
+      totals: {
+        candidates: { pending: 3, approved: 4 },
+        submissions: { pending: 2, approved: 5 },
+      },
+    });
+    mount();
+    expect(await screen.findByRole('button', { name: '待你批准：5，查看完整数值' })).toBeVisible();
+    expect(screen.getByText('Agent 待批准').nextElementSibling).toHaveTextContent('2 条');
+    expect(
+      screen.getByText('已批准待审核', { selector: '.admin-library-summary-key' })
+        .nextElementSibling,
+    ).toHaveTextContent('9 条');
+    expect(within(screen.getByRole('list', { name: '词库流程' })).getByText('14')).toBeVisible();
   });
 
   it('shows the four-step flow bar without a monthly-published step', async () => {
@@ -310,6 +333,27 @@ describe('unified library', () => {
     expect(screen.getByText('大熊猫')).toBeVisible();
   });
 
+  it('opens a submission card batch while preserving filters and returns to the library', async () => {
+    vi.mocked(fetchLibraryItems).mockResolvedValue({
+      ...libraryData,
+      items: [{ ...submissionItem, batchId: batchDetail.id }],
+    });
+    const { router, user } = mount('drawguess', '?search=玫瑰&status=pending');
+    const card = (await screen.findByText('玫瑰花')).closest('article');
+    expect(card).not.toBeNull();
+    await user.click(
+      within(card as HTMLElement).getByRole('button', { name: '查看投稿批次：玫瑰花' }),
+    );
+    expect(router.state.location.search).toContain(`batch=${batchDetail.id}`);
+    expect(router.state.location.search).toContain('status=pending');
+    const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
+    expect(wordSubmissionsApi.batch).toHaveBeenCalledWith(batchDetail.id, expect.any(AbortSignal));
+    await user.click(within(dialog).getByRole('button', { name: '关闭投稿批次审核' }));
+    await waitFor(() => expect(router.state.location.search).not.toContain('batch='));
+    expect(router.state.location.search).toContain('status=pending');
+    expect(screen.getByText('玫瑰花')).toBeVisible();
+  });
+
   it('filters the card stream by status without filtering the batches zone', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
@@ -331,7 +375,8 @@ describe('unified library', () => {
   it('searches the merged stream by word', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
-    await user.type(screen.getByRole('searchbox', { name: '搜索词' }), '玫瑰花');
+    expect(screen.getByText('搜索后台候选和 Agent 投稿；库存只显示数量。')).toBeVisible();
+    await user.type(screen.getByRole('searchbox', { name: '搜索候选或投稿' }), '玫瑰花');
     await user.click(screen.getByRole('button', { name: '搜' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
@@ -500,5 +545,37 @@ describe('unified library', () => {
         expect.objectContaining({ action: 'endorse' }),
       ),
     );
+  });
+
+  it('uses separate action payloads and request IDs for different submission batches', async () => {
+    const secondSubmission: WordLibraryItem = {
+      ...submissionItem,
+      key: 'submission:item-3',
+      id: 'item-3',
+      batchId: 'batch-2',
+      title: '向日葵',
+      contentHash: 'c'.repeat(64),
+      revision: 3,
+    };
+    vi.mocked(fetchLibraryItems).mockResolvedValue({
+      ...libraryData,
+      items: [submissionItem, secondSubmission],
+    });
+    const { user } = mount();
+    await screen.findByText('玫瑰花');
+    await user.click(screen.getByRole('checkbox', { name: '选择玫瑰花' }));
+    await user.click(screen.getByRole('checkbox', { name: '选择向日葵' }));
+    await user.click(screen.getByRole('button', { name: '批量批准 2' }));
+    await user.click(await screen.findByRole('button', { name: '批准进入审核 (1)' }));
+    await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
+    await user.click(await screen.findByRole('button', { name: '批准进入审核 (1)' }));
+    await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(2));
+
+    const [first, second] = vi.mocked(wordSubmissionsApi.action).mock.calls;
+    expect(first?.[0]).toBe('batch-1');
+    expect(first?.[1].items).toEqual([{ id: 'item-1', contentHash: 'a'.repeat(64), revision: 1 }]);
+    expect(second?.[0]).toBe('batch-2');
+    expect(second?.[1].items).toEqual([{ id: 'item-3', contentHash: 'c'.repeat(64), revision: 3 }]);
+    expect(second?.[1].id).not.toBe(first?.[1].id);
   });
 });
