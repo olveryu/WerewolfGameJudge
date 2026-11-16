@@ -415,8 +415,7 @@ describe('admin workspace', () => {
     await screen.findByRole('button', { name: '今日读取行数：100，查看完整数值' });
     const quotaTab = screen.getByRole('tab', { name: '今日额度' });
     const pageSwitcher = screen.getByRole('button', { name: '切换页面，当前：D1 用量' });
-    expect(pageSwitcher).toHaveTextContent('切换管理页面');
-    expect(pageSwitcher).not.toHaveTextContent('D1 用量');
+    expect(pageSwitcher).toHaveTextContent('D1 用量');
     expect(quotaTab).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('group', { name: '分析时间范围' })).not.toBeInTheDocument();
     expect(fetchD1Insights).not.toHaveBeenCalled();

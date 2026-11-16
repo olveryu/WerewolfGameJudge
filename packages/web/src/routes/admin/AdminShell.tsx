@@ -1,12 +1,11 @@
 /** Responsive navigation and outlet for the admin workspace. */
 import { useIsFetching, useQueryClient } from '@tanstack/react-query';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import IconBarChartOutline from '~icons/ion/bar-chart-outline';
 import IconCheckmarkOutline from '~icons/ion/checkmark-outline';
-import IconChevronDown from '~icons/ion/chevron-down';
 import IconConstructOutline from '~icons/ion/construct-outline';
 import IconGridOutline from '~icons/ion/grid-outline';
 import IconHomeOutline from '~icons/ion/home-outline';
@@ -19,6 +18,19 @@ import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconSpeedometerOutline from '~icons/ion/speedometer-outline';
 
 import { DetailDrawer } from './components/Overlays';
+
+interface PageSwitcher {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+}
+
+const PageSwitcherContext = createContext<PageSwitcher | null>(null);
+
+/** Open the page-switcher drawer from a page title; null outside the admin shell. */
+export function usePageSwitcher(): PageSwitcher | null {
+  return useContext(PageSwitcherContext);
+}
 
 const MONITORING_PATHS = ['/admin/growth', '/admin/performance', '/admin/ai'];
 const NAVIGATION = [
@@ -36,7 +48,7 @@ const NAVIGATION = [
 
 function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);
+  const switcher = usePageSwitcher();
   const current = NAVIGATION.find((item) =>
     item.path === '/admin'
       ? pathname === item.path
@@ -54,7 +66,7 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
             ? 'admin-page-menu-link'
             : ({ isActive }) => `admin-nav-link${isActive ? ' is-active' : ''}`
         }
-        onClick={menu ? () => setOpen(false) : undefined}
+        onClick={menu ? () => switcher?.close() : undefined}
       >
         <item.icon aria-hidden />
         <span>{item.label}</span>
@@ -69,19 +81,8 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
       <nav className="admin-navigation" aria-label="管理后台导航">
         {NAVIGATION.map((item) => navigationLink(item))}
       </nav>
-      <button
-        type="button"
-        className="admin-mobile-navigation"
-        aria-label={`切换页面，当前：${current?.label ?? '管理后台'}`}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        <span>切换管理页面</span>
-        <IconChevronDown aria-hidden />
-      </button>
-      {open && (
-        <DetailDrawer variant="sheet" title="切换页面" onClose={() => setOpen(false)}>
+      {switcher?.isOpen && (
+        <DetailDrawer variant="sheet" title="切换页面" onClose={() => switcher.close()}>
           <nav aria-label="选择管理页面">
             {[
               { label: '管理', items: NAVIGATION.slice(0, 5) },
@@ -110,6 +111,15 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
   const monitoring = MONITORING_PATHS.includes(location.pathname);
   const [monitoringSearch, setMonitoringSearch] = useState(monitoring ? location.search : '');
   const [previousSearch, setPreviousSearch] = useState(location.search);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcher = useMemo<PageSwitcher>(
+    () => ({
+      isOpen: switcherOpen,
+      open: () => setSwitcherOpen(true),
+      close: () => setSwitcherOpen(false),
+    }),
+    [switcherOpen],
+  );
   const workspace = useRef<HTMLDivElement>(null);
   const header = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -130,29 +140,31 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
     setMonitoringSearch(location.search);
   }
   return (
-    <div className="admin-workspace" ref={workspace}>
-      <div className="admin-workspace-header" ref={header}>
-        <ScreenHeader title="管理后台" onBack={onBack}>
-          <button
-            type="button"
-            className="admin-icon-button"
-            aria-label="刷新当前页面"
-            disabled={fetching > 0}
-            onClick={() => void client.refetchQueries({ queryKey: ['admin'], type: 'active' })}
-          >
-            <IconRefreshOutline aria-hidden />
-          </button>
-        </ScreenHeader>
-        {localMockMode && (
-          <p className="admin-mock-banner" role="status">
-            本地模拟数据 · 修改只保留在当前标签页，刷新后重置
-          </p>
-        )}
-        <AdminNavigation monitoringSearch={monitoring ? location.search : monitoringSearch} />
+    <PageSwitcherContext.Provider value={switcher}>
+      <div className="admin-workspace" ref={workspace}>
+        <div className="admin-workspace-header" ref={header}>
+          <ScreenHeader title="管理后台" onBack={onBack}>
+            <button
+              type="button"
+              className="admin-icon-button"
+              aria-label="刷新当前页面"
+              disabled={fetching > 0}
+              onClick={() => void client.refetchQueries({ queryKey: ['admin'], type: 'active' })}
+            >
+              <IconRefreshOutline aria-hidden />
+            </button>
+          </ScreenHeader>
+          {localMockMode && (
+            <p className="admin-mock-banner" role="status">
+              本地模拟数据 · 修改只保留在当前标签页，刷新后重置
+            </p>
+          )}
+          <AdminNavigation monitoringSearch={monitoring ? location.search : monitoringSearch} />
+        </div>
+        <main className="admin-main">
+          <Outlet />
+        </main>
       </div>
-      <main className="admin-main">
-        <Outlet />
-      </main>
-    </div>
+    </PageSwitcherContext.Provider>
   );
 }
