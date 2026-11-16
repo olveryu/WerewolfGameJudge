@@ -1,5 +1,5 @@
 /**
- * Stage content model (docs/room-stage-layout-design.md): the one-line information bar a game
+ * Stage content model (docs/room-stage-layout-design.md): the information bar a game
  * gives the shell for its in-play phases, and the roster grouping shared by the bar's roster chip
  * and its sheet. Pure data; the shell renders it.
  */
@@ -55,8 +55,8 @@ export interface RoomStageHudModel {
   readonly roster: RoomStageRosterModel | null;
   readonly timer: RoomStageTimerModel | null;
   /**
-   * Chips after the countdown and the takeover chip (DrawGuess's score). On a narrow screen they
-   * wrap first, so the countdown keeps the first row.
+   * Personal information in the secondary row, beside the optional game-owned action.
+   * Without either, the roster stays in the primary row and no secondary row renders.
    */
   readonly secondaryChips: readonly RoomStageChip[];
 }

@@ -2,6 +2,8 @@
  * 计分板：座位、得分与排名。终局按竞赛排名 1、2、2、4 顺延。
  */
 
+import type { DrawGuessViewModel } from '@game-judge/game-engine/games/drawguess/public';
+
 import {
   DRAWGUESS_BOT_TAG,
   formatDrawGuessScore,
@@ -17,6 +19,25 @@ export interface DrawGuessScoreboardRow {
   /** 本轮得分；终局榜为 null，不渲染本轮段。 */
   readonly roundScore: number | null;
   readonly totalScore: number;
+}
+
+/** Reuses the authoritative seat projection for live, settlement and final scoreboards. */
+export function buildDrawGuessScoreboardRows(
+  viewModel: DrawGuessViewModel,
+  effectiveSeat: number | null,
+  readScores: (seat: number) => {
+    readonly roundScore: number | null;
+    readonly totalScore: number;
+  },
+): DrawGuessScoreboardRow[] {
+  return viewModel.seats.map((seat) => ({
+    seat: seat.seat,
+    displayName: seat.displayName,
+    isBot: seat.isBot,
+    isDrawer: seat.isDrawer,
+    isSelf: seat.seat === effectiveSeat,
+    ...readScores(seat.seat),
+  }));
 }
 
 interface DrawGuessScoreboardProps {

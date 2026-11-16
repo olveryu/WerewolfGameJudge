@@ -72,7 +72,10 @@ describe('createStoryRelayStageHud', () => {
   it('shows the passage, the readiness roster and the writing countdown', () => {
     const state = playStoryRelayTestRound({ stopAt: { stepIndex: 1, phase: 'answering' } });
     expect(hud(state, 80)).toEqual({
-      chips: [{ key: 'step', label: `第 2/${STEP_COUNT} 段`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 2/${STEP_COUNT} 段`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '写作', detail: null, tone: 'accent' },
+      ],
       roster: {
         chipLabel: '准备 0/4',
         title: '准备情况',
@@ -111,7 +114,10 @@ describe('createStoryRelayStageHud', () => {
   it('switches to the collection roster while settling, with no countdown', () => {
     const state = playStoryRelayTestRound({ stopAt: { stepIndex: 0, phase: 'settling' } });
     expect(hud(state, null)).toEqual({
-      chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 段`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 1/${STEP_COUNT} 段`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '收稿', detail: null, tone: 'accent' },
+      ],
       roster: {
         chipLabel: '收稿 0/4',
         title: '收稿情况',
@@ -128,7 +134,10 @@ describe('createStoryRelayStageHud', () => {
   it('counts down the handoff without a roster', () => {
     const state = playStoryRelayTestRound({ stopAt: { stepIndex: 0, phase: 'transition' } });
     expect(hud(state, 2)).toEqual({
-      chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 段`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 1/${STEP_COUNT} 段`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '换棒', detail: null, tone: 'accent' },
+      ],
       roster: null,
       timer: { label: '换棒', remainingSeconds: 2, totalSeconds: 3 },
       secondaryChips: [],

@@ -20,7 +20,6 @@ const REACTIONS = DRAWGUESS_REACTIONS.map((kind) => ({
 export function DrawGuessReactionPicker({
   drawerSeat,
   reactionsBySeat,
-  seats,
   effectiveSeat,
   controlledSeat,
   isSubmitting,
@@ -30,7 +29,6 @@ export function DrawGuessReactionPicker({
 }: {
   readonly drawerSeat: number;
   readonly reactionsBySeat: Readonly<Record<number, DrawGuessReaction>>;
-  readonly seats: readonly { readonly seat: number; readonly displayName: string }[];
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly isSubmitting: boolean;
@@ -42,13 +40,6 @@ export function DrawGuessReactionPicker({
   const canSend =
     effectiveSeat !== null && effectiveSeat !== drawerSeat && myReaction === undefined;
   const reactions = Object.values(reactionsBySeat);
-  const senders = Object.keys(reactionsBySeat).flatMap((seatKey) => {
-    const seat = Number(seatKey);
-    const reaction = reactionsBySeat[seat];
-    if (reaction === undefined) return [];
-    const senderName = seats.find((candidate) => candidate.seat === seat)?.displayName;
-    return [{ seat, senderName: senderName ?? `座位${seat + 1}`, reaction }];
-  });
   const actionHint =
     effectiveSeat === drawerSeat
       ? '画手不能给本轮作画送互动'
@@ -96,19 +87,6 @@ export function DrawGuessReactionPicker({
         ))}
         <span className="drawguess-reaction-hint">{actionHint}</span>
       </div>
-      {senders.length === 0 ? (
-        <p className="drawguess-reaction-senders">还没有人送出互动</p>
-      ) : (
-        <ul className="drawguess-reaction-senders" aria-label="送出互动的玩家">
-          {senders.map(({ seat, senderName, reaction }) => {
-            return (
-              <li key={seat}>
-                {senderName} 送出{REACTION_LABELS[reaction]}
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </section>
   );
 }
