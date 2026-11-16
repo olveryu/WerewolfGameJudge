@@ -313,7 +313,7 @@ readonly guessedSeats: readonly number[];
 - 画廊「分享本篇画册」打开复盘并定位到该篇首页。
 - **删除**：`PictionaryAlbumExport`（图片加载 / 重试由平台 `ReviewImageBlock` 承担）。
 
-### 5.7 故事接龙 `storyrelay`
+### 5.7 轮流讲故事 `storyrelay`
 
 - **事实来源**：`getStoryRelayVisibleStories(state)`、`participants`、`roundNumber`。
 - **可用条件**：`phase === 'ended' | 'aborted'`。
