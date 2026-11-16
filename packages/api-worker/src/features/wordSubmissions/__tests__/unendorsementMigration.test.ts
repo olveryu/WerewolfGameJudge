@@ -20,10 +20,21 @@ function requireMigration() {
 
 beforeEach(async () => {
   await env.DB.batch([
+    // Delete dependents first: events reference items/actions, control
+    // events and credentials reference agents (the 0085 system agent owns
+    // a synthetic credential and its insert triggers wrote control events,
+    // so agents cannot be deleted bare).
     env.DB.prepare('DELETE FROM word_submission_events'),
-    env.DB.prepare('DELETE FROM word_submission_items'),
     env.DB.prepare('DELETE FROM word_submission_actions'),
+    env.DB.prepare('DELETE FROM word_submission_control_events'),
+    // The system agent points at its credential: clear the reference before
+    // deleting credentials, or the FK blocks the cleanup.
+    env.DB.prepare('UPDATE word_submission_agents SET current_credential_id = NULL'),
+    env.DB.prepare('DELETE FROM word_submission_credentials'),
+    env.DB.prepare('DELETE FROM word_submission_items'),
     env.DB.prepare('DELETE FROM word_submission_batches'),
+    // Daily usage rows reference agents; delete them before the agents.
+    env.DB.prepare('DELETE FROM word_submission_daily_usage'),
     env.DB.prepare('DELETE FROM word_submission_agents'),
     env.DB.prepare(
       `INSERT INTO word_submission_agents
