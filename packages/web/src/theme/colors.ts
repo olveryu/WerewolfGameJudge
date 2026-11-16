@@ -39,6 +39,33 @@ export const colors = {
   overlayLight: 'rgba(26, 49, 73, 0.25)',
 } as const;
 
+/** Illustration palette for the animated DrawGuess gifts, not UI status colors. */
+export const reactionArtColors = {
+  tomato: '#DC3C32',
+  tomatoLight: '#F35443',
+  tomatoHighlight: '#FFB19A',
+  tomatoStain: '#E34432',
+  tomatoSplatLight: '#F36949',
+  leaf: '#30844A',
+  stem: '#246A3D',
+  flowerStem: '#328657',
+  flowerLeaf: '#47A56B',
+  petal: '#DF547D',
+  petalLight: '#F394AD',
+  petalParticle: '#DA4D7B',
+  petalParticleLight: '#EE8CAD',
+  pollen: '#F8CC55',
+  pollenHighlight: '#FFE8A3',
+  shell: '#E9D8B7',
+  shellLight: '#FFF3DA',
+  shellHighlight: '#FFFDF5',
+  shellParticle: '#EAD6B0',
+  white: '#FFF8DF',
+  yolk: '#F5AD22',
+  yolkLight: '#FFD96A',
+  yolkParticle: '#F5B52F',
+} as const;
+
 function toCustomPropertyName(prefix: string, token: string): string {
   return `--${prefix}-${token.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
 }

@@ -129,13 +129,22 @@ describe('createDrawGuessStageHud', () => {
       hudInput(playTo(1, 'dealing'), { effectiveSeat: 1, remainingSeconds: null }),
     );
     expect(hud?.timer).toBeNull();
+    expect(hud?.chips[1]).toEqual({
+      key: 'activity',
+      label: '选词',
+      detail: null,
+      tone: 'accent',
+    });
     expect(hud?.roster?.isUrgent).toBe(false);
   });
 
   it('shows the turn, a plain roster and the word select countdown', () => {
     const hud = createDrawGuessStageHud(hudInput(playTo(0, 'wordSelect')));
     expect(hud).toEqual({
-      chips: [{ key: 'turn', label: '1/8 轮', detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'turn', label: '1/8 轮', detail: null, tone: 'neutral' },
+        { key: 'activity', label: '选词', detail: null, tone: 'accent' },
+      ],
       roster: {
         chipLabel: '名单',
         title: '本轮玩家',
@@ -156,7 +165,7 @@ describe('createDrawGuessStageHud', () => {
       { key: 'word', label: '大熊猫', detail: '3 字', tone: 'accent' },
     ]);
     expect(hud?.secondaryChips).toEqual([
-      { key: 'score', label: '我 0 分 · 本轮 +0', detail: null, tone: 'neutral' },
+      { key: 'score', label: '我 0 分', detail: null, tone: 'neutral' },
     ]);
     expect(hud?.roster?.chipLabel).toBe('已猜中 1/3');
     expect(hud?.roster?.groupTitles.pending).toBe('还在猜');

@@ -1,44 +1,79 @@
-/* Stage information bar: one wrapping row of chips over a thin countdown bar. */
+/* Keep the current task and timer primary; only add a second row when the game needs it. */
 .room-stage-hud {
   flex-shrink: 0;
-  padding: var(--space-small) var(--space-small) var(--space-tight);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-small) var(--space-screen-h) var(--space-tight);
+  border-bottom: var(--border-width) solid var(--color-border-light);
+  background: var(--color-surface);
 }
 
 .room-stage-hud-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-tight);
+  gap: var(--space-small);
 }
 
-.room-stage-hud-spacer {
+.room-stage-hud-context {
+  display: flex;
   flex: 1;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+
+.room-stage-hud-details,
+.room-stage-hud-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.room-stage-hud-details {
+  flex-wrap: wrap;
+}
+
+.room-stage-hud-summary {
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-medium);
+  min-width: 0;
+  margin-left: auto;
 }
 
 .room-stage-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-tight);
-  min-height: var(--size-button-sm);
+  min-height: var(--size-min-touch-target);
   box-sizing: border-box;
-  padding: 0 var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  font-weight: var(--weight-semibold);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 
 .room-stage-chip[data-tone='accent'] {
-  border-color: transparent;
-  background: var(--color-primary-a12);
   color: var(--color-primary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  letter-spacing: var(--letter-wide);
+  font-weight: var(--weight-semibold);
+}
+
+.room-stage-chip[data-tone='accent'][data-detailed] {
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+}
+
+.room-stage-hud-context .room-stage-chip {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .room-stage-chip-detail {
@@ -49,17 +84,54 @@
 }
 
 .room-stage-timer {
+  flex-shrink: 0;
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--letter-tight);
   font-variant-numeric: tabular-nums;
 }
 
+.room-stage-timer svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.room-stage-hud[data-expanded] {
+  padding-bottom: var(--space-small);
+}
+
+.room-stage-hud[data-expanded] .room-stage-timer {
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+}
+
+.room-stage-hud-summary .room-stage-chip {
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
 .room-stage-timer[data-urgent] {
-  border-color: var(--color-error-a40);
   color: var(--color-error);
 }
 
 .room-stage-roster-chip {
+  flex-shrink: 0;
   font-family: inherit;
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
   cursor: pointer;
+}
+
+.room-stage-roster-chip:hover {
+  color: var(--color-primary-dark);
+}
+
+.room-stage-roster-chip:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-tight);
+  border-radius: var(--radius-small);
 }
 
 .room-stage-roster-chip svg {
@@ -67,8 +139,7 @@
 }
 
 .room-stage-roster-chip[data-urgent] {
-  border-color: var(--color-error);
-  background: var(--color-error-a12);
+  color: var(--color-error);
 }
 
 .room-stage-roster-alert {
@@ -98,12 +169,12 @@
 }
 
 .room-stage-controlled {
-  border-color: var(--color-warning-a50);
-  background: var(--color-warning-a13);
+  flex-shrink: 0;
+  color: var(--color-warning);
 }
 
 .room-stage-controlled-release {
-  min-height: var(--size-button-sm);
+  min-height: var(--size-min-touch-target);
   padding: 0 0 0 var(--space-tight);
   border: none;
   background: none;
@@ -116,7 +187,7 @@
 .room-stage-timer-bar {
   overflow: hidden;
   height: var(--border-width-thick);
-  margin: var(--space-tight) var(--space-micro) 0;
+  margin: var(--space-tight) 0;
   border-radius: var(--radius-full);
   background: var(--color-border-light);
 }

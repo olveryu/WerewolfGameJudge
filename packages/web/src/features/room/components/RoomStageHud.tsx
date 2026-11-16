@@ -1,12 +1,10 @@
 /**
- * Stage information bar (docs/room-stage-layout-design.md): one row of chips — the game's
- * information chips, the roster chip, the host's controlled-seat chip and the countdown — over a
- * thin countdown bar. The roster chip opens the roster sheet, which also carries the host's bot
- * takeover. Pure presentation over the shell model and the game's stage model.
+ * Stage information bar: primary game context and countdown, with an optional secondary row for
+ * the roster, personal information and a game-owned action. Bot takeover stays in the roster.
  */
 import './RoomStageHud.css';
 
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
@@ -29,12 +27,14 @@ import { TESTIDS } from '@/testids';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconClose from '~icons/ion/close';
 import IconGameControllerOutline from '~icons/ion/game-controller-outline';
+import IconTimeOutline from '~icons/ion/time-outline';
 
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
     <span
       className="room-stage-chip"
       data-tone={chip.tone}
+      data-detailed={chip.detail !== null || undefined}
       data-testid={TESTIDS.roomStageChip(chip.key)}
     >
       {chip.label}
@@ -56,6 +56,7 @@ function TimerChip({ timer }: { readonly timer: RoomStageTimerModel }) {
       data-urgent={isUrgent || undefined}
       data-testid={TESTIDS.roomStageTimer}
     >
+      <IconTimeOutline aria-hidden />
       {remaining === null ? '不限时' : formatCountdownSeconds(remaining)}
     </span>
   );
@@ -211,47 +212,71 @@ export function RoomStageHud({
   seats,
   canTakeOverBots,
   controlledSeat,
+  action = null,
 }: {
   readonly hud: RoomStageHudModel;
   readonly seats: RoomSeatDataSource;
   readonly canTakeOverBots: RoomCapability<readonly [seat: number]>;
   readonly controlledSeat: RoomControlledSeatModel | null;
+  /** Game-owned action; the shared shell does not interpret its label or behavior. */
+  readonly action?: ReactNode;
 }) {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const roster = hud.roster;
-  return (
-    <div className="room-stage-hud" data-testid={TESTIDS.roomStageHud}>
-      <div className="room-stage-hud-row">
-        {hud.chips.map((chip) => (
-          <StageChip key={chip.key} chip={chip} />
-        ))}
-        {roster !== null && (
-          <button
-            type="button"
-            className="room-stage-chip room-stage-roster-chip"
-            aria-haspopup="dialog"
-            aria-label={roster.isUrgent ? `${roster.chipLabel}，有机器人等待接管` : undefined}
-            data-urgent={roster.isUrgent || undefined}
-            onClick={() => setIsRosterOpen(true)}
-            data-testid={TESTIDS.roomStageRosterChip}
-          >
-            {roster.isUrgent && (
-              <span className="room-stage-roster-alert" aria-hidden>
-                !
-              </span>
-            )}
-            {roster.chipLabel}
-            <IconChevronForward aria-hidden />
-          </button>
+  const hasSecondaryRow =
+    hud.secondaryChips.length > 0 || action !== null || controlledSeat !== null;
+  const rosterButton =
+    roster === null ? null : (
+      <button
+        type="button"
+        className="room-stage-chip room-stage-roster-chip"
+        aria-haspopup="dialog"
+        aria-expanded={isRosterOpen}
+        aria-label={roster.isUrgent ? `${roster.chipLabel}，有机器人等待接管` : undefined}
+        data-urgent={roster.isUrgent || undefined}
+        onClick={() => setIsRosterOpen(true)}
+        data-testid={TESTIDS.roomStageRosterChip}
+      >
+        {roster.isUrgent && (
+          <span className="room-stage-roster-alert" aria-hidden>
+            !
+          </span>
         )}
-        <span className="room-stage-hud-spacer" />
-        {hud.timer !== null && <TimerChip timer={hud.timer} />}
-        {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
-        {hud.secondaryChips.map((chip) => (
+        {roster.chipLabel}
+        <IconChevronForward aria-hidden />
+      </button>
+    );
+  return (
+    <div
+      className="room-stage-hud"
+      data-expanded={hasSecondaryRow || undefined}
+      data-testid={TESTIDS.roomStageHud}
+    >
+      <div className="room-stage-hud-row">
+        {hud.chips.slice(0, 1).map((chip) => (
           <StageChip key={chip.key} chip={chip} />
         ))}
+        <div className="room-stage-hud-context">
+          {hud.chips.slice(1).map((chip) => (
+            <StageChip key={chip.key} chip={chip} />
+          ))}
+        </div>
+        {!hasSecondaryRow && rosterButton}
+        {hud.timer !== null && <TimerChip timer={hud.timer} />}
       </div>
       <TimerBar timer={hud.timer} />
+      {hasSecondaryRow && (
+        <div className="room-stage-hud-details">
+          {rosterButton}
+          {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
+          <div className="room-stage-hud-summary">
+            {hud.secondaryChips.map((chip) => (
+              <StageChip key={chip.key} chip={chip} />
+            ))}
+            {action}
+          </div>
+        </div>
+      )}
       {isRosterOpen && roster !== null && (
         <RosterSheet
           roster={roster}

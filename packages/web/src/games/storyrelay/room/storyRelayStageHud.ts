@@ -98,6 +98,12 @@ export function createStoryRelayStageHud(input: StoryRelayStageHudInput): RoomSt
       detail: null,
       tone: 'neutral',
     },
+    {
+      key: 'activity',
+      label: state.phase === 'answering' ? '写作' : state.phase === 'transition' ? '换棒' : '收稿',
+      detail: null,
+      tone: 'accent',
+    },
   ];
   switch (state.phase) {
     case 'answering':

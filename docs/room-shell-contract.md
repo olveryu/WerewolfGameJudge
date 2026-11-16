@@ -343,7 +343,7 @@ tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.
 
 - `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, and `sideInspector` form the shared seat-board view. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
-- `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock.
+- `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown and optional secondary chips — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock. Optional `hudAction` is game-owned and rendered in the secondary information row; the shared shell does not interpret its behavior.
 
 Stage content changes three shell surfaces and nothing else:
 

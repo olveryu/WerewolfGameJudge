@@ -74,8 +74,7 @@ function createScoreChips(input: DrawGuessStageHudInput): RoomStageChip[] {
   const seat = input.effectiveSeat;
   if (seat === null) return [];
   const total = input.viewModel.scores[seat] ?? 0;
-  const turn = input.viewModel.turnScores[seat] ?? 0;
-  return [{ key: 'score', label: `我 ${total} 分 · 本轮 +${turn}`, detail: null, tone: 'neutral' }];
+  return [{ key: 'score', label: `我 ${total} 分`, detail: null, tone: 'neutral' }];
 }
 
 /** The countdown of a phase whose engine state carries a deadline. */
@@ -108,7 +107,7 @@ export function createDrawGuessStageHud(input: DrawGuessStageHudInput): RoomStag
           ? null
           : requireRemainingSeconds(phase.kind, input.remainingSeconds);
       return {
-        chips: [turnChip],
+        chips: [turnChip, { key: 'activity', label: '选词', detail: null, tone: 'accent' }],
         roster: createDrawGuessRoster(input, phase.drawerSeat, remainingSeconds),
         timer:
           remainingSeconds === null
