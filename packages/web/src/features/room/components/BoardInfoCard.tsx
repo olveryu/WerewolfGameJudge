@@ -9,7 +9,6 @@ import { type ReactNode, useState } from 'react';
 import { FactionChip } from '@/components/FactionChip';
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import IconBookOutline from '~icons/ion/book-outline';
-import IconBulbOutline from '~icons/ion/bulb-outline';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
 import IconDocumentTextOutline from '~icons/ion/document-text-outline';
@@ -87,18 +86,14 @@ export function BoardInfoCard({
                         color={section.color}
                         size="md"
                         onPress={() => onRolePress(item.roleId)}
+                        showChevron
                       />
                     ))}
                   </div>
                 </div>
               ),
           )}
-          <div className="board-info-footer">
-            <span className="board-info-hint">
-              <IconBulbOutline aria-hidden /> 点击角色名查看说明
-            </span>
-            {footer}
-          </div>
+          {footer !== null && footer !== false && <div className="board-info-footer">{footer}</div>}
         </div>
       )}
     </section>

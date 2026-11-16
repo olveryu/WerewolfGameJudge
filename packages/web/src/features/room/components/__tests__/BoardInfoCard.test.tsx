@@ -8,10 +8,16 @@ describe('BoardInfoCard', () => {
     const onStrategyPress = vi.fn();
     const onNotepadPress = vi.fn();
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <BoardInfoCard
         playerCount={9}
-        sections={[]}
+        sections={[
+          {
+            title: '神职',
+            color: 'var(--color-god)',
+            items: [{ roleId: 'seer', displayName: '预言家', count: 1 }],
+          },
+        ]}
         collapsed={false}
         onRolePress={vi.fn()}
         onStrategyPress={onStrategyPress}
@@ -29,16 +35,21 @@ describe('BoardInfoCard', () => {
         .map((button) => button.textContent),
     ).toEqual(['配置（9人）', '攻略', '笔记', '']);
 
+    expect(screen.getByRole('button', { name: '预言家' })).toBeInTheDocument();
+    expect(screen.getByText('›')).toBeInTheDocument();
+    expect(container.querySelector('.board-info-footer')).toBeNull();
+
     await user.click(screen.getByRole('button', { name: '攻略' }));
     await user.click(screen.getByRole('button', { name: '笔记' }));
     expect(onStrategyPress).toHaveBeenCalledOnce();
     expect(onNotepadPress).toHaveBeenCalledOnce();
     await user.click(screen.getByRole('button', { name: '收起配置' }));
-    expect(screen.queryByText('点击角色名查看说明')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '预言家' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '配置（9人）' }));
     expect(screen.getByRole('button', { name: '收起配置' })).toHaveAttribute(
       'aria-expanded',
       'true',
     );
+    expect(screen.getByRole('button', { name: '预言家' })).toBeInTheDocument();
   });
 });

@@ -26,3 +26,8 @@ button.faction-chip {
 button.faction-chip:active {
   opacity: var(--opacity-pressed);
 }
+
+.faction-chip-chevron {
+  margin-left: var(--space-micro);
+  opacity: var(--opacity-disabled);
+}

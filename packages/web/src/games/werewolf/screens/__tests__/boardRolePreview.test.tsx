@@ -63,13 +63,14 @@ describe.each([
     renderScreen();
 
     fireEvent.click(screen.getByText(firstClassicTemplate().name));
+    expect(screen.getAllByText('›').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '预言家' }));
 
     expect(within(screen.getByTestId(TESTIDS.roleCardModal)).getByText('预言家')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '知道了' }));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).toBeNull();
-    expect(screen.getByText(/点击角色名查看能力说明/)).toBeVisible();
+    expect(screen.getByRole('button', { name: '女巫' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '女巫' }));
     expect(within(screen.getByTestId(TESTIDS.roleCardModal)).getByText('女巫')).toBeVisible();
   });
@@ -81,7 +82,7 @@ describe('BoardsGuideContent', () => {
 
     fireEvent.click(screen.getByText(firstClassicTemplate().name));
 
-    expect(screen.getByText('点击角色名查看能力说明')).toBeVisible();
+    expect(screen.getAllByText('›').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: '查看攻略' })).toBeVisible();
     expect(screen.queryByRole('button', { name: '以此为基础' })).toBeNull();
   });
