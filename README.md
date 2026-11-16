@@ -70,8 +70,8 @@
   </tr>
   <tr>
     <td>
-      <img src="assets/readme/game-storyrelay.jpg" alt="故事接龙主视觉" width="100%">
-      <br><b>📖 故事接龙</b> · 4–20 人
+      <img src="assets/readme/game-storyrelay.jpg" alt="轮流讲故事主视觉" width="100%">
+      <br><b>📖 轮流讲故事</b> · 4–20 人
       <br>每人开一篇故事，后续每棒只能看到上一段续写，全部写完后逐篇揭晓全文；没有胜负，纯看一桌人能编多离谱
     </td>
     <td>
@@ -179,7 +179,7 @@ pnpm -F @game-judge/api-worker db:seed:local
 完整索引见 [docs/README.md](docs/README.md)。常用入口：
 
 - [多游戏平台设计](docs/multigame-platform-design.md) · [房间壳契约](docs/room-shell-contract.md) · [部署指南](docs/DEPLOYMENT.md)
-- 各游戏设计：[阿瓦隆](docs/avalon-game-design.md) · [瞎掰王供词](docs/fibking-word-supply.md) · [谁是卧底](docs/undercover-game-design.md) · [你画我猜接龙](docs/pictionary-game-design.md) · [经典你画我猜](docs/drawguess-game-design.md) · [故事接龙](docs/story-relay-game-design.md)
+- 各游戏设计：[阿瓦隆](docs/avalon-game-design.md) · [瞎掰王供词](docs/fibking-word-supply.md) · [谁是卧底](docs/undercover-game-design.md) · [你画我猜接龙](docs/pictionary-game-design.md) · [经典你画我猜](docs/drawguess-game-design.md) · [轮流讲故事](docs/story-relay-game-design.md)
 - AI 编码助手配置：[AGENTS.md](AGENTS.md) · [docs/agent-config.md](docs/agent-config.md)
 
 ---

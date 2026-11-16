@@ -9,7 +9,7 @@
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [multigame-platform-design.md](multigame-platform-design.md)           | 多游戏平台三层架构（Platform / Game module / Catalog）、不变量与第 25 节新游戏接入清单                                                                                                                                                                                 |
 | [room-shell-contract.md](room-shell-contract.md)                       | config / guide / room 共享组件归属契约与完整状态验收矩阵                                                                                                                                                                                                               |
-| [room-stage-layout-design.md](room-stage-layout-design.md)             | 你画我猜 / 你画我猜接龙 / 故事接龙进行中舞台布局：标题栏主持管理、信息条、名单抽屉接管、画布占满剩余高度                                                                                                                                                               |
+| [room-stage-layout-design.md](room-stage-layout-design.md)             | 你画我猜 / 你画我猜接龙 / 轮流讲故事进行中舞台布局：标题栏主持管理、信息条、名单抽屉接管、画布占满剩余高度                                                                                                                                                             |
 | [game-config-schema-design.md](game-config-schema-design.md)           | 游戏配置 Schema 驱动：引擎单源描述符 → worker zod → 客户端 GameConfigForm（已实施）                                                                                                                                                                                    |
 | [game-review-share-design.md](game-review-share-design.md)             | 跨游戏本局复盘与图片分享：声明式复盘文档 + 单一渲染器 + 统一导出链路（设计稿 v2，完全重建）                                                                                                                                                                            |
 | [game-client-convergence-design.md](game-client-convergence-design.md) | 七游戏客户端同构与狼人杀重建：共享控制器（`useReadyRoomSession` / `useBotTakeover` / `useRoleViewing` / `useStageDeadline` / `useRoomAudioOrchestration`）、狼人杀 `NightInteractionModel` 重建、阶段到期服务端结算、复盘事实入引擎（已实施，PR #333；§12 为修订记录） |
@@ -34,7 +34,7 @@
 | [undercover-game-design.md](undercover-game-design.md)             | `undercover` | 谁是卧底                                          |
 | [pictionary-game-design.md](pictionary-game-design.md)             | `pictionary` | 你画我猜接龙                                      |
 | [drawguess-game-design.md](drawguess-game-design.md)               | `drawguess`  | 经典你画我猜                                      |
-| [story-relay-game-design.md](story-relay-game-design.md)           | `storyrelay` | 故事接龙                                          |
+| [story-relay-game-design.md](story-relay-game-design.md)           | `storyrelay` | 轮流讲故事                                        |
 | [demo-game-design.md](demo-game-design.md)                         | `demo`       | 新游戏生成器产出的骨架示例，非上线游戏            |
 
 ## 3. 产品模块

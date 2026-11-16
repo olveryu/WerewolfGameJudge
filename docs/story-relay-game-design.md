@@ -1,8 +1,8 @@
-# 故事接龙游戏设计
+# 轮流讲故事游戏设计
 
 > 状态：普通纯文字模式已按确认范围实现；卡牌模式未实现，代码中不预留相关字段、命令或界面。
 > 最后更新：2026-09-25
-> 展示名：故事接龙  
+> 展示名：轮流讲故事  
 > 建议游戏 ID：`storyrelay`，实现前按仓库命名规则复核并注册。  
 > 关联：[房间界面契约](./room-shell-contract.md)、[视觉基准](./DESIGN.md)、[新增游戏接入清单](./multigame-platform-design.md#25-新增游戏接入清单)、[你画我猜接龙](./pictionary-game-design.md)、[谁是卧底](./undercover-game-design.md)。
 
