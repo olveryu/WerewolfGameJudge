@@ -68,6 +68,7 @@ describe('RoleChip', () => {
       fireEvent.click(chip);
 
       expect(onInfoPress).toHaveBeenCalledWith('wolf2');
+      expect(onInfoPress).toHaveBeenCalledTimes(1);
       expect(onToggle).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
