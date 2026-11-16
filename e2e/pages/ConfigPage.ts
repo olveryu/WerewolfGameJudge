@@ -9,7 +9,7 @@ import { RulesPage } from './RulesPage';
  * Variant → base role mapping.
  *
  * Variant roles share a chip with their base role in the config UI.
- * Selecting a variant requires long-pressing the base chip to open the role info card,
+ * Tapping the base chip opens the role info card,
  * then clicking the variant pill. Keep in sync with configData.ts `variants` arrays.
  */
 const VARIANT_TO_BASE: Record<string, string> = {
@@ -114,12 +114,12 @@ export class ConfigPage {
   /**
    * Select a variant role via the role info card's variant pills.
    *
-   * Long-presses the base chip to open the role info card,
+   * Taps the base chip to open the role info card,
    * then clicks the variant pill and closes the card.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
-    // Long-press to open role info card
-    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click({ delay: 600 });
+    // Tap to open role info card
+    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click();
     const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
     await expect(option).toHaveAttribute('aria-pressed', 'true');

@@ -19,7 +19,6 @@ import { TESTIDS } from '@/testids';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
-import IconInformationCircleOutline from '~icons/ion/information-circle-outline';
 
 /** Card inner width lost to the screen and card side paddings (tokens.css screen-h 20, medium 16). */
 const CARD_HORIZONTAL_INSET_PX = 20 * 2 + 16 * 2;
@@ -96,11 +95,12 @@ export function BoardCard({
       {isExpanded && (
         <div className="board-card-expanded">
           <hr className="board-card-divider" />
-          <FactionRoleList roles={template.roles} showStats={false} onRolePress={onRolePress} />
-          <p className="board-card-hint">
-            <IconInformationCircleOutline aria-hidden /> 点击角色名查看能力说明
-            {onSelect === undefined ? '' : ' · 选板后仍可增减角色'}
-          </p>
+          <FactionRoleList
+            roles={template.roles}
+            showStats={false}
+            onRolePress={onRolePress}
+            showChevrons
+          />
           <div className="board-card-actions" data-centered={onSelect === undefined}>
             {hasStrategy && (
               <Button

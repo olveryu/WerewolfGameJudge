@@ -120,22 +120,12 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('自定义');
   });
 
-  it('switches a variant from the role card opened by a long press', () => {
-    vi.useFakeTimers();
-    try {
-      renderConfigScreen({ presetName: '预女猎白' });
-      const witchChip = screen.getByTestId(TESTIDS.configRoleChip('witch'));
+  it('switches a variant from the role card opened by tapping the chip', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+    const witchChip = screen.getByTestId(TESTIDS.configRoleChip('witch'));
 
-      fireEvent.pointerDown(witchChip);
-      act(() => {
-        vi.advanceTimersByTime(600);
-      });
-      fireEvent.pointerUp(witchChip);
-      fireEvent.click(witchChip);
-      fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
-    } finally {
-      vi.useRealTimers();
-    }
+    fireEvent.click(witchChip);
+    fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
     expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
     expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
