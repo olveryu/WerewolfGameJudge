@@ -159,13 +159,16 @@
 ```bash
 pnpm install          # 安装依赖
 pnpm run dev          # Worker + Vite 同时启动 (localhost:8787 + Vite dev server)
+pnpm --filter @game-judge/web run dev:admin-mock  # 仅启动管理后台 UI 模拟，不需要 Worker 或 D1
 pnpm run quality      # 完整质量门禁（类型、构建、Knip、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
 
-# 本地 D1 seed — dev 用户 (dev@test.local / dev123) + 全物品解锁
+# 本地 D1 seed — dev 用户、全物品解锁，以及三款词库游戏的示例词条
 pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
+
+管理后台 UI 模拟模式登录密码为 `local-admin`。数据由浏览器内存中的 MSW fixtures 提供，写操作仅在当前标签页有效；普通 `pnpm run dev` 和生产构建不会启用模拟 API。
 
 贡献者与 AI 编码助手请先读 [AGENTS.md](AGENTS.md)（构建、测试与代码约定）；新游戏可用 `pnpm run new-game` 从生成器脚手架起步，接入清单见多游戏平台设计文档。
 

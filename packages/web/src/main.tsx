@@ -19,17 +19,19 @@ import { resolveRuntimeEnvironment } from '@/boot/runtimeEnvironment';
 import { installStaleTabReload, removeLegacyServiceWorkers } from '@/boot/tabLifecycle';
 import { WechatBrowserGuide } from '@/boot/WechatBrowserGuide';
 import { MaintenanceGate } from '@/features/maintenance/MaintenanceGate';
+import { startAdminMockWorker } from '@/mocks/adminMock/browser';
 import { applyColorTokens } from '@/theme/colors';
+import { log } from '@/utils/logger';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('index.html is missing the #root element');
 }
+const appRoot = rootElement;
 
 applyColorTokens(document.documentElement);
 installStaleTabReload();
 capturePwaInstallPrompt();
-void removeLegacyServiceWorkers();
 
 /** The router renders its first route once the matched lazy route modules have loaded. */
 function dismissBootSplashOnceRouted(): void {
@@ -44,13 +46,27 @@ function dismissBootSplashOnceRouted(): void {
   });
 }
 
-const root = createRoot(rootElement, {
+const root = createRoot(appRoot, {
   onUncaughtError: reactErrorHandler(),
   onCaughtError: reactErrorHandler(),
   onRecoverableError: reactErrorHandler(),
 });
 
-void resolveRuntimeEnvironment().then((environment) => {
+async function startApplication(): Promise<void> {
+  if (import.meta.env.DEV && import.meta.env.MODE === 'admin-mock') {
+    try {
+      await removeLegacyServiceWorkers();
+      await startAdminMockWorker();
+    } catch (cause: unknown) {
+      log.extend('AdminMock').error('Failed to start the local admin mock worker', cause);
+      appRoot.textContent = '本地管理后台模拟启动失败，请查看调试日志。';
+      return;
+    }
+  } else {
+    void removeLegacyServiceWorkers();
+  }
+
+  const environment = await resolveRuntimeEnvironment();
   root.render(
     <StrictMode>
       {environment === 'wechatBrowser' ? (
@@ -71,4 +87,6 @@ void resolveRuntimeEnvironment().then((environment) => {
     dismissBootSplashOnceRouted();
   }
   window.setTimeout(reportLoadTiming, 0);
-});
+}
+
+void startApplication();

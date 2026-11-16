@@ -16,7 +16,12 @@ import { env, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import { getGameWordsStats, listLibraryItems, triggerGameWordSupply } from '../gameWords';
+import {
+  getGameWordsStats,
+  listLibraryItems,
+  triggerGameWordSupply,
+  type TriggerSupplyInput,
+} from '../gameWords';
 
 const ADMIN_TOKEN = 'test-admin-token-do-not-use-in-production';
 
@@ -58,7 +63,7 @@ beforeEach(async () => {
   ]);
   await env.DB.prepare(
     `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
-     VALUES ('w1', '测试词', '含义', '用法', 'literary', 'local', 'active', 1, datetime('now'), datetime('now'))`,
+     VALUES ('w1', '测试词', '含义', '用法', 'plants', 'local', 'active', 1, datetime('now'), datetime('now'))`,
   ).run();
   await env.DB.prepare(
     `INSERT INTO fib_word_supply_months (id, requests_reserved, published_count)
@@ -72,7 +77,7 @@ describe('GET /admin/games/words/stats', () => {
       `
       WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 30)
       INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
-      SELECT 'budget-pack-' || i, '2026-09', 'budget-token-' || i, 'literary', 'published', datetime('now'), i FROM n
+      SELECT 'budget-pack-' || i, '2026-09', 'budget-token-' || i, 'plants', 'published', datetime('now'), i FROM n
     `,
     ).run();
     await env.DB.prepare(
@@ -87,7 +92,7 @@ describe('GET /admin/games/words/stats', () => {
         `
         WITH RECURSIVE n(i) AS (SELECT CAST(? AS INTEGER) UNION ALL SELECT i + 1 FROM n WHERE i < ?)
         INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at)
-        SELECT 'budget-word-' || i, '预算词' || i, '含义', '用法', 'literary', 'local', 'active', 100 + i,
+        SELECT 'budget-word-' || i, '预算词' || i, '含义', '用法', 'plants', 'local', 'active', 100 + i,
           'budget-pack-' || ((i % 30) + 1), datetime('now'), datetime('now') FROM n
       `,
       )
@@ -154,7 +159,7 @@ describe('GET /admin/games/words/stats', () => {
   it.each([
     ['drawguess', 'actionComedy', '动作喜剧', 40],
     ['undercover', 'dating', '约会场景', 40],
-    ['fibking', 'courtship', '婚恋风俗', 43],
+    ['fibking', 'courtship', '婚恋风俗', 42],
   ] as const)(
     'shows the new %s category even before it has words',
     async (game, id, name, count) => {
@@ -174,8 +179,8 @@ describe('GET /admin/games/words/stats', () => {
     expect(resp.status).toBe(200);
     const body = await resp.json<GameWordsStats>();
     expect(body.game).toBe('fibking');
-    expect(body.categories.find((category) => category.id === 'unclassified')).toMatchObject({
-      name: '未标主题',
+    expect(body.categories.find((category) => category.id === 'plants')).toMatchObject({
+      name: '植物花草',
       active: 1,
     });
     expect(body.categories.find((category) => category.id === 'buildings')).toMatchObject({
@@ -213,16 +218,16 @@ describe('GET /admin/games/words/stats', () => {
     expect(body.modelBudget.monthlyUsed).toBe(2);
   });
 
-  it('counts published words by their actual topic rather than their search topic', async () => {
+  it('counts published words by their actual category rather than their search category', async () => {
     await env.DB.batch([
       env.DB.prepare(
-        `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, topic, search_selected_at)
-         VALUES ('topic-pack', '2026-09', 'topic-token', 'literary', 'published', datetime('now'), 'food', datetime('now'))`,
+        `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index, search_selected_at)
+         VALUES ('category-pack', '2026-09', 'category-token', 'food', 'published', datetime('now'), 0, datetime('now'))`,
       ),
-      env.DB.prepare("UPDATE fib_words SET topic = 'music' WHERE id = 'w1'"),
+      env.DB.prepare("UPDATE fib_words SET category = 'music' WHERE id = 'w1'"),
       env.DB.prepare(
         `INSERT INTO fib_word_sequence (word, published_at, pack_id)
-         VALUES ('测试词', datetime('now'), 'topic-pack')`,
+         VALUES ('测试词', datetime('now'), 'category-pack')`,
       ),
     ]);
     const response = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
@@ -252,10 +257,10 @@ describe('GET /admin/games/words/stats', () => {
         `INSERT INTO word_submission_items
          (id, batch_id, game, client_item_id, identity, content_hash, title, category, material_json, status, review_json)
          VALUES
-         ('00000000-0000-4000-8000-000000000001', 'batch-1', 'fibking', 'passed-1', 'identity-1', '${'a'.repeat(64)}', '通过词', 'literary', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
-         ('00000000-0000-4000-8000-000000000002', 'batch-1', 'fibking', 'passed-2', 'identity-2', '${'b'.repeat(64)}', '通过词二', 'literary', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
-         ('00000000-0000-4000-8000-000000000003', 'batch-1', 'fibking', 'rejected-1', 'identity-3', '${'c'.repeat(64)}', '拒绝词', 'literary', '{}', 'rejected', '{"passed":false,"canOverride":true,"reason":"no","checks":{},"details":{}}'),
-         ('00000000-0000-4000-8000-000000000004', 'batch-1', 'fibking', 'approved-1', 'identity-4', '${'d'.repeat(64)}', '人工通过词', 'literary', '{}', 'passed', NULL)`,
+         ('00000000-0000-4000-8000-000000000001', 'batch-1', 'fibking', 'passed-1', 'identity-1', '${'a'.repeat(64)}', '通过词', 'plants', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000002', 'batch-1', 'fibking', 'passed-2', 'identity-2', '${'b'.repeat(64)}', '通过词二', 'plants', '{}', 'passed', '{"passed":true,"canOverride":true,"reason":"ok","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000003', 'batch-1', 'fibking', 'rejected-1', 'identity-3', '${'c'.repeat(64)}', '拒绝词', 'plants', '{}', 'rejected', '{"passed":false,"canOverride":true,"reason":"no","checks":{},"details":{}}'),
+         ('00000000-0000-4000-8000-000000000004', 'batch-1', 'fibking', 'approved-1', 'identity-4', '${'d'.repeat(64)}', '人工通过词', 'plants', '{}', 'passed', NULL)`,
       ),
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
@@ -295,9 +300,9 @@ describe('GET /admin/games/words/stats', () => {
       ).bind(month, prevMonth),
       env.DB.prepare(
         `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
-         VALUES (?, ?, 't1', 'literary', 'published', datetime('now'), 5),
-                (?, ?, 't2', 'literary', 'published', datetime('now'), 5),
-                (?, ?, 't3', 'literary', 'published', datetime('now'), 5)`,
+         VALUES (?, ?, 't1', 'plants', 'published', datetime('now'), 5),
+                (?, ?, 't2', 'plants', 'published', datetime('now'), 5),
+                (?, ?, 't3', 'plants', 'published', datetime('now'), 5)`,
       ).bind(packA, month, packB, month, packPrev, prevMonth),
       env.DB.prepare(
         `INSERT INTO fib_word_provider_requests (pack_id, operation)
@@ -337,8 +342,8 @@ describe('GET /admin/games/words/stats', () => {
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at, search_index)
-         VALUES ('p1', '2026-09', 't1', 'literary', 'published', datetime('now'), 5),
-                ('p2', '2026-09', 't2', 'literary', 'failed', datetime('now'), 5)`,
+         VALUES ('p1', '2026-09', 't1', 'plants', 'published', datetime('now'), 5),
+                ('p2', '2026-09', 't2', 'plants', 'failed', datetime('now'), 5)`,
       ),
       env.DB.prepare(
         `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at, completed_at)
@@ -346,7 +351,7 @@ describe('GET /admin/games/words/stats', () => {
       ),
       env.DB.prepare(
         `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at)
-         VALUES ('w2', '词二', '含义', '用法', 'literary', 'local', 'active', 2, 'p1', datetime('now'), datetime('now'))`,
+         VALUES ('w2', '词二', '含义', '用法', 'plants', 'local', 'active', 2, 'p1', datetime('now'), datetime('now'))`,
       ),
     ]);
     const resp = await fetchWordsStats('/admin/games/words/stats?game=fibking', ADMIN_TOKEN);
@@ -387,14 +392,18 @@ describe('POST /admin/games/words/trigger-supply', () => {
     const workflow = vi.spyOn(env.DRAWGUESS_WORD_SUPPLY, 'createBatch').mockResolvedValue([]);
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
       game: 'drawguess',
+      category: 'actionComedy',
     });
     expect(resp.status).toBe(202);
     expect(workflow).toHaveBeenCalledOnce();
   });
 
   it.each(GAME_WORD_GAMES)('enqueues a %s workflow run and echoes the request', async (game) => {
+    const category =
+      game === 'fibking' ? 'courtship' : game === 'undercover' ? 'dating' : 'actionComedy';
     const resp = await postTriggerSupply('/admin/games/words/trigger-supply', ADMIN_TOKEN, {
       game,
+      category,
     });
     expect(resp.status).toBe(202);
     const body = await resp.json<TriggerSupplyResult>();
@@ -408,7 +417,13 @@ describe('POST /admin/games/words/trigger-supply', () => {
       undercover: vi.spyOn(env.UNDERCOVER_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
       drawguess: vi.spyOn(env.DRAWGUESS_WORD_SUPPLY, 'createBatch').mockResolvedValue([]),
     };
-    const result = await triggerGameWordSupply(env, { game });
+    const input: TriggerSupplyInput =
+      game === 'fibking'
+        ? { game, category: 'courtship' }
+        : game === 'undercover'
+          ? { game, category: 'dating' }
+          : { game, category: 'actionComedy' };
+    const result = await triggerGameWordSupply(env, input);
     for (const candidateGame of GAME_WORD_GAMES) {
       expect(workflows[candidateGame]).toHaveBeenCalledTimes(candidateGame === game ? 1 : 0);
     }
@@ -416,6 +431,7 @@ describe('POST /admin/games/words/trigger-supply', () => {
     expect(request.id).toBe(result.workflowId);
     expect(request.params?.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(request.params?.runId).toEqual(expect.any(String));
+    expect(request.params?.category).toBe(input.category);
   });
 
   it('rejects invalid bodies and missing tokens', async () => {
@@ -457,17 +473,17 @@ describe('GET /admin/words/:game/library-items', () => {
         `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
            title, category, material_json, verified_material_json, status, duplicate_of, revision)
          VALUES ('10000000-0000-4000-8000-000000000001', 'batch-1', 'fibking', 'item-1', '秋审',
-           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '秋审', 'literary',
-           '{"word":"秋审","definition":{"coreMeaning":"提交的释义。","usageNote":"用法。"},"category":"literary","topic":"history","references":[]}',
-           '{"word":"秋审","definition":{"coreMeaning":"已核实的释义。","usageNote":"用法。"},"category":"literary","topic":"history","source":"local","evidence":[]}',
+           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '秋审', 'plants',
+           '{"word":"秋审","definition":{"coreMeaning":"提交的释义。","usageNote":"用法。"},"category":"plants","references":[]}',
+           '{"word":"秋审","definition":{"coreMeaning":"已核实的释义。","usageNote":"用法。"},"category":"plants","source":"local","evidence":[]}',
            'pending', NULL, 0)`,
       ),
       env.DB.prepare(
         `INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
            title, category, material_json, status, duplicate_of, revision)
          VALUES ('10000000-0000-4000-8000-000000000002', 'batch-1', 'fibking', 'item-2', '已发布词',
-           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '已发布词', 'literary',
-           '{"word":"已发布词","definition":{"coreMeaning":"已发布释义。","usageNote":"用法。"},"category":"literary","topic":"history","references":[]}',
+           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '已发布词', 'plants',
+           '{"word":"已发布词","definition":{"coreMeaning":"已发布释义。","usageNote":"用法。"},"category":"plants","references":[]}',
            'published', 'inventory:已发布词', 0)`,
       ),
     ]);
@@ -516,14 +532,31 @@ describe('GET /admin/words/:game/library-items', () => {
     ]);
   });
 
-  it('searches titles and categories with LIKE and treats wildcards literally', async () => {
+  it('filters by exact category while keeping totals unfiltered', async () => {
+    await seedLibrary();
+    await env.DB.prepare(
+      `UPDATE word_submission_items SET category = 'internet'
+       WHERE id = '10000000-0000-4000-8000-000000000002'`,
+    ).run();
+
+    const plants = await listLibraryItems(env.DB, { game: 'fibking', category: 'plants' });
+    expect(plants.items.map((item) => item.title)).toEqual(['秋审']);
+    expect(plants).not.toHaveProperty('categories');
+    expect(plants.totals).toEqual({ submissions: { pending: 1, published: 1 } });
+
+    const internet = await listLibraryItems(env.DB, { game: 'fibking', category: 'internet' });
+    expect(internet.items.map((item) => item.title)).toEqual(['已发布词']);
+  });
+
+  it('searches titles with LIKE and treats wildcards literally', async () => {
     await seedLibrary();
     const found = await listLibraryItems(env.DB, { game: 'fibking', search: '秋审' });
     expect(found.items.map((item) => item.title)).toEqual(['秋审']);
-    // 'literary' is the stored category of every seeded row and matches
-    // no title, so a category hit returns the whole FIFO stream.
-    const byCategory = await listLibraryItems(env.DB, { game: 'fibking', search: 'literary' });
-    expect(byCategory.items.map((item) => item.title)).toEqual(['秋审', '已发布词']);
+    const categoryIsNotSearch = await listLibraryItems(env.DB, {
+      game: 'fibking',
+      search: 'plants',
+    });
+    expect(categoryIsNotSearch.items).toEqual([]);
     const wildcard = await listLibraryItems(env.DB, { game: 'fibking', search: '%' });
     expect(wildcard.items).toEqual([]);
   });
@@ -602,8 +635,8 @@ describe('GET /admin/words/:game/library-items', () => {
        INSERT INTO word_submission_items (id, batch_id, game, client_item_id, identity, content_hash,
          title, category, material_json, status, duplicate_of, revision)
        SELECT '30000000-0000-4000-8000-' || printf('%012d', i), 'batch-1', 'fibking', 'item-' || i, '词' || i,
-         'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '词' || i, 'literary',
-         '{"word":"词' || i || '","definition":{"coreMeaning":"含义。","usageNote":"用法。"},"category":"literary","topic":"history","references":[]}',
+         'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '词' || i, 'plants',
+         '{"word":"词' || i || '","definition":{"coreMeaning":"含义。","usageNote":"用法。"},"category":"plants","references":[]}',
          'pending', NULL, 0 FROM n`,
     ).run();
     const page1 = await listLibraryItems(env.DB, { game: 'fibking' });
@@ -621,6 +654,10 @@ describe('GET /admin/words/:game/library-items', () => {
 
   it('serves the submission stream over HTTP and rejects bad input', async () => {
     await seedLibrary();
+    await env.DB.prepare(
+      `UPDATE word_submission_items SET category = 'internet'
+       WHERE id = '10000000-0000-4000-8000-000000000002'`,
+    ).run();
     const ok = await fetchWordsStats('/admin/words/fibking/library-items', ADMIN_TOKEN);
     expect(ok.status).toBe(200);
     const body = await ok.json<{
@@ -632,7 +669,17 @@ describe('GET /admin/words/:game/library-items', () => {
       '10000000-0000-4000-8000-000000000001',
       '10000000-0000-4000-8000-000000000002',
     ]);
+    expect(body).not.toHaveProperty('categories');
     expect(body.nextCursor).toBeNull();
+    const categoryFiltered = await fetchWordsStats(
+      '/admin/words/fibking/library-items?category=plants',
+      ADMIN_TOKEN,
+    );
+    expect(
+      (await categoryFiltered.json<{ items: Array<{ id: string }> }>()).items.map(
+        (item) => item.id,
+      ),
+    ).toEqual(['10000000-0000-4000-8000-000000000001']);
     expect((await fetchWordsStats('/admin/words/fibking/library-items', null)).status).toBe(401);
     expect((await fetchWordsStats('/admin/words/mahjong/library-items', ADMIN_TOKEN)).status).toBe(
       400,

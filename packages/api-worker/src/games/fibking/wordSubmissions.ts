@@ -15,13 +15,13 @@ import {
   SubmissionReviewItemError,
   type WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
+import { FIB_WORD_ALL_CATEGORY_IDS } from './wordCategories';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { createGeminiFibWordProvider, GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_REVIEW_VERSION } from './wordProviders/prompt';
 import { FibWordProviderError } from './wordProviders/providerError';
 import { extractFibWordEvidence, searchFibWordEvidence } from './wordProviders/tavily';
-import { FIB_WORD_CATEGORIES, FIB_WORD_REVIEW_BATCH_LIMIT } from './wordProviders/types';
-import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
+import { FIB_WORD_REVIEW_BATCH_LIMIT } from './wordProviders/types';
 
 const toSimplified = Converter({ from: 't', to: 'cn' });
 const log = createLogger('fib-submission-evidence');
@@ -33,8 +33,7 @@ const definitionField = z
 const inputSchema = z.strictObject({
   word: z.string().trim().min(FIB_WORD_MIN_LENGTH).max(FIB_WORD_MAX_LENGTH),
   definition: z.strictObject({ coreMeaning: definitionField, usageNote: definitionField }),
-  category: z.enum(FIB_WORD_CATEGORIES),
-  topic: z.enum(FIB_WORD_ALL_TOPIC_IDS),
+  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
   references: z
     .array(
       z.strictObject({
@@ -68,7 +67,6 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
         word: candidate.word,
         definition: candidate.definition,
         category: candidate.category,
-        topic: candidate.topic,
         references,
       },
     };
@@ -151,7 +149,6 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
             word: material.word,
             definition: material.definition,
             category: material.category,
-            topic: material.topic,
             source: 'local',
             evidence: [],
           })
@@ -162,9 +159,9 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
       db
         .prepare(
           `INSERT INTO fib_words
-        (id, word, core_meaning, usage_note, category, topic, source, status,
+        (id, word, core_meaning, usage_note, category, source, status,
          selection_key, created_at, activated_at)
-        SELECT ?, ?, ?, ?, ?, ?, 'local', 'active', 0, ?, ? WHERE ${SUBMISSION_PUBLICATION_GATE}`,
+        SELECT ?, ?, ?, ?, ?, 'local', 'active', 0, ?, ? WHERE ${SUBMISSION_PUBLICATION_GATE}`,
         )
         .bind(
           `submission:${publication.itemId}`,
@@ -172,7 +169,6 @@ export const fibSubmissionAdapter: WordSubmissionAdapter = {
           candidate.definition.coreMeaning,
           candidate.definition.usageNote,
           candidate.category,
-          candidate.topic ?? null,
           publication.now,
           publication.now,
           publication.itemId,

@@ -23,6 +23,7 @@ const adminLog = log.extend('Admin');
 
 /** Verify cached credentials before mounting any data-bearing child route. */
 export function AdminPage() {
+  const localMockMode = import.meta.env.DEV && import.meta.env.MODE === 'admin-mock';
   const client = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,6 +105,11 @@ export function AdminPage() {
               </div>
               <h2>进入管理后台</h2>
               <p className="admin-muted">数据、运营与运行状况，尽在一个工作台。</p>
+              {localMockMode && (
+                <p className="admin-mock-banner" role="status">
+                  本地模拟模式 · 密码 local-admin · 数据不会写入真实服务
+                </p>
+              )}
               <label htmlFor="admin-password">管理密码</label>
               <input
                 id="admin-password"

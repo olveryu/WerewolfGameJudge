@@ -722,9 +722,10 @@ function parseModelBudgetByOperation(value: unknown): GameWordsStats['modelBudge
 
 export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
   const object = requireObject(value, 'Trigger supply response');
-  assertExactKeys(object, ['game', 'workflowId'], 'Trigger supply response');
+  assertExactKeys(object, ['game', 'category', 'workflowId'], 'Trigger supply response');
   return {
     game: parseGameWordGame(object.game, 'Trigger supply game'),
+    category: parseNonEmptyString(object.category, 'Trigger supply category'),
     workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
   };
 }

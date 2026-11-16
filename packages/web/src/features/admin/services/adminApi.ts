@@ -262,7 +262,10 @@ export function fetchGameWordsStats(
   return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game }, signal);
 }
 
-export function triggerGameWordSupply(game: GameWordGame): Promise<TriggerSupplyResult> {
+export function triggerGameWordSupply(
+  game: GameWordGame,
+  category: string,
+): Promise<TriggerSupplyResult> {
   return adminFetch(
     '/admin/games/words/trigger-supply',
     parseTriggerSupplyResult,
@@ -270,6 +273,7 @@ export function triggerGameWordSupply(game: GameWordGame): Promise<TriggerSupply
     undefined,
     {
       game,
+      category,
     },
   );
 }
@@ -278,6 +282,7 @@ export function fetchLibraryItems(
   game: GameWordGame,
   options: {
     status?: WordSubmissionStatus;
+    category?: string;
     search?: string;
     cursor?: string;
   } = {},
@@ -288,6 +293,9 @@ export function fetchLibraryItems(
     parseLibraryItemsResponse,
     {
       ...(options.status !== undefined ? { status: options.status } : {}),
+      ...(options.category !== undefined && options.category !== ''
+        ? { category: options.category }
+        : {}),
       ...(options.search !== undefined && options.search !== '' ? { search: options.search } : {}),
       ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
     },

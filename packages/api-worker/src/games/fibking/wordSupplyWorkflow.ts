@@ -14,6 +14,16 @@ import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
 import type { WordSupplySubmissionItem } from '../../platform/wordSupply/submissionAdapter';
 import { cleanupFibWordAudit } from './maintenance';
+import {
+  FIB_WORD_CATEGORY_IDS,
+  type FibWordCategory,
+  type FibWordSupplyCategory,
+} from './wordCategories';
+import {
+  classifyFibWords,
+  getFibWordsToClassify,
+  storeFibWordCategories,
+} from './wordCategoryClassification';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
@@ -25,7 +35,6 @@ import {
 } from './wordProviders/tavily';
 import {
   FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
-  type FibWordCategory,
   type FibWordEditorialCandidate,
   type FibWordRequest,
 } from './wordProviders/types';
@@ -37,12 +46,6 @@ import {
   selectFibWordSearch,
 } from './wordPublication';
 import { createFibWordSearchQuery } from './wordSearchPlan';
-import {
-  classifyFibWords,
-  getFibWordsToClassify,
-  storeFibWordTopics,
-} from './wordTopicClassification';
-import type { FibWordTopic } from './wordTopics';
 
 const EXTERNAL_STEP = { retries: { limit: 0, delay: '1 second' }, timeout: '40 seconds' } as const;
 const REQUEST_TIMEOUT_MS = 120_000;
@@ -69,16 +72,15 @@ interface FibWordSupplyParams {
   readonly day: string;
   /** Unique id for admin manual triggers (a UUID); keeps pack ids collision-free. */
   readonly runId: string;
+  readonly category: string;
 }
 
 function createRequest(
   category: FibWordCategory,
   evidence: readonly FibWordEvidence[],
-  topic?: FibWordTopic | null,
 ): FibWordRequest {
   return {
     category,
-    topic,
     evidence,
     deadlineAt: Date.now() + REQUEST_TIMEOUT_MS,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -97,7 +99,6 @@ function toSubmissionItems(
       word: candidate.word,
       definition: candidate.definition,
       category: candidate.category,
-      topic: candidate.topic ?? 'other',
       references: candidate.evidence.map((evidence) => ({
         url: evidence.url,
         note: evidence.content.slice(0, 300),
@@ -114,6 +115,9 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
     // requires a UUID, so the workflow instance id (`<game>-manual-<uuid>`)
     // cannot serve as the batch id.
     const runId = z.uuid().parse(event.payload.runId);
+    const category: FibWordSupplyCategory = z
+      .enum(FIB_WORD_CATEGORY_IDS)
+      .parse(event.payload.category);
     const isEnabled = await step.do(
       'enabled',
       async () => this.env.FIB_WORD_SUPPLY_ENABLED === 'true',
@@ -137,19 +141,21 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
         const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words, {
           workflowId: identity,
         });
-        await storeFibWordTopics(this.env.DB, words, classifications);
+        await storeFibWordCategories(this.env.DB, words, classifications);
       });
     } catch (error) {
       if (getAiDiagnostic(error) !== undefined)
-        log.warn('historical topic classification failed', { day, runId });
+        log.warn('historical category classification failed', { day, runId });
       else
-        log.error('historical topic classification failed', {
+        log.error('historical category classification failed', {
           error: error instanceof Error ? error.message : String(error),
         });
     }
     const capacity = await step.do('capacity', () => measureDatabaseCapacity(this.env.DB));
     if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
-    const pack = await step.do('reserve', () => reserveFibWordPack(this.env.DB, day, runId));
+    const pack = await step.do('reserve', () =>
+      reserveFibWordPack(this.env.DB, day, runId, category),
+    );
     if (pack === null) return { status: 'complete', stored: 0 };
     const stored = await this.processPack(step, pack, runId);
     return { status: 'complete', stored };
@@ -183,7 +189,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           const generatedCandidates = await step.do('generate', MODEL_STEP, async () => {
             await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
             return createConfiguredFibWordProvider(this.env).generateBatch(
-              createRequest(pack.category, extraction.evidence, search.topic),
+              createRequest(pack.category, extraction.evidence),
               { packId: pack.id },
             );
           });

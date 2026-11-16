@@ -41,8 +41,7 @@ const fibWord = {
     coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
     usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
   },
-  category: 'literary',
-  topic: 'plants',
+  category: 'plants',
   references: [{ url: 'https://example.test/source', note: '菡萏：荷花的别称。' }],
 };
 
@@ -59,7 +58,7 @@ describe('storeSupplySubmissions', () => {
     expect(batch.items).toHaveLength(1);
     expect(batch.items[0]).toMatchObject({
       title: '菡萏',
-      category: 'literary',
+      category: 'plants',
       status: 'pending',
       duplicateOf: null,
     });
@@ -218,7 +217,7 @@ describe('storeSupplySubmissions', () => {
     await expect(
       storeSupplySubmissions(env.DB, 'fibking', crypto.randomUUID(), [
         // No definition: the submission schema rejects it.
-        { clientItemId: 'pack-1:0', content: { word: '菡萏', category: 'literary' } },
+        { clientItemId: 'pack-1:0', content: { word: '菡萏', category: 'plants' } },
       ]),
     ).rejects.toThrow('Supply submission failed validation');
     expect(

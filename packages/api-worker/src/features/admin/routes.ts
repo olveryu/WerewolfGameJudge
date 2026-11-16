@@ -466,12 +466,10 @@ adminRoutes.get('/games/words/stats', async (c) => {
 });
 
 adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
-  const { game } = c.req.valid('json');
-  return c.json(await triggerGameWordSupply(c.env, { game }), 202);
+  return c.json(await triggerGameWordSupply(c.env, c.req.valid('json')), 202);
 });
 
-/** Submission stream behind the unified library page, oldest first. Search
- * matches titles or categories with LIKE. */
+/** Submission stream behind the unified library page, oldest first. */
 adminRoutes.get('/words/:game/library-items', async (c) => {
   const game = gameWordGameSchema.safeParse(c.req.param('game'));
   if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
@@ -494,6 +492,7 @@ adminRoutes.get('/words/:game/library-items', async (c) => {
     await listLibraryItems(c.env.DB, {
       game: game.data,
       status,
+      category: c.req.query('category'),
       search: c.req.query('search'),
       cursor: c.req.query('cursor'),
     }),
