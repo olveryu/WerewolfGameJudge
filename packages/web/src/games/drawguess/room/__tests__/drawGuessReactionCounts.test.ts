@@ -3,7 +3,7 @@ import type { DrawGuessTurnRecord } from '@game-judge/game-engine/games/drawgues
 import {
   countDrawGuessReactionReceiptsByDrawer,
   countDrawGuessRoundReactionReceipts,
-} from '../drawGuessReactionCounts';
+} from '../../model/drawGuessReactionCounts';
 
 describe('DrawGuess received reaction counts', () => {
   it('counts this round’s reactions for its drawer', () => {

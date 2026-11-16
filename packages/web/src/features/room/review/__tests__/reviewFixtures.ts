@@ -123,7 +123,14 @@ const TEXT_BLOCKS: readonly ReviewBlock[] = [
   {
     kind: 'scoreboard',
     rows: [
-      { rank: 1, seat: 1, name: '小明', scoreText: '12 分', tag: null },
+      {
+        rank: 1,
+        seat: 1,
+        name: '小明',
+        detail: '本局收到：鲜花 2 · 鸡蛋 1 · 番茄 0',
+        scoreText: '12 分',
+        tag: null,
+      },
       {
         rank: 1,
         seat: 3,

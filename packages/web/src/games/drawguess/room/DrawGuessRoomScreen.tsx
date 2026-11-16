@@ -48,6 +48,11 @@ import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import {
+  countDrawGuessReactionReceiptsByDrawer,
+  countDrawGuessRoundReactionReceipts,
+  EMPTY_DRAWGUESS_REACTION_COUNTS,
+} from '../model/drawGuessReactionCounts';
 import { DrawGuessCorrectToast } from './components/DrawGuessCorrectToast';
 import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNote';
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
@@ -60,11 +65,6 @@ import {
   buildDrawGuessScoreboardRows,
   DrawGuessScoreboard,
 } from './components/DrawGuessScoreboard';
-import {
-  countDrawGuessReactionReceiptsByDrawer,
-  countDrawGuessRoundReactionReceipts,
-  EMPTY_DRAWGUESS_REACTION_COUNTS,
-} from './drawGuessReactionCounts';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
   type DrawGuessRoomScreenState,

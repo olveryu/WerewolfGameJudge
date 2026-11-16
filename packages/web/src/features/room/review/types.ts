@@ -87,6 +87,8 @@ export interface ReviewScoreRow {
   readonly rank: number;
   readonly seat: number;
   readonly name: string;
+  /** Optional secondary line shown below the player's name. */
+  readonly detail?: string;
   readonly scoreText: string;
   readonly tag: { readonly text: string; readonly tone: ReviewTone } | null;
 }
