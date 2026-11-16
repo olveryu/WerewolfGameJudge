@@ -470,6 +470,22 @@ describe('unified library', () => {
     expect(screen.getByText('已选 0 / 当前可选 1')).toBeVisible();
   });
 
+  it('keeps a way back when the last page becomes empty after an action', async () => {
+    vi.mocked(fetchLibraryItems).mockImplementation(async (_game, params) => {
+      if (params?.cursor === 'C1') return { ...libraryData, items: [], nextCursor: null };
+      return { ...libraryData, items: [supplyItem], nextCursor: 'C1' };
+    });
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+
+    expect(await screen.findByText('当前页已无词条，可以返回上一页。')).toBeVisible();
+    const previous = screen.getByRole('button', { name: '上一页' });
+    expect(previous).not.toBeDisabled();
+    await user.click(previous);
+    expect(await screen.findByText('大熊猫')).toBeVisible();
+  });
+
   it('never renders the removed 自带 source label anywhere on the page', async () => {
     mount();
     await screen.findByText('大熊猫');
