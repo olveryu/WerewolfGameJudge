@@ -106,9 +106,9 @@ export class ConfigPage {
   // Role Chips
   // ---------------------------------------------------------------------------
 
-  /** Toggle a role chip by its roleId (data-testid="config-role-chip-{roleId}"). */
+  /** Toggle a role chip by its roleId (data-testid="config-role-chip-toggle-{roleId}"). */
   async toggleRole(roleId: string) {
-    await this.page.getByTestId(TESTIDS.configRoleChip(roleId)).click();
+    await this.page.getByTestId(TESTIDS.configRoleChipToggle(roleId)).click();
   }
 
   /**

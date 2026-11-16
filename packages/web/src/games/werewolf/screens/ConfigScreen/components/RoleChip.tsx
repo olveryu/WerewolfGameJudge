@@ -1,6 +1,7 @@
 /**
  * RoleChip — role selection chip. Selected chips take the section's faction color; variant
- * chips wear a thicker border. Every chip opens its role info card on long press.
+ * chips wear a thicker border. Tapping the chip body opens its role info card (long press
+ * does the same); the corner badge toggles the role on/off the board.
  */
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
@@ -19,7 +20,13 @@ interface RoleChipProps {
   readonly onInfoPress?: (id: string) => void;
 }
 
-/** Role chip component. */
+/**
+ * Role chip component.
+ *
+ * The body opens the role info card; the corner badge toggles the role. The two buttons are
+ * siblings, not nested: a button cannot contain a button, and the badge's pointer events
+ * never start the body's long-press timer.
+ */
 export function RoleChip({
   id,
   label,
@@ -33,20 +40,34 @@ export function RoleChip({
     onInfoPress === undefined ? null : () => onInfoPress(id),
   );
   return (
-    <button
-      type="button"
+    <span
       className="config-role-chip"
       data-faction={faction}
       data-variants={hasVariants}
-      aria-pressed={selected}
-      data-testid={TESTIDS.configRoleChip(id)}
-      {...longPressHandlers}
-      onClick={() => {
-        if (consumeLongPress()) return;
-        onToggle(id);
-      }}
+      data-selected={selected}
     >
-      {label}
-    </button>
+      <button
+        type="button"
+        className="config-role-chip-body"
+        data-testid={TESTIDS.configRoleChip(id)}
+        {...longPressHandlers}
+        onClick={() => {
+          if (consumeLongPress()) return;
+          if (onInfoPress !== undefined) onInfoPress(id);
+        }}
+      >
+        {label}
+      </button>
+      <button
+        type="button"
+        className="config-role-chip-badge"
+        data-testid={TESTIDS.configRoleChipToggle(id)}
+        aria-label={selected ? `移出${label}` : `加入${label}`}
+        aria-pressed={selected}
+        onClick={() => onToggle(id)}
+      >
+        {selected ? '✓' : '＋'}
+      </button>
+    </span>
   );
 }

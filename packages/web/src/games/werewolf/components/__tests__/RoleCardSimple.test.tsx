@@ -84,6 +84,31 @@ describe('RoleCardSimple', () => {
     expect(screen.getByText('2号预言家')).toBeInTheDocument();
   });
 
+  it('shows no board action without onBoardAction', () => {
+    render(<RoleCardSimple {...defaultProps} />);
+
+    expect(screen.queryByRole('button', { name: '加入板子' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '移出板子' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [false, '加入板子'],
+    [true, '移出板子'],
+  ] as const)('shows the board action (%s → %s)', (isBoardSelected, label) => {
+    const onBoardAction = vi.fn<() => void>();
+    render(
+      <RoleCardSimple
+        {...defaultProps}
+        isBoardSelected={isBoardSelected}
+        onBoardAction={onBoardAction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(onBoardAction).toHaveBeenCalledTimes(1);
+  });
+
   it('switches variants from the pill bar and shows the active variant', () => {
     const onVariantSelect = vi.fn<(variantId: RoleId) => void>();
     render(

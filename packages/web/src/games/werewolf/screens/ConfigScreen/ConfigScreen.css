@@ -118,10 +118,15 @@
 .config-role-chip {
   flex: 1 1 28%;
   max-width: 32%;
+  position: relative;
+}
+
+.config-role-chip-body {
+  width: 100%;
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-full);
   background: var(--color-background);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
@@ -130,15 +135,45 @@
   cursor: pointer;
 }
 
-.config-role-chip[data-variants='true'] {
+.config-role-chip[data-variants='true'] .config-role-chip-body {
   border: var(--border-width-thick) solid var(--color-text);
 }
 
-.config-role-chip[aria-pressed='true'] {
+.config-role-chip[data-selected='true'] .config-role-chip-body {
   border-color: var(--faction-color);
   background: var(--faction-a15);
   color: var(--faction-color);
   font-weight: var(--weight-semibold);
+}
+
+.config-role-chip[data-selected='true'][data-variants='true'] .config-role-chip-body {
+  border-color: var(--faction-color);
+}
+
+.config-role-chip-badge {
+  position: absolute;
+  top: calc(var(--space-small) * -1);
+  right: calc(var(--space-tight) * -1);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--faction-color);
+  color: var(--color-text-inverse);
+  font-size: var(--font-body);
+  line-height: 1;
+  font-weight: var(--weight-bold);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.config-role-chip-badge[aria-pressed='true'] {
+  background: var(--color-success);
 }
 
 .config-stepper-row {
