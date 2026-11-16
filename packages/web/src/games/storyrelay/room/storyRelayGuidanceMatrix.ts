@@ -1,5 +1,5 @@
 /**
- * 故事接龙（阶段 × 观看者）底部提示矩阵声明：逐格事实以
+ * 轮流讲故事（阶段 × 观看者）底部提示矩阵声明：逐格事实以
  * storyRelayGuidanceMatrix.test.ts 用真实引擎流驱动
  * createStoryRelayRoomShellModel 对账为准。本家底部 message 只存在于
  * 大厅等待句；局中引导由舞台（含顶部信息条）与画廊工作区承载，逐格登记。

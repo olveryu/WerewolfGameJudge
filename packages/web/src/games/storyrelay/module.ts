@@ -25,7 +25,7 @@ export const createStoryRelayClientModule = defineClientGameModule<
   StoryRelayCommand
 >({
   gameType: 'storyrelay',
-  displayName: '故事接龙',
+  displayName: '轮流讲故事',
   stateCodec: STORY_RELAY_STATE_CODEC,
   navigation: storyRelayGameNavigation,
   RoomScreen: StoryRelayRoomScreen,
@@ -36,7 +36,7 @@ export const createStoryRelayClientModule = defineClientGameModule<
       readConfig: (state) => (state.phase === 'lobby' ? state.config : null),
       buildUpdateCommand: (config) => ({ type: 'storyrelay.config.update', config }),
       getFailureMessage: getStoryRelayRoomCommandFailureMessage,
-      creationLabel: '创建故事接龙房间',
+      creationLabel: '创建轮流讲故事房间',
       summary: (config) => `${config.numberOfPlayers} 个故事 · 每人 ${config.numberOfPlayers} 棒`,
     }),
   GuideScreen: StoryRelayRulesScreen,

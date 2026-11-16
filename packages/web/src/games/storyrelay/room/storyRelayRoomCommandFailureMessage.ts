@@ -19,7 +19,7 @@ import {
  */
 export const getStoryRelayRoomCommandFailureMessage =
   createRoomCommandFailureMessage<StoryRelayState>({
-    [STORY_RELAY_REASONS.config]: '故事接龙配置无效',
+    [STORY_RELAY_REASONS.config]: '轮流讲故事配置无效',
     [STORY_RELAY_REASONS.phase]: ROOM_COMMAND_FAILURE_WRONG_PHASE,
     [STORY_RELAY_REASONS.task]: '故事任务已变化，请刷新后重试',
     [STORY_RELAY_REASONS.submitted]: '本棒已收稿',

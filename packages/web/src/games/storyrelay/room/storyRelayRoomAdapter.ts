@@ -170,7 +170,11 @@ export function createStoryRelayHostManagement(
     const submitStart = () => void submit('开始游戏', { type: 'storyrelay.game.begin' });
     const startAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将分配写作顺序并开始故事接龙', submitStart),
+        showConfirmAlert(
+          HOST_FLOW_CONFIRM.startTitle,
+          '将分配写作顺序并开始轮流讲故事',
+          submitStart,
+        ),
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,

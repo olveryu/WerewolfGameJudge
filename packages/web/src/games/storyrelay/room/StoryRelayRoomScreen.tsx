@@ -68,10 +68,10 @@ function StoryRelayRoomContent(
               beforeSeatBoard: (
                 <RoomGameSummary
                   icon="book-outline"
-                  title={`故事接龙 · ${config.numberOfPlayers}人局`}
+                  title={`轮流讲故事 · ${config.numberOfPlayers}人局`}
                   subtitle={`${config.numberOfPlayers} 棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒 ${config.writingDurationSeconds} 秒`} · 间隔 ${config.transitionDurationSeconds} 秒`}
                   headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看故事接龙玩法" />
+                    <RoomGuideButton onPress={screen.openRules} label="查看轮流讲故事玩法" />
                   }
                 />
               ),

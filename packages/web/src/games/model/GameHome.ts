@@ -8,12 +8,24 @@ import type { ComponentType, SVGProps } from 'react';
  */
 export type GameHomeTier = 'main' | 'mini';
 
+/**
+ * A family of games sharing one core mechanic (for example the two drawing games).
+ * Family members render as one group card in the picker, headed by the family name.
+ */
+export interface GameModeFamily {
+  /** Stable within the catalog; members share one group card. */
+  readonly id: string;
+  readonly displayName: string;
+}
+
 export interface GameModePresentation {
   readonly displayName: string;
   readonly subtitle: string;
   /** Ionicons glyph from `~icons/ion/*`. */
   readonly Icon: ComponentType<SVGProps<SVGSVGElement>>;
   readonly tier: GameHomeTier;
+  /** Family this game belongs to, when it shares a mechanic with sibling games. */
+  readonly family?: GameModeFamily;
   /** Theme gradient stops (light → dark) owned by the game for its shared presentation. */
   readonly gradient: readonly [string, string];
   /** Key art URL; games without art use the second gradient color behind their picker icon. */

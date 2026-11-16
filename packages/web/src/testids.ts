@@ -38,8 +38,8 @@ export const TESTIDS = {
   joinRoomError: 'join-room-error',
   gameModePickerModal: 'game-mode-picker-modal',
   gameModePickerOption: (gameType: string) => `game-mode-picker-option-${gameType}`,
-  // Used by: GamePickerScreen.tsx — 小游戏 section label in the tiered picker
-  gameModePickerMiniSection: 'game-mode-picker-mini-section',
+  gameModePickerTab: (tier: string) => `game-mode-picker-tab-${tier}`,
+  gameModePickerFamilyGroup: (familyId: string) => `game-mode-picker-family-${familyId}`,
 
   // User bar / login (HomeScreen)
   homeUserName: 'home-user-name',

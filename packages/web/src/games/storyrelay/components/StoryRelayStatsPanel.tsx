@@ -12,9 +12,9 @@ export function StoryRelayStatsPanel({ userId, onGamesPlayedChange }: GameStatsP
       onGamesPlayedChange={onGamesPlayedChange}
       isLoading={isPending}
       isError={isError}
-      loadingLabel="加载故事接龙战绩"
-      errorLabel="故事接龙战绩加载失败"
-      emptyTitle="暂无故事接龙战绩"
+      loadingLabel="加载轮流讲故事战绩"
+      errorLabel="轮流讲故事战绩加载失败"
+      emptyTitle="暂无轮流讲故事战绩"
       emptyDescription="完成一局符合结算条件的游戏后，这里会留下你的记录。"
     >
       {data !== undefined && (

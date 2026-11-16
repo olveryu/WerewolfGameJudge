@@ -7,7 +7,7 @@ import IconBookOutline from '~icons/ion/book-outline';
 
 export const storyRelayHome = {
   mode: {
-    displayName: '故事接龙',
+    displayName: '轮流讲故事',
     subtitle: '一人写一段，一起揭晓故事',
     Icon: IconBookOutline,
     tier: 'mini',
