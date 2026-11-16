@@ -22,10 +22,6 @@ beforeEach(async () => {
     // the cleanup.
     env.DB.prepare('UPDATE word_submission_agents SET current_credential_id = NULL'),
     env.DB.prepare('DELETE FROM word_submission_credentials'),
-    // The FTS search row is keyed by the batch rowid: batches are deleted
-    // below, so the next store reuses the rowid and must not collide with
-    // the leftover search row.
-    env.DB.prepare('DELETE FROM word_submission_search'),
     env.DB.prepare('DELETE FROM word_submission_items'),
     env.DB.prepare('DELETE FROM word_submission_batches'),
     // Daily usage rows reference agents; delete them before the agents.

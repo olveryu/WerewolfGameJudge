@@ -20,10 +20,6 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM fib_word_supply_months'),
     env.DB.prepare('DELETE FROM word_submission_items'),
     env.DB.prepare('DELETE FROM word_submission_batches'),
-    // The FTS search row is keyed by the batch rowid: batches are deleted
-    // above, so the next store reuses the rowid and must not collide with
-    // the leftover search row.
-    env.DB.prepare('DELETE FROM word_submission_search'),
     env.DB.prepare("UPDATE database_capacity SET state = 'normal' WHERE id = 1"),
   ]);
 });

@@ -125,6 +125,13 @@ describe('getOrCreateFibWordSelection', () => {
     )
       .bind(USER_ID)
       .run();
+    // 0051 ran when fib_word_candidate_reviews existed; 0085 dropped it, so
+    // restore the table at 0051's point in history for this replay. The UNION
+    // in 0051 only selects `word`; 射覆 is seeded as the review-approved old
+    // word (UNION dedupes it with fib_words, so the expected sequence below
+    // is unchanged).
+    await env.DB.prepare('CREATE TABLE fib_word_candidate_reviews (word TEXT NOT NULL)').run();
+    await env.DB.prepare("INSERT INTO fib_word_candidate_reviews (word) VALUES ('射覆')").run();
     await env.DB.batch(watermarkQueries.map((query) => env.DB.prepare(query)));
     expect(
       await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id').all(),
@@ -145,6 +152,8 @@ describe('getOrCreateFibWordSelection', () => {
       await selectWord('new-player-second', ['new-player']),
     ];
     expect(newPlayerWords.sort()).toEqual(['射覆', '打尖'].sort());
+    // Restore the post-0085 schema for the remaining tests in this file.
+    await env.DB.prepare('DROP TABLE fib_word_candidate_reviews').run();
   });
 
   it('draws only questions no participant has seen and marks them seen for everyone', async () => {
