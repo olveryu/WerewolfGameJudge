@@ -5,6 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 
 import {
   createRoomShellModel,
@@ -103,11 +104,16 @@ function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellMode
   };
 }
 
-function renderStage(overrides: Partial<RoomShellModelInput> = {}) {
+function renderStage(overrides: Partial<RoomShellModelInput> = {}, hudAction?: ReactElement) {
   return render(
     <RoomShell
       model={createRoomShellModel(shellInput(overrides))}
-      content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+      content={{
+        kind: 'stage',
+        hud: HUD,
+        ...(hudAction === undefined ? {} : { hudAction }),
+        element: <p>舞台内容</p>,
+      }}
       leadingExtraActions={null}
       trailingExtraActions={null}
       gameOverlays={null}
@@ -129,6 +135,13 @@ describe('RoomShell stage content', () => {
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveTextContent('第 2/5 棒');
     expect(screen.getByText('舞台内容')).toBeInTheDocument();
     expect(screen.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
+  });
+
+  it('passes a game-owned ranking action into the information bar', () => {
+    renderStage({}, <button type="button">总排名</button>);
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).toContainElement(
+      screen.getByRole('button', { name: '总排名' }),
+    );
   });
 
   it('opens host management from the header', async () => {

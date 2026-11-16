@@ -72,7 +72,10 @@ describe('createPictionaryStageHud', () => {
   it('shows the step, the submission roster and the prompt countdown on the opening step', () => {
     const state = playPictionaryTestRound({ stopAt: { stepIndex: 0, phase: 'answering' } });
     expect(hud(state, 30)).toEqual({
-      chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '出题', detail: null, tone: 'accent' },
+      ],
       roster: { ...SUBMISSION_ROSTER, chipLabel: '已交 0/4' },
       timer: { label: '出题', remainingSeconds: 30, totalSeconds: 45 },
       secondaryChips: [],
@@ -119,7 +122,10 @@ describe('createPictionaryStageHud', () => {
   it('counts down the handoff without a roster', () => {
     const state = playPictionaryTestRound({ stopAt: { stepIndex: 0, phase: 'transition' } });
     expect(hud(state, 4)).toEqual({
-      chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '换棒', detail: null, tone: 'accent' },
+      ],
       roster: null,
       timer: { label: '换棒', remainingSeconds: 4, totalSeconds: 5 },
       secondaryChips: [],
@@ -139,7 +145,10 @@ describe('createPictionaryStageHud', () => {
   it('keeps the submission roster while collecting, with no countdown', () => {
     const state = playPictionaryTestRound({ stopAt: { stepIndex: 0, phase: 'settling' } });
     expect(hud(state, null)).toEqual({
-      chips: [{ key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' }],
+      chips: [
+        { key: 'step', label: `第 1/${STEP_COUNT} 棒`, detail: null, tone: 'neutral' },
+        { key: 'activity', label: '收稿', detail: null, tone: 'accent' },
+      ],
       roster: { ...SUBMISSION_ROSTER, chipLabel: '已交 0/4' },
       timer: null,
       secondaryChips: [],

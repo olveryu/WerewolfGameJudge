@@ -4,12 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { DrawGuessReactionPicker } from '../components/DrawGuessReactionPicker';
 import type { DrawGuessRoomScreenState } from '../hooks/useDrawGuessRoomState';
 
-const seats = [
-  { seat: 0, displayName: '画手' },
-  { seat: 1, displayName: '小满' },
-  { seat: 2, displayName: '阿青' },
-];
-
 function renderPicker({
   effectiveSeat = 1,
   controlledSeat = null,
@@ -26,7 +20,6 @@ function renderPicker({
     <DrawGuessReactionPicker
       drawerSeat={drawerSeat}
       reactionsBySeat={reactionsBySeat}
-      seats={seats}
       effectiveSeat={effectiveSeat}
       controlledSeat={controlledSeat}
       isSubmitting={false}
@@ -57,7 +50,7 @@ describe('DrawGuessReactionPicker', () => {
     );
   });
 
-  it('prevents a second reaction and shows the named sender', () => {
+  it('prevents a second reaction and shows reaction totals without repeating sender names', () => {
     renderPicker({ reactionsBySeat: { 1: 'egg' } });
 
     expect(screen.getByRole('button', { name: '送鲜花' })).toBeDisabled();
@@ -66,7 +59,8 @@ describe('DrawGuessReactionPicker', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByRole('list', { name: '送出互动的玩家' })).toHaveTextContent('小满 送出鸡蛋');
+    expect(screen.getByText('鸡蛋 1')).toBeInTheDocument();
+    expect(screen.queryByText(/小满/)).not.toBeInTheDocument();
   });
 
   it('does not allow the drawing seat to react to their own turn', () => {

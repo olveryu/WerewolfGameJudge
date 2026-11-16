@@ -53,8 +53,13 @@ import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNot
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
 import { DrawGuessGuessLog } from './components/DrawGuessGuessLog';
 import { DrawGuessGuessPeek } from './components/DrawGuessGuessPeek';
+import { DrawGuessRanking } from './components/DrawGuessRanking';
+import { DrawGuessReactionEffects } from './components/DrawGuessReactionEffects';
 import { DrawGuessReactionPicker } from './components/DrawGuessReactionPicker';
-import { DrawGuessScoreboard, type DrawGuessScoreboardRow } from './components/DrawGuessScoreboard';
+import {
+  buildDrawGuessScoreboardRows,
+  DrawGuessScoreboard,
+} from './components/DrawGuessScoreboard';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
   type DrawGuessRoomScreenState,
@@ -131,7 +136,23 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
               ),
             }
           : screen.stageHud !== null
-            ? { kind: 'stage', hud: screen.stageHud, element: stage }
+            ? {
+                kind: 'stage',
+                hud: screen.stageHud,
+                hudAction: (
+                  <DrawGuessRanking
+                    rows={buildDrawGuessScoreboardRows(
+                      screen.viewModel,
+                      screen.effectiveSeat,
+                      (seat) => ({
+                        roundScore: null,
+                        totalScore: screen.viewModel.scores[seat] ?? 0,
+                      }),
+                    )}
+                  />
+                ),
+                element: stage,
+              }
             : { kind: 'workspace', element: stage }
       }
       leadingExtraActions={null}
@@ -339,7 +360,6 @@ function DrawGuessDrawingView({
           <DrawGuessReactionPicker
             drawerSeat={phase.drawerSeat}
             reactionsBySeat={viewModel.reactionsBySeat}
-            seats={viewModel.seats}
             effectiveSeat={effectiveSeat}
             controlledSeat={controlledSeat}
             isSubmitting={screen.isSubmitting}
@@ -399,6 +419,10 @@ function DrawGuessDrawingView({
               painter={drawGuessDrawingPainter}
               testId={TESTIDS.drawGuessDrawingCanvas}
               ariaLabel="绘画画布"
+            />
+            <DrawGuessReactionEffects
+              reactionsBySeat={viewModel.reactionsBySeat}
+              seats={viewModel.seats}
             />
             <DrawGuessCorrectToast messages={viewModel.messages} viewerSeat={effectiveSeat} />
           </div>
@@ -558,20 +582,6 @@ function useDrawGuessFinalDrawingUri(
   return loaded !== null && loaded.entryId === entryId ? loaded.uri : null;
 }
 
-function buildScoreboardRows(
-  screen: DrawGuessRoomScreenState,
-  readScores: (seat: number) => { readonly roundScore: number | null; readonly totalScore: number },
-): DrawGuessScoreboardRow[] {
-  return screen.viewModel.seats.map((seat) => ({
-    seat: seat.seat,
-    displayName: seat.displayName,
-    isBot: seat.isBot,
-    isDrawer: seat.isDrawer,
-    isSelf: seat.seat === screen.effectiveSeat,
-    ...readScores(seat.seat),
-  }));
-}
-
 function DrawGuessRoundEndView({
   screen,
   phase,
@@ -582,7 +592,7 @@ function DrawGuessRoundEndView({
   const { state, viewModel, effectiveSeat, controlledSeat } = screen;
   useDrawGuessFinalDrawingUpload(screen, phase);
   const pngUri = useDrawGuessFinalDrawingUri(screen, phase);
-  const roundRows = buildScoreboardRows(screen, (seat) => ({
+  const roundRows = buildDrawGuessScoreboardRows(viewModel, effectiveSeat, (seat) => ({
     roundScore: viewModel.roundScores?.[seat] ?? 0,
     totalScore: viewModel.scores[seat] ?? 0,
   }));
@@ -592,29 +602,34 @@ function DrawGuessRoundEndView({
         <span className="drawguess-answer-label">本轮答案</span>
         <span className="drawguess-answer-word">{phase.word}</span>
       </div>
-      {pngUri !== null ? (
-        <img className="drawguess-artwork" src={pngUri} alt="本轮画作终稿" />
-      ) : (
-        <DrawingCanvas
-          elements={phase.strokes.map(drawGuessStrokeToElement)}
-          tool="brush"
-          color={DRAWING_PALETTE[0].value}
-          strokeWidth={DRAWING_WIDTHS[1]}
-          isEnabled={false}
-          onElementChange={() => undefined}
-          onElementComplete={() => undefined}
-          onFill={() => undefined}
-          painter={drawGuessDrawingPainter}
-          testId={TESTIDS.drawGuessDrawingCanvas}
-          ariaLabel="本轮画作终稿"
+      <div className="drawguess-artwork-media">
+        {pngUri !== null ? (
+          <img className="drawguess-artwork" src={pngUri} alt="本轮画作终稿" />
+        ) : (
+          <DrawingCanvas
+            elements={phase.strokes.map(drawGuessStrokeToElement)}
+            tool="brush"
+            color={DRAWING_PALETTE[0].value}
+            strokeWidth={DRAWING_WIDTHS[1]}
+            isEnabled={false}
+            onElementChange={() => undefined}
+            onElementComplete={() => undefined}
+            onFill={() => undefined}
+            painter={drawGuessDrawingPainter}
+            testId={TESTIDS.drawGuessDrawingCanvas}
+            ariaLabel="本轮画作终稿"
+          />
+        )}
+        <DrawGuessReactionEffects
+          reactionsBySeat={viewModel.reactionsBySeat}
+          seats={viewModel.seats}
         />
-      )}
+      </div>
       <DrawGuessDrawerZeroedNote visible={viewModel.drawerZeroed} />
       <DrawGuessScoreboard title="本轮得分" competitionRanking rows={roundRows} />
       <DrawGuessReactionPicker
         drawerSeat={phase.drawerSeat}
         reactionsBySeat={viewModel.reactionsBySeat}
-        seats={viewModel.seats}
         effectiveSeat={effectiveSeat}
         controlledSeat={controlledSeat}
         isSubmitting={screen.isSubmitting}
@@ -630,7 +645,7 @@ function DrawGuessRoundEndView({
 
 function DrawGuessEndedView({ screen }: { readonly screen: DrawGuessRoomScreenState }) {
   const { viewModel, userId, isHost, mySeat } = screen;
-  const totalRows = buildScoreboardRows(screen, (seat) => ({
+  const totalRows = buildDrawGuessScoreboardRows(viewModel, screen.effectiveSeat, (seat) => ({
     roundScore: null,
     totalScore: viewModel.totalScores[seat] ?? 0,
   }));

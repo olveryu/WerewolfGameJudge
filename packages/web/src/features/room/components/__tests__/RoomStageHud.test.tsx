@@ -1,6 +1,7 @@
 /** RoomStageHud: chips, countdown, controlled-seat chip, and the roster sheet with bot takeover. */
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 
 import type { RoomCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomControlledSeatModel } from '@/features/room/model/RoomShellModel';
@@ -31,10 +32,12 @@ function renderHud({
   hud = {},
   canTakeOverBots = { isAllowed: false, reason: null },
   controlledSeat = null,
+  action,
 }: {
   readonly hud?: Partial<RoomStageHudModel>;
   readonly canTakeOverBots?: RoomCapability<readonly [seat: number]>;
   readonly controlledSeat?: RoomControlledSeatModel | null;
+  readonly action?: ReactNode;
 } = {}) {
   return render(
     <RoomStageHud
@@ -42,6 +45,7 @@ function renderHud({
       seats={SEATS}
       canTakeOverBots={canTakeOverBots}
       controlledSeat={controlledSeat}
+      action={action}
     />,
   );
 }
@@ -70,8 +74,18 @@ describe('RoomStageHud', () => {
       controlledSeat: { seat: 1, displayName: '玩家2', onRelease: vi.fn() },
     });
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveTextContent(
-      /^1\/12 轮已完成 1\/31:16代 2 号退出我 0 分$/,
+      /^1\/12 轮1:16已完成 1\/3代 2 号退出我 0 分$/,
     );
+  });
+
+  it('renders a game-owned action in the secondary row without adding game logic to the shared HUD', () => {
+    renderHud({
+      hud: { roster: null },
+      action: <button type="button">总排名</button>,
+    });
+
+    expect(screen.getByRole('button', { name: '总排名' })).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-expanded');
   });
 
   it('formats the countdown, turns red at ten seconds and draws the remaining share', () => {

@@ -155,16 +155,81 @@
   font-variant-numeric: normal;
 }
 
-.drawguess-reaction-senders {
+.drawguess-reaction-effect-canvas {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.drawguess-reaction-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.drawguess-ranking-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-small);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.drawguess-ranking-button svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.drawguess-ranking-button:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
+}
+
+.drawguess-ranking-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-tight) var(--space-small);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium) var(--space-small) var(--space-large);
+}
+
+.drawguess-ranking-header h2 {
   margin: 0;
-  padding: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
+.drawguess-ranking-header p {
+  margin: var(--space-micro) 0 0;
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
-  list-style: none;
+}
+
+.drawguess-ranking-body {
+  max-height: 65dvh;
+  padding: 0 var(--space-medium) max(var(--space-xlarge), env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Narrow: canvas over the peek strip. Wide: canvas beside the guess log aside. */
@@ -500,6 +565,17 @@
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   object-fit: contain;
+}
+
+.drawguess-artwork-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+.drawguess-artwork-media .drawguess-artwork,
+.drawguess-artwork-media .drawing-canvas {
+  height: 100%;
 }
 
 /* ── Scoreboard ── */

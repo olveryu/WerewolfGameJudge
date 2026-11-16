@@ -40,7 +40,13 @@ type RoomShellContent =
    * An in-play stage (docs/room-stage-layout-design.md): the information bar over the game's
    * element, host management in the header, and no bottom panel.
    */
-  | { readonly kind: 'stage'; readonly hud: RoomStageHudModel; readonly element: ReactElement };
+  | {
+      readonly kind: 'stage';
+      readonly hud: RoomStageHudModel;
+      readonly element: ReactElement;
+      /** Optional game-owned action beside secondary HUD information. */
+      readonly hudAction?: ReactElement;
+    };
 
 /** The signed-in user's avatar (or a person glyph) with the gacha ticket badge; opens settings. */
 function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
@@ -213,6 +219,7 @@ export function RoomShell({
               seats={model.seats.source}
               canTakeOverBots={model.capabilities.canTakeOverBots}
               controlledSeat={model.controlledSeat}
+              action={content.hudAction}
             />
             <div className="room-stage-body">{content.element}</div>
           </div>
