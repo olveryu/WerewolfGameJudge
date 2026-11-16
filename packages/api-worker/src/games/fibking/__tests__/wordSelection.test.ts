@@ -102,8 +102,8 @@ async function selectWord(roundId: string, participantUserIds: string[]): Promis
 describe('getOrCreateFibWordSelection', () => {
   it('keeps played accounts past the old prefix through both migrations while new accounts can play approved old words', async () => {
     await env.DB.prepare("INSERT INTO users (id) VALUES ('new-player')").run();
-    await insertPoolWord('old-approved', '射覆', 'literary', 1);
-    await insertPoolWord('old-disabled', '却扇', 'literary', 2);
+    await insertPoolWord('old-approved', '射覆', 'plants', 1);
+    await insertPoolWord('old-disabled', '却扇', 'plants', 2);
     await env.DB.prepare(
       "UPDATE fib_words SET status = 'disabled', disabled_at = '2026-08-01T00:00:00.000Z', status_reason = 'quality_review: rejected' WHERE id = 'old-disabled'",
     ).run();
@@ -142,7 +142,7 @@ describe('getOrCreateFibWordSelection', () => {
       ).all(),
     ).toMatchObject({ results: [{ user_id: USER_ID, is_at_end: 1 }] });
     await env.DB.prepare(seenQuery).run();
-    await insertPoolWord('new-word', '打尖', 'literary', 3);
+    await insertPoolWord('new-word', '打尖', 'plants', 3);
     expect(await selectWord('played-round', [USER_ID])).toBe('打尖');
     await expect(selectWord('played-exhausted', [USER_ID])).rejects.toThrow(
       'Fib word inventory exhausted',
@@ -158,9 +158,9 @@ describe('getOrCreateFibWordSelection', () => {
 
   it('draws only questions no participant has seen and marks them seen for everyone', async () => {
     await env.DB.prepare("INSERT INTO users (id) VALUES ('new-player')").run();
-    await insertPoolWord('first', '射覆', 'literary', 1);
-    await insertPoolWord('second', '却扇', 'literary', 2);
-    await insertPoolWord('third', '打尖', 'literary', 3);
+    await insertPoolWord('first', '射覆', 'plants', 1);
+    await insertPoolWord('second', '却扇', 'plants', 2);
+    await insertPoolWord('third', '打尖', 'plants', 3);
     const alone = await selectWord('alone', [USER_ID]);
     const together = await selectWord('together', [USER_ID, 'new-player']);
     expect(together).not.toBe(alone);
@@ -188,7 +188,7 @@ describe('getOrCreateFibWordSelection', () => {
   it('never repeats a question for an account across many rounds', async () => {
     const words = ['射覆', '却扇', '打尖', '菡萏', '觊觎', '饕餮'];
     for (const [index, word] of words.entries()) {
-      await insertPoolWord(`repeat-${index}`, word, 'literary', index);
+      await insertPoolWord(`repeat-${index}`, word, 'plants', index);
     }
     const drawn: string[] = [];
     for (let round = 0; round < words.length; round += 1) {
@@ -201,8 +201,8 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('skips avoided words', async () => {
-    await insertPoolWord('avoided', '射覆', 'literary', 1);
-    await insertPoolWord('allowed', '却扇', 'literary', 2);
+    await insertPoolWord('avoided', '射覆', 'plants', 1);
+    await insertPoolWord('allowed', '却扇', 'plants', 2);
     const effect: FibSelectWordEffect = {
       type: 'fibking.word.select',
       payload: { roundId: 'avoid-round', avoidWords: ['射覆'], participantUserIds: [USER_ID] },
@@ -213,8 +213,8 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('serializes simultaneous allocations for the same participant', async () => {
-    await insertPoolWord('concurrent-first', '射覆', 'literary', 1);
-    await insertPoolWord('concurrent-second', '却扇', 'literary', 2);
+    await insertPoolWord('concurrent-first', '射覆', 'plants', 1);
+    await insertPoolWord('concurrent-second', '却扇', 'plants', 2);
     const selections = await Promise.all([
       getOrCreateFibWordSelection(createInput(createEffect('concurrent-one'), 'concurrent-one')),
       getOrCreateFibWordSelection(createInput(createEffect('concurrent-two'), 'concurrent-two')),
@@ -223,7 +223,7 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('selects an unseen published question', async () => {
-    await insertPoolWord('category-word', '菡萏', 'literary', 1);
+    await insertPoolWord('category-word', '菡萏', 'plants', 1);
 
     await expect(getOrCreateFibWordSelection(createInput())).resolves.toMatchObject({
       wordId: 'category-word',
@@ -234,8 +234,8 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('marks the question seen without a usage effect and never consumes twice on replay', async () => {
-    await insertPoolWord('seen-category-word', '菡萏', 'literary', 1);
-    await insertPoolWord('unseen-other-word', '却扇', 'niche', 2);
+    await insertPoolWord('seen-category-word', '菡萏', 'plants', 1);
+    await insertPoolWord('unseen-other-word', '却扇', 'animals', 2);
     const first = await getOrCreateFibWordSelection(createInput());
     await expect(getOrCreateFibWordSelection(createInput())).resolves.toEqual(first);
     const second = await getOrCreateFibWordSelection(
@@ -249,7 +249,7 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('replays the persisted snapshot after its pool word is disabled', async () => {
-    await insertPoolWord('replay-word', '射覆', 'literary', 1);
+    await insertPoolWord('replay-word', '射覆', 'plants', 1);
     const first = await getOrCreateFibWordSelection(createInput());
     await env.DB.prepare(
       `UPDATE fib_words
@@ -262,7 +262,7 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('rejects effect identity reuse for a different round', async () => {
-    await insertPoolWord('identity-word', '射覆', 'literary', 1);
+    await insertPoolWord('identity-word', '射覆', 'plants', 1);
     await getOrCreateFibWordSelection(createInput());
 
     await expect(
@@ -277,7 +277,7 @@ describe('getOrCreateFibWordSelection', () => {
   });
 
   it('rejects a participant without an account', async () => {
-    await insertPoolWord('ghost-word', '射覆', 'literary', 1);
+    await insertPoolWord('ghost-word', '射覆', 'plants', 1);
     await expect(selectWord('ghost-round', [USER_ID, 'missing-account'])).rejects.toThrow(
       'requires a live room and participants',
     );
@@ -297,7 +297,7 @@ describe('getOrCreateFibWordSelection row budget', () => {
        SELECT 'budget-' || position,
          char(19968 + (position - 1) / 40) || char(20100 + (position - 1) % 40),
          '用于验证读行数的核心含义。',
-         '用于验证读行数的使用说明。', 'literary', 'gemini', 'active', 0,
+         '用于验证读行数的使用说明。', 'plants', 'gemini', 'active', 0,
          '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z' FROM counter`,
     )
       .bind(size)

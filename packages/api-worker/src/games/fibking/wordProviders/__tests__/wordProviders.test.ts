@@ -16,17 +16,16 @@ import { FIB_WORD_GENERATION_BATCH_LIMIT, type FibWordRequest } from '../types';
 
 const TEST_GENERATION_BUDGET_MS = 60_000;
 afterEach(() => vi.restoreAllMocks());
-const LITERARY_DEFINITION = {
+const WORD_DEFINITION = {
   coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
   usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
 } as const;
 const CANDIDATES_RESPONSE = {
   candidates: ['菡萏', '却扇', '射覆', '盘桓', '纡徐', '逡巡'].map((word) => ({
     word,
-    definition: LITERARY_DEFINITION,
-    category: 'literary' as const,
-    topic: 'plants' as const,
-    citations: [{ evidenceIndex: 0, quote: `${word}：${LITERARY_DEFINITION.coreMeaning}` }],
+    definition: WORD_DEFINITION,
+    category: 'plants' as const,
+    citations: [{ evidenceIndex: 0, quote: `${word}：${WORD_DEFINITION.coreMeaning}` }],
   })),
 };
 const PASSING_QUALITY_CHECKS = {
@@ -49,7 +48,7 @@ const REVIEWS_RESPONSE = {
         ? '词义已被多数玩家熟知，无法形成真假释义悬念。'
         : '真实含义不透明且便于编造可信释义。',
     evidenceIndex: 0,
-    evidenceQuote: `${word}：${LITERARY_DEFINITION.coreMeaning}`,
+    evidenceQuote: `${word}：${WORD_DEFINITION.coreMeaning}`,
   })),
 };
 
@@ -78,7 +77,7 @@ const SINGLE_REVIEW_REFERENCE_RESPONSE = {
 
 function createWordRequest(): FibWordRequest {
   return {
-    category: 'literary',
+    category: 'plants',
     evidence: [
       {
         query: '词源资料',
@@ -224,11 +223,10 @@ describe('Fib word candidate batches', () => {
     expect(
       parseGeneratedFibWordCandidates(CANDIDATES_RESPONSE, 'gemini', createWordRequest()),
     ).toEqual(
-      CANDIDATES_RESPONSE.candidates.map(({ word, definition, category, topic }) => ({
+      CANDIDATES_RESPONSE.candidates.map(({ word, definition, category }) => ({
         word,
         definition,
         category,
-        topic,
         evidence: createWordRequest().evidence,
         source: 'gemini',
       })),
@@ -253,18 +251,27 @@ describe('Fib word candidate batches', () => {
     ).toEqual([]);
   });
 
-  it('preserves per-word categories and requires exactly the partial review batch', () => {
+  it('rejects generated candidates outside the requested category', () => {
+    expect(() =>
+      parseGeneratedFibWordCandidates(
+        {
+          candidates: CANDIDATES_RESPONSE.candidates.slice(0, 2).map((candidate, index) => ({
+            ...candidate,
+            category: index === 0 ? 'animals' : 'plants',
+          })),
+        },
+        'gemini',
+        createWordRequest(),
+      ),
+    ).toThrow('does not match requested category');
+  });
+
+  it('requires exactly the partial review batch', () => {
     const candidates = parseGeneratedFibWordCandidates(
-      {
-        candidates: CANDIDATES_RESPONSE.candidates.slice(0, 2).map((candidate, index) => ({
-          ...candidate,
-          category: index === 0 ? 'niche' : 'literary',
-        })),
-      },
+      { candidates: CANDIDATES_RESPONSE.candidates.slice(0, 2) },
       'gemini',
       createWordRequest(),
     );
-    expect(candidates.map(({ category }) => category)).toEqual(['niche', 'literary']);
     expect(
       parseFibWordReviews({ reviews: REVIEWS_RESPONSE.reviews.slice(0, 2) }, candidates),
     ).toHaveLength(2);
@@ -337,9 +344,8 @@ describe('Fib word candidate batches', () => {
         candidates: [
           {
             word,
-            definition: LITERARY_DEFINITION,
-            category: 'literary',
-            topic: 'games',
+            definition: WORD_DEFINITION,
+            category: 'plants',
             citations: [{ evidenceIndex: 0, quote: evidenceQuote }],
           },
         ],
@@ -393,7 +399,7 @@ describe('Fib word candidate batches', () => {
         {
           reviews: REVIEWS_RESPONSE.reviews.slice(0, 1).map((review) => ({
             ...review,
-            evidenceQuote: LITERARY_DEFINITION.coreMeaning,
+            evidenceQuote: WORD_DEFINITION.coreMeaning,
           })),
         },
         candidates,
@@ -408,7 +414,7 @@ describe('Fib word candidate batches', () => {
         {
           candidates: CANDIDATES_RESPONSE.candidates.slice(0, 1).map((candidate) => ({
             ...candidate,
-            citations: [{ evidenceIndex: 0, quote: LITERARY_DEFINITION.coreMeaning }],
+            citations: [{ evidenceIndex: 0, quote: WORD_DEFINITION.coreMeaning }],
           })),
         },
         'gemini',
@@ -416,7 +422,7 @@ describe('Fib word candidate batches', () => {
           ...request,
           evidence: request.evidence.map((source) => ({
             ...source,
-            content: LITERARY_DEFINITION.coreMeaning,
+            content: WORD_DEFINITION.coreMeaning,
           })),
         },
       ),
@@ -669,7 +675,7 @@ describe('Gemini Fib word provider', () => {
       ...candidate,
       evidence: candidate.evidence.map((source) => ({
         ...source,
-        content: `${candidate.word}：${LITERARY_DEFINITION.coreMeaning}`,
+        content: `${candidate.word}：${WORD_DEFINITION.coreMeaning}`,
       })),
     }));
     const fetchImpl: typeof fetch = async () =>
@@ -734,7 +740,7 @@ describe('Gemini Fib word provider', () => {
     },
   );
 
-  it.each(['unknown-reference', LITERARY_DEFINITION.coreMeaning])(
+  it.each(['unknown-reference', WORD_DEFINITION.coreMeaning])(
     'rejects invalid or rewritten evidence references: %s',
     async (quote) => {
       const response = {

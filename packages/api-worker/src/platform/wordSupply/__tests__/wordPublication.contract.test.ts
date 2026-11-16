@@ -14,6 +14,8 @@
  * never `as` assertions: `true as false` typechecks, so an assertion-form
  * pin would silently hold nothing.
  */
+import type { DrawGuessWordCategory } from '@game-judge/game-engine/games/drawguess/public';
+import type { UndercoverCategory } from '@game-judge/game-engine/games/undercover/public';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -21,6 +23,7 @@ import {
   failDrawGuessWordPack,
   reserveDrawGuessWordPack,
 } from '../../../games/drawguess/wordPublication';
+import type { FibWordSupplyCategory } from '../../../games/fibking/wordCategories';
 import {
   failFibWordPack,
   type FibWordPack,
@@ -37,9 +40,9 @@ import type { WordSupplyPublication } from '../wordSupplyWorkflow';
 type Exact<Actual, Expected> =
   (<T>() => T extends Actual ? 1 : 2) extends <T>() => T extends Expected ? 1 : 2 ? true : false;
 
-type UndercoverPublication = WordSupplyPublication<UndercoverWordPack>;
-type DrawGuessPublication = WordSupplyPublication<DrawGuessWordPack>;
-type FibPublication = WordSupplyPublication<FibWordPack>;
+type UndercoverPublication = WordSupplyPublication<UndercoverCategory, UndercoverWordPack>;
+type DrawGuessPublication = WordSupplyPublication<DrawGuessWordCategory, DrawGuessWordPack>;
+type FibPublication = WordSupplyPublication<FibWordSupplyCategory, FibWordPack>;
 
 const undercoverPublication = {
   reserve: reserveUndercoverWordPack,
@@ -58,17 +61,32 @@ const fibPublication = {
 
 const undercoverReservePin: Exact<
   typeof reserveUndercoverWordPack,
-  (db: D1Database, day: string, runId: string) => Promise<UndercoverWordPack | null>
+  (
+    db: D1Database,
+    day: string,
+    runId: string,
+    category: UndercoverCategory,
+  ) => Promise<UndercoverWordPack | null>
 > = true;
 const undercoverFailPin: Exact<typeof failUndercoverWordPack, UndercoverPublication['fail']> = true;
 const drawGuessReservePin: Exact<
   typeof reserveDrawGuessWordPack,
-  (db: D1Database, day: string, runId: string) => Promise<DrawGuessWordPack | null>
+  (
+    db: D1Database,
+    day: string,
+    runId: string,
+    category: DrawGuessWordCategory,
+  ) => Promise<DrawGuessWordPack | null>
 > = true;
 const drawGuessFailPin: Exact<typeof failDrawGuessWordPack, DrawGuessPublication['fail']> = true;
 const fibReservePin: Exact<
   typeof reserveFibWordPack,
-  (db: D1Database, day: string, runId: string) => Promise<FibWordPack | null>
+  (
+    db: D1Database,
+    day: string,
+    runId: string,
+    category: FibWordSupplyCategory,
+  ) => Promise<FibWordPack | null>
 > = true;
 const fibFailPin: Exact<typeof failFibWordPack, FibPublication['fail']> = true;
 

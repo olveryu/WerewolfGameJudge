@@ -12,10 +12,9 @@ import { Converter } from 'opencc-js/t2cn';
 import { z } from 'zod';
 
 import { AiOutputValidationError } from '../../../platform/ai/aiError';
-import { FIB_WORD_ALL_TOPIC_IDS } from '../wordTopics';
+import { FIB_WORD_ALL_CATEGORY_IDS } from '../wordCategories';
 import { FIB_WORD_EVIDENCE_SOURCE_LIMIT, fibWordEvidenceSchema } from './tavily';
 import {
-  FIB_WORD_CATEGORIES,
   FIB_WORD_GENERATION_BATCH_LIMIT,
   FIB_WORD_REVIEW_BATCH_LIMIT,
   FIB_WORD_STORED_GENERATION_BATCH_LIMIT,
@@ -50,15 +49,13 @@ const fibWordCandidatePayloadSchema = z.strictObject({
 });
 
 const fibWordEditorialCandidateSchema = fibWordCandidatePayloadSchema.extend({
-  category: z.enum(FIB_WORD_CATEGORIES),
-  topic: z.enum(FIB_WORD_ALL_TOPIC_IDS).nullable().optional(),
+  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
   source: z.enum(FIB_WORD_SOURCES),
   evidence: z.array(fibWordEvidenceSchema).max(FIB_WORD_EVIDENCE_SOURCE_LIMIT),
 });
 
 const generatedFibWordCandidatePayloadSchema = fibWordCandidatePayloadSchema.extend({
-  category: z.enum(FIB_WORD_CATEGORIES),
-  topic: z.enum(FIB_WORD_ALL_TOPIC_IDS),
+  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
   citations: z
     .array(z.strictObject({ evidenceIndex: z.number().int().min(0), quote: evidenceQuoteSchema }))
     .min(1)
@@ -95,7 +92,7 @@ const fibWordReviewsPayloadSchema = z.strictObject({
 export const FIB_WORD_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['word', 'definition', 'category', 'topic', 'citations'],
+  required: ['word', 'definition', 'category', 'citations'],
   properties: {
     word: {
       type: 'string',
@@ -119,13 +116,8 @@ export const FIB_WORD_JSON_SCHEMA = {
     },
     category: {
       type: 'string',
-      enum: FIB_WORD_CATEGORIES,
-      description: '候选类别',
-    },
-    topic: {
-      type: 'string',
-      enum: FIB_WORD_ALL_TOPIC_IDS,
-      description: '根据释义选择主题，无法归类时为 other',
+      enum: FIB_WORD_ALL_CATEGORY_IDS,
+      description: '必须使用本次指定的目标类别',
     },
     citations: {
       type: 'array',
@@ -302,13 +294,19 @@ export function parseGeneratedFibWordCandidate(
   source: FibWordSource,
   request: FibWordRequest,
 ): FibWordEditorialCandidate {
-  const { word, definition, category, topic, citations } =
+  const { word, definition, category, citations } =
     generatedFibWordCandidatePayloadSchema.parse(value);
+  if (category !== request.category) {
+    throw new AiOutputValidationError(
+      'categoryMismatch',
+      `Fib word candidate category ${category} does not match requested category ${request.category}`,
+      ['category'],
+    );
+  }
   return {
     word,
     definition,
     category,
-    topic,
     source,
     evidence: citations.map(({ evidenceIndex, quote }, index) => {
       const evidence = request.evidence[evidenceIndex];

@@ -29,7 +29,7 @@ beforeEach(async () => {
     id, word, core_meaning, usage_note, category, source, status,
     selection_key, created_at, activated_at
   ) VALUES ('integration-word', '射覆', '一种猜测覆盖物下物品的古代游戏。',
-    '常在宴饮时进行，参加者通过提示猜测物品。', 'literary', 'gemini', 'active', 1,
+    '常在宴饮时进行，参加者通过提示猜测物品。',     'plants', 'gemini', 'active', 1,
     '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')
     ON CONFLICT (id) DO NOTHING`,
   ).run();

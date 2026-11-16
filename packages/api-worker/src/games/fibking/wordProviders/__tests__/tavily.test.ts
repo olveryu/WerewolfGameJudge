@@ -159,8 +159,7 @@ describe('Tavily evidence', () => {
         env,
         {
           word: '菡萏',
-          category: 'literary',
-          topic: 'plants',
+          category: 'plants',
           references: [],
           definition: {
             coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',

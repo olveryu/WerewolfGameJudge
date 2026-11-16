@@ -136,6 +136,7 @@ describe('adminApi', () => {
     await expect(
       fetchLibraryItems('drawguess', {
         status: 'approved',
+        category: '动物',
         search: '玫瑰花',
         cursor: 'current-page',
       }),
@@ -146,6 +147,7 @@ describe('adminApi', () => {
     expect(url.pathname).toMatch(/\/admin\/words\/drawguess\/library-items$/);
     expect(Object.fromEntries(url.searchParams)).toEqual({
       status: 'approved',
+      category: '动物',
       search: '玫瑰花',
       cursor: 'current-page',
     });

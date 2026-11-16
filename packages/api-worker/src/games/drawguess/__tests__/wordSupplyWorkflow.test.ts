@@ -61,7 +61,7 @@ describe('DrawGuess supply workflow', () => {
     const diagRunId = crypto.randomUUID();
     const workflow = await env.DRAWGUESS_WORD_SUPPLY.create({
       id,
-      params: { day, runId: diagRunId },
+      params: { day, runId: diagRunId, category: 'animals' },
     });
     await instance.waitForStatus('errored');
     const status = await workflow.status();
@@ -161,7 +161,10 @@ describe('DrawGuess supply workflow', () => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
-    await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
+    await env.DRAWGUESS_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: crypto.randomUUID(), category },
+    });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
     expect(
@@ -213,7 +216,10 @@ describe('DrawGuess supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
     const firstRunId = crypto.randomUUID();
-    await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day, runId: firstRunId } });
+    await env.DRAWGUESS_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: firstRunId, category: 'animals' },
+    });
     await instance.waitForStatus('complete');
     // Newly generated words stop as pending submissions: no review, no
     // publish, and the run ends with the stored count.
@@ -267,7 +273,10 @@ describe('DrawGuess supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
     const resumeRunId = crypto.randomUUID();
-    await env.DRAWGUESS_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: resumeRunId } });
+    await env.DRAWGUESS_WORD_SUPPLY.create({
+      id: resumeId,
+      params: { day, runId: resumeRunId, category: 'animals' },
+    });
     await resume.waitForStatus('complete');
     expect(await resume.getOutput()).toEqual({ status: 'complete', stored: 1 });
     expect(
@@ -327,7 +336,10 @@ describe('DrawGuess supply workflow', () => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
-    await env.DRAWGUESS_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
+    await env.DRAWGUESS_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: crypto.randomUUID(), category: 'animals' },
+    });
     await instance.waitForStatus('complete');
     const generation = requests[0];
     expect(generation).toBeDefined();
@@ -351,7 +363,7 @@ describe('DrawGuess supply workflow', () => {
     const diagRejectRunId = crypto.randomUUID();
     const workflow = await env.DRAWGUESS_WORD_SUPPLY.create({
       id,
-      params: { day, runId: diagRejectRunId },
+      params: { day, runId: diagRejectRunId, category: 'animals' },
     });
     await instance.waitForStatus('errored');
     const status = await workflow.status();
@@ -405,7 +417,11 @@ describe('DrawGuess supply workflow', () => {
     });
     await env.DRAWGUESS_WORD_SUPPLY.create({
       id,
-      params: { day: new Date().toISOString().slice(0, 10), runId: crypto.randomUUID() },
+      params: {
+        day: new Date().toISOString().slice(0, 10),
+        runId: crypto.randomUUID(),
+        category: 'animals',
+      },
     });
     await instance.waitForStatus('errored');
     expect(

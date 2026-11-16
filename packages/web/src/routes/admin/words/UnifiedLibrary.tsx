@@ -57,44 +57,19 @@ const STATUS_OPTIONS = [
     label: SUBMISSION_STATUS_LABELS[value],
   })),
 ];
+const LIBRARY_SUMMARY_STATUSES = [
+  'approved',
+  'reviewing',
+  'passed',
+  'published',
+  'failed',
+  'dismissed',
+] as const satisfies readonly WordSubmissionStatus[];
+const CATEGORY_NAME_COLLATOR = new Intl.Collator('zh-CN');
 
 /** Merged totals are partial records: a status with no rows is absent, not zero. */
 function statusCount(counts: Partial<Record<string, number>>, status: string): number {
   return counts[status] ?? 0;
-}
-
-function LibraryFlowBar({
-  stats,
-  totals,
-}: {
-  stats: GameWordsStats;
-  totals: WordLibraryItems['totals'];
-}) {
-  const awaiting =
-    statusCount(totals.submissions, 'pending') + statusCount(totals.submissions, 'approved');
-  const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
-  const stages = [
-    { label: '库存', value: inventory, hot: false },
-    { label: '待审核', value: awaiting, hot: awaiting > 0 },
-    { label: '审核中', value: statusCount(totals.submissions, 'reviewing'), hot: false },
-    { label: '待发布', value: statusCount(totals.submissions, 'passed'), hot: false },
-  ];
-  return (
-    <ol className="admin-flow-bar" aria-label="词库流程">
-      {stages.map((stage) => (
-        <li
-          key={stage.label}
-          className={stage.hot ? 'admin-flow-step admin-flow-step-hot' : 'admin-flow-step'}
-        >
-          <span className="admin-flow-step-value">{stage.value}</span>
-          <span className="admin-flow-step-label">
-            {stage.label}
-            {stage.hot ? ' · 待处理' : ''}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
 }
 
 function LibrarySummary({
@@ -108,9 +83,13 @@ function LibrarySummary({
   const decisions = stats.reviewDecisions.reduce((sum, item) => sum + item.count, 0);
   const inventory = stats.categories.reduce((sum, item) => sum + item.active, 0);
   return (
-    <div className="admin-library-stats">
+    <section className="admin-library-stats" aria-label="词库概览">
       <div className="admin-library-stats-row">
-        <StatTile label="在库词数" value={inventory} hint="已入库，可直接被抽题用。" />
+        <StatTile
+          label="在库词数"
+          value={formatNumber(inventory)}
+          hint="已入库，可直接被抽题用。"
+        />
         <StatTile
           label="投稿审核通过率"
           value={decisions === 0 ? '—' : `${Math.round((accepted / decisions) * 100)}%`}
@@ -119,26 +98,21 @@ function LibrarySummary({
         <span className="admin-library-stat-hot">
           <StatTile
             label="待你批准"
-            value={statusCount(totals.submissions, 'pending')}
+            value={formatNumber(statusCount(totals.submissions, 'pending'))}
             hint="投稿中，还没批的。"
           />
         </span>
       </div>
-      <div className="admin-library-summary-supplementary">
-        <span className="admin-library-summary-line">
-          <span className="admin-library-summary-key">已批准待审核</span>
-          <span className="admin-library-summary-value">
-            {formatNumber(statusCount(totals.submissions, 'approved'))} 条
-          </span>
-        </span>
-        <span className="admin-library-summary-line">
-          <span className="admin-library-summary-key">已拒绝</span>
-          <span className="admin-library-summary-value">
-            {formatNumber(statusCount(totals.submissions, 'dismissed'))} 条
-          </span>
-        </span>
+      <div className="admin-library-status-grid">
+        {LIBRARY_SUMMARY_STATUSES.map((status) => (
+          <div className="admin-library-status" key={status}>
+            <span>{SUBMISSION_STATUS_LABELS[status]}</span>
+            <strong>{formatNumber(statusCount(totals.submissions, status))}</strong>
+          </div>
+        ))}
       </div>
-    </div>
+      <p className="admin-library-scope-note">以上数据为全量统计，不受下方筛选影响。</p>
+    </section>
   );
 }
 
@@ -146,6 +120,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   const [parameters, setParameters] = useSearchParams();
   const navigate = useNavigate();
   const search = parameters.get('search') ?? '';
+  const category = parameters.get('category') ?? '';
   const rawStatus = parameters.get('status') ?? '';
   const status = isLibraryStatus(rawStatus) ? rawStatus : '';
 
@@ -154,9 +129,14 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   // Reset while rendering the new scope, so the query below never fires
   // with a stale cursor.
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
-  const [prevScope, setPrevScope] = useState({ game, status, search });
-  if (prevScope.game !== game || prevScope.status !== status || prevScope.search !== search) {
-    setPrevScope({ game, status, search });
+  const [prevScope, setPrevScope] = useState({ game, status, search, category });
+  if (
+    prevScope.game !== game ||
+    prevScope.status !== status ||
+    prevScope.search !== search ||
+    prevScope.category !== category
+  ) {
+    setPrevScope({ game, status, search, category });
     setCursors([null]);
   }
   const cursor = cursors[cursors.length - 1] ?? null;
@@ -165,16 +145,20 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
     adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
   );
   const library = useQuery(
-    adminQueryOptions('words', { game, section: 'library', status, search, cursor }, (signal) =>
-      fetchLibraryItems(
-        game,
-        {
-          ...(status === '' ? {} : { status }),
-          ...(search === '' ? {} : { search }),
-          ...(cursor === null ? {} : { cursor }),
-        },
-        signal,
-      ),
+    adminQueryOptions(
+      'words',
+      { game, section: 'library', status, category, search, cursor },
+      (signal) =>
+        fetchLibraryItems(
+          game,
+          {
+            ...(status === '' ? {} : { status }),
+            ...(category === '' ? {} : { category }),
+            ...(search === '' ? {} : { search }),
+            ...(cursor === null ? {} : { cursor }),
+          },
+          signal,
+        ),
     ),
   );
 
@@ -191,7 +175,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
     setTriggerError(null);
     let completed = 0;
     try {
-      for (; completed < action.count; completed += 1) await triggerGameWordSupply(game);
+      for (; completed < action.count; completed += 1)
+        await triggerGameWordSupply(game, action.category);
       setNotice(`已触发 ${completed} 次，工作流需要几分钟，稍后手动刷新。`);
     } catch (cause: unknown) {
       handleError(cause, { label: '触发补词', logger: wordLog, feedback: false });
@@ -207,7 +192,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   function confirm(action: SupplyAction) {
     void showAlert(
       '确认补词',
-      `将为「${WORD_GAME_LABELS[game]}」触发 ${action.count} 次补词，确定吗？`,
+      `将为「${WORD_GAME_LABELS[game]}」的「${stats.data?.categories.find((item) => item.id === action.category)?.name ?? action.category}」类别触发 ${action.count} 次补词，确定吗？`,
       [
         CANCEL_BUTTON,
         {
@@ -226,7 +211,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
     setParameters(next, { replace: true });
   }
 
-  /** Game links keep the card-stream filters. */
+  /** Category values are game-specific; status and search are shared. */
   function gameSearch() {
     const next = new URLSearchParams();
     if (status !== '') next.set('status', status);
@@ -236,12 +221,25 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   }
 
   const totals = library.data?.totals;
-  const inventory = stats.data?.categories.reduce((sum, item) => sum + item.active, 0) ?? 0;
+  const categories = stats.data?.categories ?? [];
+  const sortedCategories = [...categories].sort((left, right) =>
+    CATEGORY_NAME_COLLATOR.compare(left.name, right.name),
+  );
+  const supplyCategories = sortedCategories.filter(
+    (item) => item.id !== 'unclassified' && item.id !== 'other',
+  );
+  const categoryOptions = [
+    { value: '', label: '全部类别' },
+    ...sortedCategories.map((item) => ({
+      value: item.id,
+      label: `${item.name}（${formatNumber(item.active)}）`,
+    })),
+  ];
   return (
-    <>
+    <div className="admin-word-library-page">
       <PageHeading
         title="统一词库"
-        description="搜索投稿；库存只显示数量。"
+        description="筛选投稿；库存只显示数量。"
         query={stats}
         action={
           <span className="admin-row-actions">
@@ -252,7 +250,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
               Agent 授权
             </button>
             <SupplyControls
-              disabled={triggering || !stats.data?.supplyEnabled}
+              categories={supplyCategories}
+              disabled={triggering || !stats.data?.supplyEnabled || supplyCategories.length === 0}
               triggering={triggering}
               gameLabel={WORD_GAME_LABELS[game]}
               onSelect={confirm}
@@ -286,23 +285,12 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           </nav>
         </div>
         {stats.isError || library.isError ? (
-          <p className="admin-muted">流程汇总加载失败，见下方各表。</p>
+          <p className="admin-muted">词库数据加载失败，请刷新重试。</p>
         ) : stats.data === undefined || totals === undefined ? (
-          <p className="admin-muted">正在汇总流程…</p>
+          <p className="admin-muted">正在加载词库数据…</p>
         ) : (
           <>
             <LibrarySummary stats={stats.data} totals={totals} />
-            <dl className="admin-details admin-library-sources">
-              <dt>库存</dt>
-              <dd>{formatNumber(inventory)} 条</dd>
-              <dt>已发布</dt>
-              <dd>{formatNumber(statusCount(totals.submissions, 'published'))} 条</dd>
-              <dt>待批准</dt>
-              <dd>{formatNumber(statusCount(totals.submissions, 'pending'))} 条</dd>
-              <dt>审核失败待重审</dt>
-              <dd>{formatNumber(statusCount(totals.submissions, 'failed'))} 条</dd>
-            </dl>
-            <LibraryFlowBar stats={stats.data} totals={totals} />
             {stats.data.tavilyRequestsUsed !== null && stats.data.tavilyMonthlyQuota !== null && (
               <Meter
                 label="Tavily · 本月"
@@ -313,7 +301,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           </>
         )}
         <form
-          className="admin-toolbar"
+          className="admin-toolbar admin-library-filter-toolbar"
+          aria-label="筛选词库"
           onSubmit={(event) => {
             event.preventDefault();
             const next = new URLSearchParams(parameters);
@@ -324,18 +313,26 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
             setParameters(next, { replace: true });
           }}
         >
-          <WordChoiceFilter
-            label="状态"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={(value) => change('status', value)}
-          />
+          <div className="admin-library-filter-choices">
+            <WordChoiceFilter
+              label="状态"
+              value={status}
+              options={STATUS_OPTIONS}
+              onChange={(value) => change('status', value)}
+            />
+            <WordChoiceFilter
+              label="类别"
+              value={category}
+              options={categoryOptions}
+              onChange={(value) => change('category', value)}
+            />
+          </div>
           <input
             type="search"
             name="librarySearch"
             defaultValue={search}
             className="admin-input admin-filter"
-            placeholder="搜索投稿的词语、分类"
+            placeholder="搜索投稿词语"
             aria-label="搜索投稿"
           />
           <button type="submit">搜</button>
@@ -343,7 +340,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
         <AsyncBoundary query={library}>
           {(data) => (
             <LibraryCards
-              key={`${game}:${status}:${search}:${cursors.length}`}
+              key={`${game}:${status}:${category}:${search}:${cursors.length}`}
               game={game}
               status={status}
               search={search}
@@ -358,7 +355,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           )}
         </AsyncBoundary>
       </div>
-    </>
+    </div>
   );
 }
 

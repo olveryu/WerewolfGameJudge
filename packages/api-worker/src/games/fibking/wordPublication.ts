@@ -6,13 +6,15 @@
 import { z } from 'zod';
 
 import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
-import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import { createFailWordPackStatement } from '../../platform/wordSupply/wordPackLedger';
+import {
+  FIB_WORD_ALL_CATEGORY_IDS,
+  FIB_WORD_CATEGORY_IDS,
+  type FibWordSupplyCategory,
+} from './wordCategories';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
 import { FIB_WORD_PROMPT_VERSION } from './wordProviders/prompt';
-import { FIB_WORD_CATEGORIES } from './wordProviders/types';
 import { FIB_WORD_SEARCH_QUERY_COUNT, FIB_WORD_SEARCHES } from './wordSearchPlan';
-import { FIB_WORD_TOPIC_IDS } from './wordTopics';
 
 const FIB_WORD_TAVILY_REQUEST_LIMIT = 7;
 /**
@@ -32,8 +34,7 @@ type FibWordProviderOperation =
 
 const packSchema = z.strictObject({
   id: z.string(),
-  category: z.enum(FIB_WORD_CATEGORIES),
-  topic: z.enum(FIB_WORD_TOPIC_IDS).nullable().optional(),
+  category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
   request_token: z.string(),
   searchIndex: z
     .number()
@@ -81,15 +82,12 @@ export async function reserveFibWordPack(
   db: D1Database,
   day: string,
   runId: string,
+  category: FibWordSupplyCategory,
 ): Promise<FibWordPack | null> {
   const parsedDay = z.iso.date().parse(day);
   z.string().min(1).max(64).parse(runId);
+  const selectedCategory = z.enum(FIB_WORD_CATEGORY_IDS).parse(category);
   const monthId = parsedDay.slice(0, 7);
-  // Manual runs carry a unique runId so repeated triggers on the same day
-  // never collide with each other. The category follows the same
-  // largest-deficit rule as the other games (fewest active words, then the
-  // largest unreviewed queue, then least recently packed): the old
-  // day-of-month rotation died with the batch index.
   const id = `${parsedDay}-${runId}`;
   const requestToken = crypto.randomUUID();
   const results = await db.batch([
@@ -98,29 +96,14 @@ export async function reserveFibWordPack(
       .bind(monthId),
     db
       .prepare(
-        `INSERT INTO fib_word_packs (id, month_id, request_token, category, status, created_at)
-      SELECT ?, id, ?, (
-        SELECT value FROM json_each(?) c
-        ORDER BY (SELECT COUNT(*) FROM fib_words w WHERE w.category = c.value AND w.status = 'active') ASC,
-          -(SELECT COUNT(*) FROM word_submission_items item
-             WHERE item.game = 'fibking' AND item.status IN ('pending', 'approved')
-               AND json_extract(item.material_json, '$.category') = c.value) ASC,
-          COALESCE((SELECT MAX(created_at) FROM fib_word_packs previous WHERE previous.category = c.value), '') > ? ASC,
-          COALESCE((SELECT MAX(created_at) FROM fib_word_packs previous WHERE previous.category = c.value), '') ASC,
-          value ASC LIMIT 1
-      ), 'reserved', ? FROM fib_word_supply_months
+        `INSERT INTO fib_word_packs
+        (id, month_id, request_token, category, status, created_at)
+      SELECT ?, id, ?, ?, 'reserved', ? FROM fib_word_supply_months
       WHERE id = ?
         AND EXISTS (SELECT 1 FROM database_capacity WHERE id = 1 AND state IN ('normal', 'warning'))
       ON CONFLICT (id) DO NOTHING RETURNING id, category, request_token`,
       )
-      .bind(
-        id,
-        requestToken,
-        JSON.stringify(FIB_WORD_CATEGORIES),
-        wordCategoryCooldownCutoff(),
-        new Date().toISOString(),
-        monthId,
-      ),
+      .bind(id, requestToken, selectedCategory, new Date().toISOString(), monthId),
     db
       .prepare(
         `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
@@ -142,51 +125,37 @@ export async function selectFibWordSearch(db: D1Database, pack: FibWordPack) {
   const row = await db
     .prepare(
       `UPDATE fib_word_packs
-     SET (search_index, topic) = (
-       WITH focus AS (
-         SELECT value AS topic FROM json_each(?) categories
-         ORDER BY (SELECT COUNT(*) FROM fib_words WHERE status = 'active' AND topic = categories.value),
-           COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), '') > ?,
-           COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs WHERE topic = categories.value), ''),
-           value LIMIT 1
-       ), choice AS (
-         SELECT CAST(key AS INTEGER) AS search_index, json_extract(value, '$.topic') AS topic
-         FROM json_each(?) WHERE json_extract(value, '$.topic') = (SELECT topic FROM focus)
-         ORDER BY COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs
-           WHERE search_index = CAST(key AS INTEGER)), ''), CAST(key AS INTEGER) LIMIT 1
-       )
-       SELECT search_index, topic FROM choice
+     SET search_index = (
+       SELECT CAST(key AS INTEGER) FROM json_each(?)
+       WHERE json_extract(value, '$.category') = ?
+       ORDER BY COALESCE((SELECT MAX(search_selected_at) FROM fib_word_packs previous
+         WHERE previous.category = ? AND previous.search_index = CAST(key AS INTEGER)), ''),
+         CAST(key AS INTEGER)
+       LIMIT 1
      ), search_selected_at = ?
      WHERE id = ? AND request_token = ? AND status = 'reserved' AND search_index IS NULL
-     RETURNING search_index AS searchIndex, topic`,
+     RETURNING search_index AS searchIndex, category`,
     )
-    .bind(
-      JSON.stringify(FIB_WORD_TOPIC_IDS),
-      wordCategoryCooldownCutoff(),
-      searches,
-      now,
-      pack.id,
-      pack.request_token,
-    )
+    .bind(searches, pack.category, pack.category, now, pack.id, pack.request_token)
     .first();
   const selected =
     row ??
     (await db
       .prepare(
-        `UPDATE fib_word_packs SET topic = COALESCE(topic, json_extract(?, '$[' || search_index || '].topic')),
-      search_selected_at = COALESCE(search_selected_at, ?)
-     WHERE id = ? AND request_token = ? AND status = 'reserved'
-     RETURNING search_index AS searchIndex, topic`,
+        `SELECT search_index AS searchIndex, category FROM fib_word_packs
+         WHERE id = ? AND request_token = ? AND status = 'reserved'`,
       )
-      .bind(searches, now, pack.id, pack.request_token)
+      .bind(pack.id, pack.request_token)
       .first());
+  if (selected === null)
+    throw new Error(`Fib category search could not be selected for pack ${pack.id}`);
   return z
     .strictObject({
       searchIndex: z
         .int()
         .min(0)
         .max(FIB_WORD_SEARCH_QUERY_COUNT - 1),
-      topic: z.enum(FIB_WORD_TOPIC_IDS),
+      category: z.enum(FIB_WORD_ALL_CATEGORY_IDS),
     })
     .parse(selected);
 }

@@ -272,7 +272,7 @@ beforeEach(() => {
   vi.mocked(fetchLibraryItems).mockImplementation(async (game) => ({
     game,
     items: [],
-    totals: { candidates: {}, submissions: {} },
+    totals: { submissions: {} },
     nextCursor: null,
   }));
   vi.mocked(wordSubmissionsApi.audit).mockResolvedValue({ events: [], statuses: [] });
@@ -958,6 +958,7 @@ describe('admin workspace', () => {
   it('resets cancelled supply options and preserves the normal single-task action', async () => {
     vi.mocked(triggerGameWordSupply).mockResolvedValue({
       game: 'fibking',
+      category: 'food',
       workflowId: 'normal-run',
     });
     const view = mount('/admin/words/fibking');
@@ -979,7 +980,7 @@ describe('admin workspace', () => {
     const buttons = vi.mocked(showAlert).mock.calls.at(-1)?.[2];
     await act(async () => buttons?.find((button) => button.text === '确定')?.onPress?.());
     await screen.findByText('已触发 1 次，工作流需要几分钟，稍后手动刷新。');
-    expect(triggerGameWordSupply).toHaveBeenCalledExactlyOnceWith('fibking');
+    expect(triggerGameWordSupply).toHaveBeenCalledExactlyOnceWith('fibking', 'food');
     expect(fetchGameWordsStats).toHaveBeenCalledOnce();
     view.unmount();
     view.client.clear();
@@ -1001,7 +1002,7 @@ describe('admin workspace', () => {
 
   it('stops triggering when the server rejects a request', async () => {
     vi.mocked(triggerGameWordSupply)
-      .mockResolvedValueOnce({ game: 'fibking', workflowId: 'run' })
+      .mockResolvedValueOnce({ game: 'fibking', category: 'food', workflowId: 'run' })
       .mockRejectedValueOnce(new Error('网络异常'));
     const view = mount('/admin/words/fibking');
     await screen.findByRole('button', { name: '补词' });
@@ -1022,6 +1023,7 @@ describe('admin workspace', () => {
     async ({ count }) => {
       vi.mocked(triggerGameWordSupply).mockResolvedValue({
         game: 'fibking',
+        category: 'food',
         workflowId: 'run',
       });
       const view = mount('/admin/words/fibking');
@@ -1039,7 +1041,7 @@ describe('admin workspace', () => {
       await act(async () => buttons?.find((button) => button.text === '确定')?.onPress?.());
       await screen.findByText(`已触发 ${count} 次，工作流需要几分钟，稍后手动刷新。`);
       expect(triggerGameWordSupply).toHaveBeenCalledTimes(count);
-      expect(triggerGameWordSupply).toHaveBeenLastCalledWith('fibking');
+      expect(triggerGameWordSupply).toHaveBeenLastCalledWith('fibking', 'food');
       expect(fetchGameWordsStats).toHaveBeenCalledTimes(1);
       view.unmount();
       view.client.clear();

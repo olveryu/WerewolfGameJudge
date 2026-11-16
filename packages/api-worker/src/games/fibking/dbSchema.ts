@@ -12,8 +12,7 @@ import {
 
 import { users } from '../../features/account/dbSchema';
 import { rooms } from '../../platform/room/dbSchema';
-import { FIB_WORD_CATEGORIES } from './wordProviders/types';
-import { FIB_WORD_ALL_TOPIC_IDS } from './wordTopics';
+import { FIB_WORD_ALL_CATEGORY_IDS } from './wordCategories';
 
 const FIB_WORD_STATUSES = ['active', 'disabled'] as const;
 
@@ -46,7 +45,7 @@ export const fibWords = sqliteTable(
     word: text('word').notNull(),
     coreMeaning: text('core_meaning').notNull(),
     usageNote: text('usage_note').notNull(),
-    category: text('category', { enum: FIB_WORD_CATEGORIES }).notNull(),
+    category: text('category', { enum: FIB_WORD_ALL_CATEGORY_IDS }),
     source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
     status: text('status', { enum: FIB_WORD_STATUSES }).notNull(),
     selectionKey: integer('selection_key').notNull(),
@@ -55,12 +54,10 @@ export const fibWords = sqliteTable(
     activatedAt: text('activated_at').notNull(),
     disabledAt: text('disabled_at'),
     statusReason: text('status_reason'),
-    topic: text('topic', { enum: FIB_WORD_ALL_TOPIC_IDS }),
   },
   (table) => [
     uniqueIndex('idx_fib_words_word').on(table.word),
     index('idx_fib_words_selection').on(table.status, table.category, table.selectionKey, table.id),
-    index('idx_fib_words_topic').on(table.status, table.topic),
   ],
 );
 

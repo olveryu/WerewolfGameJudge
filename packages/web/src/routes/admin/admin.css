@@ -180,42 +180,60 @@
   background: var(--admin-panel);
   border-top: 1px solid var(--admin-border);
 }
-/** Four-stage pipeline summary on the unified library page. */
-.admin-flow-bar {
-  display: flex;
-  flex-wrap: wrap;
+.admin-word-library-page .admin-bulk-bar {
+  display: grid;
+  align-items: stretch;
   gap: var(--space-medium);
-  margin: 0 0 var(--space-large);
-  padding: 0;
-  list-style: none;
-}
-.admin-flow-step {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-micro);
-  padding: var(--space-small) var(--space-medium);
+  padding: var(--space-medium);
   border: 1px solid var(--admin-border);
-  border-radius: var(--radius-small);
-  background: var(--admin-panel);
+  border-radius: var(--radius-medium);
+}
+.admin-bulk-selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-medium);
   min-width: 0;
 }
-.admin-flow-step-value {
-  font-size: var(--font-admin-metric);
+.admin-bulk-selection-count {
+  display: grid;
+  gap: var(--space-tight);
+  min-width: 0;
+}
+.admin-bulk-selection-count strong {
   font-weight: var(--weight-semibold);
-  color: var(--admin-text);
 }
-.admin-flow-step-label {
+.admin-bulk-selection-count > span {
+  color: var(--admin-secondary);
   font-size: var(--font-caption);
-  color: var(--admin-muted);
+  line-height: var(--line-caption);
 }
-.admin-flow-step-hot {
-  border-color: var(--admin-warning);
-  background: var(--admin-warning-soft);
+.admin-word-library-page .admin-bulk-select-all {
+  min-width: 0;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
-.admin-flow-step-hot .admin-flow-step-value {
-  color: var(--admin-warning);
+.admin-word-library-page .admin-bulk-note {
+  margin: 0;
+  color: var(--admin-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
 }
-/** Three-cell stat strip on the unified library page. */
+.admin-word-library-page .admin-bulk-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--size-admin-metric-min)), 1fr));
+  gap: var(--space-small);
+  width: 100%;
+}
+.admin-word-library-page .admin-bulk-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--size-min-touch-target);
+  padding-inline: var(--space-medium);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/** One overview panel for inventory, review rate, and distinct submission states. */
 .admin-library-stats {
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-small);
@@ -239,25 +257,53 @@
 .admin-library-stat-hot strong {
   color: var(--admin-warning);
 }
-.admin-library-summary-supplementary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-small) var(--space-large);
+.admin-library-scope-note {
+  margin: 0;
+  padding: 0 var(--space-medium) var(--space-small);
+  color: var(--admin-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+.admin-library-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--admin-border);
+}
+.admin-library-status {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-small);
+  min-width: 0;
   padding: var(--space-small) var(--space-medium);
   font-size: var(--font-caption);
+}
+.admin-library-status span {
   color: var(--admin-secondary);
 }
-.admin-library-summary-line {
-  display: inline-flex;
+.admin-library-status strong {
+  color: var(--admin-text);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+}
+.admin-library-filter-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+}
+.admin-library-filter-choices {
+  display: grid;
+  grid-column: 1 / 3;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-small);
 }
-.admin-library-summary-value {
-  color: var(--admin-text);
+.admin-library-filter-toolbar > .admin-filter {
+  grid-column: 3;
+  width: 100%;
+  min-width: 0;
 }
-/** Source breakdown under the stat strip: numbers right-aligned. */
-.admin-library-sources dd {
-  text-align: right;
+.admin-library-filter-toolbar > button[type='submit'] {
+  grid-column: 4;
 }
 .admin-workspace {
   min-height: 100%;
@@ -268,6 +314,14 @@
   z-index: 5;
   background: var(--admin-panel);
   border-bottom: 1px solid var(--admin-border);
+}
+.admin-mock-banner {
+  margin: 0;
+  padding: var(--space-small) var(--space-large);
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  font-size: var(--font-small);
+  text-align: center;
 }
 .admin-brand-mark {
   display: grid;
@@ -1448,6 +1502,15 @@
   align-items: center;
   gap: var(--space-medium);
 }
+.admin-supply-category {
+  display: grid;
+  gap: var(--space-small);
+  margin-top: var(--space-medium);
+}
+.admin-supply-category select {
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+}
 .admin-drawer-positioner.admin-overlay-sheet {
   align-items: center;
   justify-content: center;
@@ -1793,6 +1856,55 @@
     width: 100%;
     border-radius: var(--radius-large) var(--radius-large) 0 0;
     animation: admin-slide-up 200ms ease-out;
+  }
+}
+@media (max-width: 640px) {
+  .admin-word-library-page .admin-page-title-row {
+    align-items: flex-start;
+  }
+  .admin-word-library-page .admin-page-title-row > .admin-row-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .admin-word-library-page .admin-page-title-row > .admin-row-actions > button {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .admin-word-library-page .admin-toolbar > .admin-segmented {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .admin-word-library-page .admin-toolbar > .admin-segmented a {
+    padding-inline: var(--space-tight);
+  }
+  .admin-word-library-page .admin-library-filter-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+  }
+  .admin-word-library-page .admin-library-filter-choices {
+    grid-column: 1 / -1;
+  }
+  .admin-word-library-page .admin-library-filter-toolbar > .admin-filter {
+    grid-column: 1;
+  }
+  .admin-word-library-page .admin-library-filter-toolbar > button[type='submit'] {
+    grid-column: 2;
+    justify-self: stretch;
+  }
+  .admin-word-library-page .admin-library-stats-row .admin-stat {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .admin-word-library-page .admin-library-stats-row .admin-stat-value {
+    justify-self: end;
+    text-align: right;
+  }
+  .admin-word-library-page .admin-library-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @keyframes admin-slide-up {

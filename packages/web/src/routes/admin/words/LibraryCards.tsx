@@ -198,68 +198,81 @@ export function LibraryCards({
   const humanApprovable = selectedItems.filter(isApprovableSubmission);
   const actionableItems = items.filter(isBulkActionable);
   const selectedBatchCount = new Set(selectedItems.map((item) => item.batchId)).size;
+  const hasBulkActions =
+    approvable.length > 0 ||
+    reviewable.length > 0 ||
+    publishable.length > 0 ||
+    humanApprovable.length > 0 ||
+    unendorsable.length > 0 ||
+    dismissable.length > 0;
   const activeDialog = dialogQueue[0];
   return (
     <>
       {noticeElement}
       {actionableItems.length > 0 && (
         <div className="admin-bulk-bar">
-          <label className="admin-submission-check">
-            <input
-              ref={allRef}
-              type="checkbox"
-              aria-label="全选本页"
-              checked={
-                actionableItems.length > 0 && actionableItems.every((item) => selected.has(item.id))
-              }
-              onChange={(event) => {
-                if (event.target.checked)
-                  setSelected(new Set(actionableItems.map((item) => item.id)));
-                else setSelected(new Set());
-              }}
-            />
-            全选本页
-            <span>
-              已选 {selectedItems.length} / 当前可选 {actionableItems.length}
-            </span>
-          </label>
+          <div className="admin-bulk-selection-toolbar">
+            <div className="admin-bulk-selection-count" aria-live="polite" aria-atomic="true">
+              <strong>已选 {selectedItems.length}</strong>
+              <span>当前可选 {actionableItems.length}</span>
+            </div>
+            <label className="admin-submission-check admin-bulk-select-all">
+              <span>全选本页</span>
+              <input
+                ref={allRef}
+                type="checkbox"
+                aria-label="全选本页"
+                checked={
+                  actionableItems.length > 0 &&
+                  actionableItems.every((item) => selected.has(item.id))
+                }
+                onChange={(event) => {
+                  if (event.target.checked)
+                    setSelected(new Set(actionableItems.map((item) => item.id)));
+                  else setSelected(new Set());
+                }}
+              />
+            </label>
+          </div>
           {selectedBatchCount > 1 && (
-            <p className="admin-muted">
+            <p className="admin-muted admin-bulk-note">
               所选条目分属 {selectedBatchCount} 个批次，将按批次分别确认。
             </p>
           )}
-          <div className="admin-row-actions">
-            {approvable.length > 0 && (
-              <button type="button" className="admin-primary" onClick={bulkApprove}>
-                批量批准 {approvable.length}
-              </button>
-            )}
-            {reviewable.length > 0 && (
-              <button type="button" className="admin-primary" onClick={bulkReview}>
-                启动独立审核 {reviewable.length}
-              </button>
-            )}
-            {publishable.length > 0 && (
-              <button type="button" className="admin-primary" onClick={bulkPublish}>
-                确认发布 {publishable.length}
-              </button>
-            )}
-            {humanApprovable.length > 0 && (
-              <button type="button" onClick={bulkApproveHuman}>
-                人工通过 {humanApprovable.length}
-              </button>
-            )}
-            {unendorsable.length > 0 && (
-              <button type="button" onClick={bulkUnendorse}>
-                批量撤回批准 {unendorsable.length}
-              </button>
-            )}
-            {dismissable.length > 0 && (
-              <button type="button" className="admin-danger-solid" onClick={bulkDismiss}>
-                批量拒绝 {dismissable.length}
-              </button>
-            )}
-          </div>
+          {hasBulkActions && (
+            <div className="admin-row-actions admin-bulk-actions">
+              {approvable.length > 0 && (
+                <button type="button" className="admin-primary" onClick={bulkApprove}>
+                  批量批准 {approvable.length}
+                </button>
+              )}
+              {reviewable.length > 0 && (
+                <button type="button" onClick={bulkReview}>
+                  启动独立审核 {reviewable.length}
+                </button>
+              )}
+              {publishable.length > 0 && (
+                <button type="button" onClick={bulkPublish}>
+                  确认发布 {publishable.length}
+                </button>
+              )}
+              {humanApprovable.length > 0 && (
+                <button type="button" onClick={bulkApproveHuman}>
+                  人工通过 {humanApprovable.length}
+                </button>
+              )}
+              {unendorsable.length > 0 && (
+                <button type="button" onClick={bulkUnendorse}>
+                  批量撤回批准 {unendorsable.length}
+                </button>
+              )}
+              {dismissable.length > 0 && (
+                <button type="button" className="admin-library-danger" onClick={bulkDismiss}>
+                  批量拒绝 {dismissable.length}
+                </button>
+              )}
+            </div>
+          )}
           {selectedItems.length > 0 &&
             approvable.length === 0 &&
             reviewable.length === 0 &&
@@ -344,16 +357,16 @@ function LibraryCard({
   const actionable = isBulkActionable(item);
   return (
     <article className="admin-library-card" role="listitem">
-      <div className="admin-library-card-head">
-        <label className="admin-submission-check">
-          <input
-            type="checkbox"
-            aria-label={`选择${item.title}`}
-            disabled={!actionable}
-            checked={actionable && selected}
-            onChange={(event) => onSelect(event.target.checked)}
-          />
-        </label>
+      <label className="admin-submission-check">
+        <input
+          type="checkbox"
+          aria-label={`选择${item.title}`}
+          disabled={!actionable}
+          checked={actionable && selected}
+          onChange={(event) => onSelect(event.target.checked)}
+        />
+      </label>
+      <div className="admin-library-card-content">
         <div className="admin-library-card-title">
           <button
             type="button"
@@ -367,60 +380,60 @@ function LibraryCard({
             {item.agentName === SUPPLY_AGENT_NAME ? '后台生成' : 'Agent投稿'}
           </StatusBadge>
           <SubmissionStatus status={item.status} />
-          <p className="admin-library-meta">
-            {WORD_GAME_LABELS[game]} · {item.category} · 来源 {item.agentName} ·{' '}
-            <DateLabel value={item.createdAt} />
-          </p>
         </div>
-      </div>
-      {item.definition !== null && <p className="admin-library-definition">{item.definition}</p>}
-      {item.duplicateOf !== null && item.duplicateOf.startsWith('inventory:') && (
-        <p>
-          <StatusBadge tone="danger" title="这个词已经在库里，发布时会被拦下">
-            已有相同词在库
-          </StatusBadge>
+        <p className="admin-library-meta">
+          {WORD_GAME_LABELS[game]} · {item.category} · 来源 {item.agentName} ·{' '}
+          <DateLabel value={item.createdAt} />
         </p>
-      )}
-      {(item.status === 'pending' || item.status === 'approved') && (
-        <div className="admin-row-actions">
-          {item.status === 'pending' && (
-            <>
-              <button
-                type="button"
-                className="admin-text-button"
-                onClick={() => onSubmissionAction('endorse')}
-              >
-                批准
-              </button>
-              <button
-                type="button"
-                className="admin-text-button admin-danger-text"
-                onClick={() => onSubmissionAction('dismiss')}
-              >
-                拒绝
-              </button>
-            </>
-          )}
-          {item.status === 'approved' && (
-            <>
-              <button
-                type="button"
-                className="admin-text-button"
-                onClick={() => onSubmissionAction('unendorse')}
-              >
-                撤回批准
-              </button>
-              <button
-                type="button"
-                className="admin-text-button admin-danger-text"
-                onClick={() => onSubmissionAction('dismiss')}
-              >
-                拒绝
-              </button>
-            </>
-          )}
-        </div>
-      )}
+        {item.definition !== null && <p className="admin-library-definition">{item.definition}</p>}
+        {item.duplicateOf !== null && item.duplicateOf.startsWith('inventory:') && (
+          <p className="admin-library-duplicate">
+            <StatusBadge tone="danger" title="这个词已经在库里，发布时会被拦下">
+              已有相同词在库
+            </StatusBadge>
+          </p>
+        )}
+        {(item.status === 'pending' || item.status === 'approved') && (
+          <div className="admin-row-actions">
+            {item.status === 'pending' && (
+              <>
+                <button
+                  type="button"
+                  className="admin-library-action admin-primary"
+                  onClick={() => onSubmissionAction('endorse')}
+                >
+                  批准
+                </button>
+                <button
+                  type="button"
+                  className="admin-library-action admin-library-danger"
+                  onClick={() => onSubmissionAction('dismiss')}
+                >
+                  拒绝
+                </button>
+              </>
+            )}
+            {item.status === 'approved' && (
+              <>
+                <button
+                  type="button"
+                  className="admin-library-action"
+                  onClick={() => onSubmissionAction('unendorse')}
+                >
+                  撤回批准
+                </button>
+                <button
+                  type="button"
+                  className="admin-library-action admin-library-danger"
+                  onClick={() => onSubmissionAction('dismiss')}
+                >
+                  拒绝
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </article>
   );
 }

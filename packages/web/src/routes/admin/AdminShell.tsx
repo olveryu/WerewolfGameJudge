@@ -109,6 +109,7 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
 
 /** Keep the shared site header above navigation, refreshing only mounted admin reads. */
 export function AdminShell({ onBack }: { readonly onBack: () => void }) {
+  const localMockMode = import.meta.env.DEV && import.meta.env.MODE === 'admin-mock';
   const client = useQueryClient();
   const fetching = useIsFetching({ queryKey: ['admin'] });
   const location = useLocation();
@@ -148,6 +149,11 @@ export function AdminShell({ onBack }: { readonly onBack: () => void }) {
             <IconRefreshOutline aria-hidden />
           </button>
         </ScreenHeader>
+        {localMockMode && (
+          <p className="admin-mock-banner" role="status">
+            本地模拟数据 · 修改只保留在当前标签页，刷新后重置
+          </p>
+        )}
         <AdminNavigation monitoringSearch={monitoring ? location.search : monitoringSearch} />
       </div>
       <main className="admin-main">

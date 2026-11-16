@@ -35,20 +35,23 @@ describe('Undercover editorial publication', () => {
       .bind(JSON.stringify(UNDERCOVER_CATEGORIES))
       .run();
     const measured = createRowCountingDb(env.DB);
-    expect(await reserveUndercoverWordPack(measured.db, '2026-09-01', 'bounded')).not.toBeNull();
+    expect(
+      await reserveUndercoverWordPack(measured.db, '2026-09-01', 'bounded', 'food'),
+    ).not.toBeNull();
     expect(measured.counts.rowsRead).toBeLessThan(400);
   });
 
-  it('spreads concurrent empty-inventory reservations across categories', async () => {
+  it('stores the explicitly selected category for concurrent reservations', async () => {
+    const categories = UNDERCOVER_CATEGORIES.slice(0, 10);
     const packs = await Promise.all(
-      Array.from({ length: 10 }, (_, index) =>
-        reserveUndercoverWordPack(env.DB, '2026-09-01', `parallel-${index}`),
+      categories.map((category, index) =>
+        reserveUndercoverWordPack(env.DB, '2026-09-01', `parallel-${index}`, category),
       ),
     );
-    expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
+    expect(packs.map((pack) => pack?.category)).toEqual(categories);
   });
 
-  it('prioritizes the least stocked category over its recent-pack cooldown', async () => {
+  it('does not replace the selected category based on stock or recent-pack cooldown', async () => {
     await env.DB.batch(
       UNDERCOVER_CATEGORIES.filter((category) => category !== 'food').map((category) =>
         env.DB.prepare(
@@ -66,11 +69,11 @@ describe('Undercover editorial publication', () => {
       .bind(new Date().toISOString())
       .run();
 
-    const pack = await reserveUndercoverWordPack(env.DB, '2026-09-02', 'least-stocked');
+    const pack = await reserveUndercoverWordPack(env.DB, '2026-09-02', 'least-stocked', 'food');
     expect(pack?.category).toBe('food');
   });
 
-  it('picks the most-queued category on every run when stock is tied', async () => {
+  it('keeps each run on its manually selected category even when another is queued', async () => {
     await env.DB.batch(
       UNDERCOVER_CATEGORIES.map((category) =>
         env.DB.prepare(
@@ -101,10 +104,12 @@ describe('Undercover editorial publication', () => {
     // One trigger runs one pack, and every run applies the same rule:
     // least stock first, then most queued submissions. There is no batch
     // index to alternate a "review" batch against a "replenish" batch.
-    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'first');
-    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'second');
+    const secondCategory = UNDERCOVER_CATEGORIES.find((category) => category !== 'food');
+    if (secondCategory === undefined) throw new Error('Expected another Undercover category');
+    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'first', 'food');
+    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'second', secondCategory);
     expect(first?.category).toBe('food');
-    expect(second?.category).toBe('food');
+    expect(second?.category).toBe(secondCategory);
     expect(first?.id).toBe('2026-09-01-first');
     expect(second?.id).toBe('2026-09-01-second');
   });
@@ -112,12 +117,12 @@ describe('Undercover editorial publication', () => {
 
 describe('Undercover run-id reservation', () => {
   it('gives each run its own pack id from the run id and refuses a replay', async () => {
-    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1');
+    const first = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1', 'food');
     if (first === null) throw new Error('Expected reservation');
     expect(first.id).toBe('2026-09-01-r1');
-    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r2');
+    const second = await reserveUndercoverWordPack(env.DB, '2026-09-01', 'r2', 'food');
     expect(second?.id).toBe('2026-09-01-r2');
     // The same run id replays the same pack id, which is already taken.
-    await expect(reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1')).resolves.toBeNull();
+    await expect(reserveUndercoverWordPack(env.DB, '2026-09-01', 'r1', 'food')).resolves.toBeNull();
   });
 });

@@ -58,9 +58,53 @@
   cursor: pointer;
 }
 .admin-submission-check input[type='checkbox'] {
-  accent-color: var(--admin-accent);
+  appearance: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  min-width: var(--size-icon-md);
+  min-height: var(--size-icon-md);
   margin: 0;
-  width: auto;
+  padding: 0;
+  border: var(--border-width) solid var(--admin-border-strong);
+  border-radius: calc(var(--radius-small) / 2);
+  background: var(--admin-panel);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+.admin-submission-check input[type='checkbox']::after {
+  content: '';
+  width: var(--size-badge-dot);
+  height: var(--size-icon-xs);
+  border-right: var(--border-width-thick) solid var(--admin-accent-ink);
+  border-bottom: var(--border-width-thick) solid var(--admin-accent-ink);
+  transform: rotate(45deg) scale(0);
+  transition: transform 120ms ease-out;
+}
+.admin-submission-check input[type='checkbox']:checked,
+.admin-submission-check input[type='checkbox']:indeterminate {
+  border-color: var(--admin-accent);
+  background: var(--admin-accent);
+}
+.admin-submission-check input[type='checkbox']:checked::after {
+  transform: rotate(45deg) scale(1);
+}
+.admin-submission-check input[type='checkbox']:indeterminate::after {
+  width: var(--size-icon-xs);
+  height: 0;
+  border: 0;
+  border-bottom: var(--border-width-thick) solid var(--admin-accent-ink);
+  transform: none;
+}
+.admin-submission-check input[type='checkbox']:disabled {
+  border-color: var(--admin-border);
+  background: var(--admin-subtle);
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
 }
 .admin-submission-empty {
   padding: var(--space-xxlarge) var(--space-large);
@@ -186,17 +230,21 @@
 .admin-library-cards {
   display: grid;
   gap: var(--space-medium);
+  min-width: 0;
 }
 .admin-library-card {
+  display: grid;
+  grid-template-columns: var(--size-min-touch-target) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-small);
+  min-width: 0;
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-small);
   background: var(--admin-panel);
   padding: var(--space-medium);
 }
-.admin-library-card-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-small);
+.admin-library-card-content {
+  min-width: 0;
 }
 .admin-library-card-title {
   display: flex;
@@ -204,21 +252,74 @@
   align-items: center;
   gap: var(--space-small);
   min-width: 0;
-  flex: 1;
 }
 .admin-library-word {
+  max-width: 100%;
   font-weight: var(--weight-semibold);
   overflow-wrap: anywhere;
 }
 .admin-library-meta {
   margin: var(--space-small) 0 0;
+  min-width: 0;
   color: var(--admin-secondary);
   font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  overflow-wrap: anywhere;
 }
 .admin-library-definition {
   margin: var(--space-small) 0 0;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
+.admin-library-duplicate {
+  margin: var(--space-small) 0 0;
+}
 .admin-library-card .admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
   margin-top: var(--space-medium);
+}
+.admin-library-card .admin-row-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-min-touch-target);
+  min-width: var(--size-min-touch-target);
+  padding-inline: var(--space-medium);
+  text-align: center;
+  white-space: nowrap;
+}
+.admin-word-library-page .admin-library-danger {
+  color: var(--admin-danger);
+  border-color: var(--admin-danger);
+  background: var(--admin-panel);
+  font-weight: var(--weight-medium);
+}
+.admin-word-library-page .admin-library-danger:hover:not(:disabled) {
+  color: var(--admin-danger);
+  border-color: var(--admin-danger);
+  background: var(--admin-danger-soft);
+}
+
+@media (max-width: 640px) {
+  .admin-library-card {
+    padding: var(--space-medium);
+  }
+  .admin-library-card-title {
+    column-gap: var(--space-small);
+    row-gap: var(--space-tight);
+  }
+  .admin-library-card .admin-row-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-small);
+  }
+  .admin-library-card .admin-row-actions button {
+    min-width: 0;
+    padding-inline: var(--space-small);
+    width: 100%;
+  }
 }

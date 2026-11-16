@@ -305,7 +305,8 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
   expect(all).toBePartiallyChecked();
   await user.click(all);
-  expect(screen.getByText('已选 5 / 当前可选 5')).toBeInTheDocument();
+  expect(screen.getByText('已选 5')).toBeInTheDocument();
+  expect(screen.getByText('当前可选 5')).toBeInTheDocument();
   for (const index of [4, 5, 6, 7, 8])
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
   expect(screen.getByRole('button', { name: '确认发布 1' })).toBeEnabled();
@@ -320,9 +321,11 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   // node and must be re-queried; the selection is cleared with it.
   const allAfterFilter = await screen.findByRole('checkbox', { name: '全选本页' });
   expect(allAfterFilter).not.toBeChecked();
-  expect(screen.getByText('已选 0 / 当前可选 1')).toBeInTheDocument();
+  expect(screen.getByText('已选 0')).toBeInTheDocument();
+  expect(screen.getByText('当前可选 1')).toBeInTheDocument();
   await user.click(allAfterFilter);
-  expect(screen.getByText('已选 1 / 当前可选 1')).toBeInTheDocument();
+  expect(screen.getByText('已选 1')).toBeInTheDocument();
+  expect(screen.getByText('当前可选 1')).toBeInTheDocument();
 });
 
 it('starts approved/failed items from the bulk bar and never includes locked items', async () => {

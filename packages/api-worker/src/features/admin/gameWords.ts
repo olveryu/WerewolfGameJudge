@@ -13,29 +13,45 @@ import {
   type TriggerSupplyResult,
   type WordLibraryItems,
   type WordSubmissionStatus,
+  wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import {
+  FIB_WORD_CATEGORY_IDS,
+  FIB_WORD_CATEGORY_LABELS,
+} from '../../games/fibking/wordCategories';
 import { FIB_WORD_TAVILY_FREE_MONTHLY_CREDITS } from '../../games/fibking/wordPublication';
 import { createFibWordSearchQuery } from '../../games/fibking/wordSearchPlan';
-import { FIB_WORD_TOPIC_IDS, FIB_WORD_TOPICS } from '../../games/fibking/wordTopics';
 import { readModelBudgetByOperation } from '../../platform/ai/editorialBudget';
 import { isWordSupplyAvailable } from '../../platform/wordSupply/automaticSupply';
 import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import type { WordSupplyParams } from '../../platform/wordSupply/wordSupplyWorkflow';
-import { DRAWGUESS_DASHBOARD_CATEGORIES } from './drawGuessWordLabels';
+import {
+  DRAWGUESS_DASHBOARD_CATEGORIES,
+  DRAWGUESS_DASHBOARD_CATEGORY_IDS,
+} from './drawGuessWordLabels';
 import {
   UNDERCOVER_CATEGORY_MIN_ACTIVE_PAIRS,
   UNDERCOVER_DASHBOARD_CATEGORIES,
+  UNDERCOVER_DASHBOARD_CATEGORY_IDS,
 } from './undercoverWordLabels';
 
 export const gameWordGameSchema = z.enum(GAME_WORD_GAMES);
 
-export const triggerSupplySchema = z.strictObject({
-  game: gameWordGameSchema,
-});
+export const triggerSupplySchema = z.discriminatedUnion('game', [
+  z.strictObject({ game: z.literal('fibking'), category: z.enum(FIB_WORD_CATEGORY_IDS) }),
+  z.strictObject({
+    game: z.literal('undercover'),
+    category: z.enum(UNDERCOVER_DASHBOARD_CATEGORY_IDS),
+  }),
+  z.strictObject({
+    game: z.literal('drawguess'),
+    category: z.enum(DRAWGUESS_DASHBOARD_CATEGORY_IDS),
+  }),
+]);
 export type TriggerSupplyInput = z.output<typeof triggerSupplySchema>;
 
 type DashboardDetails = Pick<GameWordsStats, 'categories' | 'modelBudget'>;
@@ -53,32 +69,28 @@ async function getDashboardDetails(db: D1Database, game: GameWordGame): Promise<
     : game === 'undercover'
       ? 'undercover_word_packs'
       : 'drawguess_word_packs';
-  const categoryColumn = isFib ? 'topic' : 'category';
+  const categoryColumn = 'category';
   const labels = isFib
     ? [
-        ...FIB_WORD_TOPIC_IDS.map((id) => ({ id, name: FIB_WORD_TOPICS[id] })),
+        ...FIB_WORD_CATEGORY_IDS.map((id) => ({ id, name: FIB_WORD_CATEGORY_LABELS[id] })),
         { id: 'other', name: '其他' },
-        { id: 'unclassified', name: '未标主题' },
       ]
     : game === 'undercover'
       ? UNDERCOVER_DASHBOARD_CATEGORIES
       : DRAWGUESS_DASHBOARD_CATEGORIES;
-  const bucket = `COALESCE(${categoryColumn}, 'unclassified')`;
+  const bucket = `COALESCE(${categoryColumn}, 'other')`;
   // Pending counts now read the submission queue: the candidate tables are
-  // dropped (0085). Fibking groups by topic, the other games by category,
-  // matching the labels above.
-  const pendingBucket = isFib
-    ? `COALESCE(json_extract(material_json, '$.topic'), 'unclassified')`
-    : `COALESCE(json_extract(material_json, '$.category'), 'unclassified')`;
+  // dropped (0085). All games group by the shared inventory category.
+  const pendingBucket = 'category';
   const packTime = isFib ? 'search_selected_at' : 'created_at';
   const packFilter = isFib ? 'WHERE search_selected_at IS NOT NULL' : '';
   // Yield (published words that came through supply) is only computable for
   // fibking, from the sequence table; the undercover/drawguess yield JOIN
   // read the dropped candidate tables, so those games report no yield.
   const yieldSql = isFib
-    ? `SELECT COALESCE(w.topic, 'unclassified') AS category, COUNT(*) AS count
+    ? `SELECT COALESCE(w.category, 'other') AS category, COUNT(*) AS count
        FROM fib_word_sequence s JOIN fib_words w ON w.word = s.word
-       WHERE s.pack_id IS NOT NULL GROUP BY COALESCE(w.topic, 'unclassified')`
+       WHERE s.pack_id IS NOT NULL GROUP BY COALESCE(w.category, 'other')`
     : null;
   const now = Date.now();
   const statements = [
@@ -213,18 +225,18 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
     .first<{ used: number }>();
   const boardRows = await db
     .prepare(
-      `SELECT p.search_index AS searchIndex, p.topic AS topic, c.prompt_version AS promptVersion,
+      `SELECT p.search_index AS searchIndex, p.category AS category, c.prompt_version AS promptVersion,
                 COUNT(DISTINCT p.id) AS packs, COUNT(w.id) AS publishedWords
          FROM fib_word_packs p
          LEFT JOIN fib_word_generation_cycles c ON c.id = p.id
          LEFT JOIN fib_words w ON w.generation_cycle_id = p.id AND w.status = 'active'
          WHERE p.search_index IS NOT NULL
-         GROUP BY p.search_index, p.topic, c.prompt_version
+         GROUP BY p.search_index, p.category, c.prompt_version
          ORDER BY publishedWords DESC`,
     )
     .all<{
       searchIndex: number;
-      topic: string | null;
+      category: string | null;
       promptVersion: string | null;
       packs: number;
       publishedWords: number;
@@ -236,9 +248,9 @@ async function getFibWordStats(env: Env): Promise<DashboardBase> {
     } catch {
       // Search plan shrank since this pack was reserved; keep the fallback label.
     }
-    const topic = FIB_WORD_TOPIC_IDS.find((id) => id === r.topic);
+    const category = FIB_WORD_CATEGORY_IDS.find((id) => id === r.category);
     const details = [
-      topic === undefined ? '旧批次：预留查询，可能未执行' : FIB_WORD_TOPICS[topic],
+      category === undefined ? '其他' : FIB_WORD_CATEGORY_LABELS[category],
       r.promptVersion === null ? null : `prompt v${r.promptVersion}`,
     ].filter((value) => value !== null);
     return {
@@ -324,8 +336,8 @@ export async function triggerGameWordSupply(
   const workflowId = `${parsed.game}-manual-${runId}`;
   await GAME_WORD_ADAPTERS[parsed.game]
     .getWorkflow(env)
-    .createBatch([{ id: workflowId, params: { day, runId } }]);
-  return { game: parsed.game, workflowId };
+    .createBatch([{ id: workflowId, params: { day, runId, category: parsed.category } }]);
+  return { game: parsed.game, category: parsed.category, workflowId };
 }
 
 // ── Unified library (submissions only) ───────────────────────────────────────
@@ -348,6 +360,7 @@ function decodeLibraryCursor(cursor: string): { createdAt: string; id: string } 
 export interface ListLibraryItemsInput {
   game: GameWordGame;
   status?: WordSubmissionStatus;
+  category?: string;
   search?: string;
   cursor?: string;
 }
@@ -381,7 +394,7 @@ const librarySubmissionRowSchema = z.strictObject({
 });
 
 const libraryTotalsRowSchema = z.strictObject({
-  status: z.string(),
+  status: wordSubmissionStatusSchema,
   count: z.int().nonnegative(),
 });
 
@@ -452,10 +465,8 @@ function escapeLikeTerm(term: string): string {
 }
 
 /** Submission stream, oldest first, keyset-paged on (batch created_at, item
- * id). Search matches a row's title or its displayed category. Totals
- * ignore search and cursor, so the stats and flow bars stay stable while
- * paging or filtering. Inventory never enters the stream; it appears as
- * numbers only. */
+ * id). Search matches titles; category is an exact filter. Totals ignore
+ * filters and cursor. Inventory never enters the stream. */
 export async function listLibraryItems(
   db: D1Database,
   input: ListLibraryItemsInput,
@@ -471,9 +482,13 @@ export async function listLibraryItems(
     where += ' AND item.status = ?';
     binds.push(input.status);
   }
+  if (input.category !== undefined) {
+    where += ' AND item.category = ?';
+    binds.push(input.category);
+  }
   if (likePattern !== null) {
-    where += ` AND (item.title LIKE ? ESCAPE '\\' OR item.category LIKE ? ESCAPE '\\')`;
-    binds.push(likePattern, likePattern);
+    where += ` AND item.title LIKE ? ESCAPE '\\'`;
+    binds.push(likePattern);
   }
   if (cursor !== undefined) {
     where += ' AND (batch.created_at, item.id) > (?, ?)';
@@ -500,27 +515,15 @@ export async function listLibraryItems(
 
   const totalsRows = await db
     .prepare(
-      'SELECT status, COUNT(*) AS count FROM word_submission_items WHERE game = ? GROUP BY status',
+      `SELECT status, COUNT(*) AS count
+       FROM word_submission_items WHERE game = ?
+       GROUP BY status ORDER BY status`,
     )
     .bind(input.game)
     .all();
   const submissionTotals: Partial<Record<WordSubmissionStatus, number>> = {};
   for (const row of z.array(libraryTotalsRowSchema).parse(totalsRows.results)) {
-    const status = z
-      .enum([
-        'pending',
-        'approved',
-        'reviewing',
-        'passed',
-        'rejected',
-        'failed',
-        'published',
-        'dismissed',
-        'unpublished',
-        'duplicate',
-      ])
-      .parse(row.status);
-    submissionTotals[status] = row.count;
+    submissionTotals[row.status] = (submissionTotals[row.status] ?? 0) + row.count;
   }
 
   return {
