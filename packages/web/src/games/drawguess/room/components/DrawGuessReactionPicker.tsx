@@ -39,7 +39,6 @@ export function DrawGuessReactionPicker({
   const myReaction = effectiveSeat === null ? undefined : reactionsBySeat[effectiveSeat];
   const canSend =
     effectiveSeat !== null && effectiveSeat !== drawerSeat && myReaction === undefined;
-  const reactions = Object.values(reactionsBySeat);
   const actionHint =
     effectiveSeat === drawerSeat
       ? '画手不能给本轮作画送互动'
@@ -79,14 +78,7 @@ export function DrawGuessReactionPicker({
           </button>
         ))}
       </div>
-      <div className="drawguess-reaction-summary">
-        {REACTIONS.map(({ kind, label }) => (
-          <span key={kind}>
-            {label} {reactions.filter((reaction) => reaction === kind).length}
-          </span>
-        ))}
-        <span className="drawguess-reaction-hint">{actionHint}</span>
-      </div>
+      <p className="drawguess-reaction-hint">{actionHint}</p>
     </section>
   );
 }

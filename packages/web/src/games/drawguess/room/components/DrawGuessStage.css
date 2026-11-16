@@ -138,21 +138,12 @@
   font-weight: var(--weight-semibold);
 }
 
-.drawguess-reaction-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-around;
-  gap: var(--space-small);
+.drawguess-reaction-hint {
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
-  font-variant-numeric: tabular-nums;
-}
-
-.drawguess-reaction-hint {
-  color: var(--color-text-muted);
-  font-variant-numeric: normal;
+  text-align: center;
 }
 
 .drawguess-reaction-effect-canvas {
@@ -612,8 +603,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-.drawguess-scoreboard-name {
+.drawguess-scoreboard-player {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.drawguess-scoreboard-name {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text);
@@ -635,4 +633,11 @@
   font-weight: var(--weight-semibold);
   line-height: var(--line-body);
   font-variant-numeric: tabular-nums;
+}
+
+.drawguess-scoreboard-reactions {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  overflow-wrap: anywhere;
 }
