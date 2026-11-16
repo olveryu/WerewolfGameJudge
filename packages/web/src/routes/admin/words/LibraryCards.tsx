@@ -173,10 +173,20 @@ export function LibraryCards({
       <>
         {noticeElement}
         <p className="admin-muted">
-          {search !== '' || status !== ''
-            ? '没有匹配的词条，试试其他筛选条件。'
-            : '暂无待处理词条。'}
+          {page > 1
+            ? '当前页已无词条，可以返回上一页。'
+            : search !== '' || status !== ''
+              ? '没有匹配的词条，试试其他筛选条件。'
+              : '暂无待处理词条。'}
         </p>
+        {page > 1 && (
+          <CursorPager
+            page={page}
+            hasNext={data.nextCursor !== null}
+            onPrevious={onPrevious}
+            onNext={onNext}
+          />
+        )}
       </>
     );
   }

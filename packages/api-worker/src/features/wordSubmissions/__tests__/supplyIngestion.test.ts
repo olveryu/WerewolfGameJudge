@@ -2,7 +2,16 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { storeSupplySubmissions, SUPPLY_AGENT_ID, SUPPLY_AGENT_NAME } from '../ingestion';
+import {
+  deleteSubmissionAgent,
+  listSubmissionAgents,
+  rotateSubmissionCredential,
+  setSubmissionAgentStatus,
+  SUPPLY_AGENT_ID,
+  SUPPLY_AGENT_NAME,
+  updateSubmissionAgent,
+} from '../credentials';
+import { storeSupplySubmissions } from '../ingestion';
 
 beforeEach(async () => {
   await env.DB.batch([
@@ -18,6 +27,11 @@ beforeEach(async () => {
     // Daily usage rows reference agents; delete them before the agents.
     env.DB.prepare('DELETE FROM word_submission_daily_usage'),
     env.DB.prepare('DELETE FROM word_submission_agents'),
+    env.DB.prepare(
+      `UPDATE word_submission_limits SET accepting = 1, pending_count = 0,
+       awaiting_review_count = 0, awaiting_publication_count = 0, failed_count = 0,
+       published_count = 0, submission_day = '', submitted_today = 0 WHERE id = 1`,
+    ),
   ]);
 });
 
@@ -114,6 +128,72 @@ describe('storeSupplySubmissions', () => {
       { status: 'duplicate', count: 1 },
       { status: 'pending', count: 1 },
     ]);
+  });
+
+  it('stores supply outside external intake pauses and daily quotas', async () => {
+    await env.DB.prepare(
+      `UPDATE word_submission_limits SET accepting = 0, submission_day = ?, submitted_today = 1000
+       WHERE id = 1`,
+    )
+      .bind(new Date().toISOString().slice(0, 10))
+      .run();
+
+    const batch = await storeSupplySubmissions(env.DB, 'fibking', crypto.randomUUID(), [
+      { clientItemId: 'pack-1:0', content: fibWord },
+    ]);
+
+    expect(batch.items[0]?.status).toBe('pending');
+    expect(
+      await env.DB.prepare(
+        'SELECT pending_count, submitted_today FROM word_submission_limits WHERE id = 1',
+      ).first(),
+    ).toEqual({ pending_count: 1, submitted_today: 1000 });
+    expect(
+      await env.DB.prepare('SELECT pending_count FROM word_submission_agents WHERE id = ?')
+        .bind(SUPPLY_AGENT_ID)
+        .first(),
+    ).toEqual({ pending_count: 0 });
+    expect(
+      await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM word_submission_daily_usage WHERE agent_id = ?',
+      )
+        .bind(SUPPLY_AGENT_ID)
+        .first(),
+    ).toEqual({ count: 0 });
+  });
+
+  it('keeps the internal supply principal out of the Agent registry and immutable', async () => {
+    await storeSupplySubmissions(env.DB, 'fibking', crypto.randomUUID(), [
+      { clientItemId: 'pack-1:0', content: fibWord },
+    ]);
+
+    expect(await listSubmissionAgents(env.DB)).toEqual([]);
+    await expect(
+      setSubmissionAgentStatus(env.DB, SUPPLY_AGENT_ID, 'revoked'),
+    ).rejects.toMatchObject({
+      status: 409,
+    });
+    await expect(rotateSubmissionCredential(env.DB, SUPPLY_AGENT_ID, 30)).rejects.toMatchObject({
+      status: 409,
+    });
+    await expect(deleteSubmissionAgent(env.DB, SUPPLY_AGENT_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+    await expect(
+      updateSubmissionAgent(env.DB, SUPPLY_AGENT_ID, {
+        name: SUPPLY_AGENT_NAME,
+        description: '',
+        games: ['fibking'],
+        dailyQuota: 1000,
+        pendingQuota: 1000,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect(
+      await env.DB.prepare('SELECT status FROM word_submission_agents WHERE id = ?')
+        .bind(SUPPLY_AGENT_ID)
+        .first(),
+    ).toEqual({ status: 'active' });
   });
 
   it('stores an undercover pair as a pending submission with its pair identity', async () => {
