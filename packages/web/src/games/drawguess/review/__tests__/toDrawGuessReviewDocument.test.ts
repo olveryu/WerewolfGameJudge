@@ -121,19 +121,35 @@ describe('toDrawGuessReviewDocument', () => {
       {
         kind: 'scoreboard',
         rows: [
-          { rank: 1, seat: 1, name: '小雨', scoreText: '392 分', tag: null },
+          {
+            rank: 1,
+            seat: 1,
+            name: '小雨',
+            detail: '本局收到：鲜花 0 · 鸡蛋 0 · 番茄 0',
+            scoreText: '392 分',
+            tag: null,
+          },
           {
             rank: 2,
             seat: 2,
             name: '机器人3号',
+            detail: '本局收到：鲜花 0 · 鸡蛋 0 · 番茄 0',
             scoreText: '384 分',
             tag: { text: '机器人', tone: 'muted' },
           },
-          { rank: 3, seat: 0, name: '阿杰', scoreText: '314 分', tag: null },
+          {
+            rank: 3,
+            seat: 0,
+            name: '阿杰',
+            detail: '本局收到：鲜花 0 · 鸡蛋 0 · 番茄 0',
+            scoreText: '314 分',
+            tag: null,
+          },
           {
             rank: 4,
             seat: 3,
             name: '机器人4号',
+            detail: '本局收到：鲜花 0 · 鸡蛋 0 · 番茄 0',
             scoreText: '286 分',
             tag: { text: '机器人', tone: 'muted' },
           },
@@ -177,6 +193,7 @@ describe('toDrawGuessReviewDocument', () => {
           { label: '题目', value: '大熊猫' },
           { label: '画手', value: '阿杰' },
           { label: '猜中人数', value: '2 人' },
+          { label: '本轮收到', value: '鲜花 0 · 鸡蛋 0 · 番茄 0' },
         ],
       },
       { kind: 'section', title: '猜中顺序' },
@@ -193,6 +210,7 @@ describe('toDrawGuessReviewDocument', () => {
           { label: '题目', value: '火锅' },
           { label: '画手', value: '小雨' },
           { label: '猜中人数', value: '3 人' },
+          { label: '本轮收到', value: '鲜花 0 · 鸡蛋 0 · 番茄 0' },
           { label: DRAWGUESS_DRAWER_ZEROED_TITLE, value: DRAWGUESS_DRAWER_ZEROED_DETAIL },
         ],
       },
@@ -218,7 +236,48 @@ describe('toDrawGuessReviewDocument', () => {
         { label: '题目', value: '风筝' },
         { label: '画手', value: '机器人3号' },
         { label: '猜中人数', value: '0 人' },
+        { label: '本轮收到', value: '鲜花 0 · 鸡蛋 0 · 番茄 0' },
       ],
+    });
+  });
+
+  it('credits round and game reaction totals to the drawing seats', () => {
+    const state: DrawGuessState = {
+      ...ended,
+      turnHistory: ended.turnHistory.map((turn) => {
+        if (turn.turnIndex === 0) {
+          return { ...turn, reactionsBySeat: { 1: 'flower', 2: 'egg', 3: 'tomato' } };
+        }
+        if (turn.turnIndex === 1) {
+          return { ...turn, reactionsBySeat: { 0: 'tomato', 2: 'flower' } };
+        }
+        if (turn.turnIndex === 4) {
+          return { ...turn, reactionsBySeat: { 1: 'egg' } };
+        }
+        return turn;
+      }),
+    };
+    const reactionDocument = documentFor(state);
+    const scoreboard = pageOf(reactionDocument, 'standings').blocks[1];
+    if (scoreboard?.kind !== 'scoreboard') throw new Error('expected final standings');
+
+    expect(scoreboard.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          seat: 0,
+          detail: '本局收到：鲜花 1 · 鸡蛋 2 · 番茄 1',
+        }),
+        expect.objectContaining({
+          seat: 1,
+          detail: '本局收到：鲜花 1 · 鸡蛋 0 · 番茄 1',
+        }),
+      ]),
+    );
+    const turnFacts = pageOf(reactionDocument, 'turn-0').blocks[1];
+    if (turnFacts?.kind !== 'facts') throw new Error('expected turn facts');
+    expect(turnFacts.items).toContainEqual({
+      label: '本轮收到',
+      value: '鲜花 1 · 鸡蛋 1 · 番茄 1',
     });
   });
 

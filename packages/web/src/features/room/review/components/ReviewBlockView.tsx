@@ -197,7 +197,12 @@ export function ReviewBlockView({
                 {row.rank}
               </span>
               <SeatMedal seat={row.seat} size="inline" tone="neutral" isStamped={false} />
-              <span className="review-score-name">{row.name}</span>
+              <span className="review-score-player">
+                <span className="review-score-name">{row.name}</span>
+                {row.detail !== undefined && (
+                  <span className="review-score-detail">{row.detail}</span>
+                )}
+              </span>
               {row.tag !== null && <ReviewTag text={row.tag.text} tone={row.tag.tone} />}
               <span className="review-score-value">{row.scoreText}</span>
             </div>

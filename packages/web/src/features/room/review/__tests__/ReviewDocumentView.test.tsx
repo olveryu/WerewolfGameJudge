@@ -139,6 +139,7 @@ describe('ReviewDocumentView blocks', () => {
     expect(screen.getByText('苹果')).toBeTruthy();
     expect(screen.getByText('小明')).toBeTruthy();
     expect(screen.getAllByText('12 分')).toHaveLength(2);
+    expect(screen.getByText('本局收到：鲜花 2 · 鸡蛋 1 · 番茄 0')).toBeTruthy();
     expect(screen.getByText('机器人')).toBeTruthy();
     expect(screen.getByText('从前有座山。')).toBeTruthy();
     expect(screen.getByText('这一棒交了空白')).toHaveAttribute('data-missing', 'true');
