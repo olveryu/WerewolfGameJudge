@@ -1,4 +1,5 @@
 /** Scheduled stock supply; no provider calls from player commands or room startup. */
+import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
@@ -22,6 +23,7 @@ export class UndercoverWordSupplyWorkflow extends WorkflowEntrypoint<Env, WordSu
       gameLabel: 'undercover',
       isEnabled: (env) => env.UNDERCOVER_WORD_SUPPLY_ENABLED === 'true',
       model: UNDERCOVER_WORD_MODEL,
+      categorySchema: z.enum(UNDERCOVER_CATEGORIES),
       packsTable: 'undercover_word_packs',
       loadHistory: async (db, category) => {
         // History is the published pairs: the candidate tables are dropped

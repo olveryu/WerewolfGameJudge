@@ -22,6 +22,8 @@ interface FactionRoleListProps {
   readonly onRolePress?: (roleId: RoleId) => void;
   /** Whether to show faction stat badges row. Default: true */
   readonly showStats?: boolean;
+  /** Whether role chips show the › affordance (tappable for the role detail). Default: false */
+  readonly showChevrons?: boolean;
 }
 
 /** The "狼N 神N 民N 特N" badge row; the third-party badge only when the board has one. */
@@ -47,7 +49,12 @@ export function FactionStatBadges({ roles }: { readonly roles: readonly RoleId[]
   );
 }
 
-export function FactionRoleList({ roles, onRolePress, showStats = true }: FactionRoleListProps) {
+export function FactionRoleList({
+  roles,
+  onRolePress,
+  showStats = true,
+  showChevrons = false,
+}: FactionRoleListProps) {
   const { wolfItems, godItems, villagerItems, thirdItems } = groupRolesByFaction(roles);
   const rows = [
     { label: '狼人', color: 'var(--color-wolf)', items: wolfItems },
@@ -77,6 +84,7 @@ export function FactionRoleList({ roles, onRolePress, showStats = true }: Factio
                       onPress={
                         onRolePress === undefined ? undefined : () => onRolePress(item.roleId)
                       }
+                      showChevron={showChevrons}
                     />
                   ))}
                 </div>

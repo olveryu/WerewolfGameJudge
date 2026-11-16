@@ -1,10 +1,10 @@
-/** Bounded classification of published words without altering their quality or draw identity. */
+/** Bounded category assignment for published words without altering quality or draw identity. */
 import { z } from 'zod';
 
 import type { AiCorrelation } from '../../platform/ai/aiError';
 import { requestStructuredOutput } from '../../platform/ai/structuredOutput';
+import { FIB_WORD_ALL_CATEGORY_IDS, FIB_WORD_CATEGORY_LABELS } from './wordCategories';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
-import { FIB_WORD_ALL_TOPIC_IDS, FIB_WORD_TOPICS } from './wordTopics';
 
 const CLASSIFICATION_BATCH_LIMIT = 25;
 const wordSchema = z.strictObject({
@@ -15,7 +15,7 @@ const wordSchema = z.strictObject({
 });
 const classificationsSchema = z.strictObject({
   classifications: z
-    .array(z.strictObject({ index: z.int().min(0), topic: z.enum(FIB_WORD_ALL_TOPIC_IDS) }))
+    .array(z.strictObject({ index: z.int().min(0), category: z.enum(FIB_WORD_ALL_CATEGORY_IDS) }))
     .max(CLASSIFICATION_BATCH_LIMIT),
 });
 type WordToClassify = z.output<typeof wordSchema>;
@@ -26,7 +26,7 @@ export async function getFibWordsToClassify(db: D1Database): Promise<WordToClass
   const rows = await db
     .prepare(
       `SELECT id, word, core_meaning AS coreMeaning, usage_note AS usageNote
-       FROM fib_words WHERE status = 'active' AND topic IS NULL
+       FROM fib_words WHERE status = 'active' AND category IS NULL
        ORDER BY created_at, id LIMIT ?`,
     )
     .bind(CLASSIFICATION_BATCH_LIMIT)
@@ -34,7 +34,7 @@ export async function getFibWordsToClassify(db: D1Database): Promise<WordToClass
   return z.array(wordSchema).parse(rows.results);
 }
 
-/** Classify exact meanings, using "other" when no topic fits. */
+/** Classify exact meanings, using "other" when no category fits. */
 export async function classifyFibWords(
   apiKey: string,
   words: readonly WordToClassify[],
@@ -46,9 +46,9 @@ export async function classifyFibWords(
     context: { ...context, game: 'fibking', operation: 'classify' },
     schema: classificationsSchema,
     systemPrompt:
-      '根据释义选择最贴近的主题，不按词面猜测。无法归类时选 other。返回输入的零起始序号 index 和 topic；只返回 JSON。',
+      '根据释义选择最贴近的类别，不按词面猜测。无法归类时选 other。返回输入的零起始序号 index 和 category；只返回 JSON。',
     payload: {
-      topics: FIB_WORD_TOPICS,
+      categories: FIB_WORD_CATEGORY_LABELS,
       words: words.map(({ word, coreMeaning, usageNote }, index) => ({
         index,
         word,
@@ -61,7 +61,7 @@ export async function classifyFibWords(
 }
 
 /** Save only uniquely matched results whose source definition is still current. */
-export async function storeFibWordTopics(
+export async function storeFibWordCategories(
   db: D1Database,
   words: readonly WordToClassify[],
   classifications: readonly Classification[],
@@ -76,11 +76,11 @@ export async function storeFibWordTopics(
     return [
       db
         .prepare(
-          `UPDATE fib_words SET topic = ?
+          `UPDATE fib_words SET category = ?
        WHERE id = ? AND word = ? AND core_meaning = ? AND usage_note = ?
-         AND status = 'active' AND topic IS NULL`,
+         AND status = 'active' AND category IS NULL`,
         )
-        .bind(classification.topic, word.id, word.word, word.coreMeaning, word.usageNote),
+        .bind(classification.category, word.id, word.word, word.coreMeaning, word.usageNote),
     ];
   });
   if (statements.length > 0) await db.batch(statements);

@@ -101,14 +101,3 @@
   gap: var(--space-small);
   margin-top: var(--space-small);
 }
-
-.board-info-hint {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: var(--font-caption-small);
-  line-height: var(--line-caption-small);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}

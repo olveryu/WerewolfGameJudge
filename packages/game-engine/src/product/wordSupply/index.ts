@@ -51,6 +51,7 @@ export interface GameWordsStats {
 /** Accepted manual workflow trigger response. */
 export interface TriggerSupplyResult {
   game: GameWordGame;
+  category: string;
   workflowId: string;
 }
 
@@ -84,7 +85,7 @@ export interface WordLibraryItem {
 export interface WordLibraryItems {
   game: GameWordGame;
   items: WordLibraryItem[];
-  /** Per-status item totals, across all rows (ignores search/cursor). */
+  /** Per-status item totals, across all rows (ignores filters and cursor). */
   totals: {
     submissions: Partial<Record<WordSubmissionStatus, number>>;
   };

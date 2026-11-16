@@ -9,7 +9,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
-import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
+import {
+  fetchGameWordsStats,
+  fetchLibraryItems,
+  fetchTavilyUsage,
+} from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 
 import { UnifiedLibrary } from '../words/UnifiedLibrary';
@@ -18,6 +22,7 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
   fetchGameWordsStats: vi.fn(),
   fetchLibraryItems: vi.fn(),
+  fetchTavilyUsage: vi.fn(),
 }));
 vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/wordSubmissionsApi')>()),
@@ -76,6 +81,18 @@ const stats: GameWordsStats = {
       pending: 2,
       batches: 1,
       yieldCount: 4,
+      lastAttempt: null,
+      coolingDown: false,
+      menuEligible: null,
+    },
+    {
+      id: 'dailyObjects',
+      name: '日常用品',
+      active: 0,
+      total: 0,
+      pending: 0,
+      batches: 0,
+      yieldCount: 0,
       lastAttempt: null,
       coolingDown: false,
       menuEligible: null,
@@ -175,6 +192,12 @@ function mount(game: 'drawguess' | 'fibking' = 'drawguess', extraSearch = '') {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(fetchTavilyUsage).mockResolvedValue({
+    planUsage: 950,
+    planLimit: 2000,
+    paygoUsage: 12,
+    paygoLimit: null,
+  });
   vi.mocked(fetchGameWordsStats).mockImplementation(async (game) =>
     game === 'fibking'
       ? { ...stats, game: 'fibking', tavilyRequestsUsed: 736, tavilyMonthlyQuota: 1000 }
@@ -200,15 +223,34 @@ describe('unified library', () => {
     expect(screen.getByText('模型审核有结论的投稿中通过的占比，人工通过不计入。')).toBeVisible();
   });
 
-  it('shows the source row from the submission totals', async () => {
+  it('shows distinct submission statuses once in the shared overview', async () => {
     mount();
     await screen.findByText('大熊猫');
-    const sources = screen.getByText('已发布').closest('dl');
-    expect(sources).not.toBeNull();
-    expect(within(sources as HTMLElement).getByText('15 条')).toBeVisible();
-    expect(screen.getByText('已发布').nextElementSibling).toHaveTextContent('2 条');
-    expect(screen.getByText('待批准').nextElementSibling).toHaveTextContent('2 条');
-    expect(screen.getByText('审核失败待重审').nextElementSibling).toHaveTextContent('1 条');
+    const overview = screen.getByRole('region', { name: '词库概览' });
+    const statuses = within(overview)
+      .getByText('已批准待审核')
+      .closest('.admin-library-status-grid');
+    expect(statuses).not.toBeNull();
+    expect(
+      within(statuses as HTMLElement).getByText('已批准待审核').nextElementSibling,
+    ).toHaveTextContent('1');
+    expect(
+      within(statuses as HTMLElement).getByText('审核中').nextElementSibling,
+    ).toHaveTextContent('0');
+    expect(
+      within(statuses as HTMLElement).getByText('待确认发布').nextElementSibling,
+    ).toHaveTextContent('0');
+    expect(
+      within(statuses as HTMLElement).getByText('已发布').nextElementSibling,
+    ).toHaveTextContent('2');
+    expect(
+      within(statuses as HTMLElement).getByText('审核失败').nextElementSibling,
+    ).toHaveTextContent('1');
+    expect(
+      within(statuses as HTMLElement).getByText('已拒绝').nextElementSibling,
+    ).toHaveTextContent('0');
+    expect(within(overview).getAllByText('在库词数')).toHaveLength(1);
+    expect(screen.queryByRole('list', { name: '词库流程' })).not.toBeInTheDocument();
   });
 
   it('distinguishes pending approval from approved submissions awaiting review', async () => {
@@ -220,37 +262,45 @@ describe('unified library', () => {
     });
     mount();
     expect(await screen.findByRole('button', { name: '待你批准：2，查看完整数值' })).toBeVisible();
-    expect(screen.getByText('待批准').nextElementSibling).toHaveTextContent('2 条');
     expect(
-      screen.getByText('已批准待审核', { selector: '.admin-library-summary-key' })
+      screen.getByText('已批准待审核', { selector: '.admin-library-status span' })
         .nextElementSibling,
-    ).toHaveTextContent('5 条');
-    expect(within(screen.getByRole('list', { name: '词库流程' })).getByText('7')).toBeVisible();
+    ).toHaveTextContent('5');
+    expect(screen.queryByText('待审核 · 待处理')).not.toBeInTheDocument();
   });
 
-  it('shows the four-step flow bar without a monthly-published step', async () => {
-    mount();
-    const bar = await screen.findByRole('list', { name: '词库流程' });
-    const stages = within(bar).getAllByRole('listitem');
-    expect(stages.map((stage) => stage.textContent)).toEqual([
-      '15库存',
-      '3待审核 · 待处理',
-      '0审核中',
-      '0待发布',
-    ]);
-  });
-
-  it('shows the Tavily meter for fibking only', async () => {
+  it('shows official Tavily account credits instead of local request counts', async () => {
     mount('fibking');
     await screen.findByText('大熊猫');
-    expect(screen.getByText('Tavily · 本月')).toBeVisible();
-    expect(screen.getByText('736 / 1,000')).toBeVisible();
+    expect(
+      await screen.findByRole('button', { name: '套餐已用 credits：950，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '套餐额度 credits：2000，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '按量付费已用 credits：12，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '按量付费上限 credits：未提供，查看完整数值' }),
+    ).toBeVisible();
+    expect(screen.queryByText('736 / 1,000')).not.toBeInTheDocument();
   });
 
   it('hides the Tavily meter for drawguess', async () => {
     mount();
     await screen.findByText('大熊猫');
     expect(screen.queryByText('Tavily · 本月')).not.toBeInTheDocument();
+    expect(fetchTavilyUsage).not.toHaveBeenCalled();
+  });
+
+  it('keeps the word library usable when official Tavily usage is unavailable', async () => {
+    vi.mocked(fetchTavilyUsage).mockRejectedValue(new Error('TAVILY_USAGE_QUERY_FAILED'));
+    mount('fibking');
+    expect(await screen.findByText('大熊猫')).toBeVisible();
+    await waitFor(() => expect(fetchTavilyUsage).toHaveBeenCalledOnce());
+    expect(await screen.findByRole('alert')).toHaveTextContent('数据加载失败');
+    expect(screen.queryByText('736 / 1,000')).not.toBeInTheDocument();
   });
 
   it('has no source filter: the stream is submissions only', async () => {
@@ -260,7 +310,7 @@ describe('unified library', () => {
     expect(screen.queryByText('Agent 投稿')).not.toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: '搜索投稿' })).toHaveAttribute(
       'placeholder',
-      '搜索投稿的词语、分类',
+      '搜索投稿词语',
     );
   });
 
@@ -391,17 +441,46 @@ describe('unified library', () => {
     await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     expect(await screen.findByText('正在更新筛选结果，暂时显示上次结果…')).toBeVisible();
     expect(screen.getByText('大熊猫').closest('[inert]')).not.toBeNull();
-    expect(screen.getByRole('list', { name: '词库流程' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '词库概览' })).toBeVisible();
     finishLoading?.({ ...libraryData, items: [approvedItem] });
     await waitFor(() => expect(screen.queryByText('大熊猫')).not.toBeInTheDocument());
     expect(screen.getByText('月季').closest('[inert]')).toBeNull();
     expect(screen.queryByText('正在更新筛选结果，暂时显示上次结果…')).not.toBeInTheDocument();
   });
 
+  it('filters the card stream by category separately from title search', async () => {
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '类别：全部类别' }));
+    await user.click(screen.getByRole('button', { name: '动物（12）' }));
+    await waitFor(() =>
+      expect(fetchLibraryItems).toHaveBeenCalledWith(
+        'drawguess',
+        { category: 'animals' },
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('shows every inventory category count, including zero, in Chinese name order', async () => {
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '类别：全部类别' }));
+    const choices = within(await screen.findByRole('dialog', { name: '选择类别' }))
+      .getAllByRole('button')
+      .filter((button) => button.hasAttribute('aria-pressed'));
+    expect(choices.map((choice) => choice.textContent?.trim())).toEqual([
+      '全部类别',
+      '动物（12）',
+      '日常用品（0）',
+      '饮食（3）',
+    ]);
+  });
+
   it('searches the submission stream by word', async () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
-    expect(screen.getByText('搜索投稿；库存只显示数量。')).toBeVisible();
+    expect(screen.getByText('筛选投稿；库存只显示数量。')).toBeVisible();
     await user.type(screen.getByRole('searchbox', { name: '搜索投稿' }), '玫瑰花');
     await user.click(screen.getByRole('button', { name: '搜' }));
     await waitFor(() =>
@@ -457,7 +536,8 @@ describe('unified library', () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
-    expect(screen.getByText('已选 1 / 当前可选 3')).toBeVisible();
+    expect(screen.getByText('已选 1')).toBeVisible();
+    expect(screen.getByText('当前可选 3')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
     await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
@@ -467,7 +547,8 @@ describe('unified library', () => {
         expect.any(AbortSignal),
       ),
     );
-    expect(screen.queryByText('已选 1 / 当前可选 3')).not.toBeInTheDocument();
+    expect(screen.queryByText('已选 1')).not.toBeInTheDocument();
+    expect(screen.getByText('已选 0')).toBeVisible();
   });
 
   it('clears the card selection when the page changes', async () => {
@@ -483,16 +564,19 @@ describe('unified library', () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
-    expect(screen.getByText('已选 1 / 当前可选 1')).toBeVisible();
+    expect(screen.getByText('已选 1')).toBeVisible();
+    expect(screen.getByText('当前可选 1')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '下一页' }));
     await screen.findByText('长颈鹿');
     expect(screen.getByText('第 2 页')).toBeVisible();
     // Paging remounts the card stream, so the selection is cleared with it.
-    expect(screen.getByText('已选 0 / 当前可选 1')).toBeVisible();
+    expect(screen.getByText('已选 0')).toBeVisible();
+    expect(screen.getByText('当前可选 1')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '上一页' }));
     await screen.findByText('大熊猫');
     expect(screen.getByText('第 1 页')).toBeVisible();
-    expect(screen.getByText('已选 0 / 当前可选 1')).toBeVisible();
+    expect(screen.getByText('已选 0')).toBeVisible();
+    expect(screen.getByText('当前可选 1')).toBeVisible();
   });
 
   it('keeps a way back when the last page becomes empty after an action', async () => {
@@ -655,7 +739,8 @@ describe('unified library', () => {
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
     await user.click(screen.getByRole('checkbox', { name: '选择玫瑰花' }));
     await user.click(screen.getByRole('checkbox', { name: '选择月季' }));
-    expect(screen.getByText('已选 3 / 当前可选 3')).toBeVisible();
+    expect(screen.getByText('已选 3')).toBeVisible();
+    expect(screen.getByText('当前可选 3')).toBeVisible();
     expect(screen.getByRole('button', { name: '批量批准 2' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量拒绝 3' })).toBeVisible();
     expect(screen.getByRole('button', { name: '批量撤回批准 1' })).toBeVisible();

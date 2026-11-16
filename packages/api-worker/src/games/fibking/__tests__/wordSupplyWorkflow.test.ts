@@ -3,10 +3,10 @@ import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAiDiagnostic } from '../../../platform/ai/aiError';
+import { getFibWordsToClassify, storeFibWordCategories } from '../wordCategoryClassification';
 import { FibWordProviderError } from '../wordProviders/providerError';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import { createFibWordSearchQuery, FIB_WORD_SEARCH_QUERY_COUNT } from '../wordSearchPlan';
-import { getFibWordsToClassify, storeFibWordTopics } from '../wordTopicClassification';
 
 beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
@@ -36,8 +36,7 @@ describe('Fib word supply workflow', () => {
       const reportError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const candidate = {
         word: '菡萏',
-        category: 'literary',
-        topic: 'plants',
+        category: 'plants',
         definition: {
           coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
           usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
@@ -98,7 +97,10 @@ describe('Fib word supply workflow', () => {
         await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
       });
       const validRunId = crypto.randomUUID();
-      const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: validRunId } });
+      const workflow = await env.FIB_WORD_SUPPLY.create({
+        id,
+        params: { day, runId: validRunId, category: 'plants' },
+      });
       await instance.waitForStatus(allRejected ? 'errored' : 'complete');
       const validation = {
         receivedCount: 1,
@@ -192,7 +194,7 @@ describe('Fib word supply workflow', () => {
     const modelFailRunId = crypto.randomUUID();
     const workflow = await env.FIB_WORD_SUPPLY.create({
       id,
-      params: { day, runId: modelFailRunId },
+      params: { day, runId: modelFailRunId, category: 'plants' },
     });
     await instance.waitForStatus('errored');
     const status = await workflow.status();
@@ -233,8 +235,7 @@ describe('Fib word supply workflow', () => {
     ];
     const candidate = {
       word: '菡萏',
-      category: 'literary',
-      topic: 'plants',
+      category: 'plants',
       definition: {
         coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
         usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
@@ -287,7 +288,11 @@ describe('Fib word supply workflow', () => {
     });
     await env.FIB_WORD_SUPPLY.create({
       id,
-      params: { day: new Date().toISOString().slice(0, 10), runId: crypto.randomUUID() },
+      params: {
+        day: new Date().toISOString().slice(0, 10),
+        runId: crypto.randomUUID(),
+        category: 'plants',
+      },
     });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
@@ -306,31 +311,31 @@ describe('Fib word supply workflow', () => {
 
   it('ignores ambiguous, out-of-range and stale historical classifications', async () => {
     await env.DB.prepare(
-      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
-       VALUES ('a', '甲词', '原释义', '提示', 'niche', 'local', 'active', 1, '2026-01-01', '2026-01-01'),
-              ('b', '乙词', '原释义', '提示', 'niche', 'local', 'active', 2, '2026-01-01', '2026-01-01'),
-              ('c', '丙词', '原释义', '提示', 'niche', 'local', 'active', 3, '2026-01-01', '2026-01-01'),
-              ('d', '丁词', '原释义', '提示', 'niche', 'local', 'active', 4, '2026-01-01', '2026-01-01')`,
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, source, status, selection_key, created_at, activated_at)
+       VALUES ('a', '甲词', '原释义', '提示', 'local', 'active', 1, '2026-01-01', '2026-01-01'),
+              ('b', '乙词', '原释义', '提示', 'local', 'active', 2, '2026-01-01', '2026-01-01'),
+              ('c', '丙词', '原释义', '提示', 'local', 'active', 3, '2026-01-01', '2026-01-01'),
+              ('d', '丁词', '原释义', '提示', 'local', 'active', 4, '2026-01-01', '2026-01-01')`,
     ).run();
     const words = await getFibWordsToClassify(env.DB);
     await env.DB.prepare("UPDATE fib_words SET core_meaning = '新释义' WHERE id = 'c'").run();
-    await storeFibWordTopics(env.DB, words, [
-      { index: 0, topic: 'food' },
-      { index: 0, topic: 'music' },
-      { index: 1, topic: 'music' },
-      { index: 2, topic: 'food' },
-      { index: 99, topic: 'food' },
+    await storeFibWordCategories(env.DB, words, [
+      { index: 0, category: 'food' },
+      { index: 0, category: 'music' },
+      { index: 1, category: 'music' },
+      { index: 2, category: 'food' },
+      { index: 99, category: 'food' },
     ]);
-    const rows = await env.DB.prepare('SELECT id, topic FROM fib_words ORDER BY id').all();
+    const rows = await env.DB.prepare('SELECT id, category FROM fib_words ORDER BY id').all();
     expect(rows.results).toEqual([
-      { id: 'a', topic: null },
-      { id: 'b', topic: 'music' },
-      { id: 'c', topic: null },
-      { id: 'd', topic: null },
+      { id: 'a', category: null },
+      { id: 'b', category: 'music' },
+      { id: 'c', category: null },
+      { id: 'd', category: null },
     ]);
   });
 
-  it('continues supplying words when historical topic classification fails', async () => {
+  it('continues supplying words when historical category classification fails', async () => {
     const reportError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () =>
       Response.json(
@@ -345,8 +350,8 @@ describe('Fib word supply workflow', () => {
     );
     vi.stubGlobal('fetch', fetchImpl);
     await env.DB.prepare(
-      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, created_at, activated_at)
-       VALUES ('legacy', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, source, status, selection_key, created_at, activated_at)
+       VALUES ('legacy', '旧词', '原本的准确释义', '原本的使用提示', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
     ).run();
     const id = crypto.randomUUID();
     const day = new Date().toISOString().slice(0, 10);
@@ -357,7 +362,10 @@ describe('Fib word supply workflow', () => {
       await modifier.mockStepResult({ name: 'discover' }, []);
     });
     const classifyFailRunId = crypto.randomUUID();
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: classifyFailRunId } });
+    await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: classifyFailRunId, category: 'plants' },
+    });
     await instance.waitForStatus('complete');
     // Empty discovery: nothing new to store, the pack stays reserved, and
     // the run completes with nothing stored.
@@ -370,10 +378,10 @@ describe('Fib word supply workflow', () => {
     expect(diagnostics).not.toContain(env.GEMINI_API_KEY);
     expect(diagnostics).not.toContain('旧词');
     expect(
-      await env.DB.prepare('SELECT status, topic FROM fib_words WHERE id = ?')
+      await env.DB.prepare('SELECT status, category FROM fib_words WHERE id = ?')
         .bind('legacy')
         .first(),
-    ).toEqual({ status: 'active', topic: null });
+    ).toEqual({ status: 'active', category: null });
     expect(
       await env.DB.prepare('SELECT status FROM fib_word_packs WHERE id = ?')
         .bind(`${day}-${classifyFailRunId}`)
@@ -386,7 +394,7 @@ describe('Fib word supply workflow', () => {
     const candidate: FibWordEditorialCandidate = {
       word: '测试旧词',
       source: 'gemini',
-      category: 'niche',
+      category: 'plants',
       definition: {
         coreMeaning: '用于测试的准确核心含义。',
         usageNote: '用于测试的具体使用语境。',
@@ -403,10 +411,10 @@ describe('Fib word supply workflow', () => {
     // Seed the reviewed inventory directly: the word is active and sequenced,
     // so the workflow's classify-history step picks it up.
     await env.DB.prepare(
-      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source,
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, source,
          status, selection_key, created_at, activated_at)
        VALUES ('legacy-word', ?, '用于测试的准确核心含义。', '用于测试的具体使用语境。',
-         'niche', 'gemini', 'active', 0, '2026-01-01', '2026-01-01')`,
+         'gemini', 'active', 0, '2026-01-01', '2026-01-01')`,
     )
       .bind(candidate.word)
       .run();
@@ -426,7 +434,7 @@ describe('Fib word supply workflow', () => {
                 parts: [
                   {
                     text: JSON.stringify({
-                      classifications: [{ index: 0, topic: 'customs' }],
+                      classifications: [{ index: 0, category: 'customs' }],
                     }),
                   },
                 ],
@@ -444,13 +452,16 @@ describe('Fib word supply workflow', () => {
       await modifier.mockStepResult({ name: 'discover' }, []);
     });
     const classifyRunId = crypto.randomUUID();
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: classifyRunId } });
+    await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: classifyRunId, category: 'plants' },
+    });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 0 });
-    expect(await env.DB.prepare('SELECT word, status, topic FROM fib_words').first()).toEqual({
+    expect(await env.DB.prepare('SELECT word, status, category FROM fib_words').first()).toEqual({
       word: candidate.word,
       status: 'active',
-      topic: 'customs',
+      category: 'customs',
     });
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
       { count: 1 },
@@ -459,10 +470,10 @@ describe('Fib word supply workflow', () => {
       owner: 'fibking',
     });
     expect(
-      await env.DB.prepare('SELECT topic FROM fib_word_packs WHERE id = ?')
+      await env.DB.prepare('SELECT category FROM fib_word_packs WHERE id = ?')
         .bind(`${day}-${classifyRunId}`)
         .first(),
-    ).toEqual({ topic: 'agriculture' });
+    ).toEqual({ category: 'plants' });
   });
 
   it('covers the whole search space with distinct non-cycling searches', () => {
@@ -485,10 +496,10 @@ describe('Fib word supply workflow', () => {
         content: words.map((word) => `${word}：用于测试的准确核心含义。`).join('\n'),
       },
     ];
-    const candidates: FibWordEditorialCandidate[] = words.map((word, index) => ({
+    const candidates: FibWordEditorialCandidate[] = words.map((word) => ({
       word,
       source: 'gemini',
-      category: index % 2 === 0 ? 'literary' : 'niche',
+      category: 'plants',
       evidence,
       definition: {
         coreMeaning: '用于测试的准确核心含义。',
@@ -504,7 +515,10 @@ describe('Fib word supply workflow', () => {
       await modifier.mockStepResult({ name: 'generate' }, candidates);
     });
     const firstRunId = crypto.randomUUID();
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: firstRunId } });
+    await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: firstRunId, category: 'plants' },
+    });
     await instance.waitForStatus('complete');
     // Newly generated words stop as pending submissions: no review, no
     // publish, and the run ends with the stored count.
@@ -535,7 +549,10 @@ describe('Fib word supply workflow', () => {
       await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
       await modifier.mockStepResult({ name: 'generate' }, candidates);
     });
-    await env.FIB_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: crypto.randomUUID() } });
+    await env.FIB_WORD_SUPPLY.create({
+      id: resumeId,
+      params: { day, runId: crypto.randomUUID(), category: 'plants' },
+    });
     await resume.waitForStatus('complete');
     expect(await resume.getOutput()).toEqual({ status: 'complete', stored: 8 });
     expect(
@@ -589,7 +606,10 @@ describe('Fib word supply workflow', () => {
         }
         if (failureStage === 'generation') await modifier.mockStepResult({ name: 'generate' }, []);
       });
-      await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
+      await env.FIB_WORD_SUPPLY.create({
+        id,
+        params: { day, runId: crypto.randomUUID(), category: 'plants' },
+      });
       await instance.waitForStatus('complete');
       // No publish step exists anymore: the empty pack stays reserved with
       // no outcome, and the run completes with nothing stored.
@@ -619,7 +639,10 @@ describe('Fib word supply workflow', () => {
         new FibWordProviderError('quota exhausted', 'rateLimited'),
       );
     });
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
+    await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: crypto.randomUUID(), category: 'plants' },
+    });
     await instance.waitForStatus('errored');
     expect(await env.DB.prepare('SELECT status FROM fib_word_packs').first()).toEqual({
       status: 'failed',

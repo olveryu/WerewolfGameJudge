@@ -3,9 +3,43 @@ import { env } from 'cloudflare:test';
 import { describe, expect, it, vi } from 'vitest';
 
 import { fibSubmissionAdapter } from '../../wordSubmissions';
-import { extractFibWordEvidence, searchFibWordEvidence } from '../tavily';
+import { extractFibWordEvidence, queryTavilyAccountUsage, searchFibWordEvidence } from '../tavily';
 
 describe('Tavily evidence', () => {
+  it('reads official account credits rather than the current key or a fixed quota', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        key: { usage: 150, limit: 1000 },
+        account: {
+          plan_usage: 500,
+          plan_limit: 15000,
+          paygo_usage: 25,
+          paygo_limit: null,
+          current_plan: 'Bootstrap',
+        },
+      }),
+    );
+    expect(await queryTavilyAccountUsage('usage-test-key', fetchImpl)).toEqual({
+      planUsage: 500,
+      planLimit: 15000,
+      paygoUsage: 25,
+      paygoLimit: null,
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://api.tavily.com/usage');
+    expect(init?.method).toBe('GET');
+    expect(init?.body).toBeUndefined();
+  });
+
+  it('rejects invalid official credit amounts instead of substituting local counts', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        account: { plan_usage: -1, plan_limit: 1000, paygo_usage: 0, paygo_limit: 0 },
+      }),
+    );
+    await expect(queryTavilyAccountUsage('usage-test-key', fetchImpl)).rejects.toThrow();
+  });
   it('uses one-credit basic search and returns source attribution', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
@@ -159,8 +193,7 @@ describe('Tavily evidence', () => {
         env,
         {
           word: '菡萏',
-          category: 'literary',
-          topic: 'plants',
+          category: 'plants',
           references: [],
           definition: {
             coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',

@@ -9,6 +9,7 @@ import {
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
+  parseAdminTavilyUsageResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
@@ -16,6 +17,16 @@ import {
 } from '@/features/admin/services/adminResponseCodec';
 
 describe('adminResponseCodec', () => {
+  it('distinguishes missing Tavily limits from zero and rejects invalid credits or extra fields', () => {
+    const usage = { planUsage: 950, planLimit: 2000, paygoUsage: 0, paygoLimit: null };
+    expect(parseAdminTavilyUsageResponse(usage)).toEqual(usage);
+    expect(parseAdminTavilyUsageResponse({ ...usage, paygoLimit: 0 }).paygoLimit).toBe(0);
+    expect(() => parseAdminTavilyUsageResponse({ ...usage, planUsage: -1 })).toThrow();
+    expect(() => parseAdminTavilyUsageResponse({ ...usage, planLimit: undefined })).toThrow();
+    expect(() =>
+      parseAdminTavilyUsageResponse({ ...usage, apiKey: 'must-not-be-returned' }),
+    ).toThrow();
+  });
   it('rejects raw SQL and invalid metrics in D1 insights', () => {
     const base = {
       from: '2026-11-12T00:00:00Z',
@@ -272,8 +283,8 @@ describe('adminResponseCodec', () => {
       game: 'fibking',
       categories: [
         {
-          id: 'literary',
-          name: '文学',
+          id: 'literature',
+          name: '语言文字',
           active: 3,
           total: 4,
           pending: 0,
@@ -364,14 +375,22 @@ describe('adminResponseCodec', () => {
       supplyEnabled: true,
     });
     expect(decoded.game).toBe(game);
-    const trigger = { game, workflowId: `${game}-manual-1` };
+    const trigger = {
+      game,
+      category: game === 'fibking' ? 'plants' : game === 'undercover' ? 'dating' : 'animals',
+      workflowId: `${game}-manual-1`,
+    };
     expect(parseTriggerSupplyResult(trigger)).toEqual(trigger);
   });
 
   it('rejects unsupported word-supply games', () => {
-    expect(() => parseTriggerSupplyResult({ game: 'werewolf', workflowId: 'run' })).toThrow(
-      'unsupported game',
-    );
+    expect(() =>
+      parseTriggerSupplyResult({
+        game: 'werewolf',
+        category: 'plants',
+        workflowId: 'run',
+      }),
+    ).toThrow('unsupported game');
   });
 
   it('decodes library items with supply and agent rows', () => {

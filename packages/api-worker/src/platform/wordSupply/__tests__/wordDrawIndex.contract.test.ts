@@ -58,7 +58,7 @@ async function insertFibWord(id: string, word: string): Promise<void> {
     `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status,
        selection_key, created_at, activated_at)
      VALUES (?, ?, '用于验证抽词索引的核心含义。', '用于验证抽词索引的使用说明。',
-       'literary', 'gemini', 'active', 0, ?, ?)`,
+       'plants', 'gemini', 'active', 0, ?, ?)`,
   )
     .bind(id, word, NOW, NOW)
     .run();

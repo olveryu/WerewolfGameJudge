@@ -18,6 +18,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
+import { queryTavilyAccountUsage } from '../../games/fibking/wordProviders/tavily';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
@@ -91,6 +92,18 @@ adminRoutes.route('/word-submissions', adminWordSubmissionRoutes);
 adminRoutes.route('/effect-replays', effectRecoveryRoutes);
 adminRoutes.route('/users', rewardGrantRoutes);
 adminRoutes.get('/session', (c) => c.body(null, 204));
+adminRoutes.get('/tavily-usage', async (c) => {
+  if (!c.env.TAVILY_API_KEY) {
+    log.warn('Tavily usage is not configured');
+    throw new HTTPException(503, { message: 'TAVILY_USAGE_NOT_CONFIGURED' });
+  }
+  try {
+    return c.json(await queryTavilyAccountUsage(c.env.TAVILY_API_KEY));
+  } catch {
+    log.error('Tavily usage request failed');
+    throw new HTTPException(502, { message: 'TAVILY_USAGE_QUERY_FAILED' });
+  }
+});
 adminRoutes.get('/d1-usage', async (c) => c.json(await queryD1UsageAnalytics(c.env)));
 adminRoutes.get('/d1-insights', async (c) => {
   const range = c.req.query('range');
@@ -466,12 +479,10 @@ adminRoutes.get('/games/words/stats', async (c) => {
 });
 
 adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
-  const { game } = c.req.valid('json');
-  return c.json(await triggerGameWordSupply(c.env, { game }), 202);
+  return c.json(await triggerGameWordSupply(c.env, c.req.valid('json')), 202);
 });
 
-/** Submission stream behind the unified library page, oldest first. Search
- * matches titles or categories with LIKE. */
+/** Submission stream behind the unified library page, oldest first. */
 adminRoutes.get('/words/:game/library-items', async (c) => {
   const game = gameWordGameSchema.safeParse(c.req.param('game'));
   if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
@@ -494,6 +505,7 @@ adminRoutes.get('/words/:game/library-items', async (c) => {
     await listLibraryItems(c.env.DB, {
       game: game.data,
       status,
+      category: c.req.query('category'),
       search: c.req.query('search'),
       cursor: c.req.query('cursor'),
     }),

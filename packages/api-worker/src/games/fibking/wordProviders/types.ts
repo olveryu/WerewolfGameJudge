@@ -7,21 +7,19 @@ import type {
 
 import type { AiCorrelation } from '../../../platform/ai/aiError';
 import type { GeneratedCandidateBatch } from '../../../platform/wordSupply/generatedCandidates';
-import type { FibWordLabel, FibWordTopic } from '../wordTopics';
+import type { FibWordCategory } from '../wordCategories';
 import type { FibWordEvidence } from './tavily';
 
-export const FIB_WORD_CATEGORIES = ['literary', 'internet', 'compound', 'niche'] as const;
+export type { FibWordCategory } from '../wordCategories';
 export const FIB_WORD_GENERATION_BATCH_LIMIT = 1;
 export const FIB_WORD_REVIEW_BATCH_LIMIT = 1;
 // Durable checkpoints and completed packs retain their original batch boundaries.
 export const FIB_WORD_STORED_GENERATION_BATCH_LIMIT = 12;
 export const FIB_WORD_STORED_REVIEW_BATCH_LIMIT = 6;
-export type FibWordCategory = (typeof FIB_WORD_CATEGORIES)[number];
 export type FibWordReviewDecision = 'accepted' | 'rejected';
 
 export interface FibWordRequest {
   readonly category: FibWordCategory;
-  readonly topic?: FibWordTopic | null;
   readonly deadlineAt: number;
   readonly signal: AbortSignal;
   readonly evidence: readonly FibWordEvidence[];
@@ -33,10 +31,9 @@ export interface FibWordCandidate {
   readonly source: FibWordSource;
 }
 
-/** Editorial provenance stays server-side and never changes the selected-word contract. */
+/** Category evidence stays server-side and never changes the selected-word contract. */
 export interface FibWordEditorialCandidate extends FibWordCandidate {
   readonly category: FibWordCategory;
-  readonly topic?: FibWordLabel | null;
   readonly evidence: readonly FibWordEvidence[];
 }
 

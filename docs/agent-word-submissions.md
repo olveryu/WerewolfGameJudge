@@ -78,7 +78,7 @@ curl --fail-with-body "$WORD_API_BASE/v1/word-submissions" \
   --data-binary @submission.json
 ```
 
-谁是卧底的 `content` 包含 `wordA`、`wordB`、`category`、`commonTraits`、`differences`、`potentialIssues`；瞎掰王包含 `word`、`definition: { coreMeaning, usageNote }`、`category`、`topic`、`references: [{ url, note }]`。实际分类、长度和数组要求以发现接口为准，不在 Agent 侧硬编码一份长期不更新的列表。
+谁是卧底的 `content` 包含 `wordA`、`wordB`、`category`、`commonTraits`、`differences`、`potentialIssues`；瞎掰王包含 `word`、`definition: { coreMeaning, usageNote }`、`category`、`references: [{ url, note }]`。实际分类、长度和数组要求以发现接口为准，不在 Agent 侧硬编码一份长期不更新的列表。
 
 ### 重试与错误
 
@@ -96,7 +96,7 @@ curl --fail-with-body "$WORD_API_BASE/v1/word-submissions" \
 
 词库是统一单页，投稿卡片流是唯一的审核面（见[词库干净版方案](./word-library-clean-scheme.md)）。标题行有「+ 补词」与「Agent 授权」；点一张卡打开词条抽屉，审/发都在卡片流和抽屉里做，没有批次面板，没有 `?batch=` 深链。导航、筛选和分页替换当前后台历史条目。全局 header 返回进入后台的 Home/Room screen，直接打开后台时返回 Home。
 
-- **投稿卡片流**：全局待审、待发布、失败数量；游戏、来源、状态选择面板；标题/分类搜索（LIKE，通配符按字面处理）；30 条一页的游标翻页。
+- **投稿卡片流**：全局待审、待发布、失败数量；游戏、状态和类别筛选；标题搜索（LIKE，通配符按字面处理）；30 条一页的游标翻页。
 - **批量栏**：在卡片流上方；「全选本页」只选当页可操作条目，支持半选，翻页不保留勾选，切换状态/游戏/搜索清空选择。勾选后批量栏按资格显示批准进入审核、启动独立审核、人工通过、确认发布、批量撤回批准、批量拒绝及数量；「批准进入审核」只处理所选待审、执行失败、模型未通过项；「人工通过」只处理所选待审、执行失败、模型未通过项，已经通过的候选不重复处理。未通过项不能混入发布。
 - **管理员审核**：模型调用额度已取消，只留调用记录；审核不设应用次数上限，也不设单独的「强制」入口。确认后仍先记账、不退款、不重放供应商调用，不绕过供应商限额、内容规则、陈旧选择或审核结论。审核不会自动发布。对未批准的候选启动审核返回 `409`（选择过期或状态不符），须先批准再审核。
 - **词条抽屉**：原始材料与独立结论分区；底部固定操作；显示实际审核模型/版本、人工决定、最近操作。发布、拒绝、人工通过、下架都有确认；原因一律选填，不填也能提交。人工通过不调用外部服务，不会自动发布。待审候选没有「启动审核」，只有「批准进入审核」；已批准或审核失败的候选才有「启动审核」。

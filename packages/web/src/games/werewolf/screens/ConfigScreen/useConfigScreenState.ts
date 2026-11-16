@@ -275,6 +275,22 @@ export function useConfigScreenState({
     });
   };
 
+  /**
+   * Whether the role shown in the info card is on the board. Chip slots hold one copy
+   * (wolf/villager use the stepper and never open the card), so the key is always index 0.
+   */
+  const roleInfoSelected =
+    roleInfoBaseId !== null && selection[slotSelectionKey(roleInfoBaseId, 0)] === true;
+
+  /** Toggle the info-card role on/off the board from inside the card, then close it. */
+  const handleRoleInfoToggle = () => {
+    if (roleInfoBaseId === null) {
+      throw new Error('[FAIL-FAST] Board action without an open role info card');
+    }
+    toggleRole(slotSelectionKey(roleInfoBaseId, 0));
+    setRoleInfoBaseId(null);
+  };
+
   // ── Faction tabs ──
   const [activeTab, setActiveTab] = useState<Faction>(Faction.Villager);
   const activeGroup = FACTION_GROUPS.find((group) => group.faction === activeTab);
@@ -311,6 +327,8 @@ export function useConfigScreenState({
     handleChipInfoPress: (key: string) => setRoleInfoBaseId(selectionKeyToRoleId(key)),
     handleCloseRoleInfo: () => setRoleInfoBaseId(null),
     handleRoleInfoVariantSelect,
+    roleInfoSelected,
+    handleRoleInfoToggle,
     // Faction tabs
     tabItems,
     activeTab,

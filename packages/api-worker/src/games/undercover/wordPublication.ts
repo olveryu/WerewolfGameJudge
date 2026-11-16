@@ -3,10 +3,12 @@
  * retirement. Supply only generates and stores — review and publication
  * live on the manual review/publish endpoints, never in the workflow.
  */
-import { UNDERCOVER_CATEGORIES } from '@game-judge/game-engine/games/undercover/public';
+import {
+  UNDERCOVER_CATEGORIES,
+  type UndercoverCategory,
+} from '@game-judge/game-engine/games/undercover/public';
 import { z } from 'zod';
 
-import { wordCategoryCooldownCutoff } from '../../platform/wordSupply/categoryCooldown';
 import {
   createWordPackId,
   failWordPack,
@@ -27,23 +29,16 @@ export async function reserveUndercoverWordPack(
   db: D1Database,
   day: string,
   runId: string,
+  category: UndercoverCategory,
 ): Promise<UndercoverWordPack | null> {
   z.iso.date().parse(day);
   z.string().min(1).max(64).parse(runId);
+  const selectedCategory = z.enum(UNDERCOVER_CATEGORIES).parse(category);
   const row = await insertReservedWordPack(db, {
     packsTable: 'undercover_word_packs',
     packId: createWordPackId(day, runId),
-    categorySql: `SELECT category FROM (SELECT category,
-      (SELECT COUNT(*) FROM word_submission_items item WHERE item.game = 'undercover' AND item.status IN ('pending', 'approved')
-        AND json_extract(item.material_json, '$.category') = category_list.value) AS pending_count,
-      (SELECT COUNT(*) FROM undercover_word_pairs pair WHERE pair.category = category_list.value AND pair.status = 'active') AS active_count
-    FROM (SELECT value, value AS category FROM json_each(?)) category_list
-    ORDER BY active_count ASC,
-      -pending_count ASC,
-      COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') > ? ASC,
-      COALESCE((SELECT MAX(created_at) FROM undercover_word_packs previous WHERE previous.category = category_list.value), '') ASC,
-      category ASC LIMIT 1)`,
-    categoryBinds: [JSON.stringify(UNDERCOVER_CATEGORIES), wordCategoryCooldownCutoff()],
+    categorySql: 'SELECT ?',
+    categoryBinds: [selectedCategory],
     model: UNDERCOVER_WORD_MODEL,
     promptVersion: UNDERCOVER_WORD_PROMPT_VERSION,
     reviewVersion: UNDERCOVER_WORD_REVIEW_VERSION,

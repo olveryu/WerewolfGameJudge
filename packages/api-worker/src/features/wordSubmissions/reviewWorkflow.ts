@@ -47,7 +47,12 @@ async function loadJob(db: D1Database, actionId: string) {
     FROM word_submission_items WHERE batch_id = ? AND review_id = ? AND status = 'reviewing' ORDER BY rowid`,
     )
     .bind(action.batch_id, actionId)
-    .all<{ id: string; category: string; material_json: string; review_version: string }>();
+    .all<{
+      id: string;
+      category: string;
+      material_json: string;
+      review_version: string;
+    }>();
   return { game: action.game, batchId: action.batch_id, items: rows.results };
 }
 

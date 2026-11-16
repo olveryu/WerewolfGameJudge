@@ -64,7 +64,10 @@ describe('Undercover supply workflow', () => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
-    await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
+    await env.UNDERCOVER_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: crypto.randomUUID(), category: 'food' },
+    });
     await instance.waitForStatus('complete');
     expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
     expect(
@@ -87,7 +90,10 @@ describe('Undercover supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
     const firstRunId = crypto.randomUUID();
-    await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day, runId: firstRunId } });
+    await env.UNDERCOVER_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: firstRunId, category: 'food' },
+    });
     await instance.waitForStatus('complete');
     // Newly generated pairs stop as pending submissions: no review, no
     // publish, and the run ends with the stored count.
@@ -148,7 +154,10 @@ describe('Undercover supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
     const resumeRunId = crypto.randomUUID();
-    await env.UNDERCOVER_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: resumeRunId } });
+    await env.UNDERCOVER_WORD_SUPPLY.create({
+      id: resumeId,
+      params: { day, runId: resumeRunId, category: 'food' },
+    });
     await resume.waitForStatus('complete');
     expect(await resume.getOutput()).toEqual({ status: 'complete', stored: 1 });
     expect(
@@ -192,7 +201,10 @@ describe('Undercover supply workflow', () => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
     });
     const rejectRunId = crypto.randomUUID();
-    await env.UNDERCOVER_WORD_SUPPLY.create({ id, params: { day, runId: rejectRunId } });
+    await env.UNDERCOVER_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: rejectRunId, category: 'food' },
+    });
     await instance.waitForStatus('errored');
     expect(
       await env.DB.prepare('SELECT status, failure_reason FROM undercover_word_packs WHERE id = ?')
@@ -221,7 +233,11 @@ describe('Undercover supply workflow', () => {
     });
     await env.UNDERCOVER_WORD_SUPPLY.create({
       id,
-      params: { day: new Date().toISOString().slice(0, 10), runId: crypto.randomUUID() },
+      params: {
+        day: new Date().toISOString().slice(0, 10),
+        runId: crypto.randomUUID(),
+        category: 'dating',
+      },
     });
     await instance.waitForStatus('errored');
     expect(

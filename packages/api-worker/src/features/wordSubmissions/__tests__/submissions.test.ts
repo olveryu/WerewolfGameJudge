@@ -1107,8 +1107,7 @@ describe('External word submissions', () => {
             clientItemId: 'lotus',
             content: {
               word: '菡萏',
-              category: 'literary',
-              topic: 'plants',
+              category: 'plants',
               definition,
               references: [{ url: 'http://127.0.0.1/private', note: 'untrusted' }],
             },
@@ -1248,7 +1247,7 @@ describe('External word submissions', () => {
       game: 'fibking',
       items: ['菡萏', '芙蕖'].map((word, index) => ({
         clientItemId: `fib-${index}`,
-        content: { word, category: 'literary', topic: 'plants', definition, references: [] },
+        content: { word, category: 'plants', definition, references: [] },
       })),
     });
     const firstUrl = 'https://dictionary.example/first';
@@ -1395,8 +1394,7 @@ describe('External word submissions', () => {
           clientItemId: 'lotus',
           content: {
             word: '菡萏',
-            category: 'literary',
-            topic: 'plants',
+            category: 'plants',
             references: [],
             definition: {
               coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',

@@ -6,6 +6,25 @@ import { queryD1Insights } from '../providers/d1Insights';
 import { adminRoutes } from '../routes';
 
 describe('D1 query insights', () => {
+  it('protects official Tavily usage and surfaces provider failures without raw responses', async () => {
+    const fetchImpl = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('private provider response', { status: 401 }));
+    try {
+      expect((await adminRoutes.request('/tavily-usage', {}, env)).status).toBe(401);
+      expect(fetchImpl).not.toHaveBeenCalled();
+      const response = await adminRoutes.request(
+        '/tavily-usage',
+        { headers: { 'X-Admin-Token': env.ADMIN_PASSWORD } },
+        { ...env, TAVILY_API_KEY: 'usage-test-key' },
+      );
+      expect(response.status).toBe(502);
+      expect(await response.text()).toBe('TAVILY_USAGE_QUERY_FAILED');
+      expect(fetchImpl).toHaveBeenCalledOnce();
+    } finally {
+      fetchImpl.mockRestore();
+    }
+  });
   it('uses bounded parameterized queries, labels estimates and never returns SQL', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
       if (typeof init?.body !== 'string') throw new Error('Expected request body');

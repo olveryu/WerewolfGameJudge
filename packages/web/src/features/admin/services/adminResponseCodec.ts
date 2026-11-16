@@ -257,6 +257,24 @@ export function parseAdminCountriesResponse(value: unknown): { countries: string
   };
 }
 
+/** Decode official account credits, keeping missing limits distinct from zero. */
+export function parseAdminTavilyUsageResponse(value: unknown) {
+  const object = requireObject(value, 'Tavily usage');
+  assertExactKeys(object, ['planUsage', 'planLimit', 'paygoUsage', 'paygoLimit'], 'Tavily usage');
+  return {
+    planUsage: parseNonnegativeInteger(object.planUsage, 'Tavily plan usage'),
+    planLimit:
+      object.planLimit === null
+        ? null
+        : parseNonnegativeInteger(object.planLimit, 'Tavily plan limit'),
+    paygoUsage: parseNonnegativeInteger(object.paygoUsage, 'Tavily paygo usage'),
+    paygoLimit:
+      object.paygoLimit === null
+        ? null
+        : parseNonnegativeInteger(object.paygoLimit, 'Tavily paygo limit'),
+  };
+}
+
 /** Decode the account-wide UTC-day D1 analytics response. */
 export function parseAdminD1UsageResponse(value: unknown): AdminD1Usage {
   const object = requireObject(value, 'D1 usage');
@@ -722,9 +740,10 @@ function parseModelBudgetByOperation(value: unknown): GameWordsStats['modelBudge
 
 export function parseTriggerSupplyResult(value: unknown): TriggerSupplyResult {
   const object = requireObject(value, 'Trigger supply response');
-  assertExactKeys(object, ['game', 'workflowId'], 'Trigger supply response');
+  assertExactKeys(object, ['game', 'category', 'workflowId'], 'Trigger supply response');
   return {
     game: parseGameWordGame(object.game, 'Trigger supply game'),
+    category: parseNonEmptyString(object.category, 'Trigger supply category'),
     workflowId: parseNonEmptyString(object.workflowId, 'Trigger supply workflowId'),
   };
 }

@@ -1,5 +1,5 @@
-/** Editorial topics describe the subject of a word independently of its legacy category. */
-export const FIB_WORD_TOPIC_IDS = [
+/** FibKing inventory categories shared by generation, submissions, and inventory. */
+export const FIB_WORD_CATEGORY_IDS = [
   'customs',
   'festivals',
   'clothing',
@@ -42,9 +42,11 @@ export const FIB_WORD_TOPIC_IDS = [
   'socialEtiquette',
   'urbanSlang',
 ] as const;
-export type FibWordTopic = (typeof FIB_WORD_TOPIC_IDS)[number];
+export const FIB_WORD_ALL_CATEGORY_IDS = [...FIB_WORD_CATEGORY_IDS, 'other'] as const;
+export type FibWordSupplyCategory = (typeof FIB_WORD_CATEGORY_IDS)[number];
+export type FibWordCategory = (typeof FIB_WORD_ALL_CATEGORY_IDS)[number];
 
-export const FIB_WORD_TOPICS = {
+export const FIB_WORD_CATEGORY_LABELS = {
   customs: '民俗礼仪',
   festivals: '节令节庆',
   clothing: '服饰衣冠',
@@ -86,7 +88,5 @@ export const FIB_WORD_TOPICS = {
   detective: '侦探推理',
   socialEtiquette: '社交礼节',
   urbanSlang: '市井俚语',
-} as const satisfies Record<FibWordTopic, string>;
-
-export const FIB_WORD_ALL_TOPIC_IDS = [...FIB_WORD_TOPIC_IDS, 'other'] as const;
-export type FibWordLabel = (typeof FIB_WORD_ALL_TOPIC_IDS)[number];
+  other: '其他',
+} as const satisfies Record<FibWordCategory, string>;

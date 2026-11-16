@@ -40,6 +40,7 @@ export interface WordSupplyParams {
   readonly day: string;
   /** Unique id for admin manual triggers (a UUID); keeps pack ids collision-free. */
   readonly runId: string;
+  readonly category: string;
 }
 
 /**
@@ -50,8 +51,13 @@ export interface WordSupplyParams {
  * submission adapters. Generated candidates are stored as submission items,
  * never as candidates.
  */
-export interface WordSupplyPublication<TPack> {
-  readonly reserve: (db: D1Database, day: string, runId: string) => Promise<TPack | null>;
+export interface WordSupplyPublication<TCategory, TPack> {
+  readonly reserve: (
+    db: D1Database,
+    day: string,
+    runId: string,
+    category: TCategory,
+  ) => Promise<TPack | null>;
   readonly fail: (db: D1Database, pack: TPack, reason: string) => Promise<void>;
 }
 
@@ -74,6 +80,7 @@ export interface WordSupplyConfig<
   readonly gameLabel: string;
   readonly isEnabled: (env: Env) => boolean;
   readonly model: string;
+  readonly categorySchema: z.ZodType<TCategory>;
   readonly packsTable: WordPacksTable;
   readonly loadHistory: (db: D1Database, category: TCategory) => Promise<THistory>;
   readonly createProvider: (apiKey: string) => WordSupplyProvider<TCategory, TGenerated, THistory>;
@@ -96,7 +103,7 @@ export interface WordSupplyConfig<
     batchId: string,
     items: readonly WordSupplySubmissionItem[],
   ) => Promise<number>;
-  readonly publication: WordSupplyPublication<TPack>;
+  readonly publication: WordSupplyPublication<TCategory, TPack>;
 }
 
 /** One trigger runs one pack and stores its generated candidates. */
@@ -113,6 +120,7 @@ export async function runWordSupplyWorkflow<
   config: WordSupplyConfig<TCategory, TPack, TCandidate, TGenerated, THistory>,
 ) {
   const day = z.iso.date().parse(payload.day);
+  const category = config.categorySchema.parse(payload.category);
   if (!(await step.do('enabled', async () => config.isEnabled(env)))) return { status: 'disabled' };
   if (day !== new Date().toISOString().slice(0, 10)) return { status: 'expired' };
   // The batch id is the run's UUID: the submission batch header schema
@@ -121,7 +129,9 @@ export async function runWordSupplyWorkflow<
   const batchId = z.uuid().parse(payload.runId);
   const capacity = await step.do('capacity', () => measureDatabaseCapacity(env.DB));
   if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
-  const pack = await step.do('reserve', () => config.publication.reserve(env.DB, day, batchId));
+  const pack = await step.do('reserve', () =>
+    config.publication.reserve(env.DB, day, batchId, category),
+  );
   if (pack === null) return { status: 'complete', stored: 0 };
   const stored = await processPack(env, step, config, pack, batchId);
   return { status: 'complete', stored };

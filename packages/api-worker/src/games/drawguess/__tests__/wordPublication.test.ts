@@ -17,7 +17,9 @@ beforeEach(async () => {
 describe('DrawGuess editorial publication', () => {
   it('keeps reservation reads bounded as pack history grows', async () => {
     const measured = createRowCountingDb(env.DB);
-    expect(await reserveDrawGuessWordPack(measured.db, '2026-09-01', 'baseline')).not.toBeNull();
+    expect(
+      await reserveDrawGuessWordPack(measured.db, '2026-09-01', 'baseline', 'animals'),
+    ).not.toBeNull();
     const baseline = measured.counts.rowsRead;
     await env.DB.prepare('DELETE FROM drawguess_word_packs').run();
     await env.DB.prepare(
@@ -37,29 +39,31 @@ describe('DrawGuess editorial publication', () => {
       .bind(JSON.stringify(DRAWGUESS_WORD_CATEGORIES))
       .run();
     measured.reset();
-    expect(await reserveDrawGuessWordPack(measured.db, '2026-09-01', 'grown')).not.toBeNull();
+    expect(
+      await reserveDrawGuessWordPack(measured.db, '2026-09-01', 'grown', 'animals'),
+    ).not.toBeNull();
     expect(measured.counts.rowsRead - baseline).toBeLessThan(4000);
   });
 
-  it('spreads concurrent empty-inventory reservations across categories', async () => {
+  it('stores the explicitly selected category for concurrent reservations', async () => {
+    const categories = DRAWGUESS_WORD_CATEGORIES.slice(0, 10);
     const packs = await Promise.all(
-      Array.from({ length: 10 }, (_, index) =>
-        reserveDrawGuessWordPack(env.DB, '2026-09-01', `parallel-${index}`),
+      categories.map((category, index) =>
+        reserveDrawGuessWordPack(env.DB, '2026-09-01', `parallel-${index}`, category),
       ),
     );
-    expect(new Set(packs.map((pack) => pack?.category)).size).toBe(10);
+    expect(packs.map((pack) => pack?.category)).toEqual(categories);
   });
-  it('tries another equally empty category after a pack produces no words', async () => {
-    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'first');
+  it('uses the next run selected category after a pack produces no words', async () => {
+    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'first', 'animals');
     if (first === null) throw new Error('Expected reservation');
-    // The reserved pack's own cooldown already pushes its category down;
-    // no publish step closes it (supply only generates).
-    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 'second');
+    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 'second', 'food');
     expect(second).not.toBeNull();
-    expect(second?.category).not.toBe(first.category);
+    expect(second?.category).toBe('food');
+    expect(first.category).toBe('animals');
   });
 
-  it('falls back to the least stocked category when all categories are cooling down', async () => {
+  it('does not replace the selected category when all categories are cooling down', async () => {
     const now = new Date().toISOString();
     await env.DB.batch(
       DRAWGUESS_WORD_CATEGORIES.map((category) =>
@@ -75,11 +79,11 @@ describe('DrawGuess editorial publication', () => {
     )
       .bind(now)
       .run();
-    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'fallback');
-    expect(pack?.category).not.toBe('animals');
+    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'fallback', 'animals');
+    expect(pack?.category).toBe('animals');
   });
 
-  it('prioritizes the least stocked category over its recent-pack cooldown', async () => {
+  it('does not replace the selected category based on stock or recent-pack cooldown', async () => {
     const stockedCategories = DRAWGUESS_WORD_CATEGORIES.filter(
       (category) => category !== 'animals',
     );
@@ -98,19 +102,21 @@ describe('DrawGuess editorial publication', () => {
       .bind(new Date().toISOString())
       .run();
 
-    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 'least-stocked');
+    const pack = await reserveDrawGuessWordPack(env.DB, '2026-09-02', 'least-stocked', 'animals');
     expect(pack?.category).toBe('animals');
   });
 });
 
 describe('DrawGuess run-id reservation', () => {
   it('gives each run its own pack id from the run id and refuses a replay', async () => {
-    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r1');
+    const first = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r1', 'animals');
     if (first === null) throw new Error('Expected reservation');
     expect(first.id).toBe('2026-09-01-r1');
-    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r2');
+    const second = await reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r2', 'animals');
     expect(second?.id).toBe('2026-09-01-r2');
     // The same run id replays the same pack id, which is already taken.
-    await expect(reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r1')).resolves.toBeNull();
+    await expect(
+      reserveDrawGuessWordPack(env.DB, '2026-09-01', 'r1', 'animals'),
+    ).resolves.toBeNull();
   });
 });
