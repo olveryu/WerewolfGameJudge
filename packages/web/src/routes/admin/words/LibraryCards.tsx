@@ -17,20 +17,14 @@ import { SubmissionItemDrawer } from './SubmissionItemDrawer';
 import {
   isApprovableSubmission,
   isEndorsableSubmission,
+  isSelectableSubmission,
+  isUnendorsableSubmission,
   SubmissionStatus,
   SUPPLY_AGENT_NAME,
   WORD_GAME_LABELS,
 } from './wordLabels';
 
 const libraryLog = log.extend('AdminWordLibrary');
-
-function isUnendorsableSubmission(item: WordLibraryItem): boolean {
-  return item.status === 'approved';
-}
-
-function isDismissableSubmission(item: WordLibraryItem): boolean {
-  return item.status === 'pending' || item.status === 'approved';
-}
 
 /** Review covers the batch detail's old `awaiting` set (approved/failed). */
 function isReviewableSubmission(item: WordLibraryItem): boolean {
@@ -46,7 +40,7 @@ function isBulkActionable(item: WordLibraryItem): boolean {
   return (
     isEndorsableSubmission(item) ||
     isUnendorsableSubmission(item) ||
-    isDismissableSubmission(item) ||
+    isSelectableSubmission(item) ||
     isReviewableSubmission(item) ||
     isPublishableSubmission(item) ||
     isApprovableSubmission(item)
@@ -125,7 +119,7 @@ export function LibraryCards({
     queueSubmissionAction('endorse', selectedItems.filter(isEndorsableSubmission));
   }
   function bulkDismiss() {
-    queueSubmissionAction('dismiss', selectedItems.filter(isDismissableSubmission));
+    queueSubmissionAction('dismiss', selectedItems.filter(isSelectableSubmission));
   }
   function bulkUnendorse() {
     queueSubmissionAction('unendorse', selectedItems.filter(isUnendorsableSubmission));
@@ -187,7 +181,7 @@ export function LibraryCards({
     );
   }
   const approvable = selectedItems.filter(isEndorsableSubmission);
-  const dismissable = selectedItems.filter(isDismissableSubmission);
+  const dismissable = selectedItems.filter(isSelectableSubmission);
   const unendorsable = selectedItems.filter(isUnendorsableSubmission);
   const reviewable = selectedItems.filter(isReviewableSubmission);
   const publishable = selectedItems.filter(isPublishableSubmission);
