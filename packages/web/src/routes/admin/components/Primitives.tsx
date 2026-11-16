@@ -8,6 +8,8 @@ import { log } from '@/utils/logger';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconChevronUp from '~icons/ion/chevron-up';
 
+import { usePageSwitcher } from '../AdminShell';
+
 export const formatNumber = (value: number) => value.toLocaleString('zh-CN');
 
 /** Use the site's Chinese units for large counts while keeping small values exact. */
@@ -42,10 +44,27 @@ export function PageHeading({
   controls?: ReactNode;
   action?: ReactNode;
 }) {
+  const switcher = usePageSwitcher();
   return (
     <div className="admin-page-top">
       <div className="admin-page-title-row">
-        <h2 className="admin-page-title">{title}</h2>
+        {switcher === null ? (
+          <h2 className="admin-page-title">{title}</h2>
+        ) : (
+          <h2 className="admin-page-title">
+            <button
+              type="button"
+              className="admin-page-title-switcher"
+              aria-label={`切换页面，当前：${title}`}
+              aria-haspopup="dialog"
+              aria-expanded={switcher.isOpen}
+              onClick={switcher.open}
+            >
+              <span>{title}</span>
+              <IconChevronDown aria-hidden />
+            </button>
+          </h2>
+        )}
         {action}
       </div>
       <div className="admin-page-meta">

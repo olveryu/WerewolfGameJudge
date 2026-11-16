@@ -369,28 +369,11 @@
 .admin-nav-link.is-active svg {
   color: var(--admin-accent);
 }
-.admin-console .admin-mobile-navigation {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-medium);
-  width: 100%;
-  min-height: calc(var(--size-min-touch-target) + var(--space-small));
-  padding: var(--space-small) var(--space-medium);
-  border: 0;
-  border-radius: 0;
-}
-.admin-mobile-navigation > span {
-  display: flex;
-  align-items: center;
-  gap: var(--space-small);
-}
 .admin-page-menu-group h3 {
   color: var(--admin-secondary);
   font-size: var(--font-caption);
   font-weight: var(--weight-normal);
 }
-.admin-mobile-navigation svg,
 .admin-page-menu-link svg {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
@@ -438,6 +421,23 @@
   font-size: var(--font-heading);
   line-height: var(--line-heading);
   margin: 0;
+}
+.admin-console .admin-page-title-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.admin-console .admin-page-title-switcher svg {
+  display: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  flex-shrink: 0;
 }
 .admin-page-title-row {
   display: flex;
@@ -1877,8 +1877,8 @@
   .admin-navigation {
     display: none;
   }
-  .admin-console .admin-mobile-navigation {
-    display: flex;
+  .admin-console .admin-page-title-switcher svg {
+    display: block;
   }
   .admin-drawer-positioner.admin-overlay-sheet {
     align-items: flex-end;
