@@ -135,19 +135,11 @@
   cursor: pointer;
 }
 
-.config-role-chip[data-variants='true'] .config-role-chip-body {
-  border: var(--border-width-thick) solid var(--color-text);
-}
-
 .config-role-chip[data-selected='true'] .config-role-chip-body {
   border-color: var(--faction-color);
   background: var(--faction-a15);
   color: var(--faction-color);
   font-weight: var(--weight-semibold);
-}
-
-.config-role-chip[data-selected='true'][data-variants='true'] .config-role-chip-body {
-  border-color: var(--faction-color);
 }
 
 .config-role-chip-badge {
@@ -174,6 +166,29 @@
 
 .config-role-chip-badge[aria-pressed='true'] {
   background: var(--color-success);
+}
+
+/* Variant marker (option D): a 变 pill in the top-left corner, mirroring the badge. It is
+ * a decorative indicator, so it never intercepts taps meant for the chip body. */
+.config-role-chip-variant-mark {
+  position: absolute;
+  top: calc(var(--space-small) * -1);
+  left: calc(var(--space-tight) * -1);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-icon-lg);
+  padding: 0 var(--space-tight);
+  border: var(--border-width) solid var(--faction-color);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--faction-color);
+  font-size: var(--font-caption-small);
+  line-height: 1;
+  font-weight: var(--weight-bold);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
 }
 
 .config-stepper-row {
