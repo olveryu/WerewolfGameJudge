@@ -121,7 +121,7 @@
   min-height: var(--size-min-touch-target);
   padding: var(--space-small) var(--space-tight);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-full);
   background: var(--color-background);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
