@@ -60,6 +60,11 @@ import {
   buildDrawGuessScoreboardRows,
   DrawGuessScoreboard,
 } from './components/DrawGuessScoreboard';
+import {
+  countDrawGuessReactionReceiptsByDrawer,
+  countDrawGuessRoundReactionReceipts,
+  EMPTY_DRAWGUESS_REACTION_COUNTS,
+} from './drawGuessReactionCounts';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
   type DrawGuessRoomScreenState,
@@ -595,6 +600,12 @@ function DrawGuessRoundEndView({
   const roundRows = buildDrawGuessScoreboardRows(viewModel, effectiveSeat, (seat) => ({
     roundScore: viewModel.roundScores?.[seat] ?? 0,
     totalScore: viewModel.scores[seat] ?? 0,
+  })).map((row) => ({
+    ...row,
+    reactionCounts:
+      row.seat === phase.drawerSeat
+        ? countDrawGuessRoundReactionReceipts(phase.reactionsBySeat)
+        : EMPTY_DRAWGUESS_REACTION_COUNTS,
   }));
   return (
     <DrawGuessStageColumn header={<DrawGuessSettleRescue screen={screen} />}>
@@ -626,7 +637,12 @@ function DrawGuessRoundEndView({
         />
       </div>
       <DrawGuessDrawerZeroedNote visible={viewModel.drawerZeroed} />
-      <DrawGuessScoreboard title="本轮得分" competitionRanking rows={roundRows} />
+      <DrawGuessScoreboard
+        title="本轮得分"
+        competitionRanking
+        rows={roundRows}
+        reactionCountLabel="本轮收到"
+      />
       <DrawGuessReactionPicker
         drawerSeat={phase.drawerSeat}
         reactionsBySeat={viewModel.reactionsBySeat}
@@ -645,9 +661,13 @@ function DrawGuessRoundEndView({
 
 function DrawGuessEndedView({ screen }: { readonly screen: DrawGuessRoomScreenState }) {
   const { viewModel, userId, isHost, mySeat } = screen;
+  const reactionCountsByDrawer = countDrawGuessReactionReceiptsByDrawer(viewModel.turnHistory);
   const totalRows = buildDrawGuessScoreboardRows(viewModel, screen.effectiveSeat, (seat) => ({
     roundScore: null,
     totalScore: viewModel.totalScores[seat] ?? 0,
+  })).map((row) => ({
+    ...row,
+    reactionCounts: reactionCountsByDrawer[row.seat] ?? EMPTY_DRAWGUESS_REACTION_COUNTS,
   }));
   const waitingMessage = buildEndedWaitingMessage({
     isEnded: true,
@@ -655,7 +675,12 @@ function DrawGuessEndedView({ screen }: { readonly screen: DrawGuessRoomScreenSt
   });
   return (
     <DrawGuessStageColumn header={<h2 className="drawguess-turn-label">本局结束</h2>}>
-      <DrawGuessScoreboard title="最终排名" competitionRanking rows={totalRows} />
+      <DrawGuessScoreboard
+        title="最终排名"
+        competitionRanking
+        rows={totalRows}
+        reactionCountLabel="本局收到"
+      />
       {waitingMessage !== null && <p className="drawguess-hint">{waitingMessage}</p>}
     </DrawGuessStageColumn>
   );

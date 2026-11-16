@@ -9,6 +9,7 @@ import {
   formatDrawGuessScore,
   rankDrawGuessScores,
 } from '../../model/drawGuessResults';
+import type { DrawGuessReactionCounts } from '../drawGuessReactionCounts';
 
 export interface DrawGuessScoreboardRow {
   readonly seat: number;
@@ -19,6 +20,7 @@ export interface DrawGuessScoreboardRow {
   /** 本轮得分；终局榜为 null，不渲染本轮段。 */
   readonly roundScore: number | null;
   readonly totalScore: number;
+  readonly reactionCounts?: DrawGuessReactionCounts;
 }
 
 /** Reuses the authoritative seat projection for live, settlement and final scoreboards. */
@@ -45,6 +47,7 @@ interface DrawGuessScoreboardProps {
   /** 按竞赛排名展示（同分并列，下一名次跳过）；false 则只按得分降序。 */
   readonly competitionRanking: boolean;
   readonly rows: readonly DrawGuessScoreboardRow[];
+  readonly reactionCountLabel?: string;
 }
 
 function rankLabel(rank: number): string {
@@ -55,7 +58,12 @@ function rankLabel(rank: number): string {
 }
 
 /** 总分榜：结算行显示本轮加分与总分，终局行只显示总分；自己一行高亮。 */
-export function DrawGuessScoreboard({ title, competitionRanking, rows }: DrawGuessScoreboardProps) {
+export function DrawGuessScoreboard({
+  title,
+  competitionRanking,
+  rows,
+  reactionCountLabel,
+}: DrawGuessScoreboardProps) {
   const ranked = competitionRanking
     ? rankDrawGuessScores(rows)
     : [...rows]
@@ -70,14 +78,22 @@ export function DrawGuessScoreboard({ title, competitionRanking, rows }: DrawGue
             <span className="drawguess-scoreboard-rank">
               {competitionRanking ? rankLabel(row.rank) : `${row.rank}`}
             </span>
-            <span
-              className="drawguess-scoreboard-name"
-              data-self={row.isSelf ? '' : undefined}
-              aria-current={row.isSelf ? 'true' : undefined}
-            >
-              {row.displayName}
-              {row.isBot ? ` · ${DRAWGUESS_BOT_TAG}` : ''}
-              {row.isDrawer ? ' · 画手' : ''}
+            <span className="drawguess-scoreboard-player">
+              <span
+                className="drawguess-scoreboard-name"
+                data-self={row.isSelf ? '' : undefined}
+                aria-current={row.isSelf ? 'true' : undefined}
+              >
+                {row.displayName}
+                {row.isBot ? ` · ${DRAWGUESS_BOT_TAG}` : ''}
+                {row.isDrawer ? ' · 画手' : ''}
+              </span>
+              {row.reactionCounts !== undefined && reactionCountLabel !== undefined && (
+                <span className="drawguess-scoreboard-reactions">
+                  {reactionCountLabel}：鲜花 {row.reactionCounts.flower} · 鸡蛋{' '}
+                  {row.reactionCounts.egg} · 番茄 {row.reactionCounts.tomato}
+                </span>
+              )}
             </span>
             <span className="drawguess-scoreboard-score">
               {row.roundScore === null

@@ -67,4 +67,22 @@ describe('DrawGuessScoreboard', () => {
     expect(screen.getAllByText('300 分')).toHaveLength(2);
     expect(screen.queryByText(/总分/)).toBeNull();
   });
+
+  it('shows received reaction counts under each player when a settlement supplies them', () => {
+    render(
+      <DrawGuessScoreboard
+        title="最终排名"
+        competitionRanking
+        reactionCountLabel="本局收到"
+        rows={[
+          {
+            ...rows[0]!,
+            reactionCounts: { flower: 2, egg: 1, tomato: 0 },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('本局收到：鲜花 2 · 鸡蛋 1 · 番茄 0')).toBeInTheDocument();
+  });
 });

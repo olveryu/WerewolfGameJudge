@@ -603,8 +603,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-.drawguess-scoreboard-name {
+.drawguess-scoreboard-player {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+
+.drawguess-scoreboard-name {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text);
@@ -626,4 +633,11 @@
   font-weight: var(--weight-semibold);
   line-height: var(--line-body);
   font-variant-numeric: tabular-nums;
+}
+
+.drawguess-scoreboard-reactions {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  overflow-wrap: anywhere;
 }
