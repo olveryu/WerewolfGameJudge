@@ -50,7 +50,7 @@ describe('DrawGuessReactionPicker', () => {
     );
   });
 
-  it('prevents a second reaction and shows reaction totals without repeating sender names', () => {
+  it('prevents a second reaction and keeps the reason without showing reaction totals or sender names', () => {
     renderPicker({ reactionsBySeat: { 1: 'egg' } });
 
     expect(screen.getByRole('button', { name: '送鲜花' })).toBeDisabled();
@@ -59,7 +59,8 @@ describe('DrawGuessReactionPicker', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByText('鸡蛋 1')).toBeInTheDocument();
+    expect(screen.getByText('本轮已送出互动')).toBeInTheDocument();
+    expect(screen.queryByText(/鲜花 0|鸡蛋 1|番茄 0/)).not.toBeInTheDocument();
     expect(screen.queryByText(/小满/)).not.toBeInTheDocument();
   });
 
