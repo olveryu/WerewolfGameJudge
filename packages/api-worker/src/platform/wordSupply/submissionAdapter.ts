@@ -15,6 +15,17 @@ export interface SubmissionMaterial {
   readonly content: Record<string, unknown>;
 }
 
+/**
+ * One generated candidate as the caller mapped it to submission content.
+ * Defined here (not in the ingestion) so the shared supply runner can type
+ * its store callback without importing the ingestion, which reaches the
+ * game catalog through the submission adapters.
+ */
+export interface WordSupplySubmissionItem {
+  readonly clientItemId: string;
+  readonly content: Record<string, unknown>;
+}
+
 export interface SubmissionReviewResult {
   readonly review: WordSubmissionReview;
   readonly verifiedContent: Record<string, unknown>;

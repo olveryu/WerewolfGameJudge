@@ -329,7 +329,7 @@ export function parseGeneratedFibWordCandidate(
 }
 
 /** Review rubric v11: four hard gates (all must pass) plus two fun signals (at least one). */
-export function deriveFibWordReviewDecision(checks: FibWordQualityChecks): FibWordReviewDecision {
+function deriveFibWordReviewDecision(checks: FibWordQualityChecks): FibWordReviewDecision {
   const hardGatesPass =
     checks.isEstablishedTerm &&
     checks.isDefinitionAccurate &&

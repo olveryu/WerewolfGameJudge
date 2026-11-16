@@ -1,4 +1,6 @@
 import type {
+  GameWordsStats,
+  WordLibraryItem,
   WordSubmissionAgent,
   WordSubmissionBatch,
   WordSubmissionItem,
@@ -9,13 +11,19 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
+import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 
 import { SubmissionAgentsPage } from '../words/SubmissionAgents';
-import { SubmissionsPage } from '../words/SubmissionsPage';
+import { UnifiedLibrary } from '../words/UnifiedLibrary';
 
+vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
+  fetchGameWordsStats: vi.fn(),
+  fetchLibraryItems: vi.fn(),
+}));
 vi.mock('@/features/admin/services/wordSubmissionsApi', () => ({
   wordSubmissionsApi: {
     settings: vi.fn(),
@@ -26,7 +34,6 @@ vi.mock('@/features/admin/services/wordSubmissionsApi', () => ({
     deleteAgent: vi.fn(),
     rotate: vi.fn(),
     setAgentStatus: vi.fn(),
-    batches: vi.fn(),
     batch: vi.fn(),
     audit: vi.fn(),
     action: vi.fn(),
@@ -51,9 +58,7 @@ const settings: WordSubmissionSettings = {
   dailyLimit: 1000,
   modelBudget: {
     dailyUsed: 0,
-    dailyLimit: 8,
     monthlyUsed: 0,
-    monthlyLimit: 120,
     byOperation: {
       generation: { dailyUsed: 0, monthlyUsed: 0 },
       review: { dailyUsed: 0, monthlyUsed: 0 },
@@ -107,6 +112,20 @@ const batch: WordSubmissionBatch = {
     ] as const
   ).map(candidate),
 };
+const libraryItems: WordLibraryItem[] = batch.items.map((entry) => ({
+  id: entry.id,
+  batchId: batch.id,
+  agentName: 'Muse',
+  game: 'drawguess',
+  title: entry.title,
+  category: entry.category,
+  definition: null,
+  createdAt: batch.createdAt,
+  status: entry.status,
+  duplicateOf: entry.duplicateOf,
+  contentHash: entry.contentHash,
+  revision: entry.revision,
+}));
 const authorization: WordSubmissionAgent = {
   id: batch.agentId,
   name: 'Muse',
@@ -125,23 +144,36 @@ const authorization: WordSubmissionAgent = {
     revokedAt: null,
   },
 };
-function mount(section = 'batch', extraSearch = '') {
+const stats: GameWordsStats = {
+  game: 'drawguess',
+  supplyEnabled: true,
+  reviewDecisions: [],
+  reviewCheckStats: [],
+  queryLeaderboard: [],
+  tavilyRequestsUsed: null,
+  tavilyMonthlyQuota: null,
+  modelBudget: {
+    dailyUsed: 0,
+    monthlyUsed: 0,
+    byOperation: {
+      generation: { dailyUsed: 0, monthlyUsed: 0 },
+      review: { dailyUsed: 0, monthlyUsed: 0 },
+    },
+  },
+  categories: [],
+};
+function mount(section = 'library', extraSearch = '') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter(
     [
-      {
-        path: '/admin/words/drawguess',
-        element:
-          section === 'agents' ? (
-            <SubmissionAgentsPage game="drawguess" />
-          ) : (
-            <SubmissionsPage game="drawguess" />
-          ),
-      },
+      { path: '/admin/words/drawguess', element: <UnifiedLibrary game="drawguess" /> },
+      { path: '/admin/agents/:game', element: <SubmissionAgentsPage /> },
     ],
     {
       initialEntries: [
-        `/admin/words/drawguess?section=${section === 'agents' ? 'agents' : 'submissions'}${section === 'batch' ? `&batch=${batch.id}` : ''}${extraSearch}`,
+        section === 'agents'
+          ? '/admin/agents/drawguess'
+          : `/admin/words/drawguess${extraSearch === '' ? '' : `?${extraSearch.replace(/^&/, '')}`}`,
       ],
     },
   );
@@ -154,51 +186,37 @@ function mount(section = 'batch', extraSearch = '') {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(fetchGameWordsStats).mockResolvedValue(stats);
+  vi.mocked(fetchLibraryItems).mockImplementation(async (_game, params) => {
+    const all = {
+      game: 'drawguess' as const,
+      items: libraryItems,
+      totals: { submissions: {} },
+      nextCursor: null,
+    };
+    if (params?.status === undefined) return all;
+    return { ...all, items: libraryItems.filter((entry) => entry.status === params.status) };
+  });
   vi.mocked(wordSubmissionsApi.batch).mockResolvedValue(batch);
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue(settings);
   vi.mocked(wordSubmissionsApi.agents).mockResolvedValue({ agents: [] });
   vi.mocked(wordSubmissionsApi.audit).mockResolvedValue({ events: [], statuses: [] });
-  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-    batches: [],
-    totals: {},
-    nextCursor: null,
-  });
 });
 
-it('opens a batch as a URL-backed workspace overlay and browser Back restores its list context', async () => {
-  vi.mocked(wordSubmissionsApi.batches).mockResolvedValue({
-    batches: [{ ...batch, counts: { pending: 1 }, inventoryExists: false }],
-    totals: { pending: 1 },
-    nextCursor: null,
-  });
-  const { router, user } = mount('submissions', '&search=lotus');
-  const row = await screen.findByRole('row', { name: `打开投稿批次 ${batch.id}` });
-
-  await user.click(row);
-  expect(router.state.location.search).toContain(`batch=${batch.id}`);
-  expect(router.state.location.state).toMatchObject({ adminSubmissionBatchOrigin: 'list' });
-  const dialog = await screen.findByRole('dialog', { name: '投稿批次审核' });
-  expect(within(dialog).queryByText('返回投稿列表')).not.toBeInTheDocument();
-  expect(within(dialog).getByRole('button', { name: '关闭投稿批次审核' })).toBeVisible();
-  expect(within(dialog).getByRole('button', { name: '刷新审核进度' })).toBeVisible();
-  expect(within(dialog).getByRole('button', { name: '审核全部待审 (2)' })).toBeVisible();
-  await user.keyboard('{Escape}');
-
-  await waitFor(() =>
-    expect(router.state.location.search).toBe('?section=submissions&search=lotus'),
-  );
-  await waitFor(() =>
-    expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument(),
-  );
+it('ignores a stale batch parameter and shows the library stream', async () => {
+  const { router } = mount('library', `batch=${batch.id}&search=lotus`);
+  await screen.findByText('词语0');
+  expect(screen.queryByRole('dialog', { name: '投稿批次审核' })).not.toBeInTheDocument();
+  expect(screen.queryByText('投稿批次')).not.toBeInTheDocument();
+  expect(router.state.location.search).toContain('search=lotus');
 });
 
-it('opens candidate details from a keyboard-activated row without treating its checkbox as an action', async () => {
+it('opens item details from a keyboard-activated card title without treating its checkbox as an action', async () => {
   const { user } = mount();
-  const row = await screen.findByRole('row', { name: '查看词条详情：词语0' });
-
-  await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语0' }));
   expect(screen.queryByRole('dialog', { name: '词条详情' })).not.toBeInTheDocument();
-  row.focus();
+  const title = screen.getByRole('button', { name: '查看词语0审核详情' });
+  title.focus();
   await user.keyboard('{Enter}');
 
   expect(await screen.findByRole('dialog', { name: '词条详情' })).toBeVisible();
@@ -283,29 +301,35 @@ it('confirms deletion of revoked authorizations and removes them from the refres
 
 it('selects only unlocked visible candidates, maintains indeterminate state, and clears on filtering', async () => {
   const { user } = mount();
-  const all = await screen.findByRole('checkbox', { name: '全选当前结果' });
+  const all = await screen.findByRole('checkbox', { name: '全选本页' });
   await user.click(screen.getByRole('checkbox', { name: '选择词语0' }));
   expect(all).toBePartiallyChecked();
   await user.click(all);
   expect(screen.getByText('已选 5 / 当前可选 5')).toBeInTheDocument();
   for (const index of [4, 5, 6, 7, 8])
     expect(screen.getByRole('checkbox', { name: `选择词语${index}` })).toBeDisabled();
-  expect(screen.getByRole('button', { name: '发布 1' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '审核 2' })).toBeEnabled();
-  expect(screen.getByRole('button', { name: '批准进入审核 3' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '确认发布 1' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '启动独立审核 2' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '批量批准 3' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
-  await user.click(screen.getByRole('button', { name: '候选状态：全部 (10)' }));
-  const filters = await screen.findByRole('dialog', { name: '选择候选状态' });
-  await user.click(within(filters).getByRole('button', { name: '待确认发布 (1)' }));
-  expect(all).not.toBeChecked();
+  expect(screen.getByRole('button', { name: '批量拒绝 5' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
+  const filters = await screen.findByRole('dialog', { name: '选择状态' });
+  await user.click(within(filters).getByRole('button', { name: '待确认发布' }));
+  // Filtering remounts the card stream, so the select-all checkbox is a new
+  // node and must be re-queried; the selection is cleared with it.
+  const allAfterFilter = await screen.findByRole('checkbox', { name: '全选本页' });
+  expect(allAfterFilter).not.toBeChecked();
   expect(screen.getByText('已选 0 / 当前可选 1')).toBeInTheDocument();
-  await user.click(all);
+  await user.click(allAfterFilter);
   expect(screen.getByText('已选 1 / 当前可选 1')).toBeInTheDocument();
 });
 
-it('starts all approved/failed items independently of selection and never includes locked items', async () => {
+it('starts approved/failed items from the bulk bar and never includes locked items', async () => {
   const { user } = mount();
-  await user.click(await screen.findByRole('button', { name: '审核全部待审 (2)' }));
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语3' }));
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语9' }));
+  await user.click(screen.getByRole('button', { name: '启动独立审核 2' }));
   const dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
   expect(within(dialog).getByText('词语3')).toBeInTheDocument();
   expect(within(dialog).getByText('词语9')).toBeInTheDocument();
@@ -314,14 +338,12 @@ it('starts all approved/failed items independently of selection and never includ
   expect(wordSubmissionsApi.action).not.toHaveBeenCalled();
 });
 
-it('reviews at exhausted quotas without a reason and freezes retries', async () => {
+it('reviews without a reason and freezes retries', async () => {
   vi.mocked(wordSubmissionsApi.settings).mockResolvedValue({
     ...settings,
     modelBudget: {
       dailyUsed: 93,
-      dailyLimit: 8,
       monthlyUsed: 696,
-      monthlyLimit: 120,
       byOperation: {
         generation: { dailyUsed: 93, monthlyUsed: 696 },
         review: { dailyUsed: 0, monthlyUsed: 0 },
@@ -332,7 +354,9 @@ it('reviews at exhausted quotas without a reason and freezes retries', async () 
     .mockRejectedValueOnce(new Error('offline'))
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'queued' });
   const { user } = mount();
-  const review = await screen.findByRole('button', { name: '审核全部待审 (2)' });
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语3' }));
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语9' }));
+  const review = await screen.findByRole('button', { name: '启动独立审核 2' });
   expect(review).toBeEnabled();
   expect(screen.queryByRole('button', { name: /强制审核/ })).not.toBeInTheDocument();
   await user.click(review);
@@ -355,8 +379,8 @@ it('reviews at exhausted quotas without a reason and freezes retries', async () 
 
 it('offers selected and single-item review without separate force controls', async () => {
   const { user } = mount();
-  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '审核 2' }));
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '启动独立审核 2' }));
   let dialog = await screen.findByRole('dialog', { name: '启动独立审核' });
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   await user.click(within(dialog).getByRole('button', { name: '取消' }));
@@ -370,8 +394,10 @@ it('offers selected and single-item review without separate force controls', asy
 
 it('does not depend on the budget request for administrator review', async () => {
   vi.mocked(wordSubmissionsApi.settings).mockRejectedValue(new Error('settings offline'));
-  mount();
-  expect(await screen.findByRole('button', { name: '审核全部待审 (2)' })).toBeEnabled();
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语3' }));
+  await user.click(await screen.findByRole('checkbox', { name: '选择词语9' }));
+  expect(await screen.findByRole('button', { name: '启动独立审核 2' })).toBeEnabled();
   expect(wordSubmissionsApi.settings).not.toHaveBeenCalled();
   expect(screen.queryByRole('button', { name: /强制审核/ })).not.toBeInTheDocument();
 });
@@ -381,8 +407,8 @@ it('bulk publishes only passed items and retries the same immutable action after
     .mockRejectedValueOnce(new Error('offline'))
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
   const { user } = mount();
-  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '发布 1' }));
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '确认发布 1' }));
   const dialog = await screen.findByRole('dialog', { name: '确认发布' });
   await user.click(within(dialog).getByRole('button', { name: '确认发布 (1)' }));
   expect(await within(dialog).findByRole('alert')).toHaveTextContent('offline');
@@ -402,7 +428,7 @@ it('bulk approves pending, failed and rejected items without a reason, but does 
     .mockRejectedValueOnce(new Error('offline'))
     .mockResolvedValueOnce({ id: crypto.randomUUID(), status: 'complete' });
   const { user } = mount();
-  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
   await user.click(screen.getByRole('button', { name: '人工通过 3' }));
   const dialog = await screen.findByRole('dialog', { name: '人工通过' });
   expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
@@ -431,11 +457,17 @@ it('bulk endorses pending, failed and rejected items for review without calling 
     status: 'complete',
   });
   const { user } = mount();
-  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '批准进入审核 3' }));
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '批量批准 3' }));
   const dialog = await screen.findByRole('dialog', { name: '批准进入审核' });
   expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
   expect(within(dialog).getByText(/只表示你看过并同意送审/)).toBeInTheDocument();
+  expect(within(dialog).getByText('词语0')).toBeInTheDocument();
+  // The bulk bar shares the drawer's endorsement eligibility
+  // (pending/failed/rejected), so failed and rejected items are endorsed
+  // in bulk too.
+  expect(within(dialog).getByText('词语2')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语3')).toBeInTheDocument();
   expect(within(dialog).queryByText('词语1')).not.toBeInTheDocument();
   expect(within(dialog).queryByText('词语9')).not.toBeInTheDocument();
   await user.click(within(dialog).getByRole('button', { name: '批准进入审核 (3)' }));
@@ -449,6 +481,47 @@ it('bulk endorses pending, failed and rejected items for review without calling 
       { id: batch.items[0]?.id, revision: 1 },
       { id: batch.items[2]?.id, revision: 1 },
       { id: batch.items[3]?.id, revision: 1 },
+    ],
+  });
+});
+
+it('bulk dismisses pending, passed, failed and rejected items with the drawer eligibility', async () => {
+  vi.mocked(wordSubmissionsApi.action).mockResolvedValueOnce({
+    id: crypto.randomUUID(),
+    status: 'complete',
+  });
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '批量拒绝 5' }));
+  const dialog = await screen.findByRole('dialog', { name: '拒绝候选' });
+  // The reason stays optional; the dialog still offers it for dismissals.
+  expect(within(dialog).getByRole('textbox', { name: '操作原因' })).toBeInTheDocument();
+  // The bulk bar shares the drawer's dismissal eligibility
+  // (pending/approved/passed/failed/rejected), so passed, failed and
+  // rejected items are dismissed in bulk too.
+  expect(within(dialog).getByText('词语0')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语1')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语2')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语3')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语9')).toBeInTheDocument();
+  expect(within(dialog).queryByText('词语4')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语5')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语6')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语7')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语8')).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '拒绝候选 (5)' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]?.[0]).toBe(batch.id);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'dismiss',
+    reason: '',
+    items: [
+      { id: batch.items[0]?.id, revision: 1 },
+      { id: batch.items[1]?.id, revision: 1 },
+      { id: batch.items[2]?.id, revision: 1 },
+      { id: batch.items[3]?.id, revision: 1 },
+      { id: batch.items[9]?.id, revision: 1 },
     ],
   });
 });
@@ -478,8 +551,8 @@ it('bulk withdraws approval for approved items without calling the model', async
     status: 'complete',
   });
   const { user } = mount();
-  await user.click(await screen.findByRole('checkbox', { name: '全选当前结果' }));
-  await user.click(screen.getByRole('button', { name: '撤回批准 1' }));
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '批量撤回批准 1' }));
   const dialog = await screen.findByRole('dialog', { name: '撤回批准' });
   expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
   expect(within(dialog).getByText(/只把已批准的词条退回待批准队列/)).toBeInTheDocument();
@@ -555,21 +628,6 @@ it('shows a reason-free human decision separately from the preserved failed revi
   expect(within(drawer).getByText('诊断码：model-review:invalidOutput')).toBeInTheDocument();
   expect(within(drawer).getByRole('button', { name: '确认发布…' })).toBeEnabled();
   expect(within(drawer).queryByRole('button', { name: '人工通过…' })).not.toBeInTheDocument();
-});
-
-it('uses choice-sheet filters and resets pagination when a filter changes', async () => {
-  const { user, router } = mount('list', '&cursor=42');
-  await user.click(await screen.findByRole('button', { name: '游戏：全部游戏' }));
-  const dialog = await screen.findByRole('dialog', { name: '选择游戏' });
-  await user.click(within(dialog).getByRole('button', { name: '谁是卧底' }));
-  await waitFor(() => expect(router.state.location.search).toContain('game=undercover'));
-  expect(router.state.location.search).not.toContain('cursor');
-  expect(wordSubmissionsApi.batches).toHaveBeenLastCalledWith(
-    { game: 'undercover' },
-    expect.any(AbortSignal),
-  );
-  await user.click(screen.getByRole('button', { name: '清空筛选' }));
-  await waitFor(() => expect(router.state.location.search).toBe('?section=submissions'));
 });
 
 it.each(['pending', 'failed', 'rejected'] as const)(

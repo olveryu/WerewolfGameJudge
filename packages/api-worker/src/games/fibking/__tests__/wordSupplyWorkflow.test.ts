@@ -1,16 +1,10 @@
-/** Real Workflows orchestration and D1 publication with only external steps replaced. */
+/** Real Workflows orchestration and D1 generation with only external steps replaced. */
 import { env, introspectWorkflowInstance } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAiDiagnostic } from '../../../platform/ai/aiError';
 import { FibWordProviderError } from '../wordProviders/providerError';
 import type { FibWordEditorialCandidate } from '../wordProviders/types';
-import {
-  FIB_WORD_DAILY_BATCH_LIMIT,
-  FIB_WORD_MONTHLY_BATCH_LIMIT,
-  publishFibWordPack,
-  reserveFibWordPack,
-} from '../wordPublication';
 import { createFibWordSearchQuery, FIB_WORD_SEARCH_QUERY_COUNT } from '../wordSearchPlan';
 import { getFibWordsToClassify, storeFibWordTopics } from '../wordTopicClassification';
 
@@ -18,14 +12,14 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected external HTTP request')));
   await env.DB.batch([
     env.DB.prepare('DELETE FROM editorial_model_requests'),
-    env.DB.prepare('DELETE FROM fib_word_candidates'),
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
-    env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
     env.DB.prepare('DELETE FROM fib_word_packs'),
     env.DB.prepare('DELETE FROM fib_word_supply_months'),
+    env.DB.prepare('DELETE FROM word_submission_items'),
+    env.DB.prepare('DELETE FROM word_submission_batches'),
     env.DB.prepare("UPDATE database_capacity SET state = 'normal' WHERE id = 1"),
   ]);
 });
@@ -100,11 +94,11 @@ describe('Fib word supply workflow', () => {
       await instance.modify(async (modifier) => {
         await modifier.disableSleeps();
         await modifier.mockStepResult({ name: 'enabled' }, true);
-        await modifier.mockStepResult({ name: 'discover-0' }, evidence);
-        await modifier.mockStepResult({ name: 'extract-0' }, { evidence, failedUrls: [] });
-        await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+        await modifier.mockStepResult({ name: 'discover' }, evidence);
+        await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
       });
-      const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+      const validRunId = crypto.randomUUID();
+      const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: validRunId } });
       await instance.waitForStatus(allRejected ? 'errored' : 'complete');
       const validation = {
         receivedCount: 1,
@@ -117,7 +111,7 @@ describe('Fib word supply workflow', () => {
         expect(getAiDiagnostic(new Error(status.error?.message))).toMatchObject({
           game: 'fibking',
           operation: 'generate',
-          packId: `${day}-0`,
+          packId: `${day}-${validRunId}`,
           stage: 'outputValidation',
           failureKind: 'invalidOutput',
           validationCode: 'allCandidatesRejected',
@@ -135,17 +129,17 @@ describe('Fib word supply workflow', () => {
           await env.DB.prepare('SELECT error_code FROM fib_word_generation_cycles').first(),
         ).toEqual({ error_code: 'generation:invalidOutput' });
         expect(
-          await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
+          await env.DB.prepare('SELECT COUNT(*) AS count FROM word_submission_items').first(),
         ).toEqual({ count: 0 });
       } else {
-        expect(await instance.getOutput()).toEqual({ status: 'awaitingApproval' });
-        expect(await instance.waitForStepResult({ name: 'generate-0' })).toMatchObject({
+        expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
+        expect(await instance.waitForStepResult({ name: 'generate' })).toMatchObject({
           candidates: [{ word: candidate.word, evidence }],
           validation,
         });
         expect(
-          await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all(),
-        ).toMatchObject({ results: [{ word: candidate.word, status: 'pending' }] });
+          await env.DB.prepare('SELECT title, status FROM word_submission_items').first(),
+        ).toEqual({ title: candidate.word, status: 'pending' });
         expect(await env.DB.prepare('SELECT status FROM fib_word_packs').first()).toEqual({
           status: 'reserved',
         });
@@ -192,17 +186,21 @@ describe('Fib word supply workflow', () => {
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepResult({ name: 'discover-0' }, evidence);
-      await modifier.mockStepResult({ name: 'extract-0' }, { evidence, failedUrls: [] });
+      await modifier.mockStepResult({ name: 'discover' }, evidence);
+      await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
     });
-    const workflow = await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    const modelFailRunId = crypto.randomUUID();
+    const workflow = await env.FIB_WORD_SUPPLY.create({
+      id,
+      params: { day, runId: modelFailRunId },
+    });
     await instance.waitForStatus('errored');
     const status = await workflow.status();
     const persistedError = new Error(status.error?.message);
     expect(getAiDiagnostic(persistedError)).toMatchObject({
       game: 'fibking',
       operation: 'generate',
-      packId: `${day}-0`,
+      packId: `${day}-${modelFailRunId}`,
       stage: 'http',
       failureKind: 'serviceUnavailable',
       httpStatus: 503,
@@ -217,7 +215,7 @@ describe('Fib word supply workflow', () => {
     ).toEqual({ count: 1 });
   });
 
-  it('exits before retention, classification and reservation when budget is exhausted', async () => {
+  it('runs even when the editorial log already holds requests: there is no budget', async () => {
     await env.DB.prepare(
       `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 8)
        INSERT INTO editorial_model_requests (id, owner, model, claimed_at)
@@ -225,22 +223,85 @@ describe('Fib word supply workflow', () => {
     )
       .bind(new Date().toISOString())
       .run();
+    const evidence = [
+      {
+        query: '词源',
+        url: 'https://example.test/source',
+        title: '词源资料',
+        content: '菡萏：荷花的别称，古人常在诗文中用来称呼荷花。',
+      },
+    ];
+    const candidate = {
+      word: '菡萏',
+      category: 'literary',
+      topic: 'plants',
+      definition: {
+        coreMeaning: '荷花的别称，古人常在诗文中用来称呼荷花。',
+        usageNote: '多见于古典诗文和书面描写，不是现代口语中的常用称呼。',
+      },
+      citations: [{ evidenceIndex: 0, quote: 'source0quote0' }],
+    };
+    const reviews = [
+      {
+        word: candidate.word,
+        reason: '有资料支持且符合游戏性标准。',
+        evidenceIndex: 0,
+        evidenceQuote: 'source0quote0',
+        qualityChecks: {
+          isEstablishedTerm: true,
+          isDefinitionAccurate: true,
+          isMeaningUnfamiliarToMostPlayers: true,
+          isMeaningDistinctFromLiteralReading: true,
+          hasMultiplePlausibleWrongDefinitions: true,
+          hasRevealValue: true,
+        },
+      },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockImplementationOnce(async () =>
+          Response.json({
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: { content: JSON.stringify({ candidates: [candidate] }) },
+              },
+            ],
+          }),
+        )
+        .mockImplementationOnce(async () =>
+          Response.json({
+            choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ reviews }) } }],
+          }),
+        ),
+    );
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepError({ name: 'retention' }, new Error('Retention should not run'));
+      await modifier.mockStepResult({ name: 'discover' }, evidence);
+      await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
     });
     await env.FIB_WORD_SUPPLY.create({
       id,
-      params: { day: new Date().toISOString().slice(0, 10) },
+      params: { day: new Date().toISOString().slice(0, 10), runId: crypto.randomUUID() },
     });
     await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'budget_exhausted' });
+    expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 1 });
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_packs').first()).toEqual({
-      count: 0,
+      count: 1,
     });
+    expect(
+      await env.DB.prepare(
+        "SELECT title, status FROM word_submission_items WHERE title = '菡萏'",
+      ).first(),
+    ).toEqual({ title: '菡萏', status: 'pending' });
+    expect(
+      await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
+    ).toEqual({ count: 9 });
   });
 
   it('ignores ambiguous, out-of-range and stale historical classifications', async () => {
@@ -288,20 +349,19 @@ describe('Fib word supply workflow', () => {
        VALUES ('legacy', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
     ).run();
     const id = crypto.randomUUID();
+    const day = new Date().toISOString().slice(0, 10);
     await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepResult({ name: 'review-candidates-0' }, []);
-      await modifier.mockStepResult({ name: 'discover-0' }, []);
-      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+      await modifier.mockStepResult({ name: 'discover' }, []);
     });
-    await env.FIB_WORD_SUPPLY.create({
-      id,
-      params: { day: new Date().toISOString().slice(0, 10) },
-    });
+    const classifyFailRunId = crypto.randomUUID();
+    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: classifyFailRunId } });
     await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    // Empty discovery: nothing new to store, the pack stays reserved, and
+    // the run completes with nothing stored.
+    expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 0 });
     expect(fetchImpl).toHaveBeenCalledOnce();
     expect(reportError).toHaveBeenCalledExactlyOnceWith(
       expect.stringContaining('"operation":"classify"'),
@@ -315,15 +375,14 @@ describe('Fib word supply workflow', () => {
         .first(),
     ).toEqual({ status: 'active', topic: null });
     expect(
-      await env.DB.prepare('SELECT status FROM fib_word_packs WHERE id LIKE ?')
-        .bind(`${new Date().toISOString().slice(0, 10)}-0`)
+      await env.DB.prepare('SELECT status FROM fib_word_packs WHERE id = ?')
+        .bind(`${day}-${classifyFailRunId}`)
         .first(),
-    ).toEqual({ status: 'published' });
+    ).toEqual({ status: 'reserved' });
   });
+
   it('classifies existing reviewed inventory without changing its playable state', async () => {
     const day = new Date().toISOString().slice(0, 10);
-    const pack = await reserveFibWordPack(env.DB, day, 0, { runId: 'legacy' });
-    if (pack === null) throw new Error('Expected legacy pack');
     const candidate: FibWordEditorialCandidate = {
       word: '测试旧词',
       source: 'gemini',
@@ -341,28 +400,21 @@ describe('Fib word supply workflow', () => {
         },
       ],
     };
-    await publishFibWordPack(
-      env.DB,
-      pack,
-      [candidate],
-      [
-        {
-          word: candidate.word,
-          decision: 'accepted',
-          reason: '有资料支持且符合游戏性标准。',
-          evidenceIndex: 0,
-          evidenceQuote: '测试旧词：用于测试的准确核心含义。',
-          qualityChecks: {
-            isEstablishedTerm: true,
-            isDefinitionAccurate: true,
-            isMeaningUnfamiliarToMostPlayers: true,
-            isMeaningDistinctFromLiteralReading: true,
-            hasMultiplePlausibleWrongDefinitions: true,
-            hasRevealValue: true,
-          },
-        },
-      ],
-    );
+    // Seed the reviewed inventory directly: the word is active and sequenced,
+    // so the workflow's classify-history step picks it up.
+    await env.DB.prepare(
+      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source,
+         status, selection_key, created_at, activated_at)
+       VALUES ('legacy-word', ?, '用于测试的准确核心含义。', '用于测试的具体使用语境。',
+         'niche', 'gemini', 'active', 0, '2026-01-01', '2026-01-01')`,
+    )
+      .bind(candidate.word)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO fib_word_sequence (word, published_at) VALUES (?, '2026-01-01')",
+    )
+      .bind(candidate.word)
+      .run();
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation(() =>
@@ -389,12 +441,12 @@ describe('Fib word supply workflow', () => {
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      await modifier.mockStepResult({ name: 'discover-0' }, []);
-      await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+      await modifier.mockStepResult({ name: 'discover' }, []);
     });
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    const classifyRunId = crypto.randomUUID();
+    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: classifyRunId } });
     await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 0 });
     expect(await env.DB.prepare('SELECT word, status, topic FROM fib_words').first()).toEqual({
       word: candidate.word,
       status: 'active',
@@ -408,276 +460,106 @@ describe('Fib word supply workflow', () => {
     });
     expect(
       await env.DB.prepare('SELECT topic FROM fib_word_packs WHERE id = ?')
-        .bind(`${day}-0`)
+        .bind(`${day}-${classifyRunId}`)
         .first(),
     ).toEqual({ topic: 'agriculture' });
   });
 
-  it('covers the entire monthly budget with distinct non-cycling searches', () => {
-    const queries = Array.from({ length: FIB_WORD_MONTHLY_BATCH_LIMIT }, (_, index) =>
+  it('covers the whole search space with distinct non-cycling searches', () => {
+    const queries = Array.from({ length: FIB_WORD_SEARCH_QUERY_COUNT }, (_, index) =>
       createFibWordSearchQuery(index),
     );
-    expect(new Set(queries).size).toBe(FIB_WORD_MONTHLY_BATCH_LIMIT);
+    expect(new Set(queries).size).toBe(FIB_WORD_SEARCH_QUERY_COUNT);
     expect(() => createFibWordSearchQuery(FIB_WORD_SEARCH_QUERY_COUNT)).toThrow('out of range');
   });
-  it.each([FIB_WORD_DAILY_BATCH_LIMIT, FIB_WORD_MONTHLY_BATCH_LIMIT])(
-    'reviews persisted overflow within a %i-batch run without repeating consumed batches',
-    async (batchLimit) => {
-      const day = new Date().toISOString().slice(0, 10);
-      const id = crypto.randomUUID();
-      const batchIndex = batchLimit === FIB_WORD_DAILY_BATCH_LIMIT ? 0 : FIB_WORD_DAILY_BATCH_LIMIT;
-      for (let index = 0; index < batchIndex; index += 1) {
-        await reserveFibWordPack(env.DB, day, index);
-      }
-      const words = [
-        '测试甲',
-        '测试乙',
-        '测试丙',
-        '测试丁',
-        '测试戊',
-        '测试己',
-        '测试庚',
-        '测试辛',
-      ];
-      const evidence = [
-        {
-          query: '传统器物',
-          url: 'https://example.com/words',
-          title: '测试词源',
-          content: words.map((word) => `${word}：用于测试的准确核心含义。`).join('\n'),
-        },
-      ];
-      const candidates: FibWordEditorialCandidate[] = words.map((word, index) => ({
-        word,
-        source: 'gemini',
-        category: index % 2 === 0 ? 'literary' : 'niche',
-        evidence,
-        definition: {
-          coreMeaning: '用于测试的准确核心含义。',
-          usageNote: '用于测试的具体使用语境。',
-        },
-      }));
-      const reviews = words.map((word) => ({
-        word,
-        decision: 'accepted',
-        reason: '有资料支持且符合游戏性标准。',
-        evidenceIndex: 0,
-        evidenceQuote: `${word}：用于测试的准确核心含义。`,
-        qualityChecks: {
-          isEstablishedTerm: true,
-          isDefinitionAccurate: true,
-          isMeaningUnfamiliarToMostPlayers: true,
-          isMeaningDistinctFromLiteralReading: true,
-          hasMultiplePlausibleWrongDefinitions: true,
-          hasRevealValue: true,
-        },
-      }));
-      await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
-      await instance.modify(async (modifier) => {
-        await modifier.disableSleeps();
-        await modifier.mockStepResult({ name: 'enabled' }, true);
-        await modifier.mockStepResult({ name: `discover-${batchIndex}` }, evidence);
-        await modifier.mockStepResult(
-          { name: `extract-${batchIndex}` },
-          { evidence, failedUrls: [] },
-        );
-        await modifier.mockStepResult({ name: `generate-${batchIndex}` }, candidates);
-        await modifier.mockStepResult({ name: `review-${batchIndex}` }, reviews.slice(0, 1));
-        await modifier.mockStepResult({ name: `review-${batchIndex + 1}` }, reviews.slice(1, 2));
-        await modifier.mockStepError(
-          { name: `discover-${batchIndex + 1}` },
-          new Error('Persisted candidates must not trigger discovery'),
-        );
-        await modifier.mockStepResult({ name: `capacity-${batchIndex + 2}` }, 'paused');
-      });
-      await env.FIB_WORD_SUPPLY.create({ id, params: { day, batchLimit } });
-      await instance.waitForStatus('complete');
-      // Newly generated candidates stop at the approval gate: no review, no
-      // publish, and the run ends with outcome 'awaitingApproval'.
-      expect(await instance.getOutput()).toEqual({ status: 'awaitingApproval' });
-      expect(
-        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
-      ).toEqual({ count: 8 });
-      expect(
-        await env.DB.prepare(
-          "SELECT COUNT(*) AS count FROM fib_word_candidates WHERE status = 'pending'",
-        ).first(),
-      ).toEqual({ count: 8 });
-      expect(
-        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
-      ).toEqual({ count: 0 });
-      expect(
-        await env.DB.prepare(
-          'SELECT requests_reserved, published_count FROM fib_word_supply_months',
-        ).first(),
-      ).toEqual({ requests_reserved: batchIndex + 1, published_count: 0 });
 
-      // Human approval (the endpoint is covered by the admin tests; here the
-      // workflow only needs approved rows) unblocks the next run, which
-      // reviews the persisted overflow one candidate per pack without
-      // repeating generation or consumed batches.
-      await env.DB.prepare(
-        "UPDATE fib_word_candidates SET status = 'approved' WHERE status = 'pending'",
-      ).run();
-      const resumeId = crypto.randomUUID();
-      await using resume = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, resumeId);
-      await resume.modify(async (modifier) => {
-        await modifier.disableSleeps();
-        await modifier.mockStepResult({ name: 'enabled' }, true);
-        await modifier.mockStepResult({ name: 'review-0' }, reviews.slice(0, 1));
-        await modifier.mockStepResult({ name: 'review-1' }, reviews.slice(1, 2));
-        await modifier.mockStepError(
-          { name: 'discover-1' },
-          new Error('Persisted candidates must not trigger discovery'),
-        );
-        await modifier.mockStepResult({ name: 'capacity-2' }, 'paused');
-      });
-      await env.FIB_WORD_SUPPLY.create({
-        id: resumeId,
-        params: { day, batchLimit, runId: 'resume' },
-      });
-      await resume.waitForStatus('complete');
-      expect(await resume.getOutput()).toEqual({ status: 'paused' });
-      expect(
-        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidates').first(),
-      ).toEqual({ count: 6 });
-      expect(
-        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
-      ).toEqual({ count: 2 });
-      expect(
-        await env.DB.prepare(
-          'SELECT requests_reserved, published_count FROM fib_word_supply_months',
-        ).first(),
-      ).toEqual({ requests_reserved: batchIndex + 3, published_count: 2 });
-    },
-  );
-
-  it('re-reviews three unsourced inventory words without generation or resequencing', async () => {
+  it('stores one pack of generated words as pending submissions, then stops', async () => {
     const day = new Date().toISOString().slice(0, 10);
     const id = crypto.randomUUID();
-    const words = ['幸存者偏差', '琼浆', '觊觎', '验证余词'];
-    const candidates = words.map((word) => ({
+    const words = ['测试甲', '测试乙', '测试丙', '测试丁', '测试戊', '测试己', '测试庚', '测试辛'];
+    const evidence = [
+      {
+        query: '传统器物',
+        url: 'https://example.com/words',
+        title: '测试词源',
+        content: words.map((word) => `${word}：用于测试的准确核心含义。`).join('\n'),
+      },
+    ];
+    const candidates: FibWordEditorialCandidate[] = words.map((word, index) => ({
       word,
+      source: 'gemini',
+      category: index % 2 === 0 ? 'literary' : 'niche',
+      evidence,
       definition: {
         coreMeaning: '用于测试的准确核心含义。',
         usageNote: '用于测试的具体使用语境。',
-      },
-    }));
-    for (const candidate of candidates) {
-      await env.DB.prepare(
-        `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source,
-           status, selection_key, created_at, activated_at)
-           VALUES (?, ?, ?, ?, 'literary', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
-      )
-        .bind(
-          candidate.word,
-          candidate.word,
-          candidate.definition.coreMeaning,
-          candidate.definition.usageNote,
-        )
-        .run();
-      await env.DB.prepare(
-        "INSERT INTO fib_word_sequence (word, published_at) VALUES (?, '2026-01-01')",
-      )
-        .bind(candidate.word)
-        .run();
-    }
-    // Inventory re-review is also gated: the words only enter the review
-    // queue once a human approves them.
-    await env.DB.prepare(
-      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
-       VALUES ('test-cycle', 'running', 'gemini', 'gemini-3.5-flash-lite', '1', '2026-01-01')`,
-    ).run();
-    for (const candidate of candidates) {
-      await env.DB.prepare(
-        `INSERT INTO fib_word_candidates (id, word, core_meaning, usage_note, category, source,
-           evidence_json, generation_cycle_id, status, created_at)
-           VALUES (?, ?, ?, ?, 'literary', 'local', '[]', 'test-cycle', 'approved', '2026-01-01')`,
-      )
-        .bind(
-          `test:${candidate.word}`,
-          candidate.word,
-          candidate.definition.coreMeaning,
-          candidate.definition.usageNote,
-        )
-        .run();
-    }
-    const reviews = words.slice(0, 3).map((word) => ({
-      word,
-      decision: 'rejected',
-      reason: '常见词义或熟语已经暴露核心答案。',
-      evidenceIndex: 0,
-      evidenceQuote: `${word}：用于测试的准确核心含义。`,
-      qualityChecks: {
-        isEstablishedTerm: true,
-        isDefinitionAccurate: true,
-        isMeaningUnfamiliarToMostPlayers: false,
-        isMeaningDistinctFromLiteralReading: true,
-        hasMultiplePlausibleWrongDefinitions: true,
-        hasRevealValue: true,
       },
     }));
     await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.disableSleeps();
       await modifier.mockStepResult({ name: 'enabled' }, true);
-      for (const [index, word] of words.slice(0, 3).entries()) {
-        const sources = [
-          {
-            query: word,
-            url: `https://example.com/${index}`,
-            title: word,
-            content: '搜索摘要不作为审核证据。',
-          },
-        ];
-        await modifier.mockStepResult({ name: `verify-${index}-0` }, sources);
-        await modifier.mockStepResult(
-          { name: `extract-verification-${index}-0` },
-          {
-            evidence: sources.map((source) => ({
-              ...source,
-              content: `${word}：用于测试的准确核心含义。`,
-            })),
-            failedUrls: [],
-          },
-        );
-        await modifier.mockStepResult({ name: `review-${index}` }, reviews.slice(index, index + 1));
-      }
-      await modifier.mockStepResult({ name: 'capacity-3' }, 'paused');
+      await modifier.mockStepResult({ name: 'discover' }, evidence);
+      await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
+      await modifier.mockStepResult({ name: 'generate' }, candidates);
     });
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    const firstRunId = crypto.randomUUID();
+    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: firstRunId } });
     await instance.waitForStatus('complete');
-    expect(await instance.getOutput()).toEqual({ status: 'paused' });
+    // Newly generated words stop as pending submissions: no review, no
+    // publish, and the run ends with the stored count.
+    expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 8 });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM word_submission_items WHERE status = 'pending'",
+      ).first(),
+    ).toEqual({ count: 8 });
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
-      { count: 4 },
+      { count: 0 },
     );
     expect(
       await env.DB.prepare(
         'SELECT requests_reserved, published_count FROM fib_word_supply_months',
       ).first(),
-    ).toEqual({ requests_reserved: 3, published_count: 0 });
+    ).toEqual({ requests_reserved: 0, published_count: 0 });
+
+    // A second run generating the same words stores them again, marked
+    // duplicate: the ingestion dedup — not a second review or publish —
+    // is what keeps them out of the inventory.
+    const resumeId = crypto.randomUUID();
+    await using resume = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, resumeId);
+    await resume.modify(async (modifier) => {
+      await modifier.disableSleeps();
+      await modifier.mockStepResult({ name: 'enabled' }, true);
+      await modifier.mockStepResult({ name: 'discover' }, evidence);
+      await modifier.mockStepResult({ name: 'extract' }, { evidence, failedUrls: [] });
+      await modifier.mockStepResult({ name: 'generate' }, candidates);
+    });
+    await env.FIB_WORD_SUPPLY.create({ id: resumeId, params: { day, runId: crypto.randomUUID() } });
+    await resume.waitForStatus('complete');
+    expect(await resume.getOutput()).toEqual({ status: 'complete', stored: 8 });
     expect(
       (
         await env.DB.prepare(
-          "SELECT word FROM fib_words WHERE status = 'disabled' ORDER BY word",
+          'SELECT status, COUNT(*) AS count FROM word_submission_items GROUP BY status ORDER BY status',
         ).all()
       ).results,
-    ).toEqual(words.slice(0, 3).map((word) => ({ word })));
+    ).toEqual([
+      { status: 'duplicate', count: 8 },
+      { status: 'pending', count: 8 },
+    ]);
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
+      { count: 0 },
+    );
     expect(
-      (await env.DB.prepare('SELECT word FROM fib_word_sequence ORDER BY id').all()).results,
-    ).toEqual(words.map((word) => ({ word })));
-    expect(
-      await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all(),
-    ).toMatchObject({
-      results: [{ word: '验证余词', status: 'approved' }],
-    });
-    expect(
-      await env.DB.prepare("SELECT status FROM fib_words WHERE word = '验证余词'").first(),
-    ).toEqual({ status: 'active' });
+      await env.DB.prepare(
+        'SELECT requests_reserved, published_count FROM fib_word_supply_months',
+      ).first(),
+    ).toEqual({ requests_reserved: 0, published_count: 0 });
   });
 
   it.each(['discovery', 'extraction', 'generation'])(
-    'records empty %s without review or publication',
+    'leaves the pack reserved on empty %s without review or publication',
     async (failureStage) => {
       const day = new Date().toISOString().slice(0, 10);
       const id = crypto.randomUUID();
@@ -694,56 +576,57 @@ describe('Fib word supply workflow', () => {
         await modifier.disableSleeps();
         await modifier.mockStepResult({ name: 'enabled' }, true);
         await modifier.mockStepResult(
-          { name: 'discover-0' },
+          { name: 'discover' },
           failureStage === 'discovery' ? [] : evidence,
         );
         if (failureStage !== 'discovery') {
           await modifier.mockStepResult(
-            { name: 'extract-0' },
+            { name: 'extract' },
             failureStage === 'extraction'
               ? { evidence: [], failedUrls: ['https://example.com/words'] }
               : { evidence, failedUrls: [] },
           );
         }
-        if (failureStage === 'generation')
-          await modifier.mockStepResult({ name: 'generate-0' }, []);
-        await modifier.mockStepResult({ name: 'capacity-1' }, 'paused');
+        if (failureStage === 'generation') await modifier.mockStepResult({ name: 'generate' }, []);
       });
-      await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+      await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
       await instance.waitForStatus('complete');
+      // No publish step exists anymore: the empty pack stays reserved with
+      // no outcome, and the run completes with nothing stored.
+      expect(await instance.getOutput()).toEqual({ status: 'complete', stored: 0 });
       expect(await env.DB.prepare('SELECT status, outcome FROM fib_word_packs').first()).toEqual({
-        status: 'published',
-        outcome: 'noCandidates',
+        status: 'reserved',
+        outcome: null,
       });
       expect(
         await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first(),
       ).toEqual({ count: 0 });
       expect(
-        await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidate_reviews').first(),
+        await env.DB.prepare('SELECT COUNT(*) AS count FROM word_submission_items').first(),
       ).toEqual({ count: 0 });
       expect(fetch).not.toHaveBeenCalled();
     },
   );
 
-  it('makes a failed external call terminal without refunding the budget', async () => {
+  it('makes a failed external call terminal without refunding the provider claim', async () => {
     const day = new Date().toISOString().slice(0, 10);
     const id = crypto.randomUUID();
     await using instance = await introspectWorkflowInstance(env.FIB_WORD_SUPPLY, id);
     await instance.modify(async (modifier) => {
       await modifier.mockStepResult({ name: 'enabled' }, true);
       await modifier.mockStepError(
-        { name: 'discover-0' },
+        { name: 'discover' },
         new FibWordProviderError('quota exhausted', 'rateLimited'),
       );
     });
-    await env.FIB_WORD_SUPPLY.create({ id, params: { day } });
+    await env.FIB_WORD_SUPPLY.create({ id, params: { day, runId: crypto.randomUUID() } });
     await instance.waitForStatus('errored');
     expect(await env.DB.prepare('SELECT status FROM fib_word_packs').first()).toEqual({
       status: 'failed',
     });
     expect(
       await env.DB.prepare('SELECT requests_reserved FROM fib_word_supply_months').first(),
-    ).toEqual({ requests_reserved: 1 });
+    ).toEqual({ requests_reserved: 0 });
     expect(
       await env.DB.prepare('SELECT error_code FROM fib_word_generation_cycles').first(),
     ).toEqual({

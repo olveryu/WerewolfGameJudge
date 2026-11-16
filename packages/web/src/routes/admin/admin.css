@@ -156,10 +156,6 @@
   filter: brightness(0.92);
   border-color: var(--admin-danger);
 }
-.admin-required {
-  color: var(--admin-danger);
-  font-weight: var(--weight-semibold);
-}
 .admin-danger-text {
   color: var(--admin-danger);
 }
@@ -168,20 +164,23 @@
   flex-wrap: wrap;
   gap: var(--space-small);
 }
-/** Sticky bulk bar inside a candidate panel: stays at the panel's bottom edge, never fixed to the viewport. */
+/** Sticky bulk bar above the card stream: stays below the admin header while
+ * the stream scrolls, never fixed to the viewport. */
 .admin-bulk-bar {
   position: sticky;
-  bottom: 0;
+  top: var(--admin-workspace-header-height, 0);
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-small) var(--space-medium);
   margin-top: var(--space-medium);
+  margin-bottom: var(--space-medium);
   background: var(--admin-panel);
   border-top: 1px solid var(--admin-border);
 }
-/** Five-stage pipeline summary on the unified library page. */
+/** Four-stage pipeline summary on the unified library page. */
 .admin-flow-bar {
   display: flex;
   flex-wrap: wrap;
@@ -215,6 +214,50 @@
 }
 .admin-flow-step-hot .admin-flow-step-value {
   color: var(--admin-warning);
+}
+/** Three-cell stat strip on the unified library page. */
+.admin-library-stats {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-small);
+  background: var(--admin-panel);
+  margin: 0 0 var(--space-large);
+}
+.admin-library-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  text-align: center;
+}
+.admin-library-stats-row .admin-stat {
+  padding: var(--space-medium) var(--space-small);
+}
+.admin-library-stats-row .admin-stat-value {
+  text-align: center;
+}
+.admin-library-stats-row > * + * {
+  border-inline-start: 1px solid var(--admin-border);
+}
+.admin-library-stat-hot strong {
+  color: var(--admin-warning);
+}
+.admin-library-summary-supplementary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-small) var(--space-large);
+  border-top: 1px solid var(--admin-border);
+  padding: var(--space-small) var(--space-medium);
+  font-size: var(--font-caption);
+  color: var(--admin-secondary);
+}
+.admin-library-summary-line {
+  display: inline-flex;
+  gap: var(--space-small);
+}
+.admin-library-summary-value {
+  color: var(--admin-text);
+}
+/** Source breakdown under the stat strip: numbers right-aligned. */
+.admin-library-sources dd {
+  text-align: right;
 }
 .admin-workspace {
   min-height: 100%;
@@ -1284,18 +1327,6 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.admin-drawer.admin-overlay-workspace > header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-medium);
-}
-.admin-drawer.admin-overlay-workspace > header [data-part='title'] {
-  min-width: 0;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .admin-drawer-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -1422,23 +1453,6 @@
   justify-content: center;
   padding: var(--space-large);
 }
-.admin-drawer-positioner.admin-overlay-workspace {
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--space-medium);
-}
-.admin-drawer.admin-overlay-workspace {
-  width: min(96vw, var(--size-admin-content));
-  height: calc(100dvh - var(--space-medium) - var(--space-medium));
-  border: 1px solid var(--admin-border);
-  border-radius: var(--radius-large);
-}
-.admin-overlay-workspace .admin-submission-candidate-controls {
-  top: 0;
-}
-.admin-submission-workspace {
-  min-width: 0;
-}
 .admin-drawer.admin-overlay-sheet {
   width: min(100%, var(--size-admin-login));
   height: auto;
@@ -1476,8 +1490,7 @@
 .admin-choice[aria-pressed='true'] .admin-choice-mark {
   border: var(--space-tight) solid var(--admin-accent);
 }
-.admin-supply-mode,
-.admin-automatic-supply-row {
+.admin-supply-mode {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1487,26 +1500,11 @@
 .admin-supply-mode {
   margin: var(--space-large) 0;
 }
-.admin-supply-mode small,
-.admin-automatic-supply-row small {
+.admin-supply-mode small {
   display: block;
   margin-top: var(--space-tight);
   font-size: var(--font-caption);
   color: var(--admin-muted);
-}
-.admin-automatic-supply {
-  margin-bottom: var(--space-medium);
-  padding-bottom: var(--space-medium);
-  border-bottom: 1px solid var(--admin-border);
-}
-.admin-automatic-supply-row > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.admin-automatic-supply .admin-error {
-  font-size: var(--font-caption);
-  margin-top: var(--space-small);
-  overflow-wrap: anywhere;
 }
 .admin-console input.admin-switch {
   appearance: none;
@@ -1704,6 +1702,14 @@
     .admin-stats-grid {
       grid-template-columns: minmax(0, 1fr);
     }
+    .admin-library-stats-row {
+      grid-template-columns: minmax(0, 1fr);
+      text-align: left;
+    }
+    .admin-library-stats-row > * + * {
+      border-inline-start: 0;
+      border-top: 1px solid var(--admin-border);
+    }
     .admin-stat {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1787,23 +1793,6 @@
     width: 100%;
     border-radius: var(--radius-large) var(--radius-large) 0 0;
     animation: admin-slide-up 200ms ease-out;
-  }
-  .admin-drawer-positioner.admin-overlay-workspace {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .admin-drawer.admin-overlay-workspace {
-    width: 100%;
-    height: 88dvh;
-    max-height: 88dvh;
-    border: 1px solid var(--admin-border);
-    border-radius: var(--radius-large) var(--radius-large) 0 0;
-  }
-  .admin-drawer.admin-overlay-workspace > .admin-drawer-body {
-    padding: var(--space-medium);
-  }
-  .admin-drawer.admin-overlay-workspace > .admin-drawer-footer {
-    padding-bottom: max(var(--space-medium), env(safe-area-inset-bottom));
   }
 }
 @keyframes admin-slide-up {

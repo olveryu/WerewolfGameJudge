@@ -21,24 +21,14 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
-import {
-  automaticSupplyUpdateSchema,
-  isWordSupplyAvailable,
-  readAutomaticWordSupply,
-  writeAutomaticWordSupply,
-} from '../../platform/wordSupply/automaticSupply';
 import { users, userStats } from '../account/dbSchema';
 import { adminWordSubmissionRoutes } from '../wordSubmissions/routes';
 import { createAIUsageAnalyticsQuery, createLoadTimingAnalyticsQuery } from './analyticsQueries';
 import { effectRecoveryRoutes } from './effectRecovery';
 import {
-  approveWordCandidates,
-  approveWordCandidatesSchema,
-  dismissWordCandidates,
-  dismissWordCandidatesSchema,
   gameWordGameSchema,
   getGameWordsStats,
-  listWordCandidates,
+  listLibraryItems,
   triggerGameWordSupply,
   triggerSupplySchema,
 } from './gameWords';
@@ -475,68 +465,37 @@ adminRoutes.get('/games/words/stats', async (c) => {
   return c.json(await getGameWordsStats(c.env, parsed.data));
 });
 
-adminRoutes.get('/games/words/automatic-supply', async (c) => {
-  const parsed = gameWordGameSchema.safeParse(c.req.query('game'));
-  if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
-  c.header('Cache-Control', 'no-store');
-  return c.json({
-    game: parsed.data,
-    available: isWordSupplyAvailable(c.env, parsed.data),
-    ...(await readAutomaticWordSupply(c.env, parsed.data)),
-  });
-});
-
-adminRoutes.post(
-  '/games/words/automatic-supply',
-  jsonBody(automaticSupplyUpdateSchema),
-  async (c) => {
-    const { game, enabled } = c.req.valid('json');
-    await writeAutomaticWordSupply(c.env, game, enabled);
-    log.info('automatic word supply updated', { game, enabled });
-    c.header('Cache-Control', 'no-store');
-    return c.json({ game, enabled, available: isWordSupplyAvailable(c.env, game) });
-  },
-);
-
 adminRoutes.post('/games/words/trigger-supply', jsonBody(triggerSupplySchema), async (c) => {
-  const { game, force } = c.req.valid('json');
-  return c.json(await triggerGameWordSupply(c.env, { game, force }), 202);
+  const { game } = c.req.valid('json');
+  return c.json(await triggerGameWordSupply(c.env, { game }), 202);
 });
 
-adminRoutes.get('/games/words/candidates', async (c) => {
-  const game = gameWordGameSchema.safeParse(c.req.query('game'));
+/** Submission stream behind the unified library page, oldest first. Search
+ * matches titles or categories with LIKE. */
+adminRoutes.get('/words/:game/library-items', async (c) => {
+  const game = gameWordGameSchema.safeParse(c.req.param('game'));
   if (!game.success) throw new HTTPException(400, { message: 'INVALID_GAME' });
   const status = c.req.query('status');
   if (
     status !== undefined &&
     status !== 'pending' &&
     status !== 'approved' &&
-    status !== 'claimed' &&
-    status !== 'accepted' &&
-    status !== 'rejected'
+    status !== 'reviewing' &&
+    status !== 'passed' &&
+    status !== 'rejected' &&
+    status !== 'failed' &&
+    status !== 'published' &&
+    status !== 'dismissed' &&
+    status !== 'unpublished' &&
+    status !== 'duplicate'
   )
     throw new HTTPException(400, { message: 'INVALID_STATUS' });
   return c.json(
-    await listWordCandidates(c.env.DB, {
+    await listLibraryItems(c.env.DB, {
       game: game.data,
       status,
+      search: c.req.query('search'),
       cursor: c.req.query('cursor'),
     }),
   );
 });
-
-adminRoutes.post(
-  '/games/words/candidates/approve',
-  jsonBody(approveWordCandidatesSchema),
-  async (c) => {
-    return c.json(await approveWordCandidates(c.env.DB, c.req.valid('json')));
-  },
-);
-
-adminRoutes.post(
-  '/games/words/candidates/dismiss',
-  jsonBody(dismissWordCandidatesSchema),
-  async (c) => {
-    return c.json(await dismissWordCandidates(c.env.DB, c.req.valid('json')));
-  },
-);

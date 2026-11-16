@@ -5,11 +5,7 @@ import {
 } from '@game-judge/game-engine/product/wordSupply';
 import { z } from 'zod';
 
-import {
-  EDITORIAL_DAILY_REQUEST_LIMIT,
-  EDITORIAL_MONTHLY_REQUEST_LIMIT,
-  readModelBudgetByOperation,
-} from '../../platform/ai/editorialBudget';
+import { readModelBudgetByOperation } from '../../platform/ai/editorialBudget';
 
 /** Counters are transactionally maintained; model history is read through its time index. */
 export async function readSubmissionSettings(db: D1Database) {
@@ -61,9 +57,7 @@ export async function readSubmissionSettings(db: D1Database) {
     dailyLimit: WORD_SUBMISSION_DAILY_LIMIT,
     modelBudget: {
       dailyUsed: budget.daily ?? 0,
-      dailyLimit: EDITORIAL_DAILY_REQUEST_LIMIT,
       monthlyUsed: budget.monthly,
-      monthlyLimit: EDITORIAL_MONTHLY_REQUEST_LIMIT,
       byOperation,
     },
   };

@@ -16,7 +16,7 @@ import {
   type WordSubmissionAdapter,
 } from '../../platform/wordSupply/submissionAdapter';
 import { failSubmissionReview, failSubmissionReviewItem } from './operations';
-import { parseSubmissionObject, refreshSubmissionSearch } from './repository';
+import { parseSubmissionObject } from './repository';
 
 export interface WordSubmissionReviewParams {
   readonly actionId: string;
@@ -111,7 +111,6 @@ async function storeReviewResults(
         ),
     );
   }
-  statements.push(refreshSubmissionSearch(db, batchId));
   await db.batch(statements);
 }
 
@@ -190,7 +189,6 @@ export class WordSubmissionReviewWorkflow extends WorkflowEntrypoint<
             adapter.model,
             'review',
             Date.now(),
-            { force: true },
           );
           stage = 'model-review';
           return JSON.stringify(await adapter.review(this.env, prepared, { workflowId: actionId }));

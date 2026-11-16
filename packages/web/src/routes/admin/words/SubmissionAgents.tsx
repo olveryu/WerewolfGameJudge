@@ -1,7 +1,10 @@
 /** Vendor-neutral, individually revocable credentials with one-time secret delivery. */
+import './wordSubmissions.css';
+
 import {
   GAME_WORD_GAMES,
   type GameWordGame,
+  isGameWordGame,
   type WordSubmissionAgent,
   wordSubmissionAgentInputSchema,
   type WordSubmissionAgentUpdate,
@@ -10,6 +13,7 @@ import {
 } from '@game-judge/game-engine/product/wordSupply';
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
+import { Link, useParams } from 'react-router';
 import type { z } from 'zod';
 
 import { API_BASE_URL } from '@/config/api';
@@ -29,7 +33,7 @@ import {
   StatusBadge,
 } from '../components/Primitives';
 import { useSubmissionCommand } from './useSubmissionCommand';
-import { WORD_GAME_LABELS, WordSections } from './WordSections';
+import { WORD_GAME_LABELS } from './wordLabels';
 
 type IssuedCredential = z.output<typeof wordSubmissionIssuedCredentialSchema>;
 type AgentDialog =
@@ -40,11 +44,21 @@ type AgentDialog =
 const logger = log.extend('SubmissionCredential');
 
 /** Raw credentials live only in this mounted screen, never a query, mutation result, or storage. */
-export function SubmissionAgentsPage({ game }: { game: GameWordGame }) {
+export function SubmissionAgentsPage() {
+  const { game } = useParams();
   const query = useQuery(
     adminQueryOptions('word-submissions', { kind: 'agents' }, wordSubmissionsApi.agents),
   );
   const [dialog, setDialog] = useState<AgentDialog | null>(null);
+  if (!isGameWordGame(game))
+    return (
+      <div className="admin-content">
+        <h1>未知词库</h1>
+        <Link to="/admin/words/fibking" replace>
+          返回词库管理
+        </Link>
+      </div>
+    );
   const now = query.dataUpdatedAt;
   const selected =
     dialog?.kind === 'detail' || dialog?.kind === 'edit'
@@ -53,10 +67,14 @@ export function SubmissionAgentsPage({ game }: { game: GameWordGame }) {
   return (
     <>
       <PageHeading
-        title="词库"
+        title="Agent 授权"
         description="独立凭证授权投稿，不授予审核或发布权限。"
         query={query}
-        controls={<WordSections game={game} section="agents" />}
+        controls={
+          <Link to={`/admin/words/${game}`} replace>
+            返回统一词库
+          </Link>
+        }
         action={
           <button
             type="button"

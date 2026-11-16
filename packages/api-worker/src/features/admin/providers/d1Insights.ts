@@ -94,10 +94,8 @@ async function queryAnalytics<Row>(
 function describeQuery(query: string): string {
   const tables = [
     ['drawguess_word_packs', '你画我猜词包'],
-    ['drawguess_word_candidates', '你画我猜候选词'],
     ['drawguess_words', '你画我猜词库'],
     ['undercover_word_packs', '谁是卧底词包'],
-    ['undercover_word_candidates', '谁是卧底候选词'],
     ['undercover_word_pairs', '谁是卧底词库'],
     ['fib_word', '瞎掰王词库'],
     ['word_seen', '玩家已见记录'],

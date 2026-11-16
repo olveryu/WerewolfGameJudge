@@ -2,18 +2,12 @@
 import { env } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createRowCountingDb } from '../../../../test/rowCountingDb';
 import { cleanupFibWordAudit } from '../maintenance';
-import { updateFibWordCandidateEvidence } from '../wordCandidatePool';
-import type { FibWordEditorialCandidate } from '../wordProviders/types';
 import {
   claimFibWordProviderRequest,
   failFibWordPack,
-  getFibWordReviewCandidates,
-  publishFibWordPack,
   reserveFibWordPack,
   selectFibWordSearch,
-  storeFibWordCandidates,
 } from '../wordPublication';
 import { FIB_WORD_SEARCHES } from '../wordSearchPlan';
 import {
@@ -26,10 +20,9 @@ import { FIB_WORD_TOPIC_IDS } from '../wordTopics';
 beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare('DELETE FROM editorial_model_requests'),
-    env.DB.prepare('DELETE FROM fib_word_candidates'),
     env.DB.prepare('DELETE FROM fib_word_provider_requests'),
     env.DB.prepare('DELETE FROM fib_word_sequence'),
-    env.DB.prepare('DELETE FROM fib_word_candidate_reviews'),
+    env.DB.prepare('DELETE FROM fib_word_usages'),
     env.DB.prepare('DELETE FROM fib_words'),
     env.DB.prepare('DELETE FROM fib_word_generation_cycles'),
     env.DB.prepare('DELETE FROM fib_word_packs'),
@@ -60,11 +53,13 @@ describe('Fib word publication', () => {
       env.DB.prepare('ALTER TABLE fib_words DROP COLUMN topic'),
       env.DB.prepare('ALTER TABLE fib_word_packs DROP COLUMN topic'),
       env.DB.prepare('ALTER TABLE fib_word_packs DROP COLUMN search_selected_at'),
-      env.DB.prepare('ALTER TABLE fib_word_candidates DROP COLUMN topic'),
     ]);
     const migration = env.TEST_MIGRATIONS.find(({ name }) => name === '0069_fib_word_topics.sql');
     if (migration === undefined) throw new Error('Fib topic migration is missing');
-    await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
+    // The candidates table is dropped (0085), so the migration's candidates
+    // leg cannot re-run; re-apply only the inventory/pack legs.
+    const queries = migration.queries.filter((query) => !query.includes('fib_word_candidates'));
+    await env.DB.batch(queries.map((query) => env.DB.prepare(query)));
     expect(await env.DB.prepare('SELECT id, word, status, topic FROM fib_words').first()).toEqual({
       id: 'legacy',
       word: '旧词',
@@ -92,7 +87,7 @@ describe('Fib word publication', () => {
        VALUES ('existing', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local',
          'active', 0, '2026-01-01', '2026-01-01', 'astronomy')`,
     ).run();
-    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
+    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 'first');
     if (pack === null) throw new Error('Expected reservation');
     expect(
       await env.DB.prepare('SELECT search_index, topic FROM fib_word_packs WHERE id = ?')
@@ -119,7 +114,7 @@ describe('Fib word publication', () => {
         ),
       ),
     );
-    const nextPack = await reserveFibWordPack(env.DB, '2026-09-01', 1);
+    const nextPack = await reserveFibWordPack(env.DB, '2026-09-01', 'second');
     if (nextPack === null) throw new Error('Expected next reservation');
     const next = await selectFibWordSearch(env.DB, nextPack);
     expect(next.topic).toBe(first.topic);
@@ -156,7 +151,7 @@ describe('Fib word publication', () => {
       ),
     );
 
-    const pack = await reserveFibWordPack(env.DB, '2026-09-02', 0);
+    const pack = await reserveFibWordPack(env.DB, '2026-09-02', 'first');
     if (pack === null) throw new Error('Expected reservation');
     expect((await selectFibWordSearch(env.DB, pack)).topic).toBe(leastStockedTopic);
   });
@@ -168,7 +163,7 @@ describe('Fib word publication', () => {
        VALUES ('old', '旧词', '原本的准确释义', '原本的使用提示', 'niche', 'local',
          'active', 0, '2026-01-01', '2026-01-01')`,
     ).run();
-    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
+    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 'first');
     if (pack === null) throw new Error('Expected reservation');
     const words = await getFibWordsToClassify(env.DB);
     vi.stubGlobal(
@@ -236,10 +231,10 @@ describe('Fib word publication', () => {
     ).rejects.toThrow();
   });
 
-  it('does not assign searches to review-only reservations', async () => {
-    expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).not.toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-02', 0)).not.toBeNull();
+  it('does not assign searches at reservation time', async () => {
+    expect(await reserveFibWordPack(env.DB, '2026-09-01', 'first')).not.toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-01', 'first')).toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-09-02', 'first')).not.toBeNull();
     expect(
       (
         await env.DB.prepare(
@@ -248,8 +243,9 @@ describe('Fib word publication', () => {
       ).results,
     ).toEqual([]);
   });
+
   it('does not resend an uncertain external request after a restart', async () => {
-    const pack = await reserveFibWordPack(env.DB, '2026-12-01', 0);
+    const pack = await reserveFibWordPack(env.DB, '2026-12-01', 'first');
     if (pack === null) throw new Error('Expected pack reservation');
     await claimFibWordProviderRequest(env.DB, pack, 'discovery');
     await expect(claimFibWordProviderRequest(env.DB, pack, 'discovery')).rejects.toThrow(
@@ -258,7 +254,7 @@ describe('Fib word publication', () => {
   });
 
   it('caps search and extraction together without spending the model reservations', async () => {
-    const pack = await reserveFibWordPack(env.DB, '2026-12-01', 0);
+    const pack = await reserveFibWordPack(env.DB, '2026-12-01', 'first');
     if (pack === null) throw new Error('Expected pack reservation');
     for (const operation of [
       'discovery',
@@ -281,416 +277,59 @@ describe('Fib word publication', () => {
     ).toEqual({ count: 9 });
   });
 
-  it('publishes approved words once, including words from the former local bank', async () => {
-    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
-    if (pack === null) throw new Error('Expected pack reservation');
-    expect(await reserveFibWordPack(env.DB, '2026-09-01', 0)).toBeNull();
-    const candidates: FibWordEditorialCandidate[] = [
-      '菡萏',
-      '射覆',
-      '却扇',
-      '打尖',
-      '测试甲',
-      '测试乙',
-    ].map((word) => ({
-      word,
-      source: 'gemini',
-      category: 'literary',
-      evidence: [
-        {
-          query: word,
-          url: 'https://example.com/words',
-          title: word,
-          content: `${word}：用于测试的真实核心含义。`,
-        },
-      ],
-      definition: {
-        coreMeaning: '用于测试的真实核心含义。',
-        usageNote: '用于测试的具体使用语境。',
-      },
-    }));
-    const reviews = candidates.map(({ word }) => ({
-      word,
-      decision: 'accepted' as const,
-      reason: '通过测试审核',
-      evidenceIndex: 0,
-      evidenceQuote: `${word}：用于测试的真实核心含义。`,
-      qualityChecks: {
-        isEstablishedTerm: true,
-        isDefinitionAccurate: true,
-        isMeaningUnfamiliarToMostPlayers: true,
-        isMeaningDistinctFromLiteralReading: true,
-        hasMultiplePlausibleWrongDefinitions: true,
-        hasRevealValue: true,
-      },
-    }));
-    await publishFibWordPack(env.DB, pack, candidates, reviews, {
-      sourceUrls: ['https://example.com/words'],
-    });
-    await publishFibWordPack(env.DB, pack, candidates, reviews, {
-      sourceUrls: ['https://example.com/words'],
-    });
-    expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual([]);
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
-      { count: 6 },
-    );
-    expect(
-      await env.DB.prepare(
-        "SELECT requests_reserved, published_count FROM fib_word_supply_months WHERE id = '2026-09'",
-      ).first(),
-    ).toEqual({ requests_reserved: 1, published_count: 6 });
-
-    const sequence = await env.DB.prepare('SELECT * FROM fib_word_sequence ORDER BY id').all();
-    await env.DB.prepare("UPDATE fib_words SET topic = 'customs'").run();
-    const rejectedPack = await reserveFibWordPack(env.DB, '2026-09-02', 0);
-    const correctedPack = await reserveFibWordPack(env.DB, '2026-09-03', 0);
-    if (rejectedPack === null || correctedPack === null) throw new Error('Expected review packs');
-    await publishFibWordPack(
-      env.DB,
-      rejectedPack,
-      candidates,
-      reviews.map((review) => ({
-        ...review,
-        decision: 'rejected',
-        qualityChecks: { ...review.qualityChecks, isDefinitionAccurate: false },
-      })),
-      { sourceUrls: ['https://example.com/words'] },
-    );
-    expect(
-      await env.DB.prepare(
-        "SELECT COUNT(*) AS count FROM fib_words WHERE status = 'active'",
-      ).first(),
-    ).toEqual({ count: 0 });
-    await env.DB.prepare(
-      "UPDATE fib_word_supply_months SET published_count = 100 WHERE id = '2026-09'",
-    ).run();
-    await publishFibWordPack(
-      env.DB,
-      correctedPack,
-      candidates.map((candidate) => ({
-        ...candidate,
-        definition: { ...candidate.definition, coreMeaning: '重新核实后修正的核心含义。' },
-      })),
-      reviews,
-      { sourceUrls: ['https://example.com/corrected'] },
-    );
-    expect(
-      await env.DB.prepare(
-        "SELECT COUNT(*) AS count FROM fib_words WHERE status = 'active' AND core_meaning = '重新核实后修正的核心含义。'",
-      ).first(),
-    ).toEqual({ count: 6 });
-    expect(await getFibWordsToClassify(env.DB)).toHaveLength(6);
-    expect(
-      (await env.DB.prepare('SELECT * FROM fib_word_sequence ORDER BY id').all()).results,
-    ).toEqual(sequence.results);
-    expect(
-      await env.DB.prepare(
-        "SELECT published_count FROM fib_word_supply_months WHERE id = '2026-09'",
-      ).first(),
-    ).toEqual({ published_count: 100 });
-  });
-
-  it('refuses new work when the monthly budget is consumed or capacity is paused', async () => {
-    await env.DB.prepare(
-      "INSERT INTO fib_word_supply_months (id, requests_reserved) VALUES ('2026-10', 80)",
-    ).run();
-    expect(await reserveFibWordPack(env.DB, '2026-10-01', 0)).toBeNull();
+  it('refuses new work when capacity is paused', async () => {
     await env.DB.prepare("UPDATE database_capacity SET state = 'paused' WHERE id = 1").run();
-    expect(await reserveFibWordPack(env.DB, '2026-11-01', 0)).toBeNull();
+    expect(await reserveFibWordPack(env.DB, '2026-11-01', 'first')).toBeNull();
   });
 
-  it('persists overflow, replays claims, and releases failed claims without refunding quota', async () => {
-    const firstPack = await reserveFibWordPack(env.DB, '2026-08-01', 0);
-    const secondPack = await reserveFibWordPack(env.DB, '2026-08-01', 1);
-    if (firstPack === null || secondPack === null) throw new Error('Expected editorial packs');
-    const candidates: FibWordEditorialCandidate[] = [
-      '甲',
-      '乙',
-      '丙',
-      '丁',
-      '戊',
-      '己',
-      '庚',
-      '辛',
-    ].map((suffix, index) => ({
-      word: `测试${suffix}`,
-      definition: {
-        coreMeaning: '用于测试的真实核心含义。',
-        usageNote: '用于测试的具体使用语境。',
-      },
-      source: 'gemini',
-      category: index % 2 === 0 ? 'niche' : 'literary',
-      evidence: [
-        {
-          query: '词源',
-          url: 'https://example.com/words',
-          title: '测试词源',
-          content: `测试${suffix}：用于测试的真实核心含义。`,
-        },
-      ],
-    }));
-    await storeFibWordCandidates(env.DB, firstPack, candidates);
-    await storeFibWordCandidates(env.DB, firstPack, candidates);
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare("UPDATE fib_word_candidates SET status = 'approved'").run();
-    const firstClaim = await getFibWordReviewCandidates(env.DB, firstPack);
-    expect(firstClaim).toEqual(candidates.slice(0, 1));
-    expect(await getFibWordReviewCandidates(env.DB, firstPack)).toEqual(firstClaim);
-    expect(await getFibWordReviewCandidates(env.DB, secondPack)).toEqual(candidates.slice(1, 2));
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_words').first()).toEqual({
-      count: 0,
-    });
-    await failFibWordPack(env.DB, firstPack, 'review:rateLimited');
-    const thirdPack = await reserveFibWordPack(env.DB, '2026-08-01', 2);
-    if (thirdPack === null) throw new Error('Expected recovery pack');
-    expect(await getFibWordReviewCandidates(env.DB, thirdPack)).toEqual(firstClaim);
+  it('reserves a new pack after a failed pack without consuming any monthly counter', async () => {
+    const firstPack = await reserveFibWordPack(env.DB, '2026-08-01', 'first');
+    if (firstPack === null) throw new Error('Expected editorial pack');
+    await failFibWordPack(env.DB, firstPack, 'generation:timedOut');
+    const secondPack = await reserveFibWordPack(env.DB, '2026-08-01', 'second');
+    expect(secondPack).not.toBeNull();
+    expect(secondPack?.id).toBe('2026-08-01-second');
+    // The month row is only the foreign-key parent for pack month ids; its
+    // counters are dead — no quota is consumed by reserving or failing.
     expect(
-      await env.DB.prepare('SELECT requests_reserved FROM fib_word_supply_months').first(),
-    ).toEqual({ requests_reserved: 3 });
-  });
-
-  it('records an empty result without publishing or advancing the word sequence', async () => {
-    const pack = await reserveFibWordPack(env.DB, '2026-07-01', 0);
-    if (pack === null) throw new Error('Expected empty pack');
-    await publishFibWordPack(env.DB, pack, [], [], { sourceUrls: [] });
-    expect(await env.DB.prepare('SELECT status, outcome FROM fib_word_packs').first()).toEqual({
-      status: 'published',
-      outcome: 'noCandidates',
-    });
-    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_sequence').first()).toEqual(
-      { count: 0 },
-    );
-  });
-
-  it('retains accepted legacy-batch candidates beyond the remaining monthly publication target', async () => {
-    const pack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
-    if (pack === null) throw new Error('Expected limited publication pack');
-    await env.DB.prepare(
-      "UPDATE fib_word_supply_months SET published_count = 99 WHERE id = '2026-09'",
-    ).run();
-    const candidates: FibWordEditorialCandidate[] = ['测试甲', '测试乙'].map((word) => ({
-      word,
-      definition: {
-        coreMeaning: '用于测试的真实核心含义。',
-        usageNote: '用于测试的具体使用语境。',
-      },
-      source: 'gemini',
-      category: 'niche',
-      topic: 'plants',
-      evidence: [
-        {
-          query: word,
-          url: 'https://example.com/words',
-          title: word,
-          content: `${word}：用于测试的真实核心含义。`,
-        },
-      ],
-    }));
-    const reviews = candidates.map(({ word }) => ({
-      word,
-      decision: 'accepted' as const,
-      reason: '有资料支持且符合游戏性标准。',
-      evidenceIndex: 0,
-      evidenceQuote: `${word}：用于测试的真实核心含义。`,
-      qualityChecks: {
-        isEstablishedTerm: true,
-        isDefinitionAccurate: true,
-        isMeaningUnfamiliarToMostPlayers: true,
-        isMeaningDistinctFromLiteralReading: true,
-        hasMultiplePlausibleWrongDefinitions: true,
-        hasRevealValue: true,
-      },
-    }));
-    await storeFibWordCandidates(env.DB, pack, candidates);
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare("UPDATE fib_word_candidates SET status = 'approved'").run();
-    expect(await getFibWordReviewCandidates(env.DB, pack)).toEqual(candidates.slice(0, 1));
-    // Replay a second claim persisted before the model batch limit was reduced to one.
-    await env.DB.prepare(
-      "UPDATE fib_word_candidates SET status = 'claimed', claimed_pack_id = ?, claimed_at = ? WHERE word = '测试乙'",
-    )
-      .bind(pack.id, new Date().toISOString())
-      .run();
-    await publishFibWordPack(env.DB, pack, candidates, reviews, {
-      sourceUrls: ['https://example.com/words'],
-    });
-    expect(
-      await env.DB.prepare('SELECT published_count FROM fib_word_supply_months').first(),
-    ).toEqual({ published_count: 100 });
-    expect((await env.DB.prepare('SELECT word FROM fib_word_sequence').all()).results).toEqual([
-      { word: '测试甲' },
-    ]);
-    expect(
-      await env.DB.prepare('SELECT topic FROM fib_words WHERE word = ?').bind('测试甲').first(),
-    ).toEqual({ topic: 'plants' });
-    expect(
-      (await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all()).results,
-      // D2 gate: the unreviewed leftover returns to the approved pool, not pending.
-    ).toEqual([{ word: '测试乙', status: 'approved' }]);
-  });
-
-  it('preserves completed inventory verification after a later review failure', async () => {
-    await env.DB.prepare(
-      `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source,
-       status, selection_key, created_at, activated_at)
-       VALUES ('inventory', '测试甲', '用于测试的真实核心含义。', '用于测试的具体使用语境。',
-         'literary', 'local', 'active', 0, '2026-01-01', '2026-01-01')`,
-    ).run();
-    const firstPack = await reserveFibWordPack(env.DB, '2026-09-01', 0);
-    const secondPack = await reserveFibWordPack(env.DB, '2026-09-01', 1);
-    if (firstPack === null || secondPack === null) throw new Error('Expected verification packs');
-    // D2 gate: the inventory re-seed lands as pending; approve it before the claim.
-    expect(await getFibWordReviewCandidates(env.DB, firstPack)).toEqual([]);
-    await env.DB.prepare(
-      "UPDATE fib_word_candidates SET status = 'approved' WHERE word = '测试甲'",
-    ).run();
-    const [candidate] = await getFibWordReviewCandidates(env.DB, firstPack);
-    if (candidate === undefined) throw new Error('Expected inventory candidate');
-    expect(candidate.evidence).toEqual([]);
-    const verifiedCandidate = {
-      ...candidate,
-      evidence: [
-        {
-          query: candidate.word,
-          url: 'https://example.com/words',
-          title: candidate.word,
-          content: '测试甲：用于测试的真实核心含义。',
-        },
-      ],
-    };
-    await updateFibWordCandidateEvidence(env.DB, firstPack, verifiedCandidate);
-    await failFibWordPack(env.DB, firstPack, 'review:rateLimited');
-    expect(await getFibWordReviewCandidates(env.DB, secondPack)).toEqual([verifiedCandidate]);
-  });
-
-  it('expires pending source snapshots without deleting claimed candidates', async () => {
-    const claimedPack = await reserveFibWordPack(env.DB, '2026-06-01', 0);
-    const pendingPack = await reserveFibWordPack(env.DB, '2026-06-01', 1);
-    if (claimedPack === null || pendingPack === null) throw new Error('Expected retention packs');
-    const candidates: FibWordEditorialCandidate[] = ['测试甲', '测试乙'].map((word) => ({
-      word,
-      definition: {
-        coreMeaning: '用于测试的真实核心含义。',
-        usageNote: '用于测试的具体使用语境。',
-      },
-      source: 'gemini',
-      category: 'niche',
-      evidence: [
-        {
-          query: word,
-          url: 'https://example.com/words',
-          title: word,
-          content: `${word}：用于测试的真实核心含义。`,
-        },
-      ],
-    }));
-    await storeFibWordCandidates(env.DB, claimedPack, candidates.slice(0, 1));
-    // D2 gate: stored candidates wait for human approval before any claim.
-    await env.DB.prepare(
-      "UPDATE fib_word_candidates SET status = 'approved' WHERE word = '测试甲'",
-    ).run();
-    await getFibWordReviewCandidates(env.DB, claimedPack);
-    await storeFibWordCandidates(env.DB, pendingPack, candidates.slice(1));
-    await env.DB.prepare(
-      "UPDATE fib_word_candidates SET created_at = '2026-06-01T00:00:00.000Z'",
-    ).run();
-    await cleanupFibWordAudit(env.DB, Date.parse('2026-09-11T00:00:00.000Z'));
-    expect(
-      (await env.DB.prepare('SELECT word, status FROM fib_word_candidates').all()).results,
-    ).toEqual([{ word: '测试甲', status: 'claimed' }]);
-  });
-
-  it('keeps retention reads bounded as recent review history grows', async () => {
-    await env.DB.prepare(
-      `INSERT INTO fib_word_generation_cycles (id, status, provider, model, prompt_version, started_at)
-       VALUES ('retention-cycle', 'running', 'gemini', 'test', '11', '2026-01-01')`,
-    ).run();
-    async function addReviews(start: number, end: number) {
       await env.DB.prepare(
-        `WITH RECURSIVE n(i) AS (SELECT CAST(? AS INTEGER) UNION ALL SELECT i + 1 FROM n WHERE i < ?)
-       INSERT INTO fib_word_candidate_reviews
-         (id, word, core_meaning, usage_note, category, source, is_established_term,
-          is_definition_accurate, is_meaning_unfamiliar_to_most_players,
-          is_meaning_distinct_from_literal_reading, has_multiple_plausible_wrong_definitions,
-          has_reveal_value, decision, reason, review_version, generation_cycle_id, reviewed_at)
-       SELECT 'review-' || i, 'word-' || i, 'meaning', 'note', 'literary', 'local',
-         1, 1, 1, 1, 1, 1, 'accepted', 'reason', '11', 'retention-cycle',
-         CASE WHEN i = 0 THEN '2026-01-01' ELSE '2026-09-01' END FROM n`,
-      )
-        .bind(start, end)
-        .run();
-    }
-    await addReviews(0, 50);
-    const measured = createRowCountingDb(env.DB);
-    await cleanupFibWordAudit(measured.db, Date.parse('2026-09-11T00:00:00.000Z'));
-    expect(measured.counts.rowsRead).toBeLessThan(50);
-    await env.DB.prepare(
-      "UPDATE fib_word_candidate_reviews SET reviewed_at = '2026-01-01' WHERE id = 'review-1'",
-    ).run();
-    await addReviews(51, 500);
-    measured.reset();
-    await cleanupFibWordAudit(measured.db, Date.parse('2026-09-11T00:00:00.000Z'));
-    expect(measured.counts.rowsRead).toBeLessThan(50);
-    expect(
-      await env.DB.prepare('SELECT COUNT(*) AS count FROM fib_word_candidate_reviews').first(),
-    ).toEqual({ count: 499 });
+        'SELECT requests_reserved, published_count FROM fib_word_supply_months',
+      ).first(),
+    ).toEqual({ requests_reserved: 0, published_count: 0 });
+  });
+
+  it('expires orphaned word usages older than the retention window and keeps recent ones', async () => {
+    // The candidate tables are dropped (0085), so retention only covers
+    // usages now: an old usage from a room that no longer exists is
+    // deleted, a recent one is kept.
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO fib_word_usages (room_creation_id, round_id, word, source, used_at, participant_count)
+         VALUES ('room-old', 'round-1', '旧词', 'local', '2026-06-01T00:00:00.000Z', 3)`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO fib_word_usages (room_creation_id, round_id, word, source, used_at, participant_count)
+         VALUES ('room-new', 'round-1', '新词', 'local', '2026-09-01T00:00:00.000Z', 3)`,
+      ),
+    ]);
+    await cleanupFibWordAudit(env.DB, Date.parse('2026-09-11T00:00:00.000Z'));
+    expect((await env.DB.prepare('SELECT word FROM fib_word_usages').all()).results).toEqual([
+      { word: '新词' },
+    ]);
   });
 });
 
-describe('Fib word force reservation', () => {
-  it('bypasses the monthly budget in its own id namespace and cycles the search index', async () => {
-    // Exhaust the monthly budget: 19 days x 4 batches + 2 = 78 reserves.
-    for (let d = 1; d <= 19; d += 1) {
-      const day = `2026-09-${String(d).padStart(2, '0')}`;
-      for (let b = 0; b < 4; b += 1) {
-        expect(await reserveFibWordPack(env.DB, day, b, { batchLimit: 4 })).not.toBeNull();
-      }
-    }
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 0, { batchLimit: 4 })).not.toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 1, { batchLimit: 4 })).not.toBeNull();
-    expect(await reserveFibWordPack(env.DB, '2026-09-20', 2, { batchLimit: 4 })).toBeNull();
-
-    const pack = await reserveFibWordPack(env.DB, '2026-09-20', 2, {
-      batchLimit: 4,
-      force: true,
-      runId: 'run-1',
-    });
-    expect(pack?.id).toBe('2026-09-20-force-run-1-2');
-    const row = await env.DB.prepare('SELECT search_index FROM fib_word_packs WHERE id = ?')
-      .bind('2026-09-20-force-run-1-2')
-      .first<{ search_index: number }>();
-    expect(row?.search_index).toBeNull();
-  });
-
-  it('never collides with scheduled pack ids on the same day', async () => {
-    const scheduled = await reserveFibWordPack(env.DB, '2026-10-01', 0, { batchLimit: 4 });
-    const forced = await reserveFibWordPack(env.DB, '2026-10-01', 0, {
-      batchLimit: 4,
-      force: true,
-      runId: 'run-1',
-    });
-    expect(scheduled?.id).toBe('2026-10-01-0');
-    expect(forced?.id).toBe('2026-10-01-force-run-1-0');
-    expect(forced?.searchIndex).toBeUndefined();
-  });
-
-  it('gives repeated manual runs on the same day distinct pack ids', async () => {
-    const first = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
-      batchLimit: 4,
-      force: true,
-      runId: 'aaa',
-    });
-    const second = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
-      batchLimit: 4,
-      force: true,
-      runId: 'bbb',
-    });
-    const normal = await reserveFibWordPack(env.DB, '2026-10-02', 0, {
-      batchLimit: 4,
-      runId: 'ccc',
-    });
-    expect(first?.id).toBe('2026-10-02-force-aaa-0');
-    expect(second?.id).toBe('2026-10-02-force-bbb-0');
-    expect(normal?.id).toBe('2026-10-02-manual-ccc-0');
+describe('Fib word run-id reservation', () => {
+  it('gives each run its own pack id from the run id and refuses a replay', async () => {
+    const first = await reserveFibWordPack(env.DB, '2026-10-01', 'run-1');
+    if (first === null) throw new Error('Expected reservation');
+    expect(first.id).toBe('2026-10-01-run-1');
+    const second = await reserveFibWordPack(env.DB, '2026-10-01', 'run-2');
+    expect(second?.id).toBe('2026-10-01-run-2');
+    // The same run id replays the same pack id, which is already taken.
+    await expect(reserveFibWordPack(env.DB, '2026-10-01', 'run-1')).resolves.toBeNull();
+    // A repeated manual run on the same day gets its own id.
+    const third = await reserveFibWordPack(env.DB, '2026-10-02', 'run-1');
+    expect(third?.id).toBe('2026-10-02-run-1');
   });
 });

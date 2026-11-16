@@ -10,6 +10,10 @@ import { z } from 'zod';
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 
+export const SUPPLY_AGENT_ID = '00000000-0000-4000-8000-000000000001';
+export const SUPPLY_AGENT_NAME = '系统补词';
+export const SUPPLY_CREDENTIAL_ID = '00000000-0000-4000-8000-000000000002';
+
 const agentSelect = `SELECT a.id, a.name, a.description, a.games_json, a.status,
   a.daily_quota AS dailyQuota, a.pending_quota AS pendingQuota,
   a.pending_count AS pending, a.created_at AS createdAt,
@@ -34,7 +38,11 @@ function decodeAgent(value: Record<string, unknown>): WordSubmissionAgent {
 }
 
 /** Return metadata only; hashes and raw credentials are excluded from all reads. */
-async function readSubmissionAgent(db: D1Database, id: string): Promise<WordSubmissionAgent> {
+/** Read one agent with its current credential; used by the supply entry for the system agent. */
+export async function readSubmissionAgent(
+  db: D1Database,
+  id: string,
+): Promise<WordSubmissionAgent> {
   const row = await db
     .prepare(`${agentSelect} WHERE a.id = ? AND a.deleted_at IS NULL`)
     .bind(new Date().toISOString().slice(0, 10), id)
@@ -47,9 +55,10 @@ async function readSubmissionAgent(db: D1Database, id: string): Promise<WordSubm
 export async function listSubmissionAgents(db: D1Database): Promise<WordSubmissionAgent[]> {
   const rows = await db
     .prepare(
-      `${agentSelect} WHERE a.deleted_at IS NULL ORDER BY a.created_at DESC, a.id DESC LIMIT 100`,
+      `${agentSelect} WHERE a.deleted_at IS NULL AND a.id <> ?
+       ORDER BY a.created_at DESC, a.id DESC LIMIT 100`,
     )
-    .bind(new Date().toISOString().slice(0, 10))
+    .bind(new Date().toISOString().slice(0, 10), SUPPLY_AGENT_ID)
     .all();
   return rows.results.map(decodeAgent);
 }
@@ -121,6 +130,8 @@ export async function updateSubmissionAgent(
   id: string,
   input: WordSubmissionAgentUpdate,
 ) {
+  if (id === SUPPLY_AGENT_ID)
+    throw new HTTPException(409, { message: 'SYSTEM_SUBMISSION_AGENT_IMMUTABLE' });
   const agent = await readSubmissionAgent(db, id);
   if (agent.status === 'revoked')
     throw new HTTPException(409, { message: 'SUBMISSION_AGENT_REVOKED' });
@@ -167,6 +178,8 @@ export async function updateSubmissionAgent(
 
 /** Hide only revoked authorizations; foreign-key provenance and usage records remain intact. */
 export async function deleteSubmissionAgent(db: D1Database, id: string) {
+  if (id === SUPPLY_AGENT_ID)
+    throw new HTTPException(409, { message: 'SYSTEM_SUBMISSION_AGENT_IMMUTABLE' });
   const row = await db
     .prepare(
       `UPDATE word_submission_agents SET deleted_at = COALESCE(deleted_at, ?)
@@ -180,6 +193,8 @@ export async function deleteSubmissionAgent(db: D1Database, id: string) {
 
 /** Replacement invalidates all prior keys without replacing the principal or its quotas. */
 export async function rotateSubmissionCredential(db: D1Database, id: string, days: number) {
+  if (id === SUPPLY_AGENT_ID)
+    throw new HTTPException(409, { message: 'SYSTEM_SUBMISSION_AGENT_IMMUTABLE' });
   const agent = await readSubmissionAgent(db, id);
   if (agent.status === 'revoked')
     throw new HTTPException(409, { message: 'SUBMISSION_AGENT_REVOKED' });
@@ -205,6 +220,8 @@ export async function setSubmissionAgentStatus(
   id: string,
   status: WordSubmissionAgent['status'],
 ) {
+  if (id === SUPPLY_AGENT_ID)
+    throw new HTTPException(409, { message: 'SYSTEM_SUBMISSION_AGENT_IMMUTABLE' });
   const result = await db
     .prepare(
       `UPDATE word_submission_agents SET status = ?

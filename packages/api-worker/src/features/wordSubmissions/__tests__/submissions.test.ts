@@ -6,7 +6,6 @@ import {
   wordSubmissionAgentsSchema,
   wordSubmissionBatchSchema,
   type WordSubmissionInput,
-  wordSubmissionListSchema,
   wordSubmissionSettingsSchema,
   wordSubmissionValidationSchema,
 } from '@game-judge/game-engine/product/wordSupply';
@@ -16,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
-import { getDrawGuessWordId } from '../../../games/drawguess/wordEditorial';
+import { toPinyinInitials } from '../../../games/drawguess/wordEditorial';
 import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
@@ -30,7 +29,7 @@ import {
 } from '../credentials';
 import { storeSubmission, validateSubmission } from '../ingestion';
 import { applySubmissionAction, failSubmissionReviewItem } from '../operations';
-import { listSubmissionBatches, readSubmissionBatch } from '../repository';
+import { readSubmissionBatch } from '../repository';
 import { readSubmissionSettings } from '../settings';
 
 const candidate = {
@@ -136,8 +135,21 @@ async function endorse(batch: Awaited<ReturnType<typeof submit>>) {
 function modelReview(passed = true, words = [candidate.word]) {
   vi.stubGlobal(
     'fetch',
-    vi.fn<typeof fetch>().mockImplementation(async () =>
-      Response.json({
+    vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+      // Echo only the candidates this call actually requested: the provider
+      // rejects a response whose review count differs from the request.
+      const requestBody = z
+        .object({
+          contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
+        })
+        .parse(JSON.parse(z.string().parse(init?.body)));
+      const material = z
+        .object({ candidates: z.array(z.strictObject({ word: z.string() })) })
+        .parse(JSON.parse(z.string().parse(requestBody.contents[0]?.parts[0]?.text)));
+      const requested = material.candidates
+        .map(({ word }) => word)
+        .filter((word) => words.includes(word));
+      return Response.json({
         candidates: [
           {
             finishReason: 'STOP',
@@ -145,7 +157,7 @@ function modelReview(passed = true, words = [candidate.word]) {
               parts: [
                 {
                   text: JSON.stringify({
-                    reviews: words.map((word) => ({
+                    reviews: requested.map((word) => ({
                       word,
                       qualityChecks: { ...checks, isConcreteAndDrawable: passed },
                       reason: passed ? '外形明确，适合绘画猜词。' : '不适合本次题库。',
@@ -156,8 +168,8 @@ function modelReview(passed = true, words = [candidate.word]) {
             },
           },
         ],
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -167,7 +179,6 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM word_submission_events'),
     env.DB.prepare('DELETE FROM word_submission_actions'),
     env.DB.prepare('DELETE FROM word_submission_items'),
-    env.DB.prepare('DELETE FROM word_submission_search'),
     env.DB.prepare('DELETE FROM word_submission_batches'),
     env.DB.prepare('DELETE FROM word_submission_daily_usage'),
     env.DB.prepare('DELETE FROM word_submission_credentials'),
@@ -358,27 +369,19 @@ describe('External word submissions', () => {
 
   it('serves the empty submission workspace reads through the authenticated HTTP routes', async () => {
     const responses = await Promise.all(
-      ['settings', 'batches', 'agents'].map((path) =>
+      ['settings', 'agents'].map((path) =>
         SELF.fetch(`https://test.invalid/admin/word-submissions/${path}`, {
           headers: { 'X-Admin-Token': env.ADMIN_PASSWORD },
         }),
       ),
     );
     for (const response of responses) expect(response.status).toBe(200);
-    const [settings, batches, agents] = await Promise.all(
-      responses.map((response) => response.json()),
-    );
+    const [settings, agents] = await Promise.all(responses.map((response) => response.json()));
     expect(wordSubmissionSettingsSchema.parse(settings)).toMatchObject({
       accepting: true,
       pending: 0,
       awaitingReview: 0,
       awaitingPublication: 0,
-    });
-    expect(wordSubmissionListSchema.parse(batches)).toEqual({
-      batches: [],
-      // No game filter on this call, so no per-game totals are computed.
-      totals: {},
-      nextCursor: null,
     });
     expect(wordSubmissionAgentsSchema.parse(agents)).toEqual({ agents: [] });
   });
@@ -539,14 +542,6 @@ describe('External word submissions', () => {
         'SELECT submitted_today, pending_count FROM word_submission_limits',
       ).first(),
     ).toEqual({ submitted_today: 1, pending_count: 1 });
-    expect(
-      await env.DB.prepare(
-        `SELECT
-      (SELECT COUNT(*) FROM drawguess_word_candidates) +
-      (SELECT COUNT(*) FROM undercover_word_candidates) +
-      (SELECT COUNT(*) FROM fib_word_candidate_reviews) AS count`,
-      ).first(),
-    ).toEqual({ count: 0 });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -757,7 +752,45 @@ describe('External word submissions', () => {
     });
   });
 
-  it('reviews a 6-item intake in groups of 5 and 1, charging exactly two model requests', async () => {
+  it('rejects publishing a passed item whose word is already in the inventory', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    const id = crypto.randomUUID();
+    modelReview();
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
+    await instance.waitForStatus('complete');
+    const reviewed = await readSubmissionBatch(env.DB, batch.id);
+    expect(reviewed.items[0]?.status).toBe('passed');
+    const identity = reviewed.items[0]?.identity;
+    if (identity === undefined) throw new Error('Expected a passed item identity');
+    // The word entered the library after review (for example via another
+    // batch), so this publication must be refused instead of duplicating it.
+    await env.DB.prepare(
+      `INSERT INTO drawguess_words
+        (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
+        VALUES (?, ?, ?, ?, ?, 'active', ?, NULL)`,
+    )
+      .bind(
+        identity,
+        candidate.word,
+        toPinyinInitials(candidate.word),
+        candidate.category,
+        'easy',
+        new Date().toISOString(),
+      )
+      .run();
+    await expect(applySubmissionAction(env, batch.id, action(reviewed, 'publish'))).rejects.toThrow(
+      'SUBMISSION_SELECTION_STALE_OR_NOT_ELIGIBLE',
+    );
+    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('passed');
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
+      count: 1,
+    });
+  });
+
+  it('reviews a 6-item intake in groups of 1, charging exactly six model requests', async () => {
     const issued = await agent();
     const batch = await submit(issued.token, {
       ...payload,
@@ -809,11 +842,11 @@ describe('External word submissions', () => {
     await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
     await instance.waitForStatus('complete');
     const reviewed = await readSubmissionBatch(env.DB, batch.id);
-    expect(groupSizes).toEqual([5, 1]);
+    expect(groupSizes).toEqual([1, 1, 1, 1, 1, 1]);
     expect(reviewed.items.every((item) => item.status === 'passed')).toBe(true);
     expect(
       await env.DB.prepare('SELECT COUNT(*) AS count FROM editorial_model_requests').first(),
-    ).toEqual({ count: 2 });
+    ).toEqual({ count: 6 });
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
       count: 0,
     });
@@ -863,10 +896,9 @@ describe('External word submissions', () => {
     expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
       count: 1,
     });
-    expect((await listSubmissionBatches(env.DB, { status: 'passed' })).batches).toEqual([]);
-    expect((await listSubmissionBatches(env.DB, { status: 'published' })).batches[0]?.id).toBe(
-      batch.id,
-    );
+    expect(
+      (await readSubmissionBatch(env.DB, batch.id)).items.map((item) => item.status).sort(),
+    ).toEqual(['dismissed', 'published']);
   });
 
   it.each([
@@ -1589,6 +1621,21 @@ describe('External word submissions', () => {
     ).toHaveLength(29);
   });
 
+  it('dismisses items without a reason and records the empty reason', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    await applySubmissionAction(env, batch.id, action(batch, 'dismiss'));
+    const dismissed = await readSubmissionBatch(env.DB, batch.id);
+    expect(dismissed.items.every((item) => item.status === 'dismissed')).toBe(true);
+    expect(
+      await env.DB.prepare(
+        "SELECT reason FROM word_submission_actions WHERE batch_id = ? AND action = 'dismiss'",
+      )
+        .bind(batch.id)
+        .first<{ reason: string }>(),
+    ).toEqual({ reason: '' });
+  });
+
   it('preserves the model verdict through human override and rejects stale or unreviewed publication', async () => {
     const issued = await agent();
     const batch = await submit(issued.token);
@@ -1797,10 +1844,7 @@ describe('External word submissions', () => {
       .first<{ status: string; completed_at: string | null }>();
     expect(receipt?.status).toBe('failed');
     expect(receipt?.completed_at).toBeTypeOf('string');
-    expect((await listSubmissionBatches(env.DB, { status: 'reviewing' })).batches).toEqual([]);
-    expect((await listSubmissionBatches(env.DB, { status: 'failed' })).batches[0]?.id).toBe(
-      batch.id,
-    );
+    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('failed');
     expect(await readSubmissionSettings(env.DB)).toMatchObject({ failed: 1 });
     expect(fetch).not.toHaveBeenCalled();
     expect(await applySubmissionAction(env, batch.id, command)).toEqual({ id, status: 'failed' });
@@ -1863,9 +1907,6 @@ describe('External word submissions', () => {
         .bind(id)
         .first(),
     ).toEqual({ count: 1 });
-    expect((await listSubmissionBatches(env.DB, { status: 'failed' })).batches[0]?.id).toBe(
-      batch.id,
-    );
     expect(await readSubmissionSettings(env.DB)).toMatchObject({ failed: 1 });
     expect(fetch).not.toHaveBeenCalled();
     expect(
@@ -1912,55 +1953,14 @@ describe('External word submissions', () => {
           id, game, 'historical', 'identity-' || rowid, printf('%064x', rowid),
           '历史词语', 'animals', '{}', 'dismissed' FROM word_submission_batches`,
       ).run();
-      await env.DB.prepare(
-        `INSERT INTO word_submission_search (rowid, game, agent, search_text, statuses)
-      SELECT rowid, game, agent_id, id || ' historical', 'dismissed' FROM word_submission_batches`,
-      ).run();
       const measured = createRowCountingDb(env.DB);
       const principal = await authenticateSubmissionToken(measured.db, `Bearer ${issued.token}`);
       expect(principal.agent.id).toBe(issued.agent.id);
       expect(measured.counts.rowsRead).toBeLessThan(30);
       measured.reset();
-      expect(
-        (await listSubmissionBatches(measured.db, { game: 'drawguess', search: '不存在' })).batches,
-      ).toEqual([]);
-      // The per-game totals ride every list call: one indexed pass over the
-      // game's items plus the status grouping (~2x the game's items). The
-      // cost is linear in the game's items, never batches x items — the
-      // size-scaled bounds below pin that shape.
-      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 100);
-      const batch = await submit(issued.token);
-      measured.reset();
-      expect(
-        (await listSubmissionBatches(measured.db, { game: 'drawguess', search: '大熊' })).batches[0]
-          ?.id,
-      ).toBe(batch.id);
-      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 150);
-      measured.reset();
-      const full = await listSubmissionBatches(measured.db, {
-        game: 'drawguess',
-        agent: issued.agent.id,
-        status: 'dismissed',
-      });
-      expect(full.batches).toHaveLength(30);
-      expect(full.batches.every((entry) => entry.counts.dismissed === 1)).toBe(true);
-      expect(full.nextCursor).not.toBeNull();
-      // The per-game totals ride the same call: one indexed pass over the
-      // game's items, so dismissed counts every historical item and pending
-      // counts the one live batch submitted above.
-      expect(full.totals).toEqual({ dismissed: size, pending: 1 });
-      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 1000);
-      measured.reset();
-      const next = await listSubmissionBatches(measured.db, {
-        game: 'drawguess',
-        status: 'dismissed',
-        cursor: Number(full.nextCursor),
-      });
-      expect(next.batches).toHaveLength(30);
-      expect(
-        next.batches.some((entry) => full.batches.some((previous) => previous.id === entry.id)),
-      ).toBe(false);
-      expect(measured.counts.rowsRead).toBeLessThan(2 * size + 1000);
+      // A live submission under the historical load, before the measured
+      // validation and storage below.
+      await submit(issued.token);
       measured.reset();
       const fresh = {
         ...payload,
@@ -2045,38 +2045,4 @@ describe('External word submissions', () => {
       ).toBe(true);
     },
   );
-
-  it('flags a batch whose word already sits in the inventory', async () => {
-    const issued = await agent();
-    const inStock = await submit(issued.token);
-    const other = await submit(issued.token, {
-      schemaVersion: 1,
-      game: 'drawguess',
-      items: [
-        {
-          clientItemId: 'giraffe',
-          content: { word: '长颈鹿', category: 'animals', difficulty: 'easy', potentialIssues: [] },
-        },
-      ],
-    });
-    // The drawguess inventory check matches the submission identity (the
-    // word id) against drawguess_words.id.
-    await env.DB.prepare(
-      `INSERT INTO drawguess_words (id, word, pinyin_initials, category, difficulty, status, created_at)
-       VALUES (?, '大熊猫', 'dxm', 'animals', 'easy', 'active', '2026-01-01T00:00:00.000Z')`,
-    )
-      .bind(await getDrawGuessWordId('大熊猫'))
-      .run();
-    const measured = createRowCountingDb(env.DB);
-    const listed = await listSubmissionBatches(measured.db, {
-      game: 'drawguess',
-      agent: issued.agent.id,
-    });
-    expect(listed.batches.find((entry) => entry.id === inStock.id)?.inventoryExists).toBe(true);
-    expect(listed.batches.find((entry) => entry.id === other.id)?.inventoryExists).toBe(false);
-    // The inventory check is one UNION ALL over the page's batches, not a
-    // per-batch query: two batches, one item each, stay well under the
-    // bound even with the totals scan riding the same call.
-    expect(measured.counts.rowsRead).toBeLessThan(200);
-  });
 });

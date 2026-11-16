@@ -1,8 +1,11 @@
 /** Strict validation, agent-scoped idempotency, and atomic submission quotas. No model calls. */
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import {
+  type GameWordGame,
   WORD_SUBMISSION_DAILY_LIMIT,
   WORD_SUBMISSION_PENDING_LIMIT,
+  WORD_SUBMISSION_SCHEMA_VERSION,
+  type WordSubmissionBatch,
   type WordSubmissionInput,
   type WordSubmissionValidation,
 } from '@game-judge/game-engine/product/wordSupply';
@@ -12,8 +15,17 @@ import { ZodError } from 'zod';
 import { WORKER_WORD_SUBMISSION_ADAPTERS } from '../../games/catalog';
 import { AiOutputValidationError } from '../../platform/ai/aiError';
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
-import type { SubmissionMaterial } from '../../platform/wordSupply/submissionAdapter';
-import type { SubmissionPrincipal } from './credentials';
+import type {
+  SubmissionMaterial,
+  WordSupplySubmissionItem,
+} from '../../platform/wordSupply/submissionAdapter';
+import {
+  readSubmissionAgent,
+  type SubmissionPrincipal,
+  SUPPLY_AGENT_ID,
+  SUPPLY_AGENT_NAME,
+  SUPPLY_CREDENTIAL_ID,
+} from './credentials';
 import { readSubmissionBatch } from './repository';
 
 interface ValidatedItem extends SubmissionMaterial {
@@ -134,7 +146,9 @@ export async function findSubmissionReplay(
   return readSubmissionBatch(db, row.id, agentId);
 }
 
-/** All quota claims, batch data, and queue counters commit or roll back together. */
+/** All quota claims, batch data, and queue counters commit or roll back together.
+ * A caller may fix the batch id (supply reuses its run UUID); otherwise a
+ * fresh UUID is generated, as for external submissions. */
 export async function storeSubmission(
   db: D1Database,
   input: WordSubmissionInput,
@@ -142,17 +156,56 @@ export async function storeSubmission(
   key: string,
   requestHash: string,
   items: readonly ValidatedItem[],
+  batchId?: string,
 ) {
-  const replay = await findSubmissionReplay(db, principal.agent.id, key, requestHash);
-  if (replay !== null) return replay;
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const day = now.slice(0, 10);
-  const pending = items.filter((item) => item.duplicateOf === null).length;
-  const statements = [
-    db
+  return persistSubmission(db, input, principal, key, requestHash, items, batchId, 'external');
+}
+
+type SubmissionSource = 'external' | 'supply';
+
+function prepareSubmissionBatch(
+  db: D1Database,
+  input: WordSubmissionInput,
+  principal: SubmissionPrincipal,
+  key: string,
+  requestHash: string,
+  id: string,
+  now: string,
+  day: string,
+  pending: number,
+  source: SubmissionSource,
+): D1PreparedStatement {
+  if (source === 'supply') {
+    return db
       .prepare(
         `INSERT INTO word_submission_batches
+        (id, agent_id, game, idempotency_key, request_hash, created_at)
+        SELECT ?, a.id, ?, ?, ?, ? FROM word_submission_agents a
+        JOIN word_submission_credentials c ON c.agent_id = a.id
+        JOIN word_submission_limits limits ON limits.id = 1
+        WHERE a.id = ? AND a.status = 'active' AND c.id = ?
+          AND c.revoked_at IS NULL AND c.expires_at > ?
+          AND EXISTS (SELECT 1 FROM json_each(a.games_json) WHERE value = ?)
+          AND limits.pending_count + ? <= ?
+        ON CONFLICT (agent_id, idempotency_key) DO NOTHING`,
+      )
+      .bind(
+        id,
+        input.game,
+        key,
+        requestHash,
+        now,
+        principal.agent.id,
+        principal.credentialId,
+        now,
+        input.game,
+        pending,
+        WORD_SUBMISSION_PENDING_LIMIT,
+      );
+  }
+  return db
+    .prepare(
+      `INSERT INTO word_submission_batches
       (id, agent_id, game, idempotency_key, request_hash, created_at)
       SELECT ?, a.id, ?, ?, ?, ? FROM word_submission_agents a
       JOIN word_submission_credentials c ON c.agent_id = a.id
@@ -166,46 +219,61 @@ export async function storeSubmission(
         AND limits.pending_count + ? <= ?
         AND (CASE WHEN limits.submission_day = ? THEN limits.submitted_today ELSE 0 END) + ? <= ?
       ON CONFLICT (agent_id, idempotency_key) DO NOTHING`,
-      )
-      .bind(
-        id,
-        input.game,
-        key,
-        requestHash,
-        now,
-        day,
-        principal.agent.id,
-        principal.credentialId,
-        now,
-        input.game,
-        items.length,
-        pending,
-        pending,
-        WORD_SUBMISSION_PENDING_LIMIT,
-        day,
-        items.length,
-        WORD_SUBMISSION_DAILY_LIMIT,
-      ),
+    )
+    .bind(
+      id,
+      input.game,
+      key,
+      requestHash,
+      now,
+      day,
+      principal.agent.id,
+      principal.credentialId,
+      now,
+      input.game,
+      input.items.length,
+      pending,
+      pending,
+      WORD_SUBMISSION_PENDING_LIMIT,
+      day,
+      input.items.length,
+      WORD_SUBMISSION_DAILY_LIMIT,
+    );
+}
+
+function externalUsageStatements(
+  db: D1Database,
+  id: string,
+  day: string,
+  submitted: number,
+): D1PreparedStatement[] {
+  return [
     db
       .prepare(
         `INSERT INTO word_submission_daily_usage (agent_id, day, submitted_count)
-      SELECT agent_id, ?, ? FROM word_submission_batches WHERE id = ?
-      ON CONFLICT (agent_id, day) DO UPDATE SET submitted_count = submitted_count + excluded.submitted_count`,
+        SELECT agent_id, ?, ? FROM word_submission_batches WHERE id = ?
+        ON CONFLICT (agent_id, day) DO UPDATE SET submitted_count = submitted_count + excluded.submitted_count`,
       )
-      .bind(day, items.length, id),
+      .bind(day, submitted, id),
     db
       .prepare(
         `UPDATE word_submission_limits SET
-      submitted_today = (CASE WHEN submission_day = ? THEN submitted_today ELSE 0 END) + ?,
-      submission_day = ? WHERE id = 1 AND EXISTS (SELECT 1 FROM word_submission_batches WHERE id = ?)`,
+        submitted_today = (CASE WHEN submission_day = ? THEN submitted_today ELSE 0 END) + ?,
+        submission_day = ? WHERE id = 1 AND EXISTS (SELECT 1 FROM word_submission_batches WHERE id = ?)`,
       )
-      .bind(day, items.length, day, id),
+      .bind(day, submitted, day, id),
   ];
-  for (const item of items) {
-    statements.push(
-      db
-        .prepare(
-          `INSERT INTO word_submission_items
+}
+
+function prepareSubmissionItem(
+  db: D1Database,
+  item: ValidatedItem,
+  game: GameWordGame,
+  batchId: string,
+): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO word_submission_items
       (id, batch_id, game, client_item_id, identity, content_hash, title, category,
        material_json, status, duplicate_of)
       SELECT ?, id, game, ?, ?, ?, ?, ?, ?,
@@ -220,45 +288,74 @@ export async function storeSubmission(
           WHERE game = ? AND content_hash = ? AND status <> 'duplicate')
           THEN 'previous-submission' ELSE NULL END
       FROM word_submission_batches WHERE id = ?`,
-        )
-        .bind(
-          crypto.randomUUID(),
-          item.clientItemId,
-          item.identity,
-          item.contentHash,
-          item.title,
-          item.category,
-          JSON.stringify(item.content),
-          item.duplicateOf,
-          input.game,
-          item.identity,
-          input.game,
-          item.contentHash,
-          item.duplicateOf,
-          item.duplicateOf,
-          input.game,
-          item.identity,
-          input.game,
-          item.contentHash,
-          id,
-        ),
+    )
+    .bind(
+      crypto.randomUUID(),
+      item.clientItemId,
+      item.identity,
+      item.contentHash,
+      item.title,
+      item.category,
+      JSON.stringify(item.content),
+      item.duplicateOf,
+      game,
+      item.identity,
+      game,
+      item.contentHash,
+      item.duplicateOf,
+      item.duplicateOf,
+      game,
+      item.identity,
+      game,
+      item.contentHash,
+      batchId,
     );
-  }
-  statements.push(
-    db
-      .prepare(
-        `INSERT INTO word_submission_search (rowid, game, agent, search_text, statuses)
-    SELECT b.rowid, b.game, b.agent_id,
-      b.id || ' ' || (SELECT group_concat(title, ' ') FROM word_submission_items WHERE batch_id = b.id),
-      (SELECT group_concat(DISTINCT status) FROM word_submission_items WHERE batch_id = b.id)
-    FROM word_submission_batches b WHERE b.id = ?`,
-      )
-      .bind(id),
-  );
+}
+
+async function throwSupplySubmissionFailure(
+  db: D1Database,
+  principal: SubmissionPrincipal,
+  pending: number,
+): Promise<never> {
+  const agent = await readSubmissionAgent(db, principal.agent.id);
+  if (agent.status !== 'active' || agent.credential?.id !== principal.credentialId)
+    throw new Error('System supply agent is not active with its expected credential');
+  const limits = await db
+    .prepare('SELECT pending_count FROM word_submission_limits WHERE id = 1')
+    .first<{ pending_count: number }>();
+  if (limits === null) throw new Error('Word submission queue limits row is missing');
+  if (limits.pending_count + pending > WORD_SUBMISSION_PENDING_LIMIT)
+    throw new HTTPException(503, { message: 'WORD_SUBMISSION_REVIEW_QUEUE_FULL' });
+  throw new Error('Supply submission batch was not stored despite available queue capacity');
+}
+
+async function persistSubmission(
+  db: D1Database,
+  input: WordSubmissionInput,
+  principal: SubmissionPrincipal,
+  key: string,
+  requestHash: string,
+  items: readonly ValidatedItem[],
+  batchId: string | undefined,
+  source: 'external' | 'supply',
+) {
+  const replay = await findSubmissionReplay(db, principal.agent.id, key, requestHash);
+  if (replay !== null) return replay;
+  const id = batchId ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  const day = now.slice(0, 10);
+  const pending = items.filter((item) => item.duplicateOf === null).length;
+  const statements = [
+    prepareSubmissionBatch(db, input, principal, key, requestHash, id, now, day, pending, source),
+  ];
+  if (source === 'external')
+    statements.push(...externalUsageStatements(db, id, day, input.items.length));
+  statements.push(...items.map((item) => prepareSubmissionItem(db, item, input.game, id)));
   const result = await db.batch(statements);
   if (result[0]?.meta.changes !== 1) {
     const concurrentReplay = await findSubmissionReplay(db, principal.agent.id, key, requestHash);
     if (concurrentReplay !== null) return concurrentReplay;
+    if (source === 'supply') return throwSupplySubmissionFailure(db, principal, pending);
     const authorization = await db
       .prepare(
         `SELECT c.revoked_at, c.expires_at, a.status FROM word_submission_credentials c
@@ -286,4 +383,86 @@ export async function storeSubmission(
     throw new HTTPException(429, { message: 'SUBMISSION_QUOTA_OR_CAPACITY_EXCEEDED' });
   }
   return readSubmissionBatch(db, id, principal.agent.id);
+}
+
+/** Supply-produced words enter the submission flow directly: one batch per
+ * supply run, owned by the system agent, reviewed and published exactly like
+ * agent submissions. The candidate tables are never written. */
+
+/** The system credential is never issued to anyone, so its expiry is nominal. */
+const SUPPLY_CREDENTIAL_EXPIRES_AT = '2999-01-01T00:00:00.000Z';
+
+/** Create the system agent and its (never issued) credential on first use. */
+async function ensureSupplyAgent(db: D1Database): Promise<void> {
+  const now = new Date().toISOString();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO word_submission_agents
+      (id, name, description, games_json, status, daily_quota, pending_quota,
+       current_credential_id, created_at)
+      VALUES (?, ?, ?, ?, 'active', 1000, 1000, ?, ?)`,
+      )
+      .bind(
+        SUPPLY_AGENT_ID,
+        SUPPLY_AGENT_NAME,
+        '补词 workflow 生成的投稿',
+        JSON.stringify(['fibking', 'undercover', 'drawguess']),
+        SUPPLY_CREDENTIAL_ID,
+        now,
+      ),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO word_submission_credentials
+      (id, agent_id, token_hash, prefix, expires_at, created_at)
+      VALUES (?, ?, ?, 'supply', ?, ?)`,
+      )
+      .bind(
+        SUPPLY_CREDENTIAL_ID,
+        SUPPLY_AGENT_ID,
+        await sha256Hex(crypto.randomUUID()),
+        SUPPLY_CREDENTIAL_EXPIRES_AT,
+        now,
+      ),
+  ]);
+}
+
+/** Store generated candidates as pending submission items. An item the
+ * submission schema rejects is a generation bug: fail loudly instead of
+ * silently dropping it. Duplicates are stored as 'duplicate' by the same
+ * rules as agent submissions and do not enter review. */
+export async function storeSupplySubmissions(
+  db: D1Database,
+  game: GameWordGame,
+  batchId: string,
+  items: readonly WordSupplySubmissionItem[],
+): Promise<WordSubmissionBatch> {
+  await ensureSupplyAgent(db);
+  const agent = await readSubmissionAgent(db, SUPPLY_AGENT_ID);
+  if (agent.credential === null) throw new Error('Supply agent has no credential');
+  const principal: SubmissionPrincipal = { agent, credentialId: agent.credential.id };
+  const input: WordSubmissionInput = {
+    schemaVersion: WORD_SUBMISSION_SCHEMA_VERSION,
+    game,
+    items: items.map((item) => ({ clientItemId: item.clientItemId, content: item.content })),
+  };
+  const result = await validateSubmission(db, input, principal);
+  const invalid = result.validation.items.filter((item) => item.status === 'invalid');
+  if (invalid.length > 0)
+    throw new Error(
+      `Supply submission failed validation: ${invalid
+        .map((item) => `${item.clientItemId}: ${item.reason ?? 'invalid'}`)
+        .join('; ')}`,
+    );
+  const requestHash = await sha256Hex(canonicalJson(input));
+  return persistSubmission(
+    db,
+    input,
+    principal,
+    batchId,
+    requestHash,
+    result.items,
+    batchId,
+    'supply',
+  );
 }

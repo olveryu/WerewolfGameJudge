@@ -1,6 +1,5 @@
 /** Dependency-free, accessible admin visualizations. */
 import { useId } from 'react';
-import { Link } from 'react-router';
 
 import { showAlert } from '@/utils/alert';
 
@@ -183,36 +182,6 @@ export function AreaChart({
           ))}
         </ul>
       </details>
-    </div>
-  );
-}
-
-/** Keyboard-focusable heat cells link directly to the corresponding category detail. */
-export function HeatGrid({ items }: { items: { id: string; name: string; active: number }[] }) {
-  const max = Math.max(1, ...items.map((item) => item.active));
-  return (
-    <div className="admin-heat-grid">
-      {items.map((item) => (
-        <Link
-          key={item.id}
-          to={{ search: '?view=all', hash: `#category-${item.id}` }}
-          replace
-          data-level={
-            item.active === 0
-              ? 'empty'
-              : item.active / max > 0.66
-                ? 'high'
-                : item.active / max > 0.33
-                  ? 'medium'
-                  : 'low'
-          }
-          title={`${item.name} · ${item.active} 词`}
-          aria-label={`${item.name}，在库 ${item.active} 词，查看明细`}
-        >
-          <span>{item.name}</span>
-          <strong>{formatCompactNumber(item.active)}</strong>
-        </Link>
-      ))}
     </div>
   );
 }

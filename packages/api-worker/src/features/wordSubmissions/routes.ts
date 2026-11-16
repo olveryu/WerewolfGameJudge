@@ -7,7 +7,6 @@ import {
   wordSubmissionActionSchema,
   wordSubmissionAgentInputSchema,
   wordSubmissionAgentUpdateSchema,
-  wordSubmissionGameSchema,
   wordSubmissionInputSchema,
   wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
@@ -33,7 +32,7 @@ import {
 } from './credentials';
 import { findSubmissionReplay, storeSubmission, validateSubmission } from './ingestion';
 import { applySubmissionAction, dispatchSubmissionReview } from './operations';
-import { listSubmissionBatches, readSubmissionBatch } from './repository';
+import { readSubmissionBatch } from './repository';
 import { readSubmissionSettings } from './settings';
 
 type SubmissionHttpEnv = AppEnv & {
@@ -216,18 +215,6 @@ adminWordSubmissionRoutes.post(
       ),
     ),
 );
-adminWordSubmissionRoutes.get('/batches', async (context) => {
-  const filterSchema = z.strictObject({
-    game: z.optional(wordSubmissionGameSchema),
-    agent: z.uuid().optional(),
-    status: z.optional(wordSubmissionStatusSchema),
-    search: z.string().trim().min(1).max(96).optional(),
-    cursor: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-  });
-  const parsed = filterSchema.safeParse(context.req.query());
-  if (!parsed.success) throw new HTTPException(400, { message: 'INVALID_SUBMISSION_FILTER' });
-  return context.json(await listSubmissionBatches(context.env.DB, parsed.data));
-});
 adminWordSubmissionRoutes.get('/batches/:id', async (context) =>
   context.json(
     await readSubmissionBatch(context.env.DB, requireIdentifier(context.req.param('id'))),

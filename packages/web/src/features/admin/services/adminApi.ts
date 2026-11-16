@@ -9,14 +9,12 @@ import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type {
   AdminD1Range,
   AdminD1Sort,
-  ApproveWordCandidatesResult,
-  DismissWordCandidatesResult,
   GameWordGame,
   GameWordsStats,
   TimePreset,
   TriggerSupplyResult,
-  WordCandidateList,
-  WordCandidateListStatus,
+  WordLibraryItems,
+  WordSubmissionStatus,
 } from '@/features/admin/model/adminContracts';
 import {
   adminRewardGrantSchema,
@@ -31,7 +29,6 @@ import {
 import {
   parseAdminAIUsageResponse,
   parseAdminAnalyticsResponse,
-  parseAdminAutomaticSupplySettings,
   parseAdminCountriesResponse,
   parseAdminD1InsightsResponse,
   parseAdminD1UsageResponse,
@@ -40,11 +37,9 @@ import {
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
   parseAdminUsersResponse,
-  parseApproveWordCandidatesResponse,
-  parseDismissWordCandidatesResponse,
   parseGameWordsStatsResponse,
+  parseLibraryItemsResponse,
   parseTriggerSupplyResult,
-  parseWordCandidatesResponse,
 } from '@/features/admin/services/adminResponseCodec';
 import { type MaintenanceConfig, maintenanceSchema } from '@/features/maintenance/maintenance';
 import { composeAbortSignals, createTimeoutSignal } from '@/utils/abortSignal';
@@ -157,26 +152,6 @@ export function fetchUserCountries(signal?: AbortSignal) {
 }
 
 /** Read the per-game automatic supply policy independently of D1 inventory statistics. */
-export function fetchAutomaticSupplySettings(game: GameWordGame, signal?: AbortSignal) {
-  return adminFetch(
-    '/admin/games/words/automatic-supply',
-    parseAdminAutomaticSupplySettings,
-    { game },
-    signal,
-  );
-}
-
-/** Only future scheduled tasks are affected; manual and already-started runs are unchanged. */
-export function saveAutomaticSupplySettings(game: GameWordGame, enabled: boolean) {
-  return adminFetch(
-    '/admin/games/words/automatic-supply',
-    parseAdminAutomaticSupplySettings,
-    undefined,
-    undefined,
-    { game, enabled },
-  );
-}
-
 export function fetchUsers(params: FetchUsersParams = {}, signal?: AbortSignal) {
   return adminFetch(
     '/admin/users',
@@ -287,10 +262,7 @@ export function fetchGameWordsStats(
   return adminFetch('/admin/games/words/stats', parseGameWordsStatsResponse, { game }, signal);
 }
 
-export function triggerGameWordSupply(
-  game: GameWordGame,
-  force: boolean,
-): Promise<TriggerSupplyResult> {
+export function triggerGameWordSupply(game: GameWordGame): Promise<TriggerSupplyResult> {
   return adminFetch(
     '/admin/games/words/trigger-supply',
     parseTriggerSupplyResult,
@@ -298,60 +270,27 @@ export function triggerGameWordSupply(
     undefined,
     {
       game,
-      force,
     },
   );
 }
 
-export function fetchWordCandidates(
+export function fetchLibraryItems(
   game: GameWordGame,
-  options: { status?: WordCandidateListStatus; cursor?: string } = {},
+  options: {
+    status?: WordSubmissionStatus;
+    search?: string;
+    cursor?: string;
+  } = {},
   signal?: AbortSignal,
-): Promise<WordCandidateList> {
+): Promise<WordLibraryItems> {
   return adminFetch(
-    '/admin/games/words/candidates',
-    parseWordCandidatesResponse,
+    `/admin/words/${game}/library-items`,
+    parseLibraryItemsResponse,
     {
-      game,
       ...(options.status !== undefined ? { status: options.status } : {}),
+      ...(options.search !== undefined && options.search !== '' ? { search: options.search } : {}),
       ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
     },
     signal,
-  );
-}
-
-export function approveWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-  reason: string,
-): Promise<ApproveWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/approve',
-    parseApproveWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-      reason,
-    },
-  );
-}
-
-export function dismissWordCandidates(
-  game: GameWordGame,
-  candidateIds: string[],
-  reason: string,
-): Promise<DismissWordCandidatesResult> {
-  return adminFetch(
-    '/admin/games/words/candidates/dismiss',
-    parseDismissWordCandidatesResponse,
-    undefined,
-    undefined,
-    {
-      game,
-      candidateIds,
-      reason,
-    },
   );
 }

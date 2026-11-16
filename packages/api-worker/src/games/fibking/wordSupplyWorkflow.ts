@@ -1,17 +1,19 @@
-/** Free-tier editorial workflow: separately bounded search, generation, review, and publication. */
+/** Free-tier editorial workflow: separately bounded search, generation, and
+ * storage. Review and publication are manual — the workflow only generates
+ * one pack's candidates, stores them as pending submission items, and stops.
+ * One trigger runs one pack; there is no daily batch limit: the admin
+ * controls how often to trigger by hand. */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import { storeSupplySubmissions } from '../../features/wordSubmissions/ingestion';
 import { getAiDiagnostic, outputValidationSummarySchema } from '../../platform/ai/aiError';
-import {
-  claimEditorialModelRequest,
-  isEditorialBudgetAvailable,
-} from '../../platform/ai/editorialBudget';
+import { claimEditorialModelRequest } from '../../platform/ai/editorialBudget';
 import { createLogger } from '../../platform/observability/logger';
 import { measureDatabaseCapacity } from '../../platform/storage/capacity';
+import type { WordSupplySubmissionItem } from '../../platform/wordSupply/submissionAdapter';
 import { cleanupFibWordAudit } from './maintenance';
-import { updateFibWordCandidateEvidence } from './wordCandidatePool';
 import { createConfiguredFibWordProvider } from './wordProviders';
 import { parseFibWordEditorialCandidate } from './wordProviders/candidate';
 import { GEMINI_FIB_WORD_MODEL } from './wordProviders/gemini';
@@ -30,15 +32,9 @@ import {
 import {
   claimFibWordProviderRequest,
   failFibWordPack,
-  FIB_WORD_DAILY_BATCH_LIMIT,
-  FIB_WORD_MONTHLY_BATCH_LIMIT,
   type FibWordPack,
-  getFibWordReviewCandidates,
-  publishFibWordPack,
-  releaseFibWordCandidates,
   reserveFibWordPack,
   selectFibWordSearch,
-  storeFibWordCandidates,
 } from './wordPublication';
 import { createFibWordSearchQuery } from './wordSearchPlan';
 import {
@@ -71,10 +67,8 @@ function readGeneratedCandidates(value: unknown): FibWordEditorialCandidate[] {
 
 interface FibWordSupplyParams {
   readonly day: string;
-  readonly batchLimit?: number;
-  readonly force?: boolean;
-  /** Unique id for admin manual triggers; keeps pack ids collision-free. */
-  readonly runId?: string;
+  /** Unique id for admin manual triggers (a UUID); keeps pack ids collision-free. */
+  readonly runId: string;
 }
 
 function createRequest(
@@ -91,31 +85,47 @@ function createRequest(
   };
 }
 
+/** Map generated candidates to submission items; the submission references
+ * carry the Tavily evidence (url + a note of at most 300 chars). */
+function toSubmissionItems(
+  pack: FibWordPack,
+  candidates: readonly FibWordEditorialCandidate[],
+): readonly WordSupplySubmissionItem[] {
+  return candidates.map((candidate, index) => ({
+    clientItemId: `${pack.id}:${index}`,
+    content: {
+      word: candidate.word,
+      definition: candidate.definition,
+      category: candidate.category,
+      topic: candidate.topic ?? 'other',
+      references: candidate.evidence.map((evidence) => ({
+        url: evidence.url,
+        note: evidence.content.slice(0, 300),
+      })),
+    },
+  }));
+}
+
 /** Durable checkpoints bound each external operation; no HTTP step is automatically retried. */
 export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupplyParams> {
   async run(event: WorkflowEvent<FibWordSupplyParams>, step: WorkflowStep) {
     const day = z.iso.date().parse(event.payload.day);
-    const force = event.payload.force === true;
-    const runId = z.string().min(1).max(64).optional().parse(event.payload.runId);
-    const batchLimit = z
-      .int()
-      .min(FIB_WORD_DAILY_BATCH_LIMIT)
-      .max(FIB_WORD_MONTHLY_BATCH_LIMIT)
-      .parse(event.payload.batchLimit ?? FIB_WORD_DAILY_BATCH_LIMIT);
+    // The batch id is the run's UUID: the submission batch header schema
+    // requires a UUID, so the workflow instance id (`<game>-manual-<uuid>`)
+    // cannot serve as the batch id.
+    const runId = z.uuid().parse(event.payload.runId);
     const isEnabled = await step.do(
       'enabled',
       async () => this.env.FIB_WORD_SUPPLY_ENABLED === 'true',
     );
     if (!isEnabled) return { status: 'disabled' };
     if (day.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return { status: 'expired' };
-    if (!force && !(await step.do('budget-initial', () => isEditorialBudgetAvailable(this.env.DB))))
-      return { status: 'budget_exhausted' };
     await step.do('retention', () => cleanupFibWordAudit(this.env.DB, Date.now()));
     try {
       await step.do('classify-history', MODEL_STEP, async () => {
         const words = await getFibWordsToClassify(this.env.DB);
         if (words.length === 0) return;
-        const identity = force && runId !== undefined ? `${day}:force:${runId}` : day;
+        const identity = `${day}:${runId}`;
         await claimEditorialModelRequest(
           this.env.DB,
           `fib:history:${identity}`,
@@ -123,7 +133,6 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           GEMINI_FIB_WORD_MODEL,
           'generation',
           Date.now(),
-          { force },
         );
         const classifications = await classifyFibWords(this.env.GEMINI_API_KEY, words, {
           workflowId: identity,
@@ -138,167 +147,72 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           error: error instanceof Error ? error.message : String(error),
         });
     }
-    for (let batchIndex = 0; batchIndex < batchLimit; batchIndex += 1) {
-      if (
-        !force &&
-        !(await step.do(`budget-${batchIndex}`, () => isEditorialBudgetAvailable(this.env.DB)))
-      )
-        return { status: 'budget_exhausted' };
-      const capacity = await step.do(`capacity-${batchIndex}`, () =>
-        measureDatabaseCapacity(this.env.DB),
-      );
-      if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
-      const pack = await step.do(`reserve-${batchIndex}`, () =>
-        reserveFibWordPack(this.env.DB, day, batchIndex, { batchLimit, force, runId }),
-      );
-      if (pack === null) continue;
-      if (await this.processPack(step, pack, batchIndex, force))
-        return { status: 'awaitingApproval' };
-      await step.sleep(`batch-spacing-${batchIndex}`, '20 seconds');
-    }
-    return { status: 'complete' };
+    const capacity = await step.do('capacity', () => measureDatabaseCapacity(this.env.DB));
+    if (capacity === 'paused' || capacity === 'protected') return { status: capacity };
+    const pack = await step.do('reserve', () => reserveFibWordPack(this.env.DB, day, runId));
+    if (pack === null) return { status: 'complete', stored: 0 };
+    const stored = await this.processPack(step, pack, runId);
+    return { status: 'complete', stored };
   }
 
   /**
-   * Process one pack. Returns true when the batch stopped at the approval
-   * gate (newly stored candidates are pending; the run ends with outcome
-   * 'awaitingApproval' instead of reviewing or publishing them).
+   * Process the run's one pack: search, discover, extract, generate, and
+   * store new candidates as pending submission items, then stop. Returns
+   * the number of items stored.
    */
-  private async processPack(
-    step: WorkflowStep,
-    pack: FibWordPack,
-    batchIndex: number,
-    force: boolean,
-  ): Promise<boolean> {
-    let failureStage = 'inventoryReviewSelection';
+  private async processPack(step: WorkflowStep, pack: FibWordPack, runId: string): Promise<number> {
+    let failureStage = 'searchSelection';
     try {
-      let candidates = await step.do(`review-candidates-${batchIndex}`, () =>
-        getFibWordReviewCandidates(this.env.DB, pack),
-      );
-      if (candidates.length === 0) {
-        failureStage = 'searchSelection';
-        const search = await step.do(`select-search-${batchIndex}`, () =>
-          selectFibWordSearch(this.env.DB, pack),
+      const search = await step.do('select-search', () => selectFibWordSearch(this.env.DB, pack));
+      failureStage = 'discovery';
+      const discovery = await step.do('discover', EXTERNAL_STEP, async () => {
+        await claimFibWordProviderRequest(this.env.DB, pack, 'discovery');
+        return searchFibWordEvidence(
+          this.env.TAVILY_API_KEY,
+          createFibWordSearchQuery(search.searchIndex),
         );
-        failureStage = 'discovery';
-        const discovery = await step.do(`discover-${batchIndex}`, EXTERNAL_STEP, async () => {
-          await claimFibWordProviderRequest(this.env.DB, pack, 'discovery', { force });
-          return searchFibWordEvidence(
-            this.env.TAVILY_API_KEY,
-            createFibWordSearchQuery(search.searchIndex),
-          );
+      });
+      if (discovery.length > 0) {
+        failureStage = 'extraction';
+        const extraction = await step.do('extract', EXTERNAL_STEP, async () => {
+          await claimFibWordProviderRequest(this.env.DB, pack, 'extraction');
+          return extractFibWordEvidence(this.env.TAVILY_API_KEY, discovery);
         });
-        if (discovery.length > 0) {
-          failureStage = 'extraction';
-          const extraction = await step.do(`extract-${batchIndex}`, EXTERNAL_STEP, async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, 'extraction', { force });
-            return extractFibWordEvidence(this.env.TAVILY_API_KEY, discovery);
+        if (extraction.evidence.length > 0) {
+          failureStage = 'generation';
+          const generatedCandidates = await step.do('generate', MODEL_STEP, async () => {
+            await claimFibWordProviderRequest(this.env.DB, pack, 'generation');
+            return createConfiguredFibWordProvider(this.env).generateBatch(
+              createRequest(pack.category, extraction.evidence, search.topic),
+              { packId: pack.id },
+            );
           });
-          if (extraction.evidence.length > 0) {
-            failureStage = 'generation';
-            const generatedCandidates = await step.do(
-              `generate-${batchIndex}`,
-              MODEL_STEP,
-              async () => {
-                await claimFibWordProviderRequest(this.env.DB, pack, 'generation', { force });
-                return createConfiguredFibWordProvider(this.env).generateBatch(
-                  createRequest(pack.category, extraction.evidence, search.topic),
-                  { packId: pack.id },
-                );
-              },
-            );
-            failureStage = 'candidateStorage';
-            const parsedCandidates = readGeneratedCandidates(generatedCandidates);
-            await step.do(`store-candidates-${batchIndex}`, () =>
-              storeFibWordCandidates(this.env.DB, pack, parsedCandidates),
-            );
-            candidates = await step.do(`generated-review-candidates-${batchIndex}`, () =>
-              getFibWordReviewCandidates(this.env.DB, pack),
-            );
-            if (parsedCandidates.length > 0 && candidates.length === 0) {
-              // Newly stored candidates are pending until a human approves
-              // them: stop this batch — and the run — here, leave the pack
-              // reserved, and run no verification, review or publish for
-              // it. Approved candidates resume on a later run.
-              await step.do(`awaiting-approval-${batchIndex}`, () =>
-                releaseFibWordCandidates(this.env.DB, pack),
-              );
-              return true;
-            }
-          }
-        }
-      }
-      const verifiedCandidates: FibWordEditorialCandidate[] = [];
-      for (const [candidateIndex, candidate] of candidates.entries()) {
-        if (candidate.evidence.length > 0) {
-          verifiedCandidates.push(candidate);
-          continue;
-        }
-        failureStage = `verification-${candidateIndex}`;
-        const sources = await step.do(
-          `verify-${batchIndex}-${candidateIndex}`,
-          EXTERNAL_STEP,
-          async () => {
-            await claimFibWordProviderRequest(this.env.DB, pack, `verification-${candidateIndex}`, {
-              force,
-            });
-            return searchFibWordEvidence(
-              this.env.TAVILY_API_KEY,
-              `"${candidate.word}" 词典 释义 出处`,
-            );
-          },
-        );
-        let evidence: FibWordEvidence[] = [];
-        if (sources.length > 0) {
-          failureStage = `verification-extraction-${candidateIndex}`;
-          const extraction = await step.do(
-            `extract-verification-${batchIndex}-${candidateIndex}`,
-            EXTERNAL_STEP,
-            async () => {
-              await claimFibWordProviderRequest(
-                this.env.DB,
-                pack,
-                `verification-extraction-${candidateIndex}`,
-                { force },
-              );
-              return extractFibWordEvidence(this.env.TAVILY_API_KEY, sources);
-            },
+          failureStage = 'candidateStorage';
+          const parsedCandidates = readGeneratedCandidates(generatedCandidates);
+          const stored = await step.do(
+            'store',
+            async () =>
+              (
+                await storeSupplySubmissions(
+                  this.env.DB,
+                  'fibking',
+                  runId,
+                  toSubmissionItems(pack, parsedCandidates),
+                )
+              ).items.length,
           );
-          evidence = extraction.evidence;
+          // Newly stored items are pending submissions until a human
+          // endorses and reviews them: stop here, leave the pack reserved,
+          // and run no verification, review or publish for it. (A
+          // zero-candidate store cannot happen — generation throws
+          // allCandidatesRejected on zero valid candidates — but if it ever
+          // did, the pack stays reserved like any other gated pack.)
+          return stored;
         }
-        const verifiedCandidate = { ...candidate, evidence };
-        await step.do(`store-evidence-${batchIndex}-${candidateIndex}`, () =>
-          updateFibWordCandidateEvidence(this.env.DB, pack, verifiedCandidate),
-        );
-        verifiedCandidates.push(verifiedCandidate);
       }
-      failureStage = 'review';
-      if (verifiedCandidates.length > 0)
-        await step.sleep(`review-spacing-${batchIndex}`, '20 seconds');
-      const reviews =
-        verifiedCandidates.length === 0
-          ? []
-          : await step.do(`review-${batchIndex}`, MODEL_STEP, async () => {
-              await claimFibWordProviderRequest(this.env.DB, pack, 'review', { force });
-              return [
-                ...(await createConfiguredFibWordProvider(this.env).reviewBatch(
-                  createRequest(pack.category, []),
-                  verifiedCandidates,
-                  { packId: pack.id },
-                )),
-              ];
-            });
-      failureStage = 'publication';
-      await step.do(`publish-${batchIndex}`, () =>
-        publishFibWordPack(this.env.DB, pack, verifiedCandidates, reviews, {
-          sourceUrls: [
-            ...new Set(
-              verifiedCandidates.flatMap(({ evidence }) => evidence.map(({ url }) => url)),
-            ),
-          ],
-        }),
-      );
-      return false;
+      // No discovery or extraction produced candidates: nothing new to
+      // review. Leave the pack reserved and finish with nothing stored.
+      return 0;
     } catch (error) {
       const diagnostic = getAiDiagnostic(error);
       const failureKind =
@@ -307,7 +221,7 @@ export class FibWordSupplyWorkflow extends WorkflowEntrypoint<Env, FibWordSupply
           : diagnostic?.failureKind === 'cancelled'
             ? 'timedOut'
             : (diagnostic?.failureKind ?? getFibWordProviderFailureKind(error) ?? 'unclassified');
-      await step.do(`fail-${batchIndex}`, async () => {
+      await step.do('fail', async () => {
         await failFibWordPack(this.env.DB, pack, `${failureStage}:${failureKind}`);
         const context = {
           packId: pack.id,

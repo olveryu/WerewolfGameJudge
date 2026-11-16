@@ -1,8 +1,5 @@
 /** Human confirmation binds the selected content snapshot and retains one request id for retries. */
-import type {
-  WordSubmissionAction,
-  WordSubmissionItem,
-} from '@game-judge/game-engine/product/wordSupply';
+import type { WordSubmissionAction } from '@game-judge/game-engine/product/wordSupply';
 import { useId, useState } from 'react';
 
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
@@ -19,32 +16,43 @@ const SUBMISSION_ACTION_LABELS = {
   unendorse: '撤回批准',
   unpublish: '下架词条',
 } as const;
+/** The dialog only binds the action payload (id + content hash + revision) and the title. */
+export interface SubmissionConfirmationItem {
+  readonly id: string;
+  readonly title: string;
+  readonly contentHash: string;
+  readonly revision: number;
+}
 export interface SubmissionConfirmation {
   readonly action: WordSubmissionAction['action'];
-  readonly items: readonly WordSubmissionItem[];
+  readonly items: readonly SubmissionConfirmationItem[];
 }
 
 /** Repeated confirmation never manufactures a fresh command after an uncertain network result. */
 export function SubmissionActionDialog({
   batchId,
   confirmation,
+  multiBatch = false,
   onClose,
   onComplete,
 }: {
   batchId: string;
   confirmation: SubmissionConfirmation;
+  /** The selection spans several batches; each batch confirms separately. */
+  multiBatch?: boolean;
   onClose: () => void;
   onComplete: () => void;
 }) {
   const formId = useId();
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState<WordSubmissionAction | null>(null);
-  const [validation, setValidation] = useState('');
   const command = useSubmissionCommand(async (input: WordSubmissionAction) => {
     await wordSubmissionsApi.action(batchId, input);
     onComplete();
   });
-  const needsReason = ['dismiss', 'unpublish'].includes(confirmation.action);
+  // Dismiss and unpublish are destructive, so they keep the danger button;
+  // the reason is optional for every action.
+  const isDangerousAction = ['dismiss', 'unpublish'].includes(confirmation.action);
   const title = SUBMISSION_ACTION_LABELS[confirmation.action];
   return (
     <DetailDrawer
@@ -60,7 +68,7 @@ export function SubmissionActionDialog({
           <button
             type="submit"
             form={formId}
-            className={needsReason ? 'admin-danger-solid' : 'admin-primary'}
+            className={isDangerousAction ? 'admin-danger-solid' : 'admin-primary'}
             disabled={command.isPending}
           >
             {command.isPending
@@ -77,10 +85,6 @@ export function SubmissionActionDialog({
         className="admin-submission-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (needsReason && reason.trim().length === 0) {
-            setValidation('请填写具体原因。');
-            return;
-          }
           const input = request ?? {
             id: crypto.randomUUID(),
             action: confirmation.action,
@@ -91,7 +95,6 @@ export function SubmissionActionDialog({
               revision: item.revision,
             })),
           };
-          setValidation('');
           setRequest(input);
           command.mutate(input);
         }}
@@ -111,19 +114,20 @@ export function SubmissionActionDialog({
                       ? '停止抽取，不删除词条、稳定编号、来源和账号已见历史。'
                       : '关闭这些候选，不会修改任何线上词语。'}
         </p>
+        {multiBatch && (
+          <p className="admin-submission-note">
+            所选条目分属多个批次，将按批次分别确认；本次确认只针对当前批次的词条。
+          </p>
+        )}
         <ul>
           {confirmation.items.map((item) => (
             <li key={item.id}>{item.title}</li>
           ))}
         </ul>
-        {needsReason && (
+        {isDangerousAction && (
           <label>
             操作原因{' '}
-            <span className="admin-required" aria-hidden="true">
-              *必填
-            </span>
             <textarea
-              required
               maxLength={1000}
               rows={3}
               value={reason}
@@ -132,15 +136,10 @@ export function SubmissionActionDialog({
             />
           </label>
         )}
-        {validation && (
-          <p role="alert" className="admin-error-box">
-            {validation}
-          </p>
-        )}
         {command.error !== null && (
           <p role="alert" className="admin-error-box">
             操作未确认：{command.error.message}
-            。可以重试同一请求；如选择已过期，请关闭并刷新批次后重新选择。
+            。可以重试同一请求；如选择已过期，请关闭并刷新页面后重新选择。
           </p>
         )}
         {request !== null && <p className="admin-submission-note">请求标识：{request.id}</p>}

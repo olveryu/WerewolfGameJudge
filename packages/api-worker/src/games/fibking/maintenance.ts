@@ -1,24 +1,11 @@
-/** Bounded Fib editorial retention; word order and seen records never expire. */
+/** Bounded Fib usage retention; word order and seen records never expire. */
 const RETENTION_DAYS = 90;
 const DELETE_BATCH_LIMIT = 100;
 
-/** Remove at most 300 obsolete rows per run; claimed candidates and active room usage survive. */
+/** Remove at most 100 obsolete usage rows per run; the candidate tables are gone (0085), so only usage retention remains. */
 export async function cleanupFibWordAudit(db: D1Database, nowMs: number): Promise<void> {
   const boundary = new Date(nowMs - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   await db.batch([
-    db
-      .prepare(
-        `DELETE FROM fib_word_candidates WHERE id IN (
-      SELECT id FROM fib_word_candidates WHERE status = 'pending' AND created_at < ?
-      ORDER BY created_at LIMIT ?)`,
-      )
-      .bind(boundary, DELETE_BATCH_LIMIT),
-    db
-      .prepare(
-        `DELETE FROM fib_word_candidate_reviews WHERE id IN (
-      SELECT id FROM fib_word_candidate_reviews WHERE reviewed_at < ? ORDER BY reviewed_at LIMIT ?)`,
-      )
-      .bind(boundary, DELETE_BATCH_LIMIT),
     db
       .prepare(
         `DELETE FROM fib_word_usages WHERE rowid IN (

@@ -23,6 +23,7 @@ export const wordSubmissionStatusSchema = z.enum([
   'unpublished',
   'duplicate',
 ]);
+export type WordSubmissionStatus = z.output<typeof wordSubmissionStatusSchema>;
 export const wordSubmissionInputSchema = z.strictObject({
   schemaVersion: z.literal(WORD_SUBMISSION_SCHEMA_VERSION),
   game: wordSubmissionGameSchema,
@@ -161,18 +162,6 @@ export const wordSubmissionAuditSchema = z.strictObject({
   reason: z.string(),
   createdAt: z.iso.datetime(),
 });
-export const wordSubmissionListSchema = z.strictObject({
-  batches: z.array(
-    z.extend(wordSubmissionBatchHeaderSchema, {
-      counts: z.partialRecord(wordSubmissionStatusSchema, z.int().check(z.nonnegative())),
-      /** Any item in the batch already exists in the game's inventory. */
-      inventoryExists: z.boolean(),
-    }),
-  ),
-  /** Per-game item totals by status, across all batches (ignores search/cursor). */
-  totals: z.partialRecord(wordSubmissionStatusSchema, z.int().check(z.nonnegative())),
-  nextCursor: z.nullable(z.string()),
-});
 export const wordSubmissionAgentsSchema = z.strictObject({
   agents: z.array(wordSubmissionAgentSchema),
 });
@@ -189,9 +178,7 @@ export const wordSubmissionSettingsSchema = z.strictObject({
   dailyLimit: z.int().check(z.positive()),
   modelBudget: z.strictObject({
     dailyUsed: z.int().check(z.nonnegative()),
-    dailyLimit: z.int().check(z.positive()),
     monthlyUsed: z.int().check(z.nonnegative()),
-    monthlyLimit: z.int().check(z.positive()),
     byOperation: z.strictObject({
       generation: z.strictObject({
         dailyUsed: z.int().check(z.nonnegative()),

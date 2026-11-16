@@ -10,7 +10,8 @@ import { z } from 'zod';
 import { type AiContext, AiOutputValidationError } from '../../platform/ai/aiError';
 import { parseGeneratedCandidateBatch } from '../../platform/wordSupply/generatedCandidates';
 
-export const DRAWGUESS_WORD_BATCH_LIMIT = 5;
+// 每次模型调用只生成一个：一次一个、精益求精（用户 2026-11-15 定）。
+export const DRAWGUESS_WORD_BATCH_LIMIT = 1;
 export const DRAWGUESS_WORD_PROMPT_VERSION = 'drawguess-generation-v3';
 export const DRAWGUESS_WORD_REVIEW_VERSION = 'drawguess-review-v3';
 // Existing workflow checkpoints and published packs can contain up to 30 items.

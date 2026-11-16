@@ -1,7 +1,8 @@
-/** The approved word workspace uses the existing segmented navigation and choice sheets. */
-import type { GameWordGame, WordSubmissionItem } from '@game-judge/game-engine/product/wordSupply';
+/** Shared word-workspace vocabulary: game/status labels, choice sheets, and
+ * submission action eligibility. The old section navigation lived here too;
+ * it was deleted with the section split (unified page only). */
+import type { WordSubmissionItem } from '@game-judge/game-engine/product/wordSupply';
 import { useState } from 'react';
-import { Link } from 'react-router';
 
 import IconChevronDown from '~icons/ion/chevron-down';
 
@@ -26,37 +27,9 @@ export const SUBMISSION_STATUS_LABELS = {
   duplicate: '重复内容',
 } as const;
 
-/** Supply-queue statuses (candidate rows, not submission items). */
-export const CANDIDATE_STATUS_LABELS = {
-  pending: '待批准',
-  approved: '已批准',
-  claimed: '已认领',
-  accepted: '已通过',
-  rejected: '未通过',
-} as const;
-
-/** Internal word navigation replaces the workspace entry so the header exits to Home/Room. */
-export function WordSections({ game, section }: { game: GameWordGame; section: string }) {
-  return (
-    <nav className="admin-segmented admin-submission-sections" aria-label="词库工作区">
-      {[
-        ['inventory', '库存与供给'],
-        ['submissions', '外部投稿'],
-        ['library', '统一词库'],
-        ['agents', 'Agent 授权'],
-      ].map(([value, label]) => (
-        <Link
-          key={value}
-          to={`/admin/words/${game}${value === 'inventory' ? '' : `?section=${value}`}`}
-          replace
-          aria-current={section === value ? 'page' : undefined}
-        >
-          {label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
+/** The system agent that owns supply-produced submissions; must match the
+ * worker's SUPPLY_AGENT_NAME (ingestion.ts). Supply rows carry this name. */
+export const SUPPLY_AGENT_NAME = '系统补词';
 
 /** Match CountryFilter: a labeled trigger opens an accessible choice sheet, never a native select. */
 export function WordChoiceFilter({
@@ -130,21 +103,21 @@ export function SubmissionStatus({ status }: { status: WordSubmissionItem['statu
 }
 
 /** Only unresolved, unlocked candidates participate in selection. */
-export function isSelectableSubmission(item: WordSubmissionItem) {
+export function isSelectableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'approved', 'passed', 'failed', 'rejected'].includes(item.status);
 }
 
 /** Human decisions do not depend on a successful provider call or model verdict. */
-export function isApprovableSubmission(item: WordSubmissionItem) {
+export function isApprovableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }
 
 /** Endorsement only sends an item to model review; it never approves publication. */
-export function isEndorsableSubmission(item: WordSubmissionItem) {
+export function isEndorsableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'failed', 'rejected'].includes(item.status);
 }
 
 /** Withdrawing an endorsement only returns an approved item to pending; review never started. */
-export function isUnendorsableSubmission(item: WordSubmissionItem) {
+export function isUnendorsableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return item.status === 'approved';
 }

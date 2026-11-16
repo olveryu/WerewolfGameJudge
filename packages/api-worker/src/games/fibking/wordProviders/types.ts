@@ -16,10 +16,8 @@ export const FIB_WORD_REVIEW_BATCH_LIMIT = 1;
 // Durable checkpoints and completed packs retain their original batch boundaries.
 export const FIB_WORD_STORED_GENERATION_BATCH_LIMIT = 12;
 export const FIB_WORD_STORED_REVIEW_BATCH_LIMIT = 6;
-export const FIB_WORD_REVIEW_DECISIONS = ['accepted', 'rejected'] as const;
-
 export type FibWordCategory = (typeof FIB_WORD_CATEGORIES)[number];
-export type FibWordReviewDecision = (typeof FIB_WORD_REVIEW_DECISIONS)[number];
+export type FibWordReviewDecision = 'accepted' | 'rejected';
 
 export interface FibWordRequest {
   readonly category: FibWordCategory;

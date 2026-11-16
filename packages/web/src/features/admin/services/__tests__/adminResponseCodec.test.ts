@@ -11,6 +11,7 @@ import {
   parseAdminStatsResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
+  parseLibraryItemsResponse,
   parseTriggerSupplyResult,
 } from '@/features/admin/services/adminResponseCodec';
 
@@ -285,20 +286,11 @@ describe('adminResponseCodec', () => {
       ],
       modelBudget: {
         dailyUsed: 1,
-        dailyLimit: 8,
         monthlyUsed: 2,
-        monthlyLimit: 120,
         byOperation: {
           generation: { dailyUsed: 1, monthlyUsed: 2 },
           review: { dailyUsed: 0, monthlyUsed: 0 },
         },
-      },
-      monthlySupply: {
-        month: '2026-09',
-        reserved: 10,
-        published: 8,
-        batchLimit: 60,
-        wordTarget: 500,
       },
       tavilyRequestsUsed: 128,
       tavilyMonthlyQuota: 1000,
@@ -323,15 +315,12 @@ describe('adminResponseCodec', () => {
         categories: [],
         modelBudget: {
           dailyUsed: 0,
-          dailyLimit: 8,
           monthlyUsed: 0,
-          monthlyLimit: 120,
           byOperation: {
             generation: { dailyUsed: 0, monthlyUsed: 0 },
             review: { dailyUsed: 0, monthlyUsed: 0 },
           },
         },
-        monthlySupply: null,
         tavilyRequestsUsed: null,
         tavilyMonthlyQuota: null,
         reviewDecisions: [],
@@ -361,15 +350,12 @@ describe('adminResponseCodec', () => {
       ],
       modelBudget: {
         dailyUsed: 0,
-        dailyLimit: 8,
         monthlyUsed: 0,
-        monthlyLimit: 120,
         byOperation: {
           generation: { dailyUsed: 0, monthlyUsed: 0 },
           review: { dailyUsed: 0, monthlyUsed: 0 },
         },
       },
-      monthlySupply: null,
       tavilyRequestsUsed: null,
       tavilyMonthlyQuota: null,
       reviewDecisions: [],
@@ -378,13 +364,79 @@ describe('adminResponseCodec', () => {
       supplyEnabled: true,
     });
     expect(decoded.game).toBe(game);
-    const trigger = { game, force: false, workflowId: `${game}-manual-1` };
+    const trigger = { game, workflowId: `${game}-manual-1` };
     expect(parseTriggerSupplyResult(trigger)).toEqual(trigger);
   });
 
   it('rejects unsupported word-supply games', () => {
+    expect(() => parseTriggerSupplyResult({ game: 'werewolf', workflowId: 'run' })).toThrow(
+      'unsupported game',
+    );
+  });
+
+  it('decodes library items with supply and agent rows', () => {
+    const decoded = parseLibraryItemsResponse({
+      game: 'fibking',
+      items: [
+        {
+          id: 'fib-1',
+          batchId: 'batch-0',
+          agentName: '系统补词',
+          game: 'fibking',
+          title: '甲',
+          category: '法律制度',
+          definition: '甲含义。',
+          createdAt: '2026-01-01T00:00:00Z',
+          status: 'pending',
+          duplicateOf: null,
+          contentHash: 'def',
+          revision: 0,
+        },
+        {
+          id: 'item-1',
+          batchId: 'batch-1',
+          agentName: 'Muse',
+          game: 'fibking',
+          title: '乙',
+          category: '法律制度',
+          definition: '已核实的释义。',
+          createdAt: '2026-01-02T00:00:00Z',
+          status: 'published',
+          duplicateOf: 'inventory:已发布词',
+          contentHash: 'abc',
+          revision: 1,
+        },
+      ],
+      totals: {
+        submissions: { published: 1, failed: 2 },
+      },
+      nextCursor: '2026-01-02T00:00:00Z|item-1',
+    });
+    expect(decoded.game).toBe('fibking');
+    expect(decoded.items).toHaveLength(2);
+    expect(decoded.items[0]?.agentName).toBe('系统补词');
+    expect(decoded.items[1]?.agentName).toBe('Muse');
+    expect(decoded.items[1]?.duplicateOf).toBe('inventory:已发布词');
+    expect(decoded.totals.submissions.failed).toBe(2);
+    expect(decoded.nextCursor).toBe('2026-01-02T00:00:00Z|item-1');
+    const base = {
+      game: 'fibking',
+      items: [],
+      totals: { submissions: {} },
+      nextCursor: null,
+    };
     expect(() =>
-      parseTriggerSupplyResult({ game: 'werewolf', force: false, workflowId: 'run' }),
-    ).toThrow('unsupported game');
+      parseLibraryItemsResponse({
+        ...base,
+        items: [{ ...decoded.items[0], status: 'nope' }],
+      }),
+    ).toThrow('unsupported status');
+    expect(() =>
+      parseLibraryItemsResponse({
+        ...base,
+        totals: { submissions: { nope: 1 } },
+      }),
+    ).toThrow('unsupported status');
+    expect(() => parseLibraryItemsResponse({ ...base, extra: true })).toThrow('unsupported fields');
   });
 });

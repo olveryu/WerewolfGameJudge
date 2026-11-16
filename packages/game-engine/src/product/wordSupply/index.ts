@@ -1,6 +1,7 @@
 /** Shared word-supply admin contracts; no storage, workflow, or UI dependencies. */
 
 import type { GameWordGame } from './games';
+import type { WordSubmissionStatus } from './submissions';
 
 export * from './games';
 export * from './submissions';
@@ -20,24 +21,16 @@ export interface GameWordsStats {
     coolingDown: boolean;
     menuEligible: boolean | null;
   }>;
+  /** Model-call usage counts; there is no ceiling — generation and review
+   * are both triggered manually by an administrator. */
   modelBudget: {
     dailyUsed: number;
-    dailyLimit: number;
     monthlyUsed: number;
-    monthlyLimit: number;
     byOperation: {
       generation: { dailyUsed: number; monthlyUsed: number };
       review: { dailyUsed: number; monthlyUsed: number };
     };
   };
-  /** Null for games without a monthly budget. */
-  monthlySupply: {
-    month: string;
-    reserved: number;
-    published: number;
-    batchLimit: number;
-    wordTarget: number;
-  } | null;
   /** This month's Tavily usage, an upper bound on credits; null when unused. */
   tavilyRequestsUsed: number | null;
   /** Tavily free-plan monthly credit quota; null when unused. */
@@ -58,44 +51,43 @@ export interface GameWordsStats {
 /** Accepted manual workflow trigger response. */
 export interface TriggerSupplyResult {
   game: GameWordGame;
-  force: boolean;
   workflowId: string;
 }
 
-/** Candidate states the admin list can filter by. Fib candidates hold no
- * terminal review state (publish deletes the row); undercover/drawguess
- * keep accepted/rejected rows. */
-export type WordCandidateListStatus = 'pending' | 'approved' | 'claimed' | 'accepted' | 'rejected';
-
-/** A supply candidate awaiting human approval (or already approved). */
-export interface WordCandidateListItem {
+/** One row of the submission stream: a supply-produced or agent-submitted
+ * item awaiting review. The card stream shows no inventory rows; inventory
+ * appears as numbers only. */
+export interface WordLibraryItem {
+  /** Submission item id. */
   id: string;
+  /** Submission batch id. */
+  batchId: string;
+  /** Agent who submitted the item; '系统补词' for supply-produced items. */
+  agentName: string;
   game: GameWordGame;
   title: string;
   category: string;
-  /** Fibking evidence links; null for games without per-candidate evidence. */
-  evidenceCount: number | null;
+  /** One-line definition: fib coreMeaning, undercover common traits/differences;
+   * null when the material carries none (drawguess has no definition text). */
+  definition: string | null;
   createdAt: string;
-  status: WordCandidateListStatus;
+  /** Submission item status. */
+  status: WordSubmissionStatus;
+  /** Submission duplicate pointer (inventory:<identity> or an earlier item id);
+   * null for non-duplicates. */
+  duplicateOf: string | null;
+  /** Submission action payload fields. */
+  contentHash: string;
+  revision: number;
 }
 
-export interface WordCandidateList {
+export interface WordLibraryItems {
   game: GameWordGame;
-  candidates: WordCandidateListItem[];
+  items: WordLibraryItem[];
+  /** Per-status item totals, across all rows (ignores search/cursor). */
+  totals: {
+    submissions: Partial<Record<WordSubmissionStatus, number>>;
+  };
   /** Keyset cursor over (created_at, id); null when the list is exhausted. */
   nextCursor: string | null;
-}
-
-export interface ApproveWordCandidatesResult {
-  game: GameWordGame;
-  approvedIds: string[];
-  /** Requested ids that were already approved, unknown, or not approvable. */
-  skippedIds: string[];
-}
-
-export interface DismissWordCandidatesResult {
-  game: GameWordGame;
-  dismissedIds: string[];
-  /** Requested ids that were not pending, unknown, or already dismissed. */
-  skippedIds: string[];
 }
