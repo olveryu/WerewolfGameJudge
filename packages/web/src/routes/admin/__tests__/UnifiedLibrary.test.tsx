@@ -363,7 +363,11 @@ describe('unified library', () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    const choices = screen.getByRole('dialog', { name: '选择状态' });
+    expect(within(choices).getByRole('button', { name: '全部状态（6）' })).toBeVisible();
+    expect(within(choices).getByRole('button', { name: '待启动审核（2）' })).toBeVisible();
+    expect(within(choices).getByRole('button', { name: '审核中（0）' })).toBeVisible();
+    await user.click(within(choices).getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -371,6 +375,27 @@ describe('unified library', () => {
         expect.any(AbortSignal),
       ),
     );
+  });
+
+  it('keeps the previous stream and summary while filters load, but makes stale rows inert', async () => {
+    let finishLoading: ((data: WordLibraryItems) => void) | undefined;
+    const filtered = new Promise<WordLibraryItems>((resolve) => {
+      finishLoading = resolve;
+    });
+    vi.mocked(fetchLibraryItems).mockImplementation(async (_game, parameters) =>
+      parameters?.status === 'approved' ? filtered : libraryData,
+    );
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
+    expect(await screen.findByText('正在更新筛选结果，暂时显示上次结果…')).toBeVisible();
+    expect(screen.getByText('大熊猫').closest('[inert]')).not.toBeNull();
+    expect(screen.getByRole('list', { name: '词库流程' })).toBeVisible();
+    finishLoading?.({ ...libraryData, items: [approvedItem] });
+    await waitFor(() => expect(screen.queryByText('大熊猫')).not.toBeInTheDocument());
+    expect(screen.getByText('月季').closest('[inert]')).toBeNull();
+    expect(screen.queryByText('正在更新筛选结果，暂时显示上次结果…')).not.toBeInTheDocument();
   });
 
   it('searches the submission stream by word', async () => {
@@ -414,7 +439,7 @@ describe('unified library', () => {
     await screen.findByText('长颈鹿');
     expect(screen.getByText('第 2 页')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -434,7 +459,7 @@ describe('unified library', () => {
     await user.click(screen.getByRole('checkbox', { name: '选择大熊猫' }));
     expect(screen.getByText('已选 1 / 当前可选 3')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',

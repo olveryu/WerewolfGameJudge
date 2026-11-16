@@ -110,14 +110,20 @@ export function AreaChart({
   points,
   label = '请求趋势',
   unit = '次',
+  timeZone,
   onSelectPoint,
 }: {
   points: { timestamp: string; count: number }[];
   label?: string;
   unit?: string;
+  timeZone?: string;
   onSelectPoint?: (timestamp: string) => void;
 }) {
   const id = useId();
+  function formatTimestamp(timestamp: string) {
+    const formatted = new Date(timestamp).toLocaleString('zh-CN', { timeZone });
+    return timeZone === 'UTC' ? `${formatted} UTC` : formatted;
+  }
   if (points.length === 0) return <p className="admin-empty">所选范围暂无趋势记录</p>;
   const max = Math.max(1, ...points.map((point) => point.count));
   const coordinates = points.map((point, index) => ({
@@ -159,8 +165,8 @@ export function AreaChart({
         )}
       </svg>
       <div className="admin-chart-labels">
-        <span>{new Date(points[0]?.timestamp ?? '').toLocaleString('zh-CN')}</span>
-        <span>{new Date(points.at(-1)?.timestamp ?? '').toLocaleString('zh-CN')}</span>
+        <span>{formatTimestamp(points[0]?.timestamp ?? '')}</span>
+        <span>{formatTimestamp(points.at(-1)?.timestamp ?? '')}</span>
       </div>
       <details>
         <summary>查看趋势数据</summary>
@@ -169,13 +175,12 @@ export function AreaChart({
             <li key={point.timestamp}>
               {onSelectPoint === undefined ? (
                 <>
-                  {new Date(point.timestamp).toLocaleString('zh-CN')} · {formatNumber(point.count)}{' '}
-                  {unit}
+                  {formatTimestamp(point.timestamp)} · {formatNumber(point.count)} {unit}
                 </>
               ) : (
                 <button type="button" onClick={() => onSelectPoint(point.timestamp)}>
-                  {new Date(point.timestamp).toLocaleString('zh-CN')} · {formatNumber(point.count)}{' '}
-                  {unit} · 查看该时段查询
+                  {formatTimestamp(point.timestamp)} · {formatNumber(point.count)} {unit} ·
+                  查看该时段查询
                 </button>
               )}
             </li>

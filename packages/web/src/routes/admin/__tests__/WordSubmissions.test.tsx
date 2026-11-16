@@ -315,7 +315,7 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByRole('button', { name: '批量拒绝 5' })).toBeEnabled();
   await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
   const filters = await screen.findByRole('dialog', { name: '选择状态' });
-  await user.click(within(filters).getByRole('button', { name: '待确认发布' }));
+  await user.click(within(filters).getByRole('button', { name: '待确认发布（0）' }));
   // Filtering remounts the card stream, so the select-all checkbox is a new
   // node and must be re-queried; the selection is cleared with it.
   const allAfterFilter = await screen.findByRole('checkbox', { name: '全选本页' });

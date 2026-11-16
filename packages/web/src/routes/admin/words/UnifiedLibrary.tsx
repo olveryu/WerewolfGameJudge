@@ -12,7 +12,7 @@ import {
   GAME_WORD_GAMES,
   wordSubmissionStatusSchema,
 } from '@game-judge/game-engine/product/wordSupply';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -164,8 +164,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   const stats = useQuery(
     adminQueryOptions('words', game, (signal) => fetchGameWordsStats(game, signal)),
   );
-  const library = useQuery(
-    adminQueryOptions('words', { game, section: 'library', status, search, cursor }, (signal) =>
+  const library = useQuery({
+    ...adminQueryOptions('words', { game, section: 'library', status, search, cursor }, (signal) =>
       fetchLibraryItems(
         game,
         {
@@ -176,7 +176,8 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
         signal,
       ),
     ),
-  );
+    placeholderData: keepPreviousData,
+  });
 
   const [triggering, setTriggering] = useState(false);
   const [notice, setNotice] = useState('');
@@ -236,6 +237,15 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
   }
 
   const totals = library.data?.totals;
+  const statusOptions = STATUS_OPTIONS.map((option) => ({
+    ...option,
+    count:
+      totals === undefined
+        ? undefined
+        : option.value === ''
+          ? Object.values(totals.submissions).reduce((sum, count) => sum + count, 0)
+          : statusCount(totals.submissions, option.value),
+  }));
   const inventory = stats.data?.categories.reduce((sum, item) => sum + item.active, 0) ?? 0;
   return (
     <>
@@ -327,7 +337,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           <WordChoiceFilter
             label="状态"
             value={status}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             onChange={(value) => change('status', value)}
           />
           <input
@@ -340,23 +350,30 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           />
           <button type="submit">搜</button>
         </form>
-        <AsyncBoundary query={library}>
-          {(data) => (
-            <LibraryCards
-              key={`${game}:${status}:${search}:${cursors.length}`}
-              game={game}
-              status={status}
-              search={search}
-              data={data}
-              page={cursors.length}
-              onPrevious={() => setCursors((current) => current.slice(0, -1))}
-              onNext={() => {
-                if (data.nextCursor !== null)
-                  setCursors((current) => [...current, data.nextCursor]);
-              }}
-            />
-          )}
-        </AsyncBoundary>
+        {library.isPlaceholderData && (
+          <p role="status" className="admin-muted">
+            正在更新筛选结果，暂时显示上次结果…
+          </p>
+        )}
+        <div aria-busy={library.isFetching} inert={library.isPlaceholderData}>
+          <AsyncBoundary query={library}>
+            {(data) => (
+              <LibraryCards
+                key={`${game}:${status}:${search}:${cursors.length}`}
+                game={game}
+                status={status}
+                search={search}
+                data={data}
+                page={cursors.length}
+                onPrevious={() => setCursors((current) => current.slice(0, -1))}
+                onNext={() => {
+                  if (data.nextCursor !== null)
+                    setCursors((current) => [...current, data.nextCursor]);
+                }}
+              />
+            )}
+          </AsyncBoundary>
+        </div>
       </div>
     </>
   );

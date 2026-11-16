@@ -65,6 +65,91 @@ describe('D1 query insights', () => {
     );
   });
 
+  it.each([
+    {
+      query: 'SELECT * FROM word_submission_items',
+      label: '可能涉及：词条投稿',
+    },
+    {
+      query: 'SELECT * FROM room_participants p JOIN USERS u ON u.id = p.user_id',
+      label: '可能涉及：房间参与记录、用户',
+    },
+    {
+      query: 'UPDATE OR IGNORE "main".`user_stats` SET level = 1',
+      label: '可能涉及：用户成长',
+    },
+    {
+      query: 'REPLACE INTO [drawguess_words] (id) VALUES (?)',
+      label: '可能涉及：你画我猜词库',
+    },
+    {
+      query: 'DELETE FROM refresh_tokens WHERE token = ?',
+      label: '可能涉及：账号认证',
+    },
+    {
+      query: 'SELECT * FROM refresh_tokens JOIN refresh_token_rotations USING (token)',
+      label: '可能涉及：账号认证',
+    },
+    {
+      query:
+        "/* FROM users */ SELECT 'JOIN rooms' FROM /* comment */ word_submission_batches -- JOIN users",
+      label: '可能涉及：词条投稿批次',
+    },
+    {
+      query: "SELECT 'private value '' FROM users', \"JOIN rooms\" FROM private_table AS users",
+      label: undefined,
+    },
+    {
+      query: 'SELECT users FROM users_private',
+      label: undefined,
+    },
+    {
+      query: 'WITH users AS (SELECT * FROM private_table) SELECT * FROM users',
+      label: undefined,
+    },
+    {
+      query: 'SELECT * FROM private_schema.users',
+      label: undefined,
+    },
+    {
+      query: 'SELECT * FROM users(?)',
+      label: undefined,
+    },
+    {
+      query: 'SELECT * FROM sqlite_master',
+      label: undefined,
+    },
+  ])('classifies only allowlisted table references: $query', async ({ query, label }) => {
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+      if (typeof init?.body !== 'string') throw new Error('Expected request body');
+      const request = z
+        .strictObject({
+          query: z.string(),
+          scope: z.strictObject({ accountTag: z.string() }),
+          params: z.strictObject({ from: z.string(), to: z.string() }),
+        })
+        .parse(JSON.parse(init.body));
+      return Response.json({
+        data: request.query.includes('GROUP BY databaseId')
+          ? [{ databaseId: 'db', query, reads: 120, writes: 4, count: 2 }]
+          : [],
+      });
+    });
+    const result = await queryD1Insights(env, 'today', 'reads', new Date(), fetchImpl);
+    const row = result.queries[0];
+    expect(row?.id).toMatch(/^[a-f0-9]{64}$/);
+    expect(row).toEqual({
+      id: row?.id,
+      label: label ?? `未归类查询 · ${row?.id.slice(0, 12)}`,
+      reads: 120,
+      writes: 4,
+      count: 2,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(result)).not.toContain(query);
+    expect(JSON.stringify(result)).not.toContain('private');
+  });
+
   it('distinguishes no samples from a provider failure', async () => {
     const empty = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ data: [] }));
     const result = await queryD1Insights(env, '24h', 'reads', new Date(), empty);

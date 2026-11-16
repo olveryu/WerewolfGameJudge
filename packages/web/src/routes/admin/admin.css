@@ -331,15 +331,10 @@
   align-items: center;
   gap: var(--space-small);
 }
-.admin-mobile-navigation small,
 .admin-page-menu-group h3 {
   color: var(--admin-secondary);
   font-size: var(--font-caption);
   font-weight: var(--weight-normal);
-}
-.admin-mobile-navigation strong {
-  font-size: var(--font-secondary);
-  font-weight: var(--weight-semibold);
 }
 .admin-mobile-navigation svg,
 .admin-page-menu-link svg {
@@ -421,6 +416,31 @@
 .admin-page-tools {
   margin-top: var(--space-medium);
   width: 100%;
+}
+.admin-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-small);
+  max-width: var(--size-admin-content);
+  margin: var(--space-large) auto 0;
+  padding: 0 var(--space-large);
+  border-bottom: 1px solid var(--admin-border);
+}
+.admin-console .admin-section-tab {
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+  padding: var(--space-small) var(--space-tight);
+  border: 0;
+  border-bottom: var(--border-width-thick) solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--admin-secondary);
+  text-align: center;
+}
+.admin-console .admin-section-tab[data-selected] {
+  border-bottom-color: var(--admin-accent);
+  color: var(--admin-accent);
+  font-weight: var(--weight-semibold);
 }
 .admin-updated {
   font-size: var(--font-caption);
@@ -644,8 +664,8 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
-.admin-segmented button[aria-pressed='true'],
-.admin-segmented a[aria-current='page'] {
+.admin-console .admin-segmented button[aria-pressed='true'],
+.admin-console .admin-segmented a[aria-current='page'] {
   border-color: var(--admin-border);
   background: var(--admin-panel);
   color: var(--admin-text);
@@ -1042,6 +1062,15 @@
   stroke: var(--admin-border);
   stroke-width: 1;
   stroke-dasharray: 4 4;
+}
+.admin-chart-single {
+  display: grid;
+  gap: var(--space-medium);
+}
+.admin-chart-single button {
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+  text-align: left;
 }
 .admin-chart-labels {
   display: flex;
@@ -1584,6 +1613,9 @@
   }
   .admin-page-top {
     padding: var(--space-medium) var(--space-medium) 0;
+  }
+  .admin-section-tabs {
+    padding-inline: var(--space-medium);
   }
   .admin-page-meta {
     align-items: flex-start;

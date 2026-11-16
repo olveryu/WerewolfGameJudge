@@ -15,6 +15,8 @@ import type {
 } from '@/features/admin/model/adminContracts';
 import {
   fetchAdminMaintenance,
+  fetchAIUsage,
+  fetchAnalytics,
   fetchD1Insights,
   fetchD1Usage,
   fetchGameWordsStats,
@@ -41,7 +43,7 @@ import { AdminPage } from '../AdminPage';
 import { StatTile } from '../components/Primitives';
 import { D1UsagePage } from '../pages/D1UsagePage';
 import { MaintenanceSettingsPage } from '../pages/MaintenanceSettingsPage';
-import { GrowthPage } from '../pages/MonitoringPages';
+import { AiPage, GrowthPage, PerformancePage } from '../pages/MonitoringPages';
 import { OverviewPage } from '../pages/OverviewPage';
 import { RoomsPage } from '../pages/RoomsPage';
 import { TrafficPage } from '../pages/TrafficPage';
@@ -56,6 +58,8 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   fetchRooms: vi.fn(),
   fetchRoomPlayers: vi.fn(),
   fetchStats: vi.fn(),
+  fetchAnalytics: vi.fn(),
+  fetchAIUsage: vi.fn(),
   fetchD1Usage: vi.fn(),
   fetchD1Insights: vi.fn(),
   fetchAdminMaintenance: vi.fn(),
@@ -201,6 +205,8 @@ function mount(path = '/admin/users', previousPath?: string) {
           { path: 'users', Component: UsersPage },
           { path: 'rooms', Component: RoomsPage },
           { path: 'growth', Component: GrowthPage },
+          { path: 'performance', Component: PerformancePage },
+          { path: 'ai', Component: AiPage },
           { path: 'traffic', Component: TrafficPage },
           { path: 'd1', Component: D1UsagePage },
           { path: 'maintenance', Component: MaintenanceSettingsPage },
@@ -298,7 +304,7 @@ describe('admin workspace', () => {
   });
 
   it('shows D1 totals separately from sampled insights and changes the requested range and sort', async () => {
-    const view = mount('/admin/d1');
+    const view = mount('/admin/d1?view=analysis');
     await screen.findByText('可能涉及：你画我猜词库');
     expect(screen.getByText(/不能用账号总量减去排行/)).toBeVisible();
     expect(fetchD1Insights).toHaveBeenCalledWith('today', 'reads', null, expect.any(AbortSignal));
@@ -316,7 +322,8 @@ describe('admin workspace', () => {
     const trendPanel = screen.getByRole('heading', { name: '读取趋势 · 估算' }).closest('section');
     if (trendPanel === null) throw new Error('Expected trend panel');
     const trend = within(trendPanel);
-    await userEvent.click(trend.getByText('查看趋势数据'));
+    expect(trend.getByText('仅有 1 个采样时段，暂时无法形成趋势。')).toBeVisible();
+    expect(trend.queryByRole('img')).not.toBeInTheDocument();
     await userEvent.click(trend.getByRole('button', { name: /查看该时段查询/ }));
     await waitFor(() =>
       expect(fetchD1Insights).toHaveBeenCalledWith(
@@ -333,6 +340,105 @@ describe('admin workspace', () => {
       expect(fetchD1Insights).toHaveBeenCalledWith('7d', 'writes', null, expect.any(AbortSignal)),
     );
     expect(view.router.state.location.search).toContain('range=7d');
+    expect(fetchD1Usage).not.toHaveBeenCalled();
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('updates D1 interval totals from every trend bucket while keeping daily quota independent', async () => {
+    vi.mocked(fetchD1Insights).mockImplementation(async (range) => ({
+      from: '2026-11-11T00:00:00Z',
+      to: '2026-11-11T12:00:00Z',
+      generatedAt: '2026-11-11T12:00:00Z',
+      queries: [{ id: 'ranked', label: '排行的一部分', reads: 99_999, writes: 99, count: 2 }],
+      series:
+        range === '7d'
+          ? [
+              { timestamp: '2026-11-10T00:00:00Z', reads: 1000, writes: 25 },
+              { timestamp: '2026-11-11T00:00:00Z', reads: 2000, writes: 40 },
+            ]
+          : [{ timestamp: '2026-11-11T08:00:00Z', reads: 100, writes: 10 }],
+    }));
+    const view = mount('/admin/d1?view=analysis');
+    await screen.findByRole('button', { name: '读取累计 · 估算：100，查看完整数值' });
+    await userEvent.click(screen.getByRole('button', { name: '7 天' }));
+    await screen.findByRole('button', { name: '读取累计 · 估算：3000，查看完整数值' });
+    expect(screen.getByRole('heading', { name: '7 天累计 · 采样估算' })).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: '读取趋势估算，共 2 个时段，最高 2,000 行' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: '写入趋势估算，共 2 个时段，最高 40 行' }),
+    ).toBeVisible();
+    expect(screen.getAllByText('2026/11/10 00:00:00 UTC')).toHaveLength(2);
+    expect(screen.getAllByText('2026/11/11 00:00:00 UTC')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: '写入累计 · 估算：65，查看完整数值' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: '今日读取行数：100，查看完整数值' }),
+    ).not.toBeInTheDocument();
+    expect(fetchD1Usage).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('tab', { name: '今日额度' }));
+    await screen.findByRole('button', { name: '今日读取行数：100，查看完整数值' });
+    expect(screen.queryByRole('group', { name: '分析时间范围' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'D1 高消耗查询采样估算' })).not.toBeInTheDocument();
+    expect(fetchD1Usage).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('tab', { name: '用量分析' }));
+    expect(screen.getByRole('button', { name: '7 天' })).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: '读取累计 · 估算：3000，查看完整数值' }),
+    ).toBeVisible();
+    expect(fetchD1Insights).toHaveBeenCalledTimes(2);
+    await userEvent.click(screen.getByRole('button', { name: '按写入' }));
+    await waitFor(() =>
+      expect(fetchD1Insights).toHaveBeenLastCalledWith(
+        '7d',
+        'writes',
+        null,
+        expect.any(AbortSignal),
+      ),
+    );
+    await screen.findByRole('button', { name: '读取累计 · 估算：3000，查看完整数值' });
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('defaults to daily quota and supports keyboard tab switching without fetching hidden reports', async () => {
+    const view = mount('/admin/d1');
+    await screen.findByRole('button', { name: '今日读取行数：100，查看完整数值' });
+    const quotaTab = screen.getByRole('tab', { name: '今日额度' });
+    const pageSwitcher = screen.getByRole('button', { name: '切换页面，当前：D1 用量' });
+    expect(pageSwitcher).toHaveTextContent('切换管理页面');
+    expect(pageSwitcher).not.toHaveTextContent('D1 用量');
+    expect(quotaTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('group', { name: '分析时间范围' })).not.toBeInTheDocument();
+    expect(fetchD1Insights).not.toHaveBeenCalled();
+    quotaTab.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() => expect(screen.getByRole('tab', { name: '用量分析' })).toHaveFocus());
+    await userEvent.keyboard('{Enter}');
+    await screen.findByText('可能涉及：你画我猜词库');
+    expect(screen.getByRole('tab', { name: '用量分析' })).toHaveFocus();
+    expect(view.router.state.location.search).toContain('view=analysis');
+    await userEvent.keyboard('{ArrowLeft}');
+    await waitFor(() => expect(quotaTab).toHaveFocus());
+    await userEvent.keyboard('{Enter}');
+    await screen.findByRole('button', { name: '今日读取行数：100，查看完整数值' });
+    expect(fetchD1Usage).toHaveBeenCalledOnce();
+    view.unmount();
+    view.client.clear();
+  });
+
+  it('does not present missing D1 samples as zero interval usage', async () => {
+    vi.mocked(fetchD1Insights).mockResolvedValue({
+      from: '2026-11-11T00:00:00Z',
+      to: '2026-11-11T12:00:00Z',
+      generatedAt: '2026-11-11T12:00:00Z',
+      queries: [],
+      series: [],
+    });
+    const view = mount('/admin/d1?range=7d');
+    await screen.findByText('所选时段没有查询样本，无法估算累计读写，不代表没有用量。');
+    expect(screen.queryByRole('button', { name: /读取累计 · 估算：/ })).not.toBeInTheDocument();
     view.unmount();
     view.client.clear();
   });
@@ -343,6 +449,7 @@ describe('admin workspace', () => {
     await screen.findByRole('navigation', { name: '管理后台导航' });
     await userEvent.click(screen.getByRole('link', { name: 'D1 用量' }));
     await screen.findByRole('heading', { name: 'D1 用量' });
+    await userEvent.click(screen.getByRole('tab', { name: '用量分析' }));
 
     await userEvent.click(screen.getByRole('button', { name: '24 小时' }));
     await waitFor(() => expect(view.router.state.location.search).toContain('range=24h'));
@@ -631,6 +738,99 @@ describe('admin workspace', () => {
     view.unmount();
     view.client.clear();
   });
+
+  it.each([
+    {
+      path: 'growth',
+      fetcher: fetchStats,
+      metric: '新注册',
+      arrange: () =>
+        vi
+          .mocked(fetchStats)
+          .mockResolvedValueOnce({
+            registered: 2,
+            active: 3,
+            totalGames: 4,
+            countries: [],
+            colos: [],
+          })
+          .mockResolvedValueOnce({
+            registered: 42,
+            active: 3,
+            totalGames: 4,
+            countries: [],
+            colos: [],
+          }),
+    },
+    {
+      path: 'performance',
+      fetcher: fetchAnalytics,
+      metric: '样本数',
+      arrange: () =>
+        vi
+          .mocked(fetchAnalytics)
+          .mockResolvedValueOnce({
+            avgLoadMs: 1,
+            avgTtfbMs: 1,
+            totalRequests: 2,
+            countries: [],
+            colos: [],
+            isps: [],
+          })
+          .mockResolvedValueOnce({
+            avgLoadMs: 1,
+            avgTtfbMs: 1,
+            totalRequests: 42,
+            countries: [],
+            colos: [],
+            isps: [],
+          }),
+    },
+    {
+      path: 'ai',
+      fetcher: fetchAIUsage,
+      metric: '总请求',
+      arrange: () =>
+        vi
+          .mocked(fetchAIUsage)
+          .mockResolvedValueOnce({
+            totalRequests: 2,
+            avgTtfrMs: 1,
+            errorRate: 0,
+            providers: [],
+            models: [],
+            countries: [],
+            statuses: [],
+            topUsers: [],
+          })
+          .mockResolvedValueOnce({
+            totalRequests: 42,
+            avgTtfrMs: 1,
+            errorRate: 0,
+            providers: [],
+            models: [],
+            countries: [],
+            statuses: [],
+            topUsers: [],
+          }),
+    },
+  ])(
+    'updates $path values, not just the selected range',
+    async ({ path, fetcher, metric, arrange }) => {
+      arrange();
+      const view = mount(`/admin/${path}`);
+      await screen.findByRole('button', { name: `${metric}：2，查看完整数值` });
+      await userEvent.click(screen.getByRole('button', { name: '7 天' }));
+      await screen.findByRole('button', { name: `${metric}：42，查看完整数值` });
+      const call = vi.mocked(fetcher).mock.calls.at(-1);
+      expect(call).toBeDefined();
+      const [from = '', to = ''] = call ?? [];
+      expect(Date.parse(to) - Date.parse(from)).toBe(7 * 86400000);
+      expect(view.router.state.location.search).toBe('?range=7d');
+      view.unmount();
+      view.client.clear();
+    },
+  );
 
   it('loads all populated countries only on opening and reuses cached choices after filtering', async () => {
     const view = mount();
