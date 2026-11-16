@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createRowCountingDb } from '../../../../test/rowCountingDb';
+import { toPinyinInitials } from '../../../games/drawguess/wordEditorial';
 import { getOrCreateFibWordSelection } from '../../../games/fibking/wordSelection';
 import { sha256Hex } from '../../../platform/crypto/sha256Hex';
 import {
@@ -748,6 +749,44 @@ describe('External word submissions', () => {
       awaitingPublication: 0,
       failed: 0,
       published: 0,
+    });
+  });
+
+  it('rejects publishing a passed item whose word is already in the inventory', async () => {
+    const issued = await agent();
+    const batch = await submit(issued.token);
+    const id = crypto.randomUUID();
+    modelReview();
+    await using instance = await introspectWorkflowInstance(env.WORD_SUBMISSION_REVIEW, id);
+    const endorsed = await endorse(batch);
+    await applySubmissionAction(env, batch.id, action(endorsed, 'review', '', id));
+    await instance.waitForStatus('complete');
+    const reviewed = await readSubmissionBatch(env.DB, batch.id);
+    expect(reviewed.items[0]?.status).toBe('passed');
+    const identity = reviewed.items[0]?.identity;
+    if (identity === undefined) throw new Error('Expected a passed item identity');
+    // The word entered the library after review (for example via another
+    // batch), so this publication must be refused instead of duplicating it.
+    await env.DB.prepare(
+      `INSERT INTO drawguess_words
+        (id, word, pinyin_initials, category, difficulty, status, created_at, disabled_at)
+        VALUES (?, ?, ?, ?, ?, 'active', ?, NULL)`,
+    )
+      .bind(
+        identity,
+        candidate.word,
+        toPinyinInitials(candidate.word),
+        candidate.category,
+        'easy',
+        new Date().toISOString(),
+      )
+      .run();
+    await expect(applySubmissionAction(env, batch.id, action(reviewed, 'publish'))).rejects.toThrow(
+      'SUBMISSION_SELECTION_STALE_OR_NOT_ELIGIBLE',
+    );
+    expect((await readSubmissionBatch(env.DB, batch.id)).items[0]?.status).toBe('passed');
+    expect(await env.DB.prepare('SELECT COUNT(*) AS count FROM drawguess_words').first()).toEqual({
+      count: 1,
     });
   });
 

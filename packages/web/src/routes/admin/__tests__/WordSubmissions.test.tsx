@@ -312,6 +312,7 @@ it('selects only unlocked visible candidates, maintains indeterminate state, and
   expect(screen.getByRole('button', { name: '启动独立审核 2' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '批量批准 3' })).toBeEnabled();
   expect(screen.getByRole('button', { name: '人工通过 3' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: '批量拒绝 5' })).toBeEnabled();
   await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
   const filters = await screen.findByRole('dialog', { name: '选择状态' });
   await user.click(within(filters).getByRole('button', { name: '待确认发布' }));
@@ -480,6 +481,47 @@ it('bulk endorses pending, failed and rejected items for review without calling 
       { id: batch.items[0]?.id, revision: 1 },
       { id: batch.items[2]?.id, revision: 1 },
       { id: batch.items[3]?.id, revision: 1 },
+    ],
+  });
+});
+
+it('bulk dismisses pending, passed, failed and rejected items with the drawer eligibility', async () => {
+  vi.mocked(wordSubmissionsApi.action).mockResolvedValueOnce({
+    id: crypto.randomUUID(),
+    status: 'complete',
+  });
+  const { user } = mount();
+  await user.click(await screen.findByRole('checkbox', { name: '全选本页' }));
+  await user.click(screen.getByRole('button', { name: '批量拒绝 5' }));
+  const dialog = await screen.findByRole('dialog', { name: '拒绝候选' });
+  // The reason stays optional; the dialog still offers it for dismissals.
+  expect(within(dialog).getByRole('textbox', { name: '操作原因' })).toBeInTheDocument();
+  // The bulk bar shares the drawer's dismissal eligibility
+  // (pending/approved/passed/failed/rejected), so passed, failed and
+  // rejected items are dismissed in bulk too.
+  expect(within(dialog).getByText('词语0')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语1')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语2')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语3')).toBeInTheDocument();
+  expect(within(dialog).getByText('词语9')).toBeInTheDocument();
+  expect(within(dialog).queryByText('词语4')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语5')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语6')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语7')).not.toBeInTheDocument();
+  expect(within(dialog).queryByText('词语8')).not.toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: '拒绝候选 (5)' }));
+  await waitFor(() => expect(wordSubmissionsApi.action).toHaveBeenCalledTimes(1));
+  const calls = vi.mocked(wordSubmissionsApi.action).mock.calls;
+  expect(calls[0]?.[0]).toBe(batch.id);
+  expect(calls[0]?.[1]).toMatchObject({
+    action: 'dismiss',
+    reason: '',
+    items: [
+      { id: batch.items[0]?.id, revision: 1 },
+      { id: batch.items[1]?.id, revision: 1 },
+      { id: batch.items[2]?.id, revision: 1 },
+      { id: batch.items[3]?.id, revision: 1 },
+      { id: batch.items[9]?.id, revision: 1 },
     ],
   });
 });

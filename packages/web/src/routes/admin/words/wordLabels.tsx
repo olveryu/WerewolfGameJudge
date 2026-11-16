@@ -103,7 +103,7 @@ export function SubmissionStatus({ status }: { status: WordSubmissionItem['statu
 }
 
 /** Only unresolved, unlocked candidates participate in selection. */
-export function isSelectableSubmission(item: WordSubmissionItem) {
+export function isSelectableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return ['pending', 'approved', 'passed', 'failed', 'rejected'].includes(item.status);
 }
 
@@ -118,6 +118,6 @@ export function isEndorsableSubmission(item: Pick<WordSubmissionItem, 'status'>)
 }
 
 /** Withdrawing an endorsement only returns an approved item to pending; review never started. */
-export function isUnendorsableSubmission(item: WordSubmissionItem) {
+export function isUnendorsableSubmission(item: Pick<WordSubmissionItem, 'status'>) {
   return item.status === 'approved';
 }
