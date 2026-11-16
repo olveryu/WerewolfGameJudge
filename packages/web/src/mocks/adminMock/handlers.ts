@@ -215,6 +215,9 @@ const rotateBody = z.strictObject({
 type WordSubmissionAudit = z.output<typeof wordSubmissionAuditSchema>;
 
 export const adminMockHandlers = [
+  http.get(`${apiOrigin}/admin/tavily-usage`, ({ request }) =>
+    response(request, { planUsage: 750, planLimit: 1000, paygoUsage: 0, paygoLimit: 0 }),
+  ),
   http.get(`${apiOrigin}/maintenance`, () => HttpResponse.json(state.maintenance)),
   http.post(`${apiOrigin}/telemetry/load-timing`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${apiOrigin}/admin/session`, ({ request }) =>

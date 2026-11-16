@@ -9,6 +9,7 @@ import {
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
+  parseAdminTavilyUsageResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
@@ -16,6 +17,16 @@ import {
 } from '@/features/admin/services/adminResponseCodec';
 
 describe('adminResponseCodec', () => {
+  it('distinguishes missing Tavily limits from zero and rejects invalid credits or extra fields', () => {
+    const usage = { planUsage: 950, planLimit: 2000, paygoUsage: 0, paygoLimit: null };
+    expect(parseAdminTavilyUsageResponse(usage)).toEqual(usage);
+    expect(parseAdminTavilyUsageResponse({ ...usage, paygoLimit: 0 }).paygoLimit).toBe(0);
+    expect(() => parseAdminTavilyUsageResponse({ ...usage, planUsage: -1 })).toThrow();
+    expect(() => parseAdminTavilyUsageResponse({ ...usage, planLimit: undefined })).toThrow();
+    expect(() =>
+      parseAdminTavilyUsageResponse({ ...usage, apiKey: 'must-not-be-returned' }),
+    ).toThrow();
+  });
   it('rejects raw SQL and invalid metrics in D1 insights', () => {
     const base = {
       from: '2026-11-12T00:00:00Z',

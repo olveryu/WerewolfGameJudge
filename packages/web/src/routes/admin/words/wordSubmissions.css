@@ -162,15 +162,21 @@
 }
 .admin-drawer-footer {
   flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-small);
   max-height: 30dvh;
   overflow: auto;
   padding: var(--space-medium) var(--space-large);
+  padding-bottom: max(var(--space-medium), env(safe-area-inset-bottom));
   border-top: 1px solid var(--admin-border);
   background: var(--admin-panel);
+}
+.admin-drawer-footer button {
+  width: 100%;
+}
+.admin-drawer-footer button:only-child {
+  grid-column: 1 / -1;
 }
 .admin-drawer-footer button,
 .admin-submission-actions button,

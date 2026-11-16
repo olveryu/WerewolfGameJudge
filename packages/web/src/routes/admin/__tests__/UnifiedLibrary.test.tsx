@@ -9,7 +9,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
-import { fetchGameWordsStats, fetchLibraryItems } from '@/features/admin/services/adminApi';
+import {
+  fetchGameWordsStats,
+  fetchLibraryItems,
+  fetchTavilyUsage,
+} from '@/features/admin/services/adminApi';
 import { wordSubmissionsApi } from '@/features/admin/services/wordSubmissionsApi';
 
 import { UnifiedLibrary } from '../words/UnifiedLibrary';
@@ -18,6 +22,7 @@ vi.mock('@/features/admin/services/adminApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/adminApi')>()),
   fetchGameWordsStats: vi.fn(),
   fetchLibraryItems: vi.fn(),
+  fetchTavilyUsage: vi.fn(),
 }));
 vi.mock('@/features/admin/services/wordSubmissionsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/admin/services/wordSubmissionsApi')>()),
@@ -187,6 +192,12 @@ function mount(game: 'drawguess' | 'fibking' = 'drawguess', extraSearch = '') {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(fetchTavilyUsage).mockResolvedValue({
+    planUsage: 950,
+    planLimit: 2000,
+    paygoUsage: 12,
+    paygoLimit: null,
+  });
   vi.mocked(fetchGameWordsStats).mockImplementation(async (game) =>
     game === 'fibking'
       ? { ...stats, game: 'fibking', tavilyRequestsUsed: 736, tavilyMonthlyQuota: 1000 }
@@ -258,17 +269,38 @@ describe('unified library', () => {
     expect(screen.queryByText('待审核 · 待处理')).not.toBeInTheDocument();
   });
 
-  it('shows the Tavily meter for fibking only', async () => {
+  it('shows official Tavily account credits instead of local request counts', async () => {
     mount('fibking');
     await screen.findByText('大熊猫');
-    expect(screen.getByText('Tavily · 本月')).toBeVisible();
-    expect(screen.getByText('736 / 1,000')).toBeVisible();
+    expect(
+      await screen.findByRole('button', { name: '套餐已用 credits：950，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '套餐额度 credits：2000，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '按量付费已用 credits：12，查看完整数值' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: '按量付费上限 credits：未提供，查看完整数值' }),
+    ).toBeVisible();
+    expect(screen.queryByText('736 / 1,000')).not.toBeInTheDocument();
   });
 
   it('hides the Tavily meter for drawguess', async () => {
     mount();
     await screen.findByText('大熊猫');
     expect(screen.queryByText('Tavily · 本月')).not.toBeInTheDocument();
+    expect(fetchTavilyUsage).not.toHaveBeenCalled();
+  });
+
+  it('keeps the word library usable when official Tavily usage is unavailable', async () => {
+    vi.mocked(fetchTavilyUsage).mockRejectedValue(new Error('TAVILY_USAGE_QUERY_FAILED'));
+    mount('fibking');
+    expect(await screen.findByText('大熊猫')).toBeVisible();
+    await waitFor(() => expect(fetchTavilyUsage).toHaveBeenCalledOnce());
+    expect(await screen.findByRole('alert')).toHaveTextContent('数据加载失败');
+    expect(screen.queryByText('736 / 1,000')).not.toBeInTheDocument();
   });
 
   it('has no source filter: the stream is submissions only', async () => {
@@ -381,7 +413,11 @@ describe('unified library', () => {
     const { user } = mount();
     await screen.findByText('大熊猫');
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    const choices = screen.getByRole('dialog', { name: '选择状态' });
+    expect(within(choices).getByRole('button', { name: '全部状态（6）' })).toBeVisible();
+    expect(within(choices).getByRole('button', { name: '待启动审核（2）' })).toBeVisible();
+    expect(within(choices).getByRole('button', { name: '审核中（0）' })).toBeVisible();
+    await user.click(within(choices).getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -389,6 +425,27 @@ describe('unified library', () => {
         expect.any(AbortSignal),
       ),
     );
+  });
+
+  it('keeps the previous stream and summary while filters load, but makes stale rows inert', async () => {
+    let finishLoading: ((data: WordLibraryItems) => void) | undefined;
+    const filtered = new Promise<WordLibraryItems>((resolve) => {
+      finishLoading = resolve;
+    });
+    vi.mocked(fetchLibraryItems).mockImplementation(async (_game, parameters) =>
+      parameters?.status === 'approved' ? filtered : libraryData,
+    );
+    const { user } = mount();
+    await screen.findByText('大熊猫');
+    await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
+    expect(await screen.findByText('正在更新筛选结果，暂时显示上次结果…')).toBeVisible();
+    expect(screen.getByText('大熊猫').closest('[inert]')).not.toBeNull();
+    expect(screen.getByRole('region', { name: '词库概览' })).toBeVisible();
+    finishLoading?.({ ...libraryData, items: [approvedItem] });
+    await waitFor(() => expect(screen.queryByText('大熊猫')).not.toBeInTheDocument());
+    expect(screen.getByText('月季').closest('[inert]')).toBeNull();
+    expect(screen.queryByText('正在更新筛选结果，暂时显示上次结果…')).not.toBeInTheDocument();
   });
 
   it('filters the card stream by category separately from title search', async () => {
@@ -461,7 +518,7 @@ describe('unified library', () => {
     await screen.findByText('长颈鹿');
     expect(screen.getByText('第 2 页')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',
@@ -482,7 +539,7 @@ describe('unified library', () => {
     expect(screen.getByText('已选 1')).toBeVisible();
     expect(screen.getByText('当前可选 3')).toBeVisible();
     await user.click(screen.getByRole('button', { name: '状态：全部状态' }));
-    await user.click(screen.getByRole('button', { name: '已批准待审核' }));
+    await user.click(screen.getByRole('button', { name: '已批准待审核（1）' }));
     await waitFor(() =>
       expect(fetchLibraryItems).toHaveBeenCalledWith(
         'drawguess',

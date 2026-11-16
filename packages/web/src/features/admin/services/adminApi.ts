@@ -36,6 +36,7 @@ import {
   parseAdminRoomPlayersResponse,
   parseAdminRoomsResponse,
   parseAdminStatsResponse,
+  parseAdminTavilyUsageResponse,
   parseAdminUsersResponse,
   parseGameWordsStatsResponse,
   parseLibraryItemsResponse,
@@ -212,6 +213,11 @@ export function grantUserReward(userId: string, input: AdminRewardInput) {
 
 export function fetchStats(from: string, to: string, signal?: AbortSignal) {
   return adminFetch('/admin/stats', parseAdminStatsResponse, { from, to }, signal);
+}
+
+/** Read official Tavily account credits without consuming D1 rows. */
+export function fetchTavilyUsage(signal?: AbortSignal) {
+  return adminFetch('/admin/tavily-usage', parseAdminTavilyUsageResponse, undefined, signal);
 }
 
 /** Read account-wide analytics without consuming D1 rows. */

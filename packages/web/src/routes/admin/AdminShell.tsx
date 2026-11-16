@@ -77,14 +77,8 @@ function AdminNavigation({ monitoringSearch }: { monitoringSearch: string }) {
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
-        <span>
-          <small>当前页面</small>
-          <strong>{current?.label ?? '管理后台'}</strong>
-        </span>
-        <span>
-          <small>切换页面</small>
-          <IconChevronDown aria-hidden />
-        </span>
+        <span>切换管理页面</span>
+        <IconChevronDown aria-hidden />
       </button>
       {open && (
         <DetailDrawer variant="sheet" title="切换页面" onClose={() => setOpen(false)}>

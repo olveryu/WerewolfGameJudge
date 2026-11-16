@@ -36,7 +36,7 @@ export type FibWordEvidence = z.output<typeof fibWordEvidenceSchema>;
 
 async function requestTavilyEvidence(
   apiKey: string,
-  operation: 'search' | 'extract',
+  operation: 'search' | 'extract' | 'usage',
   body: Readonly<Record<string, unknown>>,
   fetchImpl: typeof fetch,
 ): Promise<unknown> {
@@ -45,9 +45,9 @@ async function requestTavilyEvidence(
   let response: Response;
   try {
     response = await fetchImpl.call(globalThis, `https://api.tavily.com/${operation}`, {
-      method: 'POST',
+      method: operation === 'usage' ? 'GET' : 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      ...(operation === 'usage' ? {} : { body: JSON.stringify(body) }),
       signal,
     });
   } catch (error) {
@@ -65,6 +65,26 @@ async function requestTavilyEvidence(
     throw new FibWordProviderError(`Tavily ${operation} failed (${response.status})`, failureKind);
   }
   return response.json();
+}
+
+/** Read official account credit usage without searching, extracting, or accessing D1. */
+export async function queryTavilyAccountUsage(apiKey: string, fetchImpl: typeof fetch = fetch) {
+  const credits = z.number().int().nonnegative();
+  const schema = z.object({
+    account: z.object({
+      plan_usage: credits,
+      plan_limit: credits.nullable(),
+      paygo_usage: credits,
+      paygo_limit: credits.nullable(),
+    }),
+  });
+  const { account } = schema.parse(await requestTavilyEvidence(apiKey, 'usage', {}, fetchImpl));
+  return {
+    planUsage: account.plan_usage,
+    planLimit: account.plan_limit,
+    paygoUsage: account.paygo_usage,
+    paygoLimit: account.paygo_limit,
+  };
 }
 
 /** Perform exactly one basic search, with no automatic upgrade or retries. */

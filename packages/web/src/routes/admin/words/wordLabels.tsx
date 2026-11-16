@@ -40,7 +40,7 @@ export function WordChoiceFilter({
 }: {
   label: string;
   value: string;
-  options: readonly { value: string; label: string }[];
+  options: readonly { value: string; label: string; count?: number | undefined }[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -72,7 +72,10 @@ export function WordChoiceFilter({
                   setOpen(false);
                 }}
               >
-                {option.label}
+                <span>
+                  {option.label}
+                  {option.count !== undefined && `（${option.count.toLocaleString('zh-CN')}）`}
+                </span>
                 <span className="admin-choice-mark" aria-hidden />
               </button>
             ))}
