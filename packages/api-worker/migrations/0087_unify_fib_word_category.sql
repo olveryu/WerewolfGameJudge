@@ -122,6 +122,7 @@ INSERT INTO fib_word_usages_next SELECT * FROM fib_word_usages;
 DROP TABLE fib_word_usages;
 ALTER TABLE fib_word_usages_next RENAME TO fib_word_usages;
 CREATE INDEX idx_fib_word_usages_word_used ON fib_word_usages(word_id, used_at);
+CREATE INDEX idx_fib_word_usages_retention ON fib_word_usages(used_at);
 
 CREATE TRIGGER fib_words_draw_insert
 AFTER INSERT ON fib_words

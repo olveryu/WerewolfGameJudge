@@ -50,7 +50,7 @@ describe('DrawGuessReactionPicker', () => {
     );
   });
 
-  it('prevents a second reaction and keeps the reason without showing reaction totals or sender names', () => {
+  it('prevents a second reaction, keeps the reason, and does not expose totals or sender names', () => {
     renderPicker({ reactionsBySeat: { 1: 'egg' } });
 
     expect(screen.getByRole('button', { name: '送鲜花' })).toBeDisabled();

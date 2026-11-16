@@ -219,7 +219,7 @@ const sql = [
   `INSERT OR REPLACE INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) VALUES ('${DEV_USER_ID}', ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now'));`,
   ...FIB_WORDS.flatMap(([id, word, coreMeaning, usageNote], index) => [
     `INSERT INTO fib_word_sequence (word, published_at, pack_id) VALUES (${sqlString(word)}, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL) ON CONFLICT (word) DO NOTHING;`,
-    `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at, topic) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(coreMeaning)}, ${sqlString(usageNote)}, 'literary', 'local', 'active', ${index}, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'literature') ON CONFLICT (word) DO NOTHING;`,
+    `INSERT INTO fib_words (id, word, core_meaning, usage_note, category, source, status, selection_key, generation_cycle_id, created_at, activated_at) VALUES (${sqlString(id)}, ${sqlString(word)}, ${sqlString(coreMeaning)}, ${sqlString(usageNote)}, 'literature', 'local', 'active', ${index}, NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ON CONFLICT (word) DO NOTHING;`,
   ]),
   ...UNDERCOVER_WORD_PAIRS.map(
     ([id, wordA, wordB, category]) =>
