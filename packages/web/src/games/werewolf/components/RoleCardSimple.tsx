@@ -10,6 +10,7 @@ import './faction.css';
 
 import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
+import { Button } from '@/components/Button';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
@@ -31,6 +32,10 @@ interface RoleCardSimpleProps {
   readonly activeVariant?: RoleId;
   /** Called when the user taps a variant pill. */
   readonly onVariantSelect?: (variantId: RoleId) => void;
+  /** The config screen's board action; absent everywhere else (room, board picker, encyclopedia). */
+  readonly isBoardSelected?: boolean;
+  /** Called when the user taps 加入板子 / 移出板子. */
+  readonly onBoardAction?: () => void;
   /** Overrides the mounted-chat handler; receives the card's presented identity. */
   readonly onAskAI?: (displayRoleId: RoleId) => void;
 }
@@ -44,6 +49,8 @@ export function RoleCardSimple({
   variantIds,
   activeVariant,
   onVariantSelect,
+  isBoardSelected,
+  onBoardAction,
   onAskAI,
 }: RoleCardSimpleProps) {
   const isAIChatAvailable = useAIChatAvailable();
@@ -89,6 +96,16 @@ export function RoleCardSimple({
                 </button>
               ))}
             </div>
+          )}
+          {onBoardAction !== undefined && (
+            <Button
+              className="role-card-confirm"
+              data-alignment={role.alignment}
+              onClick={onBoardAction}
+              data-testid={TESTIDS.configRoleBoardAction}
+            >
+              {isBoardSelected === true ? '移出板子' : '加入板子'}
+            </Button>
           )}
         </>
       }

@@ -70,6 +70,8 @@ export const TESTIDS = {
   configPresetSection: 'config-preset-section',
   configOverflowReset: 'config-overflow-reset',
   configRoleChip: (id: string) => `config-role-chip-${id}`,
+  configRoleChipToggle: (id: string) => `config-role-chip-toggle-${id}`,
+  configRoleBoardAction: 'config-role-board-action',
   configVariantOption: (id: string) => `config-variant-option-${id}`,
   configStepperDec: (roleId: string) => `config-stepper-dec-${roleId}`,
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,

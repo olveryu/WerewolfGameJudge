@@ -166,6 +166,8 @@ export function ConfigScreen({
         variantIds={state.roleInfoVariantIds}
         activeVariant={state.roleInfoActiveVariant}
         onVariantSelect={state.handleRoleInfoVariantSelect}
+        isBoardSelected={state.roleInfoSelected}
+        onBoardAction={state.handleRoleInfoToggle}
         onAskAI={
           isAIChatAvailable
             ? (roleId) => askAIAboutRole(roleId, state.handleCloseRoleInfo)

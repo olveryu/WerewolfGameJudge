@@ -138,10 +138,50 @@ describe('ConfigScreen rendering', () => {
     }
 
     expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
-    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveAttribute(
+    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+  });
+
+  it('opens the role card on a tap and adds the role from the card', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+    // Start from a board without the witch: deselect via the badge first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    expect(screen.getByText('11人')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByRole('button', { name: '加入板子' }));
+
+    expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
+    expect(screen.getByText('12人')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('removes the role from the card when it is already selected', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByRole('button', { name: '移出板子' }));
+
+    expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
+    expect(screen.getByText('11人')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('toggles a role from the badge without opening the card', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+
+    expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
+    expect(screen.getByText('11人')).toBeInTheDocument();
   });
 
   it('opens the board picker from the template pill', () => {
@@ -217,7 +257,7 @@ describe('ConfigScreen → Rules handoff', () => {
     const state = readyRoom(session, {});
     const { callbacks } = renderConfigScreen({ existingRoomCode: state.roomCode }, session);
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('hunter')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('hunter')));
     // Another player takes a seat: the authoritative snapshot moves on.
     act(() => publishRoom(session, { ...state }, 2));
     fireEvent.click(screen.getByTestId(TESTIDS.configNextButton));

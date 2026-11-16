@@ -10,19 +10,39 @@ describe('RoleChip', () => {
     render(<RoleChip id="seer" label="预言家" selected onToggle={vi.fn()} faction="god" />);
 
     expect(screen.getByTestId(TESTIDS.configRoleChip('seer'))).toHaveTextContent('预言家');
-    expect(screen.getByTestId(TESTIDS.configRoleChip('seer'))).toHaveAttribute(
+    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('seer'))).toHaveAttribute(
       'aria-pressed',
       'true',
     );
   });
 
-  it('calls onToggle with its id when pressed', () => {
+  it('calls onToggle with its id when the badge is pressed', () => {
     const onToggle = vi.fn<(id: string) => void>();
     render(<RoleChip id="witch" label="女巫" selected={false} onToggle={onToggle} faction="god" />);
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
 
     expect(onToggle).toHaveBeenCalledWith('witch');
+  });
+
+  it('opens the role info when the chip body is pressed without toggling', () => {
+    const onToggle = vi.fn<(id: string) => void>();
+    const onInfoPress = vi.fn<(id: string) => void>();
+    render(
+      <RoleChip
+        id="witch"
+        label="女巫"
+        selected={false}
+        onToggle={onToggle}
+        faction="god"
+        onInfoPress={onInfoPress}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+
+    expect(onInfoPress).toHaveBeenCalledWith('witch');
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it('opens the role info on a long press without toggling', () => {
