@@ -1,5 +1,5 @@
 /**
- * 故事接龙进行中阶段的信息条（docs/room-stage-layout-design.md）：第几段、准备 / 收稿名单与倒计时。
+ * 轮流讲故事进行中阶段的信息条（docs/room-stage-layout-design.md）：第几段、准备 / 收稿名单与倒计时。
  * 纯投影，名单分组取自共享座位数据源（座位状态徽标）。
  */
 

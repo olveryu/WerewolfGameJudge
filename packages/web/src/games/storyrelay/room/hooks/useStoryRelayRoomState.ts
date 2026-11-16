@@ -44,7 +44,7 @@ import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommand
 import { createStoryRelayStageHud } from '../storyRelayStageHud';
 
 /**
- * 故事接龙房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
+ * 轮流讲故事房间 Screen 的显式契约（P-2b，对齐狼人杀 WerewolfRoomScreenState 形态）：
  * Screen 无本地推导（仅透传字段给 StoryRelayStage），阶段截止 tick 与信息条也在本 hook 内组装，
  * 本接口把 hook 返回钉死防回潮。阶段组件 StoryRelayStage 的内部交互状态属组件自身，不在此列。
  */
@@ -98,7 +98,7 @@ export function useStoryRelayRoomState(
   const { controlledSeat, effectiveSeat } = bots;
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
-    gameDisplayName: '故事接龙',
+    gameDisplayName: '轮流讲故事',
     isHost,
     entryReason: props.entryReason,
   });
@@ -118,7 +118,7 @@ export function useStoryRelayRoomState(
     configureGame: () => void navigate(gameConfigEditPath('storyrelay', room.roomCode)),
     shareRoom: share.open,
   });
-  const gameDetails = useGameProfileDetails(profile.selection, '故事接龙战绩', '本游戏局数');
+  const gameDetails = useGameProfileDetails(profile.selection, '轮流讲故事战绩', '本游戏局数');
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
     canTakeOverBots: bots.capability,

@@ -48,7 +48,12 @@ export async function startRoomCreation(page: Page, gameType: GameType): Promise
 /** Select a visible catalog-backed game mode. */
 export async function selectGameMode(page: Page, gameType: GameType): Promise<void> {
   await expect(page.getByTestId(TESTIDS.gameModePickerModal)).toBeVisible();
-  await page.getByTestId(TESTIDS.gameModePickerOption(gameType)).click();
+  const option = page.getByTestId(TESTIDS.gameModePickerOption(gameType));
+  // The picker shows one tier tab at a time; mini games hide behind the 小游戏 tab.
+  if (!(await option.isVisible())) {
+    await page.getByTestId(TESTIDS.gameModePickerTab('mini')).click();
+  }
+  await option.click();
 }
 
 /**

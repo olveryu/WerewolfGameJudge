@@ -1,4 +1,4 @@
-/** 故事接龙命令失败文案：每个引擎英文码都映射到原中文文案，不落通用兜底。 */
+/** 轮流讲故事命令失败文案：每个引擎英文码都映射到原中文文案，不落通用兜底。 */
 
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
 
@@ -8,7 +8,7 @@ import { getStoryRelayRoomCommandFailureMessage } from '../storyRelayRoomCommand
 
 describe('getStoryRelayRoomCommandFailureMessage', () => {
   it.each([
-    ['storyrelay_config_invalid', '故事接龙配置无效'],
+    ['storyrelay_config_invalid', '轮流讲故事配置无效'],
     ['storyrelay_phase_invalid', '当前阶段不能执行此操作'],
     ['storyrelay_task_changed', '故事任务已变化，请刷新后重试'],
     ['storyrelay_already_submitted', '本棒已收稿'],

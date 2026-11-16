@@ -11,6 +11,7 @@ export const drawGuessHome = {
     subtitle: '一人作画，其余人聊天框猜词',
     Icon: IconPencilOutline,
     tier: 'mini',
+    family: { id: 'drawguess', displayName: '你画我猜' },
     gradient: [lighten(colors.success, 0.5), colors.success],
     artUrl: drawguessArt,
   },

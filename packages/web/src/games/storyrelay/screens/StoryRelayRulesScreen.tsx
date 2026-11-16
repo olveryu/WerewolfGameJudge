@@ -12,7 +12,7 @@ import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/
 export function StoryRelayRulesScreen() {
   return (
     <GameGuide
-      title="故事接龙玩法"
+      title="轮流讲故事玩法"
       heading="把故事交给下一个人"
       intro="每人写一个开头，再接着上一段续写。等所有人写完，一起揭晓故事变成了什么。"
     >

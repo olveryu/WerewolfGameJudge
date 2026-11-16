@@ -11,6 +11,7 @@ export const pictionaryHome = {
     subtitle: '画与猜轮流传递，结局一起揭晓',
     Icon: IconBrushOutline,
     tier: 'mini',
+    family: { id: 'drawguess', displayName: '你画我猜' },
     gradient: [lighten(colors.god, 0.5), colors.god],
     artUrl: pictionaryArt,
   },
