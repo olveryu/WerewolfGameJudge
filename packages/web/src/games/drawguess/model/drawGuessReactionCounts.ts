@@ -15,7 +15,7 @@ export const EMPTY_DRAWGUESS_REACTION_COUNTS: DrawGuessReactionCounts = {
   tomato: 0,
 };
 
-/** Counts reactions received by the drawer in one turn, keyed by their sender seats. */
+/** Counts one turn's reactions by type; the drawer is the recipient. */
 export function countDrawGuessRoundReactionReceipts(
   reactionsBySeat: Readonly<Record<number, DrawGuessReaction>>,
 ): DrawGuessReactionCounts {
@@ -41,4 +41,8 @@ export function countDrawGuessReactionReceiptsByDrawer(
     };
   }
   return countsByDrawer;
+}
+
+export function formatDrawGuessReactionCounts(counts: DrawGuessReactionCounts): string {
+  return `鲜花 ${counts.flower} · 鸡蛋 ${counts.egg} · 番茄 ${counts.tomato}`;
 }

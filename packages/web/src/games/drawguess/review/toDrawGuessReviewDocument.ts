@@ -30,6 +30,12 @@ import type {
 } from '@/features/room/review/types';
 
 import {
+  countDrawGuessReactionReceiptsByDrawer,
+  countDrawGuessRoundReactionReceipts,
+  EMPTY_DRAWGUESS_REACTION_COUNTS,
+  formatDrawGuessReactionCounts,
+} from '../model/drawGuessReactionCounts';
+import {
   DRAWGUESS_BOT_TAG,
   DRAWGUESS_DRAWER_ZEROED_DETAIL,
   DRAWGUESS_DRAWER_ZEROED_TITLE,
@@ -57,6 +63,7 @@ interface Standing {
   readonly isBot: boolean;
   readonly totalScore: number;
   readonly rank: number;
+  readonly reactionCounts: ReturnType<typeof countDrawGuessRoundReactionReceipts>;
 }
 
 /** A seated player's display name; every seat of a finished game is occupied. */
@@ -69,12 +76,14 @@ function seatName(state: DrawGuessState, seat: number): string {
 }
 
 function rankStandings(state: DrawGuessState, phase: EndedPhase): readonly Standing[] {
+  const reactionCountsByDrawer = countDrawGuessReactionReceiptsByDrawer(state.turnHistory);
   const entries = Array.from({ length: state.config.numberOfPlayers }, (_, seat) => ({
     seat,
     name: seatName(state, seat),
     isBot: isBotSeat(state.roster, seat),
     // The engine's totals list only seats that scored; every other seat finished on 0.
     totalScore: phase.totalScores[seat] ?? 0,
+    reactionCounts: reactionCountsByDrawer[seat] ?? EMPTY_DRAWGUESS_REACTION_COUNTS,
   }));
   return rankDrawGuessScores(entries);
 }
@@ -95,6 +104,7 @@ function standingsPage(standings: readonly Standing[], isOnlyPage: boolean): Roo
     seat: standing.seat,
     name: standing.name,
     scoreText: formatDrawGuessScore(standing.totalScore),
+    detail: `本局收到：${formatDrawGuessReactionCounts(standing.reactionCounts)}`,
     tag: standing.isBot ? { text: DRAWGUESS_BOT_TAG, tone: 'muted' } : null,
   }));
   return {
@@ -142,6 +152,12 @@ function turnFacts(turn: DrawGuessTurnRecord, drawerName: string): readonly Revi
     { label: '题目', value: turn.word },
     { label: '画手', value: drawerName },
     { label: '猜中人数', value: `${turn.guessedSeats.length} 人` },
+    {
+      label: '本轮收到',
+      value: formatDrawGuessReactionCounts(
+        countDrawGuessRoundReactionReceipts(turn.reactionsBySeat),
+      ),
+    },
   ];
   if (turn.drawerZeroed) {
     facts.push({ label: DRAWGUESS_DRAWER_ZEROED_TITLE, value: DRAWGUESS_DRAWER_ZEROED_DETAIL });

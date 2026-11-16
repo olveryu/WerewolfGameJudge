@@ -5,11 +5,14 @@
 import type { DrawGuessViewModel } from '@game-judge/game-engine/games/drawguess/public';
 
 import {
+  type DrawGuessReactionCounts,
+  formatDrawGuessReactionCounts,
+} from '../../model/drawGuessReactionCounts';
+import {
   DRAWGUESS_BOT_TAG,
   formatDrawGuessScore,
   rankDrawGuessScores,
 } from '../../model/drawGuessResults';
-import type { DrawGuessReactionCounts } from '../drawGuessReactionCounts';
 
 export interface DrawGuessScoreboardRow {
   readonly seat: number;
@@ -90,8 +93,7 @@ export function DrawGuessScoreboard({
               </span>
               {row.reactionCounts !== undefined && reactionCountLabel !== undefined && (
                 <span className="drawguess-scoreboard-reactions">
-                  {reactionCountLabel}：鲜花 {row.reactionCounts.flower} · 鸡蛋{' '}
-                  {row.reactionCounts.egg} · 番茄 {row.reactionCounts.tomato}
+                  {reactionCountLabel}：{formatDrawGuessReactionCounts(row.reactionCounts)}
                 </span>
               )}
             </span>
