@@ -255,7 +255,9 @@ export function useConfigScreenState({
   const roleInfoActiveVariant =
     roleInfoBaseId === null ? undefined : (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId);
 
-  /** Switch variant from within the RoleCardSimple pill bar. */
+  /** Switch variant from within the RoleCardSimple pill bar. Variant choice only: board
+   * membership is decided by the badge or the card's 加入板子 / 移出板子 button, never by
+   * picking a variant. */
   const handleRoleInfoVariantSelect = (variantId: RoleId) => {
     if (roleInfoBaseId === null) {
       throw new Error('[FAIL-FAST] Variant selected without an open role info card');
@@ -264,14 +266,7 @@ export function useConfigScreenState({
       const nextOverrides = { ...prev.variantOverrides };
       if (variantId === roleInfoBaseId) delete nextOverrides[roleInfoBaseId];
       else nextOverrides[roleInfoBaseId] = variantId;
-      return {
-        selection:
-          prev.selection[roleInfoBaseId] === true
-            ? prev.selection
-            : { ...prev.selection, [roleInfoBaseId]: true },
-        variantOverrides: nextOverrides,
-        selectedTemplate: CUSTOM_TEMPLATE,
-      };
+      return { ...prev, variantOverrides: nextOverrides, selectedTemplate: CUSTOM_TEMPLATE };
     });
   };
 

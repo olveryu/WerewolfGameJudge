@@ -114,8 +114,10 @@ export class ConfigPage {
   /**
    * Select a variant role via the role info card's variant pills.
    *
-   * Taps the base chip to open the role info card,
-   * then clicks the variant pill and closes the card.
+   * Taps the base chip to open the role info card, clicks the variant pill, and makes
+   * sure the role ends up on the board: picking a variant no longer adds the role, so
+   * when the card still offers 加入板子, tap it. That button closes the card, so the
+   * 知道了 step only runs when the role was already on the board.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
     // Tap to open role info card
@@ -123,9 +125,14 @@ export class ConfigPage {
     const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
     await expect(option).toHaveAttribute('aria-pressed', 'true');
-    const confirmButton = this.page.getByTestId(TESTIDS.roleCardConfirmButton);
-    await expect(confirmButton).toHaveText('知道了');
-    await confirmButton.click();
+    const boardButton = this.page.getByTestId(TESTIDS.configRoleBoardAction);
+    if ((await boardButton.textContent())?.includes('加入板子')) {
+      await boardButton.click();
+    } else {
+      const confirmButton = this.page.getByTestId(TESTIDS.roleCardConfirmButton);
+      await expect(confirmButton).toHaveText('知道了');
+      await confirmButton.click();
+    }
     await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeHidden();
   }
 

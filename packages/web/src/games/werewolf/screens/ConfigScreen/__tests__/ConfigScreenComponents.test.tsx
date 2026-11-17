@@ -1,4 +1,4 @@
-/** RoleChip and Section: body opens the role info, badge toggles, variant chips wear the 变 mark. */
+/** RoleChip and Section: body opens the role info, badge toggles, variant chips wear the swap icon. */
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { RoleChip } from '@/games/werewolf/screens/ConfigScreen/components/RoleChip';
