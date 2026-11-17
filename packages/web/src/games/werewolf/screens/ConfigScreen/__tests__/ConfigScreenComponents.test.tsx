@@ -45,8 +45,8 @@ describe('RoleChip', () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
-  it('shows the 变 mark on a chip that has variants', () => {
-    render(
+  it('shows the swap icon on a chip that has variants', () => {
+    const { container } = render(
       <RoleChip
         id="witch"
         label="女巫"
@@ -57,13 +57,16 @@ describe('RoleChip', () => {
       />,
     );
 
-    expect(screen.getByText('变')).toBeInTheDocument();
+    expect(screen.queryByText('变')).not.toBeInTheDocument();
+    expect(container.querySelector('.config-role-chip-variant-mark svg')).not.toBeNull();
   });
 
-  it('shows no 变 mark on a chip without variants', () => {
-    render(<RoleChip id="seer" label="预言家" selected onToggle={vi.fn()} faction="god" />);
+  it('shows no variant mark on a chip without variants', () => {
+    const { container } = render(
+      <RoleChip id="seer" label="预言家" selected onToggle={vi.fn()} faction="god" />,
+    );
 
-    expect(screen.queryByText('变')).not.toBeInTheDocument();
+    expect(container.querySelector('.config-role-chip-variant-mark')).toBeNull();
   });
 });
 

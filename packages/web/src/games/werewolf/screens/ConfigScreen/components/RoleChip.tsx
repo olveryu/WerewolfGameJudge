@@ -1,10 +1,11 @@
 /**
  * RoleChip — role selection chip. Selected chips take the section's faction color; chips
- * with variant alternatives wear the 变 mark in the top-left corner. Tapping the chip
+ * with variant alternatives wear the swap icon in the top-left corner. Tapping the chip
  * body opens its role info card; the corner badge toggles the role on/off the board.
  */
 import type { FactionColorKey } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { TESTIDS } from '@/testids';
+import IconSwapHorizontalOutline from '~icons/ion/swap-horizontal-outline';
 
 interface RoleChipProps {
   readonly id: string;
@@ -13,7 +14,7 @@ interface RoleChipProps {
   readonly onToggle: (id: string) => void;
   /** Faction color of the selected state. */
   readonly faction: FactionColorKey;
-  /** Whether this chip has variant alternatives (shows the 变 mark). */
+  /** Whether this chip has variant alternatives (shows the swap icon). */
   readonly hasVariants?: boolean;
   /** Tap handler for showing the role info card. */
   readonly onInfoPress?: (id: string) => void;
@@ -23,7 +24,7 @@ interface RoleChipProps {
  * Role chip component.
  *
  * The body opens the role info card; the corner badge toggles the role. The two buttons are
- * siblings, not nested: a button cannot contain a button. The 变 mark is a decorative
+ * siblings, not nested: a button cannot contain a button. The swap icon is a decorative
  * indicator (pointer-events: none), so it never steals taps from the body.
  */
 export function RoleChip({
@@ -49,7 +50,7 @@ export function RoleChip({
       </button>
       {hasVariants && (
         <span className="config-role-chip-variant-mark" aria-hidden="true">
-          变
+          <IconSwapHorizontalOutline aria-hidden />
         </span>
       )}
       <button
