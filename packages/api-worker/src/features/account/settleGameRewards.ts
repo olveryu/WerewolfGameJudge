@@ -112,7 +112,7 @@ export async function settleGameRewards<T extends { readonly userId: string }>(
   if (!input.settlementId || !Number.isSafeInteger(input.completedAt) || input.completedAt < 0) {
     throw new Error('[FAIL-FAST] Invalid game reward identity');
   }
-  const participantUserIds = [...input.participantUserIds].sort();
+  const participantUserIds = input.participantUserIds.toSorted();
   if (
     new Set(participantUserIds).size !== participantUserIds.length ||
     participantUserIds.some((userId) => !userId)
@@ -125,7 +125,7 @@ export async function settleGameRewards<T extends { readonly userId: string }>(
   const facts =
     gameStats === undefined
       ? undefined
-      : [...gameStats.facts].sort((a, b) =>
+      : gameStats.facts.toSorted((a, b) =>
           a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0,
         );
   if (

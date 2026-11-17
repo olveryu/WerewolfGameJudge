@@ -413,9 +413,9 @@ function derivePendingReveal(
   viewerSeat: number | null,
 ): WerewolfPendingReveal | null {
   if (viewerSeat === null || state.pendingRevealAcks.length === 0) return null;
-  const action = [...state.actions]
-    .reverse()
-    .find((candidate) => state.pendingRevealAcks.includes(candidate.schemaId));
+  const action = state.actions.findLast((candidate) =>
+    state.pendingRevealAcks.includes(candidate.schemaId),
+  );
   if (action === undefined || action.actorSeat !== viewerSeat) return null;
   const schema = getSchema(action.schemaId);
   const ui = schema.kind !== 'compound' ? schema.ui : undefined;

@@ -163,8 +163,8 @@ const STORY_RELAY_TASK_HOOKS: RelayTaskHooks<
         paragraphsBySeat.set(entry.authorSeat, (paragraphsBySeat.get(entry.authorSeat) ?? 0) + 1);
       }
     }
-    const humans = [...state.participants]
-      .sort((left, right) => left.seat - right.seat)
+    const humans = state.participants
+      .toSorted((left, right) => left.seat - right.seat)
       .flatMap((participant) =>
         participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
       );

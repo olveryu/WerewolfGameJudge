@@ -124,8 +124,8 @@ function collectHumanParticipants(effect: WerewolfGameEndedEffect): readonly Hum
 }
 
 async function createParticipantFingerprint(effect: WerewolfGameEndedEffect): Promise<string> {
-  const participants = [...effect.payload.participants]
-    .sort(compareUserIds)
+  const participants = effect.payload.participants
+    .toSorted(compareUserIds)
     .map(({ userId, role }) => ({ userId, role }));
   return sha256Hex(JSON.stringify({ roomCode: effect.payload.roomCode, participants }));
 }

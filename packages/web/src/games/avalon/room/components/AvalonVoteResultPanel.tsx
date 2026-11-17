@@ -37,7 +37,7 @@ export function AvalonVoteResultPanel({
   isSubmitting,
   onConfirm,
 }: AvalonVoteResultPanelProps) {
-  const orderedSeats = [...seats].sort((a, b) => a.seat - b.seat);
+  const orderedSeats = seats.toSorted((a, b) => a.seat - b.seat);
   const pendingSeats = orderedSeats.filter((seat) => !confirmedSeats.includes(seat.seat));
   const banner = result.approved ? '组队通过' : `组队被否决·第 ${result.rejectStreak} 次`;
   return (

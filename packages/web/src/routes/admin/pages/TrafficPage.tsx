@@ -59,7 +59,7 @@ function TrafficReport({ data }: { data: AdminRequestTraffic }) {
   const [parameters, setParameters] = useSearchParams();
   const errorSort = parameters.get('sort') === 'errors';
   const ascending = parameters.get('order') === 'asc';
-  const routes = [...data.http.routes].sort(
+  const routes = data.http.routes.toSorted(
     (a, b) => (ascending ? 1 : -1) * (errorSort ? a.errorCount - b.errorCount : a.count - b.count),
   );
   function sort(value: string) {

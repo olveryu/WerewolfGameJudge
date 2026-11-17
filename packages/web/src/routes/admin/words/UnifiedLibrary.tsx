@@ -236,7 +236,7 @@ export function UnifiedLibrary({ game }: { game: GameWordGame }) {
           : statusCount(totals.submissions, option.value),
   }));
   const categories = stats.data?.categories ?? [];
-  const sortedCategories = [...categories].sort((left, right) =>
+  const sortedCategories = categories.toSorted((left, right) =>
     CATEGORY_NAME_COLLATOR.compare(left.name, right.name),
   );
   const supplyCategories = sortedCategories.filter(

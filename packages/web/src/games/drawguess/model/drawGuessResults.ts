@@ -21,7 +21,7 @@ export function formatDrawGuessScore(score: number): string {
 export function rankDrawGuessScores<TEntry extends { readonly totalScore: number }>(
   entries: readonly TEntry[],
 ): readonly (TEntry & { readonly rank: number })[] {
-  const sorted = [...entries].sort((a, b) => b.totalScore - a.totalScore);
+  const sorted = entries.toSorted((a, b) => b.totalScore - a.totalScore);
   let rank = 0;
   let previousScore: number | null = null;
   return sorted.map((entry, index) => {

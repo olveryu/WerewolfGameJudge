@@ -58,6 +58,7 @@ function decodeAccountEvent(event: AccountInboxEvent): AccountSettlementEvent | 
         `Undecodable account event dead-lettered (eventId: ${event.eventId}): ${
           error instanceof Error ? error.message : String(error)
         }`,
+        { cause: error },
       ),
       { label: '丢弃无法解码的结算通知', logger: inboxLog, feedback: false },
     );

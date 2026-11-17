@@ -242,6 +242,7 @@ function formatGeneratedFiles(repoRoot, files) {
     const stderr = error.stderr ? String(error.stderr) : String(error);
     throw new Error(
       `prettier failed on the generated files. The game itself is fully generated and registered; fix the formatting (pnpm format:write) instead of re-running new-game, which would now refuse the duplicate id:\n${stderr}`,
+      { cause: error },
     );
   }
   return true;

@@ -56,7 +56,7 @@ export function extendGameTypeLists(content, gameId) {
 export function assertRegistrationGameTypes(sourceContent, expectedGameTypes) {
   const lists = [...sourceContent.matchAll(/game_type IN \(([^)]*)\)/g)];
   if (lists.length === 0) throw new Error('Registration source has no game_type CHECK lists.');
-  const expected = [...expectedGameTypes].sort();
+  const expected = expectedGameTypes.toSorted();
   for (const [, list] of lists) {
     const actual = [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]);
     if (
