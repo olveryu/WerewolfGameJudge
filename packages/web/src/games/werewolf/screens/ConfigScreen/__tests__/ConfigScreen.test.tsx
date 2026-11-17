@@ -134,6 +134,30 @@ describe('ConfigScreen rendering', () => {
     );
   });
 
+  it('switches a variant without adding an unselected role to the board', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+    // Start from a board without the witch: deselect via the badge first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    expect(screen.getByText('11人')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
+
+    // The chip shows the chosen variant, but the role stays off the board.
+    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
+    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByText('11人')).toBeInTheDocument();
+
+    // The remembered variant applies when the role is added later.
+    fireEvent.click(screen.getByRole('button', { name: '加入板子' }));
+    expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
+    expect(screen.getByText('12人')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
+  });
+
   it('opens the role card on a tap and adds the role from the card', () => {
     renderConfigScreen({ presetName: '预女猎白' });
     // Start from a board without the witch: deselect via the badge first.
