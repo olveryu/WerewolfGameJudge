@@ -391,9 +391,12 @@ describe('admin workspace', () => {
     expect(screen.queryByRole('table', { name: 'D1 高消耗查询采样估算' })).not.toBeInTheDocument();
     expect(fetchD1Usage).toHaveBeenCalledOnce();
     await userEvent.click(screen.getByRole('tab', { name: '用量分析' }));
-    expect(screen.getByRole('button', { name: '7 天' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: '7 天' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(
-      screen.getByRole('button', { name: '读取累计 · 估算：3000，查看完整数值' }),
+      await screen.findByRole('button', { name: '读取累计 · 估算：3000，查看完整数值' }),
     ).toBeVisible();
     expect(fetchD1Insights).toHaveBeenCalledTimes(2);
     await userEvent.click(screen.getByRole('button', { name: '按写入' }));

@@ -123,13 +123,13 @@ function game(numberOfPlayers = 4, humanCount = 4) {
 }
 
 describe('DrawGuess engine', () => {
-  it('accepts 4–15 players and rejects configs outside that range', () => {
+  it('accepts 4–20 players and rejects configs outside that range', () => {
     expect(
       drawGuessEngine.createInitialState(
-        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 15 },
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 20 },
         { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
       ).config.numberOfPlayers,
-    ).toBe(15);
+    ).toBe(20);
     expect(() =>
       drawGuessEngine.createInitialState(
         { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 3 },
@@ -138,10 +138,20 @@ describe('DrawGuess engine', () => {
     ).toThrow();
     expect(() =>
       drawGuessEngine.createInitialState(
-        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 16 },
+        { ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 21 },
         { roomCode: '1', hostUserId: 'host', nowMs: 1, commandId: 'c' },
       ),
     ).toThrow();
+  });
+
+  it('starts a full 20-player game and accepts a guess from the last seat', () => {
+    const session = game(20, 20);
+    expect(getDrawGuessOccupiedSeatCount(session.state)).toBe(20);
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.guess(19, '大熊猫');
+    expect(session.state.scores[19]).toBe(200);
+    expect(session.state.phase.kind).toBe('drawing');
   });
 
   it('lets each non-drawer seat react once during drawing and exposes the reaction in the view', () => {
