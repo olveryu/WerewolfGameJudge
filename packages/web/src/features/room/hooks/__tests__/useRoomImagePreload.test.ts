@@ -4,11 +4,11 @@ import { createElement, type ReactNode, StrictMode } from 'react';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import { useRolePortraitPreload } from '../useRolePortraitPreload';
+import { useRoomImagePreload } from '../useRoomImagePreload';
 
 vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 
-describe('useRolePortraitPreload', () => {
+describe('useRoomImagePreload', () => {
   const images: HTMLImageElement[] = [];
 
   beforeEach(() => {
@@ -27,7 +27,7 @@ describe('useRolePortraitPreload', () => {
   });
 
   function mount(urls: readonly string[]) {
-    return renderHook(({ urls }) => useRolePortraitPreload(urls), {
+    return renderHook(({ urls }) => useRoomImagePreload(urls), {
       initialProps: { urls },
     });
   }
@@ -35,6 +35,15 @@ describe('useRolePortraitPreload', () => {
   it('fetches and decodes each candidate at low priority before any card opens', () => {
     mount(['/wolf.webp', '/seer.webp', '/wolf.webp']);
     expect(images.map((image) => image.getAttribute('src'))).toEqual(['/wolf.webp', '/seer.webp']);
+    expect(images.every((image) => image.fetchPriority === 'low')).toBe(true);
+  });
+
+  it('warms non-portrait room art through the same mechanism', () => {
+    mount(['/wolf.webp', '/approve.webp']);
+    expect(images.map((image) => image.getAttribute('src'))).toEqual([
+      '/wolf.webp',
+      '/approve.webp',
+    ]);
     expect(images.every((image) => image.fetchPriority === 'low')).toBe(true);
   });
 
@@ -56,7 +65,7 @@ describe('useRolePortraitPreload', () => {
   });
 
   it('does not repeat requests when StrictMode replays the effect', () => {
-    renderHook(() => useRolePortraitPreload(['/wolf.webp']), {
+    renderHook(() => useRoomImagePreload(['/wolf.webp']), {
       wrapper: ({ children }: { children: ReactNode }) => createElement(StrictMode, null, children),
     });
     expect(HTMLImageElement.prototype.decode).toHaveBeenCalledTimes(1);
@@ -65,7 +74,7 @@ describe('useRolePortraitPreload', () => {
   it('does not suspend the room while decoding is pending', () => {
     vi.mocked(HTMLImageElement.prototype.decode).mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => {
-      useRolePortraitPreload(['/wolf.webp']);
+      useRoomImagePreload(['/wolf.webp']);
       return 'room ready';
     });
     expect(result.current).toBe('room ready');
@@ -77,7 +86,7 @@ describe('useRolePortraitPreload', () => {
     const { rerender } = mount(['/wolf.webp']);
     await waitFor(() => {
       expect(handleError).toHaveBeenCalledWith(error, {
-        label: '预加载角色立绘',
+        label: '预加载房间图片',
         logger: roomScreenLog,
         feedback: false,
       });

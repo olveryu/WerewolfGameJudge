@@ -45,7 +45,7 @@ import {
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
-import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
+import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { useScopedDraft } from '@/features/room/hooks/useScopedDraft';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
@@ -200,7 +200,7 @@ export function useWerewolfRoomState(
   const navigate = useNavigate();
   const ready = useReadyRoomSession(session, getWerewolfRoomCommandFailureMessage);
   const { user, state, revision, submit } = ready;
-  useRolePortraitPreload(getBoardRolePortraits(state.templateRoles));
+  useRoomImagePreload(getBoardRolePortraits(state.templateRoles));
   const isHost = state.hostUserId === user.id;
   const mySeat = getWerewolfUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };

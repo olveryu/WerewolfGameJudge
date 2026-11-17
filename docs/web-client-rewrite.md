@@ -233,7 +233,7 @@ flowchart TB
 - Vite 的 `base` 设为 npmmirror 的版本化地址，代替 CI 里对 JS 和 HTML 的 `sed` 改写（示例应用实测：构建出的 `index.html` 直接引用 CDN 地址）；删除 CanvasKit WASM 的发布步骤。HTML 仍由 Cloudflare Pages 发出（`no-cache`），SPA 回退沿用现有的 `_redirects`。
 - 应用代码全部静态导入，包括所有路由、游戏模块、PixiJS、装饰、翻牌特效、截图和弹窗；只有开发基准页（`/__bench/scene`）内容保持独立异步分块。Replay 已关闭并移除。动态导入位置由 AST 契约固定，构建检查禁止新增应用懒加载入口，也禁止 bench 混入首页静态闭包。PixiJS 自带的未使用 Web Worker 环境分块不是应用入口，浏览器场景不请求它。
 - 代码预先下载不等于立即运行功能：游戏 session、WebSocket、音频服务、WebGL、纹理和弹窗仍按原生命周期创建或挂载；保留等待真实资源的 Suspense。图片和音频仍是独立媒体请求，角色立绘按公开配置在房间里低优先级预取并解码。
-- 角色立绘在房间就绪后按公开板子/配置低优先级预加载并调用 `Image.decode()`（狼人杀、阿瓦隆、谁是卧底、瞎掰王），不根据玩家隐藏身份选择请求。共享 `useRolePortraitPreload` 对重复角色和快照更新去重；失败记录日志、不阻塞翻牌，卡片仍可正常请求图片。其他游戏没有角色立绘，不做额外预加载；慢网下不保证图片一定先于翻牌完成。
+- 角色立绘在房间就绪后按公开板子/配置低优先级预加载并调用 `Image.decode()`（狼人杀、阿瓦隆、谁是卧底、瞎掰王），不根据玩家隐藏身份选择请求。共享 `useRoomImagePreload` 对重复图片和快照更新去重；失败记录日志、不阻塞翻牌，卡片仍可正常请求图片。其他游戏没有角色立绘，不做额外预加载；慢网下不保证图片一定先于翻牌完成。
 - 自己的启动逻辑（微信环境判断、浏览器引导页、JSSDK 加载）放进入口模块，不写内联脚本。
 - 构建目标显式配置，取值由 P0 遥测决定。
 - CI：`packages/web` 接入 Turbo 的 typecheck、lint、test、build 和体积检查。合并时，`deploy-frontend` 从 `scripts/build.sh`（`expo export`）改为 `pnpm --filter @game-judge/web build`。

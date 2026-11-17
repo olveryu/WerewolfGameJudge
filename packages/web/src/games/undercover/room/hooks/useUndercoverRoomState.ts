@@ -22,7 +22,7 @@ import { useReadyRoomSession } from '@/features/room/controllers/useReadyRoomSes
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
-import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
+import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
@@ -85,7 +85,7 @@ export function useUndercoverRoomState({
     session,
     getUndercoverRoomCommandFailureMessage,
   );
-  useRolePortraitPreload(getBoardRolePortraits(state.config.hasBlank));
+  useRoomImagePreload(getBoardRolePortraits(state.config.hasBlank));
   const isHost = state.hostUserId === user.id;
   const mySeat = getUndercoverUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
