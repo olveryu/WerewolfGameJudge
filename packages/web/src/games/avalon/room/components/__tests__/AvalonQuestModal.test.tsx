@@ -89,6 +89,35 @@ describe('AvalonQuestModal', () => {
     expect(queryByTestId('avalon-quest-fail')).toBeNull();
   });
 
+  it('renders the quest artwork as decorative images', () => {
+    const { getByTestId } = renderModal({ myRole: 'minion' });
+    for (const testId of ['avalon-quest-success', 'avalon-quest-fail']) {
+      const image = getByTestId(testId).querySelector('img');
+      expect(image).not.toBeNull();
+      expect(image?.getAttribute('alt')).toBe('');
+      expect(image?.getAttribute('src')).toBeTruthy();
+    }
+  });
+
+  it('uses different artwork for success and fail', () => {
+    const { getByTestId } = renderModal({ myRole: 'minion' });
+    const successSrc = getByTestId('avalon-quest-success')
+      .querySelector('img')
+      ?.getAttribute('src');
+    const failSrc = getByTestId('avalon-quest-fail').querySelector('img')?.getAttribute('src');
+    expect(successSrc).toBeTruthy();
+    expect(failSrc).toBeTruthy();
+    expect(successSrc).not.toBe(failSrc);
+  });
+
+  it('shows the check badge only on the selected play', () => {
+    const { getByTestId } = renderModal({ myRole: 'minion', myPlay: 'fail' });
+    const failBadge = getByTestId('avalon-quest-fail').querySelector('.avalon-choice-check');
+    expect(failBadge).not.toBeNull();
+    expect(failBadge?.textContent).toBe('✓');
+    expect(getByTestId('avalon-quest-success').querySelector('.avalon-choice-check')).toBeNull();
+  });
+
   it('offers both cards to evil players and reports the play', () => {
     const { getByTestId, onPlay } = renderModal({ myRole: 'minion' });
     fireEvent.click(getByTestId('avalon-quest-fail'));

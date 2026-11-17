@@ -48,6 +48,26 @@ describe('AvalonVoteResultPanel', () => {
     expect(getByTestId('avalon-vote-result-banner')).toHaveTextContent('组队被否决·第 2 次');
   });
 
+  it('shows the banner artwork above the banner text', () => {
+    const { getByTestId } = renderPanel();
+    const image = getByTestId('avalon-vote-result-banner-image');
+    expect(image.tagName).toBe('IMG');
+    expect(image.getAttribute('alt')).toBe('');
+    expect(image.getAttribute('src')).toBeTruthy();
+  });
+
+  it('uses different banner artwork for approval and rejection', () => {
+    const approved = renderPanel({ ...REJECTED_RESULT, approved: true, rejectStreak: 0 });
+    const approvedSrc = approved.getByTestId('avalon-vote-result-banner-image').getAttribute('src');
+    approved.unmount();
+    const rejectedSrc = renderPanel()
+      .getByTestId('avalon-vote-result-banner-image')
+      .getAttribute('src');
+    expect(approvedSrc).toBeTruthy();
+    expect(rejectedSrc).toBeTruthy();
+    expect(approvedSrc).not.toBe(rejectedSrc);
+  });
+
   it('shows the approval banner when the team passed', () => {
     const { getByTestId } = renderPanel({ ...REJECTED_RESULT, approved: true, rejectStreak: 0 });
     expect(getByTestId('avalon-vote-result-banner')).toHaveTextContent('组队通过');

@@ -15,9 +15,10 @@ import { TESTIDS } from '@/testids';
 /** 结算面板自动关闭时长（设计稿 412 行"展示后自动进下一阶段"；D4 的"无计时"指游戏逻辑 deadline）。 */
 const RESULT_AUTO_DISMISS_MS = 6000;
 
-/** 结算面板：banner 是对话框标题，outcome 决定横幅颜色。 */
+/** 结算面板：banner 是对话框标题，outcome 决定横幅颜色；有 bannerImageSrc 时标题上方渲染全宽横幅图。 */
 export function AvalonResultDialog({
   banner,
+  bannerImageSrc,
   outcome,
   kind,
   onClose,
@@ -25,6 +26,7 @@ export function AvalonResultDialog({
   children,
 }: {
   readonly banner: string;
+  readonly bannerImageSrc?: string;
   readonly outcome: 'positive' | 'negative';
   /** Which settlement this is; keys the panel / banner / close test ids. */
   readonly kind: 'vote' | 'quest';
@@ -65,6 +67,15 @@ export function AvalonResultDialog({
             data-kind={kind}
             data-testid={TESTIDS.avalonResultPanel(kind)}
           >
+            {bannerImageSrc !== undefined && (
+              <img
+                src={bannerImageSrc}
+                alt=""
+                decoding="async"
+                className="avalon-result-banner-image"
+                data-testid={TESTIDS.avalonResultBannerImage(kind)}
+              />
+            )}
             {kind === 'vote' && <p className="avalon-vote-result-eyebrow">圆桌投票</p>}
             <Dialog.Title
               className="avalon-result-banner"

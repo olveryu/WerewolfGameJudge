@@ -1,3 +1,11 @@
+.avalon-result-banner-image {
+  display: block;
+  width: 100%;
+  height: calc(var(--size-button-lg) * 3);
+  object-fit: cover;
+  border-radius: var(--radius-large);
+}
+
 .avalon-result-banner {
   margin: 0;
   font-size: var(--font-title);

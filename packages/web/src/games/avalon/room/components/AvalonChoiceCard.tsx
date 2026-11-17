@@ -1,21 +1,17 @@
-/** 阿瓦隆投票 / 出牌的大卡片按钮：点选即上报，已选中的那张高亮。 */
+/** 阿瓦隆投票 / 出牌的圆桌卡牌按钮：竖版插画卡，点选即上报，已选中的那张上浮 + 金边 + 打勾角标。 */
 import './AvalonStageModal.css';
-
-import type { ReactElement } from 'react';
 
 /** 大卡片按钮；selected 映射 aria-pressed，提交中禁用防重复提交。 */
 export function AvalonChoiceCard({
   label,
-  icon,
-  tone,
+  imageSrc,
   isSelected,
   isDisabled,
   testId,
   onClick,
 }: {
   readonly label: string;
-  readonly icon: ReactElement;
-  readonly tone: 'light' | 'dark' | 'gold';
+  readonly imageSrc: string;
   readonly isSelected: boolean;
   readonly isDisabled: boolean;
   readonly testId: string;
@@ -25,14 +21,18 @@ export function AvalonChoiceCard({
     <button
       type="button"
       className="avalon-choice-card"
-      data-tone={tone}
       aria-pressed={isSelected}
       disabled={isDisabled}
       data-testid={testId}
       onClick={onClick}
     >
-      {icon}
-      <span>{label}</span>
+      <img src={imageSrc} alt="" decoding="async" className="avalon-choice-image" />
+      {isSelected && (
+        <span className="avalon-choice-check" aria-hidden="true">
+          ✓
+        </span>
+      )}
+      <span className="avalon-choice-label">{label}</span>
     </button>
   );
 }

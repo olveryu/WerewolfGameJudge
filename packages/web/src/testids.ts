@@ -200,6 +200,7 @@ export const TESTIDS = {
   // Avalon settlement panels (kind: vote | quest)
   avalonResultPanel: (kind: 'vote' | 'quest') => `avalon-${kind}-result-panel`,
   avalonResultBanner: (kind: 'vote' | 'quest') => `avalon-${kind}-result-banner`,
+  avalonResultBannerImage: (kind: 'vote' | 'quest') => `avalon-${kind}-result-banner-image`,
   avalonResultClose: (kind: 'vote' | 'quest') => `avalon-${kind}-result-close`,
   avalonVoteResultCounts: 'avalon-vote-result-counts',
   avalonVoteResultSummary: 'avalon-vote-result-summary',

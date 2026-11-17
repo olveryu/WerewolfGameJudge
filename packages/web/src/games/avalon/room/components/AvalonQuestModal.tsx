@@ -12,10 +12,9 @@ import { CenterDialog } from '@/components/CenterDialog';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
-import IconSkullOutline from '~icons/ion/skull-outline';
-import IconTrophyOutline from '~icons/ion/trophy-outline';
 
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
 import { formatAvalonRoundLabel, resolveQuestInstruction } from '../policy/avalonInteractionPolicy';
 import { AvalonChoiceCard } from './AvalonChoiceCard';
 
@@ -86,8 +85,7 @@ export function AvalonQuestModal({
           {instruction.availableCards.includes('success') && (
             <AvalonChoiceCard
               label="成功"
-              icon={<IconTrophyOutline className="avalon-choice-icon" aria-hidden />}
-              tone="gold"
+              imageSrc={avalonVoteSuccessImage}
               isSelected={instruction.myPlay === 'success'}
               isDisabled={isSubmitting}
               testId={TESTIDS.avalonQuestSuccess}
@@ -97,8 +95,7 @@ export function AvalonQuestModal({
           {instruction.availableCards.includes('fail') && (
             <AvalonChoiceCard
               label="失败"
-              icon={<IconSkullOutline className="avalon-choice-icon" aria-hidden />}
-              tone="dark"
+              imageSrc={avalonVoteFailImage}
               isSelected={instruction.myPlay === 'fail'}
               isDisabled={isSubmitting}
               testId={TESTIDS.avalonQuestFail}
