@@ -486,13 +486,13 @@ export function handleBoardNominate(
   }
 
   // ── Dedup: compare roles of existing nominations after sorting ──
-  const sortedRoles = [...intent.payload.roles].sort();
+  const sortedRoles = intent.payload.roles.toSorted();
   const nominations = state.boardNominations;
   if (nominations) {
     for (const [existingUid, nom] of Object.entries(nominations)) {
       // Same user -> use override logic (existing behavior)
       if (existingUid === intent.payload.userId) continue;
-      const existingSorted = [...nom.roles].sort();
+      const existingSorted = nom.roles.toSorted();
       if (
         existingSorted.length === sortedRoles.length &&
         existingSorted.every((r, i) => r === sortedRoles[i])

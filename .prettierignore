@@ -10,5 +10,5 @@ functions/types.d.ts
 .venv
 tsconfig.json
 *.log
-.agents/skills/impeccable/**
+.agents/skills/modern-web-guidance/**
 scripts/word-review-eval/data

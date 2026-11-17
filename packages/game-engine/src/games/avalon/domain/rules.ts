@@ -96,7 +96,7 @@ export function isAvalonBoardCompositionValid(
   const seats = Object.keys(roles).map(Number);
   if (seats.length !== numberOfPlayers) return false;
   if (!seats.every((seat, index) => seat === index)) return false;
-  const dealt = seats.map((seat) => roles[seat]!).sort();
-  const expected = [...AVALON_BOARDS[numberOfPlayers]].sort();
+  const dealt = seats.map((seat) => roles[seat]!).toSorted();
+  const expected = AVALON_BOARDS[numberOfPlayers].toSorted();
   return dealt.length === expected.length && dealt.every((role, index) => role === expected[index]);
 }

@@ -130,7 +130,7 @@ export function RoomsPage() {
                     caption="房间目录"
                     tableClassName="admin-room-table"
                     columns={columns}
-                    rows={[...data.rooms].sort(
+                    rows={data.rooms.toSorted(
                       (a, b) => Number(b.status === 'failed') - Number(a.status === 'failed'),
                     )}
                     rowKey={(room) => room.id}

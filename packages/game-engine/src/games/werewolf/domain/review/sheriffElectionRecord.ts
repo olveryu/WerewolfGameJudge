@@ -71,8 +71,8 @@ export function deriveSheriffRoundRecord(round: SheriffElectionRoundResult): She
     }
     ballots.set(voterSeat, ballot);
   }
-  const perCandidate = [...round.candidateSeats]
-    .sort((a, b) => a - b)
+  const perCandidate = round.candidateSeats
+    .toSorted((a, b) => a - b)
     .map((seat) => {
       const voterSeats = round.eligibleVoterSeats
         .filter((voterSeat) => ballots.get(voterSeat) === seat)

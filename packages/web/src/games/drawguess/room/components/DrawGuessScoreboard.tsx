@@ -69,8 +69,8 @@ export function DrawGuessScoreboard({
 }: DrawGuessScoreboardProps) {
   const ranked = competitionRanking
     ? rankDrawGuessScores(rows)
-    : [...rows]
-        .sort((a, b) => b.totalScore - a.totalScore)
+    : rows
+        .toSorted((a, b) => b.totalScore - a.totalScore)
         .map((row, index) => ({ ...row, rank: index + 1 }));
   return (
     <section className="drawguess-panel drawguess-scoreboard" aria-label={title}>

@@ -447,12 +447,12 @@ function normalizeNightInfo(info: {
 }) {
   const evilPeers: Record<number, readonly number[]> = {};
   for (const key of Object.keys(info.evilPeers).sort()) {
-    evilPeers[Number(key)] = [...info.evilPeers[Number(key)]!].sort((a, b) => a - b);
+    evilPeers[Number(key)] = info.evilPeers[Number(key)]!.toSorted((a, b) => a - b);
   }
   return {
     evilPeers,
-    merlinSees: [...info.merlinSees].sort((a, b) => a - b),
-    percivalSees: [...info.percivalSees].sort((a, b) => a - b),
+    merlinSees: info.merlinSees.toSorted((a, b) => a - b),
+    percivalSees: info.percivalSees.toSorted((a, b) => a - b),
   };
 }
 

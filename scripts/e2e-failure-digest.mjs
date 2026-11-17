@@ -502,7 +502,7 @@ export function renderLedgerBody(rows, today) {
   } else {
     parts.push('（暂无）');
   }
-  const canonical = [...rows].sort((a, b) => a.key.localeCompare(b.key));
+  const canonical = rows.toSorted((a, b) => a.key.localeCompare(b.key));
   parts.push('', `${LEDGER_STATE_PREFIX}${JSON.stringify(canonical)} -->`);
   return parts.join('\n');
 }

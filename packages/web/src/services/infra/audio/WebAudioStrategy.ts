@@ -252,6 +252,7 @@ export class WebAudioStrategy {
         settle(
           new Error(
             `WEB resume play() rejected: ${error instanceof Error ? error.message : String(error)}`,
+            { cause: error },
           ),
         );
       });

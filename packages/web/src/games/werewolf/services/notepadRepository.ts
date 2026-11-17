@@ -49,8 +49,8 @@ function requireObject(value: unknown, label: string): JsonObject {
 }
 
 function assertExactKeys(value: JsonObject, expected: readonly string[], label: string): void {
-  const actual = Object.keys(value).sort();
-  const canonicalExpected = [...expected].sort();
+  const actual = Object.keys(value).toSorted();
+  const canonicalExpected = expected.toSorted();
   if (
     actual.length !== canonicalExpected.length ||
     actual.some((key, index) => key !== canonicalExpected[index])

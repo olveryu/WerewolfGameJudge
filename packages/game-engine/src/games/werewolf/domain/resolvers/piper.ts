@@ -53,7 +53,7 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
 
   return {
     valid: true,
-    updates: { hypnotizedSeats: [...targets].sort((a, b) => a - b) },
+    updates: { hypnotizedSeats: targets.toSorted((a, b) => a - b) },
   };
 };
 
