@@ -8,7 +8,7 @@ import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalo
 
 import { TESTIDS } from '@/testids';
 
-import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { formatAvalonRoundLabel } from '../policy/avalonInteractionPolicy';
 import { AvalonResultDialog } from './AvalonResultDialog';
 

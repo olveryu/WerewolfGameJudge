@@ -13,8 +13,8 @@ import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
 
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
-import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
 import { formatAvalonRoundLabel, resolveQuestInstruction } from '../policy/avalonInteractionPolicy';
 import { AvalonChoiceCard } from './AvalonChoiceCard';
 

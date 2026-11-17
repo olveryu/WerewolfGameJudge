@@ -12,7 +12,7 @@ import type {
 
 import { TESTIDS } from '@/testids';
 
-import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { AvalonResultDialog } from './AvalonResultDialog';
 
 const BALLOT_LABEL: Record<AvalonBallot, string> = {

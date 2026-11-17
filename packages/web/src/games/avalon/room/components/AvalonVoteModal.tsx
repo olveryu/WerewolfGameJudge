@@ -15,8 +15,8 @@ import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
 
+import { avalonVoteApproveImage, avalonVoteRejectImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
-import { avalonVoteApproveImage, avalonVoteRejectImage } from '../avalonVoteImages';
 import { formatAvalonRoundLabel, resolveVoteInstruction } from '../policy/avalonInteractionPolicy';
 import { AvalonChoiceCard } from './AvalonChoiceCard';
 

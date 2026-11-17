@@ -27,7 +27,7 @@ import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/us
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
-import { useRolePortraitPreload } from '@/features/room/hooks/useRolePortraitPreload';
+import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -104,7 +104,7 @@ export function useFibRoomState({
     session,
     getFibRoomCommandFailureMessage,
   );
-  useRolePortraitPreload(FIBKING_ROLE_PORTRAITS);
+  useRoomImagePreload(FIBKING_ROLE_PORTRAITS);
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
   const viewer = useMemo(
