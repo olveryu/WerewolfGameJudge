@@ -16,11 +16,11 @@ import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardMo
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
-//#cap !identityViewing
+//#cap stageDeadline
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 //#end
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-//#cap !identityViewing
+//#cap stageDeadline
 import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 //#end
 //#cap identityViewing
@@ -136,6 +136,19 @@ function __GAME_PASCAL__StageArea({ screen }: { readonly screen: __GAME_PASCAL__
   });
   return (
     <section className="__GAME_ID__-stage">
+//#cap stageDeadline
+      <__GAME_PASCAL__StageDeadlineControls
+        screen={screen}
+        title={
+          phase.kind === 'viewing'
+            ? '身份查看'
+            : phase.kind === 'ended'
+              ? '本局已结束'
+              : '对局进行中'
+        }
+      />
+//#end
+//#cap !stageDeadline
       <h2 className="__GAME_ID__-stage-title">
         {phase.kind === 'viewing'
           ? '身份查看'
@@ -143,6 +156,7 @@ function __GAME_PASCAL__StageArea({ screen }: { readonly screen: __GAME_PASCAL__
             ? '本局已结束'
             : '对局进行中'}
       </h2>
+//#end
       <p className="__GAME_ID__-stage-hint">
         {phase.kind === 'viewing'
           ? '点下方按钮查看你的身份；全员查看完后由房主开始游戏。'
@@ -173,10 +187,35 @@ function __GAME_PASCAL__StageArea({ screen }: { readonly screen: __GAME_PASCAL__
   const phase = screen.state.phase;
   return (
     <section className="__GAME_ID__-stage">
+//#cap stageDeadline
+      <__GAME_PASCAL__StageDeadlineControls
+        screen={screen}
+        title={phase.kind === 'ended' ? '本局已结束' : '舞台进行中'}
+      />
+//#end
+//#cap !stageDeadline
+      <h2 className="__GAME_ID__-stage-title">
+        {phase.kind === 'ended' ? '本局已结束' : '舞台进行中'}
+      </h2>
+//#end
+      <p className="__GAME_ID__-stage-hint">TODO(gameplay):玩法阶段界面随玩法状态机落地。</p>
+    </section>
+  );
+}
+//#end
+
+//#cap stageDeadline
+function __GAME_PASCAL__StageDeadlineControls({
+  screen,
+  title,
+}: {
+  readonly screen: __GAME_PASCAL__RoomScreenState;
+  readonly title: string;
+}) {
+  return (
+    <>
       <div className="__GAME_ID__-stage-header">
-        <h2 className="__GAME_ID__-stage-title">
-          {phase.kind === 'ended' ? '本局已结束' : '舞台进行中'}
-        </h2>
+        <h2 className="__GAME_ID__-stage-title">{title}</h2>
         {screen.remainingSeconds !== null && (
           <span className="__GAME_ID__-stage-countdown" role="timer" aria-label="本阶段剩余时间">
             {formatCountdownSeconds(screen.remainingSeconds)}
@@ -191,8 +230,7 @@ function __GAME_PASCAL__StageArea({ screen }: { readonly screen: __GAME_PASCAL__
         onRetry={() => void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' })}
         waitingLabel="等待推进…"
       />
-      <p className="__GAME_ID__-stage-hint">TODO(gameplay):玩法阶段界面随玩法状态机落地。</p>
-    </section>
+    </>
   );
 }
 //#end

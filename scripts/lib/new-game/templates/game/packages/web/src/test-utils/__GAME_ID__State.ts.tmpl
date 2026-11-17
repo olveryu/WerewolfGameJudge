@@ -16,10 +16,14 @@ import type { ReviewTestRounds } from './reviewTestRounds';
 
 type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 
-function context(userId: string, commandId: string): CommandContext {
+function context(
+  userId: string,
+  commandId: string,
+  controlledSeat: number | null = null,
+): CommandContext {
   return {
     actor: { kind: 'user', userId },
-    controlledSeat: null,
+    controlledSeat,
     nowMs: 1000,
     commandId,
     randomSeed: 'seed',
@@ -31,8 +35,13 @@ export function drive__GAME_PASCAL__TestCommand(
   state: __GAME_PASCAL__State,
   command: __GAME_PASCAL__Command,
   userId = 'host',
+  controlledSeat: number | null = null,
 ): __GAME_PASCAL__State {
-  const decision = __GAME_CAMEL__Engine.decide(state, command, context(userId, command.type));
+  const decision = __GAME_CAMEL__Engine.decide(
+    state,
+    command,
+    context(userId, command.type, controlledSeat),
+  );
   if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
   return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
 }
@@ -63,7 +72,23 @@ export function start__GAME_PASCAL__TestGame(from: __GAME_PASCAL__State): __GAME
   state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.roles.assign' });
   state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.role.viewed' });
   state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.role.viewed' }, 'u1');
+//#cap botBulkViewing
   state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !botBulkViewing
+  state = drive__GAME_PASCAL__TestCommand(
+    state,
+    { type: '__GAME_ID__.role.viewed' },
+    'host',
+    2,
+  );
+  state = drive__GAME_PASCAL__TestCommand(
+    state,
+    { type: '__GAME_ID__.role.viewed' },
+    'host',
+    3,
+  );
+//#end
 //#end
   return drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.game.begin' });
 }

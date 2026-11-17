@@ -12,7 +12,6 @@ import {
 } from '../platform/gameModules/workerModule';
 import type { WordSubmissionAdapter } from '../platform/wordSupply/submissionAdapter';
 import { avalonWorkerModule } from './avalon/module';
-import { demoWorkerModule } from './demo/module';
 import { drawGuessWorkerModule } from './drawguess/module';
 import { drawGuessSubmissionAdapter } from './drawguess/wordSubmissions';
 import { cleanupFibWordAudit } from './fibking/maintenance';
@@ -49,7 +48,6 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   pictionary: registerWorkerGameModule(pictionaryWorkerModule),
   undercover: registerWorkerGameModule(undercoverWorkerModule),
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
-  demo: registerWorkerGameModule(demoWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

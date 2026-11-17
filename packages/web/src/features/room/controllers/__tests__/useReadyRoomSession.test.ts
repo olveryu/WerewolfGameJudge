@@ -25,11 +25,11 @@ vi.mock('@/utils/alertPresets', async (importOriginal) => ({
   showErrorAlert: vi.fn(),
 }));
 
-type TestState = BaseGameState<'demo'>;
-type TestCommand = { readonly type: 'demo.noop' };
+type TestState = BaseGameState<'avalon'>;
+type TestCommand = { readonly type: 'avalon.noop' };
 
 const state: TestState = {
-  gameType: 'demo',
+  gameType: 'avalon',
   stateVersion: 1,
   roomCode: '1234',
   hostUserId: 'host',
@@ -47,8 +47,8 @@ const user: User = {
   seatAnimation: null,
   isAnonymous: true,
 };
-const ready = readyLinkSnapshot<TestState>(testIdentity('demo'), {
-  gameType: 'demo',
+const ready = readyLinkSnapshot<TestState>(testIdentity('avalon'), {
+  gameType: 'avalon',
   stateVersion: 1,
   revision: 7,
   state,
@@ -72,7 +72,7 @@ describe('useReadyRoomSession', () => {
 
   it('fails fast when the session is not ready', () => {
     const link = createFakeRoomLink<TestState, TestCommand>(
-      enteringLinkSnapshot<TestState>(testIdentity('demo')),
+      enteringLinkSnapshot<TestState>(testIdentity('avalon')),
     );
     expect(() => renderHook(() => useReadyRoomSession(link, failureMessage))).toThrow(
       '[FAIL-FAST] Room session is not ready: entering',
@@ -94,21 +94,21 @@ describe('useReadyRoomSession', () => {
     const { result } = renderHook(() => useReadyRoomSession(link, failureMessage));
     let ok = false;
     await act(async () => {
-      ok = await result.current.submit('测试', { type: 'demo.noop' }, { controlledSeat: 3 });
+      ok = await result.current.submit('测试', { type: 'avalon.noop' }, { controlledSeat: 3 });
     });
     expect(ok).toBe(true);
     expect(link.dispatch).toHaveBeenCalledWith(
-      { type: 'demo.noop' },
+      { type: 'avalon.noop' },
       { controlledSeat: 3, label: '测试', durable: false },
     );
 
     link.dispatch.mockImplementation(async () => rejectedRoomCommand('nope', 'c2'));
     await act(async () => {
-      ok = await result.current.submit('测试', { type: 'demo.noop' });
+      ok = await result.current.submit('测试', { type: 'avalon.noop' });
     });
     expect(ok).toBe(false);
     expect(link.dispatch).toHaveBeenLastCalledWith(
-      { type: 'demo.noop' },
+      { type: 'avalon.noop' },
       { controlledSeat: null, label: '测试', durable: false },
     );
     expect(showErrorAlert).toHaveBeenCalledWith('测试失败', '测试失败文案');

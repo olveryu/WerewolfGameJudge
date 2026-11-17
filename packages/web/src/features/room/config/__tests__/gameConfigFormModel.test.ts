@@ -29,6 +29,14 @@ const SCHEMA: GameConfigSchema<SampleConfig> = {
       : null,
 };
 
+const WIDE_PLAYER_COUNT_SCHEMA: GameConfigSchema<{ readonly numberOfPlayers: number }> = {
+  fields: {
+    numberOfPlayers: { kind: 'count', label: '玩家人数', min: 4, max: 20 },
+  },
+  defaults: { numberOfPlayers: 6 },
+  validate: () => null,
+};
+
 describe('parseCountDraft', () => {
   it.each([
     ['6', 6],

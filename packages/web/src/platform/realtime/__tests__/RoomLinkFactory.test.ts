@@ -27,7 +27,7 @@ function bind(link: FakeLink | undefined, roomCode: string, userId: string): Fak
     room: {
       roomCode,
       roomId: `room-${roomCode}`,
-      gameType: 'demo',
+      gameType: 'avalon',
       hostUserId: userId,
       createdAt: new Date(0),
     },
@@ -43,7 +43,7 @@ describe('createRoomLinkFactory releaseOutside', () => {
 
   it('keeps the link of the route room and user and closes the rest', () => {
     const factory = createRoomLinkFactory({ onInboxWake: vi.fn() });
-    const codec = { gameType: 'demo' } as never;
+    const codec = { gameType: 'avalon' } as never;
     factory.create(codec);
     factory.create(codec);
     factory.create(codec);
@@ -60,7 +60,7 @@ describe('createRoomLinkFactory releaseOutside', () => {
 
   it('closes the room link once the user changes or the route leaves the room', () => {
     const factory = createRoomLinkFactory({ onInboxWake: vi.fn() });
-    factory.create({ gameType: 'demo' } as never);
+    factory.create({ gameType: 'avalon' } as never);
     const link = bind(FakeLink.created[0], '1234', 'user-1');
 
     factory.releaseOutside({ roomCode: '1234', userId: 'user-2' });

@@ -85,7 +85,7 @@ describe('ReviewDocumentView page chrome', () => {
   it('fails fast on a page the document does not have', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderPage(reviewDocument(), { pageIndex: 3 })).toThrow(
-      '[FAIL-FAST] Review demo-1234-1 has no page 3',
+      '[FAIL-FAST] Review room-1234-1 has no page 3',
     );
   });
 });

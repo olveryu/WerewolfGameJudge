@@ -483,7 +483,7 @@ export const fibEngine = {
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   createInitialState: createInitialFibState,
   decide: decideFibCommand,

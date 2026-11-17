@@ -211,7 +211,7 @@ export function editExpectedCapabilities(content, { gameId, capabilities }) {
     'wordLibrary',
     'gallery',
     'hostConfig',
-    'botTestScaffold',
+    'botBulkViewing',
   ];
   const row = [
     `  ${gameId}: {`,
@@ -303,7 +303,7 @@ export function editWorkerCatalog(content, { gameId, camel }) {
 }
 
 /** Register the game's Home contribution in the exhaustive web client catalog. */
-export function editClientCatalog(content, { gameId, camel, pascal, businessStats }) {
+export function editClientCatalog(content, { gameId, camel, pascal }) {
   const file = 'packages/web/src/games/catalog.ts';
   if (content.includes(`'@/games/${gameId}/home'`))
     fail(file, `'${gameId}' is already in the client catalog.`);
@@ -312,11 +312,7 @@ export function editClientCatalog(content, { gameId, camel, pascal, businessStat
     content,
     [
       `import { ${camel}Home } from '@/games/${gameId}/home';`,
-      ...(businessStats
-        ? [
-            `import { ${pascal}StatsPanel } from '@/games/${gameId}/components/${pascal}StatsPanel';`,
-          ]
-        : []),
+      `import { ${pascal}StatsPanel } from '@/games/${gameId}/components/${pascal}StatsPanel';`,
     ],
     /^@\/games\//,
   );
@@ -325,7 +321,7 @@ export function editClientCatalog(content, { gameId, camel, pascal, businessStat
     withImport,
     /(const CLIENT_GAMES: \{ readonly \[TGameType in GameType\]: ClientGameModule \} = \{[\s\S]*?)(\n\};)/,
     (_match, head, tail) =>
-      `${head}\n  ${gameId}: { home: ${camel}Home${businessStats ? `, AccountStats: ${pascal}StatsPanel` : ''} },${tail}`,
+      `${head}\n  ${gameId}: { home: ${camel}Home, AccountStats: ${pascal}StatsPanel },${tail}`,
   );
 }
 

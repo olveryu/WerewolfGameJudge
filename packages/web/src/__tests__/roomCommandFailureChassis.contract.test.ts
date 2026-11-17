@@ -14,7 +14,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { AvalonState } from '@game-judge/game-engine/games/avalon/public';
-import type { DemoState } from '@game-judge/game-engine/games/demo/public';
 import type { DrawGuessState } from '@game-judge/game-engine/games/drawguess/public';
 import type { FibState } from '@game-judge/game-engine/games/fibking/public';
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
@@ -41,7 +40,6 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { getAvalonRoomCommandFailureMessage } from '@/games/avalon/room/avalonRoomCommandFailureMessage';
-import { getDemoRoomCommandFailureMessage } from '@/games/demo/room/demoRoomCommandFailureMessage';
 import { getDrawGuessRoomCommandFailureMessage } from '@/games/drawguess/room/drawGuessRoomCommandFailureMessage';
 import { getFibRoomCommandFailureMessage } from '@/games/fibking/room/fibRoomCommandFailureMessage';
 import { getPictionaryRoomCommandFailureMessage } from '@/games/pictionary/room/pictionaryRoomCommandFailureMessage';
@@ -104,11 +102,6 @@ const COVERED_PLATFORM_REASONS = [
 /** Game presenters pinned to the chassis table. */
 const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => string }> = [
   {
-    game: 'demo',
-    present: (reason) =>
-      getDemoRoomCommandFailureMessage(rejectedRoomCommand<DemoState>(reason, 'chassis-pin')),
-  },
-  {
     game: 'undercover',
     present: (reason) =>
       getUndercoverRoomCommandFailureMessage(
@@ -157,7 +150,6 @@ const PRESENTERS: ReadonlyArray<{ game: string; present: (reason: string) => str
 
 /** Game presenter sources (plus the generator template) scanned for chassis entries. */
 const PRESENTER_SOURCES = [
-  'packages/web/src/games/demo/room/demoRoomCommandFailureMessage.ts',
   'packages/web/src/games/undercover/room/undercoverRoomCommandFailureMessage.ts',
   'packages/web/src/games/fibking/room/fibRoomCommandFailureMessage.ts',
   'packages/web/src/games/storyrelay/room/storyRelayRoomCommandFailureMessage.ts',

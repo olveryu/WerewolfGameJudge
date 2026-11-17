@@ -771,7 +771,7 @@ export const drawGuessEngine = {
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   createInitialState,
   decide: decideDrawGuessCommand,

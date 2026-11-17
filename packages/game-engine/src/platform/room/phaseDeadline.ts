@@ -32,7 +32,7 @@
  *   those commands; it has nothing to do with expiry.)
  * - Settle pinning: games whose correctness path is a scheduled
  *   settle.due effect pin the arming in its payload (see
- *   `buildSettleDueEffect`). Avalon, Werewolf, Demo, Pictionary,
+ *   `buildSettleDueEffect`). Avalon, Werewolf, Pictionary,
  *   Story Relay, and DrawGuess all arm one; Fibking and Undercover
  *   have no stage-deadline domain and arm none.
  *

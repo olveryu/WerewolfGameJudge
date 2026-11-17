@@ -36,7 +36,7 @@ import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/us
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
-//#cap !identityViewing
+//#cap stageDeadline
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
 //#cap audioOrchestration
@@ -94,7 +94,7 @@ export interface __GAME_PASCAL__RoomScreenState {
   /** 当前视角的视图模型（按有效席位裁剪）。 */
   readonly viewModel: __GAME_PASCAL__ViewModel;
 //#end
-//#cap !identityViewing
+//#cap stageDeadline
   /** 当前阶段剩余秒数；无截止阶段为 null。到期由服务端定时 settle effect 结算，客户端只展示。 */
   readonly remainingSeconds: number | null;
   /** 截止已过且 5 秒宽限已过：服务端 settle 未到，房主自救按钮出现。 */
@@ -172,7 +172,7 @@ export function use__GAME_PASCAL__RoomState(
   // 静默；就绪后把运行时实例传进这里，绑定即刻生效。
   use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: null });
 //#end
-//#cap !identityViewing
+//#cap stageDeadline
   // 阶段截止倒计时（仅展示）：服务端定时 settle effect 是唯一推进
   // 路径，到期由它结算；客户端不发任何推进命令，只显示剩余秒数。
   // 截止已过且宽限已过时 isOverdue 为真，房主自救按钮出现。
@@ -286,7 +286,7 @@ export function use__GAME_PASCAL__RoomState(
     state,
     shellModel,
     viewModel,
-//#cap !identityViewing
+//#cap stageDeadline
     remainingSeconds,
     isOverdue,
 //#end

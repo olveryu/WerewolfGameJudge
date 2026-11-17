@@ -6,7 +6,7 @@
  * naming the game and the switch.
  *
  * Welds used, per switch:
- * - `botsAndTakeover`, `hostConfig`, `botTestScaffold`,
+ * - `botsAndTakeover`, `hostConfig`, `botBulkViewing`,
  *   `stageDeadline`, `audioOrchestration`, `gallery`: a marker string
  *   that only exists in the game's non-test engine source when the
  *   platform wiring is present (the shared seating command, the
@@ -58,7 +58,7 @@ const CAPABILITY_KEYS = [
   'wordLibrary',
   'gallery',
   'hostConfig',
-  'botTestScaffold',
+  'botBulkViewing',
 ] as const satisfies readonly (keyof GameEngineCapabilities)[];
 
 /** Declared capabilities per game, verified against each game's wiring. */
@@ -73,7 +73,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   fibking: {
     nightPhase: false,
@@ -85,7 +85,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   pictionary: {
     nightPhase: false,
@@ -97,7 +97,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: false,
     gallery: true,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   undercover: {
     nightPhase: false,
@@ -109,7 +109,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   storyrelay: {
     nightPhase: false,
@@ -121,7 +121,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: false,
     gallery: true,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   drawguess: {
     nightPhase: false,
@@ -133,7 +133,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   avalon: {
     nightPhase: true,
@@ -145,19 +145,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
-  },
-  demo: {
-    nightPhase: false,
-    botsAndTakeover: true,
-    identityViewing: true,
-    revealAnimation: true,
-    stageDeadline: true,
-    audioOrchestration: false,
-    wordLibrary: false,
-    gallery: false,
-    hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
 };
 
@@ -188,7 +176,7 @@ const SOURCE_WELDS: readonly {
   { capability: 'botsAndTakeover', marker: () => 'room.seat.fillBots' },
   { capability: 'hostConfig', marker: (gameType) => `${gameType}.config.update` },
   {
-    capability: 'botTestScaffold',
+    capability: 'botBulkViewing',
     marker: (gameType) => `${gameType}.bots.markAllBotsViewed`,
   },
   { capability: 'stageDeadline', marker: () => 'guardPhaseExpiry' },

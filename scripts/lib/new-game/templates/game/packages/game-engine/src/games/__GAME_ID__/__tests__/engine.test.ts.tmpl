@@ -9,7 +9,14 @@ import { __GAME_UPPER___REASONS } from '../domain/decision';
 //#cap stageDeadline
 import { __GAME_UPPER___STAGE_DURATION_MS } from '../domain/rules';
 //#end
+//#cap identityViewing
 import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
+//#end
+//#cap !identityViewing
+//#cap stageDeadline
+import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
+//#end
+//#end
 import { end__GAME_PASCAL__Game, __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
 import {
@@ -66,8 +73,16 @@ function viewAllAndBegin(session: ReturnType<typeof game>): void {
     if (isBotSeat(session.state.roster, seat)) continue;
     session.send({ type: '__GAME_ID__.role.viewed' }, session.seatUser(seat));
   }
-  if (getBotSeats(session.state.roster).length > 0) {
+  const botSeats = getBotSeats(session.state.roster);
+  if (botSeats.length > 0) {
+//#cap botBulkViewing
     session.send({ type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !botBulkViewing
+    for (const seat of botSeats) {
+      session.send({ type: '__GAME_ID__.role.viewed' }, 'host', seat);
+    }
+//#end
   }
   session.send({ type: '__GAME_ID__.game.begin' });
 }
@@ -172,7 +187,14 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
     expect(blocked.kind).toBe('reject');
     if (blocked.kind === 'reject')
       expect(blocked.reason).toBe(__GAME_UPPER___REASONS.notAllViewed);
+//#cap botBulkViewing
     session.send({ type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !botBulkViewing
+    for (const seat of getBotSeats(session.state.roster)) {
+      session.send({ type: '__GAME_ID__.role.viewed' }, 'host', seat);
+    }
+//#end
     session.send({ type: '__GAME_ID__.game.begin' });
     expect(session.state.phase.kind).toBe('playing');
   });
@@ -188,14 +210,8 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 });
 
 //#end
-//#cap !identityViewing
-// The system-only settlement suite, split by begin path: the template
-// language has no cap conjunction, so the no-viewing pack (stage) and
-// the begin-armed pack (demo-hybrid) each render their own copy —
-// `!identityViewing` selects exactly the stage pack, `armDeadlineAtBegin`
-// exactly demo-hybrid. The test bodies are identical apart from begin.
-// (This note lives inside the stage cap: it must not render into the
-// demo-hybrid output, which is byte-compared against the shipped demo.)
+//#cap stageDeadlineAtStart
+// The no-viewing deadline path starts immediately.
 describe('__GAME_PASCAL__ stage deadline settlement', () => {
   it('opens the playing stage with an armed deadline and a settle.due effect', () => {
     const session = game({ numberOfPlayers: 4 }, 4);

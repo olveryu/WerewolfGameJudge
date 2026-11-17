@@ -41,8 +41,7 @@
  * command (D3, 2026-11-05). No client sends expiry — the shared
  * `useStageDeadline` hook is a display-only countdown; the
  * scheduled settle.due delivery is the only channel, and
- * correctness rides on it. demo has no client expire surface
- * at all, as before.
+ * correctness rides on it.
  *
  * Cross-reference to the E-3 registry
  * (`platform/room/__tests__/settleCountdown.contract.test.ts`):
@@ -156,15 +155,6 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
       revisionPolicy: 'none',
       settlePin: 'sequence+phase+round+deadline',
       lateSubmission: 'noneByDesign',
-    },
-  },
-  demo: {
-    adoption: 'switched',
-    variant: {
-      actorChannel: 'systemOnly',
-      revisionPolicy: 'none',
-      settlePin: 'sequence+deadline',
-      lateSubmission: 'noSurface',
     },
   },
 };

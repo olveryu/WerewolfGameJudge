@@ -42,35 +42,34 @@ const BLOCK_END = /^\/\/#end\s*$/;
 export function applyCapabilityBlocks(text, capabilities) {
   const lines = text.split('\n');
   const kept = [];
-  let activeBlock = null;
+  const activeBlocks = [];
   for (const line of lines) {
     const start = BLOCK_START.exec(line.trim());
     if (start !== null) {
       const marker = `${start[1]}${start[2]}`;
-      if (activeBlock !== null) {
-        throw new Error(`Nested capability block "${marker}" inside "${activeBlock.marker}".`);
-      }
       if (!Object.hasOwn(capabilities, start[2])) {
         throw new Error(`Unknown capability block "${marker}".`);
       }
-      activeBlock = { key: start[2], negated: start[1] === '!', marker };
+      const selected =
+        start[1] === '!' ? capabilities[start[2]] !== true : capabilities[start[2]] === true;
+      activeBlocks.push({
+        marker,
+        selected: selected && activeBlocks.every((block) => block.selected),
+      });
       continue;
     }
     if (BLOCK_END.test(line.trim())) {
-      if (activeBlock === null) throw new Error('Capability block end without a start marker.');
-      activeBlock = null;
+      if (activeBlocks.length === 0)
+        throw new Error('Capability block end without a start marker.');
+      activeBlocks.pop();
       continue;
     }
-    if (
-      activeBlock === null ||
-      (activeBlock.negated
-        ? capabilities[activeBlock.key] !== true
-        : capabilities[activeBlock.key] === true)
-    ) {
+    if (activeBlocks.length === 0 || activeBlocks.at(-1).selected) {
       kept.push(line);
     }
   }
-  if (activeBlock !== null)
+  const activeBlock = activeBlocks.at(-1);
+  if (activeBlock !== undefined)
     throw new Error(`Unterminated capability block "${activeBlock.marker}".`);
   return kept.join('\n');
 }
@@ -95,7 +94,17 @@ export function renderTemplate(text, names, extraTokens = {}) {
   return rendered;
 }
 
-/** Render one template file body for one capability pack. */
+/** Render one template file body for the selected capability set. */
 export function renderTemplateFile(text, { names, capabilities, extraTokens }) {
-  return renderTemplate(applyCapabilityBlocks(text, capabilities), names, extraTokens);
+  let rendered = renderTemplate(applyCapabilityBlocks(text, capabilities), names, extraTokens);
+  const declaration = /(capabilities:\s*\{)([\s\S]*?)(\n\s*\})/.exec(rendered);
+  if (declaration !== null) {
+    const body = declaration[2].replace(
+      /^(\s*)([A-Za-z]+): (true|false),$/gm,
+      (line, indent, key) =>
+        Object.hasOwn(capabilities, key) ? `${indent}${key}: ${capabilities[key]},` : line,
+    );
+    rendered = rendered.replace(declaration[0], `${declaration[1]}${body}${declaration[3]}`);
+  }
+  return rendered;
 }

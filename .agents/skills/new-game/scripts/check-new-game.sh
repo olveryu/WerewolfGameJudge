@@ -26,7 +26,7 @@ const migrations = fs.readdirSync(dir).filter((name) => name.endsWith('.sql')).m
 }));
 console.log(`SHARED_EDITS entries: ${facts.sharedFiles.length}`);
 console.log(`template files: ${facts.templateCount}`);
-console.log(`files by preset (including migration): ${JSON.stringify(facts.filesByPreset)}`);
+console.log(`capability keys: ${facts.capabilityKeys.join(', ')}`);
 console.log(`report steps: ${steps.join(', ')}`);
 console.log(`migration files: ${migrations.length}; registration source: ${findLatestRegistrationMigration(migrations).name}; next: ${nextMigrationName(migrations.map(({ name }) => name), 'newgame')}`);
 JS

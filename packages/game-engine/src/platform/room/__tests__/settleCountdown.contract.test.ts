@@ -55,7 +55,7 @@
  * file, one enclosing function, one normalized expression —
  * never a whole file or directory. The registered points are
  * the skeleton's set branch and the out-of-registry baselines:
- * demo and drawguess stage-entry arming (E-2 domain), the relay
+ * drawguess stage-entry arming (E-2 domain), the relay
  * clock helper, gallery resume, and each game's first gallery reveal
  * (relay domain), and
  * the werewolf inline AUTO_SKIP second writer. The switched
@@ -225,12 +225,6 @@ const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = 
     symbol: 'decideSettleCountdownArm',
     expression: 'input.nowMs + countdownMs',
     domain: 'skeleton',
-  },
-  {
-    file: 'games/demo/engine.ts',
-    symbol: 'beginGame',
-    expression: 'context.nowMs + DEMO_STAGE_DURATION_MS',
-    domain: 'e2StageDeadline',
   },
   {
     file: 'games/drawguess/engine.ts',

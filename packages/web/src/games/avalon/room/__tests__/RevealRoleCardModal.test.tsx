@@ -1,7 +1,7 @@
 /**
  * RevealRoleCardModal: the shared reveal gate assembly with the
  * server-side viewed anchor, exercised through Avalon's real adapter
- * (the assembly's first consumer pair was Avalon/Demo).
+ * (the shared role-card assembly is exercised by multiple games).
  *
  * Lives in Avalon's test tree, not the shared layer's: the shared room
  * layer must stay game-agnostic (roomGameAgnostic contract), and this

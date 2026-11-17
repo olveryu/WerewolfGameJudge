@@ -170,7 +170,7 @@ function transitionBatch(batchId: string, action: WordSubmissionAction): boolean
       status: nextStatus,
       ...(action.action === 'review' && {
         reviewId: action.id,
-        reviewVersion: 'local-demo-v1',
+        reviewVersion: 'local-mock-v1',
         reviewModel: '示例审核模型',
         review: null,
       }),

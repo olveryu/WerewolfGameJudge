@@ -9,7 +9,6 @@ import type { ComponentType } from 'react';
 import { createAvalonAudioPreview } from '@/games/avalon/audio/audioPreview';
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import { avalonHome } from '@/games/avalon/home';
-import { demoHome } from '@/games/demo/home';
 import { DrawGuessStatsPanel } from '@/games/drawguess/components/DrawGuessStatsPanel';
 import { drawGuessHome } from '@/games/drawguess/home';
 import { FibStatsPanel } from '@/games/fibking/components/FibStatsPanel';
@@ -55,7 +54,6 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
     loadAudioPreview: async () => createAvalonAudioPreview,
     AccountStats: AvalonStatsPanel,
   },
-  demo: { home: demoHome },
 };
 
 export interface ClientGameModeOption extends GameModePresentation {

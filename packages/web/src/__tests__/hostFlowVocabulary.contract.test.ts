@@ -26,7 +26,6 @@ const HOST_FLOW_FILES = [
   'packages/web/src/games/werewolf/room/createWerewolfHostManagement.ts',
   'packages/web/src/games/werewolf/room/hooks/useWerewolfHostFlow.ts',
   'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
-  'packages/web/src/games/demo/room/demoRoomAdapter.ts',
   'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
   'packages/web/src/games/fibking/room/hooks/useFibRoomState.ts',
   'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
@@ -88,7 +87,6 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     for (const file of [
       'packages/web/src/games/werewolf/room/createWerewolfHostManagement.ts',
       'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
-      'packages/web/src/games/demo/room/demoRoomAdapter.ts',
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
@@ -103,7 +101,6 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
   it('every ended assembly offers the chassis terminal pair through the shared builders', () => {
     for (const file of [
       'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
-      'packages/web/src/games/demo/room/demoRoomAdapter.ts',
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
       'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',

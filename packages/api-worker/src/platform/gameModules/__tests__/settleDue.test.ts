@@ -10,9 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { settleDueBusinessKey, settleDueDeliveryAt } from '../settleDue';
 
 describe('settleDueBusinessKey', () => {
-  it('keeps the demo key (sequence and deadline only) unchanged', () => {
-    expect(settleDueBusinessKey('demo:settle', { gameSequence: 4, deadlineAt: 61000 })).toBe(
-      'demo:settle:4:61000',
+  it('keeps the game key (sequence and deadline only) unchanged', () => {
+    expect(settleDueBusinessKey('avalon:settle', { gameSequence: 4, deadlineAt: 61000 })).toBe(
+      'avalon:settle:4:61000',
     );
   });
 

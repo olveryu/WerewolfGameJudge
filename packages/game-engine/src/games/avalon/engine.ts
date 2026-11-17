@@ -923,7 +923,7 @@ export const avalonEngine = {
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   createInitialState,
   decide: decideAvalonCommand,

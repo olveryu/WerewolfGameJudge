@@ -94,7 +94,7 @@ It exposes the controllers and their capability actions without deciding lifecyc
 Pictionary, FibKing and Undercover pass those actions into their existing game-owned capability
 factories, preserving their different in-game profile and seat-tap behavior.
 
-Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
+Avalon, DrawGuess and Story Relay share their standard setup composition:
 
 - `src/features/room/controllers/useRoomSetupController.ts` composes the roster controller with
   standard setup capabilities and setup-only profile viewing. Games supply
@@ -107,12 +107,12 @@ Demo, Avalon, DrawGuess and Story Relay share their standard setup composition:
   Sharing roster controllers does not require replacing game-owned capability factories or click policies.
 - Stage deadlines: the server-side scheduled settle effect is the only expiry path; no client sends any expiry command — the countdown is display-only.
 
-The new-game room hook template emits both shared bindings. Update that template with Demo so
-new games do not regenerate copies of the execution branches or controller wiring.
+The new-game room hook template emits both shared bindings so new games do not regenerate
+copies of the execution branches or controller wiring.
 
 ## Shell Model Assembly
 
-All eight game adapters use `src/features/room/model/createRoomShellModel.ts` to assemble
+All seven game adapters use `src/features/room/model/createRoomShellModel.ts` to assemble
 the public shell fields and seat board. Game adapter inputs inherit the shared contract,
 omitting fields that the game computes rather than duplicating common field declarations.
 The factory copies only declared output fields; spreading a game adapter input into it does
@@ -126,7 +126,7 @@ not expose game state, controllers or private projection inputs on the returned 
   profile and confirmation models, bottom actions, a lazy `buildHostManagement`, and
   bot-control projections. The factory does not infer phases, lock seats or decide
   permissions; it does enforce action ownership (see "Action Ownership" below).
-- The new-game adapter template uses the same factory and input contract as Demo.
+- The new-game adapter template uses the same factory and input contract as shipped games.
 
 ### Narration Status
 
@@ -146,9 +146,8 @@ policies: Werewolf hides its night action guidance and actions during playback; 
 night information confirmation alongside narration. Host-management audio locks remain separate.
 
 The adapter generator binds `state.isAudioPlaying` when `audioOrchestration` is enabled and
-emits `false` otherwise. Demo stays the no-audio reference. Generator acceptance executes the
-audio-enabled output's queue-to-shell-to-panel and acknowledgement transition, as well as the
-existing preset checks and Demo parity.
+emits `false` otherwise. Generator acceptance executes the audio-enabled output's
+queue-to-shell-to-panel and acknowledgement transition.
 
 ### Avalon Host Controls and Music
 

@@ -31,7 +31,7 @@ import {
 //#end
   buildClearSeatsAction,
   buildFillBotsAction,
-//#cap identityViewing
+//#cap botBulkViewing
   buildMarkBotsViewedAction,
 //#end
   buildNextRoundAction,
@@ -263,6 +263,7 @@ export function create__GAME_PASCAL__HostManagement(
         actions: [beginAction],
       },
     ];
+//#cap botBulkViewing
     const hasUnviewedBot = participants.some(
       (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
     );
@@ -287,6 +288,11 @@ export function create__GAME_PASCAL__HostManagement(
       HOST_ACTION_KEYS.startGame,
       hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
     );
+//#end
+//#cap !botBulkViewing
+    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
+    const task = hostActionTask(HOST_ACTION_KEYS.startGame, {});
+//#end
     return { task, sections };
   }
 //#end

@@ -389,7 +389,7 @@ export const pictionaryEngine = {
     wordLibrary: false,
     gallery: true,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   createInitialState: createInitialPictionaryState,
   decide: decidePictionaryCommand,

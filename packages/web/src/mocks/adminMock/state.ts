@@ -279,7 +279,7 @@ function makeSubmissionItem(
       review === null
         ? null
         : `40000000-0000-4000-8000-${(index + 1).toString().padStart(12, '0')}`,
-    reviewVersion: review === null ? null : 'local-demo-v1',
+    reviewVersion: review === null ? null : 'local-mock-v1',
     reviewModel: review === null ? null : '示例审核模型',
     review,
     failure: null,

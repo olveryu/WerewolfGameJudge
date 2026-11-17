@@ -561,7 +561,7 @@ export const werewolfEngine = {
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   createInitialState,
   decide: decideWerewolfCommand,

@@ -83,11 +83,11 @@ describe('useRoomCreationController', () => {
 });
 
 describe('useRoomConfigSubmission', () => {
-  const state = testRoomState('demo');
+  const state = testRoomState('avalon');
   const room: RoomRecord = {
     roomCode: '2345',
     roomId: 'room-id-2345',
-    gameType: 'demo',
+    gameType: 'avalon',
     hostUserId: 'host-user',
     createdAt: new Date('2026-07-15T00:00:00.000Z'),
   };
@@ -99,11 +99,11 @@ describe('useRoomConfigSubmission', () => {
       getFailureMessage: vi.fn(() => '当前状态不允许此操作'),
       createRequest: vi.fn(() => ({
         expectedHostUserId: 'host-user',
-        gameType: 'demo' as const,
+        gameType: 'avalon' as const,
         config: { numberOfPlayers: 4 },
       })),
       updateConfig: vi.fn(async () => successfulRoomCommand(state, 'config-command')),
-      creationLabel: '创建Demo房间',
+      creationLabel: '创建阿瓦隆房间',
     };
   }
 
@@ -132,7 +132,7 @@ describe('useRoomConfigSubmission', () => {
     await waitFor(() => expect(result.current.isSubmitting).toBe(false));
     expect(createRoom).toHaveBeenCalledWith({
       expectedHostUserId: 'host-user',
-      gameType: 'demo',
+      gameType: 'avalon',
       config: { numberOfPlayers: 4 },
     });
     expect(input.createRequest).toHaveBeenCalledTimes(1);
@@ -156,7 +156,7 @@ describe('useRoomConfigSubmission', () => {
     act(() => result.current.submit());
     await waitFor(() =>
       expect(handleError).toHaveBeenCalledWith(error, {
-        label: '创建Demo房间',
+        label: '创建阿瓦隆房间',
         logger: configLog,
         alertMessage: '创建失败，请重试',
       }),

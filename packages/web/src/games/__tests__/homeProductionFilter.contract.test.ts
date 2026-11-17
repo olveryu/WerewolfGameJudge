@@ -20,11 +20,10 @@ const PRODUCTION_GAME_TYPES = [
 ] as const;
 
 describe('client game home production filter', () => {
-  it('registers exactly the listed games as production, demo excluded', () => {
+  it('registers exactly the listed games as production', () => {
     expect(GAME_TYPES.filter((gameType) => GAME_REGISTRY[gameType].isProduction)).toEqual([
       ...PRODUCTION_GAME_TYPES,
     ]);
-    expect(GAME_REGISTRY.demo.isProduction).toBe(false);
   });
 
   it('offers exactly the production games as Home mode options', () => {
