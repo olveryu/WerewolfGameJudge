@@ -957,7 +957,7 @@ test('generator facts track capability keys and migration numbering uses physica
     '0076_probe.sql',
   );
   assert.deepEqual(facts.capabilityKeys, CAPABILITY_KEYS);
-  assert.equal(facts.templateCount, 50);
+  assert.equal(facts.templateCount, 51);
 });
 
 test('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {

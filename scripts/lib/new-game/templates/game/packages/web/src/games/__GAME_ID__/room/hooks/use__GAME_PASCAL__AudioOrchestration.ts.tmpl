@@ -8,6 +8,8 @@
  *   看到已清的队列。link 非 ready 或播放器未就绪时快照为 null（核心静默）。
  * - player port：本游戏音频运行时（__GAME_PASCAL__AudioRuntime）的 playEffect；
  *   stopBgm 供核心在 night_end 播报前停 BGM（天亮时序，全游戏统一）；
+ *   prepareQueue 在播报前批量准备时调运行时的 `preload()`，预加载本局
+ *   所需的音频（有音频的游戏才实现，无音频的游戏不接本绑定）；
  *   播放器与音频资源 registry 是本游戏资产，骨架只定 port 形状，运行时由
  *   use__GAME_PASCAL__RoomState 的调用点注入（骨架阶段传 null，绑定静默）。
  * - ack port：`__GAME_ID__.audio.ack` 以 durable 命令发送，由 RoomLink 跨连接重放直到服务端裁决。
@@ -36,6 +38,8 @@ const __GAME_CAMEL__AudioLog = log.extend('__GAME_PASCAL__Audio');
 export interface __GAME_PASCAL__AudioRuntime {
   /** 播放一条 effect，播完（或被平台播放器跳过）后 resolve。 */
   playEffect(effect: AudioEffect): Promise<void>;
+  /** 预加载本局播报所需的全部音频；共享核心在播报前批量准备时调用。 */
+  preload(): void;
   /** 停止正在播的播报（绑定卸载时调用）。 */
   stopNarration(): void;
   /** 停止房主 BGM（幂等）；共享核心在 NIGHT_END_AUDIO_KEY 播报前调用，天亮时序全游戏统一。 */
@@ -111,6 +115,16 @@ export function use__GAME_PASCAL__AudioOrchestration(
               throw new Error('[FAIL-FAST] __GAME_PASCAL__ BGM stop requires a ready audio runtime');
             }
             player.stopBgm();
+          },
+          prepareQueue: () => {
+            const player = audioRef.current;
+            if (player === null) {
+              throw new Error(
+                '[FAIL-FAST] __GAME_PASCAL__ audio preload requires a ready audio runtime',
+              );
+            }
+            player.preload();
+            return Promise.resolve();
           },
         },
         ack: {
