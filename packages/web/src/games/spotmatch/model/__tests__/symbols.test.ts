@@ -14,15 +14,21 @@ describe('approved Spotmatch artwork and constrained layouts', () => {
       ),
     ).toBe(true);
   });
+  it('returns the same layout for the same seed', () => {
+    for (const seed of [0, 1, 42, 999]) {
+      expect(spotmatchSymbolLayout(seed)).toEqual(spotmatchSymbolLayout(seed));
+    }
+  });
   it('keeps scattered targets separated and inside cards at mobile and maximum widths', () => {
     for (let seed = 0; seed < 1000; seed++) {
       const layout = spotmatchSymbolLayout(seed);
       expect(layout).toHaveLength(8);
-      expect(layout).toEqual(spotmatchSymbolLayout(seed));
       const heights = layout.map(({ y }) => y).sort((a, b) => a - b);
-      for (let index = 0; index + 3 < heights.length; index++) {
-        expect(heights[index + 3]! - heights[index]!).toBeGreaterThanOrEqual(22);
-      }
+      const verticalSpacingValid = heights.every((height, index) => {
+        const fourth = heights[index + 3];
+        return fourth === undefined || fourth - height >= 22;
+      });
+      expect(verticalSpacingValid, `seed ${seed} has crowded vertical targets`).toBe(true);
       for (const [index, target] of layout.entries()) {
         const angle = (Math.abs(target.rotation) * Math.PI) / 180;
         expect((target.scale / 100) * (Math.cos(angle) + Math.sin(angle))).toBeLessThan(1);
@@ -32,15 +38,20 @@ describe('approved Spotmatch artwork and constrained layouts', () => {
           const size = Math.max(52, Math.min(60, innerWidth * 0.18));
           const x = (innerWidth * target.x) / 100;
           const y = (innerHeight * target.y) / 100;
-          expect(x - size / 2).toBeGreaterThanOrEqual(0);
-          expect(x + size / 2).toBeLessThanOrEqual(innerWidth);
-          expect(y - size / 2).toBeGreaterThanOrEqual(0);
-          expect(y + size / 2).toBeLessThanOrEqual(innerHeight);
-          for (const other of layout.slice(index + 1)) {
+          const insideCard =
+            x - size / 2 >= 0 &&
+            x + size / 2 <= innerWidth &&
+            y - size / 2 >= 0 &&
+            y + size / 2 <= innerHeight;
+          const separatedFromOtherTargets = layout.slice(index + 1).every((other) => {
             const dx = (Math.abs(target.x - other.x) * innerWidth) / 100;
             const dy = (Math.abs(target.y - other.y) * innerHeight) / 100;
-            expect(dx >= size || dy >= size).toBe(true);
-          }
+            return dx >= size || dy >= size;
+          });
+          expect(
+            insideCard && separatedFromOtherTargets,
+            `seed ${seed}, target ${index}, width ${width} violates card constraints`,
+          ).toBe(true);
         }
       }
     }
