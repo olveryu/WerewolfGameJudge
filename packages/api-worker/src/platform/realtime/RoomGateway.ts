@@ -65,6 +65,10 @@ interface SocketAttachment {
 }
 
 export interface RoomGatewayDeps {
+  readonly projectSnapshotForUser?: (
+    snapshot: RoomSnapshot<BaseGameState<GameType>>,
+    userId: string,
+  ) => RoomSnapshot<BaseGameState<GameType>>;
   /** Current authoritative snapshot, or null when the room has no state. */
   readSnapshot(): RoomSnapshot<BaseGameState<GameType>> | null;
   /** Immutable identity of the room this object serves, or null when no room is stored. */
@@ -151,7 +155,10 @@ export class RoomGateway {
     const response =
       frame.knownRevision === snapshot.revision
         ? createSyncCurrentFrame(frame.requestId, snapshot.revision)
-        : createSyncSnapshotFrame(frame.requestId, snapshot);
+        : createSyncSnapshotFrame(
+            frame.requestId,
+            this.#projectSnapshot(snapshot, readAttachment(socket).userId),
+          );
     this.#send(socket, 'SYNC_RESULT', JSON.stringify(response));
   }
 
@@ -246,7 +253,17 @@ export class RoomGateway {
       this.#send(
         socket,
         'COMMAND_RESULT',
-        JSON.stringify(createCommandDecidedFrame(frame.commandId, dispatch.result)),
+        JSON.stringify(
+          createCommandDecidedFrame(
+            frame.commandId,
+            dispatch.result.kind === 'committed'
+              ? {
+                  ...dispatch.result,
+                  snapshot: this.#projectSnapshot(dispatch.result.snapshot, attachment.userId),
+                }
+              : dispatch.result,
+          ),
+        ),
       );
     } finally {
       const remaining = (this.#pendingCommands.get(socket) ?? 1) - 1;
@@ -269,7 +286,22 @@ export class RoomGateway {
     snapshot: RoomSnapshot<BaseGameState<GameType>>,
     commandType: string | null,
   ): void {
-    this.#broadcast('STATE_UPDATE', JSON.stringify(createStateUpdateFrame(snapshot, commandType)));
+    if (this.#deps.projectSnapshotForUser === undefined) {
+      this.#broadcast(
+        'STATE_UPDATE',
+        JSON.stringify(createStateUpdateFrame(snapshot, commandType)),
+      );
+      return;
+    }
+    for (const socket of this.#openSockets()) {
+      const projected = this.#projectSnapshot(snapshot, readAttachment(socket).userId);
+      const message = JSON.stringify(createStateUpdateFrame(projected, commandType));
+      if (this.#trySend(socket, message)) this.#record('STATE_UPDATE', message, 1);
+    }
+  }
+
+  #projectSnapshot(snapshot: RoomSnapshot<BaseGameState<GameType>>, userId: string) {
+    return this.#deps.projectSnapshotForUser?.(snapshot, userId) ?? snapshot;
   }
 
   /** Close sockets whose keepalive went stale; the rest stay open. */

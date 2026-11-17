@@ -4,7 +4,7 @@
  */
 import './RoomStageHud.css';
 
-import { type ReactNode, useState } from 'react';
+import { type ReactElement, type ReactNode, useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
@@ -28,6 +28,11 @@ import IconChevronForward from '~icons/ion/chevron-forward';
 import IconClose from '~icons/ion/close';
 import IconGameControllerOutline from '~icons/ion/game-controller-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
+
+import { RoomStagePanel, type RoomStagePanelTone } from './RoomStagePanel';
+
+/** A game may supply inline feedback without replacing the shared HUD or its frame. */
+export type RoomStageHudRenderer = (context: ReactNode, tone?: RoomStagePanelTone) => ReactElement;
 
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
@@ -213,6 +218,9 @@ export function RoomStageHud({
   canTakeOverBots,
   controlledSeat,
   action = null,
+  embedded = false,
+  context = null,
+  tone = 'neutral',
 }: {
   readonly hud: RoomStageHudModel;
   readonly seats: RoomSeatDataSource;
@@ -220,6 +228,11 @@ export function RoomStageHud({
   readonly controlledSeat: RoomControlledSeatModel | null;
   /** Game-owned action; the shared shell does not interpret its label or behavior. */
   readonly action?: ReactNode;
+  /** Omit outer margins when the stage positions the shared panel inside its own layout. */
+  readonly embedded?: boolean;
+  /** Inline task feedback between the leading context chip and roster. */
+  readonly context?: ReactNode;
+  readonly tone?: RoomStagePanelTone;
 }) {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const roster = hud.roster;
@@ -247,9 +260,13 @@ export function RoomStageHud({
       </button>
     );
   return (
-    <div
+    <RoomStagePanel
       className="room-stage-hud"
+      tone={tone}
       data-expanded={hasSecondaryRow || undefined}
+      data-roster-placement={hud.rosterPlacement}
+      data-embedded={embedded || undefined}
+      data-inline-context={context !== null || undefined}
       data-testid={TESTIDS.roomStageHud}
     >
       <div className="room-stage-hud-row">
@@ -257,17 +274,18 @@ export function RoomStageHud({
           <StageChip key={chip.key} chip={chip} />
         ))}
         <div className="room-stage-hud-context">
+          {context}
           {hud.chips.slice(1).map((chip) => (
             <StageChip key={chip.key} chip={chip} />
           ))}
         </div>
-        {!hasSecondaryRow && rosterButton}
+        {(!hasSecondaryRow || hud.rosterPlacement === 'primary') && rosterButton}
         {hud.timer !== null && <TimerChip timer={hud.timer} />}
       </div>
       <TimerBar timer={hud.timer} />
       {hasSecondaryRow && (
         <div className="room-stage-hud-details">
-          {rosterButton}
+          {hud.rosterPlacement !== 'primary' && rosterButton}
           {controlledSeat !== null && <ControlledSeatChip model={controlledSeat} />}
           <div className="room-stage-hud-summary">
             {hud.secondaryChips.map((chip) => (
@@ -286,6 +304,6 @@ export function RoomStageHud({
           onClose={() => setIsRosterOpen(false)}
         />
       )}
-    </div>
+    </RoomStagePanel>
   );
 }

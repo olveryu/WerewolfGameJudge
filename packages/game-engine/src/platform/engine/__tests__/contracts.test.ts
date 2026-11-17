@@ -2,6 +2,7 @@ import { avalonEngine } from '../../../games/avalon/engine';
 import { drawGuessEngine } from '../../../games/drawguess/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
+import { spotmatchEngine } from '../../../games/spotmatch/engine';
 import { storyRelayEngine } from '../../../games/storyrelay/engine';
 import { undercoverEngine } from '../../../games/undercover/engine';
 import { werewolfEngine } from '../../../games/werewolf/engine';
@@ -152,6 +153,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      spotmatch: spotmatchEngine,
     };
     const withNight = Object.values(engines)
       .filter((engine) => engine.capabilities.nightPhase)
@@ -172,6 +174,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      spotmatch: spotmatchEngine,
     });
 
     expect(catalog.werewolf).toBe(counterEngine);
@@ -191,6 +194,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      spotmatch: spotmatchEngine,
     });
     defineGameEngineCatalog({
       werewolf: counterEngine,
@@ -202,6 +206,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      spotmatch: spotmatchEngine,
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
@@ -212,6 +217,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      spotmatch: spotmatchEngine,
     });
   });
 });

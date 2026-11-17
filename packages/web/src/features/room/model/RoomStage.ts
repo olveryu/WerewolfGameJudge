@@ -50,6 +50,8 @@ export interface RoomStageRosterModel {
 }
 
 export interface RoomStageHudModel {
+  /** Keep the shared roster beside the primary task even when secondary controls are present. */
+  readonly rosterPlacement?: 'primary';
   /** Leading game chips, before the roster chip. */
   readonly chips: readonly RoomStageChip[];
   readonly roster: RoomStageRosterModel | null;

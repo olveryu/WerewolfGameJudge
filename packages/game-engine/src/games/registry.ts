@@ -141,6 +141,15 @@ export const GAME_REGISTRY = {
     workerWorkflows: [],
     httpRoutes: [],
   },
+  spotmatch: {
+    gameType: 'spotmatch',
+    enginePublicExport: './games/spotmatch/public',
+    clientModulePath: 'packages/web/src/games/spotmatch/module.ts',
+    isProduction: true,
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.spotmatch },
+    workerWorkflows: [],
+    httpRoutes: [],
+  },
 } as const satisfies { readonly [TGameType in GameType]: GameRegistration<TGameType> };
 
 export type GameRegistry = typeof GAME_REGISTRY;

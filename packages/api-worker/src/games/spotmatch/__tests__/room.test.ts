@@ -1,0 +1,167 @@
+import {
+  DEFAULT_SPOTMATCH_CONFIG,
+  parseSpotmatchState,
+  SPOTMATCH_STATE_CODEC,
+  type SpotmatchCommand,
+  type SpotmatchState,
+} from '@game-judge/game-engine/games/spotmatch/public';
+import {
+  createSyncFrame,
+  parseServerFrame,
+} from '@game-judge/game-engine/platform/realtime/protocol';
+import { runInDurableObject } from 'cloudflare:test';
+import { env } from 'cloudflare:workers';
+import { afterEach, expect, it } from 'vitest';
+
+import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
+import type { GameRoomRuntime } from '../../../platform/room/GameRoomRuntime';
+
+afterEach(deleteCurrentRoomAlarms);
+
+it('projects HTTP receipts and WS sync/broadcast separately; retries wrong commands exactly once', async () => {
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
+  const identity = {
+    roomId: stub.id.toString(),
+    roomCode: '6721',
+    creationId: 'spotmatch-private',
+  };
+  await env.DB.prepare("INSERT INTO users (id) VALUES ('spot-host'), ('spot-player')").run();
+  await env.DB.prepare(
+    "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at) VALUES (?, ?, 'spotmatch', 'spot-host', ?, '{}', 'active', '2026-11-17', '2026-11-17')",
+  )
+    .bind(identity.roomId, identity.roomCode, identity.creationId)
+    .run();
+  await stub.initializeRoom({
+    ...identity,
+    gameType: 'spotmatch',
+    hostUserId: 'spot-host',
+    config: { ...DEFAULT_SPOTMATCH_CONFIG, numberOfPlayers: 2 },
+  });
+  let serial = 0;
+  const input = (command: SpotmatchCommand, actorUserId = 'spot-host') => ({
+    ...identity,
+    commandId: `room:${serial++}`,
+    actorUserId,
+    controlledSeat: null,
+    command,
+  });
+  await stub.dispatchUserCommand(
+    input({ type: 'room.seat.take', seat: 0, profile: { displayName: 'H' } }),
+  );
+  await stub.dispatchUserCommand(
+    input({ type: 'room.seat.take', seat: 1, profile: { displayName: 'P' } }, 'spot-player'),
+  );
+  const start = await stub.dispatchUserCommand(input({ type: 'spotmatch.game.begin' }));
+  if (start.kind !== 'decided' || start.result.kind !== 'committed')
+    throw new Error('Start failed');
+  const projected = parseSpotmatchState(start.result.snapshot.state);
+  expect(projected.round!.players[0].top).not.toBeNull();
+  expect(projected.round!.players[1].top).toBeNull();
+  const original = await stub.getSnapshot(identity);
+  if (original === null) throw new Error('No authority');
+  const authoritative = parseSpotmatchState(original.state);
+  const top = authoritative.round!.players[0].top!;
+  const wrongSymbol = top.symbols.find(
+    (symbol) => !authoritative.round!.central.symbols.includes(symbol),
+  )!;
+  const wrong = input({
+    type: 'spotmatch.card.claim',
+    roundId: authoritative.round!.roundId,
+    centralInstanceId: authoritative.round!.central.instanceId,
+    topInstanceId: top.instanceId,
+    symbolId: wrongSymbol,
+  });
+  const first = await stub.dispatchUserCommand(wrong);
+  const replay = await stub.dispatchUserCommand(wrong);
+  expect(replay).toEqual({ ...first, isReplay: true });
+  if (first.kind !== 'decided' || first.result.kind !== 'committed')
+    throw new Error('Wrong did not commit');
+  expect(first.result.outcome.kind).toBe('domainRejected');
+  expect(parseSpotmatchState(first.result.snapshot.state).round!.players[0].mistakes).toBe(1);
+
+  await runInDurableObject(stub, async (instance: GameRoomRuntime, storage) => {
+    const sockets = new WebSocketPair();
+    storage.acceptWebSocket(sockets[1], ['user:spot-player']);
+    sockets[1].serializeAttachment({ userId: 'spot-player', connectedAtMs: Date.now() });
+    const messages: unknown[] = [];
+    sockets[0].addEventListener('message', (event) => {
+      if (typeof event.data === 'string') messages.push(JSON.parse(event.data));
+    });
+    sockets[0].accept();
+    const assertPrivate = (state: SpotmatchState) => {
+      expect(state.round!.players[0].top).toBeNull();
+      expect(state.round!.players[1].top).not.toBeNull();
+    };
+    try {
+      await instance.webSocketMessage(
+        sockets[1],
+        JSON.stringify(createSyncFrame('private-sync', null)),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const synced = parseServerFrame(messages.at(-1), SPOTMATCH_STATE_CODEC);
+      if (synced.type !== 'SYNC_RESULT' || synced.outcome !== 'snapshot')
+        throw new Error('No sync snapshot');
+      assertPrivate(synced.snapshot.state);
+      const player = authoritative.round!.players[1].top!;
+      const symbolId = player.symbols.find((symbol) =>
+        authoritative.round!.central.symbols.includes(symbol),
+      )!;
+      const result = await instance.dispatchUserCommand(
+        input(
+          {
+            type: 'spotmatch.card.claim',
+            roundId: authoritative.round!.roundId,
+            centralInstanceId: authoritative.round!.central.instanceId,
+            topInstanceId: player.instanceId,
+            symbolId,
+          },
+          'spot-player',
+        ),
+      );
+      expect(result.kind).toBe('decided');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const update = parseServerFrame(messages.at(-1), SPOTMATCH_STATE_CODEC);
+      if (update.type !== 'STATE_UPDATE') throw new Error('No broadcast');
+      assertPrivate(update.snapshot.state);
+    } finally {
+      sockets[0].close();
+    }
+  });
+});
+
+it('registration rebuild preserves existing rooms, child records and indexes', async () => {
+  await env.DB.prepare("INSERT INTO users (id) VALUES ('spot-migrate')").run();
+  await env.DB.prepare(
+    "INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at) VALUES ('old-room', '6722', 'werewolf', 'spot-migrate', 'old', '{}', 'active', '2026-11-17', '2026-11-17')",
+  ).run();
+  await env.DB.prepare(
+    "INSERT INTO room_participants (room_id, user_id, joined_at) VALUES ('old-room', 'spot-migrate', '2026-11-17')",
+  ).run();
+  await env.DB.prepare(
+    "INSERT INTO room_game_starts (effect_id, room_id, started_revision, started_at) VALUES ('old-start', 'old-room', 42, '2026-11-17')",
+  ).run();
+  const before = await env.DB.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name",
+  ).all();
+  await env.DB.prepare('DROP TABLE spotmatch_user_stats').run();
+  const migration = env.TEST_MIGRATIONS.find((entry) => entry.name === '0089_spotmatch.sql');
+  if (migration === undefined) throw new Error('Missing migration');
+  await env.DB.batch(migration.queries.map((query) => env.DB.prepare(query)));
+  expect(await env.DB.prepare("SELECT game_type FROM rooms WHERE id = 'old-room'").first()).toEqual(
+    { game_type: 'werewolf' },
+  );
+  expect(
+    await env.DB.prepare(
+      "SELECT user_id FROM room_participants WHERE room_id = 'old-room'",
+    ).first(),
+  ).toEqual({ user_id: 'spot-migrate' });
+  expect(
+    await env.DB.prepare(
+      "SELECT started_revision FROM room_game_starts WHERE room_id = 'old-room'",
+    ).first(),
+  ).toEqual({ started_revision: 42 });
+  const after = await env.DB.prepare(
+    "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name",
+  ).all();
+  expect(after.results).toEqual(before.results);
+});

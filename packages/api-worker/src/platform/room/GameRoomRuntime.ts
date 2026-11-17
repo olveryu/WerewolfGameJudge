@@ -92,6 +92,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       resolveGameModule: this.#gameModuleResolver,
     });
     this.#gateway = new RoomGateway(ctx, env, {
+      projectSnapshotForUser: (snapshot, userId) => this.#projectSnapshot(snapshot, userId),
       readSnapshot: () => (this.#isStorageDeleted ? null : this.#roomState.readSnapshot()),
       readRoomIdentity: () => {
         if (this.#isStorageDeleted) return null;
@@ -131,13 +132,31 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
     if (command.actorUserId.length === 0) {
       throw new Error('dispatchUserCommand.actorUserId must be non-empty');
     }
-    return this.#dispatchCommand(command, {
+    const dispatch = await this.#dispatchCommand(command, {
       roomCode: command.roomCode,
       commandId: command.commandId,
       actor: { kind: 'user', userId: command.actorUserId },
       controlledSeat: command.controlledSeat,
       command: command.command,
     });
+    if (dispatch.kind !== 'decided' || dispatch.result.kind !== 'committed') return dispatch;
+    return {
+      ...dispatch,
+      result: {
+        ...dispatch.result,
+        snapshot: this.#projectSnapshot(dispatch.result.snapshot, command.actorUserId),
+      },
+    };
+  }
+
+  #projectSnapshot(snapshot: RoomSnapshot<BaseGameState<GameType>>, userId: string) {
+    const project = this.#gameModuleResolver(snapshot.gameType).projectStateForUser;
+    return project === undefined
+      ? snapshot
+      : {
+          ...snapshot,
+          state: project(snapshot.state, userId),
+        };
   }
 
   async dispatchInternalCommand(command: DispatchInternalRoomCommand): Promise<DispatchRoomResult> {

@@ -157,6 +157,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
       lateSubmission: 'noneByDesign',
     },
   },
+  spotmatch: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
 };
 
 /** Concatenated non-test source of one directory tree (engine or worker side). */

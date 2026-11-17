@@ -53,6 +53,7 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
     'games/storyrelay/room/components/StoryRelayStage.tsx',
     'games/storyrelay/room/components/StoryRelayTaskEditor.tsx',
   ],
+  spotmatch: ['games/spotmatch/room/hooks/useSpotmatchRoomState.ts'],
 };
 
 /**

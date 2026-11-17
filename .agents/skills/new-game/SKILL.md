@@ -130,6 +130,16 @@ Round-settled games must choose and change the label/unit; never silently
 interpret rounds as games. Follow the statistics section of
 `references/skeleton-and-wiring.md` for eligibility and compatibility.
 
+Before implementing the HUD or ended screen, inspect the corresponding
+production screens in existing games and the shared room components.
+Reuse the shared stage HUD/panel; extract a common presentation when the
+same visual pattern is needed across games, rather than copying CSS or
+importing another game's components. A bare heading and ranking list is
+not a completed ended screen: verify its ranking hierarchy, player/self
+labels, reward eligibility copy, review/restart entry points, and mobile
+layout alongside the in-play screen. Record the reused components and
+ended-screen browser evidence in the integration report.
+
 ### 7. Wire capabilities, word supply, and E2E deliberately
 
 Change a capability only wiring-first, declaration second, contract

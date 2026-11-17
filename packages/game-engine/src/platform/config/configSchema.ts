@@ -44,7 +44,7 @@ export interface ChoiceOption<TValue> {
   readonly hint?: string;
 }
 
-/** Single select among string-like options. */
+/** Single select among named string or numeric options. */
 export interface ChoiceFieldSpec<TValue> {
   readonly kind: 'choice';
   readonly label: string;
@@ -77,7 +77,7 @@ export type ConfigFieldSpec<TValue> =
   | ([TValue] extends [boolean] ? ToggleFieldSpec : never)
   | ([TValue] extends [number] ? CountFieldSpec : never)
   | ([TValue] extends [number | null] ? DurationFieldSpec<TValue> : never)
-  | ([TValue] extends [string] ? ChoiceFieldSpec<TValue> : never)
+  | ([TValue] extends [string | number] ? ChoiceFieldSpec<TValue> : never)
   | FixedFieldSpec<TValue>;
 
 /** Value-erased spec union for runtime dispatch. */

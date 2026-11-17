@@ -4,6 +4,7 @@
  * applyColorTokens. Component CSS uses these custom properties, not literal values.
  */
 :root {
+  --size-spotmatch-card-max: 420px;
   /* Spacing */
   --space-micro: 2px;
   --space-tight: 4px;

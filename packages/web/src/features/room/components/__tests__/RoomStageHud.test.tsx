@@ -51,6 +51,20 @@ function renderHud({
 }
 
 describe('RoomStageHud', () => {
+  it('can keep the shared roster in the primary row while secondary controls wrap independently', () => {
+    renderHud({
+      hud: {
+        rosterPlacement: 'primary',
+        chips: [{ key: 'remaining', label: '剩余 7 张', detail: null, tone: 'accent' }],
+        secondaryChips: [{ key: 'score', label: '我 0 分', detail: null, tone: 'neutral' }],
+      },
+      controlledSeat: { seat: 1, displayName: '玩家2', onRelease: vi.fn() },
+    });
+    expect(screen.getByTestId(TESTIDS.roomStageRosterChip).parentElement).toHaveClass(
+      'room-stage-hud-row',
+    );
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveTextContent('我 0 分');
+  });
   it('renders the game chips in order with their detail', () => {
     renderHud({
       hud: {

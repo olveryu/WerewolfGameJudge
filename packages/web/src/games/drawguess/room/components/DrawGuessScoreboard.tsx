@@ -4,6 +4,8 @@
 
 import type { DrawGuessViewModel } from '@game-judge/game-engine/games/drawguess/public';
 
+import { RoomRanking } from '@/features/room/components/RoomRanking';
+
 import {
   type DrawGuessReactionCounts,
   formatDrawGuessReactionCounts,
@@ -73,38 +75,23 @@ export function DrawGuessScoreboard({
         .toSorted((a, b) => b.totalScore - a.totalScore)
         .map((row, index) => ({ ...row, rank: index + 1 }));
   return (
-    <section className="drawguess-panel drawguess-scoreboard" aria-label={title}>
-      <h3 className="drawguess-section-title">{title}</h3>
-      <ol className="drawguess-scoreboard-list">
-        {ranked.map((row) => (
-          <li key={row.seat} className="drawguess-scoreboard-row">
-            <span className="drawguess-scoreboard-rank">
-              {competitionRanking ? rankLabel(row.rank) : `${row.rank}`}
-            </span>
-            <span className="drawguess-scoreboard-player">
-              <span
-                className="drawguess-scoreboard-name"
-                data-self={row.isSelf ? '' : undefined}
-                aria-current={row.isSelf ? 'true' : undefined}
-              >
-                {row.displayName}
-                {row.isBot ? ` · ${DRAWGUESS_BOT_TAG}` : ''}
-                {row.isDrawer ? ' · 画手' : ''}
-              </span>
-              {row.reactionCounts !== undefined && reactionCountLabel !== undefined && (
-                <span className="drawguess-scoreboard-reactions">
-                  {reactionCountLabel}：{formatDrawGuessReactionCounts(row.reactionCounts)}
-                </span>
-              )}
-            </span>
-            <span className="drawguess-scoreboard-score">
-              {row.roundScore === null
-                ? formatDrawGuessScore(row.totalScore)
-                : `+${row.roundScore} · 总分 ${row.totalScore}`}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <RoomRanking
+      title={title}
+      rows={ranked.map((row) => ({
+        seat: row.seat,
+        rank: row.rank,
+        rankLabel: competitionRanking ? rankLabel(row.rank) : `${row.rank}`,
+        displayName: `${row.displayName}${row.isBot ? ` · ${DRAWGUESS_BOT_TAG}` : ''}${row.isDrawer ? ' · 画手' : ''}`,
+        isSelf: row.isSelf,
+        detail:
+          row.reactionCounts !== undefined && reactionCountLabel !== undefined
+            ? `${reactionCountLabel}：${formatDrawGuessReactionCounts(row.reactionCounts)}`
+            : null,
+        value:
+          row.roundScore === null
+            ? formatDrawGuessScore(row.totalScore)
+            : `+${row.roundScore} · 总分 ${row.totalScore}`,
+      }))}
+    />
   );
 }

@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#edf2f7" />
+    <title>一眼成对 · 200 枚原创符号</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf2f7;
+        --surface: #fff;
+        --ink: #1a3149;
+        --muted: #526779;
+        --blue: #285f86;
+        --border: #c4d2de;
+        --hover: #e0e9f1;
+        --size: 48px;
+        font:
+          14px/1.5 system-ui,
+          -apple-system,
+          'PingFang SC',
+          'Microsoft YaHei',
+          sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        accent-color: var(--blue);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        cursor: pointer;
+      }
+      button,
+      a,
+      input,
+      select {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button,
+      input,
+      select,
+      .download {
+        min-height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+      button {
+        padding: 8px 14px;
+      }
+      button:hover,
+      .tile:hover {
+        background: var(--hover);
+      }
+      :focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+      input {
+        caret-color: var(--blue);
+      }
+      ::selection {
+        background: #c7dfef;
+        color: var(--ink);
+      }
+      * {
+        scrollbar-color: #8fa7b9 var(--bg);
+      }
+      a {
+        color: var(--blue);
+        text-underline-offset: 3px;
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: auto;
+        padding: 32px 24px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 26px;
+        line-height: 1.35;
+        letter-spacing: -0.025em;
+        margin: 0 0 8px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 68ch;
+      }
+      .draft {
+        font-size: 13px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        white-space: nowrap;
+        background: var(--surface);
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: end;
+        padding: 20px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field > span,
+      legend {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .search {
+        flex: 1;
+        min-width: 220px;
+      }
+      input[type='search'] {
+        width: 100%;
+        padding: 10px 12px;
+      }
+      select {
+        padding: 9px 34px 9px 12px;
+        max-width: 100%;
+      }
+      fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+      }
+      legend {
+        padding: 0 0 6px;
+      }
+      .sizes {
+        display: flex;
+        gap: 4px;
+      }
+      .sizes button {
+        min-width: 46px;
+        padding: 8px;
+      }
+      .sizes [aria-pressed='true'] {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: white;
+      }
+      .rotation {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+      }
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        min-height: 0;
+        margin: 0;
+      }
+      .summary {
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: baseline;
+        margin: 20px 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .summary strong {
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .tile {
+        border: 0;
+        border-radius: 0;
+        padding: 16px 8px 12px;
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+      }
+      .art {
+        height: 88px;
+        display: grid;
+        place-items: center;
+        width: 100%;
+      }
+      .art svg {
+        width: var(--size);
+        height: var(--size);
+        transform: rotate(var(--angle, 0deg));
+        flex: none;
+      }
+      .name {
+        font-weight: 600;
+      }
+      .id {
+        font-size: 11px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+        line-height: 1.4;
+      }
+      .tile:focus-visible {
+        outline-offset: -4px;
+      }
+      .empty {
+        text-align: center;
+        padding: 56px 16px;
+      }
+      .empty p {
+        color: var(--muted);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .detail {
+        margin-top: 24px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 24px;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        scroll-margin: 20px;
+      }
+      .detail svg {
+        width: 160px;
+        height: 160px;
+        flex: none;
+      }
+      .detail h2 {
+        font-size: 21px;
+        margin: 0 0 6px;
+      }
+      .detail p {
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      .download {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        background: var(--blue);
+        color: white;
+        text-decoration: none;
+      }
+      .detail button {
+        margin-left: auto;
+        align-self: start;
+      }
+      footer {
+        margin-top: 24px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      footer p {
+        margin: 4px 0;
+      }
+      @media (max-width: 600px) {
+        .wrap {
+          padding: 20px 16px;
+        }
+        header {
+          gap: 12px;
+          flex-direction: column;
+          margin-bottom: 20px;
+        }
+        h1 {
+          font-size: 23px;
+        }
+        .controls {
+          gap: 12px;
+        }
+        .search {
+          flex-basis: 100%;
+        }
+        .category {
+          flex: 1;
+          min-width: 150px;
+        }
+        .grid {
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+        .tile {
+          padding: 12px 4px;
+        }
+        .summary {
+          align-items: start;
+        }
+        .summary span:last-child {
+          text-align: right;
+          max-width: 140px;
+        }
+        .detail {
+          flex-wrap: wrap;
+          padding: 16px;
+          gap: 16px;
+        }
+        .detail svg {
+          width: 112px;
+          height: 112px;
+        }
+        .detail button {
+          margin-left: 0;
+        }
+        .detail-copy {
+          flex: 1;
+          min-width: 140px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <header>
+        <div>
+          <h1>一眼成对 · 原创符号库</h1>
+          <p>
+            200 个不同主题，8
+            个分类。检查小尺寸辨识度、轮廓差异与旋转后的表现；点击图案可查看大图并下载 SVG。
+          </p>
+        </div>
+        <span class="draft">评审草稿 · 非定稿</span>
+      </header>
+      <section class="controls" aria-label="筛选与预览设置">
+        <label class="field search"
+          ><span>搜索符号</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="中文名称或英文 ID，如：苹果 / apple"
+            autocomplete="off"
+        /></label>
+        <label class="field category"
+          ><span>分类</span
+          ><select id="category">
+            <option value="">全部分类 · 200</option>
+          </select></label
+        >
+        <fieldset>
+          <legend>图案尺寸（px）</legend>
+          <div class="sizes" aria-label="图案像素尺寸">
+            <button type="button" data-size="32" aria-pressed="false">32</button
+            ><button type="button" data-size="48" aria-pressed="true">48</button
+            ><button type="button" data-size="72" aria-pressed="false">72</button>
+          </div>
+        </fieldset>
+        <label class="rotation"><input id="rotation" type="checkbox" />旋转预览</label>
+      </section>
+      <div class="summary">
+        <span id="count" role="status" aria-live="polite"></span><span>64 × 64 矢量画布</span>
+      </div>
+      <div id="grid" class="grid" aria-label="符号目录"></div>
+      <section id="empty" class="empty" hidden>
+        <h2>没有找到匹配符号</h2>
+        <p>试试更短的名称，或清除分类和搜索条件。</p>
+        <button id="reset" type="button">清除筛选</button>
+      </section>
+      <section id="detail" class="detail" aria-label="符号详情" tabindex="-1" hidden>
+        <div id="detail-art"></div>
+        <div class="detail-copy">
+          <h2 id="detail-name"></h2>
+          <p id="detail-meta"></p>
+          <a id="download" class="download">下载 SVG</a>
+        </div>
+        <button id="close" type="button">收起详情</button>
+      </section>
+      <footer>
+        <p>原创手绘路径草稿：不是颜色变体合集，不使用外部图片、字体或网络请求。</p>
+        <p>
+          当前用于视觉评审，尚未完成逐个主题的实机辨识测试。支持离线打开；独立文件位于
+          symbols/，元数据见 catalog.json。
+        </p>
+      </footer>
+      <noscript
+        ><p>
+          请启用 JavaScript 查看完整的 200 枚符号；也可直接打开 symbols/ 中的 SVG 文件。
+        </p></noscript
+      >
+    </main>
+    <script id="catalog-data" type="application/json">
+      [
+        {
+          "id": "sun",
+          "name": "太阳",
+          "category": "自然天气",
+          "file": "symbols/sun.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"sun-title\">\u003ctitle id=\"sun-title\">太阳\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 6v6m0 40v6M6 32h6m40 0h6M13 13l5 5m28 28 5 5M13 51l5-5m28-28 5-5\" fill=\"none\" stroke=\"#edbb45\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"14\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "moon",
+          "name": "月亮",
+          "category": "自然天气",
+          "file": "symbols/moon.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"moon-title\">\u003ctitle id=\"moon-title\">月亮\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M43 7C15 2 4 24 11 42c8 21 36 23 45 1C31 51 20 24 43 7Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "star",
+          "name": "星星",
+          "category": "自然天气",
+          "file": "symbols/star.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"star-title\">\u003ctitle id=\"star-title\">星星\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m32 6 8 17 19 3-14 14 3 19-16-9-17 9 4-19L5 26l19-3Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cloud",
+          "name": "云朵",
+          "category": "自然天气",
+          "file": "symbols/cloud.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cloud-title\">\u003ctitle id=\"cloud-title\">云朵\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M16 48C1 48 2 28 16 28c-1-20 27-25 34-7 14-2 17 27 0 27Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "raindrop",
+          "name": "雨滴",
+          "category": "自然天气",
+          "file": "symbols/raindrop.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"raindrop-title\">\u003ctitle id=\"raindrop-title\">雨滴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 5C25 17 12 30 12 41a20 20 0 0 0 40 0C52 30 39 17 32 5Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M22 38q-4 9 5 13\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "snowflake",
+          "name": "雪花",
+          "category": "自然天气",
+          "file": "symbols/snowflake.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"snowflake-title\">\u003ctitle id=\"snowflake-title\">雪花\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 5v54M9 18l46 28M9 46l46-28M24 10l8 7 8-7M24 54l8-7 8 7M10 27l9-3-1-10M54 37l-9 3 1 10M10 37l9 3-1 10M54 27l-9-3 1-10\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lightning",
+          "name": "闪电",
+          "category": "自然天气",
+          "file": "symbols/lightning.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lightning-title\">\u003ctitle id=\"lightning-title\">闪电\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M37 5 12 35h17l-3 24 26-35H35Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "rainbow",
+          "name": "彩虹",
+          "category": "自然天气",
+          "file": "symbols/rainbow.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"rainbow-title\">\u003ctitle id=\"rainbow-title\">彩虹\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 51V34a25 25 0 0 1 50 0v17H47V34a15 15 0 0 0-30 0v17Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M17 51V34a15 15 0 0 1 30 0v17H37V34a5 5 0 0 0-10 0v17Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M27 51V34a5 5 0 0 1 10 0v17Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "tornado",
+          "name": "龙卷风",
+          "category": "自然天气",
+          "file": "symbols/tornado.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"tornado-title\">\u003ctitle id=\"tornado-title\">龙卷风\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 10h54L49 23 40 36l-4 12-1 12h-6l-3-16-9-13-5-11Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M14 20h35M21 31h20M28 42h9\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "mountain",
+          "name": "雪山",
+          "category": "自然天气",
+          "file": "symbols/mountain.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"mountain-title\">\u003ctitle id=\"mountain-title\">雪山\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M4 55 27 9l13 22 7-12 14 36Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m17 29 10-20 12 21-10-5-5 8Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "volcano",
+          "name": "火山",
+          "category": "自然天气",
+          "file": "symbols/volcano.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"volcano-title\">\u003ctitle id=\"volcano-title\">火山\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m8 56 15-30h18l16 30Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m23 26 5 12 5-7 6 12 2-17Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m24 17-7-9m15 7V5m8 13 8-9\" fill=\"none\" stroke=\"#df625e\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "wave",
+          "name": "海浪",
+          "category": "自然天气",
+          "file": "symbols/wave.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"wave-title\">\u003ctitle id=\"wave-title\">海浪\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 51c18 4 14-30 32-35 15-4 23 9 18 18-3-9-15-8-16 0-1 11 13 14 20 12v10H5Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M10 48q13 4 18-12\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "flame",
+          "name": "火焰",
+          "category": "自然天气",
+          "file": "symbols/flame.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"flame-title\">\u003ctitle id=\"flame-title\">火焰\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 5c5 18 21 19 21 35 0 26-42 26-42 0 0-9 7-15 13-21-2 13 5 13 8-14Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M32 32c3 9 10 11 10 18a10 10 0 0 1-20 0c0-7 8-11 10-18Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "leaf",
+          "name": "树叶",
+          "category": "自然天气",
+          "file": "symbols/leaf.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"leaf-title\">\u003ctitle id=\"leaf-title\">树叶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M9 53C3 23 24 6 57 8c0 31-15 52-43 44Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m8 58 38-37M23 43l-1-15m10 5 15 1\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pine-tree",
+          "name": "松树",
+          "category": "自然天气",
+          "file": "symbols/pine-tree.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pine-tree-title\">\u003ctitle id=\"pine-tree-title\">松树\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M27 45h10v15H27Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m32 4 16 20h-8l15 18H43l15 12H6l15-12H9l15-18h-8Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "palm-tree",
+          "name": "椰子树",
+          "category": "自然天气",
+          "file": "symbols/palm-tree.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"palm-tree-title\">\u003ctitle id=\"palm-tree-title\">椰子树\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M26 59q10-19 8-35h7q2 21-3 35Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M36 25Q14 5 4 27q15-6 28 2Q9 25 10 44q10-12 25-13Q45 9 60 22q-15-2-22 8 19-4 22 14-12-10-25-13Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"35\" cy=\"29\" r=\"4\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cactus",
+          "name": "仙人掌",
+          "category": "自然天气",
+          "file": "symbols/cactus.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cactus-title\">\u003ctitle id=\"cactus-title\">仙人掌\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M27 56V14a7 7 0 0 1 14 0v42M27 38H17q-9 0-9-9V18h8v10q0 3 4 3h7M41 43h8q9 0 9-9V22h-8v10q0 4-4 4h-5\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003crect x=\"23\" y=\"54\" width=\"23\" height=\"7\" rx=\"3\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M34 17v29\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "flower",
+          "name": "小花",
+          "category": "自然天气",
+          "file": "symbols/flower.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"flower-title\">\u003ctitle id=\"flower-title\">小花\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 35v25m0-10Q11 50 13 39q15-1 19 11\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"13\" rx=\"9\" ry=\"10\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cellipse cx=\"17\" cy=\"24\" rx=\"10\" ry=\"9\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cellipse cx=\"23\" cy=\"39\" rx=\"9\" ry=\"10\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cellipse cx=\"42\" cy=\"39\" rx=\"9\" ry=\"10\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cellipse cx=\"47\" cy=\"24\" rx=\"10\" ry=\"9\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"26\" r=\"9\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "mushroom",
+          "name": "蘑菇",
+          "category": "自然天气",
+          "file": "symbols/mushroom.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"mushroom-title\">\u003ctitle id=\"mushroom-title\">蘑菇\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m26 31-4 26q10 6 20 0l-4-26Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M5 34C7 0 55 0 59 34Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"22\" r=\"4\" fill=\"#ffffff\" stroke=\"none\"/>\u003ccircle cx=\"41\" cy=\"17\" r=\"5\" fill=\"#ffffff\" stroke=\"none\"/>\u003ccircle cx=\"48\" cy=\"28\" r=\"3\" fill=\"#ffffff\" stroke=\"none\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "acorn",
+          "name": "橡果",
+          "category": "自然天气",
+          "file": "symbols/acorn.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"acorn-title\">\u003ctitle id=\"acorn-title\">橡果\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M16 27h32q1 23-16 32-17-9-16-32Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M12 29q0-20 20-20t20 20Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M32 9q-1-6 5-6M21 15l21 12M14 23l24-10\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pinecone",
+          "name": "松果",
+          "category": "自然天气",
+          "file": "symbols/pinecone.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pinecone-title\">\u003ctitle id=\"pinecone-title\">松果\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 7C9 10 10 52 32 59 55 52 55 10 32 7Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m20 19 12 8 12-8m-27 13 15 8 15-8M21 46l11 6 11-6M32 7v7\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "shell",
+          "name": "贝壳",
+          "category": "自然天气",
+          "file": "symbols/shell.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"shell-title\">\u003ctitle id=\"shell-title\">贝壳\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M25 56 6 32C-2 6 23 7 25 14c5-14 20-9 20 0 15-7 23 8 14 22L39 56Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M32 53 18 22m14 31V19m0 34 15-31M24 56h17\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "coral",
+          "name": "珊瑚",
+          "category": "自然天气",
+          "file": "symbols/coral.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"coral-title\">\u003ctitle id=\"coral-title\">珊瑚\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M27 59V39L13 28V12h8v12l7 5V6h9v29l8-8V14h9v17L38 46v13Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M13 20H6V10m46 13h7V8\" fill=\"none\" stroke=\"#df625e\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "crystal",
+          "name": "水晶",
+          "category": "自然天气",
+          "file": "symbols/crystal.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"crystal-title\">\u003ctitle id=\"crystal-title\">水晶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m23 55-9-31 13-19 16 14-4 36Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m39 55 4-29 12-6 5 13-9 22Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"m23 55 4-29-13-2m13 2 16-7M27 5v21\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "planet",
+          "name": "行星",
+          "category": "自然天气",
+          "file": "symbols/planet.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"planet-title\">\u003ctitle id=\"planet-title\">行星\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"32\" r=\"20\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M12 29C-9 48 1 60 34 43 65 28 70 11 52 15\" fill=\"none\" stroke=\"#9b7bb9\"/>\u003cpath d=\"m29 15 10 3M40 48l6-3\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "apple",
+          "name": "苹果",
+          "category": "水果餐点",
+          "file": "symbols/apple.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"apple-title\">\u003ctitle id=\"apple-title\">苹果\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 20C10 6 3 30 13 48q8 15 19 8 14 7 21-9 12-27-9-31-7-1-12 4Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M32 21V8\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M33 14Q37 2 51 7q-4 12-18 7\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M17 29q-4 5-2 11\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pear",
+          "name": "梨",
+          "category": "水果餐点",
+          "file": "symbols/pear.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pear-title\">\u003ctitle id=\"pear-title\">梨\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M27 14h10c0 17 17 19 17 34 0 18-44 18-44 0 0-15 17-17 17-34Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M32 14q-1-8 7-10\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M18 45q-2 7 5 9\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "banana",
+          "name": "香蕉",
+          "category": "水果餐点",
+          "file": "symbols/banana.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"banana-title\">\u003ctitle id=\"banana-title\">香蕉\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M13 11c0 30 17 39 39 24l6 4C40 73-3 51 8 12Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M13 11 9 6m43 29 3-6M15 27q7 25 33 17\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "orange",
+          "name": "橙子",
+          "category": "水果餐点",
+          "file": "symbols/orange.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"orange-title\">\u003ctitle id=\"orange-title\">橙子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"37\" r=\"23\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M32 14Q34 2 48 5q0 13-16 9\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M16 31q0-5 6-7\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003ccircle cx=\"46\" cy=\"45\" r=\"1.3\" fill=\"#ac7956\" stroke=\"none\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "watermelon",
+          "name": "西瓜",
+          "category": "水果餐点",
+          "file": "symbols/watermelon.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"watermelon-title\">\u003ctitle id=\"watermelon-title\">西瓜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M4 21h56a28 28 0 0 1-56 0Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M9 21h46a23 23 0 0 1-46 0Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m20 28 2 4m11-5v5m11-4-2 4m-12 9 1 3\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "strawberry",
+          "name": "草莓",
+          "category": "水果餐点",
+          "file": "symbols/strawberry.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"strawberry-title\">\u003ctitle id=\"strawberry-title\">草莓\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M12 24Q4 38 32 59 60 38 52 24q-20-10-40 0Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m32 9 5 10 15-4-8 12-12-5-12 5-8-12 15 4Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m20 33 1 3m11-4v3m12-2-1 3m-16 6 1 3m10-3-1 3\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cherries",
+          "name": "樱桃",
+          "category": "水果餐点",
+          "file": "symbols/cherries.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cherries-title\">\u003ctitle id=\"cherries-title\">樱桃\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M16 39 34 8q0 20 15 31\" fill=\"none\" stroke=\"#53966a\"/>\u003cpath d=\"M34 8q17-6 23 5-15 6-23-5\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"17\" cy=\"47\" r=\"12\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"48\" cy=\"47\" r=\"12\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"m12 43-1 3m32-3-1 3\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "grapes",
+          "name": "葡萄",
+          "category": "水果餐点",
+          "file": "symbols/grapes.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"grapes-title\">\u003ctitle id=\"grapes-title\">葡萄\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 16V6m0 7Q44 1 54 11q-7 11-22 2\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"24\" r=\"10\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"42\" cy=\"24\" r=\"10\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"15\" cy=\"39\" r=\"10\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"33\" cy=\"39\" r=\"10\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"50\" cy=\"39\" r=\"9\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"25\" cy=\"52\" r=\"9\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"41\" cy=\"52\" r=\"9\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pineapple",
+          "name": "菠萝",
+          "category": "水果餐点",
+          "file": "symbols/pineapple.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pineapple-title\">\u003ctitle id=\"pineapple-title\">菠萝\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m23 22-6-15 14 8 5-12 5 14 13-8-9 16\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"33\" cy=\"40\" rx=\"19\" ry=\"21\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m19 29 26 24m-29-12 18 17m-3-36 19 18M45 29 21 52m28-12L32 58M33 23 16 40\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lemon",
+          "name": "柠檬",
+          "category": "水果餐点",
+          "file": "symbols/lemon.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lemon-title\">\u003ctitle id=\"lemon-title\">柠檬\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 26Q25-2 49 17l9 9-6 12Q34 66 13 48L5 40Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M17 28q8-11 20-7\" fill=\"none\" stroke=\"#ffffff\"/>\u003cpath d=\"m7 26 6 2m39 10 6 1\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "carrot",
+          "name": "胡萝卜",
+          "category": "水果餐点",
+          "file": "symbols/carrot.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"carrot-title\">\u003ctitle id=\"carrot-title\">胡萝卜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M15 20q10-12 22 0T13 59Q2 61 15 20Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m28 15-4-11m7 11 7-12m-5 15 15-7\" fill=\"none\" stroke=\"#53966a\"/>\u003cpath d=\"m14 30 8 3m-7 9 6 2\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "corn",
+          "name": "玉米",
+          "category": "水果餐点",
+          "file": "symbols/corn.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"corn-title\">\u003ctitle id=\"corn-title\">玉米\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"32\" cy=\"28\" rx=\"13\" ry=\"23\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M17 28q16 3 15 32Q8 53 9 26Zm30 0Q31 31 32 60q24-7 23-34Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M28 10v27m8-27v27M22 18h20m-22 8h24\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "eggplant",
+          "name": "茄子",
+          "category": "水果餐点",
+          "file": "symbols/eggplant.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"eggplant-title\">\u003ctitle id=\"eggplant-title\">茄子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M44 19C31 11 32 37 15 40-6 48 22 69 44 49 54 39 58 24 44 19Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m44 19-9 4 4-10 10 1 6 10-11-2M46 15l2-9\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "broccoli",
+          "name": "西兰花",
+          "category": "水果餐点",
+          "file": "symbols/broccoli.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"broccoli-title\">\u003ctitle id=\"broccoli-title\">西兰花\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M25 33h14l2 13 9 9H15l11-12Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"17\" cy=\"25\" r=\"12\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"31\" cy=\"16\" r=\"13\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"47\" cy=\"26\" r=\"13\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"31\" cy=\"31\" r=\"13\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m32 52 1-16m0 7-13-6m13 8 13-9\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pumpkin",
+          "name": "南瓜",
+          "category": "水果餐点",
+          "file": "symbols/pumpkin.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pumpkin-title\">\u003ctitle id=\"pumpkin-title\">南瓜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M29 15 31 6h8l-3 11\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"18\" cy=\"37\" rx=\"12\" ry=\"20\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cellipse cx=\"46\" cy=\"37\" rx=\"12\" ry=\"20\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"37\" rx=\"15\" ry=\"22\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M32 18v38\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bread",
+          "name": "吐司",
+          "category": "水果餐点",
+          "file": "symbols/bread.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bread-title\">\u003ctitle id=\"bread-title\">吐司\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M14 30C-5 14 18 1 32 11 49 1 69 18 51 30v28H14Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M19 29Q4 16 22 15q10 6 20 0 16 1 4 14v23H19Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "croissant",
+          "name": "可颂",
+          "category": "水果餐点",
+          "file": "symbols/croissant.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"croissant-title\">\u003ctitle id=\"croissant-title\">可颂\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 43 9 23l14-10 19 1 13 12 4 18-12 7-10-9H25l-9 9Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m9 23 15 5-1-15m19 1-3 14 16-2M24 28l1 14m14-14-2 14\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pizza",
+          "name": "披萨",
+          "category": "水果餐点",
+          "file": "symbols/pizza.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pizza-title\">\u003ctitle id=\"pizza-title\">披萨\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m10 13 46 7-31 39Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M10 13q20-6 46 7l-4 7q-22-12-40-7Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"29\" r=\"5\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"38\" cy=\"33\" r=\"5\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"26\" cy=\"45\" r=\"4\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m34 22-2 3m-17 1 2 2\" fill=\"none\" stroke=\"#53966a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "burger",
+          "name": "汉堡",
+          "category": "水果餐点",
+          "file": "symbols/burger.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"burger-title\">\u003ctitle id=\"burger-title\">汉堡\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 29q1-23 25-23t25 23Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"7\" y=\"39\" width=\"50\" height=\"12\" rx=\"5\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M6 32h52l-8 10-12-5-12 5-11-6-9 5Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m12 39 18 9 15-9\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M7 51h50q-1 9-10 9H17Q8 60 7 51Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m21 18 2-2m10-2 2 2m8 4 2-2\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ice-cream",
+          "name": "冰淇淋",
+          "category": "水果餐点",
+          "file": "symbols/ice-cream.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ice-cream-title\">\u003ctitle id=\"ice-cream-title\">冰淇淋\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m17 32 15 28 15-28Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m23 35 17 12m-20-6 12 9m12-15-16 13\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M13 32c-7-13 3-21 11-20C30-2 51 4 49 17c10 2 10 14 3 17q-7 8-13 0-8 9-15 0-7 8-11-2Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "donut",
+          "name": "甜甜圈",
+          "category": "水果餐点",
+          "file": "symbols/donut.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"donut-title\">\u003ctitle id=\"donut-title\">甜甜圈\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"33\" r=\"26\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M7 27c4-26 48-27 50 0q-2 10-10 3-7 12-15 3-8 12-14 1-9 7-11-7Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"31\" r=\"9\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m17 19 3 3m23-4-3 4M25 13l2 2m22 13-3-1\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cake",
+          "name": "蛋糕",
+          "category": "水果餐点",
+          "file": "symbols/cake.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cake-title\">\u003ctitle id=\"cake-title\">蛋糕\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 8v9\" fill=\"none\" stroke=\"#edbb45\"/>\u003cpath d=\"M9 30 32 17l23 13v28H9Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M9 30h46v10l-8 5-8-5-7 6-9-6-8 4-6-4Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M9 51h46\" fill=\"none\" stroke=\"#ac7956\"/>\u003ccircle cx=\"32\" cy=\"21\" r=\"5\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "candy",
+          "name": "糖果",
+          "category": "水果餐点",
+          "file": "symbols/candy.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"candy-title\">\u003ctitle id=\"candy-title\">糖果\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m17 22-12-7 1 15-1 14 13-6m28-16 13-7-1 15 1 14-14-6\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"15\" y=\"18\" width=\"34\" height=\"27\" rx=\"10\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"m24 19 15 25m-3-25 10 17\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "teapot",
+          "name": "茶壶",
+          "category": "水果餐点",
+          "file": "symbols/teapot.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"teapot-title\">\u003ctitle id=\"teapot-title\">茶壶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M45 23q18-10 15 7-1 10-13 11\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M16 25H8L4 14l-2 1 6 28 12 8h23q9-9 7-26Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M14 25q0-10 18-10t18 10Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"13\" r=\"4\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M18 55h29\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "sushi",
+          "name": "寿司",
+          "category": "水果餐点",
+          "file": "symbols/sushi.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"sushi-title\">\u003ctitle id=\"sushi-title\">寿司\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"10\" y=\"25\" width=\"44\" height=\"31\" rx=\"9\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"26\" rx=\"22\" ry=\"12\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"26\" rx=\"16\" ry=\"8\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"26\" rx=\"9\" ry=\"5\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M10 28v21q19 15 44 0V28q-21 19-44 0Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cat",
+          "name": "猫咪",
+          "category": "动物伙伴",
+          "file": "symbols/cat.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cat-title\">\u003ctitle id=\"cat-title\">猫咪\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m11 30 1-22 18 11h6L53 8l1 22q10 29-22 29T11 30Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m17 18 7 6m23-6-7 6\" fill=\"none\" stroke=\"#e28aa0\"/>\u003ccircle cx=\"23\" cy=\"35\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"42\" cy=\"35\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m29 43 3 3 3-3M32 46v5m-16-8-10-2m10 8L6 51m42-8 10-2m-10 8 10 2\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "dog",
+          "name": "小狗",
+          "category": "动物伙伴",
+          "file": "symbols/dog.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"dog-title\">\u003ctitle id=\"dog-title\">小狗\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M17 20Q7 7 4 25q-3 25 15 18m28-23Q57 7 60 25q3 25-15 18\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M16 20q16-14 32 0v24q-2 17-16 17T16 44Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"47\" rx=\"10\" ry=\"9\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"33\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"41\" cy=\"33\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m28 44 4 5 4-5Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 49v7\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "rabbit",
+          "name": "兔子",
+          "category": "动物伙伴",
+          "file": "symbols/rabbit.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"rabbit-title\">\u003ctitle id=\"rabbit-title\">兔子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"23\" cy=\"19\" rx=\"7\" ry=\"17\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cellipse cx=\"41\" cy=\"19\" rx=\"7\" ry=\"17\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M23 7v20m18-20v20\" fill=\"none\" stroke=\"#e28aa0\"/>\u003cellipse cx=\"32\" cy=\"44\" rx=\"22\" ry=\"17\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"41\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"41\" cy=\"41\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m29 48 3 3 3-3\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M28 53h8m-4-2v5\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "fox",
+          "name": "狐狸",
+          "category": "动物伙伴",
+          "file": "symbols/fox.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"fox-title\">\u003ctitle id=\"fox-title\">狐狸\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 7 27 20h10L56 7l-4 30-20 23L12 37Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m12 33 20 9 20-9-20 27Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"31\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"42\" cy=\"31\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m27 43 5 6 5-6Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m14 15 9 10m27-10-9 10\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bear",
+          "name": "棕熊",
+          "category": "动物伙伴",
+          "file": "symbols/bear.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bear-title\">\u003ctitle id=\"bear-title\">棕熊\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"14\" cy=\"15\" r=\"10\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"50\" cy=\"15\" r=\"10\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"36\" rx=\"26\" ry=\"25\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"45\" rx=\"14\" ry=\"12\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"30\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"42\" cy=\"30\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cellipse cx=\"32\" cy=\"41\" rx=\"5\" ry=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 44v7m-6-1q6 6 12 0\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "panda",
+          "name": "熊猫",
+          "category": "动物伙伴",
+          "file": "symbols/panda.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"panda-title\">\u003ctitle id=\"panda-title\">熊猫\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"14\" cy=\"13\" r=\"9\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"50\" cy=\"13\" r=\"9\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"35\" rx=\"27\" ry=\"25\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cellipse cx=\"20\" cy=\"33\" rx=\"8\" ry=\"10\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cellipse cx=\"44\" cy=\"33\" rx=\"8\" ry=\"10\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"20\" cy=\"32\" r=\"1.8\" fill=\"#ffffff\" stroke=\"none\"/>\u003ccircle cx=\"44\" cy=\"32\" r=\"1.8\" fill=\"#ffffff\" stroke=\"none\"/>\u003cpath d=\"m27 45 5 4 5-4Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 49v5m-5-1q5 4 10 0\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lion",
+          "name": "狮子",
+          "category": "动物伙伴",
+          "file": "symbols/lion.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lion-title\">\u003ctitle id=\"lion-title\">狮子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m32 3 9 6 11 1 4 11 6 10-5 10-3 12-12 3-10 5-10-5-12-3-3-12-5-10 6-10 4-11 11-1Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"32\" rx=\"19\" ry=\"21\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"24\" cy=\"28\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"40\" cy=\"28\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cellipse cx=\"32\" cy=\"39\" rx=\"10\" ry=\"8\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m28 36 4 4 4-4Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 40v6\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "elephant",
+          "name": "大象",
+          "category": "动物伙伴",
+          "file": "symbols/elephant.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"elephant-title\">\u003ctitle id=\"elephant-title\">大象\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"14\" cy=\"32\" rx=\"12\" ry=\"20\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"50\" cy=\"32\" rx=\"12\" ry=\"20\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M17 22q15-18 30 0v23H38v9q0 12-12 7l-6-4 4-6q7 6 7-2V35H17Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003ccircle cx=\"24\" cy=\"28\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"42\" cy=\"28\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m18 39 5 9 3-9m16 0 4 9 3-9\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "giraffe",
+          "name": "长颈鹿",
+          "category": "动物伙伴",
+          "file": "symbols/giraffe.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"giraffe-title\">\u003ctitle id=\"giraffe-title\">长颈鹿\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M25 25V10m14 15V10\" fill=\"none\" stroke=\"#ac7956\"/>\u003ccircle cx=\"25\" cy=\"8\" r=\"4\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"39\" cy=\"8\" r=\"4\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M21 25 7 19q-4 15 12 15m24-9 14-6q4 15-12 15\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M22 24h20l5 22q0 13-15 13T17 46Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"47\" rx=\"15\" ry=\"10\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"25\" cy=\"34\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"39\" cy=\"34\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"26\" cy=\"49\" r=\"1.5\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"38\" cy=\"49\" r=\"1.5\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m30 19 5 9-7 3m-7 9 5 4\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "zebra",
+          "name": "斑马",
+          "category": "动物伙伴",
+          "file": "symbols/zebra.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"zebra-title\">\u003ctitle id=\"zebra-title\">斑马\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m18 25-7-17 12 2 7 14m10 0 5-14 11-2-8 19\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M19 23q13-7 26 0l6 23q0 14-19 14T13 46Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m25 21 7 13 7-13m-22 9 9 5m21-5-9 5M15 42l10 3m24-3-10 3\" fill=\"none\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"51\" rx=\"17\" ry=\"8\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"38\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"41\" cy=\"38\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "cow",
+          "name": "奶牛",
+          "category": "动物伙伴",
+          "file": "symbols/cow.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"cow-title\">\u003ctitle id=\"cow-title\">奶牛\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M17 22 10 9q13-4 14 12m23 1 7-13q-13-4-14 12\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M20 24 6 20q-4 15 13 15m25-11 14-4q4 15-13 15\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M19 22q13-8 26 0l4 24q0 15-17 15T15 46Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M21 22q10-2 9 12l-9 6-5-8Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"50\" rx=\"17\" ry=\"10\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003ccircle cx=\"23\" cy=\"35\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"41\" cy=\"35\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"25\" cy=\"51\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"39\" cy=\"51\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pig",
+          "name": "小猪",
+          "category": "动物伙伴",
+          "file": "symbols/pig.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pig-title\">\u003ctitle id=\"pig-title\">小猪\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m12 27-4-18 19 9m25 9 4-18-19 9\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"36\" rx=\"26\" ry=\"24\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"31\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"42\" cy=\"31\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cellipse cx=\"32\" cy=\"45\" rx=\"13\" ry=\"10\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"27\" cy=\"45\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"37\" cy=\"45\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "sheep",
+          "name": "绵羊",
+          "category": "动物伙伴",
+          "file": "symbols/sheep.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"sheep-title\">\u003ctitle id=\"sheep-title\">绵羊\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M18 45v13m28-13v13\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"17\" cy=\"21\" r=\"11\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"15\" r=\"12\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"47\" cy=\"22\" r=\"11\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"49\" cy=\"38\" r=\"11\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"43\" r=\"13\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"15\" cy=\"37\" r=\"11\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M22 29q10-7 20 0l-2 19q-8 9-16 0Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"27\" cy=\"34\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"37\" cy=\"34\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"m29 43 3 3 3-3\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "horse",
+          "name": "骏马",
+          "category": "动物伙伴",
+          "file": "symbols/horse.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"horse-title\">\u003ctitle id=\"horse-title\">骏马\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M23 7 37 10l10 14 8 15-10 9-13-6-4 16H11l9-26-6-10Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M23 7 14 16l-7 22 11-6 7-18 12-4Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m37 10 3-7 7 18\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"36\" cy=\"26\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m46 38 6 1M22 14l4 8\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "penguin",
+          "name": "企鹅",
+          "category": "动物伙伴",
+          "file": "symbols/penguin.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"penguin-title\">\u003ctitle id=\"penguin-title\">企鹅\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m16 32-12 14 12 1m32-15 12 14-12 1\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"33\" rx=\"20\" ry=\"28\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"39\" rx=\"14\" ry=\"19\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"25\" cy=\"22\" r=\"1.8\" fill=\"#ffffff\" stroke=\"none\"/>\u003ccircle cx=\"39\" cy=\"22\" r=\"1.8\" fill=\"#ffffff\" stroke=\"none\"/>\u003cpath d=\"m27 28 5 7 5-7Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m22 55-8 6h16v-6m12 0 8 6H34v-6\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "owl",
+          "name": "猫头鹰",
+          "category": "动物伙伴",
+          "file": "symbols/owl.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"owl-title\">\u003ctitle id=\"owl-title\">猫头鹰\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m11 6 18 11h7L53 6v34q0 20-21 20T11 40Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"22\" cy=\"30\" rx=\"12\" ry=\"14\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cellipse cx=\"42\" cy=\"30\" rx=\"12\" ry=\"14\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"29\" r=\"5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"42\" cy=\"29\" r=\"5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m28 39 4 7 4-7Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m21 50 4 4m7-4 4 4m7-4 4 4\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "parrot",
+          "name": "鹦鹉",
+          "category": "动物伙伴",
+          "file": "symbols/parrot.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"parrot-title\">\u003ctitle id=\"parrot-title\">鹦鹉\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M27 41 16 60l16-6 10 5-4-21\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M19 35V20q0-16 16-16t15 19L38 35v13H24Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M39 18q23-1 18 19L43 29Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M22 28q-7 20 9 20l5-20\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"37\" cy=\"16\" r=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "fish",
+          "name": "小鱼",
+          "category": "动物伙伴",
+          "file": "symbols/fish.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"fish-title\">\u003ctitle id=\"fish-title\">小鱼\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m47 30 14-13v30L47 36Q19 63 3 33q16-31 44-3Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m25 14 10-8 5 15m-15 29 10 9 5-14\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"17\" cy=\"29\" r=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M34 22q-9 11 0 22\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "whale",
+          "name": "鲸鱼",
+          "category": "动物伙伴",
+          "file": "symbols/whale.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"whale-title\">\u003ctitle id=\"whale-title\">鲸鱼\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 33q2-23 27-17 17 2 16 26 12-1 11-17l-10 3 3-15 11 8q1 38-30 38T5 33Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M8 43q18 17 37 4\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003ccircle cx=\"17\" cy=\"30\" r=\"2.5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M27 12V3m-3 7-5-5m12 5 5-5\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "octopus",
+          "name": "章鱼",
+          "category": "动物伙伴",
+          "file": "symbols/octopus.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"octopus-title\">\u003ctitle id=\"octopus-title\">章鱼\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M12 32q-3-28 20-28t20 28v15q8 6 9-4v-5m-49-6v15q-8 6-9-4v-5m17-1v15q2 13 9 0V40m6 0v12q7 13 9 0V37\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"24\" cy=\"25\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"40\" cy=\"25\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"M28 34q4 4 8 0\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "turtle",
+          "name": "乌龟",
+          "category": "动物伙伴",
+          "file": "symbols/turtle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"turtle-title\">\u003ctitle id=\"turtle-title\">乌龟\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"32\" cy=\"32\" rx=\"21\" ry=\"18\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"56\" cy=\"32\" rx=\"6\" ry=\"9\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m20 17-6-9-7 6 8 11m6 22-6 9-8-6 8-11m25-22 6-9 7 6-8 11m-5 22 6 9 7-6-8-11\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m32 18 11 8v12l-11 9-12-9V26Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"58\" cy=\"29\" r=\"1.5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "frog",
+          "name": "青蛙",
+          "category": "动物伙伴",
+          "file": "symbols/frog.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"frog-title\">\u003ctitle id=\"frog-title\">青蛙\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"19\" cy=\"18\" r=\"11\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"45\" cy=\"18\" r=\"11\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"37\" rx=\"26\" ry=\"21\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"19\" cy=\"18\" r=\"5\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"45\" cy=\"18\" r=\"5\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"19\" cy=\"18\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"45\" cy=\"18\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003cpath d=\"M19 39q13 13 26 0\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M10 48 5 58h14m35-10 5 10H45\" fill=\"none\" stroke=\"#53966a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "butterfly",
+          "name": "蝴蝶",
+          "category": "动物伙伴",
+          "file": "symbols/butterfly.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"butterfly-title\">\u003ctitle id=\"butterfly-title\">蝴蝶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M29 27C8-11-8 24 23 36-4 39 9 69 29 44m6-17C56-11 72 24 41 36c27 3 14 33-6 8\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M32 22v31m0-31L24 9m8 13 8-13\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"17\" cy=\"25\" r=\"5\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"47\" cy=\"25\" r=\"5\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bee",
+          "name": "蜜蜂",
+          "category": "动物伙伴",
+          "file": "symbols/bee.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bee-title\">\u003ctitle id=\"bee-title\">蜜蜂\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"24\" cy=\"18\" rx=\"10\" ry=\"14\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cellipse cx=\"42\" cy=\"18\" rx=\"10\" ry=\"14\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"36\" rx=\"19\" ry=\"15\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M25 23v26m13-26v26M13 34 4 39m49-5 7 4\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"45\" cy=\"33\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m43 23 4-7m-11 6V13\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "snail",
+          "name": "蜗牛",
+          "category": "动物伙伴",
+          "file": "symbols/snail.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"snail-title\">\u003ctitle id=\"snail-title\">蜗牛\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M9 49h32q7-3 7-16h10v13Q59 59 9 56Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m49 34-3-11m10 11 4-11\" fill=\"none\" stroke=\"#53966a\"/>\u003ccircle cx=\"46\" cy=\"21\" r=\"2.5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"60\" cy=\"21\" r=\"2.5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"26\" cy=\"33\" r=\"21\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M29 48C3 48 9 16 29 20c17 3 11 24-1 20-7-2-7-12 0-12\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "key",
+          "name": "钥匙",
+          "category": "日用物件",
+          "file": "symbols/key.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"key-title\">\u003ctitle id=\"key-title\">钥匙\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m29 34 24 24 7-8-8-8-5 5-5-5 5-5-9-9\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"21\" cy=\"22\" r=\"16\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"20\" cy=\"20\" r=\"6\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "umbrella",
+          "name": "雨伞",
+          "category": "日用物件",
+          "file": "symbols/umbrella.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"umbrella-title\">\u003ctitle id=\"umbrella-title\">雨伞\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 7v42q0 16-13 8l-1-5\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M4 33Q7 1 32 9q25-8 28 24-9-7-18 0-10-7-20 0-9-7-18 0Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M32 10Q19 20 22 33m10-23q13 10 10 23\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "balloon",
+          "name": "气球",
+          "category": "日用物件",
+          "file": "symbols/balloon.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"balloon-title\">\u003ctitle id=\"balloon-title\">气球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 44q-12 8 0 13l-2 5\" fill=\"none\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"25\" rx=\"20\" ry=\"23\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m32 46-5 7h10Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M21 15q-5 5-4 11\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "gift",
+          "name": "礼物",
+          "category": "日用物件",
+          "file": "symbols/gift.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"gift-title\">\u003ctitle id=\"gift-title\">礼物\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"9\" y=\"27\" width=\"46\" height=\"33\" rx=\"3\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"5\" y=\"20\" width=\"54\" height=\"12\" rx=\"3\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M27 21v39h10V21Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M32 21Q7 22 14 9q9-12 18 12Q58 22 50 9q-9-12-18 12Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "clock",
+          "name": "闹钟",
+          "category": "日用物件",
+          "file": "symbols/clock.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"clock-title\">\u003ctitle id=\"clock-title\">闹钟\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"34\" r=\"23\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m18 8-6-4-7 9 7 5M46 8l6-4 7 9-7 5M18 53l-5 8m33-8 5 8M32 17v18l12 6\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"34\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "camera",
+          "name": "相机",
+          "category": "日用物件",
+          "file": "symbols/camera.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"camera-title\">\u003ctitle id=\"camera-title\">相机\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 21h14l4-9h19l4 9h13v34H5Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"37\" r=\"14\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"37\" r=\"9\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003crect x=\"9\" y=\"25\" width=\"9\" height=\"6\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m29 32 6-1\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "glasses",
+          "name": "眼镜",
+          "category": "日用物件",
+          "file": "symbols/glasses.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"glasses-title\">\u003ctitle id=\"glasses-title\">眼镜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"5\" y=\"25\" width=\"22\" height=\"22\" rx=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"37\" y=\"25\" width=\"22\" height=\"22\" rx=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M27 32q5-6 10 0M5 30 2 18m57 12 3-12\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"9\" y=\"29\" width=\"14\" height=\"14\" rx=\"4\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003crect x=\"41\" y=\"29\" width=\"14\" height=\"14\" rx=\"4\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "hat",
+          "name": "礼帽",
+          "category": "日用物件",
+          "file": "symbols/hat.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"hat-title\">\u003ctitle id=\"hat-title\">礼帽\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M16 42 19 7h27l3 35\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"47\" rx=\"29\" ry=\"11\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m17 32 31 0-1 10H17Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "crown",
+          "name": "王冠",
+          "category": "日用物件",
+          "file": "symbols/crown.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"crown-title\">\u003ctitle id=\"crown-title\">王冠\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m7 18 13 11L32 9l12 20 13-11-6 37H13Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M13 46h38\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"7\" cy=\"16\" r=\"4\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"8\" r=\"4\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"57\" cy=\"16\" r=\"4\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m32 30 5 7-5 7-5-7Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ring",
+          "name": "戒指",
+          "category": "日用物件",
+          "file": "symbols/ring.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ring-title\">\u003ctitle id=\"ring-title\">戒指\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"40\" r=\"18\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"40\" r=\"11\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m20 14 7-9h10l7 9-12 14Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M20 14h24m-17-9 5 23 5-23\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "necklace",
+          "name": "项链",
+          "category": "日用物件",
+          "file": "symbols/necklace.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"necklace-title\">\u003ctitle id=\"necklace-title\">项链\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 8q-8 38 24 42Q64 46 56 8\" fill=\"none\" stroke=\"#edbb45\"/>\u003cpath d=\"m32 40 10 9-10 13-10-13Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M7 23h7m36 0h8M12 36l7-3m26 0 7 3\" fill=\"none\" stroke=\"#edbb45\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "handbag",
+          "name": "手提包",
+          "category": "日用物件",
+          "file": "symbols/handbag.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"handbag-title\">\u003ctitle id=\"handbag-title\">手提包\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M20 24V15a12 12 0 0 1 24 0v9\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M10 23h44l5 34H5Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M12 24q20 25 40 0\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"28\" y=\"36\" width=\"8\" height=\"8\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "backpack",
+          "name": "双肩包",
+          "category": "日用物件",
+          "file": "symbols/backpack.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"backpack-title\">\u003ctitle id=\"backpack-title\">双肩包\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M24 13V6h16v7m-26 8H8v33h7m35-33h6v33h-7\" fill=\"none\" stroke=\"#ac7956\"/>\u003crect x=\"14\" y=\"12\" width=\"36\" height=\"48\" rx=\"11\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003crect x=\"20\" y=\"35\" width=\"24\" height=\"18\" rx=\"5\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M20 26h24m-4-2v6m-15 11h14\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "shoe",
+          "name": "运动鞋",
+          "category": "日用物件",
+          "file": "symbols/shoe.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"shoe-title\">\u003ctitle id=\"shoe-title\">运动鞋\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M6 22h13l6 12 12-10 9 14 13 6v12H5Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M5 48h54v8H5Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m26 32 9 7m-4-12 8 7m-2-12 8 7\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "boot",
+          "name": "雨靴",
+          "category": "日用物件",
+          "file": "symbols/boot.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"boot-title\">\u003ctitle id=\"boot-title\">雨靴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M15 7h27l-3 31 17 6q6 4 4 14H11l3-17Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M14 16h27M11 51h49\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "sock",
+          "name": "袜子",
+          "category": "日用物件",
+          "file": "symbols/sock.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"sock-title\">\u003ctitle id=\"sock-title\">袜子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M25 5h24v30L31 55Q13 68 5 52q-5-9 8-17l12-9Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M25 15h24m-5 25-9-9M8 39q14 0 15 19\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "mitten",
+          "name": "连指手套",
+          "category": "日用物件",
+          "file": "symbols/mitten.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"mitten-title\">\u003ctitle id=\"mitten-title\">连指手套\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M24 50 9 34q-6-11 5-12 5 0 10 11V13q0-16 16-8 16-2 16 15v20q0 13-12 14Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"23\" y=\"49\" width=\"25\" height=\"12\" rx=\"3\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M34 57h6\" fill=\"none\" stroke=\"#9b7bb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "scarf",
+          "name": "围巾",
+          "category": "日用物件",
+          "file": "symbols/scarf.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"scarf-title\">\u003ctitle id=\"scarf-title\">围巾\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M10 10h44v18H38v32H21V28H10Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M21 28h17M14 10v18m32-18v18M25 55v7m8-7v7\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "mug",
+          "name": "马克杯",
+          "category": "日用物件",
+          "file": "symbols/mug.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"mug-title\">\u003ctitle id=\"mug-title\">马克杯\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M46 22q22-4 15 13-4 8-15 6\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M7 17h42v29q0 13-21 13T7 46Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M17 28v16\" fill=\"none\" stroke=\"#ffffff\"/>\u003cpath d=\"M18 11q-5-5 0-9m13 9q-5-5 0-9\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bottle",
+          "name": "水壶",
+          "category": "日用物件",
+          "file": "symbols/bottle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bottle-title\">\u003ctitle id=\"bottle-title\">水壶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"24\" y=\"4\" width=\"16\" height=\"10\" rx=\"3\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M24 14v8L16 32v25h32V32l-8-10v-8Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003crect x=\"16\" y=\"35\" width=\"32\" height=\"15\" rx=\"3\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m30 38-3 8h9\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "candle",
+          "name": "蜡烛",
+          "category": "日用物件",
+          "file": "symbols/candle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"candle-title\">\u003ctitle id=\"candle-title\">蜡烛\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M31 3q-16 16 1 20Q48 18 31 3Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"20\" y=\"23\" width=\"24\" height=\"33\" rx=\"3\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M20 24v13q6 7 8-3 3 12 8 4V26\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M12 59h40M32 23v-5\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lamp",
+          "name": "台灯",
+          "category": "日用物件",
+          "file": "symbols/lamp.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lamp-title\">\u003ctitle id=\"lamp-title\">台灯\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M31 31v25M18 59h28\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"m20 8-9 27h42L44 8Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M47 36v9\" fill=\"none\" stroke=\"#ac7956\"/>\u003ccircle cx=\"47\" cy=\"47\" r=\"2\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "chair",
+          "name": "椅子",
+          "category": "日用物件",
+          "file": "symbols/chair.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"chair-title\">\u003ctitle id=\"chair-title\">椅子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"15\" y=\"5\" width=\"34\" height=\"28\" rx=\"6\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M16 28v13m32-13v13M17 47l-3 13m33-13 3 13\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"10\" y=\"38\" width=\"44\" height=\"10\" rx=\"3\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M24 12v13m16-13v13\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "mirror",
+          "name": "手镜",
+          "category": "日用物件",
+          "file": "symbols/mirror.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"mirror-title\">\u003ctitle id=\"mirror-title\">手镜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m27 40-4 20h18l-4-20Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"24\" rx=\"22\" ry=\"21\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"24\" rx=\"16\" ry=\"15\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"m23 24 9-9m-4 18 13-13\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "comb",
+          "name": "梳子",
+          "category": "日用物件",
+          "file": "symbols/comb.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"comb-title\">\u003ctitle id=\"comb-title\">梳子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 13h48v12H8Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"M9 25v29m8-29v29m8-29v29m8-29v29m8-29v29m8-29v29m7-29v29\" fill=\"none\" stroke=\"#9b7bb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "car",
+          "name": "小汽车",
+          "category": "出行建筑",
+          "file": "symbols/car.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"car-title\">\u003ctitle id=\"car-title\">小汽车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m6 31 8-18h32l9 18 5 5v16H4V36Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m18 18-5 13h36l-7-13Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M31 18v13\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"16\" cy=\"51\" r=\"7\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"48\" cy=\"51\" r=\"7\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"8\" y=\"37\" width=\"8\" height=\"5\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"48\" y=\"37\" width=\"8\" height=\"5\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bus",
+          "name": "巴士",
+          "category": "出行建筑",
+          "file": "symbols/bus.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bus-title\">\u003ctitle id=\"bus-title\">巴士\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"10\" y=\"4\" width=\"44\" height=\"52\" rx=\"7\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"15\" y=\"13\" width=\"34\" height=\"21\" rx=\"3\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M32 13v21M15 42h7m20 0h7M18 5h28\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"14\" y=\"53\" width=\"9\" height=\"8\" rx=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"41\" y=\"53\" width=\"9\" height=\"8\" rx=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bicycle",
+          "name": "自行车",
+          "category": "出行建筑",
+          "file": "symbols/bicycle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bicycle-title\">\u003ctitle id=\"bicycle-title\">自行车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"15\" cy=\"45\" r=\"12\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"49\" cy=\"45\" r=\"12\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m15 45 12-24 13 24H15l11-19 23 19-9-33h9M21 20h13\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "scooter",
+          "name": "滑板车",
+          "category": "出行建筑",
+          "file": "symbols/scooter.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"scooter-title\">\u003ctitle id=\"scooter-title\">滑板车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"12\" cy=\"54\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"51\" cy=\"54\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M12 47h28l9-35h-9M49 12h8\" fill=\"none\" stroke=\"#e79a50\"/>\u003cpath d=\"m40 47 11 7\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "train",
+          "name": "火车",
+          "category": "出行建筑",
+          "file": "symbols/train.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"train-title\">\u003ctitle id=\"train-title\">火车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"13\" y=\"5\" width=\"38\" height=\"47\" rx=\"8\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"18\" y=\"13\" width=\"28\" height=\"18\" rx=\"3\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M32 13v18M20 52l-8 9m32-9 8 9M15 57h34\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"22\" cy=\"42\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"42\" cy=\"42\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M25 8h14\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "airplane",
+          "name": "飞机",
+          "category": "出行建筑",
+          "file": "symbols/airplane.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"airplane-title\">\u003ctitle id=\"airplane-title\">飞机\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M28 22V8q4-11 8 0v14l24 17v8l-24-9v13l7 6v5l-11-3-11 3v-5l7-6V38L4 47v-8Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M32 10v17\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "helicopter",
+          "name": "直升机",
+          "category": "出行建筑",
+          "file": "symbols/helicopter.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"helicopter-title\">\u003ctitle id=\"helicopter-title\">直升机\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 5h45M31 5v12M14 52h38m-28-9-3 9m22-9 4 9\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M18 20h20q20 2 21 20H23L9 29H3V16h9Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M35 21v16h20q-6-15-20-16Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "rocket",
+          "name": "火箭",
+          "category": "出行建筑",
+          "file": "symbols/rocket.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"rocket-title\">\u003ctitle id=\"rocket-title\">火箭\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m20 33-11 9v17l15-11m20-15 11 9v17L40 48\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M24 49Q8 25 32 3q24 22 8 46Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"25\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m26 50 6 12 6-12\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m24 13 16 0\" fill=\"none\" stroke=\"#df625e\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "sailboat",
+          "name": "帆船",
+          "category": "出行建筑",
+          "file": "symbols/sailboat.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"sailboat-title\">\u003ctitle id=\"sailboat-title\">帆船\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 5v42M6 48h52l-10 12H17Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M27 10 5 41h22Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m36 17 21 24H36Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M4 62h56\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "submarine",
+          "name": "潜水艇",
+          "category": "出行建筑",
+          "file": "symbols/submarine.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"submarine-title\">\u003ctitle id=\"submarine-title\">潜水艇\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M25 21V10h13v6h-6v5\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M48 28h10v-7h4v28h-4v-7H48\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003crect x=\"3\" y=\"22\" width=\"51\" height=\"31\" rx=\"15\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"18\" cy=\"37\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"39\" cy=\"37\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m17 34 3-1m18 1 3-1\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "anchor",
+          "name": "船锚",
+          "category": "出行建筑",
+          "file": "symbols/anchor.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"anchor-title\">\u003ctitle id=\"anchor-title\">船锚\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"11\" r=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M32 18v40M19 27h26M7 36q0 21 25 22 25-1 25-22M7 36l-4 10m4-10 10 6m40-6 4 10m-4-10-10 6\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "compass",
+          "name": "指南针",
+          "category": "出行建筑",
+          "file": "symbols/compass.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"compass-title\">\u003ctitle id=\"compass-title\">指南针\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"34\" r=\"26\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"5\" r=\"3\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m40 15-3 24-13 13 3-24Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m27 28 10 11-13 13Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"34\" r=\"3\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M32 12v4m0 36v4M10 34h4m36 0h4\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "map",
+          "name": "地图",
+          "category": "出行建筑",
+          "file": "symbols/map.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"map-title\">\u003ctitle id=\"map-title\">地图\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m4 14 18-8 20 8 18-8v44l-18 8-20-8-18 8Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M22 6v44m20-36v44\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"m8 39 9-12 11 8 10-13 14 7\" fill=\"none\" stroke=\"#579fb9\"/>\u003ccircle cx=\"49\" cy=\"38\" r=\"6\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m45 42 4 7 4-7\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "suitcase",
+          "name": "行李箱",
+          "category": "出行建筑",
+          "file": "symbols/suitcase.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"suitcase-title\">\u003ctitle id=\"suitcase-title\">行李箱\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M23 15V5h18v10\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"10\" y=\"15\" width=\"44\" height=\"42\" rx=\"5\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M20 16v40m24-40v40M14 57v4m36-4v4\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"25\" y=\"28\" width=\"14\" height=\"9\" rx=\"1\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "tent",
+          "name": "帐篷",
+          "category": "出行建筑",
+          "file": "symbols/tent.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"tent-title\">\u003ctitle id=\"tent-title\">帐篷\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 55 31 8l28 47Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m31 8 5 47H5Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m31 29 5 26H18Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M3 59h58m-51-4-5 4m49-4 6 4\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "house",
+          "name": "房屋",
+          "category": "出行建筑",
+          "file": "symbols/house.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"house-title\">\u003ctitle id=\"house-title\">房屋\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M11 28v31h42V28\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M4 29 32 5l28 24Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"26\" y=\"39\" width=\"12\" height=\"20\" rx=\"1\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003crect x=\"15\" y=\"32\" width=\"8\" height=\"9\" rx=\"1\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"42\" y=\"32\" width=\"8\" height=\"9\" rx=\"1\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M47 16V7h8v16\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "castle",
+          "name": "城堡",
+          "category": "出行建筑",
+          "file": "symbols/castle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"castle-title\">\u003ctitle id=\"castle-title\">城堡\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 59V22H4V7h8v7h7V7h8v15h-4v12h18V22h-4V7h8v7h7V7h8v15h-4v37Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M25 59V47q7-15 14 0v12Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M15 29v8m34-8v8M30 7v24m0-24 14 7-14 7\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lighthouse",
+          "name": "灯塔",
+          "category": "出行建筑",
+          "file": "symbols/lighthouse.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lighthouse-title\">\u003ctitle id=\"lighthouse-title\">灯塔\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m20 58 5-35h14l6 35Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m24 31 16 0 2 10H22Zm-3 20h23l2 7H20Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"22\" y=\"13\" width=\"20\" height=\"11\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m19 13 13-9 13 9Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M8 60h48M17 18H3m44 0h14\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bridge",
+          "name": "大桥",
+          "category": "出行建筑",
+          "file": "symbols/bridge.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bridge-title\">\u003ctitle id=\"bridge-title\">大桥\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 49h54v8H5Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M13 51V9m38 42V9M13 15Q32 61 51 15M5 23l8-8m38 0 8 8\" fill=\"none\" stroke=\"#579fb9\"/>\u003cpath d=\"M22 30v19m10-11v11m10-19v19\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ferris-wheel",
+          "name": "摩天轮",
+          "category": "出行建筑",
+          "file": "symbols/ferris-wheel.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ferris-wheel-title\">\u003ctitle id=\"ferris-wheel-title\">摩天轮\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"27\" r=\"22\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m23 59 9-32 9 32M16 59h32M10 27h44M32 5v44M16 11l32 32m-32 0 32-32\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"27\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"25\" y=\"3\" width=\"14\" height=\"9\" rx=\"3\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"3\" y=\"25\" width=\"13\" height=\"11\" rx=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"48\" y=\"25\" width=\"13\" height=\"11\" rx=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003crect x=\"26\" y=\"46\" width=\"12\" height=\"10\" rx=\"3\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "hot-air-balloon",
+          "name": "热气球",
+          "category": "出行建筑",
+          "file": "symbols/hot-air-balloon.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"hot-air-balloon-title\">\u003ctitle id=\"hot-air-balloon-title\">热气球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 4C1 4 2 29 22 43h20C62 29 63 4 32 4Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M32 4Q13 17 27 43h10Q51 17 32 4Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m22 43 4 10m16-10-4 10\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"24\" y=\"52\" width=\"16\" height=\"10\" rx=\"2\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "traffic-light",
+          "name": "红绿灯",
+          "category": "出行建筑",
+          "file": "symbols/traffic-light.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"traffic-light-title\">\u003ctitle id=\"traffic-light-title\">红绿灯\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 48v13M22 61h20\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"18\" y=\"3\" width=\"28\" height=\"48\" rx=\"6\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"13\" r=\"6\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"27\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"41\" r=\"6\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "signpost",
+          "name": "路牌",
+          "category": "出行建筑",
+          "file": "symbols/signpost.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"signpost-title\">\u003ctitle id=\"signpost-title\">路牌\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M30 7h5v54h-5Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M9 11h38l12 9-12 9H9Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M55 34H18L5 43l13 9h37Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M41 20h8m-31 23h8\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "windmill",
+          "name": "风车",
+          "category": "出行建筑",
+          "file": "symbols/windmill.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"windmill-title\">\u003ctitle id=\"windmill-title\">风车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m23 33-7 27h32l-7-27Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M30 26 10 5 3 13l21 20-20 19 8 8 20-21 20 20 8-8-21-19L59 12l-8-8Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M28 60V47h8v13\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "globe",
+          "name": "地球仪",
+          "category": "出行建筑",
+          "file": "symbols/globe.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"globe-title\">\u003ctitle id=\"globe-title\">地球仪\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M45 5q25 29-8 45M32 49v10M19 61h27\" fill=\"none\" stroke=\"#ac7956\"/>\u003ccircle cx=\"29\" cy=\"27\" r=\"23\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m15 9 8 6-3 10-12 3 4 11 11 2 6-10 8 2 4-10 9-3-5-9-14-6Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m30 43 6-2 2 7-6 2Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "football",
+          "name": "足球",
+          "category": "运动音乐",
+          "file": "symbols/football.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"football-title\">\u003ctitle id=\"football-title\">足球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"32\" r=\"27\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m32 20 12 9-5 14H25l-5-14Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m32 20V5m12 24 13-5M39 43l8 13M25 43l-8 13m3-27L7 24\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"m18 9 14 4 14-4M7 26l8 12-2 13m38 0-2-13 8-12M23 57l9-9 9 9\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "basketball",
+          "name": "篮球",
+          "category": "运动音乐",
+          "file": "symbols/basketball.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"basketball-title\">\u003ctitle id=\"basketball-title\">篮球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"32\" r=\"27\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"M5 32h54M32 5v54M13 12q38 21 0 40m38-40Q13 33 51 52\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "tennis",
+          "name": "网球拍",
+          "category": "运动音乐",
+          "file": "symbols/tennis.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"tennis-title\">\u003ctitle id=\"tennis-title\">网球拍\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m28 39-17 22-6-5 17-22\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"39\" cy=\"23\" rx=\"18\" ry=\"21\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M27 10v25m8-31v39m8-39v39m8-33v25M23 16h31M21 24h36m-33 8h30\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003ccircle cx=\"49\" cy=\"51\" r=\"10\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M43 44q10 3 10 14\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "badminton",
+          "name": "羽毛球",
+          "category": "运动音乐",
+          "file": "symbols/badminton.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"badminton-title\">\u003ctitle id=\"badminton-title\">羽毛球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m22 42-16-29 12 4 3-12 11 11L43 5l3 12 12-4-16 29Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m18 17 10 25m4-26v26m14-25L36 42\" fill=\"none\" stroke=\"#579fb9\"/>\u003cpath d=\"M22 42h20v7a10 10 0 0 1-20 0Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "baseball",
+          "name": "棒球",
+          "category": "运动音乐",
+          "file": "symbols/baseball.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"baseball-title\">\u003ctitle id=\"baseball-title\">棒球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"32\" r=\"26\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M14 13q27 19 0 38m36-38Q23 32 50 51\" fill=\"none\" stroke=\"#df625e\"/>\u003cpath d=\"m20 17-5 4m9 3-6 4m7 4-6 1m5 7-6-2m24-21 5 4m-9 3 6 4m-7 4 6 1m-5 7 6-2\" fill=\"none\" stroke=\"#df625e\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "rugby",
+          "name": "橄榄球",
+          "category": "运动音乐",
+          "file": "symbols/rugby.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"rugby-title\">\u003ctitle id=\"rugby-title\">橄榄球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M9 8q51-5 47 47Q4 61 9 8Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m20 44 24-24m-19 5 14 14m-8-20 14 14m-26-2 14 14\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003cpath d=\"M10 23 23 10m18 44 13-13\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bowling",
+          "name": "保龄球",
+          "category": "运动音乐",
+          "file": "symbols/bowling.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bowling-title\">\u003ctitle id=\"bowling-title\">保龄球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M19 5h9v16q-1 7 7 18 12 22-11 22T12 39q9-11 7-18Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M18 21h11m-12 6h13\" fill=\"none\" stroke=\"#df625e\"/>\u003ccircle cx=\"46\" cy=\"45\" r=\"16\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"43\" cy=\"39\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"49\" cy=\"41\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"44\" cy=\"46\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "golf",
+          "name": "高尔夫",
+          "category": "运动音乐",
+          "file": "symbols/golf.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"golf-title\">\u003ctitle id=\"golf-title\">高尔夫\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M33 53V5m0 0 20 9-20 9\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cellipse cx=\"31\" cy=\"55\" rx=\"26\" ry=\"6\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"14\" cy=\"44\" r=\"7\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"12\" cy=\"42\" r=\"1\" fill=\"#c9e6ed\" stroke=\"none\"/>\u003ccircle cx=\"17\" cy=\"45\" r=\"1\" fill=\"#c9e6ed\" stroke=\"none\"/>\u003ccircle cx=\"11\" cy=\"47\" r=\"1\" fill=\"#c9e6ed\" stroke=\"none\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "skateboard",
+          "name": "滑板",
+          "category": "运动音乐",
+          "file": "symbols/skateboard.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"skateboard-title\">\u003ctitle id=\"skateboard-title\">滑板\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M5 32q0 13 12 13h30q12 0 12-13\" fill=\"none\" stroke=\"#ac7956\"/>\u003crect x=\"7\" y=\"25\" width=\"50\" height=\"12\" rx=\"6\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"18\" cy=\"49\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"46\" cy=\"49\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M18 37v6m28-6v6\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "roller-skate",
+          "name": "轮滑鞋",
+          "category": "运动音乐",
+          "file": "symbols/roller-skate.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"roller-skate-title\">\u003ctitle id=\"roller-skate-title\">轮滑鞋\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M14 7h24v22l18 11v9H8V31Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M8 43h48v7H8Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M23 20h14m-14 8h15m-4 7h12\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"18\" cy=\"56\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"46\" cy=\"56\" r=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "dumbbell",
+          "name": "哑铃",
+          "category": "运动音乐",
+          "file": "symbols/dumbbell.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"dumbbell-title\">\u003ctitle id=\"dumbbell-title\">哑铃\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"19\" y=\"26\" width=\"26\" height=\"12\" rx=\"3\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"9\" y=\"14\" width=\"12\" height=\"36\" rx=\"3\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"43\" y=\"14\" width=\"12\" height=\"36\" rx=\"3\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"3\" y=\"21\" width=\"7\" height=\"22\" rx=\"3\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"54\" y=\"21\" width=\"7\" height=\"22\" rx=\"3\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "boxing-glove",
+          "name": "拳击手套",
+          "category": "运动音乐",
+          "file": "symbols/boxing-glove.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"boxing-glove-title\">\u003ctitle id=\"boxing-glove-title\">拳击手套\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M18 43Q5 40 6 28q0-12 10-8V13q0-11 15-8 24-5 24 18v12q-1 13-13 17Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"17\" y=\"47\" width=\"28\" height=\"14\" rx=\"3\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M18 22v13q11 0 11 10M23 53h15\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "trophy",
+          "name": "奖杯",
+          "category": "运动音乐",
+          "file": "symbols/trophy.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"trophy-title\">\u003ctitle id=\"trophy-title\">奖杯\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M18 12H5q-1 22 18 23m23-23h13q1 22-18 23\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M17 5h30v17q0 17-15 17T17 22Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M32 39v14M19 59h26l-3-7H22Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m32 13 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "medal",
+          "name": "奖牌",
+          "category": "运动音乐",
+          "file": "symbols/medal.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"medal-title\">\u003ctitle id=\"medal-title\">奖牌\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m10 5 12 28h20L54 5H38l-6 18-7-18Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"43\" r=\"18\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m32 30 4 8 9 1-7 6 2 9-8-4-8 4 2-9-7-6 9-1Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "whistle",
+          "name": "哨子",
+          "category": "运动音乐",
+          "file": "symbols/whistle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"whistle-title\">\u003ctitle id=\"whistle-title\">哨子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M17 27Q2 33 6 46q7 22 28 6l12-16h14V21H28Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"20\" cy=\"41\" r=\"8\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"39\" y=\"22\" width=\"8\" height=\"6\" rx=\"0\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M19 27V12q14-14 21-4\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "guitar",
+          "name": "吉他",
+          "category": "运动音乐",
+          "file": "symbols/guitar.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"guitar-title\">\u003ctitle id=\"guitar-title\">吉他\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m36 29 17-23 7 5-20 23q9 13-5 24-13 9-25-3-12-13 0-24 9-9 17-1Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"27\" cy=\"41\" r=\"7\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m22 45 30-34m-35 33 9 8\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003cpath d=\"m49 5 11 8\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "violin",
+          "name": "小提琴",
+          "category": "运动音乐",
+          "file": "symbols/violin.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"violin-title\">\u003ctitle id=\"violin-title\">小提琴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m29 23 15-18 6 5-15 18q11 8 2 15-7-3-7 5 0 12-14 13Q1 57 5 45q2-9 11-9 7 0 1-8 4-9 12-5Z\" fill=\"#e79a50\" stroke=\"#29465a\"/>\u003cpath d=\"m15 49 30-40m-30 3 44 44\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"m16 42 8 8m-9-16-3 5m18 6-3 5\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "trumpet",
+          "name": "小号",
+          "category": "运动音乐",
+          "file": "symbols/trumpet.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"trumpet-title\">\u003ctitle id=\"trumpet-title\">小号\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 29h32L59 14v39L40 40H8Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M19 40v10h21V29m-13-1V17m9 11V17M23 16h8m1 0h8M3 26v17\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M52 22v23\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "drum",
+          "name": "鼓",
+          "category": "运动音乐",
+          "file": "symbols/drum.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"drum-title\">\u003ctitle id=\"drum-title\">鼓\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"32\" cy=\"47\" rx=\"25\" ry=\"12\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"7\" y=\"24\" width=\"50\" height=\"24\" rx=\"0\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"24\" rx=\"25\" ry=\"12\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m7 25 12 25 13-25 13 25 12-25\" fill=\"none\" stroke=\"#edbb45\"/>\u003cpath d=\"m13 4 33 19M51 4 23 20\" fill=\"none\" stroke=\"#ac7956\"/>\u003ccircle cx=\"12\" cy=\"4\" r=\"3\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003ccircle cx=\"52\" cy=\"4\" r=\"3\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "piano",
+          "name": "钢琴",
+          "category": "运动音乐",
+          "file": "symbols/piano.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"piano-title\">\u003ctitle id=\"piano-title\">钢琴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 9h50v44H7Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"10\" y=\"30\" width=\"44\" height=\"20\" rx=\"0\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M19 31v19m9-19v19m9-19v19m9-19v19M12 53v8m40-8v8\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"16\" y=\"30\" width=\"6\" height=\"11\" rx=\"0\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"25\" y=\"30\" width=\"6\" height=\"11\" rx=\"0\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003crect x=\"43\" y=\"30\" width=\"6\" height=\"11\" rx=\"0\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "microphone",
+          "name": "麦克风",
+          "category": "运动音乐",
+          "file": "symbols/microphone.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"microphone-title\">\u003ctitle id=\"microphone-title\">麦克风\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m28 33-18 22 5 6 21-20Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"42\" cy=\"22\" r=\"18\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m29 11 25 22m-29-12 19 18m-6-34 20 18\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003cpath d=\"m12 58-5 4\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "headphones",
+          "name": "耳机",
+          "category": "运动音乐",
+          "file": "symbols/headphones.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"headphones-title\">\u003ctitle id=\"headphones-title\">耳机\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 40V29a24 24 0 0 1 48 0v11\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M15 35v-8a17 17 0 0 1 34 0v8\" fill=\"none\" stroke=\"#579fb9\"/>\u003crect x=\"4\" y=\"31\" width=\"14\" height=\"25\" rx=\"6\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003crect x=\"46\" y=\"31\" width=\"14\" height=\"25\" rx=\"6\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "music-note",
+          "name": "音符",
+          "category": "运动音乐",
+          "file": "symbols/music-note.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"music-note-title\">\u003ctitle id=\"music-note-title\">音符\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M24 46V15L54 7v34\" fill=\"none\" stroke=\"#9b7bb9\"/>\u003cpath d=\"M24 15v10l30-8V7Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"16\" cy=\"49\" rx=\"11\" ry=\"8\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"46\" cy=\"44\" rx=\"11\" ry=\"8\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "maracas",
+          "name": "沙锤",
+          "category": "运动音乐",
+          "file": "symbols/maracas.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"maracas-title\">\u003ctitle id=\"maracas-title\">沙锤\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m19 32 12 26 6-3-13-26m16 4L29 58l6 3 12-25\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cellipse cx=\"17\" cy=\"21\" rx=\"12\" ry=\"18\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cellipse cx=\"47\" cy=\"22\" rx=\"12\" ry=\"18\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M5 20h24m-21 8h18M36 17h22m-23 8h24\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "kite",
+          "name": "风筝",
+          "category": "运动音乐",
+          "file": "symbols/kite.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"kite-title\">\u003ctitle id=\"kite-title\">风筝\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 4 54 25 32 47 10 25Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M32 4v43L10 25Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M10 25h44M32 47q17 7 0 14\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"m34 52 9-3-1 9Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "hammer",
+          "name": "锤子",
+          "category": "工具园艺",
+          "file": "symbols/hammer.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"hammer-title\">\u003ctitle id=\"hammer-title\">锤子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m24 26 9-8 26 33-9 9Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M4 19 22 4l16 5 7 12-10 9-8-7-10 9Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m13 12 10 11\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "wrench",
+          "name": "扳手",
+          "category": "工具园艺",
+          "file": "symbols/wrench.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"wrench-title\">\u003ctitle id=\"wrench-title\">扳手\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M41 5 32 18l10 9 14-9q5 18-14 21L21 59Q7 67 5 53l24-24Q19 9 41 5Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"14\" cy=\"53\" r=\"3\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "screwdriver",
+          "name": "螺丝刀",
+          "category": "工具园艺",
+          "file": "symbols/screwdriver.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"screwdriver-title\">\u003ctitle id=\"screwdriver-title\">螺丝刀\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m37 22 15-17 7 6-16 17-9 12-6-6Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M28 29q4-3 10 3t3 10L23 60q-7 6-15-2T7 44Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m14 47 14-14m-7 21 14-14\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "saw",
+          "name": "锯子",
+          "category": "工具园艺",
+          "file": "symbols/saw.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"saw-title\">\u003ctitle id=\"saw-title\">锯子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m6 44 31-31 16 15-5 5-4-1-1 6-6-1-1 6-6-1-1 6-6-1-1 6-6-1-3 6Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M38 10q5-7 11 0l11 11q5 6-2 12l-4 3-20-20Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m43 15 11 11-2 3-12-11Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pliers",
+          "name": "钳子",
+          "category": "工具园艺",
+          "file": "symbols/pliers.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pliers-title\">\u003ctitle id=\"pliers-title\">钳子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M15 5 27 19l10-1L49 5l3 13-13 15H25L12 18Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m25 30-13 26q-1 7 6 5l15-24 13 24q7 2 6-5L39 30Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"29\" r=\"5\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "scissors",
+          "name": "剪刀",
+          "category": "工具园艺",
+          "file": "symbols/scissors.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"scissors-title\">\u003ctitle id=\"scissors-title\">剪刀\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cellipse cx=\"15\" cy=\"48\" rx=\"10\" ry=\"12\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cellipse cx=\"48\" cy=\"48\" rx=\"10\" ry=\"12\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m23 39 28-34 4 5-17 24 11 4m-9 1L12 5l-3 5 17 24-11 5\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"31\" r=\"3\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ruler",
+          "name": "直尺",
+          "category": "工具园艺",
+          "file": "symbols/ruler.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ruler-title\">\u003ctitle id=\"ruler-title\">直尺\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m5 43 40-38 15 16-40 38Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m39 12 6 6m-13 0 4 5m-11 2 7 7m-14-1 5 5m-12 2 7 7m-14-1 5 5\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "pencil",
+          "name": "铅笔",
+          "category": "工具园艺",
+          "file": "symbols/pencil.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"pencil-title\">\u003ctitle id=\"pencil-title\">铅笔\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m10 43 30-35 15 13-30 34-20 5Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m40 8 4-5q3-3 7 1l8 7q4 4 0 7l-4 3Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"m10 43 15 12-20 5Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M5 60l4-13 7 6Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m18 44 29-31\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "paintbrush",
+          "name": "画笔",
+          "category": "工具园艺",
+          "file": "symbols/paintbrush.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"paintbrush-title\">\u003ctitle id=\"paintbrush-title\">画笔\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m26 35 25-32 9 8-29 30Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m26 32 8 7-6 7-9-8Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M21 39q19 10 1 19Q11 63 3 55q12-1 10-8-1-7 8-8Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "palette",
+          "name": "调色盘",
+          "category": "工具园艺",
+          "file": "symbols/palette.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"palette-title\">\u003ctitle id=\"palette-title\">调色盘\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 5C-3 5-5 54 24 59c23 5 4-20 20-21 25 4 18-33-12-33Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"19\" cy=\"19\" r=\"6\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"37\" cy=\"14\" r=\"5\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"50\" cy=\"25\" r=\"5\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"12\" cy=\"37\" r=\"5\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"25\" cy=\"46\" r=\"5\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cellipse cx=\"35\" cy=\"29\" rx=\"5\" ry=\"6\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bucket",
+          "name": "水桶",
+          "category": "工具园艺",
+          "file": "symbols/bucket.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bucket-title\">\u003ctitle id=\"bucket-title\">水桶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M13 25V17q19-25 38 0v8\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"m9 23 7 36h32l7-36Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"23\" rx=\"23\" ry=\"7\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M19 34v13\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "watering-can",
+          "name": "洒水壶",
+          "category": "工具园艺",
+          "file": "symbols/watering-can.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"watering-can-title\">\u003ctitle id=\"watering-can-title\">洒水壶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M40 23q20-18 20 4 0 14-15 13\" fill=\"none\" stroke=\"#53966a\"/>\u003cpath d=\"M12 25h30l6 30H14L3 32l7-4 7 13Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M23 25V15h12v10\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m3 32-1-9 9-4 4 8Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m3 12 1-4m6 3 2-4\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "shovel",
+          "name": "铲子",
+          "category": "工具园艺",
+          "file": "symbols/shovel.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"shovel-title\">\u003ctitle id=\"shovel-title\">铲子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M24 4h16v12l-8 8-8-8Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 22v23\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M17 39h30v10q-2 10-15 14-13-4-15-14Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M32 41v14\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "rake",
+          "name": "耙子",
+          "category": "工具园艺",
+          "file": "symbols/rake.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"rake-title\">\u003ctitle id=\"rake-title\">耙子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 26v35\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"M7 6v20h50V6M17 6v20M27 6v20M37 6v20M47 6v20\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "axe",
+          "name": "斧头",
+          "category": "工具园艺",
+          "file": "symbols/axe.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"axe-title\">\u003ctitle id=\"axe-title\">斧头\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m33 7 9 4-20 50-10-4Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M25 12 40 17l-3 15-20-4L4 14q13 4 21-2Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M4 14 17 28l4-7Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "wheelbarrow",
+          "name": "独轮车",
+          "category": "工具园艺",
+          "file": "symbols/wheelbarrow.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"wheelbarrow-title\">\u003ctitle id=\"wheelbarrow-title\">独轮车\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m11 18 42 3-9 22H22Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"m13 23-5-8H2m22 28-7 13m26-13 5 15H32\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"18\" cy=\"53\" r=\"8\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"m20 21 5 13\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ladder",
+          "name": "梯子",
+          "category": "工具园艺",
+          "file": "symbols/ladder.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ladder-title\">\u003ctitle id=\"ladder-title\">梯子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M14 4h7v56h-7Zm29 0h7v56h-7Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M21 14h22m-22 12h22m-22 12h22m-22 12h22\" fill=\"none\" stroke=\"#e79a50\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "gear",
+          "name": "齿轮",
+          "category": "工具园艺",
+          "file": "symbols/gear.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"gear-title\">\u003ctitle id=\"gear-title\">齿轮\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m26 4 12 0 2 9 7 3 8-4 6 10-7 6v8l7 6-6 10-8-4-7 3-2 9H26l-2-9-7-3-8 4-6-10 7-6v-8l-7-6 6-10 8 4 7-3Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"12\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"6\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "magnet",
+          "name": "磁铁",
+          "category": "工具园艺",
+          "file": "symbols/magnet.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"magnet-title\">\u003ctitle id=\"magnet-title\">磁铁\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 9h15v25q0 17 20 0V9h15v25C57 69 7 69 7 34Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M7 9h15v13H7Zm35 0h15v13H42Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "nut",
+          "name": "螺母",
+          "category": "工具园艺",
+          "file": "symbols/nut.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"nut-title\">\u003ctitle id=\"nut-title\">螺母\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m19 6 26 0 15 26-15 26H19L4 32Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"14\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"9\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"m19 6 7 13m19-13-7 13M4 32h14m28 0h14M19 58l7-13m19 13-7-13\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "padlock",
+          "name": "挂锁",
+          "category": "工具园艺",
+          "file": "symbols/padlock.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"padlock-title\">\u003ctitle id=\"padlock-title\">挂锁\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M18 29V17a14 14 0 0 1 28 0v12h-7V17a7 7 0 0 0-14 0v12Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"10\" y=\"27\" width=\"44\" height=\"33\" rx=\"6\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"40\" r=\"5\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"m30 43-2 8h8l-2-8Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "flashlight",
+          "name": "手电筒",
+          "category": "工具园艺",
+          "file": "symbols/flashlight.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"flashlight-title\">\u003ctitle id=\"flashlight-title\">手电筒\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m16 31 16-14 13 14-15 16Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m30 47-12 13-13-14 11-15Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m32 17 3-12 24 26-14 0Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m21 33 4 4\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"m46 4 2 5m10 4 4-1m-6 11 6 1\" fill=\"none\" stroke=\"#edbb45\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "plug",
+          "name": "电源插头",
+          "category": "工具园艺",
+          "file": "symbols/plug.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"plug-title\">\u003ctitle id=\"plug-title\">电源插头\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M21 4v17m22-17v17\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M13 19h38v15q0 14-19 14T13 34Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M32 48v7q0 9-16 6\" fill=\"none\" stroke=\"#29465a\"/>\u003cpath d=\"M22 30h20\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "battery",
+          "name": "电池",
+          "category": "工具园艺",
+          "file": "symbols/battery.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"battery-title\">\u003ctitle id=\"battery-title\">电池\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"5\" y=\"16\" width=\"50\" height=\"33\" rx=\"5\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003crect x=\"55\" y=\"25\" width=\"6\" height=\"15\" rx=\"1\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M14 32h12m-6-6v12m20-6h9\" fill=\"none\" stroke=\"#ffffff\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "thermometer",
+          "name": "温度计",
+          "category": "工具园艺",
+          "file": "symbols/thermometer.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"thermometer-title\">\u003ctitle id=\"thermometer-title\">温度计\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M23 39V13a9 9 0 0 1 18 0v26q7 5 7 11 0 12-16 12T16 50q0-6 7-11Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"49\" r=\"9\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"M32 18v31\" fill=\"none\" stroke=\"#df625e\"/>\u003cpath d=\"M45 14h9m-9 10h6m-6 10h9\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "book",
+          "name": "书本",
+          "category": "趣玩科学",
+          "file": "symbols/book.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"book-title\">\u003ctitle id=\"book-title\">书本\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 16Q17 5 4 12v41q14-6 28 3 14-9 28-3V12q-13-7-28 4Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M32 16Q18 7 9 12v34q13-3 23 5 10-8 23-5V12q-9-5-23 4Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M32 16v35M15 21l10 3m-10 7 10 3m14-10 10-3m-10 13 10-3\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "envelope",
+          "name": "信封",
+          "category": "趣玩科学",
+          "file": "symbols/envelope.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"envelope-title\">\u003ctitle id=\"envelope-title\">信封\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"4\" y=\"13\" width=\"56\" height=\"39\" rx=\"3\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m4 15 28 23 28-23M4 52l19-20m37 20L41 32\" fill=\"none\" stroke=\"#ac7956\"/>\u003cpath d=\"m32 24 3-4q9-2 6 7l-9 9-9-9q-3-9 6-7Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "scroll",
+          "name": "卷轴",
+          "category": "趣玩科学",
+          "file": "symbols/scroll.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"scroll-title\">\u003ctitle id=\"scroll-title\">卷轴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M17 7h34v43q0 11-14 11H11V22H6V12q0-5 11-5Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M17 7q10 0 10 15H6m31 39q-11 0-11-12H5q-4 12 6 12M33 18h11m-20 13h20m-20 8h20\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bookmark",
+          "name": "书签",
+          "category": "趣玩科学",
+          "file": "symbols/bookmark.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bookmark-title\">\u003ctitle id=\"bookmark-title\">书签\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M15 5h34v55L32 46 15 60Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cpath d=\"m32 14 4 7 8 1-6 6 1 8-7-4-7 4 1-8-6-6 8-1Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bell",
+          "name": "铃铛",
+          "category": "趣玩科学",
+          "file": "symbols/bell.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bell-title\">\u003ctitle id=\"bell-title\">铃铛\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"7\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M12 43V26q0-17 20-17t20 17v17l7 9H5Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M24 53q0 12 16 0\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M21 25q0-7 7-8\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "dice",
+          "name": "骰子",
+          "category": "趣玩科学",
+          "file": "symbols/dice.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"dice-title\">\u003ctitle id=\"dice-title\">骰子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003crect x=\"8\" y=\"8\" width=\"48\" height=\"48\" rx=\"9\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003ccircle cx=\"20\" cy=\"20\" r=\"4\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"44\" cy=\"20\" r=\"4\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"4\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"20\" cy=\"44\" r=\"4\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003ccircle cx=\"44\" cy=\"44\" r=\"4\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "puzzle",
+          "name": "拼图块",
+          "category": "趣玩科学",
+          "file": "symbols/puzzle.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"puzzle-title\">\u003ctitle id=\"puzzle-title\">拼图块\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M8 24h15q-6-16 8-16t8 16h17v14q-16-5-16 8t16 7v7H8V45q15 7 15-7T8 31Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "chess-knight",
+          "name": "国际象棋马",
+          "category": "趣玩科学",
+          "file": "symbols/chess-knight.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"chess-knight-title\">\u003ctitle id=\"chess-knight-title\">国际象棋马\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M14 52q-2-20 16-28l-9-1-8 9-8-8L28 5l17 8q18 17 7 39Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m28 5 2-3 6 9M24 35q17-8 17-19\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"29\" cy=\"17\" r=\"2\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003crect x=\"9\" y=\"52\" width=\"48\" height=\"9\" rx=\"3\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "spinning-top",
+          "name": "陀螺",
+          "category": "趣玩科学",
+          "file": "symbols/spinning-top.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"spinning-top-title\">\u003ctitle id=\"spinning-top-title\">陀螺\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M28 5h8v13h-8Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M8 27q24-23 48 0L32 58Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"27\" rx=\"24\" ry=\"10\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M32 37v21M19 36l13 22 13-22\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003cpath d=\"M32 58v4\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "yoyo",
+          "name": "悠悠球",
+          "category": "趣玩科学",
+          "file": "symbols/yoyo.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"yoyo-title\">\u003ctitle id=\"yoyo-title\">悠悠球\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 26V9q0-9 13-5\" fill=\"none\" stroke=\"#29465a\"/>\u003cellipse cx=\"35\" cy=\"41\" rx=\"23\" ry=\"20\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cellipse cx=\"27\" cy=\"41\" rx=\"20\" ry=\"20\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"27\" cy=\"41\" r=\"12\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003ccircle cx=\"27\" cy=\"41\" r=\"4\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "robot",
+          "name": "机器人",
+          "category": "趣玩科学",
+          "file": "symbols/robot.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"robot-title\">\u003ctitle id=\"robot-title\">机器人\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 6v10M11 28H4v17h7m42-17h7v17h-7M21 53v8m22-8v8\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"5\" r=\"3\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003crect x=\"11\" y=\"16\" width=\"42\" height=\"38\" rx=\"7\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003crect x=\"17\" y=\"23\" width=\"30\" height=\"15\" rx=\"3\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003ccircle cx=\"24\" cy=\"30\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003ccircle cx=\"40\" cy=\"30\" r=\"1.8\" fill=\"#29465a\" stroke=\"none\"/>\u003crect x=\"23\" y=\"43\" width=\"18\" height=\"6\" rx=\"1\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"M28 43v6m8-6v6\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "alien",
+          "name": "外星人",
+          "category": "趣玩科学",
+          "file": "symbols/alien.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"alien-title\">\u003ctitle id=\"alien-title\">外星人\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 4C-8 2 5 41 32 59 59 41 72 2 32 4Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003cpath d=\"M13 24q19 0 15 16-15-1-15-16Zm38 0q-19 0-15 16 15-1 15-16Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M27 48h10\" fill=\"none\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "ufo",
+          "name": "飞碟",
+          "category": "趣玩科学",
+          "file": "symbols/ufo.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"ufo-title\">\u003ctitle id=\"ufo-title\">飞碟\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M18 29q-1-25 14-25t14 25Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cellipse cx=\"32\" cy=\"32\" rx=\"29\" ry=\"12\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"M8 39q24 20 48 0\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003ccircle cx=\"14\" cy=\"32\" r=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"35\" r=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"50\" cy=\"32\" r=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m23 50-4 10m13-9v11m9-12 4 10\" fill=\"none\" stroke=\"#edbb45\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "telescope",
+          "name": "望远镜",
+          "category": "趣玩科学",
+          "file": "symbols/telescope.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"telescope-title\">\u003ctitle id=\"telescope-title\">望远镜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m11 28 36-22 11 20-37 18Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"m42 9 7-4 12 21-8 4Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"m6 34 8-4 6 10-8 4Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M32 39v9m0 0L17 61m15-13 16 13m-16-13v13\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "microscope",
+          "name": "显微镜",
+          "category": "趣玩科学",
+          "file": "symbols/microscope.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"microscope-title\">\u003ctitle id=\"microscope-title\">显微镜\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M39 21q18 6 10 23-4 10-20 10M13 60h42M29 51v9\" fill=\"none\" stroke=\"#579fb9\"/>\u003cpath d=\"m19 6 12-4 13 28-14 6Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m29 4 5-2 5 10-6 2Z\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003cpath d=\"M15 43h26\" fill=\"none\" stroke=\"#29465a\"/>\u003ccircle cx=\"41\" cy=\"32\" r=\"5\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "beaker",
+          "name": "烧瓶",
+          "category": "趣玩科学",
+          "file": "symbols/beaker.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"beaker-title\">\u003ctitle id=\"beaker-title\">烧瓶\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M23 5h18M26 5v21L8 52q-6 9 7 9h34q13 0 7-9L38 26V5\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M19 38h26l11 16q3 7-7 7H15q-10 0-7-7Z\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003ccircle cx=\"26\" cy=\"47\" r=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"39\" cy=\"53\" r=\"3\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"34\" cy=\"32\" r=\"2\" fill=\"#53966a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "atom",
+          "name": "原子",
+          "category": "趣玩科学",
+          "file": "symbols/atom.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"atom-title\">\u003ctitle id=\"atom-title\">原子\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cg fill=\"none\" stroke=\"#579fb9\">\u003cellipse cx=\"32\" cy=\"32\" rx=\"29\" ry=\"11\"/>\u003cellipse cx=\"32\" cy=\"32\" rx=\"29\" ry=\"11\" transform=\"rotate(60 32 32)\"/>\u003cellipse cx=\"32\" cy=\"32\" rx=\"29\" ry=\"11\" transform=\"rotate(120 32 32)\"/>\u003c/g>\u003ccircle cx=\"32\" cy=\"32\" r=\"6\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"10\" cy=\"25\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"45\" cy=\"11\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"43\" cy=\"53\" r=\"4\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "dna",
+          "name": "双螺旋",
+          "category": "趣玩科学",
+          "file": "symbols/dna.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"dna-title\">\u003ctitle id=\"dna-title\">双螺旋\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M14 4C60 17 4 47 50 60\" fill=\"none\" stroke=\"#579fb9\"/>\u003cpath d=\"M50 4C4 17 60 47 14 60\" fill=\"none\" stroke=\"#df625e\"/>\u003cpath d=\"M23 8h18M28 19h8M23 30h18M23 34h18M28 45h8M23 56h18\" fill=\"none\" stroke=\"#9b7bb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "hourglass",
+          "name": "沙漏",
+          "category": "趣玩科学",
+          "file": "symbols/hourglass.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"hourglass-title\">\u003ctitle id=\"hourglass-title\">沙漏\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M13 7h38v8q0 9-15 17 15 8 15 17v8H13v-8q0-9 15-17-15-8-15-17Z\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003cpath d=\"M15 17h34L32 32Zm17 20 15 18H17Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M9 5h46M9 59h46\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "feather",
+          "name": "羽毛",
+          "category": "趣玩科学",
+          "file": "symbols/feather.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"feather-title\">\u003ctitle id=\"feather-title\">羽毛\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M13 50C-1 24 42-8 56 6 70 20 37 63 13 50Z\" fill=\"#9b7bb9\" stroke=\"#29465a\"/>\u003cpath d=\"m5 60 43-45M15 49l-1-17m9 9 18 1m-10-9 1-17m6 10 14 0\" fill=\"none\" stroke=\"#f6dfb0\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "tooth",
+          "name": "牙齿",
+          "category": "趣玩科学",
+          "file": "symbols/tooth.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"tooth-title\">\u003ctitle id=\"tooth-title\">牙齿\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M32 12C3-5 5 21 13 34c4 10 1 26 10 26 6 0 3-19 9-19s3 19 9 19c9 0 6-16 10-26C59 21 61-5 32 12Z\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M19 17q-7 0-4 10m10-15 10 5\" fill=\"none\" stroke=\"#579fb9\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "bandage",
+          "name": "创可贴",
+          "category": "趣玩科学",
+          "file": "symbols/bandage.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"bandage-title\">\u003ctitle id=\"bandage-title\">创可贴\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m7 39 32-32q10-8 18 1t-1 18L25 57Q15 65 7 56T7 39Z\" fill=\"#f6dfb0\" stroke=\"#29465a\"/>\u003cpath d=\"m20 33 13-13 14 14-13 13Z\" fill=\"#e28aa0\" stroke=\"#29465a\"/>\u003cpath d=\"m15 40 2 2m4 4 2 2m-11-4 2 2m4 4 2 2m22-33 2 2m4 4 2 2m-11-4 2 2m4 4 2 2\" fill=\"none\" stroke=\"#ac7956\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "lifebuoy",
+          "name": "救生圈",
+          "category": "趣玩科学",
+          "file": "symbols/lifebuoy.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"lifebuoy-title\">\u003ctitle id=\"lifebuoy-title\">救生圈\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003ccircle cx=\"32\" cy=\"32\" r=\"28\" fill=\"#ffffff\" stroke=\"#29465a\"/>\u003cpath d=\"M23 6q9-4 18 0l-4 14H27ZM58 23q4 9 0 18l-14-4V27ZM41 58q-9 4-18 0l4-14h10ZM6 41q-4-9 0-18l14 4v10Z\" fill=\"#df625e\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"32\" r=\"14\" fill=\"#c9e6ed\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "treasure-chest",
+          "name": "宝箱",
+          "category": "趣玩科学",
+          "file": "symbols/treasure-chest.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"treasure-chest-title\">\u003ctitle id=\"treasure-chest-title\">宝箱\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"M7 29V18Q7 5 20 5h24q13 0 13 13v11Z\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003crect x=\"7\" y=\"28\" width=\"50\" height=\"31\" rx=\"2\" fill=\"#ac7956\" stroke=\"#29465a\"/>\u003cpath d=\"M14 6h7v53h-7Zm29 0h7v53h-7Z\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003cpath d=\"M7 28h50\" fill=\"none\" stroke=\"#29465a\"/>\u003crect x=\"27\" y=\"25\" width=\"10\" height=\"16\" rx=\"1\" fill=\"#edbb45\" stroke=\"#29465a\"/>\u003ccircle cx=\"32\" cy=\"31\" r=\"2\" fill=\"#29465a\" stroke=\"#29465a\"/>\u003c/g>\u003c/svg>"
+        },
+        {
+          "id": "diamond",
+          "name": "钻石",
+          "category": "趣玩科学",
+          "file": "symbols/diamond.svg",
+          "svg": "\u003csvg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" role=\"img\" aria-labelledby=\"diamond-title\">\u003ctitle id=\"diamond-title\">钻石\u003c/title>\u003cg transform=\"translate(1.6 1.6) scale(.95)\" stroke-width=\"2.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\">\u003cpath d=\"m16 8 32 0 13 18-29 34L3 26Z\" fill=\"#579fb9\" stroke=\"#29465a\"/>\u003cpath d=\"M3 26h58M16 8l7 18 9 34 9-34 7-18M23 26l9-18 9 18\" fill=\"none\" stroke=\"#c9e6ed\"/>\u003c/g>\u003c/svg>"
+        }
+      ]
+    </script>
+    <script>
+      const catalog = JSON.parse(document.getElementById('catalog-data').textContent);
+      const grid = document.getElementById('grid'),
+        search = document.getElementById('search'),
+        category = document.getElementById('category'),
+        rotation = document.getElementById('rotation'),
+        detail = document.getElementById('detail');
+      let selectedButton = null,
+        downloadUrl = null;
+      for (const name of new Set(catalog.map((s) => s.category))) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name + ' · ' + catalog.filter((s) => s.category === name).length;
+        category.append(option);
+      }
+      function hideDetail() {
+        detail.hidden = true;
+        if (downloadUrl) {
+          URL.revokeObjectURL(downloadUrl);
+          downloadUrl = null;
+        }
+      }
+      function showDetail(symbol, button) {
+        hideDetail();
+        selectedButton = button;
+        document.getElementById('detail-art').innerHTML = symbol.svg.replaceAll(
+          symbol.id + '-title',
+          symbol.id + '-detail-title',
+        );
+        document.getElementById('detail-name').textContent = symbol.name;
+        document.getElementById('detail-meta').textContent =
+          symbol.id + ' · ' + symbol.category + ' · SVG';
+        downloadUrl = URL.createObjectURL(
+          new Blob([symbol.svg], { type: 'image/svg+xml;charset=utf-8' }),
+        );
+        const link = document.getElementById('download');
+        link.href = downloadUrl;
+        link.download = symbol.id + '.svg';
+        detail.hidden = false;
+        detail.scrollIntoView({ block: 'nearest' });
+        detail.focus({ preventScroll: true });
+      }
+      function render() {
+        hideDetail();
+        grid.replaceChildren();
+        const query = search.value.trim().toLocaleLowerCase();
+        const visible = catalog.filter(
+          (s) =>
+            (!category.value || s.category === category.value) &&
+            (!query || (s.name + ' ' + s.id).toLocaleLowerCase().includes(query)),
+        );
+        for (const symbol of visible) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'tile';
+          button.setAttribute('aria-label', '查看' + symbol.name + ' · ' + symbol.id);
+          const art = document.createElement('span');
+          art.className = 'art';
+          art.setAttribute('aria-hidden', 'true');
+          art.innerHTML = symbol.svg;
+          const angle = ((catalog.indexOf(symbol) * 47) % 121) - 60;
+          art.style.setProperty('--angle', rotation.checked ? angle + 'deg' : '0deg');
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = symbol.name;
+          const id = document.createElement('span');
+          id.className = 'id';
+          id.textContent = symbol.id;
+          button.append(art, name, id);
+          button.addEventListener('click', () => showDetail(symbol, button));
+          grid.append(button);
+        }
+        document.getElementById('count').innerHTML =
+          '显示 <strong>' + visible.length + '</strong> / 200 枚符号';
+        grid.hidden = visible.length === 0;
+        document.getElementById('empty').hidden = visible.length !== 0;
+      }
+      search.addEventListener('input', render);
+      category.addEventListener('change', render);
+      rotation.addEventListener('change', render);
+      for (const button of document.querySelectorAll('[data-size]'))
+        button.addEventListener('click', () => {
+          document.documentElement.style.setProperty('--size', button.dataset.size + 'px');
+          for (const other of document.querySelectorAll('[data-size]'))
+            other.setAttribute('aria-pressed', String(other === button));
+        });
+      document.getElementById('reset').addEventListener('click', () => {
+        search.value = '';
+        category.value = '';
+        render();
+        search.focus();
+      });
+      document.getElementById('close').addEventListener('click', () => {
+        hideDetail();
+        if (selectedButton?.isConnected) selectedButton.focus();
+      });
+      detail.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          hideDetail();
+          if (selectedButton?.isConnected) selectedButton.focus();
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>

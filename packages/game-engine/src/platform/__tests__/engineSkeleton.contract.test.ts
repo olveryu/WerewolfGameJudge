@@ -76,6 +76,7 @@ describe('engine skeleton contract', () => {
       'drawguess',
       'fibking',
       'pictionary',
+      'spotmatch',
       'storyrelay',
       'undercover',
       'werewolf',

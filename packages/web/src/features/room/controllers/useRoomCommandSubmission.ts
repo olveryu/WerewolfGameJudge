@@ -32,6 +32,8 @@ export type DomainRejectionPresentation = 'alert' | 'state';
 export type TransportFailurePresentation = 'alert' | 'toastAndRethrow';
 
 export interface RoomCommandSubmitOptions {
+  /** Return true when the caller presented this decision inline. Transport failures never enter here. */
+  readonly onRejection?: (reason: string, message: string) => boolean;
   readonly domainRejection?: DomainRejectionPresentation;
   readonly transportFailure?: TransportFailurePresentation;
 }
@@ -103,6 +105,7 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
           return false;
         }
         roomScreenLog.warn('room operation rejected', { label, reason });
+        if (options.onRejection?.(reason, message) === true) return false;
         const isDomainRejection =
           result.kind === 'committed' && result.outcome.kind === 'domainRejected';
         if (!(isDomainRejection && options.domainRejection === 'state')) {

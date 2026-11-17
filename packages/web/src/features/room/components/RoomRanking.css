@@ -1,0 +1,74 @@
+.room-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  min-width: 0;
+  padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+.room-ranking-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+.room-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.room-ranking-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-height: var(--size-min-touch-target);
+}
+.room-ranking-rank {
+  flex: 0 0 auto;
+  min-width: var(--size-icon-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.room-ranking-player {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-micro);
+  min-width: 0;
+}
+.room-ranking-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-ranking-name[data-self] {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+.room-ranking-value {
+  flex: 0 0 auto;
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--line-body);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.room-ranking-detail {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  overflow-wrap: anywhere;
+}

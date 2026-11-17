@@ -147,6 +147,7 @@ export interface WorkerGameModuleDefinition<
   readonly gameType: TGameType;
   readonly engine: TEngine;
   readonly stateCodec: GameStateCodec<TState>;
+  readonly projectStateForUser?: (state: TState, userId: string) => TState;
   readonly migratePersistedState?: ((value: unknown) => TState) | null;
   readonly createConfigSchema: ZodType<TConfig>;
   readonly publicCommandSchema: ZodType<TPublicCommand>;
@@ -713,6 +714,10 @@ export function registerWorkerGameModule<
     parseState: (value) => module.parseState(value),
     migratePersistedState: module.migratePersistedState,
     parseCommandResult: (value) => module.parseCommandResult(value),
+    projectStateForUser:
+      module.projectStateForUser === undefined
+        ? undefined
+        : (state, userId) => module.projectStateForUser!(module.parseState(state), userId),
     decidePublic: (state, command, context) => module.decidePublic(state, command, context),
     decideInternal: (state, command, context) => module.decideInternal(state, command, context),
     getPublicUserStats: (userId, bindings) => module.getPublicUserStats(userId, bindings),
@@ -741,6 +746,7 @@ export function registerWorkerGameModule<
   return {
     ...module,
     ...runtimeModule,
+    projectStateForUser: runtimeModule.projectStateForUser,
     gameType: module.gameType,
     engine: module.engine,
   };
