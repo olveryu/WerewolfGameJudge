@@ -54,7 +54,7 @@ describe('useRoomPresentationController', () => {
       ({ isHost }: { isHost: boolean }) =>
         useRoomPresentationController({
           roomCode: '2345',
-          gameDisplayName: 'Demo',
+          gameDisplayName: '阿瓦隆',
           isHost,
           entryReason: 'created',
         }),

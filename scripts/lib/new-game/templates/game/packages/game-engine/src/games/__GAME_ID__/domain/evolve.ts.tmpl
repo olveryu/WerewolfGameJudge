@@ -52,7 +52,7 @@ export function evolve__GAME_PASCAL__State(
         gameSequence: event.gameSequence,
       };
 //#end
-//#cap !identityViewing
+//#cap stageDeadlineAtStart
     case '__GAME_ID__.game.started':
       return {
         ...reset__GAME_PASCAL__Game(state),
@@ -61,6 +61,16 @@ export function evolve__GAME_PASCAL__State(
         gameSequence: event.gameSequence,
       };
 //#end
+//#cap !stageDeadline
+    case '__GAME_ID__.game.started':
+      return {
+        ...reset__GAME_PASCAL__Game(state),
+        phaseRevision: state.phaseRevision + 1,
+        phase: { kind: 'playing' },
+        gameSequence: event.gameSequence,
+      };
+//#end
+//#cap identityViewing
 //#cap !stageDeadline
     case '__GAME_ID__.game.begun': {
       if (state.phase.kind !== 'viewing') return state;
@@ -72,6 +82,7 @@ export function evolve__GAME_PASCAL__State(
       if (state.phase.kind !== 'viewing') return state;
       return { ...bumped, phase: { kind: 'playing', deadlineAt: event.deadlineAt } };
     }
+//#end
 //#end
 //#cap identityViewing
     case '__GAME_ID__.role.viewed': {

@@ -53,7 +53,6 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
     'games/storyrelay/room/components/StoryRelayStage.tsx',
     'games/storyrelay/room/components/StoryRelayTaskEditor.tsx',
   ],
-  demo: ['games/demo/room/hooks/useDemoRoomState.ts'],
 };
 
 /**

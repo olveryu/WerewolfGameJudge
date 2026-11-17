@@ -1,5 +1,4 @@
 import { avalonEngine } from '../../../games/avalon/engine';
-import { demoEngine } from '../../../games/demo/engine';
 import { drawGuessEngine } from '../../../games/drawguess/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
@@ -153,7 +152,6 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
-      demo: demoEngine,
     };
     const withNight = Object.values(engines)
       .filter((engine) => engine.capabilities.nightPhase)
@@ -174,7 +172,6 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
-      demo: demoEngine,
     });
 
     expect(catalog.werewolf).toBe(counterEngine);
@@ -194,7 +191,6 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
-      demo: demoEngine,
     });
     defineGameEngineCatalog({
       werewolf: counterEngine,
@@ -206,7 +202,6 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
-      demo: demoEngine,
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
@@ -217,7 +212,6 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
-      demo: demoEngine,
     });
   });
 });

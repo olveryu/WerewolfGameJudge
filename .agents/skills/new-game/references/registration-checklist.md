@@ -94,8 +94,8 @@ AccountStats: <Game>StatsPanel }` from the game's home and panel.
     completed games is the baseline, not inferred wins/scores. Decide
     unit, facts/ownership, denominators/time precision, frozen roster and
     author filtering, history/migration/delay/cache policy; verify every
-    approved metric before production. Demo remains the explicit
-    non-production/no-business-stat reference exception.
+    approved metric before production. The removed Demo game is not a
+    reference implementation or an exception to these requirements.
 
 If a contract test fails naming the new game, the wiring is missing;
 fix the wiring, not the expectation list

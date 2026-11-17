@@ -17,7 +17,6 @@
 | drawguess  | `DrawGuessEndedView` 在 `StageFrame` 内渲染 `最终排名` 计分板                                               | 无                                                                                                  |
 | pictionary | 画廊 `PictionaryGalleryStage`                                                                               | `PictionaryAlbumExport`：`RoomDialog` + 单篇画册 + 等图片加载 + 重试                                |
 | storyrelay | 画廊 `StoryRelayGallery`                                                                                    | `StoryRelayImageShare` / `useStoryRelayImageShare`：`RoomDialog` + 单篇故事                         |
-| demo       | 无                                                                                                          | 无                                                                                                  |
 
 ### 1.2 已经共享、本设计直接复用的部分
 
@@ -323,10 +322,9 @@ readonly guessedSeats: readonly number[];
 - 画廊「分享本篇故事」打开复盘并定位到该篇首页。
 - **删除**：`StoryRelayImageShare`、`useStoryRelayImageShare`。
 
-### 5.8 示例 `demo` 与新游戏模板
+### 5.8 新游戏模板
 
-- `phase === 'ended'` → `hero`（`本局结束`）+ `section 参与者` + `roster`（`role` = `参与者`，`status` = `完成`）；kicker `🎮 第 ${gameSequence} 局 · 终局`。
-- 生成器模板 `review/to__GAME_PASCAL__ReviewDocument.ts.tmpl`、`review/__GAME_CAMEL__Review.ts.tmpl` 与测试模板以此为骨架；`scripts/lib/new-game/templates/game/src/test-utils/__GAME_ID__State.ts.tmpl` 生成真实引擎局面（满座大厅 / 开局 / 终局）与 `<GAME>_REVIEW_ROUNDS`，生成器把它登记进 `src/__tests__/roomReview.contract.test.ts`。
+- 生成器模板 `review/to__GAME_PASCAL__ReviewDocument.ts.tmpl`、`review/__GAME_CAMEL__Review.ts.tmpl` 与测试模板提供复盘接线骨架；`scripts/lib/new-game/templates/game/src/test-utils/__GAME_ID__State.ts.tmpl` 生成真实引擎局面（满座大厅 / 开局 / 终局）与 `<GAME>_REVIEW_ROUNDS`，生成器把它登记进 `src/__tests__/roomReview.contract.test.ts`。
 
 ### 5.9 汇总
 
@@ -339,7 +337,6 @@ readonly guessedSeats: readonly number[];
 | drawguess  | 1 + T                | hero scoreboard image paragraph facts section timeline | 引擎 `turnHistory` + Worker 媒体路由 | —                                                 |
 | pictionary | 每篇画册 ≥ 1（续页） | paragraph image                                        | Worker 过期画作答 410                | `PictionaryAlbumExport`                           |
 | storyrelay | 每篇故事 ≥ 1（续页） | paragraph                                              | 无                                   | `StoryRelayImageShare`、`useStoryRelayImageShare` |
-| demo       | 1                    | hero section roster                                    | 无                                   | —                                                 |
 
 ## 6. 平台矩阵
 
@@ -394,7 +391,6 @@ readonly guessedSeats: readonly number[];
 | undercover | 座位盘上方内联 `undercover-results` 段                    | `review/toUndercoverReviewDocument.ts`；共用文案 `room/undercoverCopy.ts`                               |
 | drawguess  | 无（`DrawGuessEndedView` 舞台内排名保留）                 | `review/toDrawGuessReviewDocument.ts`；排名函数 `model/drawGuessResults.ts`                             |
 | fibking    | —                                                         | `review/toFibReviewDocument.ts`                                                                         |
-| demo       | —                                                         | `review/toDemoReviewDocument.ts`，即模板骨架                                                            |
 
 ### 8.4 模板与契约
 

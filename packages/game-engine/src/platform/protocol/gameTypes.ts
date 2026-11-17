@@ -8,7 +8,6 @@ export const GAME_TYPES = [
   'pictionary',
   'undercover',
   'storyrelay',
-  'demo',
 ] as const;
 
 export type GameType = (typeof GAME_TYPES)[number];

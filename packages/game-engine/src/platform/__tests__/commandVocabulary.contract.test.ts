@@ -27,7 +27,6 @@ const GAME_IDS = [
   'pictionary',
   'storyrelay',
   'drawguess',
-  'demo',
 ] as const;
 
 type GameId = (typeof GAME_IDS)[number];
@@ -93,7 +92,6 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'storyrelay.game.abort',
   ],
   drawguess: ['drawguess.game.begin', 'drawguess.game.abort', 'drawguess.game.returnToLobby'],
-  demo: ['demo.roles.assign', 'demo.game.begin', 'demo.game.returnToLobby', 'demo.role.viewed'],
 };
 
 function commandLiterals(game: GameId): string[] {

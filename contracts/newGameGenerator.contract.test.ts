@@ -6,10 +6,10 @@ import path from 'node:path';
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 
 describe('new-game generator', () => {
-  // The wrapped suite includes a real-tooling case that copies the
-  // repo and runs prettier/eslint for real, once per preset pack, so
+  // The wrapped suite includes real-tooling cases that copy the repo
+  // and run prettier/eslint for real, so
   // it needs far more than the default 10s test timeout.
-  it('generates all three presets completely against a fixture repository', () => {
+  it('generates independently selected capabilities against a fixture repository', () => {
     execFileSync(process.execPath, ['--test', 'scripts/new-game.test.mjs'], {
       cwd: ROOT_DIR,
       stdio: 'pipe',

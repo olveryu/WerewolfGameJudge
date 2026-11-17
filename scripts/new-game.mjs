@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `pnpm new-game <gameId> --preset identity|stage|demo-hybrid` — scaffold a new game.
+ * `pnpm new-game <gameId> [--capability <key> ...]` — scaffold a new game.
  *
  * Produces the full skeleton (engine, Worker module, client module,
  * design doc, registration migration) from the templates under
@@ -14,10 +14,12 @@ import path from 'node:path';
 
 import { DEFAULT_REWARDS, generateNewGame } from './lib/new-game/generate.mjs';
 
-const USAGE = `Usage: pnpm new-game <gameId> --preset identity|stage|demo-hybrid [options]
+const USAGE = `Usage: pnpm new-game <gameId> [options]
 
 Options:
-  --preset <identity|stage|demo-hybrid>  Skeleton archetype (required).
+  --capability <key>         Enable an optional capability (repeatable; defaults off).
+                             Keys: identityViewing, stageDeadline,
+                             audioOrchestration, botTestScaffold.
   --production               Register as a production game (default: registered but
                              hidden from player surfaces until the go-live step).
   --name <text>              Home display name (default: the game id).
@@ -37,7 +39,7 @@ function parseRewardValue(option, raw) {
 }
 
 function parseArgs(argv) {
-  const options = { rewards: { ...DEFAULT_REWARDS } };
+  const options = { rewards: { ...DEFAULT_REWARDS }, capabilities: [] };
   const positional = [];
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -47,8 +49,8 @@ function parseArgs(argv) {
       return argv[index];
     };
     switch (arg) {
-      case '--preset':
-        options.preset = next();
+      case '--capability':
+        options.capabilities.push(next());
         break;
       case '--name':
         options.displayName = next();
@@ -106,7 +108,7 @@ function main() {
   const summary = generateNewGame({ rootDir: process.cwd(), ...options });
   process.stdout.write(
     [
-      `Created ${summary.createdFiles.length} files and updated ${summary.editedFiles.length} shared files for "${options.gameId}" (${options.preset}).`,
+      `Created ${summary.createdFiles.length} files and updated ${summary.editedFiles.length} shared files for "${options.gameId}" (capabilities: ${options.capabilities.length === 0 ? 'none' : [...new Set(options.capabilities)].join(', ')}).`,
       `Registration migration: packages/api-worker/migrations/${summary.migrationName}`,
       summary.formatted
         ? 'Generated files were formatted with the repository prettier.'

@@ -34,7 +34,7 @@ function loaded(
 }
 
 const READY_SEATED: GameRoomAccountSnapshot = {
-  gameType: 'demo',
+  gameType: 'avalon',
   phase: 'ready',
   isSeated: true,
   canSwitchAccount: false,
@@ -46,7 +46,7 @@ describe('createActiveRoomAccountSource', () => {
     const source = createActiveRoomAccountSource(
       loaded([
         createCapability({
-          gameType: 'demo',
+          gameType: 'avalon',
           phase: 'idle',
           isSeated: false,
           canSwitchAccount: true,
@@ -66,7 +66,7 @@ describe('createActiveRoomAccountSource', () => {
 
   it('exposes the active capability without game-specific state', async () => {
     const updateProfile = vi.fn(async () =>
-      successfulRoomCommand(testRoomState('demo'), 'active-profile'),
+      successfulRoomCommand(testRoomState('avalon'), 'active-profile'),
     );
     const source = createActiveRoomAccountSource(
       loaded([{ ...createCapability(READY_SEATED), updateProfile }]),

@@ -35,7 +35,6 @@
 | [pictionary-game-design.md](pictionary-game-design.md)             | `pictionary` | 你画我猜接龙                                      |
 | [drawguess-game-design.md](drawguess-game-design.md)               | `drawguess`  | 经典你画我猜                                      |
 | [story-relay-game-design.md](story-relay-game-design.md)           | `storyrelay` | 轮流讲故事                                        |
-| [demo-game-design.md](demo-game-design.md)                         | `demo`       | 新游戏生成器产出的骨架示例，非上线游戏            |
 
 ## 3. 产品模块
 

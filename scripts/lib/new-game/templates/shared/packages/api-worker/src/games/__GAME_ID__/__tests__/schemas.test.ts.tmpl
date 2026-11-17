@@ -5,9 +5,16 @@ import { describe, expect, it } from 'vitest';
 import { __GAME_CAMEL__WorkerModule } from '../module';
 import {
   __GAME_CAMEL__CreateConfigSchema,
-  __GAME_CAMEL__InternalCommandSchema,
   __GAME_CAMEL__PublicCommandSchema,
 } from '../schemas';
+//#cap identityViewing
+import { __GAME_CAMEL__InternalCommandSchema } from '../schemas';
+//#end
+//#cap !identityViewing
+//#cap stageDeadline
+import { __GAME_CAMEL__InternalCommandSchema } from '../schemas';
+//#end
+//#end
 
 describe('__GAME_PASCAL__ create config schema', () => {
   it('accepts player counts inside the supported range', () => {

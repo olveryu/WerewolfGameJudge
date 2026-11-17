@@ -43,84 +43,52 @@ import { buildIntegrationReport } from './report.mjs';
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'templates');
 
-/**
- * Capability declarations written for a fresh skeleton, per preset
- * pack. Every value matches the wiring the skeleton actually ships:
- * the capabilities contract welds each declaration to a source
- * marker, so a switch the skeleton does not wire must be declared
- * off (gallery and word library are hooked up per game after
- * generation; the audio wiring ships as capability segments plus a
- * gated binding file and renders in full for a pack that declares
- * it on — all three packs keep it off because narration is a
- * per-game design choice, not an archetype trait; the bot scaffold
- * presupposes identity-viewing records, so the stage preset — like
- * every shipped stage game — declares it off). The demo-hybrid pack
- * is the union the shipped demo game was
- * hand-built to: identity viewing plus a stage deadline on the
- * playing phase, and its row mirrors demo's verified declaration.
- */
-export const PRESET_CAPABILITIES = {
-  identity: {
-    nightPhase: false,
-    botsAndTakeover: true,
-    identityViewing: true,
-    revealAnimation: true,
-    stageDeadline: false,
-    audioOrchestration: false,
-    wordLibrary: false,
-    gallery: false,
-    hostConfig: true,
-    botTestScaffold: true,
-  },
-  stage: {
-    nightPhase: false,
-    botsAndTakeover: true,
-    identityViewing: false,
-    revealAnimation: false,
-    stageDeadline: true,
-    audioOrchestration: false,
-    wordLibrary: false,
-    gallery: false,
-    hostConfig: true,
-    botTestScaffold: false,
-  },
-  'demo-hybrid': {
-    nightPhase: false,
-    botsAndTakeover: true,
-    identityViewing: true,
-    revealAnimation: true,
-    stageDeadline: true,
-    audioOrchestration: false,
-    wordLibrary: false,
-    gallery: false,
-    hostConfig: true,
-    botTestScaffold: true,
-  },
-};
+const ENGINE_CAPABILITY_KEYS = [
+  'nightPhase',
+  'botsAndTakeover',
+  'identityViewing',
+  'revealAnimation',
+  'stageDeadline',
+  'audioOrchestration',
+  'wordLibrary',
+  'gallery',
+  'hostConfig',
+  'botTestScaffold',
+];
+
+export const CAPABILITY_KEYS = [
+  'identityViewing',
+  'stageDeadline',
+  'audioOrchestration',
+  'botTestScaffold',
+];
+
+/** Selectable capabilities are opt-in; baseline wiring remains enabled. */
+export function selectCapabilities(selected = []) {
+  if (!Array.isArray(selected)) {
+    throw new Error('Capabilities must be an array of capability keys.');
+  }
+  const capabilities = Object.fromEntries(ENGINE_CAPABILITY_KEYS.map((key) => [key, false]));
+  capabilities.botsAndTakeover = true;
+  capabilities.hostConfig = true;
+  for (const key of selected) {
+    if (!CAPABILITY_KEYS.includes(key)) {
+      throw new Error(
+        `Invalid capability "${String(key)}": expected one of ${CAPABILITY_KEYS.join(', ')}.`,
+      );
+    }
+    capabilities[key] = true;
+  }
+  capabilities.revealAnimation = capabilities.identityViewing;
+  if (capabilities.botTestScaffold && !capabilities.identityViewing) {
+    throw new Error('Capability "botTestScaffold" requires "identityViewing".');
+  }
+  return capabilities;
+}
 
 /**
- * Pack-level template segment switches: they steer `//#cap` blocks
- * while rendering, and nothing else. Unlike PRESET_CAPABILITIES they
- * are NOT game capabilities — never written into generated code,
- * never welded by the capabilities contract. They exist for skeleton
- * assembly choices no single capability key expresses: a pack with
- * both identity viewing and a stage deadline arms the deadline when
- * play begins (after the viewing checkpoint), not when identities are
- * dealt. Expiry itself needs no switch: every stage-deadline pack
- * settles system-only through the internal settle channel (D3 — the
- * public `phase.expire` command is deleted, so there is no
- * dual-channel assembly to select).
- */
-export const PACK_SEGMENT_SWITCHES = {
-  identity: { armDeadlineAtBegin: false },
-  stage: { armDeadlineAtBegin: false },
-  'demo-hybrid': { armDeadlineAtBegin: true },
-};
-
-/**
- * Whole-file gates for game capabilities and pack assembly choices.
- * businessStats is an internal assembly switch, not an engine capability.
- * In-file wiring uses the same switches through `//#cap` segments.
+ * Whole-file gates for game capabilities and the always-on statistics
+ * assembly. In-file wiring uses the same switches through `//#cap` segments.
  */
 export const FILE_CAPABILITY_GATES = {
   'packages/game-engine/src/games/__GAME_ID__/publicStats.ts': 'businessStats',
@@ -211,7 +179,7 @@ export const SHARED_EDITS = [
   },
   {
     file: 'contracts/architecture.contract.test.ts',
-    apply: (content, ctx) => (ctx.businessStats ? editStatsTableOwner(content, ctx) : content),
+    apply: (content, ctx) => editStatsTableOwner(content, ctx),
   },
 ];
 
@@ -226,6 +194,7 @@ const FORMATTABLE_FILE = /\.(?:ts|tsx|js|mjs|json|md|css)$/;
 function formatGeneratedFiles(repoRoot, files) {
   const targets = files.filter((file) => FORMATTABLE_FILE.test(file) && !file.endsWith('.tmpl'));
   if (targets.length === 0) return false;
+  if (!fs.existsSync(path.join(repoRoot, 'node_modules', 'prettier'))) return false;
   let prettierBin;
   try {
     const require = createRequire(path.join(repoRoot, 'package.json'));
@@ -268,6 +237,7 @@ function autofixGeneratedImports(repoRoot, createdFiles) {
     (file) => LINTABLE_FILE.test(file) && !file.endsWith('.tmpl'),
   );
   if (targets.length === 0) return;
+  if (!fs.existsSync(path.join(repoRoot, 'node_modules', 'eslint'))) return;
   let eslintBin;
   try {
     const require = createRequire(path.join(repoRoot, 'package.json'));
@@ -331,18 +301,11 @@ export function generatorFacts() {
   const templateCount =
     collectTemplateFiles('shared', allSwitches).size +
     collectTemplateFiles('game', allSwitches).size;
-  const filesByPreset = Object.fromEntries(
-    Object.entries(PRESET_CAPABILITIES).map(([preset, capabilities]) => {
-      const switches = { ...capabilities, businessStats: true };
-      return [
-        preset,
-        collectTemplateFiles('shared', switches).size +
-          collectTemplateFiles('game', switches).size +
-          1,
-      ];
-    }),
-  );
-  return { sharedFiles: SHARED_EDITS.map(({ file }) => file), templateCount, filesByPreset };
+  return {
+    sharedFiles: SHARED_EDITS.map(({ file }) => file),
+    templateCount,
+    capabilityKeys: CAPABILITY_KEYS,
+  };
 }
 
 /** Render the destination path of a template (path segments carry name tokens too). */
@@ -392,28 +355,14 @@ export function generateNewGame(options) {
   const {
     rootDir,
     gameId,
-    preset,
+    capabilities: selectedCapabilities = [],
     displayName = gameId,
     subtitle = 'TODO(gameplay):一句话玩法',
     iconName = 'game-controller-outline',
     tier = 'mini',
     rewards = DEFAULT_REWARDS,
     production = false,
-    businessStats = true,
   } = options;
-  if (
-    typeof businessStats !== 'boolean' ||
-    (!businessStats && (gameId !== 'demo' || production || preset !== 'demo-hybrid'))
-  ) {
-    throw new Error(
-      'Business statistics may be disabled only for non-production demo reference regeneration.',
-    );
-  }
-  if (!Object.hasOwn(PRESET_CAPABILITIES, preset)) {
-    throw new Error(
-      `Invalid preset "${String(preset)}": expected "identity", "stage" or "demo-hybrid".`,
-    );
-  }
   if (tier !== 'main' && tier !== 'mini') {
     throw new Error(`Invalid tier "${String(tier)}": expected "main" or "mini".`);
   }
@@ -421,10 +370,15 @@ export function generateNewGame(options) {
   assertSafeDisplayValue('--subtitle', subtitle);
   const iconComponent = iconComponentName(iconName);
   const names = deriveGameNames(gameId);
-  const capabilities = PRESET_CAPABILITIES[preset];
-  // Rendering sees the capability row plus the pack's segment
-  // switches; edits and the report keep the pure capability row.
-  const renderCapabilities = { ...capabilities, ...PACK_SEGMENT_SWITCHES[preset], businessStats };
+  const capabilities = selectCapabilities(selectedCapabilities);
+  // Statistics are part of every generated game. Deadline arming is
+  // delayed until play begins only when identity viewing precedes it.
+  const renderCapabilities = {
+    ...capabilities,
+    armDeadlineAtBegin: capabilities.identityViewing && capabilities.stageDeadline,
+    stageDeadlineAtStart: !capabilities.identityViewing && capabilities.stageDeadline,
+    businessStats: true,
+  };
   const home = { displayName, subtitle, iconName, tier };
   const extraTokens = {
     __GAME_DISPLAY_NAME__: displayName,
@@ -432,9 +386,16 @@ export function generateNewGame(options) {
     __GAME_ICON_NAME__: iconName,
     __GAME_ICON_COMPONENT__: iconComponent,
     __GAME_TIER__: tier,
-    __GAME_PRESET__: preset,
-    __GAME_COMPLETION_TYPE__: businessStats ? `${names.pascal}CompletionPayload | ` : '',
-    __GAME_REQUIREMENT_COUNT__: businessStats ? '11' : '10',
+    __GAME_CAPABILITY_ARGS__: selectedCapabilities
+      .filter((key, index, list) => list.indexOf(key) === index)
+      .map((key) => ` --capability ${key}`)
+      .join(''),
+    __GAME_CAPABILITIES__:
+      selectedCapabilities.length === 0
+        ? '无（全部关闭）'
+        : [...new Set(selectedCapabilities)].join('、'),
+    __GAME_COMPLETION_TYPE__: `${names.pascal}CompletionPayload | `,
+    __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: capabilities.identityViewing
       ? 'viewAllAndBegin(session);'
       : `session.send({ type: '${gameId}.game.begin' });`,
@@ -447,7 +408,6 @@ export function generateNewGame(options) {
     capabilities,
     home,
     production,
-    businessStats,
   };
 
   // Phase 1: compute everything in memory. Nothing below writes until
@@ -495,7 +455,6 @@ export function generateNewGame(options) {
     sourceContent: source.content,
     gameId,
     displayName,
-    businessStats,
   });
   created.set(`packages/api-worker/migrations/${migrationName}`, migrationContent);
 
@@ -504,16 +463,15 @@ export function generateNewGame(options) {
   const reportPath = `new-game-${gameId}-report.md`;
   const report = buildIntegrationReport({
     gameId,
-    preset,
     names,
     home,
     rewards,
     capabilities,
+    selectedCapabilities,
     createdFiles,
     editedFiles,
     migrationName,
     production,
-    businessStats,
   });
 
   // Phase 2: duplicate guard — no target may already exist, including

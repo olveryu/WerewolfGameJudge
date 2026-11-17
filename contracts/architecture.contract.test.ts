@@ -1329,7 +1329,6 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
   // profiles open through play (werewolf baseline) own their capability set
   // over the shared roster controller and open profiles from inGameAction.
   const setupControllerGames: Partial<Record<GameType, string>> = {
-    demo: 'games/demo/room/hooks/useDemoRoomState.ts',
     avalon: 'games/avalon/room/hooks/useAvalonRoomState.ts',
     storyrelay: 'games/storyrelay/room/hooks/useStoryRelayRoomState.ts',
     drawguess: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts',

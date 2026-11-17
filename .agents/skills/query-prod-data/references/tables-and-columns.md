@@ -1,6 +1,6 @@
 # Tables and columns
 
-Source: the migration files in `packages/api-worker/migrations/` (64 files, latest `0065_demo.sql`), read sequentially at drafting time. Only the tables and columns listed here may be named by this skill. If a needed table or column is not listed, verify it against the migrations first.
+Source: the migration files in `packages/api-worker/migrations/`, read sequentially at drafting time. Only the tables and columns listed here may be named by this skill. If a needed table or column is not listed, verify it against the migrations first.
 
 ## users — 18 columns, verified
 
@@ -19,7 +19,7 @@ equipped_effect, equipped_seat_animation, token_version
 
 Rules: never use a wildcard select on this table. `password_hash` is sensitive; never select it and never include it in output. List explicitly only the columns the question needs. The `last_country` / `last_colo` columns record the most recent values seen (`0014_add_geo_columns.sql`); do not present them as a verified current location.
 
-## rooms — current shape, from the 0065 rebuild
+## rooms — current shape, from the 0088 rebuild
 
 ```
 id, code, game_type, host_user_id, creation_id, config_json, status,
@@ -32,7 +32,7 @@ Notes: `code` is the four-digit room code. The host column is `host_user_id` (no
 
 ## room_participants — exists; query it directly
 
-Current shape (established by `0036_room_directory_saga.sql`, rebuilt with the same shape in every later registration migration including `0065_demo.sql`):
+Current shape (established by `0036_room_directory_saga.sql`, rebuilt with the same shape in `0088_remove_demo_game.sql`):
 
 ```
 room_id, user_id, joined_at
@@ -60,14 +60,14 @@ The original participants table (`0024_room_participants.sql`) was keyed by `roo
 
 ## Other tables named by this skill (verified columns only)
 
-| Table                   | Verified columns / facts                                                                                                                                            | Migration                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `user_stats`            | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                | `0025_cascade_user_fks.sql`    |
-| `draw_history`          | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                | `0025_cascade_user_fks.sql`    |
-| `refresh_tokens`        | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                | `0020_auth_refresh_tokens.sql` |
-| `login_attempts`        | `email_hash`, `attempted_at`. No IP column exists in this table.                                                                                                    | `0005_login_attempts.sql`      |
-| `password_reset_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`.                                                                                                  | `0003_password_reset.sql`      |
-| `room_game_starts`      | Rebuilt alongside `rooms` in the registration migrations; keyed by room id with a started revision and timestamp. Read the latest rebuild before selecting columns. | `0065_demo.sql` (rebuild)      |
+| Table                   | Verified columns / facts                                                                                                                                                   | Migration                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `user_stats`            | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0025_cascade_user_fks.sql`           |
+| `draw_history`          | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0025_cascade_user_fks.sql`           |
+| `refresh_tokens`        | Has a `user_id` foreign key to `users`. Other columns are not listed here; read the migration before selecting them.                                                       | `0020_auth_refresh_tokens.sql`        |
+| `login_attempts`        | `email_hash`, `attempted_at`. No IP column exists in this table.                                                                                                           | `0005_login_attempts.sql`             |
+| `password_reset_tokens` | `id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`.                                                                                                         | `0003_password_reset.sql`             |
+| `room_game_starts`      | Rebuilt alongside `rooms` when the game-type constraint changes; keyed by room id with a started revision and timestamp. Read the latest rebuild before selecting columns. | `0088_remove_demo_game.sql` (rebuild) |
 
 For `user_stats`, `draw_history`, and `refresh_tokens`, list the columns needed after reading the defining migration. Do not select token material.
 

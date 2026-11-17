@@ -101,7 +101,6 @@ historical facts; delay requires explicit visible-time/cache wiring.
 Tests must cover terminal/repeated/restart/abort, threshold boundaries,
 anonymous/bot/author ownership, strict legacy/v2, D1 atomic rollback/replay/
 cascade/cost, HTTP and profile/settings loading/error/empty/count states.
-Demo alone remains the explicit non-production/no-business-stat reference.
 
 ## Word supply: three registrations, no fewer
 
@@ -130,7 +129,8 @@ the existing mechanisms; read them before wiring either.
 The shared relay machine lives in
 `packages/game-engine/src/platform/room/relay/` (`assignment`,
 `clock`, `evolve`, `gallery`, `tasks`, `types`) and is used by
-pictionary and storyrelay. The `stage` preset does not pre-wire it.
+pictionary and storyrelay. The generator does not pre-wire it; add the
+game-specific binding when the design uses relay behavior.
 A chain-style game wires it through a `domain/relay.ts` binding
 module (pictionary, storyrelay).
 
@@ -139,8 +139,7 @@ module (pictionary, storyrelay).
 Every game declares its review once: `review` is a required field of
 `defineClientGameModule` (`packages/web/src/games/model/defineClientGameModule.ts`),
 and the bound room screen receives exactly that contribution. The
-generator ships it wired in every preset (report step 3; demo is the
-reference):
+generator ships it wired into every skeleton (report step 3):
 
 - `packages/web/src/games/<game>/review/to<Game>ReviewDocument.ts` — the pure
   `state → RoomReviewDocument` builder; the skeleton page is the

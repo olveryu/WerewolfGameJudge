@@ -52,7 +52,7 @@ export function RoomGuideButton({
   testId,
 }: {
   readonly onPress: () => void;
-  /** Accessible name, e.g. 「查看Demo玩法」. */
+  /** Accessible name, e.g. 「查看阿瓦隆玩法」. */
   readonly label: string;
   readonly testId?: string;
 }) {

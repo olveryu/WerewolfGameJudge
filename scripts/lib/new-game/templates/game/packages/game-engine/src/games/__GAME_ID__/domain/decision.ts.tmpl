@@ -62,11 +62,13 @@ export type __GAME_PASCAL__Event =
       readonly gameSequence: number;
     }
 //#end
+//#cap identityViewing
 //#cap !stageDeadline
   | { readonly type: '__GAME_ID__.game.begun' }
 //#end
 //#cap armDeadlineAtBegin
   | { readonly type: '__GAME_ID__.game.begun'; readonly deadlineAt: number }
+//#end
 //#end
 //#cap identityViewing
   | { readonly type: '__GAME_ID__.role.viewed'; readonly seat: number }

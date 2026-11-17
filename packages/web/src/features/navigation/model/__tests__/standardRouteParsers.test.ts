@@ -4,8 +4,8 @@ import {
 } from '../standardRouteParsers';
 
 const parseConfig = createStandardConfigRouteParser({
-  gameType: 'demo',
-  displayName: 'Demo',
+  gameType: 'avalon',
+  displayName: 'Avalon',
 });
 
 const parseWerewolfLikeConfig = createStandardConfigRouteParser({
@@ -16,12 +16,12 @@ const parseWerewolfLikeConfig = createStandardConfigRouteParser({
 
 describe('createStandardConfigRouteParser', () => {
   it('parses create and edit routes with stable key order', () => {
-    expect(parseConfig({ gameType: 'demo', mode: 'create' })).toEqual({
-      gameType: 'demo',
+    expect(parseConfig({ gameType: 'avalon', mode: 'create' })).toEqual({
+      gameType: 'avalon',
       mode: 'create',
     });
-    const edit = parseConfig({ gameType: 'demo', mode: 'edit', roomCode: '4321' });
-    expect(edit).toEqual({ gameType: 'demo', mode: 'edit', roomCode: '4321' });
+    const edit = parseConfig({ gameType: 'avalon', mode: 'edit', roomCode: '4321' });
+    expect(edit).toEqual({ gameType: 'avalon', mode: 'edit', roomCode: '4321' });
     expect(Object.keys(edit)).toEqual(['gameType', 'mode', 'roomCode']);
   });
 
@@ -29,46 +29,46 @@ describe('createStandardConfigRouteParser', () => {
     expect(
       parseWerewolfLikeConfig({ gameType: 'werewolf', mode: 'nominate', roomCode: '2468' }),
     ).toEqual({ gameType: 'werewolf', mode: 'nominate', roomCode: '2468' });
-    expect(() => parseConfig({ gameType: 'demo', mode: 'nominate', roomCode: '2468' })).toThrow(
-      '[FAIL-FAST] Unknown Demo config mode: nominate',
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'nominate', roomCode: '2468' })).toThrow(
+      '[FAIL-FAST] Unknown Avalon config mode: nominate',
     );
   });
 
   it('rejects non-object params, unknown keys, and foreign game types', () => {
     expect(() => parseConfig(null)).toThrow(
-      '[FAIL-FAST] Demo config route params must be an object',
+      '[FAIL-FAST] Avalon config route params must be an object',
     );
-    expect(() => parseConfig({ gameType: 'demo', mode: 'create', unexpected: 1 })).toThrow(
-      '[FAIL-FAST] Demo config route params contain unknown field: unexpected',
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'create', unexpected: 1 })).toThrow(
+      '[FAIL-FAST] Avalon config route params contain unknown field: unexpected',
     );
-    expect(() => parseConfig({ gameType: 'avalon', mode: 'create' })).toThrow(
-      '[FAIL-FAST] Demo config received game type avalon',
+    expect(() => parseConfig({ gameType: 'werewolf', mode: 'create' })).toThrow(
+      '[FAIL-FAST] Avalon config received game type werewolf',
     );
     expect(() => parseConfig({ gameType: 'not-a-game', mode: 'create' })).toThrow();
   });
 
   it('rejects non-string modes, room codes on create, and unknown modes', () => {
-    expect(() => parseConfig({ gameType: 'demo' })).toThrow(
-      '[FAIL-FAST] Demo config mode must be a string',
+    expect(() => parseConfig({ gameType: 'avalon' })).toThrow(
+      '[FAIL-FAST] Avalon config mode must be a string',
     );
-    expect(() => parseConfig({ gameType: 'demo', mode: 7 })).toThrow(
-      '[FAIL-FAST] Demo config mode must be a string',
+    expect(() => parseConfig({ gameType: 'avalon', mode: 7 })).toThrow(
+      '[FAIL-FAST] Avalon config mode must be a string',
     );
-    expect(() => parseConfig({ gameType: 'demo', mode: 'create', roomCode: '4321' })).toThrow(
-      '[FAIL-FAST] Demo create config must not include a room code',
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'create', roomCode: '4321' })).toThrow(
+      '[FAIL-FAST] Avalon create config must not include a room code',
     );
-    expect(() => parseConfig({ gameType: 'demo', mode: 'pause' })).toThrow(
-      '[FAIL-FAST] Unknown Demo config mode: pause',
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'pause' })).toThrow(
+      '[FAIL-FAST] Unknown Avalon config mode: pause',
     );
   });
 
   it('rejects edit routes without a valid room code', () => {
-    expect(() => parseConfig({ gameType: 'demo', mode: 'edit' })).toThrow();
-    expect(() => parseConfig({ gameType: 'demo', mode: 'edit', roomCode: '12' })).toThrow();
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'edit' })).toThrow();
+    expect(() => parseConfig({ gameType: 'avalon', mode: 'edit', roomCode: '12' })).toThrow();
   });
 });
 
-const parseGuide = createStandardGuideRouteParser({ gameType: 'demo', displayName: 'Demo' });
+const parseGuide = createStandardGuideRouteParser({ gameType: 'avalon', displayName: 'Avalon' });
 
 const parseGuideWithRole = createStandardGuideRouteParser({
   gameType: 'avalon',
@@ -87,21 +87,21 @@ const parseGuideWithRole = createStandardGuideRouteParser({
 
 describe('createStandardGuideRouteParser', () => {
   it('parses bare and room guide routes', () => {
-    expect(parseGuide({ gameType: 'demo' })).toEqual({ gameType: 'demo', roomCode: undefined });
-    expect(parseGuide({ gameType: 'demo', roomCode: '4321' })).toEqual({
-      gameType: 'demo',
+    expect(parseGuide({ gameType: 'avalon' })).toEqual({ gameType: 'avalon', roomCode: undefined });
+    expect(parseGuide({ gameType: 'avalon', roomCode: '4321' })).toEqual({
+      gameType: 'avalon',
       roomCode: '4321',
     });
   });
 
   it('rejects unknown keys and foreign game types', () => {
-    expect(() => parseGuide({ gameType: 'demo', roleId: 'x' })).toThrow(
-      '[FAIL-FAST] Demo guide route params contain unknown field: roleId',
+    expect(() => parseGuide({ gameType: 'avalon', roleId: 'x' })).toThrow(
+      '[FAIL-FAST] Avalon guide route params contain unknown field: roleId',
     );
     expect(() => parseGuide({ gameType: 'werewolf' })).toThrow(
-      '[FAIL-FAST] Demo guide received game type werewolf',
+      '[FAIL-FAST] Avalon guide received game type werewolf',
     );
-    expect(() => parseGuide({ gameType: 'demo', roomCode: '12' })).toThrow();
+    expect(() => parseGuide({ gameType: 'avalon', roomCode: '12' })).toThrow();
   });
 
   it('merges injected extra fields after gameType and roomCode', () => {

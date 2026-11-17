@@ -226,8 +226,8 @@ describe('guardPhaseExpiry deadline gate', () => {
 
 describe('buildSettleDueEffect', () => {
   it('builds the bare pin (game sequence and deadline only)', () => {
-    expect(buildSettleDueEffect('demo', { gameSequence: 4, deadlineAt: 61000 })).toEqual({
-      type: 'demo.settle.due',
+    expect(buildSettleDueEffect('avalon', { gameSequence: 4, deadlineAt: 61000 })).toEqual({
+      type: 'avalon.settle.due',
       payload: { gameSequence: 4, deadlineAt: 61000 },
     });
   });

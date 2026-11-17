@@ -115,7 +115,7 @@ describe('useRoomReview entry', () => {
   it('fails fast on a document that breaks the structure rules', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<Harness state={available(reviewDocument({ pages: [] }))} />)).toThrow(
-      '[FAIL-FAST] Review demo-1234-1 has no pages',
+      '[FAIL-FAST] Review room-1234-1 has no pages',
     );
   });
 });
@@ -197,7 +197,7 @@ describe('useRoomReview dialog', () => {
   it('fails fast on a page the document does not have', () => {
     render(<Harness state={available(twoPageDocument())} />);
     expect(() => current().open('album-9')).toThrow(
-      '[FAIL-FAST] Review demo-1234-1 has no page album-9',
+      '[FAIL-FAST] Review room-1234-1 has no page album-9',
     );
   });
 
@@ -254,7 +254,7 @@ describe('useRoomReview share controls', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存／分享图片' }));
     await waitFor(() =>
       expect(mockShare).toHaveBeenCalledWith(
-        [{ base64: 'png', filename: 'demo-1234-1.png' }],
+        [{ base64: 'png', filename: 'room-1234-1.png' }],
         '房间 1234 战报',
       ),
     );
@@ -274,7 +274,7 @@ describe('useRoomReview share controls', () => {
     fireEvent.click(screen.getByRole('button', { name: '仅分享本页' }));
     await waitFor(() =>
       expect(mockShare).toHaveBeenCalledWith(
-        [{ base64: 'png-2', filename: 'demo-1234-1-p2.png' }],
+        [{ base64: 'png-2', filename: 'room-1234-1-p2.png' }],
         '房间 1234 战报',
       ),
     );

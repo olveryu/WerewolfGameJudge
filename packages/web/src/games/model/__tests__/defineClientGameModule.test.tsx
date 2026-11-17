@@ -1,13 +1,13 @@
 import {
-  DEMO_STATE_CODEC,
-  type DemoCommand,
-  type DemoState,
-} from '@game-judge/game-engine/games/demo/public';
+  AVALON_STATE_CODEC,
+  type AvalonPublicCommand,
+  type AvalonState,
+} from '@game-judge/game-engine/games/avalon/public';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { render, screen } from '@testing-library/react';
 
-import { demoGameNavigation } from '@/games/demo/navigation/demoGameNavigation';
-import { demoReview } from '@/games/demo/review/demoReview';
+import { avalonGameNavigation } from '@/games/avalon/navigation/avalonGameNavigation';
+import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { defineClientGameModule } from '@/games/model/defineClientGameModule';
 import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
 import type { RoomLink } from '@/platform/realtime/types';
@@ -26,20 +26,24 @@ describe('defineClientGameModule', () => {
       },
       releaseOutside: vi.fn(),
     };
-    function CustomConfigFlow({ session }: { readonly session: RoomLink<DemoState, DemoCommand> }) {
+    function CustomConfigFlow({
+      session,
+    }: {
+      readonly session: RoomLink<AvalonState, AvalonPublicCommand>;
+    }) {
       receivedSession = session;
       return <p>custom flow</p>;
     }
 
-    const createModule = defineClientGameModule<'demo', DemoState, DemoCommand>({
-      gameType: 'demo',
-      displayName: 'Demo',
-      stateCodec: DEMO_STATE_CODEC,
-      navigation: demoGameNavigation,
+    const createModule = defineClientGameModule<'avalon', AvalonState, AvalonPublicCommand>({
+      gameType: 'avalon',
+      displayName: '阿瓦隆',
+      stateCodec: AVALON_STATE_CODEC,
+      navigation: avalonGameNavigation,
       RoomScreen: () => null,
       config: () => CustomConfigFlow,
       GuideScreen: () => null,
-      review: demoReview,
+      review: avalonReview,
       isUserSeated: () => false,
       canSwitchAccount: () => true,
     });

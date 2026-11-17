@@ -12,7 +12,7 @@ import { useLastActionToast } from '../useLastActionToast';
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn() } }));
 
 const messages = {
-  'demo.roles.assign': { level: 'info', text: '角色已分配' },
+  'avalon.roles.assign': { level: 'info', text: '角色已分配' },
 } as const;
 
 interface Props {
@@ -32,8 +32,16 @@ beforeEach(() => vi.clearAllMocks());
 describe('useLastActionToast', () => {
   it('shows a game command toast once per revision to a non-host', () => {
     const { rerender } = renderToast({ lastCommand: null, isHost: false, mySeat: 1 });
-    rerender({ lastCommand: { revision: 3, type: 'demo.roles.assign' }, isHost: false, mySeat: 1 });
-    rerender({ lastCommand: { revision: 3, type: 'demo.roles.assign' }, isHost: false, mySeat: 1 });
+    rerender({
+      lastCommand: { revision: 3, type: 'avalon.roles.assign' },
+      isHost: false,
+      mySeat: 1,
+    });
+    rerender({
+      lastCommand: { revision: 3, type: 'avalon.roles.assign' },
+      isHost: false,
+      mySeat: 1,
+    });
     expect(toast.info).toHaveBeenCalledTimes(1);
     expect(toast.info).toHaveBeenCalledWith('角色已分配');
   });
@@ -41,12 +49,16 @@ describe('useLastActionToast', () => {
   it('shows nothing to the host or for unlisted commands', () => {
     const host = renderToast({ lastCommand: null, isHost: true, mySeat: 0 });
     host.rerender({
-      lastCommand: { revision: 1, type: 'demo.roles.assign' },
+      lastCommand: { revision: 1, type: 'avalon.roles.assign' },
       isHost: true,
       mySeat: 0,
     });
     const player = renderToast({ lastCommand: null, isHost: false, mySeat: 1 });
-    player.rerender({ lastCommand: { revision: 2, type: 'demo.other' }, isHost: false, mySeat: 1 });
+    player.rerender({
+      lastCommand: { revision: 2, type: 'avalon.other' },
+      isHost: false,
+      mySeat: 1,
+    });
     expect(toast.info).not.toHaveBeenCalled();
     expect(toast.warning).not.toHaveBeenCalled();
   });
@@ -77,12 +89,16 @@ describe('useLastActionToast', () => {
 
   it('does not replay the marker present when the room page mounts', () => {
     const { rerender } = renderToast({
-      lastCommand: { revision: 8, type: 'demo.roles.assign' },
+      lastCommand: { revision: 8, type: 'avalon.roles.assign' },
       isHost: false,
       mySeat: 1,
     });
     expect(toast.info).not.toHaveBeenCalled();
-    rerender({ lastCommand: { revision: 9, type: 'demo.roles.assign' }, isHost: false, mySeat: 1 });
+    rerender({
+      lastCommand: { revision: 9, type: 'avalon.roles.assign' },
+      isHost: false,
+      mySeat: 1,
+    });
     expect(toast.info).toHaveBeenCalledTimes(1);
   });
 });

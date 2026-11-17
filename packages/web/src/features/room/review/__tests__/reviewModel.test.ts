@@ -87,8 +87,8 @@ describe('serializeReviewDocument', () => {
 
 describe('reviewImageFilename', () => {
   it('names a single page by the stem and each page of a longer document by position', () => {
-    expect(reviewImageFilename(reviewDocument(), 0)).toBe('demo-1234-1.png');
-    expect(reviewImageFilename(twoPageDocument(), 1)).toBe('demo-1234-1-p2.png');
+    expect(reviewImageFilename(reviewDocument(), 0)).toBe('room-1234-1.png');
+    expect(reviewImageFilename(twoPageDocument(), 1)).toBe('room-1234-1-p2.png');
   });
 });
 

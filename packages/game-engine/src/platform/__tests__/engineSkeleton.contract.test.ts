@@ -73,7 +73,6 @@ describe('engine skeleton contract', () => {
   it('covers every game in the catalog', () => {
     expect(gameTypes).toEqual([
       'avalon',
-      'demo',
       'drawguess',
       'fibking',
       'pictionary',

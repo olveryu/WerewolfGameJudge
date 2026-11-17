@@ -1,9 +1,8 @@
 /**
  * Generator tests: run the real generator against a fixture repository
- * assembled from the real shared files it edits, for all three presets.
+ * assembled from the real shared files it edits, across capability selections.
  * Real-tree copies validate formatting, lint, web/engine/Worker types,
- * generated engine and web client tests and registration contracts. Demo regeneration
- * must also match the shipped reference game. Run with
+ * generated engine and web client tests and registration contracts. Run with
  * `node --test scripts/new-game.test.mjs` (also wrapped by
  * contracts/newGameGenerator.contract.test.ts in the root vitest suite).
  */
@@ -12,18 +11,17 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { editEngineContractsTest } from './lib/new-game/edits.mjs';
 import {
+  CAPABILITY_KEYS,
   FILE_CAPABILITY_GATES,
   generateNewGame,
   generatorFacts,
-  PACK_SEGMENT_SWITCHES,
-  PRESET_CAPABILITIES,
+  selectCapabilities,
   SHARED_EDITS,
 } from './lib/new-game/generate.mjs';
 import {
@@ -47,7 +45,7 @@ test.after(() => {
 });
 
 function makeFixtureRepo() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-fixture-'));
+  const root = fs.mkdtempSync(path.join(REPO_ROOT, '.new-game-fixture-'));
   fixtureRoots.add(root);
   for (const file of SHARED_FILES) {
     const target = path.join(root, file);
@@ -73,22 +71,24 @@ function makeFixtureRepo() {
  * to run in parallel with other suites.
  */
 function makeRealRepoCopy() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-real-repo-'));
+  const root = fs.mkdtempSync(path.join(REPO_ROOT, '.new-game-real-repo-'));
   fixtureRoots.add(root);
-  fs.cpSync(REPO_ROOT, root, {
-    recursive: true,
-    filter: (source) => {
-      const relative = path.relative(REPO_ROOT, source);
-      if (relative === '') return true;
-      const segments = relative.split(path.sep);
-      return (
-        segments[0] !== '.git' &&
-        segments[0] !== 'assets' &&
-        !segments[0].startsWith('.new-game-') &&
-        !segments.includes('node_modules')
-      );
-    },
-  });
+  for (const name of fs.readdirSync(REPO_ROOT)) {
+    if (
+      name === '.git' ||
+      name === 'assets' ||
+      name.startsWith('.new-game-') ||
+      name === 'node_modules'
+    ) {
+      continue;
+    }
+    const sourcePath = path.join(REPO_ROOT, name);
+    fs.cpSync(sourcePath, path.join(root, name), {
+      recursive: true,
+      filter: (source) =>
+        !path.relative(REPO_ROOT, source).split(path.sep).includes('node_modules'),
+    });
+  }
   for (const linked of [
     'assets',
     'node_modules',
@@ -134,7 +134,7 @@ function typecheckFixture(root, project) {
  * keyed by capability: the expectation side of the generator's
  * FILE_CAPABILITY_GATES. A new gated template file joins this table
  * under its capability, or the file-list assertion below fails for
- * the packs that enable the capability.
+ * the selections that enable the capability.
  */
 const CAPABILITY_FILE_ADDITIONS = [
   {
@@ -154,7 +154,8 @@ const CAPABILITY_FILE_ADDITIONS = [
   },
 ];
 
-function expectedCreatedFiles(gameId, preset) {
+function expectedCreatedFiles(gameId, selectedCapabilities) {
+  const capabilities = selectCapabilities(selectedCapabilities);
   const pascal = gameId.charAt(0).toUpperCase() + gameId.slice(1);
   const engine = `packages/game-engine/src/games/${gameId}`;
   const worker = `packages/api-worker/src/games/${gameId}`;
@@ -208,7 +209,7 @@ function expectedCreatedFiles(gameId, preset) {
     `e2e/specs/${gameId}.spec.ts.tmpl`,
   ];
   for (const addition of CAPABILITY_FILE_ADDITIONS) {
-    if (PRESET_CAPABILITIES[preset][addition.capability]) {
+    if (capabilities[addition.capability]) {
       files.push(...addition.files({ engine, client, pascal }));
     }
   }
@@ -243,10 +244,19 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
     () => applyCapabilityBlocks('//#cap !nope\nx\n//#end', capabilities),
     /Unknown capability block "!nope"/,
   );
-  assert.throws(
-    () =>
-      applyCapabilityBlocks('//#cap identityViewing\n//#cap stageDeadline\n//#end', capabilities),
-    /Nested capability block/,
+  assert.equal(
+    applyCapabilityBlocks(
+      '//#cap identityViewing\nview\n//#cap stageDeadline\nboth\n//#end\n//#end',
+      capabilities,
+    ),
+    'view',
+  );
+  assert.equal(
+    applyCapabilityBlocks(
+      '//#cap identityViewing\nview\n//#cap stageDeadline\nboth\n//#end\n//#end',
+      { identityViewing: true, stageDeadline: true },
+    ),
+    'view\nboth',
   );
   assert.throws(() => applyCapabilityBlocks('//#end', capabilities), /without a start marker/);
   assert.throws(
@@ -255,13 +265,47 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
   );
 });
 
-for (const preset of ['identity', 'stage', 'demo-hybrid']) {
-  test(`generates the complete ${preset} skeleton and wires every registration point`, () => {
+const CAPABILITY_SCENARIOS = [
+  { name: 'all capabilities off', selected: [] },
+  { name: 'identity viewing', selected: ['identityViewing'] },
+  { name: 'stage deadline', selected: ['stageDeadline'] },
+  { name: 'identity viewing with deadline', selected: ['identityViewing', 'stageDeadline'] },
+  { name: 'audio orchestration', selected: ['audioOrchestration'] },
+  { name: 'all capabilities on', selected: CAPABILITY_KEYS },
+];
+
+test('capability selection is independent, defaults off, and enforces bot scaffolding dependency', () => {
+  assert.deepEqual(selectCapabilities([]), {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: false,
+    revealAnimation: false,
+    stageDeadline: false,
+    audioOrchestration: false,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+    botTestScaffold: false,
+  });
+  for (const key of CAPABILITY_KEYS.filter((candidate) => candidate !== 'botTestScaffold')) {
+    const selected = selectCapabilities([key]);
+    assert.equal(selected[key], true, `${key} can be selected independently`);
+    for (const other of CAPABILITY_KEYS.filter((candidate) => candidate !== key)) {
+      assert.equal(selected[other], false, `${other} remains off when selecting ${key}`);
+    }
+  }
+  assert.equal(selectCapabilities(['identityViewing', 'botTestScaffold']).botTestScaffold, true);
+  assert.throws(() => selectCapabilities(['botTestScaffold']), /requires "identityViewing"/);
+  assert.throws(() => selectCapabilities(['unknownCapability']), /Invalid capability/);
+});
+
+for (const scenario of CAPABILITY_SCENARIOS) {
+  test(`generates the complete skeleton with ${scenario.name} and wires every registration point`, () => {
     const root = makeFixtureRepo();
     const summary = generateNewGame({
       rootDir: root,
       gameId: 'demoproto',
-      preset,
+      capabilities: scenario.selected,
       displayName: '演示原型',
       subtitle: '生成器自证用临时游戏',
     });
@@ -269,7 +313,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     // File-list completeness (the plan §4 checklist).
     assert.deepEqual(
       summary.createdFiles.filter((file) => !file.includes('/migrations/')),
-      expectedCreatedFiles('demoproto', preset),
+      expectedCreatedFiles('demoproto', scenario.selected),
     );
     assert.match(summary.migrationName, /^\d{4}_demoproto\.sql$/);
     assert.ok(
@@ -298,6 +342,13 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       'default generation registers the new game as non-production',
     );
     const reportText = readFixture(root, summary.reportPath);
+    const designDoc = readFixture(root, 'docs/demoproto-game-design.md');
+    assert.ok(!designDoc.includes('--preset'), 'generated design doc uses the capability API');
+    assert.ok(!designDoc.includes('原型预设'), 'generated design doc has no preset label');
+    assert.ok(designDoc.includes('启用能力：'));
+    for (const key of new Set(scenario.selected)) {
+      assert.ok(designDoc.includes(`--capability ${key}`), `design command includes ${key}`);
+    }
     assert.ok(reportText.includes('上线（翻生产）'), 'default report carries the go-live step');
     assert.ok(reportText.includes('homeProductionFilter'), 'go-live step names the tripwire list');
     assert.ok(
@@ -310,9 +361,9 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       ),
     );
 
-    // Capabilities: the contract expectation row and the engine
-    // declaration must carry exactly the preset table.
-    const capabilities = PRESET_CAPABILITIES[preset];
+    // The contract expectation row and engine declaration must carry
+    // exactly the independently selected capability values.
+    const capabilities = selectCapabilities(scenario.selected);
     const contract = readFixture(
       root,
       'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
@@ -450,8 +501,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     assert.ok(report.includes('packages/api-worker/wrangler.toml'));
     assert.ok(report.includes('[[workflows]]'));
     assert.ok(report.includes('binding = "DEMOPROTO_WORD_SUPPLY"'));
-    // The TODO_IDENTITY follow-up note rides on the identityViewing
-    // capability, not on the preset name.
+    // The TODO_IDENTITY follow-up note rides on the identityViewing capability.
     assert.equal(
       report.includes('TODO_IDENTITY'),
       capabilities.identityViewing,
@@ -510,7 +560,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       report.includes('名单同步不是上线充分条件') || report.includes('两处齐不是上线充分条件'),
     );
 
-    // Preset wiring markers the capability welds depend on.
+    // Wiring markers the capability welds depend on.
     const engineGameDir = summary.createdFiles
       .filter((file) => file.startsWith('packages/game-engine/src/games/demoproto/'))
       .map((file) => readFixture(root, file))
@@ -522,7 +572,7 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
     if (capabilities.botTestScaffold) {
       assert.ok(engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
     }
-    // Every pack ships the review end to end: the module declares the
+    // Every generated game wires the review end to end: the module declares the
     // contribution, the room state resolves it through the platform
     // hook, the screen mounts its overlay, and the adapter places the
     // shared entry on the bottom tier and the host sheet, closing the
@@ -610,33 +660,24 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         'worker module does not hand-build the settle business key',
       );
       // D3: expiry is server-only — no client sends expire. The
-      // stage pack's rendered hook is countdown-only: it calls
+      // generated hook is countdown-only: it calls
       // useStageDeadline with the deadline alone and exposes
       // remainingSeconds for display. If the countdown block were
       // silently dropped from the assembled hook, these assertions
-      // fail with it. The demo-hybrid pack renders no countdown
-      // surface at all, exactly like the shipped demo.
+      // fail with it. Identity viewing keeps the countdown available
+      // after the host begins play.
       const roomHook = readFixture(
         root,
         'packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts',
       );
-      if (!capabilities.identityViewing) {
-        assert.ok(roomHook.includes('useStageDeadline({'), 'rendered hook calls useStageDeadline');
-        assert.ok(!roomHook.includes('shouldExpire'), 'rendered hook has no expire gate');
-        assert.ok(!roomHook.includes('onExpire'), 'rendered hook has no expire dispatch');
-        assert.ok(!roomHook.includes('attemptKey'), 'rendered hook has no single-shot key');
-        assert.ok(!roomHook.includes('phase.expire'), 'rendered hook never dispatches expire');
-        assert.ok(roomHook.includes('remainingSeconds'), 'rendered hook exposes the countdown');
-      } else {
-        assert.ok(!roomHook.includes('useStageDeadline'), 'hybrid hook has no countdown');
-      }
-      // The public expire command is gone from the generated engine
-      // entirely, and so is the phase.expired event it used to emit:
-      // the internal settle runs through the terminal seam (game.ended
-      // + game.completed), exactly like the shipped demo, which has no
-      // phase.expired anywhere — the event type and its evolve case
-      // were dead code with no constructor left, so they were deleted
-      // from the templates rather than kept.
+      assert.ok(roomHook.includes('useStageDeadline({'), 'rendered hook calls useStageDeadline');
+      assert.ok(!roomHook.includes('shouldExpire'), 'rendered hook has no expire gate');
+      assert.ok(!roomHook.includes('onExpire'), 'rendered hook has no expire dispatch');
+      assert.ok(!roomHook.includes('attemptKey'), 'rendered hook has no single-shot key');
+      assert.ok(!roomHook.includes('phase.expire'), 'rendered hook never dispatches expire');
+      assert.ok(roomHook.includes('remainingSeconds'), 'rendered hook exposes the countdown');
+      // The public expire command and unused phase.expired event are
+      // absent; internal settlement runs through the terminal seam.
       assert.ok(!engineSource.includes(`'demoproto.phase.expire'`), 'no public expire command');
       assert.ok(
         engineSource.includes(`'demoproto.phase.settleExpired'`),
@@ -650,10 +691,9 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
       // D3 follow-up: the host self-rescue retry rides the same settle
       // dispatch — vocabulary entry only, no duplicated settle logic.
       // The retry command is public in the engine and the Worker
-      // schema, gated host-first in decide; the stage pack's room
+      // schema, gated host-first in decide; the room
       // hook exposes isOverdue and the stage area renders the shared
-      // rescue UI. The demo-hybrid pack renders no countdown surface
-      // at all, so it gets none of the client wiring.
+      // rescue UI independently of identity viewing.
       assert.ok(
         engineSource.includes(`'demoproto.phase.retrySettle'`),
         'retry command in engine vocabulary',
@@ -677,33 +717,27 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
         ).includes('notHostRetrySettle'),
         'retry failure copy',
       );
-      if (!capabilities.identityViewing) {
-        assert.ok(roomHook.includes('isOverdue'), 'stage hook exposes isOverdue');
-        assert.ok(
-          clientGameDir.includes('StageSettleRescue'),
-          'stage area renders the shared rescue UI',
-        );
-        assert.ok(
-          clientGameDir.includes(`'demoproto.phase.retrySettle'`),
-          'stage area submits the retry',
-        );
-      } else {
-        assert.ok(!roomHook.includes('isOverdue'), 'hybrid hook has no rescue wiring');
-        assert.ok(!clientGameDir.includes('StageSettleRescue'), 'hybrid client has no rescue UI');
-      }
-    } else {
-      assert.ok(!engineGameDir.includes('deadlineAt'));
-      assert.ok(!engineGameDir.includes('retrySettle'), 'no-deadline engine has no retry command');
-      assert.ok(!clientGameDir.includes('retrySettle'), 'no-deadline client has no retry wiring');
+      assert.ok(roomHook.includes('isOverdue'), 'stage hook exposes isOverdue');
       assert.ok(
-        !clientGameDir.includes('StageSettleRescue'),
-        'no-deadline client has no rescue UI',
+        clientGameDir.includes('StageSettleRescue'),
+        'stage area renders the shared rescue UI',
+      );
+      assert.ok(
+        clientGameDir.includes(`'demoproto.phase.retrySettle'`),
+        'stage area submits the retry',
+      );
+    } else {
+      assert.ok(!engineSource.includes('guardPhaseExpiry'));
+      assert.ok(!engineSource.includes('settleExpired'));
+      assert.ok(
+        !engineSource.includes(`'demoproto.phase.retrySettle'`),
+        'no-deadline engine has no retry command',
       );
     }
     if (capabilities.audioOrchestration) {
       assert.ok(engineGameDir.includes('demoproto.audio.ack'));
     } else {
-      // The audio wiring is segment-gated end to end: a pack that
+      // The audio wiring is segment-gated end to end: a selection that
       // declares it off must not leak a single audio marker into the
       // generated engine or client (the capabilities contract welds
       // the declaration to exactly this source evidence).
@@ -725,11 +759,9 @@ for (const preset of ['identity', 'stage', 'demo-hybrid']) {
 }
 
 test('audioOrchestration segments render the full audio wiring when on and nothing when off', () => {
-  // No shipped pack declares audioOrchestration (narration is a
-  // per-game choice, not an archetype trait), so the on-state cannot
-  // be reached through generateNewGame's preset table. Prove the
+  // Narration is a per-game choice, so the on-state is proved at the
   // segment at the layer it lives in instead: render the whole
-  // template tree with the identity pack's record, once with the
+  // template tree with every capability off, once with the
   // capability flipped on and once off, applying the same whole-file
   // gates and destination rendering the generator uses.
   const names = deriveGameNames('demoproto');
@@ -739,14 +771,16 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     __GAME_ICON_NAME__: 'game-controller-outline',
     __GAME_ICON_COMPONENT__: 'IconGameControllerOutline',
     __GAME_TIER__: 'mini',
-    __GAME_PRESET__: 'identity',
+    __GAME_CAPABILITY_ARGS__: '',
+    __GAME_CAPABILITIES__: '无（全部关闭）',
     __GAME_COMPLETION_TYPE__: 'DemoprotoCompletionPayload | ',
     __GAME_REQUIREMENT_COUNT__: '11',
-    __GAME_TEST_BEGIN__: 'viewAllAndBegin(session);',
+    __GAME_TEST_BEGIN__: "session.send({ type: 'demoproto.game.begin' });",
   };
   const baseRecord = {
-    ...PRESET_CAPABILITIES.identity,
-    ...PACK_SEGMENT_SWITCHES.identity,
+    ...selectCapabilities([]),
+    armDeadlineAtBegin: false,
+    stageDeadlineAtStart: false,
     businessStats: true,
   };
   const renderTree = (capabilities) => {
@@ -854,7 +888,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
 
   const root = makeRealRepoCopy();
   try {
-    generateNewGame({ rootDir: root, gameId: 'demoproto', preset: 'identity' });
+    generateNewGame({ rootDir: root, gameId: 'demoproto' });
     for (const [file, content] of on) {
       const destination = path.join(root, file);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
@@ -881,7 +915,7 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   }
 });
 
-test('counts share generator facts and numbering does not confuse physical and registration migrations', () => {
+test('generator facts track capability keys and migration numbering uses physical migrations', () => {
   const facts = generatorFacts();
   assert.deepEqual(facts.sharedFiles, SHARED_FILES);
   const files = fs
@@ -891,48 +925,40 @@ test('counts share generator facts and numbering does not confuse physical and r
       name,
       content: readFixture(REPO_ROOT, `packages/api-worker/migrations/${name}`),
     }));
-  assert.equal(findLatestRegistrationMigration(files).name, '0065_demo.sql');
+  const gameTypes = readFixture(
+    REPO_ROOT,
+    'packages/game-engine/src/platform/protocol/gameTypes.ts',
+  );
+  const currentTypes = [...gameTypes.matchAll(/^\s*'([a-z][a-z0-9]*)',$/gm)].map(
+    (match) => match[1],
+  );
+  const latestRegistration = findLatestRegistrationMigration(files);
+  for (const [, list] of latestRegistration.content.matchAll(/game_type IN \(([^)]*)\)/g)) {
+    assert.deepEqual(
+      [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]).sort(),
+      [...currentTypes].sort(),
+    );
+  }
   assert.equal(
     nextMigrationName(['0075_physical.sql', '0065_demo.sql', '0070_physical.sql'], 'probe'),
     '0076_probe.sql',
   );
-  for (const preset of Object.keys(PRESET_CAPABILITIES)) {
-    assert.equal(facts.filesByPreset[preset], expectedCreatedFiles('probe', preset).length + 1);
-  }
-});
-
-test('new formal games cannot disable stats, even when non-production or demo-hybrid', () => {
-  const root = makeFixtureRepo();
-  for (const preset of Object.keys(PRESET_CAPABILITIES)) {
-    assert.throws(
-      () =>
-        generateNewGame({
-          rootDir: root,
-          gameId: 'probe',
-          preset,
-          businessStats: false,
-        }),
-      /only for non-production demo reference/,
-    );
-  }
-  assert.throws(
-    () =>
-      generateNewGame({
-        rootDir: root,
-        gameId: 'demo',
-        preset: 'demo-hybrid',
-        production: true,
-        businessStats: false,
-      }),
-    /only for non-production demo reference/,
-  );
-  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
+  assert.deepEqual(facts.capabilityKeys, CAPABILITY_KEYS);
+  assert.equal(facts.templateCount, 50);
 });
 
 test('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {
   const root = makeFixtureRepo();
-  const first = generateNewGame({ rootDir: root, gameId: 'firstprobe', preset: 'stage' });
-  const second = generateNewGame({ rootDir: root, gameId: 'secondprobe', preset: 'identity' });
+  const first = generateNewGame({
+    rootDir: root,
+    gameId: 'firstprobe',
+    capabilities: ['stageDeadline'],
+  });
+  const second = generateNewGame({
+    rootDir: root,
+    gameId: 'secondprobe',
+    capabilities: ['identityViewing'],
+  });
   const migration = readFixture(root, `packages/api-worker/migrations/${second.migrationName}`);
   assert.ok(migration.includes(`from ${first.migrationName}`));
   assert.ok(migration.includes('CREATE TABLE secondprobe_user_stats'));
@@ -967,10 +993,23 @@ test('stale registration CHECK lists fail before any generated file is written',
     /does not match the canonical game set/,
   );
   const root = makeFixtureRepo();
-  const file = path.join(root, 'packages/api-worker/migrations/0065_demo.sql');
-  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replaceAll(", 'demo'", ''));
+  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
+  const migrationFiles = fs.readdirSync(migrationsDir).map((name) => ({
+    name,
+    content: readFixture(root, `packages/api-worker/migrations/${name}`),
+  }));
+  const sourceName = findLatestRegistrationMigration(migrationFiles).name;
+  const file = path.join(migrationsDir, sourceName);
+  const staleContent = fs
+    .readFileSync(file, 'utf8')
+    .replace(/game_type IN \(([^)]*)\)/g, (_match, list) => {
+      const values = [...list.matchAll(/'([a-z][a-z0-9]*)'/g)].map((match) => match[1]);
+      values.pop();
+      return `game_type IN (${values.map((value) => `'${value}'`).join(', ')})`;
+    });
+  fs.writeFileSync(file, staleContent);
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'probe', preset: 'stage' }),
+    () => generateNewGame({ rootDir: root, gameId: 'probe', capabilities: ['stageDeadline'] }),
     /does not match the canonical game set/,
   );
   assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
@@ -981,7 +1020,7 @@ test('production: true registers the new game as production and reports the list
   const summary = generateNewGame({
     rootDir: root,
     gameId: 'demoproto',
-    preset: 'identity',
+    capabilities: ['identityViewing'],
     production: true,
   });
   const registry = readFixture(root, 'packages/game-engine/src/games/registry.ts');
@@ -1013,14 +1052,13 @@ test('generated output passes format, lint, typecheck, engine and client tests w
     t.skip('requires installed dependencies (node_modules)');
     return;
   }
-  // Every preset must pass: the three packs render different segment
-  // combinations out of the one template tree, so each one's shaping
-  // is only proven in the real tree.
-  for (const preset of ['identity', 'stage', 'demo-hybrid']) {
+  // Exercise the default assembly and the full capability combination
+  // through the real shaping and typecheck pipeline.
+  for (const selected of [[], CAPABILITY_KEYS]) {
     const root = makeRealRepoCopy();
     try {
-      const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', preset });
-      assert.equal(summary.formatted, true, `prettier pass must run, not skip (${preset})`);
+      const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', capabilities: selected });
+      assert.equal(summary.formatted, true, 'prettier pass must run, not skip');
       const require = createRequire(path.join(root, 'package.json'));
       const prettierBin = require.resolve('prettier/bin/prettier.cjs');
       // Same scope the generator's format pass claims: formattable
@@ -1033,6 +1071,13 @@ test('generated output passes format, lint, typecheck, engine and client tests w
         cwd: root,
         stdio: 'pipe',
       });
+      for (const project of [
+        'packages/web/tsconfig.json',
+        'packages/game-engine/tsconfig.test.json',
+        'packages/api-worker/tsconfig.json',
+      ]) {
+        typecheckFixture(root, project);
+      }
       const eslintBin = path.join(
         path.dirname(require.resolve('eslint/package.json')),
         'bin',
@@ -1049,15 +1094,8 @@ test('generated output passes format, lint, typecheck, engine and client tests w
             .join(' '),
         },
       });
-      for (const project of [
-        'packages/web/tsconfig.json',
-        'packages/game-engine/tsconfig.test.json',
-        'packages/api-worker/tsconfig.json',
-      ]) {
-        typecheckFixture(root, project);
-      }
       // The generated web tests (guidance matrix, review, failure copy)
-      // render a different begin path per pack, so each pack proves its
+      // render distinct capability combinations, so each one proves its
       // own rendering by running them, and its registrations through the
       // web contracts the generator edited.
       execFileSync(
@@ -1091,386 +1129,30 @@ test('generated output passes format, lint, typecheck, engine and client tests w
   }
 });
 
-/** Remove one exact text fragment from a copied file; fail loudly when absent. */
-function removeExactText(root, file, text) {
-  const target = path.join(root, file);
-  const content = fs.readFileSync(target, 'utf8');
-  if (!content.includes(text)) throw new Error(`strip anchor missing in ${file}`);
-  fs.writeFileSync(target, content.replace(text, ''));
-}
-
-/** Remove the lines from `startLine` through the next exact `endLine`, inclusive. */
-function removeEntryBlock(root, file, startLine, endLine) {
-  const target = path.join(root, file);
-  const lines = fs.readFileSync(target, 'utf8').split('\n');
-  const start = lines.findIndex((line) => line === startLine);
-  if (start === -1) throw new Error(`strip block start missing in ${file}: ${startLine}`);
-  const end = lines.findIndex((line, index) => index > start && line === endLine);
-  if (end === -1) throw new Error(`strip block end missing in ${file}: ${endLine}`);
-  lines.splice(start, end - start + 1);
-  fs.writeFileSync(target, lines.join('\n'));
-}
-
-/** The shipped demo registration migration; the fixture world is frozen at its number. */
-const DEMO_REGISTRATION_MIGRATION = '0065_demo.sql';
-
-/**
- * Strip the shipped demo out of a real-repo copy so the generator
- * accepts the id again: its product files, its registration migration
- * and every shared-file registration entry. The fixture must also
- * lose every migration newer than demo's own registration: the
- * generator numbers the next migration max+1 and derives it from the
- * latest registration migration, so the regenerated demo migration
- * lands on demo's number and reproduces the shipped file only in the
- * repo world as it was when demo was generated.
- */
-function stripShippedDemo(root) {
-  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
-  if (!fs.existsSync(path.join(migrationsDir, DEMO_REGISTRATION_MIGRATION))) {
-    throw new Error(`strip demo migration missing: ${DEMO_REGISTRATION_MIGRATION}`);
-  }
-  const demoNumber = Number.parseInt(DEMO_REGISTRATION_MIGRATION.slice(0, 4), 10);
-  for (const dir of [
-    'packages/game-engine/src/games/demo',
-    'packages/api-worker/src/games/demo',
-    'packages/web/src/games/demo',
-  ]) {
-    fs.rmSync(path.join(root, dir), { recursive: true, force: true });
-  }
-  for (const file of [
-    'docs/demo-game-design.md',
-    'e2e/specs/demo.spec.ts.tmpl',
-    `packages/api-worker/migrations/${DEMO_REGISTRATION_MIGRATION}`,
-    'packages/web/src/test-utils/demoState.ts',
-  ]) {
-    fs.rmSync(path.join(root, file), { force: true });
-  }
-  // Migrations newer than demo's own registration postdate the world
-  // the shipped demo was generated in. Leaving any of them in would
-  // renumber the regenerated demo migration (0067 once 0066 exists)
-  // and, once a newer registration migration lands, change its
-  // derivation source too — either breaks the byte-exact comparison
-  // against the shipped file. Strip them so the fixture is the repo
-  // as it was when demo was generated.
-  for (const name of fs.readdirSync(migrationsDir)) {
-    const match = /^(\d{4})_[a-z0-9_]+\.sql$/.exec(name);
-    if (match !== null && Number.parseInt(match[1], 10) > demoNumber) {
-      fs.rmSync(path.join(migrationsDir, name), { force: true });
-    }
-  }
-  removeExactText(root, 'packages/game-engine/src/platform/protocol/gameTypes.ts', "  'demo',\n");
-  removeEntryBlock(root, 'packages/game-engine/src/games/registry.ts', '  demo: {', '  },');
-  removeEntryBlock(
-    root,
-    'packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
-    '  demo: {',
-    '  },',
-  );
-  removeExactText(
-    root,
-    'packages/game-engine/src/product/rewards/earnings.ts',
-    '  // TODO(new-game): confirm the completion reward amounts for demo.\n' +
-      '  demo: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },\n',
-  );
-  removeEntryBlock(
-    root,
-    'packages/game-engine/package.json',
-    '    "./games/demo/public": {',
-    '    },',
-  );
-  removeExactText(
-    root,
-    'packages/game-engine/src/platform/__tests__/architecture.contract.test.ts',
-    "  './games/demo/public',\n",
-  );
-  removeExactText(
-    root,
-    'packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts',
-    "      'demo',\n",
-  );
-  removeExactText(
-    root,
-    'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
-    "import { demoEngine } from '../../../games/demo/engine';\n",
-  );
-  const contractsFile = path.join(
-    root,
-    'packages/game-engine/src/platform/engine/__tests__/contracts.test.ts',
-  );
-  const contractsLines = fs.readFileSync(contractsFile, 'utf8').split('\n');
-  const keptLines = contractsLines.filter((line) => !line.includes('demo: demoEngine,'));
-  if (contractsLines.length - keptLines.length !== 5) {
-    throw new Error('expected exactly five demo catalog entries in contracts.test.ts');
-  }
-  fs.writeFileSync(contractsFile, keptLines.join('\n'));
-  removeEntryBlock(
-    root,
-    'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
-    '  demo: {',
-    '  },',
-  );
-  removeExactText(
-    root,
-    'packages/game-engine/src/games/catalog.ts',
-    "import { demoEngine } from './demo/engine';\n",
-  );
-  removeExactText(root, 'packages/game-engine/src/games/catalog.ts', '  demo: demoEngine,\n');
-  removeExactText(
-    root,
-    'packages/api-worker/src/games/catalog.ts',
-    "import { demoWorkerModule } from './demo/module';\n",
-  );
-  removeExactText(
-    root,
-    'packages/api-worker/src/games/catalog.ts',
-    '  demo: registerWorkerGameModule(demoWorkerModule),\n',
-  );
-  removeExactText(
-    root,
-    'packages/web/src/games/catalog.ts',
-    "import { demoHome } from '@/games/demo/home';\n",
-  );
-  removeExactText(root, 'packages/web/src/games/catalog.ts', '  demo: { home: demoHome },\n');
-  removeExactText(
-    root,
-    'packages/web/src/games/clientModules.tsx',
-    '  demo: createDemoClientModule,\n',
-  );
-  removeExactText(
-    root,
-    'packages/web/src/games/clientModules.tsx',
-    "import { createDemoClientModule } from '@/games/demo/module';\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/games/clientModules.tsx',
-    "    demo: cacheLoad(() => loadModule('demo')),\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts',
-    "  demo: ['games/demo/room/hooks/useDemoRoomState.ts'],\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
-    "import { DEMO_GUIDANCE_MATRIX } from '@/games/demo/room/demoGuidanceMatrix';\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
-    '  demo: DEMO_GUIDANCE_MATRIX,\n',
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/roomReview.contract.test.ts',
-    "import { demoReview } from '@/games/demo/review/demoReview';\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/roomReview.contract.test.ts',
-    "import { DEMO_REVIEW_ROUNDS } from '@/test-utils/demoState';\n",
-  );
-  removeExactText(
-    root,
-    'packages/web/src/__tests__/roomReview.contract.test.ts',
-    '  demo: reviewCase(demoReview, DEMO_REVIEW_ROUNDS),\n',
-  );
-}
-
-/**
- * Pinned demo compare exceptions (G-5): the shipped demo is the
- * finalized instance of the skeleton, so a handful of texts are
- * deliberately ahead of the templates — the design doc records the
- * preset it was originally generated with, three documentation blocks
- * carry demo's finalized facts where the templates keep TODO
- * fill-ins, and two registration entries carry hand completions.
- * Each entry rewrites the shipped text into the regenerated text;
- * after rewriting, the files must be byte-identical. An entry whose
- * text no longer matches fails the case, so this list only shrinks.
- */
-const DEMO_COMPARE_EXCEPTIONS = [
-  {
-    file: 'docs/demo-game-design.md',
-    body: '> 状态：骨架（由 `pnpm new-game demo --preset identity` 生成，待设计定稿）',
-    generated: '> 状态：骨架（由 `pnpm new-game demo --preset demo-hybrid` 生成，待设计定稿）',
-  },
-  {
-    file: 'docs/demo-game-design.md',
-    body: '> 原型预设：identity',
-    generated: '> 原型预设：demo-hybrid',
-  },
-  {
-    file: 'packages/game-engine/src/games/demo/domain/rules.ts',
-    body: [
-      '/**',
-      ' * The demo playing stage is an idle stage: it opens when the host',
-      ' * begins the game and settles when this deadline expires through the',
-      ' * scheduled `demo.settle.due` effect (the #162 delivery form). The',
-      ' * duration only exists so the full chain has a real stage deadline to',
-      ' * arm, deliver and settle against.',
-      ' */',
-    ].join('\n'),
-    generated: [
-      '// TODO(gameplay): 骨架舞台时长占位（毫秒）。真实阶段链落地时，每个阶段的',
-      '// 时长在本文件按阶段定义，开始阶段时按当前阶段取值算 deadlineAt。',
-    ].join('\n'),
-  },
-  {
-    file: 'packages/game-engine/src/games/demo/engine.ts',
-    body: [
-      ' * 终局接缝。玩法状态机判定出胜负时从这里收口：',
-      ' * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。',
-      ' * demo 没有玩法判定，触发点就是阶段截止：`demo.phase.settleExpired`',
-      ' * 过门后转调本函数（engine.test.ts 已钉住本接缝的结算形状，不许改形状）。',
-    ].join('\n'),
-    generated: [
-      ' * TODO(gameplay): 终局接缝。玩法状态机判定出胜负时从这里收口：',
-      ' * 一次性发 game.ended 事件 + 结算 effect（xpSettled 防重复）。',
-      ' * 骨架阶段由阶段到期结算直接终局——玩法填空时把触发点挂到本函数上',
-      ' * （engine.test.ts 已钉住本接缝的结算形状，填空后不许改形状）。',
-    ].join('\n'),
-  },
-  {
-    file: 'packages/web/src/games/demo/room/demoGuidanceMatrix.ts',
-    body: [
-      '/**',
-      ' * Demo（生成器样例游戏）（阶段 × 观看者）底部提示矩阵声明：逐格事实以',
-      ' * demoGuidanceMatrix.test.ts 用真实引擎流驱动 createDemoRoomShellModel',
-      ' * 对账为准。模板生成的游戏以本表为起点声明各自矩阵。',
-      ' */',
-    ].join('\n'),
-    generated: [
-      '/**',
-      ' * Demo（阶段 × 观看者）底部提示矩阵声明：本表是新游戏的起点声明——',
-      ' * 每格要么承诺该阶段入口态底部有一句提示，要么登记豁免理由（指出由哪个',
-      ' * 表面承载引导）。生成器已把本表登记进 packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts',
-      ' * 的注册表，并生成 demoGuidanceMatrix.test.ts 用真实引擎流驱动本游戏的',
-      ' * shell model 逐格对账；玩法阶段落地时两者同步改。',
-      ' */',
-    ].join('\n'),
-  },
-  {
-    file: 'packages/web/src/games/demo/room/demoGuidanceMatrix.ts',
-    body: '玩法阶段界面在 stage 区（模板占位面）',
-    generated: '玩法阶段界面在 stage 区',
-    occurrences: 3,
-  },
-  {
-    file: 'packages/game-engine/src/games/registry.ts',
-    body: [
-      '    // Reference game for template regression (plan §7.1 / D8): fully',
-      '    // registered through the real path, never shipped to players — the',
-      '    // client lobby/create surfaces filter on this flag.',
-      '',
-    ].join('\n'),
-    generated: '',
-  },
-];
-
-/** Files that live in the shipped demo but are never generator products. */
-const DEMO_BODY_ONLY_FILES = [
-  'packages/api-worker/src/games/demo/__tests__/effects.test.ts',
-  'packages/game-engine/src/games/demo/__tests__/fullChain.test.ts',
-  'packages/game-engine/src/games/demo/__tests__/roomCommands.contract.test.ts',
-];
-
-function applyDemoCompareExceptions(file, bodyText, consumed) {
-  let text = bodyText;
-  for (const exception of DEMO_COMPARE_EXCEPTIONS) {
-    if (exception.file !== file) continue;
-    const occurrences = text.split(exception.body).length - 1;
-    assert.equal(
-      occurrences,
-      exception.occurrences ?? 1,
-      `${file}: pinned compare exception must match the shipped text exactly ${exception.occurrences ?? 1} time(s)`,
-    );
-    text = text.split(exception.body).join(exception.generated);
-    consumed.add(exception);
-  }
-  return text;
-}
-
-test('regenerating demo with the demo-hybrid pack reproduces the shipped demo', (t) => {
-  // Same tooling requirement as the format/lint case above: the
-  // comparison is byte-exact, so the prettier/eslint shaping passes
-  // must really run inside the copy.
-  if (!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier'))) {
-    t.skip('requires installed dependencies (node_modules)');
-    return;
-  }
-  const root = makeRealRepoCopy();
-  try {
-    stripShippedDemo(root);
-    const summary = generateNewGame({
-      rootDir: root,
-      gameId: 'demo',
-      preset: 'demo-hybrid',
-      displayName: 'Demo',
-      subtitle: '模板参照游戏',
-      iconName: 'game-controller-outline',
-      tier: 'mini',
-      businessStats: false,
-    });
-    const consumed = new Set();
-    for (const file of [...summary.createdFiles, ...summary.editedFiles]) {
-      const generated = readFixture(root, file);
-      const body = applyDemoCompareExceptions(file, readFixture(REPO_ROOT, file), consumed);
-      assert.equal(body, generated, `${file} drifted from the demo-hybrid regeneration`);
-    }
-    assert.equal(
-      consumed.size,
-      DEMO_COMPARE_EXCEPTIONS.length,
-      'every pinned demo compare exception must be consumed; an unconsumed exception means the drift is gone and the whitelist must shrink',
-    );
-    const created = new Set(summary.createdFiles);
-    const bodyOnly = [];
-    const collectBodyOnly = (dir, relative) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const rel = `${relative}/${entry.name}`;
-        if (entry.isDirectory()) collectBodyOnly(path.join(dir, entry.name), rel);
-        else if (!created.has(rel)) bodyOnly.push(rel);
-      }
-    };
-    for (const dir of [
-      'packages/game-engine/src/games/demo',
-      'packages/api-worker/src/games/demo',
-      'packages/web/src/games/demo',
-    ]) {
-      collectBodyOnly(path.join(REPO_ROOT, dir), dir);
-    }
-    assert.deepEqual(bodyOnly.sort(), DEMO_BODY_ONLY_FILES);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
 test('refuses to generate the same game id twice', () => {
   const root = makeFixtureRepo();
-  generateNewGame({ rootDir: root, gameId: 'demoproto', preset: 'identity' });
+  generateNewGame({ rootDir: root, gameId: 'demoproto' });
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demoproto', preset: 'stage' }),
+    () => generateNewGame({ rootDir: root, gameId: 'demoproto', capabilities: ['stageDeadline'] }),
     /already registered/,
   );
 });
 
 test('refuses an existing game id from the shipped catalog', () => {
   const root = makeFixtureRepo();
-  assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'avalon', preset: 'identity' }),
-    /already/,
-  );
+  assert.throws(() => generateNewGame({ rootDir: root, gameId: 'avalon' }), /already/);
 });
 
-test('rejects invalid game ids and presets before writing anything', () => {
+test('rejects invalid game ids and capability selections before writing anything', () => {
   const root = makeFixtureRepo();
+  assert.throws(() => generateNewGame({ rootDir: root, gameId: 'Demo' }), /Invalid game id/);
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'Demo', preset: 'identity' }),
-    /Invalid game id/,
+    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['weird'] }),
+    /Invalid capability/,
   );
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demo', preset: 'weird' }),
-    /Invalid preset/,
+    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['botTestScaffold'] }),
+    /requires "identityViewing"/,
   );
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/demo')));
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/Demo')));
@@ -1502,7 +1184,7 @@ test('refuses to overwrite a pre-existing target file', () => {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, 'hand-written, do not clobber');
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demoproto', preset: 'identity' }),
+    () => generateNewGame({ rootDir: root, gameId: 'demoproto' }),
     /Refusing to overwrite existing file/,
   );
   assert.equal(readFixture(root, 'docs/demoproto-game-design.md'), 'hand-written, do not clobber');
@@ -1515,7 +1197,6 @@ test('rejects display strings that would break out of generated literals', () =>
       generateNewGame({
         rootDir: root,
         gameId: 'demoproto',
-        preset: 'identity',
         displayName: "坏'名字",
       }),
     /Invalid --name/,
@@ -1525,7 +1206,6 @@ test('rejects display strings that would break out of generated literals', () =>
       generateNewGame({
         rootDir: root,
         gameId: 'demoproto',
-        preset: 'identity',
         iconName: 'GameController',
       }),
     /Invalid --icon/,

@@ -159,12 +159,17 @@ function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
 }
 
 //#end
-//#cap !identityViewing
+//#cap stageDeadlineAtStart
 /**
  * Host starts the game (or restarts from ended): the first stage opens
  * with its deadline armed; the settle.due effect is the only channel
  * for expiry — no client submission settles the stage.
  */
+//#end
+//#cap !stageDeadline
+/** Host starts the game (or restarts from ended) without a deadline. */
+//#end
+//#cap !identityViewing
 function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
   const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
     context,
@@ -176,12 +181,19 @@ function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
     return reject(__GAME_UPPER___REASONS.phase);
   if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(__GAME_UPPER___REASONS.full);
+//#cap stageDeadlineAtStart
   const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
   const gameSequence = state.gameSequence + 1;
   return commit__GAME_PASCAL__(
     [{ type: '__GAME_ID__.game.started', deadlineAt, gameSequence }],
     [settleDueEffect(gameSequence, deadlineAt)],
   );
+//#end
+//#cap !stageDeadline
+  return commit__GAME_PASCAL__([
+    { type: '__GAME_ID__.game.started', deadlineAt: null, gameSequence: state.gameSequence + 1 },
+  ]);
+//#end
 }
 
 //#end
@@ -207,7 +219,6 @@ function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
   if (state.phase.kind !== 'viewing') return reject(__GAME_UPPER___REASONS.phase);
   if (!haveAllViewed(get__GAME_PASCAL__ViewingParticipants(state), state.roleViewedSeats))
     return reject(__GAME_UPPER___REASONS.notAllViewed);
-//#end
 //#cap !stageDeadline
   return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.begun' }]);
 //#end
@@ -218,9 +229,10 @@ function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
     [settleDueEffect(state.gameSequence, deadlineAt)],
   );
 //#end
-//#cap identityViewing
 }
+//#end
 
+//#cap identityViewing
 /**
  * Identity Viewing Protocol: records that the actor's seat viewed its
  * identity. Idempotent, and accepted in any in-game phase; the record

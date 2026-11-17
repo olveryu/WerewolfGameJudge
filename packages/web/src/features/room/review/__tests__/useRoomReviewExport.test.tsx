@@ -152,8 +152,8 @@ describe('useRoomReviewExport share runs', () => {
     expect(mockCapture).toHaveBeenCalledTimes(2);
     expect(mockShare).toHaveBeenCalledWith(
       [
-        { base64: 'png-1', filename: 'demo-1234-1-p1.png' },
-        { base64: 'png-2', filename: 'demo-1234-1-p2.png' },
+        { base64: 'png-1', filename: 'room-1234-1-p1.png' },
+        { base64: 'png-2', filename: 'room-1234-1-p2.png' },
       ],
       '房间 1234 战报',
     );
@@ -178,7 +178,7 @@ describe('useRoomReviewExport share runs', () => {
     });
     expect(mockCapture).toHaveBeenCalledTimes(2);
     expect(mockShare).toHaveBeenLastCalledWith(
-      [{ base64: 'png-2', filename: 'demo-1234-1-p2.png' }],
+      [{ base64: 'png-2', filename: 'room-1234-1-p2.png' }],
       '房间 1234 战报',
     );
     expect(toast.success).not.toHaveBeenCalled();
@@ -247,7 +247,7 @@ describe('useRoomReviewExport mini program', () => {
       capture.resolve('png-seg');
     });
     await waitFor(() => expect(current().run).toEqual({ phase: 'uploading' }));
-    expect(mockUpload).toHaveBeenCalledWith([{ base64: 'png-seg', filename: 'demo-1234-1.png' }]);
+    expect(mockUpload).toHaveBeenCalledWith([{ base64: 'png-seg', filename: 'room-1234-1.png' }]);
 
     await act(async () => {
       upload.resolve(['https://share/1.png']);

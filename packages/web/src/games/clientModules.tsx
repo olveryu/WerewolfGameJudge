@@ -15,7 +15,6 @@ import {
   createActiveRoomAccountSource,
 } from '@/games/activeRoomAccount';
 import { createAvalonClientModule } from '@/games/avalon/module';
-import { createDemoClientModule } from '@/games/demo/module';
 import { createDrawGuessClientModule } from '@/games/drawguess/module';
 import { createFibClientModule } from '@/games/fibking/module';
 import type {
@@ -41,7 +40,6 @@ const CLIENT_GAME_FACTORIES: ClientGameFactories = {
   drawguess: createDrawGuessClientModule,
   storyrelay: createStoryRelayClientModule,
   avalon: createAvalonClientModule,
-  demo: createDemoClientModule,
 };
 
 type ClientGameModuleLoads = {
@@ -87,7 +85,6 @@ function createClientGameModules(
     drawguess: cacheLoad(() => loadModule('drawguess')),
     storyrelay: cacheLoad(() => loadModule('storyrelay')),
     avalon: cacheLoad(() => loadModule('avalon')),
-    demo: cacheLoad(() => loadModule('demo')),
   };
   const subscribeLoaded = (listener: () => void) => {
     loadListeners.add(listener);
