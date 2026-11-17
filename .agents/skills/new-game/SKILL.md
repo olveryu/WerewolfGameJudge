@@ -126,6 +126,16 @@ shell, host-management builders, config form, and shared components
 first. Statistics default to one completed game per eligible terminal
 completion, not arbitrary outcomes. Before go-live implement and verify
 every approved gameplay metric, or explicitly approve completed-games-only.
+Wire room-image preload before go-live: declare the role-portrait
+asset list in `assets/roleAvatars.ts` (public board only — never from
+a player's secret assignment) and call the shared
+`useRoomImagePreload` hook in `use<Game>RoomState` with the full
+room-image list (portraits plus any other room art, such as
+vote/quest illustrations). If the game has audio, provide the
+preload-audio list (`get<Game>PreloadAudio` form: per-board-role
+clips like werewolf or a fixed set like avalon) and wire it into the
+audio binding's `prepareQueue`; games without audio (fibking,
+undercover) state that explicitly and wire nothing.
 Round-settled games must choose and change the label/unit; never silently
 interpret rounds as games. Follow the statistics section of
 `references/skeleton-and-wiring.md` for eligibility and compatibility.

@@ -36,6 +36,7 @@ import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/us
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
+import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 //#cap stageDeadline
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
@@ -51,6 +52,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import { getBoardRolePortraits } from '@/games/__GAME_ID__/assets/roleAvatars';
 //#cap identityViewing
 import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
 //#end
@@ -134,6 +136,9 @@ export function use__GAME_PASCAL__RoomState(
     session,
     get__GAME_PASCAL__RoomCommandFailureMessage,
   );
+  // 房间图片预加载：立绘 + 本游戏其他房间图片同一份清单、一次调用
+  // （共享 useRoomImagePreload；只传公开板子上的图片，绝不读秘密分配）。
+  useRoomImagePreload(getBoardRolePortraits());
   const isHost = state.hostUserId === user.id;
   const mySeat = get__GAME_PASCAL__UserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
