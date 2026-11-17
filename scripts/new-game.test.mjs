@@ -189,6 +189,7 @@ function expectedCreatedFiles(gameId, selectedCapabilities) {
     `${client}/components/${pascal}StatsPanel.tsx`,
     `${client}/components/__tests__/${pascal}StatsPanel.test.tsx`,
     `${client}/services/${gameId}Stats.ts`,
+    `${client}/assets/roleAvatars.ts`,
     `${client}/module.ts`,
     `${client}/home.ts`,
     `${client}/navigation/${gameId}GameNavigation.ts`,
