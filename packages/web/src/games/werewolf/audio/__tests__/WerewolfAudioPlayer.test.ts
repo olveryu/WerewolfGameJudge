@@ -1,6 +1,7 @@
 import type { Mocked } from 'vitest';
 
 import type { AudioClip } from '@/features/product/model/AudioClip';
+import { MissingWerewolfAudioError } from '@/games/werewolf/audio/audioRegistry';
 import {
   type WerewolfAudioPlaybackPort,
   WerewolfAudioPlayer,
@@ -26,10 +27,10 @@ describe('WerewolfAudioPlayer', () => {
     const playback = createPlayback();
     const audio = new WerewolfAudioPlayer(playback);
 
-    await audio.playBeginning('wolf');
-    await audio.playEnding('wolf');
-    await audio.playNight();
-    await audio.playNightEnd();
+    await audio.playEffect('wolf');
+    await audio.playEffect('wolf', true);
+    await audio.playEffect('night');
+    await audio.playEffect('night_end');
 
     expect(playback.playClip).toHaveBeenNthCalledWith(
       1,
@@ -46,11 +47,19 @@ describe('WerewolfAudioPlayer', () => {
     );
   });
 
+  it.each([false, true])('fails fast for a missing clip (ending: %s)', (isEndAudio) => {
+    const playback = createPlayback();
+    const audio = new WerewolfAudioPlayer(playback);
+
+    expect(() => audio.playEffect('missing-clip', isEndAudio)).toThrow(MissingWerewolfAudioError);
+    expect(playback.playClip).not.toHaveBeenCalled();
+  });
+
   it('delegates preload and lifecycle operations', () => {
     const playback = createPlayback();
     const audio = new WerewolfAudioPlayer(playback);
 
-    audio.preloadRoles(['wolf', 'villager']);
+    audio.preload(['wolf', 'villager']);
     audio.stopNarration();
     audio.startBgm(['a.m4a']);
     audio.stopBgm();
@@ -63,6 +72,9 @@ describe('WerewolfAudioPlayer', () => {
         expect.objectContaining({ key: 'night' }),
         expect.objectContaining({ key: 'role_begin_wolf' }),
       ]),
+    );
+    expect(playback.preloadClips.mock.calls[0]?.[0]).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'role_begin_witch' })]),
     );
     expect(playback.stop).toHaveBeenCalledTimes(1);
     expect(playback.startBgm).toHaveBeenCalledWith(['a.m4a']);

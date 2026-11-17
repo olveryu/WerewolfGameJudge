@@ -6,7 +6,7 @@ export const createWerewolfAudioPreview: GameAudioPreviewFactory = (audioService
   const audio = new WerewolfAudioPlayer(audioService);
   return {
     label: '试听效果',
-    play: () => audio.playBeginning('wolf'),
+    play: () => audio.playEffect('wolf'),
     stop: audio.stopNarration,
   };
 };

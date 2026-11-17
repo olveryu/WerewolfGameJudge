@@ -149,6 +149,15 @@ The adapter generator binds `state.isAudioPlaying` when `audioOrchestration` is 
 emits `false` otherwise. Generator acceptance executes the audio-enabled output's
 queue-to-shell-to-panel and acknowledgement transition.
 
+### Narration Preparation
+
+Werewolf and Avalon prepare narration through the shared audio player port's `prepareQueue`,
+before queued playback and before replaying a step after host rejoin. Werewolf selects clips
+from the latest authoritative snapshot's public board; Avalon uses its fixed first-night list.
+Host start commands do not preload audio. Preparation starts buffering; it does not wait for
+every clip to finish downloading. Missing-asset errors remain fail-fast, and playback failures
+continue through the shared audio error pipeline.
+
 ### Avalon Host Controls and Music
 
 Avalon uses the shared host-management surface for role assignment, bot identity viewing,

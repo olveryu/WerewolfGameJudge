@@ -1,8 +1,8 @@
 /**
  * useWerewolfAudioOrchestration — the platform `useRoomAudioOrchestration`
  * bound to the Werewolf session. Only Werewolf's ports live here:
- * - player: night / night-end / step-beginning / step-ending clips on the
- *   WerewolfAudioRuntime (a missing clip is a fail-fast asset error);
+ * - player: effects on WerewolfAudioRuntime, with public-board narration
+ *   preloaded before playback (a missing clip is a fail-fast asset error);
  * - ack: `werewolf.audio.ack`;
  * - narrated phase: the night (`GameStatus.Ongoing`);
  * - rejoin replay: the current step's beginning clip (seer label variants
@@ -16,7 +16,6 @@ import {
   resolveSeerAudioKey,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import { useMemo } from 'react';
 
 import type { RoomAudioPlayerPort } from '@/features/room/audio/RoomAudioOrchestrator';
@@ -55,16 +54,20 @@ function resolveReplayAudioKey(state: GameState): string | null {
 
 function createWerewolfPlayerPort(
   audio: WerewolfAudioRuntime,
+  session: WerewolfRoomSession,
 ): RoomAudioPlayerPort<AudioEffect> & { readonly stopNarration: () => void } {
   return {
-    playEffect: async (effect) => {
-      if (effect.isEndAudio) await audio.playEnding(effect.audioKey);
-      else if (effect.audioKey === 'night') await audio.playNight();
-      else if (effect.audioKey === NIGHT_END_AUDIO_KEY) await audio.playNightEnd();
-      else await audio.playBeginning(effect.audioKey);
-    },
+    playEffect: (effect) => audio.playEffect(effect.audioKey, effect.isEndAudio),
     stopBgm: audio.stopBgm,
     stopNarration: audio.stopNarration,
+    prepareQueue: () => {
+      const snapshot = session.getSnapshot();
+      if (snapshot.phase !== 'ready') {
+        throw new Error('[FAIL-FAST] Werewolf audio preload requires a ready session');
+      }
+      audio.preload(snapshot.room.state.templateRoles);
+      return Promise.resolve();
+    },
     isMissingAssetError: (error) => error instanceof MissingWerewolfAudioError,
   };
 }
@@ -74,7 +77,7 @@ export function useWerewolfAudioOrchestration({
   isHost,
   audio,
 }: UseWerewolfAudioOrchestrationDeps): RoomAudioOrchestration {
-  const player = useMemo(() => createWerewolfPlayerPort(audio), [audio]);
+  const player = useMemo(() => createWerewolfPlayerPort(audio, session), [audio, session]);
   return useRoomAudioOrchestration({
     session,
     isHost,

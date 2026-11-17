@@ -179,11 +179,8 @@ export interface WerewolfRoomMock {
 
 function createAudioStub(): WerewolfAudioRuntime {
   return {
-    playBeginning: vi.fn(async () => undefined),
-    playEnding: vi.fn(async () => undefined),
-    playNight: vi.fn(async () => undefined),
-    playNightEnd: vi.fn(async () => undefined),
-    preloadRoles: vi.fn(),
+    playEffect: vi.fn(async () => undefined),
+    preload: vi.fn(),
     stopNarration: vi.fn(),
     ...createFakeBgm(),
     setBgmVolume: vi.fn(),
