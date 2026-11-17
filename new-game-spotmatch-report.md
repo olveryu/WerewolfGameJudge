@@ -53,7 +53,7 @@ knip、精确改动文件eslint/prettier。
 - 生成47文件、编辑17共享文件、报告另计；无`--preset`，所有可选能力关闭。
 - 基础botsAndTakeover、hostConfig开启；无身份、deadline、音频、词库、gallery。
 - 原设计在会话files中精确保留为`spotmatch-game-design.original.md`，现行完整设计已收敛全部历史冲突。
-- `design-system/spotmatch/` 的200个批准SVG、catalog、gallery、builder保留；原样复制web-owned运行资产，不引用builder。
+- 200个批准SVG和catalog保留在 `packages/web/src/games/spotmatch/assets/`；评审原型和重复资源已移除。
 - 不commit、不push、不建PR、不远程dispatch；主checkout不修改。
 
 ## 9步处置
