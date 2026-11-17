@@ -31,6 +31,32 @@ describe('AvalonQuestResultPanel', () => {
     expect(getByTestId('avalon-quest-result-counts')).toHaveTextContent('成功牌 2 · 失败牌 1');
   });
 
+  it('shows the banner artwork above the banner text', () => {
+    const { getByTestId } = renderPanel();
+    const image = getByTestId('avalon-quest-result-banner-image');
+    expect(image.tagName).toBe('IMG');
+    expect(image.getAttribute('alt')).toBe('');
+    expect(image.getAttribute('src')).toBeTruthy();
+  });
+
+  it('uses different banner artwork for success and failure', () => {
+    const failed = renderPanel();
+    const failedSrc = failed.getByTestId('avalon-quest-result-banner-image').getAttribute('src');
+    failed.unmount();
+    const succeeded = renderPanel({
+      ...ENTRY,
+      result: 'success',
+      failCount: 0,
+      successCount: 3,
+    });
+    const succeededSrc = succeeded
+      .getByTestId('avalon-quest-result-banner-image')
+      .getAttribute('src');
+    expect(failedSrc).toBeTruthy();
+    expect(succeededSrc).toBeTruthy();
+    expect(succeededSrc).not.toBe(failedSrc);
+  });
+
   it('shows the success banner when the quest succeeded', () => {
     const { getByTestId } = renderPanel({
       ...ENTRY,

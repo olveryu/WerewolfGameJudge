@@ -91,6 +91,33 @@ describe('AvalonVoteModal', () => {
     expect(getByTestId('avalon-vote-reject')).toBeTruthy();
   });
 
+  it('renders the ballot artwork as decorative images', () => {
+    const { getByTestId } = renderModal();
+    for (const testId of ['avalon-vote-approve', 'avalon-vote-reject']) {
+      const image = getByTestId(testId).querySelector('img');
+      expect(image).not.toBeNull();
+      expect(image?.getAttribute('alt')).toBe('');
+      expect(image?.getAttribute('src')).toBeTruthy();
+    }
+  });
+
+  it('uses different artwork for approve and reject', () => {
+    const { getByTestId } = renderModal();
+    const approveSrc = getByTestId('avalon-vote-approve').querySelector('img')?.getAttribute('src');
+    const rejectSrc = getByTestId('avalon-vote-reject').querySelector('img')?.getAttribute('src');
+    expect(approveSrc).toBeTruthy();
+    expect(rejectSrc).toBeTruthy();
+    expect(approveSrc).not.toBe(rejectSrc);
+  });
+
+  it('shows the check badge only on the selected ballot', () => {
+    const { getByTestId } = renderModal({ myBallot: 'approve' });
+    const approveBadge = getByTestId('avalon-vote-approve').querySelector('.avalon-choice-check');
+    expect(approveBadge).not.toBeNull();
+    expect(approveBadge?.textContent).toBe('✓');
+    expect(getByTestId('avalon-vote-reject').querySelector('.avalon-choice-check')).toBeNull();
+  });
+
   it('reports the chosen ballot', () => {
     const { getByTestId, onVote } = renderModal();
     fireEvent.click(getByTestId('avalon-vote-reject'));

@@ -8,6 +8,7 @@ import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalo
 
 import { TESTIDS } from '@/testids';
 
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
 import { formatAvalonRoundLabel } from '../policy/avalonInteractionPolicy';
 import { AvalonResultDialog } from './AvalonResultDialog';
 
@@ -23,6 +24,7 @@ export function AvalonQuestResultPanel({
   return (
     <AvalonResultDialog
       banner={`${formatAvalonRoundLabel(entry.round)} · ${succeeded ? '任务成功' : '任务失败'}`}
+      bannerImageSrc={succeeded ? avalonVoteSuccessImage : avalonVoteFailImage}
       outcome={succeeded ? 'positive' : 'negative'}
       kind="quest"
       onClose={onClose}

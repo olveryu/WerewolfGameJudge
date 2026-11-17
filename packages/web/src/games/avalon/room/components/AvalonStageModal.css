@@ -39,18 +39,18 @@
 }
 
 .avalon-choice-card {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-small);
-  min-height: calc(var(--size-button-lg) * 3);
-  border: var(--border-width) solid transparent;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
-  font-size: var(--font-title);
-  line-height: var(--line-title);
-  font-weight: var(--weight-bold);
+  background: var(--color-card);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
 }
 
@@ -62,36 +62,46 @@
   cursor: default;
 }
 
-.avalon-choice-card[data-tone='light'] {
-  border-color: var(--color-border);
-  background: var(--color-card);
-  color: var(--color-text);
-}
-
-.avalon-choice-card[data-tone='dark'] {
-  background: var(--color-text);
-  color: var(--color-text-inverse);
-}
-
-.avalon-choice-card[data-tone='gold'] {
-  background: var(--color-warning);
-  color: var(--color-text-inverse);
+/* 未选中的卡压暗，选中的卡保持全亮并上浮。 */
+.avalon-choice-card[aria-pressed='false'] {
+  opacity: var(--opacity-pressed);
 }
 
 .avalon-choice-card[aria-pressed='true'] {
   border-width: var(--border-width-thick);
-  border-color: var(--color-primary-light);
+  border-color: var(--color-warning);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(calc(var(--space-small) * -1));
 }
 
-.avalon-choice-card[data-tone='light'][aria-pressed='true'] {
-  border-color: var(--color-primary);
+.avalon-choice-image {
+  display: block;
+  width: 100%;
+  height: calc(var(--size-button-lg) * 4);
+  object-fit: cover;
 }
 
-.avalon-choice-icon {
-  width: var(--size-icon-xl);
-  height: var(--size-icon-xl);
+.avalon-choice-label {
+  padding: var(--space-small) var(--space-medium);
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  text-align: center;
 }
 
-.avalon-choice-card[data-tone='light'] .avalon-choice-icon {
-  color: var(--color-success);
+/* 选中角标：实心金圆 + 打勾，只在选中卡上出现。 */
+.avalon-choice-check {
+  position: absolute;
+  top: var(--space-small);
+  right: var(--space-small);
+  display: grid;
+  place-items: center;
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-bold);
 }

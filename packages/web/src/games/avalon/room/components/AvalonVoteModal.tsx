@@ -14,10 +14,9 @@ import { CenterDialog } from '@/components/CenterDialog';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
-import IconCheckmarkCircleOutline from '~icons/ion/checkmark-circle-outline';
-import IconCloseCircleOutline from '~icons/ion/close-circle-outline';
 
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
+import { avalonVoteApproveImage, avalonVoteRejectImage } from '../avalonVoteImages';
 import { formatAvalonRoundLabel, resolveVoteInstruction } from '../policy/avalonInteractionPolicy';
 import { AvalonChoiceCard } from './AvalonChoiceCard';
 
@@ -91,8 +90,7 @@ export function AvalonVoteModal({
         <div className="avalon-choice-row">
           <AvalonChoiceCard
             label="赞成"
-            icon={<IconCheckmarkCircleOutline className="avalon-choice-icon" aria-hidden />}
-            tone="light"
+            imageSrc={avalonVoteApproveImage}
             isSelected={instruction.myBallot === 'approve'}
             isDisabled={isSubmitting}
             testId={TESTIDS.avalonVoteApprove}
@@ -100,8 +98,7 @@ export function AvalonVoteModal({
           />
           <AvalonChoiceCard
             label="反对"
-            icon={<IconCloseCircleOutline className="avalon-choice-icon" aria-hidden />}
-            tone="dark"
+            imageSrc={avalonVoteRejectImage}
             isSelected={instruction.myBallot === 'reject'}
             isDisabled={isSubmitting}
             testId={TESTIDS.avalonVoteReject}

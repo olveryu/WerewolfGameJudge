@@ -12,6 +12,7 @@ import type {
 
 import { TESTIDS } from '@/testids';
 
+import { avalonVoteFailImage, avalonVoteSuccessImage } from '../avalonVoteImages';
 import { AvalonResultDialog } from './AvalonResultDialog';
 
 const BALLOT_LABEL: Record<AvalonBallot, string> = {
@@ -43,6 +44,7 @@ export function AvalonVoteResultPanel({
   return (
     <AvalonResultDialog
       banner={banner}
+      bannerImageSrc={result.approved ? avalonVoteSuccessImage : avalonVoteFailImage}
       outcome={result.approved ? 'positive' : 'negative'}
       kind="vote"
       onClose={onConfirm}
