@@ -33,6 +33,7 @@ describe('DrawGuessRulesScreen', () => {
     );
     const view = screen;
     expect(view.getByText(`画手 ${DRAWGUESS_WORD_CHOICE_COUNT} 选 1`)).toBeVisible();
+    expect(view.getByText(/^支持 4 至 20 人。/)).toBeVisible();
     expect(
       view.getByText(
         `支持 ${DRAWGUESS_MIN_PLAYERS} 至 ${DRAWGUESS_MAX_PLAYERS} 人。轮到你当画手时，从 ${DRAWGUESS_WORD_CHOICE_COUNT} 个候选词里选 1 个作画，${DRAWGUESS_WORD_SELECT_SECONDS} 秒内没选则由系统随机指派。每人按座位顺序轮流画 ${DRAWGUESS_ROUNDS_PER_DRAWER} 轮。`,

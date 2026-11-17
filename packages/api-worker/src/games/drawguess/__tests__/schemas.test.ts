@@ -1,8 +1,26 @@
 /** DrawGuess public commands accept scoped host aborts and reject the removed give-up command. */
 
+import { DEFAULT_DRAWGUESS_CONFIG } from '@game-judge/game-engine/games/drawguess/public';
 import { describe, expect, it } from 'vitest';
 
-import { drawGuessInternalCommandSchema, drawGuessPublicCommandSchema } from '../schemas';
+import {
+  drawGuessCreateConfigSchema,
+  drawGuessInternalCommandSchema,
+  drawGuessPublicCommandSchema,
+} from '../schemas';
+
+describe('DrawGuess create config schema', () => {
+  it('accepts 20 players and rejects 21', () => {
+    expect(
+      drawGuessCreateConfigSchema.safeParse({ ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 20 })
+        .success,
+    ).toBe(true);
+    expect(
+      drawGuessCreateConfigSchema.safeParse({ ...DEFAULT_DRAWGUESS_CONFIG, numberOfPlayers: 21 })
+        .success,
+    ).toBe(false);
+  });
+});
 
 describe('DrawGuess public command schema', () => {
   it('accepts a game-scoped abort', () => {
