@@ -283,9 +283,11 @@ jobs:
             --registry=https://registry.npmjs.org/ --prefer-online \
             --fetch-retries=0 --fetch-timeout=15000 >/dev/null; then
             echo "⏭️ werewolf-judge-cdn@$PKG_VERSION already published — skipping"
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
           else
             npm publish --access public --tag latest
             echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Gate: confirm version is visible on npm registry before proceeding.
@@ -445,6 +447,28 @@ jobs:
             echo "   Last sync task: ${SYNC_ENDPOINT}/${SYNC_ID}"
           fi
           exit 1
+
+      # A re-run rebuilds dist/ from scratch, and `sentry-cli sourcemaps inject`
+      # stamps each build with fresh random debug IDs — so the rebuilt assets no
+      # longer match the published package, and deploy-frontend's byte check
+      # fails deterministically. When the version already exists, the published
+      # package is the single source of truth for the deployed bytes: restore
+      # its assets into dist/ so the uploaded artifact matches the CDN exactly.
+      # (Only dist/assets is replaced; index.html and dot-directories still come
+      # from this build, and they carry no debug IDs.)
+      - name: Reuse published assets when version already exists
+        if: steps.npm.outputs.already_published == 'true'
+        run: |
+          set -euo pipefail
+          PKG_VERSION="${{ steps.npm.outputs.version }}"
+          WORK=$(mktemp -d)
+          npm pack "werewolf-judge-cdn@${PKG_VERSION}" \
+            --registry=https://registry.npmjs.org/ \
+            --pack-destination "$WORK" >/dev/null
+          tar xzf "$WORK"/*.tgz -C "$WORK"
+          rm -rf dist/assets
+          cp -r "$WORK/package/assets" dist/assets
+          echo "✅ dist/assets restored from werewolf-judge-cdn@${PKG_VERSION}"
 
       # dist/ carries dot-directories (.well-known) that Pages must serve.
       # Retained long enough to re-run a failed deploy-frontend on its own.
