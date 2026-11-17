@@ -1,29 +1,29 @@
 import { withAlpha } from './colorUtils';
 
 /**
- * App colour palette: cool neutrals and a restrained blue for primary actions.
+ * App colour palette: bright blue for primary actions on a light blue-white canvas.
  *
  * The single source for colours: `applyColorTokens` publishes it as `--color-*` CSS custom
  * properties for stylesheets, and TypeScript reads it directly where colours are computed
  * (gradients, scene tints).
  */
 export const colors = {
-  primary: '#285F86',
+  primary: '#1E6FA8',
   primaryLight: '#3B6D91',
-  primaryDark: '#1A405D',
+  primaryDark: '#17517A',
 
-  background: '#EDF2F7',
+  background: '#F2F7FC',
   surface: '#FFFFFF',
-  surfaceHover: '#E0E9F1',
+  surfaceHover: '#E7F0F8',
   card: '#FFFFFF',
 
   text: '#1A3149',
-  textSecondary: '#526779',
+  textSecondary: '#4A6B84',
   textMuted: '#5B6E80',
   textInverse: '#FFFFFF',
 
-  border: '#C4D2DE',
-  borderLight: '#DEE7EE',
+  border: '#C9DCEB',
+  borderLight: '#E4EEF6',
 
   success: '#1A9A4A',
   warning: '#B87D08',
