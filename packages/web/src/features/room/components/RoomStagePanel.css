@@ -1,0 +1,17 @@
+:where(.room-stage-panel) {
+  min-width: 0;
+  box-sizing: border-box;
+  border: var(--border-width-thick) solid var(--color-primary-dark);
+  border-radius: var(--radius-small);
+  padding: var(--space-medium);
+  background: var(--color-surface);
+  box-shadow: var(--space-tight) var(--space-tight) 0 var(--color-primary-dark);
+  color: var(--color-primary-dark);
+}
+.room-stage-panel[data-tone='success'] {
+  background: var(--color-success-a12);
+}
+.room-stage-panel[data-tone='danger'] {
+  background: var(--color-error-a12);
+  color: var(--color-error);
+}

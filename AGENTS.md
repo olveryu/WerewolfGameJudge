@@ -18,9 +18,9 @@ TypeScript strictness is per config: the root and web configs set `strict` and `
 
 Layout: a pnpm workspace with four parts — the root (cross-package contracts in `contracts/`, Pages functions in `functions/`, E2E in `e2e/`, tooling in `scripts/`), `packages/web` (the client), `packages/game-engine` (pure game logic; its only runtime dependency is Zod), and `packages/api-worker` (the Worker, Durable Object, and D1 access).
 
-Games (7): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon.
+Games (8): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch.
 
-State versions: werewolf 17, avalon 11, fibking 8, pictionary 10, undercover 5, storyrelay 3, drawguess 5.
+State versions: werewolf 17, avalon 11, fibking 8, pictionary 10, undercover 5, storyrelay 3, drawguess 5, spotmatch 2.
 Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.
@@ -64,7 +64,7 @@ Room link and state identity: the client link lives in `packages/web/src/platfor
 
 Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 
-Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (36, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
+Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (37, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
 
 A new game is registered in the engine registry, the engine catalog, the worker catalog, the web client catalog, and the static web factories, with a D1 registration migration and contract-test whitelists updated. The generator also wires completed-games statistics end to end; approved gameplay metrics and reward/stat semantics remain go-live requirements. See the new-game skill.
 

@@ -18,6 +18,7 @@ import { cleanupFibWordAudit } from './fibking/maintenance';
 import { fibWorkerModule } from './fibking/module';
 import { fibSubmissionAdapter } from './fibking/wordSubmissions';
 import { pictionaryWorkerModule } from './pictionary/module';
+import { spotmatchWorkerModule } from './spotmatch/module';
 import { storyRelayWorkerModule } from './storyrelay/module';
 import { undercoverWorkerModule } from './undercover/module';
 import { undercoverSubmissionAdapter } from './undercover/wordSubmissions';
@@ -48,6 +49,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, 
   pictionary: registerWorkerGameModule(pictionaryWorkerModule),
   undercover: registerWorkerGameModule(undercoverWorkerModule),
   storyrelay: registerWorkerGameModule(storyRelayWorkerModule),
+  spotmatch: registerWorkerGameModule(spotmatchWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

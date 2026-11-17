@@ -3,7 +3,7 @@
  * header, no bottom panel or takeover banner renders, and a stage shell model carrying bottom
  * content fails fast.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 
@@ -142,6 +142,52 @@ describe('RoomShell stage content', () => {
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toContainElement(
       screen.getByRole('button', { name: '总排名' }),
     );
+  });
+
+  it('embeds one shared HUD with working roster and takeover controls in a stage-owned panel', async () => {
+    const user = userEvent.setup();
+    const onRelease = vi.fn();
+    render(
+      <RoomShell
+        model={createRoomShellModel(
+          shellInput({
+            controlledSeat: { seat: 1, displayName: '机器人2', onRelease },
+          }),
+        )}
+        content={{
+          kind: 'stage',
+          hud: {
+            ...HUD,
+            rosterPlacement: 'primary',
+            roster: {
+              chipLabel: '名单 2 人',
+              title: '本局玩家',
+              groupTitles: { acting: '行动', pending: '等待', done: '完成' },
+              actingSeat: null,
+              pendingLabel: '等待',
+              isUrgent: false,
+            },
+          },
+          element: (renderHud) => (
+            <section aria-label="信息与反馈">{renderHud(<p>当前操作提示</p>, 'success')}</section>
+          ),
+        }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    const panel = screen.getByRole('region', { name: '信息与反馈' });
+    expect(screen.getAllByTestId(TESTIDS.roomStageHud)).toHaveLength(1);
+    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-embedded');
+    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveClass('room-stage-panel');
+    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-tone', 'success');
+    expect(panel.querySelectorAll('.room-stage-panel')).toHaveLength(1);
+    await user.click(within(panel).getByTestId(TESTIDS.roomStageRosterChip));
+    expect(screen.getByTestId(TESTIDS.roomStageRosterSheet)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '关闭本局玩家' }));
+    await user.click(within(panel).getByTestId(TESTIDS.controlledSeatReleaseButton));
+    expect(onRelease).toHaveBeenCalledOnce();
   });
 
   it('opens host management from the header', async () => {

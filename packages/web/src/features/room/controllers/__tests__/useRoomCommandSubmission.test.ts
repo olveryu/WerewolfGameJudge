@@ -24,6 +24,34 @@ const mockShowErrorAlert = showErrorAlert as MockedFunction<typeof showErrorAler
 const state = testRoomState('werewolf');
 
 describe('useRoomCommandSubmission', () => {
+  it('lets an opt-in inline presenter handle decisions but never hides transport failures', async () => {
+    const onRejection = vi.fn(() => true);
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '请重试'));
+    await act(async () => {
+      await result.current.submit('操作', async () => rejectedRoomCommand('stale'), {
+        onRejection,
+      });
+    });
+    expect(onRejection).toHaveBeenCalledWith('stale', '请重试');
+    expect(mockShowErrorAlert).not.toHaveBeenCalled();
+    onRejection.mockClear();
+    await act(async () => {
+      await result.current.submit('操作', async () => undeliveredRoomCommand(), { onRejection });
+    });
+    expect(onRejection).not.toHaveBeenCalled();
+    expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '请重试');
+  });
+
+  it('keeps the default error when the inline presenter declines a rejection', async () => {
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '权限不足'));
+    await act(async () => {
+      await result.current.submit('操作', async () => rejectedRoomCommand('forbidden'), {
+        onRejection: () => false,
+      });
+    });
+    expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '权限不足');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

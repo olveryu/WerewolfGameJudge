@@ -11,6 +11,10 @@
  */
 
 export const TESTIDS = {
+  spotmatchCentralCard: 'spotmatch-central-card',
+  spotmatchOwnCard: 'spotmatch-own-card',
+  spotmatchSymbol: (symbolId: number) => `spotmatch-symbol-${symbolId}`,
+  spotmatchResult: 'spotmatch-result',
   // RoomScreen - Seat Grid
   // Used by: RoomScreen.tsx, e2e/night1.basic.spec.ts
   seatTile: (seat: number) => `seat-tile-${seat}`,

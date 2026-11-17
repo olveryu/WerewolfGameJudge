@@ -35,6 +35,7 @@
 | [pictionary-game-design.md](pictionary-game-design.md)             | `pictionary` | 你画我猜接龙                                      |
 | [drawguess-game-design.md](drawguess-game-design.md)               | `drawguess`  | 经典你画我猜                                      |
 | [story-relay-game-design.md](story-relay-game-design.md)           | `storyrelay` | 轮流讲故事                                        |
+| [spotmatch-game-design.md](spotmatch-game-design.md)               | `spotmatch`  | 一眼成对：同时找相同，抢先出完手牌                |
 
 ## 3. 产品模块
 

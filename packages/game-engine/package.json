@@ -40,6 +40,10 @@
       "types": "./src/games/avalon/public.ts",
       "default": "./dist/games/avalon/public.js"
     },
+    "./games/spotmatch/public": {
+      "types": "./src/games/spotmatch/public.ts",
+      "default": "./dist/games/spotmatch/public.js"
+    },
     "./platform/protocol/canonicalJson": {
       "types": "./src/platform/protocol/canonicalJson.ts",
       "default": "./dist/platform/protocol/canonicalJson.js"

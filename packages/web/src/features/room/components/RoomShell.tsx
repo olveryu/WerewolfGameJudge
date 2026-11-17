@@ -21,7 +21,7 @@ import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
-import { RoomStageHud } from './RoomStageHud';
+import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -43,10 +43,45 @@ type RoomShellContent =
   | {
       readonly kind: 'stage';
       readonly hud: RoomStageHudModel;
-      readonly element: ReactElement;
+      /** A render slot may embed the shared HUD in the game's own stage panel. */
+      readonly element: ReactElement | ((renderHud: RoomStageHudRenderer) => ReactElement);
       /** Optional game-owned action beside secondary HUD information. */
       readonly hudAction?: ReactElement;
     };
+
+function RoomStageContent({
+  content,
+  model,
+}: {
+  readonly content: Extract<RoomShellContent, { readonly kind: 'stage' }>;
+  readonly model: RoomShellModel;
+}) {
+  const embedded = typeof content.element === 'function';
+  const renderHud: RoomStageHudRenderer = (context = null, tone = 'neutral') => (
+    <RoomStageHud
+      hud={content.hud}
+      seats={model.seats.source}
+      canTakeOverBots={model.capabilities.canTakeOverBots}
+      controlledSeat={model.controlledSeat}
+      action={content.hudAction}
+      embedded={embedded}
+      context={context}
+      tone={tone}
+    />
+  );
+  return (
+    <div className="room-stage-column">
+      {typeof content.element === 'function' ? (
+        <div className="room-stage-body">{content.element(renderHud)}</div>
+      ) : (
+        <>
+          {renderHud(null)}
+          <div className="room-stage-body">{content.element}</div>
+        </>
+      )}
+    </div>
+  );
+}
 
 /** The signed-in user's avatar (or a person glyph) with the gacha ticket badge; opens settings. */
 function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
@@ -213,16 +248,7 @@ export function RoomShell({
             </div>
           </div>
         ) : content.kind === 'stage' ? (
-          <div className="room-stage-column">
-            <RoomStageHud
-              hud={content.hud}
-              seats={model.seats.source}
-              canTakeOverBots={model.capabilities.canTakeOverBots}
-              controlledSeat={model.controlledSeat}
-              action={content.hudAction}
-            />
-            <div className="room-stage-body">{content.element}</div>
-          </div>
+          <RoomStageContent content={content} model={model} />
         ) : (
           <div className="room-workspace">{content.element}</div>
         )}

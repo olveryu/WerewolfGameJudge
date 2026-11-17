@@ -15,6 +15,7 @@ import { AVALON_GUIDANCE_MATRIX } from '@/games/avalon/room/avalonGuidanceMatrix
 import { DRAWGUESS_GUIDANCE_MATRIX } from '@/games/drawguess/room/drawGuessGuidanceMatrix';
 import { FIBKING_GUIDANCE_MATRIX } from '@/games/fibking/room/fibGuidanceMatrix';
 import { PICTIONARY_GUIDANCE_MATRIX } from '@/games/pictionary/room/pictionaryGuidanceMatrix';
+import { SPOTMATCH_GUIDANCE_MATRIX } from '@/games/spotmatch/room/spotmatchGuidanceMatrix';
 import { STORY_RELAY_GUIDANCE_MATRIX } from '@/games/storyrelay/room/storyRelayGuidanceMatrix';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '@/games/undercover/room/undercoverGuidanceMatrix';
 import { WEREWOLF_GUIDANCE_MATRIX } from '@/games/werewolf/room/werewolfGuidanceMatrix';
@@ -27,6 +28,7 @@ const GUIDANCE_MATRICES: Record<GameType, RoomGuidanceMatrix<string>> = {
   pictionary: PICTIONARY_GUIDANCE_MATRIX,
   drawguess: DRAWGUESS_GUIDANCE_MATRIX,
   avalon: AVALON_GUIDANCE_MATRIX,
+  spotmatch: SPOTMATCH_GUIDANCE_MATRIX,
 };
 
 const VIEWERS = ['host', 'seated', 'spectator'];

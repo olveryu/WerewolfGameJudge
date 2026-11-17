@@ -199,7 +199,12 @@ const ACCESS_POINT_IDS = Object.keys(
 const engineSourceDirectory = path.resolve(__dirname, '..', '..', '..');
 
 type DeadlineArithmeticDomain =
-  'skeleton' | 'avalonPending' | 'e2StageDeadline' | 'relayClock' | 'werewolfInlineAutoSkip';
+  | 'skeleton'
+  | 'avalonPending'
+  | 'e2StageDeadline'
+  | 'relayClock'
+  | 'werewolfInlineAutoSkip'
+  | 'claimFeedback';
 
 interface DeadlineArithmeticRegistration {
   /** File relative to `packages/game-engine/src` (posix separators). */
@@ -220,6 +225,20 @@ interface DeadlineArithmeticRegistration {
  * skeleton, and the skeleton's set branch is the one addition.
  */
 const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = [
+  {
+    // Per-seat wrong-answer lock; not a phase deadline or settlement arm.
+    file: 'games/spotmatch/engine.ts',
+    symbol: 'claimCard',
+    expression: 'context.nowMs + SPOTMATCH_WRONG_LOCK_MS',
+    domain: 'claimFeedback',
+  },
+  {
+    // Shared successful-claim pause; checked on commands, without a timer effect.
+    file: 'games/spotmatch/engine.ts',
+    symbol: 'claimCard',
+    expression: 'context.nowMs + SPOTMATCH_SUCCESS_PAUSE_MS',
+    domain: 'claimFeedback',
+  },
   {
     file: 'platform/room/settleCountdown.ts',
     symbol: 'decideSettleCountdownArm',

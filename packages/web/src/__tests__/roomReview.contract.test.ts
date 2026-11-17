@@ -32,6 +32,7 @@ import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { drawGuessReview } from '@/games/drawguess/review/drawGuessReview';
 import { fibReview } from '@/games/fibking/review/fibReview';
 import { pictionaryReview } from '@/games/pictionary/review/pictionaryReview';
+import { spotmatchReview } from '@/games/spotmatch/review/spotmatchReview';
 import { storyRelayReview } from '@/games/storyrelay/review/storyRelayReview';
 import { undercoverReview } from '@/games/undercover/review/undercoverReview';
 import { werewolfReview } from '@/games/werewolf/review/werewolfReview';
@@ -41,6 +42,7 @@ import { FIBKING_REVIEW_ROUNDS } from '@/test-utils/fibkingState';
 import { PICTIONARY_REVIEW_ROUNDS } from '@/test-utils/pictionaryState';
 import type { ReviewTestRounds } from '@/test-utils/reviewTestRounds';
 import { viewerFor } from '@/test-utils/roomViewer';
+import { SPOTMATCH_REVIEW_ROUNDS } from '@/test-utils/spotmatchState';
 import { STORYRELAY_REVIEW_ROUNDS } from '@/test-utils/storyrelayState';
 import { UNDERCOVER_REVIEW_ROUNDS } from '@/test-utils/undercoverState';
 import { WEREWOLF_REVIEW_ROUNDS } from '@/test-utils/werewolfNightReview';
@@ -86,6 +88,7 @@ const REVIEW_CONTRACT = {
   pictionary: reviewCase(pictionaryReview, PICTIONARY_REVIEW_ROUNDS),
   drawguess: reviewCase(drawGuessReview, DRAWGUESS_REVIEW_ROUNDS),
   avalon: reviewCase(avalonReview, AVALON_REVIEW_ROUNDS),
+  spotmatch: reviewCase(spotmatchReview, SPOTMATCH_REVIEW_ROUNDS),
 } as const satisfies Record<GameType, ReviewContractCase>;
 
 function documentOf(availability: RoomReviewAvailability): RoomReviewDocument {

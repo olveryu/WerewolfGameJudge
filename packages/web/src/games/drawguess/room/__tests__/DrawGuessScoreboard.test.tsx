@@ -44,7 +44,7 @@ describe('DrawGuessScoreboard', () => {
     expect(screen.getByText('🥉')).toBeInTheDocument();
     const names = screen
       .getAllByRole('listitem')
-      .map((item) => item.querySelector('.drawguess-scoreboard-name')?.textContent);
+      .map((item) => item.querySelector('.room-ranking-name')?.textContent);
     expect(names).toEqual(['画手 · 画手', '我', '后来者']);
   });
 
