@@ -10,6 +10,7 @@ import {
   type AvalonPublicCommand,
   type AvalonRoleId,
   type AvalonState,
+  type AvalonViewModel,
   getAvalonNightParticipants,
   getAvalonOccupiedSeatCount,
   getAvalonUserSeat,
@@ -168,6 +169,20 @@ function avalonSeatIndicators(
   };
 }
 
+function avalonNightRevealMarker(view: AvalonViewModel, seat: number): RoomSeatMarker | null {
+  if (view.nightConfirmed) return null;
+  if (view.evilPeers?.includes(seat)) {
+    return { key: 'night-reveal', label: '坏人同伴', tone: 'warning' };
+  }
+  if (view.merlinSees?.includes(seat)) {
+    return { key: 'night-reveal', label: '坏人', tone: 'warning' };
+  }
+  if (view.percivalSees?.includes(seat)) {
+    return { key: 'night-reveal', label: '梅林/莫甘娜', tone: 'info' };
+  }
+  return null;
+}
+
 /** 创建共享座位表数据源：含组队者 / 队员 / 湖仙状态徽标（不暴露角色）。 */
 export interface AvalonSeatSourceInput {
   readonly state: AvalonState;
@@ -188,6 +203,8 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
   const stepParticipants =
     nightPhase === null ? [] : getAvalonNightParticipants(state.roles, nightPhase.step);
   const viewerIsStepParticipant = viewerSeat !== undefined && stepParticipants.includes(viewerSeat);
+  const nightView =
+    nightPhase !== null && viewerSeat !== undefined ? getAvalonViewModel(state, viewerSeat) : null;
   return createRoomSeatDataSource({
     seatCount: state.config.numberOfPlayers,
     revision,
@@ -209,7 +226,12 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
       const nightConfirmed =
         nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
       const progressLabel = nightConfirmed ? '已确认' : null;
-      return avalonSeatIndicators(state, seat, progressLabel);
+      const indicators = avalonSeatIndicators(state, seat, progressLabel);
+      if (indicators === null || nightView === null) return indicators;
+      const revealMarker = avalonNightRevealMarker(nightView, seat);
+      return revealMarker === null
+        ? indicators
+        : { ...indicators, markers: [...indicators.markers, revealMarker] };
     },
   });
 }
