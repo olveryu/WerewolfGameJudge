@@ -83,7 +83,7 @@ export const pictionaryEngine = {
     wordLibrary: false,
     gallery: false,
     hostConfig: false,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   createInitialState(_config, context) {
     return {

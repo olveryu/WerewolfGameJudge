@@ -84,8 +84,8 @@ export type Decision<TEvent extends GameEvent, TEffect extends GameEffect> =
  *   publication workflow).
  * - `gallery`: work gallery / replay surfaces for created content.
  * - `hostConfig`: the in-room host configuration panel.
- * - `botTestScaffold`: the host-only manual bot test scaffold (bulk
- *   bot-advance actions such as mark-all-bots-viewed).
+ * - `botBulkViewing`: the optional host action that marks every bot as
+ *   having viewed its identity; takeover remains available per seat.
  */
 export interface GameEngineCapabilities {
   readonly nightPhase: boolean;
@@ -97,7 +97,7 @@ export interface GameEngineCapabilities {
   readonly wordLibrary: boolean;
   readonly gallery: boolean;
   readonly hostConfig: boolean;
-  readonly botTestScaffold: boolean;
+  readonly botBulkViewing: boolean;
 }
 
 export interface GameEngineDefinition<

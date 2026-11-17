@@ -97,9 +97,6 @@ export function renderTemplate(text, names, extraTokens = {}) {
 /** Render one template file body for the selected capability set. */
 export function renderTemplateFile(text, { names, capabilities, extraTokens }) {
   let rendered = renderTemplate(applyCapabilityBlocks(text, capabilities), names, extraTokens);
-  if (capabilities.botTestScaffold !== true) {
-    rendered = rendered.replace(/^\s*decideMarkBotsViewed,\n/m, '');
-  }
   const declaration = /(capabilities:\s*\{)([\s\S]*?)(\n\s*\})/.exec(rendered);
   if (declaration !== null) {
     const body = declaration[2].replace(

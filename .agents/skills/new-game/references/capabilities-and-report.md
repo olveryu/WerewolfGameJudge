@@ -10,12 +10,13 @@ pnpm new-game <gameId> --capability identityViewing --capability stageDeadline
 ```
 
 The selectable keys are `identityViewing`, `stageDeadline`,
-`audioOrchestration`, and `botTestScaffold`. Unknown keys are rejected.
+`audioOrchestration`, and `botBulkViewing`. Unknown keys are rejected.
 `botsAndTakeover` and `hostConfig` are always wired by the base skeleton;
-`revealAnimation` follows `identityViewing`. `botTestScaffold` requires
-`identityViewing`. When both `identityViewing` and `stageDeadline` are
-enabled, deadline arming is deferred until play begins; otherwise a
-selected stage deadline is armed as the stage begins.
+`revealAnimation` follows `identityViewing`. `botBulkViewing` requires
+`identityViewing`; without it, hosts can still take over bot seats
+individually to view their identities. When both `identityViewing` and
+`stageDeadline` are enabled, deadline arming is deferred until play
+begins; otherwise a selected stage deadline is armed as the stage begins.
 
 The capabilities contract checks each generated declaration against its
 wiring. Change a capability only with its corresponding wiring and contract

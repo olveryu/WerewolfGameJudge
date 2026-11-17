@@ -5,9 +5,8 @@
  * lands in the viewing stage with an empty record
  * (__GAME_ID__.role.viewed, idempotent), and play is gated at the
  * host's begin command (__GAME_ID__.game.begin) — play opens only once
- * every seated player has viewed their identity. Bot seats count like
- * everyone else; the host fills their records with the scaffold action
- * (__GAME_ID__.bots.markAllBotsViewed).
+ * every seated player has viewed their identity. The host can take over
+ * bot seats individually or use the optional bulk-mark scaffold action.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -50,15 +49,20 @@ describeIdentityViewingProtocol({
       viewedSeats: () => session.state.roleViewedSeats,
       participants: () => get__GAME_PASCAL__ViewingParticipants(session.state),
       view: (seat) => {
-        // Bot seats have no user to view with; the driver marks them
-        // through the host scaffold action (all bots at once).
+        // Bot seats have no user to view with; the host takes over the seat.
         if (isBotSeat(session.state.roster, seat)) {
-          send({ type: '__GAME_ID__.bots.markAllBotsViewed' });
+          send({ type: '__GAME_ID__.role.viewed' }, 'host', seat);
         } else {
           send({ type: '__GAME_ID__.role.viewed' }, seatUser(seat));
         }
       },
-      markAllBotsViewed: () => send({ type: '__GAME_ID__.bots.markAllBotsViewed' }),
+      markAllBotsViewed: () => {
+        for (const participant of get__GAME_PASCAL__ViewingParticipants(session.state)) {
+          if (isBotSeat(session.state.roster, participant.seat)) {
+            send({ type: '__GAME_ID__.role.viewed' }, 'host', participant.seat);
+          }
+        }
+      },
       isCheckpointOpen: () => {
         // The checkpoint is the host's begin gate: probe it with a
         // non-mutating decide so the shared scenarios can ask at any
@@ -75,7 +79,11 @@ describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared s
     const { session, send, seatUser } = game(3);
     send({ type: '__GAME_ID__.role.viewed' }, seatUser(1));
     send({ type: '__GAME_ID__.role.viewed' }, seatUser(2));
-    send({ type: '__GAME_ID__.bots.markAllBotsViewed' });
+    for (const participant of get__GAME_PASCAL__ViewingParticipants(session.state)) {
+      if (isBotSeat(session.state.roster, participant.seat)) {
+        send({ type: '__GAME_ID__.role.viewed' }, 'host', participant.seat);
+      }
+    }
     send({ type: '__GAME_ID__.role.viewed' }, 'host');
     send({ type: '__GAME_ID__.game.begin' });
     const decision = session.decide({ type: '__GAME_ID__.role.viewed' }, seatUser(1));

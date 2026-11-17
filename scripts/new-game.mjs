@@ -19,7 +19,7 @@ const USAGE = `Usage: pnpm new-game <gameId> [options]
 Options:
   --capability <key>         Enable an optional capability (repeatable; defaults off).
                              Keys: identityViewing, stageDeadline,
-                             audioOrchestration, botTestScaffold.
+                             audioOrchestration, botBulkViewing.
   --production               Register as a production game (default: registered but
                              hidden from player surfaces until the go-live step).
   --name <text>              Home display name (default: the game id).

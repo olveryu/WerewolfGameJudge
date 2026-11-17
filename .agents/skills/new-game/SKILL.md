@@ -73,7 +73,7 @@ the PR and stays in sync with later copy/semantics changes.
 
 Enable only the capabilities the design requires, using
 `references/capabilities-and-report.md`. All capabilities default off.
-`botTestScaffold` requires `identityViewing`; deadline arming behavior is
+`botBulkViewing` requires `identityViewing`; deadline arming behavior is
 derived from `identityViewing` together with `stageDeadline`.
 
 ### 4. Run the generator, once

@@ -53,14 +53,14 @@ const ENGINE_CAPABILITY_KEYS = [
   'wordLibrary',
   'gallery',
   'hostConfig',
-  'botTestScaffold',
+  'botBulkViewing',
 ];
 
 export const CAPABILITY_KEYS = [
   'identityViewing',
   'stageDeadline',
   'audioOrchestration',
-  'botTestScaffold',
+  'botBulkViewing',
 ];
 
 /** Selectable capabilities are opt-in; baseline wiring remains enabled. */
@@ -80,8 +80,8 @@ export function selectCapabilities(selected = []) {
     capabilities[key] = true;
   }
   capabilities.revealAnimation = capabilities.identityViewing;
-  if (capabilities.botTestScaffold && !capabilities.identityViewing) {
-    throw new Error('Capability "botTestScaffold" requires "identityViewing".');
+  if (capabilities.botBulkViewing && !capabilities.identityViewing) {
+    throw new Error('Capability "botBulkViewing" requires "identityViewing".');
   }
   return capabilities;
 }

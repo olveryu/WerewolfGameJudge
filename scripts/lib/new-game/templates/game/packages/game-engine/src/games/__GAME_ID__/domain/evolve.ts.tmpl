@@ -46,7 +46,7 @@ export function evolve__GAME_PASCAL__State(
         phaseRevision: state.phaseRevision + 1,
         // 发牌落入独立查看阶段；开始玩由房主在全员查看后手动 begin。
         phase: { kind: 'viewing' },
-        // 身份查看协议：发牌时无人落标记；机器人由房主用脚手架标记。
+        // 发牌时无人落标记；房主逐个接管机器人确认，批量标记仅在可选能力开启时提供。
         roleViewedSeats: [],
         identities: { ...event.identities },
         gameSequence: event.gameSequence,
@@ -61,6 +61,7 @@ export function evolve__GAME_PASCAL__State(
         gameSequence: event.gameSequence,
       };
 //#end
+//#cap !identityViewing
 //#cap !stageDeadline
     case '__GAME_ID__.game.started':
       return {
@@ -69,6 +70,7 @@ export function evolve__GAME_PASCAL__State(
         phase: { kind: 'playing' },
         gameSequence: event.gameSequence,
       };
+//#end
 //#end
 //#cap identityViewing
 //#cap !stageDeadline

@@ -13,11 +13,13 @@ pnpm new-game <gameId> [--capability <key> ...] [--production]
 ```
 
 The selectable capability keys are `identityViewing`, `stageDeadline`,
-`audioOrchestration`, and `botTestScaffold`; unknown keys are rejected.
+`audioOrchestration`, and `botBulkViewing`; unknown keys are rejected.
 These choices default off. The base skeleton always wires `botsAndTakeover`
 and `hostConfig`, and `revealAnimation` follows `identityViewing`.
-`botTestScaffold` requires `identityViewing`. When both `identityViewing`
-and `stageDeadline` are selected, the deadline arms when play begins.
+`botBulkViewing` requires `identityViewing`; without it, the host may
+take over bot seats individually to view their identities. When both
+`identityViewing` and `stageDeadline` are selected, the deadline arms
+when play begins.
 
 Defaults: display name = game id, tier `mini`, rewards 5 XP / 1 draw /
 daily target 5 (`DEFAULT_REWARDS` in `generate.mjs`). The game id must

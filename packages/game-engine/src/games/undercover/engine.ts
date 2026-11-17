@@ -78,7 +78,7 @@ export const undercoverEngine = {
     wordLibrary: true,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: true,
+    botBulkViewing: true,
   },
   createInitialState,
   decide,

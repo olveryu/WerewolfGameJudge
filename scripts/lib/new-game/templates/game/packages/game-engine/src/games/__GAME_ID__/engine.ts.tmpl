@@ -18,7 +18,9 @@ import {
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
   decideConfirmViewed,
+//#cap botBulkViewing
   decideMarkBotsViewed,
+//#end
   haveAllViewed,
 } from '../../platform/room/identityViewing';
 //#end
@@ -252,11 +254,10 @@ function markRoleViewed(state: __GAME_PASCAL__State, context: CommandContext): _
 }
 
 //#end
-//#cap botTestScaffold
+//#cap botBulkViewing
 /**
- * Identity Viewing Protocol scaffold action (host only): marks every
- * unviewed bot seat as viewed. Humans always mark themselves; the
- * engine never auto-marks at deal time.
+ * Optional bulk host action: marks every unviewed bot seat as viewed.
+ * Humans always mark themselves; the engine never auto-marks at deal time.
  */
 function markAllBotsViewed(
   state: __GAME_PASCAL__State,
@@ -405,7 +406,7 @@ function decideCommand(
     case '__GAME_ID__.role.viewed':
       return markRoleViewed(state, context);
 //#end
-//#cap botTestScaffold
+//#cap botBulkViewing
     case '__GAME_ID__.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
 //#end
@@ -491,11 +492,11 @@ export const __GAME_CAMEL__Engine = {
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-//#cap botTestScaffold
-    botTestScaffold: true,
+//#cap botBulkViewing
+    botBulkViewing: true,
 //#end
-//#cap !botTestScaffold
-    botTestScaffold: false,
+//#cap !botBulkViewing
+    botBulkViewing: false,
 //#end
   },
   createInitialState,

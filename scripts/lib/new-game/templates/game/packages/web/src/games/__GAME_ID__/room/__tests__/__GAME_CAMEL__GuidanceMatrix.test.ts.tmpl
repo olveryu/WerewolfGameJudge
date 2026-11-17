@@ -43,7 +43,12 @@ type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 function drive(
   state: __GAME_PASCAL__State,
   command: __GAME_PASCAL__Command,
-  options: { userId?: string; nowMs?: number; system?: boolean } = {},
+  options: {
+    userId?: string;
+    nowMs?: number;
+    system?: boolean;
+    controlledSeat?: number | null;
+  } = {},
 ): __GAME_PASCAL__State {
   const context: CommandContext =
     options.system === true
@@ -56,7 +61,7 @@ function drive(
         }
       : {
           actor: { kind: 'user', userId: options.userId ?? 'host' },
-          controlledSeat: null,
+          controlledSeat: options.controlledSeat ?? null,
           nowMs: options.nowMs ?? 1000,
           commandId: command.type,
           randomSeed: 'seed',
@@ -96,7 +101,13 @@ function playingState(): __GAME_PASCAL__State {
   let state = viewingState();
   state = drive(state, { type: '__GAME_ID__.role.viewed' });
   state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
+//#cap botBulkViewing
   state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !botBulkViewing
+  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
+  state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
+//#end
   state = drive(state, { type: '__GAME_ID__.game.begin' });
 //#end
 //#cap !identityViewing

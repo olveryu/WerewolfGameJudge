@@ -44,11 +44,9 @@ Identity games use the platform protocol in
 `planMarkBotsViewed` / `decideMarkBotsViewed`). The checkpoint
 requires every seat's viewing record, including seats filled by
 automated players (`haveAllViewed` checks every participant;
-participants carry `isBot`). The command vocabulary is
-`<game>.bots.markAllBotsViewed` (verified in the generator
-templates). Automated players are test scaffolding
-(`botTestScaffold` capability; `planMarkBotsViewed` in
-`identityViewing.ts`).
+participants carry `isBot`). Hosts may take over each bot seat to view
+it individually; the optional `botBulkViewing` capability adds the
+`<game>.bots.markAllBotsViewed` convenience command and host action.
 
 Roster and takeover use the platform structures:
 `packages/game-engine/src/platform/room/seating/` (roster decisions

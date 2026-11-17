@@ -211,7 +211,7 @@ export function editExpectedCapabilities(content, { gameId, capabilities }) {
     'wordLibrary',
     'gallery',
     'hostConfig',
-    'botTestScaffold',
+    'botBulkViewing',
   ];
   const row = [
     `  ${gameId}: {`,

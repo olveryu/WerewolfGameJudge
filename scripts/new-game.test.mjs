@@ -1,8 +1,9 @@
 /**
  * Generator tests: run the real generator against a fixture repository
  * assembled from the real shared files it edits, across capability selections.
- * Real-tree copies validate formatting, lint, web/engine/Worker types,
- * generated engine and web client tests and registration contracts. Run with
+ * A real-tree copy validates formatting, lint, web/engine/Worker types,
+ * generated game tests and registration contracts across every valid
+ * capability selection. Run with
  * `node --test scripts/new-game.test.mjs` (also wrapped by
  * contracts/newGameGenerator.contract.test.ts in the root vitest suite).
  */
@@ -265,16 +266,24 @@ test('capability blocks keep lines only for enabled capabilities and fail fast o
   );
 });
 
-const CAPABILITY_SCENARIOS = [
-  { name: 'all capabilities off', selected: [] },
-  { name: 'identity viewing', selected: ['identityViewing'] },
-  { name: 'stage deadline', selected: ['stageDeadline'] },
-  { name: 'identity viewing with deadline', selected: ['identityViewing', 'stageDeadline'] },
-  { name: 'audio orchestration', selected: ['audioOrchestration'] },
-  { name: 'all capabilities on', selected: CAPABILITY_KEYS },
-];
+const CAPABILITY_SCENARIOS = Array.from(
+  { length: 2 ** CAPABILITY_KEYS.length },
+  (_, selectionMask) => CAPABILITY_KEYS.filter((_, index) => (selectionMask & (1 << index)) !== 0),
+)
+  .filter(
+    (selected) => !selected.includes('botBulkViewing') || selected.includes('identityViewing'),
+  )
+  .map((selected) => ({
+    name:
+      selected.length === 0
+        ? 'all capabilities off'
+        : selected.length === CAPABILITY_KEYS.length
+          ? 'all capabilities on'
+          : selected.join(' + '),
+    selected,
+  }));
 
-test('capability selection is independent, defaults off, and enforces bot scaffolding dependency', () => {
+test('capability selection defaults off and requires identity viewing for bot bulk viewing', () => {
   assert.deepEqual(selectCapabilities([]), {
     nightPhase: false,
     botsAndTakeover: true,
@@ -285,17 +294,17 @@ test('capability selection is independent, defaults off, and enforces bot scaffo
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   });
-  for (const key of CAPABILITY_KEYS.filter((candidate) => candidate !== 'botTestScaffold')) {
+  for (const key of CAPABILITY_KEYS.filter((candidate) => candidate !== 'botBulkViewing')) {
     const selected = selectCapabilities([key]);
     assert.equal(selected[key], true, `${key} can be selected independently`);
     for (const other of CAPABILITY_KEYS.filter((candidate) => candidate !== key)) {
       assert.equal(selected[other], false, `${other} remains off when selecting ${key}`);
     }
   }
-  assert.equal(selectCapabilities(['identityViewing', 'botTestScaffold']).botTestScaffold, true);
-  assert.throws(() => selectCapabilities(['botTestScaffold']), /requires "identityViewing"/);
+  assert.equal(selectCapabilities(['identityViewing', 'botBulkViewing']).botBulkViewing, true);
+  assert.throws(() => selectCapabilities(['botBulkViewing']), /requires "identityViewing"/);
   assert.throws(() => selectCapabilities(['unknownCapability']), /Invalid capability/);
 });
 
@@ -569,8 +578,12 @@ for (const scenario of CAPABILITY_SCENARIOS) {
       .filter((file) => file.startsWith('packages/web/src/games/demoproto/'))
       .map((file) => readFixture(root, file))
       .join('\n');
-    if (capabilities.botTestScaffold) {
+    if (capabilities.botBulkViewing) {
       assert.ok(engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
+      assert.ok(clientGameDir.includes('demoproto.bots.markAllBotsViewed'));
+    } else {
+      assert.ok(!engineGameDir.includes('demoproto.bots.markAllBotsViewed'));
+      assert.ok(!clientGameDir.includes('demoproto.bots.markAllBotsViewed'));
     }
     // Every generated game wires the review end to end: the module declares the
     // contribution, the room state resolves it through the platform
@@ -1052,80 +1065,85 @@ test('generated output passes format, lint, typecheck, engine and client tests w
     t.skip('requires installed dependencies (node_modules)');
     return;
   }
-  // Exercise the default assembly and the full capability combination
-  // through the real shaping and typecheck pipeline.
-  for (const selected of [[], CAPABILITY_KEYS]) {
-    const root = makeRealRepoCopy();
-    try {
-      const summary = generateNewGame({ rootDir: root, gameId: 'aaprobe', capabilities: selected });
-      assert.equal(summary.formatted, true, 'prettier pass must run, not skip');
-      const require = createRequire(path.join(root, 'package.json'));
-      const prettierBin = require.resolve('prettier/bin/prettier.cjs');
-      // Same scope the generator's format pass claims: formattable
-      // extensions, templates excluded (their rendered outputs are the
-      // other entries in the list).
-      const formatTargets = summary.createdFiles.filter(
-        (file) => /\.(?:ts|tsx|js|mjs|json|md|css)$/.test(file) && !file.endsWith('.tmpl'),
-      );
-      execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
-        cwd: root,
-        stdio: 'pipe',
+  // Generate every valid selection into one isolated copy. This exercises
+  // the combination matrix through real formatting/lint/typechecks and then
+  // runs all generated game tests together with the shared registration tests.
+  const root = makeRealRepoCopy();
+  try {
+    const generatedGames = CAPABILITY_SCENARIOS.map((scenario, index) => {
+      const gameId = `aaprobe${index}`;
+      const summary = generateNewGame({
+        rootDir: root,
+        gameId,
+        capabilities: scenario.selected,
       });
-      for (const project of [
-        'packages/web/tsconfig.json',
-        'packages/game-engine/tsconfig.test.json',
-        'packages/api-worker/tsconfig.json',
-      ]) {
-        typecheckFixture(root, project);
-      }
-      const eslintBin = path.join(
-        path.dirname(require.resolve('eslint/package.json')),
-        'bin',
-        'eslint.js',
-      );
-      const lintTargets = summary.createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
-      execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
-        cwd: root,
-        stdio: 'pipe',
-        env: {
-          ...process.env,
-          NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
-            .filter(Boolean)
-            .join(' '),
-        },
-      });
-      // The generated web tests (guidance matrix, review, failure copy)
-      // render distinct capability combinations, so each one proves its
-      // own rendering by running them, and its registrations through the
-      // web contracts the generator edited.
-      execFileSync(
-        process.execPath,
-        [resolveVitestBin(root, 'packages/web'), 'run', 'src/games/aaprobe', 'src/__tests__'],
-        { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
-      );
-      execFileSync(
-        process.execPath,
-        [
-          resolveVitestBin(root, 'packages/game-engine'),
-          'run',
-          'src/games/aaprobe',
-          'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
-          'src/platform/__tests__/gameRegistry.contract.test.ts',
-        ],
-        {
-          cwd: path.join(root, 'packages/game-engine'),
-          stdio: 'pipe',
-          encoding: 'utf8',
-        },
-      );
-      execFileSync(
-        process.execPath,
-        [resolveVitestBin(root, 'packages/api-worker'), 'run', 'src/games/aaprobe'],
-        { cwd: path.join(root, 'packages/api-worker'), stdio: 'pipe', encoding: 'utf8' },
-      );
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true });
+      assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
+      return { gameId, summary };
+    });
+    const require = createRequire(path.join(root, 'package.json'));
+    const createdFiles = generatedGames.flatMap(({ summary }) => summary.createdFiles);
+    const prettierBin = require.resolve('prettier/bin/prettier.cjs');
+    // Same scope the generator's format pass claims: formattable
+    // extensions, templates excluded (their rendered outputs are the
+    // other entries in the list).
+    const formatTargets = createdFiles.filter(
+      (file) => /\.(?:ts|tsx|js|mjs|json|md|css)$/.test(file) && !file.endsWith('.tmpl'),
+    );
+    execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
+      cwd: root,
+      stdio: 'pipe',
+    });
+    for (const project of [
+      'packages/web/tsconfig.json',
+      'packages/game-engine/tsconfig.test.json',
+      'packages/api-worker/tsconfig.json',
+    ]) {
+      typecheckFixture(root, project);
     }
+    const eslintBin = path.join(
+      path.dirname(require.resolve('eslint/package.json')),
+      'bin',
+      'eslint.js',
+    );
+    const lintTargets = createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
+    execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
+      cwd: root,
+      stdio: 'pipe',
+      env: {
+        ...process.env,
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+          .filter(Boolean)
+          .join(' '),
+      },
+    });
+
+    const webTestPaths = [
+      ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
+      'src/__tests__',
+    ];
+    execFileSync(
+      process.execPath,
+      [resolveVitestBin(root, 'packages/web'), 'run', ...webTestPaths],
+      { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
+    );
+    const engineTestPaths = [
+      ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
+      'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
+      'src/platform/__tests__/gameRegistry.contract.test.ts',
+    ];
+    execFileSync(
+      process.execPath,
+      [resolveVitestBin(root, 'packages/game-engine'), 'run', ...engineTestPaths],
+      { cwd: path.join(root, 'packages/game-engine'), stdio: 'pipe', encoding: 'utf8' },
+    );
+    const workerTestPaths = generatedGames.map(({ gameId }) => `src/games/${gameId}`);
+    execFileSync(
+      process.execPath,
+      [resolveVitestBin(root, 'packages/api-worker'), 'run', ...workerTestPaths],
+      { cwd: path.join(root, 'packages/api-worker'), stdio: 'pipe', encoding: 'utf8' },
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
@@ -1151,7 +1169,7 @@ test('rejects invalid game ids and capability selections before writing anything
     /Invalid capability/,
   );
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['botTestScaffold'] }),
+    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['botBulkViewing'] }),
     /requires "identityViewing"/,
   );
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/demo')));

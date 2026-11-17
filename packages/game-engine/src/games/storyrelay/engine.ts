@@ -219,7 +219,7 @@ export const storyRelayEngine = {
     wordLibrary: false,
     gallery: true,
     hostConfig: true,
-    botTestScaffold: false,
+    botBulkViewing: false,
   },
   createInitialState,
   decide: decideStoryRelayCommand,
