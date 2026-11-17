@@ -1,4 +1,5 @@
 /** 一眼成对 contribution to the Home surface. */
+import spotmatchArt from '@/assets/game-art/spotmatch.webp';
 import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import { lighten } from '@/theme/colorUtils';
@@ -11,5 +12,6 @@ export const spotmatchHome = {
     Icon: IconGameControllerOutline,
     tier: 'mini',
     gradient: [lighten(colors.primary, 0.45), colors.primary],
+    artUrl: spotmatchArt,
   },
 } satisfies GameHomeContribution;
