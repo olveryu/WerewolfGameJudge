@@ -161,7 +161,9 @@ export function useRoomAudioOrchestration<
         ? async () => undefined
         : async () => {
             logger.info('Replaying current step audio after rejoin', { audioKey });
-            await player.playEffect({ audioKey });
+            const effect = { audioKey };
+            await player.prepareQueue?.([effect]);
+            await player.playEffect(effect);
           };
     try {
       await core.resumeInterrupted(replay, state.audioBatchId);

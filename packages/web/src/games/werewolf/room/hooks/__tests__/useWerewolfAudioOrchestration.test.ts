@@ -4,7 +4,7 @@
  * - a host mounting mid-night is marked interrupted; a non-host never is;
  * - resume replays the current step's beginning clip (seer label variant from
  *   state) and acks the interrupted batch by id; at night end it only acks;
- * - the player port routes night / night-end / ending / beginning clips.
+ * - the player port prepares the public board before queued or replayed narration.
  */
 import type {
   AudioEffect,
@@ -22,8 +22,11 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
+import { handleError } from '@/utils/errorPipeline';
 
 import { useWerewolfAudioOrchestration } from '../useWerewolfAudioOrchestration';
+
+vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 
 const BATCH_ID = 3;
 
@@ -67,19 +70,12 @@ function createAudio(): WerewolfAudioRuntime & { readonly timeline: string[] } {
   const timeline: string[] = [];
   return {
     timeline,
-    playBeginning: vi.fn(async (key: string) => {
-      timeline.push(`beginning:${key}`);
+    playEffect: vi.fn(async (key: string) => {
+      timeline.push(`play:${key}`);
     }),
-    playEnding: vi.fn(async (key: string) => {
-      timeline.push(`ending:${key}`);
+    preload: vi.fn(() => {
+      timeline.push('preload');
     }),
-    playNight: vi.fn(async () => {
-      timeline.push('night');
-    }),
-    playNightEnd: vi.fn(async () => {
-      timeline.push('nightEnd');
-    }),
-    preloadRoles: vi.fn(),
     stopNarration: vi.fn(),
     ...createFakeBgm(),
     setBgmVolume: vi.fn(),
@@ -114,6 +110,8 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
     );
     await flush();
     expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(audio.preload).not.toHaveBeenCalled();
+    expect(audio.playEffect).not.toHaveBeenCalled();
   });
 
   it('does not mark a host mounting in the lobby', async () => {
@@ -128,7 +126,8 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
 
   it('resume replays the current step beginning (seer label variant) and acks the batch by id', async () => {
     const audio = createAudio();
-    const fake = createLink(nightState({ seerLabelMap: { seer: 2 } }));
+    const state = nightState({ seerLabelMap: { seer: 2 } });
+    const fake = createLink(state);
     const { result } = renderHook(() =>
       useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
     );
@@ -139,7 +138,8 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       fake.commitAck();
       await resumed;
     });
-    expect(audio.timeline).toEqual(['beginning:seer_2']);
+    expect(audio.timeline).toEqual(['preload', 'play:seer_2']);
+    expect(audio.preload).toHaveBeenCalledWith(state.templateRoles);
     expect(fake.link.dispatch).toHaveBeenCalledTimes(1);
     expect(fake.link.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.audio.ack', audioBatchId: BATCH_ID },
@@ -173,7 +173,7 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
     expect(fake.link.dispatch).toHaveBeenCalledTimes(1);
   });
 
-  it('routes every clip kind through the runtime and stops BGM before night end', async () => {
+  it('prepares the latest public board before playback and stops BGM before night end', async () => {
     const audio = createAudio();
     const queue: AudioEffect[] = [
       { audioKey: 'night' },
@@ -190,11 +190,27 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       pendingAudioEffects: queue,
       isAudioPlaying: true,
       audioBatchId: 1,
+      templateRoles: ['wolf', 'witch', 'villager'],
     };
     await act(async () => fake.link.publishRoom(createRoomSnapshot(queued, 2)));
     await flush();
-    expect(audio.timeline).toEqual(['night', 'beginning:wolf', 'ending:wolf', 'nightEnd']);
+    expect(audio.timeline).toEqual([
+      'preload',
+      'play:night',
+      'play:wolf',
+      'play:wolf',
+      `play:${NIGHT_END_AUDIO_KEY}`,
+    ]);
+    expect(audio.preload).toHaveBeenCalledWith(queued.templateRoles);
+    expect(vi.mocked(audio.playEffect).mock.calls).toEqual(
+      queue.map((effect) => [effect.audioKey, effect.isEndAudio]),
+    );
     expect(vi.mocked(audio.stopBgm)).toHaveBeenCalledTimes(1);
+
+    await act(async () => fake.link.publishRoom(createRoomSnapshot(queued, 3)));
+    await flush();
+    expect(audio.preload).toHaveBeenCalledTimes(1);
+    expect(audio.playEffect).toHaveBeenCalledTimes(queue.length);
   });
 
   it('stops narration on unmount', async () => {
@@ -205,5 +221,26 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
     );
     unmount();
     expect(audio.stopNarration).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports preparation failure without playing or acknowledging the batch', async () => {
+    const audio = createAudio();
+    const error = new Error('board audio preparation failed');
+    vi.mocked(audio.preload).mockImplementation(() => {
+      throw error;
+    });
+    const initial = buildWerewolfTestState({ status: GameStatus.Assigned });
+    const { link } = createLink(initial);
+    renderHook(() => useWerewolfAudioOrchestration({ session: link, isHost: true, audio }));
+
+    await act(async () => link.publishRoom(createRoomSnapshot(nightState({}), 2)));
+    await flush();
+
+    expect(handleError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ label: '音频效果队列', feedback: false }),
+    );
+    expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(link.dispatch).not.toHaveBeenCalled();
   });
 });

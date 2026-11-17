@@ -1,6 +1,7 @@
 /** Werewolf narration semantics layered over the platform audio primitives. */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 
 import type { AudioClip } from '@/features/product/model/AudioClip';
 
@@ -13,11 +14,9 @@ import {
 } from './audioRegistry';
 
 export interface WerewolfAudioRuntime {
-  readonly playBeginning: (audioKey: string) => Promise<void>;
-  readonly playEnding: (audioKey: string) => Promise<void>;
-  readonly playNight: () => Promise<void>;
-  readonly playNightEnd: () => Promise<void>;
-  readonly preloadRoles: (roles: readonly RoleId[]) => void;
+  readonly playEffect: (audioKey: string, isEndAudio?: boolean) => Promise<void>;
+  /** Starts buffering narration for the public board, never the secret assignment. */
+  readonly preload: (roles: readonly RoleId[]) => void;
   readonly stopNarration: () => void;
   /** Starts background music: one URL loops, several shuffle; no-op while playing. */
   readonly startBgm: (urls: readonly string[]) => void;
@@ -50,18 +49,17 @@ export class WerewolfAudioPlayer implements WerewolfAudioRuntime {
     this.#audioService = audioService;
   }
 
-  readonly playBeginning = (audioKey: string): Promise<void> =>
-    this.#audioService.playClip(resolveWerewolfBeginningAudio(audioKey));
+  /** Resolves game narration semantics before delegating to platform playback. */
+  readonly playEffect = (audioKey: string, isEndAudio?: boolean): Promise<void> => {
+    if (isEndAudio) return this.#audioService.playClip(resolveWerewolfEndingAudio(audioKey));
+    if (audioKey === 'night') return this.#audioService.playClip(getWerewolfNightAudio());
+    if (audioKey === NIGHT_END_AUDIO_KEY) {
+      return this.#audioService.playClip(getWerewolfNightEndAudio());
+    }
+    return this.#audioService.playClip(resolveWerewolfBeginningAudio(audioKey));
+  };
 
-  readonly playEnding = (audioKey: string): Promise<void> =>
-    this.#audioService.playClip(resolveWerewolfEndingAudio(audioKey));
-
-  readonly playNight = (): Promise<void> => this.#audioService.playClip(getWerewolfNightAudio());
-
-  readonly playNightEnd = (): Promise<void> =>
-    this.#audioService.playClip(getWerewolfNightEndAudio());
-
-  readonly preloadRoles = (roles: readonly RoleId[]): void =>
+  readonly preload = (roles: readonly RoleId[]): void =>
     this.#audioService.preloadClips(getWerewolfPreloadAudio(roles));
 
   readonly stopNarration = (): void => this.#audioService.stop();

@@ -29,11 +29,8 @@ vi.mock('@/utils/alertPresets', async (importOriginal) => ({
 
 function createAudio(): WerewolfAudioRuntime {
   return {
-    playBeginning: vi.fn(async () => undefined),
-    playEnding: vi.fn(async () => undefined),
-    playNight: vi.fn(async () => undefined),
-    playNightEnd: vi.fn(async () => undefined),
-    preloadRoles: vi.fn(),
+    playEffect: vi.fn(async () => undefined),
+    preload: vi.fn(),
     stopNarration: vi.fn(),
     ...createFakeBgm(),
     setBgmVolume: vi.fn(),
@@ -76,6 +73,16 @@ function lastConfirm(): () => void | Promise<void> {
 
 describe('useWerewolfHostFlow', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('submits game start without preparing audio in the host command', async () => {
+    const { result, submit, audio } = renderFlow(
+      buildWerewolfTestState({ status: GameStatus.Assigned }),
+    );
+    act(() => result.current.onHostControl('startGame'));
+    await act(async () => lastConfirm()());
+    expect(submit).toHaveBeenCalledWith('开始游戏', { type: 'werewolf.game.begin' });
+    expect(audio.preload).not.toHaveBeenCalled();
+  });
 
   it('submits the MVP pick durable, pinned to the deal nonce, and closes the picker on success', async () => {
     const { result, submit } = renderFlow(endedState());

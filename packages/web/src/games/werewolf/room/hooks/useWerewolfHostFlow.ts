@@ -5,8 +5,8 @@
  *
  * Every command goes through the shared single-flight `submit`; the
  * dialogs only gate intent. Audio teardown (stop narration, drop the
- * preloaded clips) happens on the host device for the three resets, and
- * the narration clips preload once the game begins.
+ * preloaded clips) happens on the host device for the three resets.
+ * Narration preparation belongs to the audio orchestration, not host commands.
  */
 
 import {
@@ -79,11 +79,6 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
     [audio, submit],
   );
 
-  const startGame = useCallback(async () => {
-    const ok = await submit('开始游戏', { type: 'werewolf.game.begin' });
-    if (ok) audio.preloadRoles(state.templateRoles);
-  }, [audio, state.templateRoles, submit]);
-
   const showEndedFlowDialog = useCallback(
     (flow: 'redeal' | 'returnToLobby') => {
       const isRedeal = flow === 'redeal';
@@ -115,7 +110,9 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
           });
           return;
         case 'startGame':
-          showConfirmAlert(START_CONFIRM_TITLE, START_CONFIRM_TEXT, startGame);
+          showConfirmAlert(START_CONFIRM_TITLE, START_CONFIRM_TEXT, async () => {
+            await submit('开始游戏', { type: 'werewolf.game.begin' });
+          });
           return;
         case 'abort':
           showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle, ABORT_CONFIRM_TEXT, () =>
@@ -130,7 +127,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
           return;
       }
     },
-    [resetAudioThenSubmit, showEndedFlowDialog, startGame, submit],
+    [resetAudioThenSubmit, showEndedFlowDialog, submit],
   );
 
   const markAllBotsViewed = useCallback(() => {

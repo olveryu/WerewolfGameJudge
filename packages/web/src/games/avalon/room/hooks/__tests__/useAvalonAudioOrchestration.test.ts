@@ -188,6 +188,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     await flushPlayback();
     expect(result.current.readWasAudioInterrupted()).toBe(true);
     expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(audio.preload).not.toHaveBeenCalled();
     expect(fake.dispatch).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -198,6 +199,10 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     });
     expect(result.current.readWasAudioInterrupted()).toBe(false);
     expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual(['evil_reveal']);
+    expect(audio.preload).toHaveBeenCalledTimes(1);
+    expect(audio.preload.mock.invocationCallOrder[0]).toBeLessThan(
+      audio.playEffect.mock.invocationCallOrder[0]!,
+    );
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
     expect(fake.dispatch).toHaveBeenCalledWith(
       { type: 'avalon.audio.ack', audioBatchId: QUEUED_BATCH_ID },
