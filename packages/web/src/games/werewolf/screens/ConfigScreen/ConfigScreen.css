@@ -168,7 +168,8 @@
   background: var(--color-success);
 }
 
-/* Variant marker (option D): a 变 pill in the top-left corner, mirroring the badge. It is
+/* Variant marker (option H): a swap-icon badge in the top-left corner, mirroring the
+ * selection badge (same 24px circle, white face, faction-colored ring and icon). It is
  * a decorative indicator, so it never intercepts taps meant for the chip body. */
 .config-role-chip-variant-mark {
   position: absolute;
@@ -178,15 +179,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: var(--size-icon-lg);
   height: var(--size-icon-lg);
-  padding: 0 var(--space-tight);
+  padding: 0;
   border: var(--border-width) solid var(--faction-color);
   border-radius: var(--radius-full);
   background: var(--color-surface);
   color: var(--faction-color);
-  font-size: var(--font-caption-small);
+  font-size: var(--size-icon-sm);
   line-height: 1;
-  font-weight: var(--weight-bold);
   box-shadow: var(--shadow-sm);
   pointer-events: none;
 }
