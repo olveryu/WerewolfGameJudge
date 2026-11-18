@@ -119,6 +119,30 @@ it('renders one policy card per policy in the hand, with the matching art and no
   });
 });
 
+it('maps each policy in a mixed hand to its own art', () => {
+  const base = fixture('legislativePresident');
+  if (base.phase.kind !== 'legislativePresident') throw new Error('Expected hand');
+  const presidentSeat = base.phase.presidentSeat;
+  // The deterministic fixture hand is all fascist, so override it to cover the liberal branch too.
+  const state: SecrethitlerState = {
+    ...base,
+    phase: { ...base.phase, hand: ['liberal', 'fascist', 'liberal'] },
+  };
+  render(<SecrethitlerActionSheet screen={props(state, presidentSeat)} />);
+  const cards = [...document.querySelectorAll('.choice-card')];
+  expect(cards).toHaveLength(3);
+  const expected = [
+    secrethitlerPolicyLiberalImage,
+    secrethitlerPolicyFascistImage,
+    secrethitlerPolicyLiberalImage,
+  ];
+  cards.forEach((card, index) => {
+    const src = expected[index];
+    if (src === undefined) throw new Error('Missing expected art');
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(src);
+  });
+});
+
 it('submits the chancellor enact command for the tapped policy card', async () => {
   const state = fixture('legislativeChancellor');
   if (state.phase.kind !== 'legislativeChancellor') throw new Error('Expected hand');
