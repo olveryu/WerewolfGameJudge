@@ -178,6 +178,9 @@ export function RoomShell({
     bottomActions !== null &&
     resolveRoomBottomActionPresentation(bottomActions).additionalActions.length > 0;
   const canOpenActionsPanel = hostManagement !== null || hasAdditionalPlayerActions;
+  if (isActionsPanelOpen && !canOpenActionsPanel) {
+    setIsActionsPanelOpen(false);
+  }
   if (isStage) assertRoomStageShellModel(model);
   const openActionsPanel = () => {
     if (!canOpenActionsPanel) throw new Error('Cannot open unavailable room actions panel');

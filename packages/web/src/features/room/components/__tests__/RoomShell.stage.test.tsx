@@ -205,6 +205,31 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.roomHostManagementButton)).not.toBeInTheDocument();
   });
 
+  it('does not reopen an obsolete panel when actions become available again', async () => {
+    const user = userEvent.setup();
+    const shell = (hasActions: boolean) => (
+      <RoomShell
+        model={createRoomShellModel(
+          shellInput(hasActions ? {} : { buildHostManagement: () => null }),
+        )}
+        content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />
+    );
+    const view = render(shell(true));
+    await user.click(screen.getByTestId(TESTIDS.roomHostManagementButton));
+    expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+
+    view.rerender(shell(false));
+    expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+    view.rerender(shell(true));
+
+    expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toBeInTheDocument();
+    expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+  });
+
   it('reports a takeover as an information bar chip instead of the banner', () => {
     renderStage({ controlledSeat: { seat: 1, displayName: '机器人2', onRelease: vi.fn() } });
     expect(screen.getByTestId(TESTIDS.roomStageHud)).toContainElement(
