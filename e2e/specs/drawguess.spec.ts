@@ -130,9 +130,9 @@ async function joinRoom(page: Page, roomCode: string, seat: number): Promise<voi
   await room.seatAt(seat);
 }
 
-/** The lobby shows the room's game summary title, e.g. 「你画我猜 · 4人局」. */
+/** The lobby shows the room's game summary title, e.g. 「你画我猜（4人）」. */
 async function expectLobbySummary(page: Page): Promise<void> {
-  await expect(page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText('你画我猜 · 4人局');
+  await expect(page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText('你画我猜（4人）');
 }
 
 test('create, guess, cancel or confirm host abort, and restart without losing seats', async ({
