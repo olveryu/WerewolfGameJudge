@@ -85,7 +85,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         }),
       );
       const bottomActionText = requireBottomActionText('darkWolfKingConfirm');
-      await view.findByText(bottomActionText);
       await pressText(view, bottomActionText);
       await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });

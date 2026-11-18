@@ -82,7 +82,7 @@ for (const viewport of [
         });
       });
       await test.step('standard terminal management returns the room to lobby', async () => {
-        await playerPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+        await player.clickRoomAction(TESTIDS.roomReviewOpenButton);
         await expect(playerPage.getByTestId(TESTIDS.roomReviewDialog)).toContainText('率先出完');
         await expect(
           playerPage

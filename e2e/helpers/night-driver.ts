@@ -344,6 +344,8 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
  * dialog, view the hunter status, or skip the step.
  */
 const ADVANCE_BUTTON_KEYS = ['confirm', 'viewHunterStatus', 'skip'] as const;
+const PANEL_NIGHT_BUTTON_KEYS = new Set(['skip', 'wolfEmpty', 'wolfCancel']);
+const unavailablePanelNightButtons = new WeakMap<Page, Set<string>>();
 
 /**
  * Try to advance one page by one click: the open alert's primary button
@@ -369,6 +371,7 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
     if (await button.isVisible().catch(() => false)) {
       return tryClickNightButton(page, key, tag);
     }
+    if (key === 'skip' && (await tryClickNightButton(page, key, tag))) return true;
   }
 
   return false;
@@ -381,11 +384,65 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
  * returns false; the caller's next sweep dismisses the prompt and retries.
  */
 export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
-  const button = nightButton(page, key);
-  if (!(await button.isVisible().catch(() => false))) return false;
-  if (!(await clickCapped(button, `night button ${key}`))) return false;
+  const bottomButton = nightButton(page, key);
+  let button = bottomButton;
+  let panel: Locator | null = null;
+  let openedPanel = false;
+  if (!(await bottomButton.isVisible().catch(() => false))) {
+    const resolved = await findPanelNightButton(page, key);
+    if (resolved === null) return false;
+    ({ button, panel, openedPanel } = resolved);
+  }
+  if (!(await clickCapped(button, `night button ${key}`))) {
+    if (openedPanel) await new RoomPage(page).closeHostManagement();
+    return false;
+  }
+  if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`tryClickNightButton${label} — night button ${key} clicked`);
   return true;
+}
+
+async function findPanelNightButton(
+  page: Page,
+  key: string,
+): Promise<{
+  readonly button: Locator;
+  readonly panel: Locator;
+  readonly openedPanel: boolean;
+} | null> {
+  if (!PANEL_NIGHT_BUTTON_KEYS.has(key)) return null;
+  const step = await readRoomStep(page);
+  if (step === null) return null;
+  const cacheKey = `${step}:${key}`;
+  let unavailable = unavailablePanelNightButtons.get(page);
+  if (unavailable?.has(cacheKey) === true) return null;
+  if (
+    await alertModal(page)
+      .isVisible()
+      .catch(() => false)
+  )
+    return null;
+
+  const room = new RoomPage(page);
+  const existingPanel = page.getByTestId(TESTIDS.roomHostManagementPanel);
+  const openedPanel = !(await existingPanel.isVisible());
+  if (openedPanel) {
+    const entry = page
+      .getByTestId(TESTIDS.roomMoreActionsButton)
+      .or(page.getByTestId(TESTIDS.roomHostManagementButton))
+      .first();
+    if (!(await entry.isVisible().catch(() => false))) return null;
+  }
+  const panel = openedPanel ? await room.openHostManagement() : existingPanel;
+  const button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
+  if (await button.isVisible()) return { button, panel, openedPanel };
+  if (openedPanel) await room.closeHostManagement();
+  if (unavailable === undefined) {
+    unavailable = new Set();
+    unavailablePanelNightButtons.set(page, unavailable);
+  }
+  unavailable.add(cacheKey);
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -822,11 +879,21 @@ export async function driveGroupConfirmAck(
  * label. Resolve the visible action before dismissing its step prompt.
  */
 export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
-  const button = nightButton(page, key);
+  let button = nightButton(page, key);
+  let panel: Locator | null = null;
+  if (PANEL_NIGHT_BUTTON_KEYS.has(key) && !(await button.isVisible().catch(() => false))) {
+    await dismissAlert(page);
+    const existingPanel = page.getByTestId(TESTIDS.roomHostManagementPanel);
+    panel = (await existingPanel.isVisible())
+      ? existingPanel
+      : await new RoomPage(page).openHostManagement();
+    button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
+  }
   await expect(button).toHaveText(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
   await dismissAlert(page);
   await button.click({ timeout: CLICK_TIMEOUT_MS });
+  if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`clickNightButton — ${key} "${label}" clicked`);
 }
 

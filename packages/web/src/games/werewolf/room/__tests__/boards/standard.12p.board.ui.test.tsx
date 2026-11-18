@@ -147,7 +147,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       );
       await waitForRoomScreen(view);
 
-      await view.findByText(bottomActionText);
       await pressText(view, bottomActionText);
       await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });
@@ -164,7 +163,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       );
       await waitForRoomScreen(view);
 
-      await view.findByText(bottomActionText);
       await pressText(view, bottomActionText);
       await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
 

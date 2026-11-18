@@ -30,6 +30,114 @@
   font-weight: var(--weight-semibold);
 }
 
+.host-management-group-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-bold);
+}
+
+.host-task-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  padding-top: var(--space-small);
+  border-top: var(--border-width) solid var(--color-border-light);
+}
+
+.host-task-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  margin: 0;
+  padding: 0 var(--space-small);
+  list-style: none;
+}
+
+.host-task-step-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+.host-task-step-separator {
+  color: var(--color-text-muted);
+}
+
+.host-task-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  min-height: var(--size-button-md);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+  cursor: pointer;
+}
+
+.host-task-step:disabled {
+  cursor: default;
+}
+
+.host-task-step[data-state='complete'] {
+  color: var(--color-success);
+}
+
+.host-task-step[data-state='current'] {
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+}
+
+.host-task-title {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.host-task-blocked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+}
+
+.host-task-blocked-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.host-task-blocked-label,
+.host-task-blocked-reason,
+.host-task-note {
+  margin: 0;
+}
+
+.host-task-blocked-label {
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.host-task-blocked-reason,
+.host-task-note {
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}
+
+.host-task-note {
+  padding: 0 var(--space-small);
+  text-align: center;
+}
+
 .host-management-actions {
   display: flex;
   flex-direction: column;

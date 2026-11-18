@@ -139,20 +139,14 @@ test.describe('FibKing', () => {
       await hostRoom.waitForReady('host');
 
       // Seat-readiness gate: all 4 real players seated, no bots involved.
-      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '分配角色',
-        { timeout: 15_000 },
-      );
+      await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
 
       // Kicking one seated player must not remove the others.
       await hostRoom.kickPlayer(2);
       await hostRoom.expectSeatOccupied(3);
       await firstBatchRooms[1]!.expectNotSeated();
       await firstBatchRooms[1]!.seatAt(2);
-      await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-        '分配角色',
-        { timeout: 15_000 },
-      );
+      await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
 
       await hostRoom.screenshot(testInfo, 'fibking-lobby-four-player.png');
       await hostRoom.startRound();
@@ -218,7 +212,7 @@ test.describe('FibKing', () => {
       // A seated player reviews the ended round （本局复盘）: the word as the
       // headline, with 大聪明 having found 老实人.
       const reviewPage = joinerPages[0]!;
-      await reviewPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      await new FibRoomPage(reviewPage).clickRoomAction(TESTIDS.roomReviewOpenButton);
       const reviewDialog = reviewPage.getByTestId(TESTIDS.roomReviewDialog);
       await expect(reviewDialog).toContainText(result.word);
       await expect(reviewDialog).toContainText('大聪明选中了老实人');
@@ -226,7 +220,7 @@ test.describe('FibKing', () => {
       await expect(reviewDialog).toHaveCount(0);
 
       await hostRoom.startNextRound();
-      await expect(reviewPage.getByTestId(TESTIDS.roomReviewOpenButton)).toHaveCount(0);
+      await new FibRoomPage(reviewPage).expectRoomActionAbsent(TESTIDS.roomReviewOpenButton);
       for (const room of realRooms) {
         await room.viewIdentity();
         await room.confirmIdentityView();

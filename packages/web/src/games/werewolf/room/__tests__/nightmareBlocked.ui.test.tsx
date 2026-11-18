@@ -9,7 +9,7 @@
  */
 
 import { BLOCKED_UI_DEFAULTS } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
+import { fireEvent, waitFor } from '@testing-library/react';
 
 import {
   actorStep,
@@ -20,6 +20,7 @@ import {
   tapSeat,
   type WerewolfRoomMockOptions,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
@@ -103,6 +104,8 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     'confirm schema (%s) shows the skip button when blocked',
     async (role) => {
       const view = await mountRoomFor(confirmMockOptions(role, true));
+      const moreActionsButton = view.queryByTestId(TESTIDS.roomMoreActionsButton);
+      if (moreActionsButton !== null) fireEvent.click(moreActionsButton);
 
       // When blocked, the actor sees the skip button instead of the status confirm.
       await waitFor(() => {

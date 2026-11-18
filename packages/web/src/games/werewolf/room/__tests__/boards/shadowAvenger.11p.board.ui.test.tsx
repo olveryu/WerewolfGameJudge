@@ -113,7 +113,6 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         confirmStep('avengerConfirm', 'avenger', 1, { role: 'avenger', faction: Team.Good }),
       );
       const bottomActionText = requireBottomActionText('avengerConfirm');
-      await view.findByText(bottomActionText);
       await pressText(view, bottomActionText);
       await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
     });
