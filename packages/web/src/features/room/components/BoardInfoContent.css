@@ -7,11 +7,11 @@
 .board-info-category {
   display: flex;
   align-items: flex-start;
+  gap: var(--space-tight);
 }
 
 .board-info-category-label {
   flex-shrink: 0;
-  width: calc(var(--space-xxlarge) * 2 + var(--space-tight));
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
