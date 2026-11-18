@@ -28,7 +28,7 @@ export class FibRoomPage extends RoomPage {
 
   async expectPlayerCountHeading(playerCount: number): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText(
-      `瞎掰王 · ${playerCount}人局`,
+      `瞎掰王（${playerCount}人）`,
     );
   }
 
