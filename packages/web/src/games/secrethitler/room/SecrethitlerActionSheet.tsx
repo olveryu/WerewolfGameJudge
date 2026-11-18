@@ -1,14 +1,23 @@
 import type {
   SecrethitlerCommand,
-  SecrethitlerPolicy,
   SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
 import type { ReactNode } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
+import { ChoiceCard } from '@/components/ChoiceCard';
+import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import {
+  secrethitlerPolicyFascistImage,
+  secrethitlerPolicyLiberalImage,
+} from '../assets/secrethitlerPolicyImages';
+import {
+  secrethitlerVoteNoImage,
+  secrethitlerVoteYesImage,
+} from '../assets/secrethitlerVoteImages';
 import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import type { SecrethitlerRoomScreenState } from './hooks/useSecrethitlerRoomState';
 import { secrethitlerInstruction, secrethitlerSeatLabel } from './secrethitlerPresentation';
@@ -67,29 +76,66 @@ export function SecrethitlerActionSheet({
             当前选择：{view.myVote === null ? '尚未投票' : view.myVote === 'ja' ? '赞成' : '反对'}
             。全员提交前可修改。
           </p>
-          {button('赞成', { type: 'secrethitler.government.castVote', vote: 'ja' })}
-          {button('反对', { type: 'secrethitler.government.castVote', vote: 'nein' })}
+          <div className="choice-row">
+            <ChoiceCard
+              label="赞成"
+              imageSrc={secrethitlerVoteYesImage}
+              isSelected={view.myVote === 'ja'}
+              isDisabled={screen.isSubmitting}
+              testId={TESTIDS.secrethitlerVoteYes}
+              onClick={() =>
+                void send('赞成', { type: 'secrethitler.government.castVote', vote: 'ja' })
+              }
+            />
+            <ChoiceCard
+              label="反对"
+              imageSrc={secrethitlerVoteNoImage}
+              isSelected={view.myVote === 'nein'}
+              isDisabled={screen.isSubmitting}
+              testId={TESTIDS.secrethitlerVoteNo}
+              onClick={() =>
+                void send('反对', { type: 'secrethitler.government.castVote', vote: 'nein' })
+              }
+            />
+          </div>
         </>
       );
       break;
     case 'legislativePresident':
-    case 'legislativeChancellor':
+    case 'legislativeChancellor': {
+      const action = screen.state.phase.kind === 'legislativePresident' ? 'discard' : 'enact';
       content = (
         <>
-          <p>
-            你的手牌：
-            {view.myHand?.map((policy) => (policy === 'liberal' ? '自由派' : '法西斯')).join('、')}
-          </p>
-          {createPolicyButtons(
-            view.myHand,
-            screen.state.phase.kind === 'legislativePresident' ? 'discard' : 'enact',
-            button,
-          )}
+          <div className="choice-row">
+            {[...new Set(view.myHand)].map((policy) => {
+              const label = `${action === 'discard' ? '弃置' : '施行'}${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
+              const command: SecrethitlerCommand =
+                action === 'discard'
+                  ? { type: 'secrethitler.policy.presidentDiscard', policy }
+                  : { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy };
+              return (
+                <ChoiceCard
+                  key={policy}
+                  label={label}
+                  imageSrc={
+                    policy === 'liberal'
+                      ? secrethitlerPolicyLiberalImage
+                      : secrethitlerPolicyFascistImage
+                  }
+                  isSelected={false}
+                  isDisabled={screen.isSubmitting}
+                  testId={TESTIDS.secrethitlerPolicyCard(action, policy)}
+                  onClick={() => void send(label, command)}
+                />
+              );
+            })}
+          </div>
           {view.canRequestVeto &&
             button('请求否决', { type: 'secrethitler.policy.chancellorResolve', action: 'veto' })}
         </>
       );
       break;
+    }
     case 'vetoResponse':
       content = (
         <>
@@ -104,12 +150,22 @@ export function SecrethitlerActionSheet({
       content =
         power === 'policyPeek' ? (
           <>
-            <p>
-              牌堆顶三张（顺序不变）：
-              {view.policyPreview
-                ?.map((policy) => (policy === 'liberal' ? '自由派' : '法西斯'))
-                .join('、')}
-            </p>
+            <p>牌堆顶三张（顺序不变）：</p>
+            <div className="secrethitler-policy-peek">
+              {view.policyPreview?.map((policy, index) => (
+                <img
+                  key={`${policy}-${index}`}
+                  src={
+                    policy === 'liberal'
+                      ? secrethitlerPolicyLiberalImage
+                      : secrethitlerPolicyFascistImage
+                  }
+                  alt={policy === 'liberal' ? '自由派' : '法西斯'}
+                  decoding="async"
+                  className="secrethitler-policy-peek-image"
+                />
+              ))}
+            </div>
             {button('确认预览', { type: 'secrethitler.action.acknowledgePolicyPeek' })}
           </>
         ) : (
@@ -159,22 +215,6 @@ export function SecrethitlerActionSheet({
       </div>
     </BottomSheet>
   );
-}
-
-function createPolicyButtons(
-  hand: readonly SecrethitlerPolicy[] | null,
-  action: 'discard' | 'enact',
-  button: (label: string, command: SecrethitlerCommand) => ReactNode,
-) {
-  return [...new Set(hand)].map((policy) => {
-    const label = `${action === 'discard' ? '弃置' : '施行'}${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
-    return button(
-      label,
-      action === 'discard'
-        ? { type: 'secrethitler.policy.presidentDiscard', policy }
-        : { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy },
-    );
-  });
 }
 
 function SecrethitlerNightRecognition({

@@ -78,3 +78,30 @@ it('keeps a failed secret ballot submission open for retry', async () => {
   await waitFor(() => expect(input.submit).toHaveBeenCalled());
   expect(input.closeAction).not.toHaveBeenCalled();
 });
+
+it('renders vote choice cards with distinct images and no ballot selected yet', () => {
+  const state = fixture('voting');
+  render(<SecrethitlerActionSheet screen={props(state, 1)} />);
+  const yes = screen.getByTestId('secrethitler-vote-yes');
+  const no = screen.getByTestId('secrethitler-vote-no');
+  expect(yes).toHaveAttribute('aria-pressed', 'false');
+  expect(no).toHaveAttribute('aria-pressed', 'false');
+  const yesSrc = yes.querySelector('img')?.getAttribute('src');
+  const noSrc = no.querySelector('img')?.getAttribute('src');
+  expect(yesSrc).toBeTruthy();
+  expect(noSrc).toBeTruthy();
+  expect(yesSrc).not.toBe(noSrc);
+});
+
+it('renders one policy card per distinct policy in the hand', () => {
+  const state = fixture('legislativePresident');
+  if (state.phase.kind !== 'legislativePresident') throw new Error('Expected hand');
+  render(<SecrethitlerActionSheet screen={props(state, state.phase.presidentSeat)} />);
+  const kinds = new Set(state.phase.hand);
+  // The sheet renders through a portal, so query the document, not the render container.
+  const srcs = [...document.querySelectorAll('.choice-card img')].map((img) =>
+    img.getAttribute('src'),
+  );
+  expect(new Set(srcs).size).toBe(kinds.size);
+  for (const src of srcs) expect(src).toBeTruthy();
+});

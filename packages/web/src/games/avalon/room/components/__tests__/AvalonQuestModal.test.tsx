@@ -112,10 +112,10 @@ describe('AvalonQuestModal', () => {
 
   it('shows the check badge only on the selected play', () => {
     const { getByTestId } = renderModal({ myRole: 'minion', myPlay: 'fail' });
-    const failBadge = getByTestId('avalon-quest-fail').querySelector('.avalon-choice-check');
+    const failBadge = getByTestId('avalon-quest-fail').querySelector('.choice-check');
     expect(failBadge).not.toBeNull();
     expect(failBadge?.textContent).toBe('✓');
-    expect(getByTestId('avalon-quest-success').querySelector('.avalon-choice-check')).toBeNull();
+    expect(getByTestId('avalon-quest-success').querySelector('.choice-check')).toBeNull();
   });
 
   it('offers both cards to evil players and reports the play', () => {

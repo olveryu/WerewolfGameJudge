@@ -1,0 +1,72 @@
+.choice-row {
+  display: flex;
+  gap: var(--space-small);
+}
+
+.choice-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-card);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+.choice-card:active {
+  opacity: var(--opacity-pressed);
+}
+
+.choice-card:disabled {
+  cursor: default;
+}
+
+/* 未选中的卡压暗，选中的卡保持全亮并上浮。 */
+.choice-card[aria-pressed='false'] {
+  opacity: var(--opacity-pressed);
+}
+
+.choice-card[aria-pressed='true'] {
+  border-width: var(--border-width-thick);
+  border-color: var(--color-warning);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(calc(var(--space-small) * -1));
+}
+
+.choice-image {
+  display: block;
+  width: 100%;
+  height: calc(var(--size-button-lg) * 4);
+  object-fit: cover;
+}
+
+.choice-label {
+  padding: var(--space-small) var(--space-medium);
+  color: var(--color-text);
+  font-size: var(--font-title);
+  line-height: var(--line-title);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+/* 选中角标：实心金圆 + 打勾，只在选中卡上出现。 */
+.choice-check {
+  position: absolute;
+  top: var(--space-small);
+  right: var(--space-small);
+  display: grid;
+  place-items: center;
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-bold);
+}

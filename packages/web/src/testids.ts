@@ -233,6 +233,13 @@ export const TESTIDS = {
   avalonLadyResultText: 'avalon-lady-result-text',
   avalonLadyResultClose: 'avalon-lady-result-close',
 
+  // Secret Hitler vote / policy cards
+  secrethitlerVoteYes: 'secrethitler-vote-yes',
+  secrethitlerVoteNo: 'secrethitler-vote-no',
+  secrethitlerPolicyCard: (action: 'discard' | 'enact', policy: 'liberal' | 'fascist') =>
+    `secrethitler-policy-${action}-${policy}`,
+  secrethitlerSettledVoteBanner: 'secrethitler-settled-vote-banner',
+
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',
   sheriffElectionHud: 'sheriff-election-hud',

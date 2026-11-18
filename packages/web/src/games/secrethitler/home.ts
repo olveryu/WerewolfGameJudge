@@ -1,4 +1,5 @@
 /** 秘密希特勒 contribution to the Home surface. */
+import secrethitlerArt from '@/assets/game-art/secrethitler.webp';
 import type { GameHomeContribution } from '@/games/model/GameHome';
 import { colors } from '@/theme/colors';
 import { lighten } from '@/theme/colorUtils';
@@ -11,5 +12,6 @@ export const secrethitlerHome = {
     Icon: IconGameControllerOutline,
     tier: 'main',
     gradient: [lighten(colors.primary, 0.45), colors.primary],
+    artUrl: secrethitlerArt,
   },
 } satisfies GameHomeContribution;
