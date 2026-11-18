@@ -8,6 +8,21 @@
 import { __GAME_UPPER___TODO_IDENTITY } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
+import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
+
+/** Public board composition only; never derive this from privately dealt seat identities. */
+export function create__GAME_PASCAL__BoardInfoSections(playerCount: number): readonly BoardInfoSection[] {
+  // TODO(gameplay): replace the placeholder with the approved public role-count table.
+  return [{
+    title: '身份',
+    color: 'var(--color-primary)',
+    items: [{
+      roleId: __GAME_UPPER___TODO_IDENTITY,
+      displayName: toRevealRoleData(__GAME_UPPER___TODO_IDENTITY).name,
+      count: playerCount,
+    }],
+  }];
+}
 
 /** 将本游戏身份转换为通用揭示数据。 */
 export function toRevealRoleData(identity: string): RevealRoleData {

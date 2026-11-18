@@ -158,6 +158,7 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   spotmatch: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
+  secrethitler: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
 };
 
 /** Concatenated non-test source of one directory tree (engine or worker side). */

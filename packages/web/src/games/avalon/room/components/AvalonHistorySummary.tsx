@@ -3,9 +3,7 @@
  * 当前轮次状态一句，行尾「对局记录 ›」是打开对局记录浮层的唯一入口。
  * 整条可点；纯投影，无私密信息。
  */
-import './AvalonRecord.css';
-
-import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
+import { RoomRecordSummary } from '@/features/room/components/RoomRecordSummary';
 import { TESTIDS } from '@/testids';
 
 /** 对局摘要条：整条是打开对局记录的按钮，进行中阶段附未提交座位行。 */
@@ -22,24 +20,13 @@ export function AvalonHistorySummary({
   readonly onOpenHistory: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className="avalon-history-summary"
-      aria-label="对局记录"
-      data-testid={TESTIDS.avalonHistorySummary}
-      onClick={onOpenHistory}
-    >
-      <span className="avalon-history-summary-row">
-        <span className="avalon-history-summary-text">{summary}</span>
-        <span className="avalon-history-summary-entry">对局记录 ›</span>
-      </span>
-      {pendingSeats !== null && (
-        <PendingSeatsRow
-          label={pendingLabel}
-          seats={pendingSeats}
-          testId={TESTIDS.avalonHistorySummaryPendingSeats}
-        />
-      )}
-    </button>
+    <RoomRecordSummary
+      summary={summary}
+      pendingSeats={pendingSeats}
+      pendingLabel={pendingLabel}
+      onOpen={onOpenHistory}
+      testId={TESTIDS.avalonHistorySummary}
+      pendingTestId={TESTIDS.avalonHistorySummaryPendingSeats}
+    />
   );
 }

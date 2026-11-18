@@ -26,16 +26,17 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 - Werewolf is the exception to the normalize path: its checker lives at `domain/state/normalize.ts`, and its strict parser imports it from there.
 - Current versions and accepted older versions (each in its game's `state/version.ts` and `state/migratePersisted*State`):
 
-  | Game       | Current | `migratePersisted*State` accepts |
-  | ---------- | ------- | -------------------------------- |
-  | werewolf   | 17      | 12, 13, 14, 15, 16               |
-  | avalon     | 11      | 1–10                             |
-  | fibking    | 8       | 5, 6, 7                          |
-  | pictionary | 10      | 8, 9                             |
-  | undercover | 5       | 1, 2, 3, 4                       |
-  | storyrelay | 3       | 1, 2                             |
-  | drawguess  | 5       | 1, 2, 3, 4                       |
-  | spotmatch  | 2       | 1                                |
+  | Game         | Current | `migratePersisted*State` accepts |
+  | ------------ | ------- | -------------------------------- |
+  | werewolf     | 17      | 12, 13, 14, 15, 16               |
+  | avalon       | 11      | 1–10                             |
+  | fibking      | 8       | 5, 6, 7                          |
+  | pictionary   | 10      | 8, 9                             |
+  | undercover   | 5       | 1, 2, 3, 4                       |
+  | storyrelay   | 3       | 1, 2                             |
+  | drawguess    | 5       | 1, 2, 3, 4                       |
+  | spotmatch    | 2       | 1                                |
+  | secrethitler | 1       | current only                     |
 
 - A strict parser rejects every other version. A migration function upgrades field by field, then runs the strict parser.
 - Persisted state is migrated at read time by the worker (see the worker file). The engine owns the per-version upgrade functions only.

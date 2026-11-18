@@ -5,6 +5,7 @@ import { avalonEngine } from './avalon/engine';
 import { drawGuessEngine } from './drawguess/engine';
 import { fibEngine } from './fibking/engine';
 import { pictionaryEngine } from './pictionary/engine';
+import { secrethitlerEngine } from './secrethitler/engine';
 import { spotmatchEngine } from './spotmatch/engine';
 import { storyRelayEngine } from './storyrelay/engine';
 import { undercoverEngine } from './undercover/engine';
@@ -19,6 +20,7 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
   undercover: undercoverEngine,
   storyrelay: storyRelayEngine,
   spotmatch: spotmatchEngine,
+  secrethitler: secrethitlerEngine,
 });
 
 export type GameEngineCatalog = typeof GAME_ENGINE_CATALOG;

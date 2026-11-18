@@ -18,6 +18,13 @@ individually to view their identities. When both `identityViewing` and
 `stageDeadline` are enabled, deadline arming is deferred until play
 begins; otherwise a selected stage deadline is armed as the stage begins.
 
+`identityViewing` also selects the role-game room layout: seats stay visible
+after dealing, with shared `RoomGameSummary`, `BoardInfoCard` and public role
+previews; identity actions remain in the bottom model. It does not generate
+a second identity workspace. With this capability off, the existing
+non-identity workspace remains; do not invent a role board for drawing or
+other stage-based play. Special gameplay layouts still require design approval.
+
 The capabilities contract checks each generated declaration against its
 wiring. Change a capability only with its corresponding wiring and contract
 expectation. Statistics are always generated and are not a capability.

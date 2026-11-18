@@ -159,6 +159,18 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     hostConfig: true,
     botBulkViewing: false,
   },
+  secrethitler: {
+    nightPhase: false,
+    botsAndTakeover: true,
+    identityViewing: true,
+    revealAnimation: true,
+    stageDeadline: false,
+    audioOrchestration: true,
+    wordLibrary: false,
+    gallery: false,
+    hostConfig: true,
+    botBulkViewing: false,
+  },
 };
 
 /** Concatenated non-test engine source of one game, with the

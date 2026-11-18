@@ -42,6 +42,21 @@ Do not use when:
 Also read, before design, the room-shell contract
 (`docs/room-shell-contract.md`).
 
+## Requirement authority
+
+- Do not add product restrictions on starting, participating, identity
+  assignment, or directory visibility without a cited game rule, an applicable
+  repository contract, or explicit user confirmation. A reward/statistics
+  eligibility threshold is not a gameplay or start gate.
+- Implementation difficulties do not authorize new gameplay rules or hidden
+  entry points. Ask before making behavior-changing tradeoffs; do not silently
+  restrict the product to simplify implementation.
+- In the design and integration report, distinguish sourced rules, explicitly
+  confirmed user decisions, and proposals awaiting confirmation. Cite the source
+  or confirmation for restrictions; never label an implementation assumption
+  as approved. Keep registration and directory visibility distinct, and dispose
+  of the go-live step rather than silently leaving the game hidden.
+
 ## Steps
 
 ### 1. Gather the design inputs
@@ -136,15 +151,31 @@ preload-audio list (`get<Game>PreloadAudio` form: per-board-role
 clips like werewolf or a fixed set like avalon) and wire it into the
 audio binding's `prepareQueue`; games without audio (fibking,
 undercover) state that explicitly and wire nothing.
+For narrated games, follow `scripts/README-audio.md`: add the game's
+cue text and output mapping to `scripts/generate_audio_edge_tts.py`,
+generate and bundle canonical MP3 assets, and resolve engine audio keys
+through a game-owned `AudioClip` registry/player using the shared
+`AudioService` (see `packages/web/src/games/avalon/audio/AvalonAudioPlayer.ts`).
+Do not substitute browser `SpeechSynthesis` for this asset pipeline;
+verify both the generator dry-run and the generated files.
 Round-settled games must choose and change the label/unit; never silently
 interpret rounds as games. Follow the statistics section of
 `references/skeleton-and-wiring.md` for eligibility and compatibility.
 
 Before implementing the HUD or ended screen, inspect the corresponding
 production screens in existing games and the shared room components.
-Reuse the shared stage HUD/panel; extract a common presentation when the
-same visual pattern is needed across games, rather than copying CSS or
-importing another game's components. A bare heading and ranking list is
+For `identityViewing`, preserve `RoomShell` seats throughout viewing, play
+and ended, following Werewolf/Avalon: `RoomGameSummary` with a public
+`BoardInfoCard` (collapsed after dealing), compact `RoomRecordSummary`
+in `contextHeader` when match records exist, and game details in
+`RoomDialog`. Identity and personal actions belong to bottom actions;
+private information belongs in explicit overlays, not a public header.
+Do not replace the board with a workspace or stack a large stage panel
+above it. Without `identityViewing`, retain the generated workspace;
+choose any specialized stage layout from the approved gameplay.
+Reuse the matching shared surface, not merely its outer frame; extract
+common presentation rather than copying CSS or importing another game's
+components. A bare heading and ranking list is
 not a completed ended screen: verify its ranking hierarchy, player/self
 labels, reward eligibility copy, review/restart entry points, and mobile
 layout alongside the in-play screen. Record the reused components and

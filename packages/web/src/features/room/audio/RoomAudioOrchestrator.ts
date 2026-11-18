@@ -62,6 +62,8 @@ export interface RoomAudioPlayerPort<TEffect> {
   prepareQueue?(effects: readonly TEffect[]): Promise<void>;
   /** Whether an error is a missing-asset failure (fail-fast, never skipped). */
   isMissingAssetError?(error: unknown): boolean;
+  /** Required electronic narration must finish before the game may acknowledge its batch. */
+  readonly stopOnPlaybackError?: boolean;
 }
 
 /** Ack port: dispatches the game's durable audio ack command for one batch. */
@@ -156,8 +158,8 @@ export class RoomAudioOrchestrator<
    * reactive playback. `wasAudioInterrupted` clears only once the guard is held, so a snapshot
    * republish during the replay cannot start a second playback of the same batch.
    *
-   * A replay failure still acks: the authoritative gate must not stay closed because a clip
-   * could not play on this device. Missing-asset errors propagate (programming error).
+   * A replay failure normally still acks. Required playback and missing-asset errors propagate
+   * without clearing the authoritative gate.
    */
   async resumeInterrupted(replay: () => Promise<void>, audioBatchId: number): Promise<void> {
     if (!this.#wasAudioInterrupted || this.#isPlayingEffects) return;
@@ -167,7 +169,11 @@ export class RoomAudioOrchestrator<
       try {
         await replay();
       } catch (error) {
-        if (this.#deps.player.isMissingAssetError?.(error) === true) throw error;
+        if (
+          this.#deps.player.stopOnPlaybackError ||
+          this.#deps.player.isMissingAssetError?.(error) === true
+        )
+          throw error;
         this.#deps.logger.warn('Interrupted batch replay failed, acking anyway', {
           audioBatchId,
           error,
@@ -218,7 +224,8 @@ export class RoomAudioOrchestrator<
           if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
           await player.playEffect(effect);
         } catch (error) {
-          if (player.isMissingAssetError?.(error) === true) throw error;
+          if (player.stopOnPlaybackError || player.isMissingAssetError?.(error) === true)
+            throw error;
           this.#deps.logger.warn('Audio effect playback failed, continuing', {
             audioKey: effect.audioKey,
             error,

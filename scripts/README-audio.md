@@ -7,6 +7,7 @@ This repo uses pre-generated mp3 narration files, produced by
 - `assets/audio_end/*.mp3` — werewolf: each role end
 - `assets/audio_avalon/*.mp3` — avalon: first-night begins
 - `assets/audio_avalon_end/*.mp3` — avalon: first-night ends
+- `assets/audio_secrethitler/*.mp3` — Secret Hitler: first-night cues
 
 Playback in-app is offline (assets are bundled); generation requires
 internet access.
@@ -34,8 +35,8 @@ tables in the script (`BEGIN_TEXT` / `END_TEXT` / `BEGIN_TEXT_AVALON` /
 
 ## Requirements
 
-- `edge-tts >= 7.2` (`pip install 'edge-tts>=7.2'`). Older releases compute
-  a retired Sec-MS-GEC token scheme and Microsoft rejects every synthesis
+- `edge-tts >= 7.3.1` (`pip install 'edge-tts>=7.3.1'`). Older releases compute
+  the retired v1 Sec-MS-GEC token and Microsoft rejects every synthesis
   handshake with 403.
 - `ffmpeg` on PATH (volume boost + trailing-silence post-processing).
 
@@ -47,6 +48,9 @@ python3 scripts/generate_audio_edge_tts.py
 
 # Avalon
 python3 scripts/generate_audio_edge_tts.py --game avalon
+
+# Secret Hitler
+python3 scripts/generate_audio_edge_tts.py --game secrethitler
 
 # Only one key
 python3 scripts/generate_audio_edge_tts.py --only night_end
