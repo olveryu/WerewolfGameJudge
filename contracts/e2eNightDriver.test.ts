@@ -1,14 +1,16 @@
 /// <reference lib="dom" />
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { alertPrimaryButton, dismissCurrentAlert } from '../e2e/helpers/alerts';
 import {
   clickSeatAndConfirm,
+  tryClickNightButton,
   waitForRoleTurn,
   waitForStepAndSettle,
 } from '../e2e/helpers/night-driver';
+import { RoomPage } from '../e2e/pages/RoomPage';
 import { TESTIDS } from '../packages/web/src/testids';
 
 vi.mock('../e2e/helpers/waits', () => ({ ensureConnected: vi.fn() }));
@@ -47,6 +49,54 @@ function roomPage() {
     }),
   } as unknown as Page;
   return { page, state, tick, click };
+}
+
+function nightPanelPage(key: string) {
+  const fixture = roomPage();
+  const state = Object.assign(fixture.state, {
+    step: 'wolfKill',
+    audio: false,
+    modal: false,
+    actionsOpen: false,
+    buttonAvailable: false,
+  });
+  const originalGetByTestId = fixture.page.getByTestId.bind(fixture.page);
+  const button = {
+    isVisible: vi.fn(async () => state.actionsOpen && state.buttonAvailable),
+    click: vi.fn(async () => {
+      state.actionsOpen = false;
+    }),
+  };
+  const panel = {
+    _apiName: 'Locator',
+    isVisible: async () => state.actionsOpen,
+    getByTestId: () => button,
+    _expect: async () => ({ matches: state.actionsOpen }),
+  } as unknown as Locator;
+  const entry = {
+    isVisible: async () => true,
+    or: () => entry,
+    first: () => entry,
+  };
+  fixture.page.getByTestId = vi.fn((testId: string) => {
+    if (testId === TESTIDS.werewolfNightButton(key)) return button;
+    if (testId === TESTIDS.roomHostManagementPanel) return panel;
+    if (testId === TESTIDS.roomMoreActionsButton || testId === TESTIDS.roomHostManagementButton)
+      return entry;
+    return originalGetByTestId(testId);
+  }) as unknown as Page['getByTestId'];
+  const openPanel = vi
+    .spyOn(RoomPage.prototype, 'openHostManagement')
+    .mockImplementation(async () => {
+      state.actionsOpen = true;
+      return panel;
+    });
+  const closePanel = vi
+    .spyOn(RoomPage.prototype, 'closeHostManagement')
+    .mockImplementation(async () => {
+      state.actionsOpen = false;
+    });
+  return { ...fixture, state, button, panel, openPanel, closePanel };
 }
 
 afterEach(() => {
@@ -150,6 +200,67 @@ describe('night driver readiness', () => {
       /No active step before seat selection/,
     );
     expect(click).not.toHaveBeenCalled();
+  });
+});
+
+describe('night driver panel probes', () => {
+  it('defers during narration without opening the panel, then discovers the unlocked action', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { page, state, button, openPanel } = nightPanelPage('wolfEmpty');
+    state.audio = true;
+
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
+    expect(openPanel).not.toHaveBeenCalled();
+
+    state.audio = false;
+    state.buttonAvailable = true;
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(true);
+    expect(button.click).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['wolfKill', 'wolfEmpty'],
+    ['pureWhiteCheck', 'skip'],
+  ])('rediscovers a delayed %s action after an unsuccessful probe', async (step, key) => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { page, state, button, openPanel, closePanel } = nightPanelPage(key);
+    state.step = step;
+
+    expect(await tryClickNightButton(page, key)).toBe(false);
+    expect(closePanel).toHaveBeenCalledOnce();
+
+    state.buttonAvailable = true;
+    expect(await tryClickNightButton(page, key)).toBe(true);
+    expect(openPanel).toHaveBeenCalledTimes(2);
+    expect(button.click).toHaveBeenCalledOnce();
+  });
+
+  it('does not reuse a missing action from the same step on a previous night', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { page, state, button } = nightPanelPage('wolfEmpty');
+
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
+    state.phase = 'Day';
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
+
+    state.phase = 'Ongoing';
+    state.buttonAvailable = true;
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(true);
+    expect(button.click).toHaveBeenCalledOnce();
+  });
+
+  it('closes its panel without clicking when the step changes while opening it', async () => {
+    const { page, state, button, panel, openPanel, closePanel } = nightPanelPage('wolfEmpty');
+    state.buttonAvailable = true;
+    openPanel.mockImplementationOnce(async () => {
+      state.actionsOpen = true;
+      state.step = 'seerCheck';
+      return panel;
+    });
+
+    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
+    expect(button.click).not.toHaveBeenCalled();
+    expect(closePanel).toHaveBeenCalledOnce();
   });
 });
 
