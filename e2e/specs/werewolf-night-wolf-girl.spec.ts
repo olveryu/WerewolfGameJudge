@@ -12,6 +12,7 @@ import {
   driveWolfDisabledEmptyVote,
   findAllRolePageIndices,
   findRolePageIndex,
+  nightButton,
   viewLastNightInfo,
   waitForGroupConfirmStep,
   waitForNightEnd,
@@ -45,40 +46,20 @@ import { withSetup } from '../helpers/night-setup';
 // mid-night, step 4/7 in the failure snapshots).
 test.setTimeout(300_000);
 
-/**
- * A wolf seat must not be confessable: tapping it during the Wolf
- * Girl's confess step opens no "确认表白" dialog and does not move
- * the night step. The tap may surface a disabled-reason notice or
- * nothing at all; either way the step must stay put. The open step
- * prompt is dismissed first so the tap reaches the seat.
- */
-async function expectWolfSeatNotConfessable(
-  page: Page,
-  seat: number,
-  selectableSeat: number,
-): Promise<void> {
-  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute(
-    'data-step',
-    'wolfGirlConfess',
-  );
-  await expect(page.getByTestId(TESTIDS.seatTilePressable(selectableSeat))).toHaveAttribute(
-    'data-inert',
-    'false',
-  );
-  const wolfTile = page.getByTestId(TESTIDS.seatTilePressable(seat));
-  await expect(wolfTile).toHaveAttribute('data-inert', 'true');
-  await dismissAlert(page);
-  await wolfTile.click({ timeout: 10_000 });
+async function confirmConfession(page: Page, wolfSeat: number, targetSeat: number): Promise<void> {
+  await clickNightButton(page, 'startSeatSelection', '选择表白目标');
+  const confirmButton = nightButton(page, 'submitSeatSelection');
+  const wolfTile = page.getByTestId(TESTIDS.seatTilePressable(wolfSeat));
+  const targetTile = page.getByTestId(TESTIDS.seatTilePressable(targetSeat));
 
-  await expect(
-    page.getByTestId(TESTIDS.alertButton(1)),
-    'No confess confirm dialog for a wolf seat',
-  ).toHaveCount(0);
-  await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute(
-    'data-step',
-    'wolfGirlConfess',
-  );
-  await dismissAlert(page);
+  await expect(targetTile).toHaveAttribute('aria-pressed', 'false');
+  await expect(wolfTile).toBeDisabled();
+  await wolfTile.press('Enter');
+  await expect(confirmButton).toBeDisabled();
+
+  await targetTile.click();
+  await expect(targetTile).toHaveAttribute('aria-pressed', 'true');
+  await clickNightButton(page, 'submitSeatSelection', `确认表白 ${formatSeat(targetSeat)}`);
 }
 
 async function driveGuardProtect(
@@ -187,16 +168,10 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           await expect(
             pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
             'Confess step prompt should show the 表白 verb',
-          ).toContainText('请选择要表白的玩家');
+          ).toContainText('先按「选择表白目标」');
 
-          await expectWolfSeatNotConfessable(
-            pages[wolfGirlPageIndex]!,
-            wolfSeats[0]!,
-            confessTargetSeat,
-          );
-
-          await test.step('Wolf Girl should confirm the confession', () =>
-            clickSeatAndConfirm(pages[wolfGirlPageIndex]!, confessTargetSeat));
+          await test.step('Wolf Girl cannot select a wolf but can confirm a civilian', () =>
+            confirmConfession(pages[wolfGirlPageIndex]!, wolfSeats[0]!, confessTargetSeat));
         });
 
         await drivePostConfessNight(
@@ -279,10 +254,8 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           await test.step('Wolf Girl confess turn should become active', () =>
             waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
-          await expectWolfSeatNotConfessable(pages[wolfGirlPageIndex]!, wolfSeats[0]!, seerSeat);
-
           await test.step('Wolf Girl should confirm the confession', () =>
-            clickSeatAndConfirm(pages[wolfGirlPageIndex]!, seerSeat));
+            confirmConfession(pages[wolfGirlPageIndex]!, wolfSeats[0]!, seerSeat));
         });
 
         await drivePostConfessNight(

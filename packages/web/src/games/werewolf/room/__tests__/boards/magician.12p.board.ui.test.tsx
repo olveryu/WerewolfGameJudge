@@ -4,9 +4,9 @@
  * Board: Wolf King Magician
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, magician
  *
- * Required UI coverage (getRequiredUiDialogTypes):
- * - actionPrompt, wolfVote, confirmTrigger, witchSavePrompt, witchPoisonPrompt,
- *   magicianFirst, actionConfirm
+ * Required UI coverage:
+ * - actionPrompt, wolfVote, confirmTrigger, witchSavePrompt, witch poison selection,
+ *   two-target swap selection
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -14,18 +14,18 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
-  chainActionConfirm,
   chainConfirmTrigger,
-  chainWolfVoteConfirm,
+  chainWolfVote,
   confirmStep,
   coverageChainActionPrompt,
   coverageChainConfirmTrigger,
   coverageChainMagicianSwap,
   coverageChainSkipConfirm,
-  coverageChainWitchPoisonPrompt,
+  coverageChainWitchPoisonSelection,
   coverageChainWitchSavePrompt,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
+  draftSeatSelection,
   getBoardByName,
   mountRoomFor as mount,
   pressText,
@@ -33,6 +33,8 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
+  startSeatSelection,
   tapSeat,
   witchStep,
   wolfKillStep,
@@ -69,12 +71,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('wolfVote coverage', () => {
-    it('darkWolfKing vote: tapping seat shows wolf vote dialog', async () => {
+  describe('wolf vote selection coverage', () => {
+    it('darkWolfKing vote: drafting a target enables vote submission', async () => {
       const view = await mount(WOLF_STEP);
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
@@ -97,40 +97,32 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('witchPoisonPrompt coverage', () => {
-    it('witch action: tapping seat triggers poison', async () => {
+  describe('witch poison selection coverage', () => {
+    it('witch action: drafting a poison target enables submission', async () => {
       const view = await mount(witchStep(9, -1));
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
-  describe('magicianFirst coverage', () => {
-    it('magician swap: first tap shows magicianFirst dialog', async () => {
+  describe('first swap pick', () => {
+    it('magician swap: one target is drafted but cannot be submitted', async () => {
       const view = await mount(MAGICIAN_STEP);
-      harness.clear();
+      await startSeatSelection(view);
       await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
+      expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
+      expect(seatSelectionSubmitButton(view)).toBeDisabled();
     });
   });
 
-  describe('actionConfirm coverage', () => {
+  describe('seat selection coverage', () => {
     // Both taps run in one render: the first pick lives in the screen's interaction state.
-    it('magician swap: second tap shows actionConfirm', async () => {
+    it('magician swap: two picks enable submission', async () => {
       const view = await mount(MAGICIAN_STEP);
-      harness.clear();
-
-      // First tap: triggers magicianFirst (records the first pick)
+      await startSeatSelection(view);
       await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-
-      // Press OK to dismiss first dialog and confirm first target
-      await harness.pressPrimaryOnType('magicianFirst');
-
-      // Second tap: triggers actionConfirm (uses the recorded first pick)
       await tapSeat(view, 2);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+      expect(view.getByText('已选 2 / 2 人')).toBeInTheDocument();
+      expect(seatSelectionSubmitButton(view)).toBeEnabled();
     });
   });
 
@@ -164,27 +156,26 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   // ===========================================================================
 
   describe('chain interaction', () => {
-    it('wolfVote confirm → submitAction called', async () => {
-      await chainWolfVoteConfirm(harness, 'darkWolfKing', 7, WOLVES, 1);
+    it('wolf target submission → submitAction called', async () => {
+      await chainWolfVote('darkWolfKing', 7, WOLVES, 1);
     });
 
     it('confirmTrigger (hunter) → dialog dismissed', async () => {
       await chainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 10);
     });
 
-    it('actionConfirm (magician) → submitAction called', async () => {
-      await chainActionConfirm(harness, 11, 1, 2);
+    it('magician swap submission → submitAction called', async () => {
+      await coverageChainMagicianSwap(11, 1, 2);
     });
   });
 
   describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
+    it('all required UI flows covered with chain interactions and effect assertions', async () => {
       // Step 1: actionPrompt (seer)
       await coverageChainActionPrompt(harness, 'seerCheck', 'seer', 'seer', 8);
 
-      // Step 2: wolfVote → press confirm → submitAction(1) called
+      // Step 2: wolf target selection → submit → submitAction(1) called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
-        harness,
         'darkWolfKing',
         7,
         WOLVES,
@@ -204,11 +195,11 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 4: witchSavePrompt
       await coverageChainWitchSavePrompt(harness, 9);
 
-      // Step 5: witchPoisonPrompt
-      await coverageChainWitchPoisonPrompt(harness, 9);
+      // Step 5: witch poison selection
+      await coverageChainWitchPoisonSelection(9);
 
-      // Step 6: magicianSwap → two-tap → magicianFirst + actionConfirm → submitAction called
-      const { submitAction: magicianSubmit } = await coverageChainMagicianSwap(harness, 11, 1, 2);
+      // Step 6: magicianSwap → draft two targets → submit
+      const { submitAction: magicianSubmit } = await coverageChainMagicianSwap(11, 1, 2);
       expect(magicianSubmit).toHaveBeenCalled();
 
       // Step 7: skipConfirm (seer) → press primary → submitAction called
@@ -233,14 +224,11 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       // Final: literal coverage requirements
       harness.assertCoverage([
         'actionPrompt',
-        'wolfVote',
         'wolfVoteEmpty',
         'confirmTrigger',
         'witchSavePrompt',
         'witchNoKill',
-        'witchPoisonPrompt',
-        'magicianFirst',
-        'actionConfirm',
+
         'skipConfirm',
       ]);
     });

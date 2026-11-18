@@ -184,7 +184,7 @@ export async function isNightEnded(page: Page): Promise<boolean> {
 /**
  * A werewolf night step button, by its button spec key (see buildNightButtons):
  * skip, wolfEmpty, wolfCancel, save, confirm, groupConfirmAck, viewHunterStatus,
- * multiConfirm, chooseCard.
+ * chooseCard.
  */
 export function nightButton(page: Page, key: string): Locator {
   return page.getByTestId(TESTIDS.werewolfNightButton(key));
@@ -224,92 +224,52 @@ export async function clickSeatAndReadNotice(
 }
 
 /**
- * Click a single-target seat and confirm it. Only unsubmitted taps may be
- * repeated, within the original step; draft/toggle steps must never use this.
+ * Enter the night selection mode, draft the target(s), then press the
+ * focused submit button. Never replay a toggle or a submission.
  */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<void> {
-  log(`clickSeatAndConfirm seat=${seatIdx}`);
-  const stepBefore = await readRoomStep(page);
-  const tile = page.getByTestId(TESTIDS.seatTilePressable(seatIdx));
-  const confirmButton = page.getByTestId(TESTIDS.alertButton(1));
-  const deadline = Date.now() + CONFIRM_TIMEOUT_MS;
-  try {
-    if (stepBefore === null) throw new Error('No active step before seat selection');
-    await dismissAlert(page);
-    for (let attempt = 1; Date.now() < deadline; attempt++) {
-      if ((await readRoomStep(page)) !== stepBefore) {
-        throw new Error(`Step moved away from ${stepBefore}; refusing another seat tap`);
-      }
-      // A late confirmation is handled before dismissing anything or tapping again.
-      if (!(await confirmButton.isVisible())) {
-        await dismissAlert(page);
-        await expect(tile).toHaveAttribute('data-inert', 'false', {
-          timeout: Math.max(1, deadline - Date.now()),
-        });
-        if ((await readRoomStep(page)) !== stepBefore) {
-          throw new Error(`Step moved away from ${stepBefore} while waiting for the seat`);
-        }
-        try {
-          await tile.click({
-            timeout: Math.min(SWEEP_CLICK_TIMEOUT_MS, Math.max(1, deadline - Date.now())),
-          });
-        } catch (error) {
-          if (!(error instanceof errors.TimeoutError)) throw error;
-          log(`seat tap blocked — step=${stepBefore} seat=${seatIdx} attempt=${attempt}`);
-          continue;
-        }
-        log(`clickSeatAndConfirm seat=${seatIdx} — tile clicked (attempt ${attempt})`);
-      }
-      try {
-        await confirmButton.waitFor({
-          state: 'visible',
-          timeout: Math.min(POLL_INTERVAL_MS, Math.max(1, deadline - Date.now())),
-        });
-      } catch (error) {
-        if (!(error instanceof errors.TimeoutError)) throw error;
-        log(
-          `seat tap awaiting confirmation — step=${stepBefore} seat=${seatIdx} attempt=${attempt}`,
-        );
-        continue;
-      }
-      await expect(confirmButton).toHaveText('确定');
-      await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
-      await confirmButton.waitFor({ state: 'hidden', timeout: CLICK_TIMEOUT_MS });
-      log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
-      return;
-    }
-    throw new Error(`No seat confirmation within ${CONFIRM_TIMEOUT_MS}ms`);
-  } catch (error) {
-    return failNightAction(`Seat ${seatIdx} confirmation failed in ${stepBefore}`, [page], error);
-  }
+  await selectAndSubmitSeats(page, [seatIdx]);
 }
 
-/**
- * Drive a multi-seat selection step: toggle each target seat (a toggle opens no
- * dialog; the confirm button's count follows each one), then press the
- * multiConfirm button labelled `confirmLabel` (e.g. '确认催眠（2人）') and
- * confirm its alert.
- */
-export async function driveMultiSelect(
+async function selectAndSubmitSeats(
   page: Page,
-  targetSeats: readonly number[],
-  confirmLabel: string,
+  seats: readonly number[],
+  expectedAction?: string,
 ): Promise<void> {
+  const stepBefore = await readRoomStep(page);
   try {
+    if (stepBefore === null) throw new Error('No active step before seat selection');
+    await waitForStepAndSettle(page, stepBefore);
     await dismissAlert(page);
-    const confirmButton = nightButton(page, 'multiConfirm');
-    for (const [selectedCount, seat] of targetSeats.entries()) {
+    const room = new RoomPage(page);
+    if (await room.hasPanelPlayerAction(TESTIDS.werewolfNightButton('startSeatSelection'))) {
+      await room.openHostManagement();
+    }
+    await nightButton(page, 'startSeatSelection').click({ timeout: CLICK_TIMEOUT_MS });
+    for (const seat of seats) {
       const tile = page.getByTestId(TESTIDS.seatTilePressable(seat));
       await expect(tile).toHaveAttribute('data-inert', 'false');
       await tile.click({ timeout: CLICK_TIMEOUT_MS });
-      await expect(confirmButton).toContainText(`（${selectedCount + 1}人）`);
+      await expect(tile).toHaveAttribute('aria-pressed', 'true');
     }
-    await expect(confirmButton).toHaveText(confirmLabel);
+    const confirmButton = nightButton(page, 'submitSeatSelection');
+    if (expectedAction !== undefined) await expect(confirmButton).toContainText(expectedAction);
+    await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
+    await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
     await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
-    await pressConfirm(page);
+    log(`seat selection submitted — step=${stepBefore} seats=${seats.join(',')}`);
   } catch (error) {
-    return failNightAction(`Multi-seat selection [${targetSeats}] failed`, [page], error);
+    return failNightAction(`Seat selection [${seats}] failed in ${stepBefore}`, [page], error);
   }
+}
+
+/** Select multiple targets and verify the labelled action before submitting. */
+export async function driveMultiSelect(
+  page: Page,
+  targetSeats: readonly number[],
+  actionLabel: string,
+): Promise<void> {
+  await selectAndSubmitSeats(page, targetSeats, actionLabel);
 }
 
 /** Select and confirm the first enabled card inside the bottom-card modal. */
@@ -880,28 +840,8 @@ export async function clickNightButton(page: Page, key: string, label: string): 
 // ---------------------------------------------------------------------------
 
 /**
- * Drive the magician to swap two seats.
- * Clicks seat1, confirms first target prompt, clicks seat2, confirms swap.
+ * Draft and submit the magician's two-seat swap.
  */
 export async function driveMagicianSwap(page: Page, seat1: number, seat2: number): Promise<void> {
-  try {
-    // Dismiss any existing alert (e.g. "夜间行动") before interacting with seats
-    await dismissAlert(page);
-
-    const tile1 = page.getByTestId(TESTIDS.seatTilePressable(seat1));
-    await expect(tile1).toHaveAttribute('data-inert', 'false');
-    await tile1.click({ timeout: CLICK_TIMEOUT_MS });
-
-    await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('已选择第一位玩家');
-    await dismissAlert(page);
-
-    // Click second seat → triggers "确认交换" confirm dialog
-    const tile2 = page.getByTestId(TESTIDS.seatTilePressable(seat2));
-    await expect(tile2).toHaveAttribute('data-inert', 'false');
-    await tile2.click({ timeout: CLICK_TIMEOUT_MS });
-    await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('确认交换');
-    await pressConfirm(page);
-  } catch (error) {
-    return failNightAction(`Magician swap ${seat1}/${seat2} failed`, [page], error);
-  }
+  await selectAndSubmitSeats(page, [seat1, seat2], '确认交换');
 }

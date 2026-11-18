@@ -43,6 +43,7 @@ export interface RoomSeatViewModel {
   readonly highlight: RoomSeatHighlight;
   readonly secondaryLabel: string | null;
   readonly disabledReason?: string;
+  readonly isSelectionUnavailable?: boolean;
   readonly showReadyBadge: boolean;
   readonly statusBadge: RoomSeatStatusBadge | null;
   readonly indicators: RoomSeatIndicators | null;

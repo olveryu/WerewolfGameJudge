@@ -187,7 +187,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
           const lover1Seat = nonCupidEntries[0]![1].seat;
           const lover2Seat = nonCupidEntries[1]![1].seat;
 
-          await driveMultiSelect(pages[cupidIdx]!, [lover1Seat, lover2Seat], '确认连接（2人）');
+          await driveMultiSelect(pages[cupidIdx]!, [lover1Seat, lover2Seat], '确认连接');
         });
 
         // === Step 3: CupidLoversReveal groupConfirm — all players ack ===

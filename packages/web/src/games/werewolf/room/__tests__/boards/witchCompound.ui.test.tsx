@@ -3,7 +3,7 @@
  *
  * Tests the witch compound action flow as a full sequence:
  * 1. Save prompt appears → press dismiss → no submit
- * 2. Then tap seat → poison confirm → press confirm → submitAction called with poison payload
+ * 2. Then open poison selection → draft target → submit poison payload
  * 3. Save prompt appears → press dismiss → press skip → skipConfirm → press confirm → submitAction called with skipAll
  *
  * Existing board tests only test each witch dialog type in isolation.
@@ -16,15 +16,17 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
+  draftSeatSelection,
   mountRoomFor as mount,
   pressText,
   recordAlerts,
   RoomScreenTestHarness,
   type SubmitActionMock,
+  submitSeatSelection,
   successfulWerewolfCommand,
-  tapSeat,
   type WerewolfRoomMockOptions,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -54,11 +56,11 @@ describe('Witch Compound Sequence', () => {
   afterEach(() => detachAlerts());
 
   // ===========================================================================
-  // Sequence: save prompt → dismiss → tap seat → poison confirm → submit
+  // Sequence: save prompt → dismiss → draft poison target → submit
   // ===========================================================================
 
   describe('save prompt dismiss → poison flow', () => {
-    it('save prompt appears, dismiss, then tap seat triggers poison confirm', async () => {
+    it('dismisses the save prompt, then drafts and submits a poison target', async () => {
       const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
       const view = await mount(
         witchWith({ killedSeat: 1, canSave: true, canPoison: true }, submitAction),
@@ -70,21 +72,21 @@ describe('Witch Compound Sequence', () => {
       // Step 2: dismiss the save prompt
       await harness.pressPrimaryOnType('witchSavePrompt');
 
-      // Step 3: tap a seat to trigger poison
-      await tapSeat(view, 2);
-
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
-      );
-
-      // Step 4: confirm the poison action
-      const lastEvent = harness.getLastEvent();
-      if (lastEvent && lastEvent.buttons.includes('确定')) {
-        await harness.pressButton('确定');
-      }
-
-      // Submit should be called with poison payload
-      expect(submitAction).toHaveBeenCalled();
+      const startId = TESTIDS.werewolfNightButton('startSeatSelection');
+      expect(view.queryByTestId(startId)).not.toBeInTheDocument();
+      expect(
+        view.getByTestId(TESTIDS.roomMoreActionsButton).getAttribute('data-player-action-ids'),
+      ).toContain(startId);
+      harness.clear();
+      await draftSeatSelection(view, 2);
+      expect(harness.events()).toEqual([]);
+      expect(submitAction).not.toHaveBeenCalled();
+      await submitSeatSelection(view);
+      expect(submitAction).toHaveBeenCalledExactlyOnceWith({
+        kind: 'witch',
+        saveTarget: null,
+        poisonTarget: 2,
+      });
     });
   });
 

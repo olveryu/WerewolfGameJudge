@@ -75,6 +75,7 @@ import { createSheriffElectionDockModel } from './day/sheriffElectionDockModel';
 import type { SheriffElectionViewModel } from './day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from './day/useSheriffElection';
 import type { NightInteractionModel } from './night/NightInteractionModel';
+import { nightSeatAction, type NightSeatSelection } from './night/nightSeatSelection';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
 const ACTION_SUBMITTING_REASON = '行动正在确认中';
@@ -139,10 +140,10 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
 interface WerewolfSeatSourceInput {
   readonly state: GameState;
   readonly viewModel: WerewolfViewModel;
-  readonly night: NightInteractionModel;
   readonly controlledSeat: number | null;
   readonly sheriffElectionView: SheriffElectionViewModel | null;
   readonly revision: string | number;
+  readonly seatSelection?: NightSeatSelection | null;
 }
 
 function getSheriffSeatStatusBadge(
@@ -169,24 +170,13 @@ function formatWolfVoteBadge(vote: number): string {
   return vote === -1 ? emptyVoteText : `袭击${formatSeat(vote)}`;
 }
 
-/** Seats the night model marks as picked (swap pair, multi-select set). */
-export function selectedNightSeats(night: NightInteractionModel): readonly number[] {
-  switch (night.kind) {
-    case 'pickTwoSeats':
-      return [night.pick.first, night.pick.second].filter((seat): seat is number => seat !== null);
-    case 'multiSelect':
-      return night.selected;
-    default:
-      return [];
-  }
-}
-
 export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): RoomSeatDataSource {
-  const { state, viewModel, night, controlledSeat } = input;
+  const { state, viewModel, controlledSeat } = input;
   const status = viewModel.status;
   const seatCount = viewModel.template.numberOfPlayers;
   const seatViews = new Map(viewModel.seats.map((seat) => [seat.seat, seat]));
-  const selected = new Set(selectedNightSeats(night));
+  const selection = input.seatSelection;
+  const selected = new Set(selection?.seats);
   const wolfVotes = viewModel.night.wolfVote?.votes ?? null;
   const showReadyBadges = status === GameStatus.Assigned || status === GameStatus.Ready;
   const groupReveal = viewModel.night.reveals[0] ?? null;
@@ -222,15 +212,18 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
         wolfVote === undefined &&
         ((showReadyBadges && player !== null && (seatView?.hasViewedRole ?? false)) ||
           (groupReveal?.ackedSeats.includes(seat) ?? false));
+      const isSelected = selected.has(seat);
+      const isEligible = selection?.eligible.includes(seat) ?? false;
       return {
         seat,
         player,
         isSelf: seat === viewModel.mySeat,
-        highlight:
-          controlledSeat === seat
-            ? 'controlled'
-            : selected.has(seat)
-              ? 'selected'
+        highlight: isSelected
+          ? 'selected'
+          : isEligible
+            ? 'info'
+            : controlledSeat === seat
+              ? 'controlled'
               : isWolfPeer
                 ? 'danger'
                 : 'none',
@@ -238,14 +231,27 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
           seatView !== null && seatView.isBot && seatView.visibleRole !== null
             ? getRoleDisplayName(seatView.visibleRole)
             : null,
-        disabledReason: seatView?.disabledReason ?? undefined,
+        disabledReason:
+          selection != null && !isEligible
+            ? (seatView?.disabledReason ?? '此座位当前不可选择')
+            : (seatView?.disabledReason ?? undefined),
         showReadyBadge: hasReadyBadge,
         statusBadge:
           getSheriffSeatStatusBadge(input.sheriffElectionView, seat) ??
           (wolfVote === undefined
             ? null
             : { label: formatWolfVoteBadge(wolfVote), tone: 'danger' }),
-        indicators: null,
+        isSelectionUnavailable: selection != null && !isEligible,
+        indicators:
+          isSelected || isEligible
+            ? {
+                markers: [],
+                progressLabel: null,
+                selection: isSelected
+                  ? { kind: 'selected', label: '已选' }
+                  : { kind: 'preselected', label: '可选' },
+              }
+            : null,
         isStatusEmphasized: false,
         showLevel: isWerewolfSetup(status),
         decorationsEnabled: showLevelsAndDecorations,
@@ -292,6 +298,9 @@ export function deriveWerewolfBottomProgress(state: GameState): NightStepProgres
 
 /** What a night button does when pressed; the hook maps each to a dialog or a submit. */
 export type NightButtonAction =
+  | { readonly kind: 'startSeatSelection' }
+  | { readonly kind: 'cancelSeatSelection' }
+  | { readonly kind: 'submitSeatSelection' }
   | { readonly kind: 'skip' }
   | { readonly kind: 'emptyVote' }
   | { readonly kind: 'withdrawVote' }
@@ -299,14 +308,14 @@ export type NightButtonAction =
   | { readonly kind: 'openStatus' }
   | { readonly kind: 'openGroupReveal' }
   | { readonly kind: 'openHunterStatus' }
-  | { readonly kind: 'openChooseCard' }
-  | { readonly kind: 'confirmMultiSelect' };
+  | { readonly kind: 'openChooseCard' };
 
 interface NightButtonSpec {
   readonly key: string;
   readonly label: string;
   readonly tier: 'primary' | 'secondary';
   readonly action: NightButtonAction;
+  readonly disabledReason?: string;
 }
 
 /** The night step's buttons for the actioner, per model kind. */
@@ -320,6 +329,7 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
       return [{ key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } }];
     case 'pickSeat':
     case 'pickTwoSeats':
+    case 'multiSelect':
       return night.skipLabel === null
         ? []
         : [{ key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } }];
@@ -386,26 +396,6 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
           action: { kind: 'openHunterStatus' },
         },
       ];
-    case 'multiSelect': {
-      const buttons: NightButtonSpec[] = [];
-      if (night.selected.length > 0) {
-        buttons.push({
-          key: 'multiConfirm',
-          label: night.confirmButtonTemplate.replace('{count}', String(night.selected.length)),
-          tier: 'primary',
-          action: { kind: 'confirmMultiSelect' },
-        });
-      }
-      if (night.skipLabel !== null) {
-        buttons.push({
-          key: 'skip',
-          label: night.skipLabel,
-          tier: 'secondary',
-          action: { kind: 'skip' },
-        });
-      }
-      return buttons;
-    }
     case 'chooseCard':
       return [
         {
@@ -421,6 +411,7 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
 interface WerewolfBottomLayoutInput {
   readonly viewModel: WerewolfViewModel;
   readonly night: NightInteractionModel;
+  readonly seatSelection?: NightSeatSelection | null;
   readonly isHost: boolean;
   readonly effectiveSeat: number | null;
   readonly isAudioPlaying: boolean;
@@ -442,6 +433,9 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
   };
   if (input.isActionSubmitting) {
     return { ...base, isEnabled: false, disabledReason: ACTION_SUBMITTING_REASON };
+  }
+  if (spec.disabledReason !== undefined) {
+    return { ...base, isEnabled: false, disabledReason: spec.disabledReason };
   }
   return { ...base, isEnabled: true, onPress: () => input.onNightButton(spec.action) };
 }
@@ -490,7 +484,36 @@ export function createWerewolfBottomActionLayout(
       return { primary: viewRole('primary'), secondary: [], ghost: [] };
     case GameStatus.Ongoing: {
       if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
-      const buttons = buildNightButtons(night).map((spec) => nightButton(spec, input));
+      const selection = input.seatSelection;
+      const action = nightSeatAction(night);
+      const specs: NightButtonSpec[] = [...buildNightButtons(night)];
+      if (selection != null) {
+        specs.splice(
+          0,
+          specs.length,
+          {
+            key: 'submitSeatSelection',
+            label: selection.confirm?.label ?? '确认选择',
+            tier: 'primary',
+            action: { kind: 'submitSeatSelection' },
+            ...(selection.confirm === null ? { disabledReason: '请选择所需目标' } : {}),
+          },
+          {
+            key: 'cancelSeatSelection',
+            label: '取消选座',
+            tier: 'secondary',
+            action: { kind: 'cancelSeatSelection' },
+          },
+        );
+      } else if (action !== null && action.eligible.length !== 0) {
+        specs.push({
+          key: 'startSeatSelection',
+          label: action.label,
+          tier: night.kind === 'witch' && night.canSave ? 'secondary' : 'primary',
+          action: { kind: 'startSeatSelection' },
+        });
+      }
+      const buttons = specs.map((spec) => nightButton(spec, input));
       return {
         primary: buttons.filter((button) => button.variant === 'primary'),
         secondary: [
@@ -672,7 +695,7 @@ interface WerewolfRoomShellModelInput extends Pick<
 > {
   readonly state: GameState;
   readonly viewModel: WerewolfViewModel;
-  readonly night: NightInteractionModel;
+  readonly seatSelection?: NightSeatSelection | null;
   readonly revision: number;
   readonly controlledSeat: number | null;
   readonly onReleaseBot: () => void;
@@ -710,7 +733,7 @@ export function deriveWerewolfSeatCounts(
 }
 
 export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput): RoomShellModel {
-  const { state, viewModel, night, controlledSeat } = input;
+  const { state, viewModel, controlledSeat } = input;
   const hasBots = Object.values(state.roster).some((occupant) => isBotOccupant(occupant));
   const counts = deriveWerewolfSeatCounts(state, viewModel);
 
@@ -767,10 +790,10 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     seatSource: createWerewolfSeatDataSource({
       state,
       viewModel,
-      night,
+      seatSelection: input.seatSelection ?? null,
       controlledSeat,
       sheriffElectionView: input.sheriffElectionPanel?.view ?? null,
-      revision: `${input.revision}:${controlledSeat ?? 'self'}:${selectedNightSeats(night).join(',')}`,
+      revision: `${input.revision}:${controlledSeat ?? 'self'}:${input.seatSelection?.eligible.join(',') ?? '-'}:${input.seatSelection?.seats.join(',') ?? '-'}`,
     }),
     seatsVisuallyDisabled: isAudioPlaybackLocked(state.isAudioPlaying) || input.isActionSubmitting,
     onBotSeatLongPress: input.onBotSeatLongPress,

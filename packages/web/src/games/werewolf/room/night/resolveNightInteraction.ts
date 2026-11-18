@@ -29,7 +29,7 @@ import {
 } from '@/features/room/model/audioPlaybackLock';
 
 import { formatCheckResultLabel } from '../NightReview.helpers';
-import type { NightDraft, NightInteractionModel, SwapPick } from './NightInteractionModel';
+import type { NightInteractionModel } from './NightInteractionModel';
 import {
   nightStepTitle,
   renderNightMessage,
@@ -53,9 +53,6 @@ interface NightInteractionLocks {
 
 interface NightInteractionInput {
   readonly viewModel: WerewolfViewModel;
-  readonly draft: NightDraft;
-  /** swap: the second seat, set in the render that opens the confirm. */
-  readonly swapSecondSeat: number | null;
   readonly locks: NightInteractionLocks;
   /** The room clock, for the wolf-vote countdown line. */
   readonly nowMs: number;
@@ -103,7 +100,7 @@ function renderRevealTitle(
 }
 
 export function resolveNightInteraction(input: NightInteractionInput): NightInteractionModel {
-  const { viewModel, draft, swapSecondSeat, locks, nowMs } = input;
+  const { viewModel, locks, nowMs } = input;
   const { night } = viewModel;
 
   if (viewModel.status !== GameStatus.Ongoing) return { kind: 'idle' };
@@ -149,6 +146,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
       return {
         kind: 'pickSeat',
         stepId: schema.id,
+        actionLabel: schema.displayName,
         selectable: selectableSeats(viewModel),
         prompt,
         confirmTitle: requireSchemaText(schema, 'confirmTitle', schema.ui?.confirmTitle),
@@ -192,12 +190,10 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
       };
     }
 
-    case 'swap': {
-      const pick: SwapPick = { first: draft.firstSwapSeat, second: swapSecondSeat };
+    case 'swap':
       return {
         kind: 'pickTwoSeats',
         selectable: selectableSeats(viewModel),
-        pick,
         prompt,
         firstPickTitle: requireSchemaText(schema, 'firstTargetTitle', schema.ui?.firstTargetTitle),
         firstPickTemplate: requireSchemaText(
@@ -209,21 +205,15 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
         confirmText: requireSchemaText(schema, 'confirmText', schema.ui?.confirmText),
         skipLabel: skipLabelOf(schema),
       };
-    }
-
     case 'multiChooseSeat':
       return {
         kind: 'multiSelect',
         selectable: selectableSeats(viewModel),
-        selected: draft.multiSelectedSeats,
+        actionLabel: schema.displayName,
+        min: schema.minTargets,
         max: schema.maxTargets,
         prompt,
         confirmText: requireSchemaText(schema, 'confirmText', schema.ui?.confirmText),
-        confirmButtonTemplate: requireSchemaText(
-          schema,
-          'confirmButtonText',
-          schema.ui?.confirmButtonText,
-        ),
         skipLabel: skipLabelOf(schema),
       };
 

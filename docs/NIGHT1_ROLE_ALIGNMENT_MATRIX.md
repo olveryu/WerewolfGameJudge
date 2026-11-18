@@ -7,6 +7,8 @@
 
 This document records the complete behavioral alignment of all Night-1 roles/steps/actions.
 
+For night steps that target seats (`chooseSeat`, `wolfVote`, `swap`, `multiChooseSeat`, and the witch's poison action), first press the named action, then pick targets and submit using the bottom confirmation. Until then, seat taps do not submit an action. Cancel discards the picks locally. The current viewer's projection determines eligible seats and the schema determines how many can be confirmed. Empty wolf votes, withdrawing a vote, antidote, skipping, card selection, and acknowledgements remain separate actions. This does not add day or elimination actions.
+
 ## NIGHT_STEPS Order (Authoritative)
 
 | Index | stepId                          | roleId             | audioKey                        | audioEndKey                     |

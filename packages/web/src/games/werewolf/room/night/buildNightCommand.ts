@@ -72,7 +72,7 @@ function buildActionInput(
     case 'multiSelect':
       if (
         confirmation.kind === 'seats' &&
-        confirmation.seats.length > 0 &&
+        confirmation.seats.length >= model.min &&
         confirmation.seats.length <= model.max
       ) {
         return { kind: 'multiTarget', targets: [...confirmation.seats] };

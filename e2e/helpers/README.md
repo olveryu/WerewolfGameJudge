@@ -112,7 +112,7 @@ Keep dependencies flowing from scenarios toward lower-level helpers. `ui.ts` mus
 - Wait for room readiness with `waitForRoomScreenReady()`.
 - Night readiness requires the expected `data-step`, a rendered bottom action panel, and no `audioWaitingMessage`. Never infer readiness from a dialog transition or cache it across nights.
 - Night-button probes defer without opening shared actions while audio is locked. Recheck readiness after opening the panel; a missing button is transient and must not be cached.
-- Use night-driver actions for seats: wait for `data-inert="false"` and verify the resulting confirmation. Only unsubmitted single-target taps may be retried within the same step; never retry draft/toggle selections.
+- Use night-driver actions for night targets: open selection, wait for eligible seats, verify each draft pick, and submit from the bottom button within the same step. Never replay a toggle or submission.
 - Identify expected prompts by title before reading them. Dismiss only the captured alert body and wait for it to close or be replaced; leave replacement dialogs untouched. Scan helpers may defer a capped click, but required actions throw diagnostic errors.
 - Discover expanded player actions from `roomMoreActionsButton`'s `data-player-action-ids` (enabled actions from the same presentation model), without opening the panel to probe. A declared panel action is required: failure is obsolete only when the declaration has been withdrawn; otherwise throw with the original error and room anchors.
 - Negative interaction assertions need positive readiness evidence first, so an audio-locked page cannot make them pass vacuously.
