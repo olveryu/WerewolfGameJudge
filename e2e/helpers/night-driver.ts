@@ -345,7 +345,6 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
  */
 const ADVANCE_BUTTON_KEYS = ['confirm', 'viewHunterStatus', 'skip'] as const;
 const PANEL_NIGHT_BUTTON_KEYS = new Set(['skip', 'wolfEmpty', 'wolfCancel']);
-const unavailablePanelNightButtons = new WeakMap<Page, Set<string>>();
 
 /**
  * Try to advance one page by one click: the open alert's primary button
@@ -384,6 +383,8 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
  * returns false; the caller's next sweep dismisses the prompt and retries.
  */
 export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
+  const step = await readRoomStep(page);
+  if (step === null || !(await isStepUnlocked(page, step))) return false;
   const bottomButton = nightButton(page, key);
   let button = bottomButton;
   let panel: Locator | null = null;
@@ -393,8 +394,8 @@ export async function tryClickNightButton(page: Page, key: string, label = ''): 
     if (resolved === null) return false;
     ({ button, panel, openedPanel } = resolved);
   }
-  if (!(await clickCapped(button, `night button ${key}`))) {
-    if (openedPanel) await new RoomPage(page).closeHostManagement();
+  if (!(await isStepUnlocked(page, step)) || !(await clickCapped(button, `night button ${key}`))) {
+    if (openedPanel && (await panel?.isVisible())) await new RoomPage(page).closeHostManagement();
     return false;
   }
   if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
@@ -411,11 +412,6 @@ async function findPanelNightButton(
   readonly openedPanel: boolean;
 } | null> {
   if (!PANEL_NIGHT_BUTTON_KEYS.has(key)) return null;
-  const step = await readRoomStep(page);
-  if (step === null) return null;
-  const cacheKey = `${step}:${key}`;
-  let unavailable = unavailablePanelNightButtons.get(page);
-  if (unavailable?.has(cacheKey) === true) return null;
   if (
     await alertModal(page)
       .isVisible()
@@ -437,11 +433,6 @@ async function findPanelNightButton(
   const button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
   if (await button.isVisible()) return { button, panel, openedPanel };
   if (openedPanel) await room.closeHostManagement();
-  if (unavailable === undefined) {
-    unavailable = new Set();
-    unavailablePanelNightButtons.set(page, unavailable);
-  }
-  unavailable.add(cacheKey);
   return null;
 }
 
@@ -495,18 +486,20 @@ export async function waitForRoomStep(
   }
 }
 
+async function isStepUnlocked(page: Page, stepId: string): Promise<boolean> {
+  return (
+    (await page.getByTestId(TESTIDS.audioWaitingMessage).count()) === 0 &&
+    (await page.getByTestId(TESTIDS.bottomActionPanel).isVisible()) &&
+    (await readRoomPhase(page)) === 'Ongoing' &&
+    (await readRoomStep(page)) === stepId
+  );
+}
+
 /** Observe the audio lock, never an unrelated dialog's entrance or exit. */
 async function waitForStepUnlock(page: Page, stepId: string, deadlineMs: number): Promise<boolean> {
   for (;;) {
     if ((await readRoomStep(page)) !== stepId) return false;
-    if (
-      (await page.getByTestId(TESTIDS.audioWaitingMessage).count()) === 0 &&
-      (await page.getByTestId(TESTIDS.bottomActionPanel).isVisible()) &&
-      (await readRoomPhase(page)) === 'Ongoing' &&
-      (await readRoomStep(page)) === stepId
-    ) {
-      return true;
-    }
+    if (await isStepUnlocked(page, stepId)) return true;
     if (Date.now() >= deadlineMs) {
       return failNightAction(`Audio lock did not lift for step ${stepId}`, [page]);
     }
