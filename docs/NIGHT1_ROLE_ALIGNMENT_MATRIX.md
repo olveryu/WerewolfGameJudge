@@ -1,6 +1,6 @@
 # Night-1 Role Alignment Matrix
 
-> Updated: 2026-05-24
+> Updated: 2026-11-18
 > Version: Handler→Facade→UI architecture
 
 ## Overview
@@ -646,3 +646,112 @@ This document records the complete behavioral alignment of all Night-1 roles/ste
 | **confirmButtonText** | "知道了"                               |                                                |
 | **nightmare block**   | ❌ N/A                                 | Group confirm needs no check                   |
 | **failure reason**    | None                                   | Always valid                                   |
+
+## Night Bottom-Action Button Matrix
+
+This section covers the role-owned buttons in the Werewolf room's bottom action panel during
+night steps. It follows the shared [Room Action Hierarchy](room-shell-contract.md#room-action-hierarchy).
+
+- **Primary** is the focused, immediate step action or the button that opens the step's action or
+  status dialog. A seat tap that opens a confirmation dialog is not a bottom primary button.
+- **Secondary** is an optional step action, such as skipping or an alternate vote action. It is
+  not a weaker version of a required choice.
+- `查看身份` is added as a secondary button for seated players during an ongoing night; it is
+  primary while viewing identity in the assigned/ready phase. It is intentionally not repeated
+  in every row below.
+- A `—` means the step has no role-owned button in that tier. The shared `更多操作` entry may
+  still occupy the panel's focus slot when there is no player primary action.
+- Dialog confirmations are not bottom-panel tiers. This applies to seat confirmations, the
+  group-reveal acknowledgement, status-dialog infection skip, and card selection confirmation.
+  The wolf-robot hunter-status gate is the exception called out in its row.
+- This is a night-action matrix, not a claim that roles without a night step have no daytime or
+  death-triggered ability. Contextual seat actions and other surfaces are outside this table.
+
+The role-step rows, labels, and schema kinds are checked against `ROLE_SPECS` and `SCHEMAS` by
+`packages/web/src/__tests__/nightButtonRoleMatrix.contract.test.ts`. Keep the matrix in the same
+change as role-step or button-schema changes.
+
+### Role-specific night steps
+
+<!-- night-role-step-buttons:start -->
+
+| Role ID            | Role       | Night step                      | Schema kind       | Primary bottom button                                   | Secondary bottom button                    |
+| ------------------ | ---------- | ------------------------------- | ----------------- | ------------------------------------------------------- | ------------------------------------------ |
+| `thief`            | 盗贼       | `thiefChoose`                   | `chooseCard`      | 选择底牌                                                | —                                          |
+| `treasureMaster`   | 盗宝大师   | `treasureMasterChoose`          | `chooseCard`      | 选择底牌                                                | —                                          |
+| `cupid`            | 丘比特     | `cupidChooseLovers`             | `multiChooseSeat` | 确认连接（{count}人） when targets are selected         | —                                          |
+| `cupid`            | 丘比特     | `cupidLoversReveal`             | `groupConfirm`    | 情侣状态                                                | —; acknowledgement is in the reveal dialog |
+| `magician`         | 魔术师     | `magicianSwap`                  | `swap`            | —; second seat opens the confirmation flow              | 不用技能                                   |
+| `slacker`          | 混血儿     | `slackerChooseIdol`             | `chooseSeat`      | —; seat tap opens the confirmation flow                 | —                                          |
+| `wildChild`        | 野孩子     | `wildChildChooseIdol`           | `chooseSeat`      | —; seat tap opens the confirmation flow                 | —                                          |
+| `shadow`           | 影子       | `shadowChooseMimic`             | `chooseSeat`      | —; seat tap opens the confirmation flow                 | —                                          |
+| `avenger`          | 复仇者     | `avengerConfirm`                | `confirm`         | 查看阵营                                                | —                                          |
+| `eclipseWolfQueen` | 蚀时狼妃   | `eclipseWolfQueenShelter`       | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `nightmare`        | 噩梦之影   | `nightmareBlock`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `dreamcatcher`     | 摄梦人     | `dreamcatcherDream`             | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `guard`            | 守卫       | `guardProtect`                  | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `silenceElder`     | 禁言长老   | `silenceElderSilence`           | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `votebanElder`     | 禁票长老   | `votebanElderBan`               | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `crow`             | 乌鸦       | `crowCurse`                     | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `wolfGirl`         | 狼女孩     | `wolfGirlConfess`               | `chooseSeat`      | —; seat tap opens the confirmation flow                 | —                                          |
+| `wolf`             | 狼人       | `wolfKill`                      | `wolfVote`        | —; seat tap starts the vote flow                        | See shared wolf-vote buttons               |
+| `seedWolf`         | 种狼       | `seedWolfInfect`                | `confirm`         | 感染                                                    | —; 不用技能 is inside the status dialog    |
+| `wolfQueen`        | 狼美人     | `wolfQueenCharm`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `hiddenWolf`       | 隐狼       | `hiddenWolfReveal`              | `confirm`         | 查看同伴                                                | —                                          |
+| `witch`            | 女巫       | `witchAction`                   | `compound`        | 对袭击目标用解药 when saving is available               | 不用技能                                   |
+| `poisoner`         | 毒师       | `poisonerPoison`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `hunter`           | 猎人       | `hunterConfirm`                 | `confirm`         | 发动状态                                                | —                                          |
+| `darkWolfKing`     | 狼王       | `darkWolfKingConfirm`           | `confirm`         | 发动状态                                                | —                                          |
+| `wolfRobot`        | 机械狼人   | `wolfRobotLearn`                | `chooseSeat`      | — while selecting; 查看技能状态 after learning a hunter | 不用技能 while selecting                   |
+| `seer`             | 预言家     | `seerCheck`                     | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `mirrorSeer`       | 灯影预言家 | `mirrorSeerCheck`               | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `drunkSeer`        | 酒鬼预言家 | `drunkSeerCheck`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `wolfWitch`        | 狼巫       | `wolfWitchCheck`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `gargoyle`         | 石像鬼     | `gargoyleCheck`                 | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `pureWhite`        | 纯白之女   | `pureWhiteCheck`                | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `psychic`          | 通灵师     | `psychicCheck`                  | `chooseSeat`      | —; seat tap opens the confirmation flow                 | 不用技能                                   |
+| `awakenedGargoyle` | 觉醒石像鬼 | `awakenedGargoyleConvert`       | `chooseSeat`      | —; seat tap opens the confirmation flow                 | —                                          |
+| `piper`            | 吹笛者     | `piperHypnotize`                | `multiChooseSeat` | 确认催眠（{count}人） when targets are selected         | 不用技能                                   |
+| `piper`            | 吹笛者     | `piperHypnotizedReveal`         | `groupConfirm`    | 催眠状态                                                | —; acknowledgement is in the reveal dialog |
+| `awakenedGargoyle` | 觉醒石像鬼 | `awakenedGargoyleConvertReveal` | `groupConfirm`    | 转化状态                                                | —; acknowledgement is in the reveal dialog |
+| `seedWolf`         | 种狼       | `seedWolfInfectReveal`          | `groupConfirm`    | 感染状态                                                | —; acknowledgement is in the reveal dialog |
+| `wolfGirl`         | 狼女孩     | `wolfGirlConfessReveal`         | `groupConfirm`    | 表白状态                                                | —; acknowledgement is in the reveal dialog |
+
+<!-- night-role-step-buttons:end -->
+
+### Shared wolf-vote buttons
+
+<!-- shared-wolf-vote-buttons:start -->
+
+| Roles with `recognition.participatesInWolfVote`                                                                                                                                  | Primary bottom button            | Secondary bottom buttons        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------- |
+| `wolf`, `seedWolf`, `wolfQueen`, `wolfKing`, `darkWolfKing`, `nightmare`, `awakenedGargoyle`, `bloodMoon`, `wolfWitch`, `spiritKnight`, `warden`, `eclipseWolfQueen`, `wolfGirl` | —; seat tap starts the vote flow | 放弃袭击; 取消投票 after voting |
+
+<!-- shared-wolf-vote-buttons:end -->
+
+When a server hint allows only an empty vote, `取消投票` is hidden and the empty-vote button
+is labeled `确认放弃袭击`. A thief who chooses a wolf-voting card joins according to that
+effective role; treasureMaster is excluded even if the chosen card is a wolf.
+
+### Roles without a role-specific Night-1 step
+
+<!-- night-roles-without-step:start -->
+
+| Role ID           | Role     | Night-1 coverage                                                                |
+| ----------------- | -------- | ------------------------------------------------------------------------------- |
+| `villager`        | 平民     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `idiot`           | 愚者     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `knight`          | 骑士     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `witcher`         | 猎魔人   | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `graveyardKeeper` | 守墓人   | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `dancer`          | 舞者     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `maskedMan`       | 蒙面人   | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `sequencePrince`  | 定序王子 | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `wolfKing`        | 白狼王   | No role-specific Night-1 step; still receives shared wolf-vote buttons.         |
+| `bloodMoon`       | 血月使徒 | No role-specific Night-1 step; still receives shared wolf-vote buttons.         |
+| `spiritKnight`    | 恶灵骑士 | No role-specific Night-1 step; still receives shared wolf-vote buttons.         |
+| `masquerade`      | 假面     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+| `warden`          | 典狱长   | No role-specific Night-1 step; still receives shared wolf-vote buttons.         |
+| `cursedFox`       | 咒狐     | No role-specific Night-1 step; no daytime/death ability is implied by this row. |
+
+<!-- night-roles-without-step:end -->
