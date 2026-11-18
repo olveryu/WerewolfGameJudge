@@ -28,11 +28,13 @@ describe('Secrethitler persisted state migration', () => {
       const legacy = {
         ...session.state,
         stateVersion: 1,
+        config: { numberOfPlayers: session.state.config.numberOfPlayers },
         phase: { kind: 'night', step, confirmedSeats },
         pendingAudioEffects: [{ audioKey }],
       };
       const migrated = migratePersistedSecrethitlerState(legacy);
-      expect(migrated.stateVersion).toBe(2);
+      expect(migrated.stateVersion).toBe(3);
+      expect(migrated.config.voteMode).toBe('public');
       expect(migrated.phase).toEqual(
         step <= 1
           ? { kind: 'night', step: 1, confirmedSeats }
@@ -63,7 +65,7 @@ describe('Secrethitler persisted state migration', () => {
       expect(() =>
         migratePersistedSecrethitlerState({ ...legacy, phase: { ...legacy.phase, step: 4 } }),
       ).toThrow();
-      expect(() => migratePersistedSecrethitlerState({ ...legacy, stateVersion: 3 })).toThrow();
+      expect(() => migratePersistedSecrethitlerState({ ...legacy, stateVersion: 4 })).toThrow();
     },
   );
 
@@ -76,6 +78,25 @@ describe('Secrethitler persisted state migration', () => {
     expect(parseSecrethitlerState(persisted)).toEqual(state);
     expect(migratePersistedSecrethitlerState(persisted)).toEqual(state);
     expect(migratePersistedSecrethitlerState({ ...state, stateVersion: 1 })).toEqual(state);
+  });
+
+  it('migrates v2 rooms to public voting without changing the match', () => {
+    const state = secrethitlerEngine.createInitialState(
+      { ...DEFAULT_SECRETHITLER_CONFIG, voteMode: 'secret' },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
+    );
+    const legacy = {
+      ...state,
+      stateVersion: 2,
+      config: { numberOfPlayers: state.config.numberOfPlayers },
+    };
+
+    const migrated = migratePersistedSecrethitlerState(legacy);
+    expect(migrated).toEqual({
+      ...state,
+      config: { numberOfPlayers: state.config.numberOfPlayers, voteMode: 'public' },
+    });
+    expect(() => parseSecrethitlerState(legacy)).toThrow();
   });
 
   it('rejects a state carrying another game identity', () => {

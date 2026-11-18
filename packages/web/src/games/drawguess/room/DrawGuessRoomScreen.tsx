@@ -3,10 +3,6 @@
 import './components/DrawGuessStage.css';
 
 import {
-  DRAWGUESS_DRAWING_DURATION_SECONDS,
-  DRAWGUESS_ROUND_END_SECONDS,
-  DRAWGUESS_ROUNDS_PER_DRAWER,
-  DRAWGUESS_WORD_SELECT_SECONDS,
   type DrawGuessState,
   type DrawGuessViewModel,
 } from '@game-judge/game-engine/games/drawguess/public';
@@ -65,6 +61,7 @@ import {
   buildDrawGuessScoreboardRows,
   DrawGuessScoreboard,
 } from './components/DrawGuessScoreboard';
+import { createDrawGuessRoomSummarySettings } from './drawGuessRoomAdapter';
 import { getDrawGuessRoomCommandFailureMessage } from './drawGuessRoomCommandFailureMessage';
 import {
   type DrawGuessRoomScreenState,
@@ -130,12 +127,7 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
                 <RoomGameSummary
                   title="你画我猜"
                   playerCount={config.numberOfPlayers}
-                  settings={[
-                    { label: '每人轮数', value: `${DRAWGUESS_ROUNDS_PER_DRAWER} 轮` },
-                    { label: '选词时限', value: `${DRAWGUESS_WORD_SELECT_SECONDS} 秒` },
-                    { label: '作画时限', value: `${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒` },
-                    { label: '结算展示', value: `${DRAWGUESS_ROUND_END_SECONDS} 秒` },
-                  ]}
+                  settings={createDrawGuessRoomSummarySettings(config)}
                   guide={{
                     onPress: screen.openRules,
                     label: '查看你画我猜玩法',

@@ -15,6 +15,7 @@ import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayR
 
 import { StoryRelayStage } from './components/StoryRelayStage';
 import { useStoryRelayRoomState } from './hooks/useStoryRelayRoomState';
+import { createStoryRelayRoomSummarySettings } from './storyRelayRoomAdapter';
 
 interface StoryRelayRoomScreenProps extends GameRoomScreenProps<'storyrelay'> {
   readonly session: StoryRelayRoomSession;
@@ -70,17 +71,7 @@ function StoryRelayRoomContent(
                 <RoomGameSummary
                   title="轮流讲故事"
                   playerCount={config.numberOfPlayers}
-                  settings={[
-                    { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
-                    {
-                      label: '写作时限',
-                      value:
-                        config.writingDurationSeconds === null
-                          ? '不限时'
-                          : `${config.writingDurationSeconds} 秒`,
-                    },
-                    { label: '过渡间隔', value: `${config.transitionDurationSeconds} 秒` },
-                  ]}
+                  settings={createStoryRelayRoomSummarySettings(config)}
                   guide={{ onPress: screen.openRules, label: '查看轮流讲故事玩法' }}
                 />
               ),

@@ -36,6 +36,7 @@ import {
 } from './hooks/useSecrethitlerRoomState';
 import { SecrethitlerActionSheet } from './SecrethitlerActionSheet';
 import {
+  formatSecrethitlerVoteMode,
   SECRETHITLER_END_COPY,
   SECRETHITLER_PHASE_LABELS,
   SECRETHITLER_POWER_COPY,
@@ -140,6 +141,7 @@ export function SecrethitlerBoardInfo({
       <RoomGameSummary
         title="秘密希特勒"
         playerCount={state.config.numberOfPlayers}
+        settings={[{ label: '投票方式', value: formatSecrethitlerVoteMode(state.config.voteMode) }]}
         guide={{ onPress: openRules, label: '查看秘密希特勒玩法' }}
         collapsed={state.phase.kind !== 'lobby'}
       >
@@ -226,6 +228,10 @@ function SecrethitlerMatchDetails({
   const lastGovernment = view.history.governments
     .filter((record) => record.outcome !== 'pending')
     .at(-1);
+  const lastGovernmentVoteCounts = lastGovernment?.voteCounts;
+  if (lastGovernment !== undefined && lastGovernmentVoteCounts === null) {
+    throw new Error('[FAIL-FAST] Settled Secret Hitler government has no vote counts');
+  }
   return (
     <div className="secrethitler-match-details">
       {phase.kind === 'ended' && (
@@ -281,12 +287,14 @@ function SecrethitlerMatchDetails({
         </p>
       )}
       {phase.kind === 'executive' && <p>本次权力：{SECRETHITLER_POWER_COPY[phase.power]}</p>}
-      {lastGovernment !== undefined && (
-        <p role="status">
-          上次政府{lastGovernment.outcome === 'passed' ? '通过' : '未通过'} · 赞成{' '}
-          {lastGovernment.votes?.filter(({ vote }) => vote === 'ja').length} 票
-        </p>
-      )}
+      {lastGovernment !== undefined &&
+        lastGovernmentVoteCounts !== null &&
+        lastGovernmentVoteCounts !== undefined && (
+          <p role="status">
+            上次政府{lastGovernment.outcome === 'passed' ? '通过' : '未通过'} · 赞成{' '}
+            {lastGovernmentVoteCounts.ja} 票
+          </p>
+        )}
       <SecrethitlerPublicHistory view={view} />
     </div>
   );
@@ -317,6 +325,11 @@ function SecrethitlerPublicHistory({ view }: { readonly view: SecrethitlerViewMo
                     {record.votes
                       .map(({ seat, vote }) => `${seat + 1}号${vote === 'ja' ? '赞成' : '反对'}`)
                       .join('、')}
+                  </p>
+                )}
+                {record.votes === null && record.voteCounts !== null && (
+                  <p>
+                    暗投：赞成 {record.voteCounts.ja} 票，反对 {record.voteCounts.nein} 票
                   </p>
                 )}
               </li>

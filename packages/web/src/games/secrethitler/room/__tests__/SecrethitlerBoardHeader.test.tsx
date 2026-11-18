@@ -16,7 +16,7 @@ import { SecrethitlerBoardHeader, SecrethitlerBoardInfo } from '../SecrethitlerR
 
 it('allows assigning roles when every occupied seat is a bot', () => {
   const initial = secrethitlerEngine.createInitialState(
-    { numberOfPlayers: 5 },
+    { numberOfPlayers: 5, voteMode: 'public' },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
   const decision = secrethitlerEngine.decide(
@@ -179,10 +179,26 @@ it('uses the shared collapsed board card and previews public roles without revea
   );
   expect(screen.queryByText('自由派×5')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '展开配置' }));
+  expect(screen.getByText('投票方式').nextElementSibling).toHaveTextContent('公投');
   expect(screen.getByText('自由派×5')).toBeInTheDocument();
   expect(screen.getByText('法西斯×2')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: /^希特勒/ }));
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByText('胜利条件')).toBeInTheDocument();
   expect(screen.queryByText(/号 ·/)).not.toBeInTheDocument();
+});
+
+it('shows the configured Secret Hitler ballot mode in the board card', async () => {
+  const user = userEvent.setup();
+  const state = buildSecrethitlerPhaseStates().get('viewing');
+  if (state === undefined) throw new Error('Missing viewing fixture');
+  render(
+    <SecrethitlerBoardInfo
+      state={{ ...state, config: { ...state.config, voteMode: 'secret' } }}
+      openRules={vi.fn()}
+    />,
+  );
+
+  await user.click(screen.getByRole('button', { name: '展开配置' }));
+  expect(screen.getByText('投票方式').nextElementSibling).toHaveTextContent('暗投');
 });

@@ -9,30 +9,48 @@ import { secrethitlerInternalCommandSchema } from '../schemas';
 describe('Secrethitler create config schema', () => {
   it('accepts player counts inside the supported range', () => {
     for (const numberOfPlayers of [5, 6, 10]) {
-      expect(secrethitlerCreateConfigSchema.parse({ numberOfPlayers })).toEqual({
-        numberOfPlayers,
-      });
+      expect(secrethitlerCreateConfigSchema.parse({ numberOfPlayers, voteMode: 'secret' })).toEqual(
+        {
+          numberOfPlayers,
+          voteMode: 'secret',
+        },
+      );
     }
   });
 
   it('rejects out-of-range counts, missing fields and extra fields', () => {
-    expect(secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 4 }).success).toBe(false);
-    expect(secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 11 }).success).toBe(false);
-    expect(secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 7.5 }).success).toBe(false);
+    expect(
+      secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 4, voteMode: 'public' }).success,
+    ).toBe(false);
+    expect(
+      secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 11, voteMode: 'public' }).success,
+    ).toBe(false);
+    expect(
+      secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 7.5, voteMode: 'public' })
+        .success,
+    ).toBe(false);
+    expect(secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 6 }).success).toBe(false);
+    expect(
+      secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 6, voteMode: 'open' }).success,
+    ).toBe(false);
     expect(secrethitlerCreateConfigSchema.safeParse({}).success).toBe(false);
     expect(
-      secrethitlerCreateConfigSchema.safeParse({ numberOfPlayers: 6, extra: true }).success,
+      secrethitlerCreateConfigSchema.safeParse({
+        numberOfPlayers: 6,
+        voteMode: 'public',
+        extra: true,
+      }).success,
     ).toBe(false);
   });
 
   it('creates the initial lobby state through the module', () => {
     const created = secrethitlerWorkerModule.createInitialState(
-      { numberOfPlayers: 6 },
+      { numberOfPlayers: 6, voteMode: 'public' },
       { roomCode: '1234', hostUserId: 'host-1', nowMs: 1, commandId: 'create' },
     );
     if (created.kind !== 'created') throw new Error(created.reason);
     expect(created.state.phase).toEqual({ kind: 'lobby' });
-    expect(created.state.config).toEqual({ numberOfPlayers: 6 });
+    expect(created.state.config).toEqual({ numberOfPlayers: 6, voteMode: 'public' });
   });
 });
 
@@ -46,7 +64,10 @@ describe('Secrethitler public command schema', () => {
       },
       { type: 'room.seat.leave' },
       { type: 'room.seat.fillBots' },
-      { type: 'secrethitler.config.update', config: { numberOfPlayers: 6 } },
+      {
+        type: 'secrethitler.config.update',
+        config: { numberOfPlayers: 6, voteMode: 'secret' },
+      },
       { type: 'secrethitler.roles.assign' },
       { type: 'secrethitler.game.begin' },
       { type: 'secrethitler.game.abort' },

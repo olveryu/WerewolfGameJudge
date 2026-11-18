@@ -53,6 +53,16 @@ import {
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
+/** Public lobby rules that are not already represented by the card title's player count. */
+export function createSpotmatchRoomSummarySettings(
+  config: SpotmatchState['config'],
+): readonly { readonly label: string; readonly value: string }[] {
+  return [
+    { label: '每人牌数', value: `${config.cardsPerPlayer} 张` },
+    { label: '比赛时限', value: '不限时' },
+  ];
+}
+
 /** 为共享资料卡控件返回公开的席位身份。 */
 const getSpotmatchProfileTarget = (state: SpotmatchState, seat: number): RoomProfileTarget | null =>
   getRoomProfileTarget(state.roster, seat);

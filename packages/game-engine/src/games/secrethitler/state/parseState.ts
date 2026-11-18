@@ -16,8 +16,10 @@ import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeSecrethitlerState } from './normalize';
 import {
   isValidSecrethitlerConfig,
+  SECRETHITLER_DEFAULT_VOTE_MODE,
   SECRETHITLER_GAME_TYPE,
   SECRETHITLER_PHASES,
+  SECRETHITLER_VOTE_MODES,
   type SecrethitlerConfig,
   type SecrethitlerPhase,
   type SecrethitlerPolicy,
@@ -35,11 +37,14 @@ export function parseSecrethitlerConfig(
   const raw = parseObject(value, path);
   const config: SecrethitlerConfig = finishObject(
     raw,
-    { numberOfPlayers: parseInteger(raw.numberOfPlayers, `${path}.numberOfPlayers`) },
+    {
+      numberOfPlayers: parseInteger(raw.numberOfPlayers, `${path}.numberOfPlayers`),
+      voteMode: parseChoice(raw.voteMode, `${path}.voteMode`, SECRETHITLER_VOTE_MODES),
+    },
     path,
   );
   if (!isValidSecrethitlerConfig(config))
-    failDecode(`${path}.numberOfPlayers`, 'a supported player count');
+    failDecode(path, 'a supported Secrethitler configuration');
   return config;
 }
 
@@ -332,12 +337,23 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
   );
 }
 
-/** Preserves v1 recognition and narration while merging audio-only steps into their batches. */
+/** Upgrades legacy vote-mode and narration data into the current strict state. */
 export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
   const raw = parseObject(value, 'SecrethitlerState');
-  if (raw.stateVersion !== 1) return parseSecrethitlerState(raw);
+  if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
+  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseSecrethitlerState(raw);
+  const rawConfig = parseObject(raw.config, 'SecrethitlerState.config');
+  const upgraded = {
+    ...raw,
+    stateVersion: SECRETHITLER_STATE_VERSION,
+    config: {
+      ...rawConfig,
+      voteMode:
+        rawConfig.voteMode === undefined ? SECRETHITLER_DEFAULT_VOTE_MODE : rawConfig.voteMode,
+    },
+  };
+  if (raw.stateVersion === 2) return parseSecrethitlerState(upgraded);
   const previousPhase = phase(raw.phase, 'SecrethitlerState.phase');
-  const upgraded = { ...raw, stateVersion: SECRETHITLER_STATE_VERSION };
   if (previousPhase.kind !== 'night' || previousPhase.step === 1)
     return parseSecrethitlerState(upgraded);
   if (![0, 2, 3].includes(previousPhase.step) || previousPhase.confirmedSeats.length !== 0)
@@ -346,7 +362,7 @@ export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerS
   const wasAudioPlaying = parseBoolean(raw.isAudioPlaying, 'SecrethitlerState.isAudioPlaying');
   const appendAudioKey =
     previousPhase.step === 0
-      ? parseSecrethitlerConfig(raw.config).numberOfPlayers <= 6
+      ? parseSecrethitlerConfig(upgraded.config).numberOfPlayers <= 6
         ? 'evil_reveal_5_6'
         : 'fascist_reveal_7_10'
       : previousPhase.step === 2

@@ -31,6 +31,22 @@ describe('Secret Hitler public review', () => {
     expect(JSON.stringify(document)).not.toContain('lastInvestigation');
   });
 
+  it('keeps secret election ballots private in the shareable review', () => {
+    const secretEnded = {
+      ...ended,
+      config: { ...ended.config, voteMode: 'secret' as const },
+    };
+    const document = toSecrethitlerReviewDocument({
+      state: secretEnded,
+      roomCode: '1234',
+    });
+    const serialized = JSON.stringify(document);
+
+    expect(serialized).toContain('暗投：赞成');
+    expect(serialized).not.toContain('1号赞成');
+    expect(serialized).not.toContain('1号反对');
+  });
+
   it('rejects unfinished review construction and exposes no review to any viewer before the end', () => {
     for (const [phase, state] of states) {
       if (phase === 'ended') continue;

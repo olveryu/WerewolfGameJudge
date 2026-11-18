@@ -20,7 +20,7 @@ Layout: a pnpm workspace with four parts — the root (cross-package contracts i
 
 Games (9): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler.
 
-State versions: werewolf 17, avalon 11, fibking 8, pictionary 10, undercover 5, storyrelay 3, drawguess 5, spotmatch 2, secrethitler 2.
+State versions: werewolf 17, avalon 11, fibking 8, pictionary 10, undercover 5, storyrelay 3, drawguess 5, spotmatch 2, secrethitler 3.
 Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.

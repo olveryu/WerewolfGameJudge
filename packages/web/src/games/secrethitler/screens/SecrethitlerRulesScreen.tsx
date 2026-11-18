@@ -21,7 +21,7 @@ export function SecrethitlerRulesScreen() {
         <RuleItem
           icon="play-outline"
           title="选举与立法"
-          description="总统提名总理，全体存活玩家秘密投票。政府通过后，总统秘密弃置一张政策，再由总理秘密施行一张。被否决的政府会增加选举失败次数；连续三次否决时，自动施行牌堆顶政策。"
+          description="总统提名总理，全体存活玩家提交赞成 / 反对票。公投结算后同时公开每人选票；暗投只公布赞成 / 反对票数。政府通过后，总统秘密弃置一张政策，再由总理秘密施行一张。被否决的政府会增加选举失败次数；连续三次否决时，自动施行牌堆顶政策。"
         />
         <RuleItem
           icon="eye-outline"

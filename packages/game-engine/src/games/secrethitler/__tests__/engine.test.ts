@@ -14,6 +14,7 @@ import {
   type SecrethitlerConfig,
   type SecrethitlerPhase,
   type SecrethitlerState,
+  type SecrethitlerVoteMode,
 } from '../state/types';
 
 function game(
@@ -21,9 +22,14 @@ function game(
   humanCount = numberOfPlayers,
   randomSeed = 'secrethitler-test',
   fillBots = true,
+  voteMode: SecrethitlerVoteMode = DEFAULT_SECRETHITLER_CONFIG.voteMode,
 ) {
   const session = createEngineSession(secrethitlerEngine, {
-    config: { ...DEFAULT_SECRETHITLER_CONFIG, numberOfPlayers } satisfies SecrethitlerConfig,
+    config: {
+      ...DEFAULT_SECRETHITLER_CONFIG,
+      numberOfPlayers,
+      voteMode,
+    } satisfies SecrethitlerConfig,
     parse: parseSecrethitlerState,
     randomSeed,
   });
@@ -469,7 +475,7 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
   it('enforces supported player counts and seats before dealing', () => {
     expect(() =>
       secrethitlerEngine.createInitialState(
-        { numberOfPlayers: 4 },
+        { numberOfPlayers: 4, voteMode: 'public' },
         { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
       ),
     ).toThrow(SECRETHITLER_REASONS.config);
@@ -588,6 +594,7 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const record = getSecrethitlerViewModel(current.session.state, 1).history.governments.at(-1);
     expect(record?.outcome).toBe('passed');
     expect(record?.votes).toHaveLength(5);
+    expect(record?.voteCounts).toEqual({ ja: 5, nein: 0 });
     expect(current.session.state.phase.kind).toBe('legislativePresident');
     const government = current.session.state.phase;
     if (government.kind !== 'legislativePresident') throw new Error('Expected president hand');
@@ -617,6 +624,41 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const exposed = getSecrethitlerViewModel(current.session.state, 1);
     expect(exposed).not.toHaveProperty('policyDeck');
     expect(exposed).not.toHaveProperty('identities');
+  });
+
+  it('publishes secret ballot counts without exposing any voter identity', () => {
+    const current = game(5, 5, 'secrethitler-secret-ballot', true, 'secret');
+    enterElection(current);
+    const election = current.session.state.phase;
+    if (election.kind !== 'election') throw new Error('Expected election');
+    const chancellorSeat = eligibleChancellors(current.session.state, election.presidentSeat)[0];
+    if (chancellorSeat === undefined) throw new Error('No candidate');
+    const president = current.actorForSeat(election.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.nominate', chancellorSeatId: chancellorSeat },
+      president.userId,
+      president.controlledSeat,
+    );
+
+    for (const seat of current.session.state.livingSeats) {
+      const actor = current.actorForSeat(seat);
+      current.send(
+        {
+          type: 'secrethitler.government.castVote',
+          vote: seat < 3 ? 'ja' : 'nein',
+        },
+        actor.userId,
+        actor.controlledSeat,
+      );
+    }
+
+    const record = getSecrethitlerViewModel(current.session.state, 0).history.governments.at(-1);
+    expect(record).toMatchObject({
+      outcome: 'passed',
+      votes: null,
+      voteCounts: { ja: 3, nein: 2 },
+    });
+    expect(current.session.state.history.governments.at(-1)?.votes).toHaveLength(5);
   });
 
   it('advances the chaos policy after three rejected governments without a power or term limit', () => {
