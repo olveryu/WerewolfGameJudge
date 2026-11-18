@@ -508,6 +508,9 @@ test.describe('Pictionary', () => {
       const endedHostPanel = await hostRoom.openHostManagement();
       await expect(endedHostPanel.getByTestId(TESTIDS.nextRoundButton)).toHaveCount(0);
       await hostRoom.closeHostManagement();
+      for (const page of fixture.pages.slice(1)) {
+        await new PictionaryRoomPage(page).expectRoomActionAbsent(TESTIDS.nextRoundButton);
+      }
       await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(/草稿|跳过/);
       await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
       // The aborted round keeps what was handed in: its review opens for every player, marked unfinished.

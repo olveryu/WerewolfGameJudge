@@ -216,8 +216,9 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       for (const page of fixture.pages)
         await expect(page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('放弃本轮');
       await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
-      await expect(joinerPage.getByTestId(TESTIDS.abortGameButton)).toHaveCount(0);
-      await expect(joinerPage.getByTestId(TESTIDS.startGameButton)).toHaveCount(0);
+      const joinerRoom = new RoomPage(joinerPage);
+      await joinerRoom.expectRoomActionAbsent(TESTIDS.abortGameButton);
+      await joinerRoom.expectRoomActionAbsent(TESTIDS.startGameButton);
       const guessInput = joinerPage.getByTestId(TESTIDS.drawGuessGuessInput);
       await expect(guessInput).toHaveAccessibleName('猜词输入框');
       await guessInput.fill(word);

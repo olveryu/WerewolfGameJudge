@@ -63,7 +63,8 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await hostRoom.waitForReady('host');
       await new RoomPage(spectatorPage).joinViaCode(await hostRoom.getRoomCode());
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
-      await expect(spectatorPage.getByTestId(TESTIDS.roomMusicSettingsButton)).toHaveCount(0);
+      await expect(spectatorPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
+      await new RoomPage(spectatorPage).expectRoomActionAbsent(TESTIDS.roomMusicSettingsButton);
       await hostRoom.clickHostManagementAction(TESTIDS.roomMusicSettingsButton);
       const godfatherTrack = hostPage.getByTestId(TESTIDS.musicBgmTrack('theGodfatherWaltz'));
       await expect(godfatherTrack).toContainText('The Godfather Waltz');
