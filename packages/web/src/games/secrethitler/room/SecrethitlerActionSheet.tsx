@@ -107,7 +107,7 @@ export function SecrethitlerActionSheet({
       content = (
         <>
           <div className="choice-row">
-            {[...new Set(view.myHand)].map((policy) => {
+            {(view.myHand ?? []).map((policy, index) => {
               const label = `${action === 'discard' ? '弃置' : '施行'}${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
               const command: SecrethitlerCommand =
                 action === 'discard'
@@ -115,16 +115,15 @@ export function SecrethitlerActionSheet({
                   : { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy };
               return (
                 <ChoiceCard
-                  key={policy}
+                  key={`${policy}-${index}`}
                   label={label}
                   imageSrc={
                     policy === 'liberal'
                       ? secrethitlerPolicyLiberalImage
                       : secrethitlerPolicyFascistImage
                   }
-                  isSelected={false}
                   isDisabled={screen.isSubmitting}
-                  testId={TESTIDS.secrethitlerPolicyCard(action, policy)}
+                  testId={TESTIDS.secrethitlerPolicyCard(action, policy, index)}
                   onClick={() => void send(label, command)}
                 />
               );

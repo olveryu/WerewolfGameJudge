@@ -1,7 +1,7 @@
 /** 投票 / 出牌的竖版插画卡牌按钮：点选即上报，已选中的那张上浮 + 金边 + 打勾角标。 */
 import './ChoiceCard.css';
 
-/** 大卡片按钮；selected 映射 aria-pressed，提交中禁用防重复提交。 */
+/** 大卡片按钮；selected 映射 aria-pressed，提交中禁用防重复提交。省略 isSelected 时不带选择态（即时动作卡：不压暗、不打勾）。 */
 export function ChoiceCard({
   label,
   imageSrc,
@@ -12,7 +12,7 @@ export function ChoiceCard({
 }: {
   readonly label: string;
   readonly imageSrc: string;
-  readonly isSelected: boolean;
+  readonly isSelected?: boolean;
   readonly isDisabled: boolean;
   readonly testId: string;
   readonly onClick: () => void;

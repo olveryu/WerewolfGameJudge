@@ -236,8 +236,11 @@ export const TESTIDS = {
   // Secret Hitler vote / policy cards
   secrethitlerVoteYes: 'secrethitler-vote-yes',
   secrethitlerVoteNo: 'secrethitler-vote-no',
-  secrethitlerPolicyCard: (action: 'discard' | 'enact', policy: 'liberal' | 'fascist') =>
-    `secrethitler-policy-${action}-${policy}`,
+  secrethitlerPolicyCard: (
+    action: 'discard' | 'enact',
+    policy: 'liberal' | 'fascist',
+    index: number,
+  ) => `secrethitler-policy-${action}-${policy}-${index}`,
   secrethitlerSettledVoteBanner: 'secrethitler-settled-vote-banner',
 
   // Werewolf sheriff election

@@ -48,3 +48,22 @@ it('disables the card while submitting', () => {
   );
   expect(screen.getByTestId('vote-reject')).toBeDisabled();
 });
+
+it('renders an instant-action card with no selection state when isSelected is omitted', () => {
+  const onClick = vi.fn();
+  render(
+    <ChoiceCard
+      label="弃置自由派政策"
+      imageSrc="/liberal-policy.webp"
+      isDisabled={false}
+      testId="policy-discard-liberal-0"
+      onClick={onClick}
+    />,
+  );
+  const card = screen.getByTestId('policy-discard-liberal-0');
+  // No aria-pressed means the unselected-dimming rule never applies and no check badge shows.
+  expect(card).not.toHaveAttribute('aria-pressed');
+  expect(card.querySelector('.choice-check')).toBeNull();
+  fireEvent.click(card);
+  expect(onClick).toHaveBeenCalledTimes(1);
+});

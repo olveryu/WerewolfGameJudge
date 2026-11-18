@@ -220,7 +220,7 @@ export function SecrethitlerBoardHeader({
   );
 }
 
-function SecrethitlerMatchDetails({
+export function SecrethitlerMatchDetails({
   state,
   view,
   mySeat,

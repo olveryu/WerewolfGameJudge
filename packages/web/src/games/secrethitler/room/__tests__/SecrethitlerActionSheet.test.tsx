@@ -4,8 +4,15 @@ import {
 } from '@game-judge/game-engine/games/secrethitler/public';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { buildSecrethitlerPhaseStates } from '@/test-utils/secrethitlerState';
+import {
+  buildSecrethitlerPhaseStates,
+  sendSecrethitlerSeatCommand,
+} from '@/test-utils/secrethitlerState';
 
+import {
+  secrethitlerPolicyFascistImage,
+  secrethitlerPolicyLiberalImage,
+} from '../../assets/secrethitlerPolicyImages';
 import { SecrethitlerActionSheet } from '../SecrethitlerActionSheet';
 
 const states = buildSecrethitlerPhaseStates();
@@ -58,7 +65,8 @@ it('shows hands only to their authorized office and submits the actual available
   const policy = state.phase.hand[0];
   if (policy === undefined) throw new Error('Missing policy');
   const label = `弃置${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
-  fireEvent.click(screen.getByRole('button', { name: label }));
+  // Duplicate policies share the label, so address the first card by its indexed testid.
+  fireEvent.click(screen.getByTestId(`secrethitler-policy-discard-${policy}-0`));
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.presidentDiscard', policy },
@@ -93,15 +101,48 @@ it('renders vote choice cards with distinct images and no ballot selected yet', 
   expect(yesSrc).not.toBe(noSrc);
 });
 
-it('renders one policy card per distinct policy in the hand', () => {
+it('renders one policy card per policy in the hand, with the matching art and no selection state', () => {
   const state = fixture('legislativePresident');
   if (state.phase.kind !== 'legislativePresident') throw new Error('Expected hand');
   render(<SecrethitlerActionSheet screen={props(state, state.phase.presidentSeat)} />);
-  const kinds = new Set(state.phase.hand);
   // The sheet renders through a portal, so query the document, not the render container.
-  const srcs = [...document.querySelectorAll('.choice-card img')].map((img) =>
-    img.getAttribute('src'),
+  const cards = [...document.querySelectorAll('.choice-card')];
+  const hand = state.phase.hand;
+  expect(cards).toHaveLength(hand.length);
+  cards.forEach((card, index) => {
+    const policy = hand[index];
+    if (policy === undefined) throw new Error('Missing policy');
+    expect(card).not.toHaveAttribute('aria-pressed');
+    expect(card.querySelector('img')?.getAttribute('src')).toBe(
+      policy === 'liberal' ? secrethitlerPolicyLiberalImage : secrethitlerPolicyFascistImage,
+    );
+  });
+});
+
+it('submits the chancellor enact command for the tapped policy card', async () => {
+  const state = fixture('legislativeChancellor');
+  if (state.phase.kind !== 'legislativeChancellor') throw new Error('Expected hand');
+  const input = props(state, state.phase.chancellorSeat);
+  render(<SecrethitlerActionSheet screen={input} />);
+  const policy = state.phase.hand[0];
+  if (policy === undefined) throw new Error('Missing policy');
+  const label = `施行${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
+  fireEvent.click(screen.getByTestId(`secrethitler-policy-enact-${policy}-0`));
+  expect(input.submit).toHaveBeenCalledWith(
+    label,
+    { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy },
+    { controlledSeat: state.phase.chancellorSeat },
   );
-  expect(new Set(srcs).size).toBe(kinds.size);
-  for (const src of srcs) expect(src).toBeTruthy();
+  await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
+});
+
+it('shows the cast ballot as selected and keeps the other card unselected', () => {
+  let state = fixture('voting');
+  state = sendSecrethitlerSeatCommand(state, 1, {
+    type: 'secrethitler.government.castVote',
+    vote: 'ja',
+  });
+  render(<SecrethitlerActionSheet screen={props(state, 1)} />);
+  expect(screen.getByTestId('secrethitler-vote-yes')).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByTestId('secrethitler-vote-no')).toHaveAttribute('aria-pressed', 'false');
 });
