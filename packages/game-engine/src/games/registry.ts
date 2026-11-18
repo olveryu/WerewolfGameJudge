@@ -36,6 +36,10 @@ export type GameRegistrationRewards<TGameType extends GameType = GameType> =
 
 /** A Cloudflare Workflow class the Worker entrypoint must re-export for a game. */
 export interface GameWorkerWorkflowRegistration<TGameType extends GameType = GameType> {
+  /** Workflow name declared in `packages/api-worker/wrangler.toml`. */
+  readonly workflowName: string;
+  /** Wrangler binding consumed by the Worker environment. */
+  readonly binding: string;
   readonly exportName: string;
   /** Module specifier re-exported from `packages/api-worker/src/index.ts`. */
   readonly modulePath: `./games/${TGameType}/${string}`;
@@ -92,6 +96,8 @@ export const GAME_REGISTRY = {
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.drawguess },
     workerWorkflows: [
       {
+        workflowName: 'drawguess-word-supply',
+        binding: 'DRAWGUESS_WORD_SUPPLY',
         exportName: 'DrawGuessWordSupplyWorkflow',
         modulePath: './games/drawguess/wordSupplyWorkflow',
       },
@@ -105,7 +111,12 @@ export const GAME_REGISTRY = {
     isProduction: true,
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.fibking },
     workerWorkflows: [
-      { exportName: 'FibWordSupplyWorkflow', modulePath: './games/fibking/wordSupplyWorkflow' },
+      {
+        workflowName: 'fib-word-supply',
+        binding: 'FIB_WORD_SUPPLY',
+        exportName: 'FibWordSupplyWorkflow',
+        modulePath: './games/fibking/wordSupplyWorkflow',
+      },
     ],
     httpRoutes: [],
   },
@@ -126,6 +137,8 @@ export const GAME_REGISTRY = {
     rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.undercover },
     workerWorkflows: [
       {
+        workflowName: 'undercover-word-supply',
+        binding: 'UNDERCOVER_WORD_SUPPLY',
         exportName: 'UndercoverWordSupplyWorkflow',
         modulePath: './games/undercover/wordSupplyWorkflow',
       },

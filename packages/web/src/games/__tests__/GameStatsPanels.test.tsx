@@ -4,9 +4,11 @@ import type { FibPublicStats } from '@game-judge/game-engine/games/fibking/publi
 import type { PictionaryPublicStats } from '@game-judge/game-engine/games/pictionary/public';
 import type { StoryRelayPublicStats } from '@game-judge/game-engine/games/storyrelay/public';
 import type { UndercoverPublicStats } from '@game-judge/game-engine/games/undercover/public';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
+import { GAME_ACCOUNT_STATS_SECTIONS } from '@/games/catalog';
 import { DrawGuessStatsPanel } from '@/games/drawguess/components/DrawGuessStatsPanel';
 import { FibStatsPanel } from '@/games/fibking/components/FibStatsPanel';
 import { PictionaryStatsPanel } from '@/games/pictionary/components/PictionaryStatsPanel';
@@ -65,6 +67,16 @@ function resetMocks() {
 beforeEach(resetMocks);
 
 describe('game-owned account statistics panels', () => {
+  it('registers one account panel for every game in the catalog', () => {
+    expect(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).toEqual([...GAME_TYPES]);
+    expect(new Set(GAME_ACCOUNT_STATS_SECTIONS.map((section) => section.gameType)).size).toBe(
+      GAME_TYPES.length,
+    );
+    expect(GAME_ACCOUNT_STATS_SECTIONS.every((section) => section.Section !== undefined)).toBe(
+      true,
+    );
+  });
+
   it('shows Avalon faction outcomes and expandable per-role wins', () => {
     mocks.avalon.data = {
       gameType: 'avalon',

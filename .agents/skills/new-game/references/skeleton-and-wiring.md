@@ -38,7 +38,14 @@ changing only one side fails.
 
 ## Identity viewing and the test scaffold
 
-For narrated games, follow `scripts/README-audio.md`: add cue text and output
+Every game supports host-controlled bot seats and host takeover as a platform
+baseline; neither is a selectable game feature. The generated base tests keep
+bot setup/host actions and confirmed host-only abort covered. When `identity=private`,
+the generator derives identity viewing, reveal animation, and bulk bot identity
+handling together; do not make those separate opt-ins.
+
+For `night=narrated` or `guidedNarration=narrated`, follow
+`scripts/README-audio.md`: add cue text and output
 mapping to `scripts/generate_audio_edge_tts.py`, generate and bundle MP3s, and
 resolve engine keys through a game-owned `AudioClip` registry/player using the
 shared `AudioService`. Supply a `get<Game>PreloadAudio` list (role clips for
@@ -138,8 +145,12 @@ Identity games use the platform protocol in
 requires every seat's viewing record, including seats filled by
 automated players (`haveAllViewed` checks every participant;
 participants carry `isBot`). Hosts may take over each bot seat to view
-it individually; the optional `botBulkViewing` capability adds the
-`<game>.bots.markAllBotsViewed` convenience command and host action.
+it individually; generated identity games also include the host-only
+`<game>.bots.markAllBotsViewed` action and a test proving it marks every bot
+and disappears when no bot remains unviewed. The engine protocol test covers
+an all-bot game and confirms reward eligibility is separate from the viewing
+gate. The room matrix tests host visibility, all-human-and-bot begin gating,
+and the bulk-view remedy.
 For identity-viewing games, the seat adapter may show an assigned bot's
 localized role in `secondaryLabel` to the host only. Gate on both
 `state.hostUserId === userId` and a bot occupant; return null for other
@@ -197,6 +208,11 @@ historical facts; delay requires explicit visible-time/cache wiring.
 Tests must cover terminal/repeated/restart/abort, threshold boundaries,
 anonymous/bot/author ownership, strict legacy/v2, D1 atomic rollback/replay/
 cascade/cost, HTTP and profile/settings loading/error/empty/count states.
+For every approved non-baseline metric, add assertions to both engine
+`__tests__/publicStats.test.ts` and Worker
+`__tests__/publicUserStats.test.ts`; tests must pin its source, unit,
+ownership, denominator and zero-denominator behavior. Generated completed-
+games tests cover only the baseline and cannot stand in for those semantics.
 
 ## Word supply: three registrations, no fewer
 
@@ -210,10 +226,10 @@ workflows — fibking, undercover, drawguess — are the examples):
 3. `[[workflows]]` binding in `packages/api-worker/wrangler.toml`.
 
 The first is pinned by the wordLibrary weld in
-`capabilities.contract.test.ts`; the second by the workflow
-re-export check in `architecture.contract.test.ts`; also inspect the
-third's actual binding and generated Env types, rather than treating a
-registry test as deployment evidence. The workflow body is hand-written at
+`capabilities.contract.test.ts`; the registry's `workflowName` and
+`binding` are welded to both the `[[workflows]]` deployment block and
+`worker-configuration.d.ts` by `architecture.contract.test.ts`; the
+re-export is checked there as well. The workflow body is hand-written at
 `packages/api-worker/src/games/<game>/wordSupplyWorkflow.ts`. The
 in-game preparation protocol
 (`packages/game-engine/src/platform/room/preparation.ts`) and the

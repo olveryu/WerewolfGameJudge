@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `pnpm new-game <gameId> [--capability <key> ...]` — scaffold a new game.
+ * `pnpm new-game <gameId> [--feature <key=value> ...]` — scaffold a new game.
  *
  * Produces the full skeleton (engine, Worker module, client module,
  * design doc, registration migration) from the templates under
@@ -12,14 +12,15 @@
 
 import path from 'node:path';
 
+import { FEATURE_KEYS, parseFeatureDeclarations } from './lib/new-game/features.mjs';
 import { DEFAULT_REWARDS, generateNewGame } from './lib/new-game/generate.mjs';
 
 const USAGE = `Usage: pnpm new-game <gameId> [options]
 
 Options:
-  --capability <key>         Enable an optional capability (repeatable; defaults off).
-                             Keys: identityViewing, stageDeadline,
-                             audioOrchestration, botBulkViewing.
+  --feature <key=value>      Declare a game feature (repeatable; every feature is required).
+                             Keys: ${FEATURE_KEYS.join(', ')}.
+                             Use the values listed in new-game references/generator.md.
   --production               Register in the production registry and Home contract
                              (default: registered but
                              hidden from player surfaces until the go-live step).
@@ -39,8 +40,8 @@ function parseRewardValue(option, raw) {
   return Number.parseInt(raw, 10);
 }
 
-function parseArgs(argv) {
-  const options = { rewards: { ...DEFAULT_REWARDS }, capabilities: [] };
+export function parseArgs(argv) {
+  const options = { rewards: { ...DEFAULT_REWARDS }, featureDeclarations: [] };
   const positional = [];
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -50,8 +51,8 @@ function parseArgs(argv) {
       return argv[index];
     };
     switch (arg) {
-      case '--capability':
-        options.capabilities.push(next());
+      case '--feature':
+        options.featureDeclarations.push(next());
         break;
       case '--name':
         options.displayName = next();
@@ -99,6 +100,8 @@ function main() {
     if (options.gameId === undefined && options.help !== true) process.exitCode = 1;
     return;
   }
+  options.features = parseFeatureDeclarations(options.featureDeclarations);
+  delete options.featureDeclarations;
   if (options.tier !== undefined && options.tier !== 'main' && options.tier !== 'mini') {
     throw new Error(`Invalid --tier "${options.tier}": expected "main" or "mini".`);
   }
@@ -109,12 +112,12 @@ function main() {
   const summary = generateNewGame({ rootDir: process.cwd(), ...options });
   process.stdout.write(
     [
-      `Created ${summary.createdFiles.length} files and updated ${summary.editedFiles.length} shared files for "${options.gameId}" (capabilities: ${options.capabilities.length === 0 ? 'none' : [...new Set(options.capabilities)].join(', ')}).`,
+      `Created ${summary.createdFiles.length} files and updated ${summary.editedFiles.length} shared files for "${options.gameId}" (features: ${FEATURE_KEYS.map((key) => `${key}=${options.features[key]}`).join(', ')}).`,
       `Registration migration: packages/api-worker/migrations/${summary.migrationName}`,
       options.production
         ? 'Directory visibility: visible in Home/create lists (--production; registry and Home contract synchronized).'
         : 'Directory visibility: hidden from Home/create lists (registered only; see report step 9).',
-      options.capabilities.includes('identityViewing')
+      options.features.identity === 'private'
         ? 'Room layout: persistent seat board with public role configuration and private identity actions.'
         : 'Room layout: lobby seat board, then the non-identity workspace.',
       summary.formatted

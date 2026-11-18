@@ -221,11 +221,26 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
 
   it('projects identities per viewer: self visible, others hidden until the end', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
-    session.send({ type: '__GAME_ID__.roles.assign' });
-    const view = get__GAME_PASCAL__ViewModel(session.state, 1);
-    expect(view.myIdentity).not.toBeNull();
-    expect(view.seats.every((seat) => seat.identity === null)).toBe(true);
-    expect(view.unviewedRoleSeats).toEqual([0, 1, 2, 3]);
+    viewAllAndBegin(session);
+    const ownView = get__GAME_PASCAL__ViewModel(session.state, 1);
+    expect(ownView.myIdentity).toBe(session.state.identities[1]);
+    expect(ownView.seats.every((seat) => seat.identity === null)).toBe(true);
+
+    const spectatorView = get__GAME_PASCAL__ViewModel(session.state, null);
+    expect(spectatorView.myIdentity).toBeNull();
+    expect(spectatorView.seats.every((seat) => seat.identity === null)).toBe(true);
+
+    const endDecision = end__GAME_PASCAL__Game(
+      session.state,
+      session.session.context('host'),
+    );
+    if (endDecision.kind !== 'commit') throw new Error(endDecision.reason);
+    const ended = endDecision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
+    const endedSpectatorView = get__GAME_PASCAL__ViewModel(ended, null);
+    expect(endedSpectatorView.myIdentity).toBeNull();
+    expect(endedSpectatorView.seats.map((seat) => seat.identity)).toEqual(
+      Object.values(ended.identities),
+    );
   });
 });
 

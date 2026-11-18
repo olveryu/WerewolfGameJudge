@@ -484,7 +484,12 @@ export const __GAME_CAMEL__Engine = {
   gameType: __GAME_UPPER___GAME_TYPE,
   stateVersion: __GAME_UPPER___STATE_VERSION,
   capabilities: {
+//#cap nightPhase
+    nightPhase: true,
+//#end
+//#cap !nightPhase
     nightPhase: false,
+//#end
     botsAndTakeover: true,
 //#cap identityViewing
     identityViewing: true,
@@ -506,7 +511,12 @@ export const __GAME_CAMEL__Engine = {
 //#cap !audioOrchestration
     audioOrchestration: false,
 //#end
+//#cap wordLibrary
+    wordLibrary: true,
+//#end
+//#cap !wordLibrary
     wordLibrary: false,
+//#end
     gallery: false,
     hostConfig: true,
 //#cap botBulkViewing

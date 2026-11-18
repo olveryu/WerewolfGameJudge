@@ -79,3 +79,32 @@ it('retains the failed batch and retries every pending cue before acknowledging'
   );
   expect(result.current.isResumeRequired).toBe(false);
 });
+
+it('does not play or acknowledge a pending narration batch for non-host viewers', () => {
+  const state = {
+    ...build__GAME_PASCAL__TestLobby(),
+    pendingAudioEffects: [{ audioKey: 'test-cue' }],
+    audioBatchId: 1,
+    isAudioPlaying: true,
+  };
+  const session = createFakeRoomLink<__GAME_PASCAL__State, __GAME_PASCAL__Command>(
+    readyLinkSnapshot(testIdentity('__GAME_ID__'), createRoomSnapshot(state, 1)),
+    async () => successfulRoomCommand(state, 'audio-ack', 2),
+  );
+  const audio: __GAME_PASCAL__AudioRuntime = {
+    playEffect: vi.fn(async () => undefined),
+    preload: vi.fn(),
+    stopNarration: vi.fn(),
+    ...createFakeBgm(),
+    setBgmVolume: vi.fn(),
+    setGameAudioVolume: vi.fn(),
+  };
+
+  const { result } = renderHook(() =>
+    use__GAME_PASCAL__AudioOrchestration({ session, isHost: false, audio }),
+  );
+
+  expect(result.current.isResumeRequired).toBe(false);
+  expect(audio.playEffect).not.toHaveBeenCalled();
+  expect(session.dispatch).not.toHaveBeenCalled();
+});

@@ -31,10 +31,13 @@ dependency: `SHARED_EDITS` performs none.
    Pinned by `packages/api-worker/src/games/__tests__/catalog.test.ts`
    (one module per `GAME_TYPES` entry, same order; routes equal the
    registry's `httpRoutes`).
-7. `[M][C]` If the game declares a workflow: re-export it from
-   `packages/api-worker/src/index.ts` AND declare the `[[workflows]]`
-   binding in `packages/api-worker/wrangler.toml`. The re-export is
-   contract-pinned; no contract test for the binding was located.
+7. `[M][C]` If the game declares a workflow: record its
+   `workflowName`, `binding`, `exportName` and `modulePath` in the
+   registry; re-export it from `packages/api-worker/src/index.ts`;
+   declare the matching `[[workflows]]` block in
+   `packages/api-worker/wrangler.toml`; then regenerate
+   `worker-configuration.d.ts`. The architecture contract welds all
+   four registry facts to the deployment block and generated binding type.
 8. `[G]` Home entry in `CLIENT_GAMES`
    (`packages/web/src/games/catalog.ts`): `{ home: <game>Home,
 AccountStats: <Game>StatsPanel }` from the game's home and panel.
