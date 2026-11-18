@@ -191,7 +191,11 @@ describe('buildNightButtons', () => {
 
   it('offers the empty vote and, once voted, the withdraw for a wolf', () => {
     const fresh = nightModel(nightState({ roles: BOARD, stepId: 'wolfKill' }), 0).night;
-    expect(buildNightButtons(fresh).map((button) => button.action.kind)).toEqual(['emptyVote']);
+    const emptyVoteLabel = SCHEMAS.wolfKill.ui?.emptyVoteText;
+    if (emptyVoteLabel === undefined) throw new Error('wolfKill is missing emptyVoteText');
+    expect(
+      buildNightButtons(fresh).map((button) => [button.action.kind, button.tier, button.label]),
+    ).toEqual([['emptyVote', 'secondary', emptyVoteLabel]]);
     const voted = nightModel(
       nightState({
         roles: BOARD,
@@ -200,9 +204,11 @@ describe('buildNightButtons', () => {
       }),
       0,
     ).night;
-    expect(buildNightButtons(voted).map((button) => button.action.kind)).toEqual([
-      'withdrawVote',
-      'emptyVote',
+    expect(
+      buildNightButtons(voted).map((button) => [button.action.kind, button.tier, button.label]),
+    ).toEqual([
+      ['withdrawVote', 'secondary', '取消投票'],
+      ['emptyVote', 'secondary', emptyVoteLabel],
     ]);
   });
 

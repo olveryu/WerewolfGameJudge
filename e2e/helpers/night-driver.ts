@@ -377,63 +377,48 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
 }
 
 /**
- * Press a visible night button, capped. The step prompt opens when the
- * step audio ends — the same moment the buttons appear — so it can cover
- * a button between the visibility check and the click. A blocked click
- * returns false; the caller's next sweep dismisses the prompt and retries.
+ * Discover expanded actions through their DOM declaration, without opening
+ * the panel to probe. A declared action must succeed unless it is withdrawn
+ * while acting; still-offered actions fail with room diagnostics.
  */
 export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
   const step = await readRoomStep(page);
   if (step === null || !(await isStepUnlocked(page, step))) return false;
   const bottomButton = nightButton(page, key);
-  let button = bottomButton;
-  let panel: Locator | null = null;
-  let openedPanel = false;
-  if (!(await bottomButton.isVisible().catch(() => false))) {
-    const resolved = await findPanelNightButton(page, key);
-    if (resolved === null) return false;
-    ({ button, panel, openedPanel } = resolved);
+  const room = new RoomPage(page);
+  const actionId = TESTIDS.werewolfNightButton(key);
+  const isPanelAction =
+    PANEL_NIGHT_BUTTON_KEYS.has(key) && (await room.hasPanelPlayerAction(actionId));
+  if (isPanelAction) {
+    if (await alertModal(page).isVisible()) return false;
+    let panel = page.getByTestId(TESTIDS.roomHostManagementPanel);
+    try {
+      if (!(await panel.isVisible())) panel = await room.openHostManagement();
+      if (!(await isStepUnlocked(page, step))) {
+        if (await panel.isVisible()) await room.closeHostManagement();
+        return false;
+      }
+      await panel.getByTestId(actionId).click({ timeout: CLICK_TIMEOUT_MS });
+    } catch (error) {
+      if (await room.hasPanelPlayerAction(actionId)) {
+        return failNightAction(`Panel action ${step}/${key} failed`, [page], error);
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      log(`panel action withdrawn — ${step}/${key}: ${message}\n${await roomDiagnostics([page])}`);
+      return false;
+    }
+    await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
+  } else {
+    if (
+      !(await bottomButton.isVisible()) ||
+      !(await isStepUnlocked(page, step)) ||
+      !(await clickCapped(bottomButton, `night button ${key}`))
+    ) {
+      return false;
+    }
   }
-  if (!(await isStepUnlocked(page, step)) || !(await clickCapped(button, `night button ${key}`))) {
-    if (openedPanel && (await panel?.isVisible())) await new RoomPage(page).closeHostManagement();
-    return false;
-  }
-  if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`tryClickNightButton${label} — night button ${key} clicked`);
   return true;
-}
-
-async function findPanelNightButton(
-  page: Page,
-  key: string,
-): Promise<{
-  readonly button: Locator;
-  readonly panel: Locator;
-  readonly openedPanel: boolean;
-} | null> {
-  if (!PANEL_NIGHT_BUTTON_KEYS.has(key)) return null;
-  if (
-    await alertModal(page)
-      .isVisible()
-      .catch(() => false)
-  )
-    return null;
-
-  const room = new RoomPage(page);
-  const existingPanel = page.getByTestId(TESTIDS.roomHostManagementPanel);
-  const openedPanel = !(await existingPanel.isVisible());
-  if (openedPanel) {
-    const entry = page
-      .getByTestId(TESTIDS.roomMoreActionsButton)
-      .or(page.getByTestId(TESTIDS.roomHostManagementButton))
-      .first();
-    if (!(await entry.isVisible().catch(() => false))) return null;
-  }
-  const panel = openedPanel ? await room.openHostManagement() : existingPanel;
-  const button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
-  if (await button.isVisible()) return { button, panel, openedPanel };
-  if (openedPanel) await room.closeHostManagement();
-  return null;
 }
 
 // ---------------------------------------------------------------------------
