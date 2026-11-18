@@ -29,6 +29,7 @@ component owns the complete geometry, including the value area, not just its out
 | Count / switch / radio controls              | `src/components/GameSettings.tsx` and `GameSettings.styles.ts`                                       | Values and intent callbacks; the form supplies them from the schema                                                                                       |
 | Reading sections and notices                 | `src/components/GameGuide.tsx`                                                                       | Accurate game-owned rules and tool limitations                                                                                                            |
 | Room title, subtitle and guide action        | `src/features/room/components/RoomGameSummary.tsx`                                                   | Public summary and navigation; visible action label is `玩法`                                                                                             |
+| Compact match-record entry                   | `src/features/room/components/RoomRecordSummary.tsx`                                                 | Public summary, optional detail/pending seats, and opening game-owned record details                                                                      |
 | Centered room details                        | `src/features/room/components/RoomDialog.tsx`                                                        | Title, scrollable details, close intent and fixed footer                                                                                                  |
 
 - Use the compact Werewolf settings hierarchy. Settings pages configure a game; long gameplay
@@ -180,6 +181,23 @@ the dawn voice. Day phases never auto-play; a host's manual play/pause survives 
 changes. Return to lobby, game end, loss of host ownership and leaving the room stop BGM.
 
 ## Room Content
+
+### Identity-game layout
+
+The new-game `identityViewing` template follows Werewolf/Avalon rather than
+replacing the board with a workspace: `RoomShell` uses `kind: 'seats'` in
+lobby, identity viewing, play and ended. Public configuration goes through
+`RoomGameSummary` and `BoardInfoCard`, collapsed by default after dealing.
+Public role composition comes from configured counts, never dealt seat
+identities; role previews do not mark any participant's identity as viewed.
+Non-identity templates retain their workspace.
+
+Use the shared `RoomRecordSummary` in `contextHeader` for a compact match
+status and record entry, with scrollable details in `RoomDialog`. Avalon
+and Secret Hitler share this presentation. Do not put an expanded stage
+card, terminal player list or full match history above the seats. Personal
+instructions, identity viewing and commands stay in the bottom model;
+private results stay behind explicitly authorized actions and overlays.
 
 ### Room Action Hierarchy
 

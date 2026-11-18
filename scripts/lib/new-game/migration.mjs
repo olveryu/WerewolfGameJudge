@@ -77,7 +77,12 @@ export function buildRegistrationMigration({ sourceName, sourceContent, gameId, 
   if (bodyStart < 0) throw new Error(`Source migration ${sourceName} has no PRAGMA body start.`);
   const bodyEnd = extended.indexOf('PRAGMA defer_foreign_keys = false;', bodyStart);
   if (bodyEnd < 0) throw new Error(`Source migration ${sourceName} has no PRAGMA body end.`);
-  const body = `${extended.slice(bodyStart, bodyEnd + 'PRAGMA defer_foreign_keys = false;'.length)}\n`;
+  const body = `${extended
+    .slice(bodyStart, bodyEnd + 'PRAGMA defer_foreign_keys = false;'.length)
+    .replace(
+      /DELETE FROM rooms WHERE game_type = 'demo';\nDELETE FROM product_game_reward_results WHERE game_type = 'demo';\n-- Claims store gameType in input_json and must be removed after their result rows\.\nDELETE FROM product_game_reward_claims\nWHERE json_extract\(input_json, '\$\.gameType'\) = 'demo';\n?/,
+      '',
+    )}\n`;
   const header = [
     `-- Register ${displayName} (${gameId}) in the room directory game-type`,
     `-- constraints and the game-owned cumulative completed-games table.`,

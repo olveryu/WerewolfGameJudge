@@ -23,6 +23,7 @@ import type {
   ClientGameModuleFactory,
 } from '@/games/model/ClientGameModule';
 import { createPictionaryClientModule } from '@/games/pictionary/module';
+import { createSecrethitlerClientModule } from '@/games/secrethitler/module';
 import { createSpotmatchClientModule } from '@/games/spotmatch/module';
 import { createStoryRelayClientModule } from '@/games/storyrelay/module';
 import { createUndercoverClientModule } from '@/games/undercover/module';
@@ -42,6 +43,7 @@ const CLIENT_GAME_FACTORIES: ClientGameFactories = {
   storyrelay: createStoryRelayClientModule,
   avalon: createAvalonClientModule,
   spotmatch: createSpotmatchClientModule,
+  secrethitler: createSecrethitlerClientModule,
 };
 
 type ClientGameModuleLoads = {
@@ -88,6 +90,7 @@ function createClientGameModules(
     storyrelay: cacheLoad(() => loadModule('storyrelay')),
     avalon: cacheLoad(() => loadModule('avalon')),
     spotmatch: cacheLoad(() => loadModule('spotmatch')),
+    secrethitler: cacheLoad(() => loadModule('secrethitler')),
   };
   const subscribeLoaded = (listener: () => void) => {
     loadListeners.add(listener);

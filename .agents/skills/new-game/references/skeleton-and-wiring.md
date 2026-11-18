@@ -38,6 +38,17 @@ changing only one side fails.
 
 ## Identity viewing and the test scaffold
 
+The identity-viewing client template keeps `RoomShell` in `kind: 'seats'`
+throughout the game, matching Werewolf/Avalon. `RoomGameSummary` owns the
+title/guide and `BoardInfoCard` owns public role composition and collapse.
+Replace the placeholder `create<Game>BoardInfoSections` with the approved
+public role-count table; never derive public configuration from dealt
+seat identities. Public role previews use `RoleCardDialog`, not the
+view-record command. After dealing, default the board card to collapsed.
+Keep identity/personal commands in bottom actions; use the shared
+`RoomRecordSummary` and `RoomDialog` for on-demand public match details.
+Without identity viewing, the template retains the existing workspace.
+
 Identity games use the platform protocol in
 `packages/game-engine/src/platform/room/identityViewing.ts`
 (`haveAllViewed`, `buildIdentityViewingParticipants`,

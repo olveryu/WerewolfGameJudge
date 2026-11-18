@@ -27,6 +27,7 @@ import {
 } from './lib/new-game/generate.mjs';
 import {
   assertRegistrationGameTypes,
+  buildRegistrationMigration,
   findLatestRegistrationMigration,
   nextMigrationName,
 } from './lib/new-game/migration.mjs';
@@ -619,8 +620,39 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     if (capabilities.identityViewing) {
       // The generated room screen consumes the shared RevealRoleCardModal.
       assert.ok(clientGameDir.includes('RevealRoleCardModal'));
+      const screenSource = readFixture(
+        root,
+        'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx',
+      );
+      assert.ok(
+        screenSource.includes('<BoardInfoCard'),
+        'identity games use the shared board card',
+      );
+      assert.ok(
+        screenSource.includes('collapsed={!isLobby}'),
+        'board defaults collapse after dealing',
+      );
+      assert.ok(screenSource.includes('<RoleCardDialog'), 'public board roles remain previewable');
+      assert.ok(!screenSource.includes("kind: 'workspace'"), 'identity games keep the seat board');
+      assert.ok(!screenSource.includes('StageArea'), 'no parallel identity-stage action surface');
+      assert.ok(
+        !screenSource.includes('resolveViewIdentityAction'),
+        'identity actions stay in the bottom model',
+      );
     } else {
       assert.ok(!clientGameDir.includes('RevealRoleCardModal'));
+      const screenSource = readFixture(
+        root,
+        'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx',
+      );
+      assert.ok(
+        screenSource.includes("kind: 'workspace'"),
+        'non-identity games retain their workspace',
+      );
+      assert.ok(
+        !screenSource.includes('<BoardInfoCard'),
+        'no invented role board for non-identity games',
+      );
     }
     if (capabilities.stageDeadline) {
       assert.ok(engineGameDir.includes('deadlineAt'));
@@ -959,6 +991,26 @@ test('generator facts track capability keys and migration numbering uses physica
   );
   assert.deepEqual(facts.capabilityKeys, CAPABILITY_KEYS);
   assert.equal(facts.templateCount, 51);
+});
+
+test('new registration migrations do not repeat the one-time demo cleanup', () => {
+  const sourceName = '0088_remove_demo_game.sql';
+  const sourceContent = readFixture(REPO_ROOT, `packages/api-worker/migrations/${sourceName}`);
+  const migration = buildRegistrationMigration({
+    sourceName,
+    sourceContent,
+    gameId: 'probe',
+    displayName: 'Probe',
+  });
+
+  assert.ok(sourceContent.includes("DELETE FROM rooms WHERE game_type = 'demo';"));
+  assert.ok(!migration.includes("DELETE FROM rooms WHERE game_type = 'demo';"));
+  assert.ok(
+    !migration.includes("DELETE FROM product_game_reward_results WHERE game_type = 'demo';"),
+  );
+  assert.ok(!migration.includes("json_extract(input_json, '$.gameType') = 'demo';"));
+  assert.ok(migration.includes('CREATE TABLE rooms_next'));
+  assert.ok(migration.includes('INSERT INTO rooms_next SELECT * FROM rooms;'));
 });
 
 test('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {

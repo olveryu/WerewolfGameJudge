@@ -469,6 +469,7 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       ['room_game_starts', 'packages/api-worker/src/platform/room/dbSchema.ts'],
       ['room_participants', 'packages/api-worker/src/platform/room/dbSchema.ts'],
       ['rooms', 'packages/api-worker/src/platform/room/dbSchema.ts'],
+      ['secrethitler_user_stats', 'packages/api-worker/src/games/secrethitler/dbSchema.ts'],
       ['spotmatch_user_stats', 'packages/api-worker/src/games/spotmatch/dbSchema.ts'],
       ['storyrelay_user_stats', 'packages/api-worker/src/games/storyrelay/dbSchema.ts'],
       ['undercover_round_word_selections', 'packages/api-worker/src/games/undercover/dbSchema.ts'],
@@ -1335,6 +1336,7 @@ describe('Room seat taps: in-game adjudication is the shared resolveRoomInGameSe
     drawguess: 'games/drawguess/room/hooks/useDrawGuessRoomState.ts',
     pictionary: 'games/pictionary/room/hooks/usePictionaryRoomState.ts',
     spotmatch: 'games/spotmatch/room/hooks/useSpotmatchRoomState.ts',
+    secrethitler: 'games/secrethitler/room/hooks/useSecrethitlerRoomState.ts',
   };
   const rosterControllerGames: Partial<Record<GameType, string>> = {
     fibking: 'games/fibking/room/hooks/useFibRoomState.ts',

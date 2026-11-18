@@ -20,6 +20,7 @@ import { successfulRoomCommand, testRoomState } from '@/test-utils/roomCommand';
 
 import {
   RoomAudioOrchestrator,
+  type RoomAudioPlayerPort,
   type RoomAudioQueueSnapshot,
   type RoomAudioQueueSource,
 } from '../RoomAudioOrchestrator';
@@ -40,7 +41,10 @@ async function flushPlayback(): Promise<void> {
 /** What the fake server leaves in the authoritative snapshot once an ack commits. */
 type AckPlan = (ackedBatchId: number) => Snapshot;
 
-function createHarness(onAck: AckPlan) {
+function createHarness(
+  onAck: AckPlan,
+  playerOverrides: Partial<RoomAudioPlayerPort<TestEffect>> = {},
+) {
   let snapshot: Snapshot | null = null;
   let listener: ((next: Snapshot | null) => void) | null = null;
   let emissionCount = 0;
@@ -76,6 +80,7 @@ function createHarness(onAck: AckPlan) {
       prepareQueue: async (effects) => {
         preparedBatches.push(effects);
       },
+      ...playerOverrides,
     },
     ack: {
       dispatch: async (audioBatchId) => {
@@ -121,6 +126,52 @@ const drainAckedBatch: AckPlan = (ackedBatchId) => ({
 });
 
 describe('RoomAudioOrchestrator batch-id acks', () => {
+  it('does not acknowledge until required batch preparation succeeds', async () => {
+    const prepareQueue = vi
+      .fn<NonNullable<RoomAudioPlayerPort<TestEffect>['prepareQueue']>>()
+      .mockRejectedValueOnce(new Error('Voice initialization failed'))
+      .mockResolvedValue(undefined);
+    const harness = createHarness(drainAckedBatch, {
+      prepareQueue,
+      stopOnPlaybackError: true,
+    });
+    harness.setQueue(firstQueue, 7);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.ackedBatchIds).toEqual([]);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.ackedBatchIds).toEqual([7]);
+    harness.orchestrator.dispose();
+  });
+
+  it('does not acknowledge failed required electronic narration and retries the retained batch', async () => {
+    const playEffect = vi
+      .fn<RoomAudioPlayerPort<TestEffect>['playEffect']>()
+      .mockRejectedValueOnce(new Error('Audio permission denied'))
+      .mockResolvedValue(undefined);
+    const harness = createHarness(drainAckedBatch, { playEffect, stopOnPlaybackError: true });
+    harness.setQueue(firstQueue, 7);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.ackedBatchIds).toEqual([]);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.ackedBatchIds).toEqual([7]);
+    harness.orchestrator.dispose();
+  });
+
+  it('preserves the default skip-and-ack behavior for existing games', async () => {
+    const harness = createHarness(drainAckedBatch, {
+      playEffect: vi.fn().mockRejectedValue(new Error('Playback failed')),
+    });
+    harness.setQueue(firstQueue, 7);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.ackedBatchIds).toEqual([7]);
+    harness.orchestrator.dispose();
+  });
+
   it('acks the batch it played with that batch id', async () => {
     const harness = createHarness(drainAckedBatch);
     harness.setQueue(firstQueue, 7);
@@ -180,6 +231,19 @@ describe('RoomAudioOrchestrator batch-id acks', () => {
 });
 
 describe('RoomAudioOrchestrator resume after rejoin', () => {
+  it('does not acknowledge an interrupted batch when required replay fails', async () => {
+    const harness = createHarness(drainAckedBatch, { stopOnPlaybackError: true });
+    harness.setQueue(firstQueue, 4);
+    harness.orchestrator.setWasAudioInterrupted(true);
+    await expect(
+      harness.orchestrator.resumeInterrupted(async () => {
+        throw new Error('autoplay blocked');
+      }, 4),
+    ).rejects.toThrow('autoplay blocked');
+    expect(harness.ackedBatchIds).toEqual([]);
+    harness.orchestrator.dispose();
+  });
+
   it('holds the re-entry guard across the replay: a snapshot republish mid-replay does not start a second playback', async () => {
     const harness = createHarness(drainAckedBatch);
     harness.setQueue(firstQueue, 3);

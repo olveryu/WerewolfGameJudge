@@ -8,6 +8,9 @@ Why:
 Outputs (by default):
 - assets/audio/*.mp3      (night begin + each role begins + night_end)
 - assets/audio_end/*.mp3  (each role ends)
+- assets/audio_avalon/*.mp3 (Avalon first-night begins)
+- assets/audio_avalon_end/*.mp3 (Avalon first-night ends)
+- assets/audio_secrethitler/*.mp3 (Secret Hitler first-night cues)
 
 Notes:
 - Generating requires internet access.
@@ -48,6 +51,7 @@ from edge_tts.constants import TRUSTED_CLIENT_TOKEN
 # constants. Until a fixed edge-tts release ships, rebind the constants
 # that edge_tts.communicate captured at import time. Delete this block once
 # the installed edge-tts targets api.msedgeservices.com by itself.
+# This shim requires edge-tts >= 7.3.1 for its v2 Sec-MS-GEC token generation.
 _EDGE_CHROMIUM_FULL_VERSION = "155.0.4283.45"
 _edge_communicate.WSS_URL = (
     "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
@@ -68,6 +72,8 @@ OUT_BEGIN_DIR = ROOT_DIR / "assets" / "audio"
 OUT_END_DIR = ROOT_DIR / "assets" / "audio_end"
 OUT_BEGIN_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon"
 OUT_END_DIR_AVALON = ROOT_DIR / "assets" / "audio_avalon_end"
+OUT_BEGIN_DIR_SECRETHITLER = ROOT_DIR / "assets" / "audio_secrethitler"
+OUT_END_DIR_SECRETHITLER = ROOT_DIR / "assets" / "audio_secrethitler_end"
 
 # Canonical voice parameter set — the single source of truth for ALL game
 # narration in this repo. Every batch (werewolf, avalon, future games) is
@@ -203,6 +209,16 @@ END_TEXT_AVALON: dict[str, str] = {
     "percival_reveal": "派西维尔请闭眼。",
 }
 
+BEGIN_TEXT_SECRETHITLER: dict[str, str] = {
+    "night_start": "所有玩家请闭上眼睛。",
+    "evil_reveal_5_6": "法西斯阵营玩家请睁眼，在自己的设备上查看同伴座位；其他玩家保持闭眼。",
+    "fascist_reveal_7_10": "获准查看身份信息的玩家请睁眼，在自己的设备上查看同伴座位；其他玩家保持闭眼。",
+    "evil_close": "已查看身份信息的玩家请闭上眼睛。",
+    "night_end": "所有玩家请睁开眼睛，游戏开始。",
+}
+
+END_TEXT_SECRETHITLER: dict[str, str] = {}
+
 
 def _apply_pronunciation_substitutions(text: str) -> str:
     synthesized_text = text
@@ -222,7 +238,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Print what would be generated")
     parser.add_argument("--list-voices", action="store_true", help="Print available zh-CN male voices")
     parser.add_argument("--insecure", action="store_true", help="Skip SSL certificate verification (for corporate proxies like Netskope)")
-    parser.add_argument("--game", default="werewolf", choices=["werewolf", "avalon"], help="Which game's narration to generate (default: werewolf)")
+    parser.add_argument(
+        "--game",
+        default="werewolf",
+        choices=["werewolf", "avalon", "secrethitler"],
+        help="Which game's narration to generate (default: werewolf)",
+    )
     return parser.parse_args()
 
 
@@ -329,6 +350,9 @@ async def main() -> None:
     if args.game == "avalon":
         begin_text, end_text = BEGIN_TEXT_AVALON, END_TEXT_AVALON
         begin_dir, end_dir = OUT_BEGIN_DIR_AVALON, OUT_END_DIR_AVALON
+    elif args.game == "secrethitler":
+        begin_text, end_text = BEGIN_TEXT_SECRETHITLER, END_TEXT_SECRETHITLER
+        begin_dir, end_dir = OUT_BEGIN_DIR_SECRETHITLER, OUT_END_DIR_SECRETHITLER
     else:
         begin_text, end_text = BEGIN_TEXT, END_TEXT
         begin_dir, end_dir = OUT_BEGIN_DIR, OUT_END_DIR

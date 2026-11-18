@@ -2,6 +2,7 @@ import { avalonEngine } from '../../../games/avalon/engine';
 import { drawGuessEngine } from '../../../games/drawguess/engine';
 import { fibEngine } from '../../../games/fibking/engine';
 import { pictionaryEngine } from '../../../games/pictionary/engine';
+import { secrethitlerEngine } from '../../../games/secrethitler/engine';
 import { spotmatchEngine } from '../../../games/spotmatch/engine';
 import { storyRelayEngine } from '../../../games/storyrelay/engine';
 import { undercoverEngine } from '../../../games/undercover/engine';
@@ -153,6 +154,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     };
     const withNight = Object.values(engines)
@@ -174,6 +176,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
 
@@ -194,6 +197,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
     defineGameEngineCatalog({
@@ -206,6 +210,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
     defineGameEngineCatalog({
@@ -217,6 +222,7 @@ describe('typed game engine contract', () => {
       storyrelay: storyRelayEngine,
       drawguess: drawGuessEngine,
       avalon: avalonEngine,
+      secrethitler: secrethitlerEngine,
       spotmatch: spotmatchEngine,
     });
   });

@@ -54,6 +54,7 @@ const DISPATCH_SITES: Record<GameType, readonly string[]> = {
     'games/storyrelay/room/components/StoryRelayTaskEditor.tsx',
   ],
   spotmatch: ['games/spotmatch/room/hooks/useSpotmatchRoomState.ts'],
+  secrethitler: ['games/secrethitler/room/hooks/useSecrethitlerRoomState.ts'],
 };
 
 /**

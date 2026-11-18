@@ -150,6 +150,15 @@ export const GAME_REGISTRY = {
     workerWorkflows: [],
     httpRoutes: [],
   },
+  secrethitler: {
+    gameType: 'secrethitler',
+    enginePublicExport: './games/secrethitler/public',
+    clientModulePath: 'packages/web/src/games/secrethitler/module.ts',
+    isProduction: true,
+    rewards: { policy: 'flat', ...GAME_COMPLETION_REWARDS.secrethitler },
+    workerWorkflows: [],
+    httpRoutes: [],
+  },
 } as const satisfies { readonly [TGameType in GameType]: GameRegistration<TGameType> };
 
 export type GameRegistry = typeof GAME_REGISTRY;

@@ -1,0 +1,106 @@
+import type {
+  SecrethitlerEndReason,
+  SecrethitlerPhaseKind,
+  SecrethitlerState,
+  SecrethitlerViewModel,
+} from '@game-judge/game-engine/games/secrethitler/public';
+
+export const SECRETHITLER_PHASE_LABELS: Readonly<Record<SecrethitlerPhaseKind, string>> = {
+  lobby: '等待入座',
+  viewing: '查看身份',
+  night: '首夜互认',
+  election: '提名总理',
+  voting: '政府投票',
+  legislativePresident: '总统弃牌',
+  legislativeChancellor: '总理施政',
+  vetoResponse: '回应否决',
+  executive: '总统权力',
+  ended: '本局结束',
+};
+
+export const SECRETHITLER_END_COPY: Readonly<Record<SecrethitlerEndReason, string>> = {
+  liberalPolicies: '已施行五张自由派政策',
+  fascistPolicies: '已施行六张法西斯政策',
+  hitlerExecuted: '希特勒被处决',
+  hitlerElected: '法西斯政策达到三张后，希特勒当选总理',
+};
+
+export const SECRETHITLER_POWER_COPY = {
+  investigate: '调查阵营',
+  specialElection: '特别选举',
+  execute: '处决玩家',
+  policyPeek: '政策预览',
+} as const;
+
+/** Formats an occupied seat using public profile data only. */
+export function secrethitlerSeatLabel(view: SecrethitlerViewModel, seat: number): string {
+  const player = view.seats.find((candidate) => candidate.seat === seat);
+  if (player === undefined) throw new Error(`Missing Secret Hitler seat ${seat}`);
+  return `${seat + 1} 号 · ${player.displayName}`;
+}
+
+/** Personal guidance and the protected action entry for the current viewer. */
+export function secrethitlerInstruction(
+  state: SecrethitlerState,
+  view: SecrethitlerViewModel,
+): { readonly message: string; readonly action: string | null } {
+  const seat = view.mySeat;
+  const living = seat !== null && view.livingSeats.includes(seat);
+  switch (state.phase.kind) {
+    case 'lobby':
+      return { message: '等待房主分配身份', action: null };
+    case 'viewing':
+      return {
+        message: seat === null ? '等待玩家查看身份' : '请私下查看自己的身份，等待房主开始首夜',
+        action: null,
+      };
+    case 'night':
+      return {
+        message: view.canConfirmNight
+          ? view.hasConfirmedNight
+            ? '信息已确认，请闭眼等待语音继续'
+            : '请私下查看互认信息，并点击确认'
+          : '请按电子主持语音行动，未获准查看信息的玩家保持闭眼',
+        action: view.canConfirmNight ? '查看互认信息' : null,
+      };
+    case 'election':
+      return {
+        message: `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 提名总理`,
+        action: seat === state.phase.presidentSeat ? '提名总理' : null,
+      };
+    case 'voting':
+      return {
+        message: living
+          ? view.myVote === null
+            ? '请秘密投票，全员提交后同时揭晓'
+            : '已投票，揭晓前可以改票'
+          : '等待存活玩家投票',
+        action: living ? (view.myVote === null ? '秘密投票' : '修改选票') : null,
+      };
+    case 'legislativePresident':
+      return {
+        message: '总统私下弃一张政策，将剩余两张交给总理',
+        action: seat === state.phase.presidentSeat ? '查看并弃牌' : null,
+      };
+    case 'legislativeChancellor':
+      return {
+        message: state.phase.vetoRejected
+          ? '总统拒绝否决，总理必须施行一张政策'
+          : '总理私下施行一张政策',
+        action: seat === state.phase.chancellorSeat ? '查看并施政' : null,
+      };
+    case 'vetoResponse':
+      return {
+        message: '总理请求否决，等待总统回应',
+        action: seat === state.phase.presidentSeat ? '回应否决' : null,
+      };
+    case 'executive':
+      return {
+        message: `等待总统执行${SECRETHITLER_POWER_COPY[state.phase.power]}`,
+        action:
+          seat === state.phase.presidentSeat ? SECRETHITLER_POWER_COPY[state.phase.power] : null,
+      };
+    case 'ended':
+      return { message: SECRETHITLER_END_COPY[state.phase.reason], action: null };
+  }
+}

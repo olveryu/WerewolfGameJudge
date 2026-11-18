@@ -18,6 +18,8 @@ import type { GameHomeContribution, GameModePresentation } from '@/games/model/G
 import type { GameStatsProps } from '@/games/model/GameStatsProps';
 import { PictionaryStatsPanel } from '@/games/pictionary/components/PictionaryStatsPanel';
 import { pictionaryHome } from '@/games/pictionary/home';
+import { SecrethitlerStatsPanel } from '@/games/secrethitler/components/SecrethitlerStatsPanel';
+import { secrethitlerHome } from '@/games/secrethitler/home';
 import { SpotmatchStatsPanel } from '@/games/spotmatch/components/SpotmatchStatsPanel';
 import { spotmatchHome } from '@/games/spotmatch/home';
 import { StoryRelayStatsPanel } from '@/games/storyrelay/components/StoryRelayStatsPanel';
@@ -57,6 +59,7 @@ const CLIENT_GAMES: { readonly [TGameType in GameType]: ClientGameModule } = {
     AccountStats: AvalonStatsPanel,
   },
   spotmatch: { home: spotmatchHome, AccountStats: SpotmatchStatsPanel },
+  secrethitler: { home: secrethitlerHome, AccountStats: SecrethitlerStatsPanel },
 };
 
 export interface ClientGameModeOption extends GameModePresentation {
