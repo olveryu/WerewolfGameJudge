@@ -504,13 +504,14 @@ test.describe('Pictionary', () => {
         await expect(page.getByTestId(TESTIDS.galleryAlbumDescription)).toHaveText(
           '第 1 轮未完成，房主已中止。',
         );
-        await expect(page.getByTestId(TESTIDS.nextRoundButton)).toHaveCount(0);
-        await expect(page.getByTestId(`${TESTIDS.roomHostTaskCard}-next-round`)).toHaveCount(0);
       }
+      const endedHostPanel = await hostRoom.openHostManagement();
+      await expect(endedHostPanel.getByTestId(TESTIDS.nextRoundButton)).toHaveCount(0);
+      await hostRoom.closeHostManagement();
       await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(/草稿|跳过/);
       await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
       // The aborted round keeps what was handed in: its review opens for every player, marked unfinished.
-      await guestPage.getByTestId(TESTIDS.roomReviewOpenButton).click();
+      await new PictionaryRoomPage(guestPage).clickRoomAction(TESTIDS.roomReviewOpenButton);
       const review = guestPage.getByTestId(TESTIDS.roomReviewDialog);
       await expect(review).toContainText('🖼️ 第 1 轮 · 画册');
       await expect(review).toContainText('未完成');

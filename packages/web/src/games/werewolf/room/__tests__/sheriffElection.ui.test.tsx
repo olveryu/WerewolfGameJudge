@@ -103,6 +103,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     const screen = await mountWerewolfRoom(createDayRoomMock(FIRST_VOTE, [3]));
 
     expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeInTheDocument();
+    await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     expect(screen.getByTestId(TESTIDS.roomReviewOpenButton)).toBeInTheDocument();
   });
 
@@ -127,8 +128,9 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     async (election) => {
       const mock = createDayRoomMock(election, [], true);
       const screen = await mountWerewolfRoom(mock);
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-      await click(task.getByTestId(`${TESTIDS.roomHostTaskCard}-grant-review`));
+      await click(task.getByTestId(TESTIDS.shareReviewButton));
       const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
       const [firstSeat] = within(picker).getAllByRole('checkbox');
       if (firstSeat === undefined) throw new Error('Expected a player to authorize');
@@ -144,8 +146,11 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
       );
       if (election.phase === 'candidateSpeech') {
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
         expect(
-          task.getByTestId(`${TESTIDS.roomHostTaskCard}-sheriff-self-destruct`),
+          within(screen.getByTestId(TESTIDS.roomHostTaskCard)).getByTestId(
+            TESTIDS.sheriffSelfDestructButton,
+          ),
         ).toBeInTheDocument();
       }
     },
@@ -167,20 +172,30 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           gameStateOverrides: { status: GameStatus.Ended },
         });
         const screen = await mountWerewolfRoom(reactive.mock, { viewportWidth });
-        const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-        const steps = within(task.getByRole('list'));
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        let task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+        let steps = within(task.getByRole('list'));
         expect(steps.getAllByRole('button').map((button) => button.textContent)).toEqual([
           '昨夜信息',
           '授权',
           '收尾',
         ]);
-        await click(task.getByTestId(TESTIDS.roomNextStepButton));
+        await click(task.getByTestId(TESTIDS.lastNightInfoButton));
         await harness.pressButton('确定查看');
         await harness.pressButton('知道了');
 
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+        steps = within(task.getByRole('list'));
+        const choiceTestIds = new Set<string>([
+          TESTIDS.shareReviewButton,
+          TESTIDS.roomReviewHostAction,
+          TESTIDS.nextRoundButton,
+          TESTIDS.returnLobbyButton,
+        ]);
         const choices = task
           .getAllByRole('button')
-          .filter((button) => button.dataset.testid?.startsWith(`${TESTIDS.roomHostTaskCard}-`));
+          .filter((button) => choiceTestIds.has(button.dataset.testid ?? ''));
         expect(choices.map((button) => button.textContent)).toEqual([
           '授权玩家查看',
           '本局复盘',
@@ -191,9 +206,12 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           'data-state',
           'current',
         );
-        await click(task.getByTestId(`${TESTIDS.roomHostTaskCard}-grant-review`));
+        await click(task.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
         await click(within(picker).getByRole('button', { name: '取消' }));
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+        steps = within(task.getByRole('list'));
         expect(steps.getByRole('button', { name: '授权' })).toHaveAttribute(
           'data-state',
           'current',
@@ -215,7 +233,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           'data-state',
           'current',
         );
-        await click(steps.getByRole('button', { name: '授权' }));
+        await click(task.getByTestId(TESTIDS.shareReviewButton));
         expect(await screen.findByTestId(TESTIDS.shareReviewModal)).toBeInTheDocument();
       } finally {
         detachAlerts();
@@ -246,7 +264,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     const screen = await mountWerewolfRoom(mock, { viewportWidth: WIDE_VIEWPORT_WIDTH });
 
     expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeInTheDocument();
-    await click(screen.getByTestId(TESTIDS.roomHostManagementButton));
+    await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     expect(await screen.findByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.roomReviewHostAction)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.lastNightInfoButton)).toBeInTheDocument();

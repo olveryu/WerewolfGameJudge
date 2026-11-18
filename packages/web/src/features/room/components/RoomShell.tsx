@@ -18,6 +18,7 @@ import IconShareOutline from '~icons/ion/share-outline';
 
 import { PlayerProfileCard } from './PlayerProfileCard';
 import { RoomBottomActionPanel } from './RoomBottomActionPanel';
+import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
 import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
@@ -169,22 +170,29 @@ export function RoomShell({
   ) => ReactNode;
 }) {
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
-  const [isHostManagementOpen, setIsHostManagementOpen] = useState(false);
+  const [isActionsPanelOpen, setIsActionsPanelOpen] = useState(false);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
+  const bottomActions = isStage ? null : model.bottomActions;
+  const hasAdditionalPlayerActions =
+    bottomActions !== null &&
+    resolveRoomBottomActionPresentation(bottomActions).additionalActions.length > 0;
+  const canOpenActionsPanel = hostManagement !== null || hasAdditionalPlayerActions;
   if (isStage) assertRoomStageShellModel(model);
-  const openHostManagement = () => {
-    if (hostManagement === null) throw new Error('Cannot open unavailable Host management');
-    setIsHostManagementOpen(true);
+  const openActionsPanel = () => {
+    if (!canOpenActionsPanel) throw new Error('Cannot open unavailable room actions panel');
+    setIsActionsPanelOpen(true);
   };
-  const closeHostManagement = () => setIsHostManagementOpen(false);
-  const isHostManagementShown = isHostManagementOpen && hostManagement !== null;
+  const closeActionsPanel = () => setIsActionsPanelOpen(false);
+  const isActionsPanelShown = isActionsPanelOpen && canOpenActionsPanel;
 
-  const sideInspector = isHostManagementShown ? (
+  const sideInspector = isActionsPanelShown ? (
     <RoomHostManagementPanel
       model={hostManagement}
+      bottomActions={bottomActions}
       presentation="inspector"
-      onClose={closeHostManagement}
+      onClose={closeActionsPanel}
+      isAudioPlaying={model.isAudioPlaying}
     />
   ) : content.kind === 'seats' ? (
     content.sideInspector
@@ -215,7 +223,7 @@ export function RoomShell({
               type="button"
               className="room-header-host-button"
               aria-haspopup="dialog"
-              onClick={openHostManagement}
+              onClick={openActionsPanel}
               data-testid={TESTIDS.roomHostManagementButton}
             >
               {HOST_MANAGEMENT_LABEL}
@@ -261,14 +269,16 @@ export function RoomShell({
           summary={content.kind === 'seats' ? content.bottomSummary : null}
           isAudioPlaying={model.isAudioPlaying}
           hostManagement={hostManagement}
-          onOpenHostManagement={openHostManagement}
+          onOpenMoreActions={openActionsPanel}
         />
       )}
-      {isHostManagementShown && !isWideLayout && (
+      {isActionsPanelShown && !isWideLayout && (
         <RoomHostManagementPanel
           model={hostManagement}
+          bottomActions={bottomActions}
           presentation="sheet"
-          onClose={closeHostManagement}
+          onClose={closeActionsPanel}
+          isAudioPlaying={model.isAudioPlaying}
         />
       )}
       {model.seatConfirmation !== null && <RoomSeatConfirmModal model={model.seatConfirmation} />}

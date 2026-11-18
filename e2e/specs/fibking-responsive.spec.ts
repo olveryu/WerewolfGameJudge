@@ -87,10 +87,7 @@ test('FibKing config, room, rules, and identity fit the small-mobile viewport', 
       await joinerRooms[i]!.joinViaCode(roomCode);
       await joinerRooms[i]!.seatAt(i + 1);
     }
-    await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '分配角色',
-      { timeout: 15_000 },
-    );
+    await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
     await expectNoHorizontalOverflow(hostPage);
     await expectInsideViewport(hostPage, TESTIDS.roomHeader);
     await expectInsideViewport(hostPage, TESTIDS.bottomActionPanel);

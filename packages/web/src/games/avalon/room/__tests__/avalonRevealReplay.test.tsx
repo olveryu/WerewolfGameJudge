@@ -23,6 +23,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { TESTIDS } from '@/testids';
 
 import type { AvalonRoomSession } from '../../model/AvalonRoomSession';
 import {
@@ -373,6 +374,7 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
 
     // 设计内主动重看：底部「查验结果」按钮强制重弹，关闭后不再出现。
+    fireEvent.click(getByTestId(TESTIDS.roomMoreActionsButton));
     fireEvent.click(getByTestId('avalon-lady-result-open'));
     expect(getByTestId('avalon-lady-result-modal')).toBeTruthy();
     fireEvent.click(getByTestId('avalon-lady-result-close'));

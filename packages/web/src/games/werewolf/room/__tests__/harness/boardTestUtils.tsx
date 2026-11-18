@@ -464,13 +464,20 @@ export async function click(element: Element): Promise<void> {
   await userEvent.setup({ delay: null }).click(element);
 }
 
+async function revealBottomActionText(view: RenderResult, text: string): Promise<void> {
+  if (view.queryByText(text) !== null) return;
+  const moreActionsButton = view.queryByTestId(TESTIDS.roomMoreActionsButton);
+  if (moreActionsButton !== null) await click(moreActionsButton);
+}
+
 export async function tapSeat(view: RenderResult, seat: number): Promise<void> {
   await click(view.getByTestId(TESTIDS.seatTilePressable(seat)));
 }
 
-/** Clicks the element whose text is exactly `text` (bottom actions, gate buttons). */
+/** Clicks the element whose text is exactly `text` (room actions, gate buttons). */
 export async function pressText(view: RenderResult, text: string): Promise<void> {
-  await click(view.getByText(text));
+  await revealBottomActionText(view, text);
+  await click(await view.findByText(text));
 }
 
 // =============================================================================

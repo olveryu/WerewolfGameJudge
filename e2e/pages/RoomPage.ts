@@ -148,9 +148,11 @@ export class RoomPage {
   // Host Management
   // ---------------------------------------------------------------------------
 
-  /** Open the shared Host-management surface and return its visible panel. */
+  /** Open the shared actions surface and return its visible panel. */
   async openHostManagement(): Promise<Locator> {
-    const entry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
+    const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
+    const stageHostManagementEntry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
+    const entry = moreActionsEntry.or(stageHostManagementEntry).first();
     await expect(entry).toBeVisible({ timeout: 15_000 });
     await entry.click();
     const panel = this.page.getByTestId(TESTIDS.roomHostManagementPanel);
@@ -158,12 +160,70 @@ export class RoomPage {
     return panel;
   }
 
-  /** Close the shared Host-management surface. */
+  /** Close the shared actions surface. */
   async closeHostManagement(): Promise<void> {
     const close = this.page.getByTestId(TESTIDS.roomHostManagementCloseButton);
-    await expect(close).toHaveAccessibleName('关闭主持管理');
+    await expect(close).toHaveAccessibleName(/^关闭(更多操作|主持管理)$/);
     await close.click();
     await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
+  }
+
+  /** Assert a host action in the shared surface, then leave the surface closed. */
+  async expectHostManagementAction(
+    actionTestID: string,
+    label: string,
+    timeoutMs = 15_000,
+  ): Promise<void> {
+    const panel = await this.openHostManagement();
+    await expect(panel.getByTestId(actionTestID)).toHaveAccessibleName(label, {
+      timeout: timeoutMs,
+    });
+    await this.closeHostManagement();
+  }
+
+  /** Assert an action in the focused bottom row without opening shared actions. */
+  async expectFocusedRoomActionVisible(
+    actionTestID: string,
+    label: string,
+    timeoutMs = 15_000,
+  ): Promise<void> {
+    const action = this.page.getByTestId(actionTestID);
+    await expect(action).toBeVisible({ timeout: timeoutMs });
+    await expect(action).toHaveAccessibleName(label, { timeout: timeoutMs });
+  }
+
+  /** Assert the current host-task gate inside the shared surface, then close it. */
+  async expectHostTaskBlockedReason(reason: string | RegExp): Promise<void> {
+    const panel = await this.openHostManagement();
+    await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveText(reason);
+    await this.closeHostManagement();
+  }
+
+  /** Assert a room action is absent from both focused and expanded actions. */
+  async expectRoomActionAbsent(actionTestID: string): Promise<void> {
+    const bottomAction = this.page.getByTestId(actionTestID);
+    await expect(bottomAction).toHaveCount(0);
+    const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
+    const stageHostManagementEntry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
+    if ((await moreActionsEntry.isVisible()) || (await stageHostManagementEntry.isVisible())) {
+      const panel = await this.openHostManagement();
+      await expect(panel.getByTestId(actionTestID)).toHaveCount(0);
+      await this.closeHostManagement();
+    }
+  }
+
+  /** Click a viewer action whether it is focused at the bottom or expanded in the shared surface. */
+  async clickRoomAction(actionTestID: string): Promise<void> {
+    const bottomAction = this.page.getByTestId(actionTestID);
+    if ((await bottomAction.count()) > 0) {
+      await bottomAction.click();
+      return;
+    }
+    const panel = await this.openHostManagement();
+    const action = panel.getByTestId(actionTestID);
+    await expect(action).toBeVisible({ timeout: 15_000 });
+    await action.click();
+    await expect(panel).not.toBeVisible();
   }
 
   /** Run an enabled Host action and wait for the management surface to close. */
@@ -225,18 +285,17 @@ export class RoomPage {
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
     await this.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
-    // The view-identity button renders once the assignment broadcast arrives.
-    await expect(this.viewIdentityButton()).toBeEnabled({ timeout: 15_000 });
+    await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
-  /** The bottom view-identity button, shared by every game. */
-  viewIdentityButton(): Locator {
+  /** Locate the focused identity action during the role-viewing phase. */
+  async viewIdentityButton(): Promise<Locator> {
     return this.page.getByTestId(TESTIDS.roomViewIdentityButton);
   }
 
   /** Open the own role card through 查看身份 and return the dialog. */
   async openRoleCard(): Promise<Locator> {
-    const viewButton = this.viewIdentityButton();
+    const viewButton = await this.viewIdentityButton();
     await expect(viewButton).toHaveText('查看身份', { timeout: 15_000 });
     await viewButton.click();
     const modal = this.page.getByTestId(TESTIDS.roleCardModal);
@@ -284,11 +343,8 @@ export class RoomPage {
       buttonIndex: 1,
       buttonLabel: '返回大厅',
     });
-    // Wait for restart broadcast — the console primary returns when the room is ready again.
-    await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '分配角色',
-      { timeout: 15_000 },
-    );
+    // Wait for restart broadcast — the host task returns to role assignment.
+    await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
   }
 
   /** Click the settings button to open config in edit mode. */

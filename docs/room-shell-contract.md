@@ -254,8 +254,9 @@ private results stay behind explicitly authorized actions and overlays.
 
 ### Room Action Hierarchy
 
-- All games use the shared bottom panel for status, current actions and persistent tools,
-  with a separated host-management block. Hosting is an additional capability, not a
+- All games use the shared bottom panel for status, progress, one focused player action and
+  an entry to the shared actions surface. That surface groups remaining player tools with
+  the host task and management sections. Hosting is an additional capability, not a
   replacement for the user's player or spectator actions. `stage` content is the one
   exception: its status lives in the information bar and its actions in the game's dock.
 - Waiting and narration are status messages, never inert primary buttons. A dock may have
@@ -265,9 +266,11 @@ private results stay behind explicitly authorized actions and overlays.
 - Identity viewing stays primary during the viewing step and secondary afterward. It remains
   a labelled button, not a borderless action. Review tools use labelled icons. Games retain
   their existing visibility and information permissions, including spectator permissions.
-- When a current primary action is available or submitting, host advancement remains reachable
-  with secondary emphasis. The management entry is always neutral. Advancement uses its action
-  label without a generic next-step prefix. Dangerous commands retain explicit danger semantics.
+- If exactly one player primary action is available, it occupies the focus slot. Multiple equal
+  player primaries move together to the shared actions surface instead of being reordered. When
+  no player focus action exists, the shared-surface entry fills the slot. The entry may summarize
+  the current host task, but host commands execute only from that opened surface. Dangerous
+  commands retain explicit danger semantics.
 - Room buttons share the existing capsule geometry and md sizing. Tool hit targets are at
   least 44 logical pixels; secondary and tool rows wrap on narrow screens. Management sheets
   use the same secondary fill as the bottom panel. Do not override geometry or color by role.
@@ -291,15 +294,15 @@ no game re-derives it.
 
 **Two surfaces, two owners.**
 
-| Surface                              | Holds                                                                                                                                                                                       | Audience                                                                                                                                                                                                            |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hostManagement` (task card + sheet) | **Every host command, and only host commands.** Start / assign / begin gates, bot scaffolds, abort / restart, closing, room setup, post-game tools, host-owned local modes and their exits. | `viewer.isHost` only. Built lazily by `buildHostManagement`; `createRoomShellModel` calls it for the host and sets `null` otherwise. Games never write `if (!isHost) return null`.                                  |
-| `bottomActions` (stacked / dock)     | The viewer's **own** actions as a participant or spectator.                                                                                                                                 | Every button declares `audience: 'participant' \| 'anyone'`. `participant` requires an effective seat; `anyone` is open to spectators. There is no host audience: a host command never renders on the bottom panel. |
+| Surface                                 | Holds                                                                                                                                                                                       | Audience                                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostManagement` (task card + sections) | **Every host command, and only host commands.** Start / assign / begin gates, bot scaffolds, abort / restart, closing, room setup, post-game tools, host-owned local modes and their exits. | `viewer.isHost` only. Built lazily by `buildHostManagement`; `createRoomShellModel` calls it for the host and sets `null` otherwise. Games never write `if (!isHost) return null`.                                  |
+| `bottomActions` (stacked / dock)        | The viewer's **own** actions as a participant or spectator.                                                                                                                                 | Every button declares `audience: 'participant' \| 'anyone'`. `participant` requires an effective seat; `anyone` is open to spectators. There is no host audience: a host command never renders on the bottom panel. |
 
 `createRoomShellModel` checks every bottom button against the viewer and throws on a violation;
-it also throws when a bottom button repeats an action the host task card renders.
-A seated host receives both surfaces stacked: their own participant buttons, then the host
-card. They are never merged and the renderer never reads role.
+it also throws when a bottom button repeats an action the host task renders. A seated host
+keeps their own player action in the bottom focus slot and can open the shared surface to see
+the host task and remaining player tools. The renderer never reads role.
 
 Content-local host controls that belong to a game workspace (gallery playback, a drawer's
 give-up, board-nomination adopt, the BGM toggle) stay in that workspace; the flow commands
@@ -308,13 +311,13 @@ give-up, board-nomination adopt, the BGM toggle) stay in that workspace; the flo
 #### Host Task
 
 The host's "what do I do now" has exactly one home: the **host task**, declared by the game on
-`RoomHostManagementModel.task` and rendered by the shell as the **host task card**.
+`RoomHostManagementModel.task` and rendered inside the shared actions surface.
 
 ```ts
 interface RoomHostManagementModel {
   /** The one thing the host should do now; null when nothing awaits the host. */
   readonly task: RoomHostTask | null;
-  /** The complete command inventory (the sheet). Every host command's onPress lives here. */
+  /** The complete command inventory (the shared surface). Every host command's onPress lives here. */
   readonly sections: readonly RoomHostManagementSection[];
 }
 
@@ -345,35 +348,46 @@ Rules:
 - **A task has no `onPress`.** It references sheet actions by `key`; the renderer resolves the
   action's handler, enabled state and disabled reason from the sheet. One command, one
   execution path — guaranteed by the type shape, not by review.
-- `action`: do this one thing. If the referenced action is disabled, the card shows its label,
-  its `disabledReason` and the optional remedy button. There is no separate "console blocked
-  reason": an action that is not ready is disabled in the sheet with the same reason.
+- `action`: do this one thing. If the referenced action is disabled, the task shows its label
+  and `disabledReason`, with the optional remedy button. The disabled command remains in its
+  management section, without repeating the reason.
 - `choice`: two or more equal options (再来一局 / 返回大厅). Rendered side by side with each
   action's own variant. Never model equal choices as one primary and one buried option.
 - `message`: the host is waiting on others or following a board instruction
   (正在等待 3 位玩家查看身份 / 点座位盘选择出局玩家). The optional `actionKey` is the
   secondary escape (标记机器人已查看 / 取消选择).
-- `task === null`: nothing awaits the host; the card shows only the sheet entry.
+- `task === null`: nothing awaits the host; the shared surface shows the remaining management
+  sections.
 - Actions no longer carry `isPrimary`, `remedy` or `consoleBlockedReason`; the model no longer
   carries `hasPendingAction`. All of that is the task.
 - `resolveHostTaskView` validates at assembly and throws on: an `actionKey` missing from the
   sections, a `choice` with fewer than two keys, more than one `current` step.
 
-**Host task card** — inside the bottom panel, below the viewer's own actions, in every layout
-except `stage` content (below). The sheet (narrow) / side inspector (wide) opens on demand from
-the card's entry row and holds the inventory; the card is the only always-visible host surface:
+**Host task card** — inside the shared actions surface, in every layout except `stage` content
+(below). The sheet (narrow) / side inspector (wide) opens on demand from the bottom panel's
+actions entry. The entry stays visible with a compact current-task hint; task details and
+commands are rendered only in the opened surface:
 
 ```
-┌ 主持 ────────────────────────────────┐
-│ ✓昨夜信息 → ●授权 → 收尾          │  steps (only when present)
-│ 授权玩家查看                  [打开 →]│  action / choice / message
-│ 记得把复盘分享给第一天出局的玩家        │  note
-│ 全部操作                           ›  │  sheet entry (no pending badge; the card is the signal)
+┌ 底部焦点卡 ──────────────────────────┐
+│ 状态 / 进度                            │
+│ [玩家当前操作]       [更多操作 · 待办] │
+└──────────────────────────────────────┘
+
+┌ 更多操作 ────────────────────────────┐
+│ 玩家操作                              │
+│ 当前待办                              │
+│ ✓昨夜信息 → ●授权 → 收尾              │  steps (only when present)
+│ 授权玩家查看                           │  action / choice / message
+│ 记得把复盘分享给第一天出局的玩家         │  note
+│ 其它主持命令                           │  sections
 └──────────────────────────────────────┘
 ```
 
-Test anchors are stable: the task's action button carries `roomNextStepButton`, its remedy
-`roomNextStepRemedyButton`, the entry `roomHostManagementButton`.
+The shared entry is `roomMoreActionsButton`; its accessible label includes the current task
+hint when one exists. Host task buttons use their declared action `testID` (falling back to
+task-scoped IDs when an action has none). `roomHostManagementButton` remains the separate
+header entry for `stage` content.
 
 **Phase × task across games** (the declared mapping; each game's host-management test pins it):
 
@@ -390,10 +404,11 @@ Test anchors are stable: the task's action button carries `roomNextStepButton`, 
 | Ended (other games)                     | `choice: [review, next-round, return-lobby]` (`hostReviewClosingTask`); an aborted round that keeps a review: `choice: [review, return-lobby]`                                                                      |
 | Pictionary / Story Relay, cannot abort  | `null`; the sheet stays present with abort disabled and its reason (the host panel is never hidden mid-game)                                                                                                        |
 
-The bottom panel carries **no** host flow: no step bar, no hint, no host buttons. Werewolf's
-bottom host rules keep only the participant actions (view identity). In every game the review
+The bottom panel carries **no** host commands or host-flow progress. Werewolf's bottom host
+rules keep only the participant actions (view identity); the shared-surface entry summarizes
+the current host task. In every game the review
 stays a bottom `anyone` tool for seats and spectators — a Werewolf seat the host has not granted
-sees it disabled with the reason — and reaches the host only through the task card and sheet.
+sees it disabled with the reason — and reaches the host through the shared actions surface.
 The sheriff dock therefore
 has no trailing review tool for the host.
 

@@ -49,37 +49,15 @@ export class SheriffElectionPage {
         : TESTIDS.sheriffCancelRegistrationButton,
     );
     const advanceLabel = '结束报名';
-    const hostManagementButton = this.page.getByTestId(TESTIDS.roomHostManagementButton);
+    const hostManagementButton = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
     await expect(personalButton).toBeEnabled();
-    await expect(hostManagementButton).toHaveAccessibleName('主持管理');
+    await expect(hostManagementButton).toContainText(/更多操作|主持管理/);
     await this.expectSingleLineButtonLabel(personalButton, personalLabel);
-    await this.expectSingleLineButtonLabel(hostManagementButton, '主持管理');
-    // Review grants remain available while the election and last-night info are pending.
-    const consoleButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-sheriff-advance`);
-    const grantButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-grant-review`);
-    const infoButton = this.page.getByTestId(`${TESTIDS.roomHostTaskCard}-last-night-info`);
-    await expect(consoleButton).toHaveAccessibleName('结束报名');
-    await expect(grantButton).toHaveAccessibleName('授权玩家查看');
-    await expect(grantButton).toBeEnabled();
-    await expect(infoButton).toHaveAccessibleName('昨夜信息');
-
-    const personalBox = await personalButton.boundingBox();
-    const hostManagementBox = await hostManagementButton.boundingBox();
-    if (personalBox === null || hostManagementBox === null) {
-      throw new Error('Host registration dock controls must have layout boxes');
-    }
-    expect(hostManagementBox.y).toBeGreaterThanOrEqual(personalBox.y + personalBox.height);
 
     const viewport = this.page.viewportSize();
     if (viewport === null) throw new Error('Room action checks require a viewport');
-    for (const button of [
-      personalButton,
-      consoleButton,
-      grantButton,
-      infoButton,
-      hostManagementButton,
-    ]) {
+    for (const button of [personalButton, hostManagementButton]) {
       const bounds = await button.boundingBox();
       if (bounds === null) throw new Error('Room action button must have layout bounds');
       expect(bounds.height).toBeGreaterThanOrEqual(44);
@@ -88,24 +66,40 @@ export class SheriffElectionPage {
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
       await expect(button).toBeInViewport({ ratio: 1 });
     }
-    // Keyboard order follows the card: advance → grant → last-night info → sheet entry.
-    await consoleButton.focus();
+
+    await personalButton.focus();
+    await this.page.keyboard.press('Tab');
+    await expect(hostManagementButton).toBeFocused();
+    const room = new RoomPage(this.page);
+    const hostManagementPanel = await room.openHostManagement();
+    const advanceButton = hostManagementPanel.getByTestId(TESTIDS.sheriffAdvanceButton);
+    const grantButton = hostManagementPanel.getByTestId(TESTIDS.shareReviewButton);
+    const infoButton = hostManagementPanel.getByTestId(TESTIDS.lastNightInfoButton);
+    await expect(advanceButton).toHaveAccessibleName(advanceLabel);
+    await expect(advanceButton).toBeEnabled();
+    await expect(grantButton).toHaveAccessibleName('授权玩家查看');
+    await expect(grantButton).toBeEnabled();
+    await expect(infoButton).toHaveAccessibleName('昨夜信息');
+    for (const button of [advanceButton, grantButton, infoButton]) {
+      const bounds = await button.boundingBox();
+      if (bounds === null) throw new Error('Host action must have layout bounds');
+      expect(bounds.height).toBeGreaterThanOrEqual(44);
+      expect(bounds.width).toBeGreaterThanOrEqual(44);
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+      await expect(button).toBeInViewport({ ratio: 1 });
+    }
+
+    await advanceButton.focus();
     await this.page.keyboard.press('Tab');
     await expect(grantButton).toBeFocused();
     await this.page.keyboard.press('Tab');
     await expect(infoButton).toBeFocused();
-    await this.page.keyboard.press('Tab');
-    await expect(hostManagementButton).toBeFocused();
-    const outlineStyle = await hostManagementButton.evaluate(
+    const outlineStyle = await infoButton.evaluate(
       (element) => getComputedStyle(element).outlineStyle,
     );
     expect(outlineStyle).not.toBe('none');
 
-    const room = new RoomPage(this.page);
-    const hostManagementPanel = await room.openHostManagement();
-    const advanceButton = hostManagementPanel.getByTestId(TESTIDS.sheriffAdvanceButton);
-    await expect(advanceButton).toHaveAccessibleName(advanceLabel);
-    await expect(advanceButton).toBeEnabled();
     await room.closeHostManagement();
   }
 

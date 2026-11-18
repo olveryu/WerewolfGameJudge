@@ -1,5 +1,5 @@
 import type { Browser } from '@playwright/test';
-import { expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
@@ -69,13 +69,15 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 const SEATS_READY_TIMEOUT_MS = 24_000;
 
 /**
- * Hard gate: wait until the host's next-step button offers 分配角色, which it
- * does once every seat is taken.
+ * Hard gate: wait until the host's task offers role assignment, which it does
+ * once every seat is taken.
  */
 async function waitForSeatsReady(hostPage: Page): Promise<void> {
-  await expect(hostPage.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName('分配角色', {
-    timeout: SEATS_READY_TIMEOUT_MS,
-  });
+  await new RoomPage(hostPage).expectHostManagementAction(
+    TESTIDS.assignRolesButton,
+    '分配角色',
+    SEATS_READY_TIMEOUT_MS,
+  );
 }
 
 // ---------------------------------------------------------------------------

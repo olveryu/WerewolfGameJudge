@@ -1,7 +1,7 @@
 /**
  * The Avalon room renders the shared review: while the game runs there is
- * no entry; once it ended, a seat's bottom 本局复盘 entry and the host's
- * task card entry (its only one) open the platform dialog on the Avalon
+ * no entry; once it ended, a seat's 本局复盘 entry and the host's
+ * task entry in the shared actions panel open the platform dialog on Avalon
  * document, and its close button dismisses it.
  * States come from the real engine; the session is a fake link.
  */
@@ -106,6 +106,7 @@ describe('AvalonRoomScreen review', () => {
 
   it('opens the shared dialog on the Avalon document from a seat bottom entry', () => {
     renderRoom(playAvalonTestGame(3), avalonTestSeatUser(1));
+    fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     fireEvent.click(screen.getByTestId(TESTIDS.roomReviewOpenButton));
     expectAvalonReviewDialog();
 
@@ -113,11 +114,12 @@ describe('AvalonRoomScreen review', () => {
     expect(screen.queryByTestId(TESTIDS.roomReviewDialog)).toBeNull();
   });
 
-  it('gives the ended host exactly one review entry, on the host task card', () => {
+  it('gives the ended host exactly one review entry, in the host task panel', () => {
     renderRoom(playAvalonTestGame(3), avalonTestSeatUser(0));
+    fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     expect(screen.getAllByRole('button', { name: '本局复盘' })).toHaveLength(1);
     expect(screen.queryByTestId(TESTIDS.roomReviewOpenButton)).toBeNull();
-    fireEvent.click(screen.getByTestId(`${TESTIDS.roomHostTaskCard}-review`));
+    fireEvent.click(screen.getByTestId(TESTIDS.roomReviewHostAction));
     expectAvalonReviewDialog();
   });
 });

@@ -35,9 +35,7 @@ export class SpotmatchRoomPage extends RoomPage {
       buttonIndex: 1,
       buttonLabel: '返回大厅',
     });
-    await expect(this.page.getByTestId(TESTIDS.roomNextStepButton)).toHaveAccessibleName(
-      '开始游戏',
-    );
+    await this.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
   }
 
   async playCorrectCard() {

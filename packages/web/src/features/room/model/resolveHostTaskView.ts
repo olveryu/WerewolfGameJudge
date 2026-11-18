@@ -44,7 +44,12 @@ export type RoomHostTaskBody =
     };
 
 export interface RoomHostTaskView {
-  readonly steps: readonly (RoomHostTaskStep & { readonly onPress?: () => void })[] | null;
+  readonly steps:
+    | readonly (RoomHostTaskStep & {
+        readonly onPress?: () => void;
+        readonly testID?: string;
+      })[]
+    | null;
   readonly body: RoomHostTaskBody;
   readonly note: string | null;
 }
@@ -86,7 +91,11 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
           if (step.actionKey === undefined) return step;
           const action = requireAction(index, step.actionKey, `step "${step.key}"`);
           return action.isEnabled && step.state !== 'upcoming'
-            ? { ...step, onPress: action.onPress }
+            ? {
+                ...step,
+                onPress: action.onPress,
+                ...(action.testID === undefined ? {} : { testID: action.testID }),
+              }
             : step;
         });
   if (steps !== null && steps.filter((step) => step.state === 'current').length > 1) {
