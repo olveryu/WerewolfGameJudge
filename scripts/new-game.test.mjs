@@ -1,7 +1,7 @@
 /**
  * Generator tests: run the real generator against a fixture repository
- * assembled from the real shared files it edits, across every valid capability
- * selection. A real-tree copy validates representative selections with the
+ * assembled from the real shared files it edits, across representative feature
+ * profiles. A real-tree copy validates representative selections with the
  * generated output's formatting, lint, types and package tests. Run with
  * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
@@ -12,18 +12,28 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { afterAll, it } from 'vitest';
 
 import { editEngineContractsTest } from './lib/new-game/edits.mjs';
 import {
-  CAPABILITY_KEYS,
   FILE_CAPABILITY_GATES,
-  generateNewGame,
+  generateNewGame as generateNewGameWithProfile,
   generatorFacts,
-  selectCapabilities,
   SHARED_EDITS,
 } from './lib/new-game/generate.mjs';
+import {
+  BASE_TEST_REQUIREMENTS,
+  DERIVED_CAPABILITY_KEYS,
+  deriveCapabilities,
+  FEATURE_KEYS,
+  FEATURE_TEST_REQUIREMENTS,
+  FEATURE_VALUES,
+  normalizeFeatureProfile,
+  parseFeatureDeclarations,
+  resolveFeatureTestRequirements,
+} from './lib/new-game/features.mjs';
 import {
   assertRegistrationGameTypes,
   buildRegistrationMigration,
@@ -41,6 +51,9 @@ const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** Every shared file the generator edits; the fixture copies the real ones. */
 const SHARED_FILES = SHARED_EDITS.map(({ file }) => file);
 const fixtureRoots = new Set();
+const DEFAULT_FEATURE_PROFILE = Object.freeze(
+  Object.fromEntries(FEATURE_KEYS.map((key) => [key, FEATURE_VALUES[key][0]])),
+);
 afterAll(() => {
   for (const root of fixtureRoots) fs.rmSync(root, { recursive: true, force: true });
 });
@@ -62,6 +75,13 @@ function makeFixtureRepo() {
     }
   }
   return root;
+}
+
+function generateNewGame(options) {
+  return generateNewGameWithProfile({
+    ...options,
+    features: options.features ?? DEFAULT_FEATURE_PROFILE,
+  });
 }
 
 /**
@@ -161,8 +181,8 @@ const CAPABILITY_FILE_ADDITIONS = [
   },
 ];
 
-function expectedCreatedFiles(gameId, selectedCapabilities) {
-  const capabilities = selectCapabilities(selectedCapabilities);
+function expectedCreatedFiles(gameId, features) {
+  const capabilities = deriveCapabilities(features);
   const pascal = gameId.charAt(0).toUpperCase() + gameId.slice(1);
   const engine = `packages/game-engine/src/games/${gameId}`;
   const worker = `packages/api-worker/src/games/${gameId}`;
@@ -273,33 +293,38 @@ it('capability blocks keep lines only for enabled capabilities and fail fast on 
   );
 });
 
-const CAPABILITY_SCENARIOS = Array.from(
-  { length: 2 ** CAPABILITY_KEYS.length },
-  (_, selectionMask) => CAPABILITY_KEYS.filter((_, index) => (selectionMask & (1 << index)) !== 0),
-)
-  .filter(
-    (selected) => !selected.includes('botBulkViewing') || selected.includes('identityViewing'),
-  )
-  .map((selected) => ({
-    name:
-      selected.length === 0
-        ? 'all capabilities off'
-        : selected.length === CAPABILITY_KEYS.length
-          ? 'all capabilities on'
-          : selected.join(' + '),
-    selected,
-  }));
+const featureProfile = (overrides = {}) =>
+  Object.freeze({ ...DEFAULT_FEATURE_PROFILE, ...overrides });
+
+const FEATURE_SCENARIOS = [
+  { name: 'no optional features', features: featureProfile() },
+  { name: 'private identities', features: featureProfile({ identity: 'private' }) },
+  { name: 'narrated night actions', features: featureProfile({ night: 'narrated' }) },
+  {
+    name: 'non-night guided narration',
+    features: featureProfile({ guidedNarration: 'narrated' }),
+  },
+  { name: 'stage deadlines', features: featureProfile({ stageDeadline: 'enabled' }) },
+  { name: 'in-game word supply', features: featureProfile({ wordSupply: 'in-game' }) },
+  {
+    name: 'all declared features',
+    features: featureProfile({
+      identity: 'private',
+      night: 'narrated',
+      guidedNarration: 'narrated',
+      stageDeadline: 'enabled',
+      wordSupply: 'both',
+    }),
+  },
+];
 
 const FULL_TOOLCHAIN_SCENARIOS = [
-  { name: 'all capabilities off', selected: [] },
-  { name: 'identityViewing', selected: ['identityViewing'] },
-  { name: 'stageDeadline', selected: ['stageDeadline'] },
-  { name: 'audioOrchestration', selected: ['audioOrchestration'] },
-  {
-    name: 'identityViewing + botBulkViewing',
-    selected: ['identityViewing', 'botBulkViewing'],
-  },
-  { name: 'all capabilities on', selected: CAPABILITY_KEYS },
+  { name: 'no optional features', features: featureProfile() },
+  { name: 'private identities', features: featureProfile({ identity: 'private' }) },
+  { name: 'narrated night actions', features: featureProfile({ night: 'narrated' }) },
+  { name: 'non-night guided narration', features: featureProfile({ guidedNarration: 'narrated' }) },
+  { name: 'stage deadlines', features: featureProfile({ stageDeadline: 'enabled' }) },
+  { name: 'all declared features', features: FEATURE_SCENARIOS.at(-1).features },
 ];
 
 it('keeps one game template tree beside the shared template tree', () => {
@@ -307,38 +332,129 @@ it('keeps one game template tree beside the shared template tree', () => {
   assert.deepEqual(fs.readdirSync(templatesDir).sort(), ['game', 'shared']);
 });
 
-it('capability selection defaults off and requires identity viewing for bot bulk viewing', () => {
-  assert.deepEqual(selectCapabilities([]), {
-    nightPhase: false,
+it('requires a complete feature declaration and derives required capabilities from the game', () => {
+  const identityAndNight = parseFeatureDeclarations([
+    'identity=private',
+    'night=narrated',
+    'guidedNarration=none',
+    'stageDeadline=enabled',
+    'wordSupply=none',
+  ]);
+  assert.deepEqual(identityAndNight, {
+    identity: 'private',
+    night: 'narrated',
+    guidedNarration: 'none',
+    stageDeadline: 'enabled',
+    wordSupply: 'none',
+  });
+  assert.deepEqual(deriveCapabilities(identityAndNight), {
+    nightPhase: true,
     botsAndTakeover: true,
-    identityViewing: false,
-    revealAnimation: false,
-    stageDeadline: false,
-    audioOrchestration: false,
+    identityViewing: true,
+    revealAnimation: true,
+    stageDeadline: true,
+    audioOrchestration: true,
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botBulkViewing: false,
+    botBulkViewing: true,
   });
-  for (const key of CAPABILITY_KEYS.filter((candidate) => candidate !== 'botBulkViewing')) {
-    const selected = selectCapabilities([key]);
-    assert.equal(selected[key], true, `${key} can be selected independently`);
-    for (const other of CAPABILITY_KEYS.filter((candidate) => candidate !== key)) {
-      assert.equal(selected[other], false, `${other} remains off when selecting ${key}`);
-    }
-  }
-  assert.equal(selectCapabilities(['identityViewing', 'botBulkViewing']).botBulkViewing, true);
-  assert.throws(() => selectCapabilities(['botBulkViewing']), /requires "identityViewing"/);
-  assert.throws(() => selectCapabilities(['unknownCapability']), /Invalid capability/);
+
+  const baseline = deriveCapabilities(DEFAULT_FEATURE_PROFILE);
+  assert.equal(baseline.botsAndTakeover, true, 'host-controlled bot seats are a platform baseline');
+  assert.equal(baseline.botBulkViewing, false, 'games without identities need no identity helper');
+  assert.equal(baseline.nightPhase, false, 'games without night actions have no night phase');
+  assert.equal(
+    deriveCapabilities(featureProfile({ guidedNarration: 'narrated' })).nightPhase,
+    false,
+    'guided narration does not imply a night phase',
+  );
+  assert.equal(baseline.audioOrchestration, false);
+  assert.equal(deriveCapabilities(featureProfile({ wordSupply: 'background' })).wordLibrary, true);
+  assert.deepEqual(DERIVED_CAPABILITY_KEYS, [
+    'nightPhase',
+    'identityViewing',
+    'botBulkViewing',
+    'stageDeadline',
+    'audioOrchestration',
+    'wordLibrary',
+  ]);
+  assert.deepEqual(Object.keys(FEATURE_TEST_REQUIREMENTS).sort(), [
+    'guidedNarration',
+    'identity',
+    'night',
+    'stageDeadline',
+  ]);
+
+  assert.throws(() => parseFeatureDeclarations([]), /missing:/);
+  assert.throws(
+    () =>
+      parseFeatureDeclarations([...FEATURE_KEYS.map((key) => `${key}=none`), 'identity=private']),
+    /declared more than once/,
+  );
+  assert.throws(
+    () => parseFeatureDeclarations([...FEATURE_KEYS.map((key) => `${key}=none`), 'robots=yes']),
+    /Unknown feature "robots"/,
+  );
+  assert.throws(
+    () => normalizeFeatureProfile({ ...DEFAULT_FEATURE_PROFILE, robots: 'enabled' }),
+    /unknown: robots/,
+  );
 });
 
-for (const scenario of CAPABILITY_SCENARIOS) {
-  it(`generates the complete skeleton with ${scenario.name} and wires every registration point`, () => {
+it('CLI rejects missing feature declarations and generates from explicit feature values', () => {
+  const root = makeFixtureRepo();
+  const cliPath = path.join(REPO_ROOT, 'scripts/new-game.mjs');
+  assert.throws(
+    () =>
+      execFileSync(process.execPath, [cliPath, 'cliprobe'], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+    (error) => {
+      assert.equal(error.status, 1);
+      assert.match(error.stderr, /new-game: Feature profile must declare exactly/);
+      return true;
+    },
+  );
+  assert.equal(
+    fs.existsSync(path.join(root, 'packages/game-engine/src/games/cliprobe')),
+    false,
+    'a missing feature declaration fails before writing generated files',
+  );
+  assert.throws(
+    () =>
+      execFileSync(process.execPath, [cliPath, 'cliprobe', '--capability', 'identityViewing'], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+    /Unknown option: --capability/,
+  );
+
+  const features = featureProfile({ identity: 'private', night: 'narrated' });
+  const featureArguments = FEATURE_KEYS.flatMap((key) => ['--feature', `${key}=${features[key]}`]);
+  execFileSync(process.execPath, [cliPath, 'cliprobe', ...featureArguments], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  const engine = readFixture(root, 'packages/game-engine/src/games/cliprobe/engine.ts');
+  assert.ok(engine.includes('nightPhase: true'));
+  assert.ok(engine.includes('identityViewing: true'));
+  assert.ok(engine.includes('audioOrchestration: true'));
+  assert.ok(
+    readFixture(root, 'new-game-cliprobe-report.md').includes(
+      'corepack pnpm new-game cliprobe --feature identity=private',
+    ),
+  );
+});
+
+for (const scenario of FEATURE_SCENARIOS) {
+  it(`generates the complete skeleton for ${scenario.name} and wires every registration point`, () => {
     const root = makeFixtureRepo();
     const summary = generateNewGame({
       rootDir: root,
       gameId: 'demoproto',
-      capabilities: scenario.selected,
+      features: scenario.features,
       displayName: '演示原型',
       subtitle: '生成器自证用临时游戏',
     });
@@ -346,7 +462,7 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     // File-list completeness (the plan §4 checklist).
     assert.deepEqual(
       summary.createdFiles.filter((file) => !file.includes('/migrations/')),
-      expectedCreatedFiles('demoproto', scenario.selected),
+      expectedCreatedFiles('demoproto', scenario.features),
     );
     assert.match(summary.migrationName, /^\d{4}_demoproto\.sql$/);
     assert.ok(
@@ -375,6 +491,15 @@ for (const scenario of CAPABILITY_SCENARIOS) {
       'default generation registers the new game as non-production',
     );
     const reportText = readFixture(root, summary.reportPath);
+    for (const requirement of resolveFeatureTestRequirements(scenario.features, {
+      gameId: 'demoproto',
+      gameName: 'demoproto',
+    })) {
+      assert.ok(reportText.includes(requirement.file), `${requirement.file} is listed in report`);
+      for (const testCase of requirement.testCases) {
+        assert.ok(reportText.includes(testCase), `${testCase} is listed in report`);
+      }
+    }
     const designDoc = readFixture(root, 'docs/demoproto-game-design.md');
     assert.match(
       readFixture(root, 'docs/README.md'),
@@ -393,11 +518,14 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     );
     assert.ok(designDoc.includes('规则来源与用户确认'));
     assert.ok(designDoc.includes('奖励/战绩门槛不等于开局门槛'));
-    assert.ok(!designDoc.includes('--preset'), 'generated design doc uses the capability API');
+    assert.ok(!designDoc.includes('--preset'), 'generated design doc has no preset label');
     assert.ok(!designDoc.includes('原型预设'), 'generated design doc has no preset label');
-    assert.ok(designDoc.includes('启用能力：'));
-    for (const key of new Set(scenario.selected)) {
-      assert.ok(designDoc.includes(`--capability ${key}`), `design command includes ${key}`);
+    assert.ok(designDoc.includes('机器校验的游戏特征'));
+    for (const key of FEATURE_KEYS) {
+      assert.ok(
+        designDoc.includes(`--feature ${key}=${scenario.features[key]}`),
+        `design command includes ${key}`,
+      );
     }
     assert.ok(reportText.includes('上线（翻生产）'), 'default report carries the go-live step');
     assert.ok(reportText.includes('homeProductionFilter'), 'go-live step names the tripwire list');
@@ -412,8 +540,8 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     );
 
     // The contract expectation row and engine declaration must carry
-    // exactly the independently selected capability values.
-    const capabilities = selectCapabilities(scenario.selected);
+    // exactly the capabilities derived from the declared feature profile.
+    const capabilities = deriveCapabilities(scenario.features);
     const contract = readFixture(
       root,
       'packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts',
@@ -529,6 +657,11 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     assert.ok(report.includes(summary.migrationName));
     assert.ok(report.includes('审 migration'));
     assert.ok(report.includes('e2e 启用需用户批准'));
+    assert.ok(report.includes('__tests__/engine.test.ts'));
+    assert.ok(report.includes('notImplemented'));
+    assert.ok(report.includes('__tests__/publicStats.test.ts'));
+    assert.ok(report.includes('__tests__/publicUserStats.test.ts'));
+    assert.ok(report.includes('观战者内容'));
     // The review step names the skeleton document and contribution a
     // game fills, and the closed block vocabulary it fills them with.
     assert.ok(report.includes('本局复盘填空'));
@@ -537,20 +670,26 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     );
     assert.ok(report.includes('packages/web/src/games/demoproto/review/demoprotoReview.ts'));
     assert.ok(report.includes('packages/web/src/features/room/review/types.ts'));
-    // The word-library step names all three workflow registration
-    // sites: the registry entry, the worker entrypoint export and
-    // the wrangler binding (the last one has no contract weld).
-    assert.ok(report.includes('workerWorkflows'));
-    assert.ok(report.includes("exportName: 'DemoprotoWordSupplyWorkflow'"));
-    assert.ok(report.includes('packages/api-worker/src/index.ts'));
-    assert.ok(
-      report.includes(
-        `export { DemoprotoWordSupplyWorkflow } from './games/demoproto/wordSupplyWorkflow';`,
-      ),
-    );
-    assert.ok(report.includes('packages/api-worker/wrangler.toml'));
-    assert.ok(report.includes('[[workflows]]'));
-    assert.ok(report.includes('binding = "DEMOPROTO_WORD_SUPPLY"'));
+    if (scenario.features.wordSupply === 'none') {
+      assert.ok(report.includes('词库：不适用'));
+      assert.ok(report.includes('wordSupply=none'));
+    } else {
+      // The word-supply step names every deployment registration required
+      // by the declared supply mode.
+      assert.ok(report.includes('workerWorkflows'));
+      assert.ok(report.includes(`workflowName: 'demoproto-word-supply'`));
+      assert.ok(report.includes(`binding: 'DEMOPROTO_WORD_SUPPLY'`));
+      assert.ok(report.includes("exportName: 'DemoprotoWordSupplyWorkflow'"));
+      assert.ok(report.includes('packages/api-worker/src/index.ts'));
+      assert.ok(
+        report.includes(
+          `export { DemoprotoWordSupplyWorkflow } from './games/demoproto/wordSupplyWorkflow';`,
+        ),
+      );
+      assert.ok(report.includes('packages/api-worker/wrangler.toml'));
+      assert.ok(report.includes('[[workflows]]'));
+      assert.ok(report.includes('binding = "DEMOPROTO_WORD_SUPPLY"'));
+    }
     // The TODO_IDENTITY follow-up note rides on the identityViewing capability.
     assert.equal(
       report.includes('TODO_IDENTITY'),
@@ -868,12 +1007,10 @@ for (const scenario of CAPABILITY_SCENARIOS) {
   });
 }
 
-it('audioOrchestration segments render the full audio wiring when on and nothing when off', () => {
-  // Narration is a per-game choice, so the on-state is proved at the
-  // segment at the layer it lives in instead: render the whole
-  // template tree with every capability off, once with the
-  // capability flipped on and once off, applying the same whole-file
-  // gates and destination rendering the generator uses.
+it('night narration derives audio orchestration and renders its full wiring', () => {
+  // Render the complete template tree from feature profiles so both
+  // derived audio states use the generator's whole-file gates and
+  // destination rendering.
   const names = deriveGameNames('demoproto');
   const extraTokens = {
     __GAME_DISPLAY_NAME__: '演示原型',
@@ -881,18 +1018,28 @@ it('audioOrchestration segments render the full audio wiring when on and nothing
     __GAME_ICON_NAME__: 'game-controller-outline',
     __GAME_ICON_COMPONENT__: 'IconGameControllerOutline',
     __GAME_TIER__: 'mini',
-    __GAME_CAPABILITY_ARGS__: '',
-    __GAME_CAPABILITIES__: '无（全部关闭）',
+    __GAME_FEATURE_ARGS__: FEATURE_KEYS.map(
+      (key) => ` --feature ${key}=${DEFAULT_FEATURE_PROFILE[key]}`,
+    ).join(''),
+    __GAME_FEATURES__: FEATURE_KEYS.map((key) => `${key}=${DEFAULT_FEATURE_PROFILE[key]}`).join(
+      '、',
+    ),
+    __GAME_CAPABILITIES__: '无（基础接线）',
+    __GAME_FEATURE_IDENTITY__: '无',
+    __GAME_FEATURE_NIGHT__: '无',
+    __GAME_FEATURE_GUIDED_NARRATION__: '无',
+    __GAME_FEATURE_STAGE_DEADLINE__: '无',
+    __GAME_FEATURE_WORD_SUPPLY__: '无',
     __GAME_COMPLETION_TYPE__: 'DemoprotoCompletionPayload | ',
     __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: "session.send({ type: 'demoproto.game.begin' });",
   };
-  const baseRecord = {
-    ...selectCapabilities([]),
+  const withDerivedCapabilities = (features) => ({
+    ...deriveCapabilities(features),
     armDeadlineAtBegin: false,
     stageDeadlineAtStart: false,
     businessStats: true,
-  };
+  });
   const renderTree = (capabilities) => {
     const rendered = new Map();
     for (const layer of ['shared', 'game']) {
@@ -928,8 +1075,9 @@ it('audioOrchestration segments render the full audio wiring when on and nothing
   };
 
   const hookFile = 'packages/web/src/games/demoproto/room/hooks/useDemoprotoAudioOrchestration.ts';
-  const on = renderTree({ ...baseRecord, audioOrchestration: true });
-  const off = renderTree({ ...baseRecord, audioOrchestration: false });
+  const onFeatures = featureProfile({ night: 'narrated' });
+  const on = renderTree(withDerivedCapabilities(onFeatures));
+  const off = renderTree(withDerivedCapabilities(DEFAULT_FEATURE_PROFILE));
 
   const audioFiles = CAPABILITY_FILE_ADDITIONS.find(
     (addition) => addition.capability === 'audioOrchestration',
@@ -1056,7 +1204,7 @@ it('audioOrchestration segments render the full audio wiring when on and nothing
   }
 }, 120_000);
 
-it('generator facts track capability keys and migration numbering uses physical migrations', () => {
+it('generator facts track feature test obligations and migration numbering uses physical migrations', () => {
   const facts = generatorFacts();
   assert.deepEqual(facts.sharedFiles, SHARED_FILES);
   const files = fs
@@ -1084,8 +1232,13 @@ it('generator facts track capability keys and migration numbering uses physical 
     nextMigrationName(['0075_physical.sql', '0065_demo.sql', '0070_physical.sql'], 'probe'),
     '0076_probe.sql',
   );
-  assert.deepEqual(facts.capabilityKeys, CAPABILITY_KEYS);
-  assert.equal(facts.templateCount, expectedCreatedFiles('demoproto', CAPABILITY_KEYS).length);
+  assert.deepEqual(facts.featureKeys, FEATURE_KEYS);
+  assert.deepEqual(facts.baseTestRequirements, BASE_TEST_REQUIREMENTS);
+  assert.deepEqual(facts.featureTestRequirements, FEATURE_TEST_REQUIREMENTS);
+  assert.equal(
+    facts.templateCount,
+    expectedCreatedFiles('demoproto', FEATURE_SCENARIOS.at(-1).features).length,
+  );
 });
 
 it('new registration migrations do not repeat the one-time demo cleanup', () => {
@@ -1113,12 +1266,12 @@ it('consecutive registrations copy rebuilds but never the preceding game owned s
   const first = generateNewGame({
     rootDir: root,
     gameId: 'firstprobe',
-    capabilities: ['stageDeadline'],
+    features: featureProfile({ stageDeadline: 'enabled' }),
   });
   const second = generateNewGame({
     rootDir: root,
     gameId: 'secondprobe',
-    capabilities: ['identityViewing'],
+    features: featureProfile({ identity: 'private' }),
   });
   const migration = readFixture(root, `packages/api-worker/migrations/${second.migrationName}`);
   assert.ok(migration.includes(`from ${first.migrationName}`));
@@ -1129,6 +1282,103 @@ it('consecutive registrations copy rebuilds but never the preceding game owned s
   for (const [, list] of checks) {
     assert.ok(list.includes("'firstprobe'"));
     assert.ok(list.includes("'secondprobe'"));
+  }
+});
+
+it('preserves populated D1 records and indexes through a generated registration migration', () => {
+  const root = makeFixtureRepo();
+  const summary = generateNewGame({ rootDir: root, gameId: 'dataprobe' });
+  const migrationsDir = path.join(root, 'packages/api-worker/migrations');
+  const database = new DatabaseSync(':memory:');
+
+  try {
+    database.exec('PRAGMA foreign_keys = ON');
+    for (const name of fs
+      .readdirSync(migrationsDir)
+      .filter((entry) => entry.endsWith('.sql'))
+      .sort()) {
+      if (name === summary.migrationName) continue;
+      database.exec(readFixture(root, `packages/api-worker/migrations/${name}`));
+    }
+
+    database.exec(`
+      INSERT INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at)
+      VALUES ('user-1', 'user@example.test', 'hash', 'Player', 0, '2026-01-01', '2026-01-01');
+      INSERT INTO rooms
+        (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at, games_started)
+      VALUES
+        ('room-1', '1234', 'avalon', 'user-1', 'create-1', '{}', 'active', '2026-01-01', '2026-01-01', 1);
+      INSERT INTO room_game_starts (effect_id, room_id, started_revision, started_at)
+      VALUES ('effect-1', 'room-1', 1, '2026-01-01');
+      INSERT INTO room_participants (room_id, user_id, joined_at)
+      VALUES ('room-1', 'user-1', '2026-01-01');
+      INSERT INTO fib_round_word_selections
+        (room_id, room_creation_id, effect_id, round_id, request_fingerprint, word, core_meaning, usage_note, source, selection_tier, selected_at)
+      VALUES
+        ('room-1', 'create-1', 'word-effect-1', 'round-1', 'fingerprint', 'word', 'meaning', 'note', 'local', 'local_fallback', '2026-01-01');
+      INSERT INTO product_game_reward_claims (id, input_json, is_settled)
+      VALUES ('settlement-1', '{"gameType":"avalon"}', 1);
+      INSERT INTO product_game_reward_results
+        (settlement_id, user_id, game_type, reward_kind, reward_date, previous_xp, xp_earned, new_xp, previous_level, new_level, normal_draws_earned, golden_draws_earned, stats_applied)
+      VALUES
+        ('settlement-1', 'user-1', 'avalon', 'completion', '2026-01-01', 0, 5, 5, 1, 1, 1, 0, 1);
+    `);
+
+    const tables = [
+      'rooms',
+      'room_game_starts',
+      'room_participants',
+      'fib_round_word_selections',
+      'product_game_reward_claims',
+      'product_game_reward_results',
+    ];
+    const readRows = (table) => database.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all();
+    const rowsBefore = new Map(tables.map((table) => [table, readRows(table)]));
+    const rebuiltTables = [
+      'rooms',
+      'room_game_starts',
+      'room_participants',
+      'fib_round_word_selections',
+      'undercover_round_word_selections',
+      'product_game_reward_results',
+    ];
+    const indexesBefore = database
+      .prepare(
+        `SELECT name, tbl_name, sql FROM sqlite_master
+         WHERE type = 'index' AND sql IS NOT NULL AND tbl_name IN (${rebuiltTables.map(() => '?').join(', ')})
+         ORDER BY name`,
+      )
+      .all(...rebuiltTables);
+
+    database.exec(readFixture(root, `packages/api-worker/migrations/${summary.migrationName}`));
+
+    for (const table of tables) {
+      assert.deepEqual(readRows(table), rowsBefore.get(table), `${table} rows survive rebuild`);
+    }
+    assert.deepEqual(
+      database
+        .prepare(
+          `SELECT name, tbl_name, sql FROM sqlite_master
+           WHERE type = 'index' AND sql IS NOT NULL AND tbl_name IN (${rebuiltTables.map(() => '?').join(', ')})
+           ORDER BY name`,
+        )
+        .all(...rebuiltTables),
+      indexesBefore,
+      'explicit indexes on rebuilt tables are retained',
+    );
+    assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.deepEqual(database.prepare('SELECT * FROM dataprobe_user_stats').all(), []);
+    assert.doesNotThrow(() =>
+      database
+        .prepare(
+          `INSERT INTO rooms
+            (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at)
+           VALUES ('room-2', '2345', 'dataprobe', 'user-1', 'create-2', '{}', 'active', '2026-01-02', '2026-01-02')`,
+        )
+        .run(),
+    );
+  } finally {
+    database.close();
   }
 });
 
@@ -1170,7 +1420,12 @@ it('stale registration CHECK lists fail before any generated file is written', (
     });
   fs.writeFileSync(file, staleContent);
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'probe', capabilities: ['stageDeadline'] }),
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'probe',
+        features: featureProfile({ stageDeadline: 'enabled' }),
+      }),
     /does not match the canonical game set/,
   );
   assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
@@ -1181,7 +1436,7 @@ it('production: true synchronizes the registry, Home contract and go-live report
   const summary = generateNewGame({
     rootDir: root,
     gameId: 'demoproto',
-    capabilities: ['identityViewing'],
+    features: featureProfile({ identity: 'private' }),
     production: true,
   });
   const registry = readFixture(root, 'packages/game-engine/src/games/registry.ts');
@@ -1231,8 +1486,8 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
     // simple-import-sort must reorder import/export members — the exact
     // input that used to leave unformatted text behind when the lint
     // pass ran after the format pass with nothing re-formatting after.
-    // The fixture cases cover every valid selection; use representative
-    // selections here to keep full generated-project checks bounded.
+    // Fixture cases cover each feature and its required generated files;
+    // keep the full generated-project checks to representative profiles.
     const root = makeRealRepoCopy();
     try {
       const generatedGames = FULL_TOOLCHAIN_SCENARIOS.map((scenario, index) => {
@@ -1240,7 +1495,7 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         const summary = generateNewGame({
           rootDir: root,
           gameId,
-          capabilities: scenario.selected,
+          features: scenario.features,
           production: index === 0,
         });
         assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
@@ -1320,7 +1575,12 @@ it('refuses to generate the same game id twice', () => {
   const root = makeFixtureRepo();
   generateNewGame({ rootDir: root, gameId: 'demoproto' });
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demoproto', capabilities: ['stageDeadline'] }),
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'demoproto',
+        features: featureProfile({ stageDeadline: 'enabled' }),
+      }),
     /already registered/,
   );
 });
@@ -1330,16 +1590,21 @@ it('refuses an existing game id from the shipped catalog', () => {
   assert.throws(() => generateNewGame({ rootDir: root, gameId: 'avalon' }), /already/);
 });
 
-it('rejects invalid game ids and capability selections before writing anything', () => {
+it('rejects invalid game ids and incomplete or invalid feature profiles before writing anything', () => {
   const root = makeFixtureRepo();
   assert.throws(() => generateNewGame({ rootDir: root, gameId: 'Demo' }), /Invalid game id/);
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['weird'] }),
-    /Invalid capability/,
+    () => generateNewGameWithProfile({ rootDir: root, gameId: 'demo' }),
+    /complete game feature profile is required/,
   );
   assert.throws(
-    () => generateNewGame({ rootDir: root, gameId: 'demo', capabilities: ['botBulkViewing'] }),
-    /requires "identityViewing"/,
+    () =>
+      generateNewGame({
+        rootDir: root,
+        gameId: 'demo',
+        features: featureProfile({ night: 'silent' }),
+      }),
+    /Invalid feature "night=silent"/,
   );
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/demo')));
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/Demo')));

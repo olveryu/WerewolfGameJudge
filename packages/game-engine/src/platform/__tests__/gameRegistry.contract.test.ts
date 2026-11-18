@@ -61,15 +61,20 @@ describe('game registry completeness', () => {
   });
 
   it('keeps workflow export names and HTTP route paths unique across games', () => {
-    const workflowExportNames = GAME_TYPES.flatMap(
+    const workflows = GAME_TYPES.flatMap(
       (gameType): readonly GameWorkerWorkflowRegistration[] =>
         GAME_REGISTRY[gameType].workerWorkflows,
-    ).map((workflow) => workflow.exportName);
+    );
+    const workflowExportNames = workflows.map((workflow) => workflow.exportName);
+    const workflowNames = workflows.map((workflow) => workflow.workflowName);
+    const workflowBindings = workflows.map((workflow) => workflow.binding);
     const httpRoutePaths = GAME_TYPES.flatMap(
       (gameType): readonly string[] => GAME_REGISTRY[gameType].httpRoutes,
     );
 
     expect(new Set(workflowExportNames).size).toBe(workflowExportNames.length);
+    expect(new Set(workflowNames).size).toBe(workflowNames.length);
+    expect(new Set(workflowBindings).size).toBe(workflowBindings.length);
     expect(new Set(httpRoutePaths).size).toBe(httpRoutePaths.length);
   });
 });

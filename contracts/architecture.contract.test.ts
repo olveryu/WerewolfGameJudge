@@ -108,6 +108,28 @@ function parseStringRecord(value: unknown, source: string): Record<string, strin
   return result;
 }
 
+function parseWranglerWorkflows(source: string): {
+  readonly workflowName: string;
+  readonly binding: string;
+  readonly exportName: string;
+}[] {
+  const blocks = source
+    .split(/(?=^\[\[workflows\]\]\s*$)/m)
+    .filter((block) => block.startsWith('[[workflows]]'));
+  return blocks.map((block) => {
+    const readField = (field: string): string => {
+      const value = new RegExp(`^${field}\\s*=\\s*"([^"]+)"$`, 'm').exec(block)?.[1];
+      if (value === undefined) throw new Error(`Workflow binding is missing ${field}`);
+      return value;
+    };
+    return {
+      workflowName: readField('name'),
+      binding: readField('binding'),
+      exportName: readField('class_name'),
+    };
+  });
+}
+
 function getSqliteTableNames(filePath: string): readonly string[] {
   const source = fs.readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
@@ -563,6 +585,45 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
       );
     }
     expect(providerNamedRouteOwners).toEqual([]);
+  });
+
+  it('welds registry and platform workflows to Wrangler and generated Worker bindings', () => {
+    const registeredWorkflows = GAME_TYPES.flatMap((gameType) =>
+      GAME_REGISTRY[gameType].workerWorkflows.map((workflow) => ({
+        workflowName: workflow.workflowName,
+        binding: workflow.binding,
+        exportName: workflow.exportName,
+      })),
+    );
+    const platformWorkflows = [
+      {
+        workflowName: 'word-submission-review',
+        binding: 'WORD_SUBMISSION_REVIEW',
+        exportName: 'WordSubmissionReviewWorkflow',
+      },
+    ];
+    const expectedWorkflows = [...registeredWorkflows, ...platformWorkflows];
+    const wranglerSource = fs.readFileSync(
+      path.join(process.cwd(), 'packages/api-worker/wrangler.toml'),
+      'utf8',
+    );
+    const generatedBindings = fs.readFileSync(
+      path.join(process.cwd(), 'packages/api-worker/worker-configuration.d.ts'),
+      'utf8',
+    );
+
+    expect(
+      parseWranglerWorkflows(wranglerSource).sort((left, right) =>
+        left.binding.localeCompare(right.binding),
+      ),
+    ).toEqual(
+      [...expectedWorkflows].sort((left, right) => left.binding.localeCompare(right.binding)),
+    );
+    for (const workflow of expectedWorkflows) {
+      expect(generatedBindings).toContain(
+        `${workflow.binding}: Workflow<Parameters<import("./src/index").${workflow.exportName}['run']>[0]['payload']>;`,
+      );
+    }
   });
 });
 

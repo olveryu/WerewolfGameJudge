@@ -1,27 +1,40 @@
 # Capabilities and integration report
 
-## Capability selection
+## Feature profile and derived capabilities
 
-Selectable capabilities are chosen independently with repeated
-`--capability <key>` arguments; those choices default off:
+The generator takes a complete, explicit profile using repeated
+`--feature <key=value>` arguments. Every field is required exactly once:
 
 ```sh
-pnpm new-game <gameId> --capability identityViewing --capability stageDeadline
+corepack pnpm new-game <gameId> \
+  --feature identity=private --feature night=narrated \
+  --feature guidedNarration=none --feature stageDeadline=enabled \
+  --feature wordSupply=none
 ```
 
-The selectable keys are `identityViewing`, `stageDeadline`,
-`audioOrchestration`, and `botBulkViewing`. Unknown keys are rejected.
-`botsAndTakeover` and `hostConfig` are always wired by the base skeleton;
-`revealAnimation` follows `identityViewing`. `botBulkViewing` requires
-`identityViewing`; without it, hosts can still take over bot seats
-individually to view their identities. When both `identityViewing` and
-`stageDeadline` are enabled, deadline arming is deferred until play
-begins; otherwise a selected stage deadline is armed as the stage begins.
+| Feature           | Allowed values                          | Derived capabilities and required behavior                                                                                       |
+| ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `identity`        | `none`, `private`                       | `private` derives `identityViewing`, `botBulkViewing`, and `revealAnimation`; every human and bot must satisfy the viewing gate. |
+| `night`           | `none`, `narrated`                      | `narrated` derives `nightPhase` and `audioOrchestration`; the game cannot have a night feature without narration wiring.         |
+| `guidedNarration` | `none`, `narrated`                      | `narrated` derives `audioOrchestration` but does not invent a night phase.                                                       |
+| `stageDeadline`   | `none`, `enabled`                       | `enabled` derives deadline wiring and protocol tests. Identity viewing delays arming until play begins.                          |
+| `wordSupply`      | `none`, `in-game`, `background`, `both` | Any supplied mode derives `wordLibrary`; the report requires the matching workflow and deployment integration.                   |
 
-For role games with bot seats, select `botBulkViewing` unless the approved design
-explicitly excludes it. The generator flag being optional is not approval to omit
-an established host tool. Confirm the viewing action and blocked-start remedy in
-the rendered host panel, not just the capability declaration.
+Unknown, missing, duplicate and invalid declarations fail during preflight,
+before files are written. There is no CLI for choosing derived capabilities.
+`botsAndTakeover` and `hostConfig` are always wired by the base skeleton.
+Host-controlled bot seats and host takeover are platform behavior for every
+game—not selectable features. Identity games automatically add bulk bot
+identity handling rather than relying on a separately remembered option.
+
+The generator's behavior-test contract is part of this mapping: base games
+require host-only confirmed abort and bot setup tests; identity requires
+all-bot viewing-gate and host bulk-view tests; narration requires engine queue,
+host-ack and client privacy/recovery tests; deadlines require host/actor/expiry
+boundary tests. `FEATURE_TEST_REQUIREMENTS` names these files and cases;
+generation fails if a required file or case disappears, and the generator
+Vitest suite runs representative generated packages through their tests.
+
 Every generated game includes host-only abort, resetting to the lobby without
 settlement and preserving seats/configuration; the UI requires confirmation.
 Audio-enabled games keep the narration lock and expose music settings in setup,
@@ -67,7 +80,9 @@ disposition in the PR description.
 2. Fill gameplay: grep `TODO(gameplay)` inside the new game's three
    directories and fill each one — state machine in `domain/decision.ts` /
    `engine.ts`, privacy projection in `domain/visibility.ts`. Unfilled
-   example commands reject as not implemented.
+   example commands reject as not implemented. Add engine tests for every
+   approved transition, invariant, boundary and rejection; keep the
+   `notImplemented` regression until real gameplay replaces the scaffold.
 3. Fill the review: the review (本局复盘) is wired end to end — module
    `review`, the ended bottom entry for every viewer, the host sheet action
    and the ended choice task (review / next round / return to lobby); the
@@ -75,7 +90,8 @@ disposition in the PR description.
    (outcome, identities, scores, course) into
    `packages/web/src/games/<gameId>/review/to<Game>ReviewDocument.ts`, set
    availability and sharing in `review/<gameId>Review.ts`, and update the
-   associated tests. The block vocabulary is closed:
+   associated tests with approved terminal facts, identity/score ownership,
+   round identity and host/seated/spectator visibility. The block vocabulary is closed:
    `packages/web/src/features/room/review/types.ts`; extend the platform
    vocabulary first, and do not write game-specific review JSX.
 4. Confirm reward policy/numbers and statistics semantics. The generator
@@ -85,7 +101,11 @@ disposition in the PR description.
    one completed game per eligible terminal completion. Approve and
    implement gameplay metrics or explicitly approve count-only; specify
    units/round labels, facts/ownership, denominators, time precision,
-   missing history, migration, and visibility/cache policy.
+   missing history, migration, and visibility/cache policy. Add each
+   approved metric's source, unit, ownership, denominator and zero-denominator
+   assertions to engine `__tests__/publicStats.test.ts` and Worker
+   `__tests__/publicUserStats.test.ts`; DTO shape and catalog wiring alone
+   are not semantic coverage.
 5. Review the migration: the generated file is mechanically derived from
    the latest registration migration. Verify the rebuild set against the
    current schema by hand; the cumulative completed-games table is already
@@ -95,13 +115,15 @@ disposition in the PR description.
    it means renaming it to `<gameId>.spec.ts` and adding the filename to the
    e2e shard matrix in `.github/workflows/ci.yml`.
 7. Word supply, if needed: make all three registrations described in
-   `references/skeleton-and-wiring.md`. The skeleton carries no workflow
-   body.
+   `references/skeleton-and-wiring.md`, including the explicit
+   `workflowName` and `binding` registry metadata, then regenerate
+   `worker-configuration.d.ts`. The skeleton carries no workflow body.
 8. Re-run scoped engine/Worker/web tests and affected contracts, root
    `tsc --noEmit`, changed-package typechecks, `knip`, the skill check, and
    changed-file prettier/eslint. Full suites/quality/E2E belong to CI.
-   Include statistics eligibility, strict legacy/v2, atomic rollback/replay,
-   HTTP/profile/settings/count/unlock/cache, and D1 cost evidence.
+   Include gameplay and privacy behavior, statistics eligibility, strict
+   legacy/v2, atomic rollback/replay, HTTP/profile/settings loading/error/
+   empty/count/unlock/cache, and D1 migration data/index/foreign-key evidence.
 9. Go live: if generated with `--production`, the generator already adds the id to
    `PRODUCTION_GAME_TYPES` in
    `packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts`

@@ -13,6 +13,7 @@
  */
 import {
   DEFAULT___GAME_UPPER___CONFIG,
+  get__GAME_PASCAL__OccupiedSeatCount,
 //#cap !stageDeadline
   end__GAME_PASCAL__Game,
 //#end
@@ -32,6 +33,7 @@ import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 
@@ -77,7 +79,7 @@ function drive(
   return decision.events.reduce(__GAME_CAMEL__Engine.evolve, state);
 }
 
-function lobbyState(): __GAME_PASCAL__State {
+function lobbyState(fillBots = true): __GAME_PASCAL__State {
   let state = __GAME_CAMEL__Engine.createInitialState(
     { ...DEFAULT___GAME_UPPER___CONFIG, numberOfPlayers: 4 },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
@@ -90,7 +92,7 @@ function lobbyState(): __GAME_PASCAL__State {
       userId: 'u1',
     },
   );
-  state = drive(state, { type: 'room.seat.fillBots' });
+  if (fillBots) state = drive(state, { type: 'room.seat.fillBots' });
   return state;
 }
 //#cap identityViewing
@@ -159,15 +161,15 @@ function stateFor(phase: __GAME_PASCAL__PhaseKind): __GAME_PASCAL__State {
   }
 }
 
-function capabilities(): RoomCapabilities {
+function capabilities(isSetup = true, isRoomFull = true): RoomCapabilities {
   return {
     ...createRoomSetupCapabilities({
-      isSetup: true,
+      isSetup,
       isHost: true,
       mySeat: 0,
       supportsBots: true,
       hasOccupiedSeats: true,
-      isRoomFull: true,
+      isRoomFull,
       requestTakeSeat: vi.fn(),
       requestMoveSeat: vi.fn(),
       leaveSeat: vi.fn(),
@@ -184,22 +186,177 @@ function capabilities(): RoomCapabilities {
 
 describe('__GAME_PASCAL__ host controls', () => {
   const submit = vi.fn(async () => true);
-  function hostModel(state: __GAME_PASCAL__State) {
+  function hostModel(
+    state: __GAME_PASCAL__State,
+    isSubmitting = false,
+    roomCapabilities = capabilities(
+      state.phase.kind === 'lobby',
+      get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
+    ),
+  ) {
     return create__GAME_PASCAL__HostManagement({
-      state, submit, capabilities: capabilities(), isSubmitting: false,
+      state, submit, capabilities: roomCapabilities, isSubmitting,
       review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
 //#cap audioOrchestration
       onMusicSettings: vi.fn(),
 //#end
     });
   }
-  it.each(__GAME_UPPER___PHASES)('keeps phase-appropriate host controls in %s', (phase) => {
+  it.each(__GAME_UPPER___PHASES)('exposes only the expected host actions in %s', (phase) => {
     const actions = hostModel(stateFor(phase)).sections.flatMap((section) => section.actions);
-    expect(actions.some((action) => action.key === 'abort-game')).toBe(phase !== 'lobby' && phase !== 'ended');
-//#cap audioOrchestration
-    expect(actions.some((action) => action.key === 'music-settings')).toBe(phase !== 'playing');
+    const actualKeys = actions.map((action) => action.key).sort();
+    const expectedKeys: string[] = [];
+    if (phase === 'lobby') {
+      expectedKeys.push(
+//#cap identityViewing
+        HOST_ACTION_KEYS.assignRoles,
 //#end
+//#cap !identityViewing
+        HOST_ACTION_KEYS.startGame,
+//#end
+        HOST_ACTION_KEYS.configureGame,
+        HOST_ACTION_KEYS.clearSeats,
+        HOST_ACTION_KEYS.shareRoom,
+      );
+    }
+//#cap identityViewing
+    if (phase === 'viewing') {
+      expectedKeys.push(HOST_ACTION_KEYS.startGame);
+//#cap botBulkViewing
+      expectedKeys.push(HOST_ACTION_KEYS.markBotsViewed);
+//#end
+    }
+//#end
+    if (phase === 'playing') expectedKeys.push(HOST_ACTION_KEYS.abortGame);
+//#cap identityViewing
+    if (phase === 'viewing') expectedKeys.push(HOST_ACTION_KEYS.abortGame);
+//#end
+    if (phase === 'ended') {
+      expectedKeys.push(
+        HOST_ACTION_KEYS.review,
+        HOST_ACTION_KEYS.nextRound,
+        HOST_ACTION_KEYS.returnLobby,
+      );
+    }
+//#cap audioOrchestration
+    if (phase !== 'playing') expectedKeys.push('music-settings');
+//#end
+    expect(actualKeys).toEqual(expectedKeys.sort());
   });
+
+//#cap identityViewing
+  it('enables begin only after every human and bot identity has been viewed', () => {
+    let state = viewingState();
+    const getBeginAction = () =>
+      hostModel(state).sections
+        .flatMap((section) => section.actions)
+        .find((entry) => entry.key === HOST_ACTION_KEYS.startGame);
+    expect(getBeginAction()?.isEnabled).toBe(false);
+
+    state = drive(state, { type: '__GAME_ID__.role.viewed' });
+    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
+//#cap botBulkViewing
+    state = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+//#end
+//#cap !botBulkViewing
+    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
+    state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
+//#end
+    expect(getBeginAction()?.isEnabled).toBe(true);
+  });
+//#end
+
+  it('offers fill-bots only for an open lobby and runs each setup action through its capability', () => {
+    const roomCapabilities = capabilities(true, false);
+    const actions = hostModel(lobbyState(false), false, roomCapabilities).sections.flatMap(
+      (section) => section.actions,
+    );
+    for (const [actionKey, capability] of [
+      [HOST_ACTION_KEYS.configureGame, roomCapabilities.canConfigureGame],
+      [HOST_ACTION_KEYS.fillBots, roomCapabilities.canFillBots],
+      [HOST_ACTION_KEYS.clearSeats, roomCapabilities.canClearSeats],
+      [HOST_ACTION_KEYS.shareRoom, roomCapabilities.canShareRoom],
+    ] as const) {
+      const action = actions.find((entry) => entry.key === actionKey);
+      if (!action?.isEnabled || action.onPress === undefined || !capability.isAllowed)
+        throw new Error(`Missing enabled setup action: ${actionKey}`);
+      action.onPress();
+      expect(capability.execute).toHaveBeenCalledOnce();
+    }
+    expect(actions.map((action) => action.key)).toContain(HOST_ACTION_KEYS.fillBots);
+  });
+
+//#cap identityViewing
+  it('dispatches the role assignment only after host confirmation', async () => {
+    submit.mockClear();
+    const action = hostModel(lobbyState()).sections
+      .flatMap((section) => section.actions)
+      .find((entry) => entry.key === HOST_ACTION_KEYS.assignRoles);
+    if (!action?.isEnabled) throw new Error('Missing enabled role assignment');
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing role assignment confirmation');
+    await confirm();
+    expect(submit).toHaveBeenCalledWith('分配角色', { type: '__GAME_ID__.roles.assign' });
+  });
+//#end
+//#cap !identityViewing
+  it('dispatches game start only after host confirmation', async () => {
+    submit.mockClear();
+    const action = hostModel(lobbyState()).sections
+      .flatMap((section) => section.actions)
+      .find((entry) => entry.key === HOST_ACTION_KEYS.startGame);
+    if (!action?.isEnabled) throw new Error('Missing enabled game start');
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing game start confirmation');
+    await confirm();
+    expect(submit).toHaveBeenCalledWith('开始游戏', { type: '__GAME_ID__.game.begin' });
+  });
+//#end
+
+  it.each([
+    [
+      HOST_ACTION_KEYS.nextRound,
+      '再来一局',
+//#cap identityViewing
+      { type: '__GAME_ID__.roles.assign' },
+//#end
+//#cap !identityViewing
+      { type: '__GAME_ID__.game.begin' },
+//#end
+    ],
+    [HOST_ACTION_KEYS.returnLobby, '返回大厅', { type: '__GAME_ID__.game.returnToLobby' }],
+  ] as const)('confirms terminal action %s before dispatch', async (key, label, command) => {
+    submit.mockClear();
+    const action = hostModel(stateFor('ended')).sections
+      .flatMap((section) => section.actions)
+      .find((entry) => entry.key === key);
+    if (!action?.isEnabled) throw new Error(`Missing enabled terminal action: ${key}`);
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error(`Missing confirmation for ${key}`);
+    await confirm();
+    expect(submit).toHaveBeenCalledWith(label, command);
+  });
+
+  it('disables the lobby transition while a host command is submitting', () => {
+    const key =
+//#cap identityViewing
+      HOST_ACTION_KEYS.assignRoles;
+//#end
+//#cap !identityViewing
+      HOST_ACTION_KEYS.startGame;
+//#end
+    const action = hostModel(lobbyState(), true).sections
+      .flatMap((section) => section.actions)
+      .find((entry) => entry.key === key);
+    expect(action?.isEnabled).toBe(false);
+  });
+
   it('submits abort only after confirmation', async () => {
     submit.mockClear();
     const action = hostModel(playingState()).sections.flatMap((section) => section.actions).find((entry) => entry.key === 'abort-game');
@@ -245,7 +402,11 @@ const seatController: RoomSeatController = {
   cancel: vi.fn(),
 };
 
-function bottomMessage(state: __GAME_PASCAL__State, audience: RoomViewerAudience): string | null {
+function bottomMessage(
+  state: __GAME_PASCAL__State,
+  audience: RoomViewerAudience,
+  buildHostManagement = () => ({ task: null, sections: [] }),
+): string | null {
   const viewer = viewerFor(audience);
   const model = create__GAME_PASCAL__RoomShellModel({
     roomCode: '1234',
@@ -285,7 +446,7 @@ function bottomMessage(state: __GAME_PASCAL__State, audience: RoomViewerAudience
       shareImage: vi.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
-    buildHostManagement: () => ({ task: null, sections: [] }),
+    buildHostManagement,
     releaseBot: vi.fn(),
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
@@ -293,6 +454,16 @@ function bottomMessage(state: __GAME_PASCAL__State, audience: RoomViewerAudience
 }
 
 describe('__GAME_UPPER___GUIDANCE_MATRIX', () => {
+  it('builds host controls only for the host viewer', () => {
+    const buildHostManagement = vi.fn(() => ({ task: null, sections: [] }));
+    bottomMessage(lobbyState(), 'seated', buildHostManagement);
+    bottomMessage(lobbyState(), 'spectator', buildHostManagement);
+    expect(buildHostManagement).not.toHaveBeenCalled();
+
+    bottomMessage(lobbyState(), 'host', buildHostManagement);
+    expect(buildHostManagement).toHaveBeenCalledOnce();
+  });
+
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(__GAME_UPPER___GUIDANCE_MATRIX).sort()).toEqual([...__GAME_UPPER___PHASES].sort());
     for (const row of Object.values(__GAME_UPPER___GUIDANCE_MATRIX)) {

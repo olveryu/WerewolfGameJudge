@@ -30,9 +30,9 @@ Do not use when:
 ## Must-read references
 
 1. `references/generator.md` — generator-derived shared edits and templates,
-   capability selection and output counts.
+   feature declarations, derived capabilities, test obligations and output counts.
 2. `references/registration-checklist.md` — registration and statistics wiring.
-3. `references/capabilities-and-report.md` — capability selection and the 9
+3. `references/capabilities-and-report.md` — feature-derived capabilities and the 9
    report steps.
 4. `references/skeleton-and-wiring.md` — skeleton modules,
    capabilities, identity viewing, word supply, confirmations.
@@ -65,9 +65,10 @@ Collect, asking for anything missing: game name, one-sentence
 gameplay, player-count range and default, core loop, round structure,
 timing and timeout behaviour, exact scoring formula, end conditions
 and ranking, automated-player policy, and word-library need. Fix two
-decisions now, not during implementation: the capability selection (see Step 3)
+decisions now, not during implementation: the complete feature profile (see Step 3)
 and the word-library shape (none, in-game preparation, background
-supply, or both). Also specify reward policy (flat or levelRoll) and
+supply, or both). Host-controlled bot seats and host takeover are a
+platform baseline for every game, not selectable features. Also specify reward policy (flat or levelRoll) and
 numbers, terminal settlement unit, statistics facts/ownership, units,
 denominators and zero-denominator display, timestamp precision,
 history gaps/backfill and state/payload/D1 migration policy, immediate
@@ -84,22 +85,30 @@ settlement and rewards, and game statistics and the test plan; plus the change p
 impact scope, and alternatives. The design doc enters the repo with
 the PR and stays in sync with later copy/semantics changes.
 
-### 3. Select capabilities
+### 3. Declare game features
 
-Enable only the capabilities the design requires, using
-`references/capabilities-and-report.md`. All capabilities default off.
-`botBulkViewing` requires `identityViewing`; deadline arming behavior is
-derived from `identityViewing` together with `stageDeadline`.
+Complete every feature field explicitly using
+`references/capabilities-and-report.md`: identity (`none|private`),
+night (`none|narrated`), guided narration (`none|narrated`), stage deadline
+(`none|enabled`), and word supply (`none|in-game|background|both`).
+The generator derives capabilities and required behavior tests from this
+profile. Private identities automatically require per-seat identity viewing,
+bulk bot identity handling and reveal animation; narrated night actions
+automatically require `nightPhase` and audio orchestration; other guided
+narration requires audio orchestration without inventing a night phase.
+Every profile must declare all five fields. Do not select or edit derived
+capabilities directly.
 
 ### 4. Run the generator, once
 
 ```sh
-corepack pnpm new-game <gameId> [--capability <key> ...] --name <中文名> --subtitle <一句话玩法>
+corepack pnpm new-game <gameId> --feature identity=none --feature night=none --feature guidedNarration=none --feature stageDeadline=none --feature wordSupply=none --name <中文名> --subtitle <一句话玩法>
 ```
 
-Choose capabilities from the approved design; do not copy the example
-combination blindly. See `references/generator.md` for options and generated
-outputs. Preflight computes all templates, shared edits and the migration
+Replace each feature value with the approved profile; all five declarations
+are required and duplicate/unknown fields fail before writing. See
+`references/generator.md` for options and generated outputs. Preflight computes
+all templates, shared edits and the migration
 before writing; a duplicate game id is never overwritten. Formatting/lint errors
 after writing leave the game in place—fix those files rather than rerunning.
 
@@ -155,8 +164,8 @@ lint checks on the changed files as well. Replace `<gameId>` with the
 actual id; include other affected contracts rather than running local
 full suites. Generator changes additionally run
 `corepack pnpm run test scripts/new-game.test.mjs`:
-the Vitest suite checks every valid capability selection and validates
-representative generated outputs with the real toolchain. The check script
+the Vitest suite checks representative feature profiles, required named behavior
+tests, CLI preflight, and generated outputs with the real toolchain. The check script
 imports `generatorFacts()` and `REPORT_STEP_COUNT`;
 it has no drift-prone literal template/shared-edit counts.
 

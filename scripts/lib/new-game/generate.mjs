@@ -35,6 +35,18 @@ import {
   editStatsTableOwner,
 } from './edits.mjs';
 import {
+  BASE_TEST_REQUIREMENTS,
+  DERIVED_CAPABILITY_KEYS,
+  deriveCapabilities,
+  FEATURE_KEYS,
+  FEATURE_TEST_REQUIREMENTS,
+  formatFeatureDeclarations,
+  formatFeatureSummary,
+  formatFeatureValue,
+  normalizeFeatureProfile,
+  resolveFeatureTestRequirements,
+} from './features.mjs';
+import {
   assertRegistrationGameTypes,
   buildRegistrationMigration,
   findLatestRegistrationMigration,
@@ -44,49 +56,6 @@ import { deriveGameNames, renderTemplateFile } from './render.mjs';
 import { buildIntegrationReport } from './report.mjs';
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'templates');
-
-const ENGINE_CAPABILITY_KEYS = [
-  'nightPhase',
-  'botsAndTakeover',
-  'identityViewing',
-  'revealAnimation',
-  'stageDeadline',
-  'audioOrchestration',
-  'wordLibrary',
-  'gallery',
-  'hostConfig',
-  'botBulkViewing',
-];
-
-export const CAPABILITY_KEYS = [
-  'identityViewing',
-  'stageDeadline',
-  'audioOrchestration',
-  'botBulkViewing',
-];
-
-/** Selectable capabilities are opt-in; baseline wiring remains enabled. */
-export function selectCapabilities(selected = []) {
-  if (!Array.isArray(selected)) {
-    throw new Error('Capabilities must be an array of capability keys.');
-  }
-  const capabilities = Object.fromEntries(ENGINE_CAPABILITY_KEYS.map((key) => [key, false]));
-  capabilities.botsAndTakeover = true;
-  capabilities.hostConfig = true;
-  for (const key of selected) {
-    if (!CAPABILITY_KEYS.includes(key)) {
-      throw new Error(
-        `Invalid capability "${String(key)}": expected one of ${CAPABILITY_KEYS.join(', ')}.`,
-      );
-    }
-    capabilities[key] = true;
-  }
-  capabilities.revealAnimation = capabilities.identityViewing;
-  if (capabilities.botBulkViewing && !capabilities.identityViewing) {
-    throw new Error('Capability "botBulkViewing" requires "identityViewing".');
-  }
-  return capabilities;
-}
 
 /**
  * Whole-file gates for game capabilities and the always-on statistics
@@ -320,7 +289,9 @@ export function generatorFacts() {
   return {
     sharedFiles: SHARED_EDITS.map(({ file }) => file),
     templateCount,
-    capabilityKeys: CAPABILITY_KEYS,
+    featureKeys: FEATURE_KEYS,
+    baseTestRequirements: BASE_TEST_REQUIREMENTS,
+    featureTestRequirements: FEATURE_TEST_REQUIREMENTS,
   };
 }
 
@@ -371,7 +342,7 @@ function createGenerationContext(options) {
   const {
     rootDir,
     gameId,
-    capabilities: selectedCapabilities = [],
+    features: requestedFeatures,
     displayName = gameId,
     subtitle = 'TODO(gameplay):一句话玩法',
     iconName = 'game-controller-outline',
@@ -386,7 +357,9 @@ function createGenerationContext(options) {
   assertSafeDisplayValue('--subtitle', subtitle);
   const iconComponent = iconComponentName(iconName);
   const names = deriveGameNames(gameId);
-  const capabilities = selectCapabilities(selectedCapabilities);
+  const features = normalizeFeatureProfile(requestedFeatures);
+  const capabilities = deriveCapabilities(features);
+  const selectedCapabilities = DERIVED_CAPABILITY_KEYS.filter((key) => capabilities[key]);
   // Statistics are part of every generated game. Deadline arming is
   // delayed until play begins only when identity viewing precedes it.
   const renderCapabilities = {
@@ -402,14 +375,15 @@ function createGenerationContext(options) {
     __GAME_ICON_NAME__: iconName,
     __GAME_ICON_COMPONENT__: iconComponent,
     __GAME_TIER__: tier,
-    __GAME_CAPABILITY_ARGS__: selectedCapabilities
-      .filter((key, index, list) => list.indexOf(key) === index)
-      .map((key) => ` --capability ${key}`)
-      .join(''),
+    __GAME_FEATURE_ARGS__: formatFeatureDeclarations(features),
+    __GAME_FEATURES__: formatFeatureSummary(features),
     __GAME_CAPABILITIES__:
-      selectedCapabilities.length === 0
-        ? '无（全部关闭）'
-        : [...new Set(selectedCapabilities)].join('、'),
+      selectedCapabilities.length === 0 ? '无（基础接线）' : selectedCapabilities.join('、'),
+    __GAME_FEATURE_IDENTITY__: formatFeatureValue(features.identity),
+    __GAME_FEATURE_NIGHT__: formatFeatureValue(features.night),
+    __GAME_FEATURE_GUIDED_NARRATION__: formatFeatureValue(features.guidedNarration),
+    __GAME_FEATURE_STAGE_DEADLINE__: formatFeatureValue(features.stageDeadline),
+    __GAME_FEATURE_WORD_SUPPLY__: formatFeatureValue(features.wordSupply),
     __GAME_COMPLETION_TYPE__: `${names.pascal}CompletionPayload | `,
     __GAME_REQUIREMENT_COUNT__: '11',
     __GAME_TEST_BEGIN__: capabilities.identityViewing
@@ -432,7 +406,7 @@ function createGenerationContext(options) {
     displayName,
     names,
     capabilities,
-    selectedCapabilities,
+    features,
     renderCapabilities,
     home,
     extraTokens,
@@ -449,7 +423,7 @@ function buildGenerationPlan(context) {
     displayName,
     names,
     capabilities,
-    selectedCapabilities,
+    features,
     renderCapabilities,
     home,
     extraTokens,
@@ -469,6 +443,23 @@ function buildGenerationPlan(context) {
       destination,
       renderTemplateFile(body, { names, capabilities: renderCapabilities, extraTokens }),
     );
+  }
+
+  for (const requirement of resolveFeatureTestRequirements(features, {
+    gameId,
+    gameName: names.camel,
+  })) {
+    const generatedTest = created.get(requirement.file);
+    if (generatedTest === undefined) {
+      throw new Error(`Feature profile requires a generated behavior test: ${requirement.file}`);
+    }
+    for (const testCase of requirement.testCases) {
+      if (!generatedTest.includes(`it('${testCase}'`)) {
+        throw new Error(
+          `Feature profile requires an active test case "${testCase}" in generated behavior test: ${requirement.file}`,
+        );
+      }
+    }
   }
 
   const edited = new Map();
@@ -512,7 +503,7 @@ function buildGenerationPlan(context) {
     home,
     rewards,
     capabilities,
-    selectedCapabilities,
+    features,
     createdFiles,
     editedFiles,
     migrationName,
