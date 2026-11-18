@@ -38,10 +38,31 @@ changing only one side fails.
 
 ## Identity viewing and the test scaffold
 
+For narrated games, follow `scripts/README-audio.md`: add cue text and output
+mapping to `scripts/generate_audio_edge_tts.py`, generate and bundle MP3s, and
+resolve engine keys through a game-owned `AudioClip` registry/player using the
+shared `AudioService`. Supply a `get<Game>PreloadAudio` list (role clips for
+board-driven narration, a fixed list otherwise) to the audio binding's
+`prepareQueue`. Keep generated module-to-hook injection; do not use `null` or
+browser `SpeechSynthesis`. Games without narration state that explicitly and
+wire no audio player.
+
 For narrated steps, inspect Werewolf and Avalon before filling the skeleton.
 Use `useRoomAudioOrchestration` plus `useRoomAudioResume`/`RoomAudioResumeDialog`,
 and shared `useRoomBgmControl` for saved volumes, host-only music, dawn stopping,
-and cleanup on host loss or room exit. A resume gesture only restores playback;
+and cleanup on host loss or room exit. Games supply playback and acknowledgement
+ports, never phase predicates, replay overrides or error-skipping policies.
+The shared lifecycle uses authoritative `state.isAudioPlaying` in every phase.
+Bind the existing "continue game" dialog to its reactive `isResumeRequired` signal.
+After re-entry or a playback failure, the gesture retries the entire pending batch,
+including opening, closing and dawn cues. Do not reconstruct audio keys from the
+current phase: the engine queue already contains resolved role/count variants.
+Preload, missing-asset, playback and cancellation failures must not acknowledge
+the batch; log room, batch and cue context and offer recovery without requiring
+a new room revision. Retry a failed acknowledgement without replaying completed audio.
+Keep existing connection/reconnection handling unchanged; do not add a resume
+dialog on same-page connection-status changes or while only a durable ack is pending.
+A resume gesture only restores playback;
 it is never a substitute for successful required narration or a manual stage advance.
 For every step, specify the audible instruction, eligible actors, private view,
 pending/confirmed/waiting guidance, and progression conditions together.
@@ -79,12 +100,36 @@ The summary is shared with Werewolf's sheriff HUD, Avalon and Secret Hitler;
 games own phase visibility and detail actions, not a separate summary layout.
 Without identity viewing, the lobby still gets the same collapsible game
 card with its public summary; play retains the existing workspace.
-The role adapter resolves the same portrait registry that the room preloads;
+Declare the public room-image list in `assets/roleAvatars.ts` and preload it
+through `useRoomImagePreload` in `use<Game>RoomState`; include other room art.
+Never derive public assets from a player's secret assignment. The role adapter
+resolves the same portrait registry that the room preloads;
 the placeholder identity has the shared blank portrait, and unknown identities
 fail explicitly. Reveal animation candidates come from public board sections,
 not privately dealt identities. Generated screen tests exercise all identity
 phases and public previews; the engine protocol test includes an all-bot game
 so reward eligibility cannot accidentally become an opening requirement.
+
+## Shared room UI and acceptance
+
+Before changing a room HUD or ended screen, inspect matching production screens
+and shared room components. Reuse shared presentation; do not copy another
+game's components or CSS. Every game uses the shared configuration card:
+game/count and guide/tools in its header, public settings in its disclosure,
+live status outside it, and no duplicate title or nested header actions. Do not
+invent unavailable strategy or notepad tools.
+
+Compare host actions phase by phase with Werewolf/Avalon: setup/share,
+deal/view/begin, applicable bot viewing and confirmation actions, replay/music,
+abort, and terminal review/redeal/return. A command is not proof of a host
+control. Verify action visibility, dispatch, schema and engine authorization,
+non-host/takeover rejection, pending/audio locks, and helper actions disappearing
+when no longer applicable. Abort is a confirmed host-only reset that preserves
+seats/configuration and never settles rewards.
+
+Verify the ended screen's ranking hierarchy, player/self labels, reward copy,
+review/restart entry points and supported mobile layout alongside gameplay.
+Record reused shared components and browser evidence in the integration report.
 
 Identity games use the platform protocol in
 `packages/game-engine/src/platform/room/identityViewing.ts`
@@ -95,6 +140,11 @@ automated players (`haveAllViewed` checks every participant;
 participants carry `isBot`). Hosts may take over each bot seat to view
 it individually; the optional `botBulkViewing` capability adds the
 `<game>.bots.markAllBotsViewed` convenience command and host action.
+For identity-viewing games, the seat adapter may show an assigned bot's
+localized role in `secondaryLabel` to the host only. Gate on both
+`state.hostUserId === userId` and a bot occupant; return null for other
+viewers, human seats, and identities not yet assigned. Keep a generated
+adapter test for the host, another player, and a spectator.
 
 Roster and takeover use the platform structures:
 `packages/game-engine/src/platform/room/seating/` (roster decisions

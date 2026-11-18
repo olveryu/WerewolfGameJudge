@@ -1,13 +1,13 @@
-# Generator — counts regenerated from code
+# Generator
 
-Generator: `scripts/new-game.mjs` (command `pnpm new-game`) with
+Generator: `scripts/new-game.mjs` (command `corepack pnpm new-game`) with
 implementation in `scripts/lib/new-game/` (`generate.mjs`, `edits.mjs`,
 `migration.mjs`, `render.mjs`, `report.mjs`).
 
 ## Command
 
 ```
-pnpm new-game <gameId> [--capability <key> ...] [--production]
+corepack pnpm new-game <gameId> [--capability <key> ...] [--production]
   [--name <text>] [--subtitle <text>] [--icon <ionicon-name>]
   [--tier main|mini] [--xp <n>] [--draws <n>] [--daily-target <n>]
 ```
@@ -32,74 +32,29 @@ The generated design is automatically indexed in `docs/README.md`.
 
 ## Shared edits
 
-`SHARED_EDITS` is exported from `generate.mjs`; `generatorFacts()` and
-the skill's check script derive this list and the template count. The
-current list has 19 entries:
+`SHARED_EDITS` in `generate.mjs` is the authoritative list of shared
+registrations and contract edits; the individual targets are listed in
+`registration-checklist.md`. The generator prepares templates, shared-file
+updates, migration and report in memory, then checks every output path before
+writing. Missing anchors, invalid tokens and existing targets abort before the
+first write.
 
-1. `packages/game-engine/src/platform/protocol/gameTypes.ts`
-2. `packages/game-engine/src/games/registry.ts`
-3. `packages/game-engine/src/product/rewards/earnings.ts`
-4. `packages/game-engine/package.json`
-5. `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`
-6. `packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts`
-7. `packages/game-engine/src/platform/__tests__/phaseDeadlineVariants.contract.test.ts`
-8. `packages/game-engine/src/platform/engine/__tests__/capabilities.contract.test.ts`
-9. `packages/game-engine/src/platform/engine/__tests__/contracts.test.ts`
-10. `packages/game-engine/src/games/catalog.ts`
-11. `packages/api-worker/src/games/catalog.ts`
-12. `packages/web/src/games/catalog.ts` (`CLIENT_GAMES`: the game's
-    Home entry from `@/games/<id>/home`)
-13. `packages/web/src/games/clientModules.tsx` (a statically imported
-    `CLIENT_GAME_FACTORIES` entry plus its module slot)
-14. `packages/web/src/__tests__/botDispatchDiscipline.contract.test.ts`
-15. `packages/web/src/__tests__/roomGuidanceMatrix.contract.test.ts`
-16. `packages/web/src/__tests__/roomReview.contract.test.ts`
-17. `contracts/architecture.contract.test.ts` (owned cumulative D1 table).
-18. `packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts`
-    (the explicit `--production` selection only).
-19. `docs/README.md` (the generated game design's index entry).
+After writing, generated files are formatted with Prettier and lint-fixable
+imports are sorted with ESLint. A formatting/lint failure leaves a complete
+generated game in place; fix the reported files instead of rerunning because
+the duplicate guard will reject the existing game id.
 
-Edits are computed in memory first and only then written; a missing
-anchor or ambiguous anchor aborts before the first write
-(`generate.mjs` orchestration header; `edits.mjs` `fail()`). A run
-refuses to overwrite any existing target (`generate.mjs`,
-`Refusing to overwrite existing file`). After writing: a prettier pass
-over created + edited files + the report, an `eslint --fix` pass over
-created files, and a second prettier pass over created files
-(`generate.mjs`, `formatGeneratedFiles` / `autofixGeneratedImports`).
+## Templates and counts
 
-## Template tree
+Templates are under `scripts/lib/new-game/templates/{shared,game}`.
+`FILE_CAPABILITY_GATES` controls whole-file inclusion; `//#cap` segments
+control in-file variants. Completed-games statistics are always generated.
+The integration report is an additional output for every selection.
 
-`scripts/lib/new-game/templates/` holds 55 `.tmpl` files: 25 under
-`shared/` and 30 under `game/`. The same `FILE_CAPABILITY_GATES` apply
-to both layers. Client templates render under
-`packages/web/src/games/<game>/` (home, module, session model,
-navigation, rules screen, room screen and CSS, room adapter, guidance
-matrix, room-state hook, command-failure message, review) plus the
-review-round fixture `packages/web/src/test-utils/<game>State.ts`.
-Eight template files are capability-gated:
-
-| Template file                                                              | Gate                 |
-| -------------------------------------------------------------------------- | -------------------- |
-| `.../__tests__/phaseDeadlineProtocol.contract.test.ts`                     | `stageDeadline`      |
-| `.../__tests__/identityViewingProtocol.contract.test.ts`                   | `identityViewing`    |
-| `packages/web/src/games/<game>/components/<Game>RoleCardAdapter.ts`        | `identityViewing`    |
-| `packages/web/src/games/<game>/room/hooks/use<Game>AudioOrchestration.ts`  | `audioOrchestration` |
-| `packages/web/src/games/<game>/room/__tests__/<Game>RoomScreen.test.tsx`   | `identityViewing`    |
-| `packages/web/src/games/<game>/audio/<game>AudioRegistry.ts`               | `audioOrchestration` |
-| `packages/web/src/games/<game>/audio/<game>AudioRuntime.ts`                | `audioOrchestration` |
-| `packages/web/src/games/<game>/audio/__tests__/<game>AudioRuntime.test.ts` | `audioOrchestration` |
-
-Eight statistics files are always rendered: engine `publicStats.ts` and
-its contract test; Worker `dbSchema.ts`, `publicUserStats.ts` and its D1
-test; web `StatsPanel`, its UI test and statistics query service.
-
-All capabilities off renders 47 templates plus the registration migration
-(48 files, excluding the integration report). Enabling `stageDeadline`
-adds one gated test, `identityViewing` adds three gated files, and
-`audioOrchestration` adds its hook, clip registry, player and tests. The report is an extra file in
-all cases. `generatorFacts()` and the read-only check derive the full
-template count rather than relying on these explanatory numbers.
+Use `generatorFacts()` and `.agents/skills/new-game/scripts/check-new-game.sh`
+for current shared-file/template counts and capability keys. Do not copy
+counts into another checklist; `scripts/new-game.test.mjs` verifies the
+generated file set across capability selections.
 
 ## Migration source and numbering
 

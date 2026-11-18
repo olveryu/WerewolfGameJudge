@@ -18,6 +18,16 @@ individually to view their identities. When both `identityViewing` and
 `stageDeadline` are enabled, deadline arming is deferred until play
 begins; otherwise a selected stage deadline is armed as the stage begins.
 
+For role games with bot seats, select `botBulkViewing` unless the approved design
+explicitly excludes it. The generator flag being optional is not approval to omit
+an established host tool. Confirm the viewing action and blocked-start remedy in
+the rendered host panel, not just the capability declaration.
+Every generated game includes host-only abort, resetting to the lobby without
+settlement and preserving seats/configuration; the UI requires confirmation.
+Audio-enabled games keep the narration lock and expose music settings in setup,
+viewing and ended phases. Add game-specific bot night-confirmation tools when the
+rules require them; do not generate a fake night phase for games without one.
+
 `identityViewing` also selects the role-game room layout: seats stay visible
 after dealing, with one shared `RoomGameSummary` card, `BoardInfoContent` and public role
 previews; identity actions remain in the bottom model. It does not generate

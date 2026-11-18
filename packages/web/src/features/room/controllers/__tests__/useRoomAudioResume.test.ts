@@ -1,6 +1,6 @@
 /**
  * useRoomAudioResume: the resume gate is due for the host in a
- * narrated phase while the core marks an interruption; continuing
+ * narration recovery signal supplied by the shared core; continuing
  * unblocks alerts, hides the gate, restarts BGM and replays.
  */
 import { act, renderHook } from '@testing-library/react';
@@ -12,41 +12,27 @@ import { useRoomAudioResume } from '../useRoomAudioResume';
 vi.mock('@/utils/alert', () => ({ setAlertBlocked: vi.fn() }));
 
 interface Props {
-  isHost: boolean;
-  isNarratedPhase: boolean;
-  revision: number;
-  interrupted: boolean;
+  isResumeRequired: boolean;
 }
 
-/** A fake audio core: the interruption mark clears synchronously when resume starts, as the real core does. */
 function renderResume(initial: Props) {
-  const core = { interrupted: initial.interrupted };
-  const resume = vi.fn(async () => {
-    core.interrupted = false;
-  });
+  const resume = vi.fn(async () => undefined);
   const onResumed = vi.fn();
   const hook = renderHook(
     (props: Props) => {
-      core.interrupted = props.interrupted && core.interrupted;
       return useRoomAudioResume({
-        isHost: props.isHost,
-        isNarratedPhase: props.isNarratedPhase,
-        revision: props.revision,
-        readWasAudioInterrupted: () => core.interrupted,
+        isResumeRequired: props.isResumeRequired,
         resume,
         onResumed,
       });
     },
     { initialProps: initial },
   );
-  return { ...hook, resume, onResumed, core };
+  return { ...hook, resume, onResumed };
 }
 
 const due: Props = {
-  isHost: true,
-  isNarratedPhase: true,
-  revision: 1,
-  interrupted: true,
+  isResumeRequired: true,
 };
 
 beforeEach(() => vi.clearAllMocks());
@@ -58,27 +44,28 @@ describe('useRoomAudioResume', () => {
     expect(setAlertBlocked).toHaveBeenCalledWith(true);
   });
 
-  it.each([
-    ['non-host', { ...due, isHost: false }],
-    ['outside narration', { ...due, isNarratedPhase: false }],
-    ['no interruption', { ...due, interrupted: false }],
-  ])('is not due for %s', (_label, props) => {
-    const { result } = renderResume(props);
+  it('does not block alerts without a recovery signal', () => {
+    const { result } = renderResume({ isResumeRequired: false });
     expect(result.current.isDue).toBe(false);
     expect(setAlertBlocked).not.toHaveBeenCalled();
   });
 
-  it('re-reads the mark on a new revision', () => {
-    const { result, rerender, core } = renderResume({ ...due, interrupted: false });
+  it('reopens after playback failure without a room revision or phase dependency', () => {
+    const { result, rerender } = renderResume({ isResumeRequired: false });
     expect(result.current.isDue).toBe(false);
-    core.interrupted = true;
-    rerender({ ...due, revision: 2 });
+    rerender(due);
+    expect(result.current.isDue).toBe(true);
+    rerender({ isResumeRequired: false });
+    expect(result.current.isDue).toBe(false);
+    expect(setAlertBlocked).toHaveBeenLastCalledWith(false);
+    rerender(due);
     expect(result.current.isDue).toBe(true);
   });
 
   it('continue unblocks, hides, restarts BGM and replays', () => {
-    const { result, resume, onResumed } = renderResume(due);
+    const { result, resume, onResumed, rerender } = renderResume(due);
     act(() => result.current.continueGame());
+    rerender({ isResumeRequired: false });
     expect(result.current.isDue).toBe(false);
     expect(setAlertBlocked).toHaveBeenLastCalledWith(false);
     expect(onResumed).toHaveBeenCalledTimes(1);

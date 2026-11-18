@@ -2,24 +2,20 @@
  * useRoomAudioOrchestration — the shared room audio core (`RoomAudioOrchestrator`) bound to a
  * ready room session, as a hook. One core per mounted room.
  *
- * A game supplies only its ports: the player (clips for its effects), the ack command, the
- * narrated-phase predicate and the rejoin replay. The lifecycle, the queue source (the
- * authoritative session snapshot, never a React prop, so the ack-then-recheck chain sees the
- * cleared queue), the host-rejoin interruption mark and the resume-under-guard sequence are the
- * platform's, once.
+ * Games supply playback and acknowledgement ports, never phase predicates or replay queues.
+ * The authoritative audio slice controls both normal playback and gesture-based recovery.
  *
  * Rejoin mark: the room mounts only on a ready link (`RoomEntryBoundary`), and a link epoch change
  * re-enters the room, so the first snapshot this hook sees tells whether the host arrived
- * mid-narration. A host mounting in a narrated phase is marked interrupted — the page has no audio
+ * mid-narration. A host mounting with an active batch is marked interrupted — the page has no audio
  * gesture after a reconnect — and the queue subscription stays silent until `resumeAfterRejoin`
- * (the resume-gate gesture) replays the game's clip for the current step under the core's
+ * (the resume-gate gesture) replays the complete authoritative batch under the core's
  * re-entry guard, acks the interrupted batch by id and chains on.
  */
 
-import type { AudioEffect } from '@game-judge/game-engine/platform/audio';
-import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
+import type { AudioEffect, AudioQueueSlice } from '@game-judge/game-engine/platform/audio';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 import type { DispatchOutcome, RoomLink } from '@/platform/realtime/types';
 import { handleError } from '@/utils/errorPipeline';
@@ -32,19 +28,12 @@ import {
   type RoomAudioQueueSource,
 } from './RoomAudioOrchestrator';
 
-/** The audio-queue slice every narrated game's state carries (platform `audioQueue`). */
-interface RoomAudioQueueState {
-  readonly pendingAudioEffects: readonly AudioEffect[];
-  readonly isAudioPlaying: boolean;
-  readonly audioBatchId: number;
-}
-
 /**
  * The game's ports. All of them must be stable identities (module-level functions and constants,
  * the room's audio runtime instance): a change rebinds the core.
  */
 interface RoomAudioOrchestrationOptions<
-  TState extends BaseGameState<string> & RoomAudioQueueState,
+  TState extends BaseGameState<string> & AudioQueueSlice,
   TCommand extends object,
 > {
   readonly session: RoomLink<TState, TCommand>;
@@ -53,26 +42,19 @@ interface RoomAudioOrchestrationOptions<
   /** The game's durable audio ack for one batch. */
   readonly ackCommand: (audioBatchId: number) => TCommand;
   readonly ackLabel: string;
-  /** The game is in a phase with host narration (the night; the dawn batch). */
-  readonly isNarratedPhase: (state: TState) => boolean;
-  /**
-   * Cues to replay after a host rejoin; an empty list means nothing needs to be re-heard.
-   * Games may replay a step opening or the complete interrupted batch.
-   */
-  readonly resolveReplayEffects: (state: TState) => readonly AudioEffect[];
   /** The game's named runtime logger (also the error-pipeline logger). */
   readonly logger: Logger;
 }
 
 export interface RoomAudioOrchestration {
-  /** The core's interruption mark, read fresh (not React state). */
-  readonly readWasAudioInterrupted: () => boolean;
-  /** Replay the current step's clip after a host rejoin and ack the interrupted batch. */
+  /** Reactive recovery signal for re-entry and playback failure, not connection-status changes. */
+  readonly isResumeRequired: boolean;
+  /** Retry the authoritative batch and acknowledge it only after every cue completes. */
   readonly resumeAfterRejoin: () => Promise<void>;
 }
 
 export function useRoomAudioOrchestration<
-  TState extends BaseGameState<string> & RoomAudioQueueState,
+  TState extends BaseGameState<string> & AudioQueueSlice,
   TCommand extends object,
 >({
   session,
@@ -80,24 +62,62 @@ export function useRoomAudioOrchestration<
   player,
   ackCommand,
   ackLabel,
-  isNarratedPhase,
-  resolveReplayEffects,
   logger,
 }: RoomAudioOrchestrationOptions<TState, TCommand>): RoomAudioOrchestration {
   const isHostRef = useRef(isHost);
-  const abortedRef = useRef(false);
   const coreRef = useRef<RoomAudioOrchestrator<AudioEffect, TState> | null>(null);
+  const listenersRef = useRef(new Set<() => void>());
+  const notifyResumeChange = useCallback(() => {
+    for (const listener of listenersRef.current) listener();
+  }, []);
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      listenersRef.current.add(listener);
+      const unsubscribe = session.subscribe(listener);
+      return () => {
+        listenersRef.current.delete(listener);
+        unsubscribe();
+      };
+    },
+    [session],
+  );
+  const readResumeRequired = useCallback(() => {
+    const snapshot = session.getSnapshot();
+    return (
+      isHost &&
+      snapshot.phase === 'ready' &&
+      snapshot.room.state.isAudioPlaying &&
+      coreRef.current?.needsResume === true
+    );
+  }, [isHost, session]);
+  const isResumeRequired = useSyncExternalStore(subscribe, readResumeRequired);
+  const reportPlaybackError = useCallback(
+    (error: unknown, label: string) => {
+      handleError(error, {
+        label,
+        logger,
+        feedback: 'toast',
+        alertMessage: '播报失败，游戏未推进。请点击「继续游戏」重试。',
+      });
+    },
+    [logger],
+  );
 
   useEffect(() => {
     isHostRef.current = isHost;
   }, [isHost]);
 
   useEffect(() => {
+    const snapshot = session.getSnapshot();
+    if (snapshot.phase !== 'ready') {
+      throw new Error('[FAIL-FAST] Room audio orchestration mounted without a ready session');
+    }
     const readQueueSnapshot = (): RoomAudioQueueSnapshot<AudioEffect> | null => {
       const current = session.getSnapshot();
       if (current.phase !== 'ready') return null;
       return {
         pendingAudioEffects: current.room.state.pendingAudioEffects,
+        isAudioPlaying: current.room.state.isAudioPlaying,
         audioBatchId: current.room.state.audioBatchId,
       };
     };
@@ -117,74 +137,34 @@ export function useRoomAudioOrchestration<
           }),
       },
       isHost: () => isHostRef.current,
-      isAborted: () => abortedRef.current,
+      roomCode: snapshot.identity.room.roomCode,
       logger,
-      onError: (error, label) =>
-        handleError(error, {
-          label,
-          logger,
-          feedback: player.stopOnPlaybackError === true ? 'toast' : false,
-          alertMessage:
-            '播报失败，已暂停推进。请检查设备音频输出和媒体播放权限后重新进入房间重试。',
-        }),
+      onError: reportPlaybackError,
+      onResumeRequiredChange: notifyResumeChange,
     });
     coreRef.current = core;
-    abortedRef.current = false;
-
-    // The room mounts only on a ready link: this snapshot is the rejoin fact.
-    const snapshot = session.getSnapshot();
-    if (snapshot.phase !== 'ready') {
-      throw new Error('[FAIL-FAST] Room audio orchestration mounted without a ready session');
-    }
-    core.setWasAudioInterrupted(isHostRef.current && isNarratedPhase(snapshot.room.state));
+    core.setNeedsResume(isHostRef.current && snapshot.room.state.isAudioPlaying);
+    notifyResumeChange();
 
     return () => {
-      abortedRef.current = true;
       core.dispose();
       coreRef.current = null;
       player.stopNarration();
     };
-  }, [ackCommand, ackLabel, isNarratedPhase, logger, player, session]);
-
-  // Read from effects declared after this hook (useRoomAudioResume), so the core exists; a null
-  // core is a call-order bug.
-  const readWasAudioInterrupted = useCallback(() => {
-    const core = coreRef.current;
-    if (core === null) throw new Error('[FAIL-FAST] Audio core read before it was bound');
-    return core.wasAudioInterrupted;
-  }, []);
+  }, [ackCommand, ackLabel, logger, notifyResumeChange, player, reportPlaybackError, session]);
 
   const resumeAfterRejoin = useCallback(async (): Promise<void> => {
     const core = coreRef.current;
-    const snapshot = session.getSnapshot();
-    if (core === null || snapshot.phase !== 'ready') return;
-    const state = snapshot.room.state;
-    if (!state.isAudioPlaying) {
-      core.setWasAudioInterrupted(false);
+    if (core === null) {
+      logger.info('Narration resume ignored after room teardown');
       return;
     }
-    const effects = resolveReplayEffects(state);
-    const replay = async () => {
-      if (effects.length === 0) return;
-      logger.info('Replaying narration after rejoin', { audioBatchId: state.audioBatchId });
-      await player.prepareQueue?.(effects);
-      for (const effect of effects) {
-        if (abortedRef.current) return;
-        if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
-        await player.playEffect(effect);
-      }
-    };
     try {
-      await core.resumeInterrupted(replay, state.audioBatchId);
+      await core.resumeInterrupted();
     } catch (error) {
-      handleError(error, {
-        label: 'resumeAfterRejoin',
-        logger,
-        feedback: player.stopOnPlaybackError === true ? 'toast' : false,
-        alertMessage: '播报失败，已暂停推进。请检查设备音频输出和媒体播放权限后重新进入房间重试。',
-      });
+      reportPlaybackError(error, '恢复语音播报');
     }
-  }, [logger, player, resolveReplayEffects, session]);
+  }, [logger, reportPlaybackError]);
 
-  return { readWasAudioInterrupted, resumeAfterRejoin };
+  return { isResumeRequired, resumeAfterRejoin };
 }

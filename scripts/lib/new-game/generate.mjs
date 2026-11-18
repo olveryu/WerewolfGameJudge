@@ -367,7 +367,7 @@ function iconComponentName(iconName) {
     .join('')}`;
 }
 
-export function generateNewGame(options) {
+function createGenerationContext(options) {
   const {
     rootDir,
     gameId,
@@ -426,8 +426,37 @@ export function generateNewGame(options) {
     production,
   };
 
-  // Phase 1: compute everything in memory. Nothing below writes until
-  // every render and every edit has succeeded.
+  return {
+    rootDir,
+    gameId,
+    displayName,
+    names,
+    capabilities,
+    selectedCapabilities,
+    renderCapabilities,
+    home,
+    extraTokens,
+    ctx,
+    rewards,
+    production,
+  };
+}
+
+function buildGenerationPlan(context) {
+  const {
+    rootDir,
+    gameId,
+    displayName,
+    names,
+    capabilities,
+    selectedCapabilities,
+    renderCapabilities,
+    home,
+    extraTokens,
+    ctx,
+    rewards,
+    production,
+  } = context;
   const templates = new Map([
     ...collectTemplateFiles('shared', renderCapabilities),
     ...collectTemplateFiles('game', renderCapabilities),
@@ -490,15 +519,16 @@ export function generateNewGame(options) {
     production,
   });
 
-  // Phase 2: duplicate guard — no target may already exist, including
-  // the integration report (a stale report means this id ran before).
+  return { created, edited, createdFiles, editedFiles, migrationName, reportPath, report };
+}
+
+function writeGenerationPlan(rootDir, plan) {
+  const { created, edited, createdFiles, editedFiles, migrationName, reportPath, report } = plan;
   for (const destination of [...createdFiles, reportPath]) {
     if (fs.existsSync(path.join(rootDir, destination))) {
       throw new Error(`Refusing to overwrite existing file: ${destination}`);
     }
   }
-
-  // Phase 3: write.
   for (const [destination, body] of created) {
     const fullPath = path.join(rootDir, destination);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
@@ -520,4 +550,10 @@ export function generateNewGame(options) {
   formatGeneratedFiles(rootDir, createdFiles);
 
   return { createdFiles, editedFiles, migrationName, reportPath, formatted };
+}
+
+export function generateNewGame(options) {
+  const context = createGenerationContext(options);
+  const plan = buildGenerationPlan(context);
+  return writeGenerationPlan(context.rootDir, plan);
 }

@@ -169,7 +169,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botBulkViewing: false,
+    botBulkViewing: true,
   },
 };
 

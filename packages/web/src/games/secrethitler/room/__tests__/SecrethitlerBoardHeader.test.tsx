@@ -38,6 +38,7 @@ it('allows assigning roles when every occupied seat is a bot', () => {
     isSubmitting: false,
     submit: vi.fn(async () => true),
     review: null,
+    onMusicSettings: vi.fn(),
     capabilities: {
       canConfigureGame: denied,
       canFillBots: denied,
@@ -116,6 +117,7 @@ it('uses electronic first-night guidance without a reading script or manual prog
     isSubmitting: false,
     submit: vi.fn(async () => true),
     review: null,
+    onMusicSettings: vi.fn(),
     capabilities: {
       canConfigureGame: denied,
       canFillBots: denied,
@@ -125,7 +127,11 @@ it('uses electronic first-night guidance without a reading script or manual prog
   });
   expect(panel.task).toBeNull();
   const actions = panel.sections.flatMap((section) => section.actions);
-  expect(actions.map((action) => action.label)).toEqual(['重播当前语音']);
+  expect(actions.map((action) => action.label)).toEqual([
+    '重播当前语音',
+    '标记机器人已确认',
+    '中止本局',
+  ]);
 });
 
 it('keeps terminal details behind the shared record dialog and preserves results and labels', async () => {

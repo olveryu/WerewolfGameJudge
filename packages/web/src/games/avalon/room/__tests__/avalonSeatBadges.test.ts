@@ -16,9 +16,39 @@ import {
   getAvalonViewModel,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { getAvalonRoleDisplayName } from '../../model/avalonRoleDisplay';
 import { createAvalonSeatDataSource } from '../avalonRoomAdapter';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
+
+function assignedBotState(): AvalonState {
+  let commandNumber = 0;
+  let state: AvalonState = avalonEngine.createInitialState(
+    { ...DEFAULT_AVALON_CONFIG, numberOfPlayers: 5 },
+    { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
+  );
+  const send = (command: AvalonPublicCommand, userId = 'host') => {
+    const commandId = `bot-identity:${commandNumber++}`;
+    const decision = avalonEngine.decide(state, command, {
+      actor: { kind: 'user', userId },
+      controlledSeat: null,
+      nowMs: 1000,
+      commandId,
+      randomSeed: commandId,
+    });
+    if (decision.kind === 'reject') throw new Error(`rejected: ${decision.reason}`);
+    state = decision.events.reduce(avalonEngine.evolve, state);
+  };
+  for (let seat = 0; seat < 4; seat += 1) {
+    send(
+      { type: 'room.seat.take', seat, profile: { displayName: `P${seat}` } },
+      seat === 0 ? 'host' : `u${seat}`,
+    );
+  }
+  send({ type: 'room.seat.fillBots' });
+  send({ type: 'avalon.roles.assign' });
+  return state;
+}
 
 function questPhaseSession() {
   let commandNumber = 0;
@@ -102,6 +132,37 @@ function questPhaseSession() {
     leader,
   };
 }
+
+it('shows bot identities to the room host only', () => {
+  const state = assignedBotState();
+  const botSeat = 4;
+  const botRole = state.roles[botSeat];
+  if (botRole === undefined) throw new Error('Missing assigned bot role');
+
+  const host = createAvalonSeatDataSource({
+    state,
+    revision: 1,
+    userId: 'host',
+    controlledSeat: null,
+  });
+  const player = createAvalonSeatDataSource({
+    state,
+    revision: 1,
+    userId: 'u1',
+    controlledSeat: null,
+  });
+  const spectator = createAvalonSeatDataSource({
+    state,
+    revision: 1,
+    userId: 'spectator',
+    controlledSeat: null,
+  });
+
+  expect(host.getSeat(botSeat).secondaryLabel).toBe(getAvalonRoleDisplayName(botRole));
+  expect(host.getSeat(0).secondaryLabel).toBeNull();
+  expect(player.getSeat(botSeat).secondaryLabel).toBeNull();
+  expect(spectator.getSeat(botSeat).secondaryLabel).toBeNull();
+});
 
 describe('createAvalonSeatDataSource — quest played badge removed', () => {
   it('keeps only 队员 on the seat board after a team seat plays, with no 已出牌 mark', () => {

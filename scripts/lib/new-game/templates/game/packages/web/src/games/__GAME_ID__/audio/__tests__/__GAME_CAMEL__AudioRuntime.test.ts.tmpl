@@ -1,9 +1,12 @@
+import type { __GAME_PASCAL__Command, __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import type { AudioClip } from '@/features/product/model/AudioClip';
-import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
 import { build__GAME_PASCAL__TestLobby } from '@/test-utils/__GAME_ID__State';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import * as errors from '@/utils/errorPipeline';
 
 import { use__GAME_PASCAL__AudioOrchestration } from '../../room/hooks/use__GAME_PASCAL__AudioOrchestration';
@@ -35,33 +38,19 @@ it('rejects unknown engine cues instead of skipping missing audio', () => {
   expect(() => registry.resolve__GAME_PASCAL__Audio('unregistered-cue')).toThrow(/Missing/);
 });
 
-it('surfaces playback failure without acknowledging the authoritative batch', async () => {
+it('retains the failed batch and retries every pending cue before acknowledging', async () => {
   const state = {
     ...build__GAME_PASCAL__TestLobby(),
-    pendingAudioEffects: [{ audioKey: 'test-cue' }],
+    pendingAudioEffects: [{ audioKey: 'test-cue' }, { audioKey: 'closing-test-cue' }],
     audioBatchId: 1,
     isAudioPlaying: true,
   };
-  const dispatch = vi.fn(async () => { throw new Error('Failed audio must not acknowledge'); });
-  const session: __GAME_PASCAL__RoomSession = {
-    getSnapshot: () => ({
-      phase: 'ready',
-      epoch: 1,
-      status: { kind: 'live' },
-      lastCommand: null,
-      pendingDurableCount: 0,
-      identity: {
-        userId: 'host',
-        room: { roomCode: '1234', roomId: 'room-1234', gameType: '__GAME_ID__', hostUserId: 'host', createdAt: new Date(0) },
-      },
-      room: { gameType: '__GAME_ID__', stateVersion: state.stateVersion, revision: 1, state },
-    }),
-    subscribe: () => () => undefined,
-    dispatch,
-    connect: vi.fn(async () => undefined),
-    retryNow: vi.fn(),
-    close: vi.fn(),
-  };
+  const session = createFakeRoomLink<__GAME_PASCAL__State, __GAME_PASCAL__Command>(
+    readyLinkSnapshot(testIdentity('__GAME_ID__'), createRoomSnapshot(state, 1)),
+    async () => successfulRoomCommand(
+      { ...state, pendingAudioEffects: [], isAudioPlaying: false }, 'audio-ack', 2,
+    ),
+  );
   const failure = new Error('media output unavailable');
   const audio: __GAME_PASCAL__AudioRuntime = {
     playEffect: vi.fn(async () => { throw failure; }),
@@ -73,9 +62,20 @@ it('surfaces playback failure without acknowledging the authoritative batch', as
   };
   const handleError = vi.spyOn(errors, 'handleError').mockImplementation(() => undefined);
   const { result } = renderHook(() => use__GAME_PASCAL__AudioOrchestration({ session, isHost: true, audio }));
-  expect(result.current.readWasAudioInterrupted()).toBe(true);
+  expect(result.current.isResumeRequired).toBe(true);
   expect(audio.playEffect).not.toHaveBeenCalled();
   await act(async () => { await result.current.resumeAfterRejoin(); });
   await waitFor(() => expect(handleError).toHaveBeenCalledWith(failure, expect.objectContaining({ feedback: 'toast' })));
-  expect(dispatch).not.toHaveBeenCalled();
+  expect(result.current.isResumeRequired).toBe(true);
+  expect(session.dispatch).not.toHaveBeenCalled();
+  vi.mocked(audio.playEffect).mockClear().mockResolvedValue(undefined);
+  await act(async () => { await result.current.resumeAfterRejoin(); });
+  expect(vi.mocked(audio.playEffect).mock.calls.map(([effect]) => effect.audioKey)).toEqual([
+    'test-cue', 'closing-test-cue',
+  ]);
+  expect(session.dispatch).toHaveBeenCalledExactlyOnceWith(
+    { type: '__GAME_ID__.audio.ack', audioBatchId: 1 },
+    { controlledSeat: null, label: '播报确认', durable: true },
+  );
+  expect(result.current.isResumeRequired).toBe(false);
 });

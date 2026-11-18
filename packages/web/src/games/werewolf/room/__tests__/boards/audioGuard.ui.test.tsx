@@ -14,7 +14,10 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
+  click,
+  createWerewolfRoomMock,
   mountRoomFor as mount,
+  mountWerewolfRoom,
   recordAlerts,
   requireBottomActionText,
   requireEmptyVoteText,
@@ -73,6 +76,55 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     });
   });
   afterEach(() => detachAlerts());
+
+  describe('daytime narration recovery', () => {
+    it('shows the existing continue dialog and replays the daytime batch before acknowledging', async () => {
+      const mock = createWerewolfRoomMock({
+        ...seerStep(true),
+        isHost: true,
+        gameStateOverrides: {
+          status: GameStatus.Day,
+          pendingAudioEffects: [{ audioKey: 'sheriff_signup' }],
+          audioBatchId: 3,
+        },
+      });
+      const playEffect = vi.spyOn(mock.audio, 'playEffect');
+      const view = await mountWerewolfRoom(mock);
+
+      expect(view.getByRole('alertdialog', { name: '游戏已恢复' })).toBeInTheDocument();
+      expect(playEffect).not.toHaveBeenCalled();
+      expect(mock.dispatch).not.toHaveBeenCalled();
+
+      await click(view.getByRole('button', { name: '继续游戏' }));
+
+      await waitFor(() => {
+        expect(playEffect).toHaveBeenCalledExactlyOnceWith('sheriff_signup', undefined);
+        expect(mock.dispatch).toHaveBeenCalledWith(
+          { type: 'werewolf.audio.ack', audioBatchId: 3 },
+          { controlledSeat: null, label: '播报确认', durable: true },
+        );
+      });
+      await waitFor(() => {
+        expect(view.queryByRole('alertdialog', { name: '游戏已恢复' })).not.toBeInTheDocument();
+      });
+    });
+
+    it.each([
+      { isHost: true, isAudioPlaying: false },
+      { isHost: false, isAudioPlaying: true },
+    ])(
+      'does not prompt for $isHost host and $isAudioPlaying pending narration',
+      async (options) => {
+        const view = await mount({
+          ...seerStep(options.isAudioPlaying),
+          isHost: options.isHost,
+          gameStateOverrides: { status: GameStatus.Day },
+        });
+
+        expect(view.queryByRole('alertdialog', { name: '游戏已恢复' })).not.toBeInTheDocument();
+      },
+    );
+  });
 
   describe('seat tap blocked during audio', () => {
     it('seer seat tap produces no dialog when isAudioPlaying=true', async () => {

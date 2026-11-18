@@ -3,8 +3,8 @@ import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Root contract project: cross-package rules over the engine, the Worker, the web client source,
- * E2E, CI and scripts. Each package runs its own unit tests.
+ * Root project: cross-package contracts and the new-game generator suite.
+ * Each package runs its own unit tests.
  */
 export default defineConfig({
   resolve: {
@@ -15,6 +15,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['contracts/**/*.test.ts'],
+    include: ['contracts/**/*.test.ts', 'scripts/new-game.test.mjs'],
   },
 });

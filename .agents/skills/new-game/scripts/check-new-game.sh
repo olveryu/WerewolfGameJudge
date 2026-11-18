@@ -12,14 +12,33 @@ import { pathToFileURL } from 'node:url';
 const root = path.resolve(process.argv[2]);
 const load = (file) => import(pathToFileURL(path.join(root, file)).href);
 const { generatorFacts } = await load('scripts/lib/new-game/generate.mjs');
-const { REPORT_STEP_COUNT } = await load('scripts/lib/new-game/report.mjs');
+const { REPORT_STEP_COUNT, buildIntegrationReport } = await load('scripts/lib/new-game/report.mjs');
 const { findLatestRegistrationMigration, nextMigrationName } = await load('scripts/lib/new-game/migration.mjs');
 const facts = generatorFacts();
 assert.equal(new Set(facts.sharedFiles).size, facts.sharedFiles.length);
 for (const file of facts.sharedFiles) assert.ok(fs.existsSync(path.join(root, file)), file);
-const report = fs.readFileSync(path.join(root, 'scripts/lib/new-game/report.mjs'), 'utf8');
-const steps = [...new Set([...report.matchAll(/^(\d+)\.\s+\*\*/gm)].map((match) => Number(match[1])))].sort((a, b) => a - b);
-assert.deepEqual(steps, Array.from({ length: REPORT_STEP_COUNT }, (_, index) => index + 1));
+const reportInput = {
+  gameId: 'newgame',
+  names: { pascal: 'Newgame', camel: 'newgame', upper: 'NEWGAME' },
+  home: { displayName: '新游戏', subtitle: '玩法', iconName: 'game-controller-outline', tier: 'mini' },
+  rewards: { xpEarned: 5, normalDrawsEarned: 1, dailyCompletionTarget: 5 },
+  capabilities: {
+    identityViewing: false,
+    botBulkViewing: false,
+    audioOrchestration: false,
+  },
+  selectedCapabilities: [],
+  createdFiles: [],
+  editedFiles: [],
+  migrationName: '0000_newgame.sql',
+};
+const steps = [];
+for (const production of [false, true]) {
+  const report = buildIntegrationReport({ ...reportInput, production });
+  const reportSteps = [...report.matchAll(/^(\d+)\.\s+\*\*/gm)].map((match) => Number(match[1]));
+  assert.deepEqual(reportSteps, Array.from({ length: REPORT_STEP_COUNT }, (_, index) => index + 1));
+  if (steps.length === 0) steps.push(...reportSteps);
+}
 const dir = path.join(root, 'packages/api-worker/migrations');
 const migrations = fs.readdirSync(dir).filter((name) => name.endsWith('.sql')).map((name) => ({
   name, content: fs.readFileSync(path.join(dir, name), 'utf8'),

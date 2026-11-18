@@ -2,8 +2,7 @@
  * Werewolf's ports on the platform audio orchestration (the lifecycle itself
  * is covered by the core orchestrator tests):
  * - a host mounting mid-night is marked interrupted; a non-host never is;
- * - resume replays the current step's beginning clip (seer label variant from
- *   state) and acks the interrupted batch by id; at night end it only acks;
+ * - recovery replays the complete authoritative batch, including role variants and closing cues;
  * - the player port prepares the public board before queued or replayed narration.
  */
 import type {
@@ -17,7 +16,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { act, renderHook } from '@testing-library/react';
 
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
-import type { DispatchOutcome } from '@/platform/realtime/types';
+import type { DispatchOutcome, LinkStatus } from '@/platform/realtime/types';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -55,6 +54,9 @@ function createLink(initial: GameState, userId = 'host') {
   );
   return {
     link,
+    setStatus: (status: LinkStatus) => {
+      link.publish({ ...link.getSnapshot(), status });
+    },
     commitAck: () => {
       const resolve = settleAck;
       if (resolve === null) throw new Error('no ack in flight');
@@ -97,7 +99,7 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       useWerewolfAudioOrchestration({ session: link, isHost: true, audio }),
     );
     await flush();
-    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(result.current.isResumeRequired).toBe(true);
     expect(audio.timeline).toEqual([]);
     expect(link.dispatch).not.toHaveBeenCalled();
   });
@@ -109,24 +111,30 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       useWerewolfAudioOrchestration({ session: link, isHost: false, audio }),
     );
     await flush();
-    expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(result.current.isResumeRequired).toBe(false);
     expect(audio.preload).not.toHaveBeenCalled();
     expect(audio.playEffect).not.toHaveBeenCalled();
   });
 
-  it('does not mark a host mounting in the lobby', async () => {
-    const audio = createAudio();
-    const { link } = createLink(buildWerewolfTestState({ status: GameStatus.Seated }));
-    const { result } = renderHook(() =>
-      useWerewolfAudioOrchestration({ session: link, isHost: true, audio }),
-    );
-    await flush();
-    expect(result.current.readWasAudioInterrupted()).toBe(false);
-  });
+  it.each([GameStatus.Seated, GameStatus.Ongoing, GameStatus.Day])(
+    'does not require recovery in %s without pending narration',
+    async (status) => {
+      const audio = createAudio();
+      const { link } = createLink(buildWerewolfTestState({ status }));
+      const { result } = renderHook(() =>
+        useWerewolfAudioOrchestration({ session: link, isHost: true, audio }),
+      );
+      await flush();
+      expect(result.current.isResumeRequired).toBe(false);
+    },
+  );
 
-  it('resume replays the current step beginning (seer label variant) and acks the batch by id', async () => {
+  it('resumes the full engine queue, preserving closing cues and the queued seer label variant', async () => {
     const audio = createAudio();
-    const state = nightState({ seerLabelMap: { seer: 2 } });
+    const state = nightState({
+      seerLabelMap: { seer: 2 },
+      pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: true }, { audioKey: 'seer_2' }],
+    });
     const fake = createLink(state);
     const { result } = renderHook(() =>
       useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
@@ -138,17 +146,17 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       fake.commitAck();
       await resumed;
     });
-    expect(audio.timeline).toEqual(['preload', 'play:seer_2']);
+    expect(audio.timeline).toEqual(['preload', 'play:wolf', 'play:seer_2']);
     expect(audio.preload).toHaveBeenCalledWith(state.templateRoles);
     expect(fake.link.dispatch).toHaveBeenCalledTimes(1);
     expect(fake.link.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.audio.ack', audioBatchId: BATCH_ID },
       { controlledSeat: null, label: '播报确认', durable: true },
     );
-    expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(result.current.isResumeRequired).toBe(false);
   });
 
-  it('resume at night end replays nothing and only acks', async () => {
+  it('plays closing and dawn narration before acknowledging even when the night step is exhausted', async () => {
     const audio = createAudio();
     const fake = createLink(
       nightState({
@@ -169,8 +177,145 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       fake.commitAck();
       await resumed;
     });
-    expect(audio.timeline).toEqual([]);
+    expect(audio.timeline).toEqual(['preload', 'play:seer', `play:${NIGHT_END_AUDIO_KEY}`]);
+    expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(fake.link.dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for a gesture before replaying and acknowledging pending daytime narration', async () => {
+    const audio = createAudio();
+    const fake = createLink(
+      nightState({
+        status: GameStatus.Day,
+        pendingAudioEffects: [{ audioKey: 'sheriff_signup' }],
+      }),
+    );
+    const { result } = renderHook(() =>
+      useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+    expect(result.current.isResumeRequired).toBe(true);
+    expect(audio.playEffect).not.toHaveBeenCalled();
+    await act(async () => {
+      void result.current.resumeAfterRejoin();
+      await flush();
+    });
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(audio.timeline).toEqual(['preload', 'play:sheriff_signup']);
+    expect(fake.link.dispatch).toHaveBeenCalledExactlyOnceWith(
+      { type: 'werewolf.audio.ack', audioBatchId: BATCH_ID },
+      { controlledSeat: null, label: '播报确认', durable: true },
+    );
+    await act(async () => fake.commitAck());
+  });
+
+  it('keeps same-page playback running across reconnect without adding a resume prompt', async () => {
+    const audio = createAudio();
+    let finishClip = (): void => {
+      throw new Error('clip has not started');
+    };
+    vi.mocked(audio.playEffect).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishClip = resolve;
+        }),
+    );
+    const fake = createLink(
+      buildWerewolfTestState({
+        status: GameStatus.Day,
+        isAudioPlaying: false,
+        pendingAudioEffects: [],
+      }),
+    );
+    const { result } = renderHook(() =>
+      useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+    const queued = nightState({
+      status: GameStatus.Day,
+      pendingAudioEffects: [{ audioKey: 'sheriff_signup' }, { audioKey: 'sheriff_start' }],
+    });
+    await act(async () => fake.link.publishRoom(createRoomSnapshot(queued, 2)));
+    expect(audio.playEffect).toHaveBeenCalledOnce();
+
+    await act(async () =>
+      fake.setStatus({
+        kind: 'waiting',
+        cause: 'backoff',
+        attempt: 1,
+        nextRetryAtMs: 1000,
+      }),
+    );
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(fake.link.dispatch).not.toHaveBeenCalled();
+    expect(audio.playEffect).toHaveBeenCalledOnce();
+    await act(async () => fake.setStatus({ kind: 'live' }));
+    expect(fake.link.getSnapshot().epoch).toBe(1);
+    expect(fake.link.getSnapshot().room?.revision).toBe(2);
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(fake.link.dispatch).not.toHaveBeenCalled();
+    expect(audio.stopNarration).not.toHaveBeenCalled();
+
+    await act(async () => {
+      finishClip();
+      await flush();
+      fake.commitAck();
+    });
+    expect(vi.mocked(audio.playEffect).mock.calls.map(([key]) => key)).toEqual([
+      'sheriff_signup',
+      'sheriff_start',
+    ]);
+    expect(fake.link.dispatch).toHaveBeenCalledOnce();
+    expect(result.current.isResumeRequired).toBe(false);
+  });
+
+  it('does not replay or duplicate a durable ack already pending across reconnects', async () => {
+    const audio = createAudio();
+    const fake = createLink(
+      nightState({
+        status: GameStatus.Day,
+        pendingAudioEffects: [{ audioKey: 'sheriff_signup' }],
+      }),
+    );
+    const { result } = renderHook(() =>
+      useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+    let resumed: Promise<void>;
+    await act(async () => {
+      resumed = result.current.resumeAfterRejoin();
+      await flush();
+    });
+    await act(async () => {
+      fake.setStatus({ kind: 'waiting', cause: 'offline', attempt: 1, nextRetryAtMs: null });
+      fake.setStatus({ kind: 'live' });
+    });
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(audio.playEffect).toHaveBeenCalledOnce();
+    expect(fake.link.dispatch).toHaveBeenCalledOnce();
+    await act(async () => {
+      fake.commitAck();
+      await resumed;
+    });
+  });
+
+  it('does not prompt for a silent daytime phase after reconnect', async () => {
+    const audio = createAudio();
+    const fake = createLink(
+      nightState({
+        status: GameStatus.Day,
+        isAudioPlaying: false,
+        pendingAudioEffects: [],
+      }),
+    );
+    const { result } = renderHook(() =>
+      useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
+    );
+    expect(result.current.isResumeRequired).toBe(false);
+    await act(async () => {
+      fake.setStatus({ kind: 'waiting', cause: 'offline', attempt: 1, nextRetryAtMs: null });
+      fake.setStatus({ kind: 'live' });
+    });
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(fake.link.dispatch).not.toHaveBeenCalled();
   });
 
   it('prepares the latest public board before playback and stops BGM before night end', async () => {
@@ -238,9 +383,46 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
 
     expect(handleError).toHaveBeenCalledWith(
       error,
-      expect.objectContaining({ label: '音频效果队列', feedback: false }),
+      expect.objectContaining({ label: '语音播报', feedback: 'toast' }),
     );
     expect(audio.playEffect).not.toHaveBeenCalled();
     expect(link.dispatch).not.toHaveBeenCalled();
   });
+
+  it.each(['entry', 'playback'] as const)(
+    'offers recovery after an %s playback failure without a new revision',
+    async (scenario) => {
+      const audio = createAudio();
+      const failure = new Error('autoplay blocked');
+      vi.mocked(audio.playEffect).mockRejectedValueOnce(failure);
+      const queued = nightState({
+        status: GameStatus.Day,
+        pendingAudioEffects: [{ audioKey: 'sheriff_signup' }],
+      });
+      const fake = createLink(scenario === 'entry' ? queued : buildWerewolfTestState());
+      const { result } = renderHook(() =>
+        useWerewolfAudioOrchestration({ session: fake.link, isHost: true, audio }),
+      );
+      if (scenario === 'entry') {
+        await act(async () => result.current.resumeAfterRejoin());
+      } else {
+        await act(async () => fake.link.publishRoom(createRoomSnapshot(queued, 1)));
+      }
+      expect(fake.link.getSnapshot().room?.revision).toBe(1);
+      expect(result.current.isResumeRequired).toBe(true);
+      expect(fake.link.dispatch).not.toHaveBeenCalled();
+      expect(handleError).toHaveBeenCalledWith(
+        failure,
+        expect.objectContaining({ feedback: 'toast' }),
+      );
+      await act(async () => {
+        const resumed = result.current.resumeAfterRejoin();
+        await flush();
+        fake.commitAck();
+        await resumed;
+      });
+      expect(result.current.isResumeRequired).toBe(false);
+      expect(fake.link.dispatch).toHaveBeenCalledOnce();
+    },
+  );
 });
