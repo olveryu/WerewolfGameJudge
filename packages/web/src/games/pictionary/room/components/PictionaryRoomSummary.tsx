@@ -3,13 +3,10 @@
 import type { PictionaryConfig } from '@game-judge/game-engine/games/pictionary/public';
 import type { ComponentProps } from 'react';
 
+import { formatDurationOption } from '@/components/GameSettings';
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 
-function formatDuration(value: number | null): string {
-  return value === null ? '不限时' : `${value} 秒`;
-}
-
-/** Renders the player count, seated count and drawing time limit. */
+/** Renders the complete public relay configuration and occupied-seat status. */
 export function PictionaryRoomSummary({
   guide,
   config,
@@ -24,7 +21,25 @@ export function PictionaryRoomSummary({
       guide={guide}
       title="你画我猜接龙"
       playerCount={config.numberOfPlayers}
-      settings={[{ label: '绘画时限', value: formatDuration(config.drawingDurationSeconds) }]}
+      settings={[
+        { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
+        {
+          label: '绘画时限',
+          value: formatDurationOption(config.drawingDurationSeconds),
+        },
+        {
+          label: '文字时限',
+          value: formatDurationOption(config.guessDurationSeconds),
+        },
+        {
+          label: '每棒间隔',
+          value: formatDurationOption(config.transitionDurationSeconds),
+        },
+        {
+          label: '揭晓停留',
+          value: formatDurationOption(config.galleryItemDurationSeconds, '手动翻页'),
+        },
+      ]}
       status={`${occupiedSeatCount}/${config.numberOfPlayers} 人就座`}
     />
   );

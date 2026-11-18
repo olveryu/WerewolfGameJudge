@@ -53,6 +53,19 @@ import {
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+/** Public lobby timing and round settings, including fixed engine rules. */
+export function createDrawGuessRoomSummarySettings(
+  config: DrawGuessState['config'],
+): readonly { readonly label: string; readonly value: string }[] {
+  return [
+    { label: '每人轮数', value: `${config.roundsPerDrawer} 轮` },
+    { label: '选词时限', value: `${config.wordSelectSeconds} 秒` },
+    { label: '作画时限', value: `${config.drawingDurationSeconds} 秒` },
+    { label: '提示间隔', value: `${config.hintRevealIntervalSeconds} 秒` },
+    { label: '结算展示', value: `${config.roundEndSeconds} 秒` },
+  ];
+}
+
 /** 为共享资料卡控件返回公开的席位身份。 */
 const getDrawGuessProfileTarget = (state: DrawGuessState, seat: number): RoomProfileTarget | null =>
   getRoomProfileTarget(state.roster, seat);

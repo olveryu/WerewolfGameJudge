@@ -21,13 +21,18 @@ export const SECRETHITLER_GAME_TYPE = 'secrethitler' as const;
 export const SECRETHITLER_MIN_PLAYERS = 5;
 export const SECRETHITLER_MAX_PLAYERS = 10;
 export const SECRETHITLER_DEFAULT_PLAYERS = 8;
+export const SECRETHITLER_VOTE_MODES = ['public', 'secret'] as const;
+export type SecrethitlerVoteMode = (typeof SECRETHITLER_VOTE_MODES)[number];
+export const SECRETHITLER_DEFAULT_VOTE_MODE: SecrethitlerVoteMode = 'public';
 
 export interface SecrethitlerConfig {
   readonly numberOfPlayers: number;
+  readonly voteMode: SecrethitlerVoteMode;
 }
 
 export const DEFAULT_SECRETHITLER_CONFIG: SecrethitlerConfig = {
   numberOfPlayers: SECRETHITLER_DEFAULT_PLAYERS,
+  voteMode: SECRETHITLER_DEFAULT_VOTE_MODE,
 };
 
 export const SECRETHITLER_CONFIG_SCHEMA: GameConfigSchema<SecrethitlerConfig> = {
@@ -38,6 +43,15 @@ export const SECRETHITLER_CONFIG_SCHEMA: GameConfigSchema<SecrethitlerConfig> = 
       hint: '开局要求坐满全部座位（可填充机器人）。',
       min: SECRETHITLER_MIN_PLAYERS,
       max: SECRETHITLER_MAX_PLAYERS,
+    },
+    voteMode: {
+      kind: 'choice',
+      label: '投票方式',
+      hint: '公投：结算后公开每人选票；暗投：只公布赞成 / 反对票数。',
+      options: [
+        { value: 'public', label: '公投' },
+        { value: 'secret', label: '暗投' },
+      ],
     },
   },
   defaults: DEFAULT_SECRETHITLER_CONFIG,

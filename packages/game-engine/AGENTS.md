@@ -36,7 +36,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
   | storyrelay   | 3       | 1, 2                             |
   | drawguess    | 5       | 1, 2, 3, 4                       |
   | spotmatch    | 2       | 1                                |
-  | secrethitler | 2       | 1                                |
+  | secrethitler | 3       | 1–2                              |
 
 - A strict parser rejects every other version. A migration function upgrades field by field, then runs the strict parser.
 - Persisted state is migrated at read time by the worker (see the worker file). The engine owns the per-version upgrade functions only.

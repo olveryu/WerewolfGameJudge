@@ -11,6 +11,7 @@ import {
   type SecrethitlerPublicHistory,
   type SecrethitlerState,
   type SecrethitlerVote,
+  type SecrethitlerVoteMode,
 } from '../state/types';
 import { getKnownFascistSeats, getSecrethitlerNightParticipants } from './rules';
 
@@ -20,6 +21,23 @@ export interface SecrethitlerSeatView {
   readonly isBot: boolean;
   /** 终局揭晓前为 null。 */
   readonly identity: string | null;
+}
+
+export interface SecrethitlerGovernmentView {
+  readonly presidentSeat: number;
+  readonly chancellorSeat: number;
+  readonly outcome: 'pending' | 'passed' | 'rejected';
+  readonly votes: readonly { readonly seat: number; readonly vote: SecrethitlerVote }[] | null;
+  readonly voteCounts: {
+    readonly ja: number;
+    readonly nein: number;
+  } | null;
+}
+
+export interface SecrethitlerHistoryView {
+  readonly governments: readonly SecrethitlerGovernmentView[];
+  readonly policies: SecrethitlerPublicHistory['policies'];
+  readonly actions: SecrethitlerPublicHistory['actions'];
 }
 
 export interface SecrethitlerViewModel {
@@ -55,7 +73,8 @@ export interface SecrethitlerViewModel {
   readonly vetoUnlocked: boolean;
   readonly lastPresidentSeat: number | null;
   readonly lastChancellorSeat: number | null;
-  readonly history: SecrethitlerPublicHistory;
+  readonly voteMode: SecrethitlerVoteMode;
+  readonly history: SecrethitlerHistoryView;
   readonly winner: 'liberal' | 'fascist' | null;
   readonly endReason:
     'liberalPolicies' | 'hitlerExecuted' | 'fascistPolicies' | 'hitlerElected' | null;
@@ -114,9 +133,30 @@ function allowedChancellors(state: SecrethitlerState): readonly number[] {
   );
 }
 
+function publicHistory(state: SecrethitlerState): SecrethitlerHistoryView {
+  return {
+    governments: state.history.governments.map((record) => ({
+      presidentSeat: record.presidentSeat,
+      chancellorSeat: record.chancellorSeat,
+      outcome: record.outcome,
+      votes: state.config.voteMode === 'public' ? record.votes : null,
+      voteCounts:
+        record.votes === null
+          ? null
+          : {
+              ja: record.votes.filter(({ vote }) => vote === 'ja').length,
+              nein: record.votes.filter(({ vote }) => vote === 'nein').length,
+            },
+    })),
+    policies: state.history.policies,
+    actions: state.history.actions,
+  };
+}
+
 /**
- * Builds a viewer-cropped projection. Raw ballots, legislative hands, faction
- * lists, investigation results and policy previews never cross this boundary.
+ * Builds a viewer-cropped projection. Secret ballots, unrevealed legislative
+ * hands, faction lists, investigation results and policy previews never cross
+ * this boundary.
  */
 export function getSecrethitlerViewModel(
   state: SecrethitlerState,
@@ -198,7 +238,8 @@ export function getSecrethitlerViewModel(
     vetoUnlocked: state.fascistPolicies >= 5,
     lastPresidentSeat: state.lastPresidentSeat,
     lastChancellorSeat: state.lastChancellorSeat,
-    history: state.history,
+    voteMode: state.config.voteMode,
+    history: publicHistory(state),
     winner: state.phase.kind === 'ended' ? state.phase.winner : null,
     endReason: state.phase.kind === 'ended' ? state.phase.reason : null,
   };

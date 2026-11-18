@@ -16,6 +16,8 @@ export {
 export { getSecrethitlerNightParticipants, getSecrethitlerRoleCounts } from './domain/rules';
 export {
   getSecrethitlerViewModel,
+  type SecrethitlerGovernmentView,
+  type SecrethitlerHistoryView,
   type SecrethitlerSeatView,
   type SecrethitlerViewModel,
 } from './domain/visibility';
@@ -41,10 +43,12 @@ export {
   isValidSecrethitlerConfig,
   SECRETHITLER_CONFIG_SCHEMA,
   SECRETHITLER_DEFAULT_PLAYERS,
+  SECRETHITLER_DEFAULT_VOTE_MODE,
   SECRETHITLER_GAME_TYPE,
   SECRETHITLER_MAX_PLAYERS,
   SECRETHITLER_MIN_PLAYERS,
   SECRETHITLER_PHASES,
+  SECRETHITLER_VOTE_MODES,
   type SecrethitlerConfig,
   type SecrethitlerEndReason,
   type SecrethitlerFaction,
@@ -55,6 +59,7 @@ export {
   type SecrethitlerRole,
   type SecrethitlerState,
   type SecrethitlerVote,
+  type SecrethitlerVoteMode,
   type SecrethitlerWinner,
 } from './state/types';
 export { SECRETHITLER_STATE_IDENTITY, SECRETHITLER_STATE_VERSION } from './state/version';

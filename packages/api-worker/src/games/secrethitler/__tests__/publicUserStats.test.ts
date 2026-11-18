@@ -28,7 +28,7 @@ describe('Secrethitler cumulative statistics', () => {
       bindings: env,
       effectId: 'stats-effect',
       state: secrethitlerEngine.createInitialState(
-        { numberOfPlayers: 5 },
+        { numberOfPlayers: 5, voteMode: 'public' },
         { roomCode: '4321', hostUserId: 'stats-user', nowMs: 1, commandId: 'create' },
       ),
       roomIdentity: { roomId: 'stats-room', roomCode: '4321', creationId: 'stats-creation' },

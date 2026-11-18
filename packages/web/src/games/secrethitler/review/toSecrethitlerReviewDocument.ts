@@ -1,6 +1,7 @@
 import {
   getSecrethitlerViewModel,
   type SecrethitlerState,
+  type SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
 
 import { REVIEW_GENERATED_FOOTER } from '@/features/room/review/reviewCopy';
@@ -13,8 +14,8 @@ import type {
 import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import { SECRETHITLER_END_COPY, SECRETHITLER_POWER_COPY } from '../room/secrethitlerPresentation';
 
-function historyBlocks(state: SecrethitlerState): readonly ReviewBlock[] {
-  const governments: ReviewTimelineStep[] = state.history.governments.map((record, index) => ({
+function historyBlocks(view: SecrethitlerViewModel): readonly ReviewBlock[] {
+  const governments: ReviewTimelineStep[] = view.history.governments.map((record, index) => ({
     title: `第 ${index + 1} 次政府提名`,
     tone: record.outcome === 'passed' ? 'good' : 'muted',
     lines: [
@@ -30,11 +31,13 @@ function historyBlocks(state: SecrethitlerState): readonly ReviewBlock[] {
           kind: 'text',
           tone: 'neutral',
           text:
-            record.votes === null
-              ? '尚未揭晓选票'
-              : record.votes
+            record.votes !== null
+              ? record.votes
                   .map(({ seat, vote }) => `${seat + 1}号${vote === 'ja' ? '赞成' : '反对'}`)
-                  .join('、'),
+                  .join('、')
+              : record.voteCounts !== null
+                ? `暗投：赞成 ${record.voteCounts.ja} 票，反对 ${record.voteCounts.nein} 票`
+                : '尚未揭晓选票',
         },
       ],
     ],
@@ -45,7 +48,7 @@ function historyBlocks(state: SecrethitlerState): readonly ReviewBlock[] {
     { kind: 'section', title: '政策进程' },
     {
       kind: 'timeline',
-      steps: state.history.policies.map((record, index) => ({
+      steps: view.history.policies.map((record, index) => ({
         title: `第 ${index + 1} 张政策`,
         tone: record.policy === 'liberal' ? 'good' : 'evil',
         lines: [
@@ -62,7 +65,7 @@ function historyBlocks(state: SecrethitlerState): readonly ReviewBlock[] {
     { kind: 'section', title: '总统行动' },
     {
       kind: 'timeline',
-      steps: state.history.actions.map((record) => ({
+      steps: view.history.actions.map((record) => ({
         title: SECRETHITLER_POWER_COPY[record.action],
         tone: 'neutral',
         lines: [
@@ -136,7 +139,7 @@ export function toSecrethitlerReviewDocument(input: {
               };
             }),
           },
-          ...historyBlocks(state),
+          ...historyBlocks(view),
         ],
       },
     ],

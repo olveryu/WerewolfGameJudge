@@ -7,6 +7,7 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 
+import { formatDurationOption } from '@/components/GameSettings';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -52,6 +53,21 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
+
+/** Public lobby values; every configurable field besides the card title's player count is shown. */
+export function createStoryRelayRoomSummarySettings(
+  config: StoryRelayState['config'],
+): readonly { readonly label: string; readonly value: string }[] {
+  return [
+    { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
+    { label: '写作时限', value: formatDurationOption(config.writingDurationSeconds) },
+    { label: '过渡间隔', value: formatDurationOption(config.transitionDurationSeconds) },
+    {
+      label: '每段停留',
+      value: formatDurationOption(config.galleryItemDurationSeconds, '手动翻页'),
+    },
+  ];
+}
 
 /** Returns a public occupant identity for shared profile controls. */
 const getStoryRelayProfileTarget = (

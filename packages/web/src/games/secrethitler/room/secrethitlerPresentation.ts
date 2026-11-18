@@ -3,6 +3,7 @@ import type {
   SecrethitlerPhaseKind,
   SecrethitlerState,
   SecrethitlerViewModel,
+  SecrethitlerVoteMode,
 } from '@game-judge/game-engine/games/secrethitler/public';
 
 export const SECRETHITLER_PHASE_LABELS: Readonly<Record<SecrethitlerPhaseKind, string>> = {
@@ -31,6 +32,11 @@ export const SECRETHITLER_POWER_COPY = {
   execute: '处决玩家',
   policyPeek: '政策预览',
 } as const;
+
+/** Formats the public election-result policy selected when the room is created. */
+export function formatSecrethitlerVoteMode(voteMode: SecrethitlerVoteMode): string {
+  return voteMode === 'public' ? '公投' : '暗投';
+}
 
 /** Public first-night progress label, never a private identity or seat. */
 export function getSecrethitlerNightStepLabel(step: number): string {
@@ -91,7 +97,9 @@ export function secrethitlerInstruction(
       return {
         message: living
           ? view.myVote === null
-            ? '请秘密投票，全员提交后同时揭晓'
+            ? state.config.voteMode === 'public'
+              ? '请秘密投票，全员提交后同时公开选票'
+              : '请秘密投票，全员提交后只公布赞成 / 反对票数'
             : '已投票，揭晓前可以改票'
           : '等待存活玩家投票',
         action: living ? (view.myVote === null ? '秘密投票' : '修改选票') : null,

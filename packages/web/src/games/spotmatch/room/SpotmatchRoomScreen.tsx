@@ -28,6 +28,7 @@ import {
 } from './hooks/useSpotmatchRoomState';
 import { SpotmatchPlayBoard } from './SpotmatchPlayBoard';
 import { SpotmatchResults } from './SpotmatchResults';
+import { createSpotmatchRoomSummarySettings } from './spotmatchRoomAdapter';
 
 type SpotmatchRoomScreenProps = GameRoomScreenProps<'spotmatch'> & {
   readonly session: SpotmatchRoomSession;
@@ -100,6 +101,7 @@ function SpotmatchRoomContent(
                 <RoomGameSummary
                   title="一眼成对"
                   playerCount={config.numberOfPlayers}
+                  settings={createSpotmatchRoomSummarySettings(config)}
                   guide={{ onPress: screen.openRules, label: '查看一眼成对玩法' }}
                 />
               ),

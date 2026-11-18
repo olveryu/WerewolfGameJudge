@@ -31,7 +31,7 @@ function driveSecrethitlerTestCommand(
 /** An eight-seat lobby with two humans and test-only bot seats. */
 export function buildSecrethitlerTestLobby(numberOfPlayers = 8): SecrethitlerState {
   let state = secrethitlerEngine.createInitialState(
-    { numberOfPlayers },
+    { numberOfPlayers, voteMode: 'public' },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
   state = driveSecrethitlerTestCommand(state, {
