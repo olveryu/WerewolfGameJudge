@@ -1,4 +1,4 @@
-/** Strict Secrethitler persistence and transport codec; v1 is the current version. */
+/** Strict Secrethitler persistence and transport codec. */
 
 import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
 import {
@@ -332,11 +332,42 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
   );
 }
 
-/**
- * Upgrades stored states to the current version. v1 is current, so this
- * is the strict parser itself; when the state version bumps, older
- * payloads are upgraded here field by field before the strict parse.
- */
+/** Preserves v1 recognition and narration while merging audio-only steps into their batches. */
 export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
-  return parseSecrethitlerState(value);
+  const raw = parseObject(value, 'SecrethitlerState');
+  if (raw.stateVersion !== 1) return parseSecrethitlerState(raw);
+  const previousPhase = phase(raw.phase, 'SecrethitlerState.phase');
+  const upgraded = { ...raw, stateVersion: SECRETHITLER_STATE_VERSION };
+  if (previousPhase.kind !== 'night' || previousPhase.step === 1)
+    return parseSecrethitlerState(upgraded);
+  if (![0, 2, 3].includes(previousPhase.step) || previousPhase.confirmedSeats.length !== 0)
+    failDecode('SecrethitlerState.phase', 'a valid v1 night step');
+  const pending = audioEffects(raw.pendingAudioEffects, 'SecrethitlerState.pendingAudioEffects');
+  const wasAudioPlaying = parseBoolean(raw.isAudioPlaying, 'SecrethitlerState.isAudioPlaying');
+  const appendAudioKey =
+    previousPhase.step === 0
+      ? parseSecrethitlerConfig(raw.config).numberOfPlayers <= 6
+        ? 'evil_reveal_5_6'
+        : 'fascist_reveal_7_10'
+      : previousPhase.step === 2
+        ? 'night_end'
+        : null;
+  return parseSecrethitlerState({
+    ...upgraded,
+    phase:
+      previousPhase.step === 0
+        ? { kind: 'night', step: 1, confirmedSeats: [] }
+        : {
+            kind: 'election',
+            presidentSeat: parseSeat(raw.nextPresidentSeat, 'SecrethitlerState.nextPresidentSeat'),
+            returnToSeat: null,
+          },
+    phaseRevision: parseInteger(raw.phaseRevision, 'SecrethitlerState.phaseRevision') + 1,
+    pendingAudioEffects:
+      appendAudioKey === null ? pending : [...pending, { audioKey: appendAudioKey }],
+    isAudioPlaying: appendAudioKey === null ? wasAudioPlaying : true,
+    audioBatchId:
+      parseAudioBatchId(raw.audioBatchId, 'SecrethitlerState.audioBatchId') +
+      (appendAudioKey === null ? 0 : 1),
+  });
 }

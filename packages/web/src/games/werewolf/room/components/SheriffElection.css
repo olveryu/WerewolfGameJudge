@@ -1,31 +1,4 @@
-/* Sheriff-election HUD, panel and its sheet / inspector containers. */
-
-.sheriff-hud {
-  display: block;
-  width: 100%;
-  min-height: var(--size-button-lg);
-  padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-primary-a25);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-  color: inherit;
-  text-align: left;
-}
-
-button.sheriff-hud {
-  cursor: pointer;
-}
-
-button.sheriff-hud:active {
-  background: var(--color-surface-hover);
-}
-
-.sheriff-hud-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-small);
-}
+/* Sheriff-election panel and its sheet / inspector containers. */
 
 .sheriff-title-group {
   display: flex;
@@ -34,13 +7,6 @@ button.sheriff-hud:active {
   gap: var(--space-small);
   min-width: 0;
   color: var(--color-primary);
-}
-
-.sheriff-hud-title {
-  color: var(--color-text);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-semibold);
 }
 
 .sheriff-phase-badge {
@@ -52,38 +18,6 @@ button.sheriff-hud:active {
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-semibold);
-}
-
-.sheriff-hud-summary-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-small);
-  margin-top: var(--space-tight);
-}
-
-.sheriff-hud-summary {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.sheriff-hud-details {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-micro);
-  color: var(--color-primary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-  font-weight: var(--weight-semibold);
-}
-
-.sheriff-hud-pending {
-  margin-top: var(--space-tight);
 }
 
 .sheriff-sheet-close {

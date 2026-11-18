@@ -19,15 +19,28 @@ individually to view their identities. When both `identityViewing` and
 begins; otherwise a selected stage deadline is armed as the stage begins.
 
 `identityViewing` also selects the role-game room layout: seats stay visible
-after dealing, with shared `RoomGameSummary`, `BoardInfoCard` and public role
+after dealing, with one shared `RoomGameSummary` card, `BoardInfoContent` and public role
 previews; identity actions remain in the bottom model. It does not generate
 a second identity workspace. With this capability off, the existing
 non-identity workspace remains; do not invent a role board for drawing or
 other stage-based play. Special gameplay layouts still require design approval.
+Both branches generate the same single game-name/count and guide header;
+collapse controls appear only when public content exists. Games without roles
+still have a configuration card in the lobby.
+Fill actual public parameters through `RoomGameSummary.settings`; do not
+reintroduce a concatenated configuration subtitle or game introduction.
 
 The capabilities contract checks each generated declaration against its
 wiring. Change a capability only with its corresponding wiring and contract
 expectation. Statistics are always generated and are not a capability.
+With `audioOrchestration`, the generator creates the clip registry, AudioService
+player, module injection and hook; it never binds `audio: null`. Approved cue
+text and generated MP3s remain game-specific work, with explicit missing-cue
+errors and no batch acknowledgement on playback failure.
+It also wires the shared orchestration hook, rejoin resume dialog, and host
+music/volume controls. Games must extend the narrated-phase/music predicate to
+cover their real steps, including waits for player confirmation. Rejoin replay
+must preserve all required cues; it must not acknowledge a partly replayed batch.
 
 ## Integration report: 9 steps
 
@@ -79,12 +92,14 @@ disposition in the PR description.
    changed-file prettier/eslint. Full suites/quality/E2E belong to CI.
    Include statistics eligibility, strict legacy/v2, atomic rollback/replay,
    HTTP/profile/settings/count/unlock/cache, and D1 cost evidence.
-9. Go live: if generated with `--production`, add the id to
+9. Go live: if generated with `--production`, the generator already adds the id to
    `PRODUCTION_GAME_TYPES` in
    `packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts`
-   in `GAME_TYPES` order. Otherwise, in the same PR, flip `isProduction`
+   in `GAME_TYPES` order and sets `isProduction: true`. Otherwise, in the same PR, flip `isProduction`
    to `true` in the registry entry and add the id to that list. Changing
    only one is caught by the contract test.
+   The CLI and report state actual directory visibility; registration alone
+   does not expose a game, and an explicit production selection is not deployment.
 
 Each step's disposition is implementation plus verification, or an
 explicitly approved not-applicable reason. Matching the production list

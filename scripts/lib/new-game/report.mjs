@@ -30,7 +30,7 @@ export function buildIntegrationReport({
     .join('');
   return `# ${home.displayName}（${gameId}）接入报告
 
-> 由 \`pnpm new-game ${gameId}${capabilityArgs}\` 生成。骨架已经接通底盘与注册，
+> 由 \`pnpm new-game ${gameId}${capabilityArgs}${production ? ' --production' : ''}\` 生成。骨架已经接通底盘与注册，
 > 但**还不是一个能玩的游戏**：所有 \`// TODO(gameplay):\` 标记处都是待填的玩法，
 > 未填的玩法命令会显式抛「未实现」，不会假绿。
 
@@ -44,6 +44,8 @@ export function buildIntegrationReport({
     '无（仅使用基础接线）'
   } |
 | 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 9 步）'} |
+| 创建目录 | ${production ? '可见（注册表与首页合同名单已同步）' : '不可见（已注册，但不会出现在首页/创建列表）'} |
+| 房间布局 | ${capabilities.identityViewing ? '身份类型：全阶段共享座位盘、公开身份配置、底部个人操作' : '无身份类型：大厅座位盘、开局后工作区'} |
 | 展示名 / 副标题 | ${home.displayName} / ${home.subtitle} |
 | 首页图标 / 档位 | ${home.iconName} / ${home.tier} |
 | 完成奖励（flat） | xpEarned ${rewards.xpEarned} · normalDrawsEarned ${rewards.normalDrawsEarned} · dailyCompletionTarget ${rewards.dailyCompletionTarget} |
@@ -70,7 +72,10 @@ ${edited}
 ## 还差的人工步骤（按顺序）
 
 1. **设计定稿**：把 \`docs/${gameId}-game-design.md\` 里的 11 项需求表填完并走批准流程
-   （new-game skill Phase 1）；骨架里的默认人数、展示名、副标题、图标都是占位值。${
+   （new-game skill Phase 1）；该文档已登记到 \`docs/README.md\`。
+   骨架里的默认人数、展示名、副标题、图标都是占位值。
+   开局/参与/身份分配/目录限制须注明规则来源、适用仓库合同或用户确认；
+   未确认的实现假设不得写成“已批准”。奖励/战绩门槛不是开局门槛。${
      capabilities.identityViewing
        ? `\n   启用 identityViewing 时，另需把 \`TODO_IDENTITY\` 占位身份换成真实身份表，并按仓库立绘流程生产
    角色立绘与图鉴素材（prompt 先审、生成过目后才入库）。`
@@ -80,6 +85,19 @@ ${edited}
    \`packages/api-worker/src/games/${gameId}\`、\`packages/web/src/games/${gameId}\`），逐个填掉：
    身份/回合的玩法状态机在 \`domain/decision.ts\` 与 \`engine.ts\` 的 TODO 接缝处接入，
    视图投影在 \`domain/visibility.ts\` 补齐隐私裁剪。
+   ${capabilities.identityViewing ? '房间全阶段保留共享座位盘；公开身份构成替换占位表，身份卡/公共预览共用立绘 registry，预览不提交查看记录。若有夜晚互认，在本人或受控座位的私密视图允许时用 resolveHighlight 的共享头像颜色高亮显示同伴，不新增身份文字标签；确认后或离开该步清除，验证未授权玩家、观战者和接管切换。' : '房间沿用无身份工作区；不要添加没有规则依据的身份查看阶段。'}
+   图片通过共享 \`useRoomImagePreload\` 预加载公开清单，禁止从秘密身份分配构造公共资源列表。${
+     capabilities.audioOrchestration
+       ? `\n   已生成 AudioClip registry、AudioService 播放器及模块注入，不再传空播放器。
+   按 \`scripts/README-audio.md\` 把确认的 cue 加入 Edge TTS 生成脚本、生成打包 MP3 并登记，
+   未登记 cue 显式报错，播放失败不确认批次；禁止浏览器 SpeechSynthesis 或人工推进兜底。
+   保留共享编排、重连续播门和音乐/音量控制；按真实阶段补齐自动音乐范围。
+   每步逐项核对语音、获准行动者、私密信息、未确认/已确认提示和自动推进条件；
+   进度只计真实玩家行动或确认步骤，开场、闭眼结束和天亮属于音频批次，不能一段音频算一步；
+   按行动计划断言准确的 current/total。收尾播报跨阶段时继续锁定后续操作，并保留重连续播门。
+   验证人数/角色变体、确认与音频回执两种顺序、重连和播放失败，不能只检查文件存在或提示非空。`
+       : '\n   本次未启用音频，不生成播放器或播报绑定。'
+   }
 3. **本局复盘填空**：复盘已全链接通——模块 \`review\`、终局底部「本局复盘」按钮
    （所有观看者）、房主面板复盘动作与终局任务（本局复盘 / 再来一局 / 返回大厅），
    弹窗与图片分享归平台。骨架文档只有 hero「本局结束」+ 参与者名单：按设计文档把
@@ -131,11 +149,12 @@ ${edited}
    pending/error 必须显示未知统计，不改变既有物品解锁及装备权限，奖励 inbox 触发既有缓存失效。${
      production
        ? `
-9. **上线（同步绊线名单）**：本次以 \`--production\` 生成，注册表已是
-   \`isProduction: true\`，还须把 \`'${gameId}'\` 按它在 \`GAME_TYPES\`
-   中的顺序位置，加进 \`packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts\`
-   的 \`PRODUCTION_GAME_TYPES\` 名单——这份硬编码名单是刻意保留的绊线，
-   生产集合变更永远是显式动作。所有人工步骤须记录“已实现并验证”或获批准的不适用理由；
+9. **上线（已同步目录名单）**：本次显式选择 \`--production\`，注册表已是
+   \`isProduction: true\`，并已将 \`'${gameId}'\` 按 \`GAME_TYPES\` 顺序登记到
+   \`packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts\`
+   的 \`PRODUCTION_GAME_TYPES\` 名单，无须再次手工同步。硬编码绊线仍保留，
+   生产集合只因本次显式参数而变更；这不代表已经部署或通过玩法验收。
+   所有人工步骤须记录“已实现并验证”或获批准的不适用理由；
    设计/奖励/战绩口径未批准、指标未实现或验证缺失时不能上线。名单同步不是上线充分条件。`
        : `
 9. **上线（翻生产）**：本次生成默认非生产（注册表 \`isProduction: false\`）——

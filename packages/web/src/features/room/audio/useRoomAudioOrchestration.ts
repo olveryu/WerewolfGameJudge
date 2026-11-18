@@ -17,6 +17,7 @@
  */
 
 import type { AudioEffect } from '@game-judge/game-engine/platform/audio';
+import { NIGHT_END_AUDIO_KEY } from '@game-judge/game-engine/platform/audio';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -55,10 +56,10 @@ interface RoomAudioOrchestrationOptions<
   /** The game is in a phase with host narration (the night; the dawn batch). */
   readonly isNarratedPhase: (state: TState) => boolean;
   /**
-   * The clip to replay for the current step after a host rejoin; `null` when the interrupted
-   * batch has nothing to re-hear (e.g. the dawn batch), in which case the resume only acks.
+   * Cues to replay after a host rejoin; an empty list means nothing needs to be re-heard.
+   * Games may replay a step opening or the complete interrupted batch.
    */
-  readonly resolveReplayAudioKey: (state: TState) => string | null;
+  readonly resolveReplayEffects: (state: TState) => readonly AudioEffect[];
   /** The game's named runtime logger (also the error-pipeline logger). */
   readonly logger: Logger;
 }
@@ -80,7 +81,7 @@ export function useRoomAudioOrchestration<
   ackCommand,
   ackLabel,
   isNarratedPhase,
-  resolveReplayAudioKey,
+  resolveReplayEffects,
   logger,
 }: RoomAudioOrchestrationOptions<TState, TCommand>): RoomAudioOrchestration {
   const isHostRef = useRef(isHost);
@@ -118,7 +119,14 @@ export function useRoomAudioOrchestration<
       isHost: () => isHostRef.current,
       isAborted: () => abortedRef.current,
       logger,
-      onError: (error, label) => handleError(error, { label, logger, feedback: false }),
+      onError: (error, label) =>
+        handleError(error, {
+          label,
+          logger,
+          feedback: player.stopOnPlaybackError === true ? 'toast' : false,
+          alertMessage:
+            '播报失败，已暂停推进。请检查设备音频输出和媒体播放权限后重新进入房间重试。',
+        }),
     });
     coreRef.current = core;
     abortedRef.current = false;
@@ -155,22 +163,28 @@ export function useRoomAudioOrchestration<
       core.setWasAudioInterrupted(false);
       return;
     }
-    const audioKey = resolveReplayAudioKey(state);
-    const replay =
-      audioKey === null
-        ? async () => undefined
-        : async () => {
-            logger.info('Replaying current step audio after rejoin', { audioKey });
-            const effect = { audioKey };
-            await player.prepareQueue?.([effect]);
-            await player.playEffect(effect);
-          };
+    const effects = resolveReplayEffects(state);
+    const replay = async () => {
+      if (effects.length === 0) return;
+      logger.info('Replaying narration after rejoin', { audioBatchId: state.audioBatchId });
+      await player.prepareQueue?.(effects);
+      for (const effect of effects) {
+        if (abortedRef.current) return;
+        if (effect.audioKey === NIGHT_END_AUDIO_KEY) player.stopBgm();
+        await player.playEffect(effect);
+      }
+    };
     try {
       await core.resumeInterrupted(replay, state.audioBatchId);
     } catch (error) {
-      handleError(error, { label: 'resumeAfterRejoin', logger, feedback: false });
+      handleError(error, {
+        label: 'resumeAfterRejoin',
+        logger,
+        feedback: player.stopOnPlaybackError === true ? 'toast' : false,
+        alertMessage: '播报失败，已暂停推进。请检查设备音频输出和媒体播放权限后重新进入房间重试。',
+      });
     }
-  }, [logger, player, resolveReplayAudioKey, session]);
+  }, [logger, player, resolveReplayEffects, session]);
 
   return { readWasAudioInterrupted, resumeAfterRejoin };
 }

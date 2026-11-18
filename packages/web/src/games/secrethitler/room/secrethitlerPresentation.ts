@@ -32,6 +32,27 @@ export const SECRETHITLER_POWER_COPY = {
   policyPeek: '政策预览',
 } as const;
 
+/** Public first-night progress label, never a private identity or seat. */
+export function getSecrethitlerNightStepLabel(step: number): string {
+  if (step !== 1) throw new Error(`Unknown Secret Hitler night step ${step}`);
+  return '坏人互认';
+}
+
+function nightInstruction(
+  state: SecrethitlerState,
+  view: SecrethitlerViewModel,
+): { readonly message: string; readonly action: string | null } {
+  if (state.phase.kind !== 'night') throw new Error('Night instruction requires night phase');
+  if (view.mySeat === null) return { message: '等待首夜互认完成', action: null };
+  return {
+    message: !view.canConfirmNight
+      ? '请保持闭眼，等待本步玩家确认'
+      : view.hasConfirmedNight
+        ? '信息已确认，等待本步其他玩家确认'
+        : '请点击「确认信息」，私下查看并确认互认信息',
+    action: view.canConfirmNight && !view.hasConfirmedNight ? '确认信息' : null,
+  };
+}
 /** Formats an occupied seat using public profile data only. */
 export function secrethitlerSeatLabel(view: SecrethitlerViewModel, seat: number): string {
   const player = view.seats.find((candidate) => candidate.seat === seat);
@@ -55,15 +76,13 @@ export function secrethitlerInstruction(
         action: null,
       };
     case 'night':
-      return {
-        message: view.canConfirmNight
-          ? view.hasConfirmedNight
-            ? '信息已确认，请闭眼等待语音继续'
-            : '请私下查看互认信息，并点击确认'
-          : '请按电子主持语音行动，未获准查看信息的玩家保持闭眼',
-        action: view.canConfirmNight ? '查看互认信息' : null,
-      };
+      return nightInstruction(state, view);
     case 'election':
+      if (state.isAudioPlaying)
+        return {
+          message: seat === null ? '等待首夜结束' : '互认结束，请闭眼等待电子主持通知睁眼',
+          action: null,
+        };
       return {
         message: `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 提名总理`,
         action: seat === state.phase.presidentSeat ? '提名总理' : null,

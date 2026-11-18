@@ -214,19 +214,12 @@ function assertPolicyState(state: SecrethitlerState): void {
 
 function assertPhaseState(state: SecrethitlerState): void {
   if (state.phase.kind === 'night') {
-    invariant(
-      Number.isSafeInteger(state.phase.step) && state.phase.step >= 0 && state.phase.step <= 3,
-      'night step',
-    );
+    invariant(state.phase.step === 1, 'night step');
     const participants = getSecrethitlerNightParticipants(state);
     assertUniqueSeats(
       state.phase.confirmedSeats,
       (seat) => participants.includes(seat),
       'night confirmations',
-    );
-    invariant(
-      state.phase.step === 1 || state.phase.confirmedSeats.length === 0,
-      'night confirmation step',
     );
   }
   if (state.phase.kind === 'election') {

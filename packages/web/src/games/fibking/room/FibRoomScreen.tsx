@@ -3,10 +3,9 @@ import type { FibRole, FibState } from '@game-judge/game-engine/games/fibking/pu
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -59,35 +58,29 @@ function FibRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
+        bottomSummary: null,
         afterSeatBoard: null,
         sideInspector: null,
         beforeSeatBoard: (
-          <>
-            <FibRoomSummary
-              phase={screen.phase}
-              playerCount={screen.playerCount}
-              preparationStage={screen.preparationStage}
-              preparationFailureCode={screen.preparationFailureCode}
-              headerRight={
-                <RoomGuideButton
-                  onPress={screen.openRules}
-                  label="查看瞎掰王玩法说明"
-                  testId={TESTIDS.fibRulesButton}
-                />
-              }
-            />
-            <BoardInfoCard
-              playerCount={screen.playerCount}
+          <FibRoomSummary
+            phase={screen.phase}
+            playerCount={screen.playerCount}
+            preparationStage={screen.preparationStage}
+            preparationFailureCode={screen.preparationFailureCode}
+            guide={{
+              onPress: screen.openRules,
+              label: '查看瞎掰王玩法说明',
+              testId: TESTIDS.fibRulesButton,
+            }}
+          >
+            <BoardInfoContent
               sections={createFibBoardInfoSections(screen.playerCount)}
-              collapsed={false}
               onRolePress={(roleId) => {
                 if (isFibRole(roleId)) setPreviewRole(roleId);
               }}
-              onStrategyPress={null}
-              onNotepadPress={null}
               footer={null}
             />
-          </>
+          </FibRoomSummary>
         ),
       }}
       gameOverlays={

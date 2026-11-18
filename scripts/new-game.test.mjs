@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,7 @@ test.after(() => {
 });
 
 function makeFixtureRepo() {
-  const root = fs.mkdtempSync(path.join(REPO_ROOT, '.new-game-fixture-'));
+  const root = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-fixture-'));
   fixtureRoots.add(root);
   for (const file of SHARED_FILES) {
     const target = path.join(root, file);
@@ -73,7 +74,7 @@ function makeFixtureRepo() {
  * to run in parallel with other suites.
  */
 function makeRealRepoCopy() {
-  const root = fs.mkdtempSync(path.join(REPO_ROOT, '.new-game-real-repo-'));
+  const root = fs.mkdtempSync(path.join(tmpdir(), 'wgj-new-game-real-repo-'));
   fixtureRoots.add(root);
   for (const name of fs.readdirSync(REPO_ROOT)) {
     if (
@@ -148,11 +149,17 @@ const CAPABILITY_FILE_ADDITIONS = [
     files: ({ engine, client, pascal }) => [
       `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
       `${client}/components/${pascal}RoleCardAdapter.ts`,
+      `${client}/room/__tests__/${pascal}RoomScreen.test.tsx`,
     ],
   },
   {
     capability: 'audioOrchestration',
-    files: ({ client, pascal }) => [`${client}/room/hooks/use${pascal}AudioOrchestration.ts`],
+    files: ({ client, pascal }) => [
+      `${client}/room/hooks/use${pascal}AudioOrchestration.ts`,
+      `${client}/audio/${pascal.charAt(0).toLowerCase() + pascal.slice(1)}AudioRegistry.ts`,
+      `${client}/audio/${pascal.charAt(0).toLowerCase() + pascal.slice(1)}AudioRuntime.ts`,
+      `${client}/audio/__tests__/${pascal.charAt(0).toLowerCase() + pascal.slice(1)}AudioRuntime.test.ts`,
+    ],
   },
 ];
 
@@ -354,6 +361,23 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     );
     const reportText = readFixture(root, summary.reportPath);
     const designDoc = readFixture(root, 'docs/demoproto-game-design.md');
+    assert.match(
+      readFixture(root, 'docs/README.md'),
+      /\[demoproto-game-design\.md\]\(demoproto-game-design\.md\)/,
+    );
+    assert.equal(
+      readFixture(root, 'packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts'),
+      fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          'packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts',
+        ),
+        'utf8',
+      ),
+      'default hidden registration leaves the explicit production set unchanged',
+    );
+    assert.ok(designDoc.includes('规则来源与用户确认'));
+    assert.ok(designDoc.includes('奖励/战绩门槛不等于开局门槛'));
     assert.ok(!designDoc.includes('--preset'), 'generated design doc uses the capability API');
     assert.ok(!designDoc.includes('原型预设'), 'generated design doc has no preset label');
     assert.ok(designDoc.includes('启用能力：'));
@@ -618,6 +642,10 @@ for (const scenario of CAPABILITY_SCENARIOS) {
     assert.ok(adapterSource.includes('hostReviewClosingTask()'));
     assert.ok(!adapterSource.includes('hostClosingTask('), 'ended task offers the review');
     if (capabilities.identityViewing) {
+      assert.ok(
+        adapterSource.includes('resolveHighlight 返回 danger'),
+        'identity skeleton directs private recognition to shared avatar color highlights',
+      );
       // The generated room screen consumes the shared RevealRoleCardModal.
       assert.ok(clientGameDir.includes('RevealRoleCardModal'));
       const screenSource = readFixture(
@@ -625,14 +653,31 @@ for (const scenario of CAPABILITY_SCENARIOS) {
         'packages/web/src/games/demoproto/room/DemoprotoRoomScreen.tsx',
       );
       assert.ok(
-        screenSource.includes('<BoardInfoCard'),
-        'identity games use the shared board card',
+        screenSource.includes('<BoardInfoContent'),
+        'identity games use shared public role content inside the game card',
       );
       assert.ok(
         screenSource.includes('collapsed={!isLobby}'),
         'board defaults collapse after dealing',
       );
+      assert.ok(
+        screenSource.includes('bottomSummary: null'),
+        'identity games receive the shared bottom summary slot',
+      );
       assert.ok(screenSource.includes('<RoleCardDialog'), 'public board roles remain previewable');
+      assert.ok(screenSource.includes('shouldPlay={screen.roleViewing.shouldPlayAnimation}'));
+      assert.ok(screenSource.includes('allRoles={screen.roleCardAllRoles}'));
+      assert.ok(
+        !reviewHook.includes('Object.values(state.identities)'),
+        'animation candidates come from public board configuration',
+      );
+      assert.ok(
+        readFixture(
+          root,
+          'packages/web/src/games/demoproto/components/DemoprotoRoleCardAdapter.ts',
+        ).includes('imageUrl: getRoleAvatar(identity)'),
+        'identity cards use the preloaded portrait registry',
+      );
       assert.ok(!screenSource.includes("kind: 'workspace'"), 'identity games keep the seat board');
       assert.ok(!screenSource.includes('StageArea'), 'no parallel identity-stage action surface');
       assert.ok(
@@ -650,7 +695,11 @@ for (const scenario of CAPABILITY_SCENARIOS) {
         'non-identity games retain their workspace',
       );
       assert.ok(
-        !screenSource.includes('<BoardInfoCard'),
+        screenSource.includes('bottomSummary: null'),
+        'non-identity games receive the shared bottom summary slot',
+      );
+      assert.ok(
+        !screenSource.includes('<BoardInfoContent'),
         'no invented role board for non-identity games',
       );
     }
@@ -867,19 +916,24 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   const on = renderTree({ ...baseRecord, audioOrchestration: true });
   const off = renderTree({ ...baseRecord, audioOrchestration: false });
 
-  // The whole-file gate is the only file-set difference.
+  const audioFiles = CAPABILITY_FILE_ADDITIONS.find(
+    (addition) => addition.capability === 'audioOrchestration',
+  ).files({ client: 'packages/web/src/games/demoproto', pascal: 'Demoproto' });
   assert.ok(on.has(hookFile), 'audio-on render includes the binding hook file');
   assert.ok(!off.has(hookFile), 'audio-off render excludes the binding hook file');
-  assert.deepEqual(
-    [...on.keys()].filter((file) => !off.has(file)),
-    [hookFile],
-  );
+  assert.deepEqual([...on.keys()].filter((file) => !off.has(file)).sort(), audioFiles.sort());
   assert.deepEqual(
     [...off.keys()].filter((file) => !on.has(file)),
     [],
   );
 
   const onUnion = [...on.values()].join('\n');
+  assert.ok(
+    onUnion.includes(
+      'Count player actions/confirmations, not opening, closing or dawn audio clips.',
+    ),
+  );
+  assert.ok(![...off.values()].join('\n').includes('Count player actions/confirmations'));
   const wiringMarkers = [
     // Engine state slice + strict parse of the queue.
     'pendingAudioEffects',
@@ -902,12 +956,27 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     'DEMOPROTO_AUDIO_LOCK_EXEMPT_ACTION_KEYS',
     // Orchestrator binding call in the room-state hook.
     'useDemoprotoAudioOrchestration(',
+    'new DemoprotoAudioPlayer(audioService)',
+    'getDemoprotoPreloadAudio',
+    'resolveDemoprotoAudio',
+    'stopOnPlaybackError: true',
+    'useRoomAudioOrchestration(',
+    'useRoomAudioResume(',
+    'RoomAudioResumeDialog',
+    'useRoomBgmControl(',
+    'RoomBgmToggle',
+    'resolveReplayEffects',
     // The generated engine test segment for the queue/ack/gate chain.
     `describe('Demoproto audio queue and ack'`,
   ];
   for (const marker of wiringMarkers) {
     assert.ok(onUnion.includes(marker), `audio-on render is missing wiring marker: ${marker}`);
   }
+  assert.ok(!onUnion.includes('audio: null'), 'selected audio must have a real injected runtime');
+  assert.ok(
+    !on.get(hookFile).includes('new RoomAudioOrchestrator'),
+    'audio binding must reuse the shared hook lifecycle',
+  );
   assert.ok(
     on
       .get('packages/game-engine/src/games/demoproto/engine.ts')
@@ -949,12 +1018,12 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     execFileSync(
       process.execPath,
       [resolveVitestBin(root, 'packages/web'), 'run', 'src/games/demoproto'],
-      { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
+      { cwd: path.join(root, 'packages/web'), stdio: 'inherit' },
     );
     execFileSync(
       process.execPath,
       [resolveVitestBin(root, 'packages/game-engine'), 'run', 'src/games/demoproto'],
-      { cwd: path.join(root, 'packages/game-engine'), stdio: 'pipe', encoding: 'utf8' },
+      { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -990,7 +1059,7 @@ test('generator facts track capability keys and migration numbering uses physica
     '0076_probe.sql',
   );
   assert.deepEqual(facts.capabilityKeys, CAPABILITY_KEYS);
-  assert.equal(facts.templateCount, 51);
+  assert.equal(facts.templateCount, expectedCreatedFiles('demoproto', CAPABILITY_KEYS).length);
 });
 
 test('new registration migrations do not repeat the one-time demo cleanup', () => {
@@ -1081,7 +1150,7 @@ test('stale registration CHECK lists fail before any generated file is written',
   assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
 });
 
-test('production: true registers the new game as production and reports the list-only go-live step', () => {
+test('production: true synchronizes the registry, Home contract and go-live report', () => {
   const root = makeFixtureRepo();
   const summary = generateNewGame({
     rootDir: root,
@@ -1098,10 +1167,30 @@ test('production: true registers the new game as production and reports the list
   );
   const report = readFixture(root, summary.reportPath);
   assert.ok(
-    report.includes('上线（同步绊线名单）'),
-    'production report carries the list-only step',
+    report.includes('上线（已同步目录名单）'),
+    'production report confirms the explicit visibility selection',
   );
-  assert.ok(report.includes('homeProductionFilter'), 'list-only step names the tripwire list');
+  assert.ok(report.includes('homeProductionFilter'));
+  const homeContract = readFixture(
+    root,
+    'packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts',
+  );
+  assert.match(homeContract, /'demoproto',\n\] as const;/);
+  assert.equal((homeContract.match(/'demoproto'/g) ?? []).length, 1);
+});
+
+test('missing documentation index anchors fail before registering or creating any game files', () => {
+  const root = makeFixtureRepo();
+  const index = path.join(root, 'docs/README.md');
+  fs.writeFileSync(index, '# docs\n');
+  const registry = readFixture(root, 'packages/game-engine/src/games/registry.ts');
+  assert.throws(
+    () => generateNewGame({ rootDir: root, gameId: 'demoproto' }),
+    /edit failed for docs\/README.md/,
+  );
+  assert.equal(readFixture(root, 'packages/game-engine/src/games/registry.ts'), registry);
+  assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/demoproto')), false);
+  assert.equal(fs.existsSync(path.join(root, 'docs/demoproto-game-design.md')), false);
 });
 
 test('generated output passes format, lint, typecheck, engine and client tests with tooling present', (t) => {
@@ -1129,6 +1218,7 @@ test('generated output passes format, lint, typecheck, engine and client tests w
         rootDir: root,
         gameId,
         capabilities: scenario.selected,
+        production: index === 0,
       });
       assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
       return { gameId, summary };
@@ -1173,11 +1263,12 @@ test('generated output passes format, lint, typecheck, engine and client tests w
     const webTestPaths = [
       ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
       'src/__tests__',
+      'src/games/__tests__/homeProductionFilter.contract.test.ts',
     ];
     execFileSync(
       process.execPath,
       [resolveVitestBin(root, 'packages/web'), 'run', ...webTestPaths],
-      { cwd: path.join(root, 'packages/web'), stdio: 'pipe', encoding: 'utf8' },
+      { cwd: path.join(root, 'packages/web'), stdio: 'inherit' },
     );
     const engineTestPaths = [
       ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
@@ -1187,13 +1278,13 @@ test('generated output passes format, lint, typecheck, engine and client tests w
     execFileSync(
       process.execPath,
       [resolveVitestBin(root, 'packages/game-engine'), 'run', ...engineTestPaths],
-      { cwd: path.join(root, 'packages/game-engine'), stdio: 'pipe', encoding: 'utf8' },
+      { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
     );
     const workerTestPaths = generatedGames.map(({ gameId }) => `src/games/${gameId}`);
     execFileSync(
       process.execPath,
       [resolveVitestBin(root, 'packages/api-worker'), 'run', ...workerTestPaths],
-      { cwd: path.join(root, 'packages/api-worker'), stdio: 'pipe', encoding: 'utf8' },
+      { cwd: path.join(root, 'packages/api-worker'), stdio: 'inherit' },
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

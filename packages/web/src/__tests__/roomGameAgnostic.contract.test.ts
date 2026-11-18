@@ -6,7 +6,7 @@
  * the shared layer. This test prevents future drift.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOM_DIR = join(import.meta.dirname, '../features/room');
@@ -32,6 +32,20 @@ function getAllTsFiles(dir: string): string[] {
 }
 
 describe('room shared layer game-agnostic contract', () => {
+  const gamesDir = join(import.meta.dirname, '../games');
+  const games = readdirSync(gamesDir).filter((game) => existsSync(join(gamesDir, game, 'room')));
+  it.each(games)('%s uses the one shared game configuration card', (game) => {
+    const sources = getAllTsFiles(join(gamesDir, game, 'room'))
+      .filter((file) => !file.includes('__tests__') && !file.endsWith('.test.tsx'))
+      .map((file) => readFileSync(file, 'utf-8'))
+      .join('\n');
+    expect(sources).toContain("from '@/features/room/components/RoomGameSummary'");
+    expect(sources).toContain('<RoomGameSummary');
+    expect(sources).not.toContain('<RoomGuideButton');
+    expect(sources).not.toContain('<BoardInfoCard');
+    expect(sources).not.toContain('className="room-game-summary');
+  });
+
   it('does not import from @/games/*', () => {
     const files = getAllTsFiles(ROOM_DIR);
     const violations: string[] = [];

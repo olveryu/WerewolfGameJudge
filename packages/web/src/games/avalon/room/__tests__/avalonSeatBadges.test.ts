@@ -240,7 +240,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     throw new Error(`expected a ${role} seat`);
   }
 
-  function nightRevealMarker(
+  function nightRevealHighlight(
     session: ReturnType<typeof nightSession>,
     viewerSeat: number,
     targetSeat: number,
@@ -251,11 +251,11 @@ describe('createAvalonSeatDataSource — night badges', () => {
       userId: session.seatUser(viewerSeat),
       controlledSeat: null,
     });
-    return (
-      source
-        .getSeat(targetSeat)
-        .indicators?.markers.find((marker) => marker.key === 'night-reveal') ?? null
-    );
+    const target = source.getSeat(targetSeat);
+    if (session.state.phase.kind === 'night') {
+      expect(target.indicators?.markers).toEqual([]);
+    }
+    return target.highlight;
   }
 
   it('shows the viewed-role badge per seat during the viewing stage only', () => {
@@ -338,7 +338,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     expect(goodView.getSeat(firstEvil).indicators?.progressLabel).toBeNull();
   });
 
-  it('marks evil peers only for unconfirmed evil viewers and clears them after the reveal step', () => {
+  it('highlights evil peers only for unconfirmed evil viewers and clears them after the reveal step', () => {
     const session = nightSession();
     const evilSeats = getAvalonNightParticipants(session.state.roles, 'evilReveal');
     const viewerSeat = evilSeats[0];
@@ -346,34 +346,48 @@ describe('createAvalonSeatDataSource — night badges', () => {
     if (viewerSeat === undefined || targetSeat === undefined) {
       throw new Error('expected two evil seats');
     }
-    const marker = { key: 'night-reveal', label: '坏人同伴', tone: 'warning' };
-
-    expect(nightRevealMarker(session, viewerSeat, targetSeat)).toEqual(marker);
-    expect(nightRevealMarker(session, viewerSeat, viewerSeat)).toBeNull();
+    expect(nightRevealHighlight(session, viewerSeat, targetSeat)).toBe('danger');
+    expect(nightRevealHighlight(session, viewerSeat, viewerSeat)).toBe('none');
     session.send({ type: 'avalon.night.confirm' }, session.seatUser(viewerSeat));
-    expect(nightRevealMarker(session, viewerSeat, targetSeat)).toBeNull();
-    expect(nightRevealMarker(session, targetSeat, viewerSeat)).toEqual(marker);
+    expect(nightRevealHighlight(session, viewerSeat, targetSeat)).toBe('none');
+    expect(nightRevealHighlight(session, targetSeat, viewerSeat)).toBe('danger');
 
     const goodSeat = [0, 1, 2, 3, 4].find((seat) => !evilSeats.includes(seat));
     if (goodSeat === undefined) throw new Error('expected a good seat');
-    expect(nightRevealMarker(session, goodSeat, targetSeat)).toBeNull();
+    expect(nightRevealHighlight(session, goodSeat, targetSeat)).toBe('none');
     const spectatorSource = createAvalonSeatDataSource({
       state: session.state,
       revision: 1,
       userId: 'spectator',
       controlledSeat: null,
     });
-    expect(
-      spectatorSource
-        .getSeat(targetSeat)
-        .indicators?.markers.find((candidate) => candidate.key === 'night-reveal') ?? null,
-    ).toBeNull();
+    expect(spectatorSource.getSeat(targetSeat).highlight).toBe('none');
 
     advanceNightToStep(session, 'merlinReveal');
-    expect(nightRevealMarker(session, targetSeat, viewerSeat)).toBeNull();
+    expect(nightRevealHighlight(session, targetSeat, viewerSeat)).toBe('none');
   });
 
-  it('marks Merlin’s revealed evil seats only for Merlin', () => {
+  it('uses the controlled seat’s night view while keeping its controlled highlight', () => {
+    const session = nightSession();
+    const [controlledSeat, peerSeat] = getAvalonNightParticipants(
+      session.state.roles,
+      'evilReveal',
+    );
+    if (controlledSeat === undefined || peerSeat === undefined) {
+      throw new Error('expected two evil seats');
+    }
+    const source = createAvalonSeatDataSource({
+      state: session.state,
+      revision: 1,
+      userId: 'host',
+      controlledSeat,
+    });
+    expect(source.getSeat(controlledSeat).highlight).toBe('controlled');
+    expect(source.getSeat(peerSeat).highlight).toBe('danger');
+    expect(source.getSeat(peerSeat).indicators?.markers).toEqual([]);
+  });
+
+  it('highlights Merlin’s revealed evil seats only for Merlin', () => {
     const session = nightSession();
     advanceNightToStep(session, 'merlinReveal');
     const merlinSeat = seatWithRole(session.state, 'merlin');
@@ -381,36 +395,34 @@ describe('createAvalonSeatDataSource — night badges', () => {
     if (merlinView.merlinSees === null) throw new Error('expected Merlin’s night view');
 
     for (const evilSeat of merlinView.merlinSees) {
-      expect(nightRevealMarker(session, merlinSeat, evilSeat)).toEqual({
-        key: 'night-reveal',
-        label: '坏人',
-        tone: 'warning',
-      });
+      expect(nightRevealHighlight(session, merlinSeat, evilSeat)).toBe('danger');
     }
 
     const otherSeat = [0, 1, 2, 3, 4].find((seat) => seat !== merlinSeat);
     if (otherSeat === undefined) throw new Error('expected another seat');
-    expect(nightRevealMarker(session, otherSeat, merlinView.merlinSees[0]!)).toBeNull();
+    expect(nightRevealHighlight(session, otherSeat, merlinView.merlinSees[0]!)).toBe('none');
   });
 
-  it('marks Percival’s two candidates only for Percival', () => {
+  it('highlights both Percival candidates identically, only for Percival until confirmation', () => {
     const session = nightSession();
     advanceNightToStep(session, 'percivalReveal');
     const percivalSeat = seatWithRole(session.state, 'percival');
     const percivalView = getAvalonViewModel(session.state, percivalSeat);
     if (percivalView.percivalSees === null) throw new Error('expected Percival’s night view');
 
+    expect(percivalView.percivalSees).toHaveLength(2);
     for (const candidateSeat of percivalView.percivalSees) {
-      expect(nightRevealMarker(session, percivalSeat, candidateSeat)).toEqual({
-        key: 'night-reveal',
-        label: '梅林/莫甘娜',
-        tone: 'info',
-      });
+      expect(nightRevealHighlight(session, percivalSeat, candidateSeat)).toBe('info');
     }
 
     const otherSeat = [0, 1, 2, 3, 4].find((seat) => seat !== percivalSeat);
     if (otherSeat === undefined) throw new Error('expected another seat');
-    expect(nightRevealMarker(session, otherSeat, percivalView.percivalSees[0]!)).toBeNull();
+    expect(nightRevealHighlight(session, otherSeat, percivalView.percivalSees[0]!)).toBe('none');
+
+    session.send({ type: 'avalon.night.confirm' }, session.seatUser(percivalSeat));
+    for (const candidateSeat of percivalView.percivalSees) {
+      expect(nightRevealHighlight(session, percivalSeat, candidateSeat)).toBe('none');
+    }
   });
 });
 

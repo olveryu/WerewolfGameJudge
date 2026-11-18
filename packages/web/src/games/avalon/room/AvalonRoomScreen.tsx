@@ -12,7 +12,7 @@ import { IconButton } from '@/components/IconButton';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -28,7 +28,7 @@ import IconPause from '~icons/ion/pause';
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
-import { AvalonBoardInfoCard } from './components/AvalonBoardInfoCard';
+import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyAcknowledgeModal } from './components/AvalonLadyAcknowledgeModal';
@@ -77,8 +77,8 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
-  const historySummary = isLobby ? null : createAvalonHistorySummary(screen.state);
-  // 顶部主面第二行：投票/任务进行中显示未提交名单（与警长 HUD 同位置）。
+  const historySummary = createAvalonHistorySummary(screen.state);
+  // 底部摘要：投票/任务进行中显示未提交名单（与警长摘要同形）。
   const historyPendingSeats =
     viewModel === null
       ? null
@@ -195,6 +195,23 @@ function AvalonRoomContent(
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区），座位盘下方不放任何阶段 UI——与全平台各家一致。
   const isNight = viewModel !== null && viewModel.phase === 'night';
+  const gameConfiguration = (
+    <RoomGameSummary
+      title="阿瓦隆"
+      playerCount={config.numberOfPlayers}
+      settings={[
+        { label: '投票方式', value: formatAvalonVoteMode(config.voteMode) },
+        { label: '否决上限', value: `${config.vetoLimit} 次` },
+      ]}
+      guide={{ onPress: screen.openRules, label: '查看阿瓦隆玩法' }}
+      collapsed={!isLobby && viewModel !== null}
+    >
+      <AvalonBoardInfoContent
+        playerCount={config.numberOfPlayers}
+        onRolePress={screen.setRolePreviewId}
+      />
+    </RoomGameSummary>
+  );
   return (
     <RoomShell
       model={screen.shellModel}
@@ -203,30 +220,16 @@ function AvalonRoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
-              beforeSeatBoard: (
-                <>
-                  <RoomGameSummary
-                    icon="shield-outline"
-                    title={`阿瓦隆 · ${config.numberOfPlayers}人局`}
-                    subtitle={`投票${formatAvalonVoteMode(config.voteMode)} · 否决上限 ${config.vetoLimit}`}
-                    headerRight={
-                      <RoomGuideButton onPress={screen.openRules} label="查看阿瓦隆玩法" />
-                    }
-                  />
-                  <AvalonBoardInfoCard
-                    playerCount={config.numberOfPlayers}
-                    onRolePress={screen.setRolePreviewId}
-                  />
-                </>
-              ),
+              beforeSeatBoard: gameConfiguration,
             }
           : {
               kind: 'seats',
-              // 对局摘要条常驻座位表上方（狼人杀入口形态）：最新结论 +
-              // 「对局记录 ›」唯一入口；大厅分支不渲染（摘要恒为 null）。
-              contextHeader:
+              contextHeader: null,
+              // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
+              bottomSummary:
                 historySummary === null ? null : (
                   <AvalonHistorySummary
                     summary={historySummary}
@@ -236,15 +239,8 @@ function AvalonRoomContent(
                   />
                 ),
               sideInspector: null,
-              // 终局结算只在本局复盘里：座位表上方不留结算区；板子信息
-              // 折叠常驻（恢复 #313 前的形态，终局区不恢复）。
-              beforeSeatBoard: (
-                <AvalonBoardInfoCard
-                  playerCount={config.numberOfPlayers}
-                  collapsed
-                  onRolePress={screen.setRolePreviewId}
-                />
-              ),
+              // 板子信息折叠常驻；终局结算仍由本局复盘承载。
+              beforeSeatBoard: gameConfiguration,
               afterSeatBoard: null,
             }
       }

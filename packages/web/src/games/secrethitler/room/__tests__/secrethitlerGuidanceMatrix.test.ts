@@ -5,6 +5,8 @@
  * engine's terminal seam).
  */
 import {
+  getSecrethitlerNightParticipants,
+  getSecrethitlerViewModel,
   SECRETHITLER_PHASES,
   type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
@@ -17,10 +19,16 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
-import { buildSecrethitlerPhaseStates } from '@/test-utils/secrethitlerState';
+import {
+  buildSecrethitlerPhaseStates,
+  buildSecrethitlerTestLobby,
+  sendSecrethitlerSeatCommand,
+  startSecrethitlerTestGame,
+} from '@/test-utils/secrethitlerState';
 import * as alerts from '@/utils/alert';
 
 import { SECRETHITLER_GUIDANCE_MATRIX } from '../secrethitlerGuidanceMatrix';
+import { secrethitlerInstruction } from '../secrethitlerPresentation';
 import { createSecrethitlerRoomShellModel } from '../secrethitlerRoomAdapter';
 
 function capabilities(): RoomCapabilities {
@@ -107,6 +115,123 @@ function roomShellModel(
 }
 
 describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
+  it.each([5, 6, 7, 10])(
+    'colors only authorized unconfirmed first-night peer avatars for %i players',
+    (count) => {
+      const nights: SecrethitlerState[] = [];
+      const election = startSecrethitlerTestGame(buildSecrethitlerTestLobby(count), (state) => {
+        if (state.phase.kind === 'night') nights.push(state);
+      });
+      const reveal = nights[0];
+      if (reveal === undefined) throw new Error('Missing first-night reveal');
+      const highlightedSeats = (
+        state: SecrethitlerState,
+        audience: RoomViewerAudience,
+        controlledSeat: number | null = null,
+      ) => {
+        const source = roomShellModel(state, audience, controlledSeat).seats.source;
+        return state.livingSeats.filter((seat) => source.getSeat(seat).highlight === 'danger');
+      };
+      for (const viewerSeat of reveal.livingSeats) {
+        const audience = viewerSeat === 1 ? 'seated' : 'host';
+        const controlledSeat = viewerSeat >= 2 ? viewerSeat : null;
+        const source = roomShellModel(reveal, audience, controlledSeat).seats.source;
+        const viewerRole = reveal.identities[viewerSeat];
+        for (const seat of reveal.livingSeats) {
+          const targetRole = reveal.identities[seat];
+          const canSee =
+            (viewerRole === 'fascist' || (viewerRole === 'hitler' && count <= 6)) &&
+            seat !== viewerSeat &&
+            (targetRole === 'fascist' || targetRole === 'hitler');
+          expect(source.getSeat(seat).highlight).toBe(
+            canSee ? 'danger' : controlledSeat === seat ? 'controlled' : 'none',
+          );
+          expect(
+            source
+              .getSeat(seat)
+              .indicators?.markers.some((marker) => marker.key === 'night-reveal'),
+          ).toBe(false);
+        }
+        if (getSecrethitlerNightParticipants(reveal).includes(viewerSeat)) {
+          const confirmed = sendSecrethitlerSeatCommand(reveal, viewerSeat, {
+            type: 'secrethitler.night.confirm',
+            step: 1,
+          });
+          expect(highlightedSeats(confirmed, audience, controlledSeat)).toEqual([]);
+        }
+      }
+      expect(highlightedSeats(reveal, 'spectator')).toEqual([]);
+      for (const state of [buildSecrethitlerTestLobby(count), election]) {
+        expect(highlightedSeats(state, 'host')).toEqual([]);
+        for (const seat of state.livingSeats.filter((candidate) => candidate >= 2))
+          expect(highlightedSeats(state, 'host', seat)).toEqual([]);
+      }
+      const botParticipant = getSecrethitlerNightParticipants(reveal).find((seat) => seat >= 2);
+      if (botParticipant !== undefined) {
+        const ownHighlights = highlightedSeats(reveal, 'host');
+        expect(highlightedSeats(reveal, 'host', botParticipant).length).toBeGreaterThan(0);
+        expect(highlightedSeats(reveal, 'host')).toEqual(ownHighlights);
+      }
+    },
+  );
+
+  it.each([5, 6, 7, 10])('counts only recognition, not narration cues, for %i players', (count) => {
+    const nights: SecrethitlerState[] = [];
+    startSecrethitlerTestGame(buildSecrethitlerTestLobby(count), (state) => {
+      if (state.phase.kind === 'night') nights.push(state);
+    });
+    expect(nights).toHaveLength(1);
+    for (const state of nights) {
+      expect(secrethitlerInstruction(state, getSecrethitlerViewModel(state, null))).toEqual({
+        message: '等待首夜互认完成',
+        action: null,
+      });
+      const model = roomShellModel(state, 'host');
+      expect(model.step).toBe('1');
+      expect(model.bottomActions.progress).toEqual({ current: 1, total: 1, label: '坏人互认' });
+      const participants = getSecrethitlerNightParticipants(state);
+      for (const seat of state.livingSeats) {
+        const instruction = secrethitlerInstruction(state, getSecrethitlerViewModel(state, seat));
+        expect(instruction.action).toBe(participants.includes(seat) ? '确认信息' : null);
+        if (!participants.includes(seat)) expect(instruction.message).toContain('保持闭眼');
+      }
+      const first = participants[0];
+      if (first === undefined) throw new Error('Missing first-night participant');
+      const confirmed = sendSecrethitlerSeatCommand(state, first, {
+        type: 'secrethitler.night.confirm',
+        step: 1,
+      });
+      const instruction = secrethitlerInstruction(
+        confirmed,
+        getSecrethitlerViewModel(confirmed, first),
+      );
+      expect(instruction.action).toBeNull();
+      expect(instruction.message).toContain('等待本步其他玩家确认');
+      let allConfirmed = state;
+      for (const seat of participants)
+        allConfirmed = sendSecrethitlerSeatCommand(allConfirmed, seat, {
+          type: 'secrethitler.night.confirm',
+          step: 1,
+        });
+      const closing = sendSecrethitlerSeatCommand(allConfirmed, 0, {
+        type: 'secrethitler.audio.ack',
+        audioBatchId: allConfirmed.audioBatchId,
+      });
+      expect(closing.phase.kind).toBe('election');
+      expect(closing.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+        'evil_close',
+        'night_end',
+      ]);
+      expect(roomShellModel(closing, 'host').bottomActions.progress).toBeNull();
+      const closingInstruction = secrethitlerInstruction(
+        closing,
+        getSecrethitlerViewModel(closing, 0),
+      );
+      expect(closingInstruction.action).toBeNull();
+      expect(closingInstruction.message).toContain('闭眼');
+    }
+  });
+
   const phases = buildSecrethitlerPhaseStates();
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(SECRETHITLER_GUIDANCE_MATRIX).sort()).toEqual(

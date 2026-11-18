@@ -93,6 +93,7 @@ DEFAULT_BOOST_DB = 10      # ffmpeg post-processing gain (dB) — edge-tts caps 
 # "night" needs 5s silence so iOS Safari doesn't break the audio chain.
 TRAILING_SILENCE: dict[str, int] = {
     "night": 5,
+    "night_start": 5,
 }
 
 # Edge TTS does not expose pronunciation markup; use a phonetic homophone only
@@ -210,11 +211,11 @@ END_TEXT_AVALON: dict[str, str] = {
 }
 
 BEGIN_TEXT_SECRETHITLER: dict[str, str] = {
-    "night_start": "所有玩家请闭上眼睛。",
-    "evil_reveal_5_6": "法西斯阵营玩家请睁眼，在自己的设备上查看同伴座位；其他玩家保持闭眼。",
-    "fascist_reveal_7_10": "获准查看身份信息的玩家请睁眼，在自己的设备上查看同伴座位；其他玩家保持闭眼。",
-    "evil_close": "已查看身份信息的玩家请闭上眼睛。",
-    "night_end": "所有玩家请睁开眼睛，游戏开始。",
+    "night_start": "天黑请闭眼。",
+    "evil_reveal_5_6": "法西斯和希特勒请睁眼，请在自己的设备上确认同伴身份和座位。确认后请点击确认信息。自由派请保持闭眼。",
+    "fascist_reveal_7_10": "法西斯请睁眼，请在自己的设备上确认同伴和希特勒的座位。确认后请点击确认信息。希特勒和自由派请保持闭眼。",
+    "evil_close": "法西斯阵营玩家请闭眼。",
+    "night_end": "请各位整理表情。三、二、一，天亮了，请睁眼。",
 }
 
 END_TEXT_SECRETHITLER: dict[str, str] = {}

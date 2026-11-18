@@ -4,6 +4,7 @@
 
 import {
   getSecrethitlerOccupiedSeatCount,
+  getSecrethitlerUserSeat,
   getSecrethitlerViewingParticipants,
   getSecrethitlerViewModel,
   type SecrethitlerCommand,
@@ -65,7 +66,11 @@ import {
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { secrethitlerInstruction, secrethitlerSeatLabel } from './secrethitlerPresentation';
+import {
+  getSecrethitlerNightStepLabel,
+  secrethitlerInstruction,
+  secrethitlerSeatLabel,
+} from './secrethitlerPresentation';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 const getSecrethitlerProfileTarget = (
@@ -87,7 +92,8 @@ export const getSecrethitlerSeatTapIntent = createRoomSeatTapIntentResolver(
 
 function createSecrethitlerSeatDataSource(input: SecrethitlerSeatSourceInput): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
-  const view = getSecrethitlerViewModel(state, null);
+  const viewerSeat = controlledSeat ?? getSecrethitlerUserSeat(state, userId);
+  const view = getSecrethitlerViewModel(state, viewerSeat);
   return createRoomSeatDataSource({
     seatCount: state.config.numberOfPlayers,
     revision,
@@ -99,6 +105,8 @@ function createSecrethitlerSeatDataSource(input: SecrethitlerSeatSourceInput): R
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+    resolveHighlight: (seat) =>
+      !view.hasConfirmedNight && view.knownFascistSeats.includes(seat) ? 'danger' : undefined,
     resolveIndicators: (seat) => ({
       markers: [
         ...(view.presidentSeat === seat
@@ -379,7 +387,7 @@ export function createSecrethitlerRoomShellModel(
     isAudioPlaying: state.isAudioPlaying,
     seatSource,
     phase: state.phase.kind,
-    step: null,
+    step: state.phase.kind === 'night' ? String(state.phase.step) : null,
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -399,7 +407,11 @@ export function createSecrethitlerRoomShellModel(
             : instruction.message,
       progress:
         state.phase.kind === 'night'
-          ? { current: state.phase.step + 1, total: 4, label: '首夜互认' }
+          ? {
+              current: 1,
+              total: 1,
+              label: getSecrethitlerNightStepLabel(state.phase.step),
+            }
           : null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       layout: {

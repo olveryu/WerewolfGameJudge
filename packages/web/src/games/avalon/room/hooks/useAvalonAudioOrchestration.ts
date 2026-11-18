@@ -76,7 +76,12 @@ export function useAvalonAudioOrchestration({
     ackCommand,
     ackLabel: '播报确认',
     isNarratedPhase,
-    resolveReplayAudioKey,
+    resolveReplayEffects,
     logger: avalonAudioLog,
   });
+}
+
+function resolveReplayEffects(state: AvalonState): readonly AudioEffect[] {
+  const audioKey = resolveReplayAudioKey(state);
+  return audioKey === null ? [] : [{ audioKey }];
 }

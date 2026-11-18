@@ -31,6 +31,7 @@ type RoomShellContent =
   | {
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
+      readonly bottomSummary: ReactElement | null;
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
       readonly sideInspector: ReactElement | null;
@@ -257,6 +258,7 @@ export function RoomShell({
       {!isStage && (
         <RoomBottomActionPanel
           model={model.bottomActions}
+          summary={content.kind === 'seats' ? content.bottomSummary : null}
           isAudioPlaying={model.isAudioPlaying}
           hostManagement={hostManagement}
           onOpenHostManagement={openHostManagement}

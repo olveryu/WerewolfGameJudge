@@ -146,7 +146,7 @@ asset list in `assets/roleAvatars.ts` (public board only — never from
 a player's secret assignment) and call the shared
 `useRoomImagePreload` hook in `use<Game>RoomState` with the full
 room-image list (portraits plus any other room art, such as
-vote/quest illustrations). If the game has audio, provide the
+vote/quest illustrations). If the game has audio, complete the generated registry/player and provide the
 preload-audio list (`get<Game>PreloadAudio` form: per-board-role
 clips like werewolf or a fixed set like avalon) and wire it into the
 audio binding's `prepareQueue`; games without audio (fibking,
@@ -158,6 +158,19 @@ through a game-owned `AudioClip` registry/player using the shared
 `AudioService` (see `packages/web/src/games/avalon/audio/AvalonAudioPlayer.ts`).
 Do not substitute browser `SpeechSynthesis` for this asset pipeline;
 verify both the generator dry-run and the generated files.
+The audio capability must keep its generated module-to-hook runtime injection;
+do not replace it with `null`. Missing cues and playback errors surface through
+the shared error pipeline and never acknowledge required narration as successful.
+Reuse `useRoomAudioOrchestration`, `useRoomAudioResume`, `RoomAudioResumeDialog`,
+and `useRoomBgmControl`; do not recreate their lifecycle in a game hook.
+Define each narrated step's cue, eligible actors, private information, pending
+and confirmed guidance, and completion gate together. Verify the actual MP3s,
+role/count variants, interruption recovery, music/volume controls and both
+confirmation/ack arrival orders; nonempty copy and audio-file existence are not acceptance.
+Count actual player-action/confirmation steps, not audio clips: opening, closing,
+and dawn cues belong in audio batches around those steps. Assert the exact
+current/total against the action plan. If closing narration runs after the phase
+changes, keep subsequent actions locked and resume playback on rejoin until its batch is acknowledged.
 Round-settled games must choose and change the label/unit; never silently
 interpret rounds as games. Follow the statistics section of
 `references/skeleton-and-wiring.md` for eligibility and compatibility.
@@ -165,14 +178,29 @@ interpret rounds as games. Follow the statistics section of
 Before implementing the HUD or ended screen, inspect the corresponding
 production screens in existing games and the shared room components.
 For `identityViewing`, preserve `RoomShell` seats throughout viewing, play
-and ended, following Werewolf/Avalon: `RoomGameSummary` with a public
-`BoardInfoCard` (collapsed after dealing), compact `RoomRecordSummary`
-in `contextHeader` when match records exist, and game details in
-`RoomDialog`. Identity and personal actions belong to bottom actions;
-private information belongs in explicit overlays, not a public header.
+and ended, following Werewolf/Avalon: one `RoomGameSummary` configuration
+card with public `BoardInfoContent` (collapsed after dealing), compact `RoomStatusSummary`
+in the `seats.bottomSummary` slot when match records exist, and game details
+in `RoomDialog`. The shared bottom action card renders the summary first,
+then existing progress/messages and personal actions. Games own the summary's
+phase visibility; keep it hidden during private identity/narration phases
+unless the game design explicitly requires otherwise. Identity and personal actions belong to bottom actions;
+private information belongs in explicit overlays, not a public header. When a night step reveals
+other seats, use shared avatar color highlights (`resolveHighlight`, `danger` for known evil peers),
+following Werewolf, not extra identity text badges. Derive highlights from the current viewer's
+private projection and clear them after confirmation or leaving the step.
+Test unauthorized viewers, spectators, role/count variants, and switching controlled bot seats.
+Werewolf's sheriff HUD, Avalon and Secret Hitler use the same summary
+presentation; supply game-owned content and visibility rather than
+forking its markup or CSS. Preserve each game's detail-surface behavior.
 Do not replace the board with a workspace or stack a large stage panel
 above it. Without `identityViewing`, retain the generated workspace;
 choose any specialized stage layout from the approved gameplay.
+Every game, including non-identity games, uses the same configuration card:
+game name/count, guide and available tools share its header, and public
+configuration lives inside its disclosure. Do not add a separate game title,
+another configuration frame or a nested header button. Preserve live status
+outside the disclosure and do not invent unavailable strategy/notepad actions.
 Reuse the matching shared surface, not merely its outer frame; extract
 common presentation rather than copying CSS or importing another game's
 components. A bare heading and ranking list is

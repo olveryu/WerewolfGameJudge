@@ -5,7 +5,11 @@ import {
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { buildSecrethitlerPhaseStates } from '@/test-utils/secrethitlerState';
+import {
+  buildSecrethitlerPhaseStates,
+  buildSecrethitlerTestLobby,
+  startSecrethitlerTestGame,
+} from '@/test-utils/secrethitlerState';
 
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 import { SecrethitlerBoardHeader, SecrethitlerBoardInfo } from '../SecrethitlerRoomScreen';
@@ -47,6 +51,48 @@ it('allows assigning roles when every occupied seat is a bot', () => {
   expect(assignAction?.isEnabled).toBe(true);
 });
 
+it.each(['lobby', 'viewing'] as const)('hides the match summary during %s', (phase) => {
+  const state = buildSecrethitlerPhaseStates().get(phase);
+  if (state === undefined) throw new Error(`Missing ${phase} fixture`);
+  const { container } = render(
+    <SecrethitlerBoardHeader
+      screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
+    />,
+  );
+  expect(container).toBeEmptyDOMElement();
+});
+
+it('keeps the match summary hidden until first-night narration finishes', () => {
+  const states = buildSecrethitlerPhaseStates();
+  const night = states.get('night');
+  const election = states.get('election');
+  if (night === undefined || election === undefined)
+    throw new Error('Missing first-night transition fixtures');
+  const { container, rerender } = render(
+    <SecrethitlerBoardHeader
+      screen={{ state: night, viewModel: getSecrethitlerViewModel(night, 0), mySeat: 0 }}
+    />,
+  );
+  expect(container).toBeEmptyDOMElement();
+  startSecrethitlerTestGame(buildSecrethitlerTestLobby(), (state) => {
+    if (state.phase.kind !== 'election' || !state.isAudioPlaying) return;
+    rerender(
+      <SecrethitlerBoardHeader
+        screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+  rerender(
+    <SecrethitlerBoardHeader
+      screen={{ state: election, viewModel: getSecrethitlerViewModel(election, 0), mySeat: 0 }}
+    />,
+  );
+  expect(screen.getByRole('button', { name: '对局记录' })).toHaveTextContent(
+    '自由派 0/5 · 法西斯 0/6 · 选举失败 0/3',
+  );
+});
+
 it('uses electronic first-night guidance without a reading script or manual progression controls', () => {
   const state = buildSecrethitlerPhaseStates().get('night');
   if (state === undefined) throw new Error('Missing night fixture');
@@ -59,7 +105,7 @@ it('uses electronic first-night guidance without a reading script or manual prog
       }}
     />,
   );
-  expect(screen.getByRole('button', { name: '对局记录' })).toHaveTextContent('首夜互认');
+  expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
   expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   expect(screen.queryByText(/电子主持进行中/)).not.toBeInTheDocument();
   expect(screen.queryByText('所有玩家请闭上眼睛。')).not.toBeInTheDocument();
@@ -120,7 +166,7 @@ it('uses the shared collapsed board card and previews public roles without revea
   const state = buildSecrethitlerPhaseStates().get('viewing');
   if (state === undefined) throw new Error('Missing viewing fixture');
   render(<SecrethitlerBoardInfo state={state} openRules={vi.fn()} />);
-  expect(screen.getByRole('heading', { name: '秘密希特勒 · 8人局' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: '秘密希特勒（8人）' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '展开配置' })).toHaveAttribute(
     'aria-expanded',
     'false',

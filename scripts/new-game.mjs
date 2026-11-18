@@ -20,7 +20,8 @@ Options:
   --capability <key>         Enable an optional capability (repeatable; defaults off).
                              Keys: identityViewing, stageDeadline,
                              audioOrchestration, botBulkViewing.
-  --production               Register as a production game (default: registered but
+  --production               Register in the production registry and Home contract
+                             (default: registered but
                              hidden from player surfaces until the go-live step).
   --name <text>              Home display name (default: the game id).
   --subtitle <text>          Home subtitle (default: a TODO placeholder).
@@ -110,6 +111,12 @@ function main() {
     [
       `Created ${summary.createdFiles.length} files and updated ${summary.editedFiles.length} shared files for "${options.gameId}" (capabilities: ${options.capabilities.length === 0 ? 'none' : [...new Set(options.capabilities)].join(', ')}).`,
       `Registration migration: packages/api-worker/migrations/${summary.migrationName}`,
+      options.production
+        ? 'Directory visibility: visible in Home/create lists (--production; registry and Home contract synchronized).'
+        : 'Directory visibility: hidden from Home/create lists (registered only; see report step 9).',
+      options.capabilities.includes('identityViewing')
+        ? 'Room layout: persistent seat board with public role configuration and private identity actions.'
+        : 'Room layout: lobby seat board, then the non-identity workspace.',
       summary.formatted
         ? 'Generated files were formatted with the repository prettier.'
         : 'Warning: prettier was not found; run pnpm format:write before committing.',

@@ -10,14 +10,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/Button';
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
+import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
+import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
-import { RoomRecordSummary } from '@/features/room/components/RoomRecordSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -63,30 +65,49 @@ export function SecrethitlerRoomScreen(props: SecrethitlerRoomScreenProps) {
   );
 }
 
+function shouldShowMatchSummary(state: SecrethitlerState): boolean {
+  return (
+    state.phase.kind !== 'lobby' &&
+    state.phase.kind !== 'viewing' &&
+    state.phase.kind !== 'night' &&
+    !state.isAudioPlaying
+  );
+}
+
 function SecrethitlerRoomContent(
   props: SecrethitlerRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
   const screen = useSecrethitlerRoomState(props);
-  const isLobby = screen.state.phase.kind === 'lobby';
   return (
     <RoomShell
       model={screen.shellModel}
       content={{
         kind: 'seats',
-        contextHeader: isLobby ? null : <SecrethitlerBoardHeader screen={screen} />,
+        contextHeader: null,
+        bottomSummary: shouldShowMatchSummary(screen.state) ? (
+          <SecrethitlerBoardHeader screen={screen} />
+        ) : null,
         beforeSeatBoard: (
           <SecrethitlerBoardInfo state={screen.state} openRules={screen.openRules} />
         ),
         afterSeatBoard: null,
         sideInspector: null,
       }}
-      leadingExtraActions={null}
+      leadingExtraActions={
+        screen.isHost && screen.state.phase.kind === 'night' ? (
+          <RoomBgmToggle bgm={screen.bgm} />
+        ) : null
+      }
       trailingExtraActions={null}
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
         <SecrethitlerStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
       gameOverlays={
         <>
+          <RoomAudioResumeDialog
+            visible={screen.audioResume.isDue}
+            onContinue={screen.audioResume.continueGame}
+          />
           <RevealRoleCardModal
             visible={screen.roleViewing.isOpen}
             roleKey={screen.viewModel?.myIdentity ?? null}
@@ -104,7 +125,7 @@ function SecrethitlerRoomContent(
   );
 }
 
-/** Public role composition uses the same collapsible board card as Werewolf and Avalon. */
+/** Public role composition uses the same configuration card as every other game. */
 export function SecrethitlerBoardInfo({
   state,
   openRules,
@@ -117,13 +138,12 @@ export function SecrethitlerBoardInfo({
   return (
     <>
       <RoomGameSummary
-        icon="game-controller-outline"
-        title={`秘密希特勒 · ${state.config.numberOfPlayers}人局`}
-        subtitle={state.phase.kind === 'lobby' ? '隐藏阵营玩家选举政府并秘密施行政策' : undefined}
-        headerRight={<RoomGuideButton onPress={openRules} label="查看秘密希特勒玩法" />}
+        title="秘密希特勒"
+        playerCount={state.config.numberOfPlayers}
+        guide={{ onPress: openRules, label: '查看秘密希特勒玩法' }}
+        collapsed={state.phase.kind !== 'lobby'}
       >
-        <BoardInfoCard
-          playerCount={state.config.numberOfPlayers}
+        <BoardInfoContent
           sections={[
             {
               title: '自由派',
@@ -139,10 +159,7 @@ export function SecrethitlerBoardInfo({
               ],
             },
           ]}
-          collapsed={state.phase.kind !== 'lobby'}
           onRolePress={setPreviewRole}
-          onStrategyPress={null}
-          onNotepadPress={null}
           footer={null}
         />
       </RoomGameSummary>
@@ -162,17 +179,21 @@ export function SecrethitlerBoardHeader({
   const [historyVisible, setHistoryVisible] = useState(false);
   const phase = screen.state.phase;
   const view = screen.viewModel;
-  if (view === null) return null;
+  if (view === null || !shouldShowMatchSummary(screen.state)) return null;
   const summary =
     phase.kind === 'ended'
       ? `${phase.winner === 'liberal' ? '自由派' : '法西斯阵营'}获胜`
       : SECRETHITLER_PHASE_LABELS[phase.kind];
   return (
     <>
-      <RoomRecordSummary
+      <RoomStatusSummary
         summary={summary}
         detail={`自由派 ${view.liberalPolicies}/5 · 法西斯 ${view.fascistPolicies}/6 · 选举失败 ${view.electionTracker}/3`}
-        onOpen={() => setHistoryVisible(true)}
+        action={{
+          label: '对局记录',
+          accessibleLabel: '对局记录',
+          onOpen: () => setHistoryVisible(true),
+        }}
       />
       {historyVisible && (
         <RoomDialog

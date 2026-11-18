@@ -102,6 +102,34 @@ export function editRegistry(content, { gameId, production }) {
   );
 }
 
+/** An explicit --production selection updates both sides of the visibility contract. */
+export function editProductionGameTypes(content, { gameId, production }) {
+  if (!production) return content;
+  const file = 'homeProductionFilter.contract.test.ts';
+  if (content.includes(`'${gameId}'`)) fail(file, `'${gameId}' is already listed.`);
+  return replaceOnce(
+    file,
+    content,
+    /(const PRODUCTION_GAME_TYPES = \[[\s\S]*?)(\] as const;)/,
+    (_match, head, tail) => `${head}  '${gameId}',\n${tail}`,
+  );
+}
+
+/** Register the generated design in the documentation's single game index. */
+export function editDesignDocIndex(content, { gameId, home }) {
+  const file = 'docs/README.md';
+  const target = `${gameId}-game-design.md`;
+  if (content.includes(`](${target})`)) fail(file, `${target} is already indexed.`);
+  const displayName = home.displayName.replaceAll('|', '\\|');
+  return replaceOnce(
+    file,
+    content,
+    /(\n## 2\.[^\n]*\n[\s\S]*?)(\n## 3\.)/,
+    (_match, section, next) =>
+      `${section.trimEnd()}\n| [${target}](${target}) | \`${gameId}\` | ${displayName} |\n${next}`,
+  );
+}
+
 /** Register the generated deadline assembly in the exhaustive protocol contract. */
 export function editExpectedPhaseDeadlineVariants(content, { gameId, capabilities }) {
   const file = 'phaseDeadlineVariants.contract.test.ts';

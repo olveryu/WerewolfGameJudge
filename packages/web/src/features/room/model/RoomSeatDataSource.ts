@@ -2,7 +2,7 @@
 
 import type { RoomOccupant } from './RoomOccupant';
 
-export type RoomSeatHighlight = 'none' | 'danger' | 'selected' | 'controlled';
+export type RoomSeatHighlight = 'none' | 'danger' | 'info' | 'selected' | 'controlled';
 
 export interface RoomSeatStatusBadge {
   readonly label: string;

@@ -76,6 +76,7 @@ import type {
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
+  RoomSeatHighlight,
   RoomSeatIndicators,
   RoomSeatMarker,
 } from '@/features/room/model/RoomSeatDataSource';
@@ -169,18 +170,14 @@ function avalonSeatIndicators(
   };
 }
 
-function avalonNightRevealMarker(view: AvalonViewModel, seat: number): RoomSeatMarker | null {
-  if (view.nightConfirmed) return null;
-  if (view.evilPeers?.includes(seat)) {
-    return { key: 'night-reveal', label: '坏人同伴', tone: 'warning' };
-  }
-  if (view.merlinSees?.includes(seat)) {
-    return { key: 'night-reveal', label: '坏人', tone: 'warning' };
-  }
-  if (view.percivalSees?.includes(seat)) {
-    return { key: 'night-reveal', label: '梅林/莫甘娜', tone: 'info' };
-  }
-  return null;
+function avalonNightRevealHighlight(
+  view: AvalonViewModel,
+  seat: number,
+): RoomSeatHighlight | undefined {
+  if (view.nightConfirmed) return undefined;
+  if (view.evilPeers?.includes(seat) || view.merlinSees?.includes(seat)) return 'danger';
+  if (view.percivalSees?.includes(seat)) return 'info';
+  return undefined;
 }
 
 /** 创建共享座位表数据源：含组队者 / 队员 / 湖仙状态徽标（不暴露角色）。 */
@@ -222,16 +219,15 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     // （begin 进夜晚）即清（展示契约 §3.3 徽标命题，与狼人杀口径一致）。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+    resolveHighlight: (seat) =>
+      seat !== controlledSeat && nightView !== null
+        ? avalonNightRevealHighlight(nightView, seat)
+        : undefined,
     resolveIndicators: (seat) => {
       const nightConfirmed =
         nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
       const progressLabel = nightConfirmed ? '已确认' : null;
-      const indicators = avalonSeatIndicators(state, seat, progressLabel);
-      if (indicators === null || nightView === null) return indicators;
-      const revealMarker = avalonNightRevealMarker(nightView, seat);
-      return revealMarker === null
-        ? indicators
-        : { ...indicators, markers: [...indicators.markers, revealMarker] };
+      return avalonSeatIndicators(state, seat, progressLabel);
     },
   });
 }
@@ -266,19 +262,16 @@ function avalonLatestQuestConclusion(state: AvalonState): string | null {
 }
 
 /**
- * 对局摘要条文案（座位表上方常驻，入口按狼人杀口径）：最新结算结论
- * 优先，其次当前轮次状态句；大厅不出现（返回 null）。只读公开信息
- * （落盘记录与阶段），不含未结算票面与任何身份。
+ * 对局摘要文案：最新结算结论优先，其次当前轮次状态句。仅在白天及终局
+ * 返回摘要；大厅、身份查看和夜晚阶段不显示。只读公开信息，不含身份。
  */
 export function createAvalonHistorySummary(state: AvalonState): string | null {
   const phase = state.phase;
   switch (phase.kind) {
     case 'lobby':
-      return null;
     case 'viewing':
-      return '身份查看阶段';
     case 'night':
-      return '第一晚';
+      return null;
     case 'ended':
       return phase.winner === 'good' ? '本局结束 · 好人获胜' : '本局结束 · 坏人获胜';
     case 'assassin':

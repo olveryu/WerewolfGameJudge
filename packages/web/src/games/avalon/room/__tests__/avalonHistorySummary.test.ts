@@ -1,8 +1,8 @@
 /**
- * createAvalonHistorySummary: the seat-board summary strip is a pure
+ * createAvalonHistorySummary: the bottom summary is a pure
  * projection of authoritative state — latest settle conclusion first,
- * current-round status otherwise, nothing in the lobby. Driven through
- * real engine commands, never injected state.
+ * current-round status otherwise, absent in lobby, viewing and night.
+ * Driven through real engine commands, never injected state.
  */
 import {
   type AvalonCommand,
@@ -113,16 +113,16 @@ function session() {
 }
 
 describe('createAvalonHistorySummary', () => {
-  it('is hidden in the lobby and narrates viewing and night', () => {
+  it('is hidden in the lobby, identity viewing and night', () => {
     const room = session();
     expect(createAvalonHistorySummary(room.state)).toBeNull();
     room.send({ type: 'avalon.roles.assign' });
-    expect(createAvalonHistorySummary(room.state)).toBe('身份查看阶段');
+    expect(createAvalonHistorySummary(room.state)).toBeNull();
     for (let seat = 0; seat < 5; seat += 1) {
       room.send({ type: 'avalon.role.viewed' }, room.userOf(seat));
     }
     room.send({ type: 'avalon.game.begin' });
-    expect(createAvalonHistorySummary(room.state)).toBe('第一晚');
+    expect(createAvalonHistorySummary(room.state)).toBeNull();
   });
 
   it('narrates the current proposal while nominating and voting', () => {

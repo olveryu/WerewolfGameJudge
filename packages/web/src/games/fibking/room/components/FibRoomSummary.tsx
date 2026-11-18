@@ -6,7 +6,7 @@ import type {
   FibPreparationFailureCode,
   FibPreparationStage,
 } from '@game-judge/game-engine/games/fibking/public';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { TESTIDS } from '@/testids';
@@ -14,7 +14,8 @@ import IconAlertCircleOutline from '~icons/ion/alert-circle-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 interface FibRoomSummaryProps {
-  readonly headerRight?: ReactNode;
+  readonly guide: ComponentProps<typeof RoomGameSummary>['guide'];
+  readonly children?: ReactNode;
   readonly phase: FibPhase;
   readonly playerCount: number;
   readonly preparationStage: FibPreparationStage | null;
@@ -31,7 +32,8 @@ const INVENTORY_EXHAUSTED_LABEL = '本桌新题已用完，请等待题库更新
 
 /** The 瞎掰王 configuration line plus the live word-preparation status. */
 export function FibRoomSummary({
-  headerRight,
+  guide,
+  children,
   phase,
   playerCount,
   preparationStage,
@@ -58,11 +60,10 @@ export function FibRoomSummary({
   const isFailed = phase === 'preparationFailed';
 
   return (
-    <RoomGameSummary
-      headerRight={headerRight}
-      icon="bulb-outline"
-      title={`瞎掰王 · ${playerCount}人局`}
-    >
+    <>
+      <RoomGameSummary guide={guide} title="瞎掰王" playerCount={playerCount}>
+        {children}
+      </RoomGameSummary>
       {preparationStatus !== null && (
         <p
           className={`fib-preparation-status${isFailed ? ' fib-preparation-status-failed' : ''}`}
@@ -76,6 +77,6 @@ export function FibRoomSummary({
           <span data-testid={TESTIDS.fibPreparationStatus}>{preparationStatus}</span>
         </p>
       )}
-    </RoomGameSummary>
+    </>
   );
 }

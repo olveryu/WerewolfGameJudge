@@ -8,10 +8,10 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
@@ -78,38 +78,35 @@ function UndercoverRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
+        bottomSummary: null,
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
-          <>
-            <RoomGameSummary
-              icon="search-outline"
-              title={`谁是卧底 · ${state.config.numberOfPlayers}人局`}
-              subtitle={`${formatUndercoverBlankMode(state.config.hasBlank)} · ${UNDERCOVER_CATEGORY_NAMES[state.config.category]}`}
-              testId="undercover-room"
-              headerRight={
-                <RoomGuideButton
-                  onPress={openRules}
-                  label="查看谁是卧底玩法说明"
-                  testId={TESTIDS.roomGuideButton('undercover')}
-                />
-              }
-            />
-            <BoardInfoCard
-              playerCount={state.config.numberOfPlayers}
+          <RoomGameSummary
+            title="谁是卧底"
+            playerCount={state.config.numberOfPlayers}
+            settings={[
+              { label: '白板模式', value: formatUndercoverBlankMode(state.config.hasBlank) },
+              { label: '词语分类', value: UNDERCOVER_CATEGORY_NAMES[state.config.category] },
+            ]}
+            testId="undercover-room"
+            guide={{
+              onPress: openRules,
+              label: '查看谁是卧底玩法说明',
+              testId: TESTIDS.roomGuideButton('undercover'),
+            }}
+          >
+            <BoardInfoContent
               sections={createUndercoverBoardInfoSections({
                 roleCounts,
                 hasBlank: state.config.hasBlank,
               })}
-              collapsed={false}
               onRolePress={(roleId) => {
                 if (isUndercoverRole(roleId)) setPreviewRole(roleId);
               }}
-              onStrategyPress={null}
-              onNotepadPress={null}
               footer={null}
             />
-          </>
+          </RoomGameSummary>
         ),
       }}
       gameOverlays={

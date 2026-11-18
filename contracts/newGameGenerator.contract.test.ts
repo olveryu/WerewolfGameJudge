@@ -12,7 +12,7 @@ describe('new-game generator', () => {
   it('generates independently selected capabilities against a fixture repository', () => {
     execFileSync(process.execPath, ['--test', 'scripts/new-game.test.mjs'], {
       cwd: ROOT_DIR,
-      stdio: 'pipe',
+      stdio: 'inherit',
     });
   }, 900_000);
 });

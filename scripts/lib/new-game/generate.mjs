@@ -17,6 +17,7 @@ import {
   editClientCatalog,
   editClientModuleLoaders,
   editCompletionRewards,
+  editDesignDocIndex,
   editDispatchDiscipline,
   editEngineCatalog,
   editEngineContractsTest,
@@ -27,6 +28,7 @@ import {
   editExpectedPhaseDeadlineVariants,
   editGameTypes,
   editGuidanceMatrixRegistry,
+  editProductionGameTypes,
   editRegistry,
   editReviewContractRegistry,
   editWorkerCatalog,
@@ -106,7 +108,13 @@ export const FILE_CAPABILITY_GATES = {
     'identityViewing',
   'packages/web/src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts':
     'identityViewing',
+  'packages/web/src/games/__GAME_ID__/room/__tests__/__GAME_PASCAL__RoomScreen.test.tsx':
+    'identityViewing',
   'packages/web/src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts':
+    'audioOrchestration',
+  'packages/web/src/games/__GAME_ID__/audio/__GAME_CAMEL__AudioRegistry.ts': 'audioOrchestration',
+  'packages/web/src/games/__GAME_ID__/audio/__GAME_CAMEL__AudioRuntime.ts': 'audioOrchestration',
+  'packages/web/src/games/__GAME_ID__/audio/__tests__/__GAME_CAMEL__AudioRuntime.test.ts':
     'audioOrchestration',
 };
 
@@ -120,6 +128,14 @@ export const SHARED_EDITS = [
   {
     file: 'packages/game-engine/src/games/registry.ts',
     apply: (content, ctx) => editRegistry(content, ctx),
+  },
+  {
+    file: 'packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts',
+    apply: (content, ctx) => editProductionGameTypes(content, ctx),
+  },
+  {
+    file: 'docs/README.md',
+    apply: (content, ctx) => editDesignDocIndex(content, ctx),
   },
   {
     file: 'packages/game-engine/src/product/rewards/earnings.ts',

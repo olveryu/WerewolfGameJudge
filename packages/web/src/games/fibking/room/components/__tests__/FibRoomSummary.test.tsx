@@ -17,6 +17,7 @@ describe('FibRoomSummary', () => {
   ] as const)('shows the authoritative %s preparation stage', (preparationStage, label) => {
     render(
       <FibRoomSummary
+        guide={{ onPress: vi.fn(), label: '查看瞎掰王玩法' }}
         phase="preparing"
         playerCount={4}
         preparationStage={preparationStage}
@@ -31,6 +32,7 @@ describe('FibRoomSummary', () => {
   it('shows the inventory-exhausted failure line', () => {
     render(
       <FibRoomSummary
+        guide={{ onPress: vi.fn(), label: '查看瞎掰王玩法' }}
         phase="preparationFailed"
         playerCount={4}
         preparationStage={null}
@@ -46,6 +48,7 @@ describe('FibRoomSummary', () => {
   it('shows no failure line for a plain selection failure (the retry lives on the host console)', () => {
     render(
       <FibRoomSummary
+        guide={{ onPress: vi.fn(), label: '查看瞎掰王玩法' }}
         phase="preparationFailed"
         playerCount={4}
         preparationStage={null}
@@ -60,6 +63,7 @@ describe('FibRoomSummary', () => {
   it('hides preparation status outside the preparing phases', () => {
     const view = render(
       <FibRoomSummary
+        guide={{ onPress: vi.fn(), label: '查看瞎掰王玩法' }}
         phase="preparing"
         playerCount={4}
         preparationStage={FIB_PREPARATION_STAGES.finalizing}
@@ -69,6 +73,7 @@ describe('FibRoomSummary', () => {
 
     view.rerender(
       <FibRoomSummary
+        guide={{ onPress: vi.fn(), label: '查看瞎掰王玩法' }}
         phase="ongoing"
         playerCount={4}
         preparationStage={null}

@@ -19,6 +19,10 @@ import {
   gameGuidePath,
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
+import {
+  type RoomBgmControlState,
+  useRoomBgmControl,
+} from '@/features/room/audio/useRoomBgmControl';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -26,6 +30,10 @@ import {
   useReadyRoomSession,
 } from '@/features/room/controllers/useReadyRoomSession';
 import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/useRoleViewing';
+import {
+  type RoomAudioResume,
+  useRoomAudioResume,
+} from '@/features/room/controllers/useRoomAudioResume';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
@@ -69,6 +77,8 @@ export interface SecrethitlerRoomScreenState {
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
+  readonly bgm: RoomBgmControlState;
+  readonly audioResume: RoomAudioResume;
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<SecrethitlerState, SecrethitlerCommand>['submit'];
   readonly isSubmitting: boolean;
@@ -140,7 +150,24 @@ export function useSecrethitlerRoomState(
   });
   const gameDetails = useGameProfileDetails(profile.selection, '秘密希特勒战绩', '本游戏局数');
   // 房主设备承载电子主持音频，不需要真人朗读或推进。
-  useSecrethitlerAudioOrchestration({ session, isHost, audio: props.audio });
+  const bgm = useRoomBgmControl(
+    props.audio,
+    isHost,
+    state.phase.kind === 'night' || state.isAudioPlaying
+      ? 'auto'
+      : isLobby || state.phase.kind === 'viewing' || state.phase.kind === 'ended'
+        ? 'off'
+        : 'manual',
+  );
+  const orchestration = useSecrethitlerAudioOrchestration({ session, isHost, audio: props.audio });
+  const audioResume = useRoomAudioResume({
+    isHost,
+    isNarratedPhase: state.phase.kind === 'night',
+    revision,
+    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    resume: orchestration.resumeAfterRejoin,
+    onResumed: bgm.startBgmIfEnabled,
+  });
   // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
   const review = useRoomReview({
     contribution: props.review,
@@ -219,6 +246,8 @@ export function useSecrethitlerRoomState(
     effectiveSeat,
     controlledSeat,
     isHost,
+    bgm,
+    audioResume,
     submit,
     isSubmitting,
     session,
