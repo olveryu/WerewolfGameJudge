@@ -5,14 +5,14 @@
  * Roles: 5x villager, 3x wolf, seer, witch, hunter, idiot,
  *        thief, cupid (14 roles -> 12 players + 2 bottom cards)
  *
- * Required UI coverage (getRequiredUiDialogTypes):
+ * Required UI coverage:
  * - actionPrompt: seer actions
- * - wolfVote: wolf vote dialog
+ * - wolfVote: draft and submit a target
  * - wolfVoteEmpty: wolf empty knife
- * - actionConfirm: seer seat tap confirm
+ * - seat selection: seer seat tap confirm
  * - skipConfirm: seer skip
  * - confirmTrigger: hunter confirm trigger
- * - witchSavePrompt / witchPoisonPrompt / witchNoKill: witch dialogs
+ * - witchSavePrompt / witch poison selection / witchNoKill: witch dialogs
  *
  * Server-data required (covered by integration):
  * - seerReveal
@@ -26,12 +26,13 @@ import {
   confirmStep,
   coverageChainActionPrompt,
   coverageChainConfirmTrigger,
-  coverageChainSeatActionConfirm,
+  coverageChainSeatSelection,
   coverageChainSkipConfirm,
-  coverageChainWitchPoisonPrompt,
+  coverageChainWitchPoisonSelection,
   coverageChainWitchSavePrompt,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
+  draftSeatSelection,
   getBoardByName,
   mountRoomFor as mount,
   pressText,
@@ -39,7 +40,6 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
-  tapSeat,
   type WerewolfRoomMockOptions,
   witchStep,
   wolfKillStep,
@@ -77,12 +77,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('wolfVote coverage', () => {
-    it('wolf vote: tapping seat shows wolf vote dialog', async () => {
+  describe('wolf vote selection coverage', () => {
+    it('wolf vote: drafting a target enables vote submission', async () => {
       const view = await mount(WOLF_STEP);
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
@@ -97,12 +95,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('seer actionConfirm coverage', () => {
-    it('seer: seat tap shows actionConfirm dialog', async () => {
+  describe('seer seat selection coverage', () => {
+    it('seer: drafting a target enables submission', async () => {
       const view = await mount(SEER_STEP);
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
@@ -130,13 +126,11 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
     });
 
-    it('witchPoison: pressing poison button shows witchPoisonPrompt', async () => {
+    it('witchPoison: pressing poison button shows witch poison selection', async () => {
       const view = await mount(
         witchWithContext({ killedSeat: 2, canSave: false, canPoison: true }),
       );
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('witchPoisonPrompt')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
 
     it('witchNoKill: shows witchNoKill dialog when no kill', async () => {
@@ -150,26 +144,19 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   // ===========================================================================
 
   describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
+    it('all required UI flows covered with chain interactions and effect assertions', async () => {
       // Step 1: actionPrompt (seer)
       await coverageChainActionPrompt(harness, 'seerCheck', 'seer', 'seer', 8);
 
       // Step 2: wolfVote -> press confirm -> submitAction(1) called
-      const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
-        harness,
-        'wolf',
-        5,
-        WOLVES,
-        1,
-      );
+      const { submitAction: wolfVoteAction } = await coverageChainWolfVote('wolf', 5, WOLVES, 1);
       expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
 
       // Step 3: confirmTrigger (hunter) -> press primary + assertNoLoop
       await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 10);
 
-      // Step 4: actionConfirm (seer tap seat) -> press confirm -> submitAction called
-      const { submitAction: seerSubmit } = await coverageChainSeatActionConfirm(
-        harness,
+      // Step 4: seat selection (seer target) → submit → submitAction called
+      const { submitAction: seerSubmit } = await coverageChainSeatSelection(
         'seerCheck',
         'seer',
         'seer',
@@ -200,8 +187,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 7: witchSavePrompt
       await coverageChainWitchSavePrompt(harness, 9);
 
-      // Step 8: witchPoisonPrompt
-      await coverageChainWitchPoisonPrompt(harness, 9);
+      // Step 8: witch poison selection
+      await coverageChainWitchPoisonSelection(9);
 
       // Step 9: witchNoKill
       const view = await mount(
@@ -213,13 +200,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       // Final: literal coverage requirements
       harness.assertCoverage([
         'actionPrompt',
-        'wolfVote',
         'wolfVoteEmpty',
-        'actionConfirm',
         'skipConfirm',
         'confirmTrigger',
         'witchSavePrompt',
-        'witchPoisonPrompt',
         'witchNoKill',
       ]);
     });

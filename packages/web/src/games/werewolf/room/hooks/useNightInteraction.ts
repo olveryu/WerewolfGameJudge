@@ -4,8 +4,7 @@
  *
  * Model: `resolveNightInteraction(viewModel, draft)` — the engine's
  * projection decides who acts and on whom; this hook only keeps the
- * local draft (magician first pick, multi-select set), the pending
- * second swap seat, and the dialog/prompt bookkeeping. Every command
+ * selection mode and its step-scoped draft, plus dialog/prompt bookkeeping. Every command
  * goes through the shared single-flight `submit`; night actions are
  * durable and carry `expectedStep`. Domain rejections are presented
  * from the state the engine committed (`night.rejection`), once per
@@ -14,14 +13,13 @@
 
 import {
   type GameState,
-  getPlayerCount,
   type WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
+import { resolveSeatPickTap } from '@/features/room/model/seatPicking';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
@@ -34,20 +32,23 @@ import {
 } from '../night/buildNightCommand';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
 import {
+  describeNightSeatSelection,
+  nightSeatAction,
+  type NightSeatSelection,
+} from '../night/nightSeatSelection';
+import {
   renderActionerMessage,
   resolveNightInteraction,
   wolfCountdownFragment,
   wolfStatusLine,
 } from '../night/resolveNightInteraction';
 import type { NightButtonAction } from '../werewolfRoomAdapter';
-import { useNightDraft } from './useNightDraft';
 
 const NIGHT_ACTION_LABEL = '操作';
 const SKIP_CONFIRM_TITLE = '跳过本次行动？';
 const SKIP_CONFIRM_TEXT = '确定跳过本次行动吗？';
 const WOLF_WITHDRAW_CONFIRM_TITLE = '取消投票？';
 const WOLF_WITHDRAW_CONFIRM_TEXT = '撤回你当前的袭击投票。';
-const WOLF_IMMUNE_NOTE = '（该角色免疫狼人袭击）';
 /** Minimum interval between two blocked-tap toasts. */
 const BLOCKED_TOAST_THROTTLE_MS = 3000;
 
@@ -63,6 +64,7 @@ export interface NightInteraction {
   readonly actionMessage: string | null;
   /** The wolf settle countdown line, visible while audio playback blocks the interaction model; null otherwise. */
   readonly nightStatusLine: string | null;
+  readonly seatSelection: NightSeatSelection | null;
   /** Consumes an in-game seat tap; false lets the shared handler apply. */
   readonly onSeatTap: (seat: number) => boolean;
   readonly onNightButton: (action: NightButtonAction) => void;
@@ -98,41 +100,28 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   const { state, viewModel, controlledSeat, effectiveSeat, submit } = input;
   const stepId = state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null;
   const roleRevealRandomNonce = state.roleRevealRandomNonce ?? null;
-
-  const draft = useNightDraft({
-    userId: input.userId,
-    roomId: input.roomId,
-    scope: {
-      stepId,
-      actorSeat: effectiveSeat,
-      roleRevealRandomNonce,
-      seatCount: getPlayerCount(state.templateRoles),
-    },
-  });
-  const [swapSecond, setSwapSecond] = useState<{
-    readonly stepId: string;
-    readonly seat: number;
+  const scopeKey = JSON.stringify([
+    input.roomId,
+    input.userId,
+    state.status,
+    stepId,
+    effectiveSeat,
+    roleRevealRandomNonce,
+  ]);
+  const [picking, setPicking] = useState<{
+    readonly scope: string;
+    readonly seats: readonly number[];
   } | null>(null);
-  const swapSecondSeat =
-    swapSecond !== null && swapSecond.stepId === stepId ? swapSecond.seat : null;
+  if (picking !== null && picking.scope !== scopeKey) setPicking(null);
 
   const model = useMemo(
     () =>
       resolveNightInteraction({
         viewModel,
-        draft: draft.draft,
-        swapSecondSeat,
         locks: { isAudioPlaying: state.isAudioPlaying, hasPendingCommand: input.hasPendingCommand },
         nowMs: input.nowMs,
       }),
-    [
-      viewModel,
-      draft.draft,
-      swapSecondSeat,
-      state.isAudioPlaying,
-      input.hasPendingCommand,
-      input.nowMs,
-    ],
+    [viewModel, state.isAudioPlaying, input.hasPendingCommand, input.nowMs],
   );
 
   /**
@@ -171,12 +160,11 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
         transportFailure: surface === 'dialog' ? 'toastAndRethrow' : 'alert',
       });
       if (ok) {
-        draft.clear();
-        setSwapSecond(null);
+        setPicking(null);
       }
       return ok;
     },
-    [controlledSeat, draft, model, roleRevealRandomNonce, stepId, submit],
+    [controlledSeat, model, roleRevealRandomNonce, stepId, submit],
   );
 
   /** A dialog callback that submits one confirmation. */
@@ -209,13 +197,10 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       case 'blocked':
       case 'ackHunterStatus':
         return null;
-      case 'pickTwoSeats':
-        return model.pick.first === null ? 'prompt' : null;
       default:
         return model.kind;
     }
   })();
-  const scopeKey = `${state.status}|${stepId ?? ''}|${effectiveSeat ?? ''}|${roleRevealRandomNonce ?? ''}`;
   useEffect(() => {
     if (promptKey === null) return;
     const key = `${scopeKey}|${promptKey}`;
@@ -236,7 +221,14 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       case 'confirmStatus':
       case 'chooseCard':
       case 'skipOnly':
-        showDismissAlert(model.prompt.title, model.prompt.text);
+        {
+          const action = nightSeatAction(model);
+          const text =
+            action === null
+              ? model.prompt.text
+              : `先按「${action.label}」，再点选座位。\n\n${model.prompt.text}`;
+          showDismissAlert(model.prompt.title, text);
+        }
         return;
       case 'idle':
       case 'blocked':
@@ -246,9 +238,19 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   }, [confirmWith, model, promptKey, scopeKey]);
 
   // ── Seat taps ──
+  const seatSelection =
+    picking?.scope === scopeKey ? describeNightSeatSelection(model, picking.seats) : null;
   const blockedToastAtRef = useRef(0);
   const onSeatTap = useCallback(
     (seat: number): boolean => {
+      if (
+        model.kind === 'wolfVote' &&
+        model.seatTapMessage !== null &&
+        model.selectable.includes(seat)
+      ) {
+        showDismissAlert(model.prompt.title, model.seatTapMessage);
+        return true;
+      }
       switch (model.kind) {
         case 'blocked': {
           const now = Date.now();
@@ -259,78 +261,24 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return true;
         }
         case 'pickSeat':
-          if (!model.selectable.includes(seat)) return false;
-          showConfirmAlert(
-            model.confirmTitle,
-            model.confirmText,
-            confirmWith({ kind: 'seat', seat }),
-          );
-          return true;
-        case 'wolfVote': {
-          if (!model.selectable.includes(seat)) return false;
-          if (model.seatTapMessage !== null) {
-            showDismissAlert(model.prompt.title, model.seatTapMessage);
-            return true;
-          }
-          const text = model.voteConfirmTemplate.replace('{seat}', formatSeat(seat));
-          showConfirmAlert(
-            model.confirmTitle,
-            model.immuneSeats.includes(seat) ? `${text}\n${WOLF_IMMUNE_NOTE}` : text,
-            confirmWith({ kind: 'seat', seat }),
-          );
-          return true;
-        }
-        case 'pickTwoSeats': {
-          if (!model.selectable.includes(seat)) return false;
-          const first = model.pick.first;
-          if (first === null) {
-            draft.updateDraft((current) => ({ ...current, firstSwapSeat: seat }));
-            showDismissAlert(
-              model.firstPickTitle,
-              model.firstPickTemplate.replace('{seat}', formatSeat(seat)),
-            );
-            return true;
-          }
-          if (seat === first) return true;
-          if (stepId === null) throw new Error('[FAIL-FAST] Swap pick outside a night step');
-          setSwapSecond({ stepId, seat });
-          // Cancelling the swap confirm clears both picks.
-          showConfirmAlert(
-            model.confirmTitle,
-            model.confirmText,
-            confirmWith({ kind: 'seats', seats: [first, seat] }),
-            {
-              onCancel: () => {
-                draft.clear();
-                setSwapSecond(null);
-              },
-            },
-          );
-          return true;
-        }
-        case 'multiSelect': {
-          if (!model.selectable.includes(seat)) return false;
-          const isSelected = model.selected.includes(seat);
-          if (!isSelected && model.selected.length >= model.max) {
-            toast.info(`最多选择${model.max}人`);
-            return true;
-          }
-          draft.updateDraft((current) => ({
-            ...current,
-            multiSelectedSeats: isSelected
-              ? current.multiSelectedSeats.filter((picked) => picked !== seat)
-              : [...current.multiSelectedSeats, seat],
-          }));
-          return true;
-        }
+        case 'wolfVote':
+        case 'pickTwoSeats':
         case 'witch':
-          if (!model.canPoison || !model.selectable.includes(seat)) return false;
-          showConfirmAlert(
-            model.poisonConfirmTitle,
-            model.poisonConfirmText,
-            confirmWith({ kind: 'poison', seat }),
-          );
+        case 'multiSelect': {
+          if (seatSelection === null) return false;
+          const result = resolveSeatPickTap({
+            seat,
+            eligibleSeats: seatSelection.eligible,
+            mode:
+              model.kind === 'pickTwoSeats' || model.kind === 'multiSelect' ? 'toggle' : 'replace',
+            selection: seatSelection.seats,
+            ineligibleTap: 'swallow',
+          });
+          if (result.kind === 'consumed') {
+            setPicking({ scope: scopeKey, seats: result.nextSelection });
+          }
           return true;
+        }
         case 'idle':
         case 'ackReveal':
         case 'ackGroupReveal':
@@ -341,7 +289,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return false;
       }
     },
-    [confirmWith, draft, model, stepId],
+    [model, scopeKey, seatSelection],
   );
 
   // ── Bottom buttons ──
@@ -352,6 +300,18 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   const onNightButton = useCallback(
     (action: NightButtonAction): void => {
       switch (action.kind) {
+        case 'startSeatSelection':
+          if (nightSeatAction(model) === null) throw illegalButton(action, model);
+          setPicking({ scope: scopeKey, seats: [] });
+          return;
+        case 'cancelSeatSelection':
+          setPicking(null);
+          return;
+        case 'submitSeatSelection': {
+          if (seatSelection?.confirm == null) throw illegalButton(action, model);
+          void dispatch(seatSelection.confirm.input);
+          return;
+        }
         case 'skip':
           if (model.kind === 'confirmStatus') {
             // Seed wolf declining to infect: the dialog already named the choice.
@@ -420,19 +380,9 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           if (model.kind !== 'chooseCard') throw illegalButton(action, model);
           setChooseCardOpenStepId(stepId);
           return;
-        case 'confirmMultiSelect': {
-          if (model.kind !== 'multiSelect') throw illegalButton(action, model);
-          const seats = model.selected;
-          showConfirmAlert(
-            model.confirmText,
-            `已选择：${seats.map((seat) => formatSeat(seat)).join('、')}`,
-            confirmWith({ kind: 'seats', seats }),
-          );
-          return;
-        }
       }
     },
-    [confirmWith, dispatch, model, stepId],
+    [confirmWith, dispatch, model, scopeKey, seatSelection, stepId],
   );
 
   const chooseCardModal = useMemo((): NightChooseCardModal | null => {
@@ -449,8 +399,14 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
 
   return {
     model,
-    actionMessage: renderActionerMessage(model, viewModel),
+    actionMessage:
+      seatSelection === null
+        ? renderActionerMessage(model, viewModel)
+        : model.kind === 'wolfVote'
+          ? `${seatSelection.message} · ${model.statusLine}`
+          : seatSelection.message,
     nightStatusLine,
+    seatSelection,
     onSeatTap,
     onNightButton,
     chooseCardModal,

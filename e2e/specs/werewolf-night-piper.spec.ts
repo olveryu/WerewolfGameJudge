@@ -72,7 +72,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         await test.step('piper hypnotizes wolf', async () => {
           await test.step('Piper turn should be detected', () =>
             waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages));
-          await driveMultiSelect(pages[piperIdx]!, [wolfSeat], '确认催眠（1人）');
+          await driveMultiSelect(pages[piperIdx]!, [wolfSeat], '确认催眠');
         });
 
         // === GroupConfirm: all players ack ===
@@ -151,7 +151,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         // === Piper hypnotizes 2 targets ===
         await test.step('piper hypnotizes 2 targets', async () => {
           await waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages);
-          await driveMultiSelect(pages[piperIdx]!, [target1Seat, target2Seat], '确认催眠（2人）');
+          await driveMultiSelect(pages[piperIdx]!, [target1Seat, target2Seat], '确认催眠');
         });
 
         // === GroupConfirm: verify messages ===

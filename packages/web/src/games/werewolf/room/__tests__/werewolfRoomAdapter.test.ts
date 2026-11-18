@@ -15,6 +15,7 @@ import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 
 import { nightState } from '../night/__tests__/nightFixtures';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
+import { describeNightSeatSelection } from '../night/nightSeatSelection';
 import { resolveNightInteraction } from '../night/resolveNightInteraction';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
@@ -25,7 +26,6 @@ import {
   createWerewolfSeatDataSource,
   deriveWerewolfBottomProgress,
   deriveWerewolfSeatCounts,
-  selectedNightSeats,
 } from '../werewolfRoomAdapter';
 
 const ENABLED_REVIEW: RoomReviewEntry = { isEnabled: true, onPress: () => {} };
@@ -37,8 +37,6 @@ function nightModel(state: GameState, seat: number | null, isHost = false) {
   const viewModel = getWerewolfViewModel(state, { seat, isHost });
   const night = resolveNightInteraction({
     viewModel,
-    draft: { firstSwapSeat: null, multiSelectedSeats: [] },
-    swapSecondSeat: null,
     locks: { isAudioPlaying: false, hasPendingCommand: false },
     nowMs: 0,
   });
@@ -72,11 +70,10 @@ describe('createWerewolfSeatDataSource', () => {
       stepId: 'wolfKill',
       overrides: { currentNightResults: { wolfVotesBySeat: { '1': 5 } } },
     });
-    const { viewModel, night } = nightModel(state, 0);
+    const { viewModel } = nightModel(state, 0);
     const source = createWerewolfSeatDataSource({
       state,
       viewModel,
-      night,
       controlledSeat: 2,
       sheriffElectionView: null,
       revision: 1,
@@ -107,7 +104,6 @@ describe('createWerewolfSeatDataSource', () => {
     const hostSource = createWerewolfSeatDataSource({
       state,
       viewModel: host.viewModel,
-      night: IDLE,
       controlledSeat: null,
       sheriffElectionView: null,
       revision: 1,
@@ -122,7 +118,6 @@ describe('createWerewolfSeatDataSource', () => {
     const playerSource = createWerewolfSeatDataSource({
       state,
       viewModel: player.viewModel,
-      night: IDLE,
       controlledSeat: null,
       sheriffElectionView: null,
       revision: 1,
@@ -145,7 +140,6 @@ describe('createWerewolfSeatDataSource', () => {
     const source = createWerewolfSeatDataSource({
       state,
       viewModel,
-      night: IDLE,
       controlledSeat: null,
       sheriffElectionView: null,
       revision: 1,
@@ -160,16 +154,13 @@ describe('createWerewolfSeatDataSource', () => {
     const viewModel = getWerewolfViewModel(state, { seat: 3, isHost: false });
     const night = resolveNightInteraction({
       viewModel,
-      draft: { firstSwapSeat: null, multiSelectedSeats: [0, 5] },
-      swapSecondSeat: null,
       locks: { isAudioPlaying: false, hasPendingCommand: false },
       nowMs: 0,
     });
-    expect(selectedNightSeats(night)).toEqual([0, 5]);
     const source = createWerewolfSeatDataSource({
       state,
       viewModel,
-      night,
+      seatSelection: describeNightSeatSelection(night, [0, 5]),
       controlledSeat: null,
       sheriffElectionView: null,
       revision: 1,
@@ -238,23 +229,12 @@ describe('buildNightButtons', () => {
     ]);
   });
 
-  it('templates the multi-select confirm count and hides it with nothing picked', () => {
+  it('offers confirmation only once the required targets have been selected', () => {
     const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'];
     const state = nightState({ roles, stepId: 'cupidChooseLovers' });
-    const viewModel = getWerewolfViewModel(state, { seat: 3, isHost: false });
-    const picked = resolveNightInteraction({
-      viewModel,
-      draft: { firstSwapSeat: null, multiSelectedSeats: [0, 5] },
-      swapSecondSeat: null,
-      locks: { isAudioPlaying: false, hasPendingCommand: false },
-      nowMs: 0,
-    });
-    const schema = SCHEMAS.cupidChooseLovers;
-    if (schema.kind !== 'multiChooseSeat') throw new Error('cupidChooseLovers is multiChooseSeat');
-    const labels = buildNightButtons(picked).map((button) => button.label);
-    expect(labels[0]).toBe(schema.ui!.confirmButtonText!.replace('{count}', '2'));
-    const empty = nightModel(state, 3).night;
-    expect(buildNightButtons(empty).some((button) => button.key === 'multiConfirm')).toBe(false);
+    const { night } = nightModel(state, 3);
+    expect(describeNightSeatSelection(night, [0])?.confirm).toBeNull();
+    expect(describeNightSeatSelection(night, [0, 5])?.confirm?.label).toBe('确认连接情侣 1号、6号');
   });
 });
 
@@ -397,8 +377,6 @@ describe('createWerewolfBottomActions', () => {
     const viewModel = getWerewolfViewModel(state, { seat: 0, isHost: false });
     const night = resolveNightInteraction({
       viewModel,
-      draft: { firstSwapSeat: null, multiSelectedSeats: [] },
-      swapSecondSeat: null,
       locks: { isAudioPlaying: options.isAudioPlaying, hasPendingCommand: false },
       nowMs: 0,
     });

@@ -1,7 +1,7 @@
 /**
  * Cancel Paths UI Test
  *
- * Tests the CANCEL button behavior for all dialog types that have cancel buttons.
+ * Tests cancellation for seat drafts and night dialogs.
  * Verifies that pressing cancel does NOT call submitAction.
  *
  * This is a cross-board test - not tied to a specific board configuration.
@@ -13,12 +13,16 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
+  cancelSeatSelection,
+  draftSeatSelection,
   mountRoomFor as mount,
   pressText,
   recordAlerts,
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
+  startSeatSelection,
   type SubmitActionMock,
   successfulWerewolfCommand,
   tapSeat,
@@ -60,15 +64,11 @@ describe('Cancel Paths (cross-board)', () => {
   // ===========================================================================
 
   describe('wolfVote cancel', () => {
-    it('pressing cancel on wolfVote dialog does NOT call submitAction', async () => {
+    it('cancelling a wolf target draft does not submit', async () => {
       const { options, submitAction } = withSubmitSpy(wolfKillStep('wolf', 4, WOLVES));
       const view = await mount(options);
-      harness.clear();
-
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
-
-      await harness.pressButtonOnType('wolfVote', '取消');
+      await draftSeatSelection(view, 1);
+      await cancelSeatSelection(view);
 
       expect(submitAction).not.toHaveBeenCalled();
     });
@@ -94,19 +94,15 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // actionConfirm cancel -> submitAction NOT called
+  // Seer selection cancel -> submitAction NOT called
   // ===========================================================================
 
-  describe('actionConfirm cancel', () => {
-    it('pressing cancel on seer actionConfirm does NOT call submitAction', async () => {
+  describe('seer selection cancel', () => {
+    it('cancelling a seer target draft does not submit', async () => {
       const { options, submitAction } = withSubmitSpy(actorStep('seerCheck', 'seer', 8));
       const view = await mount(options);
-      harness.clear();
-
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
-
-      await harness.pressButtonOnType('actionConfirm', '取消');
+      await draftSeatSelection(view, 1);
+      await cancelSeatSelection(view);
 
       expect(submitAction).not.toHaveBeenCalled();
     });
@@ -132,25 +128,15 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // witchPoisonPrompt cancel -> submitAction NOT called
+  // Witch poison selection cancel -> submitAction NOT called
   // ===========================================================================
 
-  describe('witchPoisonPrompt cancel', () => {
-    it('pressing cancel on witch poison confirm does NOT call submitAction', async () => {
+  describe('witch poison selection cancel', () => {
+    it('cancelling a witch poison draft does not submit', async () => {
       const { options, submitAction } = withSubmitSpy(witchStep(9, -1));
       const view = await mount(options);
-      harness.clear();
-
-      await tapSeat(view, 1);
-      await waitFor(() =>
-        expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
-      );
-
-      // Press cancel on whichever dialog appeared
-      const lastEvent = harness.getLastEvent();
-      if (lastEvent && lastEvent.buttons.includes('取消')) {
-        await harness.pressButton('取消');
-      }
+      await draftSeatSelection(view, 1);
+      await cancelSeatSelection(view);
 
       expect(submitAction).not.toHaveBeenCalled();
     });
@@ -160,44 +146,38 @@ describe('Cancel Paths (cross-board)', () => {
   // swap confirm cancel -> both picks cleared (§6.9 取消清两座)
   // ===========================================================================
 
-  describe('swap confirm cancel', () => {
-    it('cancelling the magician swap confirm clears both picks: the next tap is a first pick again', async () => {
+  describe('swap selection cancel', () => {
+    it('cancelling a magician swap clears both picks', async () => {
       const { options, submitAction } = withSubmitSpy(actorStep('magicianSwap', 'magician', 3));
       const view = await mount(options);
-      harness.clear();
-
+      await startSeatSelection(view);
       await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-      await harness.pressPrimaryOnType('magicianFirst');
       await tapSeat(view, 2);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
-
-      await harness.pressButtonOnType('actionConfirm', '取消');
+      expect(seatSelectionSubmitButton(view)).toBeEnabled();
+      await cancelSeatSelection(view);
       expect(submitAction).not.toHaveBeenCalled();
 
-      // Both picks are gone: a tap now opens the first-pick dialog, not the confirm.
-      harness.clear();
+      await startSeatSelection(view);
+      expect(view.getByText('已选 0 / 2 人')).toBeInTheDocument();
       await tapSeat(view, 5);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
+      expect(seatSelectionSubmitButton(view)).toBeDisabled();
       expect(submitAction).not.toHaveBeenCalled();
     });
   });
 
   // ===========================================================================
-  // magicianFirst dismiss does NOT call submitAction
+  // Drafting the first swap target does NOT call submitAction
   // ===========================================================================
 
-  describe('magicianFirst dismiss', () => {
-    it('dismissing magicianFirst alert keeps first target but no submit', async () => {
+  describe('magician first pick', () => {
+    it('drafting only one target does not submit a swap', async () => {
       const { options, submitAction } = withSubmitSpy(actorStep('magicianSwap', 'magician', 3));
       const view = await mount(options);
-      harness.clear();
-
+      await startSeatSelection(view);
       await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-
-      // magicianFirst only has a primary button ("知道了"), no cancel
+      expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
+      expect(seatSelectionSubmitButton(view)).toBeDisabled();
       expect(submitAction).not.toHaveBeenCalled();
     });
   });

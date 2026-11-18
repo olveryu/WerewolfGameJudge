@@ -59,30 +59,19 @@ export function getBoardByName(name: string): BoardConfig | undefined {
 /**
  * Base dialog types that ALL boards must cover (UI-triggerable)
  */
-const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVote', 'wolfVoteEmpty'];
+const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVoteEmpty'];
 
 /**
- * UI-TRIGGERABLE role-specific dialog requirements
- * These MUST be covered by UI tests (render → interaction → showAlert)
- *
- * CRITICAL: ALL these dialogs are MANDATORY and cannot be excluded.
- * Tests must properly mock hooks/buttons to trigger these dialogs.
+ * UI-triggerable role-specific dialogs. Seat drafts are verified through the
+ * board controls and do not produce dialog events.
  */
 const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
-  // Witch: save/poison prompt + no-kill info (UI can trigger with mock state)
-  witch: ['witchSavePrompt', 'witchPoisonPrompt', 'witchNoKill'],
+  witch: ['witchSavePrompt', 'witchNoKill'],
 
-  // Seer: chooseSeat confirm + skip
-  seer: ['actionConfirm', 'skipConfirm'],
-
-  // Magician: first target + action confirm (requires tapping two seats)
-  magician: ['magicianFirst', 'actionConfirm', 'skipConfirm'],
-
-  // Nightmare: causes actionRejected for blocked players + own chooseSeat
-  nightmare: ['actionRejected', 'actionConfirm', 'skipConfirm'],
-
-  // Guard: chooseSeat confirm + skip
-  guard: ['actionConfirm', 'skipConfirm'],
+  seer: ['skipConfirm'],
+  magician: ['skipConfirm'],
+  nightmare: ['actionRejected', 'skipConfirm'],
+  guard: ['skipConfirm'],
 
   // Hunter: confirm trigger (requires pressing '发动状态' button)
   hunter: ['confirmTrigger'],
@@ -90,57 +79,23 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
   // DarkWolfKing: confirm trigger (requires pressing '发动状态' button)
   darkWolfKing: ['confirmTrigger'],
 
-  // WolfRobot: hunter gate + chooseSeat confirm + skip
-  wolfRobot: ['wolfRobotHunterStatus', 'actionConfirm', 'skipConfirm'],
-
-  // WolfQueen: charm chooseSeat confirm + skip
-  wolfQueen: ['actionConfirm', 'skipConfirm'],
-
-  // Dreamcatcher: chooseSeat confirm + skip
-  dreamcatcher: ['actionConfirm', 'skipConfirm'],
-
-  // Gargoyle: chooseSeat confirm + skip
-  gargoyle: ['actionConfirm', 'skipConfirm'],
-
-  // AwakenedGargoyle: chooseSeat confirm only (canSkip: false, forced activation)
-  awakenedGargoyle: ['actionConfirm'],
-
-  // Psychic: chooseSeat confirm + skip
-  psychic: ['actionConfirm', 'skipConfirm'],
-
-  // MirrorSeer: chooseSeat confirm + skip (same as seer)
-  mirrorSeer: ['actionConfirm', 'skipConfirm'],
-
-  // PureWhite: chooseSeat confirm + skip
-  pureWhite: ['actionConfirm', 'skipConfirm'],
-
-  // WolfWitch: chooseSeat confirm + skip
-  wolfWitch: ['actionConfirm', 'skipConfirm'],
-
-  // Slacker: chooseSeat (canSkip=false, must choose)
-  slacker: ['actionConfirm'],
-
-  // WildChild: chooseSeat (canSkip=false, must choose)
-  wildChild: ['actionConfirm'],
-
-  // Shadow: chooseSeat (canSkip=false, must choose)
-  shadow: ['actionConfirm'],
+  wolfRobot: ['wolfRobotHunterStatus', 'skipConfirm'],
+  wolfQueen: ['skipConfirm'],
+  dreamcatcher: ['skipConfirm'],
+  gargoyle: ['skipConfirm'],
+  psychic: ['skipConfirm'],
+  mirrorSeer: ['skipConfirm'],
+  pureWhite: ['skipConfirm'],
+  wolfWitch: ['skipConfirm'],
 
   // Avenger: confirm trigger (displays faction)
   avenger: ['confirmTrigger'],
 
-  // Piper: multiChooseSeat confirm + skip
-  piper: ['actionConfirm', 'skipConfirm'],
-
-  // EclipseWolfQueen: chooseSeat confirm + skip
-  eclipseWolfQueen: ['actionConfirm', 'skipConfirm'],
+  piper: ['skipConfirm'],
+  eclipseWolfQueen: ['skipConfirm'],
 
   // HiddenWolf: confirm trigger (displays wolf teammates)
   hiddenWolf: ['confirmTrigger'],
-
-  // WolfGirl: chooseSeat confirm only (canSkip: false, forced confession;
-  // the confession step shows the wolf pack to the actor on the seat board)
-  wolfGirl: ['actionConfirm'],
 
   // SeedWolf: infection decision, optional skip, and final personal result acknowledgement
   seedWolf: ['confirmTrigger', 'skipConfirm', 'seedWolfInfectionResult'],

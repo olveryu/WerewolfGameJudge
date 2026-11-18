@@ -118,6 +118,7 @@ function RoomSeatTileComponent({
         data-highlight={model.highlight}
         data-inert={isBoardDisabled || model.disabledReason !== undefined}
         aria-label={describeSeat(model)}
+        aria-disabled={model.isSelectionUnavailable || undefined}
         aria-pressed={
           indicators?.selection === undefined || indicators.selection === null
             ? undefined
@@ -129,7 +130,7 @@ function RoomSeatTileComponent({
         onPointerCancel={longPress.onPointerCancel}
         onContextMenu={longPress.onContextMenu}
         onClick={() => {
-          if (longPress.consumeLongPress()) return;
+          if (longPress.consumeLongPress() || model.isSelectionUnavailable) return;
           onPress(seat, model.disabledReason);
         }}
       >

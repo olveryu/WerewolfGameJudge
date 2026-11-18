@@ -14,7 +14,7 @@ import {
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 
 import { buildNightCommand, WOLF_VOTE_WITHDRAW_TARGET } from '../buildNightCommand';
-import type { NightDraft, NightInteractionModel } from '../NightInteractionModel';
+import type { NightInteractionModel } from '../NightInteractionModel';
 import {
   PENDING_ACK_LOCK_REASON,
   renderActionerMessage,
@@ -22,15 +22,12 @@ import {
 } from '../resolveNightInteraction';
 import { nightState, viewAs } from './nightFixtures';
 
-const EMPTY_DRAFT: NightDraft = { firstSwapSeat: null, multiSelectedSeats: [] };
 const NOW = 10_000;
 const SCOPE = { stepId: 'wolfKill' as const, roleRevealRandomNonce: null };
 
 function resolve(
   viewModel: ReturnType<typeof viewAs>,
   extra: Partial<{
-    draft: NightDraft;
-    swapSecondSeat: number | null;
     isAudioPlaying: boolean;
     hasPendingCommand: boolean;
     nowMs: number;
@@ -38,8 +35,6 @@ function resolve(
 ): NightInteractionModel {
   return resolveNightInteraction({
     viewModel,
-    draft: extra.draft ?? EMPTY_DRAFT,
-    swapSecondSeat: extra.swapSecondSeat ?? null,
     locks: {
       isAudioPlaying: extra.isAudioPlaying ?? false,
       hasPendingCommand: extra.hasPendingCommand ?? false,
@@ -270,17 +265,9 @@ describe('wolfVote', () => {
 });
 
 describe('pickTwoSeats (swap)', () => {
-  it('carries the draft first seat and the transient second seat', () => {
+  it('submits exactly two seats in pick order', () => {
     const state = nightState({ roles: MAGICIAN_BOARD, stepId: 'magicianSwap' });
-    const model = expectKind(
-      resolve(viewAs(state, 5), {
-        draft: { firstSwapSeat: 1, multiSelectedSeats: [] },
-        swapSecondSeat: 3,
-      }),
-      'pickTwoSeats',
-    );
-    expect(model.pick).toEqual({ first: 1, second: 3 });
-    expect(model.firstPickTemplate).toContain('{seat}');
+    const model = expectKind(resolve(viewAs(state, 5)), 'pickTwoSeats');
     expect(model.skipLabel).toBe('不用技能');
     expect(buildNightCommand(model, { kind: 'seats', seats: [1, 3] }, SCOPE)).toMatchObject({
       input: { kind: 'multiTarget', targets: [1, 3] },
@@ -525,15 +512,10 @@ describe('skip availability follows schema.canSkip', () => {
 describe('multiSelect (multiChooseSeat)', () => {
   const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'];
 
-  it('carries the draft set, the max and the count-templated confirm label', () => {
+  it('submits the selected seats using the schema target count', () => {
     const state = nightState({ roles, stepId: 'cupidChooseLovers' });
-    const model = expectKind(
-      resolve(viewAs(state, 3), { draft: { firstSwapSeat: null, multiSelectedSeats: [0, 5] } }),
-      'multiSelect',
-    );
-    expect(model.selected).toEqual([0, 5]);
+    const model = expectKind(resolve(viewAs(state, 3)), 'multiSelect');
     expect(model.max).toBe(schemaOfKind('cupidChooseLovers', 'multiChooseSeat').maxTargets);
-    expect(model.confirmButtonTemplate).toContain('{count}');
     expect(buildNightCommand(model, { kind: 'seats', seats: [0, 5] }, SCOPE)).toMatchObject({
       input: { kind: 'multiTarget', targets: [0, 5] },
     });

@@ -16,6 +16,8 @@ import {
   actorStep,
   click,
   createWerewolfRoomMock,
+  draftSeatSelection,
+  expectSeatSelectionUnavailable,
   mountRoomFor as mount,
   mountWerewolfRoom,
   recordAlerts,
@@ -127,23 +129,31 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
   });
 
   describe('seat tap blocked during audio', () => {
-    it('seer seat tap produces no dialog when isAudioPlaying=true', async () => {
+    it('seer cannot draft a seat while audio plays', async () => {
       const view = await mount(seerStep(true));
       harness.clear();
 
       await tapSeat(view, 1);
 
-      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expectSeatSelectionUnavailable(view);
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).not.toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
       expect(harness.hasSeen('actionPrompt')).toBe(false);
     });
 
-    it('wolf seat tap produces no dialog when isAudioPlaying=true', async () => {
+    it('wolf cannot draft a seat while audio plays', async () => {
       const view = await mount(WOLF_STEP_DURING_AUDIO);
       harness.clear();
 
       await tapSeat(view, 1);
 
-      expect(harness.hasSeen('wolfVote')).toBe(false);
+      expectSeatSelectionUnavailable(view);
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).not.toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     });
   });
 
@@ -164,11 +174,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
   describe('audio off → interactions work normally', () => {
     it('seer seat tap works when isAudioPlaying=false (control test)', async () => {
       const view = await mount(seerStep(false));
-      harness.clear();
-
-      await tapSeat(view, 1);
-
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 });

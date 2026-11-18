@@ -114,8 +114,6 @@ function bottomFor(
   const viewModel = getWerewolfViewModel(state, { seat: viewer.seat, isHost: viewer.isHost });
   const night = resolveNightInteraction({
     viewModel,
-    draft: { firstSwapSeat: null, multiSelectedSeats: [] },
-    swapSecondSeat: null,
     locks: { isAudioPlaying: false, hasPendingCommand: false },
     nowMs: 0,
   });
@@ -173,7 +171,6 @@ function bottomFor(
   const model = createWerewolfRoomShellModel({
     state,
     viewModel,
-    night,
     revision: 1,
     roomCode: '1234',
     viewer,

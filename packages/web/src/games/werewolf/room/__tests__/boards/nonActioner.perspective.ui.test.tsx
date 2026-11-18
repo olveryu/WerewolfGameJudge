@@ -2,11 +2,11 @@
  * Non-Actioner Board UI Test
  *
  * Verifies the non-actioner perspective: when the viewer is not the step's actor,
- * action dialogs (actionPrompt / witchSavePrompt / witchPoisonPrompt / confirmTrigger)
- * must NOT appear. Fills the gap that board UI tests only cover the actioner view.
+ * night dialogs and seat selection controls must not appear.
  */
 
 import {
+  expectSeatSelectionUnavailable,
   mountRoomFor as mount,
   recordAlerts,
   RoomScreenTestHarness,
@@ -38,7 +38,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
   });
 
   it('witchAction step: non-actioner villager sees no witch dialogs', async () => {
-    await mount({
+    const view = await mount({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'villager',
@@ -47,10 +47,10 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
     });
 
     expect(harness.hasSeen('witchSavePrompt')).toBe(false);
-    expect(harness.hasSeen('witchPoisonPrompt')).toBe(false);
+    expectSeatSelectionUnavailable(view);
   });
 
-  it('witchAction step: non-actioner tapping seat does not trigger poison dialog', async () => {
+  it('witchAction step: non-actioner tapping a seat cannot draft a poison target', async () => {
     const view = await mount({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
@@ -61,7 +61,7 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
     harness.clear();
     await tapSeat(view, 1);
 
-    expect(harness.hasSeen('witchPoisonPrompt')).toBe(false);
+    expectSeatSelectionUnavailable(view);
   });
 
   it('hunterConfirm step: non-actioner sees no confirmTrigger or actionPrompt', async () => {
@@ -77,9 +77,14 @@ describe('WerewolfRoomScreen UI: non-actioner perspective', () => {
     expect(harness.hasSeen('actionPrompt')).toBe(false);
   });
 
-  it('wolfKill step: non-actioner sees no wolfVote dialog', async () => {
-    await mount({ schemaId: 'wolfKill', currentActionRole: 'wolf', myRole: 'villager', mySeat: 0 });
+  it('wolfKill step: non-actioner cannot select a wolf target', async () => {
+    const view = await mount({
+      schemaId: 'wolfKill',
+      currentActionRole: 'wolf',
+      myRole: 'villager',
+      mySeat: 0,
+    });
 
-    expect(harness.hasSeen('wolfVote')).toBe(false);
+    expectSeatSelectionUnavailable(view);
   });
 });

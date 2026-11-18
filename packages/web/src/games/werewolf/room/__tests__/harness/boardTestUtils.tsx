@@ -474,6 +474,59 @@ export async function tapSeat(view: RenderResult, seat: number): Promise<void> {
   await click(view.getByTestId(TESTIDS.seatTilePressable(seat)));
 }
 
+export function seatSelectionSubmitButton(view: RenderResult): HTMLElement {
+  return view.getByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
+}
+
+export function expectSeatSelectionUnavailable(view: RenderResult): void {
+  const startId = TESTIDS.werewolfNightButton('startSeatSelection');
+  expect(view.queryByTestId(startId)).not.toBeInTheDocument();
+  const moreActions = view.queryByTestId(TESTIDS.roomMoreActionsButton);
+  expect(moreActions?.getAttribute('data-player-action-ids')?.split(' ') ?? []).not.toContain(
+    startId,
+  );
+  expect(
+    view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection')),
+  ).not.toBeInTheDocument();
+}
+
+async function pressSeatSelectionAction(
+  view: RenderResult,
+  key: 'startSeatSelection' | 'cancelSeatSelection',
+): Promise<void> {
+  const testId = TESTIDS.werewolfNightButton(key);
+  if (view.queryByTestId(testId) === null) {
+    await click(view.getByTestId(TESTIDS.roomMoreActionsButton));
+  }
+  await click(await view.findByTestId(testId));
+}
+
+export async function startSeatSelection(view: RenderResult): Promise<void> {
+  await pressSeatSelectionAction(view, 'startSeatSelection');
+  expect(seatSelectionSubmitButton(view)).toBeDisabled();
+}
+
+export async function cancelSeatSelection(view: RenderResult): Promise<void> {
+  await pressSeatSelectionAction(view, 'cancelSeatSelection');
+  expect(
+    view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection')),
+  ).not.toBeInTheDocument();
+}
+
+export async function submitSeatSelection(view: RenderResult): Promise<void> {
+  const button = seatSelectionSubmitButton(view);
+  expect(button).toBeEnabled();
+  await click(button);
+}
+
+/** Enter selection mode and verify that tapping a target creates a submittable draft. */
+export async function draftSeatSelection(view: RenderResult, seat: number): Promise<void> {
+  await startSeatSelection(view);
+  await tapSeat(view, seat);
+  expect(view.getByTestId(TESTIDS.seatTilePressable(seat))).toHaveAttribute('aria-pressed', 'true');
+  expect(seatSelectionSubmitButton(view)).toBeEnabled();
+}
+
 /** Clicks the element whose text is exactly `text` (room actions, gate buttons). */
 export async function pressText(view: RenderResult, text: string): Promise<void> {
   await revealBottomActionText(view, text);
@@ -567,9 +620,8 @@ export function confirmStep(
   return { ...actorStep(schemaId, role, seat), gameStateOverrides: { confirmStatus } };
 }
 
-/** wolfVote confirm → `werewolf.action.submit { target }`. */
-export async function chainWolfVoteConfirm(
-  harness: RoomScreenTestHarness,
+/** Draft a wolf target and submit `werewolf.action.submit { target }`. */
+export async function chainWolfVote(
   wolfRole: RoleId,
   wolfSeat: number,
   wolfAssignments: Map<number, RoleId>,
@@ -583,11 +635,9 @@ export async function chainWolfVoteConfirm(
     roleAssignments: wolfAssignments,
   });
   const view = await mountWerewolfRoom(mock);
-  harness.clear();
-
-  await tapSeat(view, targetSeat);
-  await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
-  await harness.pressButtonOnType('wolfVote', '确定');
+  await draftSeatSelection(view, targetSeat);
+  expect(mock.submitAction).not.toHaveBeenCalled();
+  await submitSeatSelection(view);
   expect(mock.submitAction).toHaveBeenCalledTimes(1);
   expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
 
@@ -682,29 +732,12 @@ export async function chainWolfRobotHunterStatus(
 // Coverage-integrated drivers: the harness keeps the recorded dialogs for assertCoverage.
 
 export async function coverageChainWolfVote(
-  harness: RoomScreenTestHarness,
   wolfRole: RoleId,
   wolfSeat: number,
   wolfAssignments: Map<number, RoleId>,
   targetSeat: number,
 ): Promise<{ submitAction: SubmitActionMock }> {
-  const mock = createWerewolfRoomMock({
-    schemaId: 'wolfKill',
-    currentActionRole: 'wolf',
-    myRole: wolfRole,
-    mySeat: wolfSeat,
-    roleAssignments: wolfAssignments,
-  });
-  const view = await mountWerewolfRoom(mock);
-
-  await tapSeat(view, targetSeat);
-  await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
-  await harness.pressPrimaryOnType('wolfVote');
-  expect(mock.submitAction).toHaveBeenCalledTimes(1);
-  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
-
-  view.unmount();
-  return { submitAction: mock.submitAction };
+  return { submitAction: await chainWolfVote(wolfRole, wolfSeat, wolfAssignments, targetSeat) };
 }
 
 export async function coverageChainSkipConfirm(
@@ -824,10 +857,7 @@ export async function coverageChainWitchSavePrompt(
   view.unmount();
 }
 
-export async function coverageChainWitchPoisonPrompt(
-  harness: RoomScreenTestHarness,
-  seat: number,
-): Promise<void> {
+export async function coverageChainWitchPoisonSelection(seat: number): Promise<void> {
   const view = await mountWerewolfRoom(
     createWerewolfRoomMock({
       schemaId: 'witchAction',
@@ -838,15 +868,11 @@ export async function coverageChainWitchPoisonPrompt(
     }),
   );
 
-  await tapSeat(view, 1);
-  await waitFor(() =>
-    expect(harness.hasSeen('witchPoisonPrompt') || harness.hasSeen('actionConfirm')).toBe(true),
-  );
+  await draftSeatSelection(view, seat === 1 ? 0 : 1);
   view.unmount();
 }
 
 export async function coverageChainMagicianSwap(
-  harness: RoomScreenTestHarness,
   seat: number,
   firstTarget: number,
   secondTarget: number,
@@ -859,14 +885,17 @@ export async function coverageChainMagicianSwap(
   });
   const view = await mountWerewolfRoom(mock);
 
+  await startSeatSelection(view);
   await tapSeat(view, firstTarget);
-  await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
-  await harness.pressPrimaryOnType('magicianFirst');
-
+  expect(seatSelectionSubmitButton(view)).toBeDisabled();
   await tapSeat(view, secondTarget);
-  await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
-  await harness.pressButtonOnType('actionConfirm', '确定');
+  expect(mock.submitAction).not.toHaveBeenCalled();
+  await submitSeatSelection(view);
   expect(mock.submitAction).toHaveBeenCalledTimes(1);
+  expect(mock.submitAction).toHaveBeenCalledWith({
+    kind: 'multiTarget',
+    targets: [firstTarget, secondTarget],
+  });
 
   view.unmount();
   return { submitAction: mock.submitAction };
@@ -906,8 +935,7 @@ export async function coverageChainNightmareBlocked(
   return { rejectedEvents };
 }
 
-export async function coverageChainSeatActionConfirm(
-  harness: RoomScreenTestHarness,
+export async function coverageChainSeatSelection(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
@@ -922,10 +950,11 @@ export async function coverageChainSeatActionConfirm(
   });
   const view = await mountWerewolfRoom(mock);
 
-  await tapSeat(view, targetSeat);
-  await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
-  await harness.pressPrimaryOnType('actionConfirm');
+  await draftSeatSelection(view, targetSeat);
+  expect(mock.submitAction).not.toHaveBeenCalled();
+  await submitSeatSelection(view);
   expect(mock.submitAction).toHaveBeenCalledTimes(1);
+  expect(mock.submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
 
   view.unmount();
   return { submitAction: mock.submitAction };
@@ -954,20 +983,4 @@ export async function coverageChainWolfVoteEmpty(
 
   view.unmount();
   return { submitAction: mock.submitAction };
-}
-
-/** Magician: first pick dialog → second pick → actionConfirm → `multiTarget`. */
-export async function chainActionConfirm(
-  harness: RoomScreenTestHarness,
-  seat: number,
-  firstTarget: number,
-  secondTarget: number,
-): Promise<SubmitActionMock> {
-  const { submitAction } = await coverageChainMagicianSwap(
-    harness,
-    seat,
-    firstTarget,
-    secondTarget,
-  );
-  return submitAction;
 }

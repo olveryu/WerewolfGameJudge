@@ -5,11 +5,11 @@
  * Roles: 5x villager, 3x wolf, darkWolfKing, psychic, poisoner, hunter,
  *        dreamcatcher, crow, treasureMaster (15 roles -> 12 players + 3 bottom cards)
  *
- * Required UI coverage (getRequiredUiDialogTypes):
+ * Required UI coverage:
  * - actionPrompt: psychic, dreamcatcher actions
- * - wolfVote: wolf vote dialog
+ * - wolfVote: draft and submit a target
  * - wolfVoteEmpty: wolf empty knife
- * - actionConfirm: psychic/dreamcatcher seat tap confirm
+ * - seat selection: psychic/dreamcatcher seat tap confirm
  * - skipConfirm: psychic/dreamcatcher skip
  * - confirmTrigger: hunter/darkWolfKing confirm trigger
  *
@@ -24,14 +24,15 @@ import {
   actorStep,
   chainConfirmTrigger,
   chainSkipConfirm,
-  chainWolfVoteConfirm,
+  chainWolfVote,
   confirmStep,
   coverageChainActionPrompt,
   coverageChainConfirmTrigger,
-  coverageChainSeatActionConfirm,
+  coverageChainSeatSelection,
   coverageChainSkipConfirm,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
+  draftSeatSelection,
   getBoardByName,
   mountRoomFor as mount,
   pressText,
@@ -39,7 +40,6 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
-  tapSeat,
   wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
 
@@ -73,12 +73,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('wolfVote coverage', () => {
-    it('darkWolfKing vote: tapping seat shows wolf vote dialog', async () => {
+  describe('wolf vote selection coverage', () => {
+    it('darkWolfKing vote: drafting a target enables vote submission', async () => {
       const view = await mount(WOLF_STEP);
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
@@ -105,12 +103,10 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
-  describe('psychic actionConfirm coverage', () => {
-    it('psychic: seat tap shows actionConfirm dialog', async () => {
+  describe('psychic seat selection coverage', () => {
+    it('psychic: drafting a target enables submission', async () => {
       const view = await mount(PSYCHIC_STEP);
-      harness.clear();
-      await tapSeat(view, 1);
-      await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+      await draftSeatSelection(view, 1);
     });
   });
 
@@ -137,8 +133,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   // ===========================================================================
 
   describe('chain interaction', () => {
-    it('wolfVote confirm → submitAction called', async () => {
-      await chainWolfVoteConfirm(harness, 'darkWolfKing', 9, WOLVES, 1);
+    it('wolf target submission → submitAction called', async () => {
+      await chainWolfVote('darkWolfKing', 9, WOLVES, 1);
     });
 
     it('skipConfirm (psychic) → submitAction called', async () => {
@@ -155,13 +151,12 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   // ===========================================================================
 
   describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI dialog types covered with chain interactions and effect assertions', async () => {
+    it('all required UI flows covered with chain interactions and effect assertions', async () => {
       // Step 1: actionPrompt (psychic)
       await coverageChainActionPrompt(harness, 'psychicCheck', 'psychic', 'psychic', 10);
 
       // Step 2: wolfVote -> press confirm -> submitAction(1) called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
-        harness,
         'darkWolfKing',
         9,
         WOLVES,
@@ -178,9 +173,8 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         9,
       );
 
-      // Step 4: actionConfirm (psychic tap seat) -> press confirm -> submitAction called
-      const { submitAction: psychicSubmit } = await coverageChainSeatActionConfirm(
-        harness,
+      // Step 4: seat selection (psychic target) → submit → submitAction called
+      const { submitAction: psychicSubmit } = await coverageChainSeatSelection(
         'psychicCheck',
         'psychic',
         'psychic',
@@ -209,14 +203,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
 
       // Final: literal coverage requirements
-      harness.assertCoverage([
-        'actionPrompt',
-        'wolfVote',
-        'wolfVoteEmpty',
-        'actionConfirm',
-        'skipConfirm',
-        'confirmTrigger',
-      ]);
+      harness.assertCoverage(['actionPrompt', 'wolfVoteEmpty', 'skipConfirm', 'confirmTrigger']);
     });
   });
 });

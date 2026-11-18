@@ -1,8 +1,6 @@
 /**
- * §6.9 — a night dialog whose submit fails in transport stays open for retry:
- * the dialog callback rejects (the AlertHost protocol for "keep the dialog"),
- * the failure is a toast — never a modal alert that would replace the dialog —
- * and a decision (rejection) still closes the dialog with the usual alert.
+ * Reveal acknowledgements retry from the original dialog after a toast.
+ * Seat submissions report delivery failures and retry from the retained draft.
  */
 
 import type { GameState, WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
@@ -11,11 +9,13 @@ import { toast } from 'sonner';
 
 import {
   createWerewolfRoomMock,
+  draftSeatSelection,
   mountWerewolfRoom,
   recordAlerts,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
   type SubmitActionMock,
-  tapSeat,
+  submitSeatSelection,
   type WerewolfDispatchOutcome,
 } from '@/games/werewolf/room/__tests__/harness';
 import { rejectedRoomCommand, undeliveredRoomCommand } from '@/test-utils/roomCommand';
@@ -75,7 +75,7 @@ describe('night dialog retry on transport failure', () => {
     );
   });
 
-  it('action confirm: an undelivered submit keeps the confirm dialog; a rejection closes it with an alert', async () => {
+  it('seat submission keeps the draft on delivery failure and reports a rejected retry', async () => {
     const outcomes: WerewolfDispatchOutcome[] = [
       undeliveredRoomCommand<GameState>('network', 'a1'),
       rejectedRoomCommand<GameState>('invalid_status', 'a2'),
@@ -95,21 +95,24 @@ describe('night dialog retry on transport failure', () => {
       }),
     );
     harness.clear();
-    await tapSeat(view, 1);
-    await waitFor(() => expect(harness.hasSeen('actionConfirm')).toBe(true));
+    await draftSeatSelection(view, 1);
+    const draftLabel = seatSelectionSubmitButton(view).textContent;
     const eventsBefore = harness.events().length;
 
-    // Transport failure: toast + rejected callback → the dialog stays for retry.
-    await expect(harness.pressAndSettle('actionConfirm', '确定')).rejects.toMatchObject({
-      name: 'RoomCommandUndeliveredError',
-    });
-    expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1);
-    expect(harness.events()).toHaveLength(eventsBefore);
+    await submitSeatSelection(view);
+    await waitFor(() => expect(harness.events()).toHaveLength(eventsBefore + 1));
+    const deliveryAlert = harness.getLastEvent();
+    expect(deliveryAlert?.title).toBe('操作失败');
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(seatSelectionSubmitButton(view)).toHaveTextContent(draftLabel);
+    expect(seatSelectionSubmitButton(view)).toBeEnabled();
+    await harness.pressButton(deliveryAlert!.buttons[0]!);
 
-    // Retry answered by a decision: the callback resolves (dialog closes) and the rejection alerts.
-    await expect(harness.pressAndSettle('actionConfirm', '确定')).resolves.toBeUndefined();
-    await waitFor(() => expect(harness.events().length).toBe(eventsBefore + 1));
+    await submitSeatSelection(view);
+    await waitFor(() => expect(harness.events()).toHaveLength(eventsBefore + 2));
     expect(harness.events().at(-1)?.title).toBe('操作失败');
     expect(submitAction).toHaveBeenCalledTimes(2);
+    expect(submitAction).toHaveBeenNthCalledWith(1, { kind: 'target', target: 1 });
+    expect(submitAction).toHaveBeenNthCalledWith(2, { kind: 'target', target: 1 });
   });
 });
