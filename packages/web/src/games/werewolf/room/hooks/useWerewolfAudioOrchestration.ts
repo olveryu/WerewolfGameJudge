@@ -85,7 +85,12 @@ export function useWerewolfAudioOrchestration({
     ackCommand,
     ackLabel: '播报确认',
     isNarratedPhase,
-    resolveReplayAudioKey,
+    resolveReplayEffects,
     logger: werewolfRuntimeLog,
   });
+}
+
+function resolveReplayEffects(state: GameState): readonly AudioEffect[] {
+  const audioKey = resolveReplayAudioKey(state);
+  return audioKey === null ? [] : [{ audioKey }];
 }

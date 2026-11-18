@@ -20,7 +20,7 @@ describe('AvalonHistorySummary', () => {
     );
 
     expect(getByText('第2任务 · 第1次提案投票中')).toBeTruthy();
-    expect(getByText('对局记录 ›')).toBeTruthy();
+    expect(getByText('对局记录')).toBeTruthy();
     const pendingRow = getByTestId('avalon-history-summary-pending-seats');
     expect(pendingRow).toBeTruthy();
     expect(getByTestId('avalon-history-summary-pending-seats-seat-1')).toBeTruthy();

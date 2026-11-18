@@ -120,7 +120,7 @@ function beginGame(state: SecrethitlerState, context: CommandContext): Secrethit
   if (state.phase.kind !== 'viewing') return reject(SECRETHITLER_REASONS.phase);
   if (!haveAllViewed(getSecrethitlerViewingParticipants(state), state.roleViewedSeats))
     return reject(SECRETHITLER_REASONS.notAllViewed);
-  return beginSecrethitlerNight();
+  return beginSecrethitlerNight(state);
 }
 
 /**

@@ -38,16 +38,53 @@ changing only one side fails.
 
 ## Identity viewing and the test scaffold
 
+For narrated steps, inspect Werewolf and Avalon before filling the skeleton.
+Use `useRoomAudioOrchestration` plus `useRoomAudioResume`/`RoomAudioResumeDialog`,
+and shared `useRoomBgmControl` for saved volumes, host-only music, dawn stopping,
+and cleanup on host loss or room exit. A resume gesture only restores playback;
+it is never a substitute for successful required narration or a manual stage advance.
+For every step, specify the audible instruction, eligible actors, private view,
+pending/confirmed/waiting guidance, and progression conditions together.
+Progress counts player-action/confirmation steps, never individual audio clips.
+Batch opening, closing and dawn cues around the actual actions, and test the exact
+current/total. Closing narration may outlive the action phase: preserve the audio
+lock and rejoin recovery until the full batch succeeds.
+Test the real player-count/role variants, spectators, confirmed players,
+confirmation before/after audio ack, rejoin, and playback failure.
+Do not treat nonempty guidance or a bundled MP3 as evidence that the flow is correct.
+When a step privately reveals other players, follow Werewolf's shared avatar
+color highlights (`resolveHighlight`, `danger` for known evil peers), not extra
+identity text badges. Build highlights from the effective viewer's private
+projection, not the raw identity table; clear them when that viewer confirms or the step ends.
+Test unauthorized viewers, spectators, count/role variations and bot takeover
+switches, including returning to the original seat.
+
 The identity-viewing client template keeps `RoomShell` in `kind: 'seats'`
 throughout the game, matching Werewolf/Avalon. `RoomGameSummary` owns the
-title/guide and `BoardInfoCard` owns public role composition and collapse.
+single configuration frame, game-name/count header, guide/tools and collapse.
+Public parameters go in its `settings` label/value pairs (the shared two-column
+layout), not a subtitle. Keep introductions in the guide, omit redundant board
+names, and put live status outside the disclosure. With no public content the
+shared card omits its empty collapse control.
+`BoardInfoContent` renders public role composition inside it without a second frame.
 Replace the placeholder `create<Game>BoardInfoSections` with the approved
 public role-count table; never derive public configuration from dealt
 seat identities. Public role previews use `RoleCardDialog`, not the
 view-record command. After dealing, default the board card to collapsed.
 Keep identity/personal commands in bottom actions; use the shared
-`RoomRecordSummary` and `RoomDialog` for on-demand public match details.
-Without identity viewing, the template retains the existing workspace.
+`RoomStatusSummary` in the `seats.bottomSummary` slot and `RoomDialog` for
+on-demand public match details. `RoomShell` places that summary inside the
+shared bottom action card, above progress, messages and personal actions.
+The summary is shared with Werewolf's sheriff HUD, Avalon and Secret Hitler;
+games own phase visibility and detail actions, not a separate summary layout.
+Without identity viewing, the lobby still gets the same collapsible game
+card with its public summary; play retains the existing workspace.
+The role adapter resolves the same portrait registry that the room preloads;
+the placeholder identity has the shared blank portrait, and unknown identities
+fail explicitly. Reveal animation candidates come from public board sections,
+not privately dealt identities. Generated screen tests exercise all identity
+phases and public previews; the engine protocol test includes an all-bot game
+so reward eligibility cannot accidentally become an opening requirement.
 
 Identity games use the platform protocol in
 `packages/game-engine/src/platform/room/identityViewing.ts`

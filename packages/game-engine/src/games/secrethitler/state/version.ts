@@ -1,8 +1,8 @@
-/** Current persisted state identity for secrethitler. v1: elections, policies and presidential powers. */
+/** v2: one recognition step, with opening and closing narration batches. */
 
 import { SECRETHITLER_GAME_TYPE } from './types';
 
-export const SECRETHITLER_STATE_VERSION = 1;
+export const SECRETHITLER_STATE_VERSION = 2;
 
 export const SECRETHITLER_STATE_IDENTITY = {
   gameType: SECRETHITLER_GAME_TYPE,

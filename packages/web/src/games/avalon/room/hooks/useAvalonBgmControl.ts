@@ -1,10 +1,11 @@
 /** Host-owned Avalon background music; narration and authoritative game state remain independent. */
 
 import type { AvalonPhaseKind } from '@game-judge/game-engine/games/avalon/public';
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-import { resolveBgmTrackUrls } from '@/features/product/model/BgmCatalog';
-import { audioSettings } from '@/features/settings/audioSettings';
+import {
+  type RoomBgmControlState,
+  useRoomBgmControl,
+} from '@/features/room/audio/useRoomBgmControl';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
 
@@ -32,16 +33,7 @@ function resolveBgmLifecycle(phase: AvalonPhaseKind, isAudioPlaying: boolean): A
   return AVALON_DAY_PHASES.has(phase) ? 'manual' : 'off';
 }
 
-export interface AvalonBgmControlState {
-  /** Whether the player is actually playing BGM. */
-  readonly isBgmPlaying: boolean;
-  /** Start BGM unconditionally (respects the track setting) — the host's manual toggle. */
-  readonly playBgm: () => void;
-  /** Stop BGM immediately. */
-  readonly stopBgm: () => void;
-  /** Start BGM if enabled — called from the rejoin resume gesture. */
-  readonly startBgmIfEnabled: () => void;
-}
+export type AvalonBgmControlState = RoomBgmControlState;
 
 /**
  * Binds saved music preferences to Avalon lifecycle and explicit host playback controls.
@@ -56,42 +48,5 @@ export function useAvalonBgmControl(
   phase: AvalonPhaseKind,
   isAudioPlaying: boolean,
 ): AvalonBgmControlState {
-  const isBgmPlaying = useSyncExternalStore(audio.subscribeBgm, audio.isBgmPlaying);
-  const lifecycle = resolveBgmLifecycle(phase, isAudioPlaying);
-
-  const stopBgm = audio.stopBgm;
-
-  const playBgm = useCallback(() => {
-    const settings = audioSettings.getSnapshot();
-    audio.setBgmVolume(settings.bgmVolume);
-    audio.startBgm(resolveBgmTrackUrls(settings.bgmTrack));
-  }, [audio]);
-
-  const startBgmIfEnabled = useCallback(() => {
-    if (audioSettings.getSnapshot().bgmEnabled) playBgm();
-  }, [playBgm]);
-
-  useEffect(() => {
-    if (!isHost) return;
-    audio.setGameAudioVolume(audioSettings.getSnapshot().gameAudioVolume);
-  }, [isHost, audio]);
-
-  // Entering auto plays when enabled; entering manual (dawn ack) or off (lobby / viewing /
-  // ended) stops. While the lifecycle stays manual this does not re-run, so host controls
-  // persist.
-  useEffect(() => {
-    if (!isHost) return;
-    if (lifecycle !== 'auto') {
-      audio.stopBgm();
-      return;
-    }
-    startBgmIfEnabled();
-  }, [audio, isHost, lifecycle, startBgmIfEnabled]);
-
-  useEffect(() => {
-    if (!isHost) return;
-    return stopBgm;
-  }, [isHost, stopBgm]);
-
-  return { isBgmPlaying, playBgm, stopBgm, startBgmIfEnabled };
+  return useRoomBgmControl(audio, isHost, resolveBgmLifecycle(phase, isAudioPlaying));
 }

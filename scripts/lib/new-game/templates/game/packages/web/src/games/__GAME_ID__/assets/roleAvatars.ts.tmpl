@@ -6,8 +6,13 @@
  * `getBoardRolePortraits` 只返回公开板子上可能出现的身份，绝不读玩家的秘密分配。
  * 进房间时由共享 `useRoomImagePreload` 一次预加载（见 `use__GAME_PASCAL__RoomState`）。
  */
+//#cap identityViewing
+import { __GAME_UPPER___TODO_IDENTITY } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
-/** Resolve __GAME_DISPLAY_NAME__ role IDs to the game's hand-drawn role-card asset URLs. */
+import placeholder from '../../../../../../assets/avatars/web/blank.webp';
+//#end
+
+/** Resolve known role IDs to registered portraits; the skeleton uses the shared blank asset. */
 export function getRoleAvatar(roleId: string): string {
   const url = __GAME_UPPER___ROLE_IMAGE_MAP[roleId];
   if (url === undefined) throw new Error(`Missing portrait for role ${roleId}`);
@@ -20,4 +25,8 @@ export function getBoardRolePortraits(): readonly string[] {
 }
 
 /** TODO(gameplay): 身份构成定稿后登记每个身份的立绘地址。 */
-const __GAME_UPPER___ROLE_IMAGE_MAP: Readonly<Record<string, string>> = {};
+const __GAME_UPPER___ROLE_IMAGE_MAP: Readonly<Record<string, string>> = {
+//#cap identityViewing
+  [__GAME_UPPER___TODO_IDENTITY]: placeholder,
+//#end
+};

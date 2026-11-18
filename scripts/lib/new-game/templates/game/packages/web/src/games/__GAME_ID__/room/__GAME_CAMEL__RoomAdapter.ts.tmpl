@@ -113,6 +113,9 @@ function create__GAME_PASCAL__SeatDataSource(
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
+    // TODO(gameplay): 若夜晚存在互认，从当前本人或受控座位的私密视图通过
+    // resolveHighlight 返回 danger，为已知同伴显示共享头像颜色高亮，不新增身份文字标签。
+    // 确认后或离开该步清除；不直接读取权威身份表，并验证观战、未授权与接管切换。
 //#end
 //#cap !identityViewing
     // TODO(gameplay): 逐座阶段徽标（当前行动者、已提交等）走 resolveStatusBadge /
@@ -406,6 +409,10 @@ export function create__GAME_PASCAL__RoomShellModel(
         state.phase.kind === 'ended'
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
+//#cap audioOrchestration
+      // TODO(gameplay): Count player actions/confirmations, not opening, closing or dawn audio clips.
+      // Assert exact current/total against the action plan; batch cues and lock actions through closing narration.
+//#end
       progress: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       layout: {

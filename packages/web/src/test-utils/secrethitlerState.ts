@@ -29,9 +29,9 @@ function driveSecrethitlerTestCommand(
 }
 
 /** An eight-seat lobby with two humans and test-only bot seats. */
-function buildSecrethitlerTestLobby(): SecrethitlerState {
+export function buildSecrethitlerTestLobby(numberOfPlayers = 8): SecrethitlerState {
   let state = secrethitlerEngine.createInitialState(
-    { numberOfPlayers: 8 },
+    { numberOfPlayers },
     { roomCode: '1234', hostUserId: 'host', nowMs: 1000, commandId: 'create' },
   );
   state = driveSecrethitlerTestCommand(state, {
@@ -48,7 +48,7 @@ function buildSecrethitlerTestLobby(): SecrethitlerState {
 }
 
 /** Sends a participant action as its owner or through the real bot-takeover contract. */
-function sendSecrethitlerSeatCommand(
+export function sendSecrethitlerSeatCommand(
   state: SecrethitlerState,
   seat: number,
   command: SecrethitlerCommand,
@@ -62,7 +62,7 @@ function sendSecrethitlerSeatCommand(
 }
 
 /** Completes viewing, electronic narration and the authorized recognition confirmations. */
-function startSecrethitlerTestGame(
+export function startSecrethitlerTestGame(
   from: SecrethitlerState,
   onState: (state: SecrethitlerState) => void = () => undefined,
 ): SecrethitlerState {
@@ -71,20 +71,22 @@ function startSecrethitlerTestGame(
   for (const seat of state.livingSeats)
     state = sendSecrethitlerSeatCommand(state, seat, { type: 'secrethitler.role.viewed' });
   state = driveSecrethitlerTestCommand(state, { type: 'secrethitler.game.begin' });
-  for (let step = 0; step < 4; step += 1) {
-    onState(state);
-    if (step === 1)
-      for (const seat of getSecrethitlerNightParticipants(state)) {
-        state = sendSecrethitlerSeatCommand(state, seat, {
-          type: 'secrethitler.night.confirm',
-          step,
-        });
-      }
-    state = driveSecrethitlerTestCommand(state, {
-      type: 'secrethitler.audio.ack',
-      audioBatchId: state.audioBatchId,
+  onState(state);
+  for (const seat of getSecrethitlerNightParticipants(state)) {
+    state = sendSecrethitlerSeatCommand(state, seat, {
+      type: 'secrethitler.night.confirm',
+      step: 1,
     });
   }
+  state = driveSecrethitlerTestCommand(state, {
+    type: 'secrethitler.audio.ack',
+    audioBatchId: state.audioBatchId,
+  });
+  onState(state);
+  state = driveSecrethitlerTestCommand(state, {
+    type: 'secrethitler.audio.ack',
+    audioBatchId: state.audioBatchId,
+  });
   onState(state);
   return state;
 }
@@ -118,6 +120,7 @@ export function buildSecrethitlerPhaseStates(): ReadonlyMap<
 > {
   const states = new Map<SecrethitlerPhaseKind, SecrethitlerState>();
   const capture = (state: SecrethitlerState) => {
+    if (state.phase.kind === 'election' && state.isAudioPlaying) return;
     if (!states.has(state.phase.kind)) states.set(state.phase.kind, state);
   };
   const lobby = buildSecrethitlerTestLobby();

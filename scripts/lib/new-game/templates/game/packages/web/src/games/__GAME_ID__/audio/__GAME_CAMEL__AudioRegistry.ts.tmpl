@@ -1,0 +1,17 @@
+import type { AudioClip } from '@/features/product/model/AudioClip';
+
+// TODO(gameplay): import bundled MP3s generated through scripts/generate_audio_edge_tts.py
+// and register the approved engine cue keys here. Never substitute SpeechSynthesis.
+const __GAME_UPPER___AUDIO: Readonly<Record<string, AudioClip>> = {};
+
+/** Resolves an engine cue to a bundled clip; missing assets are programming errors. */
+export function resolve__GAME_PASCAL__Audio(audioKey: string): AudioClip {
+  const clip = __GAME_UPPER___AUDIO[audioKey];
+  if (clip === undefined) throw new Error(`[FAIL-FAST] Missing __GAME_DISPLAY_NAME__ audio for ${audioKey}`);
+  return clip;
+}
+
+/** Public clips buffered before a narration batch starts. */
+export function get__GAME_PASCAL__PreloadAudio(): readonly AudioClip[] {
+  return Object.values(__GAME_UPPER___AUDIO);
+}

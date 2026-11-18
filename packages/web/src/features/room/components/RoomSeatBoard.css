@@ -97,6 +97,11 @@
   --seat-ring-glow: var(--color-error-a40);
 }
 
+.seat-tile-button[data-highlight='info'] {
+  --seat-ring: var(--color-primary-dark);
+  --seat-ring-glow: var(--color-primary-dark-a40);
+}
+
 .seat-tile-button[data-highlight='selected'] {
   --seat-ring: var(--color-primary-dark);
   --seat-ring-glow: var(--color-primary-dark-a40);
@@ -110,6 +115,7 @@
 }
 
 .seat-tile-button[data-highlight='danger'],
+.seat-tile-button[data-highlight='info'],
 .seat-tile-button[data-highlight='selected'],
 .seat-tile-button[data-highlight='controlled'] {
   border-color: var(--seat-ring);
@@ -143,6 +149,10 @@
   --seat-ring-glow: var(--color-error-a50);
 }
 
+.seat-tile-button[data-framed='true'][data-highlight='info'] {
+  --seat-ring-glow: var(--color-primary-dark-a50);
+}
+
 .seat-tile-button[data-framed='true'][data-highlight='selected'] {
   --seat-ring-glow: var(--color-primary-dark-a50);
 }
@@ -152,6 +162,7 @@
 }
 
 .seat-tile-button[data-framed='true'][data-highlight='danger'],
+.seat-tile-button[data-framed='true'][data-highlight='info'],
 .seat-tile-button[data-framed='true'][data-highlight='selected'],
 .seat-tile-button[data-framed='true'][data-highlight='controlled'] {
   border-color: transparent;

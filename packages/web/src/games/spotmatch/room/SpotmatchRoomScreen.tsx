@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomStageHudRenderer } from '@/features/room/components/RoomStageHud';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -93,16 +93,14 @@ function SpotmatchRoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
-                  icon="game-controller-outline"
-                  title={`一眼成对 · ${config.numberOfPlayers}人局`}
-                  subtitle="同时找相同，抢先出完手牌"
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看一眼成对玩法" />
-                  }
+                  title="一眼成对"
+                  playerCount={config.numberOfPlayers}
+                  guide={{ onPress: screen.openRules, label: '查看一眼成对玩法' }}
                 />
               ),
             }

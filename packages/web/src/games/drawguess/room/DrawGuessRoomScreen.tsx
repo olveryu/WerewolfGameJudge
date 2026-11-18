@@ -25,7 +25,7 @@ import {
   isDrawingColor,
 } from '@/features/drawing/model/drawing';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
@@ -123,20 +123,24 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
-                  icon="pencil-outline"
-                  title={`你画我猜 · ${config.numberOfPlayers}人局`}
-                  subtitle={`每人 ${DRAWGUESS_ROUNDS_PER_DRAWER} 轮 · 选词 ${DRAWGUESS_WORD_SELECT_SECONDS} 秒 · 作画 ${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒 · 结算 ${DRAWGUESS_ROUND_END_SECONDS} 秒`}
-                  headerRight={
-                    <RoomGuideButton
-                      onPress={screen.openRules}
-                      label="查看你画我猜玩法"
-                      testId={TESTIDS.roomGuideButton('drawguess')}
-                    />
-                  }
+                  title="你画我猜"
+                  playerCount={config.numberOfPlayers}
+                  settings={[
+                    { label: '每人轮数', value: `${DRAWGUESS_ROUNDS_PER_DRAWER} 轮` },
+                    { label: '选词时限', value: `${DRAWGUESS_WORD_SELECT_SECONDS} 秒` },
+                    { label: '作画时限', value: `${DRAWGUESS_DRAWING_DURATION_SECONDS} 秒` },
+                    { label: '结算展示', value: `${DRAWGUESS_ROUND_END_SECONDS} 秒` },
+                  ]}
+                  guide={{
+                    onPress: screen.openRules,
+                    label: '查看你画我猜玩法',
+                    testId: TESTIDS.roomGuideButton('drawguess'),
+                  }}
                 />
               ),
             }

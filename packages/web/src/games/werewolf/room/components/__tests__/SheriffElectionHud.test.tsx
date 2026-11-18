@@ -1,6 +1,7 @@
 /** Unit tests for the sheriff-election HUD summary copy. */
 
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {
   getHudSummary,
@@ -95,6 +96,23 @@ describe('getHudSummary', () => {
 });
 
 describe('SheriffElectionHud pending row', () => {
+  it('keeps details actionable on compact screens and read-only with the inspector open', async () => {
+    const user = userEvent.setup();
+    const onOpenDetails = vi.fn();
+    const model = createModel({
+      voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },
+    });
+    const { rerender } = render(<SheriffElectionHud model={model} onOpenDetails={onOpenDetails} />);
+    await user.click(screen.getByRole('button', { name: '查看警长竞选详情' }));
+    expect(onOpenDetails).toHaveBeenCalledTimes(1);
+    rerender(<SheriffElectionHud model={model} onOpenDetails={null} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId(TESTIDS.sheriffDetailsButton)).not.toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('首轮投票');
+    expect(screen.getByTestId(TESTIDS.sheriffHudPendingSeats)).toBeInTheDocument();
+    expect(screen.getByText('2/4 人已投票')).toBeInTheDocument();
+  });
+
   it('shows the pending seats on the HUD while voting is incomplete', () => {
     const model = createModel({
       voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },

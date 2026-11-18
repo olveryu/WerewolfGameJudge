@@ -75,6 +75,16 @@ describeIdentityViewingProtocol({
 });
 
 describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared skeleton (D-2)', () => {
+  it('can deal and begin with every seat filled by a bot; reward eligibility is separate', () => {
+    const { session, send } = game(0);
+    expect(session.state.phase.kind).toBe('viewing');
+    for (const { seat } of get__GAME_PASCAL__ViewingParticipants(session.state)) {
+      send({ type: '__GAME_ID__.role.viewed' }, 'host', seat);
+    }
+    send({ type: '__GAME_ID__.game.begin' });
+    expect(session.state.phase.kind).toBe('playing');
+  });
+
   it('still confirms an already-viewed seat after play began', () => {
     const { session, send, seatUser } = game(3);
     send({ type: '__GAME_ID__.role.viewed' }, seatUser(1));

@@ -4,7 +4,7 @@ import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/p
 import { useNavigate } from 'react-router';
 
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -63,16 +63,25 @@ function StoryRelayRoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
-                  icon="book-outline"
-                  title={`轮流讲故事 · ${config.numberOfPlayers}人局`}
-                  subtitle={`${config.numberOfPlayers} 棒 · ${config.writingDurationSeconds === null ? '不限时写作' : `每棒 ${config.writingDurationSeconds} 秒`} · 间隔 ${config.transitionDurationSeconds} 秒`}
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看轮流讲故事玩法" />
-                  }
+                  title="轮流讲故事"
+                  playerCount={config.numberOfPlayers}
+                  settings={[
+                    { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
+                    {
+                      label: '写作时限',
+                      value:
+                        config.writingDurationSeconds === null
+                          ? '不限时'
+                          : `${config.writingDurationSeconds} 秒`,
+                    },
+                    { label: '过渡间隔', value: `${config.transitionDurationSeconds} 秒` },
+                  ]}
+                  guide={{ onPress: screen.openRules, label: '查看轮流讲故事玩法' }}
                 />
               ),
             }

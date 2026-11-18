@@ -1,0 +1,144 @@
+import {
+  get__GAME_PASCAL__ViewModel,
+  type __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
+
+import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+//#cap audioOrchestration
+import { createFakeBgm } from '@/test-utils/fakeBgm';
+//#end
+import {
+  build__GAME_PASCAL__TestLobby,
+  drive__GAME_PASCAL__TestCommand,
+  start__GAME_PASCAL__TestGame,
+  end__GAME_PASCAL__TestGame,
+} from '@/test-utils/__GAME_ID__State';
+
+import { __GAME_CAMEL__Review } from '../../review/__GAME_CAMEL__Review';
+import { __GAME_PASCAL__RoomScreen } from '../__GAME_PASCAL__RoomScreen';
+
+let state: __GAME_PASCAL__State = build__GAME_PASCAL__TestLobby();
+const dispatch = vi.fn(async () => {
+  throw new Error('Public preview must not submit commands');
+});
+const session: __GAME_PASCAL__RoomSession = {
+  getSnapshot: () => {
+    throw new Error('Screen fixture does not connect');
+  },
+  subscribe: () => () => undefined,
+  connect: vi.fn(async () => undefined),
+  dispatch,
+  retryNow: vi.fn(),
+  close: vi.fn(),
+};
+
+vi.mock('@/features/room/components/RoomEntryBoundary', () => ({
+  RoomEntryBoundary: ({ children }: { children: (entry: null) => ReactNode }) => children(null),
+}));
+vi.mock('@/features/room/components/RoomShell', () => ({
+  RoomShell: ({
+    content,
+    gameOverlays,
+  }: {
+    content: {
+      kind: string;
+      beforeSeatBoard?: ReactNode;
+      bottomSummary?: ReactNode;
+      element?: ReactNode;
+    };
+    gameOverlays: ReactNode;
+  }) => (
+    <section aria-label="房间内容" data-kind={content.kind}>
+      {content.beforeSeatBoard}
+      {content.bottomSummary}
+      {content.element}
+      {gameOverlays}
+    </section>
+  ),
+}));
+vi.mock('../hooks/use__GAME_PASCAL__RoomState', () => ({
+  use__GAME_PASCAL__RoomState: () => ({
+    state,
+    viewModel: get__GAME_PASCAL__ViewModel(state, 0),
+    shellModel: null,
+    openRules: vi.fn(),
+    reviewOverlay: null,
+    roleCardAllRoles: [],
+    roleViewing: { isOpen: false, close: vi.fn(), shouldPlayAnimation: false, remainingCards: 4 },
+    remainingSeconds: null,
+    isOverdue: false,
+    isHost: true,
+    //#cap audioOrchestration
+    bgm: { isBgmPlaying: false, playBgm: vi.fn(), stopBgm: vi.fn(), startBgmIfEnabled: vi.fn() },
+    audioResume: { isDue: false, continueGame: vi.fn() },
+    //#end
+    isSubmitting: false,
+    submit: vi.fn(),
+  }),
+}));
+
+function renderRoom() {
+  return render(
+    <MemoryRouter>
+      <__GAME_PASCAL__RoomScreen
+        room={{
+          roomCode: '1234',
+          roomId: 'room-1234',
+          gameType: '__GAME_ID__',
+          hostUserId: 'host',
+          createdAt: new Date(0),
+        }}
+        entryReason={null}
+        session={session}
+        review={__GAME_CAMEL__Review}
+        //#cap audioOrchestration
+        audio={{
+          playEffect: vi.fn(async () => undefined),
+          preload: vi.fn(),
+          stopNarration: vi.fn(),
+          ...createFakeBgm(),
+          setBgmVolume: vi.fn(),
+          setGameAudioVolume: vi.fn(),
+        }}
+        //#end
+      />
+    </MemoryRouter>,
+  );
+}
+
+it.each(['lobby', 'viewing', 'playing', 'ended'] as const)(
+  'preserves the role-game board in %s',
+  (phase) => {
+    const lobby = build__GAME_PASCAL__TestLobby();
+    state =
+      phase === 'lobby'
+        ? lobby
+        : phase === 'viewing'
+          ? drive__GAME_PASCAL__TestCommand(lobby, { type: '__GAME_ID__.roles.assign' })
+          : phase === 'playing'
+            ? start__GAME_PASCAL__TestGame(lobby)
+            : end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(lobby));
+    renderRoom();
+    expect(screen.getByRole('region', { name: '房间内容' })).toHaveAttribute('data-kind', 'seats');
+    expect(
+      screen.getByRole('button', { name: phase === 'lobby' ? '收起配置' : '展开配置' }),
+    ).toHaveAttribute('aria-expanded', String(phase === 'lobby'));
+  },
+);
+
+it('previews public role information without recording an identity view', async () => {
+  const user = userEvent.setup();
+  state = drive__GAME_PASCAL__TestCommand(build__GAME_PASCAL__TestLobby(), {
+    type: '__GAME_ID__.roles.assign',
+  });
+  dispatch.mockClear();
+  renderRoom();
+  await user.click(screen.getByRole('button', { name: '展开配置' }));
+  await user.click(screen.getByRole('button', { name: /^待定身份/ }));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(dispatch).not.toHaveBeenCalled();
+});

@@ -20,10 +20,10 @@ import { useNavigate } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
 import { gameGuidePath, gameNotepadPath } from '@/features/navigation/model/gamePaths';
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -151,47 +151,40 @@ function WerewolfRoomContent(
         kind: 'seats',
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
-            <>
-              {sheriffElectionPanel !== null && (
-                <SheriffElectionHud
-                  model={sheriffElectionPanel}
-                  onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
-                />
-              )}
-              <StageSettleRescue
-                remainingSeconds={remainingSeconds}
-                isOverdue={isOverdue}
-                isHost={isHost}
-                isRetrying={isHostActionSubmitting}
-                onRetry={() => void submit('重新推进', { type: 'werewolf.phase.retrySettle' })}
-                waitingLabel="等待推进…"
-              />
-            </>
+            <StageSettleRescue
+              remainingSeconds={remainingSeconds}
+              isOverdue={isOverdue}
+              isHost={isHost}
+              isRetrying={isHostActionSubmitting}
+              onRetry={() => void submit('重新推进', { type: 'werewolf.phase.retrySettle' })}
+              waitingLabel="等待推进…"
+            />
+          ),
+        bottomSummary:
+          sheriffElectionPanel === null ? null : (
+            <SheriffElectionHud
+              model={sheriffElectionPanel}
+              onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+            />
           ),
         beforeSeatBoard: (
           <RoomGameSummary
-            icon="moon-outline"
-            title={`狼人杀 · ${seatCount}人局`}
-            subtitle={findClosestPresetName(state.templateRoles) ?? '自定义配置'}
-            headerRight={
-              <RoomGuideButton
-                onPress={() => void navigate(gameGuidePath('werewolf', roomCode))}
-                testId={TESTIDS.roomEncyclopediaButton}
-                label="角色百科"
-              />
+            title="狼人杀"
+            playerCount={seatCount}
+            guide={{
+              onPress: () => void navigate(gameGuidePath('werewolf', roomCode)),
+              testId: TESTIDS.roomEncyclopediaButton,
+              label: '查看狼人杀玩法',
+            }}
+            collapsed={isBoardCollapsed}
+            onStrategyPress={
+              matchedStrategyName === null ? null : () => setStrategyBoardName(matchedStrategyName)
             }
+            onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
           >
-            <BoardInfoCard
-              playerCount={seatCount}
+            <BoardInfoContent
               sections={createWerewolfBoardInfoSections(state.templateRoles)}
-              collapsed={isBoardCollapsed}
               onRolePress={openSkillPreview}
-              onStrategyPress={
-                matchedStrategyName === null
-                  ? null
-                  : () => setStrategyBoardName(matchedStrategyName)
-              }
-              onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
               footer={
                 isSetup && (
                   <>

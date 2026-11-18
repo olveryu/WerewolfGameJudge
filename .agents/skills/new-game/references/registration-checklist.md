@@ -96,6 +96,10 @@ AccountStats: <Game>StatsPanel }` from the game's home and panel.
     author filtering, history/migration/delay/cache policy; verify every
     approved metric before production. The removed Demo game is not a
     reference implementation or an exception to these requirements.
+19. `[G]` Generated design doc in the sole `docs/README.md` game index.
+20. `[G][C]` Explicit `--production` updates both `isProduction` and the Home
+    contract list in canonical order. Without it, the generated game stays
+    hidden and the CLI/report say so; visibility still requires user approval.
 
 If a contract test fails naming the new game, the wiring is missing;
 fix the wiring, not the expectation list

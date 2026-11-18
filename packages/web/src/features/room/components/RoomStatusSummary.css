@@ -1,0 +1,106 @@
+.room-status-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-tight);
+  width: 100%;
+  min-block-size: var(--size-button-lg);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-primary-a25);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+}
+
+button.room-status-summary {
+  cursor: pointer;
+}
+
+button.room-status-summary:active {
+  background: var(--color-surface-hover);
+}
+
+button.room-status-summary:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--border-width-thick);
+}
+
+.room-status-summary-header,
+.room-status-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.room-status-summary-title-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+}
+
+.room-status-summary-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.room-status-summary-title {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.room-status-summary-phase {
+  flex-shrink: 1;
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.room-status-summary-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  overflow-wrap: anywhere;
+}
+
+.room-status-summary-entry {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-micro);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+}
+
+.room-status-summary-icon svg,
+.room-status-summary-entry svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.room-status-summary[data-has-header='true'] .room-status-summary-text,
+.room-status-summary[data-has-header='true'] .room-status-summary-entry,
+.room-status-summary-detail {
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  overflow-wrap: anywhere;
+}
+
+.room-status-summary[data-has-header='true'] .room-status-summary-text,
+.room-status-summary-detail {
+  color: var(--color-text-secondary);
+}

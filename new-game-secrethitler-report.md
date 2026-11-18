@@ -138,13 +138,110 @@
   日志为 `/tmp/secrethitler-main-sync-generator-contract.log` 与
   `/tmp/secrethitler-main-sync-generator-tests.log`。
 
+### 九款游戏配置卡统一复验
+
+- 已按批准的 A 方案使用共享 `RoomGameSummary.settings` 双列设置名/值；
+  狼人杀移除板子名，秘密希特勒与一眼成对移除重复玩法简介。
+  角色构成及公开预览保持原入口，设置不再与玩法说明、就座状态拼成一行。
+  接龙就座状态位于折叠卡外，瞎掰王备题状态继续独立显示。
+  无实际公共内容时不生成空折叠按钮；生成器及房间接入文档同步更新。
+- 顶部按最新要求回到 main 原配置卡样式：标题与完整括号人数同为 18px、
+  600 字重及正文深色；玩法紧邻攻略/笔记，复用原浅蓝底胶囊和可见图标。
+  工具间距收紧，透明外层保留 44px 点击区域；角色阵营颜色未改。
+  agent 与 skill 规则简化为“不适配小手机”，删除为小手机缩字的规则。
+- 九款游戏房间范围 147 个测试文件、1446 项通过：
+  `/tmp/room-settings-a-tests.log`。新增接龙限时/不限时与折叠后就座状态用例；
+  共享设置、状态及样式定向回归 8 项通过：
+  `/tmp/room-toolbar-tests.log`。
+- A 方案早期验证（不代表最新卡头）：Web 类型检查及构建/路由 gzip 预算通过：
+  `/tmp/room-settings-a-types.log`、`/tmp/room-settings-a-build.log`。
+  浏览器在独立页面挂载真实共享卡、角色内容、接龙摘要和九款游戏代表性公开配置；
+  320/390/1280px 均无横向溢出，设置保持双列，图标可见，按钮至少 44px。
+  这是共享组件与公开配置夹具检查，不替代真实房间完整对局验收。
+- 回到 main 样式后的最新定向验证：5 个文件、25 项通过
+  （`/tmp/room-main-restore-tests.log`）；Web 类型检查、构建及路由 gzip 预算通过
+  （`/tmp/room-main-restore-types.log`、`/tmp/room-main-restore-build.log`）。
+  范围内 ESLint、格式、agent 文件检查及 diff 检查通过。
+  浏览器测量九款游戏真实共享组件的公开配置夹具，在 402/440/1280px 下
+  标题均为 18px/600、括号人数完整，无标题遮挡或横向溢出；
+  工具图标可见，点击区域不小于 44px。不替代完整房间对局验收。
+
+### 首夜播报与提示修正
+
+- 对照阿瓦隆和狼人杀，秘密希特勒改用共享音频编排、重连续播门和音乐/音量控制。
+  重连后由房主点击恢复音频，完整重播当前批次；必需语音失败时明确报错，不确认批次、
+  不推进阶段。离开房间后不继续播放批次的后续语音。
+- 早期把全员闭眼、阵营互认、互认结束、天亮睁眼误作四步；下节已纠正计步与批次结构。
+  5–6 人法西斯与希特勒参与互认，7–10 人仅普通法西斯睁眼确认；
+  未参与者保持闭眼，已确认者等待其他玩家，不再重复显示确认入口。
+  观战者只看到等待提示，公共进度不泄露身份或座位。
+- 已按统一声线重新生成五段真实 MP3；开场保留五秒尾静音。
+  独立浏览器页确认五个注册资源均能加载并解码为 48kHz 单声道音频，
+  解码时长约为 7.62 / 13.87 / 14.28 / 3.77 / 7.63 秒。
+  此项是资源与浏览器解码验证，不代表人工听音验收，未操作用户房间。
+- Web 音频、首夜提示及阿瓦隆/狼人杀共享链路回归 13 文件、79 项通过，
+  秘密希特勒引擎与音频门合同 5 文件、37 项通过。
+  Web 类型检查、构建/路由 gzip 预算、根类型检查、架构合同、Knip、
+  范围内 ESLint 和 agent 文件检查通过。
+  日志：`/tmp/secret-audio-tests-final.log`、`/tmp/secret-audio-engine-tests.log`、
+  `/tmp/secret-audio-types-final.log`、`/tmp/secret-audio-build-final.log`、
+  `/tmp/secret-audio-root-types-final.log`、`/tmp/secret-audio-contracts.log`、
+  `/tmp/secret-audio-knip-final.log`、`/tmp/secret-audio-lint-final.log`、
+  `/tmp/secret-audio-agents.log`。
+- 生成器模板与 new-game skill 同步要求共享音频生命周期、完整批次恢复、
+  按人数/角色/步骤核对提示和播报，以及确认/播报门、失败和重连验收。
+  最新生成器合同通过：28 项内部用例全部成功，包含 12 个有效能力组合的真实
+  格式、lint、Web/引擎/Worker 类型检查及生成代码测试；
+  其中组合回归为 Web 774 项、引擎 333 项、Worker 144 项通过。
+  日志：`/tmp/secret-audio-generator-verified.log`。
+  new-game 接入检查脚本通过：`/tmp/secret-audio-integration-check.log`。
+- 生成器测试的临时仓库改建在系统临时目录，仍在测试结束时清理，
+  不再往 Git 工作区写入数千个测试文件。此前遗留的 17 个目录未删除。
+
+### 互认颜色与单步计数修正
+
+- 沿用狼人杀共享头像 `danger` 颜色高亮，不增加身份文字标签。
+  高亮只来自当前本人或受控座位的私密投影，确认后或离开互认步骤即清除；
+  覆盖 5/6/7/10 人、未授权玩家、观战者及接管切换。
+- 首夜只有「坏人互认」1/1。开场闭眼和互认指令合为一批；
+  玩家确认与完整开场播报双门满足后进入选举，并播放闭眼结束与天亮收尾批次。
+  收尾期间禁止提名、隐藏摘要，重连仍需恢复完整批次，不以阶段变化跳过播报。
+- 状态升级为 v2，迁移 v1 四个旧播报段，保留确认及待播音频；
+  追加 cue 时更新批次号，旧音频回执不能清除新批次。当前解析器严格拒绝旧版和未来版本。
+- new-game skill、参考文档、生成报告和音频能力模板同步约束：
+  只计真实玩家行动或确认步骤，开场、闭眼结束、天亮不按 MP3 数量计步；
+  测试准确的 current/total，以及跨阶段收尾的操作锁和重连续播门。
+- 本轮定向验证：引擎及音频门 41 项、Web 58 项、Worker/目录 21 项通过；
+  根架构合同 6712 项通过。引擎/Web 构建、路由 gzip 预算、Web/Worker/root 类型检查、
+  Knip、变更文件 ESLint/Prettier、agent 校验和只读接入检查通过。
+  日志为 `/tmp/secret-single-step-{engine,web,worker,architecture,web-build,root-types,knip,lint,format-check,agents,integration}.log`。
+- 生成器根合同通过，内部 28 项全部通过，含 12 个有效能力组合的真实工具链验证；
+  组合回归为 Web 774 项、引擎 333 项、Worker 144 项通过。
+  日志：`/tmp/secret-single-step-generator.log`。
+- 独立浏览器页挂载真实共享座位盘与引擎夹具，在 390/1280px 验证红色头像边框、
+  「坏人互认」1/1、确认后清除、观战者无高亮和收尾无进度；未增加身份文字标签。
+  检查后清除临时路由并返回空白页，未操作用户房间，也不替代完整真人对局与终局验收。
+
 ## 已知边界
 
 ### 本次共享房间布局修正
 
-- 秘密希特勒全阶段保留共享座位盘，复用 `RoomGameSummary`、可折叠 `BoardInfoCard`、
-  `RoomRecordSummary` 和 `RoomDialog`；私密调查结果从公共区域移到底部个人操作。
-  阿瓦隆摘要同时改用共享组件，保留原有待操作座位和记录入口。
+- 秘密希特勒全阶段保留共享座位盘，复用统一可折叠 `RoomGameSummary`、无外框的 `BoardInfoContent`、
+  `RoomStatusSummary` 和 `RoomDialog`；私密调查结果从公共区域移到底部个人操作。
+  狼人杀警长竞选与阿瓦隆摘要同时使用该共享展示组件，保留各自的阶段内容、
+  待操作座位与详情入口；警长详情仍按屏幕宽度使用底部弹层或侧边栏。
+  秘密希特勒摘要在身份查看、首夜互认及收尾播报期间隐藏，全部播报完成后才显示。
+- 共享摘要统一后的定向 Web 回归 66 项通过，覆盖共享组件、警长 HUD 和房间交互、
+  阿瓦隆摘要、秘密希特勒及共享层边界和样式合同；Web/root 类型检查、lint、格式、
+  Knip、Web 构建和路由 gzip 预算通过。日志为
+  `/tmp/room-status-summary-tests.log`、`/tmp/room-status-summary-types.log`、
+  `/tmp/room-status-summary-root-types.log`、`/tmp/room-status-summary-lint-final.log`、
+  `/tmp/room-status-summary-format-check.log`、`/tmp/room-status-summary-knip.log` 和
+  `/tmp/room-status-summary-build.log`。
+  浏览器在独立验证页挂载三个游戏的真实组件与引擎阶段夹具，确认 320/390/1280px
+  无横向溢出，身份查看和首夜不渲染摘要，侧边栏模式的警长摘要不保留伪按钮；
+  键盘可打开详情，秘密希特勒对局记录可通过 Escape 关闭并返回入口焦点。
+  这不替代下述真实房间完整对局和终局复验。
 - 生成器按已有 `identityViewing` 能力生成身份游戏布局；无身份分支保留工作区。
   new-game skill 与能力说明同步约束模板，不新增第二个游戏类型开关。
 - 本次 Web 回归 97 项、引擎 33 项、Worker 12 项、root architecture 6700 项通过；

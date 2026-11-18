@@ -29,13 +29,8 @@ import {
 import { evolveSecrethitlerState } from './evolve';
 import { getSecrethitlerFaction, getSecrethitlerNightParticipants } from './rules';
 
-const NIGHT_STEP_COUNT = 4;
-
-function nightAudioKey(playerCount: number, step: number): string {
-  if (step === 0) return 'night_start';
-  if (step === 1) return playerCount <= 6 ? 'evil_reveal_5_6' : 'fascist_reveal_7_10';
-  if (step === 2) return 'evil_close';
-  return 'night_end';
+function recognitionAudioKey(playerCount: number): string {
+  return playerCount <= 6 ? 'evil_reveal_5_6' : 'fascist_reveal_7_10';
 }
 
 function patch(
@@ -329,7 +324,7 @@ function decideNightReplay(
   return commitSecrethitler([
     {
       type: 'secrethitler.audio.queued',
-      effects: [{ audioKey: nightAudioKey(state.config.numberOfPlayers, state.phase.step) }],
+      effects: [{ audioKey: recognitionAudioKey(state.config.numberOfPlayers) }],
     },
   ]);
 }
@@ -340,30 +335,18 @@ export function evaluateSecrethitlerNightCompletion(
 ): readonly SecrethitlerEvent[] {
   const phase = state.phase;
   if (phase.kind !== 'night' || state.isAudioPlaying) return [];
-  if (
-    phase.step === 1 &&
-    !getSecrethitlerNightParticipants(state).every((seat) => phase.confirmedSeats.includes(seat))
-  )
+  if (!getSecrethitlerNightParticipants(state).every((seat) => phase.confirmedSeats.includes(seat)))
     return [];
-  if (phase.step === NIGHT_STEP_COUNT - 1) {
-    return [
-      {
-        type: 'secrethitler.gameplay.updated',
-        patch: {
-          phase: { kind: 'election', presidentSeat: state.nextPresidentSeat, returnToSeat: null },
-        },
-      },
-    ];
-  }
-  const nextStep = phase.step + 1;
   return [
     {
       type: 'secrethitler.gameplay.updated',
-      patch: { phase: { kind: 'night', step: nextStep, confirmedSeats: [] } },
+      patch: {
+        phase: { kind: 'election', presidentSeat: state.nextPresidentSeat, returnToSeat: null },
+      },
     },
     {
       type: 'secrethitler.audio.queued',
-      effects: [{ audioKey: nightAudioKey(state.config.numberOfPlayers, nextStep) }],
+      effects: [{ audioKey: 'evil_close', isEndAudio: true }, { audioKey: 'night_end' }],
     },
   ];
 }
@@ -391,6 +374,8 @@ function decideNomination(
   context: CommandContext,
 ): SecrethitlerDecision {
   if (state.phase.kind !== 'election') return reject(SECRETHITLER_REASONS.phase);
+  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
   const president = requireCurrentPresident(state, context, state.phase.presidentSeat);
   if (typeof president !== 'number') return president;
   const chancellor = command.chancellorSeatId;
@@ -766,15 +751,18 @@ export function decideSecrethitlerGameplay(
   }
 }
 
-export function beginSecrethitlerNight(): SecrethitlerDecision {
+export function beginSecrethitlerNight(state: SecrethitlerState): SecrethitlerDecision {
   return commitSecrethitler([
     {
       type: 'secrethitler.gameplay.updated',
-      patch: { phase: { kind: 'night', step: 0, confirmedSeats: [] } },
+      patch: { phase: { kind: 'night', step: 1, confirmedSeats: [] } },
     },
     {
       type: 'secrethitler.audio.queued',
-      effects: [{ audioKey: 'night_start' }],
+      effects: [
+        { audioKey: 'night_start' },
+        { audioKey: recognitionAudioKey(state.config.numberOfPlayers) },
+      ],
     },
   ]);
 }

@@ -10,6 +10,8 @@ import { __GAME_UPPER___TODO_IDENTITY } from '@game-judge/game-engine/games/__GA
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 
+import { getRoleAvatar } from '../assets/roleAvatars';
+
 /** Public board composition only; never derive this from privately dealt seat identities. */
 export function create__GAME_PASCAL__BoardInfoSections(playerCount: number): readonly BoardInfoSection[] {
   // TODO(gameplay): replace the placeholder with the approved public role-count table.
@@ -31,13 +33,9 @@ export function toRevealRoleData(identity: string): RevealRoleData {
       id: identity,
       name: '待定身份',
       alignment: 'neutral',
+      imageUrl: getRoleAvatar(identity),
       description: 'TODO(gameplay):身份介绍随身份构成定稿后填写。',
     };
   }
-  return {
-    id: identity,
-    name: identity,
-    alignment: 'neutral',
-    description: 'TODO(gameplay):身份介绍随身份构成定稿后填写。',
-  };
+  throw new Error(`[FAIL-FAST] Unknown __GAME_DISPLAY_NAME__ identity: ${identity}`);
 }

@@ -1,15 +1,12 @@
 /** Compact, privacy-safe sheriff-election status shown persistently above the seat board. */
-import './SheriffElection.css';
-
 import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
+import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
 import { getSettleCountdownSuffix } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
-import IconChevronUp from '~icons/ion/chevron-up';
 import IconShieldCheckmarkOutline from '~icons/ion/shield-checkmark-outline';
 
 function getResultSummary(result: SheriffElectionResult): string {
@@ -52,54 +49,28 @@ export function SheriffElectionHud({
   readonly onOpenDetails: (() => void) | null;
 }) {
   const { view } = model;
-  const content = (
-    <>
-      <span className="sheriff-hud-top">
-        <span className="sheriff-title-group">
-          <IconShieldCheckmarkOutline aria-hidden />
-          <span className="sheriff-hud-title">警长竞选</span>
-        </span>
-        <span className="sheriff-phase-badge" data-testid={TESTIDS.sheriffElectionHudPhase}>
-          {view.phaseTitle}
-        </span>
-      </span>
-      <span className="sheriff-hud-summary-row">
-        <span className="sheriff-hud-summary">{getHudSummary(model)}</span>
-        {onOpenDetails !== null && (
-          <span className="sheriff-hud-details" data-testid={TESTIDS.sheriffDetailsButton}>
-            详情
-            <IconChevronUp aria-hidden />
-          </span>
-        )}
-      </span>
-      {view.voteProgress !== null && view.voteProgress.pendingSeats.length > 0 && (
-        <span className="sheriff-hud-pending">
-          <PendingSeatsRow
-            label="未投票"
-            seats={view.voteProgress.pendingSeats}
-            testId={TESTIDS.sheriffHudPendingSeats}
-          />
-        </span>
-      )}
-    </>
-  );
-
-  if (onOpenDetails === null) {
-    return (
-      <div className="sheriff-hud" data-testid={TESTIDS.sheriffElectionHud}>
-        {content}
-      </div>
-    );
-  }
   return (
-    <button
-      type="button"
-      className="sheriff-hud"
-      aria-label="查看警长竞选详情"
-      data-testid={TESTIDS.sheriffElectionHud}
-      onClick={onOpenDetails}
-    >
-      {content}
-    </button>
+    <RoomStatusSummary
+      header={{
+        title: '警长竞选',
+        icon: <IconShieldCheckmarkOutline />,
+        phase: view.phaseTitle,
+        phaseTestId: TESTIDS.sheriffElectionHudPhase,
+      }}
+      summary={getHudSummary(model)}
+      pendingSeats={view.voteProgress?.pendingSeats}
+      action={
+        onOpenDetails === null
+          ? null
+          : {
+              label: '详情',
+              accessibleLabel: '查看警长竞选详情',
+              onOpen: onOpenDetails,
+              testId: TESTIDS.sheriffDetailsButton,
+            }
+      }
+      testId={TESTIDS.sheriffElectionHud}
+      pendingTestId={TESTIDS.sheriffHudPendingSeats}
+    />
   );
 }

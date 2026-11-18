@@ -74,19 +74,16 @@ function enterElection(current: ReturnType<typeof game>): void {
 }
 
 function finishNight(current: ReturnType<typeof game>): void {
-  for (let step = 0; step < 4; step += 1) {
-    if (step === 1) {
-      for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
-        const actor = current.actorForSeat(seat);
-        current.send(
-          { type: 'secrethitler.night.confirm', step },
-          actor.userId,
-          actor.controlledSeat,
-        );
-      }
-    }
-    acknowledgeAudio(current);
+  for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
+    const actor = current.actorForSeat(seat);
+    current.send(
+      { type: 'secrethitler.night.confirm', step: 1 },
+      actor.userId,
+      actor.controlledSeat,
+    );
   }
+  acknowledgeAudio(current);
+  acknowledgeAudio(current);
 }
 
 function voteAll(current: ReturnType<typeof game>, vote: 'ja' | 'nein'): void {
@@ -252,7 +249,6 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
         const current = game(count);
         assignAndViewAll(current);
         current.send({ type: 'secrethitler.game.begin' });
-        acknowledgeAudio(current);
         const revealBatch = current.session.state.audioBatchId;
         if (!confirmFirst) acknowledgeAudio(current);
         for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
@@ -261,19 +257,37 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
         }
         if (confirmFirst) {
           expect(current.session.state.phase.kind).toBe('night');
-          expect(current.session.state.pendingAudioEffects[0]?.audioKey).toBe(
+          expect(current.session.state.pendingAudioEffects[1]?.audioKey).toBe(
             count <= 6 ? 'evil_reveal_5_6' : 'fascist_reveal_7_10',
           );
           acknowledgeAudio(current);
         }
-        expect(current.session.state.phase).toEqual({ kind: 'night', step: 2, confirmedSeats: [] });
-        expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'evil_close' }]);
+        expect(current.session.state.phase.kind).toBe('election');
+        expect(current.session.state.pendingAudioEffects).toEqual([
+          { audioKey: 'evil_close', isEndAudio: true },
+          { audioKey: 'night_end' },
+        ]);
+        const closingBatch = current.session.state.audioBatchId;
         current.send({ type: 'secrethitler.audio.ack', audioBatchId: revealBatch });
-        expect(current.session.state.phase).toEqual({ kind: 'night', step: 2, confirmedSeats: [] });
-        acknowledgeAudio(current);
-        expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'night_end' }]);
+        expect(current.session.state.audioBatchId).toBe(closingBatch);
+        expect(current.session.state.isAudioPlaying).toBe(true);
+        const closing = current.session.state.phase;
+        if (closing.kind !== 'election') throw new Error('Expected closing narration');
+        const chancellor = current.session.state.livingSeats.find(
+          (seat) => seat !== closing.presidentSeat,
+        );
+        if (chancellor === undefined) throw new Error('Missing chancellor candidate');
+        current.session.expectReject(
+          {
+            type: 'secrethitler.government.nominate',
+            chancellorSeatId: chancellor,
+          },
+          SECRETHITLER_REASONS.audioPlaying,
+          current.seatUser(closing.presidentSeat),
+        );
         acknowledgeAudio(current);
         expect(current.session.state.phase.kind).toBe('election');
+        expect(current.session.state.isAudioPlaying).toBe(false);
       }
     },
   );
@@ -354,17 +368,20 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
     const current = game(5);
     assignAndViewAll(current);
     current.send({ type: 'secrethitler.game.begin' });
-    expect(current.session.state.phase).toEqual({ kind: 'night', step: 0, confirmedSeats: [] });
-    expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'night_start' }]);
+    expect(current.session.state.phase).toEqual({ kind: 'night', step: 1, confirmedSeats: [] });
+    expect(current.session.state.pendingAudioEffects).toEqual([
+      { audioKey: 'night_start' },
+      { audioKey: 'evil_reveal_5_6' },
+    ]);
     const denied = current.session.decide(
       { type: 'secrethitler.audio.ack', audioBatchId: current.session.state.audioBatchId },
       current.seatUser(1),
     );
     expect(denied).toEqual({ kind: 'reject', reason: SECRETHITLER_REASONS.notHostAckAudio });
-    const blocked = current.session.decide({ type: 'secrethitler.night.replay', step: 0 });
+    const blocked = current.session.decide({ type: 'secrethitler.night.replay', step: 1 });
     expect(blocked).toEqual({ kind: 'reject', reason: SECRETHITLER_REASONS.audioPlaying });
     acknowledgeAudio(current);
-    expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'evil_reveal_5_6' }]);
+    expect(current.session.state.pendingAudioEffects).toEqual([]);
     const hitlerSeat = Number(
       Object.entries(current.session.state.identities).find(([, role]) => role === 'hitler')?.[0],
     );
@@ -388,9 +405,10 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
     for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
       current.send({ type: 'secrethitler.night.confirm', step: 1 }, current.seatUser(seat));
     }
-    expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'evil_close' }]);
-    acknowledgeAudio(current);
-    expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'night_end' }]);
+    expect(current.session.state.pendingAudioEffects).toEqual([
+      { audioKey: 'evil_close', isEndAudio: true },
+      { audioKey: 'night_end' },
+    ]);
     acknowledgeAudio(current);
     expect(current.session.state.phase.kind).toBe('election');
     expect(current.session.state.pendingAudioEffects).toEqual([]);
@@ -398,13 +416,13 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
     const tenPlayers = game(10);
     assignAndViewAll(tenPlayers);
     tenPlayers.send({ type: 'secrethitler.game.begin' });
-    acknowledgeAudio(tenPlayers);
     const tenHitler = Number(
       Object.entries(tenPlayers.session.state.identities).find(
         ([, role]) => role === 'hitler',
       )?.[0],
     );
     expect(tenPlayers.session.state.pendingAudioEffects).toEqual([
+      { audioKey: 'night_start' },
       { audioKey: 'fascist_reveal_7_10' },
     ]);
     expect(getSecrethitlerViewModel(tenPlayers.session.state, tenHitler).knownFascistSeats).toEqual(

@@ -1,10 +1,11 @@
 import type { AudioEffect } from '@game-judge/game-engine/games/secrethitler/public';
 
 import type { AudioClip } from '@/features/product/model/AudioClip';
+import type { RoomBgmPlaybackPort } from '@/features/room/audio/useRoomBgmControl';
 
 import { getSecrethitlerPreloadAudio, resolveSecrethitlerAudio } from './secrethitlerAudioRegistry';
 
-export interface SecrethitlerAudioRuntime {
+export interface SecrethitlerAudioRuntime extends RoomBgmPlaybackPort {
   readonly playEffect: (effect: AudioEffect) => Promise<void>;
   readonly preload: () => void;
   readonly stopNarration: () => void;
@@ -12,7 +13,7 @@ export interface SecrethitlerAudioRuntime {
 }
 
 /** Platform audio operations used by the Secret Hitler player. */
-export interface SecrethitlerAudioPlaybackPort {
+export interface SecrethitlerAudioPlaybackPort extends RoomBgmPlaybackPort {
   playClip(clip: AudioClip): Promise<void>;
   preloadClips(clips: readonly AudioClip[]): void;
   stop(): void;
@@ -35,4 +36,11 @@ export class SecrethitlerAudioPlayer implements SecrethitlerAudioRuntime {
   readonly stopNarration = (): void => this.#audioService.stop();
 
   readonly stopBgm = (): void => this.#audioService.stopBgm();
+  readonly startBgm = (urls: readonly string[]): void => this.#audioService.startBgm(urls);
+  readonly isBgmPlaying = (): boolean => this.#audioService.isBgmPlaying();
+  readonly subscribeBgm = (listener: () => void): (() => void) =>
+    this.#audioService.subscribeBgm(listener);
+  readonly setBgmVolume = (volume: number): void => this.#audioService.setBgmVolume(volume);
+  readonly setGameAudioVolume = (volume: number): void =>
+    this.#audioService.setGameAudioVolume(volume);
 }

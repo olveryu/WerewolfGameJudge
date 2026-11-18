@@ -4,7 +4,6 @@ import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/p
 import { useNavigate } from 'react-router';
 
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGuideButton } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -66,19 +65,18 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
               beforeSeatBoard: (
                 <PictionaryRoomSummary
                   config={screen.state.config}
                   occupiedSeatCount={screen.occupiedSeatCount}
-                  headerRight={
-                    <RoomGuideButton
-                      onPress={screen.openRules}
-                      label="查看你画我猜接龙玩法说明"
-                      testId={TESTIDS.roomGuideButton('pictionary')}
-                    />
-                  }
+                  guide={{
+                    onPress: screen.openRules,
+                    label: '查看你画我猜接龙玩法说明',
+                    testId: TESTIDS.roomGuideButton('pictionary'),
+                  }}
                 />
               ),
             }

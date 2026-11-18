@@ -28,8 +28,8 @@ component owns the complete geometry, including the value area, not just its out
 | Schema-driven config screen                  | `src/features/room/config/` (`createGameConfigScreen`, `GameConfigForm`, `useGameConfigScreenState`) | Engine `GameConfigSchema`, route parser, lobby `readConfig`, update command, failure copy; optional `summary`, `fieldRenderers`, `Extra`, `useSubmitGate` |
 | Count / switch / radio controls              | `src/components/GameSettings.tsx` and `GameSettings.styles.ts`                                       | Values and intent callbacks; the form supplies them from the schema                                                                                       |
 | Reading sections and notices                 | `src/components/GameGuide.tsx`                                                                       | Accurate game-owned rules and tool limitations                                                                                                            |
-| Room title, subtitle and guide action        | `src/features/room/components/RoomGameSummary.tsx`                                                   | Public summary and navigation; visible action label is `玩法`                                                                                             |
-| Compact match-record entry                   | `src/features/room/components/RoomRecordSummary.tsx`                                                 | Public summary, optional detail/pending seats, and opening game-owned record details                                                                      |
+| Unified game configuration card              | `src/features/room/components/RoomGameSummary.tsx`                                                   | Game name/count, required guide intent, public content, phase collapse default and available strategy/notepad intents                                     |
+| Compact stage/match summary                  | `src/features/room/components/RoomStatusSummary.tsx`                                                 | Public title/icon/phase, summary, optional detail/pending seats, and nullable game-owned detail action                                                    |
 | Centered room details                        | `src/features/room/components/RoomDialog.tsx`                                                        | Title, scrollable details, close intent and fixed footer                                                                                                  |
 
 - Use the compact Werewolf settings hierarchy. Settings pages configure a game; long gameplay
@@ -187,14 +187,49 @@ changes. Return to lobby, game end, loss of host ownership and leaving the room 
 The new-game `identityViewing` template follows Werewolf/Avalon rather than
 replacing the board with a workspace: `RoomShell` uses `kind: 'seats'` in
 lobby, identity viewing, play and ended. Public configuration goes through
-`RoomGameSummary` and `BoardInfoCard`, collapsed by default after dealing.
+`RoomGameSummary`, collapsed by default after dealing, with shared `BoardInfoContent`.
 Public role composition comes from configured counts, never dealt seat
 identities; role previews do not mark any participant's identity as viewed.
 Non-identity templates retain their workspace.
 
-Use the shared `RoomRecordSummary` in `contextHeader` for a compact match
-status and record entry, with scrollable details in `RoomDialog`. Avalon
-and Secret Hitler share this presentation. Do not put an expanded stage
+Every game, including non-identity games, uses the same `RoomGameSummary`
+card wherever its room information is shown. Its one header contains
+the game name and `（N人）`, `玩法`, available `攻略`/`笔记` actions, and the collapse
+control. There is no separate title above a second configuration card.
+The shared component owns the entire frame, responsive header, controls
+and collapse state; callers provide public configuration copy and content.
+Public parameters use its typed `settings` label/value pairs, rendered as a
+read-only two-column description list below the role composition when present.
+Do not combine settings, introductions,
+board names and live status into a subtitle. Werewolf starts directly with its
+role composition, without the preset name. Game introductions stay in the guide.
+The header follows the original configuration card on main: the game name and
+full parenthesized player count share 18px semibold dark text. `玩法` sits beside
+`攻略`/`笔记`, all using the original blue-on-tinted pill treatment with visible
+icons and labels. Compact tool spacing accommodates the added guide; transparent
+outer buttons retain 44px touch targets and native focus/pressed behavior.
+Small phones are not a layout target; do not shrink approved typography, hide
+icons, or remove punctuation to fit them.
+`BoardInfoContent` renders public role counts without another frame.
+Games without roles put their existing public parameters inside the same
+card. Keep existing phase visibility and stage/canvas layouts. Tool
+buttons are siblings of the title disclosure, never nested in it; tool
+activation must not toggle the card. Live preparation/error status stays
+outside the collapsible configuration so it cannot be hidden by folding.
+The optional `status` text renders after the card, including Pictionary's live
+occupied-seat count. A card without settings or role content keeps its title and
+guide but has no empty disclosure control.
+
+Use the shared `RoomStatusSummary` in `contextHeader` for compact stage
+status and detail entry. Werewolf's sheriff HUD, Avalon and Secret Hitler
+all use this component; games supply content and decide when it appears.
+It owns layout, typography, phase badges, pending seats and the detail
+affordance, not just an outer frame. A null detail action renders a
+non-interactive summary, preserving Werewolf's wide-screen inspector.
+Detail surfaces remain game-owned: Werewolf retains its responsive sheet
+and inspector; Avalon and Secret Hitler use `RoomDialog`. Secret Hitler
+hides its summary until first-night narration finishes and the authoritative
+phase enters the election. Do not put an expanded stage
 card, terminal player list or full match history above the seats. Personal
 instructions, identity viewing and commands stay in the bottom model;
 private results stay behind explicitly authorized actions and overlays.
@@ -367,7 +402,7 @@ tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.
 
 `content` is an explicit discriminated union:
 
-- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, and `sideInspector` form the shared seat-board view. Optional visual content is explicitly `null`.
+- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, `sideInspector`, and `bottomSummary` form the shared seat-board view. `bottomSummary` places a compact game-owned `RoomStatusSummary` inside the shared bottom action card, above progress, messages and buttons; it remains visible even when the action model is otherwise empty. Games own its phase visibility and detail action. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
 - `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown and optional secondary chips — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock. Optional `hudAction` is game-owned and rendered in the secondary information row; the shared shell does not interpret its behavior.
 

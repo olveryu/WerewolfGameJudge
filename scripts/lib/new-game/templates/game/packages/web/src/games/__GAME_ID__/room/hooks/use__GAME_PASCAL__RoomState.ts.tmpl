@@ -34,6 +34,10 @@ import {
 import { type RoleViewing, useRoleViewing } from '@/features/room/controllers/useRoleViewing';
 //#end
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+//#cap audioOrchestration
+import { type RoomAudioResume, useRoomAudioResume } from '@/features/room/controllers/useRoomAudioResume';
+import { type RoomBgmControlState, useRoomBgmControl } from '@/features/room/audio/useRoomBgmControl';
+//#end
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
@@ -54,7 +58,10 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { getBoardRolePortraits } from '@/games/__GAME_ID__/assets/roleAvatars';
 //#cap identityViewing
-import { toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
+import { create__GAME_PASCAL__BoardInfoSections, toRevealRoleData } from '@/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter';
+//#end
+//#cap audioOrchestration
+import type { __GAME_PASCAL__AudioRuntime } from '../../audio/__GAME_CAMEL__AudioRuntime';
 //#end
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
 //#cap businessStats
@@ -108,6 +115,10 @@ export interface __GAME_PASCAL__RoomScreenState {
   readonly effectiveSeat: number | null;
   readonly controlledSeat: number | null;
   readonly isHost: boolean;
+//#cap audioOrchestration
+  readonly bgm: RoomBgmControlState;
+  readonly audioResume: RoomAudioResume;
+//#end
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<__GAME_PASCAL__State, __GAME_PASCAL__Command>['submit'];
   readonly isSubmitting: boolean;
@@ -126,6 +137,9 @@ export interface __GAME_PASCAL__RoomScreenState {
 export function use__GAME_PASCAL__RoomState(
   props: GameRoomScreenProps<'__GAME_ID__'> & {
     readonly session: __GAME_PASCAL__RoomSession;
+//#cap audioOrchestration
+    readonly audio: __GAME_PASCAL__AudioRuntime;
+//#end
     readonly review: RoomReviewContribution<__GAME_PASCAL__State>;
     readonly entryController: RoomEntryController;
   },
@@ -172,10 +186,21 @@ export function use__GAME_PASCAL__RoomState(
   const gameDetails = useGameProfileDetails(profile.selection, '__GAME_DISPLAY_NAME__战绩', '本游戏局数');
 //#end
 //#cap audioOrchestration
-  // 播报绑定：房主端按权威队列顺序播放、播完提交 ack（共享运行核的薄绑定）。
-  // 音频运行时是本游戏资产（播放器 + 资源 registry），骨架阶段传 null 保持
-  // 静默；就绪后把运行时实例传进这里，绑定即刻生效。
-  use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: null });
+  // TODO(gameplay): extend automatic music to every narrated phase, including confirmation waits.
+  const bgm = useRoomBgmControl(
+    props.audio,
+    isHost,
+    state.isAudioPlaying ? 'auto' : state.phase.kind === 'playing' ? 'manual' : 'off',
+  );
+  const orchestration = use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: props.audio });
+  const audioResume = useRoomAudioResume({
+    isHost,
+    isNarratedPhase: state.isAudioPlaying,
+    revision,
+    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    resume: orchestration.resumeAfterRejoin,
+    onResumed: bgm.startBgmIfEnabled,
+  });
 //#end
 //#cap stageDeadline
   // 阶段截止倒计时（仅展示）：服务端定时 settle effect 是唯一推进
@@ -301,6 +326,10 @@ export function use__GAME_PASCAL__RoomState(
     effectiveSeat,
     controlledSeat,
     isHost,
+//#cap audioOrchestration
+    bgm,
+    audioResume,
+//#end
     submit,
     isSubmitting,
     session,
@@ -308,7 +337,8 @@ export function use__GAME_PASCAL__RoomState(
     reviewOverlay: review.overlay,
 //#cap identityViewing
     roleViewing,
-    roleCardAllRoles: Object.values(state.identities).map(toRevealRoleData),
+    roleCardAllRoles: create__GAME_PASCAL__BoardInfoSections(state.config.numberOfPlayers)
+      .flatMap((section) => section.items.map((item) => toRevealRoleData(item.roleId))),
 //#end
   };
 }

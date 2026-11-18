@@ -13,13 +13,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 //#cap identityViewing
-import { BoardInfoCard } from '@/features/room/components/BoardInfoCard';
+import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 //#end
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary, RoomGuideButton } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+//#cap audioOrchestration
+import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
+import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
+//#end
 //#cap stageDeadline
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 //#end
@@ -30,6 +34,9 @@ import { formatCountdownSeconds } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+//#cap audioOrchestration
+import type { __GAME_PASCAL__AudioRuntime } from '../audio/__GAME_CAMEL__AudioRuntime';
+//#end
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
 //#cap businessStats
 import { __GAME_PASCAL__StatsPanel } from '../components/__GAME_PASCAL__StatsPanel';
@@ -52,6 +59,9 @@ import {
 
 type __GAME_PASCAL__RoomScreenProps = GameRoomScreenProps<'__GAME_ID__'> & {
   readonly session: __GAME_PASCAL__RoomSession;
+//#cap audioOrchestration
+  readonly audio: __GAME_PASCAL__AudioRuntime;
+//#end
   /** 模块声明的本局复盘（defineClientGameModule 的 review）；房间只渲染这一份。 */
   readonly review: RoomReviewContribution<__GAME_PASCAL__State>;
 };
@@ -99,22 +109,19 @@ function __GAME_PASCAL__RoomContent(
 //#cap !stageDeadline
           contextHeader: null,
 //#end
+          bottomSummary: null,
           afterSeatBoard: null,
           sideInspector: null,
           beforeSeatBoard: (
             <RoomGameSummary
-              icon="__GAME_ICON_NAME__"
-              title={`__GAME_DISPLAY_NAME__ · ${config.numberOfPlayers}人局`}
-              subtitle={isLobby ? '__GAME_SUBTITLE__' : undefined}
-              headerRight={<RoomGuideButton onPress={screen.openRules} label="查看__GAME_DISPLAY_NAME__玩法" />}
+              title="__GAME_DISPLAY_NAME__"
+              playerCount={config.numberOfPlayers}
+              guide={{ onPress: screen.openRules, label: '查看__GAME_DISPLAY_NAME__玩法' }}
+              collapsed={!isLobby}
             >
-              <BoardInfoCard
-                playerCount={config.numberOfPlayers}
+              <BoardInfoContent
                 sections={create__GAME_PASCAL__BoardInfoSections(config.numberOfPlayers)}
-                collapsed={!isLobby}
                 onRolePress={setPreviewRole}
-                onStrategyPress={null}
-                onNotepadPress={null}
                 footer={null}
               />
             </RoomGameSummary>
@@ -126,23 +133,26 @@ function __GAME_PASCAL__RoomContent(
           ? {
               kind: 'seats',
               contextHeader: null,
+              bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
-                  icon="__GAME_ICON_NAME__"
-                  title={`__GAME_DISPLAY_NAME__ · ${config.numberOfPlayers}人局`}
-                  subtitle="__GAME_SUBTITLE__"
-                  headerRight={
-                    <RoomGuideButton onPress={screen.openRules} label="查看__GAME_DISPLAY_NAME__玩法" />
-                  }
+                  title="__GAME_DISPLAY_NAME__"
+                  playerCount={config.numberOfPlayers}
+                  guide={{ onPress: screen.openRules, label: '查看__GAME_DISPLAY_NAME__玩法' }}
                 />
               ),
             }
           : { kind: 'workspace', element: <__GAME_PASCAL__StageArea screen={screen} /> }
 //#end
       }
+//#cap audioOrchestration
+      leadingExtraActions={screen.isHost && screen.state.phase.kind === 'playing' ? <RoomBgmToggle bgm={screen.bgm} /> : null}
+//#end
+//#cap !audioOrchestration
       leadingExtraActions={null}
+//#end
       trailingExtraActions={null}
 //#cap businessStats
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
@@ -152,10 +162,16 @@ function __GAME_PASCAL__RoomContent(
 //#cap identityViewing
       gameOverlays={
         <>
+//#cap audioOrchestration
+          <RoomAudioResumeDialog visible={screen.audioResume.isDue} onContinue={screen.audioResume.continueGame} />
+//#end
           <RevealRoleCardModal
             visible={screen.roleViewing.isOpen}
             roleKey={screen.viewModel?.myIdentity ?? null}
             toRoleData={toRevealRoleData}
+            shouldPlay={screen.roleViewing.shouldPlayAnimation}
+            allRoles={screen.roleCardAllRoles}
+            remainingCards={screen.roleViewing.remainingCards}
             onClose={screen.roleViewing.close}
           />
           {previewRole !== null && (
@@ -166,7 +182,12 @@ function __GAME_PASCAL__RoomContent(
       }
 //#end
 //#cap !identityViewing
+//#cap audioOrchestration
+      gameOverlays={<><RoomAudioResumeDialog visible={screen.audioResume.isDue} onContinue={screen.audioResume.continueGame} />{screen.reviewOverlay}</>}
+//#end
+//#cap !audioOrchestration
       gameOverlays={screen.reviewOverlay}
+//#end
 //#end
     />
   );

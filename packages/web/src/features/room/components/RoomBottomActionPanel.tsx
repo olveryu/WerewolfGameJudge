@@ -4,7 +4,7 @@
  */
 import './RoomBottomActionPanel.css';
 
-import { type CSSProperties, Fragment, memo } from 'react';
+import { type CSSProperties, Fragment, memo, type ReactNode } from 'react';
 
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
@@ -363,16 +363,24 @@ function StackedActions({
 
 function RoomBottomActionPanelComponent({
   model,
+  summary,
   isAudioPlaying,
   hostManagement,
   onOpenHostManagement,
 }: {
   readonly model: RoomBottomActionModel;
+  readonly summary: ReactNode;
   readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenHostManagement: () => void;
 }) {
-  if (!isAudioPlaying && hostManagement === null && isRoomBottomActionModelEmpty(model)) {
+  const hasSummary = summary !== null && summary !== undefined && summary !== false;
+  if (
+    !hasSummary &&
+    !isAudioPlaying &&
+    hostManagement === null &&
+    isRoomBottomActionModelEmpty(model)
+  ) {
     return null;
   }
 
@@ -387,6 +395,7 @@ function RoomBottomActionPanelComponent({
       data-kind={model.kind}
       data-testid={TESTIDS.bottomActionPanel}
     >
+      {hasSummary && <div className="bottom-action-summary">{summary}</div>}
       {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       {isAudioPlaying && (
         <p className="bottom-action-message" data-testid={TESTIDS.audioWaitingMessage}>

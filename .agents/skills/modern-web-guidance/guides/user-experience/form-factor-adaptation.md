@@ -84,7 +84,7 @@ Give every icon-only button an accessible name using `aria-label`, an `<img alt>
 
 ### Keep content inside its box
 
-Ensure text and controls are never clipped, squished to zero dimensions, or overflowing at any viewport width down to 320 CSS pixels (WCAG 1.4.10). Content that needs a two-dimensional layout to be understood, such as data tables, maps, and diagrams, may scroll horizontally inside its own container while the page doesn't. Make that container keyboard-scrollable with `tabindex="0"`, and give it `role="region"` and an accessible name. For making data tables adapt to smaller viewports, see `responsive-table` (via `npx -y modern-web-guidance@latest retrieve "responsive-table"`).
+Ensure text and controls are never clipped, squished to zero dimensions, or overflowing at the project's supported device widths. Small phones are not a layout target. Content that needs a two-dimensional layout to be understood, such as data tables, maps, and diagrams, may scroll horizontally inside its own container while the page doesn't. Make that container keyboard-scrollable with `tabindex="0"`, and give it `role="region"` and an accessible name. For making data tables adapt to smaller viewports, see `responsive-table` (via `npx -y modern-web-guidance@latest retrieve "responsive-table"`).
 
 ```css
 /* Media never overflows its column. */
