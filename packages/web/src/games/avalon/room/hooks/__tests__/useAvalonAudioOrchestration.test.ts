@@ -176,9 +176,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     expect(timeline).toEqual(['play:percival_reveal', 'stopBgm', `play:${NIGHT_END_AUDIO_KEY}`]);
   });
 
-  it('host rejoin mid-step: queue stays silent; resumeAfterRejoin replays only the current step opening and acks', async () => {
-    // The batch carries the game-start line and the step opening; after a rejoin
-    // only the step opening is heard again (werewolf baseline), never the whole batch.
+  it('host rejoin mid-step: queue stays silent until a gesture replays the complete batch and acks', async () => {
     const queue: readonly AudioEffect[] = [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }];
     const fake = createFakeLink(queue, FIRST_NIGHT_STEP);
     const { result } = renderHook(() =>
@@ -186,7 +184,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
     );
 
     await flushPlayback();
-    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(result.current.isResumeRequired).toBe(true);
     expect(audio.playEffect).not.toHaveBeenCalled();
     expect(audio.preload).not.toHaveBeenCalled();
     expect(fake.dispatch).not.toHaveBeenCalled();
@@ -197,8 +195,11 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       fake.commitAck();
       await resumed;
     });
-    expect(result.current.readWasAudioInterrupted()).toBe(false);
-    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual(['evil_reveal']);
+    expect(result.current.isResumeRequired).toBe(false);
+    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
+      'night',
+      'evil_reveal',
+    ]);
     expect(audio.preload).toHaveBeenCalledTimes(1);
     expect(audio.preload.mock.invocationCallOrder[0]).toBeLessThan(
       audio.playEffect.mock.invocationCallOrder[0]!,
@@ -211,21 +212,21 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
   });
 
   it('host rejoin mid-step on an Oberon board replays the except-Oberon opening', async () => {
-    // Rejoin replay derives the opening from the dealt roles, not from
-    // the queued batch: the fixture batch deliberately carries the plain
-    // opening, so only a roles-driven replay can produce the except line.
     const roles: Record<number, AvalonRoleId> = {};
     AVALON_BOARDS[7].forEach((role, seat) => {
       roles[seat] = role;
     });
-    const queue: readonly AudioEffect[] = [{ audioKey: 'night' }, { audioKey: 'evil_reveal' }];
+    const queue: readonly AudioEffect[] = [
+      { audioKey: 'night' },
+      { audioKey: 'evil_reveal_except_oberon' },
+    ];
     const fake = createFakeLink(queue, FIRST_NIGHT_STEP, roles);
     const { result } = renderHook(() =>
       useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
     );
 
     await flushPlayback();
-    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(result.current.isResumeRequired).toBe(true);
     expect(audio.playEffect).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -235,12 +236,13 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       await resumed;
     });
     expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
+      'night',
       'evil_reveal_except_oberon',
     ]);
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
   });
 
-  it('host rejoin during the dawn batch replays nothing and acks (the gate closes on the ack)', async () => {
+  it('host rejoin during the dawn batch replays the batch before acknowledging', async () => {
     const fake = createFakeLink(
       [{ audioKey: 'percival_reveal', isEndAudio: true }, { audioKey: NIGHT_END_AUDIO_KEY }],
       { kind: 'nominate', round: 1, requiredSize: 2, preselectedSeats: [] },
@@ -249,14 +251,18 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       useAvalonAudioOrchestration({ session: fake.link, isHost: true, audio }),
     );
     await flushPlayback();
-    expect(result.current.readWasAudioInterrupted()).toBe(true);
+    expect(result.current.isResumeRequired).toBe(true);
     await act(async () => {
       const resumed = result.current.resumeAfterRejoin();
       await flushPlayback();
       fake.commitAck();
       await resumed;
     });
-    expect(audio.playEffect).not.toHaveBeenCalled();
+    expect(audio.playEffect.mock.calls.map(([audioKey]) => audioKey)).toEqual([
+      'percival_reveal',
+      NIGHT_END_AUDIO_KEY,
+    ]);
+    expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(fake.dispatch).toHaveBeenCalledTimes(1);
   });
 
@@ -266,7 +272,7 @@ describe('useAvalonAudioOrchestration ack reliability (AU-33)', () => {
       useAvalonAudioOrchestration({ session: fake.link, isHost: false, audio }),
     );
     await flushPlayback();
-    expect(result.current.readWasAudioInterrupted()).toBe(false);
+    expect(result.current.isResumeRequired).toBe(false);
     expect(audio.playEffect).not.toHaveBeenCalled();
   });
 });

@@ -111,6 +111,24 @@ Avalon, DrawGuess and Story Relay share their standard setup composition:
 The new-game room hook template emits both shared bindings so new games do not regenerate
 copies of the execution branches or controller wiring.
 
+## Narration and Resume
+
+Narrated games bind playback and durable acknowledgement ports through
+`src/features/room/audio/useRoomAudioOrchestration.ts`; games do not supply phase
+predicates, replacement replay queues or failure-skipping policies.
+The authoritative `isAudioPlaying` slice governs every phase, including daytime
+and closing narration after an action phase ends.
+
+Bind `useRoomAudioResume` and the existing `RoomAudioResumeDialog` to the shared
+reactive `isResumeRequired` signal. Re-entry and playback failure require a gesture
+to replay the complete pending batch, preserving engine-resolved cue keys and order.
+Preload, missing-asset, playback and cancellation failures leave the batch
+unacknowledged, log room/batch/cue context and keep recovery available.
+Only completed narration may be acknowledged; an acknowledgement retry does not
+replay completed clips. Same-page connection-status changes do not create a new
+resume prompt, including while a durable acknowledgement is pending.
+Keep connection/reconnection handling in `RoomLink`, not the audio lifecycle.
+
 ## Shell Model Assembly
 
 All seven game adapters use `src/features/room/model/createRoomShellModel.ts` to assemble

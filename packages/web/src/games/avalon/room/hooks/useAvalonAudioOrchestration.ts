@@ -4,16 +4,10 @@
  * - player: AvalonAudioPlayer.playEffect, batch preload before playback,
  *   a missing clip is a fail-fast asset error;
  * - ack: `avalon.audio.ack`;
- * - narrated phase: the night, plus the dawn batch still playing after it;
- * - rejoin replay: the current night step's opening clip, nothing at dawn.
+ * The shared core recovers complete authoritative batches in every phase.
  */
 
-import {
-  type AudioEffect,
-  type AvalonPublicCommand,
-  type AvalonState,
-  getAvalonNightStepBeginAudioKey,
-} from '@game-judge/game-engine/games/avalon/public';
+import type { AudioEffect, AvalonPublicCommand } from '@game-judge/game-engine/games/avalon/public';
 import { useMemo } from 'react';
 
 import type { RoomAudioPlayerPort } from '@/features/room/audio/RoomAudioOrchestrator';
@@ -24,7 +18,6 @@ import {
 import { log } from '@/utils/logger';
 
 import type { AvalonAudioRuntime } from '../../audio/AvalonAudioPlayer';
-import { MissingAvalonAudioError } from '../../audio/avalonAudioRegistry';
 import type { AvalonRoomSession } from '../../model/AvalonRoomSession';
 
 const avalonAudioLog = log.extend('AvalonAudio');
@@ -40,14 +33,6 @@ const ackCommand = (audioBatchId: number): AvalonPublicCommand => ({
   audioBatchId,
 });
 
-const isNarratedPhase = (state: AvalonState): boolean =>
-  state.phase.kind === 'night' || state.isAudioPlaying;
-
-const resolveReplayAudioKey = (state: AvalonState): string | null =>
-  state.phase.kind === 'night'
-    ? getAvalonNightStepBeginAudioKey(state.phase.step, state.roles)
-    : null;
-
 function createAvalonPlayerPort(
   audio: AvalonAudioRuntime,
 ): RoomAudioPlayerPort<AudioEffect> & { readonly stopNarration: () => void } {
@@ -59,7 +44,6 @@ function createAvalonPlayerPort(
       audio.preload();
       return Promise.resolve();
     },
-    isMissingAssetError: (error) => error instanceof MissingAvalonAudioError,
   };
 }
 
@@ -75,13 +59,6 @@ export function useAvalonAudioOrchestration({
     player,
     ackCommand,
     ackLabel: '播报确认',
-    isNarratedPhase,
-    resolveReplayEffects,
     logger: avalonAudioLog,
   });
-}
-
-function resolveReplayEffects(state: AvalonState): readonly AudioEffect[] {
-  const audioKey = resolveReplayAudioKey(state);
-  return audioKey === null ? [] : [{ audioKey }];
 }

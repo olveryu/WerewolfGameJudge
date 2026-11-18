@@ -6,7 +6,7 @@
  * (secrethitler.role.viewed, idempotent), and play is gated at the
  * host's begin command (secrethitler.game.begin) — play opens only once
  * every seated player has viewed their identity. The host can take over
- * bot seats individually or use the optional bulk-mark scaffold action.
+ * bot seats individually or use the host's bulk-mark action.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -54,11 +54,7 @@ describeIdentityViewingProtocol({
         }
       },
       markAllBotsViewed: () => {
-        for (const participant of getSecrethitlerViewingParticipants(session.state)) {
-          if (isBotSeat(session.state.roster, participant.seat)) {
-            send({ type: 'secrethitler.role.viewed' }, 'host', participant.seat);
-          }
-        }
+        send({ type: 'secrethitler.bots.markAllBotsViewed' });
       },
       isCheckpointOpen: () => {
         // The checkpoint is the host's begin gate: probe it with a

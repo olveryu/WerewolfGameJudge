@@ -222,10 +222,7 @@ export function useWerewolfRoomState(
   const bgm = useWerewolfBgmControl(audio, isHost, status, state.isAudioPlaying);
   const orchestration = useWerewolfAudioOrchestration({ session, isHost, audio });
   const audioResume = useRoomAudioResume({
-    isHost,
-    isNarratedPhase: status === GameStatus.Ongoing,
-    revision,
-    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    isResumeRequired: orchestration.isResumeRequired,
     resume: orchestration.resumeAfterRejoin,
     onResumed: bgm.startBgmIfEnabled,
   });

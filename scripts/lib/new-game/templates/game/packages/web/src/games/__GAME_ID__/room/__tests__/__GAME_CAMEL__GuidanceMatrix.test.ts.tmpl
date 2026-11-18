@@ -36,7 +36,13 @@ import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 
 import { __GAME_UPPER___GUIDANCE_MATRIX } from '../__GAME_CAMEL__GuidanceMatrix';
-import { create__GAME_PASCAL__RoomShellModel } from '../__GAME_CAMEL__RoomAdapter';
+import { create__GAME_PASCAL__HostManagement, create__GAME_PASCAL__RoomShellModel } from '../__GAME_CAMEL__RoomAdapter';
+import { showConfirmAlert } from '@/utils/alertPresets';
+//#cap audioOrchestration
+import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
+//#end
+
+vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
 
 type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 
@@ -175,6 +181,60 @@ function capabilities(): RoomCapabilities {
     canTakeOverBots: createBotTakeoverCapability(true, vi.fn()),
   };
 }
+
+describe('__GAME_PASCAL__ host controls', () => {
+  const submit = vi.fn(async () => true);
+  function hostModel(state: __GAME_PASCAL__State) {
+    return create__GAME_PASCAL__HostManagement({
+      state, submit, capabilities: capabilities(), isSubmitting: false,
+      review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
+//#cap audioOrchestration
+      onMusicSettings: vi.fn(),
+//#end
+    });
+  }
+  it.each(__GAME_UPPER___PHASES)('keeps phase-appropriate host controls in %s', (phase) => {
+    const actions = hostModel(stateFor(phase)).sections.flatMap((section) => section.actions);
+    expect(actions.some((action) => action.key === 'abort-game')).toBe(phase !== 'lobby' && phase !== 'ended');
+//#cap audioOrchestration
+    expect(actions.some((action) => action.key === 'music-settings')).toBe(phase !== 'playing');
+//#end
+  });
+  it('submits abort only after confirmation', async () => {
+    submit.mockClear();
+    const action = hostModel(playingState()).sections.flatMap((section) => section.actions).find((entry) => entry.key === 'abort-game');
+    if (!action?.isEnabled) throw new Error('Missing abort action');
+    action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing abort confirmation');
+    await confirm();
+    expect(submit).toHaveBeenCalledWith('中止本局', { type: '__GAME_ID__.game.abort' });
+  });
+//#cap botBulkViewing
+  it('wires bulk viewing and removes its remedy after all bots are marked', () => {
+    const state = viewingState();
+    const panel = hostModel(state);
+    expect(panel.task).toMatchObject({ remedyActionKey: 'mark-bots-viewed' });
+    const action = panel.sections.flatMap((section) => section.actions).find((entry) => entry.key === 'mark-bots-viewed');
+    if (!action?.isEnabled) throw new Error('Missing bot viewing action');
+    action.onPress();
+    expect(submit).toHaveBeenCalledWith('标记机器人已查看', { type: '__GAME_ID__.bots.markAllBotsViewed' });
+    const marked = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
+    expect(hostModel(marked).sections.flatMap((section) => section.actions).some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);
+  });
+//#end
+//#cap audioOrchestration
+  it('keeps abort visible but inert while narration is playing', () => {
+    const locked = applyAudioPlaybackLock(hostModel(playingState()), {
+      isAudioPlaying: true, exemptActionKeys: new Set<string>(),
+    });
+    const action = locked.sections.flatMap((section) => section.actions).find((entry) => entry.key === 'abort-game');
+    expect(action?.isEnabled).toBe(false);
+    expect(action).not.toHaveProperty('onPress');
+  });
+//#end
+});
 
 const seatController: RoomSeatController = {
   pendingAction: null,

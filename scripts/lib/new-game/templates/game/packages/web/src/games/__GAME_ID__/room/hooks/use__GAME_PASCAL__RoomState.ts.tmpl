@@ -22,6 +22,9 @@ import { useNavigate } from 'react-router';
 import {
   gameConfigEditPath,
   gameGuidePath,
+//#cap audioOrchestration
+  musicSettingsPath,
+//#end
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
@@ -194,10 +197,7 @@ export function use__GAME_PASCAL__RoomState(
   );
   const orchestration = use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: props.audio });
   const audioResume = useRoomAudioResume({
-    isHost,
-    isNarratedPhase: state.isAudioPlaying,
-    revision,
-    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    isResumeRequired: orchestration.isResumeRequired,
     resume: orchestration.resumeAfterRejoin,
     onResumed: bgm.startBgmIfEnabled,
   });
@@ -261,6 +261,10 @@ export function use__GAME_PASCAL__RoomState(
         isSubmitting,
         submit,
         review: review.entry,
+        onMusicSettings: () => {
+          bgm.stopBgm();
+          void navigate(musicSettingsPath(room.roomCode));
+        },
       }),
       {
         isAudioPlaying: state.isAudioPlaying,

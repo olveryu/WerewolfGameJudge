@@ -49,7 +49,7 @@ export function evolveSecrethitlerState(
         phaseRevision: state.phaseRevision + 1,
         // 发牌落入独立查看阶段；开始玩由房主在全员查看后手动 begin。
         phase: { kind: 'viewing' },
-        // 发牌时无人落标记；房主逐个接管机器人确认，批量标记仅在可选能力开启时提供。
+        // 发牌不自动标记；房主显式批量标记或逐个接管后确认。
         roleViewedSeats: [],
         identities: { ...event.identities },
         gameSequence: event.gameSequence,

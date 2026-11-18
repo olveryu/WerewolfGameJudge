@@ -211,8 +211,11 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
     isLobby: state.phase.kind === 'lobby',
     gameName: 'Avalon',
     resolveSecondaryLabel: (seat, player) => {
-      // 对齐狼人杀：bot 座位显示身份（state.roles 是公开广播的，D6-Q1）。
-      const botRole = player?.occupant.kind === 'bot' ? state.roles[seat] : undefined;
+      // 角色状态虽公开广播，bot 身份副标签仍只给房主显示（D6-Q1）。
+      const botRole =
+        state.hostUserId === userId && player?.occupant.kind === 'bot'
+          ? state.roles[seat]
+          : undefined;
       return botRole !== undefined ? getAvalonRoleDisplayName(botRole) : null;
     },
     // 逐座位已查看身份徽标（公开信息）：勾只属于查看阶段——对局开始

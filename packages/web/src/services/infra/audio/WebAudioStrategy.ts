@@ -36,7 +36,7 @@ export class WebAudioStrategy {
 
   readonly #preloadedAudios = new Map<string, HTMLAudioElement>();
 
-  /** Play `url` and settle when playback completes, is cancelled, or fails. */
+  /** Play `url`; resolve only on completion and reject on cancellation or failure. */
   async play(url: string, label: string): Promise<void> {
     audioLog.debug('WEB starting playback', { label, url });
 
@@ -69,7 +69,7 @@ export class WebAudioStrategy {
     if (this.#loadAbortController === loadAbortController) {
       this.#loadAbortController = null;
     }
-    if (loadAbortController.signal.aborted) return;
+    loadAbortController.signal.throwIfAborted();
 
     // Data is local — play() will not stall and onended will fire reliably.
     await this.#playAndWaitForEnd(audio, label);
@@ -84,7 +84,7 @@ export class WebAudioStrategy {
    *
    * Resolves when `canplaythrough` fires or cancellation is requested.
    * Rejects after the bounded buffering deadline so orchestration can report
-   * the failure and release the authoritative audio gate.
+   * the failure without acknowledging the authoritative batch.
    */
   #waitForCanPlayThrough(
     audio: HTMLAudioElement,
@@ -171,8 +171,7 @@ export class WebAudioStrategy {
    * so play() must succeed (gesture already authorized via webAudioUnlock)
    * and `ended` will fire reliably.
    *
-   * If play() rejects (autoplay policy), that means webAudioUnlock failed —
-   * throw to fail fast.
+   * A rejected play() (for example autoplay policy) must propagate to recovery.
    */
   #playAndWaitForEnd(audio: HTMLAudioElement, label: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -213,20 +212,20 @@ export class WebAudioStrategy {
         },
         (err: unknown) => {
           settle(
-            new Error(
-              `WEB play() rejected (webAudioUnlock broken): ${err instanceof Error ? err.message : String(err)}`,
-            ),
+            new Error(`WEB play() rejected: ${err instanceof Error ? err.message : String(err)}`, {
+              cause: err,
+            }),
           );
         },
       );
     });
   }
 
-  /** Stop current playback and settle any pending promise. */
+  /** Stop current playback without reporting the interrupted clip as completed. */
   stop(): void {
     this.#loadAbortController?.abort();
     this.#loadAbortController = null;
-    this.#settlePlayback?.();
+    this.#settlePlayback?.(new DOMException('Narration playback stopped', 'AbortError'));
     this.#settlePlayback = null;
     if (this.#audioElement) {
       audioLog.debug('WebAudioStrategy.stop: pausing audio element (keeping for reuse)');

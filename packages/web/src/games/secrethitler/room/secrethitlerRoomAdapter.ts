@@ -3,10 +3,12 @@
  */
 
 import {
+  getSecrethitlerNightParticipants,
   getSecrethitlerOccupiedSeatCount,
   getSecrethitlerUserSeat,
   getSecrethitlerViewingParticipants,
   getSecrethitlerViewModel,
+  isBotSeat,
   type SecrethitlerCommand,
   type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
@@ -24,10 +26,14 @@ import {
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
+  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
+  buildMarkBotsViewedAction,
+  buildMusicSettingsAction,
   buildNextRoundAction,
+  buildPendingAwareHostAction,
   buildReturnLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
@@ -63,9 +69,11 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
+import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
+import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import {
   getSecrethitlerNightStepLabel,
   secrethitlerInstruction,
@@ -90,7 +98,9 @@ export const getSecrethitlerSeatTapIntent = createRoomSeatTapIntentResolver(
   getSecrethitlerProfileTarget,
 );
 
-function createSecrethitlerSeatDataSource(input: SecrethitlerSeatSourceInput): RoomSeatDataSource {
+export function createSecrethitlerSeatDataSource(
+  input: SecrethitlerSeatSourceInput,
+): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
   const viewerSeat = controlledSeat ?? getSecrethitlerUserSeat(state, userId);
   const view = getSecrethitlerViewModel(state, viewerSeat);
@@ -102,6 +112,11 @@ function createSecrethitlerSeatDataSource(input: SecrethitlerSeatSourceInput): R
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
     gameName: 'Secrethitler',
+    resolveSecondaryLabel: (seat, player) => {
+      if (state.hostUserId !== userId || player?.occupant.kind !== 'bot') return null;
+      const identity = state.identities[seat];
+      return identity === undefined ? null : getSecrethitlerIdentityName(identity);
+    },
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
@@ -161,6 +176,7 @@ export interface SecrethitlerHostManagementInput {
   readonly submit: (label: string, command: SecrethitlerCommand) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
+  readonly onMusicSettings: () => void;
 }
 
 /** Assembles the Secrethitler host panel for the current phase. Host gating belongs to the shell factory. */
@@ -168,6 +184,10 @@ export function createSecrethitlerHostManagement(
   input: SecrethitlerHostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities } = input;
+  const hasUnviewedBot = getSecrethitlerViewingParticipants(state).some(
+    (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
+  );
+  const tools = createSecrethitlerHostTools(input, hasUnviewedBot);
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
@@ -207,6 +227,7 @@ export function createSecrethitlerHostManagement(
           title: '房间管理',
           actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
         },
+        ...tools,
       ],
     };
   }
@@ -240,8 +261,14 @@ export function createSecrethitlerHostManagement(
       },
     ];
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    const task = hostActionTask(HOST_ACTION_KEYS.startGame, {});
-    return { task, sections };
+    const task = hostActionTask(
+      HOST_ACTION_KEYS.startGame,
+      hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
+    );
+    return {
+      task,
+      sections: [...sections.filter((section) => section.actions.length > 0), ...tools],
+    };
   }
   if (state.phase.kind === 'ended') {
     if (input.review === null)
@@ -277,14 +304,89 @@ export function createSecrethitlerHostManagement(
             }),
           ],
         },
+        ...tools,
       ],
     };
   }
-  if (state.phase.kind === 'night') return createNightHostManagement(input);
+  if (state.phase.kind === 'night') {
+    const night = createNightHostManagement(input);
+    return { ...night, sections: [...night.sections, ...tools] };
+  }
   return {
     task: null,
-    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+    sections: [
+      ...(roomActions.length > 0 ? [{ key: 'room', title: '房间管理', actions: roomActions }] : []),
+      ...tools,
+    ],
   };
+}
+
+function createSecrethitlerHostTools(
+  input: SecrethitlerHostManagementInput,
+  hasUnviewedBot: boolean,
+): RoomHostManagementSection[] {
+  const { state } = input;
+  const actions: RoomHostManagementAction[] = [];
+  if (
+    state.phase.kind === 'lobby' ||
+    state.phase.kind === 'viewing' ||
+    state.phase.kind === 'ended'
+  )
+    actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
+  const sections: RoomHostManagementSection[] = [];
+  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended') {
+    if (hasUnviewedBot)
+      actions.push(
+        buildMarkBotsViewedAction({
+          onPress: () =>
+            void input.submit('标记机器人已查看', { type: 'secrethitler.bots.markAllBotsViewed' }),
+          isEnabled: !input.isSubmitting,
+          isLoading: input.isSubmitting,
+        }),
+      );
+    const phase = state.phase;
+    if (
+      phase.kind === 'night' &&
+      getSecrethitlerNightParticipants(state).some(
+        (seat) => isBotSeat(state.roster, seat) && !phase.confirmedSeats.includes(seat),
+      )
+    )
+      actions.push(
+        buildPendingAwareHostAction(
+          {
+            key: 'mark-bots-confirmed',
+            label: '标记机器人已确认',
+            icon: 'checkmark-done-outline',
+            variant: 'secondary',
+            testID: TESTIDS.roomMarkBotsConfirmedButton,
+            isLoading: input.isSubmitting,
+          },
+          input.isSubmitting,
+          () =>
+            void input.submit('标记机器人已确认', {
+              type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+            }),
+        ),
+      );
+    sections.push({
+      key: 'danger',
+      title: '危险操作',
+      actions: [
+        buildAbortGameAction({
+          onPress: () =>
+            showConfirmAlert(
+              HOST_FLOW_CONFIRM.abortTitle,
+              '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
+              () => void input.submit('中止本局', { type: 'secrethitler.game.abort' }),
+            ),
+          isEnabled: !input.isSubmitting,
+          isLoading: input.isSubmitting,
+        }),
+      ],
+    });
+  }
+  if (actions.length > 0) sections.unshift({ key: 'tools', title: '辅助工具', actions });
+  return sections;
 }
 
 function createNightHostManagement(

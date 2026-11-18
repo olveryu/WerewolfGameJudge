@@ -128,7 +128,7 @@ describe('SecrethitlerAudioPlayer', () => {
         const { result } = renderHook(() =>
           useSecrethitlerAudioOrchestration({ session: link, isHost: true, audio }),
         );
-        expect(result.current.readWasAudioInterrupted()).toBe(true);
+        expect(result.current.isResumeRequired).toBe(true);
         expect(audio.playEffect).not.toHaveBeenCalled();
         expect(link.dispatch).not.toHaveBeenCalled();
         await act(async () => {
@@ -163,6 +163,11 @@ describe('SecrethitlerAudioPlayer', () => {
         expect.objectContaining({ feedback: 'toast' }),
       );
       expect(link.dispatch).not.toHaveBeenCalled();
+      expect(result.current.isResumeRequired).toBe(true);
+      audio.playEffect.mockResolvedValue(undefined);
+      await act(async () => result.current.resumeAfterRejoin());
+      expect(result.current.isResumeRequired).toBe(false);
+      expect(link.dispatch).toHaveBeenCalledOnce();
     });
 
     it('does not continue the replay batch after the room unmounts', async () => {

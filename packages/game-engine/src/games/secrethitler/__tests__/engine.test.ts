@@ -1,6 +1,7 @@
 /** Secret Hitler rules exercised through authoritative commands and parsed state. */
 
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
 import { isBotSeat } from '../../../platform/room/seating';
 import type { SecrethitlerCommand } from '../commands/types';
 import { SECRETHITLER_REASONS } from '../domain/decision';
@@ -43,6 +44,126 @@ function game(
   if (fillBots && humanCount < numberOfPlayers) send({ type: 'room.seat.fillBots' });
   return { session, send, seatUser, actorForSeat };
 }
+
+describe('Secrethitler host conveniences', () => {
+  it.each(['viewing', 'night', 'election'] as const)(
+    'aborts %s without rewarding or losing room setup',
+    (phase) => {
+      const current = game(5, 1);
+      current.session.expectReject({ type: 'secrethitler.game.abort' }, SECRETHITLER_REASONS.phase);
+      if (phase === 'election') enterElection(current);
+      else {
+        assignAndViewAll(current);
+        if (phase === 'night') {
+          current.send({ type: 'secrethitler.game.begin' });
+          current.session.expectReject(
+            { type: 'secrethitler.game.abort' },
+            SECRETHITLER_REASONS.audioPlaying,
+          );
+          acknowledgeAudio(current);
+        }
+      }
+      expect(current.session.state.phase.kind).toBe(phase);
+      const before = current.session.state;
+      current.session.expectReject(
+        { type: 'secrethitler.game.abort' },
+        SECRETHITLER_REASONS.notHostAbort,
+        'u1',
+      );
+      current.session.expectReject(
+        { type: 'secrethitler.game.abort' },
+        REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+        'host',
+        1,
+      );
+      current.send({ type: 'secrethitler.game.abort' });
+      expect(current.session.state.phase).toEqual({ kind: 'lobby' });
+      expect(current.session.state.roster).toEqual(before.roster);
+      expect(current.session.state.config).toEqual(before.config);
+      expect(current.session.state.gameSequence).toBe(before.gameSequence);
+      expect(current.session.state.identities).toEqual({});
+      expect(current.session.state.history).toEqual({ governments: [], policies: [], actions: [] });
+      expect(current.session.state.pendingAudioEffects).toEqual([]);
+      expect(current.session.state.xpSettled).toBe(false);
+      expect(current.session.effects).toEqual([]);
+    },
+  );
+
+  it('bulk marks only bots viewed, remains idempotent and keeps human viewing mandatory', () => {
+    const current = game(5, 2);
+    current.send({ type: 'secrethitler.roles.assign' });
+    current.session.expectReject(
+      { type: 'secrethitler.bots.markAllBotsViewed' },
+      SECRETHITLER_REASONS.notHostMarkBots,
+      'u1',
+    );
+    current.session.expectReject(
+      { type: 'secrethitler.bots.markAllBotsViewed' },
+      REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+      'host',
+      2,
+    );
+    current.send({ type: 'secrethitler.bots.markAllBotsViewed' });
+    expect(current.session.state.roleViewedSeats).toEqual([2, 3, 4]);
+    expect(current.session.decide({ type: 'secrethitler.bots.markAllBotsViewed' })).toMatchObject({
+      kind: 'commit',
+      events: [],
+    });
+    current.session.expectReject(
+      { type: 'secrethitler.game.begin' },
+      SECRETHITLER_REASONS.notAllViewed,
+    );
+    const humans = game(5);
+    humans.send({ type: 'secrethitler.roles.assign' });
+    humans.session.expectReject(
+      { type: 'secrethitler.bots.markAllBotsViewed' },
+      SECRETHITLER_REASONS.noBotSeats,
+    );
+  });
+
+  it.each([true, false])(
+    'keeps bulk bot confirmation behind both night gates (confirm first: %s)',
+    (confirmFirst) => {
+      const current = game(7, 0);
+      assignAndViewAll(current);
+      current.send({ type: 'secrethitler.game.begin' });
+      current.session.expectReject(
+        { type: 'secrethitler.bots.markAllBotsGroupConfirmed' },
+        SECRETHITLER_REASONS.notHostMarkBots,
+        'other',
+      );
+      if (!confirmFirst) acknowledgeAudio(current);
+      current.send({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' });
+      if (confirmFirst) {
+        expect(current.session.state.phase.kind).toBe('night');
+        expect(
+          current.session.decide({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' }),
+        ).toMatchObject({ kind: 'commit', events: [] });
+        acknowledgeAudio(current);
+      }
+      expect(current.session.state.phase.kind).toBe('election');
+      expect(current.session.state.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
+        'evil_close',
+        'night_end',
+      ]);
+      current.session.expectReject(
+        { type: 'secrethitler.game.abort' },
+        SECRETHITLER_REASONS.audioPlaying,
+      );
+    },
+  );
+
+  it('bulk night confirmation never marks a human or a nonparticipating bot', () => {
+    const current = game(10, 2);
+    assignAndViewAll(current);
+    current.send({ type: 'secrethitler.game.begin' });
+    const bots = getSecrethitlerNightParticipants(current.session.state).filter(
+      (seat) => seat >= 2,
+    );
+    current.send({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' });
+    expect(current.session.state.phase).toEqual({ kind: 'night', step: 1, confirmedSeats: bots });
+  });
+});
 
 function currentPhase(current: ReturnType<typeof game>): SecrethitlerPhase {
   return current.session.state.phase;

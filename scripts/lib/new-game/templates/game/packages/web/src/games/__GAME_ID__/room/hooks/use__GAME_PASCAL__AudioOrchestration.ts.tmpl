@@ -1,7 +1,6 @@
 import type {
   AudioEffect,
   __GAME_PASCAL__Command,
-  __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { useMemo } from 'react';
 
@@ -20,9 +19,6 @@ const ackCommand = (audioBatchId: number): __GAME_PASCAL__Command => ({
   type: '__GAME_ID__.audio.ack',
   audioBatchId,
 });
-const isNarratedPhase = (state: __GAME_PASCAL__State): boolean => state.isAudioPlaying;
-const resolveReplayEffects = (state: __GAME_PASCAL__State): readonly AudioEffect[] =>
-  state.pendingAudioEffects;
 
 /** Required narration uses the shared playback, durable ack and rejoin lifecycle. */
 export function use__GAME_PASCAL__AudioOrchestration({
@@ -36,7 +32,6 @@ export function use__GAME_PASCAL__AudioOrchestration({
 }): RoomAudioOrchestration {
   const player = useMemo(
     (): RoomAudioPlayerPort<AudioEffect> & { readonly stopNarration: () => void } => ({
-      stopOnPlaybackError: true,
       playEffect: audio.playEffect,
       stopBgm: audio.stopBgm,
       stopNarration: audio.stopNarration,
@@ -53,8 +48,6 @@ export function use__GAME_PASCAL__AudioOrchestration({
     player,
     ackCommand,
     ackLabel: '播报确认',
-    isNarratedPhase,
-    resolveReplayEffects,
     logger,
   });
 }

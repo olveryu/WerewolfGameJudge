@@ -69,7 +69,7 @@ it('rejects after the bounded deadline when loading never recovers', async () =>
   expect(audio.removeAttribute).toHaveBeenCalledWith('src');
 });
 
-it('settles loading when stop is called', async () => {
+it('rejects cancelled loading instead of reporting a completed clip', async () => {
   const audio = createFakeAudioElement();
   mockGetUnlockedAudioElement.mockReturnValue(audio as unknown as HTMLAudioElement);
   const strategy = new WebAudioStrategy();
@@ -77,7 +77,7 @@ it('settles loading when stop is called', async () => {
   const playPromise = strategy.play('/night.mp3', 'night');
   strategy.stop();
 
-  await expect(playPromise).resolves.toBeUndefined();
+  await expect(playPromise).rejects.toMatchObject({ name: 'AbortError' });
   expect(audio.removeAttribute).toHaveBeenCalledWith('src');
 });
 
@@ -89,7 +89,7 @@ it('settles the previous load when a new playback starts', async () => {
   const firstPlay = strategy.play('/first.mp3', 'first');
   const secondPlay = strategy.play('/second.mp3', 'second');
 
-  await expect(firstPlay).resolves.toBeUndefined();
+  await expect(firstPlay).rejects.toMatchObject({ name: 'AbortError' });
   expect(audio.src).toBe('/second.mp3');
 
   audio.oncanplaythrough?.();
@@ -124,6 +124,17 @@ it('rejects when the gesture-authorized element cannot start playback', async ()
   const strategy = new WebAudioStrategy();
 
   await expect(strategy.play('/night.mp3', 'night')).rejects.toThrow(
-    'WEB play() rejected (webAudioUnlock broken): autoplay blocked',
+    'WEB play() rejected: autoplay blocked',
   );
+});
+
+it('rejects stopped playback instead of reporting a completed clip', async () => {
+  const audio = createFakeAudioElement();
+  audio.readyState = HTMLMediaElement.HAVE_ENOUGH_DATA;
+  mockGetUnlockedAudioElement.mockReturnValue(audio as unknown as HTMLAudioElement);
+  const strategy = new WebAudioStrategy();
+  const playback = strategy.play('/night.mp3', 'night');
+  await vi.advanceTimersByTimeAsync(0);
+  strategy.stop();
+  await expect(playback).rejects.toMatchObject({ name: 'AbortError' });
 });

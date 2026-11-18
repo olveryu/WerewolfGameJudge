@@ -18,6 +18,10 @@ import {
   end__GAME_PASCAL__TestGame,
 } from '@/test-utils/__GAME_ID__State';
 
+//#cap identityViewing
+import { toRevealRoleData } from '../../components/__GAME_PASCAL__RoleCardAdapter';
+import { create__GAME_PASCAL__SeatDataSource } from '../__GAME_CAMEL__RoomAdapter';
+//#end
 import { __GAME_CAMEL__Review } from '../../review/__GAME_CAMEL__Review';
 import { __GAME_PASCAL__RoomScreen } from '../__GAME_PASCAL__RoomScreen';
 
@@ -142,3 +146,29 @@ it('previews public role information without recording an identity view', async 
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(dispatch).not.toHaveBeenCalled();
 });
+
+//#cap identityViewing
+it('shows assigned bot identities to the room host only', () => {
+  const lobby = build__GAME_PASCAL__TestLobby();
+  const createSeatSource = (currentState: __GAME_PASCAL__State, userId: string) =>
+    create__GAME_PASCAL__SeatDataSource({
+      state: currentState,
+      revision: 1,
+      userId,
+      controlledSeat: null,
+    });
+  expect(createSeatSource(lobby, 'host').getSeat(2).secondaryLabel).toBeNull();
+
+  const viewing = drive__GAME_PASCAL__TestCommand(lobby, {
+    type: '__GAME_ID__.roles.assign',
+  });
+  const identity = viewing.identities[2];
+  if (identity === undefined) throw new Error('Missing assigned bot identity');
+  expect(createSeatSource(viewing, 'host').getSeat(2).secondaryLabel).toBe(
+    toRevealRoleData(identity).name,
+  );
+  expect(createSeatSource(viewing, 'host').getSeat(0).secondaryLabel).toBeNull();
+  expect(createSeatSource(viewing, 'u1').getSeat(2).secondaryLabel).toBeNull();
+  expect(createSeatSource(viewing, 'spectator').getSeat(2).secondaryLabel).toBeNull();
+});
+//#end

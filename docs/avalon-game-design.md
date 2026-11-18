@@ -65,7 +65,7 @@
 
 ## D6 架构对接决策（2026-10-03 仓库调研已完成，全部已确认）
 
-- D6-Q1（2026-10-03，已确认）：私密信息安全级别——A. 接受 UI 级私密（现有 trust model：公开广播+UI 按 myRole 过滤，抓包可见，零新增）
+- D6-Q1（2026-10-03，已确认）：私密信息安全级别——A. 接受 UI 级私密（现有 trust model：公开广播+UI 按 myRole 过滤，抓包可见，零新增）；bot 身份副标签仅房主可见
 - D6-Q2（2026-10-03，已确认）：板子选择 UI——A. 人数即板子（5–10人各一张，房主只定人数，无选择页）
 - D6-Q3（2026-10-03，已确认）：机器人——要，测试用（隐式占位 + 仅房主代打，沿用现有机制，不做 AI）
 - D6-Q4（2026-10-03，已确认）：玩法说明屏——要（规则、角色、板子说明）
@@ -364,7 +364,7 @@ interface AvalonState {
   readonly config: AvalonConfig;
   readonly phase: AvalonPhase;
   readonly phaseRevision: number; // 单调递增
-  readonly roles: Readonly<Record<number, AvalonRoleId>>; // seat -> 角色；公开广播，UI 按 myRole 过滤（D6-Q1）
+  readonly roles: Readonly<Record<number, AvalonRoleId>>; // seat -> 角色；公开广播，UI 按 myRole 过滤（bot 副标签仅房主可见，D6-Q1）
   readonly nightInfo: AvalonNightInfo; // 发牌时服务端算好；同上，UI 级私密
   readonly leaderSeat: number;
   readonly questResults: ReadonlyArray<'success' | 'fail'>;
@@ -415,6 +415,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
 **Visibility**（UI 级私密，D6-Q1）：
 
 - `roles` / `nightInfo`：全量广播，客户端按 `myRole` 裁剪——坏人只看到 `evilPeers[mySeat]`，梅林只看到 `merlinSees`，派西维尔只看到 `percivalSees`，其他人看不到任何他人信息。
+- bot 身份副标签：仅房主在座位盘看到，其他玩家与旁观者不可见；这是 UI 级过滤，不改变广播状态。
 - `vote.ballots`：收齐前他人不可见；公投模式亮票后全员可见（官方同时亮票），暗投模式只公布赞成/反对数量（D7）。
 - `quest.plays`：个人选择永不向他人揭晓；结算只公布成功/失败数量。
 - `lady` 查验结果：只对持有人可见。

@@ -1,11 +1,9 @@
 /**
  * Generator tests: run the real generator against a fixture repository
- * assembled from the real shared files it edits, across capability selections.
- * A real-tree copy validates formatting, lint, web/engine/Worker types,
- * generated game tests and registration contracts across every valid
- * capability selection. Run with
- * `node --test scripts/new-game.test.mjs` (also wrapped by
- * contracts/newGameGenerator.contract.test.ts in the root vitest suite).
+ * assembled from the real shared files it edits, across every valid capability
+ * selection. A real-tree copy validates representative selections with the
+ * generated output's formatting, lint, types and package tests. Run with
+ * `corepack pnpm run test scripts/new-game.test.mjs`.
  */
 
 import assert from 'node:assert/strict';
@@ -14,8 +12,8 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { afterAll, it } from 'vitest';
 
 import { editEngineContractsTest } from './lib/new-game/edits.mjs';
 import {
@@ -43,7 +41,7 @@ const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** Every shared file the generator edits; the fixture copies the real ones. */
 const SHARED_FILES = SHARED_EDITS.map(({ file }) => file);
 const fixtureRoots = new Set();
-test.after(() => {
+afterAll(() => {
   for (const root of fixtureRoots) fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -230,7 +228,7 @@ function readFixture(root, file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
 }
 
-test('capability blocks keep lines only for enabled capabilities and fail fast on bad markers', () => {
+it('capability blocks keep lines only for enabled capabilities and fail fast on bad markers', () => {
   const capabilities = { identityViewing: true, stageDeadline: false };
   const text = [
     'base',
@@ -292,7 +290,24 @@ const CAPABILITY_SCENARIOS = Array.from(
     selected,
   }));
 
-test('capability selection defaults off and requires identity viewing for bot bulk viewing', () => {
+const FULL_TOOLCHAIN_SCENARIOS = [
+  { name: 'all capabilities off', selected: [] },
+  { name: 'identityViewing', selected: ['identityViewing'] },
+  { name: 'stageDeadline', selected: ['stageDeadline'] },
+  { name: 'audioOrchestration', selected: ['audioOrchestration'] },
+  {
+    name: 'identityViewing + botBulkViewing',
+    selected: ['identityViewing', 'botBulkViewing'],
+  },
+  { name: 'all capabilities on', selected: CAPABILITY_KEYS },
+];
+
+it('keeps one game template tree beside the shared template tree', () => {
+  const templatesDir = path.join(REPO_ROOT, 'scripts/lib/new-game/templates');
+  assert.deepEqual(fs.readdirSync(templatesDir).sort(), ['game', 'shared']);
+});
+
+it('capability selection defaults off and requires identity viewing for bot bulk viewing', () => {
   assert.deepEqual(selectCapabilities([]), {
     nightPhase: false,
     botsAndTakeover: true,
@@ -318,7 +333,7 @@ test('capability selection defaults off and requires identity viewing for bot bu
 });
 
 for (const scenario of CAPABILITY_SCENARIOS) {
-  test(`generates the complete skeleton with ${scenario.name} and wires every registration point`, () => {
+  it(`generates the complete skeleton with ${scenario.name} and wires every registration point`, () => {
     const root = makeFixtureRepo();
     const summary = generateNewGame({
       rootDir: root,
@@ -853,7 +868,7 @@ for (const scenario of CAPABILITY_SCENARIOS) {
   });
 }
 
-test('audioOrchestration segments render the full audio wiring when on and nothing when off', () => {
+it('audioOrchestration segments render the full audio wiring when on and nothing when off', () => {
   // Narration is a per-game choice, so the on-state is proved at the
   // segment at the layer it lives in instead: render the whole
   // template tree with every capability off, once with the
@@ -959,13 +974,12 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
     'new DemoprotoAudioPlayer(audioService)',
     'getDemoprotoPreloadAudio',
     'resolveDemoprotoAudio',
-    'stopOnPlaybackError: true',
     'useRoomAudioOrchestration(',
     'useRoomAudioResume(',
     'RoomAudioResumeDialog',
     'useRoomBgmControl(',
     'RoomBgmToggle',
-    'resolveReplayEffects',
+    'isResumeRequired: orchestration.isResumeRequired',
     // The generated engine test segment for the queue/ack/gate chain.
     `describe('Demoproto audio queue and ack'`,
   ];
@@ -976,6 +990,18 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   assert.ok(
     !on.get(hookFile).includes('new RoomAudioOrchestrator'),
     'audio binding must reuse the shared hook lifecycle',
+  );
+  assert.ok(
+    !on.get(hookFile).includes('isNarratedPhase') &&
+      !on.get(hookFile).includes('resolveReplayEffects') &&
+      !on.get(hookFile).includes('stopOnPlaybackError'),
+    'games supply ports, not phase predicates, replay overrides or failure-skipping policies',
+  );
+  assert.ok(
+    on
+      .get('packages/web/src/games/demoproto/room/hooks/useDemoprotoRoomState.ts')
+      .includes('isResumeRequired: orchestration.isResumeRequired,'),
+    'the resume dialog follows the shared reactive recovery signal',
   );
   assert.ok(
     on
@@ -1028,9 +1054,9 @@ test('audioOrchestration segments render the full audio wiring when on and nothi
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
-});
+}, 120_000);
 
-test('generator facts track capability keys and migration numbering uses physical migrations', () => {
+it('generator facts track capability keys and migration numbering uses physical migrations', () => {
   const facts = generatorFacts();
   assert.deepEqual(facts.sharedFiles, SHARED_FILES);
   const files = fs
@@ -1062,7 +1088,7 @@ test('generator facts track capability keys and migration numbering uses physica
   assert.equal(facts.templateCount, expectedCreatedFiles('demoproto', CAPABILITY_KEYS).length);
 });
 
-test('new registration migrations do not repeat the one-time demo cleanup', () => {
+it('new registration migrations do not repeat the one-time demo cleanup', () => {
   const sourceName = '0088_remove_demo_game.sql';
   const sourceContent = readFixture(REPO_ROOT, `packages/api-worker/migrations/${sourceName}`);
   const migration = buildRegistrationMigration({
@@ -1082,7 +1108,7 @@ test('new registration migrations do not repeat the one-time demo cleanup', () =
   assert.ok(migration.includes('INSERT INTO rooms_next SELECT * FROM rooms;'));
 });
 
-test('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {
+it('consecutive registrations copy rebuilds but never the preceding game owned stats table', () => {
   const root = makeFixtureRepo();
   const first = generateNewGame({
     rootDir: root,
@@ -1106,7 +1132,7 @@ test('consecutive registrations copy rebuilds but never the preceding game owned
   }
 });
 
-test('stale registration CHECK lists fail before any generated file is written', () => {
+it('stale registration CHECK lists fail before any generated file is written', () => {
   assert.doesNotThrow(() =>
     assertRegistrationGameTypes("game_type IN ('demo', 'werewolf')", ['werewolf', 'demo']),
   );
@@ -1150,7 +1176,7 @@ test('stale registration CHECK lists fail before any generated file is written',
   assert.equal(fs.existsSync(path.join(root, 'packages/game-engine/src/games/probe')), false);
 });
 
-test('production: true synchronizes the registry, Home contract and go-live report', () => {
+it('production: true synchronizes the registry, Home contract and go-live report', () => {
   const root = makeFixtureRepo();
   const summary = generateNewGame({
     rootDir: root,
@@ -1179,7 +1205,7 @@ test('production: true synchronizes the registry, Home contract and go-live repo
   assert.equal((homeContract.match(/'demoproto'/g) ?? []).length, 1);
 });
 
-test('missing documentation index anchors fail before registering or creating any game files', () => {
+it('missing documentation index anchors fail before registering or creating any game files', () => {
   const root = makeFixtureRepo();
   const index = path.join(root, 'docs/README.md');
   fs.writeFileSync(index, '# docs\n');
@@ -1193,105 +1219,104 @@ test('missing documentation index anchors fail before registering or creating an
   assert.equal(fs.existsSync(path.join(root, 'docs/demoproto-game-design.md')), false);
 });
 
-test('generated output passes format, lint, typecheck, engine and client tests with tooling present', (t) => {
-  // The fixture-repo cases above structurally cannot catch shaping
-  // defects: without node_modules both shaping passes skip silently.
-  // This case generates in a copy of the real tree (dependencies
-  // symlinked in; see makeRealRepoCopy) so prettier and eslint --fix
-  // really run. The probe id's PascalCase name sorts ahead of fixed
-  // identifier prefixes (Aaprobe before e.g. handle/commit), so
-  // simple-import-sort must reorder import/export members — the exact
-  // input that used to leave unformatted text behind when the lint
-  // pass ran after the format pass with nothing re-formatting after.
-  if (!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier'))) {
-    t.skip('requires installed dependencies (node_modules)');
-    return;
-  }
-  // Generate every valid selection into one isolated copy. This exercises
-  // the combination matrix through real formatting/lint/typechecks and then
-  // runs all generated game tests together with the shared registration tests.
-  const root = makeRealRepoCopy();
-  try {
-    const generatedGames = CAPABILITY_SCENARIOS.map((scenario, index) => {
-      const gameId = `aaprobe${index}`;
-      const summary = generateNewGame({
-        rootDir: root,
-        gameId,
-        capabilities: scenario.selected,
-        production: index === 0,
+it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
+  'generated output passes format, lint, typecheck, engine and client tests with tooling present',
+  () => {
+    // The fixture-repo cases above structurally cannot catch shaping
+    // defects: without node_modules both shaping passes skip silently.
+    // This case generates in a copy of the real tree (dependencies
+    // symlinked in; see makeRealRepoCopy) so prettier and eslint --fix
+    // really run. The probe id's PascalCase name sorts ahead of fixed
+    // identifier prefixes (Aaprobe before e.g. handle/commit), so
+    // simple-import-sort must reorder import/export members — the exact
+    // input that used to leave unformatted text behind when the lint
+    // pass ran after the format pass with nothing re-formatting after.
+    // The fixture cases cover every valid selection; use representative
+    // selections here to keep full generated-project checks bounded.
+    const root = makeRealRepoCopy();
+    try {
+      const generatedGames = FULL_TOOLCHAIN_SCENARIOS.map((scenario, index) => {
+        const gameId = `aaprobe${index}`;
+        const summary = generateNewGame({
+          rootDir: root,
+          gameId,
+          capabilities: scenario.selected,
+          production: index === 0,
+        });
+        assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
+        return { gameId, summary };
       });
-      assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
-      return { gameId, summary };
-    });
-    const require = createRequire(path.join(root, 'package.json'));
-    const createdFiles = generatedGames.flatMap(({ summary }) => summary.createdFiles);
-    const prettierBin = require.resolve('prettier/bin/prettier.cjs');
-    // Same scope the generator's format pass claims: formattable
-    // extensions, templates excluded (their rendered outputs are the
-    // other entries in the list).
-    const formatTargets = createdFiles.filter(
-      (file) => /\.(?:ts|tsx|js|mjs|json|md|css)$/.test(file) && !file.endsWith('.tmpl'),
-    );
-    execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
-      cwd: root,
-      stdio: 'pipe',
-    });
-    for (const project of [
-      'packages/web/tsconfig.json',
-      'packages/game-engine/tsconfig.test.json',
-      'packages/api-worker/tsconfig.json',
-    ]) {
-      typecheckFixture(root, project);
+      const require = createRequire(path.join(root, 'package.json'));
+      const createdFiles = generatedGames.flatMap(({ summary }) => summary.createdFiles);
+      const prettierBin = require.resolve('prettier/bin/prettier.cjs');
+      // Same scope the generator's format pass claims: formattable
+      // extensions, templates excluded (their rendered outputs are the
+      // other entries in the list).
+      const formatTargets = createdFiles.filter(
+        (file) => /\.(?:ts|tsx|js|mjs|json|md|css)$/.test(file) && !file.endsWith('.tmpl'),
+      );
+      execFileSync(process.execPath, [prettierBin, '--check', ...formatTargets], {
+        cwd: root,
+        stdio: 'pipe',
+      });
+      for (const project of [
+        'packages/web/tsconfig.json',
+        'packages/game-engine/tsconfig.test.json',
+        'packages/api-worker/tsconfig.json',
+      ]) {
+        typecheckFixture(root, project);
+      }
+      const eslintBin = path.join(
+        path.dirname(require.resolve('eslint/package.json')),
+        'bin',
+        'eslint.js',
+      );
+      const lintTargets = createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
+      execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
+        cwd: root,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
+            .filter(Boolean)
+            .join(' '),
+        },
+      });
+
+      const webTestPaths = [
+        ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
+        'src/__tests__',
+        'src/games/__tests__/homeProductionFilter.contract.test.ts',
+      ];
+      execFileSync(
+        process.execPath,
+        [resolveVitestBin(root, 'packages/web'), 'run', ...webTestPaths],
+        { cwd: path.join(root, 'packages/web'), stdio: 'inherit' },
+      );
+      const engineTestPaths = [
+        ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
+        'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
+        'src/platform/__tests__/gameRegistry.contract.test.ts',
+      ];
+      execFileSync(
+        process.execPath,
+        [resolveVitestBin(root, 'packages/game-engine'), 'run', ...engineTestPaths],
+        { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
+      );
+      const workerTestPaths = generatedGames.map(({ gameId }) => `src/games/${gameId}`);
+      execFileSync(
+        process.execPath,
+        [resolveVitestBin(root, 'packages/api-worker'), 'run', ...workerTestPaths],
+        { cwd: path.join(root, 'packages/api-worker'), stdio: 'inherit' },
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
     }
-    const eslintBin = path.join(
-      path.dirname(require.resolve('eslint/package.json')),
-      'bin',
-      'eslint.js',
-    );
-    const lintTargets = createdFiles.filter((file) => /\.(?:ts|tsx)$/.test(file));
-    execFileSync(process.execPath, [eslintBin, '--max-warnings', '0', ...lintTargets], {
-      cwd: root,
-      stdio: 'pipe',
-      env: {
-        ...process.env,
-        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096']
-          .filter(Boolean)
-          .join(' '),
-      },
-    });
+  },
+  900_000,
+);
 
-    const webTestPaths = [
-      ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
-      'src/__tests__',
-      'src/games/__tests__/homeProductionFilter.contract.test.ts',
-    ];
-    execFileSync(
-      process.execPath,
-      [resolveVitestBin(root, 'packages/web'), 'run', ...webTestPaths],
-      { cwd: path.join(root, 'packages/web'), stdio: 'inherit' },
-    );
-    const engineTestPaths = [
-      ...generatedGames.map(({ gameId }) => `src/games/${gameId}`),
-      'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
-      'src/platform/__tests__/gameRegistry.contract.test.ts',
-    ];
-    execFileSync(
-      process.execPath,
-      [resolveVitestBin(root, 'packages/game-engine'), 'run', ...engineTestPaths],
-      { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
-    );
-    const workerTestPaths = generatedGames.map(({ gameId }) => `src/games/${gameId}`);
-    execFileSync(
-      process.execPath,
-      [resolveVitestBin(root, 'packages/api-worker'), 'run', ...workerTestPaths],
-      { cwd: path.join(root, 'packages/api-worker'), stdio: 'inherit' },
-    );
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test('refuses to generate the same game id twice', () => {
+it('refuses to generate the same game id twice', () => {
   const root = makeFixtureRepo();
   generateNewGame({ rootDir: root, gameId: 'demoproto' });
   assert.throws(
@@ -1300,12 +1325,12 @@ test('refuses to generate the same game id twice', () => {
   );
 });
 
-test('refuses an existing game id from the shipped catalog', () => {
+it('refuses an existing game id from the shipped catalog', () => {
   const root = makeFixtureRepo();
   assert.throws(() => generateNewGame({ rootDir: root, gameId: 'avalon' }), /already/);
 });
 
-test('rejects invalid game ids and capability selections before writing anything', () => {
+it('rejects invalid game ids and capability selections before writing anything', () => {
   const root = makeFixtureRepo();
   assert.throws(() => generateNewGame({ rootDir: root, gameId: 'Demo' }), /Invalid game id/);
   assert.throws(
@@ -1320,7 +1345,7 @@ test('rejects invalid game ids and capability selections before writing anything
   assert.ok(!fs.existsSync(path.join(root, 'packages/web/src/games/Demo')));
 });
 
-test('orders contracts.test.ts imports by module specifier, not binding name', () => {
+it('orders contracts.test.ts imports by module specifier, not binding name', () => {
   // Regression: shipped engines bind names that differ from their paths
   // (drawGuessEngine at ./drawguess, fibEngine at ./fibking). Sorting
   // whole lines would park a new import after the wrong neighbour for
@@ -1340,7 +1365,7 @@ test('orders contracts.test.ts imports by module specifier, not binding name', (
   }
 });
 
-test('refuses to overwrite a pre-existing target file', () => {
+it('refuses to overwrite a pre-existing target file', () => {
   const root = makeFixtureRepo();
   const target = path.join(root, 'docs/demoproto-game-design.md');
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -1352,7 +1377,7 @@ test('refuses to overwrite a pre-existing target file', () => {
   assert.equal(readFixture(root, 'docs/demoproto-game-design.md'), 'hand-written, do not clobber');
 });
 
-test('rejects display strings that would break out of generated literals', () => {
+it('rejects display strings that would break out of generated literals', () => {
   const root = makeFixtureRepo();
   assert.throws(
     () =>

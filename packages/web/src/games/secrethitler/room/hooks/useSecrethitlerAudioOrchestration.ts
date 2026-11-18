@@ -1,7 +1,6 @@
 import type {
   AudioEffect,
   SecrethitlerCommand,
-  SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
 import { useMemo } from 'react';
 
@@ -20,10 +19,6 @@ const ackCommand = (audioBatchId: number): SecrethitlerCommand => ({
   type: 'secrethitler.audio.ack',
   audioBatchId,
 });
-const isNarratedPhase = (state: SecrethitlerState): boolean =>
-  state.phase.kind === 'night' || state.isAudioPlaying;
-const resolveReplayEffects = (state: SecrethitlerState): readonly AudioEffect[] =>
-  state.pendingAudioEffects;
 
 /** Binds required first-night narration to the same lifecycle as Avalon and Werewolf. */
 export function useSecrethitlerAudioOrchestration({
@@ -37,7 +32,6 @@ export function useSecrethitlerAudioOrchestration({
 }): RoomAudioOrchestration {
   const player = useMemo(
     (): RoomAudioPlayerPort<AudioEffect> & { readonly stopNarration: () => void } => ({
-      stopOnPlaybackError: true,
       playEffect: audio.playEffect,
       stopBgm: audio.stopBgm,
       stopNarration: audio.stopNarration,
@@ -54,8 +48,6 @@ export function useSecrethitlerAudioOrchestration({
     player,
     ackCommand,
     ackLabel: '播报确认',
-    isNarratedPhase,
-    resolveReplayEffects,
     logger,
   });
 }

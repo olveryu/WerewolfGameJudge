@@ -155,10 +155,7 @@ export function useAvalonRoomState(
   // 第一晚播报：房主按序播放服务端队列，播完 ack；重连后经续播门重放。
   const orchestration = useAvalonAudioOrchestration({ session, isHost, audio });
   const audioResume = useRoomAudioResume({
-    isHost,
-    isNarratedPhase: state.phase.kind === 'night' || state.isAudioPlaying,
-    revision,
-    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    isResumeRequired: orchestration.isResumeRequired,
     resume: orchestration.resumeAfterRejoin,
     onResumed: bgm.startBgmIfEnabled,
   });

@@ -22,7 +22,7 @@ import merlinRevealEnd from '../../../../../../assets/audio_avalon_end/merlin_re
 import percivalRevealEnd from '../../../../../../assets/audio_avalon_end/percival_reveal.mp3';
 
 /** Programming error raised when an engine audio key has no client asset. */
-export class MissingAvalonAudioError extends Error {
+class MissingAvalonAudioError extends Error {
   constructor(
     readonly phase: 'beginning' | 'ending',
     readonly audioKey: string,

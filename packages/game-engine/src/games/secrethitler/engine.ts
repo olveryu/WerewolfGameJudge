@@ -10,8 +10,12 @@ import {
   requireHost,
 } from '../../platform/engine';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
-import { decideConfirmViewed, haveAllViewed } from '../../platform/room/identityViewing';
-import { isRoomFull } from '../../platform/room/seating';
+import {
+  decideConfirmViewed,
+  decideMarkBotsViewed,
+  haveAllViewed,
+} from '../../platform/room/identityViewing';
+import { isBotSeat, isRoomFull } from '../../platform/room/seating';
 import type { SecrethitlerCommand } from './commands/types';
 import {
   commitSecrethitler,
@@ -30,6 +34,7 @@ import {
   chooseSecrethitlerFirstPresident,
   createSecrethitlerPolicyDeck,
   dealSecrethitlerIdentities,
+  getSecrethitlerNightParticipants,
 } from './domain/rules';
 import { decideSecrethitlerRoom } from './domain/seating';
 import { normalizeSecrethitlerState } from './state/normalize';
@@ -141,6 +146,73 @@ function markRoleViewed(state: SecrethitlerState, context: CommandContext): Secr
   });
 }
 
+/** Aborts without settlement, preserving seats and configuration. */
+function abortGame(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
+  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
+    context,
+    state.hostUserId,
+    SECRETHITLER_REASONS.notHostAbort,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
+    return reject(SECRETHITLER_REASONS.phase);
+  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+  return commitSecrethitler([{ type: 'secrethitler.game.returnedToLobby' }]);
+}
+
+function markAllBotsViewed(
+  state: SecrethitlerState,
+  context: CommandContext,
+): SecrethitlerDecision {
+  return decideMarkBotsViewed({
+    gateRejection:
+      state.phase.kind === 'lobby' || state.phase.kind === 'ended'
+        ? reject(SECRETHITLER_REASONS.phase)
+        : requireHost<SecrethitlerEvent, SecrethitlerEffect>(
+            context,
+            state.hostUserId,
+            SECRETHITLER_REASONS.notHostMarkBots,
+          ),
+    participants: getSecrethitlerViewingParticipants(state),
+    viewedSeats: state.roleViewedSeats,
+    noBotSeatsReason: SECRETHITLER_REASONS.noBotSeats,
+    buildViewedEvent: (seat) => ({ type: 'secrethitler.role.viewed', seat }),
+    commit: commitSecrethitler,
+  });
+}
+
+function markAllBotsGroupConfirmed(
+  state: SecrethitlerState,
+  context: CommandContext,
+): SecrethitlerDecision {
+  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
+    context,
+    state.hostUserId,
+    SECRETHITLER_REASONS.notHostMarkBots,
+  );
+  if (hostRejection !== null) return hostRejection;
+  const phase = state.phase;
+  if (phase.kind !== 'night') return reject(SECRETHITLER_REASONS.phase);
+  const bots = getSecrethitlerNightParticipants(state).filter((seat) =>
+    isBotSeat(state.roster, seat),
+  );
+  if (bots.length === 0) return reject(SECRETHITLER_REASONS.noBotSeats);
+  const unconfirmed = bots.filter((seat) => !phase.confirmedSeats.includes(seat));
+  return commitSecrethitler(
+    unconfirmed.length === 0
+      ? []
+      : [
+          {
+            type: 'secrethitler.gameplay.updated',
+            patch: {
+              phase: { ...phase, confirmedSeats: [...phase.confirmedSeats, ...unconfirmed] },
+            },
+          },
+        ],
+  );
+}
+
 function returnToLobby(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
   const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
     context,
@@ -196,6 +268,12 @@ function decideCommand(
       return startGame(state, context);
     case 'secrethitler.game.begin':
       return beginGame(state, context);
+    case 'secrethitler.game.abort':
+      return abortGame(state, context);
+    case 'secrethitler.bots.markAllBotsViewed':
+      return markAllBotsViewed(state, context);
+    case 'secrethitler.bots.markAllBotsGroupConfirmed':
+      return markAllBotsGroupConfirmed(state, context);
     case 'secrethitler.role.viewed':
       return markRoleViewed(state, context);
     case 'secrethitler.game.returnToLobby':
@@ -215,7 +293,9 @@ export function decideSecrethitlerCommand(
   const decision = decideCommand(state, command, context);
   if (
     decision.kind !== 'commit' ||
-    (command.type !== 'secrethitler.audio.ack' && command.type !== 'secrethitler.night.confirm')
+    (command.type !== 'secrethitler.audio.ack' &&
+      command.type !== 'secrethitler.night.confirm' &&
+      command.type !== 'secrethitler.bots.markAllBotsGroupConfirmed')
   )
     return decision;
   const intermediate = decision.events.reduce(evolveSecrethitlerState, state);
@@ -247,7 +327,7 @@ export const secrethitlerEngine = {
     wordLibrary: false,
     gallery: false,
     hostConfig: true,
-    botBulkViewing: false,
+    botBulkViewing: true,
   },
   createInitialState,
   decide: decideSecrethitlerCommand,

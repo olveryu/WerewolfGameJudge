@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router';
 import {
   gameConfigEditPath,
   gameGuidePath,
+  musicSettingsPath,
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
 import {
@@ -161,10 +162,7 @@ export function useSecrethitlerRoomState(
   );
   const orchestration = useSecrethitlerAudioOrchestration({ session, isHost, audio: props.audio });
   const audioResume = useRoomAudioResume({
-    isHost,
-    isNarratedPhase: state.phase.kind === 'night',
-    revision,
-    readWasAudioInterrupted: orchestration.readWasAudioInterrupted,
+    isResumeRequired: orchestration.isResumeRequired,
     resume: orchestration.resumeAfterRejoin,
     onResumed: bgm.startBgmIfEnabled,
   });
@@ -197,6 +195,10 @@ export function useSecrethitlerRoomState(
         isSubmitting,
         submit,
         review: review.entry,
+        onMusicSettings: () => {
+          bgm.stopBgm();
+          void navigate(musicSettingsPath(room.roomCode));
+        },
       }),
       {
         isAudioPlaying: state.isAudioPlaying,

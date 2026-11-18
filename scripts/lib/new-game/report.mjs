@@ -24,148 +24,65 @@ export function buildIntegrationReport({
     .join('\n');
   const created = createdFiles.map((file) => `- \`${file}\``).join('\n');
   const edited = editedFiles.map((file) => `- \`${file}\``).join('\n');
-  const capabilityArgs = selectedCapabilities
-    .filter((key, index, list) => list.indexOf(key) === index)
+  const capabilityArgs = [...new Set(selectedCapabilities)]
     .map((key) => ` --capability ${key}`)
     .join('');
+  const identityNote = capabilities.identityViewing
+    ? ' 将 `TODO_IDENTITY` 替换为已批准的身份表，并验证公开立绘。'
+    : '';
+  const botViewingNote =
+    capabilities.identityViewing && !capabilities.botBulkViewing
+      ? ' 若游戏有机器人座位，须明确批准不提供批量查看；逐个接管不能替代该房主操作。'
+      : '';
+  const audioNote = capabilities.audioOrchestration
+    ? ' 补齐生成的 registry/player、提示词映射和打包音频；验证播报门禁、重播、音乐及失败恢复。'
+    : ' 本次未启用音频；不要添加不完整的音频接线。';
   return `# ${home.displayName}（${gameId}）接入报告
 
-> 由 \`pnpm new-game ${gameId}${capabilityArgs}${production ? ' --production' : ''}\` 生成。骨架已经接通底盘与注册，
-> 但**还不是一个能玩的游戏**：所有 \`// TODO(gameplay):\` 标记处都是待填的玩法，
-> 未填的玩法命令会显式抛「未实现」，不会假绿。
+> 由 \`corepack pnpm new-game ${gameId}${capabilityArgs}${production ? ' --production' : ''}\` 生成。骨架只接通底盘，尚不是可玩的游戏；所有 \`TODO(gameplay)\` 都必须完成。
 
-## 生成参数
+## 生成摘要
 
 | 项 | 值 |
 | --- | --- |
-| 游戏 ID | \`${gameId}\` |
-| 已选能力 | ${
-    [...new Set(selectedCapabilities)].map((key) => `\`${key}\``).join('、') ||
-    '无（仅使用基础接线）'
-  } |
-| 生产态 | ${production ? '是（--production）' : '否（默认非生产，上线动作见第 9 步）'} |
-| 创建目录 | ${production ? '可见（注册表与首页合同名单已同步）' : '不可见（已注册，但不会出现在首页/创建列表）'} |
-| 房间布局 | ${capabilities.identityViewing ? '身份类型：全阶段共享座位盘、公开身份配置、底部个人操作' : '无身份类型：大厅座位盘、开局后工作区'} |
-| 展示名 / 副标题 | ${home.displayName} / ${home.subtitle} |
-| 首页图标 / 档位 | ${home.iconName} / ${home.tier} |
-| 完成奖励（flat） | xpEarned ${rewards.xpEarned} · normalDrawsEarned ${rewards.normalDrawsEarned} · dailyCompletionTarget ${rewards.dailyCompletionTarget} |
-| 类名派生 | ${names.pascal} / ${names.camel} / ${names.upper} |
-| 战绩基线 | 每次符合人数门槛的终局完成计 1 局；无胜负、分数或历史回填推断 |
+| 游戏 ID / 能力 | \`${gameId}\` / ${[...new Set(selectedCapabilities)].map((key) => `\`${key}\``).join('、') || '无（基础接线）'} |
+| 生产态 / 首页可见 | ${production ? '是 / 是' : '否 / 否（注册但隐藏）'} |
+| 布局 / 展示 | ${capabilities.identityViewing ? '全阶段共享座位盘' : '大厅座位盘、开局后工作区'}；${home.displayName} / ${home.subtitle} |
+| 奖励占位值 | ${rewards.xpEarned} XP · ${rewards.normalDrawsEarned} 次抽取 · 每日目标 ${rewards.dailyCompletionTarget} |
+| 战绩基线 | 通过人数门槛的终局 completion 计 1 局；不推断胜负/分数或历史数据 |
 
-## 能力开关声明（引擎 engine.ts，已与 contract 期望表对齐）
+### 能力声明
 
 | 开关 | 声明 |
 | --- | --- |
 ${capabilityRows}
 
-开关只表示「接没接这块底盘能力」。生成后按玩法改声明时，必须同步改
-\`capabilities.contract.test.ts\` 的期望行——contract 会逐项验声明与接线是否一致。
+能力声明必须与实际接线及 \`capabilities.contract.test.ts\` 一致。
 
-## 生成的文件
+### 生成文件
 
 ${created}
 
-## 生成器改动的共享文件
+### 修改的共享文件
 
 ${edited}
 
 ## 还差的人工步骤（按顺序）
 
-1. **设计定稿**：把 \`docs/${gameId}-game-design.md\` 里的 11 项需求表填完并走批准流程
-   （new-game skill Phase 1）；该文档已登记到 \`docs/README.md\`。
-   骨架里的默认人数、展示名、副标题、图标都是占位值。
-   开局/参与/身份分配/目录限制须注明规则来源、适用仓库合同或用户确认；
-   未确认的实现假设不得写成“已批准”。奖励/战绩门槛不是开局门槛。${
-     capabilities.identityViewing
-       ? `\n   启用 identityViewing 时，另需把 \`TODO_IDENTITY\` 占位身份换成真实身份表，并按仓库立绘流程生产
-   角色立绘与图鉴素材（prompt 先审、生成过目后才入库）。`
-       : ''
-   }
-2. **玩法填空**：全仓 grep \`TODO(gameplay)\`（限定 \`packages/game-engine/src/games/${gameId}\`、
-   \`packages/api-worker/src/games/${gameId}\`、\`packages/web/src/games/${gameId}\`），逐个填掉：
-   身份/回合的玩法状态机在 \`domain/decision.ts\` 与 \`engine.ts\` 的 TODO 接缝处接入，
-   视图投影在 \`domain/visibility.ts\` 补齐隐私裁剪。
-   ${capabilities.identityViewing ? '房间全阶段保留共享座位盘；公开身份构成替换占位表，身份卡/公共预览共用立绘 registry，预览不提交查看记录。若有夜晚互认，在本人或受控座位的私密视图允许时用 resolveHighlight 的共享头像颜色高亮显示同伴，不新增身份文字标签；确认后或离开该步清除，验证未授权玩家、观战者和接管切换。' : '房间沿用无身份工作区；不要添加没有规则依据的身份查看阶段。'}
-   图片通过共享 \`useRoomImagePreload\` 预加载公开清单，禁止从秘密身份分配构造公共资源列表。${
-     capabilities.audioOrchestration
-       ? `\n   已生成 AudioClip registry、AudioService 播放器及模块注入，不再传空播放器。
-   按 \`scripts/README-audio.md\` 把确认的 cue 加入 Edge TTS 生成脚本、生成打包 MP3 并登记，
-   未登记 cue 显式报错，播放失败不确认批次；禁止浏览器 SpeechSynthesis 或人工推进兜底。
-   保留共享编排、重连续播门和音乐/音量控制；按真实阶段补齐自动音乐范围。
-   每步逐项核对语音、获准行动者、私密信息、未确认/已确认提示和自动推进条件；
-   进度只计真实玩家行动或确认步骤，开场、闭眼结束和天亮属于音频批次，不能一段音频算一步；
-   按行动计划断言准确的 current/total。收尾播报跨阶段时继续锁定后续操作，并保留重连续播门。
-   验证人数/角色变体、确认与音频回执两种顺序、重连和播放失败，不能只检查文件存在或提示非空。`
-       : '\n   本次未启用音频，不生成播放器或播报绑定。'
-   }
-3. **本局复盘填空**：复盘已全链接通——模块 \`review\`、终局底部「本局复盘」按钮
-   （所有观看者）、房主面板复盘动作与终局任务（本局复盘 / 再来一局 / 返回大厅），
-   弹窗与图片分享归平台。骨架文档只有 hero「本局结束」+ 参与者名单：按设计文档把
-   本局事实（胜负、身份、得分、过程）填进
-   \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\`，可用条件与分享权限在
-   \`packages/web/src/games/${gameId}/review/${names.camel}Review.ts\` 定，并同步改两者的测试
-   \`review/__tests__/${names.camel}Review.test.ts\`。块词汇是封闭集合
-   （\`packages/web/src/features/room/review/types.ts\`）：表达不了的内容先扩平台词汇，不许游戏自写复盘 JSX。
-   生成器已把真实引擎打出的大厅 / 终局 / 下一局（\`packages/web/src/test-utils/${gameId}State.ts\` 的
-   \`${names.upper}_REVIEW_ROUNDS\`）登记进 \`packages/web/src/__tests__/roomReview.contract.test.ts\`：
-   终局玩法或局号来源改了，同步改这组局面。
-4. **奖励与战绩口径确认**：参数表里的三数是占位值（见上表），明确选择并批准
-   flat / levelRoll 奖励政策和数值；骨架保留 flat，不擅自替换奖励策略。
-   flat 数值在 \`packages/game-engine/src/product/rewards/earnings.ts\`，
-   \`packages/game-engine/src/games/registry.ts\` 引用同一份常量。
-   已生成的战绩只是 completed-games 基线，不代表玩法统计已完成。必须逐项批准：
-   结算单位（局/轮）、指标来源与归属、单位/分母/零分母、时间精度、历史采集缺口、
-   状态/完成 payload/D1 迁移政策、即时/延迟可见与缓存策略。轮结算游戏同步修改 UI 单位。
-   然后在本游戏的 publicStats、终局事实、dbSchema/migration、publicUserStats 和 StatsPanel
-   实现已批准的玩法指标并验证；不需要额外指标也必须记录批准理由，不能默认“已完成”。
-   人数门槛按过滤前冻结真人名单（游客计人数，机器人不计），奖励与战绩只给注册账号；
-   创作游戏的作者过滤在人数判定之后执行。以演化后的终局状态取事实，v2 stats 用户必须
-   与奖励名单一一对应且保持座位顺序；旧严格 payload 仅发原奖励，不伪造缺失战绩。
-5. **审 migration**：\`packages/api-worker/migrations/${migrationName}\` 是从上一份注册
-   migration 机械派生的骨架——应用前人工核对重建表集合与现行 schema 一致；
-   已带游戏自有累计表 \`${gameId}_user_stats\`，没有逐局流水或新索引。
-   对比约束、外键、触发器与索引，估算表复制的一次性读写成本；玩法字段按批准的迁移政策追加。
-6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 是多真人多 context 的
-   spec 骨架，默认不进 CI。启用时改名为 \`${gameId}.spec.ts\` 并把文件名加进
-   \`.github/workflows/ci.yml\` 的 e2e 分片矩阵（ciE2eCoverage contract 会验全量一致）。
-7. **词库（如需要）**：把引擎 \`wordLibrary\` 开关打开时，供词 workflow 要在
-   三处登记，缺一处都不完整（骨架不带 workflow 本体，类本体按 new-game skill
-   的供词步骤手写在 \`packages/api-worker/src/games/${gameId}/wordSupplyWorkflow.ts\`）：
-   ① 注册表 \`packages/game-engine/src/games/registry.ts\` 本条目的
-   \`workerWorkflows\` 加一项 \`{ exportName: '${names.pascal}WordSupplyWorkflow', modulePath: './games/${gameId}/wordSupplyWorkflow' }\`
-   ——capabilities contract 验引擎声明与登记一致，漏这处会红；
-   ② \`packages/api-worker/src/index.ts\` 的 workflow 导出区加一行
-   \`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`
-   ——architecture contract 验注册表与导出双向一致，漏这处会红；
-   ③ \`packages/api-worker/wrangler.toml\` 加一段 \`[[workflows]]\`
-   （\`name = "${gameId}-word-supply"\`、\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`、\`class_name = "${names.pascal}WordSupplyWorkflow"\`）
-   ——必须核对 binding 与 Env 的运行时类型。三处齐后，按 skill 的供词步骤建词表、
-   灌种子词并验证 workflow，不能空表上线。
-8. **门禁复跑**：引擎 / worker / web 的本游戏路径测试及受影响 contract、
-   \`pnpm exec tsc --noEmit\`、改动包 typecheck、\`pnpm run knip\`、改动文件 prettier/eslint，
-   加 skill 的只读 check；完整 quality 和全量 E2E 留给 CI，不拿本地全套当门禁。
-   战绩证据须覆盖终局/重复/重开/中止/人数门槛、匿名/机器人/作者归属、
-   严格 v2 与 legacy、D1 原子失败回滚/重放/删除级联/读写预算、HTTP DTO、设置与资料卡、
-   pending/error 必须显示未知统计，不改变既有物品解锁及装备权限，奖励 inbox 触发既有缓存失效。${
-     production
-       ? `
-9. **上线（已同步目录名单）**：本次显式选择 \`--production\`，注册表已是
-   \`isProduction: true\`，并已将 \`'${gameId}'\` 按 \`GAME_TYPES\` 顺序登记到
-   \`packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts\`
-   的 \`PRODUCTION_GAME_TYPES\` 名单，无须再次手工同步。硬编码绊线仍保留，
-   生产集合只因本次显式参数而变更；这不代表已经部署或通过玩法验收。
-   所有人工步骤须记录“已实现并验证”或获批准的不适用理由；
-   设计/奖励/战绩口径未批准、指标未实现或验证缺失时不能上线。名单同步不是上线充分条件。`
-       : `
-9. **上线（翻生产）**：本次生成默认非生产（注册表 \`isProduction: false\`）——
-   游戏已全注册、凭房间码可进，但首页模式列表（建房入口）不可见。
-   玩法完成、门禁全绿后，在同一个 PR 里做两处显式动作才算上线：
-   ① \`packages/game-engine/src/games/registry.ts\` 本游戏条目改 \`isProduction: true\`；
-   ② 把 \`'${gameId}'\` 按它在 \`GAME_TYPES\` 中的顺序位置，加进
-   \`packages/web/src/games/__tests__/homeProductionFilter.contract.test.ts\` 的
-   \`PRODUCTION_GAME_TYPES\` 名单（硬编码名单是刻意保留的绊线）。
-   两处只改其一会被 contract 拦住；所有人工步骤须记录“已实现并验证”或获批准的不适用理由；
-   设计/奖励/战绩口径未批准、指标未实现或验证缺失时不能上线。两处齐不是上线充分条件。`
-   }
+1. **设计定稿**：完成 \`docs/${gameId}-game-design.md\` 的 11 项需求表并取得批准。占位人数、展示名、副标题和图标不是最终设计。限制开局、参与、身份分配或目录可见性时，注明规则来源、合同依据或用户确认；奖励/战绩门槛不是玩法门槛。${identityNote}
+2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${botViewingNote}${audioNote}
+3. **本局复盘填空**：实现 \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\` 和 \`review/${names.camel}Review.ts\`，补齐 \`review/__tests__/${names.camel}Review.test.ts\`。只用 \`packages/web/src/features/room/review/types.ts\` 的封闭 block vocabulary；需要新表达时先扩展平台。局面 fixture \`${names.upper}_REVIEW_ROUNDS\` 已注册，玩法变化时同步维护。
+4. **奖励与战绩口径确认**：明确批准 flat / levelRoll 和奖励数值；统计确定局/轮单位、事实归属、分母/零分母、时间精度、历史缺口、迁移和可见性/缓存策略。completed-games 只是基线；不需要额外指标也必须记录批准理由。实现所有批准指标，保持冻结真人名单、作者过滤顺序及严格 legacy/v2 兼容；详见 [统计接线](.agents/skills/new-game/references/skeleton-and-wiring.md#statistics-and-settlement)。
+5. **审 migration**：手工核对 \`packages/api-worker/migrations/${migrationName}\` 的约束、外键、索引/触发器和复制成本。注册 migration 来源与新增累计表见 [注册清单](.agents/skills/new-game/references/registration-checklist.md)；机械派生不代替 schema 审查。
+6. **e2e 启用需用户批准**：\`e2e/specs/${gameId}.spec.ts.tmpl\` 默认不进 CI。批准后按 \`new-e2e-spec\` skill 改为真实多 context 测试，并将 spec 加入 \`.github/workflows/ci.yml\` 分片矩阵。
+7. **词库（如需要）**：只有设计需要时才实现 workflow，并同时登记 \`packages/game-engine/src/games/registry.ts\` 的 \`workerWorkflows\`（\`exportName: '${names.pascal}WordSupplyWorkflow'\`）、\`packages/api-worker/src/index.ts\`（\`export { ${names.pascal}WordSupplyWorkflow } from './games/${gameId}/wordSupplyWorkflow';\`）及 \`packages/api-worker/wrangler.toml\` 的 \`[[workflows]]\`（\`binding = "${gameId.toUpperCase()}_WORD_SUPPLY"\`）。
+8. **验证**：运行 skill acceptance commands、generator contract、受影响包测试/typecheck、lint/format 和 \`knip\`。覆盖玩法完成、授权/隐私、确认与音频回执顺序、统计原子性/重试及 profile/settings 状态；完整 quality/E2E 由 CI 执行。每一步记录验证证据，或用户批准的不适用理由。
+9. **上线${production ? '（已同步目录名单）' : '（翻生产）'}**：${
+    production
+      ? '`--production` 已将 registry `isProduction` 设为 true，并更新 `homeProductionFilter.contract.test.ts` 中的 `PRODUCTION_GAME_TYPES`；这不等于部署或玩法验收。先完成其他步骤。'
+      : `默认已注册但首页隐藏。获批且验证完成后，将 registry \`isProduction\` 设为 true，并在 \`homeProductionFilter.contract.test.ts\` 的 \`PRODUCTION_GAME_TYPES\` 中加入 \`${gameId}\`；合同要求两处同步。两处齐不是上线充分条件。`
+  }
+
+只有九步都有实现与验证证据（或批准的不适用理由），才能将游戏视为可上线。详细验收见 [new-game skill](.agents/skills/new-game/SKILL.md) 与 [能力和报告说明](.agents/skills/new-game/references/capabilities-and-report.md)。
 `;
 }

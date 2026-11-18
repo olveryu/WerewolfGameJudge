@@ -30,6 +30,10 @@ import {
   buildAssignRolesAction,
 //#end
   buildClearSeatsAction,
+  buildAbortGameAction,
+//#cap audioOrchestration
+  buildMusicSettingsAction,
+//#end
   buildFillBotsAction,
 //#cap botBulkViewing
   buildMarkBotsViewedAction,
@@ -63,13 +67,14 @@ import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
 } from '@/features/room/model/RoomBottomActions';
+//#cap identityViewing
+import { toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
+//#end
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type {
   RoomHostManagementAction,
   RoomHostManagementModel,
-//#cap identityViewing
   RoomHostManagementSection,
-//#end
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
@@ -97,7 +102,7 @@ export interface __GAME_PASCAL__SeatSourceInput {
 /** Project __GAME_PASCAL__ seating into the shared room seat-tap contract. */
 export const get__GAME_PASCAL__SeatTapIntent = createRoomSeatTapIntentResolver(get__GAME_PASCAL__ProfileTarget);
 
-function create__GAME_PASCAL__SeatDataSource(
+export function create__GAME_PASCAL__SeatDataSource(
   input: __GAME_PASCAL__SeatSourceInput,
 ): RoomSeatDataSource {
   const { state, revision, userId, controlledSeat } = input;
@@ -109,6 +114,13 @@ function create__GAME_PASCAL__SeatDataSource(
     controlledSeat,
     isLobby: state.phase.kind === 'lobby',
     gameName: '__GAME_PASCAL__',
+//#cap identityViewing
+    resolveSecondaryLabel: (seat, player) => {
+      if (state.hostUserId !== userId || player?.occupant.kind !== 'bot') return null;
+      const identity = state.identities[seat];
+      return identity === undefined ? null : toRevealRoleData(identity).name;
+    },
+//#end
 //#cap identityViewing
     // 已查看勾只属于查看阶段（展示契约）：开始即消失。
     resolveShowReadyBadge: (seat) =>
@@ -154,6 +166,30 @@ export interface __GAME_PASCAL__HostManagementInput {
   readonly submit: (label: string, command: __GAME_PASCAL__Command) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
+//#cap audioOrchestration
+  readonly onMusicSettings: () => void;
+//#end
+}
+
+function create__GAME_PASCAL__HostTools(input: __GAME_PASCAL__HostManagementInput): RoomHostManagementSection[] {
+  const { state } = input;
+  const sections: RoomHostManagementSection[] = [];
+//#cap audioOrchestration
+  if (state.phase.kind !== 'playing')
+    sections.push({ key: 'tools', title: '辅助工具', actions: [
+      buildMusicSettingsAction({ onPress: input.onMusicSettings }),
+    ] });
+//#end
+  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
+    sections.push({ key: 'danger', title: '危险操作', actions: [
+      buildAbortGameAction({
+        onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle,
+          '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
+          () => void input.submit('中止本局', { type: '__GAME_ID__.game.abort' })),
+        isEnabled: !input.isSubmitting, isLoading: input.isSubmitting,
+      }),
+    ] });
+  return sections;
 }
 
 /** Assembles the __GAME_PASCAL__ host panel for the current phase. Host gating belongs to the shell factory. */
@@ -161,6 +197,7 @@ export function create__GAME_PASCAL__HostManagement(
   input: __GAME_PASCAL__HostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities } = input;
+  const tools = create__GAME_PASCAL__HostTools(input);
   const roomActions: RoomHostManagementAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
@@ -204,7 +241,7 @@ export function create__GAME_PASCAL__HostManagement(
           key: 'room',
           title: '房间管理',
           actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
+        }, ...tools,
       ],
     };
   }
@@ -235,7 +272,7 @@ export function create__GAME_PASCAL__HostManagement(
           key: 'room',
           title: '房间管理',
           actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
+        }, ...tools,
       ],
     };
   }
@@ -296,7 +333,7 @@ export function create__GAME_PASCAL__HostManagement(
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     const task = hostActionTask(HOST_ACTION_KEYS.startGame, {});
 //#end
-    return { task, sections };
+    return { task, sections: [...sections.filter((section) => section.actions.length > 0), ...tools] };
   }
 //#end
 //#cap identityViewing
@@ -328,7 +365,7 @@ export function create__GAME_PASCAL__HostManagement(
                 }),
             }),
           ],
-        },
+        }, ...tools,
       ],
     };
   }
@@ -358,7 +395,7 @@ export function create__GAME_PASCAL__HostManagement(
                 }),
             }),
           ],
-        },
+        }, ...tools,
       ],
     };
   }
@@ -366,7 +403,7 @@ export function create__GAME_PASCAL__HostManagement(
   // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
     task: null,
-    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+    sections: [...(roomActions.length > 0 ? [{ key: 'room', title: '房间管理', actions: roomActions }] : []), ...tools],
   };
 }
 

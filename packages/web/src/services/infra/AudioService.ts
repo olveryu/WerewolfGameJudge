@@ -42,12 +42,12 @@ export class AudioService {
     });
   }
 
-  /** Plays `clip`; settles when it finishes or is stopped, rejects on load/playback failure. */
+  /** Plays `clip`; resolves on completion and rejects on stop, loading or playback failure. */
   playClip(clip: AudioClip): Promise<void> {
     return this.#strategy.play(clip.url, clip.key);
   }
 
-  /** Stops the current clip and settles its pending playback. */
+  /** Stops the current clip and rejects its pending playback as cancelled. */
   stop(): void {
     this.#strategy.stop();
   }
