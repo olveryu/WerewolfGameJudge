@@ -40,7 +40,6 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
-import { useScopedDraft } from '@/features/room/hooks/useScopedDraft';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
@@ -61,7 +60,6 @@ import type {
   WerewolfSubmit,
 } from '@/games/werewolf/model/WerewolfRoomSession';
 
-import { EMPTY_PANEL_FLOW_PROGRESS, type PanelFlowProgress } from '../day/panelFlow';
 import { type SheriffElectionPanelModel, useSheriffElection } from '../day/useSheriffElection';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
@@ -78,8 +76,6 @@ import { useRoomModals } from './useRoomModals';
 import { useWerewolfAudioOrchestration } from './useWerewolfAudioOrchestration';
 import { useWerewolfBgmControl, type WerewolfBgmControlState } from './useWerewolfBgmControl';
 import { type MvpSelection, useWerewolfHostFlow } from './useWerewolfHostFlow';
-
-const PANEL_FLOW_NAMESPACE = 'werewolf:panel-flow';
 
 /** Passive toasts for non-hosts, keyed by the host command that produced the revision. */
 const LAST_ACTION_TOASTS = {
@@ -147,19 +143,6 @@ export interface WerewolfRoomScreenState {
 const resolveWerewolfSeatTapIntent = createRoomSeatTapIntentResolver<GameState>((state, seat) =>
   getRoomProfileTarget(state.roster, seat),
 );
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function parsePanelFlowProgress(value: unknown): PanelFlowProgress {
-  if (!isRecord(value)) throw new Error('Panel flow progress must be an object');
-  const { lastNightInfoConfirmed } = value;
-  if (typeof lastNightInfoConfirmed !== 'boolean') {
-    throw new Error('Panel flow progress flags must be booleans');
-  }
-  return { lastNightInfoConfirmed };
-}
 
 function buildLastNightInfo(state: GameState): string {
   const parts: string[] = [];
@@ -316,15 +299,7 @@ export function useWerewolfRoomState(
   }
 
   // ── Review: the shared 本局复盘, plus the host's seat grants ──
-  const roleRevealRandomNonce = state.roleRevealRandomNonce ?? null;
-  const panelFlow = useScopedDraft<PanelFlowProgress>({
-    namespace: PANEL_FLOW_NAMESPACE,
-    userId: user.id,
-    roomId: room.roomId,
-    scope: { roleRevealRandomNonce },
-    initial: EMPTY_PANEL_FLOW_PROGRESS,
-    parse: parsePanelFlowProgress,
-  });
+  const panelFlow = { lastNightInfoConfirmed: state.lastNightInfoConfirmed === true };
   const review = useRoomReview({
     contribution: props.review,
     state,
@@ -341,7 +316,12 @@ export function useWerewolfRoomState(
       submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }),
     isGameEnded: status === GameStatus.Ended,
     onLastNightInfoConfirmed: () =>
-      panelFlow.updateDraft((current) => ({ ...current, lastNightInfoConfirmed: true })),
+      state.lastNightInfoConfirmed === true
+        ? Promise.resolve(true)
+        : submit('确认昨夜信息', {
+            type: 'werewolf.lastNightInfo.confirm',
+            gameSequence: state.gameSequence,
+          }),
   });
 
   // ── Host flow ──
@@ -447,7 +427,7 @@ export function useWerewolfRoomState(
     isHostActionSubmitting: isActionSubmitting,
     bottomActions,
     sheriffElectionPanel,
-    panelFlow: panelFlow.draft,
+    panelFlow,
     onHostControl: hostFlow.onHostControl,
     onMarkAllBotsViewed: hostFlow.markAllBotsViewed,
     onMarkAllBotsGroupConfirmed: hostFlow.markAllBotsGroupConfirmed,

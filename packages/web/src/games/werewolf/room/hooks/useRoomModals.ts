@@ -33,7 +33,7 @@ interface UseRoomModalsDeps {
    * dialog — the panel flow's first step completes on this confirm,
    * not on merely opening the dialog.
    */
-  readonly onLastNightInfoConfirmed: () => void;
+  readonly onLastNightInfoConfirmed: () => Promise<boolean>;
 }
 
 interface RoomModalsState {
@@ -80,13 +80,14 @@ export function useRoomModals({
       () => {
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();
-        const buttons: AlertButton[] = [{ ...DISMISS_BUTTON, onPress: onLastNightInfoConfirmed }];
+        const buttons: AlertButton[] = [
+          { ...DISMISS_BUTTON, onPress: async () => void (await onLastNightInfoConfirmed()) },
+        ];
         if (curseInfo != null) {
           buttons.unshift({
             text: '查看诅咒',
-            onPress: () => {
-              onLastNightInfoConfirmed();
-              showDismissAlert('乌鸦诅咒', curseInfo);
+            onPress: async () => {
+              if (await onLastNightInfoConfirmed()) showDismissAlert('乌鸦诅咒', curseInfo);
             },
           });
         }

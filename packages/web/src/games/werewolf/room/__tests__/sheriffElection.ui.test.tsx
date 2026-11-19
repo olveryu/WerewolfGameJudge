@@ -2,6 +2,7 @@
 
 import type { SheriffElectionState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, waitFor, within } from '@testing-library/react';
 
 import {
@@ -134,6 +135,15 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
         await harness.pressButton('确定查看');
         await harness.pressButton('知道了');
+        expect(mock.dispatch).toHaveBeenCalledWith(
+          { type: 'werewolf.lastNightInfo.confirm', gameSequence: mock.state.gameSequence },
+          expect.anything(),
+        );
+        act(() =>
+          mock.session.publishRoom(
+            createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
+          ),
+        );
         const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
         await click(task.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
@@ -164,6 +174,47 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     },
   );
 
+  it('keeps authorization locked after a failed acknowledgement', async () => {
+    const harness = new RoomScreenTestHarness();
+    const detachAlerts = recordAlerts(harness);
+    try {
+      const mock = createDayRoomMock(FIRST_VOTE, [], true);
+      mock.dispatch.mockResolvedValueOnce({
+        kind: 'undelivered',
+        commandId: 'confirmation',
+        cause: 'network',
+      });
+      const screen = await mountWerewolfRoom(mock);
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+      await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
+      await harness.pressButton('确定查看');
+      await harness.pressButton('知道了');
+      expect(screen.getByTestId(TESTIDS.shareReviewButton)).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    } finally {
+      detachAlerts();
+    }
+  });
+
+  it('restores the host authorization step from an acknowledged room snapshot', async () => {
+    const mock = createWerewolfRoomMock({
+      schemaId: 'seerCheck',
+      currentActionRole: 'seer',
+      myRole: 'villager',
+      mySeat: 0,
+      numberOfPlayers: 4,
+      isHost: true,
+      gameStateOverrides: { status: GameStatus.Ended, lastNightInfoConfirmed: true },
+    });
+    const screen = await mountWerewolfRoom(mock);
+    await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+    const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+    expect(task.getByTestId(TESTIDS.shareReviewButton)).not.toHaveAttribute('aria-disabled');
+    expect(task.getByTestId(TESTIDS.shareReviewButton)).toHaveTextContent('待办');
+  });
+
   it.each([390, WIDE_VIEWPORT_WIDTH])(
     'keeps the Ended grant/review tools before both exits at viewport width %s',
     async (viewportWidth) => {
@@ -191,6 +242,11 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         await click(task.getByTestId(TESTIDS.lastNightInfoButton));
         await harness.pressButton('确定查看');
         await harness.pressButton('知道了');
+        act(() =>
+          reactive.simulateStateUpdate({
+            gameStateOverrides: { status: GameStatus.Ended, lastNightInfoConfirmed: true },
+          }),
+        );
 
         expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
         task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
@@ -236,6 +292,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
             gameStateOverrides: {
               status: GameStatus.Ended,
               nightReviewAllowedSeats: [1],
+              lastNightInfoConfirmed: true,
             },
           }),
         );
@@ -291,6 +348,11 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
       await harness.pressButton('确定查看');
       await harness.pressButton('知道了');
+      act(() =>
+        mock.session.publishRoom(
+          createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
+        ),
+      );
       await click(screen.getByTestId(TESTIDS.shareReviewButton));
       const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
       const playerSeats = within(picker).getAllByRole('checkbox');

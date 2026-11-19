@@ -48,6 +48,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'resolvedNightEffects',
   'pendingRevealAcks',
   'lastNightDeaths',
+  'lastNightInfoConfirmed',
   'deathReasons',
 
   // First-day sheriff election

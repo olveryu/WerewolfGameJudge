@@ -1000,6 +1000,11 @@ export function parseWerewolfState(value: unknown): GameState {
     lastNightDeaths: parseOptional(raw.lastNightDeaths, 'GameState.lastNightDeaths', (items, p) =>
       parseArray(items, p, parseSeat),
     ),
+    lastNightInfoConfirmed: parseOptional(
+      raw.lastNightInfoConfirmed,
+      'GameState.lastNightInfoConfirmed',
+      parseBoolean,
+    ),
     deathReasons: parseOptional(raw.deathReasons, 'GameState.deathReasons', parseDeathReasons),
     sheriffElection: parseOptional(
       raw.sheriffElection,
@@ -1151,7 +1156,7 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12–v17 payloads migrate to v18: v13 adds nothing the parser cannot
+ * v12–v18 payloads migrate to v19: v13 adds nothing the parser cannot
  * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
  * adds audioBatchId, which starts at 0 for a room whose queue was
  * written before batches had ids; v15 re-addresses `actionRejected` to
@@ -1159,8 +1164,9 @@ export function parseWerewolfState(value: unknown): GameState {
  * dropped; v16 adds gameSequence, which starts at 0 for a room written
  * before games were numbered; v17 adds the Wolf Girl confession record,
  * whose ack list starts empty for every older payload. v18 replaces the
- * old withdrawal-confirmation phase with candidate speech. Payloads at v11
- * or older are still rejected, not migrated.
+ * old withdrawal-confirmation phase with candidate speech. v19 adds an
+ * optional acknowledgement, absent in older rooms. Payloads at v11 or
+ * older are still rejected, not migrated.
  * @throws When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
@@ -1233,6 +1239,8 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   }
   if (raw.stateVersion === 17)
     return parseWerewolfState(migrateElection({ ...raw, stateVersion: WEREWOLF_STATE_VERSION }));
+  if (raw.stateVersion === 18)
+    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION });
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
   }

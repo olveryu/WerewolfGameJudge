@@ -62,6 +62,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     templateRoles: ['villager'],
   },
   'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
+  'werewolf.lastNightInfo.confirm': { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0 },
   'werewolf.board.nominate': {
     type: 'werewolf.board.nominate',
     displayName: '玩家',
@@ -237,6 +238,17 @@ describe('Worker game catalog', () => {
     for (const command of internalCommands) {
       expect(werewolfInternalCommandSchema.parse(command)).toEqual(command);
       expect(() => werewolfPublicCommandSchema.parse(command)).toThrow();
+    }
+  });
+
+  it('requires a valid game sequence for last-night acknowledgement', () => {
+    for (const command of [
+      { type: 'werewolf.lastNightInfo.confirm' },
+      { type: 'werewolf.lastNightInfo.confirm', gameSequence: -1 },
+      { type: 'werewolf.lastNightInfo.confirm', gameSequence: 1.5 },
+      { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0, extra: true },
+    ]) {
+      expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
     }
   });
 
