@@ -1,9 +1,12 @@
 /** Pictionary room hosted by the shared entry boundary and room shell. */
 
 import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/public';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomGameSettings } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -13,7 +16,11 @@ import { PictionaryStatsPanel } from '@/games/pictionary/components/PictionarySt
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
 import { TESTIDS } from '@/testids';
 
-import { PictionaryRoomSummary } from './components/PictionaryRoomSummary';
+import { PictionaryRules } from '../screens/PictionaryRulesScreen';
+import {
+  createPictionaryRoomSummarySettings,
+  PictionaryRoomSummary,
+} from './components/PictionaryRoomSummary';
 import { PictionaryStage } from './components/PictionaryStage';
 import { usePictionaryRoomState } from './hooks/usePictionaryRoomState';
 
@@ -42,6 +49,12 @@ interface PictionaryRoomContentProps extends PictionaryRoomScreenProps {
 
 function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomContentProps) {
   const screen = usePictionaryRoomState({ ...props, entryController });
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const config = screen.state.config;
+  const isLobby = screen.state.phase === 'lobby';
+  const hasStageMenu = screen.stageHud !== null || screen.state.phase === 'gallery';
+  const openGuide = () => setInformation('guide');
+  const openConfiguration = () => setInformation('configuration');
   const stage = (
     <PictionaryStage
       state={screen.state}
@@ -60,8 +73,16 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
+      stageMenu={
+        hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
+      }
+      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+      manualEntries={[
+        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('pictionary') },
+      ]}
       content={
-        screen.state.phase === 'lobby'
+        isLobby
           ? {
               kind: 'seats',
               contextHeader: null,
@@ -70,13 +91,9 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
               sideInspector: null,
               beforeSeatBoard: (
                 <PictionaryRoomSummary
-                  config={screen.state.config}
+                  config={config}
                   occupiedSeatCount={screen.occupiedSeatCount}
-                  guide={{
-                    onPress: screen.openRules,
-                    label: '查看你画我猜接龙玩法说明',
-                    testId: TESTIDS.roomGuideButton('pictionary'),
-                  }}
+                  guide={null}
                 />
               ),
             }
@@ -89,7 +106,32 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
         <PictionaryStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
-      gameOverlays={screen.reviewOverlay}
+      gameOverlays={
+        <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="你画我猜接龙玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <PictionaryRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`你画我猜接龙（${config.numberOfPlayers}人）`}</p>
+              <RoomGameSettings settings={createPictionaryRoomSummarySettings(config)} />
+            </RoomDialog>
+          )}
+          {screen.reviewOverlay}
+        </>
+      }
     />
   );
 }

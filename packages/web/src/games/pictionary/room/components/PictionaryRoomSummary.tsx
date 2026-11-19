@@ -21,26 +21,31 @@ export function PictionaryRoomSummary({
       guide={guide}
       title="你画我猜接龙"
       playerCount={config.numberOfPlayers}
-      settings={[
-        { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
-        {
-          label: '绘画时限',
-          value: formatDurationOption(config.drawingDurationSeconds),
-        },
-        {
-          label: '文字时限',
-          value: formatDurationOption(config.guessDurationSeconds),
-        },
-        {
-          label: '每棒间隔',
-          value: formatDurationOption(config.transitionDurationSeconds),
-        },
-        {
-          label: '揭晓停留',
-          value: formatDurationOption(config.galleryItemDurationSeconds, '手动翻页'),
-        },
-      ]}
+      settings={createPictionaryRoomSummarySettings(config)}
       status={`${occupiedSeatCount}/${config.numberOfPlayers} 人就座`}
     />
   );
+}
+
+/** Public settings shared by the lobby and match configuration dialog. */
+export function createPictionaryRoomSummarySettings(config: PictionaryConfig) {
+  return [
+    { label: '总棒数', value: `${config.numberOfPlayers} 棒` },
+    {
+      label: '绘画时限',
+      value: formatDurationOption(config.drawingDurationSeconds),
+    },
+    {
+      label: '文字时限',
+      value: formatDurationOption(config.guessDurationSeconds),
+    },
+    {
+      label: '每棒间隔',
+      value: formatDurationOption(config.transitionDurationSeconds),
+    },
+    {
+      label: '揭晓停留',
+      value: formatDurationOption(config.galleryItemDurationSeconds, '手动翻页'),
+    },
+  ];
 }

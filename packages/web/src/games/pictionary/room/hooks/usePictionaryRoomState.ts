@@ -12,11 +12,7 @@ import {
 import { type ReactNode, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -79,7 +75,6 @@ export interface PictionaryRoomScreenState {
   readonly controlledSeat: number | null;
   readonly userId: string;
   readonly isHost: boolean;
-  readonly openRules: () => void;
   readonly session: PictionaryRoomSession;
   /** 平台单飞漏斗：阶段组件的玩家 / 房主命令都经此发出。 */
   readonly submit: ReadyRoomSession<PictionaryState, PictionaryPublicCommand>['submit'];
@@ -123,9 +118,6 @@ export function usePictionaryRoomState({
   });
   const configureGame = useCallback(() => {
     void navigate(gameConfigEditPath('pictionary', room.roomCode));
-  }, [navigate, room.roomCode]);
-  const openRules = useCallback(() => {
-    void navigate(gameGuidePath('pictionary', room.roomCode));
   }, [navigate, room.roomCode]);
   const {
     seatController,
@@ -259,7 +251,6 @@ export function usePictionaryRoomState({
     controlledSeat,
     userId: user.id,
     isHost,
-    openRules,
     session,
     submit,
     isSubmitting,
