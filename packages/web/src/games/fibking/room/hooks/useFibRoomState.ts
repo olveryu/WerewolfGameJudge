@@ -14,11 +14,7 @@ import {
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -80,7 +76,7 @@ export interface FibRoomScreenState {
   readonly identityAllRoles: readonly RevealRoleData[];
   /** 是否正接管机器人座位（接管时不播查看者本人的揭示动画，D-1）。 */
   readonly isBotTakeoverActive: boolean;
-  readonly openRules: () => void;
+  readonly isGuessing: boolean;
   readonly playerCount: number;
   readonly phase: FibPhase;
   readonly preparationStage: FibPreparationStage | null;
@@ -131,9 +127,6 @@ export function useFibRoomState({
 
   const configureGame = useCallback(() => {
     void navigate(gameConfigEditPath('fibking', room.roomCode));
-  }, [navigate, room.roomCode]);
-  const openRules = useCallback(() => {
-    void navigate(gameGuidePath('fibking', room.roomCode));
   }, [navigate, room.roomCode]);
 
   // ── 身份查看协议 ──
@@ -377,7 +370,7 @@ export function useFibRoomState({
     closePublicView: () => setIsPublicViewOpen(false),
     identityAllRoles,
     isBotTakeoverActive: controlledSeat !== null,
-    openRules,
+    isGuessing,
     playerCount: state.numberOfPlayers,
     phase: state.phase,
     preparationStage: state.phase === 'preparing' ? state.pendingRound.stage : null,

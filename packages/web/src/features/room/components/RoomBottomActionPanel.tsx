@@ -216,6 +216,7 @@ function RoomBottomActionPanelComponent({
             <Button
               ref={focusManualBack}
               variant="secondary"
+              data-testid={TESTIDS.roomManualBackButton}
               onClick={() => {
                 restoreManualFocus.current = true;
                 setIsManualOpen(false);

@@ -39,7 +39,12 @@ export function GameGuide({
       {children}
     </>
   );
-  if (embedded) return <div className="game-guide">{content}</div>;
+  if (embedded)
+    return (
+      <div className="game-guide" data-testid={testId}>
+        {content}
+      </div>
+    );
   return (
     <div className="game-guide-page" data-testid={testId}>
       <ScreenHeader

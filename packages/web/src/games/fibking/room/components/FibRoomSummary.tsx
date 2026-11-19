@@ -61,9 +61,11 @@ export function FibRoomSummary({
 
   return (
     <>
-      <RoomGameSummary guide={guide} title="瞎掰王" playerCount={playerCount}>
-        {children}
-      </RoomGameSummary>
+      {(phase === 'lobby' || phase === 'preparing' || phase === 'preparationFailed') && (
+        <RoomGameSummary guide={guide} title="瞎掰王" playerCount={playerCount}>
+          {children}
+        </RoomGameSummary>
+      )}
       {preparationStatus !== null && (
         <p
           className={`fib-preparation-status${isFailed ? ' fib-preparation-status-failed' : ''}`}

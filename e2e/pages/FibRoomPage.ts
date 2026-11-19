@@ -59,14 +59,17 @@ export class FibRoomPage extends RoomPage {
   }
 
   async openRules(): Promise<void> {
+    const roomUrl = this.page.url();
+    await this.page.getByTestId(TESTIDS.roomManualButton).click();
     await this.page.getByTestId(TESTIDS.fibRulesButton).click();
     await expect(this.page.getByTestId(TESTIDS.fibRulesScreenRoot)).toBeVisible();
+    await expect(this.page).toHaveURL(roomUrl);
   }
 
   async returnFromRules(): Promise<void> {
-    const backButton = this.page.getByTestId(TESTIDS.gameGuideBackButton);
-    await expect(backButton).toHaveAccessibleName('返回');
-    await backButton.click();
+    await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
+    await expect(this.page.getByTestId(TESTIDS.fibRulesScreenRoot)).not.toBeVisible();
+    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
     await expect(this.page.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
   }
 
