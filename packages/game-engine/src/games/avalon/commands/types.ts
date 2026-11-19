@@ -14,6 +14,11 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.roles.assign' }
   | { readonly type: 'avalon.game.begin' }
   | { readonly type: 'avalon.game.abort' }
+  | {
+      readonly type: 'avalon.game.restart';
+      readonly gameSequence: number;
+      readonly wasEnded: boolean;
+    }
   | { readonly type: 'avalon.game.returnToLobby' }
   | { readonly type: 'avalon.role.viewed' }
   | { readonly type: 'avalon.bots.markAllBotsViewed' }

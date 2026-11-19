@@ -102,7 +102,6 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
 
   it('keeps the existing terminal pair in identity games and the generator until migration', () => {
     for (const file of [
-      'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ]) {
       const source = readSource(file);
@@ -131,6 +130,7 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     for (const file of [
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
+      'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
       'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',
       'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
       'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',

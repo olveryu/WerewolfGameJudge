@@ -65,6 +65,7 @@ describe('Avalon public command schema', () => {
       },
       { type: 'avalon.roles.assign' },
       { type: 'avalon.game.abort' },
+      { type: 'avalon.game.restart', gameSequence: 1, wasEnded: false },
       { type: 'avalon.phase.retrySettle' },
       { type: 'avalon.bots.markAllBotsGroupConfirmed' },
       { type: 'avalon.game.returnToLobby' },
@@ -88,6 +89,14 @@ describe('Avalon public command schema', () => {
   });
 
   it('rejects unknown commands, extra fields and mistyped payloads', () => {
+    for (const command of [
+      { type: 'avalon.game.restart', gameSequence: -1, wasEnded: false },
+      { type: 'avalon.game.restart', gameSequence: 1 },
+      { type: 'avalon.game.restart', gameSequence: 1, wasEnded: 'false' },
+      { type: 'avalon.game.restart', gameSequence: 1, wasEnded: false, extra: true },
+    ]) {
+      expect(avalonPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
     expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.game.fly' }).success).toBe(false);
     // The host's manual finish commands were deleted; both now parse as unknown.
     expect(avalonPublicCommandSchema.safeParse({ type: 'avalon.vote.finish' }).success).toBe(false);

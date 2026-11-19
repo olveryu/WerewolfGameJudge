@@ -21,11 +21,14 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createAvalonHostManagement } from '../avalonRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/utils/alertPresets', () => ({
+  showConfirmAlert: vi.fn(),
+  showDestructiveAlert: vi.fn(),
+}));
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -280,7 +283,7 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.phase.kind).toBe('nominate');
     const model = build(game.state, false);
     expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
-    expect(model?.sections[0]?.actions[0]).toMatchObject({ key: 'abort-game', isEnabled: true });
+    expect(model?.sections[0]?.actions[0]).toMatchObject({ key: 'restart', isEnabled: true });
     expect(hostTaskBody(model)).toBeNull();
   });
 
@@ -329,7 +332,7 @@ describe('createAvalonHostManagement', () => {
     const voteModel = build(game.state, false);
     expect(
       voteModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
-    ).toEqual(['abort-game']);
+    ).toEqual(['restart']);
     for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
       game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     game.settle();
@@ -337,7 +340,7 @@ describe('createAvalonHostManagement', () => {
     const questModel = build(game.state, false);
     expect(
       questModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
-    ).toEqual(['abort-game']);
+    ).toEqual(['restart']);
   });
 
   describe('task body', () => {
@@ -416,21 +419,27 @@ describe('createAvalonHostManagement', () => {
     );
   });
 
-  it('dispatches abort only after the host confirms', async () => {
+  it('dispatches restart only after the host confirms', async () => {
     const game = session();
     game.seatHost();
     game.fill();
     game.startToNominate();
     const action = build(game.state, false)
       ?.sections.flatMap((section) => section.actions)
-      .find((entry) => entry.key === 'abort-game');
-    if (!action?.isEnabled) throw new Error('expected enabled abort');
+      .find((entry) => entry.key === 'restart');
+    if (!action?.isEnabled) throw new Error('expected enabled restart');
     action.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (confirm === undefined) throw new Error('expected abort confirmation');
+    const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+    if (confirmation === undefined) throw new Error('expected restart confirmation');
+    expect(confirmation[1]).toContain('不结算完成奖励');
+    const confirm = confirmation[3];
     await confirm();
-    expect(submit).toHaveBeenCalledWith('中止本局', { type: 'avalon.game.abort' });
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: 'avalon.game.restart',
+      gameSequence: game.state.gameSequence,
+      wasEnded: false,
+    });
   });
 
   it('exposes bot confirmation after narration and submits the host command without takeover', () => {
@@ -459,23 +468,27 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.phase.kind).toBe('ended');
     const model = build(game.state, false);
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(
       model?.sections.flatMap((section) => section.actions.map((action) => action.key)),
     ).not.toContain('music-settings');
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
-      'next-round-button',
-      'return-lobby-button',
+      'restart-button',
     ]);
     // The closing task offers the review as an equal option beside the terminal pair.
     const task = hostTaskBody(model);
     if (task?.kind !== 'choice') throw new Error('expected a choice task body');
-    expect(task.actions.map((action) => action.key)).toEqual([
-      'review',
-      'next-round',
-      'return-lobby',
-    ]);
+    expect(task.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    const restart = actions[1];
+    if (restart === undefined || !restart.isEnabled) throw new Error('expected enabled restart');
+    restart.onPress();
+    expect(showDestructiveAlert).toHaveBeenCalledWith(
+      '重新开始？',
+      expect.stringContaining('本局已结算'),
+      '重新开始',
+      expect.any(Function),
+    );
   });
 
   it('routes the host review action through the shared review entry', () => {

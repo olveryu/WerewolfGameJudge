@@ -59,6 +59,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
   avalon: [
     'avalon.roles.assign',
     'avalon.game.begin',
+    'avalon.game.restart',
     'avalon.game.returnToLobby',
     'avalon.role.viewed',
   ],
