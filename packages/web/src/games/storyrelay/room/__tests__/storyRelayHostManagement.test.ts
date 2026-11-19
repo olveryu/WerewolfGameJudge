@@ -228,7 +228,7 @@ describe('createStoryRelayHostManagement', () => {
     expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
   });
 
-  it('keeps the host panel in the gallery phase with abort disabled and its reason', () => {
+  it('omits abort during the gallery phase', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -236,9 +236,7 @@ describe('createStoryRelayHostManagement', () => {
     expect(game.state.phase).toBe('gallery');
     const model = build(game.state, false);
     expect(model.task).toBeNull();
-    expect(model.sections.flatMap((section) => section.actions)).toMatchObject([
-      { key: 'abort-game', isEnabled: false, disabledReason: '故事已完成，不能中止' },
-    ]);
+    expect(model.sections.flatMap((section) => section.actions)).toHaveLength(0);
   });
 
   it('pins the ended terminal on the shared builders', () => {
