@@ -157,11 +157,9 @@ export class FibRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.fibRevealRoundButton).click();
     await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('公布答案？');
-    const panel = await this.openHostManagement();
-    await expect(panel.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
       timeout: 15_000,
     });
-    await this.closeHostManagement();
   }
 
   async redrawRound(): Promise<void> {
