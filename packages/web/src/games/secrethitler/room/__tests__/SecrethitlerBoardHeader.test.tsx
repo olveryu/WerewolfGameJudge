@@ -130,7 +130,7 @@ it('uses electronic first-night guidance without a reading script or manual prog
   expect(actions.map((action) => action.label)).toEqual([
     '重播当前语音',
     '标记机器人已确认',
-    '中止本局',
+    '重新开始',
   ]);
 });
 

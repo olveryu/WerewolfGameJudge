@@ -26,15 +26,13 @@ import {
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildMusicSettingsAction,
-  buildNextRoundAction,
   buildPendingAwareHostAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -42,7 +40,6 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -71,7 +68,7 @@ import {
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import {
@@ -279,36 +276,13 @@ export function createSecrethitlerHostManagement(
   if (state.phase.kind === 'ended') {
     if (input.review === null)
       throw new Error('[FAIL-FAST] Secrethitler ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostReviewClosingTask(),
+      task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
-          actions: [
-            buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '重新分配身份，开始新的一局。',
-                  async () => {
-                    await input.submit('再来一局', { type: 'secrethitler.roles.assign' });
-                  },
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.returnLobbyTitle,
-                  HOST_FLOW_CONFIRM.returnLobbyBody,
-                  async () => {
-                    await input.submit('返回大厅', { type: 'secrethitler.game.returnToLobby' });
-                  },
-                ),
-            }),
-          ],
+          actions: [buildReviewHostAction(input.review), buildSecrethitlerRestartAction(input)],
         },
         ...tools,
       ],
@@ -325,6 +299,31 @@ export function createSecrethitlerHostManagement(
       ...tools,
     ],
   };
+}
+
+function buildSecrethitlerRestartAction(
+  input: SecrethitlerHostManagementInput,
+): RoomHostManagementAction {
+  const { state } = input;
+  return buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        state.phase.kind === 'ended'
+          ? '保留座位和配置，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+        '重新开始',
+        async () => {
+          await input.submit('重新开始', {
+            type: 'secrethitler.game.restart',
+            gameSequence: state.gameSequence,
+            wasEnded: state.phase.kind === 'ended',
+          });
+        },
+      ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
 }
 
 function createSecrethitlerHostTools(
@@ -373,18 +372,7 @@ function createSecrethitlerHostTools(
     sections.push({
       key: 'danger',
       title: '危险操作',
-      actions: [
-        buildAbortGameAction({
-          onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.abortTitle,
-              '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
-              () => void input.submit('中止本局', { type: 'secrethitler.game.abort' }),
-            ),
-          isEnabled: !input.isSubmitting,
-          isLoading: input.isSubmitting,
-        }),
-      ],
+      actions: [buildSecrethitlerRestartAction(input)],
     });
   }
   if (actions.length > 0) sections.unshift({ key: 'tools', title: '辅助工具', actions });

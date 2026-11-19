@@ -28,6 +28,11 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
   z.strictObject({ type: z.literal('secrethitler.roles.assign') }),
   z.strictObject({ type: z.literal('secrethitler.game.begin') }),
   z.strictObject({ type: z.literal('secrethitler.game.abort') }),
+  z.strictObject({
+    type: z.literal('secrethitler.game.restart'),
+    gameSequence: z.number().int().nonnegative(),
+    wasEnded: z.boolean(),
+  }),
   z.strictObject({ type: z.literal('secrethitler.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('secrethitler.bots.markAllBotsGroupConfirmed') }),
   z.strictObject({ type: z.literal('secrethitler.role.viewed') }),
