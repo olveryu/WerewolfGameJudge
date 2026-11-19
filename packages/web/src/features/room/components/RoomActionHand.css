@@ -29,7 +29,7 @@
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   gap: var(--space-small);
   width: 100%;
@@ -42,7 +42,7 @@
   color: var(--hand-ink);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
-  text-align: left;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
@@ -113,13 +113,24 @@
 
 .room-action-card-cell .button > .bottom-action-pending {
   position: absolute;
-  top: var(--space-small);
-  right: var(--space-small);
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
+  top: calc(var(--hand-card-drop) - var(--space-small));
+  right: var(--space-tight);
+  padding: 0 var(--space-tight);
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  background: var(--color-hand-host-ink);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  white-space: nowrap;
 }
 
-.room-action-card-cell .button:disabled::before {
+.room-action-card-cell .button:disabled,
+.room-action-card-cell .button[aria-disabled='true'] {
+  opacity: 1;
+}
+
+.room-action-card-cell .button:disabled::before,
+.room-action-card-cell .button[aria-disabled='true']::before {
   border-style: dashed;
 }
 

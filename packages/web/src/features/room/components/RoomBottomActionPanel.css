@@ -81,11 +81,6 @@
   font-weight: var(--weight-regular);
 }
 
-.bottom-action-pending {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-}
-
 .bottom-action-row {
   display: flex;
   flex-wrap: wrap;
