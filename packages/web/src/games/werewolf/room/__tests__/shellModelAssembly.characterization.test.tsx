@@ -79,10 +79,9 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     if (model.bottomActions.kind === 'stacked') {
       expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
       expect(model.bottomActions.layout.primary).toEqual([
-        expect.objectContaining({ key: 'startSeatSelection', label: '选择查验目标' }),
+        expect.objectContaining({ key: 'openActionGroup', label: '预言家行动', isPending: true }),
       ]);
       expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['skip', '不用技能', 'secondary'],
         ['viewRole', '查看身份', 'secondary'],
       ]);
       expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);

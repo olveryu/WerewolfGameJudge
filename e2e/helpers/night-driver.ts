@@ -190,6 +190,14 @@ export function nightButton(page: Page, key: string): Locator {
   return page.getByTestId(TESTIDS.werewolfNightButton(key));
 }
 
+async function openActionGroupFor(page: Page, key: string): Promise<void> {
+  const entry = nightButton(page, 'openActionGroup');
+  if (!(await entry.isVisible())) return;
+  const actionIds = (await entry.getAttribute('data-player-action-ids'))?.split(' ') ?? [];
+  if (!actionIds.includes(TESTIDS.werewolfNightButton(key))) return;
+  await entry.click({ timeout: CLICK_TIMEOUT_MS });
+}
+
 /** The open alert dialog. */
 function alertModal(page: Page): Locator {
   return page.getByTestId(TESTIDS.alertModal);
@@ -241,6 +249,7 @@ async function selectAndSubmitSeats(
     if (stepBefore === null) throw new Error('No active step before seat selection');
     await waitForStepAndSettle(page, stepBefore);
     await dismissAlert(page);
+    await openActionGroupFor(page, 'startSeatSelection');
     const room = new RoomPage(page);
     if (await room.hasPanelPlayerAction(TESTIDS.werewolfNightButton('startSeatSelection'))) {
       await room.openHostManagement();
@@ -345,6 +354,9 @@ export async function tryClickNightButton(page: Page, key: string, label = ''): 
   const step = await readRoomStep(page);
   if (step === null || !(await isStepUnlocked(page, step))) return false;
   const bottomButton = nightButton(page, key);
+  if (!(await bottomButton.isVisible()) && !(await alertModal(page).isVisible())) {
+    await openActionGroupFor(page, key);
+  }
   const room = new RoomPage(page);
   const actionId = TESTIDS.werewolfNightButton(key);
   const isPanelAction =
@@ -819,6 +831,10 @@ export async function driveGroupConfirmAck(
 export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
   let button = nightButton(page, key);
   let panel: Locator | null = null;
+  if (!(await button.isVisible())) {
+    await dismissAlert(page);
+    await openActionGroupFor(page, key);
+  }
   if (PANEL_NIGHT_BUTTON_KEYS.has(key) && !(await button.isVisible().catch(() => false))) {
     await dismissAlert(page);
     const existingPanel = page.getByTestId(TESTIDS.roomHostManagementPanel);

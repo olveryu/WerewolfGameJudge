@@ -178,13 +178,10 @@ describe('Werewolf room configuration', () => {
   it('keeps the existing selection panel free of the configuration entry', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
     const hand = within(view.getByRole('group', { name: '行动手牌' }));
-    expect(hand.getAllByRole('button').map((button) => button.textContent)).toEqual([
-      '选择查验目标',
-      '不用技能',
-      '查看身份',
-      '本局配置',
-      '手册',
-    ]);
+    expect(hand.getByRole('button', { name: '预言家行动' })).toHaveAccessibleDescription(
+      '有待处理操作',
+    );
+    expect(hand.getByRole('button', { name: '本局配置' })).toBeVisible();
     await startSeatSelection(view);
     const selectionHand = within(view.getByRole('group', { name: '行动手牌' }));
     expect(selectionHand.getByRole('button', { name: '确认选择' })).toHaveAttribute(
@@ -195,6 +192,8 @@ describe('Werewolf room configuration', () => {
     expect(selectionHand.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     await cancelSeatSelection(view);
+    expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
+    await click(view.getByRole('button', { name: '返回' }));
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 

@@ -268,7 +268,8 @@ describe('createWerewolfBottomActionLayout', () => {
       ghost: [],
     });
     const seer = layoutFor(night, 2, false);
-    expect(seer.secondary.map((button) => button.key)).toEqual(['skip', 'viewRole']);
+    expect(seer.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
+    expect(seer.secondary.map((button) => button.key)).toEqual(['viewRole']);
     const bystander = layoutFor(night, 5, false);
     expect(bystander.secondary.map((button) => button.key)).toEqual(['viewRole']);
   });
@@ -286,6 +287,15 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(
       [...selecting.primary, ...selecting.secondary].map((button) => button.isPending),
     ).toEqual([undefined, undefined]);
+  });
+
+  it('marks skipping as pending when there are no eligible targets', () => {
+    const state = nightState({ roles: BOARD, stepId: 'seerCheck' });
+    const { night: interaction } = nightModel(state, 2);
+    if (interaction.kind !== 'pickSeat') throw new Error('Expected seat selection');
+    expect(
+      layoutFor(state, 2, false, { night: { ...interaction, selectable: [] } }).secondary[0],
+    ).toMatchObject({ key: 'skip', isPending: true });
   });
 
   it('marks only outstanding single-action acknowledgements', () => {
@@ -315,20 +325,28 @@ describe('createWerewolfBottomActionLayout', () => {
     ).toBeUndefined();
   });
 
-  it('does not mark multiple options or a completed wolf vote as single-action todos', () => {
+  it('marks a multiple-choice entry but not a completed wolf vote', () => {
     const witch = nightState({
       roles: BOARD,
       stepId: 'witchAction',
       overrides: { witchContext: { killedSeat: 0, canSave: true, canPoison: true } },
     });
     const choices = layoutFor(witch, 3, false);
-    expect([...choices.primary, ...choices.secondary].every((button) => !button.isPending)).toBe(
-      true,
-    );
+    expect(choices.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
 
     const state = nightState({ roles: BOARD, stepId: 'wolfKill' });
     const { night: interaction } = nightModel(state, 0);
     if (interaction.kind !== 'wolfVote') throw new Error('Expected wolf vote');
+    expect(layoutFor(state, 0, false, { night: interaction }).primary[0]).toMatchObject({
+      key: 'openActionGroup',
+      isPending: true,
+    });
+    expect(
+      layoutFor(state, 0, false, { night: { ...interaction, myVote: 5 } }).primary[0]?.isPending,
+    ).toBeUndefined();
+    expect(
+      layoutFor(state, 0, false, { night: { ...interaction, myVote: null } }).primary[0]?.isPending,
+    ).toBe(true);
     const onlyEmpty = { ...interaction, emptyVoteOnly: true };
     expect(layoutFor(state, 0, false, { night: onlyEmpty }).secondary).toMatchObject([
       { key: 'wolfEmpty', isPending: true },

@@ -181,6 +181,19 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
       expect(view.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
     });
 
+    it('restores an open role hand after narration without losing its selection context', async () => {
+      const reactive = createReactiveWerewolfRoomMock(seerStep(false));
+      const view = await mountWerewolfRoom(reactive.mock);
+      await click(view.getByTestId(TESTIDS.werewolfNightButton('openActionGroup')));
+      expect(view.getByTestId(TESTIDS.werewolfNightButton('closeActionGroup'))).toBeVisible();
+
+      act(() => reactive.simulateStateUpdate({ isAudioPlaying: true }));
+      expect(view.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
+
+      act(() => reactive.simulateStateUpdate({ isAudioPlaying: false }));
+      expect(view.getByTestId(TESTIDS.werewolfNightButton('closeActionGroup'))).toBeVisible();
+    });
+
     it('seer skip button is not visible when isAudioPlaying=true', async () => {
       const view = await mount(seerStep(true));
 

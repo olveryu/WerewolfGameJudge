@@ -181,6 +181,13 @@ function LayoutButton({
   readonly isHand?: boolean;
 }) {
   const reasonId = useId();
+  const focusOnMount = 'focusOnMount' in model && model.focusOnMount === true;
+  const buttonRef = useCallback(
+    (button: HTMLButtonElement | null) => {
+      if (button !== null && focusOnMount) button.focus({ preventScroll: true });
+    },
+    [focusOnMount],
+  );
   const style: CSSProperties = {
     ...('textColor' in model ? { color: model.textColor } : {}),
     ...('buttonColor' in model ? { background: model.buttonColor } : {}),
@@ -193,6 +200,7 @@ function LayoutButton({
   return (
     <div className="bottom-action-slot">
       <Button
+        ref={buttonRef}
         variant={
           'variant' in model ? model.variant : model.tone === 'danger' ? 'danger' : 'secondary'
         }
@@ -205,6 +213,9 @@ function LayoutButton({
         aria-describedby={isHand && (explanation !== null || isPending) ? reasonId : undefined}
         style={style}
         data-testid={model.testID}
+        data-player-action-ids={
+          'containedActionTestIDs' in model ? model.containedActionTestIDs?.join(' ') : undefined
+        }
         onClick={
           model.isEnabled
             ? model.onPress

@@ -42,6 +42,8 @@ interface RoomBottomButtonBase {
   readonly isLoading?: boolean;
   readonly category?: 'player' | 'resource';
   readonly isPending?: boolean;
+  readonly focusOnMount?: boolean;
+  readonly containedActionTestIDs?: readonly string[];
 }
 
 export type RoomBottomButton = RoomBottomButtonBase & RoomBottomActionAvailability;

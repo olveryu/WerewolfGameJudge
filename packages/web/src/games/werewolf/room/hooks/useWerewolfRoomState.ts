@@ -391,6 +391,8 @@ export function useWerewolfRoomState(
     viewModel,
     night: night.model,
     seatSelection: night.seatSelection,
+    isActionGroupOpen: night.isActionGroupOpen,
+    restoreActionGroupFocus: night.restoreActionGroupFocus,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
