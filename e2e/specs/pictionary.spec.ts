@@ -152,6 +152,7 @@ test.describe('Pictionary', () => {
         await config.createRoom();
         await hostRoom.waitForReady('host');
 
+        await hostPage.getByTestId(TESTIDS.roomManualButton).click();
         await hostPage.getByTestId(TESTIDS.roomGuideButton('pictionary')).click();
         const guide = hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('pictionary'));
         await expect(guide.getByTestId(TESTIDS.gameGuideHeading)).toHaveText(
@@ -159,7 +160,8 @@ test.describe('Pictionary', () => {
         );
         await expect(guide).toContainText('接龙流程');
         await hostPage.screenshot({ path: test.info().outputPath('pictionary-guide.png') });
-        await hostPage.getByTestId(TESTIDS.gameGuideBackButton).click();
+        await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
+        await hostPage.getByTestId(TESTIDS.roomManualBackButton).click();
         await hostRoom.waitForReady('host');
 
         const roomCode = await hostRoom.getRoomCode();
@@ -499,7 +501,9 @@ test.describe('Pictionary', () => {
         guestRoom.expectDrawingStep(2, RELAY_STEP_COUNT),
       ]);
       await hostRoom.drawStroke(1);
-      await hostRoom.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
+      await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
+      await hostRoom.confirmHostActionDialog('中止本局？');
       for (const page of fixture.pages) {
         await expect(page.getByTestId(TESTIDS.galleryAlbumDescription)).toHaveText(
           '第 1 轮未完成，房主已中止。',
