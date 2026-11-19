@@ -4,12 +4,18 @@ import { TESTIDS } from '@/testids';
 
 /** 与引擎规则一致的入门说明。 */
 export function SpotmatchRulesScreen() {
+  return <SpotmatchRules />;
+}
+
+/** Reuses the same rules in the stage menu. */
+export function SpotmatchRules({ embedded = false }: { readonly embedded?: boolean }) {
   return (
     <GameGuide
       title="一眼成对玩法"
       heading="同时找相同，抢先出完手牌"
       intro="同时观察桌面公共牌和你的手牌，点击任一张牌上的唯一共同图案。先出完手牌者获胜。"
       testId={TESTIDS.gameGuideScreenRoot('spotmatch')}
+      embedded={embedded}
     >
       <GameGuideSection title="一局怎么玩">
         <RuleItem
