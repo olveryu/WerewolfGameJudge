@@ -5,12 +5,18 @@ import { TESTIDS } from '@/testids';
 import { SECRETHITLER_ROLE_DETAILS } from '../components/SecrethitlerRoleCardAdapter';
 
 export function SecrethitlerRulesScreen() {
+  return <SecrethitlerRules />;
+}
+
+/** Reuses the rule text inside the room without its standalone page header. */
+export function SecrethitlerRules({ embedded = false }: { readonly embedded?: boolean }) {
   return (
     <GameGuide
       title="秘密希特勒玩法"
       heading="隐藏阵营玩家选举政府并秘密施行政策"
       intro="5–10 名玩家分属自由派或法西斯阵营。自由派要推动五项自由派政策或处决希特勒；法西斯要推动六项法西斯政策，或在法西斯政策达到三项后让希特勒当选总理。"
       testId={TESTIDS.gameGuideScreenRoot('secrethitler')}
+      embedded={embedded}
     >
       <GameGuideSection title="一局怎么玩">
         <RuleItem

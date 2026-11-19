@@ -167,18 +167,13 @@ it('keeps terminal details behind the shared record dialog and preserves results
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-it('uses the shared collapsed board card and previews public roles without revealing seat identities', async () => {
+it('shows public composition in the room dialog without revealing seat identities', async () => {
   const user = userEvent.setup();
   const state = buildSecrethitlerPhaseStates().get('viewing');
   if (state === undefined) throw new Error('Missing viewing fixture');
-  render(<SecrethitlerBoardInfo state={state} openRules={vi.fn()} />);
-  expect(screen.getByRole('heading', { name: '秘密希特勒（8人）' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: '展开配置' })).toHaveAttribute(
-    'aria-expanded',
-    'false',
-  );
-  expect(screen.queryByText('自由派×5')).not.toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: '展开配置' }));
+  render(<SecrethitlerBoardInfo state={state} embedded />);
+  expect(screen.getByText('秘密希特勒（8人）')).toBeVisible();
+  expect(screen.queryByRole('button', { name: '展开配置' })).not.toBeInTheDocument();
   expect(screen.getByText('投票方式').nextElementSibling).toHaveTextContent('公投');
   expect(screen.getByText('自由派×5')).toBeInTheDocument();
   expect(screen.getByText('法西斯×2')).toBeInTheDocument();
@@ -188,17 +183,15 @@ it('uses the shared collapsed board card and previews public roles without revea
   expect(screen.queryByText(/号 ·/)).not.toBeInTheDocument();
 });
 
-it('shows the configured Secret Hitler ballot mode in the board card', async () => {
-  const user = userEvent.setup();
+it('shows the configured Secret Hitler ballot mode in the room configuration', () => {
   const state = buildSecrethitlerPhaseStates().get('viewing');
   if (state === undefined) throw new Error('Missing viewing fixture');
   render(
     <SecrethitlerBoardInfo
       state={{ ...state, config: { ...state.config, voteMode: 'secret' } }}
-      openRules={vi.fn()}
+      embedded
     />,
   );
 
-  await user.click(screen.getByRole('button', { name: '展开配置' }));
   expect(screen.getByText('投票方式').nextElementSibling).toHaveTextContent('暗投');
 });
