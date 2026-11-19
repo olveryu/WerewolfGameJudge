@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
-import { confirmAlert } from '../helpers/alerts';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
 import { RoomPage } from './RoomPage';
 
 export type FibWordDetails = {
@@ -172,25 +172,14 @@ export class FibRoomPage extends RoomPage {
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
-  async abandonGame(): Promise<void> {
+  async restartGame(): Promise<void> {
     await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.abortGameButton).click();
-    await this.confirmHostActionDialog('中止本局？');
-    await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
-  }
-
-  async startNextRound(): Promise<void> {
-    await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.nextRoundButton).click();
-    await this.confirmHostActionDialog('再来一局');
-    await this.closeHostManagement();
-    await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
-  }
-
-  async endGame(): Promise<void> {
-    await this.openHostManagement();
-    await this.page.getByTestId(TESTIDS.returnLobbyButton).click();
-    await this.confirmHostActionDialog('返回大厅');
+    await this.page.getByTestId(TESTIDS.restartButton).click();
+    await pressAlertButton(this.page, {
+      title: '重新开始？',
+      buttonIndex: 1,
+      buttonLabel: '重新开始',
+    });
     await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
   }
 

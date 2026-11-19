@@ -26,7 +26,6 @@ import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -166,20 +165,6 @@ export function useFibRoomState({
           : '分配角色';
     void submit(label, { type: 'fibking.roles.assign' });
   };
-  const cancelPreparing = () => {
-    const isReturningToLobby = state.phase === 'preparationFailed';
-    showConfirmAlert(
-      isReturningToLobby ? HOST_FLOW_CONFIRM.returnLobbyTitle : '取消准备？',
-      isReturningToLobby
-        ? '返回大厅后可以调整座位和房间设置。'
-        : '本次词语准备会终止，座位和历史词语会保留。',
-      async () => {
-        await submit(isReturningToLobby ? '返回大厅' : '取消准备', {
-          type: 'fibking.round.cancelPreparing',
-        });
-      },
-    );
-  };
   const beginRound = () => {
     void submit('开始游戏', { type: 'fibking.game.begin' });
   };
@@ -200,23 +185,19 @@ export function useFibRoomState({
       },
     );
   };
-  const abandonGame = () => {
-    showConfirmAlert(
-      HOST_FLOW_CONFIRM.abortTitle,
-      '中止后将返回大厅；座位和已用词记录会保留。',
-      async () => {
-        await submit('中止本局', { type: 'fibking.game.returnToLobby' });
-      },
-    );
-  };
-  const endGame = () => {
-    showConfirmAlert(
-      HOST_FLOW_CONFIRM.returnLobbyTitle,
-      HOST_FLOW_CONFIRM.returnLobbyBody,
-      async () => {
-        await submit('返回大厅', { type: 'fibking.game.returnToLobby' });
-      },
-    );
+  const restartGame = async () => {
+    if (state.phase === 'lobby') throw new Error('Cannot restart FibKing from the lobby');
+    const roundId =
+      state.phase === 'preparing'
+        ? state.pendingRound.roundId
+        : state.phase === 'preparationFailed'
+          ? state.preparationFailure.roundId
+          : state.round.roundId;
+    await submit('重新开始', {
+      type: 'fibking.game.restart',
+      roundId,
+      wasEnded: state.phase === 'ended',
+    });
   };
 
   // ── 大聪明选人（房主本地模式，按 roundId 锚定）──
@@ -308,11 +289,9 @@ export function useFibRoomState({
     beginRound,
     isGuessing,
     toggleGuessMode,
-    cancelPreparing,
     revealRound,
     redrawRound,
-    abandonGame,
-    endGame,
+    restartGame,
     review: review.entry,
   });
   const shellModel: RoomShellModel = createFibRoomShellModel({

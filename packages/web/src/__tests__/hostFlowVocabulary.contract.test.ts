@@ -6,7 +6,7 @@
  * the generator templates. These pins keep the forked vocabularies
  * (per-game start/assign/abort/next-round wordings, the label
  * override hatch, hand-written terminal descriptors) from regrowing.
- * Migrated stage games use one reset-to-lobby action; identity games
+ * Migrated games use one reset-to-lobby action; other identity games
  * and the generator retain the previous terminal pair until migrated.
  * Game content (confirm bodies carrying the game's own nouns, rules
  * copy, encyclopedia text) is out of scope and never scanned here.
@@ -103,7 +103,6 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
   it('keeps the existing terminal pair in identity games and the generator until migration', () => {
     for (const file of [
       'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
-      'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ]) {
@@ -129,8 +128,9 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     }
   });
 
-  it('uses only the reset-to-lobby builder for migrated stage games', () => {
+  it('uses only the reset-to-lobby builder for migrated games', () => {
     for (const file of [
+      'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',
       'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
       'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',

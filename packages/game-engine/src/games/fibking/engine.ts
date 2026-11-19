@@ -293,6 +293,26 @@ function decideReturnFibGameToLobby(state: FibState, context: CommandContext): F
     : reject(REASON_FIB_GAME_NOT_ENDED);
 }
 
+function decideRestartFibGame(
+  state: FibState,
+  command: Extract<FibCommand, { readonly type: 'fibking.game.restart' }>,
+  context: CommandContext,
+): FibDecision {
+  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase === 'lobby') return reject(REASON_FIB_ROUND_MISMATCH);
+  const roundId =
+    state.phase === 'preparing'
+      ? state.pendingRound.roundId
+      : state.phase === 'preparationFailed'
+        ? state.preparationFailure.roundId
+        : state.round.roundId;
+  if (roundId !== command.roundId || (state.phase === 'ended') !== command.wasEnded) {
+    return reject(REASON_FIB_ROUND_MISMATCH);
+  }
+  return commitFib([{ type: 'fibking.game.returnedToLobby' }]);
+}
+
 function decideUpdateFibPreparationStage(
   state: FibState,
   command: Extract<FibCommand, { readonly type: 'fibking.round.updatePreparationStage' }>,
@@ -445,6 +465,8 @@ export function decideFibCommand(
       return decideFibRoom(state, command, context);
     case 'fibking.game.returnToLobby':
       return decideReturnFibGameToLobby(state, context);
+    case 'fibking.game.restart':
+      return decideRestartFibGame(state, command, context);
     case 'fibking.roles.assign':
       return decideStartFibRound(state, context);
     case 'fibking.round.cancelPreparing':
