@@ -36,7 +36,23 @@ function useAvalonGuideRouteParams() {
 /** 阿瓦隆图鉴：玩法段 + 共享角色段。 */
 export function AvalonGuideScreen() {
   const routeParams = useAvalonGuideRouteParams();
-  const rolesState = useEncyclopediaRolesState(AVALON_ENCYCLOPEDIA_SOURCE, routeParams.roleId);
+  return (
+    <AvalonGuide
+      parentPath={routeParams.roomCode === undefined ? '/' : `/room/${routeParams.roomCode}`}
+      roleId={routeParams.roleId}
+    />
+  );
+}
+
+/** Reuses both encyclopedia tabs in the full route and the room dialog. */
+export function AvalonGuide({
+  parentPath,
+  roleId,
+}: {
+  readonly parentPath: string | null;
+  readonly roleId?: Parameters<typeof useEncyclopediaRolesState>[1];
+}) {
+  const rolesState = useEncyclopediaRolesState(AVALON_ENCYCLOPEDIA_SOURCE, roleId);
 
   const renderSegment = (segmentKey: string) => {
     if (segmentKey === 'roles') {
@@ -49,9 +65,9 @@ export function AvalonGuideScreen() {
     <EncyclopediaShell
       title="阿瓦隆玩法"
       testId="avalon-guide"
-      parentPath={routeParams.roomCode === undefined ? '/' : `/room/${routeParams.roomCode}`}
+      parentPath={parentPath}
       segments={GUIDE_SEGMENTS}
-      initialTab={routeParams.roleId === undefined ? 'gameplay' : 'roles'}
+      initialTab={roleId === undefined ? 'gameplay' : 'roles'}
       renderSegment={renderSegment}
       segmentHeaderActions={{
         roles: (

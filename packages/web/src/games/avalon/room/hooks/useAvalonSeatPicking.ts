@@ -18,6 +18,7 @@ import {
 } from '../policy/avalonInteractionPolicy';
 
 export interface AvalonSeatPicking {
+  readonly isActive: boolean;
   /** 刺杀二次确认（指认 / 提前刺杀）；null 为关闭。 */
   readonly strikeConfirm: AvalonStrikeConfirmation | null;
   readonly setStrikeConfirm: Dispatch<SetStateAction<AvalonStrikeConfirmation | null>>;
@@ -82,5 +83,15 @@ export function useAvalonSeatPicking({
     if (strikePickActive) return strikePicking.handleSeatTap(seat);
     return ladyPicking.handleSeatTap(seat) || assassinPicking.handleSeatTap(seat);
   };
-  return { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget, handleSeatTap };
+  return {
+    isActive:
+      strikePickActive ||
+      ladyInstruction?.kind === 'holderPick' ||
+      assassinInstruction?.kind === 'assassinPick',
+    strikeConfirm,
+    setStrikeConfirm,
+    ladyCheckTarget,
+    setLadyCheckTarget,
+    handleSeatTap,
+  };
 }

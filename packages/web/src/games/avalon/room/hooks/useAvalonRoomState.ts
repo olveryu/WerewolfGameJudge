@@ -17,7 +17,6 @@ import { useNavigate } from 'react-router';
 
 import {
   gameConfigEditPath,
-  gameGuidePath,
   musicSettingsPath,
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
@@ -93,7 +92,6 @@ export interface AvalonRoomScreenState {
   readonly confirmTeamPick: (seats: readonly number[]) => Promise<void>;
   readonly isSubmitting: boolean;
   readonly session: AvalonRoomSession;
-  readonly openRules: () => void;
   /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
   readonly roleViewing: RoleViewing;
   /** 板子信息里点开的角色预览；与身份卡共用同一弹窗，无揭示动效。 */
@@ -361,7 +359,6 @@ export function useAvalonRoomState(
     confirmTeamPick,
     isSubmitting,
     session,
-    openRules: () => void navigate(gameGuidePath('avalon', room.roomCode)),
     roleViewing,
     rolePreviewId,
     setRolePreviewId,
