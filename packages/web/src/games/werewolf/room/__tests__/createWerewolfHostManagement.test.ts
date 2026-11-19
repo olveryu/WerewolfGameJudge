@@ -555,11 +555,7 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
 
-    expect(model?.sections.map((section) => section.title)).toEqual([
-      '当前流程',
-      '赛后管理',
-      '辅助工具',
-    ]);
+    expect(model?.sections.map((section) => section.title)).toEqual(['当前流程', '赛后管理']);
     expect(actionLabels(model)).toEqual([
       '评选 MVP',
       '再来一局',
@@ -567,7 +563,6 @@ describe('createWerewolfHostManagement', () => {
       '本局复盘',
       '授权玩家查看',
       '昨夜信息',
-      '音乐设置',
     ]);
     const actions = model.sections.flatMap((section) => section.actions);
     const reviewAction = actions.find((action) => action.key === 'review');

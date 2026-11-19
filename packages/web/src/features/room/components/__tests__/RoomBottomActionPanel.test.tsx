@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
+import { alertStore } from '@/utils/alert';
 
 import { RoomActionHand } from '../RoomActionHand';
 import { RoomBottomActionPanel } from '../RoomBottomActionPanel';
@@ -11,6 +12,84 @@ const EMPTY_STACK = {
   progress: null,
   layout: { primary: [], secondary: [], ghost: [] },
 } as const;
+
+it('explains a blocked player card without executing an action', () => {
+  render(
+    <RoomBottomActionPanel
+      model={{
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        layout: {
+          primary: [
+            {
+              key: 'vote',
+              label: '投票',
+              audience: 'participant',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: false,
+              disabledReason: '等待下一阶段',
+            },
+          ],
+          secondary: [],
+          ghost: [],
+        },
+      }}
+      showPlayerHand
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={null}
+      onOpenMoreActions={() => undefined}
+    />,
+  );
+  const action = screen.getByRole('button', { name: '投票' });
+  expect(action).toHaveAttribute('aria-disabled', 'true');
+  expect(action).toHaveAccessibleDescription('等待下一阶段');
+  fireEvent.click(action);
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '暂不可用', message: '等待下一阶段' });
+});
+
+it('shows the host selection escape as a card without exposing unrelated actions', () => {
+  const cancel = vi.fn();
+  render(
+    <RoomBottomActionPanel
+      model={EMPTY_STACK}
+      showPlayerHand
+      isSelecting
+      selectionUsesHostTask
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={{
+        task: { kind: 'message', text: '请选择座位', actionKey: 'cancel-selection' },
+        sections: [
+          {
+            key: 'selection',
+            title: '选择',
+            actions: [
+              {
+                key: 'cancel-selection',
+                label: '取消选择',
+                icon: 'close-circle-outline',
+                variant: 'secondary',
+                isEnabled: true,
+                onPress: cancel,
+              },
+            ],
+          },
+        ],
+      }}
+      mainEntries={[{ label: '用户设置', icon: null, onOpen: vi.fn() }]}
+      onOpenMoreActions={vi.fn()}
+    />,
+  );
+  const action = screen.getByRole('button', { name: '取消选择' });
+  expect(action.closest('.room-action-hand')).not.toBeNull();
+  expect(screen.queryByRole('button', { name: '用户设置' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '主持管理' })).not.toBeInTheDocument();
+  fireEvent.click(action);
+  expect(cancel).toHaveBeenCalledOnce();
+});
 
 it('preserves the focused card when an earlier card disappears', () => {
   const { rerender } = render(

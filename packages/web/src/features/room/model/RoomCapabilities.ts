@@ -95,6 +95,14 @@ export function createViewProfilesCapability(
   return canView ? allowed(openProfile) : denied('游戏进行中不能查看玩家资料');
 }
 
+/** Share invitations until the game starts, independently of seat-management permissions. */
+export function createShareRoomCapability(
+  isPreGame: boolean,
+  shareRoom: () => void,
+): RoomCapability {
+  return isPreGame ? allowed(shareRoom) : denied('当前阶段不能分享房间');
+}
+
 /**
  * Derive game-neutral setup capabilities from authoritative room facts.
  *
@@ -128,7 +136,7 @@ export function createRoomSetupCapabilities(
         : denied(input.supportsBots ? '当前没有可填充的空位' : '当前游戏不支持机器人'),
     canConfigureGame:
       input.isHost && input.isSetup ? allowed(input.configureGame) : denied('当前阶段不能修改配置'),
-    canShareRoom: input.isSetup ? allowed(input.shareRoom) : denied('当前阶段不能分享房间'),
+    canShareRoom: createShareRoomCapability(input.isSetup, input.shareRoom),
     shouldConfirmExit: true,
   };
 }

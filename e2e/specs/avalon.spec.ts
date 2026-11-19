@@ -69,7 +69,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       const godfatherTrack = hostPage.getByTestId(TESTIDS.musicBgmTrack('theGodfatherWaltz'));
       await expect(godfatherTrack).toContainText('The Godfather Waltz');
       await godfatherTrack.click();
-      await hostPage.getByTestId(TESTIDS.musicSettingsBack).click();
+      await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
       await hostRoom.clickHostManagementActionAndConfirm(
         TESTIDS.roomFillBotsButton,
         '填充机器人？',
@@ -85,7 +85,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     const markBotsViewed = panel.getByTestId(TESTIDS.roomMarkBotsViewedButton);
     await expect(markBotsViewed).toHaveText('标记机器人已查看');
     await markBotsViewed.click();
-    await expect(panel).toBeHidden();
+    await expect(panel).toBeVisible();
     await hostRoom.startGame();
 
     await test.step('Auto-play actual music, then preserve a manual pause across a night step', async () => {
@@ -135,7 +135,8 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         });
       }
       await markBots.click();
-      await expect(panel).toBeHidden();
+      await expect(panel).toBeVisible();
+      await hostRoom.closeHostManagement();
       await expect(hostPage.getByTestId(TESTIDS.bottomActionPanel)).toContainText(/第2步/);
       await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
       await hostPage.getByTestId(TESTIDS.bgmToggleButton).click();
@@ -288,6 +289,9 @@ async function pickTeam(
   shouldCaptureLayout: boolean,
 ) {
   const leaderPage = pages[leaderSeat]!;
+  if (await leaderPage.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
+    await new RoomPage(leaderPage).closeHostManagement();
+  }
   // 组队选人只在 modal 里做：板子点选已停用，modal 本地选择在确认前
   // 不落服务端、不向全房显示；确认后服务端回声才是全房可见的阵容。
   const observerSeat = (leaderSeat + 1) % PLAYER_COUNT;

@@ -3,7 +3,7 @@
  * header, no bottom panel or takeover banner renders, and a stage shell model carrying bottom
  * content fails fast.
  */
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 
@@ -18,8 +18,59 @@ import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
+import { alertStore } from '@/utils/alert';
 
 import { RoomShell } from '../RoomShell';
+import { RoomStageMenu } from '../RoomStageMenu';
+
+it('explains an unavailable stage-menu action without closing the menu', () => {
+  const onClose = vi.fn();
+  render(
+    <RoomStageMenu
+      model={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+      abortAction={{
+        key: 'abort-game',
+        label: '中止本局',
+        icon: 'close',
+        variant: 'danger',
+        isEnabled: false,
+        disabledReason: '语音播报中，请稍候',
+      }}
+      onClose={onClose}
+    />,
+  );
+  const action = screen.getByRole('button', { name: '中止本局' });
+  expect(action).toHaveAttribute('aria-disabled', 'true');
+  expect(action).toHaveAccessibleDescription('语音播报中，请稍候');
+  fireEvent.click(action);
+  expect(alertStore.getSnapshot()).toMatchObject({
+    title: '暂不可用',
+    message: '语音播报中，请稍候',
+  });
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+it('keeps the stage menu open when an abort action requests confirmation', () => {
+  const onClose = vi.fn();
+  const onPress = vi.fn();
+  render(
+    <RoomStageMenu
+      model={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+      abortAction={{
+        key: 'abort-game',
+        label: '中止本局',
+        icon: 'close',
+        variant: 'danger',
+        isEnabled: true,
+        onPress,
+      }}
+      onClose={onClose}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: '中止本局' }));
+  expect(onPress).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
+});
 
 const deniedCapabilities: RoomCapabilities = {
   canTakeSeat: { isAllowed: false, reason: null },
@@ -130,6 +181,102 @@ describe('RoomShell stage content', () => {
       value: 390,
     });
   });
+
+  it.each(['host', 'seated'] as const)(
+    'keeps room sharing in the %s hand, not beside the room code or in host management',
+    (viewerRole) => {
+      const shareRoom = vi.fn();
+      render(
+        <RoomShell
+          model={createRoomShellModel(
+            shellInput({
+              viewer: viewerFor(viewerRole),
+              capabilities: {
+                ...deniedCapabilities,
+                canShareRoom: { isAllowed: true, execute: shareRoom },
+              },
+              buildHostManagement: () => ({
+                task: null,
+                sections: [
+                  {
+                    key: 'room',
+                    title: '房间',
+                    actions: [
+                      {
+                        key: HOST_ACTION_KEYS.shareRoom,
+                        label: '分享房间',
+                        icon: 'share-social-outline',
+                        variant: 'secondary',
+                        isEnabled: true,
+                        onPress: shareRoom,
+                      },
+                    ],
+                  },
+                ],
+              }),
+            }),
+          )}
+          content={{
+            kind: 'seats',
+            contextHeader: null,
+            bottomSummary: null,
+            beforeSeatBoard: <></>,
+            afterSeatBoard: null,
+            sideInspector: null,
+          }}
+          showPlayerHand
+          leadingExtraActions={null}
+          trailingExtraActions={null}
+          gameOverlays={null}
+        />,
+      );
+      expect(
+        within(screen.getByTestId(TESTIDS.roomHeader)).queryByRole('button', {
+          name: '分享房间',
+        }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: '分享房间' }));
+      expect(shareRoom).toHaveBeenCalledOnce();
+      if (viewerRole === 'host') {
+        fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        expect(screen.queryByRole('button', { name: '分享房间' })).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it.each(['seat selection', 'stage'] as const)(
+    'closes the host hand only when entering %s',
+    (transition) => {
+      const model = createRoomShellModel(shellInput());
+      const room = (afterTransition: boolean) => (
+        <RoomShell
+          model={model}
+          content={
+            afterTransition && transition === 'stage'
+              ? { kind: 'stage', hud: HUD, element: <p>舞台内容</p> }
+              : {
+                  kind: 'seats',
+                  contextHeader: null,
+                  bottomSummary: null,
+                  beforeSeatBoard: <></>,
+                  afterSeatBoard: null,
+                  sideInspector: null,
+                }
+          }
+          showPlayerHand
+          isSelecting={afterTransition && transition === 'seat selection'}
+          leadingExtraActions={null}
+          trailingExtraActions={null}
+          gameOverlays={null}
+        />
+      );
+      const view = render(room(false));
+      fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+      expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+      view.rerender(room(true));
+      expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+    },
+  );
 
   it('renders the information bar over the element with no bottom panel', () => {
     renderStage();
@@ -290,7 +437,7 @@ describe('RoomShell stage content', () => {
     await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
     await user.click(screen.getByTestId(TESTIDS.abortGameButton));
     expect(onAbort).toHaveBeenCalledOnce();
-    expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
   });
 
   it('does not reopen an obsolete panel when actions become available again', async () => {

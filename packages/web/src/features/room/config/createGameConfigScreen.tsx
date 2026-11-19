@@ -13,9 +13,11 @@ import { useParams } from 'react-router';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomLink } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
+import { showConfirmAlert } from '@/utils/alertPresets';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
 import { GameConfigForm } from './GameConfigForm';
@@ -23,10 +25,18 @@ import { describeDefaultSummary } from './gameConfigFormModel';
 import type { GameConfigScreenDefinition } from './GameConfigScreenDefinition';
 import { useGameConfigScreenState } from './useGameConfigScreenState';
 
+export interface GameConfigDialog {
+  readonly roomCode: string;
+  readonly onClose: () => void;
+}
+
 export type GameConfigScreen<
   TState extends BaseGameState<string>,
   TCommand extends object,
-> = ComponentType<{ readonly session: RoomLink<TState, TCommand> }>;
+> = ComponentType<{
+  readonly session: RoomLink<TState, TCommand>;
+  readonly dialog?: GameConfigDialog;
+}>;
 
 /**
  * Handed to a game module's `config` callback so the game declares its definition once and
@@ -53,10 +63,83 @@ function createGameConfigScreen<
   const Extra = definition.Extra;
   const summary = definition.summary ?? describeDefaultSummary;
 
-  function GameConfigPage({ session }: { readonly session: RoomLink<TState, TCommand> }) {
-    const params = definition.parseRouteParams(useParams());
-    const state = useGameConfigScreenState({ gameType, definition, session, params });
+  function GameConfigPage({
+    session,
+    dialog,
+  }: {
+    readonly session: RoomLink<TState, TCommand>;
+    readonly dialog?: GameConfigDialog;
+  }) {
+    const routeParams = useParams();
+    const params =
+      dialog === undefined
+        ? definition.parseRouteParams(routeParams)
+        : { gameType, mode: 'edit' as const, roomCode: dialog.roomCode };
+    const state = useGameConfigScreenState({
+      gameType,
+      definition,
+      session,
+      params,
+      ...(dialog === undefined ? {} : { onEditSaved: dialog.onClose }),
+    });
     const summaryText = summary(state.config);
+    const form = (
+      <>
+        <GameConfigForm
+          gameType={gameType}
+          schema={definition.schema}
+          config={state.config}
+          countDrafts={state.countDrafts}
+          issue={state.issue}
+          fieldRenderers={definition.fieldRenderers}
+          onFieldChange={state.setFieldValue}
+          onCountDraftChange={state.setCountDraft}
+          onStepCount={state.stepCount}
+        />
+        {Extra !== undefined && (
+          <div className="game-settings-section">
+            <Extra config={state.config} />
+          </div>
+        )}
+      </>
+    );
+    const submit = (
+      <>
+        {dialog !== undefined && !state.isEditAvailable && (
+          <p role="status">房间状态或权限已变化，不能保存设置。</p>
+        )}
+        {summaryText !== null && <p className="game-settings-summary">{summaryText}</p>}
+        <Button
+          size="lg"
+          className="game-config-submit"
+          disabled={!state.canSubmit}
+          loading={state.isSubmitting}
+          onClick={state.submit}
+          data-testid={TESTIDS.gameConfigSubmit(gameType)}
+        >
+          {state.isEditMode ? '保存设置' : '创建房间'}
+        </Button>
+      </>
+    );
+    if (dialog !== undefined) {
+      const requestClose = () => {
+        if (state.isSubmitting) return;
+        if (state.isDirty) showConfirmAlert('放弃修改？', '还没有保存此次修改。', dialog.onClose);
+        else dialog.onClose();
+      };
+      return (
+        <RoomDialog title="房间设置" onClose={requestClose} allowEscape footer={submit}>
+          <IconButton
+            label="重置配置"
+            icon={<IconTrashOutline aria-hidden />}
+            onClick={state.reset}
+            disabled={!state.isEditAvailable || state.isSubmitting}
+            data-testid={TESTIDS.gameConfigReset(gameType)}
+          />
+          {form}
+        </RoomDialog>
+      );
+    }
     return (
       <div className="game-config-page" data-testid={TESTIDS.configScreenRoot}>
         <ScreenHeader
@@ -72,36 +155,9 @@ function createGameConfigScreen<
           />
         </ScreenHeader>
         <main className="game-config-body" data-testid={TESTIDS.gameConfigScreenRoot(gameType)}>
-          <GameConfigForm
-            gameType={gameType}
-            schema={definition.schema}
-            config={state.config}
-            countDrafts={state.countDrafts}
-            issue={state.issue}
-            fieldRenderers={definition.fieldRenderers}
-            onFieldChange={state.setFieldValue}
-            onCountDraftChange={state.setCountDraft}
-            onStepCount={state.stepCount}
-          />
-          {Extra !== undefined && (
-            <div className="game-settings-section">
-              <Extra config={state.config} />
-            </div>
-          )}
+          {form}
         </main>
-        <footer className="game-config-footer">
-          {summaryText !== null && <p className="game-settings-summary">{summaryText}</p>}
-          <Button
-            size="lg"
-            className="game-config-submit"
-            disabled={!state.canSubmit}
-            loading={state.isSubmitting}
-            onClick={state.submit}
-            data-testid={TESTIDS.gameConfigSubmit(gameType)}
-          >
-            {state.isEditMode ? '保存设置' : '创建房间'}
-          </Button>
-        </footer>
+        <footer className="game-config-footer">{submit}</footer>
       </div>
     );
   }

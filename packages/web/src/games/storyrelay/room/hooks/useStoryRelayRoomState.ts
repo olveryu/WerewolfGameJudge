@@ -8,9 +8,7 @@ import {
   type StoryRelayState,
 } from '@game-judge/game-engine/games/storyrelay/public';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -75,7 +73,6 @@ export function useStoryRelayRoomState(
   },
 ): StoryRelayRoomScreenState {
   const { session, room, entryController } = props;
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getStoryRelayRoomCommandFailureMessage,
@@ -110,7 +107,7 @@ export function useStoryRelayRoomState(
     supportsBots: true,
     hasOccupiedSeats: getStoryRelayOccupiedSeatCount(state) > 0,
     isRoomFull: getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () => void navigate(gameConfigEditPath('storyrelay', room.roomCode)),
+    configureGame: props.onOpenRoomSettings,
     shareRoom: share.open,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '轮流讲故事战绩', '本游戏局数');
@@ -155,7 +152,7 @@ export function useStoryRelayRoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,

@@ -40,13 +40,11 @@ export class FibRoomPage extends RoomPage {
     const userSettingsButton = this.page.getByTestId(TESTIDS.roomUserSettingsButton);
     await expect(userSettingsButton).toBeVisible();
     await userSettingsButton.click();
-    await expect(this.page.getByTestId(TESTIDS.screenHeaderTitle)).toHaveText('设置');
+    await expect(this.page.getByTestId(TESTIDS.roomDialogCloseButton)).toBeVisible();
   }
 
   async returnFromUserSettings(): Promise<void> {
-    const backButton = this.page.getByTestId(TESTIDS.settingsBackButton);
-    await expect(backButton).toHaveAccessibleName('返回');
-    await backButton.click();
+    await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
     await this.waitForReady('host');
   }
 
@@ -88,14 +86,16 @@ export class FibRoomPage extends RoomPage {
   async openConfig(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.roomSettingsButton).click();
-    await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
+    await expect(
+      this.page.getByTestId(TESTIDS.gameConfigField('fibking', 'numberOfPlayers')),
+    ).toBeVisible();
   }
 
   async startRound(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.assignRolesButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('分配角色？');
+    await this.closeHostManagement();
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
@@ -103,7 +103,6 @@ export class FibRoomPage extends RoomPage {
   async beginGame(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.startGameButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('开始游戏？');
     await this.expectOngoing();
   }
@@ -155,8 +154,8 @@ export class FibRoomPage extends RoomPage {
   async revealRound(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRevealRoundButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('公布答案？');
+    await this.closeHostManagement();
     await expect(this.page.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -165,18 +164,17 @@ export class FibRoomPage extends RoomPage {
   async redrawRound(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRedrawRoundButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('重新抽词？');
     await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toBeVisible({
       timeout: 15_000,
     });
+    await this.closeHostManagement();
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
   async abandonGame(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.abortGameButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('中止本局？');
     await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
   }
@@ -184,15 +182,14 @@ export class FibRoomPage extends RoomPage {
   async startNextRound(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.nextRoundButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('再来一局');
+    await this.closeHostManagement();
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
   async endGame(): Promise<void> {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.returnLobbyButton).click();
-    await this.expectHostManagementClosed();
     await this.confirmHostActionDialog('返回大厅');
     await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
   }

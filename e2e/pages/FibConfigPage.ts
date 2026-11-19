@@ -68,6 +68,6 @@ export class FibConfigPage {
       buttonLabel: '确定',
     });
     await expect(this.page.getByTestId(TESTIDS.alertModalOverlay)).not.toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.configScreenRoot)).toBeVisible();
+    await expect(this.page.getByTestId(PLAYER_COUNT)).toBeVisible();
   }
 }

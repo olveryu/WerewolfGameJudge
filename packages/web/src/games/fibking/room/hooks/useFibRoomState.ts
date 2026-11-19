@@ -12,9 +12,7 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -57,6 +55,8 @@ import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage
 interface UseFibRoomScreenStateParams {
   readonly room: GameRoomScreenProps<'fibking'>['room'];
   readonly entryReason: GameRoomScreenProps<'fibking'>['entryReason'];
+  readonly onOpenUserSettings: () => void;
+  readonly onOpenRoomSettings: () => void;
   readonly entryController: RoomEntryController;
   readonly session: FibRoomSession;
   readonly review: RoomReviewContribution<FibState>;
@@ -91,11 +91,12 @@ export interface FibRoomScreenState {
 export function useFibRoomState({
   room,
   entryReason,
+  onOpenUserSettings,
+  onOpenRoomSettings,
   entryController,
   session,
   review: reviewContribution,
 }: UseFibRoomScreenStateParams): FibRoomScreenState {
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getFibRoomCommandFailureMessage,
@@ -124,10 +125,6 @@ export function useFibRoomState({
     entryReason,
   });
   const roundView = useMemo(() => getFibRoundView(state, effectiveSeat), [effectiveSeat, state]);
-
-  const configureGame = useCallback(() => {
-    void navigate(gameConfigEditPath('fibking', room.roomCode));
-  }, [navigate, room.roomCode]);
 
   // ── 身份查看协议 ──
   // 在座玩家：查看阶段首看先发 role.viewed，确认后弹卡；其余阶段直接弹。
@@ -276,7 +273,7 @@ export function useFibRoomState({
     state,
     isHost,
     mySeat,
-    configureGame,
+    configureGame: onOpenRoomSettings,
     openProfile: profile.open,
     takeOverBots: bots.capability,
     shareRoom: share.open,
@@ -326,7 +323,7 @@ export function useFibRoomState({
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: onOpenUserSettings,
     connection: entryController.connection,
     state,
     seatSource,

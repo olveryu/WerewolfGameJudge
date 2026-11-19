@@ -9,10 +9,8 @@ import {
   type PictionaryPublicCommand,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
-import { type ReactNode, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { type ReactNode, useMemo } from 'react';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -51,6 +49,8 @@ import { createPictionaryStageHud } from '../pictionaryStageHud';
 interface UsePictionaryRoomScreenStateParams {
   readonly room: GameRoomScreenProps<'pictionary'>['room'];
   readonly entryReason: GameRoomScreenProps<'pictionary'>['entryReason'];
+  readonly onOpenUserSettings: () => void;
+  readonly onOpenRoomSettings: () => void;
   readonly entryController: RoomEntryController;
   readonly session: PictionaryRoomSession;
   readonly review: RoomReviewContribution<PictionaryState>;
@@ -88,6 +88,8 @@ export interface PictionaryRoomScreenState {
 export function usePictionaryRoomState({
   room,
   entryReason,
+  onOpenUserSettings,
+  onOpenRoomSettings,
   entryController,
   session,
   review: reviewContribution,
@@ -96,7 +98,6 @@ export function usePictionaryRoomState({
     session,
     getPictionaryRoomCommandFailureMessage,
   );
-  const navigate = useNavigate();
   const isHost = state.hostUserId === user.id;
   const mySeat = getPictionaryUserSeat(state, user.id);
   const viewer = useMemo(
@@ -116,9 +117,6 @@ export function usePictionaryRoomState({
     isHost,
     entryReason,
   });
-  const configureGame = useCallback(() => {
-    void navigate(gameConfigEditPath('pictionary', room.roomCode));
-  }, [navigate, room.roomCode]);
   const {
     seatController,
     profile,
@@ -132,7 +130,7 @@ export function usePictionaryRoomState({
     supportsBots: true,
     hasOccupiedSeats: getPictionaryOccupiedSeatCount(state) > 0,
     isRoomFull: isPictionaryRoomFull(state),
-    configureGame,
+    configureGame: onOpenRoomSettings,
     shareRoom: share.open,
   });
   const capabilities: RoomCapabilities = {
@@ -197,7 +195,7 @@ export function usePictionaryRoomState({
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: onOpenUserSettings,
     connection: entryController.connection,
     state,
     seatSource,

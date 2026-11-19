@@ -62,6 +62,7 @@ type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
 interface DrivenGame {
   readonly state: AvalonState;
+  readonly viewingState: AvalonState;
   actAs: (seat: number, command: AvalonPublicCommand) => void;
   send: (command: AvalonPublicCommand, userId?: string) => void;
   /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
@@ -123,6 +124,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
   }
   if (botSeats.length > 0) send({ type: 'room.seat.fillBots' });
   send({ type: 'avalon.roles.assign' });
+  const viewingState = state;
   for (const seat of humanSeats) send({ type: 'avalon.role.viewed' }, seatUser(seat));
   if (botSeats.length > 0) send({ type: 'avalon.bots.markAllBotsViewed' });
   send({ type: 'avalon.game.begin' });
@@ -140,6 +142,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
     get state() {
       return state;
     },
+    viewingState,
     actAs,
     send,
     settle,
@@ -242,6 +245,19 @@ describe('AvalonRoomScreen reveal replay guard', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('moves configuration from the board to the hand only after play begins', async () => {
+    const game = drivenGame(5, []);
+    const { session, push } = createMutableSession(game.viewingState, 'host');
+    const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
+
+    expect(view.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveTextContent('阿瓦隆');
+    expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
+
+    await pushState(push, game.state);
+    expect(view.queryByTestId(TESTIDS.roomGameSummaryTitle)).not.toBeInTheDocument();
+    expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 
   it('does not replay the vote or quest result when entering mid-game', () => {

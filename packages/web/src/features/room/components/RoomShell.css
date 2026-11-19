@@ -60,12 +60,6 @@
   -webkit-touch-callout: none;
 }
 
-.icon-button.room-header-share {
-  width: var(--size-button-sm);
-  height: var(--size-button-sm);
-  font-size: var(--size-icon-sm);
-}
-
 .room-user-button {
   position: relative;
   display: flex;

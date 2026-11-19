@@ -29,7 +29,7 @@ import { undercoverHome } from '@/games/undercover/home';
 import { createWerewolfAudioPreview } from '@/games/werewolf/audio/audioPreview';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { werewolfHome } from '@/games/werewolf/home';
-import type { AudioService } from '@/services/infra/AudioService';
+import type { AudioPreviewPlayback } from '@/services/infra/AudioService';
 
 interface ClientGameModule {
   readonly home: GameHomeContribution;
@@ -153,7 +153,7 @@ export interface ClientGameAudioPreview extends GameAudioPreview {
 
 /** Loads every game-owned audio preview, in catalog order, bound to `audioService`. */
 export async function loadClientGameAudioPreviews(
-  audioService: AudioService,
+  audioService: AudioPreviewPlayback,
 ): Promise<readonly ClientGameAudioPreview[]> {
   const previews = await Promise.all(
     GAME_TYPES.map(async (gameType): Promise<ClientGameAudioPreview | null> => {

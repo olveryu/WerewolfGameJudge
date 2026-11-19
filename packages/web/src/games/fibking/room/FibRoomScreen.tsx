@@ -49,8 +49,7 @@ function FibRoomContent(
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<FibRole | null>(null);
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
-  const hasDealt =
-    screen.phase === 'viewing' || screen.phase === 'ongoing' || screen.phase === 'ended';
+  const hasStarted = screen.phase === 'ongoing' || screen.phase === 'ended';
   const board = (
     <BoardInfoContent
       sections={createFibBoardInfoSections(screen.playerCount)}
@@ -64,9 +63,11 @@ function FibRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
-      showPlayerHand={!screen.isGuessing}
+      showPlayerHand
+      isSelecting={screen.isGuessing}
+      selectionUsesHostTask
       configurationEntry={
-        hasDealt && !screen.isGuessing ? { onOpen: () => setInformation('configuration') } : null
+        hasStarted && !screen.isGuessing ? { onOpen: () => setInformation('configuration') } : null
       }
       manualEntries={[
         { label: '玩法', onOpen: () => setInformation('guide'), testId: TESTIDS.fibRulesButton },

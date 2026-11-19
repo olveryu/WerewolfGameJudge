@@ -77,6 +77,7 @@ function AvalonRoomContent(
   const screen = useAvalonRoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
+  const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
@@ -222,9 +223,10 @@ function AvalonRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
-      showPlayerHand={!screen.seatPicking.isActive}
+      showPlayerHand
+      isSelecting={screen.seatPicking.isActive}
       configurationEntry={
-        !isLobby && viewModel !== null && !screen.seatPicking.isActive
+        !isPreGame && viewModel !== null && !screen.seatPicking.isActive
           ? { onOpen: () => setInformation('configuration') }
           : null
       }
@@ -259,7 +261,7 @@ function AvalonRoomContent(
                   />
                 ),
               sideInspector: null,
-              beforeSeatBoard: <></>,
+              beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }
       }

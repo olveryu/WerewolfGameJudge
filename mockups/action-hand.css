@@ -310,21 +310,6 @@ svg {
   color: var(--text-secondary);
   line-height: 1.8;
 }
-.action-dock {
-  margin-top: auto;
-  border-top: 1px solid var(--border-light);
-  padding: var(--space-medium) var(--space-large)
-    max(var(--space-medium), env(safe-area-inset-bottom));
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-small);
-  justify-content: center;
-  align-items: center;
-  background: var(--panel);
-}
-.action-dock:has(#confirm-target[hidden]) {
-  display: none;
-}
 .primary-button,
 .secondary-button {
   min-height: var(--touch-size);
@@ -346,9 +331,6 @@ svg {
   color: var(--danger);
   border-color: var(--danger);
   background: var(--surface);
-}
-#confirm-target {
-  flex: 1;
 }
 .text-button {
   min-height: var(--touch-size);
@@ -474,18 +456,12 @@ summary {
 .card-row {
   --hand-card-width: 100px;
   display: grid;
-  grid-template-columns: var(--hand-card-width);
+  grid-template-columns: repeat(var(--card-count), minmax(var(--touch-size), 1fr));
   justify-content: center;
-  width: min(100%, calc(var(--card-count) * var(--hand-card-width) + 32px));
+  width: min(100%, calc(var(--card-count) * var(--hand-card-width) + 8px));
   margin-inline: auto;
-  padding: 32px 16px max(12px, env(safe-area-inset-bottom));
+  padding: 32px 4px max(12px, env(safe-area-inset-bottom));
   pointer-events: auto;
-}
-.card-row:has(> .hand-card + .hand-card) {
-  grid-template-columns: repeat(calc(var(--card-count) - 1), minmax(0, 1fr)) var(--hand-card-width);
-}
-.card-row[data-stacked='true'] {
-  --card-label-width: 26px;
 }
 .card-row:has(> .hand-card:nth-child(8)) .hand-card {
   padding-inline: 6px;
@@ -494,13 +470,13 @@ summary {
   --card-tone: var(--text-secondary);
   --card-paper: #edf2f7;
   position: relative;
-  width: var(--hand-card-width);
+  width: 100%;
   min-width: 0;
   min-height: 120px;
   padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   gap: 6px;
   color: var(--card-tone);
@@ -508,7 +484,7 @@ summary {
   border: 1px solid transparent;
   border-radius: var(--radius-small);
   isolation: isolate;
-  text-align: left;
+  text-align: center;
   rotate: var(--fan-angle);
   translate: 0 var(--fan-drop);
   scale: 1;
@@ -534,7 +510,7 @@ summary {
 .hand-card::after {
   content: '';
   position: absolute;
-  inset: -1px -1px -100px;
+  inset: -1px -4px -100px;
   z-index: -1;
   border: 1px solid var(--card-edge, var(--card-tone));
   border-radius: var(--radius-small);
@@ -606,10 +582,10 @@ summary {
   --card-paper: var(--danger);
   box-shadow: none;
 }
-.hand-card:disabled {
+.hand-card:is(:disabled, [aria-disabled='true']) {
   color: var(--card-tone);
 }
-.hand-card:disabled::after {
+.hand-card:is(:disabled, [aria-disabled='true'])::after {
   border-style: dashed;
 }
 @media (hover: hover) and (pointer: fine) {

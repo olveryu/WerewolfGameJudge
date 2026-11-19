@@ -114,6 +114,30 @@ function createEndedState() {
   return state;
 }
 
+it('allows sharing while identities are being viewed but not after the game ends', () => {
+  for (const [state, expected] of [
+    [createViewingState(), true],
+    [createEndedState(), false],
+  ] as const) {
+    const capabilities = createUndercoverRoomCapabilities({
+      state,
+      isHost: false,
+      mySeat: 0,
+      requestTakeSeat: vi.fn(),
+      requestMoveSeat: vi.fn(),
+      leaveSeat: vi.fn(),
+      kickSeat: vi.fn(),
+      clearSeats: vi.fn(),
+      fillBots: vi.fn(),
+      configureGame: vi.fn(),
+      shareRoom: vi.fn(),
+      openProfile: vi.fn(),
+      takeOverBots: createBotTakeoverCapability(false, vi.fn()),
+    });
+    expect(capabilities.canShareRoom.isAllowed).toBe(expected);
+  }
+});
+
 it('conceals roles and words while everyone views their cards', () => {
   const state = createViewingState();
   const source = createUndercoverSeatDataSource({

@@ -29,18 +29,21 @@ const games = {
     configuration: '预女猎守 · 12 人',
     status: '警长竞选 · 进行中',
     stage: false,
+    hasAudioSettings: true,
   },
   avalon: {
     name: '阿瓦隆',
     configuration: '标准任务 · 7 人',
     status: '任务轨道 · 第 2 轮',
     stage: false,
+    hasAudioSettings: true,
   },
   secrethitler: {
     name: '秘密希特勒',
     configuration: '标准对局 · 7 人',
     status: '政策轨道 · 选举进行中',
     stage: false,
+    hasAudioSettings: true,
   },
   undercover: {
     name: '谁是卧底',
@@ -98,7 +101,7 @@ const stages = {
   'night-action': {
     label: '第 1 夜',
     title: '',
-    message: '选择行动后仍需明确确认，选目标时手牌会让开座位。',
+    message: '选择行动后仍需明确确认，选目标时可用手牌取消或确认。',
   },
   'night-wait': {
     label: '第 1 夜 · 等待中',
@@ -129,24 +132,24 @@ const faces = {
   nomination: { title: '板型建议', parent: 'hand', kind: 'dialog' },
   nominations: { title: '查看建议', parent: 'hand', kind: 'dialog' },
   'room-config': {
-    title: '配置板子',
+    title: '房间设置',
     parent: 'host',
-    kind: 'page',
-    route: '/game/werewolf/config/edit/6X9K',
+    kind: 'dialog',
   },
   music: {
     title: '音乐设置',
     parent: 'host',
-    kind: 'page',
-    route: '/settings/music/6X9K',
+    kind: 'dialog',
   },
   guide: { title: '攻略', parent: 'resources', kind: 'dialog' },
   identity: { title: '查看身份', parent: 'hand', kind: 'dialog' },
+  account: { title: '用户设置', parent: null, kind: 'dialog' },
+  unavailable: { title: '暂不可用', parent: null, kind: 'dialog' },
   review: { title: '本局复盘', parent: null, kind: 'dialog' },
   'review-share': { title: '分享战报 · 预览', parent: null, kind: 'dialog' },
   'hunter-status': { title: '发动状态', parent: 'hand', kind: 'dialog' },
   'host-info': { title: '昨夜信息', parent: 'host', kind: 'dialog' },
-  share: { title: '分享房间', parent: 'host', kind: 'dialog' },
+  share: { title: '分享房间', parent: 'hand', kind: 'dialog' },
   mvp: { title: '本局 MVP', parent: 'host', kind: 'dialog' },
   grant: { title: '授权查看本局复盘', parent: 'host', kind: 'dialog' },
   'match-config': { title: '本局配置', parent: null, kind: 'dialog' },
@@ -182,7 +185,6 @@ const state = {
   lastAction: '',
   mvp: '',
   savedNote: '',
-  accountOpen: false,
   menuOpen: false,
   roleDesign: 'inline',
   hostIndicator: 'dot',
@@ -262,7 +264,7 @@ function hideHand() {
 function focusFace(focusKey = null) {
   if (focusKey !== null) {
     const card = hand.querySelector(
-      `[data-tool-view="${navigation.face}"] [data-card-id="${focusKey}"]`,
+      `[data-tool-view="${state.targeting ? 'targeting' : navigation.face}"] [data-card-id="${focusKey}"]`,
     );
     if (card === null) fail('MISSING_RETURN_CARD', `找不到返回焦点卡牌：${focusKey}`);
     if (card.disabled) document.querySelector('#face-title').focus({ preventScroll: true });
@@ -275,11 +277,11 @@ function focusFace(focusKey = null) {
 function showFace() {
   const face = faces[navigation.face];
   for (const section of hand.querySelectorAll('[data-tool-view]')) {
-    const inactive = section.dataset.toolView !== navigation.face;
+    const inactive = section.dataset.toolView !== (state.targeting ? 'targeting' : navigation.face);
     section.hidden = inactive;
     section.inert = inactive;
   }
-  document.querySelector('#face-title').textContent = face.title;
+  document.querySelector('#face-title').textContent = state.targeting ? '选座操作' : face.title;
   renderSurface();
 }
 
@@ -303,7 +305,7 @@ function renderSurface() {
         .setAttribute('aria-label', `返回${faces[navigation.face].title}`);
     } else detailDialog.dataset.presentation = surface.kind;
   }
-  document.title = `${state.accountOpen ? '设置' : faces[surface?.name ?? navigation.face].title} · 行动手牌原型`;
+  document.title = `${faces[surface?.name ?? navigation.face].title} · 行动手牌原型`;
 }
 
 function openSurface(name, focusKey, fromHistory) {
@@ -334,6 +336,7 @@ function openSurface(name, focusKey, fromHistory) {
     document.querySelector('#role-layout').classList.remove('show-role');
     document.querySelector('#role-back').hidden = true;
   }
+  if (name === 'review') document.querySelector('#review-share-feedback').hidden = true;
   if (name === 'grant') {
     for (const input of document.querySelectorAll('#grant-seats input'))
       input.checked = state.reviewAllowedSeats.includes(Number(input.value));
@@ -480,7 +483,9 @@ function makeCard(
   button.dataset.priority = priority;
   button.dataset.category = category;
   button.dataset.pending = pending ? state.hostIndicator : '';
-  button.disabled = disabled;
+  button.disabled = disabled && detail === '';
+  if (disabled && detail !== '') button.setAttribute('aria-disabled', 'true');
+  else button.removeAttribute('aria-disabled');
   if (accessibleName === null) button.removeAttribute('aria-label');
   else button.setAttribute('aria-label', accessibleName);
   if (disabled && detail !== '') button.setAttribute('aria-description', detail);
@@ -499,6 +504,12 @@ function makeCard(
     button.querySelector('.card-corner use').setAttribute('href', '#icon-alert');
   button.onclick = () => {
     record('card.activate', { card: id });
+    if (disabled) {
+      if (detail === '') return;
+      document.querySelector('#unavailable-reason').textContent = detail;
+      openSurface('unavailable', id, false);
+      return;
+    }
     activate(id);
   };
   return button;
@@ -619,14 +630,13 @@ function projectHostCards() {
       label,
       icon: id === 'music' ? 'tools' : 'book',
       priority,
-      detail,
+      detail: locked ? '语音播放中，暂不可用' : detail,
       disabled: locked || disabled,
       activate: (key) => navigateFace(id, key),
     });
   if (state.stage === 'lobby') {
     command('deal', '分配角色', 'primary', false, '12/12 已入座');
-    surface('room-config', '配置板子');
-    surface('share', '分享房间');
+    surface('room-config', state.game === 'werewolf' ? '配置板子' : '房间设置');
   } else if (state.stage === 'assigned') {
     command(
       'start',
@@ -654,7 +664,8 @@ function projectHostCards() {
     if (state.stage === 'ended') command('next', '再来一局', 'danger');
     command('lobby', '返回大厅', 'danger');
   }
-  if (['lobby', 'assigned'].includes(state.stage)) surface('music', '音乐设置');
+  if (games[state.game].hasAudioSettings && ['lobby', 'assigned'].includes(state.stage))
+    surface('music', '音乐设置');
   if (['assigned', 'night-audio', 'night-action', 'night-wait', 'day'].includes(state.stage))
     command('abort', '中止本局', 'danger');
   return cards;
@@ -669,8 +680,36 @@ function requireHostCard(id) {
 }
 
 function renderCards() {
+  renderRow('target-cards', [
+    {
+      id: 'confirm-target',
+      label:
+        state.target === null ? '确认选择' : `确认对 ${state.target} 号${roles[state.role].verb}`,
+      icon: 'check',
+      priority: 'primary',
+      disabled: state.target === null,
+      detail: state.target === null ? '请先选择目标座位' : '',
+      activate: confirmTarget,
+    },
+    {
+      id: 'cancel-target',
+      label: '取消选座',
+      icon: 'back',
+      activate: cancelTarget,
+    },
+  ]);
   const cards = playerCards();
   const entries = [
+    ...(['lobby', 'assigned'].includes(state.stage)
+      ? [
+          {
+            id: 'share',
+            label: '分享房间',
+            icon: 'share',
+            activate: (id) => navigateFace('share', id),
+          },
+        ]
+      : []),
     ...(['lobby', 'assigned'].includes(state.stage)
       ? []
       : [
@@ -689,6 +728,12 @@ function renderCards() {
       icon: 'book',
       category: 'resources',
       activate: (id) => navigateFace('resources', id),
+    },
+    {
+      id: 'account',
+      label: '用户设置',
+      icon: 'person',
+      activate: (id) => navigateFace('account', id),
     },
   ];
   const hostHasPendingAction = projectHostCards().some(
@@ -767,6 +812,12 @@ function renderCards() {
       category: 'resources',
       activate: (id) => navigateFace('match-config', id),
     },
+    {
+      id: 'account',
+      label: '用户设置',
+      icon: 'person',
+      activate: (id) => navigateFace('account', id),
+    },
     ...(state.host && state.stage === 'stage-game'
       ? [
           {
@@ -810,13 +861,12 @@ function render() {
   const isStage = game.stage && ['stage-game', 'reveal'].includes(state.stage);
   stageSelect.value = state.stage;
   const isPage = navigation.surface?.kind === 'page';
-  roomScreen.hidden = state.accountOpen || isPage;
-  roomScreen.inert = state.accountOpen || isPage;
-  hand.hidden = state.targeting || state.accountOpen || isPage || (isStage && !state.menuOpen);
+  roomScreen.hidden = isPage;
+  roomScreen.inert = isPage;
+  hand.hidden = isPage || (isStage && !state.menuOpen);
   document.querySelector('#game-title').textContent = game.name;
   document.querySelector('#player-count').textContent =
     `${game.configuration.match(/\d+/)[0]} 位玩家（示例）`;
-  document.querySelector('#account-trigger').hidden = isStage;
   document.querySelector('#stage-menu-trigger').hidden = !isStage;
   board.hidden = isStage || (game.stage && ['ended', 'aborted'].includes(state.stage));
   document.querySelector('#stage-content').hidden =
@@ -860,6 +910,7 @@ function render() {
     state.stage !== 'stage-game' || state.game !== 'spotmatch';
   document.querySelector('#simulate-hunter-turn').hidden = state.game !== 'werewolf';
   document.querySelector('#detail-config-title').textContent = game.configuration;
+  document.querySelector('#room-config-summary').textContent = game.configuration;
   document.querySelector('.board-info-heading h3').textContent = game.configuration;
   document.querySelector('#rules-heading').textContent = `${game.name}玩法`;
   document.querySelector('#rules-copy').textContent =
@@ -880,7 +931,6 @@ function render() {
   document.querySelector('#role-explanation').hidden = state.game !== 'werewolf';
   document.querySelector('#pregame-roles').hidden = state.game !== 'werewolf';
   document.querySelector('.scenarios:has([name="scenario"])').hidden = state.game !== 'werewolf';
-  document.querySelector('#account-screen').hidden = !state.accountOpen;
   phaseTitle.textContent =
     state.stage === 'night-action' && state.game === 'werewolf'
       ? state.role === 'blocked'
@@ -937,13 +987,6 @@ function render() {
       state.wolfVote === 'empty' ? '已投放弃袭击' : `已投 ${state.wolfVote} 号`;
     phaseDescription.textContent = '狼队尚未完成时，可修改目标或撤回自己的投票。';
   }
-  document.querySelector('#cancel-target').hidden = !state.targeting;
-  document.querySelector('#cancel-target').textContent = '返回手牌';
-  const confirmTarget = document.querySelector('#confirm-target');
-  confirmTarget.hidden = !state.targeting;
-  confirmTarget.disabled = state.target === null;
-  confirmTarget.textContent =
-    state.target === null ? '请先选择目标' : `确认对 ${state.target} 号${role.verb}`;
   for (const seat of board.querySelectorAll('button')) {
     const number = Number(seat.dataset.seat);
     seat.disabled =
@@ -967,7 +1010,6 @@ function setStage(stage) {
   state.targeting = false;
   state.pendingHunterStatus = false;
   state.wolfVote = null;
-  state.accountOpen = false;
   state.menuOpen = false;
   state.revealedPosition = 1;
   navigation.face = 'hand';
@@ -1108,7 +1150,8 @@ function requestHostCommand(id) {
     label: `确认${card.label}`,
     focusKey: id,
     danger: card.priority === 'danger',
-    shareReview: ['next', 'lobby'].includes(id),
+    shareReview:
+      state.game === 'werewolf' && state.stage === 'ended' && ['next', 'lobby'].includes(id),
     commit: () => {
       requireHostCard(id);
       record('host.commit', { command: id });
@@ -1151,6 +1194,10 @@ document.addEventListener('keydown', (event) => {
     backFace();
 });
 document.querySelector('#page-back').addEventListener('click', () => history.back());
+document.querySelector('#review-share-image').addEventListener('click', () => {
+  document.querySelector('#review-share-feedback').hidden = false;
+  record('review.share-preview');
+});
 window.addEventListener('popstate', (event) => {
   const previous = navigation.surface;
   const destination = event.state?.actionHandPage;
@@ -1191,22 +1238,23 @@ detailDialog.addEventListener('close', () => {
   }
   if (surface.name === 'mvp' && state.mvp !== '') focusFace(surface.focusKey);
 });
-document.querySelector('#confirm-target').addEventListener('click', () => {
+function confirmTarget() {
   const target = state.target;
   if (target === null) fail('NO_TARGET', '必须先选择目标座位');
-  askPlayerAction(null, `确定对 ${target} 号${roles[state.role].verb}？`, () => {
+  askPlayerAction('confirm-target', `确定对 ${target} 号${roles[state.role].verb}？`, () => {
     if (state.role === 'wolf') {
       state.wolfVote = target;
       state.targeting = false;
       render();
     } else finishAction(`已对 ${target} 号${roles[state.role].verb}`);
   });
-});
-document.querySelector('#cancel-target').addEventListener('click', () => {
+}
+function cancelTarget() {
   state.targeting = false;
+  state.target = null;
   render();
   openHand();
-});
+}
 confirmation.addEventListener('close', () => {
   const committed = confirmation.returnValue === 'commit';
   const sharing = confirmation.returnValue === 'share';
@@ -1237,7 +1285,6 @@ document.querySelector('#host-view').addEventListener('change', (event) => {
   resetSurface();
   hideHand();
   state.host = event.target.checked;
-  state.accountOpen = false;
   navigation.face = 'hand';
   navigation.trail = [];
   render();
@@ -1259,19 +1306,6 @@ document.querySelector('#reset').addEventListener('click', () => {
   document.querySelector('#mvp-seat').value = '';
   document.querySelector('#prototype-error').hidden = true;
   setStage(state.stage);
-});
-document.querySelector('#account-trigger').addEventListener('click', () => {
-  hideHand();
-  state.accountOpen = true;
-  render();
-  document.querySelector('#account-title').focus();
-  record('account.open', { origin: 'room-header' });
-});
-document.querySelector('#account-back').addEventListener('click', () => {
-  state.accountOpen = false;
-  render();
-  document.querySelector('#account-trigger').focus();
-  record('account.back');
 });
 document.querySelector('#personal-note').addEventListener('input', () => {
   state.savedNote = document.querySelector('#personal-note').value;

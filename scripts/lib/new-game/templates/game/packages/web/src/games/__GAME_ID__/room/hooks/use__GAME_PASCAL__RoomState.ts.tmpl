@@ -17,15 +17,6 @@ import {
   type __GAME_PASCAL__ViewModel,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
-
-import {
-  gameConfigEditPath,
-//#cap audioOrchestration
-  musicSettingsPath,
-//#end
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -146,7 +137,6 @@ export function use__GAME_PASCAL__RoomState(
   },
 ): __GAME_PASCAL__RoomScreenState {
   const { session, room, entryController } = props;
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     get__GAME_PASCAL__RoomCommandFailureMessage,
@@ -180,7 +170,7 @@ export function use__GAME_PASCAL__RoomState(
     supportsBots: true,
     hasOccupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(state) > 0,
     isRoomFull: get__GAME_PASCAL__OccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () => void navigate(gameConfigEditPath('__GAME_ID__', room.roomCode)),
+    configureGame: props.onOpenRoomSettings,
     shareRoom: share.open,
   });
 //#cap businessStats
@@ -261,7 +251,7 @@ export function use__GAME_PASCAL__RoomState(
         review: review.entry,
         onMusicSettings: () => {
           bgm.stopBgm();
-          void navigate(musicSettingsPath(room.roomCode));
+          props.onOpenMusicSettings();
         },
       }),
       {
@@ -290,7 +280,7 @@ export function use__GAME_PASCAL__RoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,

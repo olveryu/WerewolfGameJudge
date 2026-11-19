@@ -110,7 +110,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await startSeatSelection(view);
       await tapSeat(view, 1);
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toBeDisabled();
+      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
     });
   });
 

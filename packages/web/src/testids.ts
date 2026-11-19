@@ -124,6 +124,7 @@ export const TESTIDS = {
   roomEncyclopediaButton: 'room-encyclopedia-button',
   roomShareButton: 'room-share-button',
   roomUserSettingsButton: 'room-user-settings-button',
+  roomUserSettingsCard: 'room-user-settings-card',
   roomHostManagementButton: 'room-host-management-button',
   roomMoreActionsButton: 'room-more-actions-button',
   roomHostTaskCard: 'room-host-task-card',

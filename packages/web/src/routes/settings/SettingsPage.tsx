@@ -654,11 +654,41 @@ function AboutSection() {
  * stats, account actions, display preferences (decorations, frame rate) and about. Opened from a
  * room (`/settings/:roomCode`), it returns to that room and applies account changes to the room.
  */
-export function SettingsPage() {
+export function SettingsContent() {
   const { user, loading } = useAuthContext();
-  const { roomCode } = useParams();
   const navigate = useNavigate();
   const appearancePath = useAppearancePath();
+  return (
+    <div className="settings-content">
+      {user ? (
+        <AccountSection user={user} />
+      ) : (
+        !loading && (
+          <section className="settings-card">
+            <h2 className="settings-card-title">
+              <IconPersonOutline aria-hidden /> 账户
+            </h2>
+            <LoginOptions
+              onEmail={(isSignUp) =>
+                void requestLogin({
+                  title: isSignUp ? '邮箱注册' : '邮箱登录',
+                  startWith: isSignUp ? 'emailSignUp' : 'emailSignIn',
+                })
+              }
+              onBrowseAvatars={() => void navigate(appearancePath)}
+            />
+          </section>
+        )
+      )}
+      <DisplaySection />
+      <AboutSection />
+    </div>
+  );
+}
+
+/** Standalone settings page. The same content can be opened from a room. */
+export function SettingsPage() {
+  const { roomCode } = useParams();
   return (
     <div className="settings-page">
       <ScreenHeader
@@ -666,29 +696,8 @@ export function SettingsPage() {
         parentPath={roomCode === undefined ? '/' : roomPath(roomCode)}
         backTestId={TESTIDS.settingsBackButton}
       />
-      <main className="settings-content">
-        {user ? (
-          <AccountSection user={user} />
-        ) : (
-          !loading && (
-            <section className="settings-card">
-              <h2 className="settings-card-title">
-                <IconPersonOutline aria-hidden /> 账户
-              </h2>
-              <LoginOptions
-                onEmail={(isSignUp) =>
-                  void requestLogin({
-                    title: isSignUp ? '邮箱注册' : '邮箱登录',
-                    startWith: isSignUp ? 'emailSignUp' : 'emailSignIn',
-                  })
-                }
-                onBrowseAvatars={() => void navigate(appearancePath)}
-              />
-            </section>
-          )
-        )}
-        <DisplaySection />
-        <AboutSection />
+      <main>
+        <SettingsContent />
       </main>
     </div>
   );

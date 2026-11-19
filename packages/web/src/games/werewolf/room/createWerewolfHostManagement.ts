@@ -347,12 +347,13 @@ function createRoomManagementActions(
 
 function createToolActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
   const actions: RoomHostManagementAction[] = [];
-  // Hidden while a host command is in flight (e.g. 开始游戏) and while the night or day runs.
   const canOpenMusicSettings =
     !input.isHostActionSubmitting &&
     !input.isAudioPlaying &&
-    input.roomStatus !== GameStatus.Ongoing &&
-    input.roomStatus !== GameStatus.Day;
+    (input.roomStatus === GameStatus.Unseated ||
+      input.roomStatus === GameStatus.Seated ||
+      input.roomStatus === GameStatus.Assigned ||
+      input.roomStatus === GameStatus.Ready);
   if (canOpenMusicSettings) {
     actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
   }

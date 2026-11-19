@@ -327,11 +327,7 @@ function createSecrethitlerHostTools(
 ): RoomHostManagementSection[] {
   const { state } = input;
   const actions: RoomHostManagementAction[] = [];
-  if (
-    state.phase.kind === 'lobby' ||
-    state.phase.kind === 'viewing' ||
-    state.phase.kind === 'ended'
-  )
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'viewing')
     actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
   const sections: RoomHostManagementSection[] = [];
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended') {

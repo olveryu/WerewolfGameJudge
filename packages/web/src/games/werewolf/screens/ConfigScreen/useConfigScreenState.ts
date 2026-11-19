@@ -179,6 +179,12 @@ export function useConfigScreenState({
   const canNominate =
     gameState !== null &&
     (gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated);
+  const canEdit =
+    canNominate &&
+    room.phase === 'ready' &&
+    room.identity.room.roomCode === existingRoomCode &&
+    user !== null &&
+    gameState.hostUserId === user.id;
 
   // ── Return to the room when the game progresses past the nomination phase ──
   useEffect(() => {
@@ -311,6 +317,7 @@ export function useConfigScreenState({
   return {
     isNominateMode: nominateMode !== undefined,
     canNominate,
+    canEdit,
     isDirty:
       initialRolesKey !== JSON.stringify([...selectionToRoles(selection, variantOverrides)].sort()),
     selectPreset: (name: string) => setDraft(restoreFromPreset(name)),

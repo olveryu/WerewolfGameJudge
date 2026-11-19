@@ -161,7 +161,7 @@ describe('Cancel Paths (cross-board)', () => {
       expect(view.getByText('已选 0 / 2 人')).toBeInTheDocument();
       await tapSeat(view, 5);
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toBeDisabled();
+      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
       expect(submitAction).not.toHaveBeenCalled();
     });
   });
@@ -177,7 +177,7 @@ describe('Cancel Paths (cross-board)', () => {
       await startSeatSelection(view);
       await tapSeat(view, 1);
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toBeDisabled();
+      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
       expect(submitAction).not.toHaveBeenCalled();
     });
   });

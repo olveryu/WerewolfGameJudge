@@ -3,6 +3,7 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import type { ComponentType } from 'react';
 
 import type { GameNavigationContribution } from '@/features/navigation/model/GameNavigationContribution';
+import type { GameConfigDialog } from '@/features/room/config/createGameConfigScreen';
 import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
 import type { RegisteredRoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RoomLinkFactory } from '@/platform/realtime/RoomLinkFactory';
@@ -13,6 +14,7 @@ export interface ClientGameModule<
 > extends RegisteredRoomUiModule<TGameType> {
   readonly navigation: GameNavigationContribution<TGameType>;
   readonly roomAccount: RoomAccountCapability<TGameType>;
+  readonly roomConfigDialog: ComponentType<GameConfigDialog>;
   /** App-wide overlay bound to the module session, mounted by the app root once loaded. */
   readonly appOverlay: ComponentType | null;
 }

@@ -1,5 +1,6 @@
 /** RoomDialog: a dialog opened from a confirmation alert's action outlives that alert. */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 
 import { AlertHost } from '@/components/AlertHost';
@@ -32,6 +33,18 @@ function ConfirmedDialog() {
 }
 
 describe('RoomDialog', () => {
+  it('closes on Escape when explicitly allowed', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <RoomDialog title="设置" onClose={onClose} allowEscape footer={null}>
+        内容
+      </RoomDialog>,
+    );
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('stays open after the confirmation alert that opened it closes', async () => {
     render(
       <>

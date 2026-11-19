@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 
+import type { GameConfigDialog } from '@/features/room/config/createGameConfigScreen';
 import { returnToActiveRoom, roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
@@ -19,7 +20,67 @@ import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRu
 import type { WerewolfConfigParams, WerewolfConfigStep, WerewolfRulesParams } from './types';
 import { getWerewolfConfigFlowStart, parseWerewolfConfigStep } from './werewolfConfigFlow';
 
-export function WerewolfConfigFlowScreen({ session }: { readonly session: WerewolfRoomSession }) {
+function WerewolfRoomConfigFlow({
+  session,
+  dialog,
+}: {
+  readonly session: WerewolfRoomSession;
+  readonly dialog: GameConfigDialog;
+}) {
+  const [configParams, setConfigParams] = useState<WerewolfConfigParams>({
+    existingRoomCode: dialog.roomCode,
+  });
+  const [rulesParams, setRulesParams] = useState<WerewolfRulesParams | null>(null);
+  const [initialRules] = useState(() => {
+    const snapshot = session.getSnapshot();
+    if (snapshot.phase !== 'ready' || snapshot.identity.room.roomCode !== dialog.roomCode) {
+      throw new Error('[FAIL-FAST] werewolf config edit requires its active room session');
+    }
+    return JSON.stringify(snapshot.room.state.rules ?? {});
+  });
+  return (
+    <ConfigScreen
+      session={session}
+      params={configParams}
+      exitPath={roomPath(dialog.roomCode)}
+      onPickBoard={() => {
+        throw new Error('[FAIL-FAST] room configuration picker must open in the dialog');
+      }}
+      onContinue={setRulesParams}
+      onReturnToRoom={dialog.onClose}
+      settingsDialog={{
+        onClose: dialog.onClose,
+        rulesDirty:
+          configParams.updatedRules !== undefined &&
+          JSON.stringify(configParams.updatedRules) !== initialRules,
+        children:
+          rulesParams === null ? null : (
+            <GameRulesScreen
+              session={session}
+              params={rulesParams}
+              onRulesChange={(rules) =>
+                setConfigParams((current) => ({ ...current, updatedRules: rules }))
+              }
+              dialog={{ onBack: () => setRulesParams(null), onSaved: dialog.onClose }}
+            />
+          ),
+      }}
+    />
+  );
+}
+
+export function WerewolfConfigFlowScreen({
+  session,
+  dialog,
+}: {
+  readonly session: WerewolfRoomSession;
+  readonly dialog?: GameConfigDialog;
+}) {
+  if (dialog !== undefined) return <WerewolfRoomConfigFlow session={session} dialog={dialog} />;
+  return <WerewolfConfigPageFlow session={session} />;
+}
+
+function WerewolfConfigPageFlow({ session }: { readonly session: WerewolfRoomSession }) {
   const start = getWerewolfConfigFlowStart(useParams());
   const location = useLocation();
   const navigate = useNavigate();

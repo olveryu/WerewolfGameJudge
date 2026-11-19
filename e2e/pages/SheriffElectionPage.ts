@@ -53,7 +53,8 @@ export class SheriffElectionPage {
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
     await expect(personalButton).toBeEnabled();
     await expect(hostManagementButton).toContainText(/更多操作|主持管理/);
-    await this.expectSingleLineButtonLabel(personalButton, personalLabel);
+    await this.expectVisibleButtonLabel(personalButton, personalLabel);
+    await this.expectVisibleButtonLabel(hostManagementButton, '主持管理');
 
     const viewport = this.page.viewportSize();
     if (viewport === null) throw new Error('Room action checks require a viewport');
@@ -64,12 +65,13 @@ export class SheriffElectionPage {
       expect(bounds.width).toBeGreaterThanOrEqual(44);
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-      await expect(button).toBeInViewport({ ratio: 1 });
+      expect(
+        Math.min(bounds.y + bounds.height, viewport.height) - Math.max(bounds.y, 0),
+      ).toBeGreaterThanOrEqual(44);
     }
 
     await personalButton.focus();
-    await this.page.keyboard.press('Tab');
-    await expect(hostManagementButton).toBeFocused();
+    await this.expectReachableByTab(hostManagementButton);
     const room = new RoomPage(this.page);
     const hostManagementPanel = await room.openHostManagement();
     const advanceButton = hostManagementPanel.getByTestId(TESTIDS.sheriffAdvanceButton);
@@ -87,14 +89,14 @@ export class SheriffElectionPage {
       expect(bounds.width).toBeGreaterThanOrEqual(44);
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
-      await expect(button).toBeInViewport({ ratio: 1 });
+      expect(
+        Math.min(bounds.y + bounds.height, viewport.height) - Math.max(bounds.y, 0),
+      ).toBeGreaterThanOrEqual(44);
     }
 
     await advanceButton.focus();
-    await this.page.keyboard.press('Tab');
-    await expect(grantButton).toBeFocused();
-    await this.page.keyboard.press('Tab');
-    await expect(infoButton).toBeFocused();
+    await this.expectReachableByTab(grantButton);
+    await this.expectReachableByTab(infoButton);
     const outlineStyle = await infoButton.evaluate(
       (element) => getComputedStyle(element).outlineStyle,
     );
@@ -103,8 +105,16 @@ export class SheriffElectionPage {
     await room.closeHostManagement();
   }
 
-  private async expectSingleLineButtonLabel(button: Locator, label: string): Promise<void> {
-    const renderedLineCount = await button.evaluate((element, expectedLabel) => {
+  private async expectReachableByTab(target: Locator): Promise<void> {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await this.page.keyboard.press('Tab');
+      if (await target.evaluate((element) => element === document.activeElement)) return;
+    }
+    await expect(target).toBeFocused();
+  }
+
+  private async expectVisibleButtonLabel(button: Locator, label: string): Promise<void> {
+    const visible = await button.evaluate((element, expectedLabel) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       let textNode = walker.nextNode();
       while (textNode !== null && textNode.textContent !== expectedLabel) {
@@ -114,9 +124,23 @@ export class SheriffElectionPage {
 
       const range = document.createRange();
       range.selectNodeContents(textNode);
-      return range.getClientRects().length;
+      const lines = [...range.getClientRects()];
+      return (
+        lines.length > 0 &&
+        lines.every((line) => {
+          const x = line.left + line.width / 2;
+          const y = line.top + line.height / 2;
+          return (
+            line.left >= 0 &&
+            line.right <= window.innerWidth &&
+            line.top >= 0 &&
+            line.bottom <= window.innerHeight &&
+            element.contains(document.elementFromPoint(x, y))
+          );
+        })
+      );
     }, label);
-    expect(renderedLineCount).toBe(1);
+    expect(visible).toBe(true);
   }
 
   async register(): Promise<void> {

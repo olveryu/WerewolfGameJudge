@@ -314,10 +314,10 @@ export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAct
   );
 }
 
-/** "音乐设置" — tools-section entry to the music settings page; each game decides when it is offered. */
+/** "音乐设置" — tools-section entry; each game decides when it is offered. */
 export function buildMusicSettingsAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
-    'music-settings',
+    HOST_ACTION_KEYS.musicSettings,
     '音乐设置',
     'musical-notes-outline',
     'secondary',
@@ -338,6 +338,7 @@ export const HOST_ACTION_KEYS = {
   markBotsViewed: 'mark-bots-viewed',
   clearSeats: 'clear-seats',
   configureGame: 'configure-game',
+  musicSettings: 'music-settings',
   shareRoom: 'share-room',
   review: 'review',
 } as const;

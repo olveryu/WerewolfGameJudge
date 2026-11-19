@@ -23,6 +23,7 @@ interface RoomConfigSubmissionInput<TState extends BaseGameState<string>> {
   readonly createRequest: () => RoomCreationRequest;
   readonly updateConfig: () => Promise<DispatchOutcome<TState>>;
   readonly creationLabel: string;
+  readonly onEditSaved?: () => void;
 }
 
 /** Reuse creation and command controllers without changing game-owned submission contracts. */
@@ -35,7 +36,10 @@ export function useRoomConfigSubmission<TState extends BaseGameState<string>>(
     const { params, navigate } = input;
     if (params.mode === 'edit') {
       void submission.submit('保存设置', input.updateConfig).then((success) => {
-        if (success) returnToActiveRoom(navigate, params.roomCode);
+        if (success) {
+          if (input.onEditSaved === undefined) returnToActiveRoom(navigate, params.roomCode);
+          else input.onEditSaved();
+        }
       });
       return;
     }

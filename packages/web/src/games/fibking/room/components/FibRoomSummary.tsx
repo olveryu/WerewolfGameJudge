@@ -61,7 +61,10 @@ export function FibRoomSummary({
 
   return (
     <>
-      {(phase === 'lobby' || phase === 'preparing' || phase === 'preparationFailed') && (
+      {(phase === 'lobby' ||
+        phase === 'preparing' ||
+        phase === 'preparationFailed' ||
+        phase === 'viewing') && (
         <RoomGameSummary guide={guide} title="瞎掰王" playerCount={playerCount}>
           {children}
         </RoomGameSummary>

@@ -125,6 +125,12 @@ export function defineClientGameModule<
     function BoundConfigScreen() {
       return createElement(ConfigScreen, { session });
     }
+    function BoundRoomConfigDialog(dialog: {
+      readonly roomCode: string;
+      readonly onClose: () => void;
+    }) {
+      return createElement(ConfigScreen, { session, dialog });
+    }
     const GuideScreen = definition.GuideScreen;
     function BoundGuideScreen() {
       return createElement(GuideScreen, { session });
@@ -165,6 +171,7 @@ export function defineClientGameModule<
         ...(NotepadScreen === undefined ? {} : { notepad: BoundNotepadScreen }),
       }),
       roomAccount,
+      roomConfigDialog: BoundRoomConfigDialog,
       appOverlay,
     };
   };

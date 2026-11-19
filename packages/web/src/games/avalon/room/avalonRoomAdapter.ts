@@ -760,14 +760,10 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
   const { state } = input;
   const sections: RoomHostManagementSection[] = [];
   const actions: RoomHostManagementAction[] = [];
-  if (
-    state.phase.kind === 'lobby' ||
-    state.phase.kind === 'viewing' ||
-    state.phase.kind === 'ended'
-  )
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'viewing')
     actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
   if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return [{ key: 'tools', title: '辅助工具', actions }];
+    return actions.length > 0 ? [{ key: 'tools', title: '辅助工具', actions }] : [];
   if (
     getAvalonViewingParticipants(state).some(
       (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),

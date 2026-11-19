@@ -121,6 +121,7 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
       await hostRoom.confirmHostActionDialog('分配角色？');
+      await hostRoom.closeHostManagement();
       await hostRoom.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看我的词');
       await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
       // Every real player views their own word card on their own page.
@@ -190,11 +191,12 @@ for (const viewport of [
         if (seat === civilians[0]!.seat) {
           await hostPage.getByTestId(TESTIDS.undercoverRevealCancel).click();
           await expect(modal).toHaveCount(0);
-          const taskManagement = await hostRoom.openHostManagement();
-          await expect(taskManagement.getByTestId(TESTIDS.roomHostTaskEscapeButton)).toHaveText(
+          await expect(hostPage.getByTestId(TESTIDS.undercoverCancelSelection)).toHaveText(
             '取消选择',
           );
-          await hostRoom.closeHostManagement();
+          await hostPage.getByTestId(TESTIDS.undercoverCancelSelection).click();
+          await hostRoom.openHostManagement();
+          await hostPage.getByTestId(TESTIDS.undercoverSelectPlayer).click();
           await hostRoom.getSeatTile(seat).click();
           await expect(modal).toBeVisible();
           await expect(async () => {

@@ -9,6 +9,9 @@ export type RoomEntryReason = 'created' | null;
 export interface GameRoomScreenProps<TGameType extends string = GameType> {
   readonly room: RoomRecord<TGameType>;
   readonly entryReason: RoomEntryReason;
+  readonly onOpenMusicSettings: () => void;
+  readonly onOpenRoomSettings: () => void;
+  readonly onOpenUserSettings: () => void;
 }
 
 export interface RoomUiModule<TGameType extends string = GameType> {

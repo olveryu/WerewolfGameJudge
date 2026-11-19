@@ -11,10 +11,8 @@ import {
   getDrawGuessViewModel,
   isBotSeat,
 } from '@game-judge/game-engine/games/drawguess/public';
-import { type ReactNode, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { type ReactNode, useMemo } from 'react';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -46,6 +44,8 @@ import { createDrawGuessStageHud } from '../drawGuessStageHud';
 interface UseDrawGuessRoomStateParams {
   readonly room: GameRoomScreenProps<'drawguess'>['room'];
   readonly entryReason: GameRoomScreenProps<'drawguess'>['entryReason'];
+  readonly onOpenUserSettings: () => void;
+  readonly onOpenRoomSettings: () => void;
   readonly entryController: RoomEntryController;
   readonly session: DrawGuessRoomSession;
   readonly review: RoomReviewContribution<DrawGuessState>;
@@ -85,6 +85,8 @@ export interface DrawGuessRoomScreenState {
 export function useDrawGuessRoomState({
   room,
   entryReason,
+  onOpenUserSettings,
+  onOpenRoomSettings,
   entryController,
   session,
   review: reviewContribution,
@@ -93,7 +95,6 @@ export function useDrawGuessRoomState({
     session,
     getDrawGuessRoomCommandFailureMessage,
   );
-  const navigate = useNavigate();
   const isHost = state.hostUserId === user.id;
   const mySeat = getDrawGuessUserSeat(state, user.id);
   const viewer = useMemo(
@@ -122,9 +123,6 @@ export function useDrawGuessRoomState({
     isHost,
     entryReason,
   });
-  const configureGame = useCallback(() => {
-    void navigate(gameConfigEditPath('drawguess', room.roomCode));
-  }, [navigate, room.roomCode]);
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
   const {
     seatController,
@@ -139,7 +137,7 @@ export function useDrawGuessRoomState({
     supportsBots: true,
     hasOccupiedSeats: occupiedSeatCount > 0,
     isRoomFull: occupiedSeatCount === state.config.numberOfPlayers,
-    configureGame,
+    configureGame: onOpenRoomSettings,
     shareRoom: share.open,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '你画我猜战绩', '本游戏局数');
@@ -184,7 +182,7 @@ export function useDrawGuessRoomState({
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,

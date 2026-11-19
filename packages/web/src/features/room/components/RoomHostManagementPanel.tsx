@@ -1,11 +1,14 @@
 /** Host management surface: game-owned action sections, as a bottom sheet or a side inspector. */
 import './RoomHostManagementPanel.css';
 
+import { useId } from 'react';
+
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { IonIcon } from '@/components/icons/IonIcon';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import {
   resolveHostTaskView,
   type RoomHostTaskBody,
@@ -17,6 +20,7 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconArrowForward from '~icons/ion/arrow-forward';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
@@ -61,7 +65,12 @@ function ManagementAction({
         onClick={
           action.isEnabled
             ? () => {
-                onClose();
+                if (
+                  action.key !== HOST_ACTION_KEYS.musicSettings &&
+                  action.key !== HOST_ACTION_KEYS.configureGame
+                ) {
+                  onClose();
+                }
                 action.onPress();
               }
             : undefined
@@ -141,11 +150,13 @@ function TaskStepsRow({
   coveredActionKeys,
   onClose,
   omitTestIds = false,
+  closeBeforePress = true,
 }: {
   readonly steps: NonNullable<ReturnType<typeof resolveHostTaskView>>['steps'];
   readonly coveredActionKeys: ReadonlySet<string>;
   readonly onClose: () => void;
   readonly omitTestIds?: boolean;
+  readonly closeBeforePress?: boolean;
 }) {
   if (steps === null) return null;
   return (
@@ -169,7 +180,7 @@ function TaskStepsRow({
                 step.onPress === undefined || actionCovered
                   ? undefined
                   : () => {
-                      onClose();
+                      if (closeBeforePress) onClose();
                       step.onPress?.();
                     }
               }
@@ -324,13 +335,19 @@ function HostTaskSection({
   const view = resolveHostTaskView(model);
   if (view === null) return null;
   const coveredActionKeys = taskBodyActionKeys(view.body);
+  const body =
+    view.body.kind === 'blocked' &&
+    model.task?.kind === 'action' &&
+    model.task.remedyActionKey === HOST_ACTION_KEYS.shareRoom
+      ? { ...view.body, remedy: null }
+      : view.body;
   return (
     <section className="host-task-card" data-testid={TESTIDS.roomHostTaskCard}>
       <h3 className="host-task-title">当前待办</h3>
       {view.steps !== null && (
         <TaskStepsRow steps={view.steps} coveredActionKeys={coveredActionKeys} onClose={onClose} />
       )}
-      <HostTaskBody body={view.body} onClose={onClose} hideAudioLockReason={hideAudioLockReason} />
+      <HostTaskBody body={body} onClose={onClose} hideAudioLockReason={hideAudioLockReason} />
       {view.note !== null && view.note.length > 0 && <p className="host-task-note">{view.note}</p>}
     </section>
   );
@@ -426,7 +443,9 @@ function ManagementContent({
             )}
             <HostTaskSection model={model} onClose={onClose} hideAudioLockReason={isAudioPlaying} />
             {model.sections.map((section) => {
-              const actions = section.actions.filter((action) => !taskKeys.has(action.key));
+              const actions = section.actions.filter(
+                (action) => !taskKeys.has(action.key) && action.key !== HOST_ACTION_KEYS.shareRoom,
+              );
               if (actions.length === 0) return null;
               return (
                 <section key={section.key} className="host-management-section">
@@ -466,8 +485,12 @@ function HostManagementHand({
   readonly onBack: () => void;
   readonly isAudioPlaying: boolean;
 }) {
+  const reasonIdPrefix = useId();
   const task = model === null ? null : resolveHostTaskView(model);
-  const actions = model?.sections.flatMap((section) => section.actions) ?? [];
+  const actions =
+    model?.sections.flatMap((section) =>
+      section.actions.filter((action) => action.key !== HOST_ACTION_KEYS.shareRoom),
+    ) ?? [];
   const taskActions =
     task?.body.kind === 'ready'
       ? [task.body.action]
@@ -497,6 +520,7 @@ function HostManagementHand({
             coveredActionKeys={taskBodyActionKeys(task.body)}
             onClose={onClose}
             omitTestIds
+            closeBeforePress={false}
           />
         )}
         {task?.body.kind === 'message' && <p className="host-task-note">{task.body.text}</p>}
@@ -528,7 +552,9 @@ function HostManagementHand({
             <IconArrowBack aria-hidden />
             <span>返回</span>
           </Button>
-          {orderedActions.map((action) => {
+          {orderedActions.map((action, index) => {
+            const reason = action.isEnabled ? null : action.disabledReason;
+            const reasonId = `${reasonIdPrefix}-${index}`;
             const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
             const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
             const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
@@ -553,19 +579,26 @@ function HostManagementHand({
                 variant={action.variant}
                 data-card-category="host"
                 loading={action.isLoading === true}
-                disabled={!action.isEnabled}
+                disabled={!action.isEnabled && reason === null}
+                aria-disabled={!action.isEnabled && reason !== null ? true : undefined}
+                aria-label={reason !== null ? action.label : undefined}
+                aria-describedby={reason !== null ? reasonId : undefined}
                 data-testid={testId}
                 onClick={
                   action.isEnabled
-                    ? () => {
-                        onClose();
-                        action.onPress();
-                      }
-                    : undefined
+                    ? action.onPress
+                    : reason !== null
+                      ? () => showAlert('暂不可用', reason)
+                      : undefined
                 }
               >
                 <IonIcon name={action.icon} />
                 <span>{action.label}</span>
+                {reason !== null && (
+                  <span id={reasonId} className="visually-hidden">
+                    {reason}
+                  </span>
+                )}
               </Button>
             );
           })}

@@ -8,9 +8,10 @@ import type {
   RoleId,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_RULES_SCHEMA } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_RULES_SCHEMA } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { Mock } from 'vitest';
 
@@ -21,7 +22,12 @@ import { getRememberedGameConfig } from '@/features/settings/rememberedGameConfi
 import type { WerewolfRulesParams } from '@/games/werewolf/navigation/types';
 import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRulesScreen';
 import { storage } from '@/services/infra/localStorage';
-import { createFakeRoomLink, idleLinkSnapshot } from '@/test-utils/linkSnapshot';
+import {
+  createFakeRoomLink,
+  idleLinkSnapshot,
+  readyLinkSnapshot,
+  testIdentity,
+} from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
@@ -44,13 +50,24 @@ function createSession() {
   );
 }
 
-function renderRules(params: WerewolfRulesParams, session = createSession()) {
+function renderRules(
+  params: WerewolfRulesParams,
+  session = createSession(),
+  dialog?: { readonly onBack: () => void; readonly onSaved: () => void },
+) {
   const onRulesChange = vi.fn<(rules: GameRuleOverrides) => void>();
   const router = createMemoryRouter([
     { path: '/room/:roomCode', element: <p>room</p> },
     {
       path: '/',
-      element: <GameRulesScreen session={session} params={params} onRulesChange={onRulesChange} />,
+      element: (
+        <GameRulesScreen
+          session={session}
+          params={params}
+          onRulesChange={onRulesChange}
+          {...(dialog === undefined ? {} : { dialog })}
+        />
+      ),
     },
   ]);
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
@@ -163,7 +180,15 @@ describe('GameRulesScreen', () => {
   });
 
   it('saves an edited board through the session and returns to the room', async () => {
-    const { router, session } = renderRules({ roles: ROLES, rules: {}, existingRoomCode: '2468' });
+    const state = buildWerewolfTestState({ roomCode: '2468', hostUserId: 'test-uid' });
+    const session = createFakeRoomLink<GameState, WerewolfPublicCommand>(
+      readyLinkSnapshot(
+        testIdentity('werewolf', { roomCode: '2468', hostUserId: 'test-uid' }),
+        createRoomSnapshot(state, 1),
+      ),
+      () => Promise.resolve(successfulRoomCommand(state)),
+    );
+    const { router } = renderRules({ roles: ROLES, rules: {}, existingRoomCode: '2468' }, session);
 
     expect(screen.getByTestId(TESTIDS.gameRulesSubmitButton)).toHaveTextContent('保存配置');
     fireEvent.click(screen.getByTestId(TESTIDS.gameRulesSubmitButton));
@@ -175,5 +200,28 @@ describe('GameRulesScreen', () => {
       rules: undefined,
     });
     expect(createRoom).not.toHaveBeenCalled();
+  });
+
+  it('keeps an edited settings dialog open and blocks saving after the game starts', () => {
+    const state = buildWerewolfTestState({ roomCode: '2468', hostUserId: 'test-uid' });
+    const session = createFakeRoomLink<GameState, WerewolfPublicCommand>(
+      readyLinkSnapshot(
+        testIdentity('werewolf', { roomCode: '2468', hostUserId: 'test-uid' }),
+        createRoomSnapshot(state, 1),
+      ),
+    );
+    const dialog = { onBack: vi.fn(), onSaved: vi.fn() };
+    renderRules({ roles: ROLES, rules: {}, existingRoomCode: '2468' }, session, dialog);
+    fireEvent.click(ruleSwitch('witchCanSelfHeal'));
+
+    act(() =>
+      session.publishRoom(createRoomSnapshot({ ...state, status: GameStatus.Assigned }, 2)),
+    );
+
+    expect(screen.getByRole('dialog', { name: '游戏规则' })).toBeVisible();
+    expect(screen.getByTestId(TESTIDS.gameRulesSubmitButton)).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('房间状态或权限已变化');
+    expect(session.dispatch).not.toHaveBeenCalled();
+    expect(dialog.onSaved).not.toHaveBeenCalled();
   });
 });

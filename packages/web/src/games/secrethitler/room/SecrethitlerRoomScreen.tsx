@@ -87,11 +87,12 @@ function SecrethitlerRoomContent(
   const screen = useSecrethitlerRoomState(props);
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
   const isLobby = screen.state.phase.kind === 'lobby';
+  const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
   return (
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
-      configurationEntry={isLobby ? null : { onOpen: () => setInformation('configuration') }}
+      configurationEntry={isPreGame ? null : { onOpen: () => setInformation('configuration') }}
       manualEntries={[
         {
           label: '玩法',
@@ -105,7 +106,7 @@ function SecrethitlerRoomContent(
         bottomSummary: shouldShowMatchSummary(screen.state) ? (
           <SecrethitlerBoardHeader screen={screen} />
         ) : null,
-        beforeSeatBoard: <>{isLobby && <SecrethitlerBoardInfo state={screen.state} />}</>,
+        beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
         sideInspector: null,
       }}

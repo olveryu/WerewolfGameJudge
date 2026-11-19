@@ -54,6 +54,7 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import {
   createRoomSetupCapabilities,
+  createShareRoomCapability,
   createViewProfilesCapability,
   type RoomCapabilities,
   type RoomCapability,
@@ -128,6 +129,13 @@ export function createFibRoomCapabilities(input: FibCapabilitiesInput): RoomCapa
 
   return {
     ...setupCapabilities,
+    canShareRoom: createShareRoomCapability(
+      isLobby ||
+        input.state.phase === 'preparing' ||
+        input.state.phase === 'preparationFailed' ||
+        input.state.phase === 'viewing',
+      input.shareRoom,
+    ),
     canViewProfiles: createViewProfilesCapability(true, input.openProfile),
     canTakeOverBots: input.takeOverBots,
   };

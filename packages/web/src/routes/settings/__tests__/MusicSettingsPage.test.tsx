@@ -21,6 +21,7 @@ const audioService = {
   ...createFakeBgm(),
   setBgmVolume: vi.fn(),
   setGameAudioVolume: vi.fn(),
+  createPreviewPlayback: () => audioService,
 };
 const previewStop = vi.fn();
 let previewResolvers: Array<() => void> = [];

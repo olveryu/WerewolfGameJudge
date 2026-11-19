@@ -69,7 +69,11 @@ function UndercoverRoomContent(
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<UndercoverRole | null>(null);
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
-  const isLobby = state.phase === 'lobby';
+  const isPreGame =
+    state.phase === 'lobby' ||
+    state.phase === 'preparing' ||
+    state.phase === 'preparationFailed' ||
+    state.phase === 'viewing';
   const settings = [
     { label: '白板模式', value: formatUndercoverBlankMode(state.config.hasBlank) },
     { label: '词语分类', value: UNDERCOVER_CATEGORY_NAMES[state.config.category] },
@@ -89,9 +93,13 @@ function UndercoverRoomContent(
   return (
     <RoomShell
       model={shellModel}
-      showPlayerHand={!controls.isSelecting}
+      showPlayerHand
+      isSelecting={controls.isSelecting}
+      selectionUsesHostTask
       configurationEntry={
-        !isLobby && !controls.isSelecting ? { onOpen: () => setInformation('configuration') } : null
+        !isPreGame && !controls.isSelecting
+          ? { onOpen: () => setInformation('configuration') }
+          : null
       }
       manualEntries={[
         {
@@ -113,7 +121,7 @@ function UndercoverRoomContent(
         afterSeatBoard: null,
         beforeSeatBoard: (
           <>
-            {isLobby && (
+            {isPreGame && (
               <RoomGameSummary
                 title="谁是卧底"
                 playerCount={state.config.numberOfPlayers}

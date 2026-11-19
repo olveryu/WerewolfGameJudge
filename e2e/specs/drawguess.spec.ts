@@ -171,11 +171,13 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       await expect(gateReason).toBeVisible();
       const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
-      // Force the press attempt: a plain click() waits forever for the
-      // button to become enabled, which is exactly what must not happen.
+      // Playwright treats aria-disabled as non-actionable even though the card explains the gate.
       await startButton.click({ force: true });
-      // Pressing the disabled action fires nothing: no popup, still gated.
-      await expect(hostPage.getByTestId(TESTIDS.alertModal)).toHaveCount(0);
+      await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('暂不可用');
+      await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
+        '座位尚未坐满（还差 2 人）',
+      );
+      await hostPage.getByTestId(TESTIDS.alertButton(0)).click();
       await expect(panel.getByTestId(TESTIDS.startGameButton)).toBeDisabled();
       await room.closeHostManagement();
     });

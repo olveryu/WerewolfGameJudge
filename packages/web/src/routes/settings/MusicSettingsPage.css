@@ -96,6 +96,12 @@
   overscroll-behavior: contain;
 }
 
+.room-dialog-body .music-track-list {
+  max-height: none;
+  overflow-y: visible;
+  overscroll-behavior: auto;
+}
+
 .music-track {
   display: flex;
   align-items: center;

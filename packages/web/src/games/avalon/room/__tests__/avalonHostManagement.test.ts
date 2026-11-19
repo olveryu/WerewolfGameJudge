@@ -447,6 +447,9 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, false);
     const actions = model?.sections[0]?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
+    expect(
+      model?.sections.flatMap((section) => section.actions.map((action) => action.key)),
+    ).not.toContain('music-settings');
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
       'next-round-button',

@@ -12,13 +12,7 @@ import {
   type SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
 import { type ReactNode, useState } from 'react';
-import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  musicSettingsPath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
 import {
   type RoomBgmControlState,
   useRoomBgmControl,
@@ -40,7 +34,10 @@ import { useRoomSetupController } from '@/features/room/controllers/useRoomSetup
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import {
+  createShareRoomCapability,
+  type RoomCapabilities,
+} from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
@@ -111,7 +108,6 @@ export function useSecrethitlerRoomState(
   },
 ): SecrethitlerRoomScreenState {
   const { session, room, entryController } = props;
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getSecrethitlerRoomCommandFailureMessage,
@@ -153,7 +149,7 @@ export function useSecrethitlerRoomState(
     supportsBots: true,
     hasOccupiedSeats: getSecrethitlerOccupiedSeatCount(state) > 0,
     isRoomFull: getSecrethitlerOccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () => void navigate(gameConfigEditPath('secrethitler', room.roomCode)),
+    configureGame: props.onOpenRoomSettings,
     shareRoom: share.open,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '秘密希特勒战绩', '本游戏局数');
@@ -184,6 +180,7 @@ export function useSecrethitlerRoomState(
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
+    canShareRoom: createShareRoomCapability(isLobby || state.phase.kind === 'viewing', share.open),
     canTakeOverBots: bots.capability,
   };
   const onSeatPress = createRoomSeatPressHandler({
@@ -204,7 +201,7 @@ export function useSecrethitlerRoomState(
         review: review.entry,
         onMusicSettings: () => {
           bgm.stopBgm();
-          void navigate(musicSettingsPath(room.roomCode));
+          props.onOpenMusicSettings();
         },
       }),
       {
@@ -222,7 +219,7 @@ export function useSecrethitlerRoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,
