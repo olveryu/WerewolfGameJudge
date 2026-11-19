@@ -42,7 +42,6 @@ import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadS
 import { TESTIDS } from '@/testids';
 import IconBulbOutline from '~icons/ion/bulb-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
-import IconListOutline from '~icons/ion/list-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
@@ -138,9 +137,7 @@ function WerewolfRoomContent(
   const canOpenNotepad = status === GameStatus.Day || status === GameStatus.Ended;
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
-  // The list is a setup-only surface: leaving setup closes it by derivation.
-  const [isNominationListRequested, setIsNominationListRequested] = useState(false);
-  const isNominationListOpen = isSetup && isNominationListRequested;
+  const [isNominationListOpen, setIsNominationListOpen] = useState(false);
 
   const nominations = state.boardNominations ?? {};
   const nominationCount = Object.keys(nominations).length;
@@ -164,6 +161,16 @@ function WerewolfRoomContent(
     <RoomShell
       model={shellModel}
       showPlayerHand={night.seatSelection === null}
+      mainEntries={
+        isSetup && nominationCount > 0
+          ? [
+              {
+                label: `查看建议 (${nominationCount})`,
+                onOpen: () => setIsNominationListOpen(true),
+              },
+            ]
+          : []
+      }
       manualEntries={[
         {
           label: '玩法',
@@ -221,16 +228,6 @@ function WerewolfRoomContent(
                         )}
                         {hasMyNomination ? '修改建议' : '我来建议'}
                       </button>
-                      {nominationCount > 0 && (
-                        <button
-                          type="button"
-                          className="werewolf-nomination-button"
-                          onClick={() => setIsNominationListRequested(true)}
-                        >
-                          <IconListOutline aria-hidden />
-                          查看建议 ({nominationCount})
-                        </button>
-                      )}
                     </>
                   )
                 }
@@ -328,10 +325,11 @@ function WerewolfRoomContent(
               nominations={nominations}
               myUserId={userId}
               isHost={isHost}
+              isReadOnly={!isSetup}
               onUpvote={boardNominations.upvote}
               onWithdraw={boardNominations.withdraw}
               onAdopt={boardNominations.adopt}
-              onClose={() => setIsNominationListRequested(false)}
+              onClose={() => setIsNominationListOpen(false)}
             />
           )}
 

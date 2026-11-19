@@ -1,14 +1,44 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { within } from '@testing-library/react';
+import { act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { TESTIDS } from '@/testids';
 
-import { actorStep, cancelSeatSelection, click, mountRoomFor, startSeatSelection } from './harness';
+import {
+  actorStep,
+  cancelSeatSelection,
+  click,
+  createReactiveWerewolfRoomMock,
+  mountRoomFor,
+  mountWerewolfRoom,
+  startSeatSelection,
+} from './harness';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it('keeps an open suggestion list visible but not editable when roles are dealt', async () => {
+    const boardNominations = {
+      sender: { userId: 'sender', displayName: '测试玩家', roles: ['seer' as const], upvoters: [] },
+    };
+    const reactive = createReactiveWerewolfRoomMock({
+      ...actorStep('seerCheck', 'seer', 0),
+      gameStateOverrides: { status: GameStatus.Unseated, boardNominations },
+    });
+    const view = await mountWerewolfRoom(reactive.mock);
+    await click(view.getByRole('button', { name: /查看建议/ }));
+    const list = within(await view.findByRole('dialog', { name: /板子建议/ }));
+    expect(list.getByRole('button', { name: '点赞' })).toBeEnabled();
+    act(() =>
+      reactive.simulateStateUpdate({
+        gameStateOverrides: { status: GameStatus.Assigned, boardNominations },
+      }),
+    );
+    expect(list.getByRole('status')).toHaveTextContent('本局建议已结束');
+    expect(list.getByRole('button', { name: '点赞' })).toBeDisabled();
+    await click(list.getByRole('button', { name: '关闭' }));
+    expect(view.queryByRole('button', { name: /查看建议/ })).not.toBeInTheDocument();
+  });
   it.each([GameStatus.Day, GameStatus.Ended])(
     'saves notes when the %s dialog closes',
     async (status) => {

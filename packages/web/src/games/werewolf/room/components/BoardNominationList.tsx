@@ -34,6 +34,7 @@ function NominationCard({
   nomination,
   myUserId,
   isHost,
+  isReadOnly,
   expanded,
   onToggle,
   onRolePress,
@@ -44,6 +45,7 @@ function NominationCard({
   readonly nomination: BoardNomination;
   readonly myUserId: string;
   readonly isHost: boolean;
+  readonly isReadOnly: boolean;
   readonly expanded: boolean;
   readonly onToggle: () => void;
   readonly onRolePress: (roleId: RoleId) => void;
@@ -95,6 +97,7 @@ function NominationCard({
           className="nomination-action"
           data-tone="primary"
           aria-pressed={hasUpvoted}
+          disabled={isReadOnly}
           onClick={() => onUpvote(nomination.userId)}
         >
           {hasUpvoted ? <IconThumbsUp aria-hidden /> : <IconThumbsUpOutline aria-hidden />}
@@ -105,6 +108,7 @@ function NominationCard({
             type="button"
             className="nomination-action"
             data-tone="danger"
+            disabled={isReadOnly}
             onClick={onWithdraw}
           >
             <IconCloseCircleOutline aria-hidden />
@@ -116,6 +120,7 @@ function NominationCard({
             type="button"
             className="nomination-action"
             data-tone="primary"
+            disabled={isReadOnly}
             onClick={() => onAdopt(nomination.roles)}
           >
             <IconCheckmarkCircleOutline aria-hidden />
@@ -131,6 +136,7 @@ export function BoardNominationModal({
   nominations,
   myUserId,
   isHost,
+  isReadOnly,
   onUpvote,
   onWithdraw,
   onAdopt,
@@ -140,6 +146,7 @@ export function BoardNominationModal({
   readonly nominations: Readonly<Record<string, BoardNomination>>;
   readonly myUserId: string;
   readonly isHost: boolean;
+  readonly isReadOnly: boolean;
   readonly onUpvote: (targetUserId: string) => void;
   readonly onWithdraw: () => void;
   /** Host adopts a nominated board (the caller clears seats first when the count changes). */
@@ -165,6 +172,7 @@ export function BoardNominationModal({
     <>
       <Dialog.Root
         open
+        closeOnInteractOutside={false}
         onOpenChange={(details) => {
           if (!details.open) onClose();
         }}
@@ -180,7 +188,12 @@ export function BoardNominationModal({
                 <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
               </header>
               <div className="nomination-dialog-body">
-                {entries.length === 0 ? (
+                {isReadOnly && (
+                  <p className="nomination-empty" role="status">
+                    本局建议已结束
+                  </p>
+                )}
+                {entries.length === 0 && !isReadOnly ? (
                   <p className="nomination-empty">还没有人提建议</p>
                 ) : (
                   entries.map((nomination) => (
@@ -189,6 +202,7 @@ export function BoardNominationModal({
                       nomination={nomination}
                       myUserId={myUserId}
                       isHost={isHost}
+                      isReadOnly={isReadOnly}
                       expanded={activeUserId === nomination.userId}
                       onToggle={() => toggleCard(nomination.userId)}
                       onRolePress={setPreviewRoleId}
