@@ -843,7 +843,7 @@ export async function clickNightButton(page: Page, key: string, label: string): 
       : await new RoomPage(page).openHostManagement();
     button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
   }
-  await expect(button).toHaveText(label, { timeout: 10_000 });
+  await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
   await dismissAlert(page);
   await button.click({ timeout: CLICK_TIMEOUT_MS });
