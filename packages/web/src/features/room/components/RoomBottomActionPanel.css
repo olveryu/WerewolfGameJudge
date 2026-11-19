@@ -6,6 +6,12 @@
   background: var(--color-surface);
 }
 
+.bottom-action-panel[data-hand='true'] {
+  padding-bottom: 0;
+  border-top: 0;
+  background: transparent;
+}
+
 .bottom-action-summary {
   margin-block-end: var(--space-small);
   padding-block-end: var(--space-small);
@@ -36,31 +42,6 @@
   display: flex;
   align-items: stretch;
   gap: var(--space-small);
-}
-
-.room-action-hand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: var(--space-tight);
-}
-
-.room-action-hand > * {
-  flex: 1 1 var(--size-min-touch-target);
-  min-inline-size: var(--size-min-touch-target);
-}
-
-.room-action-hand .button {
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-tight);
-  min-block-size: var(--size-min-touch-target);
-  height: auto;
-  padding: var(--space-small) var(--space-tight);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium) var(--radius-medium) var(--radius-small) var(--radius-small);
-  text-align: center;
-  overflow-wrap: anywhere;
 }
 
 .bottom-action-focus {

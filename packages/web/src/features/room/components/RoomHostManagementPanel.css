@@ -23,31 +23,7 @@
 }
 
 .host-management-hand {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-small);
-}
-
-.host-management-hand .host-management-body {
-  max-block-size: 32dvh;
-  padding: 0 var(--space-tight) var(--space-tight);
-  gap: var(--space-small);
-}
-
-.host-management-hand .host-management-actions {
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
-.host-management-hand .host-management-action {
-  flex: 1 1 auto;
-  max-inline-size: 100%;
-}
-
-.host-management-hand .button {
-  min-block-size: var(--size-min-touch-target);
-  white-space: normal;
+  min-width: 0;
 }
 
 .host-management-section-title {

@@ -1,8 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { IonIcon } from '@/components/icons/IonIcon';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import IconArrowBack from '~icons/ion/arrow-back';
+import IconBookOutline from '~icons/ion/book-outline';
+
+import { RoomActionHand } from './RoomActionHand';
 
 export interface RoomStageMenuModel {
   readonly onOpenGuide: () => void;
@@ -40,11 +45,10 @@ export function RoomStageMenu({
     }
   };
   return (
-    <div
-      className="room-action-hand room-stage-menu"
-      role="group"
-      aria-label={isManual ? '手册' : '菜单'}
-      data-testid={TESTIDS.roomStageMenuPanel}
+    <RoomActionHand
+      className="room-stage-menu"
+      label={isManual ? '手册' : '菜单'}
+      testId={TESTIDS.roomStageMenuPanel}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.stopPropagation();
@@ -58,40 +62,51 @@ export function RoomStageMenu({
         onClick={back}
         data-testid={TESTIDS.roomStageMenuBackButton}
       >
-        返回
+        <IconArrowBack aria-hidden />
+        <span>返回</span>
       </Button>
       {isManual ? (
         <Button
+          key="guide"
           variant="secondary"
+          data-card-category="resource"
           aria-haspopup="dialog"
           onClick={model.onOpenGuide}
           data-testid={TESTIDS.roomStageGuideButton}
         >
-          玩法
+          <IconBookOutline aria-hidden />
+          <span>玩法</span>
         </Button>
       ) : (
-        <>
+        [
           <Button
+            key="manual"
             ref={focusManual}
             variant="secondary"
+            data-card-category="resource"
             onClick={() => {
               setIsManual(true);
               backButtonRef.current?.focus({ preventScroll: true });
             }}
             data-testid={TESTIDS.roomManualButton}
           >
-            手册
-          </Button>
+            <IconBookOutline aria-hidden />
+            <span>手册</span>
+          </Button>,
           <Button
+            key="configuration"
             variant="secondary"
+            data-card-category="resource"
             aria-haspopup="dialog"
             onClick={model.onOpenConfiguration}
             data-testid={TESTIDS.roomStageConfigurationButton}
           >
-            本局配置
-          </Button>
-          {abortAction !== undefined && (
+            <IconBookOutline aria-hidden />
+            <span>本局配置</span>
+          </Button>,
+          abortAction !== undefined && (
             <Button
+              key="abort"
               variant={abortAction.variant}
               disabled={!abortAction.isEnabled || abortAction.isLoading}
               data-testid={abortAction.testID}
@@ -101,11 +116,12 @@ export function RoomStageMenu({
                 abortAction.onPress();
               }}
             >
-              {abortAction.label}
+              <IonIcon name={abortAction.icon} />
+              <span>{abortAction.label}</span>
             </Button>
-          )}
-        </>
+          ),
+        ]
       )}
-    </div>
+    </RoomActionHand>
   );
 }

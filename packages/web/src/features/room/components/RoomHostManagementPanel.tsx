@@ -17,10 +17,12 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import IconArrowBack from '~icons/ion/arrow-back';
 import IconArrowForward from '~icons/ion/arrow-forward';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
 import IconClose from '~icons/ion/close';
 
+import { RoomActionHand } from './RoomActionHand';
 import {
   resolveRoomBottomActionPresentation,
   type RoomPanelPlayerAction,
@@ -138,10 +140,12 @@ function TaskStepsRow({
   steps,
   coveredActionKeys,
   onClose,
+  omitTestIds = false,
 }: {
   readonly steps: NonNullable<ReturnType<typeof resolveHostTaskView>>['steps'];
   readonly coveredActionKeys: ReadonlySet<string>;
   readonly onClose: () => void;
+  readonly omitTestIds?: boolean;
 }) {
   if (steps === null) return null;
   return (
@@ -159,7 +163,7 @@ function TaskStepsRow({
               type="button"
               className="host-task-step"
               data-state={step.state}
-              data-testid={actionCovered ? undefined : step.testID}
+              data-testid={actionCovered || omitTestIds ? undefined : step.testID}
               disabled={step.onPress === undefined || actionCovered}
               onClick={
                 step.onPress === undefined || actionCovered
@@ -374,16 +378,12 @@ function ManagementContent({
   title,
   onClose,
   isAudioPlaying,
-  isHand = false,
-  onBack = onClose,
 }: {
   readonly model: RoomHostManagementModel | null;
   readonly bottomActions: RoomBottomActionModel | null;
   readonly title: string;
   readonly onClose: () => void;
   readonly isAudioPlaying: boolean;
-  readonly isHand?: boolean;
-  readonly onBack?: () => void;
 }) {
   const playerActions =
     bottomActions === null
@@ -394,28 +394,15 @@ function ManagementContent({
   const hasPlayerActions = playerActions.length > 0;
   return (
     <>
-      {isHand ? (
-        <div className="room-action-hand host-hand-back">
-          <Button
-            ref={focusBackButton}
-            variant="secondary"
-            onClick={onBack}
-            data-testid={TESTIDS.roomHostManagementCloseButton}
-          >
-            返回
-          </Button>
-        </div>
-      ) : (
-        <header className="host-management-header">
-          <h2 className="host-management-title">{title}</h2>
-          <IconButton
-            label={`关闭${title}`}
-            icon={<IconClose aria-hidden />}
-            onClick={onClose}
-            data-testid={TESTIDS.roomHostManagementCloseButton}
-          />
-        </header>
-      )}
+      <header className="host-management-header">
+        <h2 className="host-management-title">{title}</h2>
+        <IconButton
+          label={`关闭${title}`}
+          icon={<IconClose aria-hidden />}
+          onClick={onClose}
+          data-testid={TESTIDS.roomHostManagementCloseButton}
+        />
+      </header>
       <div className="host-management-body">
         {hasPlayerActions && (
           <section className="host-management-section">
@@ -468,6 +455,126 @@ function ManagementContent({
   );
 }
 
+function HostManagementHand({
+  model,
+  onClose,
+  onBack,
+  isAudioPlaying,
+}: {
+  readonly model: RoomHostManagementModel | null;
+  readonly onClose: () => void;
+  readonly onBack: () => void;
+  readonly isAudioPlaying: boolean;
+}) {
+  const task = model === null ? null : resolveHostTaskView(model);
+  const actions = model?.sections.flatMap((section) => section.actions) ?? [];
+  const taskActions =
+    task?.body.kind === 'ready'
+      ? [task.body.action]
+      : task?.body.kind === 'choice'
+        ? task.body.actions
+        : task?.body.kind === 'message' && task.body.escape !== null
+          ? [task.body.escape]
+          : [];
+  const taskKeys = new Set(taskActions.map((action) => action.key));
+  const orderedActions = [...taskActions, ...actions.filter((action) => !taskKeys.has(action.key))];
+  const blockedReason =
+    task?.body.kind === 'blocked' &&
+    !(isAudioPlaying && task.body.reason === AUDIO_PLAYBACK_LOCK_REASON)
+      ? task.body.reason
+      : null;
+
+  return (
+    <section
+      className="host-management-hand"
+      aria-label={HOST_MANAGEMENT_LABEL}
+      data-testid={TESTIDS.roomHostManagementPanel}
+    >
+      <div data-testid={task === null ? undefined : TESTIDS.roomHostTaskCard}>
+        {task?.steps !== null && task?.steps !== undefined && (
+          <TaskStepsRow
+            steps={task.steps}
+            coveredActionKeys={taskBodyActionKeys(task.body)}
+            onClose={onClose}
+            omitTestIds
+          />
+        )}
+        {task?.body.kind === 'message' && <p className="host-task-note">{task.body.text}</p>}
+        {blockedReason !== null && (
+          <p className="host-task-note" data-testid={TESTIDS.roomNextStepBlockedReason}>
+            {blockedReason}
+          </p>
+        )}
+        {task?.note !== null && task?.note !== undefined && (
+          <p className="host-task-note">{task.note}</p>
+        )}
+        {orderedActions.map((action) =>
+          !action.isEnabled &&
+          action.disabledReason !== null &&
+          action.disabledReason !== blockedReason &&
+          !(isAudioPlaying && action.disabledReason === AUDIO_PLAYBACK_LOCK_REASON) ? (
+            <p className="host-task-note" key={action.key}>
+              {action.label}：{action.disabledReason}
+            </p>
+          ) : null,
+        )}
+        <RoomActionHand label={HOST_MANAGEMENT_LABEL}>
+          <Button
+            ref={focusBackButton}
+            variant="secondary"
+            onClick={onBack}
+            data-testid={TESTIDS.roomHostManagementCloseButton}
+          >
+            <IconArrowBack aria-hidden />
+            <span>返回</span>
+          </Button>
+          {orderedActions.map((action) => {
+            const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
+            const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
+            const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
+            const isRemedy =
+              task?.body.kind === 'blocked' &&
+              model?.task?.kind === 'action' &&
+              model.task.remedyActionKey === action.key &&
+              task.body.remedy !== null;
+            const testId = isEscape
+              ? TESTIDS.roomHostTaskEscapeButton
+              : (action.testID ??
+                (isReadyTask
+                  ? TESTIDS.roomNextStepButton
+                  : isChoice
+                    ? `${TESTIDS.roomHostTaskCard}-${action.key}`
+                    : isRemedy
+                      ? TESTIDS.roomNextStepRemedyButton
+                      : undefined));
+            return (
+              <Button
+                key={action.key}
+                variant={action.variant}
+                data-card-category="host"
+                loading={action.isLoading === true}
+                disabled={!action.isEnabled}
+                data-testid={testId}
+                onClick={
+                  action.isEnabled
+                    ? () => {
+                        onClose();
+                        action.onPress();
+                      }
+                    : undefined
+                }
+              >
+                <IonIcon name={action.icon} />
+                <span>{action.label}</span>
+              </Button>
+            );
+          })}
+        </RoomActionHand>
+      </div>
+    </section>
+  );
+}
+
 /** Mounted means open; `presentation` picks the sheet (narrow) or the side inspector (wide). */
 export function RoomHostManagementPanel({
   model,
@@ -491,21 +598,12 @@ export function RoomHostManagementPanel({
   const title = playerActions.length === 0 && model !== null ? HOST_MANAGEMENT_LABEL : '更多操作';
   if (presentation === 'hand') {
     return (
-      <section
-        className="host-management-hand"
-        aria-label={title}
-        data-testid={TESTIDS.roomHostManagementPanel}
-      >
-        <ManagementContent
-          model={model}
-          bottomActions={null}
-          title={title}
-          onClose={onClose}
-          onBack={onBack}
-          isAudioPlaying={isAudioPlaying}
-          isHand
-        />
-      </section>
+      <HostManagementHand
+        model={model}
+        onClose={onClose}
+        onBack={onBack ?? onClose}
+        isAudioPlaying={isAudioPlaying}
+      />
     );
   }
   if (presentation === 'inspector') {

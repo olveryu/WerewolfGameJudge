@@ -1,0 +1,144 @@
+.room-action-hand {
+  display: grid;
+  grid-template-columns: minmax(var(--size-min-touch-target), var(--size-hand-card-width));
+  width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
+  margin-inline: auto;
+  padding: var(--space-medium) 0 max(var(--space-small), env(safe-area-inset-bottom));
+}
+
+.room-action-hand:has(> .room-action-card-cell + .room-action-card-cell) {
+  grid-template-columns:
+    repeat(calc(var(--hand-card-count) - 1), minmax(var(--size-min-touch-target), 1fr))
+    minmax(var(--size-min-touch-target), var(--size-hand-card-width));
+}
+
+.room-action-card-cell {
+  position: relative;
+  z-index: var(--hand-card-order);
+  min-width: 0;
+}
+
+.room-action-card-cell:has(.button:focus-visible) {
+  z-index: 100;
+}
+
+.room-action-card-cell .button {
+  --hand-ink: var(--color-text-secondary);
+  --hand-paper: var(--color-background);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-small);
+  width: 100%;
+  min-block-size: var(--size-hand-card-visible);
+  height: auto;
+  padding: var(--space-small);
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--hand-ink);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.room-action-card-cell .button[data-variant] {
+  background: transparent;
+  color: var(--hand-ink);
+}
+
+.room-action-card-cell .button::before,
+.room-action-card-cell .button::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  transform: translateY(var(--hand-card-drop)) rotate(var(--hand-card-angle));
+  transform-origin: center bottom;
+}
+
+.room-action-card-cell .button::before {
+  z-index: -2;
+  inset: 0 auto calc(-1 * var(--size-hand-card-extension)) 0;
+  width: var(--size-hand-card-width);
+  border: var(--border-width) solid var(--hand-ink);
+  border-radius: var(--radius-small);
+  background: var(--hand-paper);
+  box-shadow: var(--shadow-md);
+}
+
+.room-action-card-cell .button::after {
+  z-index: -1;
+  inset: var(--space-tight) auto calc(-1 * var(--size-hand-card-extension) + var(--space-tight))
+    var(--space-tight);
+  width: calc(var(--size-hand-card-width) - 2 * var(--space-tight));
+  border: var(--border-width) solid currentColor;
+  border-radius: var(--radius-small);
+  opacity: 0.2;
+}
+
+.room-action-card-cell .button[data-variant='primary'],
+.room-action-card-cell .button[data-variant='danger'] {
+  --hand-ink: var(--color-text-inverse);
+  --hand-paper: var(--color-primary);
+}
+
+.room-action-card-cell .button[data-variant='danger'] {
+  --hand-paper: var(--color-error);
+}
+
+.room-action-card-cell .button[data-variant='primary']::before,
+.room-action-card-cell .button[data-variant='danger']::before {
+  border-color: var(--hand-paper);
+}
+
+.room-action-card-cell .button[data-card-category='resource'] {
+  --hand-ink: var(--color-hand-resource-ink);
+  --hand-paper: var(--color-hand-resource-paper);
+}
+
+.room-action-card-cell .button[data-card-category='host']:not([data-variant='danger']) {
+  --hand-ink: var(--color-hand-host-ink);
+  --hand-paper: var(--color-hand-host-paper);
+}
+
+.room-action-card-cell .button > svg {
+  flex-shrink: 0;
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+.room-action-card-cell .button > .bottom-action-pending {
+  position: absolute;
+  top: var(--space-small);
+  right: var(--space-small);
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.room-action-card-cell .button:disabled::before {
+  border-style: dashed;
+}
+
+.room-action-card-cell .button:focus-visible {
+  translate: 0 calc(-1 * var(--space-medium));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .room-action-card-cell:hover {
+    z-index: 100;
+  }
+
+  .room-action-card-cell .button:not(:disabled):hover {
+    translate: 0 calc(-1 * var(--space-medium));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .room-action-card-cell .button {
+    transition: translate 160ms ease-out;
+  }
+}

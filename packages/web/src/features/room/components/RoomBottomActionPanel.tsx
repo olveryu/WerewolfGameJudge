@@ -29,9 +29,14 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
+import IconConstructOutline from '~icons/ion/construct-outline';
+import IconCreateOutline from '~icons/ion/create-outline';
+import IconHandLeftOutline from '~icons/ion/hand-left-outline';
 import IconNotificationsOutline from '~icons/ion/notifications-outline';
 
+import { RoomActionHand } from './RoomActionHand';
 import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
 import { DisabledReasonCaption } from './RoomControls';
 
@@ -81,9 +86,11 @@ function RoomProgressIndicator({ progress }: { readonly progress: NightStepProgr
 function LayoutButton({
   model,
   hideAudioLockReason,
+  isHand = false,
 }: {
   readonly model: RoomBottomButton | RoomBottomToolButton;
   readonly hideAudioLockReason: boolean;
+  readonly isHand?: boolean;
 }) {
   const style: CSSProperties = {
     ...('textColor' in model ? { color: model.textColor } : {}),
@@ -105,10 +112,14 @@ function LayoutButton({
         data-testid={model.testID}
         onClick={model.isEnabled ? model.onPress : undefined}
       >
-        {model.icon !== undefined && <IonIcon name={model.icon} />}
+        {model.icon !== undefined ? (
+          <IonIcon name={model.icon} />
+        ) : (
+          isHand && <IconHandLeftOutline aria-hidden />
+        )}
         <span>{model.label}</span>
       </Button>
-      {reason !== null && <DisabledReasonCaption reason={reason} />}
+      {!isHand && reason !== null && <DisabledReasonCaption reason={reason} />}
     </div>
   );
 }
@@ -125,6 +136,115 @@ function hostTaskLabel(model: RoomHostManagementModel): string | null {
     case 'message':
       return view.body.text;
   }
+}
+
+function PlayerHand({
+  model,
+  isAudioPlaying,
+  configurationEntry,
+  hasManual,
+  manualEntryRef,
+  onOpenManual,
+  mainEntries,
+  hasMoreActions,
+  hostEntryRef,
+  onOpenMoreActions,
+  hasReadyTask,
+  moreActionsLabel,
+}: {
+  readonly model: RoomBottomActionModel;
+  readonly isAudioPlaying: boolean;
+  readonly configurationEntry: { readonly onOpen: () => void } | null;
+  readonly hasManual: boolean;
+  readonly manualEntryRef: Ref<HTMLButtonElement>;
+  readonly onOpenManual: () => void;
+  readonly mainEntries: readonly RoomManualEntry[];
+  readonly hasMoreActions: boolean;
+  readonly hostEntryRef: Ref<HTMLButtonElement> | undefined;
+  readonly onOpenMoreActions: () => void;
+  readonly hasReadyTask: boolean;
+  readonly moreActionsLabel: string;
+}) {
+  const actions = listRoomBottomButtons(model);
+  return (
+    <>
+      {actions.map((action) => {
+        const reason = action.isEnabled
+          ? null
+          : visibleDisabledReason(action.disabledReason, isAudioPlaying);
+        return reason === null ? null : (
+          <p className="bottom-action-message" key={action.key}>
+            {action.label}：{reason}
+          </p>
+        );
+      })}
+      <RoomActionHand label="行动手牌">
+        {actions.map((action) => (
+          <LayoutButton
+            key={`action:${action.key}`}
+            model={action}
+            hideAudioLockReason={isAudioPlaying}
+            isHand
+          />
+        ))}
+        {configurationEntry !== null && (
+          <Button
+            key="room-entry:configuration"
+            variant="secondary"
+            data-card-category="resource"
+            onClick={configurationEntry.onOpen}
+            aria-haspopup="dialog"
+          >
+            <IconBookOutline aria-hidden />
+            <span>本局配置</span>
+          </Button>
+        )}
+        {hasManual && (
+          <Button
+            key="room-entry:manual"
+            ref={manualEntryRef}
+            variant="secondary"
+            data-card-category="resource"
+            data-testid={TESTIDS.roomManualButton}
+            onClick={onOpenManual}
+          >
+            <IconBookOutline aria-hidden />
+            <span>手册</span>
+          </Button>
+        )}
+        {mainEntries.map((entry) => (
+          <Button
+            key={`main-entry:${entry.label}`}
+            variant="secondary"
+            aria-haspopup="dialog"
+            data-testid={entry.testId}
+            onClick={entry.onOpen}
+          >
+            <IconCreateOutline aria-hidden />
+            <span>{entry.label}</span>
+          </Button>
+        ))}
+        {hasMoreActions && (
+          <Button
+            key="room-entry:host"
+            ref={hostEntryRef}
+            variant="secondary"
+            data-card-category="host"
+            data-testid={TESTIDS.roomMoreActionsButton}
+            data-player-action-ids=""
+            onClick={onOpenMoreActions}
+            aria-label={hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined}
+          >
+            <IconConstructOutline aria-hidden />
+            <span>{moreActionsLabel}</span>
+            {hasReadyTask && (
+              <IconNotificationsOutline className="bottom-action-pending" aria-hidden />
+            )}
+          </Button>
+        )}
+      </RoomActionHand>
+    </>
+  );
 }
 
 function RoomBottomActionPanelComponent({
@@ -197,6 +317,7 @@ function RoomBottomActionPanelComponent({
     <footer
       className="bottom-action-panel"
       data-kind={model.kind}
+      data-hand={showPlayerHand}
       data-testid={TESTIDS.bottomActionPanel}
     >
       {hasSummary && <div className="bottom-action-summary">{summary}</div>}
@@ -213,7 +334,7 @@ function RoomBottomActionPanelComponent({
       )}
       {hostHand ??
         (isManualOpen && hasManual ? (
-          <div className="room-action-hand" role="group" aria-label="手册">
+          <RoomActionHand label="手册">
             <Button
               ref={focusManualBack}
               variant="secondary"
@@ -223,40 +344,48 @@ function RoomBottomActionPanelComponent({
                 setIsManualOpen(false);
               }}
             >
+              <IconArrowBack aria-hidden />
               返回
             </Button>
             {manualEntries.map((entry) => (
               <Button
                 key={entry.label}
                 variant="secondary"
+                data-card-category="resource"
                 aria-haspopup="dialog"
                 data-testid={entry.testId}
                 onClick={entry.onOpen}
               >
-                {entry.label}
+                <IconBookOutline aria-hidden />
+                <span>{entry.label}</span>
               </Button>
             ))}
-          </div>
+          </RoomActionHand>
+        ) : showPlayerHand ? (
+          <PlayerHand
+            model={model}
+            isAudioPlaying={isAudioPlaying}
+            configurationEntry={configurationEntry}
+            hasManual={hasManual}
+            manualEntryRef={manualEntryRef}
+            onOpenManual={() => setIsManualOpen(true)}
+            mainEntries={mainEntries}
+            hasMoreActions={hasMoreActions}
+            hostEntryRef={hostEntryRef}
+            onOpenMoreActions={onOpenMoreActions}
+            hasReadyTask={hasReadyTask}
+            moreActionsLabel={moreActionsLabel}
+          />
         ) : (
           <div
-            className={showPlayerHand ? 'room-action-hand' : 'bottom-action-control-row'}
+            className="bottom-action-control-row"
             data-has-focus={focusAction !== null || configurationEntry !== null}
-            role={showPlayerHand ? 'group' : undefined}
-            aria-label={showPlayerHand ? '行动手牌' : undefined}
           >
-            {showPlayerHand
-              ? listRoomBottomButtons(model).map((action) => (
-                  <LayoutButton
-                    key={action.key}
-                    model={action}
-                    hideAudioLockReason={isAudioPlaying}
-                  />
-                ))
-              : focusAction !== null && (
-                  <div className="bottom-action-focus">
-                    <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
-                  </div>
-                )}
+            {focusAction !== null && (
+              <div className="bottom-action-focus">
+                <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
+              </div>
+            )}
             {configurationEntry !== null && (
               <Button
                 variant="secondary"
@@ -267,33 +396,10 @@ function RoomBottomActionPanelComponent({
                 本局配置
               </Button>
             )}
-            {hasManual && (
-              <Button
-                ref={manualEntryRef}
-                variant="secondary"
-                data-testid={TESTIDS.roomManualButton}
-                onClick={() => setIsManualOpen(true)}
-              >
-                <IconBookOutline aria-hidden />
-                手册
-              </Button>
-            )}
-            {showPlayerHand &&
-              mainEntries.map((entry) => (
-                <Button
-                  key={entry.label}
-                  variant="secondary"
-                  aria-haspopup="dialog"
-                  data-testid={entry.testId}
-                  onClick={entry.onOpen}
-                >
-                  {entry.label}
-                </Button>
-              ))}
             {hasMoreActions && (
               <Button
                 ref={hostEntryRef}
-                variant={!showPlayerHand && focusAction === null ? 'primary' : 'secondary'}
+                variant={focusAction === null ? 'primary' : 'secondary'}
                 className="bottom-action-more"
                 data-testid={TESTIDS.roomMoreActionsButton}
                 data-player-action-ids={hiddenActions
@@ -301,16 +407,10 @@ function RoomBottomActionPanelComponent({
                   .map((action) => action.testID)
                   .join(' ')}
                 onClick={onOpenMoreActions}
-                aria-haspopup={showPlayerHand ? undefined : 'dialog'}
-                aria-label={
-                  showPlayerHand && hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined
-                }
+                aria-haspopup="dialog"
               >
                 <span className="bottom-action-more-title">{moreActionsLabel}</span>
-                {hasReadyTask && (
-                  <IconNotificationsOutline className="bottom-action-pending" aria-hidden />
-                )}
-                {!showPlayerHand && taskLabel !== null && (
+                {taskLabel !== null && (
                   <span className="bottom-action-more-hint">当前待办 · {taskLabel}</span>
                 )}
               </Button>

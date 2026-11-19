@@ -171,5 +171,5 @@
   z-index: 1;
   inset-inline: max(var(--space-medium), env(safe-area-inset-left))
     max(var(--space-medium), env(safe-area-inset-right));
-  bottom: max(var(--space-medium), env(safe-area-inset-bottom));
+  bottom: 0;
 }

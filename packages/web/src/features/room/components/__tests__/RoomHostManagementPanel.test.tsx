@@ -164,3 +164,65 @@ it('shows only player actions when a non-host opens the shared panel', () => {
   expect(panel).not.toHaveTextContent('主持管理');
   expect(within(panel).getByTestId('review-action')).toBeInTheDocument();
 });
+
+it('keeps host commands in one hand and allows revisiting a completed task step', () => {
+  const revisit = vi.fn();
+  const runCurrent = vi.fn();
+  const onBack = vi.fn();
+  const onClose = vi.fn();
+  render(
+    <RoomHostManagementPanel
+      model={{
+        task: {
+          kind: 'action',
+          actionKey: 'current',
+          steps: [
+            { key: 'previous', label: '上一步', state: 'complete', actionKey: 'previous' },
+            { key: 'current', label: '当前', state: 'current', actionKey: 'current' },
+          ],
+        },
+        sections: [
+          {
+            key: 'actions',
+            title: '操作',
+            actions: [
+              {
+                key: 'previous',
+                label: '查看信息',
+                icon: 'eye-outline',
+                variant: 'secondary',
+                isEnabled: true,
+                onPress: revisit,
+              },
+              {
+                key: 'current',
+                label: '继续',
+                icon: 'play-outline',
+                variant: 'primary',
+                isEnabled: true,
+                onPress: runCurrent,
+              },
+            ],
+          },
+        ],
+      }}
+      bottomActions={null}
+      presentation="hand"
+      onClose={onClose}
+      onBack={onBack}
+      isAudioPlaying={false}
+    />,
+  );
+
+  const hand = screen.getByRole('group', { name: '主持管理' });
+  expect(
+    within(hand)
+      .getAllByRole('button')
+      .map((button) => button.textContent),
+  ).toEqual(['返回', '继续', '查看信息']);
+  fireEvent.click(screen.getByRole('button', { name: '上一步' }));
+  expect(revisit).toHaveBeenCalledOnce();
+  expect(onClose).toHaveBeenCalledOnce();
+  fireEvent.click(within(hand).getByRole('button', { name: '返回' }));
+  expect(onBack).toHaveBeenCalledOnce();
+});

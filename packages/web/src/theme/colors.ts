@@ -30,6 +30,11 @@ export const colors = {
   error: '#D13438',
   info: '#2563EB',
 
+  handResourceInk: '#245D43',
+  handResourcePaper: '#E0F1E7',
+  handHostInk: '#62488A',
+  handHostPaper: '#EEE5F8',
+
   wolf: '#C82828',
   villager: '#1A9A4A',
   god: '#7B3FBF',

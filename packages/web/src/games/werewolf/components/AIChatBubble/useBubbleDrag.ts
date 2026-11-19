@@ -74,11 +74,12 @@ export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDrag
 
   const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
+    const bounds = event.currentTarget.getBoundingClientRect();
     dragStartRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      origin: position,
+      origin: { x: bounds.left, y: bounds.top },
     };
     isDraggingRef.current = false;
   };
