@@ -55,7 +55,6 @@ export const AVALON_REASONS = {
   notAssassinStrike: 'avalon_not_assassin_strike',
   noStrikeAtNight: 'avalon_no_strike_at_night',
   cannotStrikeSelf: 'avalon_cannot_strike_self',
-  notHostReturnToLobby: 'avalon_not_host_return_to_lobby',
   occupied: 'avalon_occupied_seat_out_of_range',
   invalidSeats: 'avalon_invalid_seats',
   duplicateSeats: 'avalon_duplicate_seats',

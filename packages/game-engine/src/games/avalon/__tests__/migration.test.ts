@@ -640,7 +640,11 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
     state = dispatch(state, { type: 'avalon.assassin.accuse', seat: innocent }, actorOf(assassin));
     if (state.phase.kind !== 'ended') throw new Error('expected ended phase');
     state = ackAudio(state);
-    state = dispatch(state, { type: 'avalon.game.returnToLobby' });
+    state = dispatch(state, {
+      type: 'avalon.game.restart',
+      gameSequence: state.gameSequence,
+      wasEnded: true,
+    });
     if (state.phase.kind !== 'lobby') throw new Error('expected lobby phase');
     expect(state.ladyHistory).toEqual([]);
     expect(state.ladyExaminedSeats).toEqual([]);

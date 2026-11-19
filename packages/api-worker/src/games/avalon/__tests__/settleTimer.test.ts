@@ -315,7 +315,12 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     // vote settle row behind — its arming no longer exists, so the
     // row's later delivery must no-op instead of settling anything.
     await ackAudio(stub);
-    await send(stub, HOST, { type: 'avalon.game.abort' });
+    const current = await readState(stub);
+    await send(stub, HOST, {
+      type: 'avalon.game.restart',
+      gameSequence: current.gameSequence,
+      wasEnded: false,
+    });
     const aborted = await readState(stub);
     expect(aborted.phase.kind).toBe('lobby');
     expect(await readSettleRow(stub, 'vote')).not.toBeNull();

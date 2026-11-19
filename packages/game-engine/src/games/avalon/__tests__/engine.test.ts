@@ -356,8 +356,9 @@ describe('Avalon engine', () => {
     session.send({ type: 'avalon.roles.assign' });
     session.send({ type: 'avalon.role.viewed' });
     const { roster, config, gameSequence } = session.state;
-    session.expectReject({ type: 'avalon.game.abort' }, 'avalon_not_host_abort', 'u1');
-    session.send({ type: 'avalon.game.abort' });
+    const command = { type: 'avalon.game.restart', gameSequence, wasEnded: false } as const;
+    session.expectReject(command, 'avalon_not_host_abort', 'u1');
+    session.send(command);
     expect(session.state).toMatchObject({
       phase: { kind: 'lobby' },
       roster,
@@ -370,7 +371,7 @@ describe('Avalon engine', () => {
       xpSettled: false,
     });
     expect(session.effects).toEqual([]);
-    session.expectReject({ type: 'avalon.game.abort' }, 'avalon_phase_invalid');
+    session.expectReject(command, 'avalon_phase_invalid');
     session.send({ type: 'avalon.roles.assign' });
     expect(session.state.gameSequence).toBe(gameSequence + 1);
   });
@@ -433,7 +434,7 @@ describe('Avalon engine', () => {
     const phase = session.phase();
     if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('expected armed vote');
     const { roster, config, gameSequence } = session.state;
-    session.send({ type: 'avalon.game.abort' });
+    session.send({ type: 'avalon.game.restart', gameSequence, wasEnded: false });
     session.setNow(phase.deadlineAt);
     expect(session.decideSystem({ type: 'avalon.phase.settleExpired' }).kind).toBe('reject');
     expect(session.state).toMatchObject({
@@ -1626,6 +1627,12 @@ describe('Avalon engine', () => {
     }
     session.accuse(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
+    session.expectReject({ type: 'avalon.roles.assign' }, 'avalon_phase_invalid');
+    session.send({
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: true,
+    });
     session.send({ type: 'avalon.roles.assign' });
     expect(session.state.phase.kind).toBe('viewing');
     expect(session.state.gameSequence).toBe(2);
@@ -1643,12 +1650,13 @@ describe('Avalon engine', () => {
     session.passNight();
     session.earlyStrike(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
-    session.expectReject(
-      { type: 'avalon.game.returnToLobby' },
-      'avalon_not_host_return_to_lobby',
-      'u1',
-    );
-    session.send({ type: 'avalon.game.returnToLobby' });
+    const command = {
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: true,
+    } as const;
+    session.expectReject(command, 'avalon_not_host_abort', 'u1');
+    session.send(command);
     expect(session.state.phase.kind).toBe('lobby');
     expect(session.state.leaderSeat).toBe(-1);
     expect(Object.keys(session.state.roles)).toHaveLength(0);
@@ -1660,7 +1668,11 @@ describe('Avalon engine', () => {
     session.passNight();
     session.earlyStrike(session.seatOfRole('merlin'));
     expect(session.state.phase.kind).toBe('ended');
-    session.send({ type: 'avalon.game.returnToLobby' });
+    session.send({
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: true,
+    });
     expect(session.state.phase.kind).toBe('lobby');
     // Roster change in the lobby: seat 5's player leaves, a new player
     // takes the seat under a new account and name.
@@ -1861,6 +1873,11 @@ describe('Avalon engine', () => {
       session.settleVote();
     }
     expect(session.state.roundHistory).toHaveLength(1);
+    session.send({
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: true,
+    });
     session.startGame();
     expect(session.state.roundHistory).toEqual([]);
   });
@@ -2471,11 +2488,16 @@ describe('Avalon engine', () => {
       session.seatUser(session.seatOfRole('assassin')),
     );
     expect(session.state.phase.kind).toBe('ended');
-    // ended 但音频未播完，returnToLobby 被门控阻塞。
-    session.expectReject({ type: 'avalon.game.returnToLobby' }, 'avalon_audio_playing');
+    // ended 但音频未播完，重新开始被门控阻塞。
+    const restart = {
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: true,
+    } as const;
+    session.expectReject(restart, 'avalon_audio_playing');
     // ack 后放行。
     session.send(session.currentAck(), 'host');
-    session.send({ type: 'avalon.game.returnToLobby' });
+    session.send(restart);
     expect(session.state.phase.kind).toBe('lobby');
   });
 });

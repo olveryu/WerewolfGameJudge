@@ -64,11 +64,9 @@ describe('Avalon public command schema', () => {
         config: { numberOfPlayers: 8, voteMode: 'secret', vetoLimit: 4 },
       },
       { type: 'avalon.roles.assign' },
-      { type: 'avalon.game.abort' },
       { type: 'avalon.game.restart', gameSequence: 1, wasEnded: false },
       { type: 'avalon.phase.retrySettle' },
       { type: 'avalon.bots.markAllBotsGroupConfirmed' },
-      { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.night.confirm' },
       { type: 'avalon.team.preselect', seats: [0, 1] },
       { type: 'avalon.team.propose', seats: [0, 1, 2] },
@@ -90,6 +88,8 @@ describe('Avalon public command schema', () => {
 
   it('rejects unknown commands, extra fields and mistyped payloads', () => {
     for (const command of [
+      { type: 'avalon.game.abort' },
+      { type: 'avalon.game.returnToLobby' },
       { type: 'avalon.game.restart', gameSequence: -1, wasEnded: false },
       { type: 'avalon.game.restart', gameSequence: 1 },
       { type: 'avalon.game.restart', gameSequence: 1, wasEnded: 'false' },
