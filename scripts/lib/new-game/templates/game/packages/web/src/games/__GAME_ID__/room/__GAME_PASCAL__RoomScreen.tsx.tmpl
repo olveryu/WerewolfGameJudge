@@ -1,5 +1,5 @@
 //#cap identityViewing
-/** __GAME_DISPLAY_NAME__房间：全程保留共享座位表，公共身份配置可折叠。 */
+/** __GAME_DISPLAY_NAME__房间：全程保留共享座位表和公开身份配置。 */
 //#end
 //#cap !identityViewing
 /** __GAME_DISPLAY_NAME__房间：大厅走共享座位表；开局后是舞台工作区。 */
@@ -7,9 +7,7 @@
 import './__GAME_PASCAL__RoomScreen.css';
 
 import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
-//#cap identityViewing
 import { useState } from 'react';
-//#end
 import { useNavigate } from 'react-router';
 
 //#cap identityViewing
@@ -18,6 +16,7 @@ import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardMo
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 //#end
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 //#cap audioOrchestration
@@ -38,10 +37,12 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { __GAME_PASCAL__AudioRuntime } from '../audio/__GAME_CAMEL__AudioRuntime';
 //#end
 import type { __GAME_PASCAL__RoomSession } from '@/games/__GAME_ID__/model/__GAME_PASCAL__RoomSession';
+import { TESTIDS } from '@/testids';
 //#cap businessStats
 import { __GAME_PASCAL__StatsPanel } from '../components/__GAME_PASCAL__StatsPanel';
 //#end
 
+import { __GAME_PASCAL__Rules } from '../screens/__GAME_PASCAL__RulesScreen';
 //#cap identityViewing
 import { create__GAME_PASCAL__BoardInfoSections, toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
 //#end
@@ -88,12 +89,32 @@ function __GAME_PASCAL__RoomContent(
   const screen = use__GAME_PASCAL__RoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const openGuide = () => setInformation('guide');
+  const openConfiguration = () => setInformation('configuration');
 //#cap identityViewing
+  const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
   const [previewRole, setPreviewRole] = useState<string | null>(null);
+  const board = (
+    <BoardInfoContent
+      sections={create__GAME_PASCAL__BoardInfoSections(config.numberOfPlayers)}
+      onRolePress={setPreviewRole}
+      footer={null}
+    />
+  );
 //#end
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
+//#cap identityViewing
+      configurationEntry={isPreGame ? null : { onOpen: openConfiguration }}
+//#end
+//#cap !identityViewing
+      stageMenu={screen.state.phase.kind === 'playing' ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null}
+      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+//#end
+      manualEntries={[{ label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('__GAME_ID__') }]}
       content={
 //#cap identityViewing
         {
@@ -113,18 +134,17 @@ function __GAME_PASCAL__RoomContent(
           afterSeatBoard: null,
           sideInspector: null,
           beforeSeatBoard: (
+            <>
+            {isPreGame && (
             <RoomGameSummary
               title="__GAME_DISPLAY_NAME__"
               playerCount={config.numberOfPlayers}
-              guide={{ onPress: screen.openRules, label: '查看__GAME_DISPLAY_NAME__玩法' }}
-              collapsed={!isLobby}
+              guide={null}
             >
-              <BoardInfoContent
-                sections={create__GAME_PASCAL__BoardInfoSections(config.numberOfPlayers)}
-                onRolePress={setPreviewRole}
-                footer={null}
-              />
+              {board}
             </RoomGameSummary>
+            )}
+            </>
           ),
         }
 //#end
@@ -140,7 +160,7 @@ function __GAME_PASCAL__RoomContent(
                 <RoomGameSummary
                   title="__GAME_DISPLAY_NAME__"
                   playerCount={config.numberOfPlayers}
-                  guide={{ onPress: screen.openRules, label: '查看__GAME_DISPLAY_NAME__玩法' }}
+                  guide={null}
                 />
               ),
             }
@@ -159,12 +179,25 @@ function __GAME_PASCAL__RoomContent(
         <__GAME_PASCAL__StatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
 //#end
-//#cap identityViewing
       gameOverlays={
         <>
+          {information === 'guide' && (
+            <RoomDialog title="__GAME_DISPLAY_NAME__玩法" onClose={() => setInformation(null)} allowEscape footer={null}>
+              <__GAME_PASCAL__Rules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog title="本局配置" onClose={() => setInformation(null)} allowEscape footer={null}>
+              <p>{`__GAME_DISPLAY_NAME__（${config.numberOfPlayers}人）`}</p>
+//#cap identityViewing
+              {board}
+//#end
+            </RoomDialog>
+          )}
 //#cap audioOrchestration
           <RoomAudioResumeDialog visible={screen.audioResume.isDue} onContinue={screen.audioResume.continueGame} />
 //#end
+//#cap identityViewing
           <RevealRoleCardModal
             visible={screen.roleViewing.isOpen}
             roleKey={screen.viewModel?.myIdentity ?? null}
@@ -177,18 +210,10 @@ function __GAME_PASCAL__RoomContent(
           {previewRole !== null && (
             <RoleCardDialog role={toRevealRoleData(previewRole)} onClose={() => setPreviewRole(null)} />
           )}
+//#end
           {screen.reviewOverlay}
         </>
       }
-//#end
-//#cap !identityViewing
-//#cap audioOrchestration
-      gameOverlays={<><RoomAudioResumeDialog visible={screen.audioResume.isDue} onContinue={screen.audioResume.continueGame} />{screen.reviewOverlay}</>}
-//#end
-//#cap !audioOrchestration
-      gameOverlays={screen.reviewOverlay}
-//#end
-//#end
     />
   );
 }

@@ -21,7 +21,6 @@ import { useNavigate } from 'react-router';
 
 import {
   gameConfigEditPath,
-  gameGuidePath,
 //#cap audioOrchestration
   musicSettingsPath,
 //#end
@@ -126,7 +125,6 @@ export interface __GAME_PASCAL__RoomScreenState {
   readonly submit: ReadyRoomSession<__GAME_PASCAL__State, __GAME_PASCAL__Command>['submit'];
   readonly isSubmitting: boolean;
   readonly session: __GAME_PASCAL__RoomSession;
-  readonly openRules: () => void;
   /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
 //#cap identityViewing
@@ -337,7 +335,6 @@ export function use__GAME_PASCAL__RoomState(
     submit,
     isSubmitting,
     session,
-    openRules: () => void navigate(gameGuidePath('__GAME_ID__', room.roomCode)),
     reviewOverlay: review.overlay,
 //#cap identityViewing
     roleViewing,
