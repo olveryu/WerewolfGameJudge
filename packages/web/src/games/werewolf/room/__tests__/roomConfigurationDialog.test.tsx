@@ -11,12 +11,52 @@ import {
   createReactiveWerewolfRoomMock,
   mountRoomFor,
   mountWerewolfRoom,
+  recordAlerts,
+  RoomScreenTestHarness,
   startSeatSelection,
 } from './harness';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it.each([true, false])(
+    'only shows a deferred night result if it is still pending: %s',
+    async (stillPending) => {
+      const harness = new RoomScreenTestHarness();
+      const detach = recordAlerts(harness);
+      try {
+        const step = actorStep('seerCheck', 'seer', 0);
+        const reactive = createReactiveWerewolfRoomMock(step);
+        const view = await mountWerewolfRoom(reactive.mock);
+        await click(view.getByRole('button', { name: '本局配置' }));
+        const board = within(await view.findByRole('dialog', { name: '本局配置' }));
+        const pending = {
+          seerReveal: { targetSeat: 1, result: '好人' as const },
+          gameStateOverrides: {
+            pendingRevealAcks: ['seerCheck' as const],
+            actions: [
+              { schemaId: 'seerCheck' as const, actorSeat: 0, targetSeat: 1, timestamp: 1 },
+            ],
+          },
+        };
+        act(() => reactive.simulateStateUpdate(pending));
+        expect(harness.hasSeen('seerReveal')).toBe(false);
+        if (!stillPending) {
+          act(() =>
+            reactive.simulateStateUpdate({
+              seerReveal: null,
+              gameStateOverrides: { status: GameStatus.Day },
+            }),
+          );
+        }
+        await click(board.getByRole('button', { name: '关闭详情' }));
+        expect(harness.eventsOfType('seerReveal')).toHaveLength(stillPending ? 1 : 0);
+        expect(reactive.mock.dispatch).not.toHaveBeenCalled();
+      } finally {
+        detach();
+      }
+    },
+  );
   it('keeps an edited suggestion draft open and blocks submission after dealing', async () => {
     const reactive = createReactiveWerewolfRoomMock({
       ...actorStep('seerCheck', 'seer', 0),

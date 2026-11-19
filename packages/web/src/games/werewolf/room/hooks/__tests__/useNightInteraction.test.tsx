@@ -67,6 +67,7 @@ function renderWolfNight(
       controlledSeat: viewerSeat,
       effectiveSeat: viewerSeat,
       isAudioResumeDue: false,
+      isReadingRoomInformation: false,
       hasPendingCommand: false,
       nowMs: NOW,
       submit: submit,

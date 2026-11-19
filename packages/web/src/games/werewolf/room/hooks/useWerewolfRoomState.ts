@@ -195,6 +195,7 @@ export function useWerewolfRoomState(
     readonly entryController: RoomEntryController;
     readonly audio: WerewolfAudioRuntime;
   },
+  isReadingRoomInformation: boolean,
 ): WerewolfRoomScreenState {
   const { session, room, entryController, audio } = props;
   const roomCode = room.roomCode;
@@ -277,6 +278,7 @@ export function useWerewolfRoomState(
     controlledSeat,
     effectiveSeat,
     isAudioResumeDue: audioResume.isDue,
+    isReadingRoomInformation,
     hasPendingCommand: entryController.connection.pendingDurableCount > 0,
     nowMs,
     submit,
