@@ -1,4 +1,5 @@
 .room-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -163,4 +164,12 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+.room-stage-menu {
+  position: absolute;
+  z-index: 1;
+  inset-inline: max(var(--space-medium), env(safe-area-inset-left))
+    max(var(--space-medium), env(safe-area-inset-right));
+  bottom: max(var(--space-medium), env(safe-area-inset-bottom));
 }

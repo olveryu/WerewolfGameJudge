@@ -23,7 +23,6 @@ export function RoomDialog({
   testId,
   isContentFlush = false,
   allowEscape = false,
-  showClose = true,
   onClose,
   children,
   footer,
@@ -35,7 +34,6 @@ export function RoomDialog({
   /** Children print edge to edge (a full-bleed page) instead of inside the padded column. */
   readonly isContentFlush?: boolean;
   readonly allowEscape?: boolean;
-  readonly showClose?: boolean;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly footer: ReactNode;
@@ -68,14 +66,12 @@ export function RoomDialog({
                   {title}
                 </Dialog.Title>
               </div>
-              {showClose && (
-                <IconButton
-                  label="关闭详情"
-                  icon={<IconClose aria-hidden />}
-                  onClick={onClose}
-                  data-testid={TESTIDS.roomDialogCloseButton}
-                />
-              )}
+              <IconButton
+                label="关闭详情"
+                icon={<IconClose aria-hidden />}
+                onClick={onClose}
+                data-testid={TESTIDS.roomDialogCloseButton}
+              />
             </header>
             <div className="room-dialog-body" data-flush={isContentFlush}>
               {children}
