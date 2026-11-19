@@ -148,6 +148,19 @@ export class RoomPage {
   // Host Management
   // ---------------------------------------------------------------------------
 
+  /** Read enabled player actions without opening or waiting for the optional surface. */
+  async hasPanelPlayerAction(actionTestId: string): Promise<boolean> {
+    return this.page
+      .getByTestId(TESTIDS.roomMoreActionsButton)
+      .evaluateAll(
+        (entries, target) =>
+          entries.some((entry) =>
+            entry.getAttribute('data-player-action-ids')?.split(' ').includes(target),
+          ),
+        actionTestId,
+      );
+  }
+
   /** Open the shared actions surface and return its visible panel. */
   async openHostManagement(): Promise<Locator> {
     const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);

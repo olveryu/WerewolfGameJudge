@@ -85,6 +85,16 @@ it('keeps one personal primary action in the card and opens the action panel for
               isEnabled: true,
               onPress: vi.fn(),
             },
+            {
+              key: 'unavailable',
+              label: '暂不可用',
+              audience: 'participant',
+              variant: 'secondary',
+              size: 'md',
+              testID: 'unavailable-action',
+              isEnabled: false,
+              disabledReason: '等待下一阶段',
+            },
           ],
           ghost: [],
         },
@@ -98,6 +108,10 @@ it('keeps one personal primary action in the card and opens the action panel for
 
   expect(screen.getByTestId('vote-action')).toBeInTheDocument();
   expect(screen.queryByTestId('identity-action')).not.toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveAttribute(
+    'data-player-action-ids',
+    'identity-action',
+  );
   fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
   expect(onOpenMoreActions).toHaveBeenCalledOnce();
 });
@@ -146,6 +160,10 @@ it('does not choose between multiple equally ranked primary actions', () => {
   expect(screen.getByRole('button', { name: '选择操作' })).toBeInTheDocument();
   expect(screen.queryByTestId('approve-action')).not.toBeInTheDocument();
   expect(screen.queryByTestId('reject-action')).not.toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveAttribute(
+    'data-player-action-ids',
+    'approve-action reject-action',
+  );
 });
 
 it('announces audio playback instead of a lower-priority action message', () => {

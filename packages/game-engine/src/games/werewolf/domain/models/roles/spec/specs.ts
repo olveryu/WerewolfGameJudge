@@ -437,20 +437,7 @@ const ROLE_SPEC_DEFINITIONS = {
       skill: '白天可翻牌与一名玩家决斗；对方是狼人则对方出局；对方是好人则自身出局',
     },
     tags: ['kill'],
-    abilities: [
-      {
-        type: 'active',
-        timing: 'day',
-        actionKind: 'chooseSeat',
-        target: {
-          count: { min: 1, max: 1 },
-          constraints: [],
-        },
-        canSkip: false,
-        effects: [{ kind: 'check', resultType: 'faction' }],
-        activeOnNight1: false,
-      },
-    ],
+    abilities: [],
   },
 
   magician: {

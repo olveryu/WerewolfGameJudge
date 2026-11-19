@@ -394,6 +394,7 @@ export function useWerewolfRoomState(
   const layout = createWerewolfBottomActionLayout({
     viewModel,
     night: night.model,
+    seatSelection: night.seatSelection,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
@@ -419,7 +420,7 @@ export function useWerewolfRoomState(
   const shellModel = createWerewolfRoomShellModel({
     state,
     viewModel,
-    night: night.model,
+    seatSelection: night.seatSelection,
     revision,
     roomCode,
     viewer,

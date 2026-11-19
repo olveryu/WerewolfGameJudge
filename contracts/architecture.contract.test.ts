@@ -368,29 +368,33 @@ describe('Game-engine package boundary: consumers use explicit public APIs', () 
     '@game-judge/game-engine/utils',
   ] as const;
 
-  it.each(consumerFiles)('%s must not import the aggregate package root', (filePath) => {
+  it.each(consumerFiles)('%s must use explicit game-engine public APIs', (filePath) => {
     const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
-    expect(imports.filter((specifier) => specifier === GAME_ENGINE_PACKAGE)).toEqual([]);
-  });
 
-  it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
-    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
-    expect(imports.filter(isGameDomainSpecifier)).toEqual([]);
-  });
+    const expectNoImports = (violations: string[], diagnostic: string) => {
+      expect.soft(violations, `${filePath} ${diagnostic}`).toEqual([]);
+    };
 
-  it.each(consumerFiles)('%s must not import a game testing API in production', (filePath) => {
-    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
-    expect(imports.filter(isGameTestingSpecifier)).toEqual([]);
-  });
-
-  it.each(consumerFiles)('%s must not import a removed engine ownership path', (filePath) => {
-    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
-    const violations = imports.filter((specifier) =>
-      removedOwnershipPrefixes.some(
-        (prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`),
-      ),
+    expectNoImports(
+      imports.filter((specifier) => specifier === GAME_ENGINE_PACKAGE),
+      'must not import the aggregate package root',
     );
-    expect(violations).toEqual([]);
+    expectNoImports(
+      imports.filter(isGameDomainSpecifier),
+      'must not import a game-owned domain deep path',
+    );
+    expectNoImports(
+      imports.filter(isGameTestingSpecifier),
+      'must not import a game testing API in production',
+    );
+    expectNoImports(
+      imports.filter((specifier) =>
+        removedOwnershipPrefixes.some(
+          (prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`),
+        ),
+      ),
+      'must not import a removed engine ownership path',
+    );
   });
 });
 

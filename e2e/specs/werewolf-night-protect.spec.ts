@@ -10,6 +10,7 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
+  nightButton,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -307,16 +308,21 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         // Wait for wolf kill step
         await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
 
-        // First wolf tries to vote spiritKnight -> confirm -> rejection
-        await clickSeatAndConfirm(pages[allWolfIndices[0]!]!, skSeat);
+        const wolfPage = pages[wolfIdx]!;
+        await clickSeatAndConfirm(wolfPage, skSeat);
 
         // Should see rejection alert (server rejects -> actionRejected shows '操作失败')
-        const rejectionText = await readAlertText(pages[allWolfIndices[0]!]!);
+        const rejectionText = await readAlertText(wolfPage);
         expect(rejectionText).toContain('操作失败');
-        await dismissAlert(pages[allWolfIndices[0]!]!);
+        await dismissAlert(wolfPage);
 
-        // Re-vote on valid target
-        await driveWolfVote(pages, allWolfIndices, validTarget);
+        // A rejected vote leaves the draft open so the wolf can replace its target.
+        const submitVote = nightButton(wolfPage, 'submitSeatSelection');
+        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(skSeat)}`);
+        await wolfPage.getByTestId(TESTIDS.seatTilePressable(validTarget)).click();
+        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(validTarget)}`);
+        await submitVote.click();
+        await driveWolfVote(pages, [skIdx], validTarget);
 
         // Night should complete normally
         await waitForNightEnd(pages);

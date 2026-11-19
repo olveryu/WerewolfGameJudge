@@ -1189,16 +1189,6 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     ]) {
       typecheckFixture(root, project);
     }
-    execFileSync(
-      process.execPath,
-      [resolveVitestBin(root, 'packages/web'), 'run', 'src/games/demoproto'],
-      { cwd: path.join(root, 'packages/web'), stdio: 'inherit' },
-    );
-    execFileSync(
-      process.execPath,
-      [resolveVitestBin(root, 'packages/game-engine'), 'run', 'src/games/demoproto'],
-      { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
-    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

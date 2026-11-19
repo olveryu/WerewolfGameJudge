@@ -14,9 +14,9 @@ import { waitFor } from '@testing-library/react';
 
 import {
   coverageChainActionPrompt,
-  coverageChainSeatActionConfirm,
+  coverageChainSeatSelection,
   coverageChainSkipConfirm,
-  coverageChainWitchPoisonPrompt,
+  coverageChainWitchPoisonSelection,
   coverageChainWitchSavePrompt,
   coverageChainWolfVote,
   coverageChainWolfVoteEmpty,
@@ -69,7 +69,6 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
       [7, 'seedWolf'],
     ]);
     const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
-      harness,
       'wolf',
       4,
       wolfAssignments,
@@ -78,10 +77,9 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
     expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
 
     await coverageChainWitchSavePrompt(harness, 9);
-    await coverageChainWitchPoisonPrompt(harness, 9);
+    await coverageChainWitchPoisonSelection(9);
 
-    const { submitAction: seerAction } = await coverageChainSeatActionConfirm(
-      harness,
+    const { submitAction: seerAction } = await coverageChainSeatSelection(
       'seerCheck',
       'seer',
       'seer',
@@ -158,14 +156,11 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
 
     harness.assertCoverage([
       'actionPrompt',
-      'wolfVote',
       'wolfVoteEmpty',
-      'actionConfirm',
       'skipConfirm',
       'confirmTrigger',
       'seedWolfInfectionResult',
       'witchSavePrompt',
-      'witchPoisonPrompt',
       'witchNoKill',
     ]);
   });

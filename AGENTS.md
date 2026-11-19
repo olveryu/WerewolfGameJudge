@@ -71,6 +71,7 @@ A new game is registered in the engine registry, the engine catalog, the worker 
 ## Enforced conventions
 
 - Generator tests use Vitest as their only test runner; `scripts/new-game.test.mjs` is included in `vitest.config.ts`. Do not add a `node:test` runner or a Vitest wrapper that spawns one.
+- Add tests only for new or changed behavior, bug fixes, concrete edge cases, or explicitly required contracts. Avoid tests that merely mirror implementation, guard against speculative future changes, or duplicate lint/typecheck/build checks; preserve tests that cover distinct behavior or required architecture/business contracts.
 - `react/no-danger` is an error for `packages/web/**` in `eslint.config.mjs`: untrusted strings render only through React's escaping.
 - `console.*` is a `no-console` error in `eslint.config.mjs`, exempt only in the web logger `packages/web/src/utils/logger.ts`, `e2e/helpers/diagnostics.ts`, and the worker logger `packages/api-worker/src/platform/observability/logger.ts`.
 - In the worker, permissive `z.object` appears only in the 8 files listed by `uses permissive Zod objects only for external provider payloads` in `contracts/architecture.contract.test.ts`, all external provider payloads; internal data uses `z.strictObject`.

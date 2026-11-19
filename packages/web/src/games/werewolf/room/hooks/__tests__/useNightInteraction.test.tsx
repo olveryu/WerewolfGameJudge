@@ -1,7 +1,7 @@
 /**
  * useNightInteraction seat taps on the wolf step: under the kill-disabled
  * hint a tap shows the hint message and submits nothing; on a plain wolf
- * night the tap still opens the vote confirm and submits on confirm.
+ * night only the explicit selection mode can draft and submit a vote.
  */
 
 import { type RoleId, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
@@ -92,23 +92,27 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
-  it('opens the vote confirm and submits the seat on a plain wolf night', async () => {
+  it('only submits an armed draft when the bottom confirmation is pressed', async () => {
     const { result, submit } = renderWolfNight();
-    let tapped = false;
     act(() => {
-      tapped = result.current.onSeatTap(4);
+      result.current.onSeatTap(4);
     });
-    expect(tapped).toBe(true);
-    expect(showDismissAlert).not.toHaveBeenCalled();
-    expect(showConfirmAlert).toHaveBeenCalledTimes(1);
+    expect(result.current.seatSelection).toBeNull();
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => {
+      result.current.onSeatTap(4);
+    });
+    expect(result.current.seatSelection?.confirm?.label).toBe('确认袭击 5号');
     expect(submit).not.toHaveBeenCalled();
-
-    const confirmCalls = vi.mocked(showConfirmAlert).mock.calls;
-    if (confirmCalls.length !== 1) throw new Error('Expected exactly one confirm alert');
-    const onConfirm = confirmCalls[0]?.[2];
-    if (onConfirm === undefined) throw new Error('Confirm alert has no callback');
+    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }));
+    expect(result.current.seatSelection).toBeNull();
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    expect(result.current.seatSelection?.confirm).toBeNull();
+    act(() => {
+      result.current.onSeatTap(4);
+    });
     await act(async () => {
-      await onConfirm();
+      result.current.onNightButton({ kind: 'submitSeatSelection' });
     });
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit).toHaveBeenCalledWith(

@@ -245,7 +245,7 @@ describe('UI reads seat eligibility from the projection (no hardcode)', () => {
       join(__dirname, '..', 'night', 'resolveNightInteraction.ts'),
       'utf8',
     );
-    expect(adapter).toContain('disabledReason: seatView?.disabledReason');
+    expect(adapter).toContain('seatView?.disabledReason ?? undefined');
     expect(adapter).not.toMatch(/constraints|notSelf/);
     expect(night).toContain('seat.disabledReason === null');
     expect(night).not.toMatch(/constraints|notSelf/);

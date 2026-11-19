@@ -1,13 +1,11 @@
 /**
  * NightInteractionModel — what the viewer can do in the current night
- * step, as pure data: UI = f(viewModel, draft).
+ * step, as pure data derived from the viewer projection.
  *
  * One variant per interaction shape the night schemas declare. The
  * seat board, the bottom bar and the night dialog all render from the
  * same model; nothing re-derives a rule from state (the engine's
- * WerewolfViewModel already cropped every fact to the viewer). Local
- * draft state (a first swap seat, a multi-select set, a pending pick)
- * is the only client-owned input and is folded in here.
+ * WerewolfViewModel already cropped every fact to the viewer).
  */
 
 import type {
@@ -31,20 +29,6 @@ interface GroupRevealText {
   readonly confirmLabel: string;
 }
 
-/** The viewer's seat picks in the current step, persisted per step scope. */
-export interface NightDraft {
-  /** swap: the first chosen seat. */
-  readonly firstSwapSeat: number | null;
-  /** multiChooseSeat: the chosen set, in pick order. */
-  readonly multiSelectedSeats: readonly number[];
-}
-
-/** The two-seat swap pick; `second` is set in the same render the confirm opens. */
-export interface SwapPick {
-  readonly first: number | null;
-  readonly second: number | null;
-}
-
 export type NightInteractionModel =
   /** Not the actioner, or not in the night flow. */
   | { readonly kind: 'idle' }
@@ -54,6 +38,7 @@ export type NightInteractionModel =
   | {
       readonly kind: 'pickSeat';
       readonly stepId: SchemaId;
+      readonly actionLabel: string;
       readonly selectable: readonly number[];
       readonly prompt: NightPrompt;
       readonly confirmTitle: string;
@@ -87,11 +72,10 @@ export type NightInteractionModel =
       /** The settle countdown fragment (`（N秒后确认）`); null while unarmed. */
       readonly countdownText: string | null;
     }
-  /** swap: two seats; the second opens the confirm. */
+  /** swap: select and confirm two seats. */
   | {
       readonly kind: 'pickTwoSeats';
       readonly selectable: readonly number[];
-      readonly pick: SwapPick;
       readonly prompt: NightPrompt;
       readonly firstPickTitle: string;
       /** Body after the first pick; `{seat}` is the first seat. */
@@ -104,13 +88,12 @@ export type NightInteractionModel =
   | {
       readonly kind: 'multiSelect';
       readonly selectable: readonly number[];
-      readonly selected: readonly number[];
+      readonly actionLabel: string;
+      readonly min: number;
       readonly max: number;
       readonly prompt: NightPrompt;
       /** Confirm dialog title; the body lists the picked seats. */
       readonly confirmText: string;
-      /** Confirm button label; `{count}` is the picked count. */
-      readonly confirmButtonTemplate: string;
       readonly skipLabel: string | null;
     }
   /** compound (witch): save by button, poison by seat pick, or neither. */

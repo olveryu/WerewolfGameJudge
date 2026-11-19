@@ -169,6 +169,10 @@ function RoomBottomActionPanelComponent({
             variant={focusAction === null ? 'primary' : 'secondary'}
             className="bottom-action-more"
             data-testid={TESTIDS.roomMoreActionsButton}
+            data-player-action-ids={additionalActions
+              .filter((action) => action.isEnabled)
+              .map((action) => action.testID)
+              .join(' ')}
             onClick={onOpenMoreActions}
             aria-haspopup="dialog"
           >

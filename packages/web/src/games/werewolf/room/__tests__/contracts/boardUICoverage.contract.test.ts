@@ -58,7 +58,8 @@ const CHEATING_PATTERNS = {
 const REQUIRED_PATTERNS = {
   // The production room screen is mounted through the harness render helpers.
   renderRoomScreen: /\b(?:renderWerewolfRoom|mountWerewolfRoom|mountRoomFor|mount)\s*\(/,
-  realInteraction: /tapSeat|pressText|\bclick\(|\.press[A-Za-z]*\(/,
+  realInteraction: /draftSeatSelection|tapSeat|pressText|\bclick\(|\.press[A-Za-z]*\(/,
+  wolfTargetSubmission: /\bawait (?:chainWolfVote|coverageChainWolfVote)\s*\(/,
   // ONLY accept literal array - getRequiredUiDialogTypes() is CHEATING
   assertCoverageCall: /harness\.assertCoverage\s*\(\s*\[/,
   alertRecorderFromHarness: /recordAlerts\s*\(\s*harness\s*\)/,
@@ -124,6 +125,10 @@ function validateTestStructure(content: string, filename: string): StructureRepo
 
   if (interactionCount === 0) {
     issues.push(`[STRUCTURE] ${filename}: No real UI interactions found (tapSeat/pressText/press)`);
+  }
+
+  if (!REQUIRED_PATTERNS.wolfTargetSubmission.test(content)) {
+    issues.push(`[STRUCTURE] ${filename}: Must draft and submit a wolf target`);
   }
 
   if (assertCoverageCount === 0) {
@@ -396,7 +401,7 @@ describe('Board UI Coverage Contract', () => {
       const requiredUiTypes = getRequiredUiDialogTypes(board);
 
       expect(requiredUiTypes).toContain('actionPrompt');
-      expect(requiredUiTypes).toContain('wolfVote');
+      expect(requiredUiTypes).toContain('wolfVoteEmpty');
     });
   });
 });

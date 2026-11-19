@@ -116,9 +116,10 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
     const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', formatSeat(killedSeat));
 
     await waitFor(() => {
-      const prompt = harness.events().find((event) => event.message === expectedPrompt);
+      const prompt = harness.events().find((event) => event.title === WITCH_ACTION_TITLE);
       expect(prompt).toBeDefined();
-      expect(prompt!.title).toBe(WITCH_ACTION_TITLE);
+      expect(prompt!.message).toContain(expectedPrompt);
+      expect(prompt!.message).toContain('先按「选择毒药目标」');
     });
   });
 
@@ -130,9 +131,9 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
     const expectedPrompt = saveStep.ui?.cannotSavePrompt;
 
     await waitFor(() => {
-      const prompt = harness.events().find((event) => event.message === expectedPrompt);
+      const prompt = harness.events().find((event) => event.title === WITCH_ACTION_TITLE);
       expect(prompt).toBeDefined();
-      expect(prompt!.title).toBe(WITCH_ACTION_TITLE);
+      expect(prompt!.message).toContain(expectedPrompt);
     });
   });
 

@@ -26,7 +26,12 @@ import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
+import { TESTIDS } from '@/testids';
 
+import {
+  secrethitlerVoteFailImage,
+  secrethitlerVotePassImage,
+} from '../assets/secrethitlerVoteImages';
 import { toRevealRoleData } from '../components/SecrethitlerRoleCardAdapter';
 import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import { SecrethitlerStatsPanel } from '../components/SecrethitlerStatsPanel';
@@ -215,7 +220,7 @@ export function SecrethitlerBoardHeader({
   );
 }
 
-function SecrethitlerMatchDetails({
+export function SecrethitlerMatchDetails({
   state,
   view,
   mySeat,
@@ -290,10 +295,23 @@ function SecrethitlerMatchDetails({
       {lastGovernment !== undefined &&
         lastGovernmentVoteCounts !== null &&
         lastGovernmentVoteCounts !== undefined && (
-          <p role="status">
-            上次政府{lastGovernment.outcome === 'passed' ? '通过' : '未通过'} · 赞成{' '}
-            {lastGovernmentVoteCounts.ja} 票
-          </p>
+          <>
+            <img
+              src={
+                lastGovernment.outcome === 'passed'
+                  ? secrethitlerVotePassImage
+                  : secrethitlerVoteFailImage
+              }
+              alt=""
+              decoding="async"
+              className="secrethitler-settled-vote-banner"
+              data-testid={TESTIDS.secrethitlerSettledVoteBanner}
+            />
+            <p role="status">
+              上次政府{lastGovernment.outcome === 'passed' ? '通过' : '未通过'} · 赞成{' '}
+              {lastGovernmentVoteCounts.ja} 票
+            </p>
+          </>
         )}
       <SecrethitlerPublicHistory view={view} />
     </div>

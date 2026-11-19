@@ -49,6 +49,8 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { getBoardRolePortraits } from '@/games/secrethitler/assets/roleAvatars';
+import { SECRETHITLER_POLICY_IMAGES } from '@/games/secrethitler/assets/secrethitlerPolicyImages';
+import { SECRETHITLER_VOTE_IMAGES } from '@/games/secrethitler/assets/secrethitlerVoteImages';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import { toRevealRoleData } from '@/games/secrethitler/components/SecrethitlerRoleCardAdapter';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
@@ -60,6 +62,13 @@ import {
 } from '../secrethitlerRoomAdapter';
 
 const SECRETHITLER_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
+
+/** 进房间一次预加载的全部公开图片：立绘 + 投票 4 张 + 法案牌 2 张。 */
+const SECRETHITLER_ROOM_IMAGES: readonly string[] = [
+  ...getBoardRolePortraits(),
+  ...SECRETHITLER_VOTE_IMAGES,
+  ...SECRETHITLER_POLICY_IMAGES,
+];
 import { getSecrethitlerRoomCommandFailureMessage } from '../secrethitlerRoomCommandFailureMessage';
 import { useSecrethitlerAudioOrchestration } from './useSecrethitlerAudioOrchestration';
 
@@ -109,7 +118,7 @@ export function useSecrethitlerRoomState(
     session,
     getSecrethitlerRoomCommandFailureMessage,
   );
-  useRoomImagePreload(getBoardRolePortraits());
+  useRoomImagePreload(SECRETHITLER_ROOM_IMAGES);
   const isHost = state.hostUserId === user.id;
   const mySeat = getSecrethitlerUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
