@@ -10,6 +10,10 @@ For every change request in this repository, use a separate Git worktree visible
 
 During each grill-me interview, record the user's confirmed decisions in the relevant design document as they are made; update an existing document or create one if none fits. Before implementation, consolidate the conclusions and distinguish confirmed decisions, open questions, and implementation status; never present a proposal as the user's decision.
 
+## Learnings
+
+The client is a web page, including in the mini-program web-view. When changing the client and server together, do not retain obsolete commands solely for old client versions: users can refresh after deployment. This does not replace persisted-state migrations or justify silently ignoring version errors.
+
 ## Project snapshot
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.
