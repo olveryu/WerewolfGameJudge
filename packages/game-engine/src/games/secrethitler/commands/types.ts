@@ -14,6 +14,11 @@ export type SecrethitlerPublicCommand =
   | { readonly type: 'secrethitler.roles.assign' }
   | { readonly type: 'secrethitler.game.begin' }
   | { readonly type: 'secrethitler.game.abort' }
+  | {
+      readonly type: 'secrethitler.game.restart';
+      readonly gameSequence: number;
+      readonly wasEnded: boolean;
+    }
   | { readonly type: 'secrethitler.bots.markAllBotsViewed' }
   | { readonly type: 'secrethitler.bots.markAllBotsGroupConfirmed' }
   | { readonly type: 'secrethitler.game.returnToLobby' }

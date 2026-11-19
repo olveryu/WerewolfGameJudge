@@ -28,6 +28,7 @@ const HOST_FLOW_FILES = [
   'packages/web/src/games/werewolf/room/createWerewolfHostManagement.ts',
   'packages/web/src/games/werewolf/room/hooks/useWerewolfHostFlow.ts',
   'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
+  'packages/web/src/games/secrethitler/room/secrethitlerRoomAdapter.ts',
   'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
   'packages/web/src/games/fibking/room/hooks/useFibRoomState.ts',
   'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',

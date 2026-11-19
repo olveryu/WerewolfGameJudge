@@ -161,6 +161,28 @@ function abortGame(state: SecrethitlerState, context: CommandContext): Secrethit
   return commitSecrethitler([{ type: 'secrethitler.game.returnedToLobby' }]);
 }
 
+function restartGame(
+  state: SecrethitlerState,
+  command: Extract<SecrethitlerCommand, { readonly type: 'secrethitler.game.restart' }>,
+  context: CommandContext,
+): SecrethitlerDecision {
+  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
+    context,
+    state.hostUserId,
+    SECRETHITLER_REASONS.notHostAbort,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (
+    state.phase.kind === 'lobby' ||
+    state.gameSequence !== command.gameSequence ||
+    (state.phase.kind === 'ended') !== command.wasEnded
+  )
+    return reject(SECRETHITLER_REASONS.phase);
+  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+  return commitSecrethitler([{ type: 'secrethitler.game.returnedToLobby' }]);
+}
+
 function markAllBotsViewed(
   state: SecrethitlerState,
   context: CommandContext,
@@ -270,6 +292,8 @@ function decideCommand(
       return beginGame(state, context);
     case 'secrethitler.game.abort':
       return abortGame(state, context);
+    case 'secrethitler.game.restart':
+      return restartGame(state, command, context);
     case 'secrethitler.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
     case 'secrethitler.bots.markAllBotsGroupConfirmed':

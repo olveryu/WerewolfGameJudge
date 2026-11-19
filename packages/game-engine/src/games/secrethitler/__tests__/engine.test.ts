@@ -52,6 +52,36 @@ function game(
 }
 
 describe('Secrethitler host conveniences', () => {
+  it('restarts an active round only for the host and rejects stale confirmations', () => {
+    const current = game(5, 1);
+    current.send({ type: 'secrethitler.roles.assign' });
+    const before = current.session.state;
+    const command = {
+      type: 'secrethitler.game.restart',
+      gameSequence: before.gameSequence,
+      wasEnded: false,
+    } as const;
+    current.session.expectReject(command, SECRETHITLER_REASONS.notHostAbort, 'u1');
+    current.session.expectReject(command, REASON_CONTROLLED_SEAT_NOT_ALLOWED, 'host', 1);
+    current.session.expectReject(
+      { ...command, gameSequence: command.gameSequence + 1 },
+      SECRETHITLER_REASONS.phase,
+    );
+    current.session.expectReject({ ...command, wasEnded: true }, SECRETHITLER_REASONS.phase);
+    current.send(command);
+    expect(current.session.state).toMatchObject({
+      phase: { kind: 'lobby' },
+      roster: before.roster,
+      config: before.config,
+      gameSequence: before.gameSequence,
+      identities: {},
+      history: { governments: [], policies: [], actions: [] },
+    });
+    expect(current.session.effects).toEqual([]);
+    current.send({ type: 'secrethitler.roles.assign' });
+    current.session.expectReject(command, SECRETHITLER_REASONS.phase);
+  });
+
   it.each(['viewing', 'night', 'election'] as const)(
     'aborts %s without rewarding or losing room setup',
     (phase) => {
@@ -64,6 +94,14 @@ describe('Secrethitler host conveniences', () => {
           current.send({ type: 'secrethitler.game.begin' });
           current.session.expectReject(
             { type: 'secrethitler.game.abort' },
+            SECRETHITLER_REASONS.audioPlaying,
+          );
+          current.session.expectReject(
+            {
+              type: 'secrethitler.game.restart',
+              gameSequence: current.session.state.gameSequence,
+              wasEnded: false,
+            },
             SECRETHITLER_REASONS.audioPlaying,
           );
           acknowledgeAudio(current);
@@ -932,6 +970,16 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     });
     expect(current.session.effects[0]?.payload.participantUserIds).toHaveLength(5);
     const previousSequence = current.session.state.gameSequence;
+    const unfinishedCommand = {
+      type: 'secrethitler.game.restart',
+      gameSequence: previousSequence,
+      wasEnded: false,
+    } as const;
+    current.session.expectReject(unfinishedCommand, SECRETHITLER_REASONS.phase);
+    const effectsBefore = current.session.effects.length;
+    current.send({ ...unfinishedCommand, wasEnded: true });
+    expect(current.session.state.phase.kind).toBe('lobby');
+    expect(current.session.effects).toHaveLength(effectsBefore);
     current.send({ type: 'secrethitler.roles.assign' });
     expect(current.session.state.gameSequence).toBe(previousSequence + 1);
     expect(current.session.state.livingSeats).toHaveLength(5);

@@ -10,11 +10,14 @@ import {
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/utils/alertPresets', () => ({
+  showConfirmAlert: vi.fn(),
+  showDestructiveAlert: vi.fn(),
+}));
 
 const submit = vi.fn(async () => true);
 const music = vi.fn();
@@ -46,23 +49,50 @@ function stateFor(phase: SecrethitlerState['phase']['kind']) {
 it.each(SECRETHITLER_PHASES)('preserves the host action inventory in %s', (phase) => {
   const panel = model(stateFor(phase));
   const keys = panel.sections.flatMap((section) => section.actions.map((action) => action.key));
-  expect(keys.includes('abort-game')).toBe(phase !== 'lobby' && phase !== 'ended');
+  expect(keys.includes('restart')).toBe(phase !== 'lobby');
   expect(keys.includes('music-settings')).toBe(['lobby', 'viewing'].includes(phase));
   expect(panel.sections.every((section) => section.actions.length > 0)).toBe(true);
 });
 
-it('dispatches abort only after confirmation', async () => {
+it('dispatches restart only after confirmation', async () => {
   submit.mockClear();
-  const abort = model(stateFor('election'))
+  const state = stateFor('election');
+  const restart = model(state)
     .sections.flatMap((section) => section.actions)
-    .find((action) => action.key === 'abort-game');
-  if (!abort?.isEnabled) throw new Error('Missing abort');
-  abort.onPress();
+    .find((action) => action.key === 'restart');
+  if (!restart?.isEnabled) throw new Error('Missing restart');
+  restart.onPress();
   expect(submit).not.toHaveBeenCalled();
-  const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-  if (confirm === undefined) throw new Error('Missing confirmation');
-  await confirm();
-  expect(submit).toHaveBeenCalledWith('中止本局', { type: 'secrethitler.game.abort' });
+  const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Missing confirmation');
+  expect(confirmation[1]).toContain('不结算完成奖励');
+  await confirmation[3]();
+  expect(submit).toHaveBeenCalledWith('重新开始', {
+    type: 'secrethitler.game.restart',
+    gameSequence: state.gameSequence,
+    wasEnded: false,
+  });
+});
+
+it('warns about the settled round and review before restarting an ended game', async () => {
+  submit.mockClear();
+  const state = stateFor('ended');
+  const restart = model(state)
+    .sections.flatMap((section) => section.actions)
+    .find((action) => action.key === 'restart');
+  if (!restart?.isEnabled) throw new Error('Missing restart');
+  restart.onPress();
+  expect(submit).not.toHaveBeenCalled();
+  const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Missing confirmation');
+  expect(confirmation[1]).toContain('本局已结算');
+  expect(confirmation[1]).toContain('复盘');
+  await confirmation[3]();
+  expect(submit).toHaveBeenCalledWith('重新开始', {
+    type: 'secrethitler.game.restart',
+    gameSequence: state.gameSequence,
+    wasEnded: true,
+  });
 });
 
 it('exposes bulk viewing as the blocked-start remedy and removes it once complete', () => {
@@ -109,7 +139,7 @@ it('locks all host commands during opening and closing narration without droppin
       exemptActionKeys: new Set<string>(),
     });
     const actions = locked.sections.flatMap((section) => section.actions);
-    expect(actions.some((action) => action.key === 'abort-game')).toBe(true);
+    expect(actions.some((action) => action.key === 'restart')).toBe(true);
     for (const action of actions) {
       expect(action.isEnabled).toBe(false);
       expect(action).not.toHaveProperty('onPress');
