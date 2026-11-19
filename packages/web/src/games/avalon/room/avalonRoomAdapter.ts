@@ -36,15 +36,13 @@ import {
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildMusicSettingsAction,
-  buildNextRoundAction,
   buildPendingAwareHostAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -52,7 +50,6 @@ import {
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -89,7 +86,7 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
@@ -760,6 +757,29 @@ export interface AvalonHostManagementInput {
 /** Avalon management actions remain subject to the authoritative narration lock. */
 const AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
 
+function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostManagementAction {
+  const { state } = input;
+  return buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        state.phase.kind === 'ended'
+          ? '保留座位和配置，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+        '重新开始',
+        async () => {
+          await input.submit('重新开始', {
+            type: 'avalon.game.restart',
+            gameSequence: state.gameSequence,
+            wasEnded: state.phase.kind === 'ended',
+          });
+        },
+      ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
+}
+
 function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManagementSection[] {
   const { state } = input;
   const sections: RoomHostManagementSection[] = [];
@@ -807,18 +827,7 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
   sections.push({
     key: 'danger',
     title: '危险操作',
-    actions: [
-      buildAbortGameAction({
-        onPress: () =>
-          showConfirmAlert(
-            HOST_FLOW_CONFIRM.abortTitle,
-            '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
-            () => void input.submit('中止本局', { type: 'avalon.game.abort' }),
-          ),
-        isEnabled: !input.isSubmitting,
-        isLoading: input.isSubmitting,
-      }),
-    ],
+    actions: [buildAvalonRestartAction(input)],
   });
   return sections;
 }
@@ -826,29 +835,7 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
 function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostManagementAction[] {
   const { review } = input;
   if (review === null) throw new Error('[FAIL-FAST] Avalon ended host has no review entry');
-  return [
-    buildReviewHostAction(review),
-    buildNextRoundAction({
-      onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.nextRoundTitle,
-          '重新发牌并清零比分，开始新的一局。',
-          () => void input.submit('再来一局', { type: 'avalon.roles.assign' }),
-        ),
-      isEnabled: !input.isSubmitting,
-      isLoading: input.isSubmitting,
-    }),
-    buildReturnLobbyAction({
-      onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.returnLobbyTitle,
-          HOST_FLOW_CONFIRM.returnLobbyBody,
-          () => void input.submit('返回大厅', { type: 'avalon.game.returnToLobby' }),
-        ),
-      isEnabled: !input.isSubmitting,
-      isLoading: input.isSubmitting,
-    }),
-  ];
+  return [buildReviewHostAction(review), buildAvalonRestartAction(input)];
 }
 
 /** Assembles the Avalon host panel for the current phase. Host gating belongs to the shell factory. */
@@ -966,7 +953,7 @@ export function createAvalonHostManagement(
   }
   if (state.phase.kind === 'ended') {
     return applyLock({
-      task: hostReviewClosingTask(),
+      task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
       sections: [
         {
           key: 'current-flow',

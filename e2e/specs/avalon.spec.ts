@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
+import { pressAlertButton } from '../helpers/alerts';
 import { anySeatTestId } from '../helpers/ui';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -125,7 +126,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       for (const viewport of [VIEWPORT, { width: 320, height: 640 }]) {
         await hostPage.setViewportSize(viewport);
         await expect(markBots).toBeInViewport({ ratio: 1 });
-        await expect(panel.getByTestId(TESTIDS.abortGameButton)).toBeInViewport({ ratio: 1 });
+        await expect(panel.getByTestId(TESTIDS.restartButton)).toBeInViewport({ ratio: 1 });
         expect(
           await hostPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         ).toBe(true);
@@ -151,12 +152,16 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         .toBe(true);
     });
 
-    await test.step('Abort through confirmation, retaining bots and stopping music', async () => {
+    await test.step('Restart through confirmation, retaining bots and stopping music', async () => {
       panel = await hostRoom.openHostManagement();
-      const abort = panel.getByTestId(TESTIDS.abortGameButton);
-      await expect(abort).toBeEnabled({ timeout: 45_000 });
-      await abort.click();
-      await hostRoom.confirmHostActionDialog('中止本局？');
+      const restart = panel.getByTestId(TESTIDS.restartButton);
+      await expect(restart).toBeEnabled({ timeout: 45_000 });
+      await restart.click();
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
       await waitForPhase(hostPage, 'lobby');
       await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
       await expect
@@ -164,7 +169,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         .toBe(true);
       panel = await hostRoom.openHostManagement();
       await expect(panel.getByTestId(TESTIDS.assignRolesButton)).toBeEnabled();
-      await expect(panel.getByTestId(TESTIDS.abortGameButton)).toHaveCount(0);
+      await expect(panel.getByTestId(TESTIDS.restartButton)).toHaveCount(0);
       await hostRoom.closeHostManagement();
       await expect(tiles).toHaveText(seatsBefore);
       await expect(spectatorPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveCount(0);
@@ -1081,10 +1086,9 @@ test.describe('Avalon full game', () => {
         // the settlement section no longer repeats it for anyone and
         // the host is never told to wait on themselves.
         await waitForBottomActionMessage(pages[1]!);
-        await expect(pages[1]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
-          '等待房主操作（再来一局 / 返回大厅）',
-          { timeout: 10_000 },
-        );
+        await expect(pages[1]!.getByTestId(TESTIDS.actionMessage)).toHaveText('等待房主操作', {
+          timeout: 10_000,
+        });
         await expect(pages[1]!.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(
           '等待房主操作（再来一局 / 返回大厅）。',
         );

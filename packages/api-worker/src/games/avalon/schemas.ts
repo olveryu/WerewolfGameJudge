@@ -23,6 +23,11 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
   z.strictObject({ type: z.literal('avalon.roles.assign') }),
   z.strictObject({ type: z.literal('avalon.game.begin') }),
   z.strictObject({ type: z.literal('avalon.game.abort') }),
+  z.strictObject({
+    type: z.literal('avalon.game.restart'),
+    gameSequence: z.number().int().nonnegative(),
+    wasEnded: z.boolean(),
+  }),
   z.strictObject({ type: z.literal('avalon.game.returnToLobby') }),
   z.strictObject({ type: z.literal('avalon.night.confirm') }),
   z.strictObject({ type: z.literal('avalon.role.viewed') }),

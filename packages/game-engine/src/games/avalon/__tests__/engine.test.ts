@@ -375,6 +375,55 @@ describe('Avalon engine', () => {
     expect(session.state.gameSequence).toBe(gameSequence + 1);
   });
 
+  it('resets the active round without rewards and rejects stale or unauthorized confirmations', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.send({ type: 'avalon.roles.assign' });
+    const { roster, config, gameSequence } = session.state;
+    const command = { type: 'avalon.game.restart', gameSequence, wasEnded: false } as const;
+    session.expectReject(command, 'avalon_not_host_abort', 'u1');
+    expect(session.decideAs(command, 'host', 1).kind).toBe('reject');
+    session.expectReject({ ...command, gameSequence: gameSequence + 1 }, 'avalon_phase_invalid');
+    session.expectReject({ ...command, wasEnded: true }, 'avalon_phase_invalid');
+    session.send(command);
+    expect(session.state).toMatchObject({
+      phase: { kind: 'lobby' },
+      roster,
+      config,
+      gameSequence,
+      roles: {},
+      roleViewedSeats: [],
+    });
+    expect(session.effects).toEqual([]);
+    session.send({ type: 'avalon.roles.assign' });
+    session.expectReject(command, 'avalon_phase_invalid');
+  });
+
+  it('respects audio lock and rejects an unfinished-round confirmation after settlement', () => {
+    const session = game({ numberOfPlayers: 6 });
+    session.send({ type: 'avalon.roles.assign' });
+    for (let seat = 0; seat < 6; seat += 1)
+      session.send({ type: 'avalon.role.viewed' }, session.seatUser(seat));
+    session.send({ type: 'avalon.game.begin' });
+    const command = {
+      type: 'avalon.game.restart',
+      gameSequence: session.state.gameSequence,
+      wasEnded: false,
+    } as const;
+    expect(session.state.isAudioPlaying).toBe(true);
+    session.expectReject(command, 'avalon_audio_playing');
+    session.ackAudio();
+    session.passNight();
+    session.earlyStrike(session.seatOfRole('merlin'));
+    expect(session.state.phase.kind).toBe('ended');
+    session.expectReject(command, 'avalon_phase_invalid');
+    const endedCommand = { ...command, wasEnded: true };
+    session.ackAudio();
+    const effectsBefore = session.effects.length;
+    session.send(endedCommand);
+    expect(session.state.phase.kind).toBe('lobby');
+    expect(session.effects).toHaveLength(effectsBefore);
+  });
+
   it('aborts an armed vote without settling the game or allowing a late timer to advance it', () => {
     const session = game({ numberOfPlayers: 6 });
     session.startGame();

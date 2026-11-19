@@ -777,6 +777,28 @@ function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecis
   return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
 }
 
+function restartGame(
+  state: AvalonState,
+  command: Extract<AvalonCommand, { readonly type: 'avalon.game.restart' }>,
+  context: CommandContext,
+): AvalonDecision {
+  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
+    context,
+    state.hostUserId,
+    AVALON_REASONS.notHostAbort,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (
+    state.phase.kind === 'lobby' ||
+    state.gameSequence !== command.gameSequence ||
+    (state.phase.kind === 'ended') !== command.wasEnded
+  )
+    return reject(AVALON_REASONS.phase);
+  const audioReason = guardAudioPlayback(state, AVALON_REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+  return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
+}
+
 /** 房主播完指定批次后提交 ack：当前批次清空队列、释放门控；旧批次幂等空转；未入队的批次拒绝。 */
 function ackAudio(
   state: AvalonState,
@@ -820,6 +842,8 @@ function decideCommand(
       return beginGame(state, context);
     case 'avalon.game.abort':
       return abortGame(state, context);
+    case 'avalon.game.restart':
+      return restartGame(state, command, context);
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
     case 'avalon.bots.markAllBotsViewed':
