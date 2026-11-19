@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>狼人杀 · 行动手牌交互原型</title>
+    <link rel="stylesheet" href="./action-hand.css" />
+    <script type="module" src="./action-hand.js"></script>
+  </head>
+  <body>
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="icon-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z" />
+      </symbol>
+      <symbol id="icon-potion" viewBox="0 0 24 24">
+        <path d="M9 3h6M10 3v6l-5 8a3 3 0 0 0 2.5 4h9a3 3 0 0 0 2.5-4l-5-8V3M8 14h8" />
+        <path d="M12 16v3m-1.5-1.5h3" />
+      </symbol>
+      <symbol id="icon-skip" viewBox="0 0 24 24">
+        <path d="M5 5l14 14M19 5 5 19" />
+      </symbol>
+      <symbol id="icon-target" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="7" />
+        <path d="M12 2v5m0 10v5M2 12h5m10 0h5" />
+      </symbol>
+      <symbol id="icon-tools" viewBox="0 0 24 24">
+        <path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-8 0v6" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </symbol>
+      <symbol id="icon-person" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="9" r="3" />
+        <path d="M5.5 18c1-5 12-5 13 0" />
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24">
+        <path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15" />
+      </symbol>
+      <symbol id="icon-note" viewBox="0 0 24 24">
+        <path d="M13 4H4v16h16v-9M10 14l1-4 8-8 3 3-8 8-4 1Z" />
+      </symbol>
+      <symbol id="icon-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7" /></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v6m0 4h.01" />
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
+      </symbol>
+    </svg>
+
+    <header class="comparison-toolbar">
+      <h1>行动手牌</h1>
+      <label class="game-picker"
+        ><span>模拟游戏</span>
+        <select id="game-select">
+          <option value="werewolf">狼人杀</option>
+          <option value="avalon">阿瓦隆</option>
+          <option value="secrethitler">秘密希特勒</option>
+          <option value="undercover">谁是卧底</option>
+          <option value="fibking">瞎掰王</option>
+          <option value="pictionary">你画我猜接龙</option>
+          <option value="drawguess">你画我猜</option>
+          <option value="storyrelay">轮流讲故事</option>
+          <option value="spotmatch">一眼成对</option>
+        </select>
+      </label>
+      <label class="stage-picker"
+        ><span>模拟阶段</span>
+        <select id="stage-select" aria-label="模拟游戏阶段">
+          <option value="lobby">待开局</option>
+          <option value="assigned">已发牌 · 查看身份</option>
+          <option value="night-audio">夜晚 · 语音播报</option>
+          <option value="night-action" selected>夜晚 · 轮到自己</option>
+          <option value="night-wait">夜晚 · 等待他人</option>
+          <option value="day">白天 · 信息与复盘</option>
+          <option value="ended">本局结束</option>
+          <option value="stage-game" hidden>专属游戏界面</option>
+          <option value="reveal" hidden>同步揭晓</option>
+          <option value="aborted" hidden>中止结束</option>
+        </select>
+      </label>
+      <label class="host-toggle"><input id="host-view" type="checkbox" />房主视角</label>
+    </header>
+
+    <main class="prototype" data-design="cards">
+      <section class="game-screen" aria-label="手机房间交互预览">
+        <header class="room-header">
+          <div>
+            <h2 id="game-title">狼人杀</h2>
+            <p>
+              房间 6X9K · <span id="player-count">12 位玩家</span> ·
+              <span id="viewer-label">玩家视角</span>
+            </p>
+          </div>
+          <button id="account-trigger" class="icon-button" aria-label="设置">
+            <svg aria-hidden="true"><use href="#icon-person"></use></svg>
+          </button>
+          <button id="stage-menu-trigger" class="secondary-button" hidden>菜单</button>
+        </header>
+
+        <section class="board-information" aria-label="本局信息">
+          <div class="phase" role="status">
+            <span class="night-label">
+              <svg><use href="#icon-moon"></use></svg>
+              <span id="stage-label">第 1 夜</span>
+            </span>
+            <h2 id="phase-title">女巫请行动</h2>
+            <p id="phase-description">选择本夜行动，也可以选择不用药。</p>
+          </div>
+          <div id="pregame-config">
+            <div class="board-info-heading">
+              <h3>预女猎守 · 12 人</h3>
+              <span>本局配置</span>
+            </div>
+            <div id="pregame-roles" class="configuration-roles"></div>
+          </div>
+          <div id="match-status" hidden>
+            <div class="board-info-heading">
+              <p id="public-status"></p>
+              <button id="public-record-trigger" class="text-button" aria-haspopup="dialog" hidden>
+                公开记录 ›
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="board" aria-label="选择目标座位" id="board"></section>
+        <section id="stage-content" class="stage-preview" hidden aria-label="专属游戏界面">
+          <div class="stage-preview-heading">
+            <strong id="stage-heading"></strong><span id="stage-timer"></span>
+          </div>
+          <div id="stage-workspace" class="stage-workspace">
+            <p id="stage-copy"></p>
+            <label id="stage-draft-label" for="stage-draft" hidden>正在创作的内容</label>
+            <textarea
+              id="stage-draft"
+              rows="5"
+              placeholder="在此体验编辑，打开菜单不会清空内容。"
+              hidden
+            ></textarea>
+            <div id="stage-match" class="stage-controls" hidden>
+              <button type="button" class="secondary-button">图案 A</button>
+              <button type="button" class="secondary-button">图案 B</button>
+              <button type="button" class="secondary-button">图案 C</button>
+            </div>
+            <p id="stage-match-feedback" role="status" hidden></p>
+          </div>
+          <div id="reveal-controls" class="stage-controls" hidden>
+            <button type="button" class="secondary-button" id="reveal-previous">上一项</button>
+            <button type="button" class="secondary-button" id="reveal-next">下一项</button>
+            <button type="button" class="secondary-button" id="reveal-play">暂停</button>
+            <button type="button" class="secondary-button" id="reveal-all">全部揭晓</button>
+          </div>
+        </section>
+
+        <section id="action-wheel" class="action-hand" aria-labelledby="face-title">
+          <header class="hand-header">
+            <h2 id="face-title" tabindex="-1">我的手牌</h2>
+          </header>
+          <div id="hand-body" class="hand-body">
+            <section data-tool-view="hand">
+              <div id="hand-cards" class="card-row" role="group" aria-label="行动与入口手牌"></div>
+            </section>
+            <section data-tool-view="resources" hidden>
+              <div id="resource-cards" class="card-row"></div>
+            </section>
+            <section data-tool-view="host" hidden>
+              <div id="host-cards" class="card-row" role="group" aria-label="房主管理手牌"></div>
+            </section>
+            <section data-tool-view="menu" hidden>
+              <div id="menu-cards" class="card-row" role="group" aria-label="游戏菜单手牌"></div>
+            </section>
+          </div>
+        </section>
+
+        <footer class="action-dock">
+          <button id="cancel-target" class="secondary-button" hidden>取消选择</button>
+          <button id="confirm-target" class="primary-button" hidden disabled>请先选择目标</button>
+        </footer>
+      </section>
+
+      <section
+        id="page-screen"
+        class="game-screen detail-page"
+        aria-labelledby="page-title"
+        hidden
+        inert
+      >
+        <header class="room-header page-header">
+          <button id="page-back" class="text-button" aria-label="返回房间">
+            <svg aria-hidden="true"><use href="#icon-back"></use></svg>
+          </button>
+          <h2 id="page-title" tabindex="-1">玩法</h2>
+        </header>
+        <div class="page-content">
+          <section data-surface-view="room-config" class="reading-view" hidden inert>
+            <h3>预女猎守 · 12 人</h3>
+            <p>狼人 ×4、预言家、女巫、猎人、守卫、平民 ×4。</p>
+            <p class="mock-notice">只预览配置入口与返回，不修改正式板子。</p>
+          </section>
+          <section data-surface-view="music" class="reading-view" hidden inert>
+            <p>正式版包含背景音乐、曲目与音量，以及游戏音效音量。</p>
+            <p class="mock-notice">
+              这里仅预览独立页面，不播放音频，不保存设置。仅在开局前显示此入口。
+            </p>
+          </section>
+        </div>
+      </section>
+
+      <section
+        id="account-screen"
+        class="game-screen account-screen"
+        aria-labelledby="account-title"
+        hidden
+      >
+        <header class="room-header">
+          <button id="account-back" class="text-button">
+            <svg aria-hidden="true"><use href="#icon-back"></use></svg>返回房间
+          </button>
+          <h2 id="account-title" tabindex="-1">设置</h2>
+        </header>
+        <div class="reading-view">
+          <h3>个人／账号设置</h3>
+          <p>
+            正式版从房间右上角头像进入。本原型只保留入口位置与返回，不连接账号，也不新增个人音效或动效设置。
+          </p>
+        </div>
+      </section>
+
+      <aside class="design-notes">
+        <h2 id="design-title">把本夜选择拿在手里。</h2>
+        <p class="introduction" id="design-description">
+          切换游戏和阶段，体验行动手牌、游戏内菜单和弹窗。角色详情与房主提示各有两种可切换方案，供对比确认；原型不连接真实房间。
+        </p>
+        <fieldset class="scenarios">
+          <legend>角色详情对比</legend>
+          <label
+            ><input type="radio" name="role-design" value="inline" checked /> A · 同窗详情</label
+          >
+          <label><input type="radio" name="role-design" value="nested" /> B · 叠层弹窗</label>
+        </fieldset>
+        <fieldset class="scenarios">
+          <legend>房主待处理提示对比</legend>
+          <label
+            ><input type="radio" name="host-indicator" value="dot" checked /> A · 牌角提示点</label
+          >
+          <label><input type="radio" name="host-indicator" value="symbol" /> B · 牌面提示符</label>
+        </fieldset>
+        <fieldset class="scenarios">
+          <legend>模拟自己的角色</legend>
+          <label
+            ><input type="radio" name="scenario" value="witch" checked /> 女巫 · 三种选择</label
+          >
+          <label><input type="radio" name="scenario" value="wolf" /> 狼人 · 袭击与放弃</label>
+          <label><input type="radio" name="scenario" value="guard" /> 守卫 · 守护与跳过</label>
+          <label><input type="radio" name="scenario" value="hunter" /> 猎人 · 查看发动状态</label>
+          <label><input type="radio" name="scenario" value="blocked" /> 受限状态 · 只能跳过</label>
+        </fieldset>
+        <button id="reset" class="secondary-button">重置当前阶段</button>
+
+        <div class="design-explanation">
+          <h3>请留意这三个细节</h3>
+          <ol>
+            <li>
+              <strong>主操作负责当前任务。</strong
+              >发牌时查看身份，行动时使用技能或确认状态；其他阶段不硬塞主操作。
+            </li>
+            <li><strong>点选不等于提交。</strong>用药、放弃都需要明确确认；选人时手牌让开座位。</li>
+            <li>
+              <strong>房主身份不是视觉层级。</strong
+              >房主也有自己的角色牌；管理操作进入房主牌面后才展开，危险操作二次确认。
+            </li>
+          </ol>
+          <p>
+            “不用技能 / 放弃袭击 / 撤回投票”虽然在代码中是
+            secondary，这里仍直接露在同一手牌中，不需要拖动查找。毒药牌是进入座位选人的入口，不是新增规则。
+          </p>
+          <p class="limitation">
+            仅模拟交互，不代表最终规则。未连接引擎、语音或房间；真实手机和微信 WebView
+            仍需真机验证。
+          </p>
+          <p>
+            个人／账号设置仍在右上角，不放进手牌。音乐设置按现有代码归在房主牌面，且受阶段限制。
+          </p>
+        </div>
+        <p id="prototype-error" class="error-message" role="alert" hidden></p>
+        <details class="prototype-log">
+          <summary>原型交互日志（仅本页）</summary>
+          <pre id="prototype-log"></pre>
+        </details>
+      </aside>
+    </main>
+
+    <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title">
+      <header class="detail-header">
+        <h2 id="detail-title">详情</h2>
+        <form method="dialog">
+          <button class="text-button" value="dismiss" aria-label="关闭" autofocus>
+            <svg aria-hidden="true"><use href="#icon-skip"></use></svg>
+          </button>
+        </form>
+      </header>
+      <section data-surface-view="rules" class="reading-view" hidden inert>
+        <h3 id="rules-heading">本房玩法</h3>
+        <p id="rules-copy">夜晚跟随语音，轮到自己时选择行动；选人和放弃均需明确确认。</p>
+        <p class="mock-notice">示例内容仅用于设计预览；实际规则以游戏为准。</p>
+        <button id="simulate-hunter-turn" class="secondary-button" type="button" hidden>
+          模拟猎人状态待确认
+        </button>
+      </section>
+      <section data-surface-view="notes" class="reading-view" hidden inert>
+        <label for="personal-note">我的笔记</label>
+        <textarea id="personal-note" rows="8" placeholder="记录发言、座位和自己的判断……"></textarea>
+        <p id="note-feedback" class="mock-notice">自动保留在当前原型页面，刷新后清空。</p>
+      </section>
+      <section data-surface-view="nomination" class="reading-view" hidden inert>
+        <h3>推荐本局板型</h3>
+        <label for="nomination-name">板型名称</label>
+        <input id="nomination-name" value="预女猎守" />
+        <label for="nomination-reason">推荐理由</label>
+        <textarea id="nomination-reason" rows="4" placeholder="写下你推荐这个板型的理由"></textarea>
+        <p id="nomination-closed" class="nomination-warning" hidden>
+          房主已发牌，不能再提交建议；当前内容会保留到关闭。
+        </p>
+        <button id="simulate-deal" class="secondary-button" type="button">模拟房主发牌</button>
+        <button id="submit-nomination" class="primary-button" type="button">提交建议</button>
+      </section>
+      <section data-surface-view="nominations" class="reading-view" hidden inert>
+        <h3>玩家的板型建议</h3>
+        <div id="nomination-list"></div>
+      </section>
+      <section data-surface-view="guide" class="reading-view" hidden inert>
+        <p id="guide-copy">先核对自己的角色与可用技能，再选择目标。确认之前，检查座位编号。</p>
+        <h3 id="guide-role-title">女巫操作提示</h3>
+        <p id="guide-extra">主要行动和“不用技能”都在手牌中；手册和笔记不会替你提交游戏操作。</p>
+        <p class="mock-notice">示例攻略只演示阅读与关闭，不承担规则裁决。</p>
+      </section>
+      <section data-surface-view="match-config" class="reading-view" hidden inert>
+        <h3 id="detail-config-title">预女猎守 · 12 人</h3>
+        <div id="role-layout" class="role-layout">
+          <div id="detail-roles" class="configuration-roles"></div>
+          <div id="role-explanation" class="role-explanation" role="status">点击角色查看说明。</div>
+        </div>
+        <button id="role-back" class="text-button" type="button" hidden>‹ 返回角色列表</button>
+      </section>
+      <section data-surface-view="public-records" class="reading-view" hidden inert>
+        <p class="mock-notice">以下为布局演示数据，不是真实对局记录；不包含身份和夜间技能过程。</p>
+        <h3 id="record-heading">第 1 天 · 警长竞选</h3>
+        <p id="record-copy">上警：2、6、9 号。退水：9 号。竞选结果：6 号当选警长。</p>
+        <p id="public-record-result" hidden>本局结果：好人阵营获胜（演示）。</p>
+      </section>
+      <section data-surface-view="identity" class="identity-view" hidden inert>
+        <svg aria-hidden="true"><use href="#icon-potion" id="identity-icon"></use></svg>
+        <strong id="identity">你的身份是女巫。</strong>
+        <p>6 号玩家 · 仅自己查看</p>
+        <p class="mock-notice">这是原型中的身份展示，不会读取真实账号。</p>
+      </section>
+      <section data-surface-view="review" class="reading-view" hidden inert>
+        <p>这里只展示复盘弹窗与关闭流程，不生成真实角色过程或读取真实房间。</p>
+      </section>
+      <section data-surface-view="review-share" class="reading-view" hidden inert>
+        <p>正式版直接生成并分享战报，不会先打开复盘阅读弹窗。</p>
+        <p class="mock-notice">
+          这里只预览分享流程入口，不生成图片、不调用系统分享，也不会开始下一局。
+        </p>
+      </section>
+      <section data-surface-view="hunter-status" class="reading-view" hidden inert>
+        <h3>当前发动状态：可以发动</h3>
+        <p>这是状态展示，不是让玩家自行选择是否具备发动资格。</p>
+        <button id="ack-hunter" class="primary-button">确认已知</button>
+      </section>
+      <section data-surface-view="host-info" class="reading-view" hidden inert>
+        <p>演示：昨夜 3 号出局。此处不展示未经授权的技能过程。</p>
+        <button id="ack-night-info" class="primary-button">知道了</button>
+      </section>
+      <section data-surface-view="share" class="reading-view" hidden inert>
+        <h3>示例房间码：6X9K</h3>
+        <p>正式版从这里分享房间邀请。本原型不生成真实邀请，也不会操作你的剪贴板。</p>
+      </section>
+      <section data-surface-view="mvp" class="reading-view" hidden inert>
+        <label for="mvp-seat">选择 MVP</label>
+        <select id="mvp-seat">
+          <option value="">请选择座位</option>
+          <option>1 号</option>
+          <option>2 号</option>
+          <option>3 号</option>
+          <option>4 号</option>
+          <option>5 号</option>
+          <option>6 号</option>
+          <option>7 号</option>
+          <option>8 号</option>
+          <option>9 号</option>
+          <option>10 号</option>
+          <option>11 号</option>
+          <option>12 号</option>
+        </select>
+        <button id="confirm-mvp" class="primary-button" disabled>确认 MVP（模拟）</button>
+        <p id="mvp-feedback" class="mock-notice" role="status"></p>
+      </section>
+      <section data-surface-view="grant" class="reading-view" hidden inert>
+        <fieldset id="grant-seats">
+          <legend>选择可查看复盘的玩家</legend>
+        </fieldset>
+        <button id="confirm-grant" class="primary-button">确认授权（模拟）</button>
+      </section>
+    </dialog>
+
+    <dialog id="role-dialog" class="detail-dialog role-dialog" aria-labelledby="role-dialog-title">
+      <header class="detail-header">
+        <h2 id="role-dialog-title">角色详情</h2>
+        <form method="dialog">
+          <button class="text-button" value="close" aria-label="关闭角色详情">关闭</button>
+        </form>
+      </header>
+      <p id="role-dialog-copy"></p>
+    </dialog>
+    <dialog
+      id="discard-dialog"
+      class="confirmation"
+      aria-labelledby="discard-title"
+      aria-describedby="discard-message"
+    >
+      <h2 id="discard-title">放弃本次修改？</h2>
+      <p id="discard-message">尚未提交的建议不会保存。</p>
+      <div class="dialog-actions">
+        <button type="button" id="keep-editing" class="secondary-button" autofocus>继续编辑</button>
+        <button type="button" id="discard-editing" class="danger-button secondary-button">
+          放弃修改
+        </button>
+      </div>
+    </dialog>
+
+    <dialog
+      id="confirmation"
+      class="confirmation"
+      aria-labelledby="confirmation-title"
+      aria-describedby="confirmation-description"
+    >
+      <h2 id="confirmation-title">确认行动</h2>
+      <p id="confirmation-description"></p>
+      <p class="mock-notice">这里只演示结果，不会影响真实房间。</p>
+      <form method="dialog" class="dialog-actions">
+        <button id="confirmation-cancel" value="cancel" class="secondary-button" autofocus>
+          返回修改
+        </button>
+        <button id="share-ended-review" value="share" class="secondary-button" hidden>
+          分享战报
+        </button>
+        <button id="confirm-action" value="commit" class="primary-button">确认行动</button>
+      </form>
+    </dialog>
+  </body>
+</html>
