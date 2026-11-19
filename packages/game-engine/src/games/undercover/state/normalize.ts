@@ -125,6 +125,12 @@ export function normalizeUndercoverState(state: UndercoverState): UndercoverStat
     if (state.pendingRound.roundId.length === 0 || !Number.isFinite(state.pendingRound.requestedAt))
       throw new Error('Invalid Undercover preparation');
   }
+  if (
+    state.phase === 'aborted' &&
+    (state.abortedRoundId.length === 0 ||
+      (state.round !== null && state.round.roundId !== state.abortedRoundId))
+  )
+    throw new Error('Invalid Undercover aborted round identity');
   assertRound(state);
   return state;
 }

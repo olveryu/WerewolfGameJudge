@@ -23,6 +23,11 @@ export type UndercoverPublicCommand =
   | { readonly type: 'undercover.bots.markAllBotsViewed'; readonly roundId: string }
   | { readonly type: 'undercover.round.reveal'; readonly roundId: string; readonly seat: number }
   | { readonly type: 'undercover.game.abort'; readonly roundId: string }
+  | {
+      readonly type: 'undercover.game.restart';
+      readonly roundId: string;
+      readonly wasEnded: boolean;
+    }
   | { readonly type: 'undercover.game.returnToLobby' };
 
 export type UndercoverInternalCommand =

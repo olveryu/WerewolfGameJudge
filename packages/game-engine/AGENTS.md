@@ -32,7 +32,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
   | avalon       | 11      | 1–10                             |
   | fibking      | 8       | 5, 6, 7                          |
   | pictionary   | 11      | 8, 9, 10                         |
-  | undercover   | 5       | 1, 2, 3, 4                       |
+  | undercover   | 6       | 1, 2, 3, 4, 5                    |
   | storyrelay   | 4       | 1, 2, 3                          |
   | drawguess    | 5       | 1, 2, 3, 4                       |
   | spotmatch    | 2       | 1                                |

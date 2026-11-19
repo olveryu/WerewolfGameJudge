@@ -216,7 +216,11 @@ export type UndercoverState = UndercoverStateBase &
       }
     | { readonly phase: 'viewing' | 'ongoing'; readonly round: UndercoverRound }
     | { readonly phase: 'ended'; readonly round: UndercoverRound; readonly winner: UndercoverRole }
-    | { readonly phase: 'aborted'; readonly round: UndercoverRound | null }
+    | {
+        readonly phase: 'aborted';
+        readonly round: UndercoverRound | null;
+        readonly abortedRoundId: string;
+      }
   );
 
 /** Returns whether an index is a seat in this room. */

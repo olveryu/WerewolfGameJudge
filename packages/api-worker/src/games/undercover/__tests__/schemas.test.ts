@@ -9,6 +9,19 @@ import {
 } from '../schemas';
 
 describe('Undercover schemas', () => {
+  it('validates the reset identity and completion boundary', () => {
+    const command = { type: 'undercover.game.restart', roundId: 'round', wasEnded: false };
+    expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);
+    for (const invalid of [
+      { ...command, roundId: '' },
+      { type: command.type, roundId: 'round' },
+      { ...command, wasEnded: 'false' },
+      { ...command, extra: true },
+    ]) {
+      expect(undercoverPublicCommandSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
   it('requires an explicit round identity for restart and rejects caller-owned random choices', () => {
     const command = { type: 'undercover.game.redeal', roundId: 'round' };
     expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);

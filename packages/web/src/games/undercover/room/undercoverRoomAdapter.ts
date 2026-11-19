@@ -20,16 +20,13 @@ import {
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
-  buildNextRoundAction,
   buildPendingAwareHostAction,
-  buildRestartGameAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -38,7 +35,6 @@ import {
   HOST_FLOW_CONFIRM,
   hostActionTask,
   hostMessageTask,
-  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -67,7 +63,7 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
 import { createUndercoverBottomActions } from './undercoverActionModels';
@@ -225,44 +221,6 @@ export interface UndercoverHostManagementInput {
   readonly review: RoomReviewEntry | null;
 }
 
-/**
- * A concluded round's closing moves: 本局复盘 beside 再来一局 / 返回大厅.
- * An ended round always has its review; an aborted one once its cards were
- * dealt — an abort during preparation closes on 返回大厅 alone.
- */
-function createClosingHostFlow(
-  input: UndercoverHostManagementInput,
-  returnLobbyAction: RoomHostManagementAction,
-): { readonly actions: readonly RoomHostManagementAction[]; readonly task: RoomHostTask } {
-  const { state, controls, review } = input;
-  const nextRoundAction = buildNextRoundAction({
-    onPress: () =>
-      showConfirmAlert(
-        HOST_FLOW_CONFIRM.nextRoundTitle,
-        '重新分配词语与身份，开始新的一局。',
-        controls.restart,
-      ),
-    isEnabled: !controls.isSubmitting,
-    isLoading: controls.isSubmitting,
-  });
-  if (review === null) {
-    if (state.phase === 'ended') {
-      throw new Error('[FAIL-FAST] Undercover ended host has no review entry');
-    }
-    return {
-      actions: [nextRoundAction, returnLobbyAction],
-      task: hostActionTask(HOST_ACTION_KEYS.returnLobby),
-    };
-  }
-  return {
-    actions: [buildReviewHostAction(review), nextRoundAction, returnLobbyAction],
-    task:
-      state.phase === 'ended'
-        ? hostReviewClosingTask()
-        : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
-  };
-}
-
 /** Assembles the Undercover host panel from room facts and round controls. Host gating belongs to the shell factory. */
 export function createUndercoverHostManagement(
   input: UndercoverHostManagementInput,
@@ -272,22 +230,18 @@ export function createUndercoverHostManagement(
   const roomActions: RoomHostManagementAction[] = [];
   let task: RoomHostTask | null = null;
   let pendingActionKeys: readonly string[] | undefined;
-  const abortAction = () =>
-    buildAbortGameAction({
-      onPress: controls.abort,
-      isEnabled: !controls.isSubmitting,
-      isLoading: controls.isSubmitting,
-    });
-  const returnLobbyAction = () =>
-    buildReturnLobbyAction({
-      onPress: controls.returnToLobby,
-      isEnabled: !controls.isSubmitting,
-      isLoading: controls.isSubmitting,
-    });
-  if (state.phase !== 'lobby' && state.phase !== 'ended' && state.phase !== 'aborted')
+  if (state.phase !== 'lobby')
     actions.push(
-      buildRestartGameAction({
-        onPress: controls.restart,
+      buildResetToLobbyAction({
+        onPress: () =>
+          showDestructiveAlert(
+            '重新开始？',
+            state.phase === 'ended'
+              ? '保留座位、配置和已用词记录，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+              : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
+            '重新开始',
+            controls.restart,
+          ),
         isEnabled: !controls.isSubmitting,
         isLoading: controls.isSubmitting,
       }),
@@ -336,7 +290,6 @@ export function createUndercoverHostManagement(
     }
     case 'preparing':
       // The preparing status is the shared bottom message; nothing awaits the host.
-      actions.push(abortAction());
       break;
     case 'viewing': {
       // The begin gate mirrors the engine checkpoint: play opens only
@@ -375,7 +328,6 @@ export function createUndercoverHostManagement(
             isLoading: controls.isSubmitting,
           }),
         );
-      actions.push(abortAction());
       // The task is the start; until every seat viewed it is blocked by the
       // sheet action's reason, with the bot scaffold as the remedy.
       task = hostActionTask(
@@ -419,7 +371,6 @@ export function createUndercoverHostManagement(
             controls.allowRepeated,
           ),
         );
-      actions.push(returnLobbyAction());
       break;
     case 'ongoing':
       // 选人是房主本地模式：进入与退出是一对面板动作；选人中任务卡给
@@ -456,13 +407,17 @@ export function createUndercoverHostManagement(
         );
         task = hostActionTask('select-player');
       }
-      actions.push(abortAction());
       break;
     case 'ended':
     case 'aborted': {
-      const closing = createClosingHostFlow(input, returnLobbyAction());
-      actions.push(...closing.actions);
-      task = closing.task;
+      if (input.review === null && state.phase === 'ended')
+        throw new Error('[FAIL-FAST] Undercover ended host has no review entry');
+      if (input.review !== null) {
+        actions.unshift(buildReviewHostAction(input.review));
+        task = { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] };
+      } else {
+        task = hostActionTask('restart');
+      }
       break;
     }
   }

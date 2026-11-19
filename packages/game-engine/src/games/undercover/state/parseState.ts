@@ -176,6 +176,7 @@ export function parseUndercoverState(value: unknown): UndercoverState {
         ...base,
         phase: 'aborted',
         round: parseNullable(raw.round, `${path}.round`, parseRound),
+        abortedRoundId: parseNonEmptyString(raw.abortedRoundId, `${path}.abortedRoundId`),
       };
       break;
     default:
@@ -184,18 +185,30 @@ export function parseUndercoverState(value: unknown): UndercoverState {
   return normalizeUndercoverState(finishObject(raw, state, path));
 }
 
-/** Upgrade stored v1/v2/v3 rooms without changing roster, words, confirmations or results.
+/** Upgrade stored rooms without changing roster, words, confirmations or results.
  * @throws When the stored configuration or migrated state is invalid.
  */
 export function migratePersistedUndercoverState(value: unknown): UndercoverState {
   const raw = parseObject(value, 'UndercoverState');
-  if (raw.stateVersion === 4) {
-    // v4 -> v5: the reading phase was renamed viewing; every other
-    // field (roster, words, confirmations, revelations) is unchanged.
+  const abortedRoundIdentity =
+    raw.phase === 'aborted'
+      ? {
+          abortedRoundId:
+            raw.round === null
+              ? 'legacy-aborted-preparation'
+              : parseNonEmptyString(
+                  parseObject(raw.round, 'UndercoverState.round').roundId,
+                  'UndercoverState.round.roundId',
+                ),
+        }
+      : {};
+  if (raw.stateVersion === 4 || raw.stateVersion === 5) {
+    // v4 renamed reading to viewing; v6 retains an identity for aborted rounds.
     return parseUndercoverState({
       ...raw,
       stateVersion: UNDERCOVER_STATE_VERSION,
-      phase: raw.phase === 'reading' ? 'viewing' : raw.phase,
+      phase: raw.stateVersion === 4 && raw.phase === 'reading' ? 'viewing' : raw.phase,
+      ...abortedRoundIdentity,
     });
   }
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
@@ -235,5 +248,6 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
     config: parsedConfig,
     round: migratedRound,
     roster,
+    ...abortedRoundIdentity,
   });
 }

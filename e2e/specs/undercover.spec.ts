@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { confirmAlert, pressAlertButton } from '../helpers/alerts';
+import { pressAlertButton } from '../helpers/alerts';
 import { gateCommandFrames, type HeldCommand } from '../helpers/command-frames';
 import {
   closeReviewDialog,
@@ -14,7 +14,7 @@ import { RoomPage } from '../pages/RoomPage';
 
 test.setTimeout(300_000);
 
-const VIEWING_PROGRESS_PATTERN = /^\d+\/6 位玩家已查看词卡，等待剩余玩家$/;
+const VIEWING_PROGRESS_PATTERN = /^(有待处理操作；)?\d+\/6 位玩家已查看词卡，等待剩余玩家$/;
 
 /** Dismiss the open word card through its 「隐藏词卡」 confirm button. */
 async function hideWordCard(page: Page): Promise<void> {
@@ -108,7 +108,7 @@ for (const viewport of [
       await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
       await hostRoom.expectHostTaskBlockedReason(
         TESTIDS.assignRolesButton,
-        '座位尚未坐满（还差 6 人）',
+        '有待处理操作；座位尚未坐满（还差 6 人）',
       );
       await hostRoom.seatAt(0);
       for (let i = 0; i < joinerRooms.length; i += 1) {
@@ -260,23 +260,29 @@ for (const viewport of [
       // until the test timeout.
       const endedManagement = await hostRoom.openHostManagement();
       await expect(endedManagement.getByTestId(TESTIDS.roomReviewHostAction)).toBeVisible();
-      await expect(endedManagement.getByTestId(TESTIDS.nextRoundButton)).toBeVisible();
+      await expect(endedManagement.getByTestId(TESTIDS.restartButton)).toBeVisible();
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-ended-${viewport.width}.png`),
       });
       expect(
         await hostPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await endedManagement.getByTestId(TESTIDS.nextRoundButton).click();
-      await hostRoom.confirmHostActionDialog('再来一局');
-      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
-      // The review belongs to the concluded round: it is gone once the next one deals.
+      await endedManagement.getByTestId(TESTIDS.restartButton).click();
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
+      await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
+      // The review belongs to the concluded round: it is gone after reset.
       await new RoomPage(reviewPage).expectRoomActionAbsent(TESTIDS.roomReviewOpenButton);
       for (const { seat } of civilians) {
         await expect(hostPage.getByTestId(TESTIDS.seatSecondaryLabel(seat))).toHaveCount(0);
       }
-      // The next-round view action is focused at the bottom until the host
-      // confirms their word; each player's action waits for that state.
+      await hostRoom.openHostManagement();
+      await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
+      await hostRoom.confirmHostActionDialog('分配角色？');
+      await hostRoom.closeHostManagement();
       for (const page of allPages) {
         await (await new RoomPage(page).viewIdentityButton()).click();
         await page.getByTestId(TESTIDS.undercoverConfirm).click();
@@ -301,27 +307,11 @@ for (const viewport of [
       await hostRoom.closeHostManagement();
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.restartButton).click();
-      await confirmAlert(hostPage, '重新开始？');
-      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
-      await hostRoom.openHostManagement();
-      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
-      await confirmAlert(hostPage, '中止本局？');
-      // PR-B G-7: the aborted conclusion lives in the bottom panel —
-      // players get the conclusion plus the host wait; the host gets
-      // the bare conclusion and returns through the shared actions surface.
-      await expect(joinerPages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
-        '本局已中止，等待房主处理',
-      );
-      await expect(hostPage.getByTestId(TESTIDS.actionMessage)).toHaveText('本局已中止');
-      // An abort after the deal still leaves a review of what play made public.
-      await new RoomPage(reviewPage).clickRoomAction(TESTIDS.roomReviewOpenButton);
-      await expect(reviewDialog).toContainText('本局已中止');
-      await expect(reviewDialog).toContainText('未完成');
-      await closeReviewDialog(reviewPage);
-      await expect(reviewDialog).toHaveCount(0);
-      await hostRoom.openHostManagement();
-      await hostPage.getByTestId(TESTIDS.returnLobbyButton).click();
-      await hostRoom.confirmHostActionDialog('返回大厅');
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
       await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
     } finally {
       await revealGate.stop();

@@ -192,9 +192,7 @@ function controlsFor(state: UndercoverState, viewerSeat: number | null): Underco
     cancelSelection: vi.fn(),
     start: vi.fn(),
     retry: vi.fn(),
-    abort: vi.fn(),
     restart: vi.fn(),
-    returnToLobby: vi.fn(),
     allowRepeated: vi.fn(),
   };
 }

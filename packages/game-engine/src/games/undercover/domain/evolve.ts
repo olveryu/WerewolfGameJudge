@@ -70,8 +70,15 @@ export function evolveUndercoverState(
         ? { ...base, phase: 'ongoing', round }
         : { ...base, phase: 'ended', round, winner: event.winner };
     }
-    case 'undercover.round.aborted':
-      return { ...base, phase: 'aborted', round: state.round };
+    case 'undercover.round.aborted': {
+      if (state.phase === 'lobby' || state.phase === 'ended' || state.phase === 'aborted')
+        throw new Error('Expected active Undercover state');
+      const abortedRoundId =
+        state.phase === 'preparing' || state.phase === 'preparationFailed'
+          ? state.pendingRound.roundId
+          : state.round.roundId;
+      return { ...base, phase: 'aborted', round: state.round, abortedRoundId };
+    }
     case 'undercover.game.returnedToLobby':
       return { ...base, phase: 'lobby', round: null };
   }

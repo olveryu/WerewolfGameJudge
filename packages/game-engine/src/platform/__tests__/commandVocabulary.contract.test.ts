@@ -73,6 +73,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'undercover.roles.assign',
     'undercover.game.begin',
     'undercover.game.redeal',
+    'undercover.game.restart',
     'undercover.game.returnToLobby',
     'undercover.game.abort',
     'undercover.role.viewed',
