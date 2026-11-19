@@ -38,6 +38,7 @@ Pinned by `contracts/architecture.contract.test.ts` unless another test is named
 
 ## Conventions
 
+- UI copy must be self-explanatory: use clear button labels and primary text instead of unnecessary secondary labels, subtitles, badges, or helper text that repeat the same meaning. Add supporting copy only when it conveys essential rules, consequences, state, errors, or accessibility information not already clear from the control or context.
 - **Device support:** Small-screen phones are not a design target. Do not shrink typography or controls to accommodate them.
 - Admin workspace section navigation, filters, and pagination replace the current history entry. `AdminPage` captures whether entry history exists when mounted: the shared header returns to the previous non-admin page that opened the workspace (for example a Room or Home, including its query/hash); direct entries return Home. This is pinned by `AdminWorkspace.test.tsx`.
 - `DataTable` rows with a detail action open from any non-control cell and from Enter/Space when the row is focused. Controls inside the row keep their own actions and must not trigger the row action; tables without a meaningful detail action remain non-clickable.
