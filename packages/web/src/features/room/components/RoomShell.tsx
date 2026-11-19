@@ -1,7 +1,14 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
 
-import { type ReactElement, type ReactNode, useCallback, useRef, useState } from 'react';
+import {
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
@@ -156,6 +163,7 @@ export function RoomShell({
   leadingExtraActions,
   trailingExtraActions,
   configurationEntry,
+  manualEntries,
   showPlayerHand = false,
   gameOverlays,
   profileDetailsRenderer,
@@ -165,6 +173,7 @@ export function RoomShell({
   readonly leadingExtraActions: ReactNode;
   readonly trailingExtraActions: ReactNode;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
+  readonly manualEntries?: ComponentProps<typeof RoomBottomActionPanel>['manualEntries'];
   readonly showPlayerHand?: boolean;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
@@ -287,6 +296,7 @@ export function RoomShell({
           hostManagement={hostManagement}
           onOpenMoreActions={openActionsPanel}
           configurationEntry={configurationEntry}
+          manualEntries={manualEntries}
           showPlayerHand={showPlayerHand}
           hostEntryRef={hostEntryRef}
           hostHand={

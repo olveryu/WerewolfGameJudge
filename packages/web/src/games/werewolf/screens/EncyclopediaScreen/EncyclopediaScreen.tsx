@@ -22,6 +22,7 @@ import {
 import { useEncyclopediaRolesState } from '@/features/encyclopedia/useEncyclopediaRolesState';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
+import type { WerewolfGuideRouteParams } from '@/games/werewolf/navigation/types';
 import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { TESTIDS } from '@/testids';
 import IconClose from '~icons/ion/close';
@@ -67,10 +68,30 @@ export function EncyclopediaScreen({ session }: { readonly session: WerewolfRoom
       : null;
   const isHost =
     room.phase === 'ready' && gameState !== null && gameState.hostUserId === room.identity.userId;
-  const initialTab =
-    routeParams.initialTab ?? (routeParams.roleId === undefined ? 'gameplay' : 'roles');
+  return (
+    <WerewolfEncyclopedia
+      gameState={gameState}
+      isHost={isHost}
+      hasRoomContext={routeParams.roomCode !== undefined}
+      route={routeParams}
+    />
+  );
+}
 
-  const rolesState = useEncyclopediaRolesState(WEREWOLF_ENCYCLOPEDIA_SOURCE, routeParams.roleId);
+/** Shares guide segments and controls between the direct route and the room dialog. */
+export function WerewolfEncyclopedia({
+  gameState,
+  isHost,
+  hasRoomContext,
+  route = null,
+}: {
+  readonly gameState: GameState | null;
+  readonly isHost: boolean;
+  readonly hasRoomContext: boolean;
+  readonly route?: WerewolfGuideRouteParams | null;
+}) {
+  const initialTab = route?.initialTab ?? (route?.roleId === undefined ? 'gameplay' : 'roles');
+  const rolesState = useEncyclopediaRolesState(WEREWOLF_ENCYCLOPEDIA_SOURCE, route?.roleId);
 
   // Lifted so the boards segment's header actions can drive its search and tag filter.
   const [boardsSearchVisible, setBoardsSearchVisible] = useState(false);
@@ -128,7 +149,7 @@ export function EncyclopediaScreen({ session }: { readonly session: WerewolfRoom
       <WerewolfGameplayContent
         gameState={gameState}
         isHost={isHost}
-        hasRoomContext={routeParams.roomCode !== undefined}
+        hasRoomContext={hasRoomContext}
       />
     );
   };
@@ -136,8 +157,10 @@ export function EncyclopediaScreen({ session }: { readonly session: WerewolfRoom
   return (
     <EncyclopediaShell
       title="狼人杀玩法"
-      testId={TESTIDS.encyclopediaScreenRoot}
-      parentPath={routeParams.roomCode === undefined ? '/' : `/room/${routeParams.roomCode}`}
+      testId={route === null ? undefined : TESTIDS.encyclopediaScreenRoot}
+      parentPath={
+        route === null ? null : route.roomCode === undefined ? '/' : `/room/${route.roomCode}`
+      }
       segments={GUIDE_SEGMENTS}
       initialTab={initialTab}
       renderSegment={renderSegment}

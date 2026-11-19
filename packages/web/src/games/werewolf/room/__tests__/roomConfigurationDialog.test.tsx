@@ -7,6 +7,18 @@ import { actorStep, cancelSeatSelection, click, mountRoomFor, startSeatSelection
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it('reads the shared encyclopedia in the room and returns to the manual', async () => {
+    const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
+    await click(view.getByRole('button', { name: '手册' }));
+    await click(view.getByTestId(TESTIDS.roomEncyclopediaButton));
+    const dialog = within(await view.findByRole('dialog', { name: '狼人杀玩法' }));
+    expect(dialog.getByText('胜负目标')).toBeVisible();
+    expect(dialog.getByRole('tab', { name: /角色/ })).toBeVisible();
+    await click(dialog.getByRole('button', { name: '关闭详情' }));
+    expect(view.getByRole('group', { name: '手册' })).toBeVisible();
+    expect(view.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
+  });
+
   it('opens the read-only board from the action area and keeps it under role details', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
@@ -33,6 +45,7 @@ describe('Werewolf room configuration', () => {
       '不用技能',
       '查看身份',
       '本局配置',
+      '手册',
     ]);
     await startSeatSelection(view);
     expect(view.queryByRole('group', { name: '行动手牌' })).not.toBeInTheDocument();

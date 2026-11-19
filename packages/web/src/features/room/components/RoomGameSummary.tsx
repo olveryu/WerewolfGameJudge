@@ -33,7 +33,7 @@ export function RoomGameSummary({
     readonly onPress: () => void;
     readonly label: string;
     readonly testId?: string;
-  };
+  } | null;
   /** Phase default; a manual choice overrides it for the rest of the visit. */
   readonly collapsed?: boolean;
   readonly onStrategyPress?: (() => void) | null;
@@ -67,10 +67,12 @@ export function RoomGameSummary({
             )}
           </h2>
           <div className="room-game-summary-actions">
-            <RoomGameToolButton {...guide}>
-              <IconBookOutline aria-hidden />
-              玩法
-            </RoomGameToolButton>
+            {guide !== null && (
+              <RoomGameToolButton {...guide}>
+                <IconBookOutline aria-hidden />
+                玩法
+              </RoomGameToolButton>
+            )}
             {onStrategyPress !== null && (
               <RoomGameToolButton onPress={onStrategyPress} label="攻略">
                 <IconBookOutline aria-hidden />
