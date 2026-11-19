@@ -36,12 +36,10 @@ import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardS
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
-import { werewolfNominatePath } from '@/games/werewolf/navigation/werewolfConfigFlow';
+import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
-import IconBulbOutline from '~icons/ion/bulb-outline';
-import IconCreateOutline from '~icons/ion/create-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
@@ -96,7 +94,6 @@ function matchStrategyBoard(templateRoles: GameState['templateRoles']): string |
 function WerewolfRoomContent(
   props: WerewolfRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
-  const navigate = useNavigate();
   const {
     state,
     viewModel,
@@ -138,10 +135,12 @@ function WerewolfRoomContent(
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
   const [isNominationListOpen, setIsNominationListOpen] = useState(false);
+  const [nominationEditorTitle, setNominationEditorTitle] = useState<string | null>(null);
 
   const nominations = state.boardNominations ?? {};
   const nominationCount = Object.keys(nominations).length;
   const hasMyNomination = userId in nominations;
+  const nominationLabel = hasMyNomination ? '修改建议' : '我来建议';
   const matchedStrategyName = matchStrategyBoard(state.templateRoles);
 
   const seatCount = viewModel.template.numberOfPlayers;
@@ -162,12 +161,17 @@ function WerewolfRoomContent(
       model={shellModel}
       showPlayerHand={night.seatSelection === null}
       mainEntries={
-        isSetup && nominationCount > 0
+        isSetup
           ? [
-              {
-                label: `查看建议 (${nominationCount})`,
-                onOpen: () => setIsNominationListOpen(true),
-              },
+              { label: nominationLabel, onOpen: () => setNominationEditorTitle(nominationLabel) },
+              ...(nominationCount === 0
+                ? []
+                : [
+                    {
+                      label: `查看建议 (${nominationCount})`,
+                      onOpen: () => setIsNominationListOpen(true),
+                    },
+                  ]),
             ]
           : []
       }
@@ -213,24 +217,7 @@ function WerewolfRoomContent(
               <BoardInfoContent
                 sections={boardSections}
                 onRolePress={openSkillPreview}
-                footer={
-                  isSetup && (
-                    <>
-                      <button
-                        type="button"
-                        className="werewolf-nomination-button"
-                        onClick={() => void navigate(werewolfNominatePath(roomCode))}
-                      >
-                        {hasMyNomination ? (
-                          <IconCreateOutline aria-hidden />
-                        ) : (
-                          <IconBulbOutline aria-hidden />
-                        )}
-                        {hasMyNomination ? '修改建议' : '我来建议'}
-                      </button>
-                    </>
-                  )
-                }
+                footer={null}
               />
             )}
           </RoomGameSummary>
@@ -320,6 +307,20 @@ function WerewolfRoomContent(
             />
           )}
 
+          {nominationEditorTitle !== null && (
+            <ConfigScreen
+              session={props.session}
+              params={{ nominateMode: { roomCode } }}
+              exitPath={`/room/${roomCode}`}
+              onPickBoard={() => {}}
+              onContinue={() => {}}
+              onReturnToRoom={() => setNominationEditorTitle(null)}
+              nominationDialog={{
+                title: nominationEditorTitle,
+                onClose: () => setNominationEditorTitle(null),
+              }}
+            />
+          )}
           {isNominationListOpen && (
             <BoardNominationModal
               nominations={nominations}

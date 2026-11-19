@@ -257,3 +257,9 @@
 .config-stepper-pill[data-active='true'] .config-stepper-count {
   color: var(--faction-color);
 }
+.config-dialog-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-small);
+}

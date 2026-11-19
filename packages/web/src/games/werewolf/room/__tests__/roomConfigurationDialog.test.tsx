@@ -17,6 +17,29 @@ import {
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it('keeps an edited suggestion draft open and blocks submission after dealing', async () => {
+    const reactive = createReactiveWerewolfRoomMock({
+      ...actorStep('seerCheck', 'seer', 0),
+      gameStateOverrides: { status: GameStatus.Unseated },
+    });
+    const view = await mountWerewolfRoom(reactive.mock);
+    await click(view.getByRole('button', { name: '我来建议' }));
+    const editor = within(await view.findByRole('dialog', { name: '我来建议' }));
+    await click(editor.getByRole('button', { name: /选择板子/ }));
+    const picker = within(await view.findByRole('dialog', { name: '选择板子' }));
+    expect(picker.getByRole('button', { name: '搜索' })).toBeVisible();
+    await click(picker.getByRole('button', { name: '关闭详情' }));
+    await click(editor.getByRole('button', { name: '重置配置' }));
+    expect(editor.getByText('已选 0 人')).toBeVisible();
+    act(() =>
+      reactive.simulateStateUpdate({ gameStateOverrides: { status: GameStatus.Assigned } }),
+    );
+    expect(editor.getByText('已选 0 人')).toBeVisible();
+    expect(editor.getByRole('status')).toHaveTextContent('本局建议已结束');
+    expect(editor.getByRole('button', { name: '提交建议' })).toBeDisabled();
+    expect(reactive.mock.dispatch).not.toHaveBeenCalled();
+  });
+
   it('keeps an open suggestion list visible but not editable when roles are dealt', async () => {
     const boardNominations = {
       sender: { userId: 'sender', displayName: '测试玩家', roles: ['seer' as const], upvoters: [] },
