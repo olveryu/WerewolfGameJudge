@@ -213,3 +213,47 @@ it('uses the declared host task label as the management hint', () => {
 
   expect(screen.getByText('当前待办 · 开始游戏')).toBeInTheDocument();
 });
+
+it('marks a host hand with a bell only while its task can be executed', () => {
+  const action = {
+    key: 'start-game',
+    label: '开始游戏',
+    icon: 'play-outline',
+    variant: 'primary',
+    isEnabled: true,
+    onPress: vi.fn(),
+  } as const;
+  const panel = (
+    taskAction:
+      | typeof action
+      | (Omit<typeof action, 'isEnabled'> & {
+          readonly isEnabled: false;
+          readonly disabledReason: string;
+        }),
+  ) => (
+    <RoomBottomActionPanel
+      model={EMPTY_STACK}
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={{
+        task: { kind: 'action', actionKey: 'start-game' },
+        sections: [{ key: 'lobby', title: '房间', actions: [taskAction] }],
+      }}
+      onOpenMoreActions={() => undefined}
+      showPlayerHand
+    />
+  );
+  const { rerender } = render(panel(action));
+  const hostEntry = screen.getByTestId(TESTIDS.roomMoreActionsButton);
+  expect(hostEntry).toHaveAccessibleName('主持管理，有待处理操作');
+  expect(hostEntry.querySelector('.bottom-action-pending')).toBeInTheDocument();
+
+  rerender(panel({ ...action, isEnabled: false, disabledReason: '座位尚未坐满' }));
+  expect(hostEntry).toHaveAccessibleName('主持管理');
+  expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+
+  const loadingAction = { ...action, isLoading: true };
+  rerender(panel(loadingAction));
+  expect(hostEntry).toHaveAccessibleName('主持管理');
+  expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+});
