@@ -72,6 +72,7 @@ export interface NightInteraction {
 }
 
 interface UseNightInteractionInput {
+  readonly isReadingRoomInformation: boolean;
   readonly state: GameState;
   readonly viewModel: WerewolfViewModel;
   readonly userId: string;
@@ -182,11 +183,12 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       lastRejectionIdRef.current = null;
       return;
     }
-    if (rejection.rejectionId === lastRejectionIdRef.current) return;
+    if (input.isReadingRoomInformation || rejection.rejectionId === lastRejectionIdRef.current)
+      return;
     lastRejectionIdRef.current = rejection.rejectionId;
     roomScreenLog.warn('Night action rejected', rejection);
     showDismissAlert(`${NIGHT_ACTION_LABEL}失败`, rejection.reason);
-  }, [viewModel.night.rejection]);
+  }, [input.isReadingRoomInformation, viewModel.night.rejection]);
 
   // ── The step prompt / reveal dialog, once per step scope ──
   const promptedKeyRef = useRef<string | null>(null);
@@ -205,7 +207,9 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     if (promptKey === null) return;
     const key = `${scopeKey}|${promptKey}`;
     if (promptedKeyRef.current === key) return;
+    if (input.isReadingRoomInformation && model.kind === 'ackReveal') return;
     promptedKeyRef.current = key;
+    if (input.isReadingRoomInformation) return;
     switch (model.kind) {
       case 'ackReveal':
         showDismissAlert(model.title, model.reveal.result, confirmWith({ kind: 'ack' }));
@@ -235,7 +239,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       case 'ackHunterStatus':
         return;
     }
-  }, [confirmWith, model, promptKey, scopeKey]);
+  }, [confirmWith, input.isReadingRoomInformation, model, promptKey, scopeKey]);
 
   // ── Seat taps ──
   const seatSelection =

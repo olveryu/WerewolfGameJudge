@@ -94,6 +94,21 @@ function matchStrategyBoard(templateRoles: GameState['templateRoles']): string |
 function WerewolfRoomContent(
   props: WerewolfRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
+  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
+  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isNotepadOpen, setIsNotepadOpen] = useState(false);
+  const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
+  const [isNominationListOpen, setIsNominationListOpen] = useState(false);
+  const [nominationEditorTitle, setNominationEditorTitle] = useState<string | null>(null);
+  const isReadingRoomInformation =
+    skillPreviewRoleId !== null ||
+    strategyBoardName !== null ||
+    isGuideOpen ||
+    isNotepadOpen ||
+    isConfigurationOpen ||
+    isNominationListOpen ||
+    nominationEditorTitle !== null;
   const {
     state,
     viewModel,
@@ -119,23 +134,16 @@ function WerewolfRoomContent(
     isHostActionSubmitting,
     reviewAccess,
     boardNominations,
-  } = useWerewolfRoomState(props);
+  } = useWerewolfRoomState(props, isReadingRoomInformation);
   const status = state.status;
 
   // ── Screen-local toggles ──
-  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
   const openSkillPreview = (roleId: string) => {
     if (!isValidRoleId(roleId)) throw new Error(`[FAIL-FAST] Invalid role ID: ${roleId}`);
     setSkillPreviewRoleId(roleId);
   };
-  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isNotepadOpen, setIsNotepadOpen] = useState(false);
   const canOpenNotepad = status === GameStatus.Day || status === GameStatus.Ended;
-  const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
-  const [isNominationListOpen, setIsNominationListOpen] = useState(false);
-  const [nominationEditorTitle, setNominationEditorTitle] = useState<string | null>(null);
 
   const nominations = state.boardNominations ?? {};
   const nominationCount = Object.keys(nominations).length;
