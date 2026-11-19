@@ -70,12 +70,10 @@ describe('Secrethitler public command schema', () => {
       },
       { type: 'secrethitler.roles.assign' },
       { type: 'secrethitler.game.begin' },
-      { type: 'secrethitler.game.abort' },
       { type: 'secrethitler.game.restart', gameSequence: 1, wasEnded: false },
       { type: 'secrethitler.bots.markAllBotsViewed' },
       { type: 'secrethitler.bots.markAllBotsGroupConfirmed' },
       { type: 'secrethitler.role.viewed' },
-      { type: 'secrethitler.game.returnToLobby' },
       { type: 'secrethitler.night.replay', step: 1 },
       { type: 'secrethitler.night.confirm', step: 1 },
       { type: 'secrethitler.government.nominate', chancellorSeatId: 3 },
@@ -96,6 +94,8 @@ describe('Secrethitler public command schema', () => {
 
   it('rejects unknown commands, extra fields and worker-internal commands', () => {
     for (const command of [
+      { type: 'secrethitler.game.abort' },
+      { type: 'secrethitler.game.returnToLobby' },
       { type: 'secrethitler.game.restart', gameSequence: -1, wasEnded: false },
       { type: 'secrethitler.game.restart', gameSequence: 1 },
       { type: 'secrethitler.game.restart', gameSequence: 1, wasEnded: 'false' },

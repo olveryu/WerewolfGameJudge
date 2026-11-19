@@ -27,7 +27,6 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
   }),
   z.strictObject({ type: z.literal('secrethitler.roles.assign') }),
   z.strictObject({ type: z.literal('secrethitler.game.begin') }),
-  z.strictObject({ type: z.literal('secrethitler.game.abort') }),
   z.strictObject({
     type: z.literal('secrethitler.game.restart'),
     gameSequence: z.number().int().nonnegative(),
@@ -36,7 +35,6 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
   z.strictObject({ type: z.literal('secrethitler.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('secrethitler.bots.markAllBotsGroupConfirmed') }),
   z.strictObject({ type: z.literal('secrethitler.role.viewed') }),
-  z.strictObject({ type: z.literal('secrethitler.game.returnToLobby') }),
   z.strictObject({
     type: z.literal('secrethitler.audio.ack'),
     audioBatchId: z.number().int().nonnegative(),

@@ -24,7 +24,6 @@ export const getSecrethitlerRoomCommandFailureMessage =
     [SECRETHITLER_REASONS.notHostStart]: '只有房主可以开始游戏',
     [SECRETHITLER_REASONS.full]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
     [SECRETHITLER_REASONS.occupied]: ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
-    [SECRETHITLER_REASONS.notHostReturnToLobby]: '只有房主可以返回大厅',
     [SECRETHITLER_REASONS.notHostNightReplay]: '只有房主设备可以重播首夜语音',
     [SECRETHITLER_REASONS.nightStep]: '首夜步骤已更新，请按当前提示操作',
     [SECRETHITLER_REASONS.nightParticipant]: '当前没有需要你确认的互认信息',

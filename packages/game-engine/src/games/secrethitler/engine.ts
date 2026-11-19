@@ -85,7 +85,7 @@ function createInitialState(
 
 /** 对局结束时发结算 effect，Worker 据此发 XP 奖励；xpSettled 保证恰好一次。 */
 /**
- * Host deals the game (or redeals from ended): assign identities and
+ * Host deals the game: assign identities and
  * enter the viewing stage. Dealing never starts play — the host
  * begins the game only once every seat has viewed its identity.
  */
@@ -96,8 +96,7 @@ function startGame(state: SecrethitlerState, context: CommandContext): Secrethit
     SECRETHITLER_REASONS.notHostStart,
   );
   if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
-    return reject(SECRETHITLER_REASONS.phase);
+  if (state.phase.kind !== 'lobby') return reject(SECRETHITLER_REASONS.phase);
   if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(SECRETHITLER_REASONS.full);
   const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
@@ -113,7 +112,6 @@ function startGame(state: SecrethitlerState, context: CommandContext): Secrethit
   ]);
 }
 
-/** Host starts the game (or restarts from ended) without a deadline. */
 /** Host begins play from the viewing stage: the identity checkpoint must be complete. */
 function beginGame(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
   const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
@@ -144,21 +142,6 @@ function markRoleViewed(state: SecrethitlerState, context: CommandContext): Secr
     buildViewedEvent: (seat) => ({ type: 'secrethitler.role.viewed', seat }),
     commit: commitSecrethitler,
   });
-}
-
-/** Aborts without settlement, preserving seats and configuration. */
-function abortGame(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
-  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
-    context,
-    state.hostUserId,
-    SECRETHITLER_REASONS.notHostAbort,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(SECRETHITLER_REASONS.phase);
-  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-  return commitSecrethitler([{ type: 'secrethitler.game.returnedToLobby' }]);
 }
 
 function restartGame(
@@ -235,20 +218,6 @@ function markAllBotsGroupConfirmed(
   );
 }
 
-function returnToLobby(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
-  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
-    context,
-    state.hostUserId,
-    SECRETHITLER_REASONS.notHostReturnToLobby,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'ended') return reject(SECRETHITLER_REASONS.phase);
-  // 播报未播完时阻塞回大厅，避免 orphan 音频队列（与阿瓦隆同口径）。
-  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-  return commitSecrethitler([{ type: 'secrethitler.game.returnedToLobby' }]);
-}
-
 /** 房主播完指定批次后提交 ack：当前批次清空队列、释放音频门；旧批次幂等空转；未入队的批次拒绝。 */
 function ackAudio(
   state: SecrethitlerState,
@@ -290,8 +259,6 @@ function decideCommand(
       return startGame(state, context);
     case 'secrethitler.game.begin':
       return beginGame(state, context);
-    case 'secrethitler.game.abort':
-      return abortGame(state, context);
     case 'secrethitler.game.restart':
       return restartGame(state, command, context);
     case 'secrethitler.bots.markAllBotsViewed':
@@ -300,8 +267,6 @@ function decideCommand(
       return markAllBotsGroupConfirmed(state, context);
     case 'secrethitler.role.viewed':
       return markRoleViewed(state, context);
-    case 'secrethitler.game.returnToLobby':
-      return returnToLobby(state, context);
     case 'secrethitler.audio.ack':
       return ackAudio(state, command.audioBatchId, context);
   }
