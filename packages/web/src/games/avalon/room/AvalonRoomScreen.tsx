@@ -11,8 +11,9 @@ import { useNavigate } from 'react-router';
 import { IconButton } from '@/components/IconButton';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -26,6 +27,7 @@ import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
+import { AvalonGuide } from '../screens/AvalonGuideScreen';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
 import { createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
@@ -77,6 +79,8 @@ function AvalonRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const isReading = information !== null || historyVisible || screen.rolePreviewId !== null;
   const historySummary = createAvalonHistorySummary(screen.state);
   // 底部摘要：投票/任务进行中显示未提交名单（与警长摘要同形）。
   const historyPendingSeats =
@@ -133,12 +137,12 @@ function AvalonRoomContent(
       voteAutoKeyRef.current = null;
       return;
     }
-    if (!resolveVoteInstruction(viewModel).canVote) return;
+    if (isReading || !resolveVoteInstruction(viewModel).canVote) return;
     if (voteAutoKeyRef.current !== voteRoundKey) {
       voteAutoKeyRef.current = voteRoundKey;
       setVoteModalOpen(true);
     }
-  }, [viewModel, voteRoundKey, setVoteModalOpen]);
+  }, [viewModel, voteRoundKey, setVoteModalOpen, isReading]);
   const questAutoKeyRef = useRef<string | null>(null);
   const questRoundKey = viewModel === null ? null : `${viewModel.questResults.length}`;
   useEffect(() => {
@@ -147,12 +151,12 @@ function AvalonRoomContent(
       questAutoKeyRef.current = null;
       return;
     }
-    if (!resolveQuestInstruction(viewModel).isTeamMember) return;
+    if (isReading || !resolveQuestInstruction(viewModel).isTeamMember) return;
     if (questAutoKeyRef.current !== questRoundKey) {
       questAutoKeyRef.current = questRoundKey;
       setQuestModalOpen(true);
     }
-  }, [viewModel, questRoundKey, setQuestModalOpen]);
+  }, [viewModel, questRoundKey, setQuestModalOpen, isReading]);
   // 任务结算面板：每轮任务结算后展示一次（终局由终局视图接管）。
   // 身份键 = 对局代次 + 已结算任务数：questHistory 只增不减，条数即序号；
   // 进房时第一份快照的条数只作基线（旧任务结果不重弹，见 useRevealWatermark）。
@@ -178,13 +182,13 @@ function AvalonRoomContent(
       return;
     }
     const instruction = resolveLadyInstruction(viewModel);
-    if (instruction.kind !== 'targetConfirm') return;
+    if (isReading || instruction.kind !== 'targetConfirm') return;
     const key = `${viewModel.questResults.length}:${instruction.holderSeat}:${viewModel.mySeat}`;
     if (ladyAckKeyRef.current !== key) {
       ladyAckKeyRef.current = key;
       setLadyAckOpen(true);
     }
-  }, [viewModel, setLadyAckOpen]);
+  }, [viewModel, setLadyAckOpen, isReading]);
   // 湖仙查验结果弹窗：水位住在 hook（底部「查验结果」入口直接 reveal）。
   const ladyResult = viewModel?.ladyCheckResult ?? null;
   const { ladyResultWatermark } = screen;
@@ -195,26 +199,42 @@ function AvalonRoomContent(
   // 全程座位盘保持可见；阶段交互按落点总规则分布（盘上点选 / 弹窗 / 底部
   // 动作区），座位盘下方不放任何阶段 UI——与全平台各家一致。
   const isNight = viewModel !== null && viewModel.phase === 'night';
+  const settings = [
+    { label: '投票方式', value: formatAvalonVoteMode(config.voteMode) },
+    { label: '否决上限', value: `${config.vetoLimit} 次` },
+  ];
+  const board = (
+    <AvalonBoardInfoContent
+      playerCount={config.numberOfPlayers}
+      onRolePress={screen.setRolePreviewId}
+    />
+  );
   const gameConfiguration = (
     <RoomGameSummary
       title="阿瓦隆"
       playerCount={config.numberOfPlayers}
-      settings={[
-        { label: '投票方式', value: formatAvalonVoteMode(config.voteMode) },
-        { label: '否决上限', value: `${config.vetoLimit} 次` },
-      ]}
-      guide={{ onPress: screen.openRules, label: '查看阿瓦隆玩法' }}
-      collapsed={!isLobby && viewModel !== null}
+      settings={settings}
+      guide={null}
     >
-      <AvalonBoardInfoContent
-        playerCount={config.numberOfPlayers}
-        onRolePress={screen.setRolePreviewId}
-      />
+      {board}
     </RoomGameSummary>
   );
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand={!screen.seatPicking.isActive}
+      configurationEntry={
+        !isLobby && viewModel !== null && !screen.seatPicking.isActive
+          ? { onOpen: () => setInformation('configuration') }
+          : null
+      }
+      manualEntries={[
+        {
+          label: '玩法',
+          onOpen: () => setInformation('guide'),
+          testId: TESTIDS.roomGuideButton('avalon'),
+        },
+      ]}
       content={
         isLobby || viewModel === null
           ? {
@@ -239,8 +259,7 @@ function AvalonRoomContent(
                   />
                 ),
               sideInspector: null,
-              // 板子信息折叠常驻；终局结算仍由本局复盘承载。
-              beforeSeatBoard: gameConfiguration,
+              beforeSeatBoard: <></>,
               afterSeatBoard: null,
             }
       }
@@ -264,6 +283,28 @@ function AvalonRoomContent(
       )}
       gameOverlays={
         <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="阿瓦隆玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <AvalonGuide parentPath={null} />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`阿瓦隆（${config.numberOfPlayers}人）`}</p>
+              {board}
+              <RoomGameSettings settings={settings} />
+            </RoomDialog>
+          )}
           {viewModel === null ? null : (
             <>
               {historyVisible && (
@@ -274,6 +315,7 @@ function AvalonRoomContent(
               )}
               {/* Wait for the vote dialog to unmount before opening its successor layer. */}
               {screen.state.phase.kind === 'voteResult' &&
+              !isReading &&
               voteResult !== null &&
               !screen.voteModalOpen ? (
                 <AvalonVoteResultPanel
@@ -287,7 +329,7 @@ function AvalonRoomContent(
                   }
                 />
               ) : null}
-              {questResultEntry !== undefined ? (
+              {!isReading && questResultEntry !== undefined ? (
                 <AvalonQuestResultPanel
                   entry={questResultEntry}
                   onClose={questResultWatermark.dismiss}

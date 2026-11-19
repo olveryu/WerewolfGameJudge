@@ -106,7 +106,6 @@ describe('AvalonRoomScreen review', () => {
 
   it('opens the shared dialog on the Avalon document from a seat bottom entry', () => {
     renderRoom(playAvalonTestGame(3), avalonTestSeatUser(1));
-    fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     fireEvent.click(screen.getByTestId(TESTIDS.roomReviewOpenButton));
     expectAvalonReviewDialog();
 

@@ -261,6 +261,7 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     const { queryByTestId, getByTestId, rerender } = render(screenElement(session), {
       wrapper: AvalonRoomTestProviders,
     });
+
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
 
     proposeAndSettleVote(game, 'reject', false);
@@ -280,6 +281,25 @@ describe('AvalonRoomScreen reveal replay guard', () => {
 
     rerender(screenElement(session));
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
+  });
+
+  it('lets the reader close the guide before showing a live vote result', async () => {
+    const game = midGameAfterFirstQuest();
+    const { session, push } = createMutableSession(game.state, 'host');
+    const { queryByTestId, getByTestId, getByRole } = render(screenElement(session), {
+      wrapper: AvalonRoomTestProviders,
+    });
+    fireEvent.click(getByTestId(TESTIDS.roomManualButton));
+    fireEvent.click(getByTestId(TESTIDS.roomGuideButton('avalon')));
+    expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
+
+    proposeAndSettleVote(game, 'reject', false);
+    await pushState(push, game.state);
+    expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
+    expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
+
+    fireEvent.click(getByTestId(TESTIDS.roomDialogCloseButton));
+    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
   });
 
   it('reveals vote and quest settlements after entry in snapshot order, each exactly once', async () => {
@@ -374,7 +394,6 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
 
     // 设计内主动重看：底部「查验结果」按钮强制重弹，关闭后不再出现。
-    fireEvent.click(getByTestId(TESTIDS.roomMoreActionsButton));
     fireEvent.click(getByTestId('avalon-lady-result-open'));
     expect(getByTestId('avalon-lady-result-modal')).toBeTruthy();
     fireEvent.click(getByTestId('avalon-lady-result-close'));
