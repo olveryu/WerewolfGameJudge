@@ -47,7 +47,7 @@ it.each(SECRETHITLER_PHASES)('preserves the host action inventory in %s', (phase
   const panel = model(stateFor(phase));
   const keys = panel.sections.flatMap((section) => section.actions.map((action) => action.key));
   expect(keys.includes('abort-game')).toBe(phase !== 'lobby' && phase !== 'ended');
-  expect(keys.includes('music-settings')).toBe(['lobby', 'viewing', 'ended'].includes(phase));
+  expect(keys.includes('music-settings')).toBe(['lobby', 'viewing'].includes(phase));
   expect(panel.sections.every((section) => section.actions.length > 0)).toBe(true);
 });
 

@@ -47,6 +47,9 @@ export function avalonRoomScreenElement(room: RoomRecord<'avalon'>, session: Ava
     <AvalonRoomScreen
       room={room}
       entryReason={null}
+      onOpenMusicSettings={() => {}}
+      onOpenRoomSettings={() => {}}
+      onOpenUserSettings={() => {}}
       session={session}
       review={avalonReview}
       audio={createSilentAudio()}

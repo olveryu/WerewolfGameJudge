@@ -47,6 +47,7 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import {
   createRoomSetupCapabilities,
+  createShareRoomCapability,
   createViewProfilesCapability,
   type RoomCapabilities,
   type RoomCapability,
@@ -125,6 +126,12 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
   });
   return {
     ...setupCapabilities,
+    canShareRoom: createShareRoomCapability(
+      isWerewolfSetup(input.status) ||
+        input.status === GameStatus.Assigned ||
+        input.status === GameStatus.Ready,
+      input.shareRoom,
+    ),
     canViewProfiles: createViewProfilesCapability(
       input.status !== GameStatus.Ongoing && input.status !== GameStatus.Day,
       input.openProfile,

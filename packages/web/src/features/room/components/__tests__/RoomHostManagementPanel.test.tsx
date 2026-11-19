@@ -1,8 +1,89 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import { TESTIDS } from '@/testids';
+import { alertStore } from '@/utils/alert';
 
 import { RoomHostManagementPanel } from '../RoomHostManagementPanel';
+
+it.each([
+  [HOST_ACTION_KEYS.musicSettings, '音乐设置'],
+  [HOST_ACTION_KEYS.configureGame, '房间设置'],
+  [HOST_ACTION_KEYS.startGame, '开始游戏'],
+  [HOST_ACTION_KEYS.fillBots, '填充机器人'],
+  [HOST_ACTION_KEYS.markBotsViewed, '标记机器人已查看'],
+  [HOST_ACTION_KEYS.review, '查看复盘'],
+])('keeps the host hand open when pressing %s', (key, label) => {
+  const onClose = vi.fn();
+  const onPress = vi.fn();
+  render(
+    <RoomHostManagementPanel
+      model={{
+        task: null,
+        sections: [
+          {
+            key: 'settings',
+            title: '设置',
+            actions: [
+              {
+                key,
+                label,
+                icon: 'people-outline',
+                variant: 'secondary',
+                isEnabled: true,
+                onPress,
+              },
+            ],
+          },
+        ],
+      }}
+      bottomActions={null}
+      presentation="hand"
+      onClose={onClose}
+      isAudioPlaying={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(onPress).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+it('explains a blocked hand action without running or closing it', () => {
+  const onClose = vi.fn();
+  render(
+    <RoomHostManagementPanel
+      model={{
+        task: { kind: 'action', actionKey: 'assign' },
+        sections: [
+          {
+            key: 'room',
+            title: '房间',
+            actions: [
+              {
+                key: 'assign',
+                label: '分配角色',
+                icon: 'people-outline',
+                variant: 'primary',
+                isEnabled: false,
+                disabledReason: '座位尚未坐满',
+              },
+            ],
+          },
+        ],
+      }}
+      bottomActions={null}
+      presentation="hand"
+      onClose={onClose}
+      isAudioPlaying={false}
+    />,
+  );
+  const action = screen.getByRole('button', { name: '分配角色' });
+  expect(action).toHaveAttribute('aria-disabled', 'true');
+  expect(action).toHaveAccessibleDescription('座位尚未坐满');
+  fireEvent.click(action);
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '暂不可用', message: '座位尚未坐满' });
+  expect(onClose).not.toHaveBeenCalled();
+});
 
 it('groups player actions and the host task in one panel without duplicating its command', () => {
   const onHostAction = vi.fn();
@@ -222,7 +303,7 @@ it('keeps host commands in one hand and allows revisiting a completed task step'
   ).toEqual(['返回', '继续', '查看信息']);
   fireEvent.click(screen.getByRole('button', { name: '上一步' }));
   expect(revisit).toHaveBeenCalledOnce();
-  expect(onClose).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
   fireEvent.click(within(hand).getByRole('button', { name: '返回' }));
   expect(onBack).toHaveBeenCalledOnce();
 });

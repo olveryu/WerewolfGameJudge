@@ -18,6 +18,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { GameConfigForm } from '@/features/room/config/GameConfigForm';
 import { setRememberedGameConfigField } from '@/features/settings/rememberedGameConfigs';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
@@ -47,15 +48,17 @@ interface GameRulesScreenProps {
   readonly params: WerewolfRulesParams;
   /** Receives every rules edit so the flow hands them back to ConfigScreen. */
   readonly onRulesChange: (rules: GameRuleOverrides) => void;
+  readonly dialog?: { readonly onBack: () => void; readonly onSaved: () => void };
 }
 
-export function GameRulesScreen({ session, params, onRulesChange }: GameRulesScreenProps) {
+export function GameRulesScreen({ session, params, onRulesChange, dialog }: GameRulesScreenProps) {
   const [rules, setRules] = useState<GameRuleOverrides>(params.rules);
-  const { submit, isSubmitting, isEditMode } = useGameRulesSubmission({
+  const { submit, isSubmitting, isEditMode, isEditAvailable } = useGameRulesSubmission({
     session,
     roles: params.roles,
     rules,
     existingRoomCode: params.existingRoomCode,
+    ...(dialog === undefined ? {} : { onEditSaved: dialog.onSaved }),
   });
 
   const updateRules = (next: GameRuleOverrides) => {
@@ -83,34 +86,56 @@ export function GameRulesScreen({ session, params, onRulesChange }: GameRulesScr
     }
   };
 
+  const fields = (
+    <GameConfigForm
+      gameType="werewolf"
+      schema={WEREWOLF_RULES_SCHEMA}
+      config={toWerewolfRules(rules)}
+      countDrafts={{}}
+      issue={null}
+      fieldRenderers={undefined}
+      onFieldChange={applyRule}
+      onCountDraftChange={rejectCountField}
+      onStepCount={rejectCountField}
+    />
+  );
+  const submitControl = (
+    <>
+      {dialog !== undefined && !isEditAvailable && (
+        <p role="status">房间状态或权限已变化，不能保存设置。</p>
+      )}
+      <p className="game-settings-summary">板子 {params.roles.length} 人</p>
+      <Button
+        size="lg"
+        className="game-config-submit"
+        onClick={submit}
+        loading={isSubmitting}
+        disabled={!isEditAvailable}
+        data-testid={TESTIDS.gameRulesSubmitButton}
+      >
+        {isEditMode ? '保存配置' : '创建房间'}
+      </Button>
+    </>
+  );
+  if (dialog !== undefined) {
+    return (
+      <RoomDialog
+        title="游戏规则"
+        onClose={() => {
+          if (!isSubmitting) dialog.onBack();
+        }}
+        allowEscape
+        footer={submitControl}
+      >
+        {fields}
+      </RoomDialog>
+    );
+  }
   return (
     <div className="game-config-page" data-testid={TESTIDS.gameRulesScreenRoot}>
       <ScreenHeader title="游戏规则" />
-      <main className="game-config-body">
-        <GameConfigForm
-          gameType="werewolf"
-          schema={WEREWOLF_RULES_SCHEMA}
-          config={toWerewolfRules(rules)}
-          countDrafts={{}}
-          issue={null}
-          fieldRenderers={undefined}
-          onFieldChange={applyRule}
-          onCountDraftChange={rejectCountField}
-          onStepCount={rejectCountField}
-        />
-      </main>
-      <footer className="game-config-footer">
-        <p className="game-settings-summary">板子 {params.roles.length} 人</p>
-        <Button
-          size="lg"
-          className="game-config-submit"
-          onClick={submit}
-          loading={isSubmitting}
-          data-testid={TESTIDS.gameRulesSubmitButton}
-        >
-          {isEditMode ? '保存配置' : '创建房间'}
-        </Button>
-      </footer>
+      <main className="game-config-body">{fields}</main>
+      <footer className="game-config-footer">{submitControl}</footer>
     </div>
   );
 }

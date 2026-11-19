@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type Ref,
   useCallback,
+  useId,
   useRef,
   useState,
 } from 'react';
@@ -26,9 +27,11 @@ import {
 } from '@/features/room/model/RoomBottomActions';
 import {
   HOST_MANAGEMENT_LABEL,
+  type RoomHostManagementAction,
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconConstructOutline from '~icons/ion/construct-outline';
@@ -42,6 +45,7 @@ import { DisabledReasonCaption } from './RoomControls';
 interface RoomManualEntry {
   readonly label: string;
   readonly testId?: string;
+  readonly icon?: ReactNode;
   readonly onOpen: () => void;
 }
 
@@ -87,10 +91,11 @@ function LayoutButton({
   hideAudioLockReason,
   isHand = false,
 }: {
-  readonly model: RoomBottomButton | RoomBottomToolButton;
+  readonly model: RoomBottomButton | RoomBottomToolButton | RoomHostManagementAction;
   readonly hideAudioLockReason: boolean;
   readonly isHand?: boolean;
 }) {
+  const reasonId = useId();
   const style: CSSProperties = {
     ...('textColor' in model ? { color: model.textColor } : {}),
     ...('buttonColor' in model ? { background: model.buttonColor } : {}),
@@ -98,6 +103,7 @@ function LayoutButton({
   const reason = model.isEnabled
     ? null
     : visibleDisabledReason(model.disabledReason, hideAudioLockReason);
+  const explanation = !model.isEnabled ? model.disabledReason : null;
   return (
     <div className="bottom-action-slot">
       <Button
@@ -106,10 +112,19 @@ function LayoutButton({
         }
         size={'size' in model ? model.size : 'md'}
         loading={'isLoading' in model && model.isLoading === true}
-        disabled={!model.isEnabled}
+        disabled={!model.isEnabled && (!isHand || explanation === null)}
+        aria-disabled={isHand && !model.isEnabled && explanation !== null ? true : undefined}
+        aria-label={isHand && explanation !== null ? model.label : undefined}
+        aria-describedby={isHand && explanation !== null ? reasonId : undefined}
         style={style}
         data-testid={model.testID}
-        onClick={model.isEnabled ? model.onPress : undefined}
+        onClick={
+          model.isEnabled
+            ? model.onPress
+            : isHand && explanation !== null
+              ? () => showAlert('暂不可用', explanation)
+              : undefined
+        }
       >
         {model.icon !== undefined ? (
           <IonIcon name={model.icon} />
@@ -117,6 +132,11 @@ function LayoutButton({
           isHand && <IconHandLeftOutline aria-hidden />
         )}
         <span>{model.label}</span>
+        {isHand && explanation !== null && (
+          <span id={reasonId} className="visually-hidden">
+            {explanation}
+          </span>
+        )}
       </Button>
       {!isHand && reason !== null && <DisabledReasonCaption reason={reason} />}
     </div>
@@ -150,6 +170,7 @@ function PlayerHand({
   onOpenMoreActions,
   hasReadyTask,
   moreActionsLabel,
+  selectionAction,
 }: {
   readonly model: RoomBottomActionModel;
   readonly isAudioPlaying: boolean;
@@ -163,6 +184,7 @@ function PlayerHand({
   readonly onOpenMoreActions: () => void;
   readonly hasReadyTask: boolean;
   readonly moreActionsLabel: string;
+  readonly selectionAction: RoomHostManagementAction | null;
 }) {
   const actions = listRoomBottomButtons(model);
   return (
@@ -186,6 +208,14 @@ function PlayerHand({
             isHand
           />
         ))}
+        {selectionAction !== null && (
+          <LayoutButton
+            key={`selection:${selectionAction.key}`}
+            model={selectionAction}
+            hideAudioLockReason={isAudioPlaying}
+            isHand
+          />
+        )}
         {configurationEntry !== null && (
           <Button
             key="room-entry:configuration"
@@ -219,7 +249,7 @@ function PlayerHand({
             data-testid={entry.testId}
             onClick={entry.onOpen}
           >
-            <IconCreateOutline aria-hidden />
+            {entry.icon ?? <IconCreateOutline aria-hidden />}
             <span>{entry.label}</span>
           </Button>
         ))}
@@ -256,6 +286,8 @@ function RoomBottomActionPanelComponent({
   onOpenMoreActions,
   configurationEntry = null,
   showPlayerHand = false,
+  isSelecting = false,
+  selectionUsesHostTask = false,
   hostHand,
   hostEntryRef,
   manualEntries,
@@ -268,6 +300,8 @@ function RoomBottomActionPanelComponent({
   readonly onOpenMoreActions: () => void;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
   readonly showPlayerHand?: boolean;
+  readonly isSelecting?: boolean;
+  readonly selectionUsesHostTask?: boolean;
   readonly hostHand?: ReactNode;
   readonly hostEntryRef?: Ref<HTMLButtonElement>;
   readonly manualEntries?: readonly RoomManualEntry[];
@@ -280,16 +314,19 @@ function RoomBottomActionPanelComponent({
     restoreManualFocus.current = false;
     button.focus({ preventScroll: true });
   }, []);
-  const hasManual = showPlayerHand && manualEntries !== undefined && manualEntries.length > 0;
+  const hasManual =
+    showPlayerHand && !isSelecting && manualEntries !== undefined && manualEntries.length > 0;
   if (isManualOpen && !hasManual) setIsManualOpen(false);
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
   const { focusAction, additionalActions, hasMultiplePrimaryChoices } =
     resolveRoomBottomActionPresentation(model);
   const hiddenActions = showPlayerHand ? [] : additionalActions;
-  const hasMoreActions = hiddenActions.length > 0 || hostManagement !== null;
+  const hasMoreActions = !isSelecting && (hiddenActions.length > 0 || hostManagement !== null);
   const taskLabel = hostManagement === null ? null : hostTaskLabel(hostManagement);
   const taskBody =
     !showPlayerHand || hostManagement === null ? null : resolveHostTaskView(hostManagement)?.body;
+  const selectionAction =
+    isSelecting && selectionUsesHostTask && taskBody?.kind === 'message' ? taskBody.escape : null;
   const hasReadyTask =
     taskBody?.kind === 'ready'
       ? taskBody.action.isLoading !== true
@@ -301,14 +338,19 @@ function RoomBottomActionPanelComponent({
       : hasMultiplePrimaryChoices && hostManagement === null
         ? '选择操作'
         : '更多操作';
-  const statusMessage = isAudioPlaying ? AUDIO_WAITING_LABEL : model.message;
+  const statusMessage = isAudioPlaying
+    ? AUDIO_WAITING_LABEL
+    : isSelecting && selectionUsesHostTask && taskBody?.kind === 'message'
+      ? taskBody.text
+      : model.message;
   if (
     !hasSummary &&
     statusMessage === null &&
     configurationEntry === null &&
-    mainEntries.length === 0 &&
+    (isSelecting || mainEntries.length === 0) &&
     !hasManual &&
     isRoomBottomActionModelEmpty(model) &&
+    selectionAction === null &&
     !hasMoreActions
   ) {
     return null;
@@ -366,16 +408,17 @@ function RoomBottomActionPanelComponent({
           <PlayerHand
             model={model}
             isAudioPlaying={isAudioPlaying}
-            configurationEntry={configurationEntry}
+            configurationEntry={isSelecting ? null : configurationEntry}
             hasManual={hasManual}
             manualEntryRef={manualEntryRef}
             onOpenManual={() => setIsManualOpen(true)}
-            mainEntries={mainEntries}
+            mainEntries={isSelecting ? [] : mainEntries}
             hasMoreActions={hasMoreActions}
             hostEntryRef={hostEntryRef}
             onOpenMoreActions={onOpenMoreActions}
             hasReadyTask={hasReadyTask}
             moreActionsLabel={moreActionsLabel}
+            selectionAction={selectionAction}
           />
         ) : (
           <div

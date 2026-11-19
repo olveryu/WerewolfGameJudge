@@ -13,13 +13,7 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 import { type Dispatch, type ReactNode, type SetStateAction, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  musicSettingsPath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -40,7 +34,10 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { isAudioPlaybackLocked } from '@/features/room/model/audioPlaybackLock';
 import { resolveEquippedRevealEffect } from '@/features/room/model/resolveEquippedRevealEffect';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
-import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import {
+  createShareRoomCapability,
+  type RoomCapabilities,
+} from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
@@ -139,7 +136,6 @@ export function useAvalonRoomState(
   },
 ): AvalonRoomScreenState {
   const { session, room, entryController, audio } = props;
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getAvalonRoomCommandFailureMessage,
@@ -211,7 +207,7 @@ export function useAvalonRoomState(
     supportsBots: true,
     hasOccupiedSeats: getAvalonOccupiedSeatCount(state) > 0,
     isRoomFull: getAvalonOccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () => void navigate(gameConfigEditPath('avalon', room.roomCode)),
+    configureGame: props.onOpenRoomSettings,
     shareRoom: share.open,
   });
   // 身份查看协议：先落查看记录、服务端确认后再弹卡（接管时是被接管座位）。
@@ -237,6 +233,7 @@ export function useAvalonRoomState(
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,
+    canShareRoom: createShareRoomCapability(isLobby || state.phase.kind === 'viewing', share.open),
     canTakeOverBots: bots.capability,
   };
   const viewModel = useMemo(
@@ -273,7 +270,7 @@ export function useAvalonRoomState(
       review: review.entry,
       onMusicSettings: () => {
         bgm.stopBgm();
-        void navigate(musicSettingsPath(room.roomCode));
+        props.onOpenMusicSettings();
       },
       submit,
     });
@@ -302,7 +299,7 @@ export function useAvalonRoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,

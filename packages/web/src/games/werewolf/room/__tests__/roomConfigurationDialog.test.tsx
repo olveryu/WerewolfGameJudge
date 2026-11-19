@@ -19,6 +19,24 @@ import {
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it.each([
+    [GameStatus.Unseated, true],
+    [GameStatus.Seated, true],
+    [GameStatus.Assigned, true],
+    [GameStatus.Ready, true],
+    [GameStatus.Ongoing, false],
+    [GameStatus.Day, false],
+    [GameStatus.Ended, false],
+  ] as const)('shows the configuration area only before play in %s', async (status, isPreGame) => {
+    const view = await mountRoomFor({
+      ...actorStep('seerCheck', 'seer', 0),
+      gameStateOverrides: { status },
+    });
+    expect(view.queryByTestId(TESTIDS.roomGameSummaryTitle) !== null).toBe(isPreGame);
+    expect(view.queryByRole('button', { name: '本局配置' }) !== null).toBe(!isPreGame);
+    expect(view.queryByTestId(TESTIDS.roomShareButton) !== null).toBe(isPreGame);
+  });
+
   it.each([true, false])(
     'only shows a deferred night result if it is still pending: %s',
     async (stillPending) => {
@@ -166,9 +184,15 @@ describe('Werewolf room configuration', () => {
       '查看身份',
       '本局配置',
       '手册',
+      '用户设置',
     ]);
     await startSeatSelection(view);
-    expect(view.queryByRole('group', { name: '行动手牌' })).not.toBeInTheDocument();
+    const selectionHand = within(view.getByRole('group', { name: '行动手牌' }));
+    expect(selectionHand.getByRole('button', { name: '确认选择' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(selectionHand.getByRole('button', { name: '取消选座' })).toBeVisible();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();

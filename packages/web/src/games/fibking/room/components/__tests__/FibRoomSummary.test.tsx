@@ -10,6 +10,27 @@ import { TESTIDS } from '@/testids';
 import { FibRoomSummary } from '../FibRoomSummary';
 
 describe('FibRoomSummary', () => {
+  it('keeps the public board during identity viewing and removes it when play starts', () => {
+    const props = {
+      guide: null,
+      playerCount: 4,
+      preparationStage: null,
+      preparationFailureCode: null,
+    } as const;
+    const view = render(
+      <FibRoomSummary {...props} phase="viewing">
+        公开角色
+      </FibRoomSummary>,
+    );
+    expect(screen.getByText('公开角色')).toBeVisible();
+    view.rerender(
+      <FibRoomSummary {...props} phase="ongoing">
+        公开角色
+      </FibRoomSummary>,
+    );
+    expect(screen.queryByText('公开角色')).not.toBeInTheDocument();
+  });
+
   it.each([
     [FIB_PREPARATION_STAGES.queued, '等待选取词语'],
     [FIB_PREPARATION_STAGES.selecting, '正在选取中文词语'],

@@ -102,6 +102,22 @@ function createViewing(viewedSeats: readonly number[]): Extract<FibState, { phas
 describe('FibKing room adapter', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('allows room sharing through identity viewing but not during play', () => {
+    for (const [state, expected] of [
+      [createLobby(), true],
+      [createViewing([]), true],
+      [createOngoing(), false],
+    ] as const) {
+      const capabilities = createFibRoomCapabilities({
+        state,
+        isHost: false,
+        mySeat: 0,
+        ...callbacks,
+      });
+      expect(capabilities.canShareRoom.isAllowed).toBe(expected);
+    }
+  });
+
   it('gates begin on the viewing checkpoint and offers the scaffold while bots are unmarked', () => {
     const markAllBotsViewed = vi.fn();
     const build = (state: FibState) =>

@@ -123,7 +123,6 @@ function RoomUserButton({ action }: { readonly action: RoomHeaderUserAction }) {
 
 function RoomTitle({ model }: { readonly model: RoomShellModel }) {
   const longPress = useLongPress(model.header.onTitleLongPress, TITLE_LONG_PRESS_MS);
-  const share = model.capabilities.canShareRoom;
   return (
     <div className="room-header-center">
       <h1 className="room-header-title">
@@ -146,15 +145,6 @@ function RoomTitle({ model }: { readonly model: RoomShellModel }) {
       <span id="room-title-hint" className="visually-hidden">
         连续点击四次进入管理后台，长按打开调试日志
       </span>
-      {share.isAllowed && (
-        <IconButton
-          label="分享房间"
-          className="room-header-share"
-          icon={<IconShareOutline aria-hidden />}
-          onClick={share.execute}
-          data-testid={TESTIDS.roomShareButton}
-        />
-      )}
     </div>
   );
 }
@@ -169,6 +159,8 @@ export function RoomShell({
   mainEntries,
   stageMenu = null,
   showPlayerHand = false,
+  isSelecting = false,
+  selectionUsesHostTask = false,
   gameOverlays,
   profileDetailsRenderer,
 }: {
@@ -181,6 +173,8 @@ export function RoomShell({
   readonly mainEntries?: ComponentProps<typeof RoomBottomActionPanel>['mainEntries'];
   readonly stageMenu?: RoomStageMenuModel | null;
   readonly showPlayerHand?: boolean;
+  readonly isSelecting?: boolean;
+  readonly selectionUsesHostTask?: boolean;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
   readonly profileDetailsRenderer?: (
@@ -201,8 +195,38 @@ export function RoomShell({
   }, []);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
+  const isHandContext = showPlayerHand && !isStage && !isSelecting;
+  const [previousHandContext, setPreviousHandContext] = useState(isHandContext);
+  if (previousHandContext !== isHandContext) {
+    setPreviousHandContext(isHandContext);
+    if (previousHandContext && isActionsPanelOpen) setIsActionsPanelOpen(false);
+  }
   const hasBottomPanel = !isStage && stageMenu === null;
   const bottomActions = hasBottomPanel ? model.bottomActions : null;
+  const share = model.capabilities.canShareRoom;
+  const playerMainEntries = [
+    ...(mainEntries ?? []),
+    ...(share.isAllowed
+      ? [
+          {
+            label: '分享房间',
+            testId: TESTIDS.roomShareButton,
+            icon: <IconShareOutline aria-hidden />,
+            onOpen: share.execute,
+          },
+        ]
+      : []),
+    ...(model.header.userAction === null
+      ? []
+      : [
+          {
+            label: '用户设置',
+            testId: TESTIDS.roomUserSettingsCard,
+            icon: <IconPersonCircleOutline aria-hidden />,
+            onOpen: model.header.userAction.onPress,
+          },
+        ]),
+  ];
   const panelPlayerActions = showPlayerHand ? null : bottomActions;
   const hasAdditionalPlayerActions =
     panelPlayerActions !== null &&
@@ -321,8 +345,10 @@ export function RoomShell({
           onOpenMoreActions={openActionsPanel}
           configurationEntry={configurationEntry}
           manualEntries={manualEntries}
-          mainEntries={mainEntries}
+          mainEntries={playerMainEntries}
           showPlayerHand={showPlayerHand}
+          isSelecting={isSelecting}
+          selectionUsesHostTask={selectionUsesHostTask}
           hostEntryRef={hostEntryRef}
           hostHand={
             isHostHandShown ? (
@@ -362,6 +388,7 @@ export function RoomShell({
       {stageMenu !== null && isStageMenuOpen && (
         <RoomStageMenu
           model={stageMenu}
+          onOpenUserSettings={model.header.userAction?.onPress}
           abortAction={hostManagement?.sections
             .flatMap((section) => section.actions)
             .find((action) => action.key === HOST_ACTION_KEYS.abortGame)}

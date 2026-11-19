@@ -627,7 +627,7 @@ export async function viewLastNightInfo(hostPage: Page): Promise<string> {
   const action = panel.getByTestId(TESTIDS.lastNightInfoButton);
   await expect(action).toBeEnabled({ timeout: AUDIO_ACK_WAIT_MS });
   await action.click();
-  await expect(panel).not.toBeVisible();
+  await expect(panel).toBeVisible();
   await pressAlertButton(hostPage, {
     title: '提示',
     buttonIndex: 1,

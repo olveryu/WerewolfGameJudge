@@ -1,12 +1,11 @@
 /** Werewolf's music-settings preview: the wolf opening narration. */
 import type { GameAudioPreviewFactory } from '@/games/model/GameAudioPreview';
-import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
+import { resolveWerewolfBeginningAudio } from '@/games/werewolf/audio/audioRegistry';
 
 export const createWerewolfAudioPreview: GameAudioPreviewFactory = (audioService) => {
-  const audio = new WerewolfAudioPlayer(audioService);
   return {
     label: '试听效果',
-    play: () => audio.playEffect('wolf'),
-    stop: audio.stopNarration,
+    play: () => audioService.playClip(resolveWerewolfBeginningAudio('wolf')),
+    stop: () => audioService.stop(),
   };
 };

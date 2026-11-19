@@ -8,9 +8,7 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 import { type ReactNode, useMemo } from 'react';
-import { useNavigate } from 'react-router';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -71,11 +69,12 @@ export interface UndercoverRoomScreenState {
 export function useUndercoverRoomState({
   room,
   entryReason,
+  onOpenUserSettings,
+  onOpenRoomSettings,
   session,
   review: reviewContribution,
   entryController,
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getUndercoverRoomCommandFailureMessage,
@@ -100,7 +99,6 @@ export function useUndercoverRoomState({
     isHost,
     entryReason,
   });
-  const configure = () => void navigate(gameConfigEditPath('undercover', room.roomCode));
   // 座位 / 资料卡：资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
   const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
   const gameDetails = useGameProfileDetails(profile.selection, '谁是卧底战绩', '本游戏局数');
@@ -109,7 +107,7 @@ export function useUndercoverRoomState({
     state,
     isHost,
     mySeat,
-    configureGame: configure,
+    configureGame: onOpenRoomSettings,
     shareRoom: share.open,
     openProfile: profile.open,
     takeOverBots: bots.capability,
@@ -171,7 +169,7 @@ export function useUndercoverRoomState({
     onTitleLongPress: title.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: onOpenUserSettings,
     connection: entryController.connection,
     state,
     revision,

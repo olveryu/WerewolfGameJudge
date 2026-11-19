@@ -12,7 +12,7 @@ import './ConfigScreen.css';
 
 import { Tabs } from '@ark-ui/react/tabs';
 import { type Faction, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
-import { Fragment, useState } from 'react';
+import { Fragment, type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
@@ -55,6 +55,11 @@ interface ConfigScreenProps {
   readonly onContinue: (rulesParams: WerewolfRulesParams) => void;
   readonly onReturnToRoom: (roomCode: string) => void;
   readonly nominationDialog?: { readonly title: string; readonly onClose: () => void };
+  readonly settingsDialog?: {
+    readonly onClose: () => void;
+    readonly rulesDirty: boolean;
+    readonly children: ReactNode;
+  };
 }
 
 /** Role configuration screen; the Rules step that follows owns create/save. */
@@ -66,12 +71,16 @@ export function ConfigScreen({
   onContinue,
   onReturnToRoom,
   nominationDialog,
+  settingsDialog,
 }: ConfigScreenProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const state = useConfigScreenState({
     params,
     session,
-    onPickBoard: nominationDialog === undefined ? onPickBoard : () => setIsPickerOpen(true),
+    onPickBoard:
+      nominationDialog === undefined && settingsDialog === undefined
+        ? onPickBoard
+        : () => setIsPickerOpen(true),
     onContinue,
     onReturnToRoom,
     keepNominationOpen: nominationDialog !== undefined,
@@ -178,30 +187,42 @@ export function ConfigScreen({
       {nominationDialog !== undefined && !state.canNominate && (
         <p role="status">本局建议已结束，不能提交。</p>
       )}
+      {settingsDialog !== undefined && !state.canEdit && (
+        <p role="status">房间状态或权限已变化，不能保存设置。</p>
+      )}
       <p className="game-settings-summary">已选 {state.totalCount} 人</p>
       <Button
         size="lg"
         className="game-config-submit"
         onClick={state.handleContinue}
         loading={state.isSubmitting}
-        disabled={state.isNominateMode && !state.canNominate}
+        disabled={
+          (state.isNominateMode && !state.canNominate) ||
+          (settingsDialog !== undefined && !state.canEdit)
+        }
         data-testid={TESTIDS.configNextButton}
       >
         {state.isNominateMode ? '提交建议' : '下一步：规则'}
       </Button>
     </>
   );
-  if (nominationDialog !== undefined) {
+  const dialog = nominationDialog ?? settingsDialog;
+  if (dialog !== undefined) {
     const requestClose = () => {
       if (state.isSubmitting) return;
-      if (state.isDirty) {
-        showConfirmAlert('放弃修改？', '还没有提交此次修改。', nominationDialog.onClose);
+      if (state.isDirty || settingsDialog?.rulesDirty === true) {
+        showConfirmAlert('放弃修改？', '还没有保存此次修改。', dialog.onClose);
       } else {
-        nominationDialog.onClose();
+        dialog.onClose();
       }
     };
     return (
-      <RoomDialog title={nominationDialog.title} onClose={requestClose} allowEscape footer={submit}>
+      <RoomDialog
+        title={nominationDialog?.title ?? '房间设置'}
+        onClose={requestClose}
+        allowEscape
+        footer={submit}
+      >
         <div className="config-dialog-tools">
           {templateControl}
           {reset}
@@ -224,6 +245,7 @@ export function ConfigScreen({
             />
           </RoomDialog>
         )}
+        {settingsDialog?.children}
       </RoomDialog>
     );
   }

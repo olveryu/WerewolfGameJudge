@@ -1,15 +1,10 @@
 .room-action-hand {
   display: grid;
-  grid-template-columns: minmax(var(--size-min-touch-target), var(--size-hand-card-width));
+  grid-template-columns: repeat(var(--hand-card-count), minmax(var(--size-min-touch-target), 1fr));
   width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
   margin-inline: auto;
-  padding: var(--space-medium) 0 max(var(--space-small), env(safe-area-inset-bottom));
-}
-
-.room-action-hand:has(> .room-action-card-cell + .room-action-card-cell) {
-  grid-template-columns:
-    repeat(calc(var(--hand-card-count) - 1), minmax(var(--size-min-touch-target), 1fr))
-    minmax(var(--size-min-touch-target), var(--size-hand-card-width));
+  padding: var(--space-medium) var(--space-tight)
+    max(var(--space-small), env(safe-area-inset-bottom));
 }
 
 .room-action-card-cell {
@@ -44,6 +39,9 @@
   line-height: var(--line-secondary);
   text-align: center;
   overflow-wrap: anywhere;
+  rotate: var(--hand-card-angle);
+  translate: 0 var(--hand-card-drop);
+  transform-origin: center bottom;
 }
 
 .room-action-card-cell .button[data-variant] {
@@ -56,14 +54,11 @@
   content: '';
   position: absolute;
   pointer-events: none;
-  transform: translateY(var(--hand-card-drop)) rotate(var(--hand-card-angle));
-  transform-origin: center bottom;
 }
 
 .room-action-card-cell .button::before {
   z-index: -2;
-  inset: 0 auto calc(-1 * var(--size-hand-card-extension)) 0;
-  width: var(--size-hand-card-width);
+  inset: 0 calc(-1 * var(--space-tight)) calc(-1 * var(--size-hand-card-extension));
   border: var(--border-width) solid var(--hand-ink);
   border-radius: var(--radius-small);
   background: var(--hand-paper);
@@ -72,9 +67,7 @@
 
 .room-action-card-cell .button::after {
   z-index: -1;
-  inset: var(--space-tight) auto calc(-1 * var(--size-hand-card-extension) + var(--space-tight))
-    var(--space-tight);
-  width: calc(var(--size-hand-card-width) - 2 * var(--space-tight));
+  inset: var(--space-tight) 0 calc(-1 * var(--size-hand-card-extension) + var(--space-tight));
   border: var(--border-width) solid currentColor;
   border-radius: var(--radius-small);
   opacity: 0.2;
@@ -113,7 +106,7 @@
 
 .room-action-card-cell .button > .bottom-action-pending {
   position: absolute;
-  top: calc(var(--hand-card-drop) - var(--space-small));
+  top: calc(-1 * var(--space-small));
   right: var(--space-tight);
   padding: 0 var(--space-tight);
   border-radius: var(--radius-small) var(--radius-small) 0 0;
@@ -124,17 +117,19 @@
   white-space: nowrap;
 }
 
-.room-action-card-cell .button:disabled,
-.room-action-card-cell .button[aria-disabled='true'] {
+.room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
+  --hand-ink: var(--color-text-secondary);
+  --hand-paper: var(--color-surface-hover);
   opacity: 1;
 }
 
-.room-action-card-cell .button:disabled::before,
-.room-action-card-cell .button[aria-disabled='true']::before {
+.room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true'])::before {
+  border-color: var(--hand-ink);
   border-style: dashed;
 }
 
 .room-action-card-cell .button:focus-visible {
+  rotate: 0deg;
   translate: 0 calc(-1 * var(--space-medium));
 }
 
@@ -144,12 +139,15 @@
   }
 
   .room-action-card-cell .button:not(:disabled):hover {
+    rotate: 0deg;
     translate: 0 calc(-1 * var(--space-medium));
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .room-action-card-cell .button {
-    transition: translate 160ms ease-out;
+    transition:
+      rotate 160ms ease-out,
+      translate 160ms ease-out;
   }
 }

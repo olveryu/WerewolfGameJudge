@@ -438,6 +438,9 @@ export function renderWerewolfRoom(
           <WerewolfRoomScreen
             room={mock.room}
             entryReason={null}
+            onOpenMusicSettings={() => {}}
+            onOpenRoomSettings={() => {}}
+            onOpenUserSettings={() => {}}
             session={mock.session}
             review={werewolfReview}
             audio={mock.audio}
@@ -503,7 +506,7 @@ async function pressSeatSelectionAction(
 
 export async function startSeatSelection(view: RenderResult): Promise<void> {
   await pressSeatSelectionAction(view, 'startSeatSelection');
-  expect(seatSelectionSubmitButton(view)).toBeDisabled();
+  expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
 }
 
 export async function cancelSeatSelection(view: RenderResult): Promise<void> {
@@ -887,7 +890,7 @@ export async function coverageChainMagicianSwap(
 
   await startSeatSelection(view);
   await tapSeat(view, firstTarget);
-  expect(seatSelectionSubmitButton(view)).toBeDisabled();
+  expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
   await tapSeat(view, secondTarget);
   expect(mock.submitAction).not.toHaveBeenCalled();
   await submitSeatSelection(view);

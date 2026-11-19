@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useParams } from 'react-router';
 
-import { LoadingScreen } from '@/components/LoadingScreen';
+import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Switch } from '@/components/Switch';
 import { useServices } from '@/contexts/ServiceContext';
@@ -18,7 +18,7 @@ import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { audioSettings } from '@/features/settings/audioSettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { type ClientGameAudioPreview, loadClientGameAudioPreviews } from '@/games/catalog';
-import type { AudioService } from '@/services/infra/AudioService';
+import type { AudioPreviewPlayback, AudioService } from '@/services/infra/AudioService';
 import { TESTIDS } from '@/testids';
 import { handleError } from '@/utils/errorPipeline';
 import { createLogger } from '@/utils/logger';
@@ -144,9 +144,15 @@ function TrackRow({
   );
 }
 
-function BgmSection({ audioService }: { readonly audioService: AudioService }) {
+function BgmSection({
+  audioService,
+  preview,
+}: {
+  readonly audioService: AudioService;
+  readonly preview: AudioPreviewPlayback;
+}) {
   const settings = useSyncExternalStore(audioSettings.subscribe, audioSettings.getSnapshot);
-  const isBgmPlaying = useSyncExternalStore(audioService.subscribeBgm, audioService.isBgmPlaying);
+  const isBgmPlaying = useSyncExternalStore(preview.subscribeBgm, preview.isBgmPlaying);
   const [requestedPreview, setRequestedPreview] = useState<BgmTrackEntry | null>(null);
   // The player owns playback truth: a preview it stopped (play() rejected) shows as stopped.
   const previewingTrack = isBgmPlaying ? requestedPreview : null;
@@ -155,13 +161,13 @@ function BgmSection({ audioService }: { readonly audioService: AudioService }) {
 
   useEffect(
     () => () => {
-      if (previewActiveRef.current) audioService.stopBgm();
+      if (previewActiveRef.current) preview.stopBgm();
     },
-    [audioService],
+    [preview],
   );
 
   const stopPreview = () => {
-    audioService.stopBgm();
+    preview.stopBgm();
     previewActiveRef.current = false;
     setRequestedPreview(null);
   };
@@ -181,11 +187,18 @@ function BgmSection({ audioService }: { readonly audioService: AudioService }) {
       stopPreview();
       return;
     }
-    // `startBgm` ignores the call while anything plays, so stop first.
-    audioService.stopBgm();
-    audioService.startBgm([track.url]);
-    previewActiveRef.current = true;
-    setRequestedPreview(track);
+    preview.stopBgm();
+    try {
+      preview.startBgm([track.url]);
+      previewActiveRef.current = true;
+      setRequestedPreview(track);
+    } catch (error) {
+      handleError(error, {
+        label: '试听背景音乐',
+        logger: musicSettingsLog,
+        alertMessage: '试听失败，请检查游戏音频状态和网络后重试',
+      });
+    }
   };
 
   const changeVolume = (value: number) => {
@@ -320,7 +333,12 @@ function GameAudioSection({
     void preview
       .play()
       .catch((error: unknown) => {
-        musicSettingsLog.warn('Game audio preview failed', { gameType: preview.gameType, error });
+        if (activePlaybackRef.current !== playback) return;
+        handleError(error, {
+          label: '试听游戏音效',
+          logger: musicSettingsLog,
+          alertMessage: '试听失败，请检查游戏音频状态和网络后重试',
+        });
       })
       .finally(() => {
         if (activePlaybackRef.current !== playback) return;
@@ -363,17 +381,36 @@ function GameAudioSection({
  * Music settings: background-music switch, track selection and preview, and the BGM and
  * game-audio volumes. Opened from a room (`/settings/music/:roomCode`), Back returns to that room.
  */
-export function MusicSettingsPage() {
-  const { roomCode } = useParams();
+export function MusicSettingsContent() {
   const { loadAudioService } = useServices();
   const audio = useQuery({
     queryKey: ['musicSettingsAudio'],
     queryFn: async () => {
       const audioService = await loadAudioService();
-      return { audioService, previews: await loadClientGameAudioPreviews(audioService) };
+      const preview = audioService.createPreviewPlayback();
+      return { audioService, preview, previews: await loadClientGameAudioPreviews(preview) };
     },
     staleTime: Infinity,
   });
+  if (audio.isPending) return <p className="settings-content">正在加载音频</p>;
+  if (audio.isError)
+    return (
+      <div className="settings-content">
+        <p role="alert">音频加载失败，请重试</p>
+        <Button onClick={() => void audio.refetch()}>重试</Button>
+      </div>
+    );
+  return (
+    <div className="settings-content">
+      <BgmSection audioService={audio.data.audioService} preview={audio.data.preview} />
+      <GameAudioSection audioService={audio.data.audioService} previews={audio.data.previews} />
+    </div>
+  );
+}
+
+/** Music settings standalone page, also available while inside a room. */
+export function MusicSettingsPage() {
+  const { roomCode } = useParams();
   return (
     <div className="settings-page">
       <ScreenHeader
@@ -381,16 +418,9 @@ export function MusicSettingsPage() {
         parentPath={roomCode === undefined ? '/' : roomPath(roomCode)}
         backTestId={TESTIDS.musicSettingsBack}
       />
-      {audio.isPending ? (
-        <LoadingScreen message="正在加载音频" />
-      ) : audio.isError ? (
-        <LoadingScreen error="音频加载失败，请重试" onRetry={() => void audio.refetch()} />
-      ) : (
-        <main className="settings-content">
-          <BgmSection audioService={audio.data.audioService} />
-          <GameAudioSection audioService={audio.data.audioService} previews={audio.data.previews} />
-        </main>
-      )}
+      <main>
+        <MusicSettingsContent />
+      </main>
     </div>
   );
 }

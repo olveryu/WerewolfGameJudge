@@ -167,7 +167,8 @@ function WerewolfRoomContent(
   return (
     <RoomShell
       model={shellModel}
-      showPlayerHand={night.seatSelection === null}
+      showPlayerHand
+      isSelecting={night.seatSelection !== null}
       mainEntries={
         isSetup
           ? [
@@ -220,15 +221,17 @@ function WerewolfRoomContent(
             />
           ),
         beforeSeatBoard: (
-          <RoomGameSummary title="狼人杀" playerCount={seatCount} guide={null}>
+          <>
             {!useConfigurationDialog && (
-              <BoardInfoContent
-                sections={boardSections}
-                onRolePress={openSkillPreview}
-                footer={null}
-              />
+              <RoomGameSummary title="狼人杀" playerCount={seatCount} guide={null}>
+                <BoardInfoContent
+                  sections={boardSections}
+                  onRolePress={openSkillPreview}
+                  footer={null}
+                />
+              </RoomGameSummary>
             )}
-          </RoomGameSummary>
+          </>
         ),
         afterSeatBoard: null,
         sideInspector:

@@ -26,13 +26,7 @@ import {
   type ResolvedRoleRevealAnimation,
 } from '@game-judge/game-engine/product/rewards';
 import { type ReactNode, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  musicSettingsPath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import { useLastActionToast } from '@/features/room/controllers/useLastActionToast';
@@ -199,7 +193,6 @@ export function useWerewolfRoomState(
 ): WerewolfRoomScreenState {
   const { session, room, entryController, audio } = props;
   const roomCode = room.roomCode;
-  const navigate = useNavigate();
   const ready = useReadyRoomSession(session, getWerewolfRoomCommandFailureMessage);
   const { user, state, revision, submit } = ready;
   useRoomImagePreload(getBoardRolePortraits(state.templateRoles));
@@ -255,7 +248,7 @@ export function useWerewolfRoomState(
     mySeat,
     hasOccupiedSeats: Object.values(state.roster).some((occupant) => occupant != null),
     ...actions,
-    configureGame: () => void navigate(gameConfigEditPath('werewolf', roomCode)),
+    configureGame: props.onOpenRoomSettings,
     takeOverBots: bots.capability,
     shareRoom: share.open,
   });
@@ -434,7 +427,7 @@ export function useWerewolfRoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     seatConfirmation: createRoomSeatConfirmationModel(seatController),
     profile: createRoomProfileCardModel({
       selection: profile.selection,
@@ -458,7 +451,7 @@ export function useWerewolfRoomState(
     onMarkAllBotsGroupConfirmed: hostFlow.markAllBotsGroupConfirmed,
     onMusicSettings: () => {
       bgm.stopBgm();
-      void navigate(musicSettingsPath(roomCode));
+      props.onOpenMusicSettings();
     },
     review: review.entry,
     onGrantReviewAccess: modals.openGrant,

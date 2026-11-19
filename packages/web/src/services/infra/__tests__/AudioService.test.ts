@@ -1,7 +1,7 @@
 import { BgmPlayer } from '../audio/BgmPlayer';
 import { WebAudioStrategy } from '../audio/WebAudioStrategy';
 import { setupWebAudioUnlock } from '../audio/webAudioUnlock';
-import { AudioService } from '../AudioService';
+import { AudioPreviewUnavailableError, AudioService } from '../AudioService';
 
 vi.mock('@/utils/logger', () => ({
   audioLog: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -15,6 +15,8 @@ vi.mock('../audio/BgmPlayer', () => ({
       pause = vi.fn();
       resume = vi.fn();
       setVolume = vi.fn();
+      isPlaying = vi.fn(() => false);
+      subscribe = vi.fn(() => () => undefined);
     },
   ),
 }));
@@ -105,4 +107,53 @@ it('delegates background music and volumes', () => {
   expect(bgm.setVolume).toHaveBeenCalledWith(0.2);
   expect(strategy.setVolume).toHaveBeenCalledWith(0.7);
   expect(bgm.stop).toHaveBeenCalledTimes(1);
+});
+
+it('does not let closing a preempted preview stop game narration', async () => {
+  const service = new AudioService();
+  const strategy = latestStrategy();
+  const preview = service.createPreviewPlayback();
+  const pending = new Promise<void>(() => undefined);
+  strategy.play.mockReturnValue(pending);
+  void preview.playClip({ key: 'preview', url: '/preview.mp3' });
+  void service.playClip({ key: 'game', url: '/game.mp3' });
+
+  preview.stop();
+
+  expect(strategy.stop).not.toHaveBeenCalled();
+  await expect(preview.playClip({ key: 'preview', url: '/preview.mp3' })).rejects.toBeInstanceOf(
+    AudioPreviewUnavailableError,
+  );
+  expect(() => preview.startBgm(['/preview.m4a'])).toThrow(AudioPreviewUnavailableError);
+});
+
+it('hands preview BGM to the game without letting the preview stop it afterwards', () => {
+  const service = new AudioService();
+  const bgm = latestBgm();
+  const preview = service.createPreviewPlayback();
+  preview.startBgm(['/preview.m4a']);
+  bgm.isPlaying.mockReturnValue(true);
+  expect(preview.isBgmPlaying()).toBe(true);
+  expect(service.isBgmPlaying()).toBe(false);
+
+  service.startBgm(['/game.m4a']);
+  preview.stopBgm();
+
+  expect(bgm.stop).toHaveBeenCalledTimes(1);
+  expect(bgm.start).toHaveBeenLastCalledWith(['/game.m4a']);
+  expect(preview.isBgmPlaying()).toBe(false);
+  expect(service.isBgmPlaying()).toBe(true);
+  expect(() => preview.startBgm(['/preview.m4a'])).toThrow(AudioPreviewUnavailableError);
+});
+
+it('stops preview BGM when game narration begins', async () => {
+  const service = new AudioService();
+  const bgm = latestBgm();
+  const preview = service.createPreviewPlayback();
+  preview.startBgm(['/preview.m4a']);
+
+  await service.playClip({ key: 'game', url: '/game.mp3' });
+
+  expect(bgm.stop).toHaveBeenCalledOnce();
+  expect(latestStrategy().play).toHaveBeenCalledWith('/game.mp3', 'game');
 });

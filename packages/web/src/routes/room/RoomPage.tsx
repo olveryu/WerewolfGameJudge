@@ -11,6 +11,7 @@ import { useLocation, useNavigate, useParams, useRouteError } from 'react-router
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
 import { RequireUser } from '@/features/auth/RequireUser';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
 import type { RoomEntryReason } from '@/features/room/model/RoomUiModule';
 import {
@@ -18,6 +19,8 @@ import {
   type RoomLocationState,
 } from '@/features/room/navigation/roomFlowNavigation';
 import { useClientGameModule } from '@/games/clientModules';
+import { MusicSettingsContent } from '@/routes/settings/MusicSettingsPage';
+import { SettingsContent } from '@/routes/settings/SettingsPage';
 import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
@@ -36,6 +39,9 @@ function GameRoom({ room }: { readonly room: RoomRecord }) {
   const location = useLocation();
   const navigate = useNavigate();
   const module = useClientGameModule(room.gameType);
+  const [isMusicSettingsOpen, setIsMusicSettingsOpen] = useState(false);
+  const [isRoomSettingsOpen, setIsRoomSettingsOpen] = useState(false);
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [entryReason] = useState<RoomEntryReason>(() =>
     isRoomLocationState(location.state) ? 'created' : null,
   );
@@ -45,7 +51,43 @@ function GameRoom({ room }: { readonly room: RoomRecord }) {
     if (hasCreationState) void navigate(location.pathname, { replace: true, state: null });
   }, [hasCreationState, location.pathname, navigate]);
   const RoomScreen = module.roomScreen;
-  return <RoomScreen room={room} entryReason={entryReason} />;
+  const RoomConfigDialog = module.roomConfigDialog;
+  return (
+    <>
+      <RoomScreen
+        room={room}
+        entryReason={entryReason}
+        onOpenMusicSettings={() => setIsMusicSettingsOpen(true)}
+        onOpenRoomSettings={() => setIsRoomSettingsOpen(true)}
+        onOpenUserSettings={() => setIsUserSettingsOpen(true)}
+      />
+      {isRoomSettingsOpen && (
+        <RoomConfigDialog roomCode={room.roomCode} onClose={() => setIsRoomSettingsOpen(false)} />
+      )}
+      {isMusicSettingsOpen && (
+        <RoomDialog
+          title="音乐设置"
+          onClose={() => setIsMusicSettingsOpen(false)}
+          footer={null}
+          isContentFlush
+          allowEscape
+        >
+          <MusicSettingsContent />
+        </RoomDialog>
+      )}
+      {isUserSettingsOpen && (
+        <RoomDialog
+          title="用户设置"
+          onClose={() => setIsUserSettingsOpen(false)}
+          footer={null}
+          isContentFlush
+          allowEscape
+        >
+          <SettingsContent />
+        </RoomDialog>
+      )}
+    </>
+  );
 }
 
 function RoomMetadataResolver({ roomCode, userId }: { roomCode: string; userId: string }) {

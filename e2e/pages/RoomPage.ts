@@ -163,12 +163,13 @@ export class RoomPage {
 
   /** Open the shared actions surface and return its visible panel. */
   async openHostManagement(): Promise<Locator> {
+    const panel = this.page.getByTestId(TESTIDS.roomHostManagementPanel);
+    if (await panel.isVisible()) return panel;
     const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
     const stageHostManagementEntry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
     const entry = moreActionsEntry.or(stageHostManagementEntry).first();
     await expect(entry).toBeVisible({ timeout: 15_000 });
     await entry.click();
-    const panel = this.page.getByTestId(TESTIDS.roomHostManagementPanel);
     await expect(panel).toBeVisible();
     return panel;
   }
@@ -236,16 +237,14 @@ export class RoomPage {
     const action = panel.getByTestId(actionTestID);
     await expect(action).toBeVisible({ timeout: 15_000 });
     await action.click();
-    await expect(panel).not.toBeVisible();
   }
 
-  /** Run an enabled Host action and wait for the management surface to close. */
+  /** Run an enabled Host action without changing the management surface. */
   async clickHostManagementAction(actionTestID: string): Promise<void> {
     const panel = await this.openHostManagement();
     const action = panel.getByTestId(actionTestID);
     await expect(action).toBeVisible({ timeout: 15_000 });
     await action.click();
-    await expect(panel).not.toBeVisible();
   }
 
   /** Confirm the dialog a Host action opens: wait for its title, then press 确定. */
@@ -287,7 +286,6 @@ export class RoomPage {
       return false;
     }
     await action.click();
-    await expect(panel).not.toBeVisible();
     return true;
   }
 
@@ -298,6 +296,9 @@ export class RoomPage {
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
     await this.clickHostManagementActionAndConfirm(TESTIDS.assignRolesButton, '分配角色？');
+    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
+      await this.closeHostManagement();
+    }
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
@@ -344,7 +345,14 @@ export class RoomPage {
   async startGame() {
     // All players must complete viewRole before this button appears —
     // server-authoritative broadcast propagation can take several seconds.
+    const header = this.page.getByTestId(TESTIDS.roomHeader);
+    const previousPhase = await header.getAttribute('data-phase');
+    if (previousPhase === null) throw new Error('Room header has no current phase');
     await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
+    await expect(header).not.toHaveAttribute('data-phase', previousPhase, { timeout: 15_000 });
+    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
+      await this.closeHostManagement();
+    }
   }
 
   /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */

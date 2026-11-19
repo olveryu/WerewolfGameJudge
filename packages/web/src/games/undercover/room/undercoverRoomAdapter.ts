@@ -45,6 +45,7 @@ import {
 } from '@/features/room/model/hostManagementActions';
 import {
   createRoomSetupCapabilities,
+  createShareRoomCapability,
   createViewProfilesCapability,
   type RoomCapabilities,
   type RoomCapability,
@@ -103,6 +104,13 @@ export function createUndercoverRoomCapabilities(
       isRoomFull:
         getUndercoverOccupiedSeatCount(input.state) === input.state.config.numberOfPlayers,
     }),
+    canShareRoom: createShareRoomCapability(
+      input.state.phase === 'lobby' ||
+        input.state.phase === 'preparing' ||
+        input.state.phase === 'preparationFailed' ||
+        input.state.phase === 'viewing',
+      input.shareRoom,
+    ),
     canViewProfiles: createViewProfilesCapability(true, input.openProfile),
     canTakeOverBots: input.takeOverBots,
   };

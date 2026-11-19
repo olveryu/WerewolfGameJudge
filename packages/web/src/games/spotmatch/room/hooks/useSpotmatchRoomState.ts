@@ -12,9 +12,7 @@ import {
   type SpotmatchViewModel,
 } from '@game-judge/game-engine/games/spotmatch/public';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
 
-import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -74,7 +72,6 @@ export function useSpotmatchRoomState(
   },
 ): SpotmatchRoomScreenState {
   const { session, room, entryController } = props;
-  const navigate = useNavigate();
   const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
     session,
     getSpotmatchRoomCommandFailureMessage,
@@ -115,7 +112,7 @@ export function useSpotmatchRoomState(
     supportsBots: true,
     hasOccupiedSeats: getSpotmatchOccupiedSeatCount(state) > 0,
     isRoomFull: getSpotmatchOccupiedSeatCount(state) === state.config.numberOfPlayers,
-    configureGame: () => void navigate(gameConfigEditPath('spotmatch', room.roomCode)),
+    configureGame: props.onOpenRoomSettings,
     shareRoom: share.open,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '一眼成对战绩', '本游戏局数');
@@ -159,7 +156,7 @@ export function useSpotmatchRoomState(
     onTitleLongPress: titleActions.handleTitleLongPress,
     user,
     gachaStatus,
-    onUserActionPress: () => void navigate(settingsPath(room.roomCode)),
+    onUserActionPress: props.onOpenUserSettings,
     connection: entryController.connection,
     state: presentationState,
     revision,

@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router';
 import { useAuthContext } from '@/contexts/AuthContext';
 import type { StandardConfigRouteParams } from '@/features/navigation/model/standardRouteParsers';
 import { useRoomConfigSubmission } from '@/features/room/controllers/useRoomConfigSubmission';
+import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import {
   getRememberedGameConfig,
   setRememberedGameConfigField,
@@ -51,6 +52,7 @@ interface UseGameConfigScreenStateParams<
   readonly definition: GameConfigScreenDefinition<TGameType, TState, TCommand, TConfig>;
   readonly session: RoomLink<TState, TCommand>;
   readonly params: StandardConfigRouteParams<TGameType>;
+  readonly onEditSaved?: () => void;
 }
 
 function readInitialConfig<
@@ -91,6 +93,7 @@ export function useGameConfigScreenState<
   definition,
   session,
   params,
+  onEditSaved,
 }: UseGameConfigScreenStateParams<TGameType, TState, TCommand, TConfig>) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -98,6 +101,19 @@ export function useGameConfigScreenState<
   const [config, setConfig] = useState<TConfig>(() =>
     readInitialConfig(gameType, definition, session, params),
   );
+  const [initialConfig] = useState(config);
+  const roomSnapshot = useRoomLinkSnapshot(session);
+  const canEditSnapshot = useCallback(
+    (snapshot: typeof roomSnapshot) =>
+      params.mode !== 'edit' ||
+      (snapshot.phase === 'ready' &&
+        snapshot.identity.room.roomCode === params.roomCode &&
+        user !== null &&
+        snapshot.room.state.hostUserId === user.id &&
+        definition.readConfig(snapshot.room.state) !== null),
+    [definition, params, user],
+  );
+  const isEditAvailable = canEditSnapshot(roomSnapshot);
   const [countDrafts, setCountDrafts] = useState<CountDrafts>({});
   const gate = definition.useSubmitGate?.(config);
 
@@ -153,6 +169,7 @@ export function useGameConfigScreenState<
     navigate,
     getFailureMessage: definition.getFailureMessage,
     creationLabel: definition.creationLabel,
+    ...(onEditSaved === undefined ? {} : { onEditSaved }),
     createRequest: () => {
       if (user === null) {
         throw new Error(`[FAIL-FAST] ${gameType} room creation requires an authenticated user`);
@@ -174,6 +191,10 @@ export function useGameConfigScreenState<
   });
 
   const submit = useCallback(() => {
+    if (!canEditSnapshot(session.getSnapshot())) {
+      showErrorAlert('无法保存设置', '房间状态或权限已变化，请返回房间查看。');
+      return;
+    }
     if (issue !== null) {
       showErrorAlert('设置有误', issue.message);
       return;
@@ -183,7 +204,7 @@ export function useGameConfigScreenState<
       return;
     }
     submission.submit();
-  }, [gate, issue, submission]);
+  }, [canEditSnapshot, gate, issue, session, submission]);
 
   return {
     config,
@@ -191,7 +212,11 @@ export function useGameConfigScreenState<
     issue,
     isEditMode: params.mode === 'edit',
     isSubmitting: submission.isSubmitting,
-    canSubmit: issue === null && (gate === undefined || gate.isReady),
+    canSubmit: isEditAvailable && issue === null && (gate === undefined || gate.isReady),
+    isEditAvailable,
+    isDirty:
+      JSON.stringify(config) !== JSON.stringify(initialConfig) ||
+      Object.keys(countDrafts).length > 0,
     setFieldValue,
     setCountDraft,
     stepCount,

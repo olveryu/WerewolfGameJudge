@@ -1,5 +1,5 @@
 /** Game-owned audio preview offered on the music settings page. */
-import type { AudioService } from '@/services/infra/AudioService';
+import type { AudioPreviewPlayback } from '@/services/infra/AudioService';
 
 export interface GameAudioPreview {
   readonly label: string;
@@ -8,4 +8,4 @@ export interface GameAudioPreview {
 }
 
 /** A game's lazily loaded preview entry, bound to the page's audio service. */
-export type GameAudioPreviewFactory = (audioService: AudioService) => GameAudioPreview;
+export type GameAudioPreviewFactory = (audioService: AudioPreviewPlayback) => GameAudioPreview;
