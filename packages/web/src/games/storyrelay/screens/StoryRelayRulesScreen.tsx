@@ -10,11 +10,17 @@ import { GameGuide, GameGuideSection, GameNotice, RuleItem } from '@/components/
 
 /** Presents ordinary text relay rules and manual bot responsibilities. */
 export function StoryRelayRulesScreen() {
+  return <StoryRelayRules />;
+}
+
+/** Reuses the same copy in the room and on the standalone page. */
+export function StoryRelayRules({ embedded = false }: { readonly embedded?: boolean }) {
   return (
     <GameGuide
       title="轮流讲故事玩法"
       heading="把故事交给下一个人"
       intro="每人写一个开头，再接着上一段续写。等所有人写完，一起揭晓故事变成了什么。"
+      embedded={embedded}
     >
       <GameGuideSection title="从开头到揭晓">
         <RuleItem

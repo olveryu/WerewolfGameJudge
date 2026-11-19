@@ -1,10 +1,12 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -12,7 +14,9 @@ import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { StoryRelayStatsPanel } from '@/games/storyrelay/components/StoryRelayStatsPanel';
 import type { StoryRelayRoomSession } from '@/games/storyrelay/model/StoryRelayRoomSession';
+import { TESTIDS } from '@/testids';
 
+import { StoryRelayRules } from '../screens/StoryRelayRulesScreen';
 import { StoryRelayStage } from './components/StoryRelayStage';
 import { useStoryRelayRoomState } from './hooks/useStoryRelayRoomState';
 import { createStoryRelayRoomSummarySettings } from './storyRelayRoomAdapter';
@@ -41,6 +45,12 @@ function StoryRelayRoomContent(
 ) {
   const screen = useStoryRelayRoomState(props);
   const config = screen.state.config;
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const isLobby = screen.state.phase === 'lobby';
+  const hasStageMenu = screen.stageHud !== null || screen.state.phase === 'gallery';
+  const openGuide = () => setInformation('guide');
+  const openConfiguration = () => setInformation('configuration');
+  const settings = createStoryRelayRoomSummarySettings(config);
   const stage = (
     <StoryRelayStage
       state={screen.state}
@@ -59,8 +69,16 @@ function StoryRelayRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
+      stageMenu={
+        hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
+      }
+      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+      manualEntries={[
+        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('storyrelay') },
+      ]}
       content={
-        screen.state.phase === 'lobby'
+        isLobby
           ? {
               kind: 'seats',
               contextHeader: null,
@@ -71,8 +89,8 @@ function StoryRelayRoomContent(
                 <RoomGameSummary
                   title="轮流讲故事"
                   playerCount={config.numberOfPlayers}
-                  settings={createStoryRelayRoomSummarySettings(config)}
-                  guide={{ onPress: screen.openRules, label: '查看轮流讲故事玩法' }}
+                  settings={settings}
+                  guide={null}
                 />
               ),
             }
@@ -85,7 +103,32 @@ function StoryRelayRoomContent(
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
         <StoryRelayStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
-      gameOverlays={screen.reviewOverlay}
+      gameOverlays={
+        <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="轮流讲故事玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <StoryRelayRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`轮流讲故事（${config.numberOfPlayers}人）`}</p>
+              <RoomGameSettings settings={settings} />
+            </RoomDialog>
+          )}
+          {screen.reviewOverlay}
+        </>
+      }
     />
   );
 }

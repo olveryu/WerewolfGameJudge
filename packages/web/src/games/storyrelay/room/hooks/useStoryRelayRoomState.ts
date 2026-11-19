@@ -10,11 +10,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -64,7 +60,6 @@ export interface StoryRelayRoomScreenState {
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<StoryRelayState, StoryRelayCommand>['submit'];
   readonly isSubmitting: boolean;
-  readonly openRules: () => void;
   /** 本局复盘的对话框 / 导出舞台，挂在房间的 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
   /** 在某一篇故事所在页打开本局复盘（回看「分享本篇故事」）。 */
@@ -195,7 +190,6 @@ export function useStoryRelayRoomState(
     isHost,
     submit,
     isSubmitting,
-    openRules: () => void navigate(gameGuidePath('storyrelay', room.roomCode)),
     reviewOverlay: review.overlay,
     openReview: review.open,
   };
