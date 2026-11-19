@@ -40,4 +40,20 @@ describe('Werewolf room configuration', () => {
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
+
+  it('switches the host and player hands in the same bottom panel', async () => {
+    const view = await mountRoomFor({ ...actorStep('seerCheck', 'seer', 0), isHost: true });
+    const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
+    await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
+
+    expect(bottom.getByRole('region', { name: '主持管理' })).toBeVisible();
+    expect(bottom.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
+    const back = bottom.getByRole('button', { name: '返回' });
+    expect(back).toHaveFocus();
+    await click(back);
+
+    expect(bottom.queryByRole('region', { name: '主持管理' })).not.toBeInTheDocument();
+    expect(bottom.getByRole('button', { name: '本局配置' })).toBeVisible();
+    expect(bottom.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveFocus();
+  });
 });

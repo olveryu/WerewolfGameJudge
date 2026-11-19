@@ -260,7 +260,9 @@ private results stay behind explicitly authorized actions and overlays.
   replacement for the user's player or spectator actions. `stage` content is the one
   exception: its status lives in the information bar and its actions in the game's dock.
 - Werewolf presents all model-supplied player actions directly in its hand, in model order.
-  The host entry opens the existing management surface without duplicating those player actions.
+  The host entry replaces the hand in place, keeping the task and management actions sourced
+  from the existing host model. Returning restores the player hand. Only a ready task or an
+  enabled choice that is not loading gets the task marker on the host entry.
   During night seat selection the existing focused controls take over.
 - A seat room may supply a public configuration entry in the bottom row. This opens a read-only
   dialog and is not a player or host command. The game controls its availability; Werewolf
