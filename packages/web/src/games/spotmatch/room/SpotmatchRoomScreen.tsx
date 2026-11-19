@@ -9,8 +9,9 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomStageHudRenderer } from '@/features/room/components/RoomStageHud';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -18,9 +19,11 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SpotmatchRoomSession } from '@/games/spotmatch/model/SpotmatchRoomSession';
+import { TESTIDS } from '@/testids';
 
 import { SpotmatchStatsPanel } from '../components/SpotmatchStatsPanel';
 import { SPOTMATCH_SYMBOLS } from '../model/symbols';
+import { SpotmatchRules } from '../screens/SpotmatchRulesScreen';
 import { useSpotmatchCooldown } from './hooks/useSpotmatchCooldown';
 import {
   type SpotmatchRoomScreenState,
@@ -64,6 +67,7 @@ function SpotmatchRoomContent(
   const screen = useSpotmatchRoomState(props);
   const [assetsReady, setAssetsReady] = useState(false);
   const [assetError, setAssetError] = useState(false);
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
   useEffect(() => {
     let active = true;
     void Promise.all(
@@ -86,9 +90,21 @@ function SpotmatchRoomContent(
   }, []);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
+  const isPlaying = screen.state.phase.kind === 'playing' || screen.isShowingFinalSuccess;
+  const openGuide = () => setInformation('guide');
+  const openConfiguration = () => setInformation('configuration');
+  const settings = createSpotmatchRoomSummarySettings(config);
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
+      stageMenu={
+        isPlaying ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
+      }
+      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+      manualEntries={[
+        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('spotmatch') },
+      ]}
       content={
         isLobby
           ? {
@@ -101,12 +117,12 @@ function SpotmatchRoomContent(
                 <RoomGameSummary
                   title="一眼成对"
                   playerCount={config.numberOfPlayers}
-                  settings={createSpotmatchRoomSummarySettings(config)}
-                  guide={{ onPress: screen.openRules, label: '查看一眼成对玩法' }}
+                  settings={settings}
+                  guide={null}
                 />
               ),
             }
-          : screen.state.phase.kind === 'playing' || screen.isShowingFinalSuccess
+          : isPlaying
             ? {
                 kind: 'stage',
                 hud: {
@@ -158,7 +174,32 @@ function SpotmatchRoomContent(
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
         <SpotmatchStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
-      gameOverlays={screen.reviewOverlay}
+      gameOverlays={
+        <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="一眼成对玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <SpotmatchRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`一眼成对（${config.numberOfPlayers}人）`}</p>
+              <RoomGameSettings settings={settings} />
+            </RoomDialog>
+          )}
+          {screen.reviewOverlay}
+        </>
+      }
     />
   );
 }

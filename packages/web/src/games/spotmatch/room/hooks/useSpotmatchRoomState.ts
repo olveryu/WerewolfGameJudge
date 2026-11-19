@@ -14,11 +14,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -65,7 +61,6 @@ export interface SpotmatchRoomScreenState {
   readonly isSubmitting: boolean;
   readonly isShowingFinalSuccess: boolean;
   readonly session: SpotmatchRoomSession;
-  readonly openRules: () => void;
   /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
 }
@@ -197,7 +192,6 @@ export function useSpotmatchRoomState(
     isSubmitting,
     isShowingFinalSuccess,
     session,
-    openRules: () => void navigate(gameGuidePath('spotmatch', room.roomCode)),
     reviewOverlay: review.overlay,
   };
 }
