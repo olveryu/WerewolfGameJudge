@@ -178,6 +178,34 @@ describe('Spotmatch finite projective plane and dynamic play', () => {
 });
 
 describe('Spotmatch natural completion, privacy and settlement', () => {
+  it('restarts atomically without rewarding an unfinished game and rejects outdated confirmations', () => {
+    const session = game(2, 0, true, 5);
+    const restart = {
+      type: 'spotmatch.game.restart' as const,
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing' as const,
+    };
+    const { roster, config } = session.state;
+    expect(session.decide(restart, 'u1').kind).toBe('reject');
+    session.send(claim(session.state, 0));
+    session.send(restart);
+    expect(session.state).toMatchObject({ phase: { kind: 'lobby' }, round: null, roster, config });
+    expect(session.effects).toEqual([]);
+    session.send({ type: 'spotmatch.game.begin' });
+    session.expectReject(restart, SPOTMATCH_REASONS.staleRestart);
+
+    const priorPlayingRestart = { ...restart, gameSequence: session.state.gameSequence };
+    for (let index = 0; index < 5; index++) {
+      session.send(claim(session.state, 0));
+      session.advance(SPOTMATCH_SUCCESS_PAUSE_MS);
+    }
+    session.expectReject(priorPlayingRestart, SPOTMATCH_REASONS.staleRestart);
+    expect(session.effects).toHaveLength(1);
+    session.send({ ...priorPlayingRestart, expectedPhase: 'ended' });
+    expect(session.state.phase.kind).toBe('lobby');
+    expect(session.effects).toHaveLength(1);
+  });
+
   it.each([5, 8, 10, 15])(
     'ends exactly after the configured %i cards, without a timer',
     (cardsPerPlayer) => {

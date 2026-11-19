@@ -122,6 +122,52 @@
   overscroll-behavior: contain;
 }
 
+.room-board-information {
+  display: grid;
+  flex-shrink: 0;
+  gap: var(--space-small);
+  padding: var(--space-medium);
+  background: var(--color-surface);
+}
+
+.room-board-status-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-tight) var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-background);
+}
+
+.room-board-phase {
+  margin: 0;
+  padding: 0 var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a10);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
+.room-board-status-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-bold);
+}
+
+.room-board-status-detail {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+}
+
 .room-workspace {
   flex: 1;
   min-height: 0;

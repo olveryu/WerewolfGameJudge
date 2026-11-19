@@ -9,13 +9,8 @@
  * projection (the full entry — Pictionary's task projection is the
  * privacy boundary and shows exactly the one previous entry), its
  * reservation gate (a reserved drawing already claims the seat's
- * submission), and its completion point — Pictionary settles in the
- * same decision that lands the final step's last entry, from the
- * frozen participant list, rewarding seats that authored a drawing
- * or a non-blank text. Entries land through this machine (text and
- * empty submissions) or through Pictionary's own drawing-commit
- * decision; both paths fire the one settlement assembled here. The
- * gallery is display only: entering it settles nothing.
+ * submission). Settlement is emitted when the gallery begins, from
+ * the frozen participants who authored a drawing or non-blank text.
  *
  * Pictionary persists its gallery position two-dimensionally
  * ({chainIndex, entryIndex}); the machine speaks a linear position.
@@ -172,10 +167,7 @@ function createPictionaryRelayKit(
       submissionId: null,
     }),
     roundCompleted: () => {
-      // Pictionary has no round-completed event: round completion is
-      // derived from the step index, and the settlement fires from
-      // the task hooks (and the drawing-commit decision), so this
-      // factory is unreachable.
+      // Pictionary derives completion from the step index.
       throw new Error('Pictionary has no round-completed event');
     },
     completionEffect: (payload) => ({ type: 'pictionary.game.completed', payload }),
@@ -187,22 +179,14 @@ function createPictionaryRelayKit(
  * Assembles Pictionary's one settlement payload for a completed
  * round: the frozen participant list supplies the humans (bot seats
  * carry no user id and drop out), narrowed to seats that authored a
- * drawing or a non-blank text across the round's chains — the entry
- * appended by the completing decision included, as it is not in the
- * chains yet. The participant list is frozen in rotation order; the
- * shared builder's input contract is seat order, so the humans are
- * sorted by seat here. Both completion paths (the shared task
- * machine's round-completed hook and the drawing-commit decision)
- * build the payload here so the settlement content exists exactly
- * once.
+ * drawing or a non-blank text across the round's chains.
  */
 function buildPictionaryCompletionPayload(
   state: Pick<PictionaryState, 'roundId' | 'chains' | 'participants'>,
-  appendedEntries: readonly PictionaryEntry[],
   nowMs: number,
 ): PictionaryCompletionPayload | null {
   if (state.roundId === null) throw new Error('[FAIL-FAST] Completion requires a round');
-  const entries = [...state.chains.flatMap((chain) => chain.entries), ...appendedEntries];
+  const entries = state.chains.flatMap((chain) => chain.entries);
   const countsBySeat = new Map<number, { textSubmissions: number; drawingSubmissions: number }>();
   for (const entry of entries) {
     if (entry.kind !== 'drawing' && !(entry.kind === 'text' && entry.text.trim().length > 0)) {
@@ -291,17 +275,7 @@ function createPictionaryTaskHooks(
             authorSeat: seat,
             expectedKind: getPictionaryExpectedKind(task.stepIndex),
           },
-    onRoundCompleted: (kit, state, appended, nowMs) => {
-      const payload = buildPictionaryCompletionPayload(
-        state,
-        appended.map((item) => item.entry),
-        nowMs,
-      );
-      return {
-        events: [],
-        effects: payload === null ? [] : [kit.completionEffect(payload)],
-      };
-    },
+    onRoundCompleted: () => ({ events: [], effects: [] }),
   };
 }
 
@@ -365,7 +339,7 @@ export function resolvePictionaryDrawingGate(
  * Lands an entry built outside the task machine (a drawing commit:
  * an upload callback keyed by submission id) through the shared
  * step tail — step resolution, the transition event, and the final
- * step's settlement fire exactly as a machine submission's do. The
+ * step's transition fire exactly as a machine submission's do. The
  * caller supplies its own submitted event, which carries the
  * submission id the machine's factory would write as null.
  */
@@ -411,9 +385,7 @@ export function controlPictionaryGallery(
 
 /**
  * Pictionary transition continuation: the last step's expiry enters
- * the gallery — display only, the round already settled when its
- * final entry landed (see header); earlier steps open the next
- * answering step.
+ * the gallery and settles rewards; earlier steps open the next answering step.
  */
 const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
   PictionaryEntry,
@@ -458,6 +430,9 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
             stepIndex: state.stepIndex,
             deadlineAt,
           });
+    const completionPayload = state.revealSettlementPending
+      ? buildPictionaryCompletionPayload(state, nowMs)
+      : null;
     return kit.commit(
       [
         kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {
@@ -469,7 +444,10 @@ const PICTIONARY_EXPIRE_HOOKS: RelayExpireHooks<
           revealDurationMs,
         }),
       ],
-      settleEffect === null ? [] : [settleEffect],
+      [
+        ...(settleEffect === null ? [] : [settleEffect]),
+        ...(completionPayload === null ? [] : [kit.completionEffect(completionPayload)]),
+      ],
     );
   },
 };

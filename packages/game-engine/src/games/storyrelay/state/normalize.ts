@@ -53,6 +53,13 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
     state.readySeats.every(isSeat) && new Set(state.readySeats).size === state.readySeats.length,
     'readiness',
   );
+  invariant(
+    !state.revealSettlementPending ||
+      state.phase === 'answering' ||
+      state.phase === 'settling' ||
+      state.phase === 'transition',
+    'settlement pending outside round',
+  );
   if (state.phase === 'lobby') {
     invariant(
       state.roundId === null &&

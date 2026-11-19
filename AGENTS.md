@@ -6,6 +6,10 @@ Global rules for this repository. Area rules live in the nested files listed at 
 
 For every change request in this repository, use a separate Git worktree visible in the session's VS Code workspace and Changes view. Reuse it for that request's follow-ups; leave other chats and worktrees unchanged.
 
+## Design interviews
+
+During each grill-me interview, record the user's confirmed decisions in the relevant design document as they are made; update an existing document or create one if none fits. Before implementation, consolidate the conclusions and distinguish confirmed decisions, open questions, and implementation status; never present a proposal as the user's decision.
+
 ## Project snapshot
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.
@@ -20,7 +24,7 @@ Layout: a pnpm workspace with four parts — the root (cross-package contracts i
 
 Games (9): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler.
 
-State versions: werewolf 17, avalon 11, fibking 8, pictionary 10, undercover 5, storyrelay 3, drawguess 5, spotmatch 2, secrethitler 3.
+State versions: werewolf 18, avalon 11, fibking 8, pictionary 11, undercover 5, storyrelay 4, drawguess 5, spotmatch 2, secrethitler 3.
 Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
 
 The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.

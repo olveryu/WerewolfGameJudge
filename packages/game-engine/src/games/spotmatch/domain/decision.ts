@@ -18,6 +18,7 @@ export const SPOTMATCH_REASONS = {
   notHostReturnToLobby: 'spotmatch_not_host_return_to_lobby',
   occupied: 'spotmatch_occupied_seat_out_of_range',
   stale: 'spotmatch_stale_card',
+  staleRestart: 'spotmatch_stale_restart',
   symbol: 'spotmatch_symbol_invalid',
   wrong: 'spotmatch_wrong_symbol',
   cooldown: 'spotmatch_cooldown',

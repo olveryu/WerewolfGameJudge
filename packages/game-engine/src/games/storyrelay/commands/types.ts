@@ -16,6 +16,7 @@ export interface StoryRelayTaskIdentity {
 type RevisionCommand = { readonly phaseRevision: number } & {
   readonly type:
     | 'storyrelay.game.abort'
+    | 'storyrelay.game.restart'
     | 'storyrelay.phase.retrySettle'
     | 'storyrelay.gallery.pause'
     | 'storyrelay.gallery.resume'

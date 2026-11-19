@@ -6,15 +6,13 @@ import type { ComponentProps } from 'react';
 import { formatDurationOption } from '@/components/GameSettings';
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 
-/** Renders the complete public relay configuration and occupied-seat status. */
+/** Renders the complete public relay configuration. */
 export function PictionaryRoomSummary({
   guide,
   config,
-  occupiedSeatCount,
 }: {
   readonly guide: ComponentProps<typeof RoomGameSummary>['guide'];
   readonly config: PictionaryConfig;
-  readonly occupiedSeatCount: number;
 }) {
   return (
     <RoomGameSummary
@@ -22,7 +20,6 @@ export function PictionaryRoomSummary({
       title="你画我猜接龙"
       playerCount={config.numberOfPlayers}
       settings={createPictionaryRoomSummarySettings(config)}
-      status={`${occupiedSeatCount}/${config.numberOfPlayers} 人就座`}
     />
   );
 }

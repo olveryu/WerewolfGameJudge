@@ -22,9 +22,13 @@ import {
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { endSpotmatchTestGame } from '@/test-utils/spotmatchState';
+import * as alertPresets from '@/utils/alertPresets';
 
 import { SPOTMATCH_GUIDANCE_MATRIX } from '../spotmatchGuidanceMatrix';
-import { createSpotmatchRoomShellModel } from '../spotmatchRoomAdapter';
+import {
+  createSpotmatchHostManagement,
+  createSpotmatchRoomShellModel,
+} from '../spotmatchRoomAdapter';
 
 type CommandContext = Parameters<typeof spotmatchEngine.decide>[2];
 
@@ -175,6 +179,54 @@ function bottomMessage(state: SpotmatchState, audience: RoomViewerAudience): str
 }
 
 describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
+  it('declares start pending even when the lobby is not full', () => {
+    let state = lobbyState();
+    state = drive(state, { type: 'room.seat.clear' });
+    const host = createSpotmatchHostManagement({
+      state,
+      capabilities: capabilities(),
+      isSubmitting: false,
+      submit: vi.fn(async () => true),
+      review: null,
+    });
+    expect(host.pendingActionKeys).toEqual(['start-game']);
+    expect(host.sections[0]?.actions[0]?.isEnabled).toBe(false);
+  });
+  it.each(['playing', 'ended'] as const)(
+    'offers one confirmed restart in %s without marking review as a task',
+    async (phase) => {
+      const state = stateFor(phase);
+      const submit = vi.fn(async () => true);
+      const confirm = vi.spyOn(alertPresets, 'showDestructiveAlert').mockImplementation(() => {});
+      const host = createSpotmatchHostManagement({
+        state,
+        capabilities: capabilities(),
+        isSubmitting: false,
+        submit,
+        review: phase === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
+      });
+      expect(host.task).toBeNull();
+      const actions = host.sections.flatMap((section) => section.actions);
+      expect(actions.filter((action) => action.key === 'restart')).toHaveLength(1);
+      expect(
+        actions.some((action) => ['next-round', 'return-lobby', 'abort-game'].includes(action.key)),
+      ).toBe(false);
+      const restart = actions.find((action) => action.key === 'restart');
+      if (restart === undefined || !restart.isEnabled) throw new Error('Restart is not enabled');
+      restart.onPress();
+      expect(submit).not.toHaveBeenCalled();
+      const handler = confirm.mock.calls[0]?.[3];
+      if (handler === undefined) throw new Error('Missing restart confirmation');
+      await handler();
+      expect(submit).toHaveBeenCalledWith('重新开始', {
+        type: 'spotmatch.game.restart',
+        gameSequence: state.gameSequence,
+        expectedPhase: phase,
+      });
+      confirm.mockRestore();
+    },
+  );
+
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(SPOTMATCH_GUIDANCE_MATRIX).sort()).toEqual([...SPOTMATCH_PHASES].sort());
     for (const row of Object.values(SPOTMATCH_GUIDANCE_MATRIX)) {

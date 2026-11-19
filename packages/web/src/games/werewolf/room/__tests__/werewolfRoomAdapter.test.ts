@@ -15,7 +15,7 @@ import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 
 import { nightState } from '../night/__tests__/nightFixtures';
 import type { NightInteractionModel } from '../night/NightInteractionModel';
-import { describeNightSeatSelection } from '../night/nightSeatSelection';
+import { describeNightSeatSelection, type NightSeatSelection } from '../night/nightSeatSelection';
 import { resolveNightInteraction } from '../night/resolveNightInteraction';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
@@ -47,12 +47,18 @@ function layoutFor(
   state: GameState,
   seat: number | null,
   isHost: boolean,
-  options: { isAudioPlaying?: boolean; review?: RoomReviewEntry | null } = {},
+  options: {
+    isAudioPlaying?: boolean;
+    review?: RoomReviewEntry | null;
+    night?: NightInteractionModel;
+    seatSelection?: NightSeatSelection | null;
+  } = {},
 ) {
   const { viewModel, night } = nightModel(state, seat, isHost);
   return createWerewolfBottomActionLayout({
     viewModel,
-    night,
+    night: options.night ?? night,
+    seatSelection: options.seatSelection,
     isHost,
     effectiveSeat: seat,
     isAudioPlaying: options.isAudioPlaying ?? false,
@@ -246,6 +252,12 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(layoutFor(lobby, 0, false)).toEqual({ primary: [], secondary: [], ghost: [] });
     const assigned: GameState = { ...night, status: GameStatus.Assigned, nightStep: null };
     expect(layoutFor(assigned, 0, false).primary.map((button) => button.key)).toEqual(['viewRole']);
+    expect(layoutFor({ ...assigned, roleViewedSeats: [] }, 0, false).primary[0]).toMatchObject({
+      isPending: true,
+    });
+    expect(layoutFor({ ...assigned, roleViewedSeats: [0] }, 0, false).primary[0]).toMatchObject({
+      isPending: false,
+    });
     expect(layoutFor(assigned, null, false).primary).toEqual([]);
   });
 
@@ -259,6 +271,72 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(seer.secondary.map((button) => button.key)).toEqual(['skip', 'viewRole']);
     const bystander = layoutFor(night, 5, false);
     expect(bystander.secondary.map((button) => button.key)).toEqual(['viewRole']);
+  });
+
+  it('marks a required single seat action, but not its selection controls', () => {
+    const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'wildChild', 'hunter', 'villager'];
+    const state = nightState({ roles, stepId: 'wildChildChooseIdol' });
+    const { night: interaction } = nightModel(state, 3);
+    expect(layoutFor(state, 3, false).primary).toMatchObject([
+      { key: 'startSeatSelection', isPending: true },
+    ]);
+    const selection = describeNightSeatSelection(interaction, [0]);
+    expect(selection).not.toBeNull();
+    const selecting = layoutFor(state, 3, false, { seatSelection: selection });
+    expect(
+      [...selecting.primary, ...selecting.secondary].map((button) => button.isPending),
+    ).toEqual([undefined, undefined]);
+  });
+
+  it('marks only outstanding single-action acknowledgements', () => {
+    const hunter = nightState({
+      roles: BOARD,
+      stepId: 'hunterConfirm',
+      overrides: { confirmStatus: { role: 'hunter', canShoot: true } },
+    });
+    expect(layoutFor(hunter, 4, false).primary).toMatchObject([
+      { key: 'confirm', isPending: true },
+    ]);
+
+    const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'];
+    const state = nightState({
+      roles,
+      stepId: 'cupidLoversReveal',
+      overrides: { loverSeats: [0, 5] },
+    });
+    const { night: interaction } = nightModel(state, 0);
+    if (interaction.kind !== 'ackGroupReveal') throw new Error('Expected group reveal');
+    expect(layoutFor(state, 0, false).primary).toMatchObject([
+      { key: 'groupConfirmAck', isPending: true },
+    ]);
+    expect(
+      layoutFor(state, 0, false, { night: { ...interaction, hasAcked: true } }).primary[0]
+        ?.isPending,
+    ).toBeUndefined();
+  });
+
+  it('does not mark multiple options or a completed wolf vote as single-action todos', () => {
+    const witch = nightState({
+      roles: BOARD,
+      stepId: 'witchAction',
+      overrides: { witchContext: { killedSeat: 0, canSave: true, canPoison: true } },
+    });
+    const choices = layoutFor(witch, 3, false);
+    expect([...choices.primary, ...choices.secondary].every((button) => !button.isPending)).toBe(
+      true,
+    );
+
+    const state = nightState({ roles: BOARD, stepId: 'wolfKill' });
+    const { night: interaction } = nightModel(state, 0);
+    if (interaction.kind !== 'wolfVote') throw new Error('Expected wolf vote');
+    const onlyEmpty = { ...interaction, emptyVoteOnly: true };
+    expect(layoutFor(state, 0, false, { night: onlyEmpty }).secondary).toMatchObject([
+      { key: 'wolfEmpty', isPending: true },
+      { key: 'viewRole' },
+    ]);
+    expect(
+      layoutFor(state, 0, false, { night: { ...onlyEmpty, myVote: -1 } }).secondary[0]?.isPending,
+    ).toBeUndefined();
   });
 
   it('hides every button, spectators included, while the night-end announcement plays in Day and Ended', () => {

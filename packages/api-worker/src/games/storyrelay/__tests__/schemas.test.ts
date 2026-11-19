@@ -15,6 +15,15 @@ import {
 } from '../schemas';
 
 describe('Story Relay Worker', () => {
+  it('requires a revision for restart and rejects extra fields', () => {
+    const command = { type: 'storyrelay.game.restart', phaseRevision: 3 };
+    expect(storyRelayPublicCommandSchema.parse(command)).toEqual(command);
+    expect(storyRelayPublicCommandSchema.safeParse({ type: command.type }).success).toBe(false);
+    expect(storyRelayPublicCommandSchema.safeParse({ ...command, extra: true }).success).toBe(
+      false,
+    );
+  });
+
   it('rejects the removed host finish command', () => {
     expect(
       storyRelayPublicCommandSchema.safeParse({

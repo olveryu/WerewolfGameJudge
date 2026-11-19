@@ -80,16 +80,29 @@ function requireAction(
 }
 
 export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTaskView | null {
+  if (model.hasPendingDecision === true && model.pendingActionKeys === undefined) {
+    throw new Error('Host pending decisions require explicit pending action keys');
+  }
+  if (
+    model.pendingActionKeys !== undefined &&
+    new Set(model.pendingActionKeys).size !== model.pendingActionKeys.length
+  ) {
+    throw new Error('Host pending action keys must be unique');
+  }
+  const index = model.pendingActionKeys === undefined ? null : indexActions(model);
+  for (const key of model.pendingActionKeys ?? []) {
+    if (index !== null) requireAction(index, key, 'pending');
+  }
   const task = model.task;
   if (task === null) return null;
-  const index = indexActions(model);
+  const actionIndex = index ?? indexActions(model);
 
   const steps =
     task.steps === undefined
       ? null
       : task.steps.map((step) => {
           if (step.actionKey === undefined) return step;
-          const action = requireAction(index, step.actionKey, `step "${step.key}"`);
+          const action = requireAction(actionIndex, step.actionKey, `step "${step.key}"`);
           return action.isEnabled && step.state !== 'upcoming'
             ? {
                 ...step,
@@ -106,14 +119,14 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
 
   switch (task.kind) {
     case 'action': {
-      const action = requireAction(index, task.actionKey, 'action');
+      const action = requireAction(actionIndex, task.actionKey, 'action');
       if (action.isEnabled) {
         return { steps, note, body: { kind: 'ready', action } };
       }
       const remedyAction =
         task.remedyActionKey === undefined
           ? null
-          : requireAction(index, task.remedyActionKey, 'remedy');
+          : requireAction(actionIndex, task.remedyActionKey, 'remedy');
       const remedy: RoomHostTaskRemedy | null =
         remedyAction !== null && remedyAction.isEnabled
           ? {
@@ -137,7 +150,7 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
         note,
         body: {
           kind: 'choice',
-          actions: task.actionKeys.map((key) => requireAction(index, key, 'choice')),
+          actions: task.actionKeys.map((key) => requireAction(actionIndex, key, 'choice')),
         },
       };
     }
@@ -149,7 +162,9 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
           kind: 'message',
           text: task.text,
           escape:
-            task.actionKey === undefined ? null : requireAction(index, task.actionKey, 'escape'),
+            task.actionKey === undefined
+              ? null
+              : requireAction(actionIndex, task.actionKey, 'escape'),
         },
       };
   }

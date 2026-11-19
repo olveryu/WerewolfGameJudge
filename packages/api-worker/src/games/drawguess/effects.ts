@@ -128,6 +128,7 @@ async function handleDrawGuessDealWordsEffect(
     context,
     {
       type: 'drawguess.words.dealt',
+      gameSequence: state.gameSequence,
       turnIndex: effect.payload.turnIndex,
       choices,
     },

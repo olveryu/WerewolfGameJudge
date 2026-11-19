@@ -20,17 +20,14 @@ import {
 } from '@/features/room/model/createRoomShellModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
-  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
-  buildNextRoundAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
@@ -51,7 +48,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby timing and round settings, including fixed engine rules. */
 export function createDrawGuessRoomSummarySettings(
@@ -179,6 +176,7 @@ export function createDrawGuessHostManagement(
     });
     return {
       task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      pendingActionKeys: [HOST_ACTION_KEYS.startGame],
       sections: [
         {
           key: 'game',
@@ -193,64 +191,48 @@ export function createDrawGuessHostManagement(
       ],
     };
   }
+  const expectedPhase = state.phase.kind === 'ended' ? 'ended' : 'playing';
+  const restart = buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        expectedPhase === 'ended'
+          ? '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+          : '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。本局中止，不结算战绩与奖励。',
+        '重新开始',
+        async () => {
+          await input.submit('重新开始', {
+            type: 'drawguess.game.restart',
+            gameSequence: state.gameSequence,
+            expectedPhase,
+          });
+        },
+      ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
   if (state.phase.kind === 'ended') {
     return {
-      task: hostReviewClosingTask(),
+      task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
-          actions: [
-            buildReviewHostAction(requireEndedReview(input.review)),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '重新生成画手队列并清零比分，开始新的一局。',
-                  async () => {
-                    await input.submit('再来一局', { type: 'drawguess.game.begin' });
-                  },
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.returnLobbyTitle,
-                  HOST_FLOW_CONFIRM.returnLobbyBody,
-                  async () => {
-                    await input.submit('返回大厅', { type: 'drawguess.game.returnToLobby' });
-                  },
-                ),
-            }),
-          ],
+          actions: [buildReviewHostAction(requireEndedReview(input.review)), restart],
         },
       ],
     };
   }
   return {
     task: null,
+    pendingActionKeys: [],
     sections: [
       { key: 'room', title: '房间管理', actions: roomActions },
       {
         key: 'danger',
         title: '危险操作',
-        actions: [
-          buildAbortGameAction({
-            onPress: () =>
-              showConfirmAlert(
-                HOST_FLOW_CONFIRM.abortTitle,
-                '将清除本局画作、猜词记录和比分，保留座位和设置并返回大厅；本局不发完成奖励。',
-                async () => {
-                  await input.submit('中止本局', {
-                    type: 'drawguess.game.abort',
-                    gameSequence: state.gameSequence,
-                  });
-                },
-              ),
-            isEnabled: !input.isSubmitting,
-            isLoading: input.isSubmitting,
-          }),
-        ],
+        actions: [restart],
       },
     ],
   };

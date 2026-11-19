@@ -40,6 +40,8 @@ interface RoomBottomButtonBase {
   readonly textColor?: string;
   readonly buttonColor?: string;
   readonly isLoading?: boolean;
+  readonly category?: 'player' | 'resource';
+  readonly isPending?: boolean;
 }
 
 export type RoomBottomButton = RoomBottomButtonBase & RoomBottomActionAvailability;
@@ -54,6 +56,7 @@ interface RoomBottomToolButtonBase {
   readonly icon?: IoniconName;
   readonly tone: 'default' | 'danger';
   readonly testID?: string;
+  readonly category?: 'player' | 'resource';
 }
 
 export type RoomBottomToolButton = RoomBottomToolButtonBase & RoomBottomActionAvailability;
@@ -79,7 +82,7 @@ export function buildLobbyHostStartMessage(input: {
  * DrawGuess's ended view sentence, kept as the single source so every
  * game's ended phase waits on the host in the same words.
  */
-const ENDED_WAITING_MESSAGE = '等待房主操作（再来一局 / 返回大厅）';
+const ENDED_WAITING_MESSAGE = '等待房主操作';
 
 export function buildEndedWaitingMessage(input: {
   readonly isEnded: boolean;
@@ -162,6 +165,7 @@ export function buildViewIdentityButton(
     readonly audience: RoomBottomButtonAudience;
     readonly testID?: string;
     readonly isSubmitting: boolean;
+    readonly isPending?: boolean;
   },
 ): RoomBottomButton {
   const base = {
@@ -169,6 +173,8 @@ export function buildViewIdentityButton(
     label: action.label,
     audience: surface.audience,
     icon: 'eye-outline',
+    category: 'resource',
+    ...(surface.isPending === undefined ? {} : { isPending: surface.isPending }),
     variant: surface.variant,
     size: 'md',
     ...(surface.testID !== undefined ? { testID: surface.testID } : {}),

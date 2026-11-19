@@ -183,7 +183,6 @@ export type SheriffElectionState = SheriffElectionCommonState &
         readonly speakingStartSeat: number;
         readonly speakingDirection: SheriffSpeakingDirection;
       }
-    | { readonly phase: 'withdrawal' }
     | {
         readonly phase: 'firstVote';
         readonly candidateSeats: readonly number[];

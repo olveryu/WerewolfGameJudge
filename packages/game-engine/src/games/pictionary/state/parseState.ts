@@ -20,6 +20,7 @@ import {
 import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { normalizePictionaryState } from './normalize';
 import {
+  getPictionaryRelayStepCount,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
@@ -293,6 +294,10 @@ export function parsePictionaryState(value: unknown): PictionaryState {
         ),
         chains: parseArray(raw.chains, 'PictionaryState.chains', parseChain),
         gallery: parseNullable(raw.gallery, 'PictionaryState.gallery', parseGallery),
+        revealSettlementPending: parseBoolean(
+          raw.revealSettlementPending,
+          'PictionaryState.revealSettlementPending',
+        ),
       },
       'PictionaryState',
     ),
@@ -307,6 +312,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
  */
 export function migratePersistedPictionaryState(value: unknown): PictionaryState {
   const raw = parseObject(value, 'PictionaryState');
+  if (raw.stateVersion === 10) return upgradePictionaryV10(raw);
   if (raw.stateVersion === 9) return upgradePictionaryV9(raw);
   if (raw.stateVersion !== 8) return parsePictionaryState(raw);
   const config = parseConfig(raw.config, 'PictionaryState.config');
@@ -347,5 +353,19 @@ function upgradePictionaryV9(raw: Record<string, unknown>): PictionaryState {
           revealStartedAt: null,
           revealDurationMs: 0,
         };
-  return parsePictionaryState({ ...raw, stateVersion: PICTIONARY_STATE_VERSION, chains, gallery });
+  return upgradePictionaryV10({ ...raw, stateVersion: 10, chains, gallery });
+}
+
+function upgradePictionaryV10(raw: Record<string, unknown>): PictionaryState {
+  const config = parseConfig(raw.config, 'PictionaryState.config');
+  const alreadyCompleted =
+    raw.phase === 'transition' &&
+    raw.stepIndex === getPictionaryRelayStepCount(config.numberOfPlayers) - 1;
+  return parsePictionaryState({
+    ...raw,
+    stateVersion: PICTIONARY_STATE_VERSION,
+    revealSettlementPending:
+      (raw.phase === 'answering' || raw.phase === 'settling' || raw.phase === 'transition') &&
+      !alreadyCompleted,
+  });
 }

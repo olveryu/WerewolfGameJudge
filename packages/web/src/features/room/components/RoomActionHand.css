@@ -73,22 +73,17 @@
   opacity: 0.2;
 }
 
-.room-action-card-cell .button[data-variant='primary'],
-.room-action-card-cell .button[data-variant='danger'] {
-  --hand-ink: var(--color-text-inverse);
-  --hand-paper: var(--color-primary);
+.room-action-card-cell .button[data-card-category='player'] {
+  --hand-ink: var(--color-primary-dark);
+  --hand-paper: var(--color-surface-hover);
 }
 
 .room-action-card-cell .button[data-variant='danger'] {
-  --hand-paper: var(--color-error);
+  --hand-ink: var(--color-hand-danger-ink);
+  --hand-paper: var(--color-hand-danger-paper);
 }
 
-.room-action-card-cell .button[data-variant='primary']::before,
-.room-action-card-cell .button[data-variant='danger']::before {
-  border-color: var(--hand-paper);
-}
-
-.room-action-card-cell .button[data-card-category='resource'] {
+.room-action-card-cell .button[data-card-category='resource']:not([data-variant='danger']) {
   --hand-ink: var(--color-hand-resource-ink);
   --hand-paper: var(--color-hand-resource-paper);
 }
@@ -110,7 +105,7 @@
   right: var(--space-tight);
   padding: 0 var(--space-tight);
   border-radius: var(--radius-small) var(--radius-small) 0 0;
-  background: var(--color-hand-host-ink);
+  background: var(--color-text);
   color: var(--color-text-inverse);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
@@ -149,5 +144,22 @@
     transition:
       rotate 160ms ease-out,
       translate 160ms ease-out;
+  }
+
+  @media (forced-colors: active) {
+    .room-action-card-cell .button[data-variant] {
+      --hand-ink: ButtonText !important;
+      --hand-paper: ButtonFace !important;
+    }
+
+    .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
+      --hand-ink: GrayText !important;
+    }
+
+    .room-action-card-cell .button > .bottom-action-pending {
+      background: Highlight;
+      color: HighlightText;
+      border: 1px solid HighlightText;
+    }
   }
 }

@@ -1,6 +1,9 @@
 /** Hosts Story Relay inside the shared room entry, connection, seat and profile shell. */
 
-import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
+import {
+  getStoryRelayOccupiedSeatCount,
+  type StoryRelayState,
+} from '@game-judge/game-engine/games/storyrelay/public';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -70,6 +73,12 @@ function StoryRelayRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={isLobby ? '待开局' : null}
+      lobbyAction={
+        isLobby
+          ? { label: '开始游戏', occupiedSeats: getStoryRelayOccupiedSeatCount(screen.state) }
+          : null
+      }
       stageMenu={
         hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
       }

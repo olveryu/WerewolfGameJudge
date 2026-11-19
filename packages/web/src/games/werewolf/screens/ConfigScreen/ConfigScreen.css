@@ -82,6 +82,10 @@
   overscroll-behavior: contain;
 }
 
+.room-dialog-body .config-scroll {
+  overscroll-behavior-y: auto;
+}
+
 .config-card-roles {
   margin: var(--space-medium) var(--space-screen-h) 0;
   padding-bottom: calc(var(--space-small) + var(--space-tight));

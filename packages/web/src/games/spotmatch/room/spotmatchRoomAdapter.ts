@@ -20,17 +20,14 @@ import {
 } from '@/features/room/model/createRoomShellModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
-  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
-  buildNextRoundAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
@@ -164,6 +161,7 @@ export function createSpotmatchHostManagement(
     // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
       task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      pendingActionKeys: [HOST_ACTION_KEYS.startGame],
       sections: [
         {
           key: 'game',
@@ -178,40 +176,37 @@ export function createSpotmatchHostManagement(
       ],
     };
   }
-  if (state.phase.kind === 'ended') {
+  const expectedPhase = state.phase.kind;
+  const restart = buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        expectedPhase === 'ended'
+          ? '保留座位和配置，清除本局结果并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+          : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
+        '重新开始',
+        async () => {
+          await input.submit('重新开始', {
+            type: 'spotmatch.game.restart',
+            gameSequence: state.gameSequence,
+            expectedPhase,
+          });
+        },
+      ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
+  if (expectedPhase === 'ended') {
     if (input.review === null)
       throw new Error('[FAIL-FAST] Spotmatch ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostReviewClosingTask(),
+      task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
-          actions: [
-            buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '将重新分配并清零比分，开始新的一局。',
-                  async () => {
-                    await input.submit('再来一局', { type: 'spotmatch.game.begin' });
-                  },
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.returnLobbyTitle,
-                  HOST_FLOW_CONFIRM.returnLobbyBody,
-                  async () => {
-                    await input.submit('返回大厅', { type: 'spotmatch.game.returnToLobby' });
-                  },
-                  { confirmText: '返回大厅' },
-                ),
-            }),
-          ],
+          actions: [buildReviewHostAction(input.review), restart],
         },
       ],
     };
@@ -219,25 +214,12 @@ export function createSpotmatchHostManagement(
   // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
     task: null,
+    pendingActionKeys: [],
     sections: [
       {
         key: 'room',
         title: '房间管理',
-        actions: [
-          ...roomActions,
-          buildAbortGameAction({
-            onPress: () =>
-              showDestructiveAlert(
-                '中止本局？',
-                '返回大厅，本局不计战绩与奖励。',
-                '中止本局',
-                async () => {
-                  await input.submit('中止本局', { type: 'spotmatch.game.abort' });
-                },
-              ),
-            isEnabled: !input.isSubmitting,
-          }),
-        ],
+        actions: [...roomActions, restart],
       },
     ],
   };

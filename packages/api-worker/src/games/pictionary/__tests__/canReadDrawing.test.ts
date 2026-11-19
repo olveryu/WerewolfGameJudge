@@ -41,6 +41,7 @@ function createMinimalState(
     reservations: [],
     chains: [],
     gallery: null,
+    revealSettlementPending: false,
     ...overrides,
   };
 }

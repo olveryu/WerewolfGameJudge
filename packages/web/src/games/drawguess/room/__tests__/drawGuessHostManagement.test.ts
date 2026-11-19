@@ -18,11 +18,14 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createDrawGuessHostManagement } from '../drawGuessRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/utils/alertPresets', () => ({
+  showConfirmAlert: vi.fn(),
+  showDestructiveAlert: vi.fn(),
+}));
 
 type CommandContext = Parameters<typeof drawGuessEngine.decide>[2];
 
@@ -139,6 +142,7 @@ describe('createDrawGuessHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true);
+    expect(model?.pendingActionKeys).toEqual(['start-game']);
     expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
@@ -179,7 +183,7 @@ describe('createDrawGuessHostManagement', () => {
   });
 
   it.each(['wordSelect', 'drawing', 'roundEnd'] as const)(
-    'keeps the room section and offers only abort during %s',
+    'keeps the room section and offers only restart during %s',
     (phase) => {
       const game = session();
       game.seatHost();
@@ -193,12 +197,12 @@ describe('createDrawGuessHostManagement', () => {
       // Setup capabilities are all denied mid-game, exactly like Avalon.
       expect(model?.sections[0]?.actions).toEqual([]);
       expect(model.sections[1]!.actions).toMatchObject([
-        { key: 'abort-game', label: '中止本局', isEnabled: true, variant: 'danger' },
+        { key: 'restart', label: '重新开始', isEnabled: true, variant: 'danger' },
       ]);
     },
   );
 
-  it('submits the game-scoped abort only after confirmation', async () => {
+  it('submits the game-scoped restart only after confirmation', async () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -206,18 +210,19 @@ describe('createDrawGuessHostManagement', () => {
     if (!action.isEnabled) throw new Error('Expected enabled abort');
     action.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showConfirmAlert).mock.calls[0];
+    const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
     if (confirmation === undefined) throw new Error('Expected abort confirmation');
-    expect(confirmation[0]).toBe('中止本局？');
-    expect(confirmation[1]).toContain('本局不发完成奖励');
-    await confirmation[2]();
-    expect(submit).toHaveBeenCalledWith('中止本局', {
-      type: 'drawguess.game.abort',
+    expect(confirmation[0]).toBe('重新开始？');
+    expect(confirmation[1]).toContain('不结算战绩与奖励');
+    await confirmation[3]();
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: 'drawguess.game.restart',
       gameSequence: game.state.gameSequence,
+      expectedPhase: 'playing',
     });
   });
 
-  it('disables abort while another command is submitting', () => {
+  it('disables restart while another command is submitting', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -226,7 +231,7 @@ describe('createDrawGuessHostManagement', () => {
     expect(action).not.toHaveProperty('onPress');
   });
 
-  it('pins the terminal panel on the shared review / next-round / return-lobby builders', () => {
+  it('offers optional review and a single restart after the game ends', async () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -234,16 +239,12 @@ describe('createDrawGuessHostManagement', () => {
     expect(game.state.phase.kind).toBe('ended');
     const openReview = vi.fn();
     const model = build(game.state, false, false, { isEnabled: true, onPress: openReview });
-    expect(model.task).toEqual({
-      kind: 'choice',
-      actionKeys: ['review', 'next-round', 'return-lobby'],
-    });
+    expect(model.task).toBeNull();
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
-      'next-round-button',
-      'return-lobby-button',
+      'restart-button',
     ]);
     const [review] = actions;
     expect(review).toMatchObject({ label: '本局复盘', isEnabled: true });
@@ -251,6 +252,19 @@ describe('createDrawGuessHostManagement', () => {
     review.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
     expect(submit).not.toHaveBeenCalled();
+    const restart = actions[1];
+    if (restart === undefined || !restart.isEnabled) throw new Error('expected enabled restart');
+    restart.onPress();
+    const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
+    if (confirmation === undefined) throw new Error('Expected restart confirmation');
+    expect(confirmation[1]).toContain('已结算的战绩和奖励保留');
+    expect(confirmation[1]).toContain('可能无法查看复盘');
+    await confirmation[3]();
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: 'drawguess.game.restart',
+      gameSequence: game.state.gameSequence,
+      expectedPhase: 'ended',
+    });
   });
 
   it('fails fast when the ended panel has no review entry', () => {

@@ -26,6 +26,7 @@ export const getSpotmatchRoomCommandFailureMessage =
     [SPOTMATCH_REASONS.occupied]: ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
     [SPOTMATCH_REASONS.notHostReturnToLobby]: '只有房主可以返回大厅',
     [SPOTMATCH_REASONS.stale]: '中央牌或手牌已更新，再找一次（不计误点）',
+    [SPOTMATCH_REASONS.staleRestart]: '本局状态已改变，请重新确认是否重新开始',
     [SPOTMATCH_REASONS.wrong]: '没有匹配，1 秒后再试',
     [SPOTMATCH_REASONS.cooldown]: '稍等一下再试',
     [SPOTMATCH_REASONS.paused]: '出牌成功，全桌稍等 3 秒',

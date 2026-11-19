@@ -2,6 +2,7 @@
 import './SecrethitlerRoomScreen.css';
 
 import {
+  getSecrethitlerOccupiedSeatCount,
   getSecrethitlerRoleCounts,
   type SecrethitlerState,
   type SecrethitlerViewModel,
@@ -92,6 +93,22 @@ function SecrethitlerRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={
+        isLobby
+          ? '待开局'
+          : isPreGame
+            ? '已发牌'
+            : screen.state.phase.kind === 'night'
+              ? '夜晚'
+              : screen.state.phase.kind === 'ended'
+                ? '本局结束'
+                : '游戏进行中'
+      }
+      lobbyAction={
+        isLobby
+          ? { label: '分配角色', occupiedSeats: getSecrethitlerOccupiedSeatCount(screen.state) }
+          : null
+      }
       configurationEntry={isPreGame ? null : { onOpen: () => setInformation('configuration') }}
       manualEntries={[
         {

@@ -106,16 +106,18 @@ for (const viewport of [
       await hostPage.getByTestId(TESTIDS.roomClearSeatsButton).click();
       // Destructive alert has [Cancel, 清空座位]; the confirm is alert-button-1.
       await hostPage.getByTestId(TESTIDS.alertButton(1)).click();
-      await hostRoom.expectHostTaskBlockedReason('座位尚未坐满（还差 6 人）');
+      await hostRoom.expectHostTaskBlockedReason(
+        TESTIDS.assignRolesButton,
+        '座位尚未坐满（还差 6 人）',
+      );
       await hostRoom.seatAt(0);
       for (let i = 0; i < joinerRooms.length; i += 1) {
         await joinerRooms[i]!.seatAt(i + 1);
       }
       await hostRoom.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');
-      // PR-B G-7: seated non-host players see the shared lobby wait in
-      // the bottom panel while the host has not started the game.
+      // Seated players see the current lobby status above the seats.
       await expect(joinerPages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
-        '等待房主开始游戏',
+        '座位已满，等待房主分配角色',
       );
 
       await hostRoom.openHostManagement();
@@ -137,7 +139,7 @@ for (const viewport of [
         await (await new RoomPage(page).viewIdentityButton()).click();
         await page.getByTestId(TESTIDS.undercoverConfirm).click();
       }
-      await hostRoom.expectHostTaskBlockedReason(VIEWING_PROGRESS_PATTERN);
+      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
       await (await hostRoom.viewIdentityButton()).click();
       await hostPage.getByTestId(TESTIDS.undercoverConfirm).click();
       await hostRoom.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
@@ -267,7 +269,7 @@ for (const viewport of [
       ).toBe(true);
       await endedManagement.getByTestId(TESTIDS.nextRoundButton).click();
       await hostRoom.confirmHostActionDialog('再来一局');
-      await hostRoom.expectHostTaskBlockedReason(VIEWING_PROGRESS_PATTERN);
+      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
       // The review belongs to the concluded round: it is gone once the next one deals.
       await new RoomPage(reviewPage).expectRoomActionAbsent(TESTIDS.roomReviewOpenButton);
       for (const { seat } of civilians) {
@@ -300,7 +302,7 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.restartButton).click();
       await confirmAlert(hostPage, '重新开始？');
-      await hostRoom.expectHostTaskBlockedReason(VIEWING_PROGRESS_PATTERN);
+      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.abortGameButton).click();
       await confirmAlert(hostPage, '中止本局？');

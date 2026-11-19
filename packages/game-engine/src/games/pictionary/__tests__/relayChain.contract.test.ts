@@ -168,6 +168,46 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
 }
 
 describe('Pictionary relay-chain contract', () => {
+  it('restarts atomically, retaining the room but discarding the active round', () => {
+    const gameSession = game();
+    gameSession.playStep();
+    const before = gameSession.state;
+    const command = {
+      type: 'pictionary.game.restart',
+      roundId: before.roundId,
+      phaseRevision: before.phaseRevision,
+    } as const;
+    expect(gameSession.session.decide(command, 'user-1').kind).toBe('reject');
+    expect(
+      gameSession.session.decide({ ...command, phaseRevision: command.phaseRevision - 1 }).kind,
+    ).toBe('reject');
+    const effectsBefore = gameSession.effects.length;
+    gameSession.session.send(command, 'user-0');
+    expect(gameSession.state).toMatchObject({
+      phase: 'lobby',
+      roundId: null,
+      chains: [],
+      reservations: [],
+      deadlineAt: null,
+      gallery: null,
+      roster: before.roster,
+      config: before.config,
+      phaseRevision: before.phaseRevision + 1,
+    });
+    expect(gameSession.effects).toHaveLength(effectsBefore);
+    expect(gameSession.session.decide(command, 'user-0').kind).toBe('reject');
+  });
+
+  it('restarts from the completed gallery without undoing earned rewards', () => {
+    const gameSession = game();
+    gameSession.playRound();
+    expect(gameSession.state.phase).toBe('gallery');
+    const effectsBefore = [...gameSession.effects];
+    gameSession.send({ type: 'pictionary.game.restart' });
+    expect(gameSession.state).toMatchObject({ phase: 'lobby', chains: [], gallery: null });
+    expect(gameSession.effects).toEqual(effectsBefore);
+  });
+
   it('migrates v9 galleries and drawing metadata without replay', () => {
     const session = game();
     session.playRound();
@@ -188,7 +228,7 @@ describe('Pictionary relay-chain contract', () => {
       chains,
       gallery: legacyGallery,
     });
-    expect(migrated.stateVersion).toBe(10);
+    expect(migrated.stateVersion).toBe(11);
     expect(migrated.gallery).toEqual({
       ...legacyGallery,
       revealStartedAt: null,
@@ -251,7 +291,7 @@ describe('Pictionary relay-chain contract', () => {
     }
   });
 
-  it('settles exactly once, when the last entry of the final step lands', () => {
+  it('settles exactly once when the gallery opens', () => {
     const session = game();
     for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) session.playStep();
     session.expireCurrentPhase();
@@ -269,7 +309,7 @@ describe('Pictionary relay-chain contract', () => {
     expect(session.state.phase).toBe('transition');
     expect(
       session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     session.expireCurrentPhase();
     expect(session.state.phase).toBe('gallery');
     const completions = session.effects.filter(
@@ -289,6 +329,40 @@ describe('Pictionary relay-chain contract', () => {
     expect(
       session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
     ).toHaveLength(1);
+  });
+
+  it('does not reward a restart before reveal or re-settle a legacy completed transition', () => {
+    const gameSession = game();
+    const { revealSettlementPending: _initialPending, ...oldActiveState } = gameSession.state;
+    expect(
+      migratePersistedPictionaryState({ ...oldActiveState, stateVersion: 10 })
+        .revealSettlementPending,
+    ).toBe(true);
+    for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) gameSession.playStep();
+    gameSession.expireCurrentPhase();
+    for (let seat = 0; seat < NUMBER_OF_PLAYERS; seat += 1) {
+      gameSession.send({ type: 'pictionary.task.empty.submit' }, `user-${seat}`);
+    }
+    const before = gameSession.state;
+    expect(before.phase).toBe('transition');
+    expect(before.revealSettlementPending).toBe(true);
+    const { revealSettlementPending: _pending, ...oldState } = before;
+    const migrated = migratePersistedPictionaryState({ ...oldState, stateVersion: 10 });
+    expect(migrated.revealSettlementPending).toBe(false);
+    const legacyDecision = pictionaryEngine.decide(
+      migrated,
+      { type: 'pictionary.phase.settleExpired' },
+      { ...gameSession.session.systemContext('settle'), nowMs: migrated.deadlineAt! },
+    );
+    if (legacyDecision.kind !== 'commit') throw new Error('expected legacy gallery transition');
+    expect(
+      legacyDecision.effects.some((effect) => effect.type === 'pictionary.game.completed'),
+    ).toBe(false);
+    gameSession.send({ type: 'pictionary.game.restart' });
+    expect(gameSession.state.phase).toBe('lobby');
+    expect(gameSession.effects.some((effect) => effect.type === 'pictionary.game.completed')).toBe(
+      false,
+    );
   });
 
   it('freezes and restores gallery timers and keeps the reveal monotonic', () => {

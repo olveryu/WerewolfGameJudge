@@ -14,17 +14,14 @@ import {
 } from '@/features/room/model/createRoomShellModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
-  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
-  buildNextRoundAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
@@ -55,7 +52,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -173,78 +170,55 @@ interface PictionaryHostManagementInput {
   /** The shared review entry; present once the round ended or was aborted. */
   readonly review: RoomReviewEntry | null;
   readonly startRound: () => void;
-  readonly nextRound: () => void;
-  readonly returnToLobby: () => void;
-  readonly abortRound: () => void;
+  readonly restartRound: () => void;
 }
 
 /** Assembles the Pictionary host panel for the current phase. Host gating belongs to the shell factory. */
 export function createPictionaryHostManagement(
   input: PictionaryHostManagementInput,
 ): RoomHostManagementModel {
+  const isComplete =
+    input.state.phase === 'gallery' ||
+    input.state.phase === 'ended' ||
+    (input.state.phase === 'transition' && !input.state.revealSettlementPending);
+  const restart = buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        isComplete
+          ? '保留座位和配置，清除本局作品并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
+          : '保留座位和配置，清除本局作品并回到准备。本局中止，不结算完成奖励。',
+        '重新开始',
+        input.restartRound,
+      ),
+    isEnabled: !input.isCommandSubmitting,
+    isLoading: input.isCommandSubmitting || undefined,
+  });
   if (input.state.phase === 'ended' || input.state.phase === 'aborted') {
     if (input.review === null) {
       throw new Error(`[FAIL-FAST] Pictionary ${input.state.phase} host has no review entry`);
     }
-    const actions: RoomHostManagementAction[] = [buildReviewHostAction(input.review)];
-    if (input.state.phase === 'ended')
-      actions.push(
-        buildNextRoundAction({
-          onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.nextRoundTitle,
-              '重新生成画手队列，开始新的一轮。',
-              input.nextRound,
-            ),
-          isEnabled: !input.isCommandSubmitting,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
-      );
-    actions.push(
-      buildReturnLobbyAction({
-        onPress: () =>
-          showConfirmAlert(
-            HOST_FLOW_CONFIRM.returnLobbyTitle,
-            HOST_FLOW_CONFIRM.returnLobbyBody,
-            input.returnToLobby,
-          ),
-        isEnabled: !input.isCommandSubmitting,
-        isLoading: input.isCommandSubmitting || undefined,
-      }),
-    );
     return {
-      // An aborted round keeps its albums: the review stands beside 返回大厅, with no next round.
-      task:
-        input.state.phase === 'ended'
-          ? hostReviewClosingTask()
-          : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
-      sections: [{ key: 'current-flow', title: '当前流程', actions }],
+      task: null,
+      pendingActionKeys: [],
+      sections: [
+        {
+          key: 'current-flow',
+          title: '当前流程',
+          actions: [buildReviewHostAction(input.review), restart],
+        },
+      ],
     };
   }
   if (input.state.phase !== 'lobby') {
-    const isLastTransition =
-      input.state.phase === 'transition' &&
-      input.state.stepIndex === input.state.config.numberOfPlayers - 1;
-    const canAbort =
-      ['answering', 'settling', 'transition'].includes(input.state.phase) && !isLastTransition;
-    // 局中房主面板常驻：中止不可用时禁用并给原因，而不是整块消失。
-    const abortDisabledReason = isLastTransition
-      ? '最后一棒已收齐，即将进入揭晓，不能中止'
-      : '当前阶段不能中止';
     return {
       task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'danger',
           title: '危险操作',
-          actions: [
-            buildAbortGameAction({
-              onPress: input.abortRound,
-              isEnabled: canAbort && !input.isCommandSubmitting,
-              disabledReason: canAbort ? null : abortDisabledReason,
-              isLoading: input.isCommandSubmitting || undefined,
-            }),
-          ],
+          actions: [restart],
         },
       ],
     };
@@ -288,7 +262,11 @@ export function createPictionaryHostManagement(
     { key: 'current-flow', title: '当前流程', actions: [startAction] },
     { key: 'room', title: '房间管理', actions: roomActions },
   ];
-  return { task: hostStartTask(HOST_ACTION_KEYS.startGame), sections };
+  return {
+    task: hostStartTask(HOST_ACTION_KEYS.startGame),
+    pendingActionKeys: [HOST_ACTION_KEYS.startGame],
+    sections,
+  };
 }
 
 export interface PictionaryRoomShellModelInput extends Omit<

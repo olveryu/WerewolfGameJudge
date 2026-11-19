@@ -273,6 +273,7 @@ function createInitialPictionaryState(
     reservations: [],
     chains: [],
     gallery: null,
+    revealSettlementPending: false,
   });
 }
 
@@ -371,6 +372,16 @@ export function decidePictionaryCommand(
     }
     case 'pictionary.game.returnToLobby':
       return decideReturnPictionaryToLobby(state, context);
+    case 'pictionary.game.restart': {
+      const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
+        context,
+        state.hostUserId,
+      );
+      if (hostRejection !== null) return hostRejection;
+      return state.phase === 'lobby'
+        ? reject(REASON_PICTIONARY_PHASE_INVALID)
+        : commitPictionary([{ type: 'pictionary.game.returnedToLobby' }]);
+    }
   }
   const exhaustive: never = command;
   return exhaustive;

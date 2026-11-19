@@ -32,6 +32,7 @@ export type PictionaryCommandInput =
   | { readonly type: 'pictionary.gallery.rewind' }
   | { readonly type: 'pictionary.gallery.finish' }
   | { readonly type: 'pictionary.game.next' }
+  | { readonly type: 'pictionary.game.restart' }
   | { readonly type: 'pictionary.game.returnToLobby' };
 
 export interface PictionaryTaskIdentity {
@@ -63,6 +64,7 @@ type PhaseCommand = Extract<
       | 'pictionary.gallery.rewind'
       | 'pictionary.gallery.finish'
       | 'pictionary.game.next'
+      | 'pictionary.game.restart'
       | 'pictionary.game.returnToLobby';
   }
 >;
@@ -100,6 +102,7 @@ export function createPictionaryCommand(
     case 'pictionary.gallery.rewind':
     case 'pictionary.gallery.finish':
     case 'pictionary.game.next':
+    case 'pictionary.game.restart':
     case 'pictionary.game.returnToLobby':
       return { ...command, roundId: state.roundId, phaseRevision: state.phaseRevision };
     default:

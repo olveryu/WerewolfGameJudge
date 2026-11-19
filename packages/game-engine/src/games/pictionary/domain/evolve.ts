@@ -56,6 +56,7 @@ export function evolvePictionaryState(
         }),
         roundId: event.roundId,
         reservations: [],
+        revealSettlementPending: true,
       };
     case 'pictionary.task.readiness.changed':
       return { ...state, ...applyRelayTaskReady(state.readySeats, event.seat, event.isReady) };
@@ -81,11 +82,21 @@ export function evolvePictionaryState(
         readySeats: [],
         reservations: [],
         gallery: null,
+        revealSettlementPending: false,
       };
     case 'pictionary.phase.changed':
-      return { ...state, ...applyRelayPhaseChanged(state, event) };
+      return {
+        ...state,
+        ...applyRelayPhaseChanged(state, event),
+        revealSettlementPending: event.phase === 'gallery' ? false : state.revealSettlementPending,
+      };
     case 'pictionary.game.returnedToLobby':
-      return { ...state, ...clearRelayRound<PictionaryEntry>(state), reservations: [] };
+      return {
+        ...state,
+        ...clearRelayRound<PictionaryEntry>(state),
+        reservations: [],
+        revealSettlementPending: false,
+      };
   }
   const exhaustive: never = event;
   return exhaustive;

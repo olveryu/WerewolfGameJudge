@@ -20,6 +20,7 @@ function createInput(overrides: Record<string, unknown> = {}) {
     panelFlow: { lastNightInfoConfirmed: false },
     isReviewShared: false,
     isPlagueMode: false,
+    hasUnviewedOwnRole: false,
     seatedCount: 0,
     viewedCount: 0,
     totalSeats: 9,
@@ -50,6 +51,26 @@ function createInput(overrides: Record<string, unknown> = {}) {
 function actionLabels(model: NonNullable<ReturnType<typeof createWerewolfHostManagement>>) {
   return model.sections.flatMap((section) => section.actions.map((action) => action.label));
 }
+
+it('prioritizes the host identity and never offers start in plague mode', () => {
+  const assigned = createInput({
+    roomStatus: GameStatus.Assigned,
+    seatedCount: 9,
+    viewedCount: 3,
+    hasUnviewedOwnRole: true,
+  });
+  expect(createWerewolfHostManagement(assigned).pendingActionKeys).toEqual([]);
+  expect(
+    createWerewolfHostManagement({ ...assigned, hasUnviewedOwnRole: false }).pendingActionKeys,
+  ).toEqual(['start-game']);
+  const plague = createWerewolfHostManagement({ ...assigned, isPlagueMode: true });
+  expect(plague.pendingActionKeys).toEqual([]);
+  expect(actionLabels(plague)).not.toContain('开始游戏');
+  expect(plague.task).toMatchObject({
+    kind: 'message',
+    text: '3/9 位玩家已查看角色，等待剩余玩家',
+  });
+});
 
 function createSheriffElection(
   viewOverrides: Partial<SheriffElectionPanelModel['view']> = {},
@@ -91,6 +112,73 @@ function createSheriffElection(
 }
 
 describe('createWerewolfHostManagement', () => {
+  it.each([GameStatus.Day, GameStatus.Ended])(
+    'locks host review and authorization in sequence during %s',
+    (roomStatus) => {
+      const getActions = (confirmed: boolean, shared: boolean) =>
+        createWerewolfHostManagement(
+          createInput({
+            roomStatus,
+            panelFlow: { lastNightInfoConfirmed: confirmed },
+            isReviewShared: shared,
+          }),
+        ).sections.flatMap((section) => section.actions);
+      const initial = getActions(false, false);
+      expect(initial.find((action) => action.key === 'grant-review')).toMatchObject({
+        isEnabled: false,
+        disabledReason: '请先查看昨夜信息',
+      });
+      expect(initial.find((action) => action.key === 'review')).toMatchObject({
+        isEnabled: false,
+        disabledReason: '请先查看昨夜信息',
+      });
+      const awaitingGrant = getActions(true, false);
+      expect(awaitingGrant.find((action) => action.key === 'grant-review')?.isEnabled).toBe(true);
+      expect(awaitingGrant.find((action) => action.key === 'review')).toMatchObject({
+        isEnabled: false,
+        disabledReason: '请先授权至少一名玩家',
+      });
+      expect(getActions(true, true).find((action) => action.key === 'review')?.isEnabled).toBe(
+        true,
+      );
+    },
+  );
+
+  it('only marks the earliest outstanding ended prerequisite', () => {
+    const first = createWerewolfHostManagement(createInput({ roomStatus: GameStatus.Ended }));
+    expect(first.pendingActionKeys).toEqual(['last-night-info']);
+    const grant = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: false,
+      }),
+    );
+    expect(grant.pendingActionKeys).toEqual(['grant-review']);
+    const granted = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
+      }),
+    );
+    expect(granted.pendingActionKeys).toEqual([]);
+  });
+
+  it.each(['registration', 'candidateSpeech', 'runoffSpeech'] as const)(
+    'marks the host election advance, but not other day actions, during %s',
+    (phase) => {
+      const sheriffElection = createSheriffElection({ phase });
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Day,
+          sheriffElection,
+        }),
+      );
+      expect(model.pendingActionKeys).toEqual(['sheriff-advance']);
+    },
+  );
+
   it('locks the selected MVP while leaving the terminal flows independent', () => {
     const onSelectMvp = vi.fn();
     const model = createWerewolfHostManagement(
@@ -336,30 +424,26 @@ describe('createWerewolfHostManagement', () => {
     },
   );
 
-  it.each([
-    'registration',
-    'candidateSpeech',
-    'withdrawal',
-    'firstVote',
-    'runoffSpeech',
-    'runoffVote',
-  ] as const)('opens the grant picker directly from the host task during %s', (phase) => {
-    const onGrantReviewAccess = vi.fn();
-    const model = createWerewolfHostManagement(
-      createInput({
-        roomStatus: GameStatus.Day,
-        panelFlow: { lastNightInfoConfirmed: true },
-        sheriffElection: createSheriffElection({ phase }),
-        onGrantReviewAccess,
-      }),
-    );
-    const body = hostTaskBody(model);
-    if (body?.kind !== 'choice') throw new Error('Expected the active election choices');
-    const grantAction = body.actions.find((action) => action.key === 'grant-review');
-    if (grantAction?.isEnabled !== true) throw new Error('Expected enabled election grant');
-    grantAction.onPress();
-    expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
-  });
+  it.each(['registration', 'candidateSpeech', 'firstVote', 'runoffSpeech', 'runoffVote'] as const)(
+    'opens the grant picker directly from the host task during %s',
+    (phase) => {
+      const onGrantReviewAccess = vi.fn();
+      const model = createWerewolfHostManagement(
+        createInput({
+          roomStatus: GameStatus.Day,
+          panelFlow: { lastNightInfoConfirmed: true },
+          sheriffElection: createSheriffElection({ phase }),
+          onGrantReviewAccess,
+        }),
+      );
+      const body = hostTaskBody(model);
+      if (body?.kind !== 'choice') throw new Error('Expected the active election choices');
+      const grantAction = body.actions.find((action) => action.key === 'grant-review');
+      if (grantAction?.isEnabled !== true) throw new Error('Expected enabled election grant');
+      grantAction.onPress();
+      expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it.each([
     ['candidateSpeech', true],
@@ -474,7 +558,7 @@ describe('createWerewolfHostManagement', () => {
         const action = actions.find((entry) => entry.key === key);
         expect(action).toMatchObject({
           isEnabled: false,
-          disabledReason: '语音播报中，请稍候',
+          disabledReason: key === 'last-night-info' ? '语音播报中，请稍候' : '请先查看昨夜信息',
         });
         expect(action).not.toHaveProperty('onPress');
       }
@@ -512,7 +596,7 @@ describe('createWerewolfHostManagement', () => {
     for (const action of body.actions) {
       expect(action).toMatchObject({
         isEnabled: false,
-        disabledReason: '语音播报中，请稍候',
+        disabledReason: action.key === 'grant-review' ? '请先查看昨夜信息' : '语音播报中，请稍候',
       });
       expect(action).not.toHaveProperty('onPress');
     }
@@ -549,6 +633,8 @@ describe('createWerewolfHostManagement', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
         capabilities: deniedRoomCapabilities,
         review: { isEnabled: true, onPress: openReview },
         onGrantReviewAccess,
@@ -645,6 +731,7 @@ describe('createWerewolfHostManagement', () => {
       createInput({
         roomStatus: GameStatus.Ended,
         panelFlow: { lastNightInfoConfirmed: true },
+        isReviewShared: true,
         isAudioPlaying: true,
         capabilities: deniedRoomCapabilities,
       }),

@@ -128,18 +128,20 @@ describe('getSheriffCandidateRecords', () => {
     ).toBeNull();
   });
 
-  it('exposes registration minus withdrawals during speech phases', () => {
-    for (const phase of ['candidateSpeech', 'withdrawal'] as const) {
-      expect(
-        getSheriffCandidateRecords(
-          electionWith({ phase, registeredSeats: [2, 5, 7], withdrawnSeats: [7] }),
-        ),
-      ).toEqual({
-        registeredSeats: [2, 5, 7],
-        withdrawnSeats: [7],
-        activeCandidateSeats: [2, 5],
-      });
-    }
+  it('exposes registration minus withdrawals during speech', () => {
+    expect(
+      getSheriffCandidateRecords(
+        electionWith({
+          phase: 'candidateSpeech',
+          registeredSeats: [2, 5, 7],
+          withdrawnSeats: [7],
+        }),
+      ),
+    ).toEqual({
+      registeredSeats: [2, 5, 7],
+      withdrawnSeats: [7],
+      activeCandidateSeats: [2, 5],
+    });
   });
 
   it('exposes the current round candidates during voting phases', () => {

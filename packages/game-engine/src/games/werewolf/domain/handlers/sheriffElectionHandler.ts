@@ -195,7 +195,7 @@ function getLeadingCandidateSeats(result: SheriffElectionRoundResult): number[] 
 
 function startFirstSheriffVote(
   state: GameState,
-  election: Extract<SheriffElectionState, { phase: 'candidateSpeech' | 'withdrawal' }>,
+  election: Extract<SheriffElectionState, { phase: 'candidateSpeech' }>,
 ): StateAction {
   const activeCandidateSeats = getActiveCandidateSeats(election);
   if (activeCandidateSeats.length === 0) {
@@ -362,10 +362,7 @@ export function handleWithdrawSheriffCandidate(
   const gate = resolveSheriffElectionGate(context);
   if (gate.kind === 'rejected') return gate.error;
   const { election } = gate;
-  const canWithdraw =
-    election.phase === 'candidateSpeech' ||
-    election.phase === 'withdrawal' ||
-    election.phase === 'runoffSpeech';
+  const canWithdraw = election.phase === 'candidateSpeech' || election.phase === 'runoffSpeech';
   if (!canWithdraw) return handlerError('invalid_election_phase');
   const isActiveRunoffCandidate =
     election.phase !== 'runoffSpeech' || election.candidateSeats.includes(intent.payload.seat);
@@ -477,9 +474,6 @@ export function handleAdvanceSheriffElection(
     }
     case 'candidateSpeech':
       action = advanceCandidateSpeech(context.state, election);
-      break;
-    case 'withdrawal':
-      action = startFirstSheriffVote(context.state, election);
       break;
     case 'firstVote':
     case 'runoffVote':

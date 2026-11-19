@@ -27,6 +27,11 @@ const spotmatchPublicCommandOptions = definePublicCommandOptions<SpotmatchPublic
   z.strictObject({ type: z.literal('spotmatch.game.returnToLobby') }),
   z.strictObject({ type: z.literal('spotmatch.game.abort') }),
   z.strictObject({
+    type: z.literal('spotmatch.game.restart'),
+    gameSequence: z.int().positive(),
+    expectedPhase: z.enum(['playing', 'ended']),
+  }),
+  z.strictObject({
     type: z.literal('spotmatch.card.claim'),
     roundId: z.string().min(1),
     centralInstanceId: z.string().min(1),

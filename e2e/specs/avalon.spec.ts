@@ -137,7 +137,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       await markBots.click();
       await expect(panel).toBeVisible();
       await hostRoom.closeHostManagement();
-      await expect(hostPage.getByTestId(TESTIDS.bottomActionPanel)).toContainText(/第2步/);
+      await expect(hostPage.getByTestId(TESTIDS.roomProgressIndicator)).toContainText(/第2步/);
       await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
       await hostPage.getByTestId(TESTIDS.bgmToggleButton).click();
       await expect
@@ -778,7 +778,10 @@ test.describe('Avalon full game', () => {
           TESTIDS.assignRolesButton,
           '分配角色？',
         );
-        await rooms[0]!.expectHostTaskBlockedReason(/^\d+\/10 位玩家已查看身份，等待剩余玩家$/);
+        await rooms[0]!.expectHostTaskBlockedReason(
+          TESTIDS.startGameButton,
+          /^\d+\/10 位玩家已查看身份，等待剩余玩家$/,
+        );
         const captured: RoleName[] = [];
         // 湖仙徽标只在白天五阶段显示（与组队者徽标同口径），查看阶段不出现。
         await expect(hostPage.getByTestId(ANY_LADY_MARKER)).toHaveCount(0);

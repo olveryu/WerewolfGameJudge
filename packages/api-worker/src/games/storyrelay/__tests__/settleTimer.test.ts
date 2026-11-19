@@ -279,6 +279,26 @@ async function settlePhase(
 }
 
 describe('Story Relay scheduled settle (Durable Object)', () => {
+  it('does not resume a restarted round when its old deadline is delivered', async () => {
+    const stub = getStub();
+    const armed = await armedAnsweringRoom(stub);
+    const oldKey = settleKey(armed);
+    const restarted = await send(stub, {
+      type: 'storyrelay.game.restart',
+      phaseRevision: armed.phaseRevision,
+    });
+    expect(restarted).toMatchObject({
+      phase: 'lobby',
+      roster: armed.roster,
+      config: armed.config,
+      roundId: null,
+      chains: [],
+    });
+    await fastForwardRowOnly(stub, oldKey);
+    await fireAlarm(stub);
+    expect(await readState(stub)).toEqual(restarted);
+  });
+
   it('parks the settle effect at the deadline and settles the answering phase on alarm', async () => {
     const stub = getStub();
     const armed = await armedAnsweringRoom(stub);

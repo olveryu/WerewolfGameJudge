@@ -4,10 +4,8 @@
  * The machine (platform/room/relay) owns the flow logic; this module
  * binds it to Story Relay: its reason strings, its text rule (trimmed
  * non-empty, at most 512 chars, stored verbatim), its entry shapes,
- * its stripped previous-entry projection, and its completion point —
- * Story Relay settles in the same decision that lands the final
- * step's last entry, from the frozen participant list, rewarding
- * seats that authored text.
+ * its stripped previous-entry projection. Settlement is emitted when
+ * the gallery begins, from the frozen participants who authored text.
  */
 
 import {
@@ -151,43 +149,43 @@ const STORY_RELAY_TASK_HOOKS: RelayTaskHooks<
           authorSeat: seat,
           submittedAt: context.nowMs,
         },
-  onRoundCompleted: (kit, state, appended, nowMs) => {
-    if (state.roundId === null) throw new Error('Story Relay completion requires a round');
-    const entries = [
-      ...state.chains.flatMap((chain) => chain.entries),
-      ...appended.map((item) => item.entry),
-    ];
-    const paragraphsBySeat = new Map<number, number>();
-    for (const entry of entries) {
-      if (entry.kind === 'text') {
-        paragraphsBySeat.set(entry.authorSeat, (paragraphsBySeat.get(entry.authorSeat) ?? 0) + 1);
-      }
-    }
-    const humans = state.participants
-      .toSorted((left, right) => left.seat - right.seat)
-      .flatMap((participant) =>
-        participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
-      );
-    const stats = humans.flatMap((human) => {
-      const paragraphsSubmitted = paragraphsBySeat.get(human.seat);
-      return paragraphsSubmitted === undefined
-        ? []
-        : [{ userId: human.userId, gamesPlayed: 1 as const, paragraphsSubmitted }];
-    });
-    const payload = buildGameCompletionPayloadV2({
-      roundId: state.roundId,
-      completedAt: nowMs,
-      humans,
-      minimumHumanPlayers: STORY_RELAY_MIN_PLAYERS,
-      includeSeat: (human) => paragraphsBySeat.has(human.seat),
-      stats,
-    });
-    return {
-      events: [kit.roundCompleted(nowMs)],
-      effects: payload === null ? [] : [kit.completionEffect(payload)],
-    };
-  },
+  onRoundCompleted: (kit, _state, _appended, nowMs) => ({
+    events: [kit.roundCompleted(nowMs)],
+    effects: [],
+  }),
 };
+
+function buildStoryRelayCompletionPayload(
+  state: StoryRelayState,
+  nowMs: number,
+): StoryRelayCompletionPayload | null {
+  if (state.roundId === null) throw new Error('Story Relay completion requires a round');
+  const paragraphsBySeat = new Map<number, number>();
+  for (const entry of state.chains.flatMap((chain) => chain.entries)) {
+    if (entry.kind === 'text') {
+      paragraphsBySeat.set(entry.authorSeat, (paragraphsBySeat.get(entry.authorSeat) ?? 0) + 1);
+    }
+  }
+  const humans = state.participants
+    .toSorted((left, right) => left.seat - right.seat)
+    .flatMap((participant) =>
+      participant.userId !== null ? [{ seat: participant.seat, userId: participant.userId }] : [],
+    );
+  const stats = humans.flatMap((human) => {
+    const paragraphsSubmitted = paragraphsBySeat.get(human.seat);
+    return paragraphsSubmitted === undefined
+      ? []
+      : [{ userId: human.userId, gamesPlayed: 1 as const, paragraphsSubmitted }];
+  });
+  return buildGameCompletionPayloadV2({
+    roundId: state.roundId,
+    completedAt: nowMs,
+    humans,
+    minimumHumanPlayers: STORY_RELAY_MIN_PLAYERS,
+    includeSeat: (human) => paragraphsBySeat.has(human.seat),
+    stats,
+  });
+}
 
 type TaskCommand = Extract<
   StoryRelayCommand,
@@ -244,8 +242,7 @@ export function controlStoryRelayGallery(
 
 /**
  * Story Relay transition continuation: once the round has completed,
- * expiry enters the gallery; otherwise it opens the next step. The
- * completion timing itself stays in the task decision (see header).
+ * expiry enters the gallery and settles rewards; otherwise it opens the next step.
  */
 export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
   StoryRelayEntry,
@@ -264,6 +261,10 @@ export const STORY_RELAY_EXPIRE_HOOKS: RelayExpireHooks<
       const settleEffect = relaySettleDueEffect(kit, state, state.stepIndex, deadlineAt);
       const effects: StoryRelayEffect[] = [];
       if (settleEffect !== null) effects.push(settleEffect);
+      if (state.revealSettlementPending) {
+        const payload = buildStoryRelayCompletionPayload(state, nowMs);
+        if (payload !== null) effects.push(kit.completionEffect(payload));
+      }
       return kit.commit(
         [
           kit.phaseChanged('gallery', deadlineAt, state.stepIndex, {

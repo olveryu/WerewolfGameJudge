@@ -331,10 +331,21 @@ it('selects directly for confirmation, cancels without submission and invalidate
     openProfile: vi.fn(),
     takeOverBots: createBotTakeoverCapability(true, vi.fn()),
   });
-  expect(
-    createUndercoverHostManagement({ state, capabilities, controls: result.current, review: null })
-      .task,
-  ).toEqual({
+  const pendingSelection = createUndercoverHostManagement({
+    state,
+    capabilities,
+    controls: { ...result.current, isSelecting: false },
+    review: null,
+  });
+  expect(pendingSelection.pendingActionKeys).toEqual(['select-player']);
+  const activeSelection = createUndercoverHostManagement({
+    state,
+    capabilities,
+    controls: result.current,
+    review: null,
+  });
+  expect(activeSelection.pendingActionKeys).toEqual([]);
+  expect(activeSelection.task).toEqual({
     kind: 'message',
     text: '点座位盘选择本次出局玩家',
     actionKey: 'cancel-selection',
@@ -722,6 +733,7 @@ it('clears the self-hint once every seat has viewed', () => {
       size: 'md',
       testID: TESTIDS.roomViewIdentityButton,
       isEnabled: true,
+      isPending: true,
     },
   ]);
   expect(viewingBottom.layout.secondary).toEqual([]);
@@ -821,6 +833,7 @@ describe('createUndercoverHostManagement task body', () => {
   it('blocks game start while cards are unviewed, then offers it once all are confirmed', () => {
     const viewing = createViewingState();
     const blockedBuild = buildFor(viewing);
+    expect(blockedBuild.model.pendingActionKeys).toEqual([]);
     const blocked = hostTaskBody(blockedBuild.model);
     expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
     if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
@@ -830,6 +843,7 @@ describe('createUndercoverHostManagement task body', () => {
 
     const roundId = viewing.round!.roundId;
     let confirmed = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
+    expect(buildFor(confirmed).model.pendingActionKeys).toEqual(['start-game']);
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
     const ready = hostTaskBody(buildFor(confirmed).model);
     if (ready?.kind !== 'ready') throw new Error('expected a ready task body');

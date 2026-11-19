@@ -2057,30 +2057,6 @@ describe('NightReview.helpers', () => {
       });
     });
 
-    it('withdrawal exposes candidates and no speaking line', () => {
-      const section = deriveSheriffSection(
-        makeGameState({
-          sheriffElection: {
-            phase: 'withdrawal',
-            registeredSeats: [2, 5, 7],
-            withdrawnSeats: [7],
-            completedRounds: [],
-          },
-        }),
-      );
-      expect(section).toEqual({
-        kind: 'inProgress',
-        phase: 'withdrawal',
-        registeredSeats: [2, 5, 7],
-        candidateSeats: [2, 5],
-        withdrawnSeats: [7],
-        closedRounds: [],
-        activeRound: null,
-        voteProgress: null,
-        speakingOrder: null,
-      });
-    });
-
     it('first vote in progress lists candidates and submission counts only — ballot targets are never exposed', () => {
       const section = deriveSheriffSection(
         makeGameState({

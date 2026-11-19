@@ -54,7 +54,7 @@ export interface FactionGroup {
 /** Faction group config (for UI display). */
 export const FACTION_GROUPS: readonly FactionGroup[] = [
   {
-    title: '好人阵营',
+    title: '好人',
     faction: Faction.Villager, // covers both Villager & God faction visually
     sections: [
       {
@@ -91,7 +91,7 @@ export const FACTION_GROUPS: readonly FactionGroup[] = [
     ],
   },
   {
-    title: '狼人阵营',
+    title: '狼人',
     faction: Faction.Wolf,
     sections: [
       {
@@ -121,7 +121,7 @@ export const FACTION_GROUPS: readonly FactionGroup[] = [
     ],
   },
   {
-    title: '第三方阵营',
+    title: '第三方',
     faction: Faction.Special,
     sections: [
       {

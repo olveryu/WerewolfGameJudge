@@ -60,6 +60,7 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
   z.strictObject({ type: z.literal('pictionary.gallery.rewind'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.finish'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.game.next'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.restart'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.game.returnToLobby'), ...phaseIdentityShape }),
 ]);
 

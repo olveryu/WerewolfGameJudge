@@ -22,6 +22,7 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
+  cancelSeatSelection,
   chainConfirmTrigger,
   chainWolfVote,
   confirmStep,
@@ -41,9 +42,11 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
+  startSeatSelection,
   witchStep,
   wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -124,6 +127,29 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       const view = await mount(SEER_STEP);
       await draftSeatSelection(view, 1);
     });
+  });
+
+  it('shows the required wild child action as pending until entering seat selection', async () => {
+    const view = await mount(actorStep('wildChildChooseIdol', 'wildChild', 8));
+    const action = view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection'));
+    expect(action).toHaveAccessibleDescription('有待处理操作');
+
+    await startSeatSelection(view);
+    expect(
+      view
+        .getByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))
+        .querySelector('.bottom-action-pending'),
+    ).toBeNull();
+    expect(
+      view
+        .getByTestId(TESTIDS.werewolfNightButton('cancelSeatSelection'))
+        .querySelector('.bottom-action-pending'),
+    ).toBeNull();
+
+    await cancelSeatSelection(view);
+    expect(
+      view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection')),
+    ).toHaveAccessibleDescription('有待处理操作');
   });
 
   describe('seer skipConfirm coverage', () => {

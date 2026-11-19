@@ -139,6 +139,18 @@ export function buildRestartGameAction(input: ActionInput): RoomHostManagementAc
   );
 }
 
+/** Reset the current round to preparation without starting another round. */
+export function buildResetToLobbyAction(input: ActionInput): RoomHostManagementAction {
+  return buildAction(
+    'restart',
+    '重新开始',
+    'refresh-outline',
+    'danger',
+    TESTIDS.restartButton,
+    input,
+  );
+}
+
 /** "中止本局" — danger action: discard the current game without a redeal. */
 export function buildAbortGameAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(

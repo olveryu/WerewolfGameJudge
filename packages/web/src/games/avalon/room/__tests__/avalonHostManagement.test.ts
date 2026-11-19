@@ -218,6 +218,19 @@ function session() {
 }
 
 describe('createAvalonHostManagement', () => {
+  it('waits for the seated host to view their identity before marking start pending', () => {
+    const game = session();
+    game.seatHost();
+    game.fill();
+    expect(build(game.state, true).pendingActionKeys).toEqual(['assign-roles']);
+    game.send({ type: 'avalon.roles.assign' });
+    expect(build(game.state, false).pendingActionKeys).toEqual([]);
+    game.send({ type: 'avalon.role.viewed' });
+    const management = build(game.state, false);
+    expect(management.pendingActionKeys).toEqual(['start-game']);
+    expect(management.sections[0]?.actions[0]?.isEnabled).toBe(false);
+  });
+
   it('pins the lobby panel: start reason counts the missing seats, room trio present', () => {
     const game = session();
     game.seatHost();

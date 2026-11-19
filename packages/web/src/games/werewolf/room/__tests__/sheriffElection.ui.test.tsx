@@ -125,32 +125,41 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
   ] satisfies readonly SheriffElectionState[])(
     'lets the host grant review access from the task during $phase',
     async (election) => {
-      const mock = createDayRoomMock(election, [], true);
-      const screen = await mountWerewolfRoom(mock);
-      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
-      const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-      await click(task.getByTestId(TESTIDS.shareReviewButton));
-      const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
-      const [firstSeat] = within(picker).getAllByRole('checkbox');
-      if (firstSeat === undefined) throw new Error('Expected a player to authorize');
-      await click(firstSeat);
-      await click(within(picker).getByRole('button', { name: '确认（1人）' }));
-      await waitFor(() =>
-        expect(mock.dispatch).toHaveBeenCalledWith(
-          { type: 'werewolf.review.share', allowedSeats: [0] },
-          expect.anything(),
-        ),
-      );
-      await waitFor(() =>
-        expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
-      );
-      if (election.phase === 'candidateSpeech') {
-        expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
-        expect(
-          within(screen.getByTestId(TESTIDS.roomHostTaskCard)).getByTestId(
-            TESTIDS.sheriffSelfDestructButton,
+      const harness = new RoomScreenTestHarness();
+      const detachAlerts = recordAlerts(harness);
+      try {
+        const mock = createDayRoomMock(election, [], true);
+        const screen = await mountWerewolfRoom(mock);
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
+        await harness.pressButton('确定查看');
+        await harness.pressButton('知道了');
+        const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
+        await click(task.getByTestId(TESTIDS.shareReviewButton));
+        const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
+        const [firstSeat] = within(picker).getAllByRole('checkbox');
+        if (firstSeat === undefined) throw new Error('Expected a player to authorize');
+        await click(firstSeat);
+        await click(within(picker).getByRole('button', { name: '确认（1人）' }));
+        await waitFor(() =>
+          expect(mock.dispatch).toHaveBeenCalledWith(
+            { type: 'werewolf.review.share', allowedSeats: [0] },
+            expect.anything(),
           ),
-        ).toBeInTheDocument();
+        );
+        await waitFor(() =>
+          expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
+        );
+        if (election.phase === 'candidateSpeech') {
+          expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+          expect(
+            within(screen.getByTestId(TESTIDS.roomHostTaskCard)).getByTestId(
+              TESTIDS.sheriffSelfDestructButton,
+            ),
+          ).toBeInTheDocument();
+        }
+      } finally {
+        detachAlerts();
       }
     },
   );
@@ -195,12 +204,18 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         const choices = task
           .getAllByRole('button')
           .filter((button) => choiceTestIds.has(button.dataset.testid ?? ''));
-        expect(choices.map((button) => button.textContent)).toEqual([
-          '授权玩家查看',
-          '本局复盘',
-          '再来一局',
-          '返回大厅',
+        expect(choices.map((button) => button.dataset.testid)).toEqual([
+          TESTIDS.shareReviewButton,
+          TESTIDS.roomReviewHostAction,
+          TESTIDS.nextRoundButton,
+          TESTIDS.returnLobbyButton,
         ]);
+        expect(task.getByTestId(TESTIDS.shareReviewButton)).toHaveTextContent('待办');
+        expect(task.getByTestId(TESTIDS.roomReviewHostAction)).not.toHaveTextContent('待办');
+        expect(task.getByTestId(TESTIDS.roomReviewHostAction)).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
         expect(steps.getByRole('button', { name: '授权' })).toHaveAttribute(
           'data-state',
           'current',
@@ -232,6 +247,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           'data-state',
           'current',
         );
+        expect(task.getByTestId(TESTIDS.roomReviewHostAction)).not.toHaveAttribute('aria-disabled');
         await click(task.getByTestId(TESTIDS.shareReviewButton));
         expect(await screen.findByTestId(TESTIDS.shareReviewModal)).toBeInTheDocument();
       } finally {
@@ -241,50 +257,59 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
   );
 
   it('restores Ended controls while retaining the completed election Inspector', async () => {
-    const mock = createWerewolfRoomMock({
-      schemaId: 'seerCheck',
-      currentActionRole: 'seer',
-      myRole: 'villager',
-      mySeat: 0,
-      numberOfPlayers: 4,
-      isHost: true,
-      gameStateOverrides: {
-        status: GameStatus.Ended,
-        sheriffElection: {
-          phase: 'completed',
-          registeredSeats: [0, 1],
-          withdrawnSeats: [],
-          completedRounds: [],
+    const harness = new RoomScreenTestHarness();
+    const detachAlerts = recordAlerts(harness);
+    try {
+      const mock = createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'villager',
+        mySeat: 0,
+        numberOfPlayers: 4,
+        isHost: true,
+        gameStateOverrides: {
+          status: GameStatus.Ended,
+          sheriffElection: {
+            phase: 'completed',
+            registeredSeats: [0, 1],
+            withdrawnSeats: [],
+            completedRounds: [],
+          },
+          sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
         },
-        sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
-      },
-      hookOverrides: { roomStatus: GameStatus.Ended },
-    });
-    const screen = await mountWerewolfRoom(mock, { viewportWidth: WIDE_VIEWPORT_WIDTH });
+        hookOverrides: { roomStatus: GameStatus.Ended },
+      });
+      const screen = await mountWerewolfRoom(mock, { viewportWidth: WIDE_VIEWPORT_WIDTH });
 
-    expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeInTheDocument();
-    await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
-    expect(await screen.findByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.roomReviewHostAction)).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.lastNightInfoButton)).toBeInTheDocument();
-    expect(screen.queryByTestId(TESTIDS.sheriffAdvanceButton)).not.toBeInTheDocument();
+      expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeInTheDocument();
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+      expect(await screen.findByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+      expect(screen.getByTestId(TESTIDS.roomReviewHostAction)).toBeInTheDocument();
+      expect(screen.getByTestId(TESTIDS.lastNightInfoButton)).toBeInTheDocument();
+      expect(screen.queryByTestId(TESTIDS.sheriffAdvanceButton)).not.toBeInTheDocument();
 
-    await click(screen.getByTestId(TESTIDS.shareReviewButton));
-    const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
-    const playerSeats = within(picker).getAllByRole('checkbox');
-    expect(playerSeats).toHaveLength(3);
-    const [firstPlayerSeat] = playerSeats;
-    if (firstPlayerSeat === undefined) throw new Error('Expected a player seat to authorize');
-    await click(firstPlayerSeat);
-    await click(within(picker).getByRole('button', { name: '确认（1人）' }));
-    await waitFor(() =>
-      expect(mock.dispatch).toHaveBeenCalledWith(
-        { type: 'werewolf.review.share', allowedSeats: [1] },
-        expect.anything(),
-      ),
-    );
-    await waitFor(() =>
-      expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
-    );
+      await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
+      await harness.pressButton('确定查看');
+      await harness.pressButton('知道了');
+      await click(screen.getByTestId(TESTIDS.shareReviewButton));
+      const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
+      const playerSeats = within(picker).getAllByRole('checkbox');
+      expect(playerSeats).toHaveLength(3);
+      const [firstPlayerSeat] = playerSeats;
+      if (firstPlayerSeat === undefined) throw new Error('Expected a player seat to authorize');
+      await click(firstPlayerSeat);
+      await click(within(picker).getByRole('button', { name: '确认（1人）' }));
+      await waitFor(() =>
+        expect(mock.dispatch).toHaveBeenCalledWith(
+          { type: 'werewolf.review.share', allowedSeats: [1] },
+          expect.anything(),
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
+      );
+    } finally {
+      detachAlerts();
+    }
   });
 });

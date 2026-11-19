@@ -86,7 +86,6 @@ function normalizeSheriffElection(
   };
   switch (election.phase) {
     case 'registration':
-    case 'withdrawal':
     case 'completed':
       return { ...common, phase: election.phase };
     case 'candidateSpeech':

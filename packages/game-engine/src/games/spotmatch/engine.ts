@@ -292,6 +292,17 @@ function decideCommand(
       if (state.phase.kind !== 'playing') return reject(SPOTMATCH_REASONS.phase);
       return commitSpotmatch([{ type: 'spotmatch.game.returnedToLobby' }]);
     }
+    case 'spotmatch.game.restart': {
+      const denied = requireHost<SpotmatchEvent, SpotmatchEffect>(
+        context,
+        state.hostUserId,
+        SPOTMATCH_REASONS.notHostReturnToLobby,
+      );
+      if (denied !== null) return denied;
+      if (command.gameSequence !== state.gameSequence || command.expectedPhase !== state.phase.kind)
+        return reject(SPOTMATCH_REASONS.staleRestart);
+      return commitSpotmatch([{ type: 'spotmatch.game.returnedToLobby' }]);
+    }
     default:
       return reject(SPOTMATCH_REASONS.phase);
   }

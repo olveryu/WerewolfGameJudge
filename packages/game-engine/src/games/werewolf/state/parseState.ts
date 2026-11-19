@@ -819,7 +819,6 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
   };
   switch (raw.phase) {
     case 'registration':
-    case 'withdrawal':
     case 'completed':
       return finishObject(raw, { ...common, phase: raw.phase }, path);
     case 'candidateSpeech': {
@@ -1152,54 +1151,88 @@ export function parseWerewolfState(value: unknown): GameState {
 
 /**
  * Entry point for persisted state.
- * v12–v16 payloads migrate to v17: v13 adds nothing the parser cannot
+ * v12–v17 payloads migrate to v18: v13 adds nothing the parser cannot
  * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
  * adds audioBatchId, which starts at 0 for a room whose queue was
  * written before batches had ids; v15 re-addresses `actionRejected` to
  * a seat, and the old user-id form is transient feedback that is simply
  * dropped; v16 adds gameSequence, which starts at 0 for a room written
  * before games were numbered; v17 adds the Wolf Girl confession record,
- * whose ack list starts empty for every older payload. Payloads at v11
+ * whose ack list starts empty for every older payload. v18 replaces the
+ * old withdrawal-confirmation phase with candidate speech. Payloads at v11
  * or older are still rejected, not migrated.
  * @throws When the stored state carries any other version, or when the
  * current-version payload is malformed.
  */
 export function migratePersistedWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
+  const migrateElection = (candidate: Record<string, unknown>): Record<string, unknown> => {
+    if (candidate.sheriffElection === undefined) return candidate;
+    const election = parseObject(candidate.sheriffElection, 'GameState.sheriffElection');
+    if (election.phase !== 'withdrawal') return candidate;
+    const registeredSeats = parseArray(
+      election.registeredSeats,
+      'GameState.sheriffElection.registeredSeats',
+      parseSeat,
+    );
+    const firstSeat = registeredSeats[0];
+    return {
+      ...candidate,
+      sheriffElection:
+        firstSeat === undefined
+          ? { ...election, phase: 'registration' }
+          : {
+              ...election,
+              phase: 'candidateSpeech',
+              speakingStartSeat: firstSeat,
+              speakingDirection: 'clockwise',
+            },
+    };
+  };
   if (raw.stateVersion === 12 || raw.stateVersion === 13) {
     const { actionRejected: _dropped, ...rest } = raw;
-    return parseWerewolfState({
-      ...rest,
-      stateVersion: WEREWOLF_STATE_VERSION,
-      audioBatchId: 0,
-      gameSequence: 0,
-      wolfGirlConfessionRevealAcks: [],
-    });
+    return parseWerewolfState(
+      migrateElection({
+        ...rest,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        audioBatchId: 0,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
   }
   if (raw.stateVersion === 14) {
     const { actionRejected: _dropped, ...rest } = raw;
-    return parseWerewolfState({
-      ...rest,
-      stateVersion: WEREWOLF_STATE_VERSION,
-      gameSequence: 0,
-      wolfGirlConfessionRevealAcks: [],
-    });
+    return parseWerewolfState(
+      migrateElection({
+        ...rest,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
   }
   if (raw.stateVersion === 15) {
-    return parseWerewolfState({
-      ...raw,
-      stateVersion: WEREWOLF_STATE_VERSION,
-      gameSequence: 0,
-      wolfGirlConfessionRevealAcks: [],
-    });
+    return parseWerewolfState(
+      migrateElection({
+        ...raw,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
   }
   if (raw.stateVersion === 16) {
-    return parseWerewolfState({
-      ...raw,
-      stateVersion: WEREWOLF_STATE_VERSION,
-      wolfGirlConfessionRevealAcks: [],
-    });
+    return parseWerewolfState(
+      migrateElection({
+        ...raw,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
   }
+  if (raw.stateVersion === 17)
+    return parseWerewolfState(migrateElection({ ...raw, stateVersion: WEREWOLF_STATE_VERSION }));
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
   }

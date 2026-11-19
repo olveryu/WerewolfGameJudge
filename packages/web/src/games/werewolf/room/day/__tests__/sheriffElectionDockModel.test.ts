@@ -5,6 +5,7 @@ import { createSheriffElectionDockModel } from '@/games/werewolf/room/day/sherif
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
+import * as alertPresets from '@/utils/alertPresets';
 
 const BASE_VIEW: SheriffElectionViewModel = {
   phase: 'registration',
@@ -100,7 +101,8 @@ describe('createSheriffElectionDockModel', () => {
     expect(identityAction.onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the Host personal action primary without projecting the advance command', () => {
+  it('keeps the Host personal action primary without projecting the advance command', async () => {
+    const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
     const election = createElection({
       canRegister: true,
       canAdvance: true,
@@ -124,8 +126,37 @@ describe('createSheriffElectionDockModel', () => {
     if (dock.primary === null || !dock.primary.isEnabled)
       throw new Error('Expected executable personal sheriff action');
     dock.primary.onPress();
+    expect(election.register).not.toHaveBeenCalled();
+    const onConfirm = confirm.mock.calls[0]?.[2];
+    if (onConfirm === undefined) throw new Error('Missing registration confirmation');
+    await onConfirm();
     expect(election.register).toHaveBeenCalledTimes(1);
     expect(election.advance).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it.each([
+    ['canCancelRegistration', 'cancelRegistration'],
+    ['canWithdraw', 'withdraw'],
+  ] as const)('confirms %s before dispatch', async (availability, action) => {
+    const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
+    const election = createElection({ [availability]: true });
+    const dock = createSheriffElectionDockModel({
+      election,
+      roomTools: ROOM_TOOLS,
+      isHost: false,
+      isInspectorVisible: false,
+      isAudioPlaying: false,
+      openDetails: vi.fn(),
+    });
+    if (dock.primary === null || !dock.primary.isEnabled) throw new Error('Missing action');
+    dock.primary.onPress();
+    expect(election[action]).not.toHaveBeenCalled();
+    const onConfirm = confirm.mock.calls[0]?.[2];
+    if (onConfirm === undefined) throw new Error('Missing confirmation');
+    await onConfirm();
+    expect(election[action]).toHaveBeenCalledOnce();
+    confirm.mockRestore();
   });
 
   it('shows a waiting message when only Host advancement is available', () => {
@@ -244,13 +275,32 @@ describe('createSheriffElectionDockModel', () => {
       openDetails,
     });
 
-    expect(dock.primary).toMatchObject({ key: 'sheriff-open-vote', label: '选择投票' });
+    expect(dock.primary).toMatchObject({
+      key: 'sheriff-open-vote',
+      label: '选择投票',
+      isPending: true,
+    });
     if (dock.primary === null || !dock.primary.isEnabled)
       throw new Error('Expected an enabled ballot details action');
     dock.primary.onPress();
     expect(openDetails).toHaveBeenCalledTimes(1);
     expect(election.vote).not.toHaveBeenCalled();
   });
+
+  it.each([{ kind: 'abstained' }, { kind: 'candidate', seat: 1 }] as const)(
+    'does not mark an already submitted ballot as pending',
+    (myBallot) => {
+      const dock = createSheriffElectionDockModel({
+        election: createElection({ phase: 'firstVote', canVote: true, myBallot }),
+        roomTools: ROOM_TOOLS,
+        isHost: false,
+        isInspectorVisible: false,
+        isAudioPlaying: false,
+        openDetails: vi.fn(),
+      });
+      expect(dock.primary?.isPending).not.toBe(true);
+    },
+  );
 
   it('retains an authorized player night-review action while voting', () => {
     const openNightReview = vi.fn();
@@ -314,6 +364,7 @@ describe('createSheriffElectionDockModel', () => {
       audience: 'anyone',
       tone: 'default',
       icon: 'document-text-outline',
+      category: 'resource',
       testID: TESTIDS.roomReviewOpenButton,
       isEnabled: false,
       disabledReason: '房主尚未向你开放复盘',

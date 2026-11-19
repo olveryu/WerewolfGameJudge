@@ -146,6 +146,8 @@ describe('FibKing room adapter', () => {
       build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
 
     const pending = flowActions(createViewing([0]));
+    expect(build(createViewing([])).pendingActionKeys).toEqual([]);
+    expect(build(createViewing([0])).pendingActionKeys).toEqual(['start-game']);
     expect(pending.map((action) => action.key)).toEqual(['start-game', 'mark-bots-viewed']);
     expect(pending[0]).toEqual(
       expect.objectContaining({
@@ -159,6 +161,22 @@ describe('FibKing room adapter', () => {
     const ready = flowActions(createViewing([0, 1, 2, 3]));
     expect(ready.map((action) => action.key)).toEqual(['start-game']);
     expect(ready[0]).toEqual(expect.objectContaining({ label: '开始游戏', isEnabled: true }));
+  });
+
+  it('tracks identity pending for the controlled seat, not the host or spectator', () => {
+    const state = createViewing([0, 2]);
+    const make = (viewerSeat: number | null) =>
+      createFibBottomActions({
+        state,
+        isHost: true,
+        viewerSeat,
+        isSubmitting: false,
+        openIdentity: vi.fn(),
+        review: null,
+      }).layout.primary[0];
+    expect(make(1)?.isPending).toBe(true);
+    expect(make(2)?.isPending).toBe(false);
+    expect(make(null)?.isPending).toBe(false);
   });
 
   it('locks host actions while a command is submitting', () => {
@@ -792,7 +810,10 @@ describe('createFibHostManagement task body', () => {
       },
       round: null,
     };
-    const step = hostTaskBody(build(failed));
+    const model = build(failed);
+    expect(model.pendingActionKeys).toEqual([]);
+    expect(model.hasPendingDecision).toBe(true);
+    const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'retry-preparation', label: '重新准备' } });
     if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });

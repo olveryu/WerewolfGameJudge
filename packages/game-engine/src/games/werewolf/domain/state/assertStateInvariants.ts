@@ -332,7 +332,6 @@ function assertActiveSheriffVotingPhase(
 function assertSheriffElectionPhase(state: GameState, election: SheriffElectionState): void {
   switch (election.phase) {
     case 'registration':
-    case 'withdrawal':
     case 'completed':
       return;
     case 'candidateSpeech':

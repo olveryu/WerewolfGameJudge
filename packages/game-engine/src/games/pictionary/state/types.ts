@@ -182,6 +182,7 @@ export interface PictionaryState extends BaseGameState<PictionaryGameType> {
   readonly reservations: readonly PictionaryDrawingReservation[];
   readonly chains: readonly PictionaryChain[];
   readonly gallery: PictionaryGalleryState | null;
+  readonly revealSettlementPending: boolean;
 }
 
 export interface PictionaryTask {

@@ -87,6 +87,16 @@ it('exposes bulk viewing as the blocked-start remedy and removes it once complet
   ).toBe(false);
 });
 
+it('marks start only after the seated host views their identity', () => {
+  const state = stateFor('viewing');
+  expect(model(stateFor('lobby')).pendingActionKeys).toEqual(['assign-roles']);
+  expect(model(state).pendingActionKeys).toEqual([]);
+  const hostViewed = sendSecrethitlerSeatCommand(state, 0, {
+    type: 'secrethitler.role.viewed',
+  });
+  expect(model(hostViewed).pendingActionKeys).toEqual(['start-game']);
+});
+
 it('locks all host commands during opening and closing narration without dropping the buttons', () => {
   const narrated: SecrethitlerState[] = [];
   startSecrethitlerTestGame(buildSecrethitlerTestLobby(), (state) => {

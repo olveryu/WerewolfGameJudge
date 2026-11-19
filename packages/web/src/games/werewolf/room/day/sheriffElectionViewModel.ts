@@ -99,10 +99,6 @@ export const SHERIFF_ELECTION_PHASE_CONTENT: Record<
     title: '竞选发言',
     description: '候选人依次发言，发言期间可退水',
   },
-  withdrawal: {
-    title: '退水确认',
-    description: '候选人最后确认是否退水，房主随后确认候选名单',
-  },
   firstVote: {
     title: '首轮投票',
     description: '未上警玩家投票，提交前后均可改票或弃票',
@@ -165,8 +161,6 @@ function getAdvanceLabel(election: SheriffElectionState): string | null {
     case 'candidateSpeech':
     case 'runoffSpeech':
       return '结束发言';
-    case 'withdrawal':
-      return '确认候选名单';
     case 'firstVote':
     case 'runoffVote':
       // Voting phases close on settle-countdown expiry; there is
@@ -298,9 +292,7 @@ export function createSheriffElectionViewModel(
   const selectedCandidateSeat =
     myBallot !== null && myBallot.kind === 'candidate' ? myBallot.seat : null;
   const canWithdrawFromPhase =
-    election.phase === 'candidateSpeech' ||
-    election.phase === 'withdrawal' ||
-    election.phase === 'runoffSpeech';
+    election.phase === 'candidateSpeech' || election.phase === 'runoffSpeech';
   const isActiveRunoffCandidate =
     election.phase !== 'runoffSpeech' ||
     (input.effectiveSeat !== null && election.candidateSeats.includes(input.effectiveSeat));

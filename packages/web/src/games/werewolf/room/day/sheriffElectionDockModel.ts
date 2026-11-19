@@ -20,6 +20,7 @@ import type {
 } from '@/features/room/model/RoomBottomActions';
 import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 import { TESTIDS } from '@/testids';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { SheriffElectionPanelModel, SheriffElectionPendingAction } from './useSheriffElection';
 
@@ -40,6 +41,7 @@ interface SheriffDockAction {
   readonly pendingKind: SheriffElectionPendingAction['kind'] | null;
   readonly variant: 'primary' | 'secondary';
   readonly execute: () => void;
+  readonly isPending?: boolean;
 }
 
 function findRoomTool(layout: RoomBottomActionLayout, key: string): RoomBottomButton | null {
@@ -63,6 +65,7 @@ function createRoomTool(
     tone,
     icon: button.icon,
     testID: button.testID,
+    ...(button.category === undefined ? {} : { category: button.category }),
   } as const;
   if (button.isEnabled) return { ...base, isEnabled: true, onPress: button.onPress };
   return {
@@ -87,6 +90,7 @@ function createCommandButton(
     size: 'md' as const,
     testID: action.testID,
     isLoading,
+    ...(action.isPending === true ? { isPending: true } : {}),
   };
   if (model.pendingAction !== null) {
     return {
@@ -123,7 +127,8 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       testID: TESTIDS.sheriffRegisterButton,
       pendingKind: 'register',
       variant: 'primary',
-      execute: () => void election.register(),
+      execute: () =>
+        showConfirmAlert('报名上警？', '确认报名参加本次警长竞选。', election.register),
     };
   }
   if (election.view.canCancelRegistration) {
@@ -133,7 +138,8 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       testID: TESTIDS.sheriffCancelRegistrationButton,
       pendingKind: 'cancelRegistration',
       variant: 'secondary',
-      execute: () => void election.cancelRegistration(),
+      execute: () =>
+        showConfirmAlert('取消报名？', '确认取消本次警长竞选报名。', election.cancelRegistration),
     };
   }
   if (election.view.canWithdraw) {
@@ -143,7 +149,8 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       testID: TESTIDS.sheriffWithdrawButton,
       pendingKind: 'withdraw',
       variant: 'secondary',
-      execute: () => void election.withdraw(),
+      execute: () =>
+        showConfirmAlert('确认退水？', '退水后将退出本次警长竞选。', election.withdraw),
     };
   }
   if (election.view.canVote) {
@@ -155,6 +162,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
       variant: 'primary',
+      isPending: election.view.myBallot?.kind === 'notSubmitted',
       execute: input.openDetails,
     };
   }
@@ -168,8 +176,6 @@ function getSheriffWaitingMessage(model: SheriffElectionPanelModel): string {
     case 'candidateSpeech':
     case 'runoffSpeech':
       return '按顺序发言中';
-    case 'withdrawal':
-      return '等待确认候选';
     case 'firstVote':
     case 'runoffVote':
       return '等待投票完成';

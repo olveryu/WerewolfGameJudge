@@ -15,6 +15,11 @@ export type SpotmatchPublicCommand =
   | { readonly type: 'spotmatch.game.returnToLobby' }
   | { readonly type: 'spotmatch.game.abort' }
   | {
+      readonly type: 'spotmatch.game.restart';
+      readonly gameSequence: number;
+      readonly expectedPhase: 'playing' | 'ended';
+    }
+  | {
       readonly type: 'spotmatch.card.claim';
       readonly roundId: string;
       readonly centralInstanceId: string;

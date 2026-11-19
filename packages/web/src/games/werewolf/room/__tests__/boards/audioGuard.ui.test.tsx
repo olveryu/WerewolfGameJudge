@@ -10,11 +10,12 @@
  */
 
 import { GameStatus, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 
 import {
   actorStep,
   click,
+  createReactiveWerewolfRoomMock,
   createWerewolfRoomMock,
   draftSeatSelection,
   expectSeatSelectionUnavailable,
@@ -158,6 +159,28 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
   });
 
   describe('bottom action buttons hidden during audio', () => {
+    it('hides the entire hand, including host and resource cards, while narration plays', async () => {
+      const view = await mount({ ...seerStep(true), isHost: true });
+
+      expect(view.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
+      expect(view.queryByTestId(TESTIDS.roomMoreActionsButton)).not.toBeInTheDocument();
+    });
+
+    it('closes the host hand on narration and restores the player hand afterward', async () => {
+      const reactive = createReactiveWerewolfRoomMock({ ...seerStep(false), isHost: true });
+      const view = await mountWerewolfRoom(reactive.mock);
+      await click(view.getByTestId(TESTIDS.roomMoreActionsButton));
+      expect(view.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+
+      act(() => reactive.simulateStateUpdate({ isAudioPlaying: true }));
+      expect(view.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
+      expect(view.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+
+      act(() => reactive.simulateStateUpdate({ isAudioPlaying: false }));
+      expect(view.getByTestId(TESTIDS.roomMoreActionsButton)).toBeInTheDocument();
+      expect(view.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+    });
+
     it('seer skip button is not visible when isAudioPlaying=true', async () => {
       const view = await mount(seerStep(true));
 

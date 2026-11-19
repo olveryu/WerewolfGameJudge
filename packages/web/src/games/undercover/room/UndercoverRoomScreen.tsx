@@ -94,6 +94,24 @@ function UndercoverRoomContent(
     <RoomShell
       model={shellModel}
       showPlayerHand
+      phaseLabel={
+        state.phase === 'lobby'
+          ? '待开局'
+          : state.phase === 'viewing'
+            ? '查看词卡'
+            : state.phase === 'preparing' || state.phase === 'preparationFailed'
+              ? '准备词语'
+              : state.phase === 'ended'
+                ? '本局结束'
+                : state.phase === 'aborted'
+                  ? '本局中止'
+                  : '游戏进行中'
+      }
+      lobbyAction={
+        state.phase === 'lobby'
+          ? { label: '分配角色', occupiedSeats: getUndercoverOccupiedSeatCount(state) }
+          : null
+      }
       isSelecting={controls.isSelecting}
       selectionUsesHostTask
       configurationEntry={

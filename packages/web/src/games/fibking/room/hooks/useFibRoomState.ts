@@ -78,6 +78,7 @@ export interface FibRoomScreenState {
   readonly isBotTakeoverActive: boolean;
   readonly isGuessing: boolean;
   readonly playerCount: number;
+  readonly occupiedSeatCount: number;
   readonly phase: FibPhase;
   readonly preparationStage: FibPreparationStage | null;
   readonly preparationFailureCode: FibPreparationFailureCode | null;
@@ -369,6 +370,7 @@ export function useFibRoomState({
     isBotTakeoverActive: controlledSeat !== null,
     isGuessing,
     playerCount: state.numberOfPlayers,
+    occupiedSeatCount: getFibOccupiedSeatCount(state),
     phase: state.phase,
     preparationStage: state.phase === 'preparing' ? state.pendingRound.stage : null,
     preparationFailureCode:

@@ -78,14 +78,14 @@ export function useRoomModals({
         ? '请确认是否现在查看昨夜信息。'
         : '昨夜信息可能影响警长竞选，请确认是否现在查看。',
       () => {
-        onLastNightInfoConfirmed();
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();
-        const buttons: AlertButton[] = [DISMISS_BUTTON];
+        const buttons: AlertButton[] = [{ ...DISMISS_BUTTON, onPress: onLastNightInfoConfirmed }];
         if (curseInfo != null) {
           buttons.unshift({
             text: '查看诅咒',
             onPress: () => {
+              onLastNightInfoConfirmed();
               showDismissAlert('乌鸦诅咒', curseInfo);
             },
           });

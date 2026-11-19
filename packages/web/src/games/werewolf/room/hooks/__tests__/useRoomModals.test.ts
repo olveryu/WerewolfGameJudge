@@ -115,7 +115,7 @@ describe('useRoomModals last-night info confirmation', () => {
     });
   }
 
-  it('warns about the sheriff election mid-game and completes the flow step on confirm', () => {
+  it('completes the flow only after the info has been viewed and acknowledged', () => {
     const onLastNightInfoConfirmed = vi.fn();
     const deps = createDeps({
       getLastNightInfo: () => '昨夜平安夜',
@@ -134,14 +134,21 @@ describe('useRoomModals last-night info confirmation', () => {
 
     pressLastNightInfoConfirm();
 
-    expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
+    expect(onLastNightInfoConfirmed).not.toHaveBeenCalled();
     expect(mockShowAlert).toHaveBeenCalledWith('昨夜信息', '昨夜平安夜', expect.anything());
+    const infoCall = mockShowAlert.mock.calls.find((call) => call[0] === '昨夜信息');
+    act(() => {
+      void infoCall?.[2]?.find(({ text }) => text === '知道了')?.onPress?.();
+    });
+    expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
   });
 
   it('offers the crow curse from the info dialog when a crow is on the board', () => {
+    const onLastNightInfoConfirmed = vi.fn();
     const deps = createDeps({
       getLastNightInfo: () => '昨夜平安夜',
       getCurseInfo: () => '3号被诅咒（放逐+1票）',
+      onLastNightInfoConfirmed,
     });
     const { result } = renderHook(() => useRoomModals(deps));
 
@@ -150,6 +157,11 @@ describe('useRoomModals last-night info confirmation', () => {
 
     const infoCall = mockShowAlert.mock.calls.find((call) => call[0] === '昨夜信息');
     expect(infoCall?.[2]?.map(({ text }) => text)).toEqual(['查看诅咒', '知道了']);
+    expect(onLastNightInfoConfirmed).not.toHaveBeenCalled();
+    act(() => {
+      void infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
+    });
+    expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
   });
 
   it('drops the election warning once the game has ended', () => {

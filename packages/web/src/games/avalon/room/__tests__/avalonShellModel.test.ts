@@ -251,11 +251,22 @@ describe('createAvalonRoomShellModel', () => {
     expect(before.bottomActions.kind).toBe('stacked');
     if (before.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
     expect(before.bottomActions.message).toBe('请点击下方「查看身份」，查看你的角色');
+    expect(
+      before.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
+    ).toMatchObject({
+      isPending: true,
+      category: 'resource',
+    });
 
     running.send({ type: 'avalon.role.viewed' }, 'u2');
     const after = createAvalonRoomShellModel({ ...input, state: running.state });
     if (after.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
     expect(after.bottomActions.message).toBeNull();
+    expect(
+      after.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
+    ).toMatchObject({
+      isPending: false,
+    });
   });
 
   it('adds the always-on view-role action once the game is running', () => {
@@ -944,7 +955,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     }
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     const review = { isEnabled: true, onPress: vi.fn() } as const;
-    expect(shellFor(running, 2, { review }).message).toBe('等待房主操作（再来一局 / 返回大厅）');
+    expect(shellFor(running, 2, { review }).message).toBe('等待房主操作');
     expect(shellFor(running, 0, { review }).message).toBeNull();
   });
 

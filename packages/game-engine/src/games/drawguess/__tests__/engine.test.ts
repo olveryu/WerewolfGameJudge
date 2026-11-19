@@ -936,6 +936,41 @@ describe('DrawGuess engine', () => {
 });
 
 describe('DrawGuess abort', () => {
+  it('restarts an unfinished game atomically and rejects stale confirmations and word deliveries', () => {
+    const session = game();
+    session.send({ type: 'drawguess.game.begin' });
+    const gameSequence = session.state.gameSequence;
+    const restart: DrawGuessPublicCommand = {
+      type: 'drawguess.game.restart',
+      gameSequence,
+      expectedPhase: 'playing',
+    };
+    const before = session.state;
+    expect(session.decide(restart, 'u1')).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+    const effectCount = session.effects.length;
+    session.send(restart);
+    expect(session.state).toMatchObject({
+      phase: { kind: 'lobby' },
+      roster: before.roster,
+      config: before.config,
+      gameSequence,
+      turnHistory: [],
+    });
+    expect(session.effects).toHaveLength(effectCount);
+    session.send({ type: 'drawguess.game.begin' });
+    expect(session.decide(restart)).toEqual({
+      kind: 'reject',
+      reason: DRAWGUESS_REASONS.staleRestart,
+    });
+    expect(
+      session.decideAs(
+        { type: 'drawguess.words.dealt', gameSequence, turnIndex: 0, choices: CHOICES },
+        session.systemContext('delayed-words'),
+      ),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
+    expect(session.state.phase).toMatchObject({ kind: 'wordSelect', choices: [] });
+  });
+
   it.each(['wordSelect', 'drawing', 'roundEnd'] as const)(
     'clears an unfinished %s game without rewards and preserves seats and settings',
     (phase) => {
@@ -1100,6 +1135,22 @@ describe('DrawGuess abort', () => {
     expect(
       session.effects.filter((effect) => effect.type === 'drawguess.game.completed'),
     ).toHaveLength(1);
+    const gameSequence = session.state.gameSequence;
+    expect(
+      session.decide({
+        type: 'drawguess.game.restart',
+        gameSequence,
+        expectedPhase: 'playing',
+      }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.staleRestart });
+    session.send({ type: 'drawguess.game.restart', gameSequence, expectedPhase: 'ended' });
+    expect(session.state.phase.kind).toBe('lobby');
+    expect(
+      session.effects.filter((effect) => effect.type === 'drawguess.game.completed'),
+    ).toHaveLength(1);
+    expect(
+      session.decide({ type: 'drawguess.game.restart', gameSequence, expectedPhase: 'ended' }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.staleRestart });
   });
 });
 
