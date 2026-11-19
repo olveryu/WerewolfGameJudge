@@ -83,19 +83,18 @@ describe('Secrethitler host conveniences', () => {
   });
 
   it.each(['viewing', 'night', 'election'] as const)(
-    'aborts %s without rewarding or losing room setup',
+    'restarts %s without rewarding or losing room setup',
     (phase) => {
       const current = game(5, 1);
-      current.session.expectReject({ type: 'secrethitler.game.abort' }, SECRETHITLER_REASONS.phase);
+      current.session.expectReject(
+        { type: 'secrethitler.game.restart', gameSequence: 0, wasEnded: false },
+        SECRETHITLER_REASONS.phase,
+      );
       if (phase === 'election') enterElection(current);
       else {
         assignAndViewAll(current);
         if (phase === 'night') {
           current.send({ type: 'secrethitler.game.begin' });
-          current.session.expectReject(
-            { type: 'secrethitler.game.abort' },
-            SECRETHITLER_REASONS.audioPlaying,
-          );
           current.session.expectReject(
             {
               type: 'secrethitler.game.restart',
@@ -109,18 +108,14 @@ describe('Secrethitler host conveniences', () => {
       }
       expect(current.session.state.phase.kind).toBe(phase);
       const before = current.session.state;
-      current.session.expectReject(
-        { type: 'secrethitler.game.abort' },
-        SECRETHITLER_REASONS.notHostAbort,
-        'u1',
-      );
-      current.session.expectReject(
-        { type: 'secrethitler.game.abort' },
-        REASON_CONTROLLED_SEAT_NOT_ALLOWED,
-        'host',
-        1,
-      );
-      current.send({ type: 'secrethitler.game.abort' });
+      const command = {
+        type: 'secrethitler.game.restart',
+        gameSequence: before.gameSequence,
+        wasEnded: false,
+      } as const;
+      current.session.expectReject(command, SECRETHITLER_REASONS.notHostAbort, 'u1');
+      current.session.expectReject(command, REASON_CONTROLLED_SEAT_NOT_ALLOWED, 'host', 1);
+      current.send(command);
       expect(current.session.state.phase).toEqual({ kind: 'lobby' });
       expect(current.session.state.roster).toEqual(before.roster);
       expect(current.session.state.config).toEqual(before.config);
@@ -191,7 +186,11 @@ describe('Secrethitler host conveniences', () => {
         'night_end',
       ]);
       current.session.expectReject(
-        { type: 'secrethitler.game.abort' },
+        {
+          type: 'secrethitler.game.restart',
+          gameSequence: current.session.state.gameSequence,
+          wasEnded: false,
+        },
         SECRETHITLER_REASONS.audioPlaying,
       );
     },
@@ -970,6 +969,7 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     });
     expect(current.session.effects[0]?.payload.participantUserIds).toHaveLength(5);
     const previousSequence = current.session.state.gameSequence;
+    current.session.expectReject({ type: 'secrethitler.roles.assign' }, SECRETHITLER_REASONS.phase);
     const unfinishedCommand = {
       type: 'secrethitler.game.restart',
       gameSequence: previousSequence,

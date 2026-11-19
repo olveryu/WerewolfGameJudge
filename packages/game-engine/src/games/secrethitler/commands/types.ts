@@ -13,7 +13,6 @@ export type SecrethitlerPublicCommand =
   | { readonly type: 'secrethitler.config.update'; readonly config: SecrethitlerConfig }
   | { readonly type: 'secrethitler.roles.assign' }
   | { readonly type: 'secrethitler.game.begin' }
-  | { readonly type: 'secrethitler.game.abort' }
   | {
       readonly type: 'secrethitler.game.restart';
       readonly gameSequence: number;
@@ -21,7 +20,6 @@ export type SecrethitlerPublicCommand =
     }
   | { readonly type: 'secrethitler.bots.markAllBotsViewed' }
   | { readonly type: 'secrethitler.bots.markAllBotsGroupConfirmed' }
-  | { readonly type: 'secrethitler.game.returnToLobby' }
   | { readonly type: 'secrethitler.audio.ack'; readonly audioBatchId: number }
   | { readonly type: 'secrethitler.role.viewed' }
   | { readonly type: 'secrethitler.night.replay'; readonly step: number }

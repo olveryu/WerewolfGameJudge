@@ -29,7 +29,6 @@ export const SECRETHITLER_REASONS = {
   noBotSeats: 'secrethitler_no_bot_seats',
   notAllViewed: 'secrethitler_not_all_viewed',
   full: 'secrethitler_room_not_full',
-  notHostReturnToLobby: 'secrethitler_not_host_return_to_lobby',
   audioPlaying: 'secrethitler_audio_playing',
   notHostAckAudio: 'secrethitler_not_host_ack_audio',
   unknownAudioBatch: 'secrethitler_unknown_audio_batch',
