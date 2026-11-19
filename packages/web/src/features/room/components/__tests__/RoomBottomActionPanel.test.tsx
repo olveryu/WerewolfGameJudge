@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
 
+import { RoomActionHand } from '../RoomActionHand';
 import { RoomBottomActionPanel } from '../RoomBottomActionPanel';
 
 const EMPTY_STACK = {
@@ -10,6 +11,26 @@ const EMPTY_STACK = {
   progress: null,
   layout: { primary: [], secondary: [], ghost: [] },
 } as const;
+
+it('preserves the focused card when an earlier card disappears', () => {
+  const { rerender } = render(
+    <RoomActionHand label="操作">
+      <button key="first">先前操作</button>
+      <button key="second">当前操作</button>
+    </RoomActionHand>,
+  );
+  const focusedCard = screen.getByRole('button', { name: '当前操作' });
+  focusedCard.focus();
+
+  rerender(
+    <RoomActionHand label="操作">
+      <button key="second">当前操作</button>
+    </RoomActionHand>,
+  );
+
+  expect(screen.getByRole('button', { name: '当前操作' })).toBe(focusedCard);
+  expect(focusedCard).toHaveFocus();
+});
 
 it('keeps a game summary inside the bottom panel when it has no other content', () => {
   render(
@@ -256,4 +277,28 @@ it('marks a host hand with a bell only while its task can be executed', () => {
   rerender(panel(loadingAction));
   expect(hostEntry).toHaveAccessibleName('主持管理');
   expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+});
+
+it('replaces the action hand with manual cards and restores focus on return', () => {
+  const openRules = vi.fn();
+  render(
+    <RoomBottomActionPanel
+      model={EMPTY_STACK}
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={null}
+      onOpenMoreActions={() => undefined}
+      showPlayerHand
+      manualEntries={[{ label: '玩法', onOpen: openRules }]}
+    />,
+  );
+
+  const manual = screen.getByTestId(TESTIDS.roomManualButton);
+  fireEvent.click(manual);
+  const hand = screen.getByRole('group', { name: '手册' });
+  expect(hand.querySelectorAll('.room-action-card-cell')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: '玩法' }));
+  expect(openRules).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByTestId(TESTIDS.roomManualBackButton));
+  expect(screen.getByTestId(TESTIDS.roomManualButton)).toHaveFocus();
 });
