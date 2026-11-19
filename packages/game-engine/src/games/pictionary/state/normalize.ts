@@ -192,6 +192,14 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   assertSafeTimestamp(state.deadlineAt, 'Pictionary deadlineAt');
   assertSeats(state);
   assertReadySeats(state);
+  if (
+    state.revealSettlementPending &&
+    state.phase !== 'answering' &&
+    state.phase !== 'settling' &&
+    state.phase !== 'transition'
+  ) {
+    throw new Error('Pictionary settlement can only be pending before the gallery');
+  }
 
   if (state.phase === 'lobby') {
     if (

@@ -86,6 +86,91 @@ function RoomProgressIndicator({ progress }: { readonly progress: NightStepProgr
   );
 }
 
+function resolveStatusMessage(
+  model: RoomBottomActionModel,
+  isAudioPlaying: boolean,
+  selectionBody: NonNullable<ReturnType<typeof resolveHostTaskView>>['body'] | null,
+): string | null {
+  if (isAudioPlaying) return AUDIO_WAITING_LABEL;
+  return selectionBody?.kind === 'message' ? selectionBody.text : model.message;
+}
+
+/** Status shared by the room information area and the legacy bottom panel. */
+export function RoomActionStatus({
+  model,
+  summary,
+  isAudioPlaying,
+  hostManagement,
+  isSelecting,
+  selectionUsesHostTask,
+  boardStatus,
+}: {
+  readonly model: RoomBottomActionModel;
+  readonly summary: ReactNode;
+  readonly isAudioPlaying: boolean;
+  readonly hostManagement: RoomHostManagementModel | null;
+  readonly isSelecting: boolean;
+  readonly selectionUsesHostTask: boolean;
+  readonly boardStatus?: {
+    readonly phaseLabel: string | null;
+    readonly title: string | null;
+    readonly detail: string | null;
+  };
+}) {
+  const taskBody =
+    isSelecting && selectionUsesHostTask && hostManagement !== null
+      ? resolveHostTaskView(hostManagement)?.body
+      : null;
+  const message = resolveStatusMessage(model, isAudioPlaying, taskBody ?? null);
+  const title = isAudioPlaying || isSelecting ? message : (boardStatus?.title ?? message);
+  const hasSummary = summary !== null && summary !== undefined && summary !== false;
+  if (boardStatus !== undefined) {
+    return (
+      <>
+        {(boardStatus.phaseLabel !== null ||
+          (title !== null && title.length > 0) ||
+          (!isAudioPlaying && !isSelecting && boardStatus.detail !== null)) && (
+          <div className="room-board-status-card">
+            {boardStatus.phaseLabel !== null && (
+              <p className="room-board-phase">{boardStatus.phaseLabel}</p>
+            )}
+            {title !== null && title.length > 0 && (
+              <h2
+                className="room-board-status-title"
+                aria-live="polite"
+                data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
+              >
+                {title}
+              </h2>
+            )}
+            {!isAudioPlaying && !isSelecting && boardStatus.detail !== null && (
+              <p className="room-board-status-detail">{boardStatus.detail}</p>
+            )}
+          </div>
+        )}
+        {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
+        {hasSummary && <div className="bottom-action-summary">{summary}</div>}
+      </>
+    );
+  }
+  return (
+    <>
+      {hasSummary && <div className="bottom-action-summary">{summary}</div>}
+      {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
+      {message !== null && message.length > 0 && (
+        <p
+          className="bottom-action-message"
+          data-animate="true"
+          aria-live="polite"
+          data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
+        >
+          {message}
+        </p>
+      )}
+    </>
+  );
+}
+
 function LayoutButton({
   model,
   hideAudioLockReason,
@@ -104,6 +189,7 @@ function LayoutButton({
     ? null
     : visibleDisabledReason(model.disabledReason, hideAudioLockReason);
   const explanation = !model.isEnabled ? model.disabledReason : null;
+  const isPending = isHand && 'isPending' in model && model.isPending === true;
   return (
     <div className="bottom-action-slot">
       <Button
@@ -112,10 +198,11 @@ function LayoutButton({
         }
         size={'size' in model ? model.size : 'md'}
         loading={'isLoading' in model && model.isLoading === true}
+        data-card-category={isHand ? ('category' in model ? model.category : 'player') : undefined}
         disabled={!model.isEnabled && (!isHand || explanation === null)}
         aria-disabled={isHand && !model.isEnabled && explanation !== null ? true : undefined}
-        aria-label={isHand && explanation !== null ? model.label : undefined}
-        aria-describedby={isHand && explanation !== null ? reasonId : undefined}
+        aria-label={isHand && (explanation !== null || isPending) ? model.label : undefined}
+        aria-describedby={isHand && (explanation !== null || isPending) ? reasonId : undefined}
         style={style}
         data-testid={model.testID}
         onClick={
@@ -132,8 +219,15 @@ function LayoutButton({
           isHand && <IconHandLeftOutline aria-hidden />
         )}
         <span>{model.label}</span>
-        {isHand && explanation !== null && (
+        {isPending && (
+          <span className="bottom-action-pending" aria-hidden>
+            待办
+          </span>
+        )}
+        {isHand && (explanation !== null || isPending) && (
           <span id={reasonId} className="visually-hidden">
+            {isPending ? '有待处理操作' : ''}
+            {isPending && explanation !== null ? '；' : ''}
             {explanation}
           </span>
         )}
@@ -189,16 +283,6 @@ function PlayerHand({
   const actions = listRoomBottomButtons(model);
   return (
     <>
-      {actions.map((action) => {
-        const reason = action.isEnabled
-          ? null
-          : visibleDisabledReason(action.disabledReason, isAudioPlaying);
-        return reason === null ? null : (
-          <p className="bottom-action-message" key={action.key}>
-            {action.label}：{reason}
-          </p>
-        );
-      })}
       <RoomActionHand label="行动手牌">
         {actions.map((action) => (
           <LayoutButton
@@ -288,6 +372,7 @@ function RoomBottomActionPanelComponent({
   showPlayerHand = false,
   isSelecting = false,
   selectionUsesHostTask = false,
+  statusInBoard = false,
   hostHand,
   hostEntryRef,
   manualEntries,
@@ -302,6 +387,7 @@ function RoomBottomActionPanelComponent({
   readonly showPlayerHand?: boolean;
   readonly isSelecting?: boolean;
   readonly selectionUsesHostTask?: boolean;
+  readonly statusInBoard?: boolean;
   readonly hostHand?: ReactNode;
   readonly hostEntryRef?: Ref<HTMLButtonElement>;
   readonly manualEntries?: readonly RoomManualEntry[];
@@ -328,21 +414,23 @@ function RoomBottomActionPanelComponent({
   const selectionAction =
     isSelecting && selectionUsesHostTask && taskBody?.kind === 'message' ? taskBody.escape : null;
   const hasReadyTask =
-    taskBody?.kind === 'ready'
-      ? taskBody.action.isLoading !== true
-      : taskBody?.kind === 'choice' &&
-        taskBody.actions.some((action) => action.isEnabled && action.isLoading !== true);
+    hostManagement?.pendingActionKeys !== undefined
+      ? hostManagement.pendingActionKeys.length > 0 || hostManagement.hasPendingDecision === true
+      : taskBody?.kind === 'ready'
+        ? taskBody.action.isLoading !== true
+        : taskBody?.kind === 'choice' &&
+          taskBody.actions.some((action) => action.isEnabled && action.isLoading !== true);
   const moreActionsLabel =
     hiddenActions.length === 0 && hostManagement !== null
       ? HOST_MANAGEMENT_LABEL
       : hasMultiplePrimaryChoices && hostManagement === null
         ? '选择操作'
         : '更多操作';
-  const statusMessage = isAudioPlaying
-    ? AUDIO_WAITING_LABEL
-    : isSelecting && selectionUsesHostTask && taskBody?.kind === 'message'
-      ? taskBody.text
-      : model.message;
+  const statusMessage = resolveStatusMessage(
+    model,
+    isAudioPlaying,
+    isSelecting && selectionUsesHostTask ? (taskBody ?? null) : null,
+  );
   if (
     !hasSummary &&
     statusMessage === null &&
@@ -363,17 +451,15 @@ function RoomBottomActionPanelComponent({
       data-hand={showPlayerHand}
       data-testid={TESTIDS.bottomActionPanel}
     >
-      {hasSummary && <div className="bottom-action-summary">{summary}</div>}
-      {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-      {statusMessage !== null && statusMessage.length > 0 && (
-        <p
-          className="bottom-action-message"
-          data-animate="true"
-          aria-live="polite"
-          data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
-        >
-          {statusMessage}
-        </p>
+      {!statusInBoard && (
+        <RoomActionStatus
+          model={model}
+          summary={summary}
+          isAudioPlaying={isAudioPlaying}
+          hostManagement={hostManagement}
+          isSelecting={isSelecting}
+          selectionUsesHostTask={showPlayerHand && selectionUsesHostTask}
+        />
       )}
       {hostHand ??
         (isManualOpen && hasManual ? (

@@ -58,6 +58,7 @@ interface WerewolfHostManagementInput {
   /** The host has granted the review to at least one seat. */
   readonly isReviewShared: boolean;
   readonly isPlagueMode: boolean;
+  readonly hasUnviewedOwnRole: boolean;
   readonly seatedCount: number;
   readonly viewedCount: number;
   readonly totalSeats: number;
@@ -186,6 +187,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
         }),
       ];
     case GameStatus.Assigned: {
+      if (input.isPlagueMode) return [];
       // Viewing progress lives on this action's blocked reason (the host
       // console caption): the phase's primary is the start action, held
       // disabled until every seated player has viewed their role. Once
@@ -222,6 +224,8 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
     case GameStatus.Seated:
       return hostStartTask(HOST_ACTION_KEYS.assignRoles);
     case GameStatus.Assigned:
+      if (input.isPlagueMode)
+        return hostMessageTask(viewedProgressReason(input.viewedCount, input.totalSeats, '角色'));
       // The task is the start; until every seat viewed it is blocked by the
       // sheet action's reason, with the bot scaffold as the remedy.
       return hostActionTask(
@@ -242,8 +246,8 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       // both the host's legitimate next moves, and during a speech a
       // wolf may self-destruct at any moment — the host must end the
       // election on the spot. Every move that applies right now is one
-      // equal choice on the card. Review grants remain available through
-      // the election, including votes and after the night info is confirmed.
+      // equal choice on the card. Review grants are available through the
+      // election once the host has confirmed the night info.
       // Vote counts stay in the HUD, not the host task.
       const flow = {
         roomStatus: input.roomStatus,
@@ -382,18 +386,23 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   if (input.review === null) {
     throw new Error(`[FAIL-FAST] Werewolf ${input.roomStatus} host has no review entry`);
   }
+  const review = !input.panelFlow.lastNightInfoConfirmed
+    ? ({ isEnabled: false, disabledReason: '请先查看昨夜信息' } as const)
+    : !input.isReviewShared
+      ? ({ isEnabled: false, disabledReason: '请先授权至少一名玩家' } as const)
+      : input.review;
+  const grantDescriptor = {
+    key: PANEL_FLOW_ACTION_KEYS.grantReview,
+    label: '授权玩家查看',
+    icon: 'people-outline',
+    variant: 'secondary',
+    testID: TESTIDS.shareReviewButton,
+  } as const;
   return [
-    buildReviewHostAction(input.review),
-    buildEnabledHostAction(
-      {
-        key: PANEL_FLOW_ACTION_KEYS.grantReview,
-        label: '授权玩家查看',
-        icon: 'people-outline',
-        variant: 'secondary',
-        testID: TESTIDS.shareReviewButton,
-      },
-      input.onGrantReviewAccess,
-    ),
+    buildReviewHostAction(review),
+    input.panelFlow.lastNightInfoConfirmed
+      ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
+      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
@@ -456,8 +465,42 @@ export function createWerewolfHostManagement(
   if (sections.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
+  const election = input.sheriffElection?.view;
+  const sheriffAdvancePending =
+    input.roomStatus === GameStatus.Day &&
+    election !== undefined &&
+    (election.phase === 'registration' ||
+      election.phase === 'candidateSpeech' ||
+      election.phase === 'runoffSpeech') &&
+    election.canAdvance &&
+    election.advanceLabel !== null;
+  const endedPendingKeys =
+    input.roomStatus !== GameStatus.Ended
+      ? []
+      : !input.panelFlow.lastNightInfoConfirmed
+        ? [PANEL_FLOW_ACTION_KEYS.lastNightInfo]
+        : !input.isReviewShared
+          ? [PANEL_FLOW_ACTION_KEYS.grantReview]
+          : [];
   return applyAudioPlaybackLock(
-    { task: createHostTask(input), sections },
+    {
+      task: createHostTask(input),
+      sections,
+      ...(input.roomStatus === GameStatus.Unseated || input.roomStatus === GameStatus.Seated
+        ? { pendingActionKeys: [HOST_ACTION_KEYS.assignRoles] }
+        : input.roomStatus === GameStatus.Assigned
+          ? {
+              pendingActionKeys:
+                input.isPlagueMode || input.hasUnviewedOwnRole ? [] : [HOST_ACTION_KEYS.startGame],
+            }
+          : input.roomStatus === GameStatus.Ready
+            ? { pendingActionKeys: input.isPlagueMode ? [] : [HOST_ACTION_KEYS.startGame] }
+            : input.roomStatus === GameStatus.Day
+              ? { pendingActionKeys: sheriffAdvancePending ? ['sheriff-advance'] : [] }
+              : input.roomStatus === GameStatus.Ended
+                ? { pendingActionKeys: endedPendingKeys }
+                : {}),
+    },
     { isAudioPlaying: input.isAudioPlaying, exemptActionKeys: AUDIO_LOCK_EXEMPT_ACTION_KEYS },
   );
 }

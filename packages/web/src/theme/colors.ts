@@ -34,6 +34,8 @@ export const colors = {
   handResourcePaper: '#E0F1E7',
   handHostInk: '#62488A',
   handHostPaper: '#EEE5F8',
+  handDangerInk: '#9A2529',
+  handDangerPaper: '#FCE8E8',
 
   wolf: '#C82828',
   villager: '#1A9A4A',

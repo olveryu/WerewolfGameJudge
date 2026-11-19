@@ -2,6 +2,7 @@
 import './SpotmatchRoomScreen.css';
 
 import {
+  getSpotmatchOccupiedSeatCount,
   SPOTMATCH_REASONS,
   SPOTMATCH_WRONG_LOCK_MS,
   type SpotmatchState,
@@ -98,6 +99,12 @@ function SpotmatchRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={isLobby ? '待开局' : null}
+      lobbyAction={
+        isLobby
+          ? { label: '开始游戏', occupiedSeats: getSpotmatchOccupiedSeatCount(screen.state) }
+          : null
+      }
       stageMenu={
         isPlaying ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
       }

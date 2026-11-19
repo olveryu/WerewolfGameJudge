@@ -5,6 +5,7 @@ import './components/DrawGuessStage.css';
 import {
   type DrawGuessState,
   type DrawGuessViewModel,
+  getDrawGuessOccupiedSeatCount,
 } from '@game-judge/game-engine/games/drawguess/public';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -122,6 +123,12 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={isLobby ? '待开局' : null}
+      lobbyAction={
+        isLobby
+          ? { label: '开始游戏', occupiedSeats: getDrawGuessOccupiedSeatCount(screen.state) }
+          : null
+      }
       stageMenu={
         screen.stageHud === null
           ? null

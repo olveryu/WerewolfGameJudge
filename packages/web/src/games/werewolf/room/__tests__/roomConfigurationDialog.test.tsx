@@ -184,7 +184,6 @@ describe('Werewolf room configuration', () => {
       '查看身份',
       '本局配置',
       '手册',
-      '用户设置',
     ]);
     await startSeatSelection(view);
     const selectionHand = within(view.getByRole('group', { name: '行动手牌' }));
@@ -193,6 +192,7 @@ describe('Werewolf room configuration', () => {
       'true',
     );
     expect(selectionHand.getByRole('button', { name: '取消选座' })).toBeVisible();
+    expect(selectionHand.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();

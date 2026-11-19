@@ -415,6 +415,10 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',
         testID: TESTIDS.roomViewIdentityButton,
+        isPending:
+          isViewingStep &&
+          input.effectiveSeat !== null &&
+          !state.roleViewedSeats.includes(input.effectiveSeat),
       }),
     );
   }
@@ -859,7 +863,7 @@ export function createAvalonHostManagement(
   const applyLock = (model: RoomHostManagementModel): RoomHostManagementModel =>
     applyAudioPlaybackLock(
       {
-        task: model.task,
+        ...model,
         sections: [
           ...model.sections.filter((section) => section.actions.length > 0),
           ...createAvalonHostTools(input),
@@ -897,6 +901,7 @@ export function createAvalonHostManagement(
     });
     return applyLock({
       task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      pendingActionKeys: [HOST_ACTION_KEYS.assignRoles],
       sections: [
         {
           key: 'game',
@@ -944,6 +949,7 @@ export function createAvalonHostManagement(
     const hasUnviewedBot = participants.some(
       (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
     );
+    const hostSeat = getAvalonUserSeat(state, state.hostUserId);
     // The task is the start; until every seat viewed it is blocked by the
     // sheet action's reason, with the bot scaffold as the remedy.
     return applyLock({
@@ -951,6 +957,10 @@ export function createAvalonHostManagement(
         HOST_ACTION_KEYS.startGame,
         hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
       ),
+      pendingActionKeys:
+        hostSeat !== null && !state.roleViewedSeats.includes(hostSeat)
+          ? []
+          : [HOST_ACTION_KEYS.startGame],
       sections,
     });
   }

@@ -257,19 +257,22 @@ describe('Pictionary settle arming invariant', () => {
     expectSingleSettle(session, expireCurrentPhase());
     expect(session.state.stepIndex).toBe(3);
 
-    // Step 3 (drawing, final): the last entry arms transition and
-    // fires the completion effect alongside it.
+    // Step 3 (drawing, final): the last entry arms transition without settling rewards.
     const finalEffects = effectsOf(session, () => {
       submitStep(3);
     });
     expect(
       finalEffects.filter((effect) => effect.type === 'pictionary.game.completed'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expectSingleSettle(session, finalEffects);
     expect(session.state.phase).toBe('transition');
 
     // Expire the final transition -> gallery, armed with the gallery deadline.
-    expectSingleSettle(session, expireCurrentPhase());
+    const galleryEffects = expireCurrentPhase();
+    expectSingleSettle(session, galleryEffects);
+    expect(
+      galleryEffects.filter((effect) => effect.type === 'pictionary.game.completed'),
+    ).toHaveLength(1);
     expect(session.state.phase).toBe('gallery');
     expect(session.state.gallery).not.toBeNull();
   });

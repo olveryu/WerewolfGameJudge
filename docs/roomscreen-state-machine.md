@@ -43,15 +43,14 @@ Ongoing -- night complete --> Day -- election complete --> Ended
 
 ### Phase Permissions
 
-| Phase             | Player Actions                                       | Host Action                   |
-| ----------------- | ---------------------------------------------------- | ----------------------------- |
-| `registration`    | Register; registered players may cancel registration | End registration              |
-| `candidateSpeech` | Current and future active candidates may withdraw    | Advance in seeded table order |
-| `withdrawal`      | Active candidates may withdraw                       | Confirm candidate list        |
-| `firstVote`       | Occupied seats that never registered may vote        | Publish when all voted        |
-| `runoffSpeech`    | Tied candidates speak in reverse relative order      | Advance tied speakers         |
-| `runoffVote`      | Every occupied non-tied seat may vote or abstain     | Publish when all voted        |
-| `completed`       | Review public election history                       | None                          |
+| Phase             | Player Actions                                       | Host Action             |
+| ----------------- | ---------------------------------------------------- | ----------------------- |
+| `registration`    | Register; registered players may cancel registration | End registration        |
+| `candidateSpeech` | Active candidates may withdraw                       | End speech              |
+| `firstVote`       | Occupied seats that never registered may vote        | None; countdown settles |
+| `runoffSpeech`    | Tied candidates may withdraw                         | End speech              |
+| `runoffVote`      | Every occupied non-tied seat may vote or abstain     | None; countdown settles |
+| `completed`       | Review public election history                       | None                    |
 
 ### Day Presentation
 
@@ -79,15 +78,15 @@ who registered before registration closed, including withdrawn players. A runoff
 active tied candidates, so withdrawn players and registered candidates outside the tie may vote.
 
 During an open vote, the public panel exposes only submission progress. Each eligible player can see
-their own current ballot and can replace it until the Host publishes the round. A published round
+their own current ballot and can replace it until the settlement countdown closes the round. A closed round
 contains candidate totals, every eligible voter's target or abstention, and remains visible through
 the runoff and final result.
 
 When registration closes, the engine deterministically draws a starting seat and direction from the
 game seed. It walks the physical table clockwise by increasing seat number or counterclockwise by
-decreasing seat number, wraps at the table edge, and skips seats that did not register. The expanded
-candidate order is stored in `GameState`; clients never generate it independently, and later
-withdrawals are skipped while advancing speakers. Runoff speech reconstructs the table traversal,
+decreasing seat number, wraps at the table edge, and skips seats that did not register. The starting
+seat and direction are stored in `GameState`; the table handles the speeches in that order.
+Runoff speech reconstructs the table traversal,
 filters it to active tied candidates, then reverses their relative first-round speaking order so the
 candidate who spoke later speaks first. No second daytime speaking-order prompt appears after the
 election completes.

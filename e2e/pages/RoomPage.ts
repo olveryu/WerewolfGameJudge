@@ -207,9 +207,12 @@ export class RoomPage {
   }
 
   /** Assert the current host-task gate inside the shared surface, then close it. */
-  async expectHostTaskBlockedReason(reason: string | RegExp): Promise<void> {
+  async expectHostTaskBlockedReason(actionTestID: string, reason: string | RegExp): Promise<void> {
     const panel = await this.openHostManagement();
-    await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveText(reason);
+    const action = panel.getByTestId(actionTestID);
+    await expect(action).toHaveAttribute('aria-disabled', 'true');
+    await expect(action).toHaveAccessibleDescription(reason);
+    await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
     await this.closeHostManagement();
   }
 

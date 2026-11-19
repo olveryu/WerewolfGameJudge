@@ -25,6 +25,7 @@ import {
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { playPictionaryTestRound } from '@/test-utils/pictionaryState';
+import { alertStore } from '@/utils/alert';
 
 import { createPictionaryHostManagement } from '../pictionaryRoomAdapter';
 
@@ -88,6 +89,7 @@ function createSession() {
 
 function build(state: PictionaryState, review: RoomReviewEntry | null = null) {
   const shareRoom = vi.fn();
+  const restartRound = vi.fn();
   const capabilities = testCapabilities({ state, isHost: true, mySeat: 0, shareRoom });
   const model = createPictionaryHostManagement({
     state,
@@ -95,29 +97,44 @@ function build(state: PictionaryState, review: RoomReviewEntry | null = null) {
     isCommandSubmitting: false,
     review,
     startRound: vi.fn(),
-    nextRound: vi.fn(),
-    returnToLobby: vi.fn(),
-    abortRound: vi.fn(),
+    restartRound,
   });
-  return { model, shareRoom };
+  return { model, shareRoom, restartRound };
 }
 
 describe('createPictionaryHostManagement task body', () => {
-  it('keeps only abort during editing with no host advancement task', () => {
+  it('offers a confirmed restart during editing without an advancement task', async () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
     session.dispatch({ type: 'room.seat.fillBots' });
     session.dispatch({ type: 'pictionary.game.begin' });
-    const { model } = build(session.state);
+    const { model, restartRound } = build(session.state);
     expect(model.task).toBeNull();
     expect(model.sections.map((section) => section.key)).toEqual(['danger']);
-    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['abort-game']);
+    const action = model.sections[0]!.actions[0]!;
+    expect(action).toMatchObject({ key: 'restart', variant: 'danger', isEnabled: true });
+    if (!action.isEnabled) throw new Error('expected an enabled restart');
+    action.onPress();
+    const confirmation = alertStore.getSnapshot();
+    expect(confirmation?.message).toContain('不结算完成奖励');
+    expect(restartRound).not.toHaveBeenCalled();
+    await confirmation?.buttons.find((button) => button.text === '重新开始')?.onPress?.();
+    expect(restartRound).toHaveBeenCalledOnce();
+  });
+
+  it('warns that restarting the final transition does not settle rewards', () => {
+    const state = playPictionaryTestRound({ stopAt: { stepIndex: 3, phase: 'transition' } });
+    const action = build(state).model.sections[0]?.actions[0];
+    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
+    action.onPress();
+    expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
   });
 
   it('blocks game start in a non-full lobby and offers room sharing as the remedy', () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
     const { model, shareRoom } = build(session.state);
+    expect(model.pendingActionKeys).toEqual(['start-game']);
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
     if (step?.kind !== 'blocked') throw new Error('expected a blocked task body');
@@ -137,39 +154,29 @@ describe('createPictionaryHostManagement task body', () => {
     if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('closes an ended round on the review beside 再来一局 / 返回大厅', () => {
+  it('keeps review optional and offers only restart after a finished round', () => {
     const openReview = vi.fn();
     const { model } = build(playPictionaryTestRound(), { isEnabled: true, onPress: openReview });
     expect(model.sections.map((section) => section.key)).toEqual(['current-flow']);
-    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual([
-      'review',
-      'next-round',
-      'return-lobby',
-    ]);
-    const step = hostTaskBody(model);
-    if (step?.kind !== 'choice') throw new Error('expected a choice task body');
-    expect(step.actions.map((action) => action.label)).toEqual([
-      '本局复盘',
-      '再来一局',
-      '返回大厅',
-    ]);
-    const [review] = step.actions;
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    expect(model.task).toBeNull();
+    const [review, restart] = model.sections[0]!.actions;
     if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
     expect(review.testID).toBe('room-review-host-action');
     review.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
+    if (restart?.isEnabled !== true) throw new Error('expected an enabled restart');
+    restart.onPress();
+    expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
   });
 
-  it('offers an aborted round its review beside 返回大厅, with no next round', () => {
+  it('offers legacy aborted rounds their review and restart', () => {
     const { model } = build(playPictionaryTestRound({ abortAtStep: 1 }), {
       isEnabled: true,
       onPress: vi.fn(),
     });
-    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
-    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual([
-      'review',
-      'return-lobby',
-    ]);
+    expect(model.task).toBeNull();
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['review', 'restart']);
   });
 
   it('fails fast when a finished round reaches the host panel without its review entry', () => {

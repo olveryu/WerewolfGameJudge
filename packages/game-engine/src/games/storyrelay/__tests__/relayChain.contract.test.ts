@@ -45,6 +45,10 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
     get state() {
       return session.state;
     },
+    get effects() {
+      return session.effects;
+    },
+    session,
     send,
     setNow: (nowMs: number) => session.setNow(nowMs),
     expectReject: (command: StoryRelayCommand, reason: string) =>
@@ -89,6 +93,51 @@ function game(galleryItemDurationSeconds: 10 | null = 10) {
 }
 
 describe('Story Relay relay-chain contract', () => {
+  it('restarts atomically, retaining the room but discarding the active story', () => {
+    const gameSession = game();
+    gameSession.finish();
+    gameSession.submit(0, '第一段');
+    const before = gameSession.state;
+    const command = {
+      type: 'storyrelay.game.restart',
+      phaseRevision: before.phaseRevision,
+    } as const;
+    expect(gameSession.session.decide(command, 'other').kind).toBe('reject');
+    gameSession.expectReject(
+      { ...command, phaseRevision: command.phaseRevision - 1 },
+      'storyrelay_task_changed',
+    );
+    const effectsBefore = gameSession.effects.length;
+    gameSession.send(command);
+    expect(gameSession.state).toMatchObject({
+      phase: 'lobby',
+      roundId: null,
+      chains: [],
+      deadlineAt: null,
+      gallery: null,
+      roster: before.roster,
+      config: before.config,
+      completedAt: null,
+      abortedAt: null,
+      phaseRevision: before.phaseRevision + 1,
+    });
+    expect(gameSession.effects).toHaveLength(effectsBefore);
+    gameSession.expectReject(command, 'storyrelay_task_changed');
+  });
+
+  it('restarts from a completed gallery without replaying settlement', () => {
+    const gameSession = game();
+    gameSession.playRound();
+    expect(gameSession.state.phase).toBe('gallery');
+    const effectsBefore = [...gameSession.effects];
+    gameSession.send({
+      type: 'storyrelay.game.restart',
+      phaseRevision: gameSession.state.phaseRevision,
+    });
+    expect(gameSession.state).toMatchObject({ phase: 'lobby', chains: [], gallery: null });
+    expect(gameSession.effects).toEqual(effectsBefore);
+  });
+
   it('migrates a v2 gallery without replaying its old reveal', () => {
     const session = game();
     session.playRound();
@@ -100,7 +149,7 @@ describe('Story Relay relay-chain contract', () => {
       stateVersion: 2,
       gallery: legacyGallery,
     });
-    expect(migrated.stateVersion).toBe(3);
+    expect(migrated.stateVersion).toBe(4);
     expect(migrated.gallery).toEqual({
       ...legacyGallery,
       revealStartedAt: null,

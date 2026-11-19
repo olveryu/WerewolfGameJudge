@@ -177,7 +177,7 @@ describe('Pictionary engine', () => {
     expect(completions).toHaveLength(humanCount === 4 ? 1 : 0);
   });
 
-  it('settles when the last drawing of the final step lands, before the gallery opens', () => {
+  it('settles when the gallery opens, not when the final drawing lands', () => {
     const { session, send, takeAllSeats, expireCurrentPhase, completeCurrentStep } = game();
     takeAllSeats();
     send({ type: 'pictionary.game.begin' });
@@ -211,9 +211,13 @@ describe('Pictionary engine', () => {
       );
     }
 
-    // The settlement already fired with the last commit; the round
-    // is still in its final transition, the gallery has not opened.
     expect(session.state.phase).toBe('transition');
+    expect(
+      session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
+    ).toHaveLength(0);
+
+    expireCurrentPhase();
+    expect(session.state.phase).toBe('gallery');
     const completions = session.effects.filter(
       (effect) => effect.type === 'pictionary.game.completed',
     );
@@ -224,12 +228,6 @@ describe('Pictionary engine', () => {
       'user-2',
       'user-3',
     ]);
-
-    expireCurrentPhase();
-    expect(session.state.phase).toBe('gallery');
-    expect(
-      session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
-    ).toHaveLength(1);
   });
 
   it('pins the drawing commit event sequence before the tail moves to the shared machine', () => {
@@ -306,7 +304,7 @@ describe('Pictionary engine', () => {
     expect(session.state.phase).toBe('transition');
 
     // Step 2 (text) lands through the machine; step 3 is the final
-    // drawing step, whose last commit also fires the settlement.
+    // drawing step, whose last commit starts the transition.
     expireCurrentPhase();
     completeCurrentStep();
     expireCurrentPhase();
@@ -319,10 +317,7 @@ describe('Pictionary engine', () => {
       'pictionary.task.submitted',
       'pictionary.phase.changed',
     ]);
-    expect(finalLast.effects.map((effect) => effect.type)).toEqual([
-      'pictionary.settle.due',
-      'pictionary.game.completed',
-    ]);
+    expect(finalLast.effects.map((effect) => effect.type)).toEqual(['pictionary.settle.due']);
   });
 
   it('keeps the completion-moment settlement population through the gallery', () => {
@@ -376,8 +371,12 @@ describe('Pictionary engine', () => {
       if (step < 4) expireCurrentPhase();
     }
 
-    // Settled at the final step's completion, from the frozen
-    // participant snapshot: seat 4 is seated yet earns nothing.
+    expect(
+      session.effects.filter((effect) => effect.type === 'pictionary.game.completed'),
+    ).toHaveLength(0);
+    expireCurrentPhase();
+    expect(session.state.phase).toBe('gallery');
+    // Seat 4 is seated but authored no content and earns nothing.
     const completions = session.effects.filter(
       (effect) => effect.type === 'pictionary.game.completed',
     );
@@ -391,8 +390,6 @@ describe('Pictionary engine', () => {
 
     // Traversing the gallery neither re-settles nor rewrites the
     // emitted population.
-    expireCurrentPhase();
-    expect(session.state.phase).toBe('gallery');
     send({ type: 'pictionary.gallery.finish' });
     expect(session.state.phase).toBe('ended');
     const afterGallery = session.effects.filter(

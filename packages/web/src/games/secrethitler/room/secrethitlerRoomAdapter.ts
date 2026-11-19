@@ -216,6 +216,7 @@ export function createSecrethitlerHostManagement(
     // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
       task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      pendingActionKeys: [HOST_ACTION_KEYS.assignRoles],
       sections: [
         {
           key: 'game',
@@ -265,8 +266,13 @@ export function createSecrethitlerHostManagement(
       HOST_ACTION_KEYS.startGame,
       hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
     );
+    const hostSeat = getSecrethitlerUserSeat(state, state.hostUserId);
     return {
       task,
+      pendingActionKeys:
+        hostSeat !== null && !state.roleViewedSeats.includes(hostSeat)
+          ? []
+          : [HOST_ACTION_KEYS.startGame],
       sections: [...sections.filter((section) => section.actions.length > 0), ...tools],
     };
   }
@@ -442,6 +448,10 @@ export function createSecrethitlerRoomShellModel(
           variant: state.phase.kind === 'viewing' ? 'primary' : 'secondary',
           audience: 'participant',
           isSubmitting: input.isSubmitting,
+          isPending:
+            state.phase.kind === 'viewing' &&
+            effectiveSeat !== null &&
+            !state.roleViewedSeats.includes(effectiveSeat),
         });
   const actionButton: RoomBottomButton | null =
     instruction.action === null

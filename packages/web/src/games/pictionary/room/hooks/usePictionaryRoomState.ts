@@ -24,7 +24,6 @@ import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
-import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
@@ -34,7 +33,6 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import { type RoomReviewController, useRoomReview } from '@/features/room/review/useRoomReview';
 import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import type { PictionaryRoomSession } from '@/games/pictionary/model/PictionaryRoomSession';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   createPictionaryHostManagement,
@@ -155,23 +153,10 @@ export function usePictionaryRoomState({
 
   // 房主流程命令：不带接管座位（房主门只认未接管身份）。
   const startRound = () => void submit('开始游戏', { type: 'pictionary.game.begin' });
-  const nextRound = () =>
-    void submit('再来一局', createPictionaryCommand(state, { type: 'pictionary.game.next' }, null));
-  const returnToLobby = () =>
+  const restartRound = () =>
     void submit(
-      '返回大厅',
-      createPictionaryCommand(state, { type: 'pictionary.game.returnToLobby' }, null),
-    );
-  const abortRound = () =>
-    showConfirmAlert(
-      HOST_FLOW_CONFIRM.abortTitle,
-      '保留已提交作品供回看；本局不结算完成奖励。',
-      async () => {
-        await submit(
-          '中止本局',
-          createPictionaryCommand(state, { type: 'pictionary.game.abort' }, null),
-        );
-      },
+      '重新开始',
+      createPictionaryCommand(state, { type: 'pictionary.game.restart' }, null),
     );
 
   const onSeatPress = createRoomSeatPressHandler({
@@ -219,9 +204,7 @@ export function usePictionaryRoomState({
         capabilities,
         review: review.entry,
         startRound,
-        nextRound,
-        returnToLobby,
-        abortRound,
+        restartRound,
       }),
     controlledSeat: createControlledSeatModel({
       controlledSeat,

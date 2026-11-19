@@ -3,6 +3,7 @@
 import {
   getBotSeats,
   getUndercoverOccupiedSeatCount,
+  getUndercoverUserSeat,
   getUndercoverViewingParticipants,
   UNDERCOVER_ROLE_NAMES,
   type UndercoverRoleCounts,
@@ -270,6 +271,7 @@ export function createUndercoverHostManagement(
   const actions: RoomHostManagementAction[] = [];
   const roomActions: RoomHostManagementAction[] = [];
   let task: RoomHostTask | null = null;
+  let pendingActionKeys: readonly string[] | undefined;
   const abortAction = () =>
     buildAbortGameAction({
       onPress: controls.abort,
@@ -309,6 +311,7 @@ export function createUndercoverHostManagement(
       });
       actions.push(startAction);
       task = hostStartTask(HOST_ACTION_KEYS.assignRoles);
+      pendingActionKeys = [HOST_ACTION_KEYS.assignRoles];
       if (capabilities.canConfigureGame.isAllowed)
         roomActions.push(
           buildRoomConfigAction({
@@ -379,9 +382,15 @@ export function createUndercoverHostManagement(
         HOST_ACTION_KEYS.startGame,
         hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
       );
+      const hostSeat = getUndercoverUserSeat(state, state.hostUserId);
+      pendingActionKeys =
+        hostSeat !== null && !state.round.confirmedSeats.includes(hostSeat)
+          ? []
+          : [HOST_ACTION_KEYS.startGame];
       break;
     }
     case 'preparationFailed':
+      pendingActionKeys = [];
       actions.push(
         buildPendingAwareHostAction(
           {
@@ -416,6 +425,7 @@ export function createUndercoverHostManagement(
       // 选人是房主本地模式：进入与退出是一对面板动作；选人中任务卡给
       // 座位盘指示并以「取消选择」为退出。
       if (controls.isSelecting) {
+        pendingActionKeys = [];
         actions.push(
           buildEnabledHostAction(
             {
@@ -430,6 +440,7 @@ export function createUndercoverHostManagement(
         );
         task = hostMessageTask('点座位盘选择本次出局玩家', { actionKey: 'cancel-selection' });
       } else {
+        pendingActionKeys = ['select-player'];
         actions.push(
           buildPendingAwareHostAction(
             {
@@ -458,7 +469,12 @@ export function createUndercoverHostManagement(
   const sections: RoomHostManagementSection[] = [{ key: 'game', title: '游戏', actions }];
   if (roomActions.length > 0)
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-  return { task, sections };
+  return {
+    task,
+    sections,
+    ...(pendingActionKeys === undefined ? {} : { pendingActionKeys }),
+    ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
+  };
 }
 
 /** Assembles the Undercover RoomShellModel from the hook's projections. */

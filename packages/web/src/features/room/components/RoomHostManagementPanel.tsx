@@ -478,12 +478,10 @@ function HostManagementHand({
   model,
   onClose,
   onBack,
-  isAudioPlaying,
 }: {
   readonly model: RoomHostManagementModel | null;
   readonly onClose: () => void;
   readonly onBack: () => void;
-  readonly isAudioPlaying: boolean;
 }) {
   const reasonIdPrefix = useId();
   const task = model === null ? null : resolveHostTaskView(model);
@@ -500,13 +498,17 @@ function HostManagementHand({
           ? [task.body.escape]
           : [];
   const taskKeys = new Set(taskActions.map((action) => action.key));
-  const orderedActions = [...taskActions, ...actions.filter((action) => !taskKeys.has(action.key))];
-  const blockedReason =
-    task?.body.kind === 'blocked' &&
-    !(isAudioPlaying && task.body.reason === AUDIO_PLAYBACK_LOCK_REASON)
-      ? task.body.reason
-      : null;
-
+  const pendingKeys = model?.pendingActionKeys;
+  const orderedActions =
+    pendingKeys === undefined
+      ? [...taskActions, ...actions.filter((action) => !taskKeys.has(action.key))]
+      : [
+          ...pendingKeys.flatMap((key) => actions.filter((action) => action.key === key)),
+          ...taskActions.filter((action) => !pendingKeys.includes(action.key)),
+          ...actions.filter(
+            (action) => !pendingKeys.includes(action.key) && !taskKeys.has(action.key),
+          ),
+        ];
   return (
     <section
       className="host-management-hand"
@@ -524,23 +526,8 @@ function HostManagementHand({
           />
         )}
         {task?.body.kind === 'message' && <p className="host-task-note">{task.body.text}</p>}
-        {blockedReason !== null && (
-          <p className="host-task-note" data-testid={TESTIDS.roomNextStepBlockedReason}>
-            {blockedReason}
-          </p>
-        )}
         {task?.note !== null && task?.note !== undefined && (
           <p className="host-task-note">{task.note}</p>
-        )}
-        {orderedActions.map((action) =>
-          !action.isEnabled &&
-          action.disabledReason !== null &&
-          action.disabledReason !== blockedReason &&
-          !(isAudioPlaying && action.disabledReason === AUDIO_PLAYBACK_LOCK_REASON) ? (
-            <p className="host-task-note" key={action.key}>
-              {action.label}：{action.disabledReason}
-            </p>
-          ) : null,
         )}
         <RoomActionHand label={HOST_MANAGEMENT_LABEL}>
           <Button
@@ -558,6 +545,13 @@ function HostManagementHand({
             const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
             const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
             const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
+            const isActionableTask =
+              model?.pendingActionKeys !== undefined
+                ? model.pendingActionKeys.includes(action.key)
+                : (isReadyTask || isChoice) &&
+                  action.isEnabled &&
+                  action.isLoading !== true &&
+                  action.variant !== 'danger';
             const isRemedy =
               task?.body.kind === 'blocked' &&
               model?.task?.kind === 'action' &&
@@ -577,12 +571,12 @@ function HostManagementHand({
               <Button
                 key={action.key}
                 variant={action.variant}
-                data-card-category="host"
+                data-card-category={action.category ?? 'host'}
                 loading={action.isLoading === true}
                 disabled={!action.isEnabled && reason === null}
                 aria-disabled={!action.isEnabled && reason !== null ? true : undefined}
-                aria-label={reason !== null ? action.label : undefined}
-                aria-describedby={reason !== null ? reasonId : undefined}
+                aria-label={isActionableTask || reason !== null ? action.label : undefined}
+                aria-describedby={reason !== null || isActionableTask ? reasonId : undefined}
                 data-testid={testId}
                 onClick={
                   action.isEnabled
@@ -594,8 +588,15 @@ function HostManagementHand({
               >
                 <IonIcon name={action.icon} />
                 <span>{action.label}</span>
-                {reason !== null && (
+                {isActionableTask && (
+                  <span className="bottom-action-pending" aria-hidden>
+                    待办
+                  </span>
+                )}
+                {(reason !== null || isActionableTask) && (
                   <span id={reasonId} className="visually-hidden">
+                    {isActionableTask ? '有待处理操作' : ''}
+                    {isActionableTask && reason !== null ? '；' : ''}
                     {reason}
                   </span>
                 )}
@@ -630,14 +631,7 @@ export function RoomHostManagementPanel({
       : resolveRoomBottomActionPresentation(bottomActions).additionalActions;
   const title = playerActions.length === 0 && model !== null ? HOST_MANAGEMENT_LABEL : '更多操作';
   if (presentation === 'hand') {
-    return (
-      <HostManagementHand
-        model={model}
-        onClose={onClose}
-        onBack={onBack ?? onClose}
-        isAudioPlaying={isAudioPlaying}
-      />
-    );
+    return <HostManagementHand model={model} onClose={onClose} onBack={onBack ?? onClose} />;
   }
   if (presentation === 'inspector') {
     return (

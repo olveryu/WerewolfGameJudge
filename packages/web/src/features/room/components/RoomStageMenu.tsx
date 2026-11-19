@@ -7,7 +7,6 @@ import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
-import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 
 import { RoomActionHand } from './RoomActionHand';
 
@@ -21,12 +20,10 @@ export function RoomStageMenu({
   model,
   abortAction,
   onClose,
-  onOpenUserSettings,
 }: {
   readonly model: RoomStageMenuModel;
   readonly abortAction: RoomHostManagementAction | undefined;
   readonly onClose: () => void;
-  readonly onOpenUserSettings?: () => void;
 }) {
   const reasonId = useId();
   const [isManual, setIsManual] = useState(false);
@@ -109,18 +106,6 @@ export function RoomStageMenu({
             <IconBookOutline aria-hidden />
             <span>本局配置</span>
           </Button>,
-          onOpenUserSettings !== undefined && (
-            <Button
-              key="user-settings"
-              variant="secondary"
-              aria-haspopup="dialog"
-              onClick={onOpenUserSettings}
-              data-testid={TESTIDS.roomUserSettingsCard}
-            >
-              <IconPersonCircleOutline aria-hidden />
-              <span>用户设置</span>
-            </Button>
-          ),
           abortAction !== undefined && (
             <Button
               key="abort"

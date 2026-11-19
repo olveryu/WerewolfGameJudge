@@ -5,9 +5,9 @@
  * (last night's result — the step completes only when the host confirms
  * it in the dialog, mirroring the in-person announcement). During Day,
  * the host may also grant seats access to the private review. Once the
- * game ends, the flow continues through granting access and closing.
- * The grant and review tools stay above the two exits on the task card.
- * Reading the review is not a step of this flow.
+ * game ends, the flow continues through granting access and closing. The
+ * host review action also requires confirmed night info and a current grant.
+ * Per-user review completion is not yet persisted by this model.
  * Progress is pure client-local state (a `useScopedDraft` draft in
  * `useWerewolfRoomState`); it never enters room state.
  *

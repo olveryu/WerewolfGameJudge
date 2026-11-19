@@ -679,7 +679,6 @@ export function deriveSheriffSection(state: GameState): NightReviewSheriffSectio
   }
   switch (election.phase) {
     case 'candidateSpeech':
-    case 'withdrawal':
       return {
         kind: 'inProgress',
         phase: election.phase,

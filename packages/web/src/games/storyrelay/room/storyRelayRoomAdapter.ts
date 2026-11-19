@@ -20,17 +20,14 @@ import {
 } from '@/features/room/model/createRoomShellModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
-  buildAbortGameAction,
   buildClearSeatsAction,
   buildFillBotsAction,
-  buildNextRoundAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostReviewClosingTask,
   hostStartTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
@@ -52,7 +49,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby values; every configurable field besides the card title's player count is shown. */
 export function createStoryRelayRoomSummarySettings(
@@ -201,6 +198,7 @@ export function createStoryRelayHostManagement(
     });
     return {
       task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      pendingActionKeys: [HOST_ACTION_KEYS.startGame],
       sections: [
         {
           key: 'game',
@@ -216,78 +214,52 @@ export function createStoryRelayHostManagement(
     };
   }
   const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
+  const restart = buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        state.phase === 'gallery' ||
+          state.phase === 'ended' ||
+          (state.phase === 'transition' &&
+            state.completedAt !== null &&
+            !state.revealSettlementPending)
+          ? '保留座位和配置，清除当前故事并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
+          : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
+        '重新开始',
+        async () => {
+          await submit('重新开始', {
+            type: 'storyrelay.game.restart',
+            phaseRevision: state.phaseRevision,
+          });
+        },
+      ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
   if (isTerminal) {
     if (input.review === null) {
       throw new Error(`[FAIL-FAST] Story Relay ${state.phase} host has no review entry`);
     }
     return {
-      // An aborted round keeps its passages: the review stands beside 返回大厅, with no next round.
-      task:
-        state.phase === 'ended'
-          ? hostReviewClosingTask()
-          : { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.returnLobby] },
+      task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
-          actions: [
-            buildReviewHostAction(input.review),
-            ...(state.phase === 'ended'
-              ? [
-                  buildNextRoundAction({
-                    onPress: () =>
-                      showConfirmAlert(
-                        HOST_FLOW_CONFIRM.nextRoundTitle,
-                        '重新分配写作顺序并开始新一局。当前故事将被替换，请先保存需要保留的故事图片。',
-                        async () => {
-                          await submit('再来一局', { type: 'storyrelay.game.next' });
-                        },
-                      ),
-                  }),
-                ]
-              : []),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.returnLobbyTitle,
-                  '保留座位和设置，清除当前故事。请先保存需要保留的故事图片。',
-                  async () => {
-                    await submit('返回大厅', { type: 'storyrelay.game.returnToLobby' });
-                  },
-                ),
-            }),
-          ],
+          actions: [buildReviewHostAction(input.review), restart],
         },
       ],
     };
   }
-  const canAbort =
-    ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
-  if (!canAbort) return { task: null, sections: [] };
   return {
     task: null,
+    pendingActionKeys: [],
     sections: [
       {
         key: 'danger',
         title: '危险操作',
-        actions: [
-          buildAbortGameAction({
-            onPress: () =>
-              showConfirmAlert(
-                HOST_FLOW_CONFIRM.abortTitle,
-                '将公开已收录的故事片段，本局不结算奖励。',
-                async () => {
-                  await submit('中止本局', {
-                    type: 'storyrelay.game.abort',
-                    phaseRevision: state.phaseRevision,
-                  });
-                },
-              ),
-            isEnabled: !input.isSubmitting,
-            disabledReason: null,
-            isLoading: input.isSubmitting,
-          }),
-        ],
+        actions: [restart],
       },
     ],
   };

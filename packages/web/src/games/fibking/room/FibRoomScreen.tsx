@@ -64,6 +64,22 @@ function FibRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={
+        screen.phase === 'lobby'
+          ? '待开局'
+          : screen.phase === 'viewing'
+            ? '查看身份'
+            : screen.phase === 'preparing' || screen.phase === 'preparationFailed'
+              ? '准备词语'
+              : screen.phase === 'ended'
+                ? '本局结束'
+                : '游戏进行中'
+      }
+      lobbyAction={
+        screen.phase === 'lobby'
+          ? { label: '分配角色', occupiedSeats: screen.occupiedSeatCount }
+          : null
+      }
       isSelecting={screen.isGuessing}
       selectionUsesHostTask
       configurationEntry={

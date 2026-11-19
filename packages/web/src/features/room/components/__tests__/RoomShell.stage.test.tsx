@@ -182,6 +182,225 @@ describe('RoomShell stage content', () => {
     });
   });
 
+  it('places hand-room status, progress and summary above the seats rather than in the hand', () => {
+    const { container } = render(
+      <RoomShell
+        model={createRoomShellModel(
+          shellInput({
+            bottomActions: {
+              ...EMPTY_STACK,
+              message: '等待下一阶段',
+              progress: { current: 2, total: 5, label: '行动中' },
+            },
+          }),
+        )}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: <p>本局记录</p>,
+          beforeSeatBoard: <p>座位说明</p>,
+          afterSeatBoard: null,
+          sideInspector: null,
+        }}
+        showPlayerHand
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    const status = screen.getByTestId(TESTIDS.actionMessage);
+    const progress = screen.getByTestId(TESTIDS.roomProgressIndicator);
+    const summary = screen.getByText('本局记录');
+    const seatGrid = container.querySelector('.seat-grid');
+    if (seatGrid === null) throw new Error('Expected the seat grid');
+    expect(
+      status.compareDocumentPosition(seatGrid) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      progress.compareDocumentPosition(seatGrid) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      summary.compareDocumentPosition(seatGrid) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(status.closest('.room-board-information')).toContainElement(
+      screen.getByText('座位说明'),
+    );
+    expect(status.closest('.room-board-scroll')).toBeNull();
+    expect(
+      within(screen.getByTestId(TESTIDS.bottomActionPanel)).queryByText('等待下一阶段'),
+    ).toBeNull();
+    expect(screen.getAllByText('本局记录')).toHaveLength(1);
+  });
+
+  it('keeps settings in the header without adding a settings card to the hand', () => {
+    const onUserActionPress = vi.fn();
+    render(
+      <RoomShell
+        model={createRoomShellModel(shellInput({ onUserActionPress }))}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: null,
+          beforeSeatBoard: <p>座位说明</p>,
+          afterSeatBoard: null,
+          sideInspector: null,
+        }}
+        showPlayerHand
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    expect(screen.queryByTestId(TESTIDS.roomUserSettingsCard)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(TESTIDS.roomUserSettingsButton));
+    expect(onUserActionPress).toHaveBeenCalledOnce();
+  });
+
+  it('keeps settings in the header and out of the stage menu', () => {
+    const onUserActionPress = vi.fn();
+    render(
+      <RoomShell
+        model={createRoomShellModel(shellInput({ onUserActionPress }))}
+        content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+        stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
+    expect(screen.queryByTestId(TESTIDS.roomUserSettingsCard)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(TESTIDS.roomUserSettingsButton));
+    expect(onUserActionPress).toHaveBeenCalledOnce();
+  });
+
+  it('updates the lobby status for empty seats, the host and other players', () => {
+    const makeRoom = (occupiedSeats: number, isHost: boolean, isEnabled = true) => (
+      <RoomShell
+        model={createRoomShellModel(
+          shellInput({
+            viewer: viewerFor(isHost ? 'host' : 'seated'),
+            buildHostManagement: () => ({
+              task: { kind: 'action', actionKey: 'assign' },
+              sections: [
+                {
+                  key: 'start',
+                  title: '开始',
+                  actions: [
+                    {
+                      key: 'assign',
+                      label: '分配角色',
+                      icon: 'person-outline',
+                      variant: 'primary',
+                      isEnabled,
+                      disabledReason: isEnabled ? null : '请稍候',
+                      onPress: vi.fn(),
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        )}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: null,
+          beforeSeatBoard: <p>角色配置</p>,
+          afterSeatBoard: null,
+          sideInspector: null,
+        }}
+        showPlayerHand
+        phaseLabel="待开局"
+        lobbyAction={{ label: '分配角色', occupiedSeats }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />
+    );
+    const view = render(makeRoom(1, true));
+    expect(screen.getByText('待开局')).toBeVisible();
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待玩家入座');
+    expect(screen.getByText('还差 1 人')).toBeVisible();
+    const statusCard = screen.getByTestId(TESTIDS.actionMessage).closest('.room-board-status-card');
+    expect(statusCard).toContainElement(screen.getByText('待开局'));
+    expect(statusCard).toContainElement(screen.getByText('还差 1 人'));
+    expect(statusCard).not.toContainElement(screen.getByText('角色配置'));
+    expect(screen.getByText('角色配置').closest('.room-board-information')).toContainElement(
+      screen.getByTestId(TESTIDS.actionMessage),
+    );
+    view.rerender(makeRoom(2, true));
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('座位已满，可以分配角色');
+    expect(screen.queryByText('还差 1 人')).toBeNull();
+    view.rerender(makeRoom(2, false));
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
+      '座位已满，等待房主分配角色',
+    );
+    view.rerender(makeRoom(2, true, false));
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
+      '座位已满，等待房主分配角色',
+    );
+  });
+
+  it('keeps host selection and narration guidance above the seats', () => {
+    const model = (isAudioPlaying: boolean) =>
+      createRoomShellModel(
+        shellInput({
+          isAudioPlaying,
+          bottomActions: { ...EMPTY_STACK, message: '等待下一阶段' },
+          buildHostManagement: () => ({
+            task: { kind: 'message', text: '请选择座位', actionKey: 'cancel-selection' },
+            sections: [
+              {
+                key: 'selection',
+                title: '选择',
+                actions: [
+                  {
+                    key: 'cancel-selection',
+                    label: '取消选择',
+                    icon: 'close-circle-outline',
+                    variant: 'secondary',
+                    isEnabled: true,
+                    onPress: vi.fn(),
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+    const room = (isAudioPlaying: boolean) => (
+      <RoomShell
+        model={model(isAudioPlaying)}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: null,
+          beforeSeatBoard: <></>,
+          afterSeatBoard: null,
+          sideInspector: null,
+        }}
+        showPlayerHand
+        isSelecting
+        selectionUsesHostTask
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        gameOverlays={null}
+      />
+    );
+    const { rerender } = render(room(false));
+    expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('请选择座位');
+    expect(
+      screen.getByTestId(TESTIDS.actionMessage).closest('.room-board-information'),
+    ).not.toBeNull();
+    expect(screen.getByRole('button', { name: '取消选择' })).toBeVisible();
+    rerender(room(true));
+    expect(
+      screen.getByTestId(TESTIDS.audioWaitingMessage).closest('.room-board-information'),
+    ).not.toBeNull();
+    expect(screen.queryByTestId(TESTIDS.actionMessage)).toBeNull();
+  });
+
   it.each(['host', 'seated'] as const)(
     'keeps room sharing in the %s hand, not beside the room code or in host management',
     (viewerRole) => {
@@ -398,47 +617,53 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
   });
 
-  it('uses the current authorized host abort action from the stage hand', async () => {
-    const user = userEvent.setup();
-    const onAbort = vi.fn();
-    render(
-      <RoomShell
-        model={createRoomShellModel(
-          shellInput({
-            buildHostManagement: () => ({
-              task: null,
-              sections: [
-                {
-                  key: 'danger',
-                  title: '危险操作',
-                  actions: [
-                    {
-                      key: HOST_ACTION_KEYS.abortGame,
-                      label: '中止游戏',
-                      icon: 'stop-circle-outline',
-                      variant: 'danger',
-                      isEnabled: true,
-                      onPress: onAbort,
-                      testID: TESTIDS.abortGameButton,
-                    },
-                  ],
-                },
-              ],
+  it.each([
+    { key: HOST_ACTION_KEYS.abortGame, label: '中止游戏', testID: TESTIDS.abortGameButton },
+    { key: HOST_ACTION_KEYS.restart, label: '重新开始', testID: TESTIDS.restartButton },
+  ])(
+    'uses the current authorized host $label action from the stage hand',
+    async ({ key, label, testID }) => {
+      const user = userEvent.setup();
+      const onAbort = vi.fn();
+      render(
+        <RoomShell
+          model={createRoomShellModel(
+            shellInput({
+              buildHostManagement: () => ({
+                task: null,
+                sections: [
+                  {
+                    key: 'danger',
+                    title: '危险操作',
+                    actions: [
+                      {
+                        key,
+                        label,
+                        icon: 'stop-circle-outline',
+                        variant: 'danger',
+                        isEnabled: true,
+                        onPress: onAbort,
+                        testID,
+                      },
+                    ],
+                  },
+                ],
+              }),
             }),
-          }),
-        )}
-        content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
-        leadingExtraActions={null}
-        trailingExtraActions={null}
-        stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
-        gameOverlays={null}
-      />,
-    );
-    await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
-    await user.click(screen.getByTestId(TESTIDS.abortGameButton));
-    expect(onAbort).toHaveBeenCalledOnce();
-    expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
-  });
+          )}
+          content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+          leadingExtraActions={null}
+          trailingExtraActions={null}
+          stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+          gameOverlays={null}
+        />,
+      );
+      await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
+      await user.click(screen.getByTestId(testID));
+      expect(onAbort).toHaveBeenCalledOnce();
+      expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
+    },
+  );
 
   it('does not reopen an obsolete panel when actions become available again', async () => {
     const user = userEvent.setup();

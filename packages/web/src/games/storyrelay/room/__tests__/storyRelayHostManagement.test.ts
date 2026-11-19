@@ -18,6 +18,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
+import { alertStore } from '@/utils/alert';
 
 import { createStoryRelayHostManagement } from '../storyRelayRoomAdapter';
 
@@ -160,6 +161,7 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true);
+    expect(model?.pendingActionKeys).toEqual(['start-game']);
     const start = model?.sections[0]?.actions[0];
     expect(start).toMatchObject({
       key: 'start-game',
@@ -193,7 +195,7 @@ describe('createStoryRelayHostManagement', () => {
     if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('keeps only abort during writing with no host advancement task', () => {
+  it('offers a confirmed restart during writing without an advancement task', async () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -201,7 +203,19 @@ describe('createStoryRelayHostManagement', () => {
     const model = build(game.state, false);
     expect(model.task).toBeNull();
     expect(model.sections.map((section) => section.key)).toEqual(['danger']);
-    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['abort-game']);
+    const action = model.sections[0]!.actions[0]!;
+    expect(action).toMatchObject({ key: 'restart', variant: 'danger', isEnabled: true });
+    if (!action.isEnabled) throw new Error('expected an enabled restart');
+    submit.mockClear();
+    action.onPress();
+    const confirmation = alertStore.getSnapshot();
+    expect(confirmation?.message).toContain('不结算完成奖励');
+    expect(submit).not.toHaveBeenCalled();
+    await confirmation?.buttons.find((button) => button.text === '重新开始')?.onPress?.();
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: 'storyrelay.game.restart',
+      phaseRevision: game.state.phaseRevision,
+    });
   });
 
   it('keeps only the abort action outside answering while the round can abort', () => {
@@ -214,21 +228,33 @@ describe('createStoryRelayHostManagement', () => {
     expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
   });
 
-  it('pins the aborted terminal: the review beside return-lobby, no next-round', () => {
+  it('warns that restarting the final transition does not settle rewards', () => {
+    const game = session();
+    game.seatHost();
+    game.fillAndStart();
+    for (let step = 0; step < 4; step += 1) {
+      game.finishStep();
+      if (step < 3) game.settle();
+    }
+    expect(game.state.completedAt).not.toBeNull();
+    const action = build(game.state, false).sections[0]?.actions[0];
+    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
+    action.onPress();
+    expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
+  });
+
+  it('offers legacy aborted rounds their review and restart', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
     game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
     expect(game.state.phase).toBe('aborted');
     const model = build(game.state, false, { isEnabled: true, onPress: vi.fn() });
-    expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual([
-      'review',
-      'return-lobby',
-    ]);
-    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
+    expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    expect(model.task).toBeNull();
   });
 
-  it('omits abort during the gallery phase', () => {
+  it('allows restart during the already-settled gallery', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
@@ -236,7 +262,10 @@ describe('createStoryRelayHostManagement', () => {
     expect(game.state.phase).toBe('gallery');
     const model = build(game.state, false);
     expect(model.task).toBeNull();
-    expect(model.sections.flatMap((section) => section.actions)).toHaveLength(0);
+    const action = model.sections[0]?.actions[0];
+    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
+    action.onPress();
+    expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
   });
 
   it('pins the ended terminal on the shared builders', () => {
@@ -249,20 +278,13 @@ describe('createStoryRelayHostManagement', () => {
     const openReview = vi.fn();
     const model = build(game.state, false, { isEnabled: true, onPress: openReview });
     const actions = model?.sections[0]?.actions ?? [];
-    expect(actions.map((action) => action.key)).toEqual(['review', 'next-round', 'return-lobby']);
+    expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
-      'next-round-button',
-      'return-lobby-button',
+      'restart-button',
     ]);
-    const step = hostTaskBody(model);
-    if (step?.kind !== 'choice') throw new Error('expected a choice task body');
-    expect(step.actions.map((action) => action.label)).toEqual([
-      '本局复盘',
-      '再来一局',
-      '返回大厅',
-    ]);
-    const [review] = step.actions;
+    expect(model.task).toBeNull();
+    const [review] = actions;
     if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
     review.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);

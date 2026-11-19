@@ -6,6 +6,8 @@
  * the generator templates. These pins keep the forked vocabularies
  * (per-game start/assign/abort/next-round wordings, the label
  * override hatch, hand-written terminal descriptors) from regrowing.
+ * Migrated stage games use one reset-to-lobby action; identity games
+ * and the generator retain the previous terminal pair until migrated.
  * Game content (confirm bodies carrying the game's own nouns, rules
  * copy, encyclopedia text) is out of scope and never scanned here.
  */
@@ -98,14 +100,11 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     }
   });
 
-  it('every ended assembly offers the chassis terminal pair through the shared builders', () => {
+  it('keeps the existing terminal pair in identity games and the generator until migration', () => {
     for (const file of [
       'packages/web/src/games/avalon/room/avalonRoomAdapter.ts',
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
-      'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',
-      'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
-      'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
       'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ]) {
       const source = readSource(file);
@@ -126,6 +125,29 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
         file,
         builder: 'buildReturnLobbyAction',
         present: true,
+      });
+    }
+  });
+
+  it('uses only the reset-to-lobby builder for migrated stage games', () => {
+    for (const file of [
+      'packages/web/src/games/pictionary/room/pictionaryRoomAdapter.ts',
+      'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
+      'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
+      'packages/web/src/games/spotmatch/room/spotmatchRoomAdapter.ts',
+    ]) {
+      const source = readSource(file);
+      expect({ file, present: source.includes('buildResetToLobbyAction({') }).toEqual({
+        file,
+        present: true,
+      });
+      expect({ file, oldNextRound: source.includes('buildNextRoundAction({') }).toEqual({
+        file,
+        oldNextRound: false,
+      });
+      expect({ file, oldReturnLobby: source.includes('buildReturnLobbyAction({') }).toEqual({
+        file,
+        oldReturnLobby: false,
       });
     }
   });

@@ -13,6 +13,56 @@ const EMPTY_STACK = {
   layout: { primary: [], secondary: [], ghost: [] },
 } as const;
 
+it('announces an explicitly pending player action without inferring it from primary styling', () => {
+  render(
+    <RoomBottomActionPanel
+      model={{
+        kind: 'stacked',
+        message: null,
+        progress: null,
+        layout: {
+          primary: [
+            {
+              key: 'identity',
+              label: '查看身份',
+              audience: 'participant',
+              variant: 'primary',
+              size: 'md',
+              category: 'resource',
+              isPending: true,
+              isEnabled: true,
+              onPress: vi.fn(),
+            },
+            {
+              key: 'optional',
+              label: '其他行动',
+              audience: 'participant',
+              variant: 'primary',
+              size: 'md',
+              isEnabled: true,
+              onPress: vi.fn(),
+            },
+          ],
+          secondary: [],
+          ghost: [],
+        },
+      }}
+      showPlayerHand
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={null}
+      onOpenMoreActions={() => undefined}
+    />,
+  );
+  const identity = screen.getByRole('button', { name: '查看身份' });
+  expect(identity).toHaveAttribute('data-card-category', 'resource');
+  expect(identity).toHaveAccessibleDescription('有待处理操作');
+  expect(identity.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
+  expect(
+    screen.getByRole('button', { name: '其他行动' }).querySelector('.bottom-action-pending'),
+  ).toBeNull();
+});
+
 it('explains a blocked player card without executing an action', () => {
   render(
     <RoomBottomActionPanel
@@ -46,6 +96,8 @@ it('explains a blocked player card without executing an action', () => {
   const action = screen.getByRole('button', { name: '投票' });
   expect(action).toHaveAttribute('aria-disabled', 'true');
   expect(action).toHaveAccessibleDescription('等待下一阶段');
+  expect(screen.queryByText('投票：等待下一阶段')).not.toBeInTheDocument();
+  expect(screen.getByText('等待下一阶段')).toHaveClass('visually-hidden');
   fireEvent.click(action);
   expect(alertStore.getSnapshot()).toMatchObject({ title: '暂不可用', message: '等待下一阶段' });
 });
@@ -356,6 +408,70 @@ it('marks a host hand with a pending tab only while its task can be executed', (
   rerender(panel(loadingAction));
   expect(hostEntry).toHaveAccessibleName('主持管理');
   expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+});
+
+it('keeps the host entry available and marked when a declared task is blocked', () => {
+  const open = vi.fn();
+  render(
+    <RoomBottomActionPanel
+      model={EMPTY_STACK}
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={{
+        task: { kind: 'action', actionKey: 'start-game' },
+        pendingActionKeys: ['start-game'],
+        sections: [
+          {
+            key: 'lobby',
+            title: '房间',
+            actions: [
+              {
+                key: 'start-game',
+                label: '开始游戏',
+                icon: 'play-outline',
+                variant: 'primary',
+                isEnabled: false,
+                disabledReason: '座位尚未坐满',
+              },
+            ],
+          },
+        ],
+      }}
+      onOpenMoreActions={open}
+      showPlayerHand
+    />,
+  );
+  const entry = screen.getByRole('button', { name: '主持管理，有待处理操作' });
+  expect(entry.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
+  fireEvent.click(entry);
+  expect(open).toHaveBeenCalledOnce();
+});
+
+it('marks a required decision without marking individual alternatives', () => {
+  const action = {
+    key: 'retry',
+    label: '重新准备',
+    icon: 'play-outline',
+    variant: 'primary',
+    isEnabled: true,
+    onPress: vi.fn(),
+  } as const;
+  render(
+    <RoomBottomActionPanel
+      model={EMPTY_STACK}
+      summary={null}
+      isAudioPlaying={false}
+      hostManagement={{
+        task: { kind: 'action', actionKey: 'retry' },
+        pendingActionKeys: [],
+        hasPendingDecision: true,
+        sections: [{ key: 'room', title: '房间', actions: [action] }],
+      }}
+      onOpenMoreActions={vi.fn()}
+      showPlayerHand
+    />,
+  );
+  expect(screen.getByRole('button', { name: '主持管理，有待处理操作' })).toBeEnabled();
 });
 
 it('replaces the action hand with manual cards and restores focus on return', () => {

@@ -168,6 +168,21 @@ function WerewolfRoomContent(
     <RoomShell
       model={shellModel}
       showPlayerHand
+      hideActionHand={shellModel.isAudioPlaying}
+      phaseLabel={
+        isSetup
+          ? '待开局'
+          : status === GameStatus.Assigned
+            ? '已发牌'
+            : status === GameStatus.Ready
+              ? '准备开局'
+              : status === GameStatus.Ongoing
+                ? '夜晚'
+                : status === GameStatus.Day
+                  ? '白天'
+                  : '本局结束'
+      }
+      lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
       isSelecting={night.seatSelection !== null}
       mainEntries={
         isSetup

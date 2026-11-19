@@ -163,6 +163,10 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
         readySeats: parseArray(raw.readySeats, `${path}.readySeats`, parseSeat),
         chains: parseArray(raw.chains, `${path}.chains`, chain),
         gallery: parseNullable(raw.gallery, `${path}.gallery`, gallery),
+        revealSettlementPending: parseBoolean(
+          raw.revealSettlementPending,
+          `${path}.revealSettlementPending`,
+        ),
         completedAt: parseNullable(raw.completedAt, `${path}.completedAt`, parseInteger),
         abortedAt: parseNullable(raw.abortedAt, `${path}.abortedAt`, parseInteger),
       },
@@ -176,6 +180,7 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
  */
 export function migratePersistedStoryRelayState(value: unknown): StoryRelayState {
   const raw = parseObject(value, 'StoryRelayState');
+  if (raw.stateVersion === 3) return upgradeStoryRelayV3(raw);
   if (raw.stateVersion === 2) return upgradeStoryRelayV2(raw);
   if (raw.stateVersion !== 1) return parseStoryRelayState(raw);
   const merged: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {
@@ -203,5 +208,15 @@ function upgradeStoryRelayV2(raw: Record<string, unknown>): StoryRelayState {
           revealStartedAt: null,
           revealDurationMs: 0,
         };
-  return parseStoryRelayState({ ...raw, stateVersion: STORY_RELAY_STATE_VERSION, gallery });
+  return upgradeStoryRelayV3({ ...raw, stateVersion: 3, gallery });
+}
+
+function upgradeStoryRelayV3(raw: Record<string, unknown>): StoryRelayState {
+  return parseStoryRelayState({
+    ...raw,
+    stateVersion: STORY_RELAY_STATE_VERSION,
+    revealSettlementPending:
+      (raw.phase === 'answering' || raw.phase === 'settling' || raw.phase === 'transition') &&
+      raw.completedAt === null,
+  });
 }

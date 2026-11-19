@@ -57,6 +57,7 @@ describe('Spotmatch public command schema', () => {
       { type: 'spotmatch.game.begin' },
       { type: 'spotmatch.game.returnToLobby' },
       { type: 'spotmatch.game.abort' },
+      { type: 'spotmatch.game.restart', gameSequence: 1, expectedPhase: 'playing' },
       {
         type: 'spotmatch.card.claim',
         roundId: 'r',
@@ -72,5 +73,12 @@ describe('Spotmatch public command schema', () => {
 
   it('rejects unknown commands, extra fields and worker-internal commands', () => {
     expect(spotmatchPublicCommandSchema.safeParse({ type: 'spotmatch.nope' }).success).toBe(false);
+    for (const command of [
+      { type: 'spotmatch.game.restart', gameSequence: 1 },
+      { type: 'spotmatch.game.restart', gameSequence: 1, expectedPhase: 'lobby' },
+      { type: 'spotmatch.game.restart', gameSequence: 1, expectedPhase: 'ended', extra: true },
+    ]) {
+      expect(spotmatchPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
   });
 });

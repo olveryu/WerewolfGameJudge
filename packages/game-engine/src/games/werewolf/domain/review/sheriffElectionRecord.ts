@@ -110,7 +110,6 @@ function getActiveCandidateSeats(election: SheriffElectionState): readonly numbe
       return election.candidateSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
     case 'registration':
     case 'candidateSpeech':
-    case 'withdrawal':
     case 'completed':
       return election.registeredSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
   }

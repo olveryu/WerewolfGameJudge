@@ -1,4 +1,4 @@
-/** Browser acceptance for DrawGuess setup, guessing, host abort and return to the same lobby. */
+/** Browser acceptance for DrawGuess setup, guessing and restarting in the same room. */
 
 import { expect, type Page, test } from '@playwright/test';
 
@@ -135,9 +135,7 @@ async function expectLobbySummary(page: Page): Promise<void> {
   await expect(page.getByTestId(TESTIDS.roomGameSummaryTitle)).toHaveText('你画我猜（4人）');
 }
 
-test('create, guess, cancel or confirm host abort, and restart without losing seats', async ({
-  browser,
-}) => {
+test('create, guess, cancel or confirm restart without losing seats', async ({ browser }) => {
   const fixture = await createPlayerContexts(browser, 4);
   const hostPage = fixture.pages[0];
   const joinerPage = fixture.pages[1];
@@ -166,13 +164,12 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
 
     await test.step('start is gated until the room is full', async () => {
       const panel = await room.openHostManagement();
-      const gateReason = panel.getByTestId(TESTIDS.roomNextStepBlockedReason);
-      await expect(gateReason).toHaveText('座位尚未坐满（还差 2 人）');
-      await expect(gateReason).toBeVisible();
+      await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
       const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
-      // Playwright treats aria-disabled as non-actionable even though the card explains the gate.
-      await startButton.click({ force: true });
+      await expect(startButton).toHaveAccessibleDescription('座位尚未坐满（还差 2 人）');
+      await startButton.focus();
+      await hostPage.keyboard.press('Enter');
       await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('暂不可用');
       await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
         '座位尚未坐满（还差 2 人）',
@@ -218,14 +215,14 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
         await expect(page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('放弃本轮');
       await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
       const joinerRoom = new RoomPage(joinerPage);
-      await joinerRoom.expectRoomActionAbsent(TESTIDS.abortGameButton);
+      await joinerRoom.expectRoomActionAbsent(TESTIDS.restartButton);
       await joinerRoom.expectRoomActionAbsent(TESTIDS.startGameButton);
       const guessInput = joinerPage.getByTestId(TESTIDS.drawGuessGuessInput);
       await expect(guessInput).toHaveAccessibleName('猜词输入框');
       await guessInput.fill(word);
       await joinerPage.getByTestId(TESTIDS.roomStageMenuButton).click();
       const menu = joinerPage.getByTestId(TESTIDS.roomStageMenuPanel);
-      await expect(menu.getByTestId(TESTIDS.abortGameButton)).toHaveCount(0);
+      await expect(menu.getByTestId(TESTIDS.restartButton)).toHaveCount(0);
       await menu.getByTestId(TESTIDS.roomStageConfigurationButton).click();
       await joinerPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
       await menu.getByTestId(TESTIDS.roomStageMenuBackButton).click();
@@ -240,10 +237,10 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
 
     await test.step('cancel keeps the current game and confirmation returns everyone to the lobby', async () => {
       await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
-      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
-      await expect(hostPage.getByTestId(TESTIDS.alertModal)).toContainText('本局不发完成奖励');
+      await hostPage.getByTestId(TESTIDS.restartButton).click();
+      await expect(hostPage.getByTestId(TESTIDS.alertModal)).toContainText('不结算战绩与奖励');
       await pressAlertButton(hostPage, {
-        title: '中止本局？',
+        title: '重新开始？',
         buttonIndex: 0,
         buttonLabel: '取消',
       });
@@ -253,8 +250,12 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       );
 
       await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
-      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
-      await room.confirmHostActionDialog('中止本局？');
+      await hostPage.getByTestId(TESTIDS.restartButton).click();
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
       for (const page of fixture.pages) {
         await expectLobbySummary(page);
         await expect(page.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toHaveCount(0);
@@ -270,15 +271,19 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       await expect(joinerPage.getByTestId(TESTIDS.mySeatBadge)).toBeVisible();
     });
 
-    await test.step('the preserved room starts again and can also abort during word selection', async () => {
+    await test.step('the preserved room starts again and can restart during word selection', async () => {
       await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
       await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveText(
         '请选择本轮题目（3 选 1）',
         { timeout: 30_000 },
       );
       await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
-      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
-      await room.confirmHostActionDialog('中止本局？');
+      await hostPage.getByTestId(TESTIDS.restartButton).click();
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
       for (const page of fixture.pages) await expectLobbySummary(page);
     });
   } finally {

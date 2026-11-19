@@ -41,7 +41,7 @@ describe('buildEndedWaitingMessage', () => {
   it('shows the hint to a seated non-host player once the game has ended', () => {
     expect(
       buildEndedWaitingMessage({ isEnded: true, viewer: viewerFor('seated', { seatedSeat: 3 }) }),
-    ).toBe('等待房主操作（再来一局 / 返回大厅）');
+    ).toBe('等待房主操作');
   });
 
   it('hides the hint from the host, who holds the rematch actions', () => {
@@ -111,6 +111,7 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
       label: '查看身份',
       audience: 'participant',
       icon: 'eye-outline',
+      category: 'resource',
       variant: 'primary',
       size: 'md',
       testID: TESTIDS.roomViewIdentityButton,

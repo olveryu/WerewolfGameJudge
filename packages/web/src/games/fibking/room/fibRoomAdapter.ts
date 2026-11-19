@@ -6,6 +6,7 @@ import {
   type FibWordDefinition,
   getFibOccupiedSeatCount,
   getFibRole,
+  getFibUserSeat,
   getFibViewingParticipants,
   isFibRoomFull,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -482,9 +483,23 @@ export function createFibHostManagement(input: FibHostManagementInput): RoomHost
   if (sections.length === 0) {
     throw new Error('FibKing Host management must expose at least one action');
   }
+  const { state } = input;
+  const hostSeat = getFibUserSeat(state, state.hostUserId);
+  const pendingActionKeys =
+    state.phase === 'lobby'
+      ? [HOST_ACTION_KEYS.assignRoles]
+      : state.phase === 'viewing' && state.round !== null
+        ? hostSeat !== null && !state.round.viewedSeats.includes(hostSeat)
+          ? []
+          : [HOST_ACTION_KEYS.startGame]
+        : state.phase === 'preparationFailed'
+          ? []
+          : undefined;
   return {
     task: createFibHostTask(input),
     sections,
+    ...(pendingActionKeys === undefined ? {} : { pendingActionKeys }),
+    ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
   };
 }
 
@@ -552,6 +567,11 @@ export function createFibBottomActions(input: FibBottomActionsInput): RoomBottom
             variant: input.state.phase === 'viewing' ? 'primary' : 'secondary',
             audience: 'anyone',
             testID: TESTIDS.roomViewIdentityButton,
+            isPending:
+              input.state.phase === 'viewing' &&
+              input.viewerSeat !== null &&
+              input.state.round !== null &&
+              !input.state.round.viewedSeats.includes(input.viewerSeat),
           }),
         );
       }

@@ -23,6 +23,23 @@ describe('DrawGuess create config schema', () => {
 });
 
 describe('DrawGuess public command schema', () => {
+  it('requires a valid game identity and completion boundary for restart', () => {
+    const command = {
+      type: 'drawguess.game.restart',
+      gameSequence: 1,
+      expectedPhase: 'playing',
+    };
+    expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
+    for (const invalid of [
+      { ...command, expectedPhase: 'lobby' },
+      { ...command, expectedPhase: undefined },
+      { ...command, gameSequence: -1 },
+      { ...command, userId: 'host' },
+    ]) {
+      expect(drawGuessPublicCommandSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
   it('accepts a game-scoped abort', () => {
     const command = { type: 'drawguess.game.abort', gameSequence: 1 };
     expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);

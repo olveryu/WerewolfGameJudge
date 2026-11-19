@@ -22,4 +22,12 @@ describe('getSpotmatchRoomCommandFailureMessage', () => {
       ),
     ).toBe('房间初始化冲突，请重新创建');
   });
+
+  it('explains an outdated restart confirmation', () => {
+    expect(
+      getSpotmatchRoomCommandFailureMessage(
+        rejectedRoomCommand<SpotmatchState>('spotmatch_stale_restart', 'command-2'),
+      ),
+    ).toBe('本局状态已改变，请重新确认是否重新开始');
+  });
 });

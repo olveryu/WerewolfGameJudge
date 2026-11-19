@@ -117,6 +117,7 @@ export interface StoryRelayState extends BaseGameState<typeof STORY_RELAY_GAME_T
   readonly readySeats: readonly number[];
   readonly chains: readonly StoryRelayChain[];
   readonly gallery: StoryRelayGallery | null;
+  readonly revealSettlementPending: boolean;
   readonly completedAt: number | null;
   readonly abortedAt: number | null;
 }

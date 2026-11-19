@@ -33,6 +33,23 @@ function model(
 }
 
 describe('resolveHostTaskView', () => {
+  it('rejects a pending action missing from the sheet even without a task card', () => {
+    expect(() =>
+      resolveHostTaskView({ ...model(null, []), pendingActionKeys: ['missing'] }),
+    ).toThrow('Host task pending references action "missing" missing from the sheet');
+  });
+
+  it('rejects inconsistent or duplicate pending declarations', () => {
+    expect(() => resolveHostTaskView({ ...model(null, []), hasPendingDecision: true })).toThrow(
+      'Host pending decisions require explicit pending action keys',
+    );
+    expect(() =>
+      resolveHostTaskView({
+        ...model(null, [enabled('start')]),
+        pendingActionKeys: ['start', 'start'],
+      }),
+    ).toThrow('Host pending action keys must be unique');
+  });
   it('returns null when nothing awaits the host', () => {
     expect(resolveHostTaskView(model(null, [enabled('start-game')]))).toBeNull();
   });

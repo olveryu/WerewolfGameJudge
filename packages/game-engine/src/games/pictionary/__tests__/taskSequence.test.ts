@@ -305,7 +305,7 @@ describe('Pictionary task sequence', () => {
   });
 
   it.each([true, false])(
-    'settles when the final step completes and excludes blank-only players (hasContent=%s)',
+    'settles at reveal and excludes blank-only players (hasContent=%s)',
     (hasContent) => {
       let state = dispatch(
         createFullLobby(),
@@ -324,36 +324,9 @@ describe('Pictionary task sequence', () => {
             state = dispatch(state, command, context);
             continue;
           }
-          // The final step settles in the decision that lands its
-          // last entry — not at the gallery entry that follows.
           const decision = decidePictionaryCommand(state, command, context);
           if (decision.kind === 'reject') throw new Error(decision.reason);
-          expect(decision.effects).toEqual(
-            seat === 3
-              ? [
-                  settleEffectFor(state, decision),
-                  {
-                    type: 'pictionary.game.completed',
-                    payload: {
-                      roundId: state.roundId,
-                      completedAt: context.nowMs,
-                      completionVersion: 2,
-                      participantUserIds: hasContent ? ['user-0'] : [],
-                      stats: hasContent
-                        ? [
-                            {
-                              userId: 'user-0',
-                              gamesPlayed: 1,
-                              textSubmissions: 1,
-                              drawingSubmissions: 0,
-                            },
-                          ]
-                        : [],
-                    },
-                  },
-                ]
-              : [],
-          );
+          expect(decision.effects).toEqual(seat === 3 ? [settleEffectFor(state, decision)] : []);
           state = applyDecision(state, decision);
         }
         const decision = decidePictionaryCommand(
@@ -362,7 +335,32 @@ describe('Pictionary task sequence', () => {
           systemContext(state.deadlineAt!),
         );
         if (decision.kind === 'reject') throw new Error(decision.reason);
-        expect(decision.effects).toEqual([settleEffectFor(state, decision)]);
+        expect(decision.effects).toEqual([
+          settleEffectFor(state, decision),
+          ...(step === 3
+            ? [
+                {
+                  type: 'pictionary.game.completed',
+                  payload: {
+                    roundId: state.roundId,
+                    completedAt: state.deadlineAt,
+                    completionVersion: 2,
+                    participantUserIds: hasContent ? ['user-0'] : [],
+                    stats: hasContent
+                      ? [
+                          {
+                            userId: 'user-0',
+                            gamesPlayed: 1,
+                            textSubmissions: 1,
+                            drawingSubmissions: 0,
+                          },
+                        ]
+                      : [],
+                  },
+                },
+              ]
+            : []),
+        ]);
         state = applyDecision(state, decision);
       }
       expect(state.phase).toBe('gallery');

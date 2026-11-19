@@ -95,6 +95,10 @@
   overscroll-behavior: contain;
 }
 
+.room-dialog-body .board-picker-list {
+  overscroll-behavior-y: auto;
+}
+
 .board-picker-section-header {
   display: flex;
   align-items: center;

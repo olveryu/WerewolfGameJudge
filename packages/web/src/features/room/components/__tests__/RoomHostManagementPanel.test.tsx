@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
+import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import { alertStore } from '@/utils/alert';
 
@@ -78,11 +79,119 @@ it('explains a blocked hand action without running or closing it', () => {
     />,
   );
   const action = screen.getByRole('button', { name: '分配角色' });
+  expect(action).toHaveAttribute('data-card-category', 'host');
   expect(action).toHaveAttribute('aria-disabled', 'true');
   expect(action).toHaveAccessibleDescription('座位尚未坐满');
+  expect(screen.queryByTestId(TESTIDS.roomNextStepBlockedReason)).not.toBeInTheDocument();
+  expect(screen.getByText('座位尚未坐满')).toHaveClass('visually-hidden');
   fireEvent.click(action);
   expect(alertStore.getSnapshot()).toMatchObject({ title: '暂不可用', message: '座位尚未坐满' });
   expect(onClose).not.toHaveBeenCalled();
+});
+
+it('marks explicitly declared blocked and independent tasks without marking other choices', () => {
+  const action = (key: string, label: string): RoomHostManagementAction => ({
+    key,
+    label,
+    icon: 'people-outline',
+    variant: 'secondary',
+    isEnabled: true,
+    onPress: vi.fn(),
+  });
+  render(
+    <RoomHostManagementPanel
+      model={{
+        task: { kind: 'choice', actionKeys: ['one', 'optional'] },
+        pendingActionKeys: ['one', 'blocked'],
+        sections: [
+          {
+            key: 'room',
+            title: '房间',
+            actions: [
+              action('one', '第一项'),
+              action('optional', '可选项'),
+              {
+                key: 'blocked',
+                label: '受阻项',
+                icon: 'people-outline',
+                variant: 'danger',
+                isEnabled: false,
+                disabledReason: '等待其他玩家',
+              },
+            ],
+          },
+        ],
+      }}
+      bottomActions={null}
+      presentation="hand"
+      onClose={() => undefined}
+      isAudioPlaying={false}
+    />,
+  );
+  expect(
+    screen.getByRole('button', { name: '第一项' }).querySelector('.bottom-action-pending'),
+  ).toHaveTextContent('待办');
+  expect(
+    screen.getByRole('button', { name: '可选项' }).querySelector('.bottom-action-pending'),
+  ).toBeNull();
+  const blocked = screen.getByRole('button', { name: '受阻项' });
+  expect(blocked.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
+  expect(blocked).toHaveAccessibleDescription('有待处理操作；等待其他玩家');
+});
+
+it('highlights only actionable host tasks while preserving dangerous actions', () => {
+  const assign: RoomHostManagementAction = {
+    key: 'assign',
+    label: '分配角色',
+    icon: 'people-outline',
+    variant: 'primary',
+    isEnabled: true,
+    onPress: vi.fn(),
+  };
+  const other: RoomHostManagementAction = {
+    key: 'other',
+    label: '其他操作',
+    icon: 'people-outline',
+    variant: 'secondary',
+    isEnabled: true,
+    onPress: vi.fn(),
+  };
+  const panel = (taskAction: RoomHostManagementAction, task: 'action' | 'choice' = 'action') => (
+    <RoomHostManagementPanel
+      model={{
+        task:
+          task === 'action'
+            ? { kind: 'action', actionKey: 'assign' }
+            : { kind: 'choice', actionKeys: ['assign', 'other'] },
+        sections: [{ key: 'room', title: '房间', actions: [taskAction, other] }],
+      }}
+      bottomActions={null}
+      presentation="hand"
+      onClose={() => undefined}
+      isAudioPlaying={false}
+    />
+  );
+  const { rerender } = render(panel(assign));
+  const taskButton = screen.getByRole('button', { name: '分配角色' });
+  expect(taskButton).toHaveAttribute('data-card-category', 'host');
+  expect(taskButton).toHaveAccessibleDescription('有待处理操作');
+  expect(taskButton.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
+  expect(screen.getByRole('button', { name: '其他操作' })).toHaveAttribute(
+    'data-card-category',
+    'host',
+  );
+  rerender(panel(assign, 'choice'));
+  expect(
+    screen.getByRole('button', { name: '其他操作' }).querySelector('.bottom-action-pending'),
+  ).toHaveTextContent('待办');
+  rerender(panel({ ...assign, isLoading: true }));
+  expect(
+    screen.getByRole('button', { name: '分配角色' }).querySelector('.bottom-action-pending'),
+  ).toBeNull();
+  rerender(panel({ ...assign, variant: 'danger' }));
+  const dangerousTask = screen.getByRole('button', { name: '分配角色' });
+  expect(dangerousTask).toHaveAttribute('data-variant', 'danger');
+  expect(dangerousTask.querySelector('.bottom-action-pending')).toBeNull();
 });
 
 it('groups player actions and the host task in one panel without duplicating its command', () => {
@@ -300,7 +409,7 @@ it('keeps host commands in one hand and allows revisiting a completed task step'
     within(hand)
       .getAllByRole('button')
       .map((button) => button.textContent),
-  ).toEqual(['返回', '继续', '查看信息']);
+  ).toEqual(['返回', '继续待办有待处理操作', '查看信息']);
   fireEvent.click(screen.getByRole('button', { name: '上一步' }));
   expect(revisit).toHaveBeenCalledOnce();
   expect(onClose).not.toHaveBeenCalled();

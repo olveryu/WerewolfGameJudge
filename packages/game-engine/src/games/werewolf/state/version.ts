@@ -50,11 +50,13 @@
  * (absent = no confession yet) and wolfGirlConfessionRevealAcks (starts empty).
  * v12–v16 payloads migrate with an empty ack list; the confession seat stays
  * absent, matching a night in which no confession was recorded.
+ * v18 removes the obsolete sheriff withdrawal-confirmation phase. Older
+ * rooms in that phase return to candidate speech before continuing.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 17;
+export const WEREWOLF_STATE_VERSION = 18;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

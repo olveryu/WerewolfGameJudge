@@ -93,6 +93,11 @@ const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>(
     type: z.literal('drawguess.game.abort'),
     gameSequence: z.int().nonnegative(),
   }),
+  z.strictObject({
+    type: z.literal('drawguess.game.restart'),
+    gameSequence: z.int().nonnegative(),
+    expectedPhase: z.enum(['playing', 'ended']),
+  }),
   z.strictObject({ type: z.literal('drawguess.game.returnToLobby') }),
   z.strictObject({ type: z.literal('drawguess.phase.retrySettle') }),
   z.strictObject({ type: z.literal('drawguess.drawing.reserve') }),
@@ -135,6 +140,7 @@ const drawGuessWordChoiceSchema = z.strictObject({
 const internalCommandOptions = definePublicCommandOptions<DrawGuessInternalCommand>()([
   z.strictObject({
     type: z.literal('drawguess.words.dealt'),
+    gameSequence: z.int().nonnegative().optional(),
     turnIndex: z.int().nonnegative(),
     choices: z.array(drawGuessWordChoiceSchema).min(1).readonly(),
   }),

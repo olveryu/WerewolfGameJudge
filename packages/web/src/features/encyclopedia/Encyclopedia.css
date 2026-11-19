@@ -134,6 +134,11 @@
   overscroll-behavior: contain;
 }
 
+.room-dialog-body .encyclopedia-scroll,
+.room-dialog-body .encyclopedia-list {
+  overscroll-behavior-y: auto;
+}
+
 /* Segment toolbar: search, filter chips, active filter */
 .encyclopedia-segment-body {
   display: flex;

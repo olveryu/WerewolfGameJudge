@@ -28,6 +28,7 @@ interface RoomHostManagementActionBase {
   readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
   readonly testID?: string;
   readonly isLoading?: boolean;
+  readonly category?: 'host' | 'resource';
 }
 
 export type RoomHostManagementAction = RoomHostManagementActionBase &
@@ -72,6 +73,10 @@ export type RoomHostTask = RoomHostTaskBase &
 export interface RoomHostManagementModel {
   /** The one thing the host should do now; null when nothing awaits the host. */
   readonly task: RoomHostTask | null;
+  /** Game-declared outstanding actions, including blocked actions. */
+  readonly pendingActionKeys?: readonly string[];
+  /** A required decision with alternative remedies, rather than a single required action. */
+  readonly hasPendingDecision?: boolean;
   /** The complete command inventory (the sheet). */
   readonly sections: readonly RoomHostManagementSection[];
 }

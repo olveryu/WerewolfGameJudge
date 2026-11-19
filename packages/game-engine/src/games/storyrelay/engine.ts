@@ -61,6 +61,7 @@ function createInitialState(config: StoryRelayConfig, context: CreateGameContext
     readySeats: [],
     chains: [],
     gallery: null,
+    revealSettlementPending: false,
     completedAt: null,
     abortedAt: null,
   });
@@ -188,6 +189,10 @@ export function decideStoryRelayCommand(
       return state.phase === 'ended' || state.phase === 'aborted'
         ? commitStoryRelay([{ type: 'storyrelay.game.returnedToLobby' }])
         : reject(STORY_RELAY_REASONS.phase);
+    case 'storyrelay.game.restart':
+      return state.phase === 'lobby'
+        ? reject(STORY_RELAY_REASONS.phase)
+        : commitStoryRelay([{ type: 'storyrelay.game.returnedToLobby' }]);
     case 'storyrelay.gallery.pause':
     case 'storyrelay.gallery.resume':
     case 'storyrelay.gallery.advance':

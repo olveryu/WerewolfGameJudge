@@ -34,13 +34,18 @@ export function evolveStoryRelayState(
         ...applyRelayRoundStarted(state, event.round),
         completedAt: null,
         abortedAt: null,
+        revealSettlementPending: true,
       };
     case 'storyrelay.task.ready':
       return { ...state, ...applyRelayTaskReady(state.readySeats, event.seat, event.isReady) };
     case 'storyrelay.entries.appended':
       return { ...state, ...applyRelayEntryAppended(state.chains, event.chainId, event.entry) };
     case 'storyrelay.phase.changed':
-      return { ...state, ...applyRelayPhaseChanged(state, event) };
+      return {
+        ...state,
+        ...applyRelayPhaseChanged(state, event),
+        revealSettlementPending: event.phase === 'gallery' ? false : state.revealSettlementPending,
+      };
     case 'storyrelay.round.completed':
       return { ...state, completedAt: event.completedAt };
     case 'storyrelay.round.aborted':
@@ -51,6 +56,7 @@ export function evolveStoryRelayState(
         abortedAt: event.abortedAt,
         deadlineAt: null,
         readySeats: [],
+        revealSettlementPending: false,
       };
     case 'storyrelay.game.returnedToLobby':
       return {
@@ -59,6 +65,7 @@ export function evolveStoryRelayState(
         startedAt: null,
         completedAt: null,
         abortedAt: null,
+        revealSettlementPending: false,
       };
   }
 }

@@ -74,6 +74,8 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={isLobby ? '待开局' : null}
+      lobbyAction={isLobby ? { label: '开始游戏', occupiedSeats: screen.occupiedSeatCount } : null}
       stageMenu={
         hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
       }
@@ -89,13 +91,7 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
               bottomSummary: null,
               afterSeatBoard: null,
               sideInspector: null,
-              beforeSeatBoard: (
-                <PictionaryRoomSummary
-                  config={config}
-                  occupiedSeatCount={screen.occupiedSeatCount}
-                  guide={null}
-                />
-              ),
+              beforeSeatBoard: <PictionaryRoomSummary config={config} guide={null} />,
             }
           : screen.stageHud !== null
             ? { kind: 'stage', hud: screen.stageHud, element: stage }

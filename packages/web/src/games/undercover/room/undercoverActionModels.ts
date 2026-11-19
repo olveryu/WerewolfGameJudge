@@ -108,6 +108,7 @@ export function createUndercoverBottomActions(
         audience: 'participant',
         testID: TESTIDS.roomViewIdentityButton,
         isSubmitting: controls.isSubmitting,
+        isPending: controls.shouldConfirm,
       }),
     );
   if (state.phase === 'ended' && review === null) {

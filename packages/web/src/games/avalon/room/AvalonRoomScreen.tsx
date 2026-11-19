@@ -4,7 +4,10 @@
 
 import './AvalonRoomScreen.css';
 
-import type { AvalonState } from '@game-judge/game-engine/games/avalon/public';
+import {
+  type AvalonState,
+  getAvalonOccupiedSeatCount,
+} from '@game-judge/game-engine/games/avalon/public';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -224,6 +227,22 @@ function AvalonRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      phaseLabel={
+        isLobby
+          ? '待开局'
+          : isPreGame
+            ? '已发牌'
+            : screen.state.phase.kind === 'night'
+              ? '夜晚'
+              : screen.state.phase.kind === 'ended'
+                ? '本局结束'
+                : '游戏进行中'
+      }
+      lobbyAction={
+        isLobby
+          ? { label: '分配角色', occupiedSeats: getAvalonOccupiedSeatCount(screen.state) }
+          : null
+      }
       isSelecting={screen.seatPicking.isActive}
       configurationEntry={
         !isPreGame && viewModel !== null && !screen.seatPicking.isActive

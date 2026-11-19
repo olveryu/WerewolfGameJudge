@@ -225,8 +225,13 @@ function dealWords(
   turnIndex: number,
   choices: readonly DrawGuessWordChoice[],
   context: CommandContext,
+  gameSequence?: number,
 ): DrawGuessDecision {
-  if (state.phase.kind !== 'wordSelect' || state.turnIndex !== turnIndex)
+  if (
+    (gameSequence !== undefined && state.gameSequence !== gameSequence) ||
+    state.phase.kind !== 'wordSelect' ||
+    state.turnIndex !== turnIndex
+  )
     return reject(DRAWGUESS_REASONS.stale);
   if (state.phase.choices.length > 0) return reject(DRAWGUESS_REASONS.wordsDealt);
   if (choices.length === 0) return reject(DRAWGUESS_REASONS.emptyChoices);
@@ -562,6 +567,20 @@ function abortGame(
   return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
 }
 
+function restartGame(
+  state: DrawGuessState,
+  command: Extract<DrawGuessPublicCommand, { readonly type: 'drawguess.game.restart' }>,
+  context: CommandContext,
+): DrawGuessDecision {
+  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
+  if (hostRejection !== null) return hostRejection;
+  const currentPhase =
+    state.phase.kind === 'lobby' ? 'lobby' : state.phase.kind === 'ended' ? 'ended' : 'playing';
+  if (command.gameSequence !== state.gameSequence || command.expectedPhase !== currentPhase)
+    return reject(DRAWGUESS_REASONS.staleRestart);
+  return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
+}
+
 /** The deadline the expiry guard reads; phases that cannot expire carry none. Exported so the Worker settle handler can compare a delivery against the same fact. */
 export function expiringPhaseDeadlineAt(state: DrawGuessState): number | null {
   switch (state.phase.kind) {
@@ -688,6 +707,8 @@ function decidePublicCommand(
       return reserveDrawing(state, context);
     case 'drawguess.game.abort':
       return abortGame(state, command.gameSequence, context);
+    case 'drawguess.game.restart':
+      return restartGame(state, command, context);
     case 'drawguess.game.returnToLobby':
       return returnToLobby(state, context);
     case 'drawguess.phase.retrySettle': {
@@ -711,7 +732,7 @@ function decideInternalCommand(
 ): DrawGuessDecision {
   switch (command.type) {
     case 'drawguess.words.dealt':
-      return dealWords(state, command.turnIndex, command.choices, context);
+      return dealWords(state, command.turnIndex, command.choices, context, command.gameSequence);
     case 'drawguess.drawing.committed':
       return commitDrawing(
         state,
