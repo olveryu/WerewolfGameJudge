@@ -11,6 +11,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
@@ -18,7 +19,6 @@ import { TESTIDS } from '@/testids';
 import { avalonVoteApproveImage, avalonVoteRejectImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
 import { formatAvalonRoundLabel, resolveVoteInstruction } from '../policy/avalonInteractionPolicy';
-import { AvalonChoiceCard } from './AvalonChoiceCard';
 
 const BALLOT_COPY: Readonly<Record<AvalonBallot, string>> = {
   approve: '赞成',
@@ -87,8 +87,8 @@ export function AvalonVoteModal({
         waitingLabel="等待推进…"
       />
       {instruction.canVote && (
-        <div className="avalon-choice-row">
-          <AvalonChoiceCard
+        <div className="choice-row">
+          <ChoiceCard
             label="赞成"
             imageSrc={avalonVoteApproveImage}
             isSelected={instruction.myBallot === 'approve'}
@@ -96,7 +96,7 @@ export function AvalonVoteModal({
             testId={TESTIDS.avalonVoteApprove}
             onClick={() => onVote('approve')}
           />
-          <AvalonChoiceCard
+          <ChoiceCard
             label="反对"
             imageSrc={avalonVoteRejectImage}
             isSelected={instruction.myBallot === 'reject'}

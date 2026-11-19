@@ -112,10 +112,10 @@ describe('AvalonVoteModal', () => {
 
   it('shows the check badge only on the selected ballot', () => {
     const { getByTestId } = renderModal({ myBallot: 'approve' });
-    const approveBadge = getByTestId('avalon-vote-approve').querySelector('.avalon-choice-check');
+    const approveBadge = getByTestId('avalon-vote-approve').querySelector('.choice-check');
     expect(approveBadge).not.toBeNull();
     expect(approveBadge?.textContent).toBe('✓');
-    expect(getByTestId('avalon-vote-reject').querySelector('.avalon-choice-check')).toBeNull();
+    expect(getByTestId('avalon-vote-reject').querySelector('.choice-check')).toBeNull();
   });
 
   it('reports the chosen ballot', () => {

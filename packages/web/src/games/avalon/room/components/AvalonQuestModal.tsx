@@ -9,6 +9,7 @@ import { type AvalonPlay, type AvalonViewModel } from '@game-judge/game-engine/g
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
@@ -16,7 +17,6 @@ import { TESTIDS } from '@/testids';
 import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
 import { formatAvalonRoundLabel, resolveQuestInstruction } from '../policy/avalonInteractionPolicy';
-import { AvalonChoiceCard } from './AvalonChoiceCard';
 
 const PLAY_COPY: Readonly<Record<AvalonPlay, string>> = {
   success: '成功',
@@ -81,9 +81,9 @@ export function AvalonQuestModal({
         waitingLabel="等待推进…"
       />
       {instruction.isTeamMember && (
-        <div className="avalon-choice-row">
+        <div className="choice-row">
           {instruction.availableCards.includes('success') && (
-            <AvalonChoiceCard
+            <ChoiceCard
               label="成功"
               imageSrc={avalonVoteSuccessImage}
               isSelected={instruction.myPlay === 'success'}
@@ -93,7 +93,7 @@ export function AvalonQuestModal({
             />
           )}
           {instruction.availableCards.includes('fail') && (
-            <AvalonChoiceCard
+            <ChoiceCard
               label="失败"
               imageSrc={avalonVoteFailImage}
               isSelected={instruction.myPlay === 'fail'}
