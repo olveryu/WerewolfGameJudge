@@ -2,7 +2,12 @@ import {
   get__GAME_PASCAL__ViewModel,
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
+//#cap identityViewing
+import { render, screen, waitFor } from '@testing-library/react';
+//#end
+//#cap !identityViewing
 import { render, screen } from '@testing-library/react';
+//#end
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
@@ -156,8 +161,14 @@ it('previews public role information without recording an identity view', async 
   dispatch.mockClear();
   renderRoom();
   await user.click(screen.getByRole('button', { name: '本局配置' }));
-  await user.click(screen.getByRole('button', { name: /^待定身份/ }));
-  expect(screen.getAllByRole('dialog')).toHaveLength(2);
+  const configurationDialog = screen.getByRole('dialog', { name: '本局配置' });
+  const roleButton = screen.getByRole('button', { name: /^待定身份/ });
+  await user.click(roleButton);
+  expect(screen.getByRole('dialog', { name: '待定身份' })).toBeInTheDocument();
+  expect(configurationDialog).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '知道了' }));
+  expect(screen.getByRole('dialog', { name: '本局配置' })).toBe(configurationDialog);
+  await waitFor(() => expect(roleButton).toHaveFocus());
   expect(dispatch).not.toHaveBeenCalled();
 });
 //#end
