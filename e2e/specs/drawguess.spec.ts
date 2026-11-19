@@ -274,7 +274,9 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
         '请选择本轮题目（3 选 1）',
         { timeout: 30_000 },
       );
-      await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
+      await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
+      await room.confirmHostActionDialog('中止本局？');
       for (const page of fixture.pages) await expectLobbySummary(page);
     });
   } finally {
