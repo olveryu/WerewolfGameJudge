@@ -235,7 +235,7 @@ it('uses the declared host task label as the management hint', () => {
   expect(screen.getByText('当前待办 · 开始游戏')).toBeInTheDocument();
 });
 
-it('marks a host hand with a bell only while its task can be executed', () => {
+it('marks a host hand with a pending tab only while its task can be executed', () => {
   const action = {
     key: 'start-game',
     label: '开始游戏',
@@ -267,7 +267,7 @@ it('marks a host hand with a bell only while its task can be executed', () => {
   const { rerender } = render(panel(action));
   const hostEntry = screen.getByTestId(TESTIDS.roomMoreActionsButton);
   expect(hostEntry).toHaveAccessibleName('主持管理，有待处理操作');
-  expect(hostEntry.querySelector('.bottom-action-pending')).toBeInTheDocument();
+  expect(hostEntry.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
 
   rerender(panel({ ...action, isEnabled: false, disabledReason: '座位尚未坐满' }));
   expect(hostEntry).toHaveAccessibleName('主持管理');

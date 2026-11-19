@@ -34,7 +34,6 @@ import IconBookOutline from '~icons/ion/book-outline';
 import IconConstructOutline from '~icons/ion/construct-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
 import IconHandLeftOutline from '~icons/ion/hand-left-outline';
-import IconNotificationsOutline from '~icons/ion/notifications-outline';
 
 import { RoomActionHand } from './RoomActionHand';
 import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
@@ -238,7 +237,9 @@ function PlayerHand({
             <IconConstructOutline aria-hidden />
             <span>{moreActionsLabel}</span>
             {hasReadyTask && (
-              <IconNotificationsOutline className="bottom-action-pending" aria-hidden />
+              <span className="bottom-action-pending" aria-hidden>
+                待办
+              </span>
             )}
           </Button>
         )}
