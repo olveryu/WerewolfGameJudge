@@ -14,7 +14,7 @@ Current versions at drafting time (verify again before citing a number in a repo
 | avalon     | 10              |
 | fibking    | 8               |
 | pictionary | 9               |
-| undercover | 5               |
+| undercover | 6               |
 | storyrelay | 2               |
 | drawguess  | 4               |
 | demo       | 1               |

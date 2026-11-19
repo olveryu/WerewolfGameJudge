@@ -9,12 +9,9 @@ import { useEffect, useState } from 'react';
 
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
-import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
-import { UNDERCOVER_ABORT_NOTICE } from '../undercoverCopy';
-
-function requestUndercoverRestart(
+async function requestUndercoverRestart(
   state: UndercoverState,
   submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
   closeCard: () => void,
@@ -24,27 +21,18 @@ function requestUndercoverRestart(
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
-      : (state.round?.roundId ?? null);
-  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
-  const restart = async () => {
-    closeCard();
-    if (
-      await submit(isTerminal ? '再来一局' : '重新开始', {
-        type: 'undercover.game.redeal',
-        roundId,
-      })
-    )
-      clearSelection();
-  };
-  // Terminal presses are confirmed by the panel adapter (chassis
-  // next-round confirm); in-game restarts confirm here.
-  if (isTerminal) void restart();
-  else
-    showConfirmAlert(
-      '重新开始？',
-      '当前未结束的对局不计胜负，保留座位和设置，重新分配词语与身份。',
-      restart,
-    );
+      : state.phase === 'aborted'
+        ? state.abortedRoundId
+        : state.round.roundId;
+  closeCard();
+  if (
+    await submit('重新开始', {
+      type: 'undercover.game.restart',
+      roundId,
+      wasEnded: state.phase === 'ended',
+    })
+  )
+    clearSelection();
 }
 
 /**
@@ -73,9 +61,7 @@ export interface UndercoverRoundControls {
   readonly cancelSelection: () => void;
   readonly start: () => void;
   readonly retry: () => void;
-  readonly abort: () => void;
-  readonly restart: () => void;
-  readonly returnToLobby: () => void;
+  readonly restart: () => Promise<void>;
   readonly allowRepeated: () => void;
 }
 
@@ -150,23 +136,6 @@ export function useUndercoverRoundControls({
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
-  const returnToLobby = () => {
-    showConfirmAlert(
-      HOST_FLOW_CONFIRM.returnLobbyTitle,
-      HOST_FLOW_CONFIRM.returnLobbyBody,
-      async () => {
-        closeCard();
-        await submit('返回大厅', { type: 'undercover.game.returnToLobby' });
-      },
-    );
-  };
-  const abort = () => {
-    if (roundId === undefined) throw new Error('Abort requires an active Undercover round');
-    showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle, UNDERCOVER_ABORT_NOTICE, async () => {
-      closeCard();
-      await submit('中止本局', { type: 'undercover.game.abort', roundId });
-    });
-  };
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)
       throw new Error('Card confirmation requires a viewing participant');
@@ -246,9 +215,7 @@ export function useUndercoverRoundControls({
       if (roundId === undefined) throw new Error('Retry requires a pending round');
       void submit('重新准备', { type: 'undercover.round.retry', roundId });
     },
-    abort,
     restart: () => requestUndercoverRestart(state, submit, closeCard, exitSelection),
-    returnToLobby,
     allowRepeated,
   };
 }

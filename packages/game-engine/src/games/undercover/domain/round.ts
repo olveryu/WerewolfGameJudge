@@ -279,6 +279,18 @@ export function decideUndercoverRound(
       ? commitUndercover([{ type: 'undercover.game.returnedToLobby' }])
       : reject(UNDERCOVER_REASONS.phase);
   }
+  if (command.type === 'undercover.game.restart') {
+    if (state.phase === 'lobby') return reject(UNDERCOVER_REASONS.phase);
+    const currentRoundId =
+      state.phase === 'preparing' || state.phase === 'preparationFailed'
+        ? state.pendingRound.roundId
+        : state.phase === 'aborted'
+          ? state.abortedRoundId
+          : state.round.roundId;
+    if (currentRoundId !== command.roundId || (state.phase === 'ended') !== command.wasEnded)
+      return reject(UNDERCOVER_REASONS.round);
+    return commitUndercover([{ type: 'undercover.game.returnedToLobby' }]);
+  }
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId

@@ -58,6 +58,11 @@ const undercoverPublicCommandOptions = definePublicCommandOptions<UndercoverPubl
       .max(UNDERCOVER_MAX_PLAYERS - 1),
   }),
   z.strictObject({ type: z.literal('undercover.game.abort'), roundId: z.string().min(1) }),
+  z.strictObject({
+    type: z.literal('undercover.game.restart'),
+    roundId: z.string().min(1),
+    wasEnded: z.boolean(),
+  }),
   z.strictObject({ type: z.literal('undercover.game.returnToLobby') }),
 ]);
 

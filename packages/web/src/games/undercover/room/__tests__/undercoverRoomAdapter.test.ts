@@ -9,12 +9,11 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 import { act, renderHook } from '@testing-library/react';
 
-import { hostReviewClosingTask } from '@/features/room/model/hostManagementActions';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { undercoverReview } from '../../review/undercoverReview';
@@ -33,6 +32,7 @@ import {
 
 vi.mock('@/utils/alertPresets', () => ({
   showConfirmAlert: vi.fn(),
+  showDestructiveAlert: vi.fn(),
   showErrorAlert: vi.fn(),
 }));
 
@@ -372,7 +372,7 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(result.current.selectedSeat).toBeNull();
 });
 
-it('requires confirmation to restart an active round and exposes restart in host management after abort', async () => {
+it('restarts a confirmed round with its identity and completion boundary', async () => {
   const state = createViewingState();
   if (state.round === null) throw new Error('Expected round');
   const session = {
@@ -392,16 +392,11 @@ it('requires confirmation to restart an active round and exposes restart in host
       }),
     { initialProps: { currentState: state } },
   );
-  act(() => result.current.restart());
-  expect(session.dispatch).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Expected restart confirmation');
-  expect(confirmation[0]).toBe('重新开始？');
   await act(async () => {
-    await confirmation[2]();
+    await result.current.restart();
   });
   expect(session.dispatch).toHaveBeenCalledWith(
-    { type: 'undercover.game.redeal', roundId: state.round.roundId },
+    { type: 'undercover.game.restart', roundId: state.round.roundId, wasEnded: false },
     { controlledSeat: null, label: '重新开始', durable: false },
   );
   const aborted = dispatch(state, { type: 'undercover.game.abort', roundId: state.round.roundId });
@@ -439,23 +434,19 @@ it('requires confirmation to restart an active round and exposes restart in host
     controls: result.current,
     review: reviewEntryFor(aborted),
   });
-  const nextRound = hostManagement?.sections[0]?.actions.find(
-    (action) => action.key === 'next-round',
-  );
-  if (nextRound === undefined || !nextRound.isEnabled)
-    throw new Error('Expected enabled next round');
-  vi.mocked(showConfirmAlert).mockClear();
+  const restart = hostManagement.sections[0]?.actions.find((action) => action.key === 'restart');
+  if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
+  vi.mocked(showDestructiveAlert).mockClear();
   await act(async () => {
-    nextRound.onPress();
+    restart.onPress();
   });
-  // Terminal presses confirm first (chassis contract); the restart
-  // dispatch lands once the host confirms.
-  const terminalConfirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-  if (terminalConfirmation === undefined) throw new Error('Expected next-round confirmation');
-  expect(terminalConfirmation[0]).toBe('再来一局');
-  expect(terminalConfirmation[1]).toBe('重新分配词语与身份，开始新的一局。');
+  const terminalConfirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+  if (terminalConfirmation === undefined) throw new Error('Expected restart confirmation');
+  expect(terminalConfirmation[0]).toBe('重新开始？');
+  expect(terminalConfirmation[1]).toContain('不结算完成奖励');
+  expect(terminalConfirmation[2]).toBe('重新开始');
   await act(async () => {
-    await terminalConfirmation[2]();
+    await terminalConfirmation[3]();
   });
   expect(session.dispatch).toHaveBeenCalledTimes(2);
 });
@@ -512,9 +503,7 @@ describe('createUndercoverRoomShellModel', () => {
     cancelSelection: vi.fn(),
     start: vi.fn(),
     retry: vi.fn(),
-    abort: vi.fn(),
     restart: vi.fn(),
-    returnToLobby: vi.fn(),
     allowRepeated: vi.fn(),
   };
 
@@ -870,21 +859,22 @@ describe('createUndercoverHostManagement task body', () => {
     expect(ready).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
   });
 
-  it('closes an ended round on the review beside the next round and the return to the lobby', () => {
+  it('offers review and a destructive restart after a completed round', () => {
     const { model } = buildFor(createEndedState());
-    expect(model.task).toEqual(hostReviewClosingTask());
-    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual([
-      'review',
-      'next-round',
-      'return-lobby',
-    ]);
+    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
+    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     const body = hostTaskBody(model);
     if (body?.kind !== 'choice') throw new Error('expected a choice task body');
-    expect(body.actions.map((action) => action.label)).toEqual([
-      '本局复盘',
-      '再来一局',
-      '返回大厅',
-    ]);
+    expect(body.actions.map((action) => action.label)).toEqual(['本局复盘', '重新开始']);
+    const restart = body.actions[1];
+    if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
+    restart.onPress();
+    expect(showDestructiveAlert).toHaveBeenCalledWith(
+      '重新开始？',
+      expect.stringContaining('本局已结算'),
+      '重新开始',
+      expect.any(Function),
+    );
   });
 
   it('offers the review of an aborted round beside the return to the lobby', () => {
@@ -894,12 +884,8 @@ describe('createUndercoverHostManagement task body', () => {
       roundId: viewing.round!.roundId,
     });
     const { model } = buildFor(aborted);
-    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'return-lobby'] });
-    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual([
-      'review',
-      'next-round',
-      'return-lobby',
-    ]);
+    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
+    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
   });
 
   it('closes an abort during word preparation on the return to the lobby alone', () => {
@@ -914,11 +900,8 @@ describe('createUndercoverHostManagement task body', () => {
     });
     expect(aborted).toMatchObject({ phase: 'aborted', round: null });
     const { model } = buildFor(aborted);
-    expect(model.task).toEqual({ kind: 'action', actionKey: 'return-lobby' });
-    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual([
-      'next-round',
-      'return-lobby',
-    ]);
+    expect(model.task).toEqual({ kind: 'action', actionKey: 'restart' });
+    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['restart']);
   });
 
   it('fails fast when an ended round reaches the host panel without its review', () => {
@@ -949,9 +932,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     cancelSelection: vi.fn(),
     start: vi.fn(),
     retry: vi.fn(),
-    abort: vi.fn(),
     restart: vi.fn(),
-    returnToLobby: vi.fn(),
     allowRepeated: vi.fn(),
   };
 

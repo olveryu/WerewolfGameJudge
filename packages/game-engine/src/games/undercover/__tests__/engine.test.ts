@@ -121,6 +121,123 @@ function reveal(state: UndercoverState, role: UndercoverRole, context = user()):
 }
 
 describe('Undercover authoritative engine', () => {
+  it('resets each round atomically while rejecting stale, unauthorized and changed completion requests', () => {
+    const preparing = prepare();
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const active = ongoing();
+    if (active.round === null) throw new Error('Expected active round');
+    const ended = reveal(reveal(reveal(active, 'blank'), 'undercover'), 'undercover');
+    const failed = dispatch(
+      preparing,
+      {
+        type: 'undercover.round.failPreparation',
+        roundId: preparing.pendingRound.roundId,
+        failureCode: 'selectionFailed',
+      },
+      system(),
+    );
+    const states = [
+      preparing,
+      failed,
+      complete(preparing),
+      active,
+      ended,
+      dispatch(preparing, {
+        type: 'undercover.game.abort',
+        roundId: preparing.pendingRound.roundId,
+      }),
+    ];
+    for (const state of states) {
+      if (state.phase === 'lobby') throw new Error('Expected round');
+      const roundId =
+        state.phase === 'preparing' || state.phase === 'preparationFailed'
+          ? state.pendingRound.roundId
+          : state.phase === 'aborted'
+            ? state.abortedRoundId
+            : state.round.roundId;
+      const command = {
+        type: 'undercover.game.restart',
+        roundId,
+        wasEnded: state.phase === 'ended',
+      } as const;
+      expect(undercoverEngine.decide(state, command, user('visitor')).kind).toBe('reject');
+      expect(undercoverEngine.decide(state, command, user('host', 1)).kind).toBe('reject');
+      expect(undercoverEngine.decide(state, { ...command, roundId: 'stale' }, user()).kind).toBe(
+        'reject',
+      );
+      expect(
+        undercoverEngine.decide(state, { ...command, wasEnded: !command.wasEnded }, user()).kind,
+      ).toBe('reject');
+      const decision = undercoverEngine.decide(state, command, user());
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      expect(decision.effects).toEqual([]);
+      const lobby = dispatch(state, command);
+      expect(lobby).toMatchObject({
+        phase: 'lobby',
+        round: null,
+        config: state.config,
+        roster: state.roster,
+        usedWordPairIds: state.usedWordPairIds,
+      });
+      expect(undercoverEngine.decide(lobby, command, user()).kind).toBe('reject');
+      expect(
+        undercoverEngine.decide(
+          lobby,
+          {
+            type: 'undercover.round.complete',
+            roundId,
+            wordPair: { id: 'late', wordA: 'Milk', wordB: 'Tea', category: 'food' },
+          },
+          system(),
+        ).kind,
+      ).toBe('reject');
+    }
+  });
+
+  it('migrates older aborted rounds and preserves their restart identity', () => {
+    const preparing = prepare();
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const aborted = dispatch(preparing, {
+      type: 'undercover.game.abort',
+      roundId: preparing.pendingRound.roundId,
+    });
+    if (aborted.phase !== 'aborted') throw new Error('Expected abort');
+    const { abortedRoundId: _identity, ...oldState } = aborted;
+    const migrated = migratePersistedUndercoverState({ ...oldState, stateVersion: 5 });
+    expect(migrated).toMatchObject({
+      phase: 'aborted',
+      abortedRoundId: 'legacy-aborted-preparation',
+    });
+    const newAbort = dispatch(preparing, {
+      type: 'undercover.game.abort',
+      roundId: preparing.pendingRound.roundId,
+    });
+    expect(
+      undercoverEngine.decide(
+        newAbort,
+        {
+          type: 'undercover.game.restart',
+          roundId: 'legacy-aborted-preparation',
+          wasEnded: false,
+        },
+        user(),
+      ).kind,
+    ).toBe('reject');
+    const viewing = complete(prepare());
+    const abortedViewing = dispatch(viewing, {
+      type: 'undercover.game.abort',
+      roundId: viewing.round!.roundId,
+    });
+    if (abortedViewing.phase !== 'aborted') throw new Error('Expected abort');
+    const { abortedRoundId: _viewingIdentity, ...oldViewingAbort } = abortedViewing;
+    expect(migratePersistedUndercoverState({ ...oldViewingAbort, stateVersion: 5 })).toEqual(
+      abortedViewing,
+    );
+    expect(() =>
+      migratePersistedUndercoverState({ ...viewing, stateVersion: 5, phase: 'reading' }),
+    ).toThrow();
+  });
+
   it('atomically restarts while retaining the roster, config and used words, rejecting stale requests', () => {
     const active = reveal(ongoing(), 'civilian');
     if (active.round === null) throw new Error('Expected round');
