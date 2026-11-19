@@ -14,6 +14,7 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -30,6 +31,7 @@ import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
 import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
+import { RoomStageMenu, type RoomStageMenuModel } from './RoomStageMenu';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -165,6 +167,7 @@ export function RoomShell({
   configurationEntry,
   manualEntries,
   mainEntries,
+  stageMenu = null,
   showPlayerHand = false,
   gameOverlays,
   profileDetailsRenderer,
@@ -176,6 +179,7 @@ export function RoomShell({
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
   readonly manualEntries?: ComponentProps<typeof RoomBottomActionPanel>['manualEntries'];
   readonly mainEntries?: ComponentProps<typeof RoomBottomActionPanel>['mainEntries'];
+  readonly stageMenu?: RoomStageMenuModel | null;
   readonly showPlayerHand?: boolean;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
@@ -186,6 +190,8 @@ export function RoomShell({
 }) {
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
   const [isActionsPanelOpen, setIsActionsPanelOpen] = useState(false);
+  const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
+  if (stageMenu === null && isStageMenuOpen) setIsStageMenuOpen(false);
   const restoreHostEntryFocus = useRef(false);
   const hostEntryRef = useCallback((button: HTMLButtonElement | null) => {
     if (button === null || !restoreHostEntryFocus.current) return;
@@ -194,7 +200,8 @@ export function RoomShell({
   }, []);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
-  const bottomActions = isStage ? null : model.bottomActions;
+  const hasBottomPanel = !isStage && stageMenu === null;
+  const bottomActions = hasBottomPanel ? model.bottomActions : null;
   const panelPlayerActions = showPlayerHand ? null : bottomActions;
   const hasAdditionalPlayerActions =
     panelPlayerActions !== null &&
@@ -245,16 +252,30 @@ export function RoomShell({
         <RoomTitle model={model} />
         <div className="room-header-side" data-side="trailing">
           {trailingExtraActions}
-          {isStage && hostManagement !== null && (
+          {stageMenu !== null ? (
             <button
               type="button"
               className="room-header-host-button"
               aria-haspopup="dialog"
-              onClick={openActionsPanel}
-              data-testid={TESTIDS.roomHostManagementButton}
+              aria-expanded={isStageMenuOpen}
+              onClick={() => setIsStageMenuOpen(true)}
+              data-testid={TESTIDS.roomStageMenuButton}
             >
-              {HOST_MANAGEMENT_LABEL}
+              菜单
             </button>
+          ) : (
+            isStage &&
+            hostManagement !== null && (
+              <button
+                type="button"
+                className="room-header-host-button"
+                aria-haspopup="dialog"
+                onClick={openActionsPanel}
+                data-testid={TESTIDS.roomHostManagementButton}
+              >
+                {HOST_MANAGEMENT_LABEL}
+              </button>
+            )
           )}
           {model.header.userAction !== null && <RoomUserButton action={model.header.userAction} />}
         </div>
@@ -290,7 +311,7 @@ export function RoomShell({
         )}
         {isWideLayout && sideInspector}
       </div>
-      {!isStage && (
+      {hasBottomPanel && (
         <RoomBottomActionPanel
           model={model.bottomActions}
           summary={content.kind === 'seats' ? content.bottomSummary : null}
@@ -337,6 +358,15 @@ export function RoomShell({
         />
       )}
       <RoomShareDialog model={model.share} />
+      {stageMenu !== null && isStageMenuOpen && (
+        <RoomStageMenu
+          model={stageMenu}
+          abortAction={hostManagement?.sections
+            .flatMap((section) => section.actions)
+            .find((action) => action.key === HOST_ACTION_KEYS.abortGame)}
+          onClose={() => setIsStageMenuOpen(false)}
+        />
+      )}
       {gameOverlays}
     </div>
   );

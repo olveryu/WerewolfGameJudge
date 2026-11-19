@@ -20,8 +20,9 @@ import {
   type DrawingWidth,
   isDrawingColor,
 } from '@/features/drawing/model/drawing';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
@@ -49,6 +50,7 @@ import {
   countDrawGuessRoundReactionReceipts,
   EMPTY_DRAWGUESS_REACTION_COUNTS,
 } from '../model/drawGuessReactionCounts';
+import { DrawGuessRules } from '../screens/DrawGuessRulesScreen';
 import { DrawGuessCorrectToast } from './components/DrawGuessCorrectToast';
 import { DrawGuessDrawerZeroedNote } from './components/DrawGuessDrawerZeroedNote';
 import { DrawGuessGuessComposer } from './components/DrawGuessGuessComposer';
@@ -109,12 +111,26 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
   const screen = useDrawGuessRoomState({ ...props, entryController });
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const openGuide = () => setInformation('guide');
+  const openConfiguration = () => setInformation('configuration');
+  const settings = createDrawGuessRoomSummarySettings(config);
   const stage = (
     <DrawGuessStage key={`${screen.state.turnIndex}:${screen.state.phase.kind}`} screen={screen} />
   );
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
+      stageMenu={
+        screen.stageHud === null
+          ? null
+          : { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration }
+      }
+      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+      manualEntries={[
+        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('drawguess') },
+      ]}
       content={
         isLobby
           ? {
@@ -127,12 +143,8 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
                 <RoomGameSummary
                   title="你画我猜"
                   playerCount={config.numberOfPlayers}
-                  settings={createDrawGuessRoomSummarySettings(config)}
-                  guide={{
-                    onPress: screen.openRules,
-                    label: '查看你画我猜玩法',
-                    testId: TESTIDS.roomGuideButton('drawguess'),
-                  }}
+                  settings={settings}
+                  guide={null}
                 />
               ),
             }
@@ -161,7 +173,32 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
         <DrawGuessStatsPanel userId={userId} onGamesPlayedChange={onGamesPlayedChange} />
       )}
-      gameOverlays={screen.reviewOverlay}
+      gameOverlays={
+        <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="你画我猜玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <DrawGuessRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`你画我猜（${config.numberOfPlayers}人）`}</p>
+              <RoomGameSettings settings={settings} />
+            </RoomDialog>
+          )}
+          {screen.reviewOverlay}
+        </>
+      }
     />
   );
 }

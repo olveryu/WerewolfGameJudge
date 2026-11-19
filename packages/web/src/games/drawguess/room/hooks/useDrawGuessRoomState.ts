@@ -14,11 +14,7 @@ import {
 import { type ReactNode, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -81,7 +77,6 @@ export interface DrawGuessRoomScreenState {
   /** 平台单飞提交：座位动作由调用点显式传 `{ controlledSeat }`，房主命令不传。 */
   readonly submit: ReadyRoomSession<DrawGuessState, DrawGuessCommand>['submit'];
   readonly session: DrawGuessRoomSession;
-  readonly openRules: () => void;
   /** 本局复盘的对话框、导出舞台与分享进度，挂在房间的 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
 }
@@ -129,9 +124,6 @@ export function useDrawGuessRoomState({
   });
   const configureGame = useCallback(() => {
     void navigate(gameConfigEditPath('drawguess', room.roomCode));
-  }, [navigate, room.roomCode]);
-  const openRules = useCallback(() => {
-    void navigate(gameGuidePath('drawguess', room.roomCode));
   }, [navigate, room.roomCode]);
   const occupiedSeatCount = getDrawGuessOccupiedSeatCount(state);
   const {
@@ -235,7 +227,6 @@ export function useDrawGuessRoomState({
     isHost,
     submit,
     session,
-    openRules,
     reviewOverlay: review.overlay,
   };
 }

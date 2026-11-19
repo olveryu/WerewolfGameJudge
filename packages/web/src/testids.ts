@@ -106,6 +106,11 @@ export const TESTIDS = {
   roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
   roomManualButton: 'room-manual-button',
   roomManualBackButton: 'room-manual-back-button',
+  roomStageMenuButton: 'room-stage-menu-button',
+  roomStageMenuPanel: 'room-stage-menu-panel',
+  roomStageMenuBackButton: 'room-stage-menu-back-button',
+  roomStageConfigurationButton: 'room-stage-configuration-button',
+  roomStageGuideButton: 'room-stage-guide-button',
   roomGameSummaryTitle: 'room-game-summary-title',
 
   roomScreenRoot: 'room-screen-root',

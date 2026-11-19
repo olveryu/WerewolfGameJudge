@@ -467,6 +467,13 @@ tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.
 Stage content changes three shell surfaces and nothing else:
 
 - **Host entry in the header.** The host opens host management from a header button (`roomHostManagementButton`); there is no bottom panel and therefore no host task card. A stage shell model must have `hostManagement.task === null`, an empty `bottomActions` (no message, progress or button) and no narration; `assertRoomStageShellModel` throws otherwise.
+
+Stages opting into `stageMenu` replace the host-only header button with a menu
+for every viewer. It opens outside the game element and reads the current
+`abortGame` action from the authorized host model, without duplicating its
+confirmation or command. The manual and configuration open over the menu;
+leaving the stage removes the menu and restores the room's bottom actions.
+
 - **Takeover in the information bar.** An active bot takeover renders as the bar's 「代 N 号 · 退出」 chip (`controlledSeatBanner` / `controlledSeatReleaseButton`) instead of the banner. Taking a bot over starts from the roster sheet: bot rows that are not done carry 「接管」 while `canTakeOverBots` is allowed and no seat is controlled.
 - **Roster from the seat source.** `groupRoomStageRoster` groups occupied seats from `RoomSeatDataSource`: the declared acting seat, success-toned status badges as done, everything else pending. Games compute the chip summary from the same grouping and never pass a second seat list.
 
