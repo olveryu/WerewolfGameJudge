@@ -54,6 +54,12 @@ export class ConfigPage {
     await expect(this.nextButton).toHaveText('下一步：规则');
   }
 
+  /** Wait until the room's board-edit dialog is ready. */
+  async waitForEditDialog() {
+    await expect(this.nextButton).toBeVisible({ timeout: 15000 });
+    await expect(this.nextButton).toHaveText('下一步：规则');
+  }
+
   // ---------------------------------------------------------------------------
   // Template
   // ---------------------------------------------------------------------------
@@ -325,7 +331,9 @@ export class ConfigPage {
 
   /** Save the edited board with the room's current rules. */
   async clickSave() {
-    const rules = await this.clickNext();
+    await this.pressNext();
+    const rules = new RulesPage(this.page);
+    await rules.waitForEditDialog();
     await rules.clickSave();
   }
 

@@ -24,6 +24,12 @@ export class RulesPage {
     await expect(this.root).toBeVisible({ timeout: 10000 });
   }
 
+  /** Wait until the room's rules-edit dialog is ready. */
+  async waitForEditDialog() {
+    await expect(this.submitButton).toBeVisible({ timeout: 10000 });
+    await expect(this.submitButton).toHaveText('保存配置');
+  }
+
   /** Set a boolean house rule by its schema key, asserting the switch's label. */
   async setRule(rule: string, label: string, isEnabled: boolean): Promise<void> {
     const ruleSwitch = this.page.getByTestId(TESTIDS.gameRuleSwitch(rule));
