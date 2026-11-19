@@ -1087,7 +1087,7 @@ interface PendingFibRound {
 6. Engine 拒绝过期或重复 `roundId`。
 7. Complete 成功后分配身份并转为 `ongoing`。
 8. D1 选题失败通过 outbox retry，第七次失败进入显式 `selectionFailed` 终态。
-9. 产品需要恢复操作时，host 可以发送 `fibking.round.cancelPreparing`。
+9. 房主可以重试准备，或通过 `fibking.game.restart` 返回准备阶段；重开必须携带当前 `roundId` 和终局状态。
 
 不再使用“先 `BEGIN_DRAW`，等待外部调用，再希望第二个 action 成功”的流程。
 

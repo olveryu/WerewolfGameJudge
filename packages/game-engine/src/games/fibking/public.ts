@@ -11,7 +11,6 @@ export type {
   FibUpdatePreparationStageCommand,
 } from './commands/types';
 export {
-  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NOT_ALL_VIEWED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,

@@ -37,7 +37,6 @@ export type FibEvent =
       readonly type: 'fibking.round.preparation.stage.updated';
       readonly stage: FibPreparationStage;
     })
-  | (GameEvent & { readonly type: 'fibking.round.preparationCancelled' })
   | (GameEvent & {
       readonly type: 'fibking.round.preparationFailed';
       readonly failedAt: number;

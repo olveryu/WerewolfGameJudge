@@ -35,7 +35,6 @@ import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
 import { evolveFibState } from './domain/evolve';
 import {
-  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_NOT_ALL_VIEWED,
   REASON_FIB_PREPARATION_STAGE_INVALID,
@@ -117,9 +116,10 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
   if (state.phase === 'preparing') {
     return reject(REASON_FIB_ROUND_ALREADY_ONGOING);
   }
+  if (state.phase === 'ended') return reject(REASON_FIB_ROUND_MISMATCH);
   if (!isFibRoomFull(state)) return reject(REASON_FIB_ROUND_NOT_FULL);
 
-  // D-1: every FibKing start — the first round, the next round, and
+  // D-1: every FibKing start — the first round, a redraw, and
   // the preparationFailed "重新准备" alike — freezes a fresh pending
   // round (fresh strategy); a retry therefore consumes word-sequence
   // progress again, exactly as before the extraction.
@@ -145,14 +145,6 @@ function decideStartFibRound(state: FibState, context: CommandContext): FibDecis
     }),
     commit: commitFib,
   });
-}
-
-function decideCancelFibPreparation(state: FibState, context: CommandContext): FibDecision {
-  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  return state.phase === 'preparing' || state.phase === 'preparationFailed'
-    ? commitFib([{ type: 'fibking.round.preparationCancelled' }])
-    : reject(REASON_FIB_ROUND_NOT_PREPARING);
 }
 
 /**
@@ -283,14 +275,6 @@ function decideMarkAllBotsViewed(state: FibState, context: CommandContext): FibD
     buildViewedEvent: (seat) => ({ type: 'fibking.role.viewed', seat }),
     commit: commitFib,
   });
-}
-
-function decideReturnFibGameToLobby(state: FibState, context: CommandContext): FibDecision {
-  const hostRejection = requireHost<FibEvent, FibEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  return state.phase === 'viewing' || state.phase === 'ongoing' || state.phase === 'ended'
-    ? commitFib([{ type: 'fibking.game.returnedToLobby' }])
-    : reject(REASON_FIB_GAME_NOT_ENDED);
 }
 
 function decideRestartFibGame(
@@ -463,14 +447,10 @@ export function decideFibCommand(
     case 'room.profile.update':
     case 'fibking.config.update':
       return decideFibRoom(state, command, context);
-    case 'fibking.game.returnToLobby':
-      return decideReturnFibGameToLobby(state, context);
     case 'fibking.game.restart':
       return decideRestartFibGame(state, command, context);
     case 'fibking.roles.assign':
       return decideStartFibRound(state, context);
-    case 'fibking.round.cancelPreparing':
-      return decideCancelFibPreparation(state, context);
     case 'fibking.round.reveal':
       return decideRevealFibRound(state, context);
     case 'fibking.role.viewed':

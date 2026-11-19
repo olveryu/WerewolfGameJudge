@@ -59,7 +59,6 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'fibking.roles.assign',
     'fibking.game.begin',
     'fibking.game.restart',
-    'fibking.game.returnToLobby',
     'fibking.role.viewed',
   ],
   undercover: [

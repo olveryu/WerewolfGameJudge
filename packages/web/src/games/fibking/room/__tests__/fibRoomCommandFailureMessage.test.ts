@@ -1,6 +1,5 @@
 import {
   type FibState,
-  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
 } from '@game-judge/game-engine/games/fibking/public';
 import { REASON_CONTROLLED_SEAT_NOT_BOT } from '@game-judge/game-engine/platform/protocol/reasons';
@@ -10,14 +9,6 @@ import { rejectedRoomCommand } from '@/test-utils/roomCommand';
 import { getFibRoomCommandFailureMessage } from '../fibRoomCommandFailureMessage';
 
 describe('getFibRoomCommandFailureMessage', () => {
-  it('explains a stale end-game request', () => {
-    expect(
-      getFibRoomCommandFailureMessage(
-        rejectedRoomCommand<FibState>(REASON_FIB_GAME_NOT_ENDED, 'command-0'),
-      ),
-    ).toBe('当前游戏尚未结束');
-  });
-
   it('explains how to resolve a rejected config shrink', () => {
     expect(
       getFibRoomCommandFailureMessage(

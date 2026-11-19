@@ -60,14 +60,6 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
           stage: event.stage,
         },
       };
-    case 'fibking.round.preparationCancelled':
-      return {
-        ...state,
-        phase: 'lobby',
-        pendingRound: null,
-        preparationFailure: null,
-        round: null,
-      };
     case 'fibking.round.preparationFailed':
       if (state.phase !== 'preparing') {
         throw new Error('Fib preparation-failed event requires a preparing state');
