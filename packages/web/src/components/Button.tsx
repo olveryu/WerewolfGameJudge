@@ -1,10 +1,11 @@
 import './Button.css';
 
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
   size?: 'sm' | 'md' | 'lg';
   /** Shows the busy state and blocks presses. */

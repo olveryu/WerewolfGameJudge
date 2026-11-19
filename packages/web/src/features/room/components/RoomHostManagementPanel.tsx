@@ -27,6 +27,10 @@ import {
 } from './RoomBottomActionPresentation';
 import { DisabledReasonCaption } from './RoomControls';
 
+function focusBackButton(button: HTMLButtonElement | null) {
+  button?.focus({ preventScroll: true });
+}
+
 function ManagementAction({
   action,
   isTaskBlockedAction,
@@ -370,12 +374,16 @@ function ManagementContent({
   title,
   onClose,
   isAudioPlaying,
+  isHand = false,
+  onBack = onClose,
 }: {
   readonly model: RoomHostManagementModel | null;
   readonly bottomActions: RoomBottomActionModel | null;
   readonly title: string;
   readonly onClose: () => void;
   readonly isAudioPlaying: boolean;
+  readonly isHand?: boolean;
+  readonly onBack?: () => void;
 }) {
   const playerActions =
     bottomActions === null
@@ -386,15 +394,28 @@ function ManagementContent({
   const hasPlayerActions = playerActions.length > 0;
   return (
     <>
-      <header className="host-management-header">
-        <h2 className="host-management-title">{title}</h2>
-        <IconButton
-          label={`关闭${title}`}
-          icon={<IconClose aria-hidden />}
-          onClick={onClose}
-          data-testid={TESTIDS.roomHostManagementCloseButton}
-        />
-      </header>
+      {isHand ? (
+        <div className="room-action-hand host-hand-back">
+          <Button
+            ref={focusBackButton}
+            variant="secondary"
+            onClick={onBack}
+            data-testid={TESTIDS.roomHostManagementCloseButton}
+          >
+            返回
+          </Button>
+        </div>
+      ) : (
+        <header className="host-management-header">
+          <h2 className="host-management-title">{title}</h2>
+          <IconButton
+            label={`关闭${title}`}
+            icon={<IconClose aria-hidden />}
+            onClick={onClose}
+            data-testid={TESTIDS.roomHostManagementCloseButton}
+          />
+        </header>
+      )}
       <div className="host-management-body">
         {hasPlayerActions && (
           <section className="host-management-section">
@@ -453,12 +474,14 @@ export function RoomHostManagementPanel({
   bottomActions,
   presentation,
   onClose,
+  onBack,
   isAudioPlaying,
 }: {
   readonly model: RoomHostManagementModel | null;
   readonly bottomActions: RoomBottomActionModel | null;
-  readonly presentation: 'sheet' | 'inspector';
+  readonly presentation: 'sheet' | 'inspector' | 'hand';
   readonly onClose: () => void;
+  readonly onBack?: () => void;
   readonly isAudioPlaying: boolean;
 }) {
   const playerActions =
@@ -466,6 +489,25 @@ export function RoomHostManagementPanel({
       ? []
       : resolveRoomBottomActionPresentation(bottomActions).additionalActions;
   const title = playerActions.length === 0 && model !== null ? HOST_MANAGEMENT_LABEL : '更多操作';
+  if (presentation === 'hand') {
+    return (
+      <section
+        className="host-management-hand"
+        aria-label={title}
+        data-testid={TESTIDS.roomHostManagementPanel}
+      >
+        <ManagementContent
+          model={model}
+          bottomActions={null}
+          title={title}
+          onClose={onClose}
+          onBack={onBack}
+          isAudioPlaying={isAudioPlaying}
+          isHand
+        />
+      </section>
+    );
+  }
   if (presentation === 'inspector') {
     return (
       <aside

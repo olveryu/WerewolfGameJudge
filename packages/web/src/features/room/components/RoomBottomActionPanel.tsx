@@ -1,7 +1,7 @@
 /** Shared single-focus room action card. Games provide render-ready action models. */
 import './RoomBottomActionPanel.css';
 
-import { type CSSProperties, memo, type ReactNode } from 'react';
+import { type CSSProperties, memo, type ReactNode, type Ref } from 'react';
 
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
@@ -115,6 +115,8 @@ function RoomBottomActionPanelComponent({
   onOpenMoreActions,
   configurationEntry = null,
   showPlayerHand = false,
+  hostHand,
+  hostEntryRef,
 }: {
   readonly model: RoomBottomActionModel;
   readonly summary: ReactNode;
@@ -123,6 +125,8 @@ function RoomBottomActionPanelComponent({
   readonly onOpenMoreActions: () => void;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
   readonly showPlayerHand?: boolean;
+  readonly hostHand?: ReactNode;
+  readonly hostEntryRef?: Ref<HTMLButtonElement>;
 }) {
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
   const { focusAction, additionalActions, hasMultiplePrimaryChoices } =
@@ -130,6 +134,13 @@ function RoomBottomActionPanelComponent({
   const hiddenActions = showPlayerHand ? [] : additionalActions;
   const hasMoreActions = hiddenActions.length > 0 || hostManagement !== null;
   const taskLabel = hostManagement === null ? null : hostTaskLabel(hostManagement);
+  const taskBody =
+    !showPlayerHand || hostManagement === null ? null : resolveHostTaskView(hostManagement)?.body;
+  const hasReadyTask =
+    taskBody?.kind === 'ready'
+      ? taskBody.action.isLoading !== true
+      : taskBody?.kind === 'choice' &&
+        taskBody.actions.some((action) => action.isEnabled && action.isLoading !== true);
   const moreActionsLabel =
     hiddenActions.length === 0 && hostManagement !== null
       ? HOST_MANAGEMENT_LABEL
@@ -165,50 +176,58 @@ function RoomBottomActionPanelComponent({
           {statusMessage}
         </p>
       )}
-      <div
-        className={showPlayerHand ? 'room-action-hand' : 'bottom-action-control-row'}
-        data-has-focus={focusAction !== null || configurationEntry !== null}
-        role={showPlayerHand ? 'group' : undefined}
-        aria-label={showPlayerHand ? '行动手牌' : undefined}
-      >
-        {showPlayerHand
-          ? listRoomBottomButtons(model).map((action) => (
-              <LayoutButton key={action.key} model={action} hideAudioLockReason={isAudioPlaying} />
-            ))
-          : focusAction !== null && (
-              <div className="bottom-action-focus">
-                <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
-              </div>
-            )}
-        {configurationEntry !== null && (
-          <Button
-            variant="secondary"
-            className="bottom-action-focus"
-            onClick={configurationEntry.onOpen}
-            aria-haspopup="dialog"
-          >
-            本局配置
-          </Button>
-        )}
-        {hasMoreActions && (
-          <Button
-            variant={!showPlayerHand && focusAction === null ? 'primary' : 'secondary'}
-            className="bottom-action-more"
-            data-testid={TESTIDS.roomMoreActionsButton}
-            data-player-action-ids={hiddenActions
-              .filter((action) => action.isEnabled)
-              .map((action) => action.testID)
-              .join(' ')}
-            onClick={onOpenMoreActions}
-            aria-haspopup="dialog"
-          >
-            <span className="bottom-action-more-title">{moreActionsLabel}</span>
-            {!showPlayerHand && taskLabel !== null && (
-              <span className="bottom-action-more-hint">当前待办 · {taskLabel}</span>
-            )}
-          </Button>
-        )}
-      </div>
+      {hostHand ?? (
+        <div
+          className={showPlayerHand ? 'room-action-hand' : 'bottom-action-control-row'}
+          data-has-focus={focusAction !== null || configurationEntry !== null}
+          role={showPlayerHand ? 'group' : undefined}
+          aria-label={showPlayerHand ? '行动手牌' : undefined}
+        >
+          {showPlayerHand
+            ? listRoomBottomButtons(model).map((action) => (
+                <LayoutButton
+                  key={action.key}
+                  model={action}
+                  hideAudioLockReason={isAudioPlaying}
+                />
+              ))
+            : focusAction !== null && (
+                <div className="bottom-action-focus">
+                  <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
+                </div>
+              )}
+          {configurationEntry !== null && (
+            <Button
+              variant="secondary"
+              className="bottom-action-focus"
+              onClick={configurationEntry.onOpen}
+              aria-haspopup="dialog"
+            >
+              本局配置
+            </Button>
+          )}
+          {hasMoreActions && (
+            <Button
+              ref={hostEntryRef}
+              variant={!showPlayerHand && focusAction === null ? 'primary' : 'secondary'}
+              className="bottom-action-more"
+              data-testid={TESTIDS.roomMoreActionsButton}
+              data-player-action-ids={hiddenActions
+                .filter((action) => action.isEnabled)
+                .map((action) => action.testID)
+                .join(' ')}
+              onClick={onOpenMoreActions}
+              aria-haspopup={showPlayerHand ? undefined : 'dialog'}
+            >
+              <span className="bottom-action-more-title">{moreActionsLabel}</span>
+              {hasReadyTask && <span className="bottom-action-more-hint">待办</span>}
+              {!showPlayerHand && taskLabel !== null && (
+                <span className="bottom-action-more-hint">当前待办 · {taskLabel}</span>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
     </footer>
   );
 }

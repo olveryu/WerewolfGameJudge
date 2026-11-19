@@ -1,7 +1,7 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
 
-import { type ReactElement, type ReactNode, useState } from 'react';
+import { type ReactElement, type ReactNode, useCallback, useRef, useState } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
@@ -175,6 +175,12 @@ export function RoomShell({
 }) {
   const isWideLayout = usesRoomSideInspector(useViewportWidth());
   const [isActionsPanelOpen, setIsActionsPanelOpen] = useState(false);
+  const restoreHostEntryFocus = useRef(false);
+  const hostEntryRef = useCallback((button: HTMLButtonElement | null) => {
+    if (button === null || !restoreHostEntryFocus.current) return;
+    restoreHostEntryFocus.current = false;
+    button.focus({ preventScroll: true });
+  }, []);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
   const bottomActions = isStage ? null : model.bottomActions;
@@ -193,18 +199,20 @@ export function RoomShell({
   };
   const closeActionsPanel = () => setIsActionsPanelOpen(false);
   const isActionsPanelShown = isActionsPanelOpen && canOpenActionsPanel;
+  const isHostHandShown = isActionsPanelShown && showPlayerHand && !isStage;
 
-  const sideInspector = isActionsPanelShown ? (
-    <RoomHostManagementPanel
-      model={hostManagement}
-      bottomActions={panelPlayerActions}
-      presentation="inspector"
-      onClose={closeActionsPanel}
-      isAudioPlaying={model.isAudioPlaying}
-    />
-  ) : content.kind === 'seats' ? (
-    content.sideInspector
-  ) : null;
+  const sideInspector =
+    isActionsPanelShown && !isHostHandShown ? (
+      <RoomHostManagementPanel
+        model={hostManagement}
+        bottomActions={panelPlayerActions}
+        presentation="inspector"
+        onClose={closeActionsPanel}
+        isAudioPlaying={model.isAudioPlaying}
+      />
+    ) : content.kind === 'seats' ? (
+      content.sideInspector
+    ) : null;
 
   return (
     <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
@@ -280,9 +288,25 @@ export function RoomShell({
           onOpenMoreActions={openActionsPanel}
           configurationEntry={configurationEntry}
           showPlayerHand={showPlayerHand}
+          hostEntryRef={hostEntryRef}
+          hostHand={
+            isHostHandShown ? (
+              <RoomHostManagementPanel
+                model={hostManagement}
+                bottomActions={null}
+                presentation="hand"
+                onClose={closeActionsPanel}
+                onBack={() => {
+                  restoreHostEntryFocus.current = true;
+                  closeActionsPanel();
+                }}
+                isAudioPlaying={model.isAudioPlaying}
+              />
+            ) : null
+          }
         />
       )}
-      {isActionsPanelShown && !isWideLayout && (
+      {isActionsPanelShown && !isHostHandShown && !isWideLayout && (
         <RoomHostManagementPanel
           model={hostManagement}
           bottomActions={panelPlayerActions}
