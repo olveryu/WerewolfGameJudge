@@ -119,6 +119,46 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
+  it.each([GameStatus.Assigned, GameStatus.Ongoing, GameStatus.Ended])(
+    'restarts %s without effects and rejects stale or unauthorized confirmations',
+    (status) => {
+      const state = createState({ status, gameSequence: 4 });
+      const command = {
+        type: 'werewolf.game.restart',
+        gameSequence: 4,
+        wasEnded: status === GameStatus.Ended,
+      } as const;
+      expect(werewolfEngine.decide(state, command, userContext('user-1')).kind).toBe('reject');
+      expect(werewolfEngine.decide(state, command, userContext('host', 2)).kind).toBe('reject');
+      expect(
+        werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')).kind,
+      ).toBe('reject');
+      expect(
+        werewolfEngine.decide(
+          state,
+          { ...command, wasEnded: !command.wasEnded },
+          userContext('host'),
+        ).kind,
+      ).toBe('reject');
+      expect(
+        werewolfEngine.decide({ ...state, isAudioPlaying: true }, command, userContext('host')),
+      ).toMatchObject({
+        kind: 'reject',
+        reason: 'forbidden_while_audio_playing',
+      });
+      const decision = werewolfEngine.decide(state, command, userContext('host'));
+      expect(decision.kind).toBe('commit');
+      if (decision.kind !== 'commit') throw new Error(decision.reason);
+      expect(decision.effects).toEqual([]);
+      const restarted = decision.events.reduce(werewolfEngine.evolve, state);
+      expect(restarted.roster).toEqual(state.roster);
+      expect(restarted.templateRoles).toEqual(state.templateRoles);
+      expect(restarted.gameSequence).toBe(5);
+      expect(restarted.players[0]?.role).toBeNull();
+      expect(werewolfEngine.decide(restarted, command, userContext('host')).kind).toBe('reject');
+    },
+  );
+
   it.each([GameStatus.Day, GameStatus.Ended])(
     'persists last-night acknowledgement during %s and clears it on restart',
     (status) => {
@@ -160,7 +200,7 @@ describe('Werewolf authoritative actor resolution', () => {
       ).toBe(true);
       const restarted = evolveCommittedCommand(
         { ...confirmed, status: GameStatus.Ended },
-        { type: 'werewolf.game.returnToLobby' },
+        { type: 'werewolf.game.restart', gameSequence: confirmed.gameSequence, wasEnded: true },
         userContext('host'),
       );
       expect(restarted.lastNightInfoConfirmed).toBeUndefined();
@@ -267,7 +307,7 @@ describe('Werewolf authoritative actor resolution', () => {
     ).toBe('reject');
     const restarted = evolveCommittedCommand(
       selected,
-      { type: 'werewolf.game.returnToLobby' },
+      { type: 'werewolf.game.restart', gameSequence: selected.gameSequence, wasEnded: true },
       userContext('host'),
     );
     expect(restarted.startingParticipants).toBeUndefined();
@@ -513,7 +553,7 @@ describe('Werewolf handler decision adapter', () => {
   });
 });
 
-describe('Werewolf redeal (one-command restart + deal)', () => {
+describe('Werewolf restart', () => {
   function createEndedState(): GameState {
     let state = werewolfEngine.createInitialState(
       {
@@ -544,63 +584,23 @@ describe('Werewolf redeal (one-command restart + deal)', () => {
     return state;
   }
 
-  it('rejects redeal before the game has ended', () => {
+  it('returns to preparation without dealing a new round', () => {
     const ended = createEndedState();
     const seated = evolveCommittedCommand(
       ended,
-      { type: 'werewolf.game.returnToLobby' },
+      { type: 'werewolf.game.restart', gameSequence: ended.gameSequence, wasEnded: true },
       userContext('host'),
     );
     expect(seated.status).toBe(GameStatus.Seated);
-    expect(
-      werewolfEngine.decide(seated, { type: 'werewolf.game.redeal' }, userContext('host')),
-    ).toEqual({
-      kind: 'reject',
-      reason: 'invalid_status',
-    });
-  });
-
-  it('emits restart then a fresh deal and lands on Assigned with roles dealt', () => {
-    const ended = createEndedState();
-    const decision = werewolfEngine.decide(
-      ended,
-      { type: 'werewolf.game.redeal' },
-      userContext('host'),
-    );
-    if (decision.kind !== 'commit') {
-      throw new Error(`Expected redeal commit, received ${decision.kind}`);
+    for (const player of Object.values(seated.players)) {
+      expect(player?.role).toBeNull();
     }
-    expect(decision.events.map((event) => event.type)).toEqual(['RESTART_GAME', 'ASSIGN_ROLES']);
-
-    const next = decision.events.reduce(werewolfEngine.evolve, ended);
-    expect(next.status).toBe(GameStatus.Assigned);
-    expect(next.startingParticipants).toBeUndefined();
-    expect(next.roleRevealRandomNonce).toBe('seed-1');
-    for (const player of Object.values(next.players)) {
-      expect(player).not.toBeNull();
-      expect(player?.role).not.toBeNull();
-      expect(next.roleViewedSeats).not.toContain(player?.seat);
-    }
-  });
-
-  it('matches the restart-then-assign sequence under the same execution context', () => {
-    const ended = createEndedState();
-    const viaRedeal = evolveCommittedCommand(
-      ended,
-      { type: 'werewolf.game.redeal' },
-      userContext('host'),
-    );
-    const restarted = evolveCommittedCommand(
-      ended,
-      { type: 'werewolf.game.returnToLobby' },
-      userContext('host'),
-    );
-    const viaTwoSteps = evolveCommittedCommand(
-      restarted,
+    const assigned = evolveCommittedCommand(
+      seated,
       { type: 'werewolf.roles.assign' },
       userContext('host'),
     );
-    expect(viaRedeal).toEqual(viaTwoSteps);
+    expect(assigned.status).toBe(GameStatus.Assigned);
   });
 });
 
@@ -620,9 +620,7 @@ describe('Werewolf engine definition and catalog', () => {
       profile: { displayName: 'Updated' },
     },
     'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
-    'werewolf.game.returnToLobby': { type: 'werewolf.game.returnToLobby' },
-    'werewolf.game.abort': { type: 'werewolf.game.abort' },
-    'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
+    'werewolf.game.restart': { type: 'werewolf.game.restart', gameSequence: 0, wasEnded: false },
     'werewolf.mvp.select': {
       type: 'werewolf.mvp.select',
       selection: { roleRevealRandomNonce: null, mvpUserId: 'user-1' },
@@ -733,9 +731,7 @@ describe('Werewolf engine definition and catalog', () => {
     'room.seat.clear',
     'room.seat.fillBots',
     'werewolf.roles.assign',
-    'werewolf.game.abort',
-    'werewolf.game.returnToLobby',
-    'werewolf.game.redeal',
+    'werewolf.game.restart',
     'werewolf.bots.markAllBotsViewed',
     'werewolf.config.update',
     'werewolf.review.share',

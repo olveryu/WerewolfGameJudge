@@ -55,16 +55,6 @@ export interface ReturnToLobbyIntent {
 }
 
 /**
- * Redeal Intent (Host-only)
- * Precondition: status === Ended
- * Result: restart (keep seats/template, clear the finished game) and a
- * fresh role deal in one atomic command; status -> Assigned
- */
-export interface RedealGameIntent {
-  type: 'REDEAL_GAME';
-}
-
-/**
  * Share details Intent (Host-only)
  * Host selects seats allowed to view "detailed info" in ended phase
  */

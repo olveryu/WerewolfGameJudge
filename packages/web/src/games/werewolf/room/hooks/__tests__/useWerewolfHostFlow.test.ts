@@ -1,8 +1,7 @@
 /**
  * useWerewolfHostFlow — the host commands' durability and audio teardown:
  * - MVP selection is a one-shot per deal and goes out durable;
- * - abort / return-to-lobby / redeal stop narration and drop preloaded clips
- *   before the command leaves;
+ * - restart stops narration and drops preloaded clips after a successful command;
  * - the MVP picker never survives a new deal.
  */
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
@@ -13,18 +12,14 @@ import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioP
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
-import { showAlert } from '@/utils/alert';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { useWerewolfHostFlow } from '../useWerewolfHostFlow';
 
-vi.mock('@/utils/alert', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/utils/alert')>()),
-  showAlert: vi.fn(),
-}));
 vi.mock('@/utils/alertPresets', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/utils/alertPresets')>()),
   showConfirmAlert: vi.fn(),
+  showDestructiveAlert: vi.fn(),
 }));
 
 function createAudio(): WerewolfAudioRuntime {
@@ -52,23 +47,20 @@ function endedState(overrides: Partial<GameState> = {}): GameState {
 function renderFlow(state: GameState) {
   const submit = vi.fn<WerewolfSubmit>(async () => true);
   const audio = createAudio();
-  const shareReview = vi.fn(async () => undefined);
   const view = renderHook(
-    (props: { state: GameState }) =>
-      useWerewolfHostFlow({ state: props.state, submit, audio, shareReview }),
+    (props: { state: GameState }) => useWerewolfHostFlow({ state: props.state, submit, audio }),
     { initialProps: { state } },
   );
   return { ...view, submit, audio };
 }
 
-/** The confirm button of the last showConfirmAlert / showAlert call. */
+/** The confirm button of the last confirmation call. */
 function lastConfirm(): () => void | Promise<void> {
   const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1);
   if (confirm !== undefined) return confirm[2];
-  const alert = vi.mocked(showAlert).mock.calls.at(-1);
-  const button = alert?.[2]?.at(-1);
-  if (button?.onPress === undefined) throw new Error('[TEST] no confirm button');
-  return () => button.onPress?.();
+  const alert = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+  if (alert === undefined) throw new Error('[TEST] no confirm button');
+  return alert[3];
 }
 
 describe('useWerewolfHostFlow', () => {
@@ -109,23 +101,33 @@ describe('useWerewolfHostFlow', () => {
     expect(result.current.mvpSelection).toBeNull();
   });
 
-  it.each([
-    ['abort', GameStatus.Ongoing, '中止本局', 'werewolf.game.abort'],
-    ['returnToLobby', GameStatus.Ended, '返回大厅', 'werewolf.game.returnToLobby'],
-    ['redeal', GameStatus.Ended, '再来一局', 'werewolf.game.redeal'],
-  ] as const)(
-    '%s stops narration and drops preloaded clips before the command leaves',
-    async (action, status, label, type) => {
-      const { result, submit, audio } = renderFlow(endedState({ status }));
-      act(() => result.current.onHostControl(action));
+  it.each([GameStatus.Ongoing, GameStatus.Ended])(
+    'restarts %s only after confirmation and stops audio after success',
+    async (status) => {
+      const { result, submit, audio } = renderFlow(endedState({ status, gameSequence: 3 }));
+      act(() => result.current.onHostControl('restart'));
+      expect(submit).not.toHaveBeenCalled();
       await act(async () => lastConfirm()());
       expect(audio.stopNarration).toHaveBeenCalledTimes(1);
       expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
-      expect(submit).toHaveBeenCalledWith(label, { type });
+      expect(submit).toHaveBeenCalledWith('重新开始', {
+        type: 'werewolf.game.restart',
+        gameSequence: 3,
+        wasEnded: status === GameStatus.Ended,
+      });
       const stopOrder = vi.mocked(audio.stopNarration).mock.invocationCallOrder[0];
       const submitOrder = submit.mock.invocationCallOrder[0];
       if (stopOrder === undefined || submitOrder === undefined) throw new Error('[TEST] order');
-      expect(stopOrder).toBeLessThan(submitOrder);
+      expect(stopOrder).toBeGreaterThan(submitOrder);
     },
   );
+
+  it('does not stop audio if a stale restart is rejected', async () => {
+    const { result, submit, audio } = renderFlow(endedState({ status: GameStatus.Ongoing }));
+    submit.mockResolvedValue(false);
+    act(() => result.current.onHostControl('restart'));
+    await act(async () => lastConfirm()());
+    expect(audio.stopNarration).not.toHaveBeenCalled();
+    expect(audio.clearPreloaded).not.toHaveBeenCalled();
+  });
 });

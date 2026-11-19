@@ -1,11 +1,10 @@
 /**
  * useWerewolfHostFlow — the host's lifecycle commands behind their
- * confirm dialogs: deal, start, abort, redeal, return to lobby, bot
- * shortcuts, MVP selection.
+ * confirm dialogs: deal, start, restart, bot shortcuts, MVP selection.
  *
  * Every command goes through the shared single-flight `submit`; the
- * dialogs only gate intent. Audio teardown (stop narration, drop the
- * preloaded clips) happens on the host device for the three resets.
+ * dialogs only gate intent. A successful restart tears down the host's
+ * narration and preloaded clips.
  * Narration preparation belongs to the audio orchestration, not host commands.
  */
 
@@ -21,8 +20,7 @@ import { useCallback, useState } from 'react';
 import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
-import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
-import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
 
 import type { WerewolfHostControlAction } from '../createWerewolfHostManagement';
 
@@ -53,18 +51,13 @@ interface UseWerewolfHostFlowInput {
   readonly state: GameState;
   readonly submit: WerewolfSubmit;
   readonly audio: WerewolfAudioRuntime;
-  /** Exports the shared review image; the Ended flows offer it before leaving. */
-  readonly shareReview: () => Promise<void>;
 }
 
 const ASSIGN_CONFIRM_TEXT = '所有座位已满，将洗牌并分配角色';
 const START_CONFIRM_TITLE = '开始游戏？';
 const START_CONFIRM_TEXT = '请将手机音量调到最大';
-const ABORT_CONFIRM_TEXT = '本局不计胜负，保留座位和板子，清除已分配的角色。';
-const ENDED_FLOW_TEXT = '本局复盘将无法查看，是否先分享战报？';
-
 export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHostFlow {
-  const { state, submit, audio, shareReview } = input;
+  const { state, submit, audio } = input;
   const roleRevealRandomNonce = state.roleRevealRandomNonce ?? null;
   // The picker belongs to the deal it opened in: a new deal is a new game and closes it.
   const [mvpOpenNonce, setMvpOpenNonce] = useState<{ readonly nonce: string | null } | null>(null);
@@ -72,33 +65,13 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
 
   const resetAudioThenSubmit = useCallback(
     async (label: string, command: WerewolfPublicCommand) => {
-      audio.stopNarration();
-      audio.clearPreloaded();
-      await submit(label, command);
+      const succeeded = await submit(label, command);
+      if (succeeded) {
+        audio.stopNarration();
+        audio.clearPreloaded();
+      }
     },
     [audio, submit],
-  );
-
-  const showEndedFlowDialog = useCallback(
-    (flow: 'redeal' | 'returnToLobby') => {
-      const isRedeal = flow === 'redeal';
-      showAlert(
-        isRedeal ? HOST_FLOW_CONFIRM.nextRoundTitle : HOST_FLOW_CONFIRM.returnLobbyTitle,
-        ENDED_FLOW_TEXT,
-        [
-          CANCEL_BUTTON,
-          { text: '分享战报', onPress: () => void shareReview() },
-          {
-            text: isRedeal ? '再来一局' : '返回大厅',
-            onPress: () =>
-              isRedeal
-                ? resetAudioThenSubmit('再来一局', { type: 'werewolf.game.redeal' })
-                : resetAudioThenSubmit('返回大厅', { type: 'werewolf.game.returnToLobby' }),
-          },
-        ],
-      );
-    },
-    [resetAudioThenSubmit, shareReview],
   );
 
   const onHostControl = useCallback(
@@ -114,20 +87,24 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
             await submit('开始游戏', { type: 'werewolf.game.begin' });
           });
           return;
-        case 'abort':
-          showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle, ABORT_CONFIRM_TEXT, () =>
-            resetAudioThenSubmit('中止本局', { type: 'werewolf.game.abort' }),
+        case 'restart':
+          showDestructiveAlert(
+            '重新开始？',
+            state.status === GameStatus.Ended
+              ? '保留座位和板子，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+              : '保留座位和板子，清除本局并回到准备。本局中止，不结算完成奖励。',
+            '重新开始',
+            () =>
+              resetAudioThenSubmit('重新开始', {
+                type: 'werewolf.game.restart',
+                gameSequence: state.gameSequence,
+                wasEnded: state.status === GameStatus.Ended,
+              }),
           );
-          return;
-        case 'redeal':
-          showEndedFlowDialog('redeal');
-          return;
-        case 'returnToLobby':
-          showEndedFlowDialog('returnToLobby');
           return;
       }
     },
-    [resetAudioThenSubmit, showEndedFlowDialog, submit],
+    [resetAudioThenSubmit, state.gameSequence, state.status, submit],
   );
 
   const markAllBotsViewed = useCallback(() => {

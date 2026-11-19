@@ -5,16 +5,14 @@ import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import {
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildEnabledHostAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
   buildMusicSettingsAction,
-  buildNextRoundAction,
   buildPendingAwareHostAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -48,8 +46,7 @@ import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useShe
 import { TESTIDS } from '@/testids';
 
 /** The host flow controls the panel can trigger; each opens its confirm dialog. */
-export type WerewolfHostControlAction =
-  'prepareToFlip' | 'startGame' | 'abort' | 'redeal' | 'returnToLobby';
+export type WerewolfHostControlAction = 'prepareToFlip' | 'startGame' | 'restart';
 
 interface WerewolfHostManagementInput {
   readonly roomStatus: GameStatus;
@@ -175,13 +172,8 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           input.isHostActionSubmitting || input.mvpSeat !== null,
           input.onSelectMvp,
         ),
-        buildNextRoundAction({
-          onPress: () => input.onHostControl('redeal'),
-          isEnabled: !input.isHostActionSubmitting,
-          isLoading: input.isHostActionSubmitting,
-        }),
-        buildReturnLobbyAction({
-          onPress: () => input.onHostControl('returnToLobby'),
+        buildResetToLobbyAction({
+          onPress: () => input.onHostControl('restart'),
           isEnabled: !input.isHostActionSubmitting,
           isLoading: input.isHostActionSubmitting,
         }),
@@ -304,12 +296,7 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         case null:
           return {
             kind: 'choice',
-            actionKeys: [
-              PANEL_FLOW_ACTION_KEYS.grantReview,
-              HOST_ACTION_KEYS.review,
-              HOST_ACTION_KEYS.nextRound,
-              HOST_ACTION_KEYS.returnLobby,
-            ],
+            actionKeys: [PANEL_FLOW_ACTION_KEYS.grantReview, HOST_ACTION_KEYS.review, 'restart'],
             steps,
           };
       }
@@ -424,8 +411,8 @@ function createDangerActions(input: WerewolfHostManagementInput): RoomHostManage
     input.roomStatus === GameStatus.Day;
   if (!canRestart) return [];
   return [
-    buildAbortGameAction({
-      onPress: () => input.onHostControl('abort'),
+    buildResetToLobbyAction({
+      onPress: () => input.onHostControl('restart'),
       isEnabled: !input.isHostActionSubmitting,
       isLoading: input.isHostActionSubmitting,
     }),
