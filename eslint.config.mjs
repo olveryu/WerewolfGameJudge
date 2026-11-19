@@ -228,6 +228,14 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
 
+  // Standalone browser prototypes are not covered by the TypeScript web config.
+  {
+    files: ['mockups/**/*.js'],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+
   // =========================================================================
   // Cloudflare Workers (api-worker) — Workers runtime, no React
   // =========================================================================
