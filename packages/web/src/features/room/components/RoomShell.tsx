@@ -192,6 +192,7 @@ export function RoomShell({
   const [isActionsPanelOpen, setIsActionsPanelOpen] = useState(false);
   const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
   if (stageMenu === null && isStageMenuOpen) setIsStageMenuOpen(false);
+  const stageMenuEntryRef = useRef<HTMLButtonElement>(null);
   const restoreHostEntryFocus = useRef(false);
   const hostEntryRef = useCallback((button: HTMLButtonElement | null) => {
     if (button === null || !restoreHostEntryFocus.current) return;
@@ -254,9 +255,9 @@ export function RoomShell({
           {trailingExtraActions}
           {stageMenu !== null ? (
             <button
+              ref={stageMenuEntryRef}
               type="button"
               className="room-header-host-button"
-              aria-haspopup="dialog"
               aria-expanded={isStageMenuOpen}
               onClick={() => setIsStageMenuOpen(true)}
               data-testid={TESTIDS.roomStageMenuButton}
@@ -364,7 +365,10 @@ export function RoomShell({
           abortAction={hostManagement?.sections
             .flatMap((section) => section.actions)
             .find((action) => action.key === HOST_ACTION_KEYS.abortGame)}
-          onClose={() => setIsStageMenuOpen(false)}
+          onClose={() => {
+            setIsStageMenuOpen(false);
+            stageMenuEntryRef.current?.focus({ preventScroll: true });
+          }}
         />
       )}
       {gameOverlays}

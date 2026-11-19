@@ -469,9 +469,11 @@ Stage content changes three shell surfaces and nothing else:
 - **Host entry in the header.** The host opens host management from a header button (`roomHostManagementButton`); there is no bottom panel and therefore no host task card. A stage shell model must have `hostManagement.task === null`, an empty `bottomActions` (no message, progress or button) and no narration; `assertRoomStageShellModel` throws otherwise.
 
 Stages opting into `stageMenu` replace the host-only header button with a menu
-for every viewer. It opens outside the game element and reads the current
+for every viewer. It opens as an unframed hand at the room's bottom edge,
+outside the game element and without reflowing it, and reads the current
 `abortGame` action from the authorized host model, without duplicating its
-confirmation or command. The manual and configuration open over the menu;
+confirmation or command. The manual replaces the hand in place; guide and configuration
+details open over it;
 leaving the stage removes the menu and restores the room's bottom actions.
 
 - **Takeover in the information bar.** An active bot takeover renders as the bar's 「代 N 号 · 退出」 chip (`controlledSeatBanner` / `controlledSeatReleaseButton`) instead of the banner. Taking a bot over starts from the roster sheet: bot rows that are not done carry 「接管」 while `canTakeOverBots` is allowed and no seat is controlled.
