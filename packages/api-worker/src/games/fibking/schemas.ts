@@ -29,14 +29,12 @@ const publicCommandOptions = definePublicCommandOptions<FibPublicCommand>()([
   z
     .strictObject({ type: z.literal('fibking.config.update'), numberOfPlayers: z.int() })
     .refine((command) => isValidFibConfig({ numberOfPlayers: command.numberOfPlayers })),
-  z.strictObject({ type: z.literal('fibking.game.returnToLobby') }),
   z.strictObject({
     type: z.literal('fibking.game.restart'),
     roundId: z.string().min(1),
     wasEnded: z.boolean(),
   }),
   z.strictObject({ type: z.literal('fibking.roles.assign') }),
-  z.strictObject({ type: z.literal('fibking.round.cancelPreparing') }),
   z.strictObject({ type: z.literal('fibking.role.viewed') }),
   z.strictObject({ type: z.literal('fibking.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('fibking.game.begin') }),

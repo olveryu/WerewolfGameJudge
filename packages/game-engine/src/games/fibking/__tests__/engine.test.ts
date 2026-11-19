@@ -15,7 +15,6 @@ import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { FibCommand } from '../commands/types';
 import type { FibEvent } from '../domain/events';
 import {
-  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NO_BOT_SEATS,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
@@ -809,12 +808,16 @@ describe('FibKing recoverable round workflow', () => {
       ),
     ).toMatchObject({ kind: 'commit' });
 
-    const lobby = dispatch(failed, { type: 'fibking.round.cancelPreparing' }, userContext('host'));
+    const lobby = dispatch(
+      failed,
+      { type: 'fibking.game.restart', roundId: preparing.pendingRound.roundId, wasEnded: false },
+      userContext('host'),
+    );
     expect(lobby.phase).toBe('lobby');
     expect(lobby.preparationFailure).toBeNull();
   });
 
-  it('supports host cancellation without losing seats or word history', () => {
+  it('supports restarting preparation without losing seats or word history', () => {
     let state = completeRound(
       startPreparing(createFullLobby()),
       '灯塔',
@@ -825,9 +828,20 @@ describe('FibKing recoverable round workflow', () => {
       { type: 'fibking.round.reveal' },
       userContext('host'),
     );
+    if (state.phase !== 'ended') throw new Error('Expected ended state');
+    state = dispatch(
+      state,
+      { type: 'fibking.game.restart', roundId: state.round.roundId, wasEnded: true },
+      userContext('host'),
+    );
     state = startPreparing(state, 'round-b');
+    if (state.phase !== 'preparing') throw new Error('Expected preparing state');
     const roster = state.roster;
-    state = dispatch(state, { type: 'fibking.round.cancelPreparing' }, userContext('host'));
+    state = dispatch(
+      state,
+      { type: 'fibking.game.restart', roundId: state.pendingRound.roundId, wasEnded: false },
+      userContext('host'),
+    );
 
     expect(state.phase).toBe('lobby');
     expect(state.roster).toBe(roster);
@@ -918,7 +932,7 @@ describe('FibKing recoverable round workflow', () => {
     });
   });
 
-  it('uses next round as the ended-phase action and preserves seats and used words', () => {
+  it('requires restart before the next round and preserves seats and used words', () => {
     let state = completeRound(
       startPreparing(createFullLobby()),
       '灯塔',
@@ -929,9 +943,18 @@ describe('FibKing recoverable round workflow', () => {
       { type: 'fibking.round.reveal' },
       userContext('host'),
     );
-    expect(state.phase).toBe('ended');
+    if (state.phase !== 'ended') throw new Error('Expected ended state');
     const roster = state.roster;
 
+    expect(decideFibCommand(state, { type: 'fibking.roles.assign' }, userContext('host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_ROUND_MISMATCH,
+    });
+    state = dispatch(
+      state,
+      { type: 'fibking.game.restart', roundId: state.round.roundId, wasEnded: true },
+      userContext('host'),
+    );
     const nextDecision = decideFibCommand(
       state,
       { type: 'fibking.roles.assign' },
@@ -991,62 +1014,6 @@ describe('FibKing recoverable round workflow', () => {
         systemContext(),
       ),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_WORD_REUSED });
-  });
-
-  it('returns an ended game to the lobby without duplicating room state', () => {
-    let state = completeRound(
-      startPreparing(createFullLobby()),
-      '灯塔',
-      '建在岸边用于指引船只航行方向的高塔。',
-    );
-    state = dispatch(
-      confirmAllRoleViews(state),
-      { type: 'fibking.round.reveal' },
-      userContext('host'),
-    );
-    const roster = state.roster;
-    const usedWords = state.usedWords;
-
-    expect(
-      decideFibCommand(state, { type: 'fibking.game.returnToLobby' }, userContext('alice')),
-    ).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
-
-    state = dispatch(state, { type: 'fibking.game.returnToLobby' }, userContext('host'));
-
-    expect(state).toMatchObject({
-      phase: 'lobby',
-      pendingRound: null,
-      preparationFailure: null,
-      round: null,
-    });
-    expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
-    expect(state.roster).toBe(roster);
-    expect(state.usedWords).toBe(usedWords);
-    expect(getFibLifecycle(state)).toBe('setup');
-    expect(
-      decideFibCommand(state, { type: 'fibking.game.returnToLobby' }, userContext('host')),
-    ).toEqual({ kind: 'reject', reason: REASON_FIB_GAME_NOT_ENDED });
-  });
-
-  it('abandons an ongoing game without losing seats or used words', () => {
-    const ongoing = completeRound(
-      startPreparing(createFullLobby()),
-      '灯塔',
-      '建在岸边用于指引船只航行方向的高塔。',
-    );
-    const roster = ongoing.roster;
-    const usedWords = ongoing.usedWords;
-
-    const lobby = dispatch(ongoing, { type: 'fibking.game.returnToLobby' }, userContext('host'));
-
-    expect(lobby).toMatchObject({
-      phase: 'lobby',
-      pendingRound: null,
-      preparationFailure: null,
-      round: null,
-    });
-    expect(lobby.roster).toBe(roster);
-    expect(lobby.usedWords).toBe(usedWords);
   });
 
   it('redraws an ongoing round while preserving seats and used-word exclusion', () => {

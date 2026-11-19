@@ -114,13 +114,11 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
     profile: { displayName: '新名字' },
   },
   'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
-  'fibking.game.returnToLobby': { type: 'fibking.game.returnToLobby' },
   'fibking.game.restart': { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: false },
   'fibking.roles.assign': { type: 'fibking.roles.assign' },
   'fibking.role.viewed': { type: 'fibking.role.viewed' },
   'fibking.bots.markAllBotsViewed': { type: 'fibking.bots.markAllBotsViewed' },
   'fibking.game.begin': { type: 'fibking.game.begin' },
-  'fibking.round.cancelPreparing': { type: 'fibking.round.cancelPreparing' },
   'fibking.round.guess': { type: 'fibking.round.guess', seat: 0 },
   'fibking.round.reveal': { type: 'fibking.round.reveal' },
 } as const satisfies {
@@ -253,6 +251,8 @@ describe('Worker game catalog', () => {
 
   it('requires the round identity and completion boundary for FibKing restart', () => {
     for (const command of [
+      { type: 'fibking.game.returnToLobby' },
+      { type: 'fibking.round.cancelPreparing' },
       { type: 'fibking.game.restart', roundId: '', wasEnded: false },
       { type: 'fibking.game.restart', roundId: 'round-1' },
       { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: 'false' },

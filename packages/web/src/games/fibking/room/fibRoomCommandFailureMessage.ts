@@ -2,7 +2,6 @@
 
 import {
   type FibState,
-  REASON_FIB_GAME_NOT_ENDED,
   REASON_FIB_NOT_ALL_VIEWED,
   REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE,
   REASON_FIB_PLAYER_COUNT_INVALID,
@@ -23,7 +22,6 @@ import {
 } from '@/features/room/link/createRoomCommandFailureMessage';
 
 export const getFibRoomCommandFailureMessage = createRoomCommandFailureMessage<FibState>({
-  [REASON_FIB_GAME_NOT_ENDED]: '当前游戏尚未结束',
   [REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE]:
     '目标人数之外的座位仍有真人入座，请先让这些玩家离座或换到空位',
   [REASON_FIB_PLAYER_COUNT_INVALID]: '人数必须是 4 到 20 之间的整数',
