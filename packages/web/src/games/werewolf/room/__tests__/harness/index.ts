@@ -41,6 +41,7 @@ export {
   expectSeatSelectionUnavailable,
   mountRoomFor,
   mountWerewolfRoom,
+  openNightActionGroup,
   pressText,
   renderWerewolfRoom,
   requireBottomActionText,

@@ -4,10 +4,11 @@
  */
 
 import type { GameState, WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
 
 import {
+  cancelSeatSelection,
   createWerewolfRoomMock,
   draftSeatSelection,
   mountWerewolfRoom,
@@ -114,5 +115,38 @@ describe('night dialog retry on transport failure', () => {
     expect(submitAction).toHaveBeenCalledTimes(2);
     expect(submitAction).toHaveBeenNthCalledWith(1, { kind: 'target', target: 1 });
     expect(submitAction).toHaveBeenNthCalledWith(2, { kind: 'target', target: 1 });
+  });
+
+  it('returns to the action group after a pending seat submission fails', async () => {
+    let releaseSubmission: (() => void) | undefined;
+    const submission = new Promise<void>((resolve) => {
+      releaseSubmission = resolve;
+    });
+    const submitAction: SubmitActionMock = vi.fn(async () => {
+      await submission;
+      return undeliveredRoomCommand<GameState>('network', 'pending');
+    });
+    const view = await mountWerewolfRoom(
+      createWerewolfRoomMock({
+        schemaId: 'seerCheck',
+        currentActionRole: 'seer',
+        myRole: 'seer',
+        mySeat: SEER_SEAT,
+        hookOverrides: { submitAction },
+      }),
+    );
+    harness.clear();
+    await draftSeatSelection(view, 1);
+    await submitSeatSelection(view);
+    await waitFor(() => expect(submitAction).toHaveBeenCalledOnce());
+    await act(async () => {
+      if (releaseSubmission === undefined) throw new Error('[TEST] submission was not initialized');
+      releaseSubmission();
+      await submission;
+    });
+    await waitFor(() => expect(harness.getLastEvent()?.title).toBe('操作失败'));
+    await cancelSeatSelection(view);
+    expect(view.getByRole('button', { name: '返回' })).toBeVisible();
+    expect(view.getByRole('button', { name: '不用技能' })).toBeVisible();
   });
 });

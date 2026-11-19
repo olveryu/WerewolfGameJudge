@@ -16,11 +16,15 @@ import { waitFor } from '@testing-library/react';
 
 import {
   actorStep,
+  cancelSeatSelection,
+  click,
   draftSeatSelection,
   mountRoomFor as mount,
+  openNightActionGroup,
   pressText,
   recordAlerts,
   RoomScreenTestHarness,
+  startSeatSelection,
   type SubmitActionMock,
   submitSeatSelection,
   successfulWerewolfCommand,
@@ -55,6 +59,31 @@ describe('Witch Compound Sequence', () => {
   });
   afterEach(() => detachAlerts());
 
+  it('groups the choices under one pending entry and restores focus when returning', async () => {
+    const view = await mount(
+      witchWith(
+        { killedSeat: 1, canSave: true, canPoison: true },
+        vi.fn(async () => successfulWerewolfCommand()),
+      ),
+    );
+    const entry = view.getByRole('button', { name: '女巫行动' });
+    expect(entry).toHaveAccessibleDescription('有待处理操作');
+    expect(view.queryByRole('button', { name: '对2号用解药' })).not.toBeInTheDocument();
+
+    await click(entry);
+    const back = view.getByRole('button', { name: '返回' });
+    expect(back).toHaveFocus();
+    expect(view.getByRole('button', { name: '对2号用解药' })).not.toHaveAccessibleDescription(
+      '有待处理操作',
+    );
+    expect(view.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
+    await startSeatSelection(view);
+    await cancelSeatSelection(view);
+    expect(view.getByRole('button', { name: '返回' })).toHaveFocus();
+    await click(view.getByRole('button', { name: '返回' }));
+    expect(view.getByRole('button', { name: '女巫行动' })).toHaveFocus();
+  });
+
   // ===========================================================================
   // Sequence: save prompt → dismiss → draft poison target → submit
   // ===========================================================================
@@ -72,6 +101,7 @@ describe('Witch Compound Sequence', () => {
       // Step 2: dismiss the save prompt
       await harness.pressPrimaryOnType('witchSavePrompt');
 
+      await openNightActionGroup(view);
       const startId = TESTIDS.werewolfNightButton('startSeatSelection');
       expect(view.getByTestId(startId)).toBeVisible();
       harness.clear();

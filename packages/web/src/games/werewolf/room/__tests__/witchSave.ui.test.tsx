@@ -119,7 +119,7 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
       const prompt = harness.events().find((event) => event.title === WITCH_ACTION_TITLE);
       expect(prompt).toBeDefined();
       expect(prompt!.message).toContain(expectedPrompt);
-      expect(prompt!.message).toContain('先按「选择毒药目标」');
+      expect(prompt!.message).toContain('先在行动手牌中选择「选择毒药目标」');
     });
   });
 

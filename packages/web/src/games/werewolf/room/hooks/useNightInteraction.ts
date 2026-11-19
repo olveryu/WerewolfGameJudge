@@ -42,7 +42,7 @@ import {
   wolfCountdownFragment,
   wolfStatusLine,
 } from '../night/resolveNightInteraction';
-import type { NightButtonAction } from '../werewolfRoomAdapter';
+import { buildNightButtons, type NightButtonAction } from '../werewolfRoomAdapter';
 
 const NIGHT_ACTION_LABEL = '操作';
 const SKIP_CONFIRM_TITLE = '跳过本次行动？';
@@ -65,6 +65,8 @@ export interface NightInteraction {
   /** The wolf settle countdown line, visible while audio playback blocks the interaction model; null otherwise. */
   readonly nightStatusLine: string | null;
   readonly seatSelection: NightSeatSelection | null;
+  readonly isActionGroupOpen: boolean;
+  readonly restoreActionGroupFocus: boolean;
   /** Consumes an in-game seat tap; false lets the shared handler apply. */
   readonly onSeatTap: (seat: number) => boolean;
   readonly onNightButton: (action: NightButtonAction) => void;
@@ -114,6 +116,11 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     readonly seats: readonly number[];
   } | null>(null);
   if (picking !== null && picking.scope !== scopeKey) setPicking(null);
+  const [actionGroup, setActionGroup] = useState<{
+    readonly scope: string;
+    readonly open: boolean;
+  } | null>(null);
+  if (actionGroup !== null && actionGroup.scope !== scopeKey) setActionGroup(null);
 
   const model = useMemo(
     () =>
@@ -230,7 +237,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           const text =
             action === null
               ? model.prompt.text
-              : `先按「${action.label}」，再点选座位。\n\n${model.prompt.text}`;
+              : `先在行动手牌中选择「${action.label}」，再点选座位。\n\n${model.prompt.text}`;
           showDismissAlert(model.prompt.title, text);
         }
         return;
@@ -244,6 +251,18 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   // ── Seat taps ──
   const seatSelection =
     picking?.scope === scopeKey ? describeNightSeatSelection(model, picking.seats) : null;
+  const seatAction = nightSeatAction(model);
+  const hasMultipleActions =
+    buildNightButtons(model).length +
+      (seatAction !== null && seatAction.eligible.length > 0 ? 1 : 0) >
+    1;
+  const isActionGroupOpen =
+    actionGroup?.scope === scopeKey &&
+    actionGroup.open &&
+    (hasMultipleActions || seatSelection !== null);
+  if (actionGroup?.open === true && !isActionGroupOpen && model.kind !== 'blocked') {
+    setActionGroup(null);
+  }
   const blockedToastAtRef = useRef(0);
   const onSeatTap = useCallback(
     (seat: number): boolean => {
@@ -304,6 +323,13 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   const onNightButton = useCallback(
     (action: NightButtonAction): void => {
       switch (action.kind) {
+        case 'openActionGroup':
+          if (!hasMultipleActions) throw illegalButton(action, model);
+          setActionGroup({ scope: scopeKey, open: true });
+          return;
+        case 'closeActionGroup':
+          setActionGroup({ scope: scopeKey, open: false });
+          return;
         case 'startSeatSelection':
           if (nightSeatAction(model) === null) throw illegalButton(action, model);
           setPicking({ scope: scopeKey, seats: [] });
@@ -386,7 +412,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
       }
     },
-    [confirmWith, dispatch, model, scopeKey, seatSelection, stepId],
+    [confirmWith, dispatch, hasMultipleActions, model, scopeKey, seatSelection, stepId],
   );
 
   const chooseCardModal = useMemo((): NightChooseCardModal | null => {
@@ -411,6 +437,8 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           : seatSelection.message,
     nightStatusLine,
     seatSelection,
+    isActionGroupOpen,
+    restoreActionGroupFocus: actionGroup?.scope === scopeKey && !actionGroup.open,
     onSeatTap,
     onNightButton,
     chooseCardModal,

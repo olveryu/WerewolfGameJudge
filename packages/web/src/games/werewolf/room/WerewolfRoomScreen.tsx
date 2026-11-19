@@ -183,7 +183,7 @@ function WerewolfRoomContent(
                   : '本局结束'
       }
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
-      isSelecting={night.seatSelection !== null}
+      isSelecting={night.seatSelection !== null || night.isActionGroupOpen}
       mainEntries={
         isSetup
           ? [
