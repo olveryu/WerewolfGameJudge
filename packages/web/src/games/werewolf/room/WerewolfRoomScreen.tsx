@@ -19,7 +19,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
-import { gameNotepadPath } from '@/features/navigation/model/gamePaths';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
@@ -39,6 +38,7 @@ import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProf
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { werewolfNominatePath } from '@/games/werewolf/navigation/werewolfConfigFlow';
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
+import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
 import IconBulbOutline from '~icons/ion/bulb-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
@@ -103,6 +103,7 @@ function WerewolfRoomContent(
     viewModel,
     shellModel,
     roomCode,
+    roomId,
     userId,
     isHost,
     remainingSeconds,
@@ -133,6 +134,8 @@ function WerewolfRoomContent(
   };
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isNotepadOpen, setIsNotepadOpen] = useState(false);
+  const canOpenNotepad = status === GameStatus.Day || status === GameStatus.Ended;
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
   // The list is a setup-only surface: leaving setup closes it by derivation.
@@ -170,6 +173,7 @@ function WerewolfRoomContent(
         ...(matchedStrategyName === null
           ? []
           : [{ label: '攻略', onOpen: () => setStrategyBoardName(matchedStrategyName) }]),
+        ...(canOpenNotepad ? [{ label: '笔记', onOpen: () => setIsNotepadOpen(true) }] : []),
       ]}
       configurationEntry={
         useConfigurationDialog && night.seatSelection === null
@@ -197,12 +201,7 @@ function WerewolfRoomContent(
             />
           ),
         beforeSeatBoard: (
-          <RoomGameSummary
-            title="狼人杀"
-            playerCount={seatCount}
-            guide={null}
-            onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
-          >
+          <RoomGameSummary title="狼人杀" playerCount={seatCount} guide={null}>
             {!useConfigurationDialog && (
               <BoardInfoContent
                 sections={boardSections}
@@ -354,6 +353,12 @@ function WerewolfRoomContent(
             >
               <WerewolfEncyclopedia gameState={state} isHost={isHost} hasRoomContext />
             </RoomDialog>
+          )}
+          {isNotepadOpen && (
+            <WerewolfNotepad
+              activeNotepadRoom={{ roomId, userId, gameState: state }}
+              surface={{ kind: 'dialog', onClose: () => setIsNotepadOpen(false) }}
+            />
           )}
           {strategyBoardName !== null && (
             <RoomDialog

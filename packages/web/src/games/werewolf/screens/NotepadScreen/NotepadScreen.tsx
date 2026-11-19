@@ -11,11 +11,12 @@ import { useParams } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { buildNotepadSummary } from '@/games/werewolf/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/games/werewolf/components/NotepadPanel';
-import { useNotepad } from '@/games/werewolf/hooks/useNotepad';
+import { type ActiveWerewolfNotepadRoom, useNotepad } from '@/games/werewolf/hooks/useNotepad';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { requestAIChatMessage, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
@@ -43,6 +44,21 @@ export function NotepadScreen({ session }: { readonly session: WerewolfRoomSessi
           gameState: room.room.state,
         }
       : null;
+  return (
+    <WerewolfNotepad activeNotepadRoom={activeNotepadRoom} surface={{ kind: 'page', roomCode }} />
+  );
+}
+
+/** Renders the same editor and storage controller in the full page or the room dialog. */
+export function WerewolfNotepad({
+  activeNotepadRoom,
+  surface,
+}: {
+  readonly activeNotepadRoom: ActiveWerewolfNotepadRoom | null;
+  readonly surface:
+    | { readonly kind: 'page'; readonly roomCode: string }
+    | { readonly kind: 'dialog'; readonly onClose: () => void };
+}) {
   const notepad = useNotepad(activeNotepadRoom);
   const isAIChatAvailable = useAIChatAvailable();
 
@@ -76,23 +92,24 @@ export function NotepadScreen({ session }: { readonly session: WerewolfRoomSessi
     });
   };
 
-  return (
-    <div className="notepad-page">
-      <ScreenHeader title="笔记" parentPath={roomPath(roomCode)}>
-        {isAIChatAvailable && (
-          <button type="button" className="notepad-ai-button" onClick={handleAIAnalysis}>
-            <IconSparklesOutline aria-hidden />
-            AI分析
-          </button>
-        )}
-        <IconButton
-          label="清除笔记"
-          icon={<IconTrashOutline aria-hidden />}
-          className="notepad-header-button"
-          onClick={notepad.clearAll}
-        />
-      </ScreenHeader>
-
+  const actions = (
+    <>
+      {isAIChatAvailable && (
+        <button type="button" className="notepad-ai-button" onClick={handleAIAnalysis}>
+          <IconSparklesOutline aria-hidden />
+          AI分析
+        </button>
+      )}
+      <IconButton
+        label="清除笔记"
+        icon={<IconTrashOutline aria-hidden />}
+        className="notepad-header-button"
+        onClick={notepad.clearAll}
+      />
+    </>
+  );
+  const editor = (
+    <>
       <NotepadPanel
         state={notepad.state}
         playerCount={notepad.playerCount}
@@ -134,6 +151,18 @@ export function NotepadScreen({ session }: { readonly session: WerewolfRoomSessi
           </span>
         ))}
       </footer>
+    </>
+  );
+  return surface.kind === 'page' ? (
+    <div className="notepad-page">
+      <ScreenHeader title="笔记" parentPath={roomPath(surface.roomCode)}>
+        {actions}
+      </ScreenHeader>
+      {editor}
     </div>
+  ) : (
+    <RoomDialog title="笔记" onClose={surface.onClose} allowEscape footer={actions}>
+      {editor}
+    </RoomDialog>
   );
 }

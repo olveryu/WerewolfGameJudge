@@ -1,4 +1,6 @@
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { TESTIDS } from '@/testids';
 
@@ -7,9 +9,34 @@ import { actorStep, cancelSeatSelection, click, mountRoomFor, startSeatSelection
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
 describe('Werewolf room configuration', () => {
+  it.each([GameStatus.Day, GameStatus.Ended])(
+    'saves notes when the %s dialog closes',
+    async (status) => {
+      const view = await mountRoomFor({
+        ...actorStep('seerCheck', 'seer', 0),
+        gameStateOverrides: { status },
+      });
+      await click(view.getByRole('button', { name: '手册' }));
+      await click(view.getByRole('button', { name: '笔记' }));
+      const dialog = within(await view.findByRole('dialog', { name: '笔记' }));
+      const notes = dialog.getByRole('textbox', { name: '投票记录' });
+      const user = userEvent.setup();
+      await user.clear(notes);
+      await user.type(notes, '2号投给3号');
+      await click(dialog.getByRole('button', { name: '关闭详情' }));
+      await click(view.getByRole('button', { name: '笔记' }));
+      expect(
+        within(await view.findByRole('dialog', { name: '笔记' })).getByRole('textbox', {
+          name: '投票记录',
+        }),
+      ).toHaveValue('2号投给3号');
+    },
+  );
+
   it('reads the shared encyclopedia in the room and returns to the manual', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
     await click(view.getByRole('button', { name: '手册' }));
+    expect(view.queryByRole('button', { name: '笔记' })).not.toBeInTheDocument();
     await click(view.getByTestId(TESTIDS.roomEncyclopediaButton));
     const dialog = within(await view.findByRole('dialog', { name: '狼人杀玩法' }));
     expect(dialog.getByText('胜负目标')).toBeVisible();
