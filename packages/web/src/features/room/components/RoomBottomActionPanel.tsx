@@ -109,12 +109,14 @@ function RoomBottomActionPanelComponent({
   isAudioPlaying,
   hostManagement,
   onOpenMoreActions,
+  configurationEntry = null,
 }: {
   readonly model: RoomBottomActionModel;
   readonly summary: ReactNode;
   readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenMoreActions: () => void;
+  readonly configurationEntry?: { readonly onOpen: () => void } | null;
 }) {
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
   const { focusAction, additionalActions, hasMultiplePrimaryChoices } =
@@ -131,6 +133,7 @@ function RoomBottomActionPanelComponent({
   if (
     !hasSummary &&
     statusMessage === null &&
+    configurationEntry === null &&
     isRoomBottomActionModelEmpty(model) &&
     !hasMoreActions
   ) {
@@ -157,12 +160,22 @@ function RoomBottomActionPanelComponent({
       )}
       <div
         className="bottom-action-control-row"
-        data-has-focus={focusAction === null ? 'false' : 'true'}
+        data-has-focus={focusAction !== null || configurationEntry !== null}
       >
         {focusAction !== null && (
           <div className="bottom-action-focus">
             <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
           </div>
+        )}
+        {configurationEntry !== null && (
+          <Button
+            variant="secondary"
+            className="bottom-action-focus"
+            onClick={configurationEntry.onOpen}
+            aria-haspopup="dialog"
+          >
+            本局配置
+          </Button>
         )}
         {hasMoreActions && (
           <Button

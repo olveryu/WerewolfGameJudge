@@ -259,6 +259,9 @@ private results stay behind explicitly authorized actions and overlays.
   the host task and management sections. Hosting is an additional capability, not a
   replacement for the user's player or spectator actions. `stage` content is the one
   exception: its status lives in the information bar and its actions in the game's dock.
+- A seat room may supply a public configuration entry in the bottom row. This opens a read-only
+  dialog and is not a player or host command. The game controls its availability; Werewolf
+  keeps the inline board before gameplay and leaves the selection controls alone during seat selection.
 - Waiting and narration are status messages, never inert primary buttons. A dock may have
   no primary action. Real unavailable commands retain their disabled state and reason.
 - Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
