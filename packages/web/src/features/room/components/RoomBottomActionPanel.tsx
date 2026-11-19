@@ -30,6 +30,7 @@ import {
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import IconBookOutline from '~icons/ion/book-outline';
+import IconNotificationsOutline from '~icons/ion/notifications-outline';
 
 import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
 import { DisabledReasonCaption } from './RoomControls';
@@ -301,9 +302,14 @@ function RoomBottomActionPanelComponent({
                   .join(' ')}
                 onClick={onOpenMoreActions}
                 aria-haspopup={showPlayerHand ? undefined : 'dialog'}
+                aria-label={
+                  showPlayerHand && hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined
+                }
               >
                 <span className="bottom-action-more-title">{moreActionsLabel}</span>
-                {hasReadyTask && <span className="bottom-action-more-hint">待办</span>}
+                {hasReadyTask && (
+                  <IconNotificationsOutline className="bottom-action-pending" aria-hidden />
+                )}
                 {!showPlayerHand && taskLabel !== null && (
                   <span className="bottom-action-more-hint">当前待办 · {taskLabel}</span>
                 )}
