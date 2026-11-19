@@ -36,7 +36,6 @@ import {
   handleBoardNominate,
   handleBoardUpvote,
   handleBoardWithdraw,
-  handleRedealGame,
   handleReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight,
@@ -96,9 +95,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'room.seat.fillBots':
     case 'room.profile.update':
     case 'werewolf.roles.assign':
-    case 'werewolf.game.abort':
-    case 'werewolf.game.returnToLobby':
-    case 'werewolf.game.redeal':
+    case 'werewolf.game.restart':
     case 'werewolf.mvp.select':
     case 'werewolf.bots.markAllBotsViewed':
     case 'werewolf.config.update':
@@ -204,30 +201,25 @@ function decideWerewolfCommandRules(
         context,
       );
     }
-    case 'werewolf.game.abort': {
+    case 'werewolf.game.restart': {
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
+      if (
+        state.status === GameStatus.Unseated ||
+        state.status === GameStatus.Seated ||
+        state.gameSequence !== command.gameSequence ||
+        (state.status === GameStatus.Ended) !== command.wasEnded
+      )
+        return reject('invalid_status');
       return decideHandler(
         state,
-        handleAbortGame({ type: 'ABORT_GAME' }, actor.value.handlerContext, context),
-        context,
-      );
-    }
-    case 'werewolf.game.returnToLobby': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleReturnToLobbyGame({ type: 'RETURN_TO_LOBBY' }, actor.value.handlerContext, context),
-        context,
-      );
-    }
-    case 'werewolf.game.redeal': {
-      const actor = resolveHostActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(
-        state,
-        handleRedealGame({ type: 'REDEAL_GAME' }, actor.value.handlerContext, context),
+        command.wasEnded
+          ? handleReturnToLobbyGame(
+              { type: 'RETURN_TO_LOBBY' },
+              actor.value.handlerContext,
+              context,
+            )
+          : handleAbortGame({ type: 'ABORT_GAME' }, actor.value.handlerContext, context),
         context,
       );
     }

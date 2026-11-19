@@ -193,16 +193,13 @@ describe('createWerewolfHostManagement', () => {
       label: '本局 MVP：3号',
       isEnabled: false,
     });
-    expect(actions.find((action) => action.key === 'next-round')).toMatchObject({
-      isEnabled: true,
-    });
-    expect(actions.find((action) => action.key === 'return-lobby')).toMatchObject({
+    expect(actions.find((action) => action.key === 'restart')).toMatchObject({
       isEnabled: true,
     });
     expect(onSelectMvp).not.toHaveBeenCalled();
   });
 
-  it('routes the ended double-key through the host-control channel by flow', () => {
+  it('routes the ended restart through the host-control channel', () => {
     const onHostControl = vi.fn();
     const model = createWerewolfHostManagement(
       createInput({
@@ -212,15 +209,10 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
     const actions = model.sections.flatMap((section) => section.actions);
-    const nextRound = actions.find((action) => action.key === 'next-round');
-    const returnLobby = actions.find((action) => action.key === 'return-lobby');
-    if (nextRound?.isEnabled !== true || returnLobby?.isEnabled !== true) {
-      throw new Error('Expected both terminal actions enabled');
-    }
-    nextRound.onPress();
-    expect(onHostControl).toHaveBeenCalledWith('redeal');
-    returnLobby.onPress();
-    expect(onHostControl).toHaveBeenCalledWith('returnToLobby');
+    const restart = actions.find((action) => action.key === 'restart');
+    if (restart?.isEnabled !== true) throw new Error('Expected restart enabled');
+    restart.onPress();
+    expect(onHostControl).toHaveBeenCalledWith('restart');
   });
 
   it('places role assignment and room setup actions in named sections', () => {
@@ -270,7 +262,7 @@ describe('createWerewolfHostManagement', () => {
       '本局复盘',
       '授权玩家查看',
       '昨夜信息',
-      '中止本局',
+      '重新开始',
     ]);
     expect(model.task).toMatchObject({
       kind: 'choice',
@@ -488,7 +480,7 @@ describe('createWerewolfHostManagement', () => {
     );
 
     expect(actionLabels(model)).not.toContain('开始游戏');
-    expect(actionLabels(model)).toContain('中止本局');
+    expect(actionLabels(model)).toContain('重新开始');
   });
 
   // Audio playback lock: while narration plays, flow actions are disabled
@@ -510,7 +502,7 @@ describe('createWerewolfHostManagement', () => {
       );
       const abortAction = model?.sections
         .flatMap((section) => section.actions)
-        .find((action) => action.label === '中止本局');
+        .find((action) => action.label === '重新开始');
       expect(abortAction).toMatchObject({
         isEnabled: false,
         disabledReason: '语音播报中，请稍候',
@@ -529,7 +521,7 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
     const actions = model.sections.flatMap((section) => section.actions);
-    for (const key of ['select-mvp', 'next-round', 'return-lobby']) {
+    for (const key of ['select-mvp', 'restart']) {
       const action = actions.find((entry) => entry.key === key);
       expect(action).toMatchObject({ isEnabled: false, disabledReason: '语音播报中，请稍候' });
       expect(action).not.toHaveProperty('onPress');
@@ -644,8 +636,7 @@ describe('createWerewolfHostManagement', () => {
     expect(model?.sections.map((section) => section.title)).toEqual(['当前流程', '赛后管理']);
     expect(actionLabels(model)).toEqual([
       '评选 MVP',
-      '再来一局',
-      '返回大厅',
+      '重新开始',
       '本局复盘',
       '授权玩家查看',
       '昨夜信息',
@@ -673,7 +664,7 @@ describe('createWerewolfHostManagement', () => {
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['grant-review', 'review', 'next-round', 'return-lobby'],
+      actionKeys: ['grant-review', 'review', 'restart'],
       steps: [
         { key: 'lastNightInfo', state: 'complete' },
         { key: 'grantReview', state: 'current' },
@@ -702,7 +693,7 @@ describe('createWerewolfHostManagement', () => {
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['grant-review', 'review', 'next-round', 'return-lobby'],
+      actionKeys: ['grant-review', 'review', 'restart'],
       steps: [
         { key: 'lastNightInfo', state: 'complete' },
         { key: 'grantReview', state: 'complete' },
@@ -716,8 +707,7 @@ describe('createWerewolfHostManagement', () => {
     expect(view.body.actions.map((action) => action.key)).toEqual([
       'grant-review',
       'review',
-      'next-round',
-      'return-lobby',
+      'restart',
     ]);
     for (const action of view.body.actions) {
       expect(action.isEnabled).toBe(true);
@@ -726,7 +716,7 @@ describe('createWerewolfHostManagement', () => {
     expect(view.steps?.find((step) => step.key === 'grantReview')).toHaveProperty('onPress');
   });
 
-  it('locks all four post-game moves during audio playback', () => {
+  it('locks all post-game moves during audio playback', () => {
     const model = createWerewolfHostManagement(
       createInput({
         roomStatus: GameStatus.Ended,
@@ -738,7 +728,7 @@ describe('createWerewolfHostManagement', () => {
     );
     const view = resolveHostTaskView(model);
     if (view?.body.kind !== 'choice') throw new Error('Expected a choice closing task');
-    expect(view.body.actions).toHaveLength(4);
+    expect(view.body.actions).toHaveLength(3);
     for (const action of view.body.actions) {
       expect(action).toMatchObject({
         isEnabled: false,

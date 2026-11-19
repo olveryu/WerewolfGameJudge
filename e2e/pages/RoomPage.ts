@@ -358,14 +358,13 @@ export class RoomPage {
     }
   }
 
-  /** Click "返回大厅" (terminal return-to-lobby) and pass the share-report ritual. */
+  /** Confirm restart and wait for the role-assignment action. */
   async returnToLobby() {
-    await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
-    // Three buttons render as [分享战报, 返回大厅, 取消].
+    await this.clickHostManagementAction(TESTIDS.restartButton);
     await pressAlertButton(this.page, {
-      title: '返回大厅',
+      title: '重新开始？',
       buttonIndex: 1,
-      buttonLabel: '返回大厅',
+      buttonLabel: '重新开始',
     });
     // Wait for restart broadcast — the host task returns to role assignment.
     await this.expectHostManagementAction(TESTIDS.assignRolesButton, '分配角色');

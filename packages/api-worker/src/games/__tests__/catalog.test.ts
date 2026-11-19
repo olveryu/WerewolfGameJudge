@@ -47,9 +47,7 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     profile: { displayName: '新名字' },
   },
   'werewolf.roles.assign': { type: 'werewolf.roles.assign' },
-  'werewolf.game.returnToLobby': { type: 'werewolf.game.returnToLobby' },
-  'werewolf.game.abort': { type: 'werewolf.game.abort' },
-  'werewolf.game.redeal': { type: 'werewolf.game.redeal' },
+  'werewolf.game.restart': { type: 'werewolf.game.restart', gameSequence: 0, wasEnded: false },
   'werewolf.mvp.select': {
     type: 'werewolf.mvp.select',
     selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },
@@ -281,6 +279,16 @@ describe('Worker game catalog', () => {
   });
 
   it('rejects unknown command fields and malformed Werewolf role IDs', () => {
+    for (const command of [
+      { type: 'werewolf.game.abort' },
+      { type: 'werewolf.game.returnToLobby' },
+      { type: 'werewolf.game.redeal' },
+      { type: 'werewolf.game.restart', gameSequence: -1, wasEnded: false },
+      { type: 'werewolf.game.restart', gameSequence: 1 },
+      { type: 'werewolf.game.restart', gameSequence: 1, wasEnded: 'false' },
+      { type: 'werewolf.game.restart', gameSequence: 1, wasEnded: false, extra: true },
+    ])
+      expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
     expect(() =>
       werewolfPublicCommandSchema.parse({
         type: 'werewolf.board.withdraw',

@@ -84,7 +84,7 @@ const LAST_ACTION_TOASTS = {
     text: '角色已分配，点击下方「查看身份」查看你的身份',
   },
   'werewolf.game.begin': { level: 'info', text: '夜幕降临，请等待指示' },
-  'werewolf.game.redeal': { level: 'info', text: '房主已重新开始游戏' },
+  'werewolf.game.restart': { level: 'info', text: '房主已重新开始游戏' },
 } as const;
 
 interface WerewolfRoleCard {
@@ -329,7 +329,6 @@ export function useWerewolfRoomState(
     state,
     submit,
     audio,
-    shareReview: review.shareAll,
   });
 
   // ── Board nominations (lobby) ──

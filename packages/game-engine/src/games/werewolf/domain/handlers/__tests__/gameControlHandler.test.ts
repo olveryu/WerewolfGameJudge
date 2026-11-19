@@ -5,7 +5,6 @@
 import {
   handleAbortGame as executeAbortGame,
   handleAssignRoles as executeAssignRoles,
-  handleRedealGame as executeRedealGame,
   handleReturnToLobbyGame as executeReturnToLobbyGame,
   handleShareNightReview,
   handleStartNight as executeStartNight,
@@ -14,7 +13,6 @@ import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/doma
 import type {
   AbortGameIntent,
   AssignRolesIntent,
-  RedealGameIntent,
   ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
@@ -96,10 +94,6 @@ function handleAbortGame(intent: AbortGameIntent, context: HandlerContext) {
 
 function handleReturnToLobbyGame(intent: ReturnToLobbyIntent, context: HandlerContext) {
   return executeReturnToLobbyGame(intent, context, TEST_HANDLER_EXECUTION);
-}
-
-function handleRedealGame(intent: RedealGameIntent, context: HandlerContext) {
-  return executeRedealGame(intent, context, TEST_HANDLER_EXECUTION);
 }
 
 // =============================================================================
@@ -618,30 +612,6 @@ describe('handleAbortGame / handleReturnToLobbyGame', () => {
     const intent: ReturnToLobbyIntent = { type: 'RETURN_TO_LOBBY' };
 
     const result = handleReturnToLobbyGame(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('invalid_status');
-  });
-});
-
-describe('handleRedealGame', () => {
-  it('redeal should fail while narration audio is playing', () => {
-    const state = createMinimalState({ status: GameStatus.Ended, isAudioPlaying: true });
-    const context = createContext(state);
-    const intent: RedealGameIntent = { type: 'REDEAL_GAME' };
-
-    const result = handleRedealGame(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('forbidden_while_audio_playing');
-  });
-
-  it('redeal status gate still wins over the audio gate while a game is in progress', () => {
-    const state = createMinimalState({ status: GameStatus.Ongoing, isAudioPlaying: true });
-    const context = createContext(state);
-    const intent: RedealGameIntent = { type: 'REDEAL_GAME' };
-
-    const result = handleRedealGame(intent, context);
 
     const err = expectError(result);
     expect(err.reason).toBe('invalid_status');

@@ -2,7 +2,7 @@
  * Game Control Handler - game control processor (Host-only)
  *
  * Responsibilities:
- * - Handle ASSIGN_ROLES / START_NIGHT / ABORT_GAME / RETURN_TO_LOBBY / REDEAL_GAME intents
+ * - Handle ASSIGN_ROLES / START_NIGHT / ABORT_GAME / RETURN_TO_LOBBY intents
  *   (the config update is decided by the room-command skeleton in domain/seating)
  * - Role assignment logic (shuffle + write to state)
  * - NightPlan construction (generate step plan from template)
@@ -21,7 +21,6 @@ import type {
   BoardNominateIntent,
   BoardUpvoteIntent,
   BoardWithdrawIntent,
-  RedealGameIntent,
   ReturnToLobbyIntent,
   ShareNightReviewIntent,
   StartNightIntent,
@@ -79,14 +78,6 @@ export function handleAssignRoles(
   return decideRoleDeal(context.state, execution);
 }
 
-/**
- * The one role-deal computation, shared by ASSIGN_ROLES and REDEAL_GAME.
- *
- * Every input (templateRoles, rules, the seat map) is preserved verbatim
- * by the RESTART_GAME transition, so dealing from the pre-restart state
- * yields exactly the deal the post-restart state would produce — that is
- * what lets REDEAL_GAME decide both steps against one state snapshot.
- */
 function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): HandlerResult {
   const rng = createSeededRng(`${execution.randomSeed}:roles`);
 
@@ -395,45 +386,6 @@ export function handleReturnToLobbyGame(
   }
 
   return decideRestartGame(execution);
-}
-
-/**
- * Handle redeal (Ended only): restart + a fresh role deal as one atomic
- * command — the host's "one more game" step. Emits RESTART_GAME followed
- * by the ASSIGN_ROLES action from the shared deal computation; evolve
- * applies both in order, so no half-restarted state is ever observable
- * (the client must not chain restart + assign commands to fake this).
- */
-export function handleRedealGame(
-  _intent: RedealGameIntent,
-  context: HandlerContext,
-  execution: HandlerExecutionContext,
-): HandlerResult {
-  const { state } = context;
-
-  // Gate: only a finished game can be redealt.
-  if (state.status !== GameStatus.Ended) {
-    return handlerError('invalid_status');
-  }
-
-  // Gate: terminal flow waits until narration playback finishes
-  // (platform audio gate, same reason as the night gates).
-  const audioReason = guardAudioPlayback(state, 'forbidden_while_audio_playing');
-  if (audioReason !== null) {
-    return handlerError(audioReason);
-  }
-
-  const deal = decideRoleDeal(state, execution);
-  if (deal.kind !== 'success') {
-    return deal;
-  }
-
-  const restartAction: RestartGameAction = {
-    type: 'RESTART_GAME',
-    nonce: execution.randomSeed,
-  };
-
-  return handlerSuccess([restartAction, ...deal.actions]);
 }
 
 /**

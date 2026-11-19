@@ -40,7 +40,7 @@ test.describe('Resilience — Restart & Settings', () => {
       // announcement.
       await waitForHostAudioAck(hostCommands);
 
-      // Return to the lobby (terminal flow), then set the game up again
+      // Confirm restart, then set the game up again.
       await room.returnToLobby();
       await room.screenshot(testInfo, 'restart-02-after-restart.png');
 

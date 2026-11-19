@@ -53,9 +53,11 @@ export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
 const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()([
   ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
-  z.strictObject({ type: z.literal('werewolf.game.abort') }),
-  z.strictObject({ type: z.literal('werewolf.game.returnToLobby') }),
-  z.strictObject({ type: z.literal('werewolf.game.redeal') }),
+  z.strictObject({
+    type: z.literal('werewolf.game.restart'),
+    gameSequence: z.number().int().nonnegative(),
+    wasEnded: z.boolean(),
+  }),
   z.strictObject({
     type: z.literal('werewolf.mvp.select'),
     selection: z.strictObject({

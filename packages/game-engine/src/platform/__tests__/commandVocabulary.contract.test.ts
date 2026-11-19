@@ -51,9 +51,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
   werewolf: [
     'werewolf.roles.assign',
     'werewolf.game.begin',
-    'werewolf.game.redeal',
-    'werewolf.game.returnToLobby',
-    'werewolf.game.abort',
+    'werewolf.game.restart',
     'werewolf.role.viewed',
   ],
   avalon: [
