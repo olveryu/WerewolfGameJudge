@@ -10,11 +10,7 @@ import {
 import { type ReactNode, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
-import {
-  gameConfigEditPath,
-  gameGuidePath,
-  settingsPath,
-} from '@/features/navigation/model/gamePaths';
+import { gameConfigEditPath, settingsPath } from '@/features/navigation/model/gamePaths';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
@@ -68,7 +64,6 @@ export interface UndercoverRoomScreenState {
   readonly revealPool: readonly RevealRoleData[];
   /** 身份构成计数（引擎口径：卧底人数随总人数变化），供 BoardInfo 展示。 */
   readonly roleCounts: UndercoverRoleCounts;
-  readonly openRules: () => void;
   /** The shared review's dialog, export stage and share progress, for the game overlays. */
   readonly reviewOverlay: ReactNode;
 }
@@ -208,7 +203,6 @@ export function useUndercoverRoomState({
     equippedRevealEffect: resolveEquippedRevealEffect(user.equippedEffect, room.roomCode, user.id),
     revealPool,
     roleCounts,
-    openRules: () => void navigate(gameGuidePath('undercover', room.roomCode)),
     reviewOverlay: review.overlay,
   };
 }

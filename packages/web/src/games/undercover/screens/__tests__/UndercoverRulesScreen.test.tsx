@@ -12,9 +12,21 @@ import {
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 
-import { UndercoverRulesScreen } from '../UndercoverRulesScreen';
+import { TESTIDS } from '@/testids';
+
+import { UndercoverRules, UndercoverRulesScreen } from '../UndercoverRulesScreen';
 
 describe('UndercoverRulesScreen', () => {
+  it('can show the same rules without the route header inside the room', () => {
+    render(
+      <MemoryRouter>
+        <UndercoverRules embedded />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: '获胜条件' })).toBeVisible();
+    expect(screen.queryByTestId(TESTIDS.gameGuideBackButton)).not.toBeInTheDocument();
+  });
+
   it('renders the tier table and blank rules from the engine rules', () => {
     render(
       <MemoryRouter>

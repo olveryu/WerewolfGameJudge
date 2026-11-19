@@ -103,16 +103,7 @@ export function RoomGameSummary({
           {!isCollapsed && hasContent && (
             <div className="room-game-summary-content">
               {children}
-              {settings.length > 0 && (
-                <dl className="room-game-summary-settings">
-                  {settings.map(({ label, value }) => (
-                    <div className="room-game-summary-setting" key={label}>
-                      <dt>{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
+              <RoomGameSettings settings={settings} />
             </div>
           )}
         </div>
@@ -123,6 +114,25 @@ export function RoomGameSummary({
         </p>
       )}
     </>
+  );
+}
+
+/** Displays public settings in either the lobby summary or the configuration dialog. */
+export function RoomGameSettings({
+  settings,
+}: {
+  readonly settings: readonly { readonly label: string; readonly value: string }[];
+}) {
+  if (settings.length === 0) return null;
+  return (
+    <dl className="room-game-summary-settings">
+      {settings.map(({ label, value }) => (
+        <div className="room-game-summary-setting" key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

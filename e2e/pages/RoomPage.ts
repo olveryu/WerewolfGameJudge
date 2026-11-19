@@ -176,7 +176,7 @@ export class RoomPage {
   /** Close the shared actions surface. */
   async closeHostManagement(): Promise<void> {
     const close = this.page.getByTestId(TESTIDS.roomHostManagementCloseButton);
-    await expect(close).toHaveAccessibleName(/^关闭(更多操作|主持管理)$/);
+    await expect(close).toHaveAccessibleName(/^(关闭(更多操作|主持管理)|返回)$/);
     await close.click();
     await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }

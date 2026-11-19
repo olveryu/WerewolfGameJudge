@@ -238,6 +238,12 @@ The optional `status` text renders after the card, including Pictionary's live
 occupied-seat count. A card without settings or role content keeps its title and
 guide but has no empty disclosure control.
 
+For seat rooms using action hands, the lobby summary can omit its guide button:
+the manual hand opens the same guide body in `RoomDialog` without page navigation.
+After dealing, rooms can move the public board into `本局配置`, reusing
+`BoardInfoContent` and `RoomGameSettings`. Keep live status outside that dialog
+and yield the hand during temporary seat selection.
+
 Use the shared `RoomStatusSummary` in `contextHeader` for compact stage
 status and detail entry. Werewolf's sheriff HUD, Avalon and Secret Hitler
 all use this component; games supply content and decide when it appears.

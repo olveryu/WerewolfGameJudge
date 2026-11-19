@@ -20,14 +20,26 @@ export function GameGuide({
   intro,
   children,
   testId,
+  embedded = false,
 }: {
   readonly title: string;
   readonly heading: string;
   readonly intro: string;
   readonly children: ReactNode;
   readonly testId?: string;
+  readonly embedded?: boolean;
 }) {
   const { roomCode } = useParams();
+  const content = (
+    <>
+      <h2 className="game-guide-heading" data-testid={TESTIDS.gameGuideHeading}>
+        {heading}
+      </h2>
+      <p className="game-guide-intro">{intro}</p>
+      {children}
+    </>
+  );
+  if (embedded) return <div className="game-guide">{content}</div>;
   return (
     <div className="game-guide-page" data-testid={testId}>
       <ScreenHeader
@@ -35,13 +47,7 @@ export function GameGuide({
         parentPath={roomCode === undefined ? '/' : `/room/${parseRoomCode(roomCode)}`}
         backTestId={TESTIDS.gameGuideBackButton}
       />
-      <main className="game-guide">
-        <h2 className="game-guide-heading" data-testid={TESTIDS.gameGuideHeading}>
-          {heading}
-        </h2>
-        <p className="game-guide-intro">{intro}</p>
-        {children}
-      </main>
+      <main className="game-guide">{content}</main>
     </div>
   );
 }
