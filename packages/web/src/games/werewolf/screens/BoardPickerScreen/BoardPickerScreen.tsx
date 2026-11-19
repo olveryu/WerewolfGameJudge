@@ -45,9 +45,9 @@ const CATEGORY_TABS: readonly TemplateCategory[] = [
 
 interface BoardPickerScreenProps {
   /** Where Back goes when the picker is the first page of a directly opened flow. */
-  readonly exitPath: string;
+  readonly exitPath: string | null;
   readonly onSelect: (presetName: string) => void;
-  readonly onCustom: () => void;
+  readonly onCustom: (() => void) | null;
 }
 
 /** Board picker screen. */
@@ -58,30 +58,42 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
   const filterCount = state.selectedRoleIds.size;
 
-  return (
-    <div className="board-picker-page" data-testid={TESTIDS.boardPickerScreenRoot}>
-      <ScreenHeader title="选择板子" parentPath={exitPath}>
-        <span className="board-picker-filter-button">
-          <IconButton
-            label="筛选角色"
-            icon={
-              state.filterVisible ? <IconFunnel aria-hidden /> : <IconFunnelOutline aria-hidden />
-            }
-            data-active={filterCount > 0}
-            onClick={state.toggleFilter}
-          />
-          {filterCount > 0 && (
-            <span className="board-picker-filter-badge" aria-hidden>
-              {filterCount}
-            </span>
-          )}
-        </span>
+  const actions = (
+    <>
+      <span className="board-picker-filter-button">
         <IconButton
-          label="搜索"
-          icon={state.searchVisible ? <IconClose aria-hidden /> : <IconSearch aria-hidden />}
-          onClick={state.toggleSearch}
+          label="筛选角色"
+          icon={
+            state.filterVisible ? <IconFunnel aria-hidden /> : <IconFunnelOutline aria-hidden />
+          }
+          data-active={filterCount > 0}
+          onClick={state.toggleFilter}
         />
-      </ScreenHeader>
+        {filterCount > 0 && (
+          <span className="board-picker-filter-badge" aria-hidden>
+            {filterCount}
+          </span>
+        )}
+      </span>
+      <IconButton
+        label="搜索"
+        icon={state.searchVisible ? <IconClose aria-hidden /> : <IconSearch aria-hidden />}
+        onClick={state.toggleSearch}
+      />
+    </>
+  );
+  return (
+    <div
+      className={exitPath === null ? undefined : 'board-picker-page'}
+      data-testid={TESTIDS.boardPickerScreenRoot}
+    >
+      {exitPath === null ? (
+        <div className="encyclopedia-header-actions">{actions}</div>
+      ) : (
+        <ScreenHeader title="选择板子" parentPath={exitPath}>
+          {actions}
+        </ScreenHeader>
+      )}
 
       {state.searchVisible ? (
         <label className="board-picker-search">
@@ -148,12 +160,14 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
         )}
       </main>
 
-      <footer className="board-picker-bottom">
-        <button type="button" className="board-picker-custom" onClick={onCustom}>
-          <IconCreateOutline aria-hidden />
-          从零开始自定义配置
-        </button>
-      </footer>
+      {onCustom !== null && (
+        <footer className="board-picker-bottom">
+          <button type="button" className="board-picker-custom" onClick={onCustom}>
+            <IconCreateOutline aria-hidden />
+            从零开始自定义配置
+          </button>
+        </footer>
+      )}
 
       <CenterDialog open={state.filterVisible} onClose={state.toggleFilter} title="筛选角色">
         <div className="board-picker-filter-groups">

@@ -136,6 +136,7 @@ interface UseConfigScreenStateParams {
   readonly onPickBoard: () => void;
   readonly onContinue: (rulesParams: WerewolfRulesParams) => void;
   readonly onReturnToRoom: (roomCode: string) => void;
+  readonly keepNominationOpen?: boolean;
 }
 
 export function useConfigScreenState({
@@ -144,6 +145,7 @@ export function useConfigScreenState({
   onPickBoard,
   onContinue,
   onReturnToRoom,
+  keepNominationOpen = false,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
   const room = useRoomLinkSnapshot(session);
@@ -154,6 +156,9 @@ export function useConfigScreenState({
   // change while this screen stays mounted (a board picked, rules edited on the Rules step) are
   // applied during render by comparing against the last applied value.
   const [draft, setDraft] = useState(() => readInitialBoardDraft(params, session));
+  const [initialRolesKey] = useState(() =>
+    JSON.stringify([...selectionToRoles(draft.selection, draft.variantOverrides)].sort()),
+  );
   const { selection, variantOverrides, selectedTemplate } = draft;
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [rules, setRules] = useState<GameRuleOverrides>(() => readInitialRules(params, session));
@@ -171,14 +176,15 @@ export function useConfigScreenState({
   }
 
   const totalCount = computeTotalCount(selection, variantOverrides);
+  const canNominate =
+    gameState !== null &&
+    (gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated);
 
   // ── Return to the room when the game progresses past the nomination phase ──
   useEffect(() => {
-    if (nominateMode === undefined || gameState === null) return;
-    const canNominate =
-      gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
+    if (keepNominationOpen || nominateMode === undefined || gameState === null) return;
     if (!canNominate) onReturnToRoom(nominateMode.roomCode);
-  }, [gameState, nominateMode, onReturnToRoom]);
+  }, [canNominate, gameState, keepNominationOpen, nominateMode, onReturnToRoom]);
 
   const toggleRole = (key: string) => {
     setDraft((prev) => ({
@@ -231,6 +237,7 @@ export function useConfigScreenState({
 
   /** Nominate mode submits the board directly; otherwise the Rules step owns create/save. */
   const handleContinue = () => {
+    if (nominateMode !== undefined && (!canNominate || isWorkflowSubmitting)) return;
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
       showErrorAlert('配置有误', '请至少选择一个角色');
@@ -303,6 +310,10 @@ export function useConfigScreenState({
 
   return {
     isNominateMode: nominateMode !== undefined,
+    canNominate,
+    isDirty:
+      initialRolesKey !== JSON.stringify([...selectionToRoles(selection, variantOverrides)].sort()),
+    selectPreset: (name: string) => setDraft(restoreFromPreset(name)),
     isSubmitting: isWorkflowSubmitting,
     selection,
     totalCount,

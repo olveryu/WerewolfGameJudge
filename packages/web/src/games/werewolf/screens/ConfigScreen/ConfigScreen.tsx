@@ -12,16 +12,19 @@ import './ConfigScreen.css';
 
 import { Tabs } from '@ark-ui/react/tabs';
 import { type Faction, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigParams, WerewolfRulesParams } from '@/games/werewolf/navigation/types';
+import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
+import { showConfirmAlert } from '@/utils/alertPresets';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
@@ -51,6 +54,7 @@ interface ConfigScreenProps {
   readonly onPickBoard: () => void;
   readonly onContinue: (rulesParams: WerewolfRulesParams) => void;
   readonly onReturnToRoom: (roomCode: string) => void;
+  readonly nominationDialog?: { readonly title: string; readonly onClose: () => void };
 }
 
 /** Role configuration screen; the Rules step that follows owns create/save. */
@@ -61,40 +65,46 @@ export function ConfigScreen({
   onPickBoard,
   onContinue,
   onReturnToRoom,
+  nominationDialog,
 }: ConfigScreenProps) {
-  const state = useConfigScreenState({ params, session, onPickBoard, onContinue, onReturnToRoom });
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const state = useConfigScreenState({
+    params,
+    session,
+    onPickBoard: nominationDialog === undefined ? onPickBoard : () => setIsPickerOpen(true),
+    onContinue,
+    onReturnToRoom,
+    keepNominationOpen: nominationDialog !== undefined,
+  });
   const { activeGroup } = state;
   const isAIChatAvailable = useAIChatAvailable();
 
-  return (
-    <div className="game-config-page" data-testid={TESTIDS.configScreenRoot}>
-      <ScreenHeader
-        parentPath={exitPath}
-        backTestId={TESTIDS.configBackButton}
-        title={
-          <span className="config-header-center">
-            <button
-              type="button"
-              className="config-template-pill"
-              onClick={state.handleTemplatePillPress}
-              data-testid={TESTIDS.configTemplatePill}
-              aria-label={`选择板子：${state.selectedTemplateLabel}`}
-            >
-              {state.selectedTemplateLabel}
-              <IconChevronDown aria-hidden />
-            </button>
-            <span className="config-player-count">{state.totalCount}人</span>
-          </span>
-        }
+  const templateControl = (
+    <span className="config-header-center">
+      <button
+        type="button"
+        className="config-template-pill"
+        onClick={state.handleTemplatePillPress}
+        data-testid={TESTIDS.configTemplatePill}
+        aria-label={`选择板子：${state.selectedTemplateLabel}`}
       >
-        <IconButton
-          label="重置配置"
-          icon={<IconTrashOutline aria-hidden />}
-          onClick={state.handleClearSelection}
-          data-testid={TESTIDS.configOverflowReset}
-        />
-      </ScreenHeader>
+        {state.selectedTemplateLabel}
+        <IconChevronDown aria-hidden />
+      </button>
+      <span className="config-player-count">{state.totalCount}人</span>
+    </span>
+  );
+  const reset = (
+    <IconButton
+      label="重置配置"
+      icon={<IconTrashOutline aria-hidden />}
+      onClick={state.handleClearSelection}
+      data-testid={TESTIDS.configOverflowReset}
+    />
+  );
 
+  const fields = (
+    <>
       <Tabs.Root
         className="config-tabs-root"
         value={state.activeTab}
@@ -145,19 +155,6 @@ export function ConfigScreen({
         </Tabs.Content>
       </Tabs.Root>
 
-      <footer className="game-config-footer">
-        <p className="game-settings-summary">已选 {state.totalCount} 人</p>
-        <Button
-          size="lg"
-          className="game-config-submit"
-          onClick={state.handleContinue}
-          loading={state.isSubmitting}
-          data-testid={TESTIDS.configNextButton}
-        >
-          {state.isNominateMode ? '提交建议' : '下一步：规则'}
-        </Button>
-      </footer>
-
       <RoleCardSimple
         visible={state.roleInfoId !== null}
         roleId={state.roleInfoId}
@@ -174,6 +171,73 @@ export function ConfigScreen({
             : undefined
         }
       />
+    </>
+  );
+  const submit = (
+    <>
+      {nominationDialog !== undefined && !state.canNominate && (
+        <p role="status">本局建议已结束，不能提交。</p>
+      )}
+      <p className="game-settings-summary">已选 {state.totalCount} 人</p>
+      <Button
+        size="lg"
+        className="game-config-submit"
+        onClick={state.handleContinue}
+        loading={state.isSubmitting}
+        disabled={state.isNominateMode && !state.canNominate}
+        data-testid={TESTIDS.configNextButton}
+      >
+        {state.isNominateMode ? '提交建议' : '下一步：规则'}
+      </Button>
+    </>
+  );
+  if (nominationDialog !== undefined) {
+    const requestClose = () => {
+      if (state.isSubmitting) return;
+      if (state.isDirty) {
+        showConfirmAlert('放弃修改？', '还没有提交此次修改。', nominationDialog.onClose);
+      } else {
+        nominationDialog.onClose();
+      }
+    };
+    return (
+      <RoomDialog title={nominationDialog.title} onClose={requestClose} allowEscape footer={submit}>
+        <div className="config-dialog-tools">
+          {templateControl}
+          {reset}
+        </div>
+        {fields}
+        {isPickerOpen && (
+          <RoomDialog
+            title="选择板子"
+            onClose={() => setIsPickerOpen(false)}
+            allowEscape
+            footer={null}
+          >
+            <BoardPickerScreen
+              exitPath={null}
+              onCustom={null}
+              onSelect={(name) => {
+                state.selectPreset(name);
+                setIsPickerOpen(false);
+              }}
+            />
+          </RoomDialog>
+        )}
+      </RoomDialog>
+    );
+  }
+  return (
+    <div className="game-config-page" data-testid={TESTIDS.configScreenRoot}>
+      <ScreenHeader
+        parentPath={exitPath}
+        backTestId={TESTIDS.configBackButton}
+        title={templateControl}
+      >
+        {reset}
+      </ScreenHeader>
+      {fields}
+      <footer className="game-config-footer">{submit}</footer>
     </div>
   );
 }

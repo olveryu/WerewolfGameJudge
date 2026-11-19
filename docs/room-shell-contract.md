@@ -269,6 +269,8 @@ private results stay behind explicitly authorized actions and overlays.
   the legacy page use the same editor and room/user/round storage scope.
   The suggestion list opens from the main hand only before dealing and only when suggestions
   exist. If roles are dealt while it is open, it stays open with mutations disabled.
+  The suggestion editor shares the old route's role fields, preset picker and submit logic.
+  Dealing disables submission in the room dialog without clearing the draft.
   During night seat selection the existing focused controls take over.
 - A seat room may supply a public configuration entry in the bottom row. This opens a read-only
   dialog and is not a player or host command. The game controls its availability; Werewolf
