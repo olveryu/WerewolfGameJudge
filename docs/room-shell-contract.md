@@ -265,6 +265,8 @@ private results stay behind explicitly authorized actions and overlays.
   enabled choice that is not loading gets the task marker on the host entry.
   The manual also replaces the hand in place; reading dialogs return to that sub-hand.
   The encyclopedia route and the room dialog share the same guide segments and controls.
+  The manual offers the notepad during the day and after the game; both the room dialog and
+  the legacy page use the same editor and room/user/round storage scope.
   During night seat selection the existing focused controls take over.
 - A seat room may supply a public configuration entry in the bottom row. This opens a read-only
   dialog and is not a player or host command. The game controls its availability; Werewolf

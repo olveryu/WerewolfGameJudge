@@ -126,6 +126,7 @@ export interface WerewolfRoomScreenState {
   readonly viewModel: WerewolfViewModel;
   readonly shellModel: RoomShellModel;
   readonly roomCode: string;
+  readonly roomId: string;
   readonly userId: string;
   readonly isHost: boolean;
   /** Armed night-step / sheriff-vote countdown remaining seconds; null without a deadline. */
@@ -469,6 +470,7 @@ export function useWerewolfRoomState(
     shellModel,
     roomCode,
     userId: user.id,
+    roomId: room.roomId,
     isHost,
     remainingSeconds,
     isOverdue,
