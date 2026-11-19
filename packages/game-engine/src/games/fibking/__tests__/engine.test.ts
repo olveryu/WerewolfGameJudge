@@ -835,6 +835,89 @@ describe('FibKing recoverable round workflow', () => {
     expect(getBotSeats(state.roster)).toEqual([1, 2, 3]);
   });
 
+  it('restarts each non-lobby phase atomically without completing an unfinished game', () => {
+    const preparing = startPreparing(createFullLobby(), 'restart-round');
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const roundId = preparing.pendingRound.roundId;
+    const failed = dispatch(
+      preparing,
+      { type: 'fibking.round.failPreparation', roundId, failureCode: 'selectionFailed' },
+      systemContext(),
+    );
+    const viewing = completeRound(preparing, '灯塔', '建在岸边用于指引船只航行方向的高塔。');
+    const ongoing = confirmAllRoleViews(viewing);
+    const ended = dispatch(ongoing, { type: 'fibking.round.reveal' }, userContext('host'));
+
+    for (const state of [preparing, failed, viewing, ongoing, ended]) {
+      const command: FibCommand = {
+        type: 'fibking.game.restart',
+        roundId,
+        wasEnded: state.phase === 'ended',
+      };
+      const decision = decideFibCommand(state, command, userContext('host'));
+      expect(decision.kind).toBe('commit');
+      if (decision.kind !== 'commit') throw new Error('Expected restart to commit');
+      expect(decision.effects).toEqual([]);
+      const reset = applyDecision(state, decision);
+      expect(reset).toMatchObject({
+        phase: 'lobby',
+        roster: state.roster,
+        numberOfPlayers: state.numberOfPlayers,
+        usedWords: state.usedWords,
+        round: null,
+        pendingRound: null,
+        preparationFailure: null,
+      });
+    }
+  });
+
+  it('rejects unauthorized and stale restart confirmations', () => {
+    const preparing = startPreparing(createFullLobby(), 'restart-round');
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const command: FibCommand = {
+      type: 'fibking.game.restart',
+      roundId: preparing.pendingRound.roundId,
+      wasEnded: false,
+    };
+    expect(decideFibCommand(preparing, command, userContext('alice'))).toEqual({
+      kind: 'reject',
+      reason: REASON_NOT_HOST,
+    });
+    expect(
+      decideFibCommand(preparing, command, userContext('host', { controlledSeat: 1 })),
+    ).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    const reset = dispatch(preparing, command, userContext('host'));
+    expect(
+      decideFibCommand(
+        reset,
+        {
+          type: 'fibking.round.failPreparation',
+          roundId: command.roundId,
+          failureCode: 'selectionFailed',
+        },
+        systemContext(),
+      ).kind,
+    ).toBe('reject');
+    const next = startPreparing(reset, 'next-round');
+    expect(decideFibCommand(next, command, userContext('host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_ROUND_MISMATCH,
+    });
+    const viewing = completeRound(preparing, '灯塔', '建在岸边用于指引船只航行方向的高塔。');
+    const ended = dispatch(
+      confirmAllRoleViews(viewing),
+      { type: 'fibking.round.reveal' },
+      userContext('host'),
+    );
+    expect(decideFibCommand(ended, command, userContext('host'))).toEqual({
+      kind: 'reject',
+      reason: REASON_FIB_ROUND_MISMATCH,
+    });
+  });
+
   it('uses next round as the ended-phase action and preserves seats and used words', () => {
     let state = completeRound(
       startPreparing(createFullLobby()),

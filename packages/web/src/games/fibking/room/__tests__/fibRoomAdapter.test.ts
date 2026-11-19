@@ -4,7 +4,6 @@ import {
   type FibState,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import { hostReviewClosingTask } from '@/features/room/model/hostManagementActions';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { fibReview } from '@/games/fibking/review/fibReview';
@@ -20,6 +19,7 @@ import {
 } from '@/games/fibking/room/fibRoomAdapter';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { TESTIDS } from '@/testids';
+import { alertStore } from '@/utils/alert';
 
 /** The entry the room derives for this state from the real review contribution. */
 function reviewEntryFor(state: FibState): RoomReviewEntry | null {
@@ -135,11 +135,10 @@ describe('FibKing room adapter', () => {
         beginRound: vi.fn(),
         isGuessing: false,
         toggleGuessMode: vi.fn(),
-        cancelPreparing: vi.fn(),
         revealRound: vi.fn(),
         redrawRound: vi.fn(),
-        abandonGame: vi.fn(),
-        endGame: vi.fn(),
+
+        restartGame: vi.fn(),
         review: reviewEntryFor(state),
       });
     const flowActions = (state: FibState) =>
@@ -195,11 +194,10 @@ describe('FibKing room adapter', () => {
         beginRound: vi.fn(),
         isGuessing: false,
         toggleGuessMode: vi.fn(),
-        cancelPreparing: vi.fn(),
         revealRound: vi.fn(),
         redrawRound: vi.fn(),
-        abandonGame: vi.fn(),
-        endGame: vi.fn(),
+
+        restartGame: vi.fn(),
         review: reviewEntryFor(state),
       });
 
@@ -223,7 +221,7 @@ describe('FibKing room adapter', () => {
       'guess-seat',
       'reveal-round',
       'redraw-round',
-      'abort-game',
+      'restart',
     ]);
     for (const action of ongoingActions) {
       expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
@@ -464,12 +462,11 @@ describe('FibKing room adapter', () => {
     ).toThrow('[FAIL-FAST] FibKing ended round has no review entry');
   });
 
-  it('derives discoverable Host management tasks from Fib phases', () => {
+  it('derives discoverable Host management tasks from Fib phases', async () => {
     const startRound = vi.fn();
     const revealRound = vi.fn();
     const redrawRound = vi.fn();
-    const abandonGame = vi.fn();
-    const endGame = vi.fn();
+    const restartGame = vi.fn();
     const lobby = createLobby();
     const lobbyCapabilities = createFibRoomCapabilities({
       state: lobby,
@@ -487,11 +484,10 @@ describe('FibKing room adapter', () => {
       beginRound: vi.fn(),
       isGuessing: false,
       toggleGuessMode: vi.fn(),
-      cancelPreparing: vi.fn(),
       revealRound,
       redrawRound,
-      abandonGame,
-      endGame,
+
+      restartGame,
     });
 
     expect(lobbyManagement?.sections.flatMap((section) => section.actions)).toMatchObject([
@@ -527,11 +523,10 @@ describe('FibKing room adapter', () => {
       beginRound: vi.fn(),
       isGuessing: false,
       toggleGuessMode: vi.fn(),
-      cancelPreparing: vi.fn(),
       revealRound,
       redrawRound,
-      abandonGame,
-      endGame,
+
+      restartGame,
     });
     expect(ongoingManagement?.sections.map((section) => section.title)).toEqual([
       '当前流程',
@@ -542,7 +537,7 @@ describe('FibKing room adapter', () => {
       { label: '大聪明选人', isEnabled: true },
       { label: '公布答案', isEnabled: true },
       { label: '重新抽词', isEnabled: true },
-      { label: '中止本局', isEnabled: true },
+      { label: '重新开始', variant: 'danger', isEnabled: true },
     ]);
     const revealAction = ongoingActions?.[1];
     const redrawAction = ongoingActions?.[2];
@@ -559,7 +554,18 @@ describe('FibKing room adapter', () => {
     abandonAction.onPress();
     expect(revealRound).toHaveBeenCalledTimes(1);
     expect(redrawRound).toHaveBeenCalledTimes(1);
-    expect(abandonGame).toHaveBeenCalledTimes(1);
+    expect(restartGame).not.toHaveBeenCalled();
+    expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
+    await alertStore
+      .getSnapshot()
+      ?.buttons.find((button) => button.text === '取消')
+      ?.onPress?.();
+    expect(restartGame).not.toHaveBeenCalled();
+    await alertStore
+      .getSnapshot()
+      ?.buttons.find((button) => button.text === '重新开始')
+      ?.onPress?.();
+    expect(restartGame).toHaveBeenCalledTimes(1);
 
     const ended = { ...ongoing, phase: 'ended' as const };
     const endedCapabilities = createFibRoomCapabilities({
@@ -578,26 +584,29 @@ describe('FibKing room adapter', () => {
       beginRound: vi.fn(),
       isGuessing: false,
       toggleGuessMode: vi.fn(),
-      cancelPreparing: vi.fn(),
       revealRound,
       redrawRound,
-      abandonGame,
-      endGame,
+
+      restartGame,
     });
     expect(endedManagement?.sections.map((section) => section.title)).toEqual(['当前流程']);
-    // 本局复盘 stands as an equal closing option beside 再来一局 / 返回大厅.
     expect(endedManagement.sections[0]?.actions.map((action) => action.key)).toEqual([
       'review',
-      'next-round',
-      'return-lobby',
+      'restart',
     ]);
-    expect(endedManagement.task).toEqual(hostReviewClosingTask());
+    expect(endedManagement.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
     const endAction = endedManagement?.sections[0]?.actions.find(
-      (action) => action.key === 'return-lobby',
+      (action) => action.key === 'restart',
     );
-    if (endAction?.isEnabled !== true) throw new Error('Expected enabled return-lobby action');
+    if (endAction?.isEnabled !== true) throw new Error('Expected enabled restart action');
     endAction.onPress();
-    expect(endGame).toHaveBeenCalledTimes(1);
+    expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
+    expect(alertStore.getSnapshot()?.message).toContain('可能无法查看复盘');
+    await alertStore
+      .getSnapshot()
+      ?.buttons.find((button) => button.text === '重新开始')
+      ?.onPress?.();
+    expect(restartGame).toHaveBeenCalledTimes(2);
   });
 
   it('keeps Fib bottom actions limited to the current player', () => {
@@ -632,9 +641,9 @@ describe('FibKing room adapter', () => {
     expect(openIdentity).toHaveBeenCalledTimes(1);
   });
 
-  it('offers recovery actions after preparation fails', () => {
+  it('offers recovery actions after preparation fails', async () => {
     const startRound = vi.fn();
-    const cancelPreparing = vi.fn();
+    const restartGame = vi.fn();
     const failed: FibState = {
       ...withBotSeats(createLobby(4), [1, 2, 3]),
       phase: 'preparationFailed',
@@ -669,16 +678,14 @@ describe('FibKing room adapter', () => {
       beginRound: vi.fn(),
       isGuessing: false,
       toggleGuessMode: vi.fn(),
-      cancelPreparing,
-      endGame: vi.fn(),
+      restartGame,
       revealRound: vi.fn(),
       redrawRound: vi.fn(),
-      abandonGame: vi.fn(),
       review: null,
     });
     expect(hostManagement?.sections[0]?.actions).toMatchObject([
       { label: '重新准备', isEnabled: true },
-      { label: '返回大厅', isEnabled: true },
+      { label: '重新开始', variant: 'danger', isEnabled: true },
     ]);
     const retryAction = hostManagement?.sections[0]?.actions[0];
     const returnLobbyAction = hostManagement?.sections[0]?.actions[1];
@@ -688,7 +695,12 @@ describe('FibKing room adapter', () => {
     retryAction.onPress();
     returnLobbyAction.onPress();
     expect(startRound).toHaveBeenCalledTimes(1);
-    expect(cancelPreparing).toHaveBeenCalledTimes(1);
+    expect(restartGame).not.toHaveBeenCalled();
+    await alertStore
+      .getSnapshot()
+      ?.buttons.find((button) => button.text === '重新开始')
+      ?.onPress?.();
+    expect(restartGame).toHaveBeenCalledTimes(1);
 
     const playerActions = createFibBottomActions({ state: failed, isHost: false, ...common });
     expect(playerActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
@@ -761,11 +773,10 @@ describe('createFibHostManagement task body', () => {
       beginRound: vi.fn(),
       isGuessing: false,
       toggleGuessMode: vi.fn(),
-      cancelPreparing: vi.fn(),
       revealRound: vi.fn(),
       redrawRound: vi.fn(),
-      abandonGame: vi.fn(),
-      endGame: vi.fn(),
+
+      restartGame: vi.fn(),
       review,
     });
 
@@ -825,14 +836,10 @@ describe('createFibHostManagement task body', () => {
     });
   });
 
-  it('closes an ended round on the review beside the next round and the return to the lobby', () => {
+  it('closes an ended round on the review and restart actions', () => {
     const body = hostTaskBody(build({ ...createOngoing(), phase: 'ended' }));
     if (body?.kind !== 'choice') throw new Error('expected a choice task body');
-    expect(body.actions.map((action) => action.label)).toEqual([
-      '本局复盘',
-      '再来一局',
-      '返回大厅',
-    ]);
+    expect(body.actions.map((action) => action.label)).toEqual(['本局复盘', '重新开始']);
   });
 
   it('fails fast when an ended round reaches the host panel without its review', () => {

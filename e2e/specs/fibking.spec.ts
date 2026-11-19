@@ -73,7 +73,7 @@ test.describe('FibKing', () => {
     }
   });
 
-  test('shared room shell drives real players, identities, reveal, and next round', async ({
+  test('shared room shell drives real players, identities, reveal, and restart', async ({
     browser,
   }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 3);
@@ -173,7 +173,7 @@ test.describe('FibKing', () => {
       expect(redrawnIdentity.word).not.toBe(firstWord);
       await hostRoom.confirmIdentityView();
 
-      await hostRoom.abandonGame();
+      await hostRoom.restartGame();
       for (let seat = 0; seat < 4; seat += 1) {
         await hostRoom.expectSeatOccupied(seat);
       }
@@ -219,8 +219,9 @@ test.describe('FibKing', () => {
       await closeReviewDialog(reviewPage);
       await expect(reviewDialog).toHaveCount(0);
 
-      await hostRoom.startNextRound();
+      await hostRoom.restartGame();
       await new FibRoomPage(reviewPage).expectRoomActionAbsent(TESTIDS.roomReviewOpenButton);
+      await hostRoom.startRound();
       for (const room of realRooms) {
         await room.viewIdentity();
         await room.confirmIdentityView();
@@ -232,7 +233,7 @@ test.describe('FibKing', () => {
       await hostRoom.expectOngoing();
 
       await hostRoom.revealRound();
-      await hostRoom.endGame();
+      await hostRoom.restartGame();
       for (let seat = 0; seat < 4; seat += 1) {
         await hostRoom.expectSeatOccupied(seat);
       }

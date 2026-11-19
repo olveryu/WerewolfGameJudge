@@ -1,6 +1,6 @@
 /**
  * Lifecycle command vocabulary contract: games use the unified suffixes.
- * The four migrated stage games expose game.restart for the atomic reset
+ * Migrated games expose game.restart for the atomic reset
  * to preparation; other games still reject that legacy suffix until migrated.
  * Gameplay commands (round.* mechanics, phase.*, gallery.*, …) are each
  * game's own vocabulary and out of scope.
@@ -65,6 +65,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
   fibking: [
     'fibking.roles.assign',
     'fibking.game.begin',
+    'fibking.game.restart',
     'fibking.game.returnToLobby',
     'fibking.role.viewed',
   ],

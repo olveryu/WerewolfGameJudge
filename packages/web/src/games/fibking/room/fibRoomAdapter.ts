@@ -20,14 +20,12 @@ import {
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildClearSeatsAction,
   buildFillBotsAction,
   buildMarkBotsViewedAction,
-  buildNextRoundAction,
   buildPendingAwareHostAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -36,7 +34,6 @@ import {
   HOST_FLOW_CONFIRM,
   hostActionTask,
   hostMessageTask,
-  hostReviewClosingTask,
   hostStartTask,
   projectViewingProgress,
   seatShortageReason,
@@ -76,7 +73,7 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 export const FIB_DISPLAY_NAME = '瞎掰王';
 
@@ -210,13 +207,27 @@ interface FibHostManagementInput {
   readonly beginRound: () => void;
   readonly isGuessing: boolean;
   readonly toggleGuessMode: () => void;
-  readonly cancelPreparing: () => void;
   readonly revealRound: () => void;
   readonly redrawRound: () => void;
-  readonly abandonGame: () => void;
-  readonly endGame: () => void;
+  readonly restartGame: () => void | Promise<void>;
   /** The review （本局复盘） entry; null until the round ended. */
   readonly review: RoomReviewEntry | null;
+}
+
+function buildFibRestartAction(input: FibHostManagementInput): RoomHostManagementAction {
+  return buildResetToLobbyAction({
+    onPress: () =>
+      showDestructiveAlert(
+        '重新开始？',
+        input.state.phase === 'ended'
+          ? '保留座位、配置和已用词记录，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
+        '重新开始',
+        input.restartGame,
+      ),
+    isEnabled: !input.isCommandSubmitting,
+    isLoading: input.isCommandSubmitting || undefined,
+  });
 }
 
 function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostManagementAction[] {
@@ -280,20 +291,7 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       ];
     }
     case 'preparing':
-      return [
-        buildPendingAwareHostAction(
-          {
-            key: 'cancel-preparing',
-            label: '取消准备',
-            icon: 'close-circle-outline',
-            variant: 'secondary',
-            testID: TESTIDS.fibCancelPreparingButton,
-            isLoading: input.isCommandSubmitting || undefined,
-          },
-          input.isCommandSubmitting,
-          input.cancelPreparing,
-        ),
-      ];
+      return [];
     case 'preparationFailed':
       return [
         buildPendingAwareHostAction(
@@ -308,11 +306,7 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
           input.isCommandSubmitting,
           input.startRound,
         ),
-        buildReturnLobbyAction({
-          onPress: input.cancelPreparing,
-          isEnabled: !input.isCommandSubmitting,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
+        buildFibRestartAction(input),
       ];
     case 'ongoing':
       return [
@@ -357,24 +351,7 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       if (input.review === null) {
         throw new Error('[FAIL-FAST] FibKing ended host has no review entry');
       }
-      return [
-        buildReviewHostAction(input.review),
-        buildNextRoundAction({
-          onPress: () =>
-            showConfirmAlert(
-              HOST_FLOW_CONFIRM.nextRoundTitle,
-              '重新分配身份，开始新的一局。',
-              input.startRound,
-            ),
-          isEnabled: !input.isCommandSubmitting,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
-        buildReturnLobbyAction({
-          onPress: input.endGame,
-          isEnabled: !input.isCommandSubmitting,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
-      ];
+      return [buildReviewHostAction(input.review), buildFibRestartAction(input)];
   }
 }
 
@@ -431,7 +408,7 @@ function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
       );
     }
     case 'preparing':
-      return hostMessageTask('正在准备本轮词语', { actionKey: 'cancel-preparing' });
+      return hostMessageTask('正在准备本轮词语', { actionKey: 'restart' });
     case 'preparationFailed':
       // Re-preparation is the recovery path out of a failed state.
       return hostActionTask('retry-preparation');
@@ -441,7 +418,7 @@ function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
         ? hostMessageTask('点座位盘选择大聪明猜中的玩家', { actionKey: 'guess-seat' })
         : hostActionTask('reveal-round');
     case 'ended':
-      return hostReviewClosingTask();
+      return { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] };
   }
 }
 
@@ -449,16 +426,10 @@ function createFibDangerActions(input: FibHostManagementInput): RoomHostManageme
   switch (input.state.phase) {
     case 'viewing':
     case 'ongoing':
-      return [
-        buildAbortGameAction({
-          onPress: input.abandonGame,
-          isEnabled: !input.isCommandSubmitting,
-          isLoading: input.isCommandSubmitting || undefined,
-        }),
-      ];
+    case 'preparing':
+      return [buildFibRestartAction(input)];
     case 'ended':
     case 'lobby':
-    case 'preparing':
     case 'preparationFailed':
       return [];
   }

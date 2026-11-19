@@ -117,6 +117,7 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   },
   'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
   'fibking.game.returnToLobby': { type: 'fibking.game.returnToLobby' },
+  'fibking.game.restart': { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: false },
   'fibking.roles.assign': { type: 'fibking.roles.assign' },
   'fibking.role.viewed': { type: 'fibking.role.viewed' },
   'fibking.bots.markAllBotsViewed': { type: 'fibking.bots.markAllBotsViewed' },
@@ -249,6 +250,17 @@ describe('Worker game catalog', () => {
       { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0, extra: true },
     ]) {
       expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
+  });
+
+  it('requires the round identity and completion boundary for FibKing restart', () => {
+    for (const command of [
+      { type: 'fibking.game.restart', roundId: '', wasEnded: false },
+      { type: 'fibking.game.restart', roundId: 'round-1' },
+      { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: 'false' },
+      { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: false, extra: true },
+    ]) {
+      expect(fibPublicCommandSchema.safeParse(command).success).toBe(false);
     }
   });
 

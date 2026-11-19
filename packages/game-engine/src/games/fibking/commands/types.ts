@@ -19,6 +19,7 @@ export type FibPublicCommand =
   | FibRoomCommand
   | { readonly type: 'fibking.config.update'; readonly numberOfPlayers: number }
   | { readonly type: 'fibking.game.returnToLobby' }
+  | { readonly type: 'fibking.game.restart'; readonly roundId: string; readonly wasEnded: boolean }
   | { readonly type: 'fibking.roles.assign' }
   | { readonly type: 'fibking.round.cancelPreparing' }
   | { readonly type: 'fibking.role.viewed' }
