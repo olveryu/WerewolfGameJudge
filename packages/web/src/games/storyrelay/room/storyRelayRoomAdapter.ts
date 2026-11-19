@@ -263,7 +263,7 @@ export function createStoryRelayHostManagement(
   }
   const canAbort =
     ['answering', 'settling', 'transition'].includes(state.phase) && state.completedAt === null;
-  // 局中房主面板常驻：中止不可用时禁用并给原因，而不是整块消失。
+  if (!canAbort) return { task: null, sections: [] };
   return {
     task: null,
     sections: [
@@ -283,8 +283,8 @@ export function createStoryRelayHostManagement(
                   });
                 },
               ),
-            isEnabled: canAbort && !input.isSubmitting,
-            disabledReason: canAbort ? null : '故事已完成，不能中止',
+            isEnabled: !input.isSubmitting,
+            disabledReason: null,
             isLoading: input.isSubmitting,
           }),
         ],
