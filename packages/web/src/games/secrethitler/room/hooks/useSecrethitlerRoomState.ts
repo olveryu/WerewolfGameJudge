@@ -16,7 +16,6 @@ import { useNavigate } from 'react-router';
 
 import {
   gameConfigEditPath,
-  gameGuidePath,
   musicSettingsPath,
   settingsPath,
 } from '@/features/navigation/model/gamePaths';
@@ -93,7 +92,6 @@ export interface SecrethitlerRoomScreenState {
   readonly submit: ReadyRoomSession<SecrethitlerState, SecrethitlerCommand>['submit'];
   readonly isSubmitting: boolean;
   readonly session: SecrethitlerRoomSession;
-  readonly openRules: () => void;
   /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
   /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
@@ -262,7 +260,6 @@ export function useSecrethitlerRoomState(
     submit,
     isSubmitting,
     session,
-    openRules: () => void navigate(gameGuidePath('secrethitler', room.roomCode)),
     reviewOverlay: review.overlay,
     roleViewing: privateActions.roleViewing,
     roleCardAllRoles: privateActions.roleCardAllRoles,
