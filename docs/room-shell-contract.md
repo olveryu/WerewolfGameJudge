@@ -254,11 +254,14 @@ private results stay behind explicitly authorized actions and overlays.
 
 ### Room Action Hierarchy
 
-- All games use the shared bottom panel for status, progress, one focused player action and
+- Seat rooms that have not migrated to action hands use the shared bottom panel for status, progress, one focused player action and
   an entry to the shared actions surface. That surface groups remaining player tools with
   the host task and management sections. Hosting is an additional capability, not a
   replacement for the user's player or spectator actions. `stage` content is the one
   exception: its status lives in the information bar and its actions in the game's dock.
+- Werewolf presents all model-supplied player actions directly in its hand, in model order.
+  The host entry opens the existing management surface without duplicating those player actions.
+  During night seat selection the existing focused controls take over.
 - A seat room may supply a public configuration entry in the bottom row. This opens a read-only
   dialog and is not a player or host command. The game controls its availability; Werewolf
   keeps the inline board before gameplay and leaves the selection controls alone during seat selection.

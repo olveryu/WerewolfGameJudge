@@ -103,7 +103,6 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     const screen = await mountWerewolfRoom(createDayRoomMock(FIRST_VOTE, [3]));
 
     expect(screen.getByTestId(TESTIDS.sheriffOpenVoteButton)).toBeInTheDocument();
-    await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     expect(screen.getByTestId(TESTIDS.roomReviewOpenButton)).toBeInTheDocument();
   });
 
