@@ -24,6 +24,11 @@ import { TESTIDS } from '@/testids';
 
 /** 展示轮流作画、猜词计分、提示与机器人规则。文案数字全部取自引擎常量。 */
 export function DrawGuessRulesScreen() {
+  return <DrawGuessRules />;
+}
+
+/** Reuses the guide copy in the room dialog. */
+export function DrawGuessRules({ embedded = false }: { readonly embedded?: boolean }) {
   const maxGuesserScore = DRAWGUESS_GUESS_BASE_SCORE + DRAWGUESS_GUESS_SPEED_BONUS_MAX;
   return (
     <GameGuide
@@ -31,6 +36,7 @@ export function DrawGuessRulesScreen() {
       heading="一人作画，其余人猜"
       intro="每轮一人当画手作画，其他人在聊天框里打字猜词。猜得越快分越高，画手得分看难度。"
       testId={TESTIDS.gameGuideScreenRoot('drawguess')}
+      embedded={embedded}
     >
       <GameGuideSection title="一轮怎么玩">
         <RuleItem

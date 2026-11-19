@@ -150,14 +150,13 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
     const room = await createDrawGuessRoom(hostPage);
 
     await test.step('guide opens from the room', async () => {
+      await hostPage.getByTestId(TESTIDS.roomManualButton).click();
       const guideButton = hostPage.getByTestId(TESTIDS.roomGuideButton('drawguess'));
-      await expect(guideButton).toHaveAccessibleName('查看你画我猜玩法');
       await guideButton.click();
       await expect(hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('drawguess'))).toBeVisible();
       await expect(hostPage.getByTestId(TESTIDS.gameGuideHeading)).toHaveText('一人作画，其余人猜');
-      const backButton = hostPage.getByTestId(TESTIDS.gameGuideBackButton);
-      await expect(backButton).toHaveAccessibleName('返回');
-      await backButton.click();
+      await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
+      await hostPage.getByTestId(TESTIDS.roomManualBackButton).click();
       await room.waitForReady();
     });
 
@@ -222,6 +221,13 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
       const guessInput = joinerPage.getByTestId(TESTIDS.drawGuessGuessInput);
       await expect(guessInput).toHaveAccessibleName('猜词输入框');
       await guessInput.fill(word);
+      await joinerPage.getByTestId(TESTIDS.roomStageMenuButton).click();
+      const menu = joinerPage.getByTestId(TESTIDS.roomStageMenuPanel);
+      await expect(menu.getByTestId(TESTIDS.abortGameButton)).toHaveCount(0);
+      await menu.getByTestId(TESTIDS.roomStageConfigurationButton).click();
+      await joinerPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
+      await menu.getByTestId(TESTIDS.roomStageMenuBackButton).click();
+      await expect(guessInput).toHaveValue(word);
       const sendGuess = joinerPage.getByTestId(TESTIDS.drawGuessGuessSendButton);
       await expect(sendGuess).toHaveAccessibleName('发送猜词');
       await sendGuess.click();
@@ -231,7 +237,8 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
     });
 
     await test.step('cancel keeps the current game and confirmation returns everyone to the lobby', async () => {
-      await room.clickHostManagementAction(TESTIDS.abortGameButton);
+      await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
       await expect(hostPage.getByTestId(TESTIDS.alertModal)).toContainText('本局不发完成奖励');
       await pressAlertButton(hostPage, {
         title: '中止本局？',
@@ -243,7 +250,9 @@ test('create, guess, cancel or confirm host abort, and restart without losing se
         '已猜中，等待本轮结束',
       );
 
-      await room.clickHostManagementActionAndConfirm(TESTIDS.abortGameButton, '中止本局？');
+      await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
+      await room.confirmHostActionDialog('中止本局？');
       for (const page of fixture.pages) {
         await expectLobbySummary(page);
         await expect(page.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toHaveCount(0);
