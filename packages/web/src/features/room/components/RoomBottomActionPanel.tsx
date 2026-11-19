@@ -137,6 +137,7 @@ function RoomBottomActionPanelComponent({
   hostHand,
   hostEntryRef,
   manualEntries,
+  mainEntries = [],
 }: {
   readonly model: RoomBottomActionModel;
   readonly summary: ReactNode;
@@ -148,6 +149,7 @@ function RoomBottomActionPanelComponent({
   readonly hostHand?: ReactNode;
   readonly hostEntryRef?: Ref<HTMLButtonElement>;
   readonly manualEntries?: readonly RoomManualEntry[];
+  readonly mainEntries?: readonly RoomManualEntry[];
 }) {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const restoreManualFocus = useRef(false);
@@ -182,6 +184,7 @@ function RoomBottomActionPanelComponent({
     !hasSummary &&
     statusMessage === null &&
     configurationEntry === null &&
+    mainEntries.length === 0 &&
     !hasManual &&
     isRoomBottomActionModelEmpty(model) &&
     !hasMoreActions
@@ -272,6 +275,18 @@ function RoomBottomActionPanelComponent({
                 手册
               </Button>
             )}
+            {showPlayerHand &&
+              mainEntries.map((entry) => (
+                <Button
+                  key={entry.label}
+                  variant="secondary"
+                  aria-haspopup="dialog"
+                  data-testid={entry.testId}
+                  onClick={entry.onOpen}
+                >
+                  {entry.label}
+                </Button>
+              ))}
             {hasMoreActions && (
               <Button
                 ref={hostEntryRef}

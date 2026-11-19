@@ -164,6 +164,7 @@ export function RoomShell({
   trailingExtraActions,
   configurationEntry,
   manualEntries,
+  mainEntries,
   showPlayerHand = false,
   gameOverlays,
   profileDetailsRenderer,
@@ -174,6 +175,7 @@ export function RoomShell({
   readonly trailingExtraActions: ReactNode;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
   readonly manualEntries?: ComponentProps<typeof RoomBottomActionPanel>['manualEntries'];
+  readonly mainEntries?: ComponentProps<typeof RoomBottomActionPanel>['mainEntries'];
   readonly showPlayerHand?: boolean;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
@@ -297,6 +299,7 @@ export function RoomShell({
           onOpenMoreActions={openActionsPanel}
           configurationEntry={configurationEntry}
           manualEntries={manualEntries}
+          mainEntries={mainEntries}
           showPlayerHand={showPlayerHand}
           hostEntryRef={hostEntryRef}
           hostHand={
