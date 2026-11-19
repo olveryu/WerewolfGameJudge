@@ -77,8 +77,6 @@ export const FILE_CAPABILITY_GATES = {
     'identityViewing',
   'packages/web/src/games/__GAME_ID__/components/__GAME_PASCAL__RoleCardAdapter.ts':
     'identityViewing',
-  'packages/web/src/games/__GAME_ID__/room/__tests__/__GAME_PASCAL__RoomScreen.test.tsx':
-    'identityViewing',
   'packages/web/src/games/__GAME_ID__/room/hooks/use__GAME_PASCAL__AudioOrchestration.ts':
     'audioOrchestration',
   'packages/web/src/games/__GAME_ID__/audio/__GAME_CAMEL__AudioRegistry.ts': 'audioOrchestration',

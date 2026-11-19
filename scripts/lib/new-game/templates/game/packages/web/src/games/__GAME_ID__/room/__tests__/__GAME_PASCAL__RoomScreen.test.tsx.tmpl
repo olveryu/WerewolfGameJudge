@@ -13,7 +13,9 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 //#end
 import {
   build__GAME_PASCAL__TestLobby,
+//#cap identityViewing
   drive__GAME_PASCAL__TestCommand,
+//#end
   start__GAME_PASCAL__TestGame,
   end__GAME_PASCAL__TestGame,
 } from '@/test-utils/__GAME_ID__State';
@@ -47,6 +49,9 @@ vi.mock('@/features/room/components/RoomShell', () => ({
   RoomShell: ({
     content,
     gameOverlays,
+    manualEntries,
+    configurationEntry,
+    stageMenu,
   }: {
     content: {
       kind: string;
@@ -55,11 +60,18 @@ vi.mock('@/features/room/components/RoomShell', () => ({
       element?: ReactNode;
     };
     gameOverlays: ReactNode;
+    manualEntries: readonly { label: string; onOpen: () => void }[];
+    configurationEntry: { onOpen: () => void } | null;
+    stageMenu?: { onOpenGuide: () => void; onOpenConfiguration: () => void } | null;
   }) => (
     <section aria-label="房间内容" data-kind={content.kind}>
       {content.beforeSeatBoard}
       {content.bottomSummary}
       {content.element}
+      {manualEntries.map((entry) => <button key={entry.label} onClick={entry.onOpen}>{entry.label}</button>)}
+      {configurationEntry && <button onClick={configurationEntry.onOpen}>本局配置</button>}
+      {stageMenu && <button onClick={stageMenu.onOpenGuide}>舞台玩法</button>}
+      {stageMenu && <button onClick={stageMenu.onOpenConfiguration}>舞台配置</button>}
       {gameOverlays}
     </section>
   ),
@@ -69,7 +81,6 @@ vi.mock('../hooks/use__GAME_PASCAL__RoomState', () => ({
     state,
     viewModel: get__GAME_PASCAL__ViewModel(state, 0),
     shellModel: null,
-    openRules: vi.fn(),
     reviewOverlay: null,
     roleCardAllRoles: [],
     roleViewing: { isOpen: false, close: vi.fn(), shouldPlayAnimation: false, remainingCards: 4 },
@@ -114,6 +125,7 @@ function renderRoom() {
   );
 }
 
+//#cap identityViewing
 it.each(['lobby', 'viewing', 'playing', 'ended'] as const)(
   'preserves the role-game board in %s',
   (phase) => {
@@ -128,24 +140,58 @@ it.each(['lobby', 'viewing', 'playing', 'ended'] as const)(
             : end__GAME_PASCAL__TestGame(start__GAME_PASCAL__TestGame(lobby));
     renderRoom();
     expect(screen.getByRole('region', { name: '房间内容' })).toHaveAttribute('data-kind', 'seats');
-    expect(
-      screen.getByRole('button', { name: phase === 'lobby' ? '收起配置' : '展开配置' }),
-    ).toHaveAttribute('aria-expanded', String(phase === 'lobby'));
+    if (phase === 'lobby' || phase === 'viewing') {
+      expect(screen.getByRole('button', { name: '收起配置' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByRole('button', { name: '本局配置' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '收起配置' })).not.toBeInTheDocument();
+    }
   },
 );
 
 it('previews public role information without recording an identity view', async () => {
   const user = userEvent.setup();
-  state = drive__GAME_PASCAL__TestCommand(build__GAME_PASCAL__TestLobby(), {
-    type: '__GAME_ID__.roles.assign',
-  });
+  state = start__GAME_PASCAL__TestGame(build__GAME_PASCAL__TestLobby());
   dispatch.mockClear();
   renderRoom();
-  await user.click(screen.getByRole('button', { name: '展开配置' }));
+  await user.click(screen.getByRole('button', { name: '本局配置' }));
   await user.click(screen.getByRole('button', { name: /^待定身份/ }));
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(screen.getAllByRole('dialog')).toHaveLength(2);
   expect(dispatch).not.toHaveBeenCalled();
 });
+//#end
+
+it('opens the same guide in the room without navigating', async () => {
+  const user = userEvent.setup();
+  state = build__GAME_PASCAL__TestLobby();
+  renderRoom();
+  await user.click(screen.getByRole('button', { name: '玩法' }));
+  expect(screen.getByRole('dialog', { name: '__GAME_DISPLAY_NAME__玩法' })).toBeInTheDocument();
+  expect(screen.getByText('坐满开局')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '关闭详情' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+//#cap !identityViewing
+it('offers the stage menu while playing and the bottom configuration after ending', async () => {
+  const user = userEvent.setup();
+  const lobby = build__GAME_PASCAL__TestLobby();
+  state = start__GAME_PASCAL__TestGame(lobby);
+  const view = renderRoom();
+  await user.click(screen.getByRole('button', { name: '舞台配置' }));
+  expect(screen.getByRole('dialog', { name: '本局配置' })).toHaveTextContent('__GAME_DISPLAY_NAME__');
+  expect(screen.getByText('TODO(gameplay):玩法阶段界面随玩法状态机落地。')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '关闭详情' }));
+  await user.click(screen.getByRole('button', { name: '舞台玩法' }));
+  expect(screen.getByRole('dialog', { name: '__GAME_DISPLAY_NAME__玩法' })).toBeInTheDocument();
+  state = end__GAME_PASCAL__TestGame(state);
+  view.unmount();
+  renderRoom();
+  expect(screen.queryByRole('button', { name: '舞台玩法' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '本局配置' })).toBeInTheDocument();
+});
+//#end
 
 //#cap identityViewing
 it('shows assigned bot identities to the room host only', () => {

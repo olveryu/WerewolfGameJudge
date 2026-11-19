@@ -167,7 +167,6 @@ const CAPABILITY_FILE_ADDITIONS = [
     files: ({ engine, client, pascal }) => [
       `${engine}/__tests__/identityViewingProtocol.contract.test.ts`,
       `${client}/components/${pascal}RoleCardAdapter.ts`,
-      `${client}/room/__tests__/${pascal}RoomScreen.test.tsx`,
     ],
   },
   {
@@ -222,6 +221,7 @@ function expectedCreatedFiles(gameId, features) {
     `${client}/model/${pascal}RoomSession.ts`,
     `${client}/screens/${pascal}RulesScreen.tsx`,
     `${client}/room/${pascal}RoomScreen.tsx`,
+    `${client}/room/__tests__/${pascal}RoomScreen.test.tsx`,
     `${client}/room/${pascal}RoomScreen.css`,
     `${client}/room/${gameId}RoomAdapter.ts`,
     `${client}/room/${gameId}GuidanceMatrix.ts`,
@@ -811,8 +811,8 @@ for (const scenario of FEATURE_SCENARIOS) {
         'identity games use shared public role content inside the game card',
       );
       assert.ok(
-        screenSource.includes('collapsed={!isLobby}'),
-        'board defaults collapse after dealing',
+        screenSource.includes('{isPreGame && ('),
+        'public board remains visible before play',
       );
       assert.ok(
         screenSource.includes('bottomSummary: null'),

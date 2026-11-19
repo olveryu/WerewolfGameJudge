@@ -475,6 +475,11 @@ outside the game element and without reflowing it, and reads the current
 confirmation or command. The manual replaces the hand in place; guide and configuration
 details open over it;
 leaving the stage removes the menu and restores the room's bottom actions.
+The new-game skeleton follows this hand/manual split: identity games keep the public
+board in the pre-game seat view, while a non-identity game's playing workspace uses
+the stage menu. Its guide page and room dialog share one guide body. Game authors
+must wire their actual phase-specific actions and public configuration when completing
+the generated gameplay; the skeleton does not infer them.
 
 - **Takeover in the information bar.** An active bot takeover renders as the bar's 「代 N 号 · 退出」 chip (`controlledSeatBanner` / `controlledSeatReleaseButton`) instead of the banner. Taking a bot over starts from the roster sheet: bot rows that are not done carry 「接管」 while `canTakeOverBots` is allowed and no seat is controlled.
 - **Roster from the seat source.** `groupRoomStageRoster` groups occupied seats from `RoomSeatDataSource`: the declared acting seat, success-toned status badges as done, everything else pending. Games compute the chip summary from the same grouping and never pass a second seat list.
