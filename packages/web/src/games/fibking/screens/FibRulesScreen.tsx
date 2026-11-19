@@ -5,12 +5,18 @@ import { TESTIDS } from '@/testids';
 
 /** Explains identities and the existing round lifecycle. */
 export function FibRulesScreen() {
+  return <FibRules />;
+}
+
+/** Shares the rules between the room and the full guide route. */
+export function FibRules({ embedded = false }: { readonly embedded?: boolean }) {
   return (
     <GameGuide
       title="瞎掰王玩法"
       heading="真假释义，只能相信描述"
       intro="每轮所有玩家看到同一个词。老实人知道真实释义，瞎掰王编造释义，大聪明根据描述判断真相。"
       testId={TESTIDS.fibRulesScreenRoot}
+      embedded={embedded}
     >
       <GameGuideSection title="三个身份">
         <RuleItem

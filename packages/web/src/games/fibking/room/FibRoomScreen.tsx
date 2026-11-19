@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -15,6 +16,7 @@ import { FibStatsPanel } from '@/games/fibking/components/FibStatsPanel';
 import { TESTIDS } from '@/testids';
 
 import type { FibRoomSession } from '../model/FibRoomSession';
+import { FibRules } from '../screens/FibRulesScreen';
 import { FibIdentityModal } from './components/FibIdentityModal';
 import { isFibRole, toFibRolePreviewData } from './components/FibRoleCardAdapter';
 import { FibRoomSummary } from './components/FibRoomSummary';
@@ -46,10 +48,29 @@ function FibRoomContent(
   const screen = useFibRoomState(props);
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<FibRole | null>(null);
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const hasDealt =
+    screen.phase === 'viewing' || screen.phase === 'ongoing' || screen.phase === 'ended';
+  const board = (
+    <BoardInfoContent
+      sections={createFibBoardInfoSections(screen.playerCount)}
+      onRolePress={(roleId) => {
+        if (isFibRole(roleId)) setPreviewRole(roleId);
+      }}
+      footer={null}
+    />
+  );
 
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand={!screen.isGuessing}
+      configurationEntry={
+        hasDealt && !screen.isGuessing ? { onOpen: () => setInformation('configuration') } : null
+      }
+      manualEntries={[
+        { label: '玩法', onOpen: () => setInformation('guide'), testId: TESTIDS.fibRulesButton },
+      ]}
       leadingExtraActions={null}
       trailingExtraActions={null}
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
@@ -67,24 +88,35 @@ function FibRoomContent(
             playerCount={screen.playerCount}
             preparationStage={screen.preparationStage}
             preparationFailureCode={screen.preparationFailureCode}
-            guide={{
-              onPress: screen.openRules,
-              label: '查看瞎掰王玩法说明',
-              testId: TESTIDS.fibRulesButton,
-            }}
+            guide={null}
           >
-            <BoardInfoContent
-              sections={createFibBoardInfoSections(screen.playerCount)}
-              onRolePress={(roleId) => {
-                if (isFibRole(roleId)) setPreviewRole(roleId);
-              }}
-              footer={null}
-            />
+            {board}
           </FibRoomSummary>
         ),
       }}
       gameOverlays={
         <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="瞎掰王玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <FibRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`瞎掰王（${screen.playerCount}人）`}</p>
+              {board}
+            </RoomDialog>
+          )}
           {screen.roleViewing.isOpen && screen.roundView !== null && (
             <FibIdentityModal
               view={screen.roundView}

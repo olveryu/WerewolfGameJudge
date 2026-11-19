@@ -105,6 +105,7 @@ export const TESTIDS = {
   gameGuideBackButton: 'game-guide-back-button',
   roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
   roomManualButton: 'room-manual-button',
+  roomManualBackButton: 'room-manual-back-button',
   roomGameSummaryTitle: 'room-game-summary-title',
 
   roomScreenRoot: 'room-screen-root',
