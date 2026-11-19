@@ -269,6 +269,7 @@ function RoomBottomActionPanelComponent({
               <Button
                 ref={manualEntryRef}
                 variant="secondary"
+                data-testid={TESTIDS.roomManualButton}
                 onClick={() => setIsManualOpen(true)}
               >
                 <IconBookOutline aria-hidden />

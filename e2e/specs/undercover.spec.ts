@@ -67,25 +67,28 @@ for (const viewport of [
       ).not.toContainText('测试模式');
       await hostPage.getByTestId(TESTIDS.gameConfigSubmit('undercover')).click();
       await hostRoom.waitForReady('host');
-      const guideButton = hostPage.getByTestId(TESTIDS.roomGuideButton('undercover'));
-      await expect(guideButton).toHaveAccessibleName('查看谁是卧底玩法说明');
-      await expect(guideButton).toBeInViewport();
+      const manualButton = hostPage.getByTestId(TESTIDS.roomManualButton);
+      await expect(manualButton).toBeInViewport();
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-lobby-${viewport.width}.png`),
       });
+      const roomUrl = hostPage.url();
+      await manualButton.click();
+      const guideButton = hostPage.getByTestId(TESTIDS.roomGuideButton('undercover'));
       await guideButton.click();
-      await expect(hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('undercover'))).toContainText(
-        '三个身份',
+      await expect(hostPage.getByTestId(TESTIDS.gameGuideHeading)).toHaveText(
+        '描述词语，找出不同的人',
       );
+      await expect(hostPage).toHaveURL(roomUrl);
       expect(
         await hostPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
       await hostPage.screenshot({
         path: testInfo.outputPath(`undercover-guide-${viewport.width}.png`),
       });
-      const guideBack = hostPage.getByTestId(TESTIDS.gameGuideBackButton);
-      await expect(guideBack).toHaveAccessibleName('返回');
-      await guideBack.click();
+      await hostPage.keyboard.press('Escape');
+      await expect(guideButton).toBeFocused();
+      await hostPage.reload();
       await hostRoom.waitForReady('host');
 
       // Six real players take seats; no bots involved.

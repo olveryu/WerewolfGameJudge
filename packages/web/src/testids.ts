@@ -104,6 +104,7 @@ export const TESTIDS = {
   gameGuideSectionTitle: 'game-guide-section-title',
   gameGuideBackButton: 'game-guide-back-button',
   roomGuideButton: (gameType: string) => `${gameType}-room-guide-button`,
+  roomManualButton: 'room-manual-button',
   roomGameSummaryTitle: 'room-game-summary-title',
 
   roomScreenRoot: 'room-screen-root',

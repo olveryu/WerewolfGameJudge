@@ -10,8 +10,9 @@ import { useNavigate } from 'react-router';
 
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
@@ -22,6 +23,7 @@ import { UndercoverStatsPanel } from '@/games/undercover/components/UndercoverSt
 import { TESTIDS } from '@/testids';
 
 import type { UndercoverRoomSession } from '../model/UndercoverRoomSession';
+import { UndercoverRules } from '../screens/UndercoverRulesScreen';
 import { UndercoverRevealModal } from './components/UndercoverRevealModal';
 import {
   isUndercoverRole,
@@ -62,14 +64,42 @@ function UndercoverRoomContent(
     equippedRevealEffect,
     revealPool,
     roleCounts,
-    openRules,
     reviewOverlay,
   } = useUndercoverRoomState(props);
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<UndercoverRole | null>(null);
+  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const isLobby = state.phase === 'lobby';
+  const settings = [
+    { label: '白板模式', value: formatUndercoverBlankMode(state.config.hasBlank) },
+    { label: '词语分类', value: UNDERCOVER_CATEGORY_NAMES[state.config.category] },
+  ];
+  const board = (
+    <BoardInfoContent
+      sections={createUndercoverBoardInfoSections({
+        roleCounts,
+        hasBlank: state.config.hasBlank,
+      })}
+      onRolePress={(roleId) => {
+        if (isUndercoverRole(roleId)) setPreviewRole(roleId);
+      }}
+      footer={null}
+    />
+  );
   return (
     <RoomShell
       model={shellModel}
+      showPlayerHand={!controls.isSelecting}
+      configurationEntry={
+        !isLobby && !controls.isSelecting ? { onOpen: () => setInformation('configuration') } : null
+      }
+      manualEntries={[
+        {
+          label: '玩法',
+          onOpen: () => setInformation('guide'),
+          testId: TESTIDS.roomGuideButton('undercover'),
+        },
+      ]}
       leadingExtraActions={null}
       trailingExtraActions={null}
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
@@ -82,35 +112,45 @@ function UndercoverRoomContent(
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
-          <RoomGameSummary
-            title="谁是卧底"
-            playerCount={state.config.numberOfPlayers}
-            settings={[
-              { label: '白板模式', value: formatUndercoverBlankMode(state.config.hasBlank) },
-              { label: '词语分类', value: UNDERCOVER_CATEGORY_NAMES[state.config.category] },
-            ]}
-            testId="undercover-room"
-            guide={{
-              onPress: openRules,
-              label: '查看谁是卧底玩法说明',
-              testId: TESTIDS.roomGuideButton('undercover'),
-            }}
-          >
-            <BoardInfoContent
-              sections={createUndercoverBoardInfoSections({
-                roleCounts,
-                hasBlank: state.config.hasBlank,
-              })}
-              onRolePress={(roleId) => {
-                if (isUndercoverRole(roleId)) setPreviewRole(roleId);
-              }}
-              footer={null}
-            />
-          </RoomGameSummary>
+          <>
+            {isLobby && (
+              <RoomGameSummary
+                title="谁是卧底"
+                playerCount={state.config.numberOfPlayers}
+                settings={settings}
+                testId="undercover-room"
+                guide={null}
+              >
+                {board}
+              </RoomGameSummary>
+            )}
+          </>
         ),
       }}
       gameOverlays={
         <>
+          {information === 'guide' && (
+            <RoomDialog
+              title="谁是卧底玩法"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <UndercoverRules embedded />
+            </RoomDialog>
+          )}
+          {information === 'configuration' && (
+            <RoomDialog
+              title="本局配置"
+              onClose={() => setInformation(null)}
+              allowEscape
+              footer={null}
+            >
+              <p>{`谁是卧底（${state.config.numberOfPlayers}人）`}</p>
+              {board}
+              <RoomGameSettings settings={settings} />
+            </RoomDialog>
+          )}
           {controls.card !== null && (
             <UndercoverWordModal
               card={controls.card}

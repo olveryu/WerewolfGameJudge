@@ -22,12 +22,18 @@ function formatUndercoverTiers(): string {
 
 /** Presents identities, offline voting and authoritative victory conditions. */
 export function UndercoverRulesScreen() {
+  return <UndercoverRules />;
+}
+
+/** Uses the same guide copy for the standalone route and room dialog. */
+export function UndercoverRules({ embedded = false }: { readonly embedded?: boolean }) {
   return (
     <GameGuide
       title="谁是卧底玩法"
       heading="描述词语，找出不同的人"
       intro="平民和卧底拿到相关但不同的词，通过描述寻找线索，再在线下投票选出出局玩家。"
       testId={TESTIDS.gameGuideScreenRoot('undercover')}
+      embedded={embedded}
     >
       <GameGuideSection title="三个身份">
         <RuleItem
