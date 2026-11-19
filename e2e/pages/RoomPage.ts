@@ -313,7 +313,7 @@ export class RoomPage {
   /** Open the own role card through 查看身份 and return the dialog. */
   async openRoleCard(): Promise<Locator> {
     const viewButton = await this.viewIdentityButton();
-    await expect(viewButton).toHaveText('查看身份', { timeout: 15_000 });
+    await expect(viewButton).toHaveAccessibleName('查看身份', { timeout: 15_000 });
     await viewButton.click();
     const modal = this.page.getByTestId(TESTIDS.roleCardModal);
     // The first view may play the viewer's reveal effect before the card shows.
