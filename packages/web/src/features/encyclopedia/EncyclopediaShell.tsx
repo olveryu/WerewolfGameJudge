@@ -21,7 +21,7 @@ interface EncyclopediaShellProps {
   readonly title: string;
   readonly testId?: string;
   /** Where Back goes when the page was opened directly. */
-  readonly parentPath: string;
+  readonly parentPath: string | null;
   /** Segments in order. */
   readonly segments: readonly EncyclopediaSegment[];
   readonly initialTab: string;
@@ -44,10 +44,12 @@ export function EncyclopediaShell({
   const [activeTab, setActiveTab] = useState(initialTab);
 
   return (
-    <div className="encyclopedia-page" data-testid={testId}>
-      <ScreenHeader title={title} parentPath={parentPath}>
-        <div className="encyclopedia-header-actions">{segmentHeaderActions?.[activeTab]}</div>
-      </ScreenHeader>
+    <div className={parentPath === null ? undefined : 'encyclopedia-page'} data-testid={testId}>
+      {parentPath !== null && (
+        <ScreenHeader title={title} parentPath={parentPath}>
+          <div className="encyclopedia-header-actions">{segmentHeaderActions?.[activeTab]}</div>
+        </ScreenHeader>
+      )}
       <Tabs.Root
         className="encyclopedia-tabs"
         value={activeTab}
@@ -60,6 +62,9 @@ export function EncyclopediaShell({
             </Tabs.Trigger>
           ))}
         </Tabs.List>
+        {parentPath === null && segmentHeaderActions?.[activeTab] !== undefined && (
+          <div className="encyclopedia-header-actions">{segmentHeaderActions[activeTab]}</div>
+        )}
         <Tabs.Content value={activeTab} className="encyclopedia-content">
           {renderSegment(activeTab)}
         </Tabs.Content>

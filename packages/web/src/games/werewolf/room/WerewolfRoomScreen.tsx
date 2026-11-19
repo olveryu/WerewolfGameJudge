@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
-import { gameGuidePath, gameNotepadPath } from '@/features/navigation/model/gamePaths';
+import { gameNotepadPath } from '@/features/navigation/model/gamePaths';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
@@ -32,12 +32,13 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
+import { BoardStrategyContent } from '@/games/werewolf/components/BoardStrategy/BoardStrategyContent';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
-import { BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy/BoardStrategyModal';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import { werewolfNominatePath } from '@/games/werewolf/navigation/werewolfConfigFlow';
+import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { TESTIDS } from '@/testids';
 import IconBulbOutline from '~icons/ion/bulb-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
@@ -131,6 +132,7 @@ function WerewolfRoomContent(
     setSkillPreviewRoleId(roleId);
   };
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
   // The list is a setup-only surface: leaving setup closes it by derivation.
@@ -159,6 +161,16 @@ function WerewolfRoomContent(
     <RoomShell
       model={shellModel}
       showPlayerHand={night.seatSelection === null}
+      manualEntries={[
+        {
+          label: '玩法',
+          testId: TESTIDS.roomEncyclopediaButton,
+          onOpen: () => setIsGuideOpen(true),
+        },
+        ...(matchedStrategyName === null
+          ? []
+          : [{ label: '攻略', onOpen: () => setStrategyBoardName(matchedStrategyName) }]),
+      ]}
       configurationEntry={
         useConfigurationDialog && night.seatSelection === null
           ? { onOpen: () => setIsConfigurationOpen(true) }
@@ -188,14 +200,7 @@ function WerewolfRoomContent(
           <RoomGameSummary
             title="狼人杀"
             playerCount={seatCount}
-            guide={{
-              onPress: () => void navigate(gameGuidePath('werewolf', roomCode)),
-              testId: TESTIDS.roomEncyclopediaButton,
-              label: '查看狼人杀玩法',
-            }}
-            onStrategyPress={
-              matchedStrategyName === null ? null : () => setStrategyBoardName(matchedStrategyName)
-            }
+            guide={null}
             onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
           >
             {!useConfigurationDialog && (
@@ -340,10 +345,26 @@ function WerewolfRoomContent(
             />
           )}
 
-          <BoardStrategyModal
-            boardName={strategyBoardName}
-            onClose={() => setStrategyBoardName(null)}
-          />
+          {isGuideOpen && (
+            <RoomDialog
+              title="狼人杀玩法"
+              onClose={() => setIsGuideOpen(false)}
+              allowEscape
+              footer={null}
+            >
+              <WerewolfEncyclopedia gameState={state} isHost={isHost} hasRoomContext />
+            </RoomDialog>
+          )}
+          {strategyBoardName !== null && (
+            <RoomDialog
+              title={`${strategyBoardName} · 攻略`}
+              onClose={() => setStrategyBoardName(null)}
+              allowEscape
+              footer={null}
+            >
+              <BoardStrategyContent boardName={strategyBoardName} />
+            </RoomDialog>
+          )}
         </>
       }
     />

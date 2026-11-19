@@ -22,6 +22,7 @@ export function RoomDialog({
   titleTestId,
   testId,
   isContentFlush = false,
+  allowEscape = false,
   onClose,
   children,
   footer,
@@ -32,6 +33,7 @@ export function RoomDialog({
   readonly testId?: string;
   /** Children print edge to edge (a full-bleed page) instead of inside the padded column. */
   readonly isContentFlush?: boolean;
+  readonly allowEscape?: boolean;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly footer: ReactNode;
@@ -47,6 +49,7 @@ export function RoomDialog({
       // layer stack records them as nested in that alert and would dismiss them when it closes.
       // Mounted means open: only the dialog's own close paths may close it.
       onRequestDismiss={(event) => event.preventDefault()}
+      {...(allowEscape ? { closeOnEscape: true, closeOnInteractOutside: false } : {})}
     >
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
