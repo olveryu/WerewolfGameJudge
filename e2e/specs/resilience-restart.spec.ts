@@ -106,7 +106,7 @@ test.describe('Resilience — Restart & Settings', () => {
       // Wait for save mode (edit config)
       const { ConfigPage } = await import('../pages/ConfigPage');
       const config = new ConfigPage(hostPage);
-      await config.waitForReady();
+      await config.waitForEditDialog();
 
       // Add 1 villager to go from 2 -> 3 players
       // Villager is a bulk-stepper role; use increase stepper

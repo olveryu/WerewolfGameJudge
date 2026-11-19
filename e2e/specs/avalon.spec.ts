@@ -816,7 +816,7 @@ test.describe('Avalon full game', () => {
       expect(goodSeats).toHaveLength(6);
 
       await test.step('房主开始游戏，进入夜晚坏人互认', async () => {
-        await rooms[0]!.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
+        await rooms[0]!.startGame();
         // 夜晚状态条是进度形态：第1步 / 共3步 · 坏人互认。
         const progress = hostPage.getByTestId(TESTIDS.roomProgressIndicator);
         await expect(progress).toContainText('第1步 / 共3步', { timeout: 15_000 });
