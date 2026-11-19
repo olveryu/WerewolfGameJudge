@@ -8,8 +8,7 @@
  * game ends, the flow continues through granting access and closing. The
  * host review action also requires confirmed night info and a current grant.
  * Per-user review completion is not yet persisted by this model.
- * Progress is pure client-local state (a `useScopedDraft` draft in
- * `useWerewolfRoomState`); it never enters room state.
+ * The last-night acknowledgement is persisted in the authoritative game state.
  *
  * The flow is rendered on the host task card (room-shell-contract "Host
  * Task"): steps come from here, the current step's sheet action is the

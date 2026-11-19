@@ -361,6 +361,9 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Previous night death seats[]; undefined before night-1. Computed by deathResolution on endNight. */
   lastNightDeaths?: number[];
 
+  /** The host acknowledged last-night information for this game. */
+  lastNightInfoConfirmed?: boolean;
+
   /** Previous night death reasons (seat -> cause) */
   deathReasons?: Readonly<Record<number, DeathReason>>;
 

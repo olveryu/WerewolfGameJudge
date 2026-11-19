@@ -431,6 +431,10 @@ export interface SetNightReviewAllowedSeatsAction {
   allowedSeats: number[];
 }
 
+export interface ConfirmLastNightInfoAction {
+  type: 'CONFIRM_LAST_NIGHT_INFO';
+}
+
 // =============================================================================
 // Piper groupConfirm ACK
 // =============================================================================
@@ -597,6 +601,7 @@ export type StateAction =
   | ClearPendingAudioEffectsAction
   // Detail sharing
   | SetNightReviewAllowedSeatsAction
+  | ConfirmLastNightInfoAction
   // Piper groupConfirm ACK
   | AddPiperRevealAckAction
   // Awakened Gargoyle groupConfirm ACK

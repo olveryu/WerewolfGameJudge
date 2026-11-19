@@ -97,6 +97,10 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     allowedSeats: z.array(z.number().int().nonnegative()).readonly(),
   }),
   z.strictObject({
+    type: z.literal('werewolf.lastNightInfo.confirm'),
+    gameSequence: z.number().int().nonnegative(),
+  }),
+  z.strictObject({
     type: z.literal('werewolf.board.nominate'),
     displayName: z.string().min(1),
     roles: z.array(roleIdSchema).readonly(),

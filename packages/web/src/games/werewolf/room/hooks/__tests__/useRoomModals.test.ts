@@ -27,7 +27,7 @@ function createDeps(
       throw new Error('Unexpected review grant');
     },
     isGameEnded: false,
-    onLastNightInfoConfirmed: () => undefined,
+    onLastNightInfoConfirmed: async () => true,
     ...overrides,
   };
 }
@@ -116,7 +116,7 @@ describe('useRoomModals last-night info confirmation', () => {
   }
 
   it('completes the flow only after the info has been viewed and acknowledged', () => {
-    const onLastNightInfoConfirmed = vi.fn();
+    const onLastNightInfoConfirmed = vi.fn(async () => true);
     const deps = createDeps({
       getLastNightInfo: () => '昨夜平安夜',
       onLastNightInfoConfirmed,
@@ -143,8 +143,8 @@ describe('useRoomModals last-night info confirmation', () => {
     expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
   });
 
-  it('offers the crow curse from the info dialog when a crow is on the board', () => {
-    const onLastNightInfoConfirmed = vi.fn();
+  it('offers the crow curse from the info dialog when a crow is on the board', async () => {
+    const onLastNightInfoConfirmed = vi.fn(async () => true);
     const deps = createDeps({
       getLastNightInfo: () => '昨夜平安夜',
       getCurseInfo: () => '3号被诅咒（放逐+1票）',
@@ -158,10 +158,37 @@ describe('useRoomModals last-night info confirmation', () => {
     const infoCall = mockShowAlert.mock.calls.find((call) => call[0] === '昨夜信息');
     expect(infoCall?.[2]?.map(({ text }) => text)).toEqual(['查看诅咒', '知道了']);
     expect(onLastNightInfoConfirmed).not.toHaveBeenCalled();
-    act(() => {
-      void infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
+    await act(async () => {
+      await infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
     });
     expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
+    expect(mockShowAlert).toHaveBeenCalledWith(
+      '乌鸦诅咒',
+      '3号被诅咒（放逐+1票）',
+      expect.anything(),
+    );
+  });
+
+  it('does not replace a failed acknowledgement with the curse dialog', async () => {
+    const { result } = renderHook(() =>
+      useRoomModals(
+        createDeps({
+          getCurseInfo: () => '诅咒',
+          onLastNightInfoConfirmed: async () => false,
+        }),
+      ),
+    );
+    act(() => result.current.showLastNightInfo());
+    pressLastNightInfoConfirm();
+    const infoCall = mockShowAlert.mock.calls.find((call) => call[0] === '昨夜信息');
+    await act(async () => {
+      await infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
+    });
+    expect(mockShowAlert).not.toHaveBeenCalledWith(
+      '乌鸦诅咒',
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('drops the election warning once the game has ended', () => {

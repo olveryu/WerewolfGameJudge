@@ -111,6 +111,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     resolvedWolfKillVerdict: undefined,
     resolvedNightEffects: [],
     lastNightDeaths: undefined,
+    lastNightInfoConfirmed: undefined,
     deathReasons: undefined,
     sheriffElection: undefined,
     sheriffElectionResult: undefined,

@@ -103,6 +103,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.bots.markAllBotsViewed':
     case 'werewolf.config.update':
     case 'werewolf.review.share':
+    case 'werewolf.lastNightInfo.confirm':
     case 'werewolf.board.nominate':
     case 'werewolf.board.upvote':
     case 'werewolf.board.withdraw':
@@ -309,6 +310,15 @@ function decideWerewolfCommandRules(
         buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
         commit: commitActions,
       });
+    }
+    case 'werewolf.lastNightInfo.confirm': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      if (state.gameSequence !== command.gameSequence) return reject('invalid_status');
+      if (state.status !== GameStatus.Day && state.status !== GameStatus.Ended) {
+        return reject('invalid_status');
+      }
+      return commitActions([{ type: 'CONFIRM_LAST_NIGHT_INFO' }]);
     }
     case 'werewolf.review.share': {
       const actor = resolveHostActor(state, context);

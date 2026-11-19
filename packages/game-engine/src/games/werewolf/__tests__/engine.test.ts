@@ -119,6 +119,73 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
+  it.each([GameStatus.Day, GameStatus.Ended])(
+    'persists last-night acknowledgement during %s and clears it on restart',
+    (status) => {
+      const state = createState({
+        status,
+        gameSequence: 4,
+        currentNightResults: {},
+        players: {
+          0: { seat: 0, role: 'wolf' },
+          1: { seat: 1, role: 'seer' },
+          2: { seat: 2, role: 'hunter' },
+          3: { seat: 3, role: 'villager' },
+        },
+        roster: {
+          0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+          1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+          2: { seat: 2, kind: 'bot' },
+          3: { seat: 3, kind: 'bot' },
+        },
+        ...(status === GameStatus.Day
+          ? {
+              rules: { isSheriffElectionEnabled: true },
+              sheriffElection: {
+                phase: 'registration',
+                registeredSeats: [],
+                withdrawnSeats: [],
+                completedRounds: [],
+              },
+            }
+          : {}),
+      });
+      const command: WerewolfCommand = { type: 'werewolf.lastNightInfo.confirm', gameSequence: 4 };
+      const confirmed = werewolfEngine.normalize(
+        evolveCommittedCommand(state, command, userContext('host')),
+      );
+      expect(confirmed.lastNightInfoConfirmed).toBe(true);
+      expect(
+        evolveCommittedCommand(confirmed, command, userContext('host')).lastNightInfoConfirmed,
+      ).toBe(true);
+      const restarted = evolveCommittedCommand(
+        { ...confirmed, status: GameStatus.Ended },
+        { type: 'werewolf.game.returnToLobby' },
+        userContext('host'),
+      );
+      expect(restarted.lastNightInfoConfirmed).toBeUndefined();
+      expect(restarted.gameSequence).toBe(5);
+      expect(
+        werewolfEngine.decide({ ...restarted, status }, command, userContext('host')).kind,
+      ).toBe('reject');
+    },
+  );
+
+  it('rejects last-night acknowledgement for unauthorized actors and earlier stages', () => {
+    const state = createState({ status: GameStatus.Day, gameSequence: 4 });
+    const command: WerewolfCommand = { type: 'werewolf.lastNightInfo.confirm', gameSequence: 4 };
+    expect(werewolfEngine.decide(state, command, userContext('user-1')).kind).toBe('reject');
+    expect(werewolfEngine.decide(state, command, userContext('host', 2)).kind).toBe('reject');
+    expect(werewolfEngine.decide(state, command, systemContext()).kind).toBe('reject');
+    expect(
+      werewolfEngine.decide({ ...state, status: GameStatus.Ongoing }, command, userContext('host'))
+        .kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')).kind,
+    ).toBe('reject');
+  });
+
   it.each([4, 6])('selects MVP once without restarting a %s-human game', (humanPlayerCount) => {
     let state = werewolfEngine.createInitialState(
       {
@@ -571,6 +638,7 @@ describe('Werewolf engine definition and catalog', () => {
       templateRoles: ['villager'],
     },
     'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
+    'werewolf.lastNightInfo.confirm': { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0 },
     'werewolf.board.nominate': {
       type: 'werewolf.board.nominate',
       displayName: 'Host',
@@ -671,6 +739,7 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.bots.markAllBotsViewed',
     'werewolf.config.update',
     'werewolf.review.share',
+    'werewolf.lastNightInfo.confirm',
     'werewolf.game.begin',
     'werewolf.sheriff.advance',
     'werewolf.audio.ack',
