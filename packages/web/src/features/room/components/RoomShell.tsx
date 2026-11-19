@@ -155,6 +155,7 @@ export function RoomShell({
   content,
   leadingExtraActions,
   trailingExtraActions,
+  configurationEntry,
   gameOverlays,
   profileDetailsRenderer,
 }: {
@@ -162,6 +163,7 @@ export function RoomShell({
   readonly content: RoomShellContent;
   readonly leadingExtraActions: ReactNode;
   readonly trailingExtraActions: ReactNode;
+  readonly configurationEntry?: { readonly onOpen: () => void } | null;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
   readonly profileDetailsRenderer?: (
@@ -273,6 +275,7 @@ export function RoomShell({
           isAudioPlaying={model.isAudioPlaying}
           hostManagement={hostManagement}
           onOpenMoreActions={openActionsPanel}
+          configurationEntry={configurationEntry}
         />
       )}
       {isActionsPanelShown && !isWideLayout && (

@@ -22,6 +22,7 @@ import { IconButton } from '@/components/IconButton';
 import { gameGuidePath, gameNotepadPath } from '@/features/navigation/model/gamePaths';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -130,6 +131,7 @@ function WerewolfRoomContent(
     setSkillPreviewRoleId(roleId);
   };
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+  const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const isSetup = isWerewolfSetup(status);
   // The list is a setup-only surface: leaving setup closes it by derivation.
   const [isNominationListRequested, setIsNominationListRequested] = useState(false);
@@ -141,12 +143,26 @@ function WerewolfRoomContent(
   const matchedStrategyName = matchStrategyBoard(state.templateRoles);
 
   const seatCount = viewModel.template.numberOfPlayers;
-  const isBoardCollapsed =
+  const useConfigurationDialog =
     status === GameStatus.Ongoing || status === GameStatus.Day || status === GameStatus.Ended;
+  const boardSections = createWerewolfBoardInfoSections(state.templateRoles);
+  const skillPreview = (
+    <RoleCardSimple
+      visible={skillPreviewRoleId !== null}
+      roleId={skillPreviewRoleId}
+      onClose={() => setSkillPreviewRoleId(null)}
+      showRealIdentity
+    />
+  );
 
   return (
     <RoomShell
       model={shellModel}
+      configurationEntry={
+        useConfigurationDialog && night.seatSelection === null
+          ? { onOpen: () => setIsConfigurationOpen(true) }
+          : null
+      }
       content={{
         kind: 'seats',
         contextHeader:
@@ -176,44 +192,45 @@ function WerewolfRoomContent(
               testId: TESTIDS.roomEncyclopediaButton,
               label: '查看狼人杀玩法',
             }}
-            collapsed={isBoardCollapsed}
             onStrategyPress={
               matchedStrategyName === null ? null : () => setStrategyBoardName(matchedStrategyName)
             }
             onNotepadPress={() => void navigate(gameNotepadPath('werewolf', roomCode))}
           >
-            <BoardInfoContent
-              sections={createWerewolfBoardInfoSections(state.templateRoles)}
-              onRolePress={openSkillPreview}
-              footer={
-                isSetup && (
-                  <>
-                    <button
-                      type="button"
-                      className="werewolf-nomination-button"
-                      onClick={() => void navigate(werewolfNominatePath(roomCode))}
-                    >
-                      {hasMyNomination ? (
-                        <IconCreateOutline aria-hidden />
-                      ) : (
-                        <IconBulbOutline aria-hidden />
-                      )}
-                      {hasMyNomination ? '修改建议' : '我来建议'}
-                    </button>
-                    {nominationCount > 0 && (
+            {!useConfigurationDialog && (
+              <BoardInfoContent
+                sections={boardSections}
+                onRolePress={openSkillPreview}
+                footer={
+                  isSetup && (
+                    <>
                       <button
                         type="button"
                         className="werewolf-nomination-button"
-                        onClick={() => setIsNominationListRequested(true)}
+                        onClick={() => void navigate(werewolfNominatePath(roomCode))}
                       >
-                        <IconListOutline aria-hidden />
-                        查看建议 ({nominationCount})
+                        {hasMyNomination ? (
+                          <IconCreateOutline aria-hidden />
+                        ) : (
+                          <IconBulbOutline aria-hidden />
+                        )}
+                        {hasMyNomination ? '修改建议' : '我来建议'}
                       </button>
-                    )}
-                  </>
-                )
-              }
-            />
+                      {nominationCount > 0 && (
+                        <button
+                          type="button"
+                          className="werewolf-nomination-button"
+                          onClick={() => setIsNominationListRequested(true)}
+                        >
+                          <IconListOutline aria-hidden />
+                          查看建议 ({nominationCount})
+                        </button>
+                      )}
+                    </>
+                  )
+                }
+              />
+            )}
           </RoomGameSummary>
         ),
         afterSeatBoard: null,
@@ -272,12 +289,23 @@ function WerewolfRoomContent(
             />
           )}
 
-          <RoleCardSimple
-            visible={skillPreviewRoleId !== null}
-            roleId={skillPreviewRoleId}
-            onClose={() => setSkillPreviewRoleId(null)}
-            showRealIdentity
-          />
+          {isConfigurationOpen && (
+            <RoomDialog
+              title="本局配置"
+              subtitle={`狼人杀（${seatCount}人）`}
+              onClose={() => setIsConfigurationOpen(false)}
+              footer={null}
+            >
+              <BoardInfoContent
+                sections={boardSections}
+                onRolePress={openSkillPreview}
+                footer={null}
+              />
+              {skillPreview}
+            </RoomDialog>
+          )}
+
+          {!isConfigurationOpen && skillPreview}
 
           {reviewAccess.overlay}
 
