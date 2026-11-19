@@ -156,6 +156,7 @@ export function RoomShell({
   leadingExtraActions,
   trailingExtraActions,
   configurationEntry,
+  showPlayerHand = false,
   gameOverlays,
   profileDetailsRenderer,
 }: {
@@ -164,6 +165,7 @@ export function RoomShell({
   readonly leadingExtraActions: ReactNode;
   readonly trailingExtraActions: ReactNode;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
+  readonly showPlayerHand?: boolean;
   readonly gameOverlays: ReactNode;
   /** Renders the profile card's game-specific stats section when the model carries gameDetails. */
   readonly profileDetailsRenderer?: (
@@ -176,9 +178,10 @@ export function RoomShell({
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
   const bottomActions = isStage ? null : model.bottomActions;
+  const panelPlayerActions = showPlayerHand ? null : bottomActions;
   const hasAdditionalPlayerActions =
-    bottomActions !== null &&
-    resolveRoomBottomActionPresentation(bottomActions).additionalActions.length > 0;
+    panelPlayerActions !== null &&
+    resolveRoomBottomActionPresentation(panelPlayerActions).additionalActions.length > 0;
   const canOpenActionsPanel = hostManagement !== null || hasAdditionalPlayerActions;
   if (isActionsPanelOpen && !canOpenActionsPanel) {
     setIsActionsPanelOpen(false);
@@ -194,7 +197,7 @@ export function RoomShell({
   const sideInspector = isActionsPanelShown ? (
     <RoomHostManagementPanel
       model={hostManagement}
-      bottomActions={bottomActions}
+      bottomActions={panelPlayerActions}
       presentation="inspector"
       onClose={closeActionsPanel}
       isAudioPlaying={model.isAudioPlaying}
@@ -276,12 +279,13 @@ export function RoomShell({
           hostManagement={hostManagement}
           onOpenMoreActions={openActionsPanel}
           configurationEntry={configurationEntry}
+          showPlayerHand={showPlayerHand}
         />
       )}
       {isActionsPanelShown && !isWideLayout && (
         <RoomHostManagementPanel
           model={hostManagement}
-          bottomActions={bottomActions}
+          bottomActions={panelPlayerActions}
           presentation="sheet"
           onClose={closeActionsPanel}
           isAudioPlaying={model.isAudioPlaying}

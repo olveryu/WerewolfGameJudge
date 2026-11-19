@@ -73,10 +73,7 @@ describe('Witch Compound Sequence', () => {
       await harness.pressPrimaryOnType('witchSavePrompt');
 
       const startId = TESTIDS.werewolfNightButton('startSeatSelection');
-      expect(view.queryByTestId(startId)).not.toBeInTheDocument();
-      expect(
-        view.getByTestId(TESTIDS.roomMoreActionsButton).getAttribute('data-player-action-ids'),
-      ).toContain(startId);
+      expect(view.getByTestId(startId)).toBeVisible();
       harness.clear();
       await draftSeatSelection(view, 2);
       expect(harness.events()).toEqual([]);

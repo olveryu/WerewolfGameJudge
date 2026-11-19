@@ -27,7 +27,15 @@ describe('Werewolf room configuration', () => {
 
   it('keeps the existing selection panel free of the configuration entry', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
+    const hand = within(view.getByRole('group', { name: '行动手牌' }));
+    expect(hand.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      '选择查验目标',
+      '不用技能',
+      '查看身份',
+      '本局配置',
+    ]);
     await startSeatSelection(view);
+    expect(view.queryByRole('group', { name: '行动手牌' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();

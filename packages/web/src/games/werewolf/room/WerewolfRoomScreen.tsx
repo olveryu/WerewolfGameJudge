@@ -158,6 +158,7 @@ function WerewolfRoomContent(
   return (
     <RoomShell
       model={shellModel}
+      showPlayerHand={night.seatSelection === null}
       configurationEntry={
         useConfigurationDialog && night.seatSelection === null
           ? { onOpen: () => setIsConfigurationOpen(true) }
