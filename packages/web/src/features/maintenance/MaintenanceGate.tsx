@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useEffect } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
@@ -13,6 +14,8 @@ import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
 const maintenanceLog = log.extend('Maintenance');
+const MAINTENANCE_RETRY_MS = 5_000;
+const MAINTENANCE_WARNING_ID = 'maintenance-status-unavailable';
 
 /** Check maintenance before mounting any database-backed player providers. */
 export function MaintenanceGate({ children }: { children: ReactNode }) {
@@ -20,13 +23,17 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
     queryKey: MAINTENANCE_QUERY_KEY,
     queryFn: ({ signal }) => fetchMaintenance(signal),
     meta: { authScope: 'application' },
-    refetchInterval: MAINTENANCE_POLL_MS,
+    refetchInterval: (query) =>
+      query.state.status === 'error' && query.state.data?.enabled === false
+        ? MAINTENANCE_RETRY_MS
+        : MAINTENANCE_POLL_MS,
     refetchOnWindowFocus: 'always',
     staleTime: 0,
     retry: false,
   });
   const endsAt = status.data?.enabled ? status.data.endsAt : null;
   const { refetch } = status;
+  const hasBackgroundError = status.isError && status.data?.enabled === false;
 
   useEffect(() => {
     if (endsAt === null) return;
@@ -55,6 +62,21 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
     });
   }, [status.error]);
 
+  useEffect(() => {
+    if (hasBackgroundError) {
+      toast.warning('暂时无法确认维护状态，正在重试', {
+        id: MAINTENANCE_WARNING_ID,
+        duration: Infinity,
+        closeButton: true,
+      });
+    } else {
+      toast.dismiss(MAINTENANCE_WARNING_ID);
+    }
+    return () => {
+      toast.dismiss(MAINTENANCE_WARNING_ID);
+    };
+  }, [hasBackgroundError]);
+
   if (status.data?.enabled) {
     return (
       <MaintenancePage
@@ -66,7 +88,7 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (status.isError) {
+  if (status.isError && status.data === undefined) {
     return (
       <section className="maintenance-page">
         <h1>暂时无法连接服务</h1>

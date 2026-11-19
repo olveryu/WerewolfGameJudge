@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,6 +17,7 @@ vi.mock('../maintenance', async (importOriginal) => ({
   fetchMaintenance: vi.fn(),
 }));
 vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { warning: vi.fn(), dismiss: vi.fn() } }));
 
 const configuration = {
   enabled: true,
@@ -22,13 +25,11 @@ const configuration = {
   endsAt: '2099-01-02T09:00:00+08:00',
 };
 
-function mountGate() {
+function mountGate(children: ReactNode = <p>游戏内容</p>) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const view = render(
     <QueryClientProvider client={client}>
-      <MaintenanceGate>
-        <p>游戏内容</p>
-      </MaintenanceGate>
+      <MaintenanceGate>{children}</MaintenanceGate>
     </QueryClientProvider>,
   );
   return { client, ...view };
@@ -94,6 +95,55 @@ describe('maintenance startup boundary', () => {
     expect(screen.queryByText('游戏内容')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
     expect(await screen.findByText('游戏内容')).toBeInTheDocument();
+  });
+
+  it('keeps unsent input mounted after a background failure and retries automatically', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchMaintenance)
+      .mockResolvedValueOnce({ ...configuration, enabled: false })
+      .mockRejectedValueOnce(new Error('Unavailable'))
+      .mockResolvedValue({ ...configuration, enabled: false });
+    const { client } = mountGate(<input aria-label="故事草稿" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    const input = screen.getByRole('textbox', { name: '故事草稿' });
+    fireEvent.change(input, { target: { value: '还未提交的故事' } });
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEY });
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(screen.getByRole('textbox', { name: '故事草稿' })).toBe(input);
+    expect(input).toHaveValue('还未提交的故事');
+    expect(toast.warning).toHaveBeenCalledWith(
+      '暂时无法确认维护状态，正在重试',
+      expect.objectContaining({ duration: Infinity, closeButton: true }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_001);
+    });
+    expect(fetchMaintenance).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole('textbox', { name: '故事草稿' })).toBe(input);
+    expect(input).toHaveValue('还未提交的故事');
+    client.clear();
+  });
+
+  it('still enters maintenance if a later retry confirms it', async () => {
+    vi.mocked(fetchMaintenance)
+      .mockResolvedValueOnce({ ...configuration, enabled: false })
+      .mockRejectedValueOnce(new Error('Unavailable'))
+      .mockResolvedValueOnce(configuration);
+    const { client } = mountGate();
+    expect(await screen.findByText('游戏内容')).toBeInTheDocument();
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEY });
+    });
+    expect(screen.getByText('游戏内容')).toBeInTheDocument();
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEY });
+    });
+    expect(await screen.findByRole('heading', { name: '系统维护中' })).toBeInTheDocument();
+    expect(screen.queryByText('游戏内容')).not.toBeInTheDocument();
   });
 
   it('rechecks the server at the deadline instead of waiting for the minute poll', async () => {

@@ -13,7 +13,7 @@ import {
   readPngSize,
   REVIEW_CAPTURE_TIMEOUT_MS,
 } from '../helpers/image-sharing';
-import { setOffline } from '../helpers/resilience';
+import { setOffline, setPageHidden } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -427,6 +427,23 @@ test('phase advances past the deadline with zero expire commands while every cli
     await test.step('start the round, then hold every client offline across the deadline', async () => {
       for (const page of fixture.pages)
         await expect(page.getByTestId(TESTIDS.storyRelayEditor)).toBeEditable();
+      const authorPage = fixture.pages[3]!;
+      await authorPage.getByTestId(TESTIDS.storyRelayEditor).fill('断线前的故事草稿');
+      let failedMaintenanceChecks = 0;
+      await authorPage.route(
+        '**/maintenance',
+        async (route) => {
+          failedMaintenanceChecks += 1;
+          await route.abort('failed');
+        },
+        { times: 1 },
+      );
+      await setPageHidden(authorPage, true);
+      await setPageHidden(authorPage, false);
+      await expect.poll(() => failedMaintenanceChecks).toBe(1);
+      await expect(authorPage.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue(
+        '断线前的故事草稿',
+      );
       // Offline, the link is not live, so no client's expiry gate can
       // fire; the 45-second deadline still passes on the server clock.
       // The hold is measured from the editor being editable, which
@@ -446,14 +463,26 @@ test('phase advances past the deadline with zero expire commands while every cli
       // happened server-side while every client was offline. Under D3
       // no expire can ever be sent, so the zero claim is NOT scoped to
       // the reconnect moment: the full observed list must be empty.
-      // Collection after reconnect is expected — clients submit their
-      // (empty) inputs — and is not acceleration.
-      await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
-        '上一段留白',
-        {
+      // Collection after reconnect submits the retained draft and the other
+      // players' empty inputs; it is not acceleration.
+      for (const page of fixture.pages) {
+        await expect(page.getByTestId(TESTIDS.storyRelayPreviousEntry)).toBeVisible({
           timeout: 60_000,
-        },
-      );
+        });
+      }
+      await expect
+        .poll(
+          async () => {
+            const previousEntries = await Promise.all(
+              fixture.pages.map((page) =>
+                page.getByTestId(TESTIDS.storyRelayPreviousEntry).innerText(),
+              ),
+            );
+            return previousEntries.filter((entry) => entry.includes('断线前的故事草稿')).length;
+          },
+          { timeout: 10_000 },
+        )
+        .toBe(1);
       const byPage = observations.map((observation) => observation.expires());
       await testInfo.attach('storyrelay-offline-expire-observation', {
         body: JSON.stringify({ reconnectedMs, byPage }),
