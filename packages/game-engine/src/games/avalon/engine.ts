@@ -183,8 +183,7 @@ function startGame(state: AvalonState, context: CommandContext): AvalonDecision 
     AVALON_REASONS.notHostStart,
   );
   if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
-    return reject(AVALON_REASONS.phase);
+  if (state.phase.kind !== 'lobby') return reject(AVALON_REASONS.phase);
   if (!isRoomFull(state.roster, state.config.numberOfPlayers)) return reject(AVALON_REASONS.full);
   const count = state.config.numberOfPlayers;
   const roles = dealAvalonRoles(count);
@@ -748,35 +747,6 @@ function earlyStrike(state: AvalonState, target: number, context: CommandContext
   return commitAvalon([event], state.xpSettled ? [] : completionEffects(state, [event], context));
 }
 
-/** Aborts an unfinished game without completion rewards or roster changes. */
-function abortGame(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
-    context,
-    state.hostUserId,
-    AVALON_REASONS.notHostAbort,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(AVALON_REASONS.phase);
-  const audioReason = guardAudioPlayback(state, AVALON_REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-  return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
-}
-
-function returnToLobby(state: AvalonState, context: CommandContext): AvalonDecision {
-  const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
-    context,
-    state.hostUserId,
-    AVALON_REASONS.notHostReturnToLobby,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'ended') return reject(AVALON_REASONS.phase);
-  // 播报未播完时阻塞回大厅，避免 orphan 音频队列（用户 2026-10-07 确认）。
-  const audioReason = guardAudioPlayback(state, AVALON_REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-  return commitAvalon([{ type: 'avalon.game.returnedToLobby' }]);
-}
-
 function restartGame(
   state: AvalonState,
   command: Extract<AvalonCommand, { readonly type: 'avalon.game.restart' }>,
@@ -840,8 +810,6 @@ function decideCommand(
       return startGame(state, context);
     case 'avalon.game.begin':
       return beginGame(state, context);
-    case 'avalon.game.abort':
-      return abortGame(state, context);
     case 'avalon.game.restart':
       return restartGame(state, command, context);
     case 'avalon.role.viewed':
@@ -885,8 +853,6 @@ function decideCommand(
       return accuseAssassin(state, command.seat, context);
     case 'avalon.assassin.earlyStrike':
       return earlyStrike(state, command.seat, context);
-    case 'avalon.game.returnToLobby':
-      return returnToLobby(state, context);
     case 'avalon.audio.ack':
       return ackAudio(state, command.audioBatchId, context);
     default:

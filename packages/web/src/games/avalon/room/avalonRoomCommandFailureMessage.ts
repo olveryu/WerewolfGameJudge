@@ -38,7 +38,6 @@ export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessag
     [AVALON_REASONS.notAssassinStrike]: '只有刺客可以刺杀',
     [AVALON_REASONS.noStrikeAtNight]: '晚上阶段不能刺杀',
     [AVALON_REASONS.cannotStrikeSelf]: '不能刺杀自己',
-    [AVALON_REASONS.notHostReturnToLobby]: '只有房主可以返回大厅',
     [AVALON_REASONS.occupied]: ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
     [AVALON_REASONS.invalidSeats]: '队员必须是已入座的玩家',
     [AVALON_REASONS.duplicateSeats]: '队员不能重复',

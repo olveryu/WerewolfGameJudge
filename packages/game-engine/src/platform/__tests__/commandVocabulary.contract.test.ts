@@ -54,13 +54,7 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'werewolf.game.restart',
     'werewolf.role.viewed',
   ],
-  avalon: [
-    'avalon.roles.assign',
-    'avalon.game.begin',
-    'avalon.game.restart',
-    'avalon.game.returnToLobby',
-    'avalon.role.viewed',
-  ],
+  avalon: ['avalon.roles.assign', 'avalon.game.begin', 'avalon.game.restart', 'avalon.role.viewed'],
   fibking: [
     'fibking.roles.assign',
     'fibking.game.begin',
