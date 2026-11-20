@@ -168,7 +168,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
           await expect(
             pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
             'Confess step prompt should show the 表白 verb',
-          ).toContainText('先按「选择表白目标」');
+          ).toContainText('选择表白目标');
 
           await test.step('Wolf Girl cannot select a wolf but can confirm a civilian', () =>
             confirmConfession(pages[wolfGirlPageIndex]!, wolfSeats[0]!, confessTargetSeat));

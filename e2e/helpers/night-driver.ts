@@ -783,6 +783,7 @@ export async function waitForGroupConfirmStep(
     for (const page of pages) {
       const statusButton = nightButton(page, 'groupConfirmAck');
       if (await statusButton.isVisible().catch(() => false)) {
+        await dismissAlert(page);
         await expect(statusButton).toHaveAccessibleName(statusButtonText);
         return;
       }
@@ -826,7 +827,7 @@ export async function driveGroupConfirmAck(
 
 /**
  * Dismiss the step prompt, then press a night button after asserting its
- * label. Resolve the visible action before dismissing its step prompt.
+ * label after dismissing its step prompt.
  */
 export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
   let button = nightButton(page, key);
@@ -843,9 +844,9 @@ export async function clickNightButton(page: Page, key: string, label: string): 
       : await new RoomPage(page).openHostManagement();
     button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
   }
+  await dismissAlert(page);
   await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
-  await dismissAlert(page);
   await button.click({ timeout: CLICK_TIMEOUT_MS });
   if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`clickNightButton — ${key} "${label}" clicked`);
