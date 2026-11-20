@@ -130,6 +130,7 @@ export class FibRoomPage extends RoomPage {
 
   async viewResult(): Promise<FibWordDetails> {
     await this.clickRoomAction(TESTIDS.fibViewResultButton);
+    await pressAlertButton(this.page, { title: '查看身份？', buttonIndex: 1, buttonLabel: '查看' });
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     await expect(modal).toBeVisible();
     await expect(modal.getByTestId(TESTIDS.fibIdentityRole)).toHaveText('公开结果');

@@ -235,7 +235,12 @@ function finishGovernment(
   return patch({
     ...basePatch,
     nextPresidentSeat: nextSeat,
-    phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
+    phase: {
+      kind: 'election',
+      presidentSeat: nextSeat,
+      returnToSeat: null,
+      preselectedChancellorSeat: null,
+    },
   });
 }
 
@@ -302,7 +307,12 @@ function chaosPolicy(
   return patch({
     ...basePatch,
     nextPresidentSeat: nextSeat,
-    phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
+    phase: {
+      kind: 'election',
+      presidentSeat: nextSeat,
+      returnToSeat: null,
+      preselectedChancellorSeat: null,
+    },
   });
 }
 
@@ -354,7 +364,12 @@ export function evaluateSecrethitlerNightCompletion(
     {
       type: 'secrethitler.gameplay.updated',
       patch: {
-        phase: { kind: 'election', presidentSeat: state.nextPresidentSeat, returnToSeat: null },
+        phase: {
+          kind: 'election',
+          presidentSeat: state.nextPresidentSeat,
+          returnToSeat: null,
+          preselectedChancellorSeat: null,
+        },
       },
     },
     {
@@ -383,7 +398,10 @@ function decideNightConfirm(
 
 function decideNomination(
   state: SecrethitlerState,
-  command: Extract<SecrethitlerCommand, { readonly type: 'secrethitler.government.nominate' }>,
+  command: Extract<
+    SecrethitlerCommand,
+    { readonly type: 'secrethitler.government.nominate' | 'secrethitler.government.preselect' }
+  >,
   context: CommandContext,
 ): SecrethitlerDecision {
   if (state.phase.kind !== 'election') return reject(SECRETHITLER_REASONS.phase);
@@ -399,6 +417,13 @@ function decideNomination(
     (state.livingSeats.length > 5 && state.lastPresidentSeat === chancellor)
   )
     return reject(SECRETHITLER_REASONS.nomination);
+  if (command.type === 'secrethitler.government.preselect') {
+    if (state.phase.preselectedChancellorSeat !== null)
+      return reject(SECRETHITLER_REASONS.preselection);
+    return patch({ phase: { ...state.phase, preselectedChancellorSeat: chancellor } });
+  }
+  if (state.phase.preselectedChancellorSeat === null)
+    return reject(SECRETHITLER_REASONS.preselection);
   const government = newGovernmentRecord(president, chancellor);
   return patch({
     phase: {
@@ -481,7 +506,12 @@ function settleVote(
       history,
       electionTracker: tracker,
       nextPresidentSeat: nextSeat,
-      phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
+      phase: {
+        kind: 'election',
+        presidentSeat: nextSeat,
+        returnToSeat: null,
+        preselectedChancellorSeat: null,
+      },
     });
   }
 
@@ -741,7 +771,12 @@ function resolveVeto(
     policyDiscard,
     electionTracker,
     nextPresidentSeat: nextSeat,
-    phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
+    phase: {
+      kind: 'election',
+      presidentSeat: nextSeat,
+      returnToSeat: null,
+      preselectedChancellorSeat: null,
+    },
   });
 }
 
@@ -800,7 +835,12 @@ function concludePower(
     ...changes,
     history,
     nextPresidentSeat: nextSeat,
-    phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
+    phase: {
+      kind: 'election',
+      presidentSeat: nextSeat,
+      returnToSeat: null,
+      preselectedChancellorSeat: null,
+    },
   });
 }
 
@@ -871,7 +911,12 @@ function decideSpecialElection(
   });
   return patch({
     history,
-    phase: { kind: 'election', presidentSeat: target, returnToSeat },
+    phase: {
+      kind: 'election',
+      presidentSeat: target,
+      returnToSeat,
+      preselectedChancellorSeat: null,
+    },
   });
 }
 
@@ -938,6 +983,7 @@ export function decideSecrethitlerGameplay(
     case 'secrethitler.night.confirm':
       return decideNightConfirm(state, command, context);
     case 'secrethitler.government.nominate':
+    case 'secrethitler.government.preselect':
       return decideNomination(state, command, context);
     case 'secrethitler.government.castVote':
       return decideVote(state, command, context);

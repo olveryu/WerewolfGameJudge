@@ -197,6 +197,10 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
           kind: 'election' as const,
           presidentSeat: parseSeat(raw.presidentSeat, `${path}.presidentSeat`),
           returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
+          preselectedChancellorSeat: nullableSeat(
+            raw.preselectedChancellorSeat,
+            `${path}.preselectedChancellorSeat`,
+          ),
         },
         path,
       );
@@ -386,8 +390,13 @@ export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerS
   const raw = parseObject(value, 'SecrethitlerState');
   if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
   const rawPhase = parseObject(raw.phase, 'SecrethitlerState.phase');
-  const upgradedPhase = rawPhase.kind === 'voting' ? { ...rawPhase, deadlineAt: null } : rawPhase;
-  if (raw.stateVersion === 4 || raw.stateVersion === 5)
+  const upgradedPhase =
+    rawPhase.kind === 'election'
+      ? { ...rawPhase, preselectedChancellorSeat: null }
+      : rawPhase.kind === 'voting' && raw.stateVersion !== 6
+        ? { ...rawPhase, deadlineAt: null }
+        : rawPhase;
+  if (raw.stateVersion === 4 || raw.stateVersion === 5 || raw.stateVersion === 6)
     return parseSecrethitlerState({
       ...raw,
       phase: upgradedPhase,
@@ -439,6 +448,7 @@ export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerS
             kind: 'election',
             presidentSeat: parseSeat(raw.nextPresidentSeat, 'SecrethitlerState.nextPresidentSeat'),
             returnToSeat: null,
+            preselectedChancellorSeat: null,
           },
     phaseRevision: parseInteger(raw.phaseRevision, 'SecrethitlerState.phaseRevision') + 1,
     pendingAudioEffects:

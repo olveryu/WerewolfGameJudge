@@ -45,6 +45,10 @@ function armedVote(): SecrethitlerState {
   const target = state.livingSeats.find((seat) => seat !== election.presidentSeat);
   if (target === undefined) throw new Error('Expected candidate');
   send(
+    { type: 'secrethitler.government.preselect', chancellorSeatId: target },
+    election.presidentSeat,
+  );
+  send(
     { type: 'secrethitler.government.nominate', chancellorSeatId: target },
     election.presidentSeat,
   );

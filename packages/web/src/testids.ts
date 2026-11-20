@@ -245,6 +245,11 @@ export const TESTIDS = {
 
   // Secret Hitler vote / policy cards
   secrethitlerVoteYes: 'secrethitler-vote-yes',
+  secrethitlerNominationModal: 'secrethitler-nomination-modal',
+  secrethitlerNominationCount: 'secrethitler-nomination-count',
+  secrethitlerNominationRow: (seat: number) => `secrethitler-nomination-row-${seat}`,
+  secrethitlerNominationCancel: 'secrethitler-nomination-cancel',
+  secrethitlerNominationConfirm: 'secrethitler-nomination-confirm',
   secrethitlerVoteNo: 'secrethitler-vote-no',
   secrethitlerPolicyCard: (
     action: 'discard' | 'enact',

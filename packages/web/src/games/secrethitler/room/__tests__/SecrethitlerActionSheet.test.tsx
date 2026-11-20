@@ -35,6 +35,60 @@ function props(state: SecrethitlerState, seat: number | null) {
   };
 }
 
+it('preselects an eligible chancellor and explains why the president cannot be selected', async () => {
+  const state = fixture('election');
+  if (state.phase.kind !== 'election') throw new Error('Expected election');
+  const input = props(state, state.phase.presidentSeat);
+  const candidate = input.viewModel.eligibleChancellorSeats[0];
+  if (candidate === undefined) throw new Error('Missing eligible candidate');
+  render(<SecrethitlerActionSheet screen={input} />);
+  expect(
+    screen.getByTestId(`secrethitler-nomination-row-${state.phase.presidentSeat}`),
+  ).toBeDisabled();
+  expect(screen.getByText('总统不能提名自己')).toBeVisible();
+  fireEvent.click(screen.getByTestId(`secrethitler-nomination-row-${candidate}`));
+  fireEvent.click(screen.getByTestId('secrethitler-nomination-confirm'));
+  expect(input.submit).toHaveBeenCalledWith(
+    '预选总理',
+    { type: 'secrethitler.government.preselect', chancellorSeatId: candidate },
+    { controlledSeat: state.phase.presidentSeat },
+  );
+  await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
+});
+
+it('starts final nomination with the preselection and preserves a failed submission for retry', async () => {
+  let state = fixture('election');
+  if (state.phase.kind !== 'election') throw new Error('Expected election');
+  const president = state.phase.presidentSeat;
+  const candidates = getSecrethitlerViewModel(state, president).eligibleChancellorSeats;
+  const first = candidates[0];
+  const second = candidates[1];
+  if (first === undefined || second === undefined) throw new Error('Expected two candidates');
+  state = sendSecrethitlerSeatCommand(state, president, {
+    type: 'secrethitler.government.preselect',
+    chancellorSeatId: first,
+  });
+  const input = props(state, president);
+  input.submit.mockResolvedValue(false);
+  render(<SecrethitlerActionSheet screen={input} />);
+  const firstRow = screen.getByTestId(`secrethitler-nomination-row-${first}`);
+  const secondRow = screen.getByTestId(`secrethitler-nomination-row-${second}`);
+  expect(firstRow).toHaveAttribute('aria-checked', 'true');
+  fireEvent.click(secondRow);
+  expect(secondRow).toHaveAttribute('aria-checked', 'false');
+  fireEvent.click(firstRow);
+  fireEvent.click(secondRow);
+  fireEvent.click(screen.getByTestId('secrethitler-nomination-confirm'));
+  await waitFor(() => expect(input.submit).toHaveBeenCalled());
+  expect(input.submit).toHaveBeenCalledWith(
+    '提名总理',
+    { type: 'secrethitler.government.nominate', chancellorSeatId: second },
+    { controlledSeat: president },
+  );
+  expect(input.closeAction).not.toHaveBeenCalled();
+  expect(secondRow).toHaveAttribute('aria-checked', 'true');
+});
+
 it('keeps 7–10 player Hitler and spectators out of the private recognition sheet', () => {
   let state = fixture('night');
   // The phase collector saves the opening night; advance to the recognition cue.

@@ -52,6 +52,10 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     step: z.number().int().min(1).max(1),
   }),
   z.strictObject({
+    type: z.literal('secrethitler.government.preselect'),
+    chancellorSeatId: z.number().int().min(0).max(9),
+  }),
+  z.strictObject({
     type: z.literal('secrethitler.government.nominate'),
     chancellorSeatId: z.number().int().min(0).max(9),
   }),

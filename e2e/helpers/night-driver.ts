@@ -808,7 +808,7 @@ export async function waitForGroupConfirmStep(
  * message, acknowledge it. Returns the personal message text.
  *
  * The ack button text is the reveal step's own confirmButtonText
- * (e.g. '我知道了' for the cupid reveal, '知道了' for piper and
+ * (e.g. '知道了' for the cupid reveal, piper and
  * wolf-girl reveals). The ack click is unconditional: a missing ack
  * button must fail the test, not pass silently. This is the single
  * implementation for groupConfirm reveal acks; the cupid, piper,

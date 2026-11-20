@@ -282,6 +282,15 @@ function assertPhaseState(state: SecrethitlerState): void {
   }
   if (state.phase.kind === 'election') {
     invariant(state.livingSeats.includes(state.phase.presidentSeat), 'election president');
+    const preselected = state.phase.preselectedChancellorSeat;
+    invariant(
+      preselected === null ||
+        (state.livingSeats.includes(preselected) &&
+          preselected !== state.phase.presidentSeat &&
+          preselected !== state.lastChancellorSeat &&
+          (state.livingSeats.length <= 5 || preselected !== state.lastPresidentSeat)),
+      'preselected chancellor',
+    );
     invariant(
       state.phase.returnToSeat === null || state.livingSeats.includes(state.phase.returnToSeat),
       'election return seat',

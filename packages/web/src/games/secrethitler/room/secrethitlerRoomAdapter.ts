@@ -123,7 +123,10 @@ export function createSecrethitlerSeatDataSource(
           ? [{ key: 'chancellor', label: '总理', tone: 'info' as const }]
           : []),
       ],
-      selection: null,
+      selection:
+        state.phase.kind === 'election' && state.phase.preselectedChancellorSeat === seat
+          ? { kind: 'preselected', label: '预选' }
+          : null,
       progressLabel:
         state.phase.kind !== 'lobby' && !state.livingSeats.includes(seat) ? '已处决' : null,
     }),

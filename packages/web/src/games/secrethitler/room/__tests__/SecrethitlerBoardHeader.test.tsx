@@ -335,7 +335,6 @@ it('automatically opens the acting president hand when reconnecting', () => {
 });
 
 it.each([
-  ['election', '提名总理', 'secrethitler.government.nominate'],
   ['investigate', '调查阵营', 'secrethitler.action.investigate'],
   ['specialElection', '特别选举', 'secrethitler.action.specialElection'],
   ['execute', '处决玩家', 'secrethitler.action.execute'],
@@ -343,7 +342,7 @@ it.each([
   'picks the %s target on the seat board before confirming',
   async (power, action, type) => {
     const states = buildSecrethitlerPhaseStates();
-    const base = states.get(power === 'election' ? 'election' : 'executive');
+    const base = states.get('executive');
     if (base === undefined) throw new Error('Missing president fixture');
     const state: SecrethitlerState = {
       ...base,
@@ -351,10 +350,7 @@ it.each([
       lastChancellorSeat: null,
       lastPresidentSeat: null,
       investigatedSeats: [],
-      phase:
-        power === 'election'
-          ? { kind: 'election', presidentSeat: 0, returnToSeat: null }
-          : { kind: 'executive', presidentSeat: 0, returnToSeat: null, power, preview: [] },
+      phase: { kind: 'executive', presidentSeat: 0, returnToSeat: null, power, preview: [] },
     };
     const confirmation = vi
       .spyOn(alertPresets, 'showConfirmAlert')
@@ -405,12 +401,7 @@ it.each([
       cause: 'network',
     });
     await act(async () => confirmation.mock.calls[0]?.[2]());
-    expect(session.dispatch).toHaveBeenCalledWith(
-      type === 'secrethitler.government.nominate'
-        ? { type, chancellorSeatId: 1 }
-        : { type, targetSeatId: 1 },
-      expect.anything(),
-    );
+    expect(session.dispatch).toHaveBeenCalledWith({ type, targetSeatId: 1 }, expect.anything());
     fireEvent.click(screen.getByRole('button', { name: '取消选座' }));
     await act(async () => confirmation.mock.calls[0]?.[2]());
     expect(session.dispatch).toHaveBeenCalledOnce();
