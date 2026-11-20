@@ -135,7 +135,11 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
   const hint = night.actorHint;
 
   if (hint?.bottomAction === 'skipOnly') {
-    return { kind: 'skipOnly', prompt, skipLabel: SKIP_CONFIRM_LABEL };
+    const lockedAction = resolveNightInteraction({
+      ...input,
+      viewModel: { ...viewModel, night: { ...night, actorHint: null } },
+    });
+    return { kind: 'skipOnly', prompt, skipLabel: SKIP_CONFIRM_LABEL, lockedAction };
   }
 
   switch (schema.kind) {
@@ -231,6 +235,8 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
         kind: 'witch',
         killedSeat: witchContext.killedSeat >= 0 ? witchContext.killedSeat : null,
         canSave: witchContext.killedSeat >= 0 && witchContext.canSave,
+        saveUnavailableReason:
+          witchContext.killedSeat === mySeat && !witchContext.canSave ? '当前无法自救' : null,
         canPoison: witchContext.canPoison,
         selectable: selectableSeats(viewModel),
         prompt: renderWitchPrompt(schema, witchContext),
@@ -288,7 +294,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
               prompt,
               dialog: { title: dialogTitle, text: statusUi.unavailableText },
               buttonLabel,
-              skipLabel: null,
+              skipLabel: statusUi.skipButtonText,
               isUnavailable: true,
             };
           }

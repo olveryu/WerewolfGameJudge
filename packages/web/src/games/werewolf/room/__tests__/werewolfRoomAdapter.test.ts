@@ -321,7 +321,7 @@ describe('createWerewolfBottomActionLayout', () => {
     const selecting = layoutFor(state, 3, false, { seatSelection: selection });
     expect(
       [...selecting.primary, ...selecting.secondary].map((button) => button.isPending),
-    ).toEqual([undefined, undefined]);
+    ).toEqual([undefined]);
   });
 
   it('marks skipping as pending when there are no eligible targets', () => {

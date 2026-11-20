@@ -124,12 +124,21 @@ function session() {
   const sendAsSeat = (command: AvalonPublicCommand, seat: number) =>
     send(command, seat === 0 ? null : seat);
   /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
-  const settle = () => {
+  const settle = (confirm = true) => {
     const phase = state.phase;
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
-    if (phase.kind === 'vote') send({ type: 'avalon.voteResult.confirm' });
+    if (confirm) {
+      const result = state.phase;
+      if (
+        (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
+        result.deadlineAt === null
+      )
+        throw new Error('expected result countdown');
+      nowMs = result.deadlineAt;
+      sendSystem({ type: 'avalon.phase.settleExpired' });
+    }
   };
   const ackAudio = () => {
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
@@ -176,7 +185,7 @@ function session() {
       );
       if (pick === undefined) throw new Error('no lady target available');
       sendAsSeat({ type: 'avalon.lady.check', seat: pick }, phase.holderSeat);
-      sendAsSeat({ type: 'avalon.lady.acknowledge' }, pick);
+      sendAsSeat({ type: 'avalon.lady.acknowledge' }, phase.holderSeat);
       ackAudio();
     },
     /** One quest round rigged to fail: an evil seat is always on the team and plays fail. */
@@ -463,6 +472,27 @@ describe('createAvalonHostManagement', () => {
     expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
       type: 'avalon.bots.markAllBotsGroupConfirmed',
     });
+  });
+
+  it('does not offer bot confirmations at the automatic vote result', () => {
+    submit.mockClear();
+    const game = session();
+    game.seatHost();
+    game.fill();
+    game.startToNominate();
+    if (game.state.phase.kind !== 'nominate') throw new Error('expected nominate');
+    const seats = Array.from({ length: game.state.phase.requiredSize }, (_, seat) => seat);
+    game.sendAsSeat({ type: 'avalon.team.preselect', seats }, game.state.leaderSeat);
+    game.sendAsSeat({ type: 'avalon.team.propose', seats }, game.state.leaderSeat);
+    for (let seat = 0; seat < PLAYER_COUNT; seat += 1) {
+      game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
+    }
+    game.settle(false);
+    expect(game.state.phase).toMatchObject({ kind: 'voteResult', confirmedSeats: [] });
+    const action = build(game.state, false)
+      ?.sections.flatMap((section) => section.actions)
+      .find((entry) => entry.key === 'mark-bots-confirmed');
+    expect(action).toBeUndefined();
   });
 
   it('pins the terminal panel on the shared builders after three failed quests', () => {

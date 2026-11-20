@@ -163,7 +163,7 @@ export interface AvalonViewModel {
   /** 对局记录（按轮）：含已开始的当前轮；大厅 / 查看 / 夜晚阶段为空。 */
   readonly roundHistory: readonly AvalonRoundRecordView[];
   readonly lady: AvalonLadyView | null;
-  /** 最近一次湖仙查验结果（目标座位 + 阵营），仅查验时的持有人可见。 */
+  /** 待确认的湖仙查验结果（目标座位 + 阵营），仅持有人可见。 */
   readonly ladyCheckResult: AvalonLadyCheckResultView | null;
   /** 已完成湖仙查验的公开历史，所有视角同值。 */
   readonly ladyHistory: readonly AvalonLadyCheckRecordView[];
@@ -212,7 +212,8 @@ function roundRecordViews(
     phase.kind === 'nominate' ||
     phase.kind === 'vote' ||
     phase.kind === 'voteResult' ||
-    phase.kind === 'quest'
+    phase.kind === 'quest' ||
+    phase.kind === 'questResult'
       ? phase.round
       : phase.kind === 'lady'
         ? phase.afterRound
@@ -371,14 +372,22 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
       examinedSeats: phase.examinedSeats,
       targetSeat: phase.targetSeat,
       canCheck: viewerSeat === phase.holderSeat && phase.targetSeat === null,
-      needsAcknowledge: viewerSeat === phase.targetSeat,
+      needsAcknowledge: phase.targetSeat !== null && viewerSeat === phase.holderSeat,
     };
   }
 
-  const lastCheck = state.lastLadyCheck;
-  const ladyCheckResult =
-    lastCheck !== null && viewerSeat === lastCheck.holderSeat
-      ? { targetSeat: lastCheck.targetSeat, faction: lastCheck.faction }
+  const pendingLadyTarget =
+    phase.kind === 'lady' && viewerSeat === phase.holderSeat ? phase.targetSeat : null;
+  const pendingLadyRole = pendingLadyTarget === null ? undefined : state.roles[pendingLadyTarget];
+  if (pendingLadyTarget !== null && pendingLadyRole === undefined) {
+    throw new Error('[FAIL-FAST] Avalon lady target has no role');
+  }
+  const ladyCheckResult: AvalonLadyCheckResultView | null =
+    pendingLadyTarget !== null && pendingLadyRole !== undefined
+      ? {
+          targetSeat: pendingLadyTarget,
+          faction: isAvalonEvilRole(pendingLadyRole) ? 'evil' : 'good',
+        }
       : null;
 
   // 投票结算面板：公投亮逐人投票，暗投只给汇总数量（D7）。

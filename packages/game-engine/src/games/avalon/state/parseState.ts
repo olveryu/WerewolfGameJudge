@@ -15,6 +15,7 @@ import {
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
 import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
+import { isBotSeat } from '../../../platform/room/seating';
 import { normalizeAvalonState } from './normalize';
 import {
   AVALON_BALLOTS,
@@ -296,6 +297,10 @@ function phase(value: unknown, path: string): AvalonPhase {
           round: questRound(raw.round, `${path}.round`),
           proposedSeats: parseArray(raw.proposedSeats, `${path}.proposedSeats`, parseSeat),
           confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
+          deadlineAt:
+            raw.deadlineAt === undefined
+              ? null
+              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -315,6 +320,20 @@ function phase(value: unknown, path: string): AvalonPhase {
           approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
           rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
           abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+        },
+        path,
+      );
+    case 'questResult':
+      return finishObject(
+        raw,
+        {
+          kind: 'questResult' as const,
+          round: questRound(raw.round, `${path}.round`),
+          confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
+          deadlineAt:
+            raw.deadlineAt === undefined
+              ? null
+              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -525,8 +544,18 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
   // now travels on preselect / propose. A persisted draft was never a
   // commitment, so it is dropped.
-  if (raw.stateVersion === 10 || raw.stateVersion === 11) {
-    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+  if (raw.stateVersion === 10 || raw.stateVersion === 11 || raw.stateVersion === 12) {
+    const migrated = parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
+    if (migrated.phase.kind !== 'voteResult') return migrated;
+    return parseAvalonState({
+      ...migrated,
+      phase: {
+        ...migrated.phase,
+        confirmedSeats: migrated.phase.confirmedSeats.filter(
+          (seat) => !isBotSeat(migrated.roster, seat),
+        ),
+      },
+    });
   }
   if (raw.stateVersion === 9) {
     return parseAvalonState({

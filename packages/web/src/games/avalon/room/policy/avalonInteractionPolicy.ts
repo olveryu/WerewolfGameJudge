@@ -111,8 +111,6 @@ export function resolveQuestInstruction(viewModel: AvalonViewModel): AvalonQuest
 
 export type AvalonLadyInstruction =
   | { readonly kind: 'holderPick'; readonly eligibleSeats: readonly number[] }
-  | { readonly kind: 'holderWait'; readonly targetSeat: number }
-  | { readonly kind: 'targetConfirm'; readonly holderSeat: number }
   | { readonly kind: 'watching'; readonly holderSeat: number; readonly targetSeat: number | null }
   | {
       readonly kind: 'result';
@@ -137,17 +135,17 @@ export function resolveLadyInstruction(viewModel: AvalonViewModel): AvalonLadyIn
   }
   const mySeat = viewModel.mySeat;
   const isHolder = mySeat !== null && mySeat === lady.holderSeat;
-  const isTarget = mySeat !== null && mySeat === lady.targetSeat;
   if (lady.canCheck && isHolder) {
     const eligibleSeats = viewModel.seats
       .map((seat) => seat.seat)
       .filter((seat) => seat !== lady.holderSeat && !lady.examinedSeats.includes(seat));
     return { kind: 'holderPick', eligibleSeats };
   }
-  if (lady.targetSeat !== null && isTarget)
-    return { kind: 'targetConfirm', holderSeat: lady.holderSeat };
-  if (lady.targetSeat !== null && isHolder)
-    return { kind: 'holderWait', targetSeat: lady.targetSeat };
+  if (lady.targetSeat !== null && isHolder) {
+    const result = viewModel.ladyCheckResult;
+    if (result === null) throw new Error('[FAIL-FAST] Avalon holder has no lady result');
+    return { kind: 'result', targetSeat: result.targetSeat, faction: result.faction };
+  }
   return { kind: 'watching', holderSeat: lady.holderSeat, targetSeat: lady.targetSeat };
 }
 

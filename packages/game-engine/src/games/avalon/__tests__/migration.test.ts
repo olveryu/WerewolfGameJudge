@@ -54,13 +54,22 @@ function dispatchSettle(state: AvalonState): AvalonState {
     },
   );
   if (decision.kind === 'reject') throw new Error(`Rejected settleExpired: ${decision.reason}`);
-  let settled = avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
-  if (settled.phase.kind === 'voteResult') {
-    for (const occupant of Object.values(
-      getHumanSeatMap(settled.roster, settled.config.numberOfPlayers),
-    )) {
-      settled = dispatch(settled, { type: 'avalon.voteResult.confirm' }, occupant.userId);
-    }
+  const settled = avalonEngine.normalize(decision.events.reduce(avalonEngine.evolve, state));
+  if (settled.phase.kind === 'voteResult' || settled.phase.kind === 'questResult') {
+    if (settled.phase.deadlineAt === null) throw new Error('expected result deadline');
+    const result = avalonEngine.decide(
+      settled,
+      { type: 'avalon.phase.settleExpired' },
+      {
+        actor: { kind: 'system', effectId: 'result-settle' },
+        controlledSeat: null,
+        nowMs: settled.phase.deadlineAt,
+        commandId: 'result-settle',
+        randomSeed: 'roles',
+      },
+    );
+    if (result.kind === 'reject') throw new Error(`Rejected result: ${result.reason}`);
+    return avalonEngine.normalize(result.events.reduce(avalonEngine.evolve, settled));
   }
   return settled;
 }
@@ -569,7 +578,7 @@ describe('Avalon v6 -> v7 lady-history migration', () => {
       (seat) => seat !== holder && !state.ladyExaminedSeats.includes(seat),
     )!;
     state = dispatch(state, { type: 'avalon.lady.check', seat: target }, actorOf(holder));
-    state = dispatch(state, { type: 'avalon.lady.acknowledge' }, actorOf(target));
+    state = dispatch(state, { type: 'avalon.lady.acknowledge' }, actorOf(holder));
     return { state, holder, target };
   }
 

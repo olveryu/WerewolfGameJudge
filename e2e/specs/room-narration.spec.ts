@@ -115,10 +115,10 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
             AUDIO_WAITING_LABEL,
           );
           await page.getByTestId(TESTIDS.avalonNightInfo).click();
+          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看信息？');
+          await page.getByTestId(TESTIDS.alertButton(1)).click();
           await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
           await page.getByTestId(TESTIDS.alertButton(0)).click();
-          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('确认已查看信息？');
-          await page.getByTestId(TESTIDS.alertButton(1)).click();
           await expect(page.getByTestId(TESTIDS.alertModal)).toBeHidden();
           await expect(page.getByTestId(TESTIDS.actionMessage)).toHaveCount(0);
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveText(

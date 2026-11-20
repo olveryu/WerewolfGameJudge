@@ -58,7 +58,13 @@ function session() {
   /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settlePhase = () => {
     const phase = state.phase;
-    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+    if (
+      (phase.kind !== 'vote' &&
+        phase.kind !== 'quest' &&
+        phase.kind !== 'voteResult' &&
+        phase.kind !== 'questResult') ||
+      phase.deadlineAt === null
+    ) {
       throw new Error('expected an armed vote or quest countdown');
     }
     nowMs = phase.deadlineAt;
@@ -95,9 +101,7 @@ function session() {
         send({ type: 'avalon.team.vote', vote: ballot }, userOf(seat));
       }
       settlePhase();
-      for (let seat = 0; seat < 5; seat += 1) {
-        send({ type: 'avalon.voteResult.confirm' }, userOf(seat));
-      }
+      settlePhase();
       return team;
     },
     /** Settles the in-flight quest; the first evil team member (if any) fails it. */

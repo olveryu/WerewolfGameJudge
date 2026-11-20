@@ -28,15 +28,15 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 
   | Game         | Current | `migratePersisted*State` accepts |
   | ------------ | ------- | -------------------------------- |
-  | werewolf     | 19      | 12, 13, 14, 15, 16, 17, 18       |
-  | avalon       | 11      | 1–10                             |
-  | fibking      | 8       | 5, 6, 7                          |
+  | werewolf     | 21      | 12–20                            |
+  | avalon       | 13      | 1–12                             |
+  | fibking      | 9       | 5, 6, 7, 8                       |
   | pictionary   | 11      | 8, 9, 10                         |
-  | undercover   | 6       | 1, 2, 3, 4, 5                    |
+  | undercover   | 7       | 1, 2, 3, 4, 5, 6                 |
   | storyrelay   | 4       | 1, 2, 3                          |
   | drawguess    | 5       | 1, 2, 3, 4                       |
   | spotmatch    | 2       | 1                                |
-  | secrethitler | 3       | 1–2                              |
+  | secrethitler | 6       | 1–5                              |
 
 - A strict parser rejects every other version. A migration function upgrades field by field, then runs the strict parser.
 - Persisted state is migrated at read time by the worker (see the worker file). The engine owns the per-version upgrade functions only.

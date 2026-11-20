@@ -25,7 +25,6 @@ import {
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
-import * as alerts from '@/utils/alert';
 
 import { SECRETHITLER_GUIDANCE_MATRIX } from '../secrethitlerGuidanceMatrix';
 import { secrethitlerInstruction } from '../secrethitlerPresentation';
@@ -110,6 +109,7 @@ function roomShellModel(
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
     openIdentity: vi.fn(),
     openAction: vi.fn(),
+    isSelecting: false,
     isSubmitting: false,
   });
 }
@@ -285,7 +285,7 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
     }
   });
 
-  it("keeps investigation results in the owning seat's private bottom action", () => {
+  it('does not offer investigation result replay after acknowledgement', () => {
     const state = phases.get('vetoResponse');
     const investigation = state?.lastInvestigation;
     if (state === undefined || investigation === null || investigation === undefined)
@@ -297,18 +297,10 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
       ownerSeat >= 2 ? ownerSeat : null,
     );
     if (owner.bottomActions.kind !== 'stacked') throw new Error('Expected stacked room actions');
-    const action = owner.bottomActions.layout.secondary.find(
-      (button) => button.key === 'investigation-result',
-    );
-    expect(action?.label).toBe('查看调查结果');
-    const showAlert = vi.spyOn(alerts, 'showAlert').mockImplementation(() => undefined);
-    if (action === undefined || !action.isEnabled) throw new Error('Missing investigation action');
-    action.onPress();
-    expect(showAlert).toHaveBeenCalledWith(
-      '私密调查结果',
-      expect.stringContaining(investigation.faction === 'liberal' ? '自由派' : '法西斯阵营'),
-      [{ text: '关闭', style: 'cancel' }],
-    );
+    expect(
+      owner.bottomActions.layout.secondary.some((button) => button.key === 'investigation-result'),
+    ).toBe(false);
+    expect(getSecrethitlerViewModel(state, ownerSeat).myInvestigation).toBeNull();
     for (const audience of ['host', 'seated', 'spectator'] as const) {
       if (audience === 'host' && ownerSeat === 0) continue;
       if (audience === 'seated' && ownerSeat === 1) continue;
@@ -318,6 +310,5 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
         false,
       );
     }
-    showAlert.mockRestore();
   });
 });

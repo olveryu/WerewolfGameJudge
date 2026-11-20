@@ -7,8 +7,9 @@ import type { ReactNode } from 'react';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
-import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { TESTIDS } from '@/testids';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -31,27 +32,32 @@ export function SecrethitlerActionSheet({
     'viewModel' | 'state' | 'submit' | 'controlledSeat' | 'closeAction' | 'isSubmitting'
   >;
 }) {
-  const confirmStageAction = useStageConfirmation(
-    `${screen.state.phaseRevision}:${screen.controlledSeat}`,
-  );
+  const { remainingSeconds } = useStageDeadline({
+    deadlineAt: screen.state.phase.kind === 'voting' ? screen.state.phase.deadlineAt : null,
+  });
   const view = screen.viewModel;
   if (view === null) return null;
   const instruction = secrethitlerInstruction(screen.state, view);
   if (instruction.action === null) return null;
+  const mustResolveHand =
+    screen.state.phase.kind === 'legislativePresident' ||
+    screen.state.phase.kind === 'legislativeChancellor';
+  const mustAcknowledgeInformation =
+    screen.state.phase.kind === 'night' ||
+    (screen.state.phase.kind === 'executive' && screen.state.phase.power === 'policyPeek');
+  const requireConfirmation = mustResolveHand || mustAcknowledgeInformation;
   const send = async (label: string, command: SecrethitlerCommand) => {
     if (await screen.submit(label, command, { controlledSeat: screen.controlledSeat }))
       screen.closeAction();
   };
-  const confirmAndSend = (label: string, command: SecrethitlerCommand) =>
-    confirmStageAction(`确认${instruction.action}？`, `本次选择：${label}`, () =>
-      send(label, command),
-    );
+  const confirm = (label: string, command: SecrethitlerCommand) =>
+    showConfirmAlert(`${label}？`, `确定${label}吗？`, () => send(label, command));
   const button = (label: string, command: SecrethitlerCommand, key = label) => (
     <Button
       key={key}
       variant="secondary"
       disabled={screen.isSubmitting}
-      onClick={() => confirmAndSend(label, command)}
+      onClick={() => void send(label, command)}
     >
       {label}
     </Button>
@@ -63,19 +69,8 @@ export function SecrethitlerActionSheet({
         <SecrethitlerNightRecognition
           view={view}
           isSubmitting={screen.isSubmitting}
-          onConfirm={() =>
-            confirmAndSend('确认信息', { type: 'secrethitler.night.confirm', step: 1 })
-          }
+          onConfirm={() => void send('确认信息', { type: 'secrethitler.night.confirm', step: 1 })}
         />
-      );
-      break;
-    case 'election':
-      content = view.eligibleChancellorSeats.map((seat) =>
-        button(
-          secrethitlerSeatLabel(view, seat),
-          { type: 'secrethitler.government.nominate', chancellorSeatId: seat },
-          String(seat),
-        ),
       );
       break;
     case 'voting':
@@ -83,14 +78,17 @@ export function SecrethitlerActionSheet({
         <>
           <p>
             当前选择：{view.myVote === null ? '尚未投票' : view.myVote === 'ja' ? '赞成' : '反对'}
-            。全员提交前可修改。
+            。揭晓前可修改。
           </p>
+          {remainingSeconds !== null && (
+            <p>{remainingSeconds > 0 ? `已全部投票，${remainingSeconds} 秒后揭晓` : '等待揭晓…'}</p>
+          )}
           <div className="choice-row">
             <ChoiceCard
               label="赞成"
               imageSrc={secrethitlerVoteYesImage}
               isSelected={view.myVote === 'ja'}
-              isDisabled={screen.isSubmitting}
+              isDisabled={screen.isSubmitting || remainingSeconds === 0}
               testId={TESTIDS.secrethitlerVoteYes}
               onClick={() =>
                 void send('赞成', { type: 'secrethitler.government.castVote', vote: 'ja' })
@@ -100,7 +98,7 @@ export function SecrethitlerActionSheet({
               label="反对"
               imageSrc={secrethitlerVoteNoImage}
               isSelected={view.myVote === 'nein'}
-              isDisabled={screen.isSubmitting}
+              isDisabled={screen.isSubmitting || remainingSeconds === 0}
               testId={TESTIDS.secrethitlerVoteNo}
               onClick={() =>
                 void send('反对', { type: 'secrethitler.government.castVote', vote: 'nein' })
@@ -133,13 +131,25 @@ export function SecrethitlerActionSheet({
                   }
                   isDisabled={screen.isSubmitting}
                   testId={TESTIDS.secrethitlerPolicyCard(action, policy, index)}
-                  onClick={() => void send(label, command)}
+                  onClick={() => confirm(label, command)}
                 />
               );
             })}
           </div>
-          {view.canRequestVeto &&
-            button('请求否决', { type: 'secrethitler.policy.chancellorResolve', action: 'veto' })}
+          {view.canRequestVeto && (
+            <Button
+              variant="secondary"
+              disabled={screen.isSubmitting}
+              onClick={() =>
+                confirm('请求否决', {
+                  type: 'secrethitler.policy.chancellorResolve',
+                  action: 'veto',
+                })
+              }
+            >
+              请求否决
+            </Button>
+          )}
         </>
       );
       break;
@@ -148,8 +158,24 @@ export function SecrethitlerActionSheet({
       content = (
         <>
           <p>同意将弃置两张政策并增加一次选举失败；拒绝后总理必须施行一张。</p>
-          {button('同意否决', { type: 'secrethitler.policy.vetoRespond', approve: true })}
-          {button('拒绝否决', { type: 'secrethitler.policy.vetoRespond', approve: false })}
+          <Button
+            variant="secondary"
+            disabled={screen.isSubmitting}
+            onClick={() =>
+              confirm('同意否决', { type: 'secrethitler.policy.vetoRespond', approve: true })
+            }
+          >
+            同意否决
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={screen.isSubmitting}
+            onClick={() =>
+              confirm('拒绝否决', { type: 'secrethitler.policy.vetoRespond', approve: false })
+            }
+          >
+            拒绝否决
+          </Button>
         </>
       );
       break;
@@ -174,52 +200,26 @@ export function SecrethitlerActionSheet({
                 />
               ))}
             </div>
-            {button('确认预览', { type: 'secrethitler.action.acknowledgePolicyPeek' })}
+            {button('知道了', { type: 'secrethitler.action.acknowledgePolicyPeek' })}
           </>
-        ) : (
-          view.livingSeats
-            .filter(
-              (seat) =>
-                seat !== view.presidentSeat &&
-                (power !== 'investigate' || !screen.state.investigatedSeats.includes(seat)),
-            )
-            .map((seat) => {
-              const label = secrethitlerSeatLabel(view, seat);
-              const command: SecrethitlerCommand =
-                power === 'investigate'
-                  ? { type: 'secrethitler.action.investigate', targetSeatId: seat }
-                  : power === 'specialElection'
-                    ? { type: 'secrethitler.action.specialElection', targetSeatId: seat }
-                    : { type: 'secrethitler.action.execute', targetSeatId: seat };
-              return (
-                <Button
-                  key={seat}
-                  variant={power === 'execute' ? 'danger' : 'secondary'}
-                  disabled={screen.isSubmitting}
-                  onClick={() =>
-                    confirmStageAction(
-                      instruction.action ?? '确认行动',
-                      `确定选择 ${label}？${power === 'execute' ? '处决不可撤销。' : ''}`,
-                      () => void send('总统行动', command),
-                    )
-                  }
-                >
-                  {label}
-                </Button>
-              );
-            })
-        );
+        ) : null;
       break;
     }
   }
   return (
-    <BottomSheet title={instruction.action} onClose={screen.closeAction}>
+    <BottomSheet
+      title={instruction.action}
+      onClose={screen.closeAction}
+      requireConfirmation={requireConfirmation}
+    >
       <div className="secrethitler-action-content">
         <h2>{instruction.action}</h2>
         {content}
-        <Button variant="ghost" onClick={screen.closeAction}>
-          关闭
-        </Button>
+        {!requireConfirmation && (
+          <Button variant="ghost" onClick={screen.closeAction}>
+            关闭
+          </Button>
+        )}
       </div>
     </BottomSheet>
   );
@@ -248,7 +248,7 @@ function SecrethitlerNightRecognition({
         <p>信息已确认</p>
       ) : (
         <Button variant="secondary" disabled={isSubmitting} onClick={onConfirm}>
-          确认信息
+          知道了
         </Button>
       )}
     </>

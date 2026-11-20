@@ -73,11 +73,14 @@ function session(humanCount: number) {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
-    if (phase.kind === 'vote') {
-      for (let seat = 0; seat < humanCount; seat += 1) {
-        send({ type: 'avalon.voteResult.confirm' }, seat === 0 ? 'host' : `u${seat}`);
-      }
-    }
+    const result = state.phase;
+    if (
+      (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
+      result.deadlineAt === null
+    )
+      throw new Error('expected result countdown');
+    nowMs = result.deadlineAt;
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   return {
     get state() {
@@ -168,8 +171,6 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onOpenQuestPress: vi.fn(),
     onPreselectTeamPress: vi.fn(),
     onProposeTeamPress: vi.fn(),
-    onLadyAcknowledgePress: vi.fn(),
-    onLadyResultPress: vi.fn(),
     onEarlyStrikePress: vi.fn(),
     review: null,
     strikePickMode: false,
@@ -515,11 +516,14 @@ function ninePlayerDaytimeSession(): RunningSession {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
-    if (phase.kind === 'vote') {
-      for (let seat = 0; seat < 9; seat += 1) {
-        send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
-      }
-    }
+    const result = state.phase;
+    if (
+      (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
+      result.deadlineAt === null
+    )
+      throw new Error('expected result countdown');
+    nowMs = result.deadlineAt;
+    sendSystem({ type: 'avalon.phase.settleExpired' });
   };
   return {
     get state() {
@@ -606,7 +610,7 @@ function completeLadyIfPresent(running: RunningSession) {
   const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
   if (target === undefined) throw new Error('no eligible lady target');
   running.send({ type: 'avalon.lady.check', seat: target }, seatUser(holderSeat));
-  running.send({ type: 'avalon.lady.acknowledge' }, seatUser(target));
+  running.send({ type: 'avalon.lady.acknowledge' }, seatUser(holderSeat));
   return { holderSeat, target };
 }
 
@@ -795,7 +799,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBeNull();
   });
 
-  it('lady: holder guidance, target acknowledge button, and a holder-only result reopen', () => {
+  it('lady: holder sees the result, target waits, and the result remains private', () => {
     const running = ninePlayerDaytimeSession();
     playQuestRound(running);
     playQuestRound(running);
@@ -808,28 +812,13 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
     if (target === undefined) throw new Error('no eligible lady target');
     running.send({ type: 'avalon.lady.check', seat: target }, seatUser(holderSeat));
-    const onLadyAcknowledgePress = vi.fn();
-    const targetBottom = shellFor(running, target, { onLadyAcknowledgePress });
-    expect(targetBottom.message).toContain('要查验你的阵营');
-    const ack = findStageAction(targetBottom, 'ladyAcknowledge');
-    expect(ack).toMatchObject({
-      label: '查看查验请求',
-      isEnabled: true,
-      isPending: true,
-      testID: 'avalon-lady-acknowledge-open',
-    });
-    expect(findTierAction(targetBottom, 'primary', 'ladyAcknowledge')).toBe(ack);
-    if (ack && ack.isEnabled) ack.onPress();
-    expect(onLadyAcknowledgePress).toHaveBeenCalledTimes(1);
-    running.send({ type: 'avalon.lady.acknowledge' }, seatUser(target));
+    const targetBottom = shellFor(running, target);
+    expect(targetBottom.message).toContain('等待持有人确认结果');
+    expect(findStageAction(targetBottom, 'ladyAcknowledge')).toBeUndefined();
+    expect(findStageAction(shellFor(running, holderSeat), 'ladyResult')).toBeUndefined();
+    running.send({ type: 'avalon.lady.acknowledge' }, seatUser(holderSeat));
     const holderAfter = shellFor(running, holderSeat);
-    expect(findStageAction(holderAfter, 'ladyResult')).toMatchObject({
-      label: '查验结果',
-      testID: 'avalon-lady-result-open',
-    });
-    // Tier ownership: the result reopen is a follow-up — secondary tier.
-    expect(findTierAction(holderAfter, 'secondary', 'ladyResult')).toBeDefined();
-    expect(findTierAction(holderAfter, 'primary', 'ladyResult')).toBeUndefined();
+    expect(findStageAction(holderAfter, 'ladyResult')).toBeUndefined();
     const targetAfter = shellFor(running, target);
     expect(findStageAction(targetAfter, 'ladyResult')).toBeUndefined();
   });
@@ -925,7 +914,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     const other = seats.find((seat) => seat !== holderSeat && seat !== target);
     if (other === undefined) throw new Error('expected another bystander seat');
     expect(shellFor(running, other).message).toBe(
-      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待对方确认`,
+      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待持有人确认结果`,
     );
   });
 

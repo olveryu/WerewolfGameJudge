@@ -46,7 +46,6 @@ export {
   renderWerewolfRoom,
   requireBottomActionText,
   requireEmptyVoteText,
-  seatSelectionSubmitButton,
   startSeatSelection,
   type SubmitActionMock,
   submitSeatSelection,

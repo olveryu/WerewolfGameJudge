@@ -15,18 +15,33 @@ export function AvalonLadyResultModal({
   targetName,
   faction,
   onClose,
+  requireConfirmation = false,
+  isSubmitting = false,
 }: {
   readonly targetName: string;
   readonly faction: 'good' | 'evil';
   readonly onClose: () => void;
+  readonly requireConfirmation?: boolean;
+  readonly isSubmitting?: boolean;
 }) {
   return (
-    <CenterDialog open onClose={onClose} title="查验结果" testId={TESTIDS.avalonLadyResultModal}>
+    <CenterDialog
+      open
+      onClose={onClose}
+      title="查验结果"
+      testId={TESTIDS.avalonLadyResultModal}
+      requireConfirmation={requireConfirmation}
+    >
       <p className="avalon-dialog-body" data-testid={TESTIDS.avalonLadyResultText}>
         {targetName} 是{getAvalonCheckedFactionDisplayName(faction)}人。
       </p>
       <p className="avalon-dialog-hint">查验结果只有你能看到，可在讨论中透露、隐瞒或误导。</p>
-      <Button size="lg" onClick={onClose} data-testid={TESTIDS.avalonLadyResultClose}>
+      <Button
+        size="lg"
+        onClick={onClose}
+        loading={isSubmitting}
+        data-testid={TESTIDS.avalonLadyResultClose}
+      >
         知道了
       </Button>
     </CenterDialog>

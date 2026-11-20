@@ -1,7 +1,7 @@
-/** 任务结算面板：结论横幅 + 成功/失败牌数 + 6 秒自动关闭 + 手动关闭。 */
+/** 任务结算面板：结论横幅、成功/失败牌数及确认。 */
 
 import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalon/public';
-import { act, fireEvent, render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 
 import { AvalonQuestResultPanel } from '../AvalonQuestResultPanel';
 
@@ -19,9 +19,8 @@ const ENTRY: AvalonQuestHistoryView = {
 };
 
 function renderPanel(entry: AvalonQuestHistoryView = ENTRY) {
-  const onClose = vi.fn();
-  const utils = render(<AvalonQuestResultPanel entry={entry} onClose={onClose} />);
-  return { ...utils, onClose };
+  const utils = render(<AvalonQuestResultPanel entry={entry} remainingSeconds={3} />);
+  return utils;
 }
 
 describe('AvalonQuestResultPanel', () => {
@@ -67,19 +66,11 @@ describe('AvalonQuestResultPanel', () => {
     expect(getByTestId('avalon-quest-result-banner')).toHaveTextContent('第 2 轮 · 任务成功');
   });
 
-  it('closes from the button and automatically after 6 seconds', () => {
-    vi.useFakeTimers();
-    try {
-      const first = renderPanel();
-      fireEvent.click(first.getByTestId('avalon-quest-result-close'));
-      expect(first.onClose).toHaveBeenCalledTimes(1);
-      const second = renderPanel();
-      act(() => {
-        vi.advanceTimersByTime(6000);
-      });
-      expect(second.onClose).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.useRealTimers();
-    }
+  it('shows the remaining time without a dismiss action', () => {
+    const panel = renderPanel();
+    expect(panel.getByText('3 秒后继续')).toBeVisible();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(panel.getByTestId('avalon-quest-result-panel')).toBeVisible();
+    expect(panel.queryByRole('button', { name: '知道了' })).toBeNull();
   });
 });

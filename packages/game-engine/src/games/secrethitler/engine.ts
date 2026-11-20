@@ -331,7 +331,7 @@ export const secrethitlerEngine = {
     botsAndTakeover: true,
     identityViewing: true,
     revealAnimation: true,
-    stageDeadline: false,
+    stageDeadline: true,
     audioOrchestration: true,
     wordLibrary: false,
     gallery: false,

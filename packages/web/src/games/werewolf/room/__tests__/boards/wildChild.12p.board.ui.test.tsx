@@ -135,11 +135,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     expect(action).toHaveAccessibleDescription('有待处理操作');
 
     await startSeatSelection(view);
-    expect(
-      view
-        .getByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))
-        .querySelector('.bottom-action-pending'),
-    ).toBeNull();
+    expect(view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))).toBeNull();
     expect(
       view
         .getByTestId(TESTIDS.werewolfNightButton('cancelSeatSelection'))

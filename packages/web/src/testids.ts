@@ -284,6 +284,9 @@ export const TESTIDS = {
   sheriffAbstainChip: (round: string, voterSeat: number) =>
     `sheriff-abstain-chip-${round}-${voterSeat}`,
   sheriffElectionResult: 'sheriff-election-result',
+  sheriffResultDialog: 'sheriff-result-dialog',
+  werewolfNotepadButton: 'werewolf-notepad-button',
+  werewolfNotepadVoteNotes: 'werewolf-notepad-vote-notes',
 
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',

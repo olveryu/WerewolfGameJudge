@@ -209,6 +209,8 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
           chancellorSeat: parseSeat(raw.chancellorSeat, `${path}.chancellorSeat`),
           returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
           votes: voteMap(raw.votes, `${path}.votes`),
+          deadlineAt:
+            raw.deadlineAt === null ? null : parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
         },
         path,
       );
@@ -247,6 +249,43 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
           returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
           power: parseChoice(raw.power, `${path}.power`, POWERS),
           preview: policies(raw.preview, `${path}.preview`),
+        },
+        path,
+      );
+    case 'publicResult': {
+      const previous = phase(raw.previous, `${path}.previous`);
+      if (
+        previous.kind !== 'voting' &&
+        previous.kind !== 'legislativeChancellor' &&
+        previous.kind !== 'vetoResponse'
+      )
+        failDecode(`${path}.previous`, 'a result-producing phase');
+      return finishObject(
+        raw,
+        {
+          kind: 'publicResult' as const,
+          previous,
+          policy: raw.policy === null ? null : parseChoice(raw.policy, `${path}.policy`, FACTIONS),
+          vetoApproved:
+            raw.vetoApproved === null
+              ? null
+              : parseBoolean(raw.vetoApproved, `${path}.vetoApproved`),
+          chaosPolicy:
+            raw.chaosPolicy === null
+              ? null
+              : parseChoice(raw.chaosPolicy, `${path}.chaosPolicy`, FACTIONS),
+          deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
+        },
+        path,
+      );
+    }
+    case 'investigationResult':
+      return finishObject(
+        raw,
+        {
+          kind: 'investigationResult' as const,
+          presidentSeat: parseSeat(raw.presidentSeat, `${path}.presidentSeat`),
+          returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
         },
         path,
       );
@@ -346,17 +385,27 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
 export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
   const raw = parseObject(value, 'SecrethitlerState');
   if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
+  const rawPhase = parseObject(raw.phase, 'SecrethitlerState.phase');
+  const upgradedPhase = rawPhase.kind === 'voting' ? { ...rawPhase, deadlineAt: null } : rawPhase;
+  if (raw.stateVersion === 4 || raw.stateVersion === 5)
+    return parseSecrethitlerState({
+      ...raw,
+      phase: upgradedPhase,
+      stateVersion: SECRETHITLER_STATE_VERSION,
+    });
   if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
     return parseSecrethitlerState(raw);
   if (raw.stateVersion === 3)
     return parseSecrethitlerState({
       ...raw,
+      phase: upgradedPhase,
       stateVersion: SECRETHITLER_STATE_VERSION,
       reviewCompletedUserIds: [],
     });
   const rawConfig = parseObject(raw.config, 'SecrethitlerState.config');
   const upgraded = {
     ...raw,
+    phase: upgradedPhase,
     stateVersion: SECRETHITLER_STATE_VERSION,
     reviewCompletedUserIds: [],
     config: {
@@ -366,7 +415,7 @@ export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerS
     },
   };
   if (raw.stateVersion === 2) return parseSecrethitlerState(upgraded);
-  const previousPhase = phase(raw.phase, 'SecrethitlerState.phase');
+  const previousPhase = phase(upgradedPhase, 'SecrethitlerState.phase');
   if (previousPhase.kind !== 'night' || previousPhase.step === 1)
     return parseSecrethitlerState(upgraded);
   if (![0, 2, 3].includes(previousPhase.step) || previousPhase.confirmedSeats.length !== 0)

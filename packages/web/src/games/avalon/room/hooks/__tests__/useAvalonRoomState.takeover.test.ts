@@ -234,6 +234,16 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     await act(async () => {
       viewRole.onPress();
     });
+    const confirmation = alertStore.getSnapshot();
+    if (confirmation === null) throw new Error('expected role viewing confirmation');
+    await act(async () => {
+      await confirmation.buttons.find((button) => button.text === '查看')?.onPress?.();
+      dismissAlert(confirmation.generation);
+    });
+    expect(dispatch).not.toHaveBeenCalled();
+    await act(async () => {
+      result.current.roleViewing.close();
+    });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.role.viewed' },
       expect.objectContaining({ controlledSeat: 3 }),

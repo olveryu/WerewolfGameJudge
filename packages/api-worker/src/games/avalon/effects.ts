@@ -26,7 +26,7 @@ const settleDueEffectSchema = z.strictObject({
   type: z.literal('avalon.settle.due'),
   payload: z.strictObject({
     gameSequence: z.int().nonnegative(),
-    phase: z.enum(['vote', 'quest']),
+    phase: z.enum(['vote', 'quest', 'voteResult', 'questResult']),
     round: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
     deadlineAt: z.int().nonnegative(),
   }),
@@ -70,7 +70,10 @@ const handleAvalonSettleDueEffect = createSettleDueHandler<
     const phase = state.phase;
     return (
       state.gameSequence === payload.gameSequence &&
-      (phase.kind === 'vote' || phase.kind === 'quest') &&
+      (phase.kind === 'vote' ||
+        phase.kind === 'quest' ||
+        phase.kind === 'voteResult' ||
+        phase.kind === 'questResult') &&
       phase.kind === payload.phase &&
       phase.round === payload.round &&
       phase.deadlineAt === payload.deadlineAt

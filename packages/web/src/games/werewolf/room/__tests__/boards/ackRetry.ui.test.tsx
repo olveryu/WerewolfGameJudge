@@ -9,13 +9,11 @@ import { toast } from 'sonner';
 
 import {
   cancelSeatSelection,
-  click,
   createWerewolfRoomMock,
   draftSeatSelection,
   mountWerewolfRoom,
   recordAlerts,
   RoomScreenTestHarness,
-  seatSelectionSubmitButton,
   type SubmitActionMock,
   type WerewolfDispatchOutcome,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -97,16 +95,13 @@ describe('night dialog retry on transport failure', () => {
     );
     harness.clear();
     await draftSeatSelection(view, 1);
-    const draftLabel = seatSelectionSubmitButton(view).textContent;
-    await click(seatSelectionSubmitButton(view));
     const eventsBefore = harness.events().length;
     await expect(harness.pressAndSettle('actionConfirm')).rejects.toMatchObject({
       name: 'RoomCommandUndeliveredError',
     });
     expect(harness.events()).toHaveLength(eventsBefore);
     expect(toast.error).toHaveBeenCalledOnce();
-    expect(seatSelectionSubmitButton(view)).toHaveTextContent(draftLabel);
-    expect(seatSelectionSubmitButton(view)).toBeEnabled();
+    expect(harness.getLastEvent()?.message).toContain('2号');
 
     await harness.pressAndSettle('actionConfirm');
     await waitFor(() => expect(harness.events()).toHaveLength(eventsBefore + 1));
@@ -136,7 +131,6 @@ describe('night dialog retry on transport failure', () => {
     );
     harness.clear();
     await draftSeatSelection(view, 1);
-    await click(seatSelectionSubmitButton(view));
     const pending = harness.pressAndSettle('actionConfirm');
     await waitFor(() => expect(submitAction).toHaveBeenCalledOnce());
     await act(async () => {

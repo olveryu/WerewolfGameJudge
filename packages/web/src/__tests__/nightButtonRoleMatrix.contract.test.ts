@@ -77,10 +77,7 @@ function expectedButtonLabels(roleId: string, schemaId: SchemaId): readonly [str
     }
     case 'confirm': {
       const statusUi = schema.ui?.confirmStatusUi;
-      const secondary =
-        statusUi?.kind === 'infection'
-          ? `—; ${statusUi.skipButtonText} is inside the status dialog`
-          : '—';
+      const secondary = statusUi?.kind === 'infection' ? statusUi.skipButtonText : '—';
       return [requireSchemaText(schema.ui?.bottomActionText, 'bottomActionText'), secondary];
     }
     case 'groupConfirm':

@@ -197,7 +197,7 @@ describe('resolveLadyInstruction', () => {
     expect(instruction).toEqual({ kind: 'holderPick', eligibleSeats: [0, 2, 4] });
   });
 
-  it('prompts the target to confirm', () => {
+  it('does not ask the checked target to acknowledge', () => {
     expect(
       resolveLadyInstruction(
         baseViewModel({
@@ -208,14 +208,14 @@ describe('resolveLadyInstruction', () => {
             examinedSeats: [1],
             targetSeat: 2,
             canCheck: false,
-            needsAcknowledge: true,
+            needsAcknowledge: false,
           },
         }),
       ),
-    ).toEqual({ kind: 'targetConfirm', holderSeat: 1 });
+    ).toEqual({ kind: 'watching', holderSeat: 1, targetSeat: 2 });
   });
 
-  it('shows holderWait to the holder once a target is chosen', () => {
+  it('shows the result to the holder once a target is chosen', () => {
     expect(
       resolveLadyInstruction(
         baseViewModel({
@@ -226,11 +226,12 @@ describe('resolveLadyInstruction', () => {
             examinedSeats: [1],
             targetSeat: 2,
             canCheck: false,
-            needsAcknowledge: false,
+            needsAcknowledge: true,
           },
+          ladyCheckResult: { targetSeat: 2, faction: 'evil' },
         }),
       ),
-    ).toEqual({ kind: 'holderWait', targetSeat: 2 });
+    ).toEqual({ kind: 'result', targetSeat: 2, faction: 'evil' });
   });
 
   it('shows watching (not holderWait) to spectators once a target is chosen', () => {

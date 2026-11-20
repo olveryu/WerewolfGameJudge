@@ -409,7 +409,7 @@ describe('createWerewolfHostManagement', () => {
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
       expect(model.task).toMatchObject({
         kind: 'choice',
-        actionKeys: ['last-night-info', 'grant-review'],
+        actionKeys: ['sheriff-self-destruct', 'last-night-info', 'grant-review'],
       });
       expect(model.task).not.toHaveProperty('note');
       const confirmed = createWerewolfHostManagement(
@@ -420,7 +420,10 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      expect(confirmed.task).toEqual({ kind: 'action', actionKey: 'grant-review' });
+      expect(confirmed.task).toEqual({
+        kind: 'choice',
+        actionKeys: ['sheriff-self-destruct', 'grant-review'],
+      });
     },
   );
 
@@ -448,9 +451,10 @@ describe('createWerewolfHostManagement', () => {
   it.each([
     ['candidateSpeech', true],
     ['runoffSpeech', true],
-    ['firstVote', false],
-    ['runoffVote', false],
-  ] as const)('shows self-destruct only during sheriff speech phase %s', (phase, isVisible) => {
+    ['firstVote', true],
+    ['runoffVote', true],
+    ['result', false],
+  ] as const)('shows self-destruct only before the result during %s', (phase, isVisible) => {
     const requestEndBySelfDestruct = vi.fn();
     const sheriffElection = createSheriffElection(
       { phase, advanceLabel: '推进竞选' },

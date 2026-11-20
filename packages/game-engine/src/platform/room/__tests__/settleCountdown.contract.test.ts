@@ -114,7 +114,14 @@ const gamesDirectory = path.resolve(__dirname, '..', '..', '..', 'games');
 const relayTasksPath = path.resolve(__dirname, '..', 'relay', 'tasks.ts');
 
 type SettleCountdownAccessPointId =
-  'werewolf:wolf-vote' | 'werewolf:sheriff-vote' | 'avalon:vote' | 'avalon:quest';
+  | 'werewolf:wolf-vote'
+  | 'werewolf:sheriff-vote'
+  | 'werewolf:sheriff-result'
+  | 'avalon:vote'
+  | 'avalon:quest'
+  | 'avalon:result'
+  | 'secrethitler:vote'
+  | 'secrethitler:result';
 
 type ClearRegistration =
   'reachable' | 'unreachable-ballotsAppendOnly' | 'unreachable-submissionIrrevocable';
@@ -170,6 +177,12 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     // sheriff voting phase now closes only on countdown expiry.
     manualClose: { kind: 'none' },
   },
+  'werewolf:sheriff-result': {
+    adoption: 'switched',
+    hostFile: 'werewolf/domain/handlers/sheriffElectionHandler.ts',
+    clear: 'unreachable-submissionIrrevocable',
+    manualClose: { kind: 'none' },
+  },
   'avalon:vote': {
     adoption: 'switched',
     hostFile: 'avalon/engine.ts',
@@ -188,6 +201,24 @@ const EXPECTED_SETTLE_COUNTDOWN_ADOPTERS: Readonly<
     clear: 'unreachable-submissionIrrevocable',
     // The host's manual finish was deleted outright (2026-10-21
     // ruling): the armed countdown expiring is the only close.
+    manualClose: { kind: 'none' },
+  },
+  'avalon:result': {
+    adoption: 'switched',
+    hostFile: 'avalon/engine.ts',
+    clear: 'unreachable-submissionIrrevocable',
+    manualClose: { kind: 'none' },
+  },
+  'secrethitler:vote': {
+    adoption: 'switched',
+    hostFile: 'secrethitler/domain/gameplay.ts',
+    clear: 'unreachable-submissionIrrevocable',
+    manualClose: { kind: 'none' },
+  },
+  'secrethitler:result': {
+    adoption: 'switched',
+    hostFile: 'secrethitler/domain/gameplay.ts',
+    clear: 'unreachable-submissionIrrevocable',
     manualClose: { kind: 'none' },
   },
 };
@@ -527,10 +558,14 @@ describe('decideSettleCountdownArm truth table (moved from werewolf decideWolfVo
 });
 
 describe('settle countdown registry', () => {
-  it('registers exactly the four ruled access points', () => {
+  it('registers exactly the ruled access points', () => {
     expect([...ACCESS_POINT_IDS].sort()).toEqual([
       'avalon:quest',
+      'avalon:result',
       'avalon:vote',
+      'secrethitler:result',
+      'secrethitler:vote',
+      'werewolf:sheriff-result',
       'werewolf:sheriff-vote',
       'werewolf:wolf-vote',
     ]);

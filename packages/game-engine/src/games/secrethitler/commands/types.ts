@@ -41,6 +41,7 @@ export type SecrethitlerPublicCommand =
     )
   | { readonly type: 'secrethitler.policy.vetoRespond'; readonly approve: boolean }
   | { readonly type: 'secrethitler.action.investigate'; readonly targetSeatId: number }
+  | { readonly type: 'secrethitler.action.acknowledgeInvestigation' }
   | { readonly type: 'secrethitler.action.specialElection'; readonly targetSeatId: number }
   | { readonly type: 'secrethitler.action.execute'; readonly targetSeatId: number }
   | { readonly type: 'secrethitler.action.acknowledgePolicyPeek' };
@@ -52,7 +53,7 @@ export type SecrethitlerPublicCommand =
  * `SecrethitlerCommand` below, and replaces the `z.never()`
  * internal schema in the Worker module.
  */
-export type SecrethitlerInternalCommand = never;
+export type SecrethitlerInternalCommand = { readonly type: 'secrethitler.phase.settleExpired' };
 
 /**
  * The full command surface the engine decides. While the internal
@@ -62,4 +63,4 @@ export type SecrethitlerInternalCommand = never;
  * `SecrethitlerPublicCommand | SecrethitlerInternalCommand`,
  * and the Worker dispatch typing fails until it does.
  */
-export type SecrethitlerCommand = SecrethitlerPublicCommand;
+export type SecrethitlerCommand = SecrethitlerPublicCommand | SecrethitlerInternalCommand;

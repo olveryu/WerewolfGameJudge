@@ -870,6 +870,51 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
         path,
       );
     }
+    case 'result': {
+      const next = parseObject(raw.next, `${path}.next`);
+      const parsedNext =
+        next.kind === 'final'
+          ? finishObject(
+              next,
+              {
+                kind: 'final' as const,
+                result: parseSheriffElectionResult(next.result, `${path}.next.result`),
+              },
+              `${path}.next`,
+            )
+          : next.kind === 'runoff'
+            ? finishObject(
+                next,
+                {
+                  kind: 'runoff' as const,
+                  candidateSeats: parseArray(
+                    next.candidateSeats,
+                    `${path}.next.candidateSeats`,
+                    parseSeat,
+                  ),
+                  speakingStartSeat: parseSeat(
+                    next.speakingStartSeat,
+                    `${path}.next.speakingStartSeat`,
+                  ),
+                  speakingDirection: parseSheriffSpeakingDirection(
+                    next.speakingDirection,
+                    `${path}.next.speakingDirection`,
+                  ),
+                },
+                `${path}.next`,
+              )
+            : fail(`${path}.next.kind`, 'final or runoff');
+      return finishObject(
+        raw,
+        {
+          ...common,
+          phase: 'result' as const,
+          deadline: parseInteger(raw.deadline, `${path}.deadline`),
+          next: parsedNext,
+        },
+        path,
+      );
+    }
     default:
       return fail(`${path}.phase`, 'a valid sheriff election phase');
   }
@@ -1244,7 +1289,7 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   }
   if (raw.stateVersion === 17)
     return parseWerewolfState(migrateElection({ ...raw, stateVersion: WEREWOLF_STATE_VERSION }));
-  if (raw.stateVersion === 18 || raw.stateVersion === 19)
+  if (raw.stateVersion === 18 || raw.stateVersion === 19 || raw.stateVersion === 20)
     return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION });
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

@@ -13,7 +13,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { playStoryRelayTestRound } from '@/test-utils/storyrelayState';
-import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { StoryRelayStage } from '../StoryRelayStage';
 import { testStageSession } from './storyRelayStageFixtures';
@@ -80,11 +79,6 @@ describe('StoryRelayStage', () => {
       '5 / 512',
     );
     await user.click(screen.getByRole('button', { name: '准备好了' }));
-    expect(submit).not.toHaveBeenCalled();
-    const confirmation = alertStore.getSnapshot();
-    expect(confirmation?.title).toBe('确认准备好了？');
-    await confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
-    if (confirmation !== null) dismissAlert(confirmation.generation);
     expect(submit).toHaveBeenCalledWith(
       '更新准备状态',
       expect.objectContaining({ type: 'storyrelay.task.ready.set', isReady: true }),

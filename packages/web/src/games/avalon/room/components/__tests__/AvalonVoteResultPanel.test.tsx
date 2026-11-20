@@ -4,9 +4,7 @@ import type {
   AvalonLastVoteResultView,
   AvalonSeatView,
 } from '@game-judge/game-engine/games/avalon/public';
-import { act, fireEvent, render } from '@testing-library/react';
-
-import { alertStore, dismissAlert } from '@/utils/alert';
+import { fireEvent, render } from '@testing-library/react';
 
 import { AvalonVoteResultPanel } from '../AvalonVoteResultPanel';
 
@@ -30,18 +28,10 @@ function renderPanel(
   result: AvalonLastVoteResultView = REJECTED_RESULT,
   seats: readonly AvalonSeatView[] = SEATS,
 ) {
-  const onConfirm = vi.fn();
   const utils = render(
-    <AvalonVoteResultPanel
-      result={result}
-      seats={seats}
-      confirmedSeats={[2]}
-      mySeat={0}
-      isSubmitting={false}
-      onConfirm={onConfirm}
-    />,
+    <AvalonVoteResultPanel result={result} seats={seats} remainingSeconds={4} />,
   );
-  return { ...utils, onConfirm };
+  return utils;
 }
 
 describe('AvalonVoteResultPanel', () => {
@@ -92,48 +82,11 @@ describe('AvalonVoteResultPanel', () => {
     expect(queryByTestId('avalon-vote-result-row-0')).toBeNull();
   });
 
-  it('reports pending seats and confirms without closing', () => {
-    const { getByTestId, getByText, onConfirm } = renderPanel();
-    expect(getByText('已确认 1 / 4')).toBeTruthy();
-    expect(getByText('等待：1号、2号、4号')).toBeTruthy();
-    expect(getByTestId('avalon-vote-result-confirmation').querySelector('progress')).toHaveValue(1);
-    fireEvent.click(getByTestId('avalon-vote-result-close'));
-    expect(onConfirm).not.toHaveBeenCalled();
-    const confirmation = alertStore.getSnapshot();
-    expect(confirmation?.title).toBe('确认投票结果？');
-    void confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
-    if (confirmation !== null) dismissAlert(confirmation.generation);
-    expect(onConfirm).toHaveBeenCalledTimes(1);
+  it('displays the timer without a confirmation or dismiss action', () => {
+    const { getByTestId, getByText, queryByRole } = renderPanel();
+    expect(getByText('4 秒后继续')).toBeVisible();
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
-  });
-
-  it('does not auto-confirm after 6 seconds', () => {
-    vi.useFakeTimers();
-    try {
-      const { onConfirm, getByTestId } = renderPanel();
-      act(() => {
-        vi.advanceTimersByTime(6000);
-      });
-      expect(onConfirm).not.toHaveBeenCalled();
-      expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('lets spectators see progress without offering a confirmation action', () => {
-    const onConfirm = vi.fn();
-    const { getByTestId } = render(
-      <AvalonVoteResultPanel
-        result={REJECTED_RESULT}
-        seats={SEATS}
-        confirmedSeats={[2]}
-        mySeat={null}
-        isSubmitting={false}
-        onConfirm={onConfirm}
-      />,
-    );
-    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
-    expect(getByTestId('avalon-vote-result-close')).toHaveTextContent('等待玩家确认');
+    expect(queryByRole('button', { name: '知道了' })).toBeNull();
   });
 });

@@ -5,7 +5,13 @@ import { type CommandContext, reject, requireHost } from '../../../platform/engi
 import { buildGameCompletionPayloadV2 } from '../../../platform/engine/completionEffect';
 import { createSeededRng, shuffleArray } from '../../../platform/random';
 import { resolveActingSeat } from '../../../platform/room/actingSeat';
+import {
+  buildSettleDueEffect,
+  guardPhaseExpiry,
+  rejectIfPastDeadline,
+} from '../../../platform/room/phaseDeadline';
 import { getHumanSeatMap } from '../../../platform/room/seating';
+import { decideSettleCountdownArm } from '../../../platform/room/settleCountdown';
 import type { SecrethitlerCommand } from '../commands/types';
 import {
   SECRETHITLER_MIN_PLAYERS,
@@ -189,6 +195,7 @@ function finishGovernment(
   };
   const basePatch = {
     ...extraPatch,
+    electionTracker: 0,
     liberalPolicies,
     fascistPolicies,
     history,
@@ -236,6 +243,7 @@ function chaosPolicy(
   state: SecrethitlerState,
   context: CommandContext,
   returnToSeat: number | null,
+  revealedPolicy: SecrethitlerPolicy,
   history = state.history,
   policyDiscardOverride = state.policyDiscard,
 ): SecrethitlerDecision {
@@ -246,8 +254,13 @@ function chaosPolicy(
       discard,
       createSeededRng(`${context.randomSeed}:secrethitler-chaos-reshuffle`),
     );
+    const revealedIndex = deck.indexOf(revealedPolicy);
+    if (revealedIndex < 0) throw new Error('Secret Hitler chaos result not in discard');
+    deck.splice(revealedIndex, 1);
+    deck.unshift(revealedPolicy);
     discard = [];
   }
+  if (deck[0] !== revealedPolicy) throw new Error('Secret Hitler chaos result changed');
   const policy = deck.shift();
   if (policy === undefined) throw new Error('Secret Hitler chaos policy deck exhausted');
   const liberalPolicies = state.liberalPolicies + (policy === 'liberal' ? 1 : 0);
@@ -394,6 +407,7 @@ function decideNomination(
       chancellorSeat: chancellor,
       returnToSeat: state.phase.returnToSeat,
       votes: {},
+      deadlineAt: null,
     },
     history: { ...state.history, governments: [...state.history.governments, government] },
   });
@@ -407,10 +421,37 @@ function decideVote(
   if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
   const seat = checkSeat(state, context);
   if (seat === null) return reject(SECRETHITLER_REASONS.notEligibleVote);
+  const late = rejectIfPastDeadline<SecrethitlerEvent, SecrethitlerEffect>(
+    state.phase.deadlineAt,
+    context.nowMs,
+    SECRETHITLER_REASONS.deadline,
+  );
+  if (late !== null) return late;
   const votes = { ...state.phase.votes, [seat]: command.vote };
-  if (!state.livingSeats.every((livingSeat) => votes[livingSeat] !== undefined))
+  const arm = decideSettleCountdownArm({
+    complete: state.livingSeats.every((livingSeat) => votes[livingSeat] !== undefined),
+    armedDeadlineAt: state.phase.deadlineAt,
+    nowMs: context.nowMs,
+  });
+  if (arm.type !== 'set' || state.phase.deadlineAt !== null)
     return patch({ phase: { ...state.phase, votes } });
+  return patch({ phase: { ...state.phase, votes, deadlineAt: arm.deadlineAt } }, [
+    buildSettleDueEffect('secrethitler', {
+      gameSequence: state.gameSequence,
+      phase: 'voting' as const,
+      round: state.history.governments.length,
+      deadlineAt: arm.deadlineAt,
+    }),
+  ]);
+}
 
+function settleVote(
+  state: SecrethitlerState,
+  context: CommandContext,
+  revealedPolicy: SecrethitlerPolicy | null,
+): SecrethitlerDecision {
+  if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
+  const votes = state.phase.votes;
   const revealedVotes = state.livingSeats
     .slice()
     .sort((left, right) => left - right)
@@ -427,7 +468,10 @@ function decideVote(
   const history = { ...state.history, governments };
   if (!passed) {
     const tracker = state.electionTracker + 1;
-    if (tracker >= 3) return chaosPolicy(state, context, state.phase.returnToSeat, history);
+    if (tracker >= 3) {
+      if (revealedPolicy === null) throw new Error('Missing Secret Hitler chaos result');
+      return chaosPolicy(state, context, state.phase.returnToSeat, revealedPolicy, history);
+    }
     const { nextSeat } = nextElectionAfterGovernment(
       state,
       state.phase.presidentSeat,
@@ -440,6 +484,7 @@ function decideVote(
       phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
     });
   }
+
   if (state.identities[state.phase.chancellorSeat] === 'hitler' && state.fascistPolicies >= 3) {
     return finishGame(state, 'fascist', 'hitlerElected', context, [
       {
@@ -468,6 +513,105 @@ function decideVote(
       hand: draw.hand,
     },
   });
+}
+
+function decideVoteExpiry(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
+  return guardPhaseExpiry(context, {
+    phaseRejection:
+      state.phase.kind === 'voting' || state.phase.kind === 'publicResult'
+        ? null
+        : reject(SECRETHITLER_REASONS.phase),
+    actorChannel: 'system',
+    deadlineAt:
+      state.phase.kind === 'voting' || state.phase.kind === 'publicResult'
+        ? state.phase.deadlineAt
+        : null,
+    notExpiredReason: SECRETHITLER_REASONS.deadline,
+    dispatch: () => {
+      if (state.phase.kind === 'publicResult') return finishPublicResult(state, context);
+      if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
+      const yes = state.livingSeats.filter(
+        (seat) => state.phase.kind === 'voting' && state.phase.votes[seat] === 'ja',
+      ).length;
+      const chaos = yes <= state.livingSeats.length - yes && state.electionTracker === 2;
+      return publicResult(
+        state,
+        context,
+        null,
+        null,
+        chaos ? peekChaosPolicy(state, context) : null,
+      );
+    },
+  });
+}
+
+function peekChaosPolicy(
+  state: SecrethitlerState,
+  context: CommandContext,
+  discard: readonly SecrethitlerPolicy[] = state.policyDiscard,
+): SecrethitlerPolicy {
+  const deck =
+    state.policyDeck.length > 0
+      ? state.policyDeck
+      : shuffleArray(
+          [...discard],
+          createSeededRng(`${context.randomSeed}:secrethitler-chaos-reshuffle`),
+        );
+  const policy = deck[0];
+  if (policy === undefined) throw new Error('Secret Hitler chaos policy deck exhausted');
+  return policy;
+}
+
+function publicResult(
+  state: SecrethitlerState,
+  context: CommandContext,
+  policy: SecrethitlerPolicy | null,
+  vetoApproved: boolean | null,
+  chaosPolicy: SecrethitlerPolicy | null,
+): SecrethitlerDecision {
+  const previous = state.phase;
+  if (
+    previous.kind !== 'voting' &&
+    previous.kind !== 'legislativeChancellor' &&
+    previous.kind !== 'vetoResponse'
+  )
+    return reject(SECRETHITLER_REASONS.phase);
+  const arm = decideSettleCountdownArm({
+    complete: true,
+    armedDeadlineAt: null,
+    nowMs: context.nowMs,
+  });
+  if (arm.type !== 'set') throw new Error('Failed to arm Secret Hitler result countdown');
+  const deadlineAt = arm.deadlineAt;
+  const resultPhase: Extract<
+    SecrethitlerEffect,
+    { type: 'secrethitler.settle.due' }
+  >['payload']['phase'] =
+    previous.kind === 'voting'
+      ? 'resultVoting'
+      : previous.kind === 'vetoResponse'
+        ? 'resultVeto'
+        : 'resultPolicy';
+  return patch(
+    {
+      phase: {
+        kind: 'publicResult',
+        previous,
+        policy,
+        vetoApproved,
+        chaosPolicy,
+        deadlineAt,
+      },
+    },
+    [
+      buildSettleDueEffect('secrethitler', {
+        gameSequence: state.gameSequence,
+        phase: resultPhase,
+        round: state.history.governments.length,
+        deadlineAt,
+      }),
+    ],
+  );
 }
 
 function decidePresidentDiscard(
@@ -516,13 +660,23 @@ function decideChancellorResolve(
     });
   }
   if (!state.phase.hand.includes(command.policy)) return reject(SECRETHITLER_REASONS.handChoice);
-  const chosenIndex = state.phase.hand.indexOf(command.policy);
+  return publicResult(state, context, command.policy, null, null);
+}
+
+function enactPolicy(
+  state: SecrethitlerState,
+  policy: SecrethitlerPolicy,
+  context: CommandContext,
+): SecrethitlerDecision {
+  if (state.phase.kind !== 'legislativeChancellor' || !state.phase.hand.includes(policy))
+    return reject(SECRETHITLER_REASONS.handChoice);
+  const chosenIndex = state.phase.hand.indexOf(policy);
   const otherPolicy = state.phase.hand.find((_, index) => index !== chosenIndex);
   const policyDiscard =
     otherPolicy === undefined ? state.policyDiscard : [...state.policyDiscard, otherPolicy];
   return finishGovernment(
     state,
-    command.policy,
+    policy,
     'government',
     state.phase.presidentSeat,
     state.phase.returnToSeat,
@@ -539,7 +693,21 @@ function decideVetoRespond(
   if (state.phase.kind !== 'vetoResponse') return reject(SECRETHITLER_REASONS.phase);
   const president = requireCurrentPresident(state, context, state.phase.presidentSeat);
   if (typeof president !== 'number') return president;
-  if (!command.approve)
+  const chaos =
+    command.approve && state.electionTracker === 2
+      ? peekChaosPolicy(state, context, [...state.policyDiscard, ...state.phase.hand])
+      : null;
+  return publicResult(state, context, null, command.approve, chaos);
+}
+
+function resolveVeto(
+  state: SecrethitlerState,
+  approve: boolean,
+  context: CommandContext,
+  revealedPolicy: SecrethitlerPolicy | null,
+): SecrethitlerDecision {
+  if (state.phase.kind !== 'vetoResponse') return reject(SECRETHITLER_REASONS.phase);
+  if (!approve)
     return patch({
       phase: {
         kind: 'legislativeChancellor',
@@ -553,8 +721,17 @@ function decideVetoRespond(
   const electionTracker = state.electionTracker + 1;
   const history = state.history;
   const policyDiscard = [...state.policyDiscard, ...state.phase.hand];
-  if (electionTracker >= 3)
-    return chaosPolicy(state, context, state.phase.returnToSeat, history, policyDiscard);
+  if (electionTracker >= 3) {
+    if (revealedPolicy === null) throw new Error('Missing Secret Hitler chaos result');
+    return chaosPolicy(
+      state,
+      context,
+      state.phase.returnToSeat,
+      revealedPolicy,
+      history,
+      policyDiscard,
+    );
+  }
   const { nextSeat } = nextElectionAfterGovernment(
     state,
     state.phase.presidentSeat,
@@ -566,6 +743,21 @@ function decideVetoRespond(
     nextPresidentSeat: nextSeat,
     phase: { kind: 'election', presidentSeat: nextSeat, returnToSeat: null },
   });
+}
+
+function finishPublicResult(
+  state: SecrethitlerState,
+  context: CommandContext,
+): SecrethitlerDecision {
+  const phase = state.phase;
+  if (phase.kind !== 'publicResult') return reject(SECRETHITLER_REASONS.phase);
+  const resumed = { ...state, phase: phase.previous };
+  if (phase.previous.kind === 'voting') return settleVote(resumed, context, phase.chaosPolicy);
+  if (phase.previous.kind === 'legislativeChancellor' && phase.policy !== null)
+    return enactPolicy(resumed, phase.policy, context);
+  if (phase.previous.kind === 'vetoResponse' && phase.vetoApproved !== null)
+    return resolveVeto(resumed, phase.vetoApproved, context, phase.chaosPolicy);
+  throw new Error('Invalid Secret Hitler result continuation');
 }
 
 function powerPhase(
@@ -636,10 +828,27 @@ function decideInvestigate(
     presidentSeat: president,
     targetSeat: target,
   });
-  return concludePower(state, president, phase.returnToSeat, history, {
+  return patch({
+    history,
     investigatedSeats: [...state.investigatedSeats, target],
     lastInvestigation: { presidentSeat: president, targetSeat: target, faction },
+    phase: {
+      kind: 'investigationResult',
+      presidentSeat: president,
+      returnToSeat: phase.returnToSeat,
+    },
   });
+}
+
+function decideAcknowledgeInvestigation(
+  state: SecrethitlerState,
+  context: CommandContext,
+): SecrethitlerDecision {
+  const phase = state.phase;
+  if (phase.kind !== 'investigationResult') return reject(SECRETHITLER_REASONS.phase);
+  const president = requireCurrentPresident(state, context, phase.presidentSeat);
+  if (typeof president !== 'number') return president;
+  return concludePower(state, president, phase.returnToSeat, state.history);
 }
 
 function decideSpecialElection(
@@ -732,6 +941,8 @@ export function decideSecrethitlerGameplay(
       return decideNomination(state, command, context);
     case 'secrethitler.government.castVote':
       return decideVote(state, command, context);
+    case 'secrethitler.phase.settleExpired':
+      return decideVoteExpiry(state, context);
     case 'secrethitler.policy.presidentDiscard':
       return decidePresidentDiscard(state, command, context);
     case 'secrethitler.policy.chancellorResolve':
@@ -740,6 +951,8 @@ export function decideSecrethitlerGameplay(
       return decideVetoRespond(state, command, context);
     case 'secrethitler.action.investigate':
       return decideInvestigate(state, command, context);
+    case 'secrethitler.action.acknowledgeInvestigation':
+      return decideAcknowledgeInvestigation(state, context);
     case 'secrethitler.action.specialElection':
       return decideSpecialElection(state, command, context);
     case 'secrethitler.action.execute':

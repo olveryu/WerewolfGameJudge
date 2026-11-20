@@ -66,7 +66,12 @@ describe('Secrethitler persisted state migration', () => {
       expect(() =>
         migratePersistedSecrethitlerState({ ...legacy, phase: { ...legacy.phase, step: 4 } }),
       ).toThrow();
-      expect(() => migratePersistedSecrethitlerState({ ...legacy, stateVersion: 5 })).toThrow();
+      expect(() =>
+        migratePersistedSecrethitlerState({
+          ...legacy,
+          stateVersion: SECRETHITLER_STATE_VERSION + 1,
+        }),
+      ).toThrow();
     },
   );
 
@@ -79,6 +84,7 @@ describe('Secrethitler persisted state migration', () => {
     expect(parseSecrethitlerState(persisted)).toEqual(state);
     expect(migratePersistedSecrethitlerState(persisted)).toEqual(state);
     expect(migratePersistedSecrethitlerState({ ...state, stateVersion: 1 })).toEqual(state);
+    expect(migratePersistedSecrethitlerState({ ...state, stateVersion: 4 })).toEqual(state);
   });
 
   it('migrates v2 rooms to public voting without changing the match', () => {

@@ -201,7 +201,8 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     state.phase.kind === 'nominate' ||
     state.phase.kind === 'vote' ||
     state.phase.kind === 'voteResult' ||
-    state.phase.kind === 'quest'
+    state.phase.kind === 'quest' ||
+    state.phase.kind === 'questResult'
       ? state.phase.round
       : state.phase.kind === 'lady'
         ? state.phase.afterRound
@@ -400,6 +401,23 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
       invariant(
         phase.approveCount + phase.rejectCount + phase.abstainCount === occupiedCount(state, count),
         'quest vote counts',
+      );
+      return state;
+    }
+    case 'questResult': {
+      const phase = state.phase;
+      invariant(isAvalonQuestRound(phase.round), 'quest result round');
+      invariant(
+        phase.confirmedSeats.every((seat) => isSeat(seat) && isAvalonOccupiedSeat(state, seat)) &&
+          new Set(phase.confirmedSeats).size === phase.confirmedSeats.length,
+        'quest result confirmed seats',
+      );
+      invariant(
+        state.questHistory.at(-1)?.round === phase.round &&
+          state.roundHistory.some(
+            (record) => record.round === phase.round && record.quest !== null,
+          ),
+        'quest result history',
       );
       return state;
     }

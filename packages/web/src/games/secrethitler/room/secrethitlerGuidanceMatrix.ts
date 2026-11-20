@@ -25,7 +25,9 @@ export const SECRETHITLER_GUIDANCE_MATRIX: RoomGuidanceMatrix<SecrethitlerPhaseK
   legislativePresident: activeGuidance,
   legislativeChancellor: activeGuidance,
   vetoResponse: activeGuidance,
+  publicResult: activeGuidance,
   executive: activeGuidance,
+  investigationResult: activeGuidance,
   ended: {
     host: guidanceExempt('房主任务卡承载本局复盘、再来一局和返回大厅'),
     seated: GUIDANCE_MESSAGE,

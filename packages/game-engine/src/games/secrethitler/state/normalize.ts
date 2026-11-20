@@ -202,7 +202,9 @@ function assertPolicyState(state: SecrethitlerState): void {
     state.phase.kind === 'legislativeChancellor' ||
     state.phase.kind === 'vetoResponse'
       ? state.phase.hand
-      : [];
+      : state.phase.kind === 'publicResult' && state.phase.previous.kind !== 'voting'
+        ? state.phase.previous.hand
+        : [];
   const cardPool = [...state.policyDeck, ...state.policyDiscard, ...currentHand];
   const policyCards = {
     liberal: state.liberalPolicies + countPolicies(cardPool, 'liberal'),
@@ -219,6 +221,56 @@ function assertPolicyState(state: SecrethitlerState): void {
 }
 
 function assertPhaseState(state: SecrethitlerState): void {
+  if (state.phase.kind === 'publicResult') {
+    const result = state.phase;
+    const previousState = { ...state, phase: result.previous };
+    assertPhaseState(previousState);
+    if (result.previous.kind === 'voting') assertPolicyState(previousState);
+    invariant(Number.isSafeInteger(result.deadlineAt) && result.deadlineAt >= 0, 'result deadline');
+    invariant(
+      state.livingSeats.includes(result.previous.presidentSeat) &&
+        state.livingSeats.includes(result.previous.chancellorSeat) &&
+        result.previous.presidentSeat !== result.previous.chancellorSeat,
+      'result government',
+    );
+    invariant(
+      result.previous.kind === 'voting'
+        ? result.policy === null &&
+            result.vetoApproved === null &&
+            result.previous.deadlineAt !== null &&
+            state.livingSeats.every(
+              (seat) =>
+                result.previous.kind === 'voting' && result.previous.votes[seat] !== undefined,
+            )
+        : result.previous.kind === 'legislativeChancellor'
+          ? result.policy !== null &&
+            result.previous.hand.includes(result.policy) &&
+            result.vetoApproved === null &&
+            result.chaosPolicy === null
+          : result.policy === null && result.vetoApproved !== null,
+      'result contents',
+    );
+    const failedVote =
+      result.previous.kind === 'voting' &&
+      state.livingSeats.filter(
+        (seat) => result.previous.kind === 'voting' && result.previous.votes[seat] === 'ja',
+      ).length <=
+        state.livingSeats.length / 2;
+    const expectsChaos =
+      state.electionTracker === 2 &&
+      (failedVote || (result.previous.kind === 'vetoResponse' && result.vetoApproved === true));
+    invariant((result.chaosPolicy !== null) === expectsChaos, 'chaos result');
+    if (result.chaosPolicy !== null) {
+      const available =
+        state.policyDeck.length > 0
+          ? state.policyDeck.slice(0, 1)
+          : [
+              ...state.policyDiscard,
+              ...(result.previous.kind === 'vetoResponse' ? result.previous.hand : []),
+            ];
+      invariant(available.includes(result.chaosPolicy), 'chaos result policy');
+    }
+  }
   if (state.phase.kind === 'night') {
     invariant(state.phase.step === 1, 'night step');
     const participants = getSecrethitlerNightParticipants(state);
@@ -246,6 +298,15 @@ function assertPhaseState(state: SecrethitlerState): void {
       Object.keys(state.phase.votes).every((seat) => state.livingSeats.includes(Number(seat))),
       'vote seats',
     );
+    invariant(
+      state.phase.deadlineAt === null ||
+        (Number.isSafeInteger(state.phase.deadlineAt) &&
+          state.phase.deadlineAt >= 0 &&
+          state.livingSeats.every(
+            (seat) => state.phase.kind === 'voting' && state.phase.votes[seat] !== undefined,
+          )),
+      'vote deadline',
+    );
   }
   if (
     state.phase.kind === 'legislativePresident' ||
@@ -271,6 +332,14 @@ function assertPhaseState(state: SecrethitlerState): void {
       (state.phase.power === 'policyPeek' && state.phase.preview.length === 3) ||
         (state.phase.power !== 'policyPeek' && state.phase.preview.length === 0),
       'executive preview',
+    );
+  }
+  if (state.phase.kind === 'investigationResult') {
+    invariant(
+      state.livingSeats.includes(state.phase.presidentSeat) &&
+        state.lastInvestigation?.presidentSeat === state.phase.presidentSeat &&
+        (state.phase.returnToSeat === null || state.livingSeats.includes(state.phase.returnToSeat)),
+      'pending investigation result',
     );
   }
   if (state.phase.kind === 'ended') {

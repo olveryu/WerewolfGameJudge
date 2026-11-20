@@ -79,6 +79,7 @@ export function WerewolfRoleCardModal({
       shouldPlay={shouldPlayAnimation}
       allRoles={allRoleIds.map((id) => toRevealRoleData(id, { showRealIdentity: true }))}
       remainingCards={remainingCards}
+      requireConfirmation
     />
   );
 }

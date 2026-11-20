@@ -13,7 +13,7 @@ import {
   type AvalonState,
   getAvalonNightParticipants,
 } from '@game-judge/game-engine/games/avalon/public';
-import { runInDurableObject } from 'cloudflare:test';
+import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -165,7 +165,7 @@ interface SettleRow {
 
 async function readSettleRow(
   stub: DurableObjectStub<GameRoom>,
-  phase: 'vote' | 'quest',
+  phase: 'vote' | 'quest' | 'voteResult' | 'questResult',
 ): Promise<SettleRow | null> {
   let row: SettleRow | null = null;
   await runInDurableObject(stub, async (_instance: GameRoom, state) => {
@@ -197,7 +197,7 @@ async function readAlarm(stub: DurableObjectStub<GameRoom>): Promise<number | nu
  */
 async function fastForwardArmedCountdown(
   stub: DurableObjectStub<GameRoom>,
-  phase: 'vote' | 'quest',
+  phase: 'vote' | 'quest' | 'voteResult' | 'questResult',
   pastDeadlineAt: number,
 ): Promise<void> {
   await runInDurableObject(stub, async (_instance: GameRoom, state) => {
@@ -240,7 +240,53 @@ async function fireAlarm(stub: DurableObjectStub<GameRoom>): Promise<void> {
   });
 }
 
+async function restoreLegacyVoteResult(stub: DurableObjectStub<GameRoom>): Promise<void> {
+  await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+    const row = state.storage.sql
+      .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
+      .one();
+    const legacy = JSON.parse(row.game_state) as {
+      stateVersion: number;
+      phase: { deadlineAt?: number | null };
+    };
+    legacy.stateVersion = 11;
+    delete legacy.phase.deadlineAt;
+    state.storage.sql.exec(
+      'UPDATE room_state SET state_version = 11, game_state = ? WHERE id = 1',
+      JSON.stringify(legacy),
+    );
+    state.storage.sql.exec(
+      `DELETE FROM effect_outbox WHERE effect_type = 'avalon.settle.due' AND business_key LIKE ?`,
+      '%:voteResult:%',
+    );
+    await state.storage.deleteAlarm();
+  });
+  await evictDurableObject(stub);
+}
+
 describe('Avalon scheduled settle (Durable Object)', () => {
+  it('recovers a legacy result once on restart and advances without player acknowledgements', async () => {
+    const stub = getStub();
+    await armedVoteRoom(stub);
+    await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
+    await fireAlarm(stub);
+    await restoreLegacyVoteResult(stub);
+    const recovered = await readState(stub);
+    if (recovered.phase.kind !== 'voteResult' || recovered.phase.deadlineAt === null) {
+      throw new Error('Expected recovered vote result countdown');
+    }
+    const recoveredRevision = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
+    expect((await readSettleRow(stub, 'voteResult'))?.available_at).toBe(
+      recovered.phase.deadlineAt,
+    );
+    expect(await readAlarm(stub)).toBe(recovered.phase.deadlineAt);
+    await evictDurableObject(stub);
+    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(recoveredRevision);
+    await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+    await fireAlarm(stub);
+    expect((await readState(stub)).phase.kind).toBe('quest');
+  });
+
   it('parks the settle effect at the deadline and settles the vote on alarm', async () => {
     const stub = getStub();
     const armed = await armedVoteRoom(stub);
@@ -285,9 +331,8 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     // No manual finish exists: the armed vote countdown settles on alarm.
     await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
     await fireAlarm(stub);
-    for (let seat = 0; seat < 5; seat += 1) {
-      await send(stub, seatUser(seat), { type: 'avalon.voteResult.confirm' });
-    }
+    await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+    await fireAlarm(stub);
     await send(stub, seatUser(0), { type: 'avalon.quest.play', play: 'success' });
     await send(stub, seatUser(1), { type: 'avalon.quest.play', play: 'success' });
     const armed = await readState(stub);
@@ -303,9 +348,62 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     await fastForwardArmedCountdown(stub, 'quest', Date.now() - 1000);
     await fireAlarm(stub);
     const settled = await readState(stub);
-    expect(settled.phase.kind).toBe('nominate');
+    expect(settled.phase.kind).toBe('questResult');
     expect(settled.questResults[0]).toBe('success');
     expect(await readSettleRow(stub, 'quest')).toBeNull();
+    await fastForwardArmedCountdown(stub, 'questResult', Date.now() - 1000);
+    await fireAlarm(stub);
+    expect((await readState(stub)).phase.kind).toBe('nominate');
+  });
+
+  it('delays the veto-limit ending and awards until the result deadline', async () => {
+    const stub = getStub();
+    await env.DB.prepare('UPDATE users SET is_anonymous = 0 WHERE id = ?').bind(HOST).run();
+    await armedVoteRoom(stub);
+    for (let proposal = 0; proposal < 5; proposal += 1) {
+      for (let seat = 0; seat < 5; seat += 1) {
+        await send(stub, seatUser(seat), { type: 'avalon.team.vote', vote: 'reject' });
+      }
+      await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
+      await fireAlarm(stub);
+      const result = await readState(stub);
+      expect(result.phase.kind).toBe('voteResult');
+      expect(result.xpSettled).toBe(false);
+      if (proposal === 4) {
+        await restoreLegacyVoteResult(stub);
+        const recovered = await readState(stub);
+        expect(recovered.phase.kind).toBe('voteResult');
+        expect(recovered.xpSettled).toBe(false);
+      }
+      await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+      await fireAlarm(stub);
+      const next = await readState(stub);
+      if (proposal === 4) {
+        expect(next.phase).toMatchObject({
+          kind: 'ended',
+          winner: 'evil',
+          reason: 'vetoLimitReached',
+        });
+        expect(next.xpSettled).toBe(true);
+      } else {
+        expect(next.phase.kind).toBe('nominate');
+        await send(stub, seatUser(next.leaderSeat), {
+          type: 'avalon.team.preselect',
+          seats: [0, 1],
+        });
+        await send(stub, seatUser(next.leaderSeat), { type: 'avalon.team.propose', seats: [0, 1] });
+      }
+    }
+    await fireAlarm(stub);
+    const stats = await env.DB.prepare('SELECT games_played FROM user_stats WHERE user_id = ?')
+      .bind(HOST)
+      .first<{ games_played: number }>();
+    expect(stats?.games_played).toBe(1);
+    await fireAlarm(stub);
+    const repeated = await env.DB.prepare('SELECT games_played FROM user_stats WHERE user_id = ?')
+      .bind(HOST)
+      .first<{ games_played: number }>();
+    expect(repeated?.games_played).toBe(1);
   });
 
   it('does not double-settle a parked row after the game is aborted', async () => {

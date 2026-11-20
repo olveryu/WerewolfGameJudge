@@ -416,7 +416,7 @@ describe('confirmStatus variants', () => {
     expect(model.dialog.text).toBe(statusUi.cannotText);
   });
 
-  it('seed wolf with a target offers infect or decline; without a target only acknowledges', () => {
+  it('seed wolf offers a separate skip whether or not a target is available', () => {
     const roles: readonly RoleId[] = ['seedWolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
     const withTarget = nightState({
       roles,
@@ -442,8 +442,8 @@ describe('confirmStatus variants', () => {
       },
     });
     const unavailable = expectKind(resolve(viewAs(noTarget, 0)), 'confirmStatus');
+    expect(unavailable.skipLabel).toBe(infectUi.skipButtonText);
     expect(unavailable.isUnavailable).toBe(true);
-    expect(unavailable.skipLabel).toBeNull();
   });
 });
 

@@ -485,10 +485,6 @@ export async function tapSeat(view: RenderResult, seat: number): Promise<void> {
   await click(view.getByTestId(TESTIDS.seatTilePressable(seat)));
 }
 
-export function seatSelectionSubmitButton(view: RenderResult): HTMLElement {
-  return view.getByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
-}
-
 export function expectSeatSelectionUnavailable(view: RenderResult): void {
   const startId = TESTIDS.werewolfNightButton('startSeatSelection');
   expect(view.queryByTestId(startId)).not.toBeInTheDocument();
@@ -515,7 +511,8 @@ async function pressSeatSelectionAction(
 
 export async function startSeatSelection(view: RenderResult): Promise<void> {
   await pressSeatSelectionAction(view, 'startSeatSelection');
-  expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
+  const submit = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
+  if (submit !== null) expect(submit).toHaveAttribute('aria-disabled', 'true');
 }
 
 export async function cancelSeatSelection(view: RenderResult): Promise<void> {
@@ -526,9 +523,11 @@ export async function cancelSeatSelection(view: RenderResult): Promise<void> {
 }
 
 export async function submitSeatSelection(view: RenderResult): Promise<void> {
-  const button = seatSelectionSubmitButton(view);
-  expect(button).toBeEnabled();
-  await click(button);
+  const button = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
+  if (button !== null) {
+    expect(button).toBeEnabled();
+    await click(button);
+  }
   const alert = alertStore.getSnapshot();
   if (alert === null || alert.buttons[1]?.onPress === undefined) {
     throw new Error('[TEST] Missing seat selection confirmation');
@@ -542,13 +541,27 @@ export async function draftSeatSelection(view: RenderResult, seat: number): Prom
   await startSeatSelection(view);
   await tapSeat(view, seat);
   expect(view.getByTestId(TESTIDS.seatTilePressable(seat))).toHaveAttribute('aria-pressed', 'true');
-  expect(seatSelectionSubmitButton(view)).toBeEnabled();
+  const button = view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'));
+  if (button !== null) expect(button).toBeEnabled();
+  else
+    expect(alertStore.getSnapshot()?.buttons.map((entry) => entry.text)).toEqual(['取消', '确定']);
 }
 
-/** Clicks the element whose text is exactly `text` (room actions, gate buttons). */
-export async function pressText(view: RenderResult, text: string): Promise<void> {
+/** Opens a room action and, by default, chooses to view a private status when prompted. */
+export async function pressText(
+  view: RenderResult,
+  text: string,
+  viewPrivateStatus = true,
+): Promise<void> {
   await revealBottomActionText(view, text);
   await click(await view.findByText(text));
+  const alert = alertStore.getSnapshot();
+  if (viewPrivateStatus && alert?.title === '查看状态？') {
+    const viewStatus = alert.buttons[1]?.onPress;
+    if (viewStatus === undefined) throw new Error('[TEST] Missing private status view action');
+    await act(async () => viewStatus());
+    dismissAlert(alert.generation);
+  }
 }
 
 // =============================================================================
@@ -909,7 +922,7 @@ export async function coverageChainMagicianSwap(
 
   await startSeatSelection(view);
   await tapSeat(view, firstTarget);
-  expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
+  expect(view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))).toBeNull();
   await tapSeat(view, secondTarget);
   expect(mock.submitAction).not.toHaveBeenCalled();
   await submitSeatSelection(view);

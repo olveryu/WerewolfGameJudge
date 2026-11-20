@@ -30,7 +30,7 @@ import {
   buildAssignRolesAction,
 //#end
   buildClearSeatsAction,
-  buildAbortGameAction,
+  buildResetToLobbyAction,
 //#cap audioOrchestration
   buildMusicSettingsAction,
 //#end
@@ -38,8 +38,6 @@ import {
 //#cap botBulkViewing
   buildMarkBotsViewedAction,
 //#end
-  buildNextRoundAction,
-  buildReturnLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -84,7 +82,7 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 const get__GAME_PASCAL__ProfileTarget = (
@@ -182,14 +180,30 @@ function create__GAME_PASCAL__HostTools(input: __GAME_PASCAL__HostManagementInpu
 //#end
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     sections.push({ key: 'danger', title: '危险操作', actions: [
-      buildAbortGameAction({
-        onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle,
-          '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
-          () => void input.submit('中止本局', { type: '__GAME_ID__.game.abort' })),
-        isEnabled: !input.isSubmitting, isLoading: input.isSubmitting,
-      }),
+      build__GAME_PASCAL__RestartAction(input),
     ] });
   return sections;
+}
+
+function build__GAME_PASCAL__RestartAction(input: __GAME_PASCAL__HostManagementInput): RoomHostManagementAction {
+  const { state } = input;
+  const wasEnded = state.phase.kind === 'ended';
+  return buildResetToLobbyAction({
+    onPress: () => showDestructiveAlert(
+      '重新开始？',
+      wasEnded
+        ? input.review?.isPending
+          ? '你尚未查看本局复盘。重新开始将保留座位和配置，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
+          : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+        : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+      '重新开始',
+      () => void input.submit('重新开始', {
+        type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded,
+      }),
+    ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
 }
 
 /** Assembles the __GAME_PASCAL__ host panel for the current phase. Host gating belongs to the shell factory. */
@@ -336,10 +350,8 @@ export function create__GAME_PASCAL__HostManagement(
     return { task, sections: [...sections.filter((section) => section.actions.length > 0), ...tools] };
   }
 //#end
-//#cap identityViewing
   if (state.phase.kind === 'ended') {
     if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
       task: hostReviewClosingTask(),
       sections: [
@@ -348,58 +360,12 @@ export function create__GAME_PASCAL__HostManagement(
           title: '当前流程',
           actions: [
             buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '重新分配身份，开始新的一局。',
-                  async () => {
-                    await input.submit('再来一局', { type: '__GAME_ID__.roles.assign' });
-                  },
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
-                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
-                }),
-            }),
+            build__GAME_PASCAL__RestartAction(input),
           ],
         }, ...tools,
       ],
     };
   }
-//#end
-//#cap !identityViewing
-  if (state.phase.kind === 'ended') {
-    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
-    return {
-      task: hostReviewClosingTask(),
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [
-            buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
-                  await input.submit('再来一局', { type: '__GAME_ID__.game.begin' });
-                }),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
-                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
-                }),
-            }),
-          ],
-        }, ...tools,
-      ],
-    };
-  }
-//#end
   // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
     task: null,

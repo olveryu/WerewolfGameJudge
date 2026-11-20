@@ -1,23 +1,15 @@
 /**
  * useRoleViewing — the identity-viewing protocol every game runs.
  *
- * Werewolf's behavior, promoted: the first view submits `role.viewed`
- * first and opens the card only after the server confirmed it; a
- * rejection shows the failure message and opens nothing. The card's
- * reveal facts are frozen at open from the pre-confirm server record —
- * `shouldPlayAnimation` (first view of this seat) and `remainingCards`
- * (cards still face-down on the table, the viewer's own included) — so
- * the record landing underneath never flips the animation off or pulls
- * the viewer's own card from the table mid-reveal. A seat already on
- * record opens immediately, without animation or a second submit.
- *
- * `isPending` is the in-flight window between submit and confirmation,
- * for the button's loading state. A frozen reveal belongs to one seat and
- * one deal: a change of the effective seat (bot takeover switch) or of
- * `identityKey` (new deal, return to lobby) closes the card.
+ * The player explicitly chooses whether to reveal the card. First views are
+ * recorded only after the player acknowledges the revealed identity. A seat
+ * or deal change closes the card and invalidates pending callbacks.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { deriveRemainingRevealCards } from '../model/RevealRoleData';
 
@@ -93,9 +85,27 @@ export function useRoleViewing({
   const card = current?.card ?? null;
   const isPending = current?.isPending ?? false;
 
-  const close = useCallback(() => {
-    setView((previous) => ({ scopeKey, run: previous.run + 1, card: null, isPending: false }));
+  const latestScope = useRef(scopeKey);
+  useEffect(() => {
+    latestScope.current = scopeKey;
   }, [scopeKey]);
+
+  const close = useCallback(() => {
+    if (card === null || isPending) return;
+    if (hasViewed) {
+      setView((previous) => ({ scopeKey, run: previous.run + 1, card: null, isPending: false }));
+      return;
+    }
+    const run = view.run + 1;
+    setView({ scopeKey, run, card, isPending: true });
+    void submitViewed().then((confirmed) => {
+      setView((previous) =>
+        previous.scopeKey !== scopeKey || previous.run !== run
+          ? previous
+          : { ...previous, card: confirmed ? null : previous.card, isPending: false },
+      );
+    });
+  }, [card, hasViewed, isPending, scopeKey, submitViewed, view.run]);
 
   const open = useCallback(() => {
     if (effectiveSeat === null) {
@@ -107,28 +117,24 @@ export function useRoleViewing({
     // A second tap while the card is open or the confirmation is in flight
     // is the same request already being served; it is not an error.
     if (card !== null || isPending) return;
-    const remainingCards = deriveRemainingRevealCards(occupiedSeatCount, viewedSeatCount);
-    if (hasViewed) {
-      setView((previous) => ({
-        ...previous,
-        card: { shouldPlayAnimation: false, remainingCards },
-      }));
-      return;
-    }
-    const run = view.run + 1;
-    setView({ scopeKey, run, card: null, isPending: true });
-    void submitViewed().then((confirmed) => {
-      setView((previous) =>
-        previous.scopeKey !== scopeKey || previous.run !== run
-          ? previous
-          : {
-              scopeKey,
-              run,
-              card: confirmed ? { shouldPlayAnimation: true, remainingCards } : null,
-              isPending: false,
-            },
-      );
-    });
+    showConfirmAlert(
+      '查看身份？',
+      '确定现在查看你的身份吗？',
+      () => {
+        if (latestScope.current !== scopeKey) {
+          toast.error('身份已变化，请重新查看。');
+          return;
+        }
+        setView((previous) => ({
+          ...previous,
+          card: {
+            shouldPlayAnimation: !hasViewed,
+            remainingCards: deriveRemainingRevealCards(occupiedSeatCount, viewedSeatCount),
+          },
+        }));
+      },
+      { confirmText: '查看' },
+    );
   }, [
     card,
     effectiveSeat,
@@ -137,8 +143,6 @@ export function useRoleViewing({
     isPending,
     occupiedSeatCount,
     scopeKey,
-    submitViewed,
-    view.run,
     viewedSeatCount,
   ]);
 

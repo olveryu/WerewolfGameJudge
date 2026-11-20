@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 
 import {
   buildSecrethitlerPhaseStates,
+  completeSecrethitlerTestVote,
   sendSecrethitlerSeatCommand,
 } from '@/test-utils/secrethitlerState';
 
@@ -48,6 +49,7 @@ it('shows the fail banner for a settled rejected government', () => {
       vote: 'nein',
     });
   }
+  state = completeSecrethitlerTestVote(state);
   render(
     <SecrethitlerMatchDetails state={state} view={getSecrethitlerViewModel(state, 0)} mySeat={0} />,
   );

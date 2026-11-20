@@ -82,6 +82,7 @@ export interface RuntimeWorkerGameModule {
     userId: string,
   ) => BaseGameState<GameType>;
   readonly migratePersistedState: ((value: unknown) => BaseGameState<GameType>) | null;
+  readonly getRecoveryCommand?: (state: unknown) => GameCommand | null;
   parseCommandResult(value: unknown): RoomCommandResult<BaseGameState<GameType>>;
   decidePublic(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;

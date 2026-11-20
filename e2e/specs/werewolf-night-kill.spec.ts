@@ -213,7 +213,9 @@ test.describe('Werewolf Night — Kill', () => {
         // Dismiss the initial action prompt ("复仇者行动") before clicking bottom button
         await dismissAlert(pages[avengerIdx]!);
 
-        await clickNightButton(pages[avengerIdx]!, 'confirm', '查看阵营');
+        await clickNightButton(pages[avengerIdx]!, 'confirm', '查看阵营', {
+          revealPrivateStatus: true,
+        });
 
         // Read the faction status dialog, then dismiss
         const factionText = await readAlertText(pages[avengerIdx]!);

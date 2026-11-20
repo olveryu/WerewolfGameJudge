@@ -113,6 +113,16 @@ function normalizeSheriffElection(
         speakingStartSeat: election.speakingStartSeat,
         speakingDirection: election.speakingDirection,
       };
+    case 'result':
+      return {
+        ...common,
+        phase: election.phase,
+        deadline: election.deadline,
+        next:
+          election.next.kind === 'final'
+            ? election.next
+            : { ...election.next, candidateSeats: [...election.next.candidateSeats] },
+      };
   }
   const exhaustive: never = election;
   return exhaustive;

@@ -67,15 +67,10 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
-import {
-  getSecrethitlerNightStepLabel,
-  secrethitlerInstruction,
-  secrethitlerSeatLabel,
-} from './secrethitlerPresentation';
+import { getSecrethitlerNightStepLabel, secrethitlerInstruction } from './secrethitlerPresentation';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 const getSecrethitlerProfileTarget = (
@@ -160,6 +155,7 @@ export interface SecrethitlerRoomShellModelInput extends Omit<
   readonly review: RoomReviewEntry | null;
   readonly openIdentity: () => void;
   readonly openAction: () => void;
+  readonly isSelecting: boolean;
   readonly isSubmitting: boolean;
 }
 
@@ -457,7 +453,7 @@ export function createSecrethitlerRoomShellModel(
       ? null
       : {
           key: 'game-action',
-          label: instruction.action,
+          label: input.isSelecting ? '取消选座' : instruction.action,
           audience: 'participant',
           variant: 'primary',
           size: 'md',
@@ -465,24 +461,6 @@ export function createSecrethitlerRoomShellModel(
           ...(input.isSubmitting
             ? { isEnabled: false, disabledReason: '正在提交' }
             : { isEnabled: true, onPress: input.openAction }),
-        };
-  const investigation = view.myInvestigation;
-  const investigationButton: RoomBottomButton | null =
-    investigation === null
-      ? null
-      : {
-          key: 'investigation-result',
-          label: '查看调查结果',
-          audience: 'participant',
-          variant: 'secondary',
-          size: 'md',
-          isEnabled: true,
-          onPress: () =>
-            showAlert(
-              '私密调查结果',
-              `${secrethitlerSeatLabel(view, investigation.targetSeat)}：${investigation.faction === 'liberal' ? '自由派' : '法西斯阵营'}（不区分普通法西斯和希特勒）`,
-              [{ text: '关闭', style: 'cancel' }],
-            ),
         };
   const seatSource = createSecrethitlerSeatDataSource({
     state,
@@ -507,8 +485,9 @@ export function createSecrethitlerRoomShellModel(
     bottomActions: {
       kind: 'stacked',
       // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
-      message:
-        state.phase.kind === 'ended'
+      message: input.isSelecting
+        ? '请选择座位，点击后确认'
+        : state.phase.kind === 'ended'
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : state.phase.kind === 'lobby'
             ? buildLobbyHostStartMessage({ isLobby: true, viewer: input.viewer })
@@ -531,7 +510,6 @@ export function createSecrethitlerRoomShellModel(
               : [],
         secondary: [
           ...(identityButton?.variant === 'secondary' ? [identityButton] : []),
-          ...(investigationButton === null ? [] : [investigationButton]),
           ...(input.review === null
             ? []
             : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)),
