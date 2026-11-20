@@ -2,13 +2,13 @@
  * useRoomAudioOrchestration — the shared room audio core (`RoomAudioOrchestrator`) bound to a
  * ready room session, as a hook. One core per mounted room.
  *
- * Games supply playback and acknowledgement ports, never phase predicates or replay queues.
+ * Games supply playback, acknowledgement and optional entry-gesture policies, never replay queues.
  * The authoritative audio slice controls both normal playback and gesture-based recovery.
  *
  * Rejoin mark: the room mounts only on a ready link (`RoomEntryBoundary`), and a link epoch change
  * re-enters the room, so the first snapshot this hook sees tells whether the host arrived
- * mid-narration. A host mounting with an active batch is marked interrupted — the page has no audio
- * gesture after a reconnect — and the queue subscription stays silent until `resumeAfterRejoin`
+ * mid-narration or in a game-specific phase needing audio recovery. A host mounting with an active
+ * batch or an entry-gesture requirement is marked interrupted, and the queue stays silent until `resumeAfterRejoin`
  * (the resume-gate gesture) replays the complete authoritative batch under the core's
  * re-entry guard, acks the interrupted batch by id and chains on.
  */
@@ -44,6 +44,8 @@ interface RoomAudioOrchestrationOptions<
   readonly ackLabel: string;
   /** The game's named runtime logger (also the error-pipeline logger). */
   readonly logger: Logger;
+  /** A game may require an entry gesture even before a narration batch is queued. */
+  readonly requiresEntryGesture?: (state: TState) => boolean;
 }
 
 export interface RoomAudioOrchestration {
@@ -63,6 +65,7 @@ export function useRoomAudioOrchestration<
   ackCommand,
   ackLabel,
   logger,
+  requiresEntryGesture,
 }: RoomAudioOrchestrationOptions<TState, TCommand>): RoomAudioOrchestration {
   const isHostRef = useRef(isHost);
   const coreRef = useRef<RoomAudioOrchestrator<AudioEffect, TState> | null>(null);
@@ -86,10 +89,11 @@ export function useRoomAudioOrchestration<
     return (
       isHost &&
       snapshot.phase === 'ready' &&
-      snapshot.room.state.isAudioPlaying &&
-      coreRef.current?.needsResume === true
+      (coreRef.current?.needsResume ??
+        (snapshot.room.state.isAudioPlaying ||
+          requiresEntryGesture?.(snapshot.room.state) === true))
     );
-  }, [isHost, session]);
+  }, [isHost, requiresEntryGesture, session]);
   const isResumeRequired = useSyncExternalStore(subscribe, readResumeRequired);
   const reportPlaybackError = useCallback(
     (error: unknown, label: string) => {
@@ -143,7 +147,11 @@ export function useRoomAudioOrchestration<
       onResumeRequiredChange: notifyResumeChange,
     });
     coreRef.current = core;
-    core.setNeedsResume(isHostRef.current && snapshot.room.state.isAudioPlaying);
+    if (isHostRef.current && requiresEntryGesture?.(snapshot.room.state) === true) {
+      core.requireEntryGesture();
+    } else {
+      core.setNeedsResume(isHostRef.current && snapshot.room.state.isAudioPlaying);
+    }
     notifyResumeChange();
 
     return () => {
@@ -151,7 +159,16 @@ export function useRoomAudioOrchestration<
       coreRef.current = null;
       player.stopNarration();
     };
-  }, [ackCommand, ackLabel, logger, notifyResumeChange, player, reportPlaybackError, session]);
+  }, [
+    ackCommand,
+    ackLabel,
+    logger,
+    notifyResumeChange,
+    player,
+    reportPlaybackError,
+    requiresEntryGesture,
+    session,
+  ]);
 
   const resumeAfterRejoin = useCallback(async (): Promise<void> => {
     const core = coreRef.current;

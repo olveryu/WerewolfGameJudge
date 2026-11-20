@@ -225,15 +225,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
         seat,
         player,
         isSelf: seat === viewModel.mySeat,
-        highlight: isSelected
-          ? 'selected'
-          : isEligible
-            ? 'info'
-            : controlledSeat === seat
-              ? 'controlled'
-              : isWolfPeer
-                ? 'danger'
-                : 'none',
+        highlight: controlledSeat === seat ? 'controlled' : isWolfPeer ? 'danger' : 'none',
         secondaryLabel:
           seatView !== null && seatView.isBot && seatView.visibleRole !== null
             ? getRoleDisplayName(seatView.visibleRole)
@@ -256,7 +248,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
                 progressLabel: null,
                 selection: isSelected
                   ? { kind: 'selected', label: '已选' }
-                  : { kind: 'preselected', label: '可选' },
+                  : { kind: 'available', label: null },
               }
             : null,
         isStatusEmphasized: false,

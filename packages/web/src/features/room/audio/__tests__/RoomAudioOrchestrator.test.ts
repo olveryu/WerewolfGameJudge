@@ -353,6 +353,26 @@ describe('RoomAudioOrchestrator batch-id acks', () => {
 });
 
 describe('RoomAudioOrchestrator resume after rejoin', () => {
+  it('holds a new narration batch until the entry gesture even if the room was initially quiet', async () => {
+    const harness = createHarness(drainAckedBatch);
+    harness.setQueue([], 1, false);
+    harness.orchestrator.requireEntryGesture();
+    harness.emitCurrent();
+    expect(harness.orchestrator.needsResume).toBe(true);
+
+    harness.setQueue(firstQueue, 2);
+    harness.emitCurrent();
+    await flushPlayback();
+    expect(harness.playedKeys).toEqual([]);
+    expect(harness.ackedBatchIds).toEqual([]);
+
+    await harness.orchestrator.resumeInterrupted();
+    expect(harness.playedKeys).toEqual(['night', 'evil_reveal']);
+    expect(harness.ackedBatchIds).toEqual([2]);
+    expect(harness.orchestrator.needsResume).toBe(false);
+    harness.orchestrator.dispose();
+  });
+
   it('keeps recovery available when a replay fails, without acknowledging the batch', async () => {
     const playEffect = vi
       .fn<RoomAudioPlayerPort<TestEffect>['playEffect']>()

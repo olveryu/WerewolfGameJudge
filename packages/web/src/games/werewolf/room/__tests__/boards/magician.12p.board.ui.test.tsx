@@ -39,6 +39,7 @@ import {
   witchStep,
   wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -108,7 +109,21 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     it('magician swap: one target is drafted but cannot be submitted', async () => {
       const view = await mount(MAGICIAN_STEP);
       await startSeatSelection(view);
+      expect(view.queryByText('可选')).not.toBeInTheDocument();
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'data-highlight',
+        'none',
+      );
       await tapSeat(view, 1);
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(view.getByTestId(TESTIDS.seatProgress(1))).toHaveTextContent('已选');
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
       expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
     });
