@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
-import { confirmAlert } from '../helpers/alerts';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
 import { observeCommandFrames } from '../helpers/command-frames';
 import {
   closeReviewDialog,
@@ -349,7 +349,13 @@ test('four humans write four turns without restoring unsubmitted input and revea
           4,
         );
       });
-      await room.clickHostManagementActionAndConfirm(TESTIDS.nextRoundButton, '再来一局');
+      await room.clickHostManagementAction(TESTIDS.restartButton);
+      await pressAlertButton(hostPage, {
+        title: '重新开始？',
+        buttonIndex: 1,
+        buttonLabel: '重新开始',
+      });
+      await room.startGame();
       await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
       await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
     } finally {
