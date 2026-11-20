@@ -14,6 +14,8 @@ During each grill-me interview, record the user's confirmed decisions in the rel
 
 The client is a web page, including in the mini-program web-view. When changing the client and server together, do not retain obsolete commands solely for old client versions: users can refresh after deployment. This does not replace persisted-state migrations or justify silently ignoring version errors.
 
+Base changes on verified behavior and current ecosystem guidance, not speculation or defensive patches. Preserve architectural boundaries, fail fast on broken invariants, and report actionable failures through the owning logger and error pipeline.
+
 ## Project snapshot
 
 A multi-game judge app for in-person play: a React web client that runs in browsers and inside the WeChat mini-program web-view, backed by a Cloudflare Worker with Durable Objects, D1, and R2. It includes collection and progression product modules.

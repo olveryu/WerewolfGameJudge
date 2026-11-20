@@ -169,12 +169,11 @@ export function useAvalonRoomState(
     onOpened: null,
     isPending: hasPendingReview,
     onClosed: hasPendingReview
-      ? () => {
-          void submit('确认复盘', {
+      ? () =>
+          submit('确认复盘', {
             type: 'avalon.review.complete',
             gameSequence: state.gameSequence,
-          });
-        }
+          })
       : null,
   });
   const isLobby = state.phase.kind === 'lobby';

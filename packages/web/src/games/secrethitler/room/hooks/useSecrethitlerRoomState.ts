@@ -183,12 +183,11 @@ export function useSecrethitlerRoomState(
     onOpened: null,
     isPending: hasPendingReview,
     onClosed: hasPendingReview
-      ? () => {
-          void submit('确认复盘', {
+      ? () =>
+          submit('确认复盘', {
             type: 'secrethitler.review.complete',
             gameSequence: state.gameSequence,
-          });
-        }
+          })
       : null,
   });
   const capabilities: RoomCapabilities = {

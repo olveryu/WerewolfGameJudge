@@ -316,12 +316,11 @@ export function useWerewolfRoomState(
     onOpened: null,
     isPending: hasPendingReview,
     onClosed: hasPendingReview
-      ? () => {
-          void submit('确认复盘', {
+      ? () =>
+          submit('确认复盘', {
             type: 'werewolf.review.complete',
             gameSequence: state.gameSequence,
-          });
-        }
+          })
       : null,
   });
   const modals = useRoomModals({
