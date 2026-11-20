@@ -904,6 +904,10 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       if (rejection < 2) {
         expect(current.session.state.electionTracker).toBe(rejection + 1);
         expect(current.session.state.phase.kind).toBe('election');
+        expect(current.session.state.lastPublicResult).toEqual({
+          kind: 'government',
+          approved: false,
+        });
       }
     }
     expect(current.session.state.electionTracker).toBe(0);
@@ -911,6 +915,16 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     expect(current.session.state.lastChancellorSeat).toBeNull();
     expect(current.session.state.history.policies).toHaveLength(1);
     expect(current.session.state.history.policies[0]?.source).toBe('chaos');
+    expect(current.session.state.lastPublicResult).toEqual({
+      kind: 'policy',
+      ...current.session.state.history.policies[0],
+    });
+    const migrated = migratePersistedSecrethitlerState({
+      ...current.session.state,
+      stateVersion: 7,
+    });
+    expect(migrated.lastPublicResult).toBeNull();
+    expect(migrated.history).toEqual(current.session.state.history);
     expect(current.session.state.phase.kind).toBe('election');
     expect(
       current.session.state.history.governments.every((government) => government.votes !== null),
@@ -1130,10 +1144,46 @@ describe('Secret Hitler policies, powers, and settlement', () => {
       policy: expectedPolicy,
       source: 'chaos',
     });
+    expect(current.session.state.lastPublicResult).toEqual({
+      kind: 'policy',
+      policy: expectedPolicy,
+      source: 'chaos',
+    });
     expect(current.session.state.history.actions).toHaveLength(actionCount);
     expect(current.session.state.electionTracker).toBe(0);
     expect(current.session.state.lastPresidentSeat).toBeNull();
     expect(current.session.state.lastChancellorSeat).toBeNull();
+  });
+
+  it('records an approved veto as the latest result when it does not trigger chaos', () => {
+    const current = game(8, 8, 'veto-seed');
+    enterElection(current);
+    driveToPolicyCount(current, 'fascist', 5);
+    nominateAndVote(current, 'ja', true);
+    const phase = currentPhase(current);
+    if (phase.kind !== 'legislativePresident') throw new Error('Expected hand');
+    const president = current.actorForSeat(phase.presidentSeat);
+    const chancellor = current.actorForSeat(phase.chancellorSeat);
+    const discard = phase.hand[0];
+    if (discard === undefined) throw new Error('Missing discard');
+    current.send(
+      { type: 'secrethitler.policy.presidentDiscard', policy: discard },
+      president.userId,
+      president.controlledSeat,
+    );
+    current.send(
+      { type: 'secrethitler.policy.chancellorResolve', action: 'veto' },
+      chancellor.userId,
+      chancellor.controlledSeat,
+    );
+    current.send(
+      { type: 'secrethitler.policy.vetoRespond', approve: true },
+      president.userId,
+      president.controlledSeat,
+    );
+    confirmResult(current);
+    expect(current.session.state.electionTracker).toBe(1);
+    expect(current.session.state.lastPublicResult).toEqual({ kind: 'veto', approved: true });
   });
 
   it('waits for the vote result timer before revealing Hitler elected', () => {
@@ -1361,6 +1411,7 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     );
     confirmResult(current);
     const afterVeto = currentPhase(current);
+    expect(current.session.state.lastPublicResult).toEqual({ kind: 'veto', approved: false });
     expect(afterVeto.kind).toBe('legislativeChancellor');
     expect(
       current.session.decide(
@@ -1465,6 +1516,11 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     );
     const pending = parseSecrethitlerState(JSON.parse(JSON.stringify(current.session.state)));
     expect(pending.phase.kind).toBe('investigationResult');
+    expect(pending.lastPublicResult).toEqual({
+      kind: 'action',
+      action: 'investigate',
+      targetSeat: target,
+    });
     expect(getSecrethitlerViewModel(pending, phase.presidentSeat).myInvestigation).toMatchObject({
       targetSeat: target,
     });

@@ -162,6 +162,39 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       if (state.phase.kind !== 'nominate') return state;
       return { ...bumped, phase: { ...state.phase, preselectedSeats: [...event.seats] } };
     }
+    case 'avalon.team.autoApproved': {
+      if (state.phase.kind !== 'nominate') return state;
+      const result: AvalonLastVoteResult = {
+        approved: true,
+        automatic: true,
+        rejectStreak: 0,
+        ballots: {},
+        approveCount: 0,
+        rejectCount: 0,
+        abstainCount: 0,
+      };
+      return {
+        ...bumped,
+        phase: {
+          kind: 'voteResult',
+          round: state.phase.round,
+          proposedSeats: [...event.seats],
+          confirmedSeats: [],
+          deadlineAt: null,
+        },
+        lastVoteResult: result,
+        roundHistory: appendAvalonProposalRecord(state.roundHistory, state.phase.round, {
+          leaderSeat: state.leaderSeat,
+          teamSeats: [...event.seats],
+          approved: true,
+          automatic: true,
+          ballots: {},
+          approveCount: 0,
+          rejectCount: 0,
+          abstainCount: 0,
+        }),
+      };
+    }
     case 'avalon.team.proposed': {
       if (state.phase.kind !== 'nominate') return state;
       return {
@@ -193,6 +226,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       // 投票结算面板（设计稿 §7）：三种路径都写入，展示后随下一阶段推进。
       const lastVoteResult: AvalonLastVoteResult = {
         approved: event.approved,
+        automatic: false,
         rejectStreak: event.approved ? 0 : state.rejectStreak + 1,
         ballots: { ...event.ballots },
         approveCount: event.approveCount,
@@ -209,6 +243,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         rejectCount: event.rejectCount,
         abstainCount: event.abstainCount,
         approved: event.approved,
+        automatic: false,
       });
       return {
         ...bumped,
@@ -240,18 +275,6 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
     case 'avalon.voteResult.completed': {
       if (state.phase.kind !== 'voteResult' || state.lastVoteResult === null) return state;
       const lastVoteResult = state.lastVoteResult;
-      if (!lastVoteResult.approved && lastVoteResult.rejectStreak >= state.config.vetoLimit) {
-        return {
-          ...bumped,
-          phase: {
-            kind: 'ended',
-            winner: 'evil',
-            reason: 'vetoLimitReached',
-            accusedSeat: null,
-          },
-          xpSettled: true,
-        };
-      }
       if (lastVoteResult.approved) {
         return {
           ...bumped,
@@ -265,6 +288,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             approveCount: lastVoteResult.approveCount,
             rejectCount: lastVoteResult.rejectCount,
             abstainCount: lastVoteResult.abstainCount,
+            automatic: lastVoteResult.automatic,
           },
           rejectStreak: 0,
         };
@@ -278,7 +302,8 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           preselectedSeats: [],
         },
         leaderSeat: nextAvalonLeaderSeat(state.leaderSeat, state.config.numberOfPlayers),
-        rejectStreak: state.rejectStreak + 1,
+        // A migrated legacy final vote may already have rejected the last slot.
+        rejectStreak: Math.min(state.rejectStreak + 1, state.config.vetoLimit - 1),
       };
     }
     case 'avalon.quest.allPlayed': {

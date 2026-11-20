@@ -119,6 +119,7 @@ export function RoomActionStatus({
     readonly detail: string | null;
     readonly summaryReplacesMessage?: boolean;
     readonly summaryIsStatus?: boolean;
+    readonly summaryAfterMessage?: boolean;
   };
 }) {
   const taskBody =
@@ -152,7 +153,9 @@ export function RoomActionStatus({
             {boardStatus.phaseLabel !== null && (
               <p className="room-board-phase">{boardStatus.phaseLabel}</p>
             )}
-            {hasSummary && <div className="room-board-status-summary">{summary}</div>}
+            {hasSummary && !boardStatus.summaryAfterMessage && (
+              <div className="room-board-status-summary">{summary}</div>
+            )}
             {title !== null && title.length > 0 && (
               <h2
                 className={hasSummary ? 'room-board-status-detail' : 'room-board-status-title'}
@@ -164,6 +167,9 @@ export function RoomActionStatus({
             )}
             {!isAudioPlaying && !isSelecting && boardStatus.detail !== null && (
               <p className="room-board-status-detail">{boardStatus.detail}</p>
+            )}
+            {hasSummary && boardStatus.summaryAfterMessage && (
+              <div className="room-board-status-summary">{summary}</div>
             )}
           </div>
         )}

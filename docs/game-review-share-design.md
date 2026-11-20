@@ -223,7 +223,7 @@ export type ReviewInline =
   1. `hero`：`AVALON_END_REASON_COPY[reason].title`（如 `好人阵营胜利`），`tone` 按胜方；`byline` = 刺杀行（`刺客 4 号指认 2 号（梅林）→ 命中`）或 `description`。
   2. `stats`：成功 N · 失败 N · 否决 N。
   3. `section 全员身份` → `roster`：角色（`梅林（好人）`），`roleTone` 按阵营。
-  4. `section 本局配置` → `facts`：投票方式 / 否决上限 / 任务人数 / 湖仙 / 角色配置。
+  4. `section 本局配置` → `facts`：投票方式 / 最多组队次数 / 任务人数 / 湖仙 / 角色配置。
   5. `section 湖仙查验`（人数 ≥ `AVALON_LADY_MIN_PLAYERS`）→ `timeline`：每轮 `持有人 → 被查者 · 好人/坏人`，未发生轮写原因。
   6. `section 任务进程`（至少结算过一次投票时；刺客在首次投票前出手则无此节）→ `groups`：每个任务一组，`railTone` 成功 `good` / 失败 `evil`，`tag` = `成功` / `失败 ×N`；行 = 每次提案：队长徽章 + 队员徽章 + 赞成/反对计数 + `通过` / `否决` 标签；被否决提案 `isDimmed`。
 - **删除**：`AvalonReviewOverlay` 及其样式表与测试；对局记录与复盘共用的文案抽到 `room/avalonRecordCopy.ts`。

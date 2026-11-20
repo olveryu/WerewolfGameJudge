@@ -83,6 +83,7 @@ function createInitialState(
     investigatedSeats: [],
     lastInvestigation: null,
     history: { governments: [], policies: [], actions: [] },
+    lastPublicResult: null,
   });
 }
 

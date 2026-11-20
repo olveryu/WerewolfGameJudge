@@ -173,8 +173,26 @@ it('keeps the match summary hidden until first-night narration finishes', () => 
       screen={{ state: election, viewModel: getSecrethitlerViewModel(election, 0), mySeat: 0 }}
     />,
   );
-  expect(screen.getByText('自由派 0/5 · 法西斯 0/6 · 选举失败 0/3')).toBeInTheDocument();
+  expect(screen.getByRole('list', { name: '自由派政策轨道' })).toBeVisible();
+  expect(screen.getByRole('list', { name: '法西斯政策轨道' })).toBeVisible();
+  expect(screen.getByRole('list', { name: '选举失败轨道' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
+});
+
+it('explains policy effects without dismissing the room tracks', async () => {
+  const state = buildSecrethitlerPhaseStates().get('election');
+  if (state === undefined) throw new Error('Missing election fixture');
+  render(
+    <SecrethitlerBoardHeader
+      screen={{ state, viewModel: getSecrethitlerViewModel(state, 0), mySeat: 0 }}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: /法西斯政策第3张/ }));
+  expect(screen.getByRole('dialog', { name: '法西斯政策 3' })).toHaveTextContent(
+    '混乱自动施行政策时不触发总统权力',
+  );
+  await userEvent.click(screen.getByRole('button', { name: '关闭' }));
+  expect(screen.getByRole('list', { name: '选举失败轨道' })).toBeVisible();
 });
 
 it('uses electronic first-night guidance without a reading script or manual progression controls', () => {

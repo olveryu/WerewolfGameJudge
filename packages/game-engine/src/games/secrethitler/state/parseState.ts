@@ -172,6 +172,39 @@ function history(value: unknown, path: string): SecrethitlerState['history'] {
   return finishObject(raw, { governments, policies: policiesHistory, actions }, path);
 }
 
+function lastPublicResult(value: unknown, path: string): SecrethitlerState['lastPublicResult'] {
+  if (value === null) return null;
+  const raw = parseObject(value, path);
+  const kind = parseChoice(raw.kind, `${path}.kind`, ['government', 'policy', 'veto', 'action']);
+  if (kind === 'government' || kind === 'veto') {
+    return finishObject(
+      raw,
+      { kind, approved: parseBoolean(raw.approved, `${path}.approved`) },
+      path,
+    );
+  }
+  if (kind === 'policy') {
+    return finishObject(
+      raw,
+      {
+        kind,
+        policy: parseChoice(raw.policy, `${path}.policy`, FACTIONS),
+        source: parseChoice(raw.source, `${path}.source`, ['government', 'chaos']),
+      },
+      path,
+    );
+  }
+  return finishObject(
+    raw,
+    {
+      kind,
+      action: parseChoice(raw.action, `${path}.action`, POWERS),
+      targetSeat: nullableSeat(raw.targetSeat, `${path}.targetSeat`),
+    },
+    path,
+  );
+}
+
 function phase(value: unknown, path: string): SecrethitlerPhase {
   const raw = parseObject(value, path);
   const kind = parseChoice(raw.kind, `${path}.kind`, SECRETHITLER_PHASES);
@@ -379,6 +412,7 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
                 );
               })(),
         history: history(raw.history, `${path}.history`),
+        lastPublicResult: lastPublicResult(raw.lastPublicResult, `${path}.lastPublicResult`),
       },
       path,
     ),
@@ -387,8 +421,11 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
 
 /** Upgrades legacy vote-mode and narration data into the current strict state. */
 export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
-  const raw = parseObject(value, 'SecrethitlerState');
-  if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
+  const parsed = parseObject(value, 'SecrethitlerState');
+  if (parsed.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(parsed);
+  const raw: Readonly<Record<string, unknown>> = { ...parsed, lastPublicResult: null };
+  if (raw.stateVersion === 7)
+    return parseSecrethitlerState({ ...raw, stateVersion: SECRETHITLER_STATE_VERSION });
   const rawPhase = parseObject(raw.phase, 'SecrethitlerState.phase');
   const upgradedPhase =
     rawPhase.kind === 'election'

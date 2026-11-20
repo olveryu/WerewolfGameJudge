@@ -290,8 +290,9 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       const record = state.roundHistory.find((candidate) => candidate.round === round);
       // 本轮已有提案结算（否决后回到组队、或通过后任务进行中）：
       // 最新结算就是这次投票结论。
-      if (state.lastVoteResult !== null && record !== undefined && record.proposals.length > 0) {
-        const vote = state.lastVoteResult;
+      const vote = record?.proposals.at(-1);
+      if (vote !== undefined) {
+        if (vote.automatic) return `${questLabel} · 队伍自动通过`;
         return `${questLabel} · ${vote.approved ? '队伍通过' : '提案被否决'}（赞成 ${vote.approveCount} · 反对 ${vote.rejectCount}）`;
       }
       // 本轮尚无提案结算时，最新结算是上一轮的任务结论。
@@ -628,10 +629,10 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       break;
     }
     case 'voteResult':
-      message = '等待全员确认投票结果';
+      message = '结果展示后自动继续';
       break;
     case 'questResult':
-      message = '等待全员确认任务结果';
+      message = '结果展示后自动继续';
       break;
     case 'quest': {
       const instruction = resolveQuestInstruction(vm);

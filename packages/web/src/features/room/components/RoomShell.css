@@ -108,6 +108,25 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+.room-board-column[data-scroll-information='true'] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.room-board-column[data-scroll-information='true'] .room-board-scroll {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.room-board-column[data-scroll-information='true'] .room-board-information {
+  padding-inline: var(--space-small);
+}
+
+.room-board-column[data-scroll-information='true'] .room-board-status-card {
+  padding-inline: var(--space-tight);
 }
 
 .room-context-header {

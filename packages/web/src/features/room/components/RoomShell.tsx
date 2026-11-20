@@ -45,6 +45,8 @@ type RoomShellContent =
       readonly bottomSummary: ReactElement | null;
       readonly summaryReplacesMessage?: boolean;
       readonly summaryIsStatus?: boolean;
+      readonly summaryAfterMessage?: boolean;
+      readonly scrollInformationWithSeats?: boolean;
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
       readonly sideInspector: ReactElement | null;
@@ -332,7 +334,10 @@ export function RoomShell({
       )}
       <div className="room-content">
         {content.kind === 'seats' ? (
-          <div className="room-board-column">
+          <div
+            className="room-board-column"
+            data-scroll-information={content.scrollInformationWithSeats === true}
+          >
             {content.contextHeader !== null && (
               <div className="room-context-header">{content.contextHeader}</div>
             )}
@@ -349,6 +354,7 @@ export function RoomShell({
                     boardStatus={{
                       phaseLabel,
                       summaryIsStatus: content.summaryIsStatus,
+                      summaryAfterMessage: content.summaryAfterMessage,
                       title: lobbyTitle,
                       summaryReplacesMessage: content.summaryReplacesMessage === true,
                       detail:

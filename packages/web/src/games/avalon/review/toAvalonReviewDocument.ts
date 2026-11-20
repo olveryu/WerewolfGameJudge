@@ -182,7 +182,7 @@ function configFacts(viewModel: AvalonViewModel, hasLady: boolean): readonly Rev
   }
   return [
     { label: '投票', value: formatAvalonVoteMode(viewModel.voteMode) },
-    { label: '否决上限', value: String(viewModel.vetoLimit) },
+    { label: '最多组队', value: String(viewModel.vetoLimit) },
     { label: '任务人数', value: formatAvalonQuestSizes(playerCount) },
     { label: '湖仙', value: hasLady ? '启用' : '不启用' },
     ...boardSections.map((section) => ({

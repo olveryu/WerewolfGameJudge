@@ -223,11 +223,15 @@ test.describe('Werewolf Night — Flow Verification', () => {
       await test.step('Seer check should be confirmed', () =>
         clickSeatAndConfirm(seerPage, targetWolfSeat));
 
-      // Wait for the reveal dialog
-      const revealText = await readAlertText(seerPage);
+      const expectedRevealSeat = formatSeat(targetWolfSeat);
+      // Wait for the reveal, not the preceding confirmation dialog.
+      const revealText = await readAlertText(
+        seerPage,
+        10_000,
+        `查验结果：${expectedRevealSeat}是狼人`,
+      );
 
       // The reveal should mention the checked seat number and "狼人"
-      const expectedRevealSeat = formatSeat(targetWolfSeat);
       expect(revealText, 'Reveal should contain seat number').toContain(expectedRevealSeat);
       expect(revealText, 'Reveal should say 狼人').toContain('狼人');
 

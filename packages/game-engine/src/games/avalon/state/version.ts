@@ -7,11 +7,12 @@
  * v10: nominate phase drops draftSeats; preselect / propose carry the team.
  * v11: vote results require acknowledgement before the next phase.
  * v12: per-user terminal review completion.
- * v13: quest results wait for seat acknowledgements. */
+ * v13: quest results wait for seat acknowledgements.
+ * v14: record whether a team was automatically approved without a vote. */
 
 import { AVALON_GAME_TYPE } from './types';
 
-export const AVALON_STATE_VERSION = 13;
+export const AVALON_STATE_VERSION = 14;
 
 export const AVALON_STATE_IDENTITY = {
   gameType: AVALON_GAME_TYPE,

@@ -42,6 +42,7 @@ import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
 import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
+import { AvalonRoomTracks } from './components/AvalonRoomTracks';
 import { AvalonStrikeConfirmModal } from './components/AvalonStrikeConfirmModal';
 import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
@@ -89,7 +90,7 @@ function AvalonRoomContent(
   const phase = screen.state.phase;
   const statusContext =
     phase.kind === 'nominate' || phase.kind === 'vote'
-      ? `${formatAvalonQuestLabel(phase.round)} · 第${(screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1}次提案`
+      ? `${formatAvalonQuestLabel(phase.round)} · 第${Math.min((screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1, config.vetoLimit)}次提案`
       : phase.kind === 'voteResult' || phase.kind === 'quest' || phase.kind === 'questResult'
         ? formatAvalonQuestLabel(phase.round)
         : phase.kind === 'lady'
@@ -195,7 +196,7 @@ function AvalonRoomContent(
   const isNight = viewModel !== null && viewModel.phase === 'night';
   const settings = [
     { label: '投票方式', value: formatAvalonVoteMode(config.voteMode) },
-    { label: '否决上限', value: `${config.vetoLimit} 次` },
+    { label: '最多组队', value: `${config.vetoLimit} 次` },
   ];
   const board = (
     <AvalonBoardInfoContent
@@ -271,14 +272,18 @@ function AvalonRoomContent(
           : {
               kind: 'seats',
               contextHeader: null,
+              scrollInformationWithSeats: historySummary !== null,
+              summaryAfterMessage: true,
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
               bottomSummary:
                 historySummary === null || currentStatus === null ? null : (
                   <AvalonHistorySummary
                     status={currentStatus}
+                    tracks={<AvalonRoomTracks view={viewModel} />}
                     latestResult={
                       screen.state.phase.kind !== 'ended' &&
-                      (screen.state.lastVoteResult !== null || screen.state.questHistory.length > 0)
+                      (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
+                        screen.state.questHistory.length > 0)
                         ? historySummary
                         : null
                     }

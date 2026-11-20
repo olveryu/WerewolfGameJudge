@@ -124,6 +124,32 @@ function assertSetupState(state: SecrethitlerState): void {
 
 function assertPolicyState(state: SecrethitlerState): void {
   const identitySeats = Object.keys(state.identities).map(Number);
+  const result = state.lastPublicResult;
+  if (result !== null) {
+    if (result.kind === 'government') {
+      const government = state.history.governments
+        .filter((entry) => entry.outcome !== 'pending')
+        .at(-1);
+      invariant(
+        government !== undefined && result.approved === (government.outcome === 'passed'),
+        'latest government result',
+      );
+    } else if (result.kind === 'policy') {
+      const policy = state.history.policies.at(-1);
+      invariant(
+        policy?.policy === result.policy && policy.source === result.source,
+        'latest policy result',
+      );
+    } else if (result.kind === 'action') {
+      const action = state.history.actions.at(-1);
+      invariant(
+        action?.action === result.action && action.targetSeat === result.targetSeat,
+        'latest action result',
+      );
+    } else {
+      invariant(state.phase.kind !== 'lobby', 'latest veto result');
+    }
+  }
   invariant(
     Number.isSafeInteger(state.electionTracker) &&
       state.electionTracker >= 0 &&

@@ -16,6 +16,7 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { isBotSeat } from '../../../platform/room/seating';
+import { getAvalonQuestSize } from '../domain/rules';
 import { normalizeAvalonState } from './normalize';
 import {
   AVALON_BALLOTS,
@@ -132,6 +133,7 @@ function proposalRecord(value: unknown, path: string): AvalonProposalRecord {
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
       approved: parseBoolean(raw.approved, `${path}.approved`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
     },
     path,
   );
@@ -175,6 +177,7 @@ function historyEntry(value: unknown, path: string): AvalonQuestHistoryEntry {
       approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
       result: parseChoice(raw.result, `${path}.result`, ['success', 'fail'] as const),
       successCount: parseInteger(raw.successCount, `${path}.successCount`),
       failCount: parseInteger(raw.failCount, `${path}.failCount`),
@@ -235,6 +238,7 @@ function lastVoteResult(value: unknown, path: string): AvalonLastVoteResult {
       approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
     },
     path,
   );
@@ -320,6 +324,7 @@ function phase(value: unknown, path: string): AvalonPhase {
           approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
           rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
           abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+          automatic: parseBoolean(raw.automatic, `${path}.automatic`),
         },
         path,
       );
@@ -454,6 +459,7 @@ function deriveLegacyRoundHistory(
       rejectCount: entry.rejectCount,
       abstainCount: entry.abstainCount,
       approved: true,
+      automatic: entry.automatic,
     };
     const quest: AvalonQuestRecord = {
       result: entry.result,
@@ -475,6 +481,7 @@ function deriveLegacyRoundHistory(
           rejectCount: rawPhase.rejectCount,
           abstainCount: rawPhase.abstainCount,
           approved: true,
+          automatic: rawPhase.automatic,
         },
       ],
       quest: null,
@@ -522,8 +529,42 @@ function dropNominateDraft(phase: unknown): unknown {
   return rest;
 }
 
-export function migratePersistedAvalonState(value: unknown): AvalonState {
-  const persisted = parseObject(value, 'AvalonState');
+function markLegacyVotes(
+  raw: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const markVote = (value: unknown, path: string) => ({
+    ...parseObject(value, path),
+    automatic: false,
+  });
+  const phase = parseObject(raw.phase, 'AvalonState.phase');
+  return {
+    ...raw,
+    phase: phase.kind === 'quest' ? { ...phase, automatic: false } : phase,
+    questHistory: parseArray(raw.questHistory, 'AvalonState.questHistory', markVote),
+    ...(raw.roundHistory === undefined
+      ? {}
+      : {
+          roundHistory: parseArray(raw.roundHistory, 'AvalonState.roundHistory', (value, path) => {
+            const round = parseObject(value, path);
+            return {
+              ...round,
+              proposals: parseArray(round.proposals, `${path}.proposals`, markVote),
+            };
+          }),
+        }),
+    lastVoteResult:
+      raw.lastVoteResult === null
+        ? null
+        : markVote(raw.lastVoteResult, 'AvalonState.lastVoteResult'),
+  };
+}
+
+function migrateLegacyAvalonState(value: unknown): AvalonState {
+  const parsed = parseObject(value, 'AvalonState');
+  const persisted =
+    typeof parsed.stateVersion === 'number' && parsed.stateVersion >= 1 && parsed.stateVersion <= 13
+      ? markLegacyVotes(parsed)
+      : parsed;
   const raw =
     typeof persisted.stateVersion === 'number' &&
     persisted.stateVersion >= 1 &&
@@ -544,7 +585,12 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
   // now travels on preselect / propose. A persisted draft was never a
   // commitment, so it is dropped.
-  if (raw.stateVersion === 10 || raw.stateVersion === 11 || raw.stateVersion === 12) {
+  if (
+    raw.stateVersion === 10 ||
+    raw.stateVersion === 11 ||
+    raw.stateVersion === 12 ||
+    raw.stateVersion === 13
+  ) {
     const migrated = parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
     if (migrated.phase.kind !== 'voteResult') return migrated;
     return parseAvalonState({
@@ -557,6 +603,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
       },
     });
   }
+
   if (raw.stateVersion === 9) {
     return parseAvalonState({
       ...raw,
@@ -619,5 +666,29 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
     roundHistory: deriveLegacyRoundHistory(rest),
     ladyHistory: deriveLegacyLadyHistory(rest),
     audioBatchId: 0,
+  });
+}
+
+/** Migrates persisted states and applies the current final-proposal rule. */
+export function migratePersistedAvalonState(value: unknown): AvalonState {
+  const raw = parseObject(value, 'AvalonState');
+  const migrated = migrateLegacyAvalonState(raw);
+  if (
+    raw.stateVersion === AVALON_STATE_VERSION ||
+    migrated.phase.kind !== 'vote' ||
+    migrated.rejectStreak !== migrated.config.vetoLimit - 1
+  ) {
+    return migrated;
+  }
+  return parseAvalonState({
+    ...migrated,
+    phaseRevision: migrated.phaseRevision + 1,
+    phase: {
+      kind: 'nominate',
+      round: migrated.phase.round,
+      requiredSize: getAvalonQuestSize(migrated.config.numberOfPlayers, migrated.phase.round),
+      preselectedSeats: migrated.phase.proposedSeats,
+    },
+    lastVoteResult: null,
   });
 }

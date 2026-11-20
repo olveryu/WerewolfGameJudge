@@ -79,7 +79,7 @@ export function AvalonHistoryOverlay({
           </p>
         </div>
         <p className="avalon-history-config">
-          投票{formatAvalonVoteMode(viewModel.voteMode)} · 否决上限 {viewModel.vetoLimit}
+          投票{formatAvalonVoteMode(viewModel.voteMode)} · 最多组队 {viewModel.vetoLimit} 次
           {questSizes !== null ? ` · 任务人数 ${questSizes}` : ''}
         </p>
         <AvalonRecordTrack

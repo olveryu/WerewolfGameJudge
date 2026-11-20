@@ -33,7 +33,11 @@ import {
   type SecrethitlerEvent,
 } from './decision';
 import { evolveSecrethitlerState } from './evolve';
-import { getSecrethitlerFaction, getSecrethitlerNightParticipants } from './rules';
+import {
+  getSecrethitlerFaction,
+  getSecrethitlerNightParticipants,
+  getSecrethitlerPolicyPower,
+} from './rules';
 
 function recognitionAudioKey(playerCount: number): string {
   return playerCount <= 6 ? 'evil_reveal_5_6' : 'fascist_reveal_7_10';
@@ -169,15 +173,6 @@ function drawPolicies(
   return { hand: deck.slice(0, amount), deck: deck.slice(amount), discard };
 }
 
-function powerForPolicy(state: SecrethitlerState, policyNumber: number): SecrethitlerPower | null {
-  const players = state.config.numberOfPlayers;
-  if ((policyNumber === 1 && players >= 9) || (policyNumber === 2 && players >= 7))
-    return 'investigate';
-  if (policyNumber === 3) return players <= 6 ? 'policyPeek' : 'specialElection';
-  if (policyNumber === 4 || policyNumber === 5) return 'execute';
-  return null;
-}
-
 function finishGovernment(
   state: SecrethitlerState,
   policy: SecrethitlerPolicy,
@@ -210,7 +205,9 @@ function finishGovernment(
     ]);
 
   const power =
-    source === 'government' && policy === 'fascist' ? powerForPolicy(state, fascistPolicies) : null;
+    source === 'government' && policy === 'fascist'
+      ? getSecrethitlerPolicyPower(state.config.numberOfPlayers, fascistPolicies)
+      : null;
   if (power !== null) {
     let preview: readonly SecrethitlerPolicy[] = [];
     let policyDeck = state.policyDeck;

@@ -17,6 +17,7 @@ const SEATS = [
 
 const REJECTED_RESULT: AvalonLastVoteResultView = {
   approved: false,
+  automatic: false,
   rejectStreak: 2,
   ballots: { 0: 'approve', 1: 'reject', 2: 'reject' },
   approveCount: 1,

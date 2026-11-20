@@ -13,7 +13,11 @@ export {
   type SecrethitlerEffect,
   type SecrethitlerEvent,
 } from './domain/decision';
-export { getSecrethitlerNightParticipants, getSecrethitlerRoleCounts } from './domain/rules';
+export {
+  getSecrethitlerNightParticipants,
+  getSecrethitlerPolicyPower,
+  getSecrethitlerRoleCounts,
+} from './domain/rules';
 export {
   getSecrethitlerViewModel,
   type SecrethitlerGovernmentView,

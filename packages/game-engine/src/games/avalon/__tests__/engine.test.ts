@@ -285,7 +285,7 @@ describe('Avalon engine', () => {
     );
   });
 
-  it('defers a veto-limit ending and its completion effect until the result deadline', () => {
+  it('shows automatic approval until the result deadline before starting the quest', () => {
     const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
     session.startGame();
     session.passNight();
@@ -295,20 +295,26 @@ describe('Avalon engine', () => {
       session.settleVote();
     }
     session.proposeTeam([0, 1]);
-    session.voteAll('reject');
     const phase = session.state.phase;
-    if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('expected vote');
-    session.setNow(phase.deadlineAt);
-    session.sendSystem({ type: 'avalon.phase.settleExpired' });
-    expect(session.state.phase.kind).toBe('voteResult');
+    if (phase.kind !== 'voteResult' || phase.deadlineAt === null)
+      throw new Error('expected automatic approval result');
+    expect(session.state.lastVoteResult).toMatchObject({
+      approved: true,
+      automatic: true,
+      ballots: {},
+      approveCount: 0,
+      rejectCount: 0,
+      abstainCount: 0,
+    });
+    session.expectSettleReject('avalon_deadline_not_reached');
     expect(
       session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
     ).toHaveLength(0);
     session.confirmVoteResult();
-    expect(session.state.phase).toMatchObject({ kind: 'ended', reason: 'vetoLimitReached' });
+    expect(session.state.phase).toMatchObject({ kind: 'quest', automatic: true });
     expect(
       session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it('rejects configs outside 5–10 players / 3–5 veto limit', () => {
@@ -863,46 +869,23 @@ describe('Avalon engine', () => {
   });
 
   it.each([4, 5])(
-    'gates completion at five humans after the veto-limit ending (%i humans)',
+    'gates completion at five humans after an early assassination (%i humans)',
     (humanCount) => {
       const session = game({ numberOfPlayers: 5, vetoLimit: 3 }, humanCount);
       if (humanCount < 5) session.send({ type: 'room.seat.fillBots' });
       session.startGame();
       session.passNight();
-      let now = 1000;
-      for (let round = 0; round < 3; round += 1) {
-        const leader = session.state.leaderSeat;
-        const leaderIsBot = isBotSeat(session.state.roster, leader);
-        for (const type of ['avalon.team.preselect', 'avalon.team.propose'] as const) {
-          session.send(
-            { type, seats: [leader, (leader + 1) % 5] },
-            leaderIsBot ? 'host' : session.seatUser(leader),
-            leaderIsBot ? leader : null,
-          );
-        }
-        for (let seat = 0; seat < 5; seat += 1) {
-          const bot = isBotSeat(session.state.roster, seat);
-          session.send(
-            { type: 'avalon.team.vote', vote: 'reject' },
-            bot ? 'host' : session.seatUser(seat),
-            bot ? seat : null,
-          );
-        }
-        now += 5000;
-        session.setNow(now);
-        session.sendSystem({ type: 'avalon.phase.settleExpired' });
-        expect(session.state.phase.kind).toBe('voteResult');
-        expect(
-          session.effects.filter((effect) => effect.type === 'avalon.game.completed'),
-        ).toHaveLength(0);
-        session.confirmVoteResult();
-        now += 5000;
-        if (round < 2) expect(session.state.phase.kind).toBe('nominate');
-      }
+      const assassin = session.seatOfRole('assassin');
+      const bot = isBotSeat(session.state.roster, assassin);
+      session.send(
+        { type: 'avalon.assassin.earlyStrike', seat: session.seatOfRole('merlin') },
+        bot ? 'host' : session.seatUser(assassin),
+        bot ? assassin : null,
+      );
       expect(session.state.phase.kind).toBe('ended');
       if (session.state.phase.kind === 'ended') {
         expect(session.state.phase.winner).toBe('evil');
-        expect(session.state.phase.reason).toBe('vetoLimitReached');
+        expect(session.state.phase.reason).toBe('earlyAssassinationHit');
       }
       const completions = session.effects.filter(
         (effect) => effect.type === 'avalon.game.completed',
@@ -922,30 +905,22 @@ describe('Avalon engine', () => {
     },
   );
 
-  it('ends the game when countdown settlements hit the veto limit (no manual finish)', () => {
+  it('automatically approves the final proposal after rejected votes', () => {
     const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
     session.startGame();
     session.passNight();
-    let now = 1000;
-    for (let round = 0; round < 3; round += 1) {
+    for (let round = 0; round < 2; round += 1) {
       const leader = session.state.leaderSeat;
       session.proposeTeam([leader, (leader + 1) % 5]);
       session.voteAll('reject');
-      now += 5000;
-      session.setNow(now);
-      session.sendSystem({ type: 'avalon.phase.settleExpired' });
-      session.confirmVoteResult();
-      now += 5000;
-      if (round < 2) expect(session.state.phase.kind).toBe('nominate');
+      session.settleVote();
+      expect(session.state.phase.kind).toBe('nominate');
     }
-    expect(session.state.phase.kind).toBe('ended');
-    if (session.state.phase.kind === 'ended') {
-      expect(session.state.phase.winner).toBe('evil');
-      expect(session.state.phase.reason).toBe('vetoLimitReached');
-    }
-    expect(session.effects.filter((effect) => effect.type === 'avalon.game.completed').length).toBe(
-      1,
-    );
+    const leader = session.state.leaderSeat;
+    session.proposeTeam([leader, (leader + 1) % 5]);
+    expect(session.state.phase.kind).toBe('voteResult');
+    session.confirmVoteResult();
+    expect(session.state.phase.kind).toBe('quest');
   });
 
   it('rejects the system settle from user actors — bot-takeover, before arming, and after settlement', () => {
@@ -1158,23 +1133,188 @@ describe('Avalon engine', () => {
     expect(session.state.lastVoteResult?.approveCount).toBe(5);
   });
 
-  it.each([3, 5])('ends evil on vetoLimitReached at the %d boundary (D8)', (vetoLimit) => {
+  it.each([3, 4, 5])('automatically approves proposal %d', (vetoLimit) => {
     const session = game({ numberOfPlayers: 6, vetoLimit: vetoLimit as 3 });
     session.startGame();
     session.passNight();
-    for (let i = 0; i < vetoLimit; i += 1) {
+    for (let i = 0; i < vetoLimit - 1; i += 1) {
       session.proposeTeam([0, 1]);
       session.voteAll('reject');
       session.settleVote();
     }
-    expect(session.state.phase.kind).toBe('ended');
-    if (session.state.phase.kind === 'ended') {
-      expect(session.state.phase.winner).toBe('evil');
-      expect(session.state.phase.reason).toBe('vetoLimitReached');
+    session.proposeTeam([0, 1]);
+    expect(session.state.lastVoteResult?.automatic).toBe(true);
+    session.confirmVoteResult();
+    expect(session.state.phase.kind).toBe('quest');
+    expect(session.state.rejectStreak).toBe(0);
+  });
+
+  it('moves a legacy final vote back to nomination with its team selected', () => {
+    const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
+    session.startGame();
+    session.passNight();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      session.proposeTeam([0, 1]);
+      session.voteAll('reject');
+      session.settleVote();
     }
-    expect(session.effects.filter((effect) => effect.type === 'avalon.game.completed').length).toBe(
-      1,
+    if (session.state.phase.kind !== 'nominate') throw new Error('Expected nomination');
+    const legacy = {
+      ...session.state,
+      stateVersion: 13,
+      phase: {
+        kind: 'vote',
+        round: session.state.phase.round,
+        proposedSeats: [0, 1],
+        ballots: { 0: 'reject' },
+        deadlineAt: null,
+      },
+    };
+    const migrated = migratePersistedAvalonState(legacy);
+    expect(migrated.phase).toMatchObject({
+      kind: 'nominate',
+      preselectedSeats: [0, 1],
+    });
+    expect(migrated.roundHistory).toEqual(session.state.roundHistory);
+    const decision = avalonEngine.decide(
+      migrated,
+      { type: 'avalon.team.propose', seats: [0, 1] },
+      {
+        actor: { kind: 'user', userId: session.leaderUser() },
+        controlledSeat: null,
+        nowMs: 20000,
+        commandId: 'legacy-final',
+        randomSeed: 'legacy-final',
+      },
     );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') throw new Error('Expected automatic approval');
+    const result = normalizeAvalonState(decision.events.reduce(avalonEngine.evolve, migrated));
+    expect(result.lastVoteResult).toMatchObject({ approved: true, automatic: true, ballots: {} });
+  });
+
+  it('preserves a legacy final rejection and permits one automatic proposal', () => {
+    const session = game({ numberOfPlayers: 5, vetoLimit: 3 });
+    session.startGame();
+    session.passNight();
+    session.proposeTeam([0, 1]);
+    session.voteAll('reject');
+    const phase = session.state.phase;
+    if (phase.kind !== 'vote' || phase.deadlineAt === null) throw new Error('Expected vote');
+    session.setNow(phase.deadlineAt);
+    session.sendSystem({ type: 'avalon.phase.settleExpired' });
+    const lastVoteResult = session.state.lastVoteResult;
+    if (lastVoteResult === null) throw new Error('Expected result');
+    const round = session.state.roundHistory[0];
+    const proposal = round?.proposals[0];
+    if (round === undefined || proposal === undefined) throw new Error('Expected proposal');
+    const migrated = migratePersistedAvalonState({
+      ...session.state,
+      stateVersion: 13,
+      rejectStreak: 2,
+      lastVoteResult: { ...lastVoteResult, rejectStreak: 3 },
+      roundHistory: [{ ...round, proposals: [proposal, proposal, proposal] }],
+    });
+    const next = normalizeAvalonState(
+      avalonEngine.evolve(migrated, { type: 'avalon.voteResult.completed' }),
+    );
+    expect(next.phase.kind).toBe('nominate');
+    expect(next.rejectStreak).toBe(2);
+    expect(next.roundHistory).toEqual(migrated.roundHistory);
+    const context = {
+      actor: { kind: 'user', userId: session.seatUser(next.leaderSeat) } as const,
+      controlledSeat: null,
+      nowMs: 20000,
+      commandId: 'legacy-retry',
+      randomSeed: 'legacy-retry',
+    };
+    const preselection = avalonEngine.decide(
+      next,
+      { type: 'avalon.team.preselect', seats: [0, 1] },
+      context,
+    );
+    if (preselection.kind !== 'commit') throw new Error('Rejected preselection');
+    const selected = normalizeAvalonState(preselection.events.reduce(avalonEngine.evolve, next));
+    const decision = avalonEngine.decide(
+      selected,
+      { type: 'avalon.team.propose', seats: [0, 1] },
+      context,
+    );
+    if (decision.kind !== 'commit')
+      throw new Error(`Rejected automatic proposal: ${decision.reason}`);
+    const retried = normalizeAvalonState(decision.events.reduce(avalonEngine.evolve, selected));
+    expect(retried.roundHistory[0]?.proposals).toHaveLength(4);
+    expect(retried.lastVoteResult).toMatchObject({ automatic: true, approved: true });
+    expect(parseAvalonState(JSON.parse(JSON.stringify(retried)))).toEqual(retried);
+    const quest = normalizeAvalonState(
+      avalonEngine.evolve(retried, { type: 'avalon.voteResult.completed' }),
+    );
+    if (quest.phase.kind !== 'quest') throw new Error('Expected quest');
+    const settled = normalizeAvalonState(
+      avalonEngine.evolve(quest, {
+        type: 'avalon.quest.settled',
+        round: 1,
+        successCount: 2,
+        failCount: 0,
+        result: 'success',
+        historyEntry: {
+          round: 1,
+          leaderSeat: quest.leaderSeat,
+          teamSeats: quest.phase.teamSeats,
+          ballots: quest.phase.ballots,
+          approveCount: quest.phase.approveCount,
+          rejectCount: quest.phase.rejectCount,
+          abstainCount: quest.phase.abstainCount,
+          automatic: quest.phase.automatic,
+          result: 'success',
+          successCount: 2,
+          failCount: 0,
+        },
+      }),
+    );
+    expect(parseAvalonState(JSON.parse(JSON.stringify(settled)))).toEqual(settled);
+    const retriedRound = retried.roundHistory[0];
+    if (retriedRound === undefined) throw new Error('Expected retried round');
+    expect(() =>
+      normalizeAvalonState({
+        ...retried,
+        roundHistory: [{ ...retriedRound, proposals: [...retriedRound.proposals, proposal] }],
+      }),
+    ).toThrow('round history proposals');
+    const finished = migratePersistedAvalonState({
+      ...migrated,
+      stateVersion: 13,
+      rejectStreak: 3,
+      phase: { kind: 'ended', winner: 'evil', reason: 'vetoLimitReached', accusedSeat: null },
+      xpSettled: true,
+    });
+    expect(finished.phase).toMatchObject({ kind: 'ended', reason: 'vetoLimitReached' });
+  });
+
+  it('persists an automatically approved team through quest settlement', () => {
+    const session = game({ numberOfPlayers: 6, vetoLimit: 3, voteMode: 'secret' });
+    session.startGame();
+    session.passNight();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      session.proposeTeam([0, 1]);
+      session.voteAll('reject');
+      session.settleVote();
+    }
+    session.proposeTeam([0, 1]);
+    expect(parseAvalonState(JSON.parse(JSON.stringify(session.state)))).toEqual(session.state);
+    session.confirmVoteResult();
+    session.playAll({ 0: 'success', 1: 'success' });
+    session.settleQuest();
+    expect(session.state.questHistory[0]).toMatchObject({
+      automatic: true,
+      ballots: {},
+      approveCount: 0,
+      rejectCount: 0,
+      abstainCount: 0,
+    });
+    expect(parseAvalonState(JSON.parse(JSON.stringify(session.state)))).toEqual(session.state);
+    const view = getAvalonViewModel(session.state, 0);
+    expect(view.roundHistory[0]?.proposals[2]).toMatchObject({ automatic: true, ballots: null });
   });
 
   it('reveals ballots in public mode and only counts in secret mode (D7)', () => {
@@ -1808,23 +1948,30 @@ describe('Avalon engine', () => {
     expect(settled.quest).toEqual({ result: 'success', successCount: 2, failCount: 0 });
   });
 
-  it('records the veto-ending rejection and flags the round vetoEnded in the view', () => {
+  it('records automatic approval without a ballot in the public view', () => {
     const session = game({ numberOfPlayers: 6, vetoLimit: 3 });
     session.startGame();
     session.passNight();
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       const leader = session.state.leaderSeat;
       session.proposeTeam([leader, (leader + 1) % 6]);
       session.voteAll('reject');
       session.settleVote();
     }
-    expect(session.state.phase.kind).toBe('ended');
+    const leader = session.state.leaderSeat;
+    session.proposeTeam([leader, (leader + 1) % 6]);
+    expect(session.state.phase.kind).toBe('voteResult');
     expect(session.state.roundHistory).toHaveLength(1);
     expect(session.state.roundHistory[0]?.proposals).toHaveLength(3);
     expect(session.state.roundHistory[0]?.quest).toBeNull();
     const view = getAvalonViewModel(session.state, 0);
     expect(view.roundHistory).toHaveLength(1);
-    expect(view.roundHistory[0]?.vetoEnded).toBe(true);
+    expect(view.roundHistory[0]?.vetoEnded).toBe(false);
+    expect(view.roundHistory[0]?.proposals[2]).toMatchObject({
+      approved: true,
+      automatic: true,
+      ballots: null,
+    });
   });
 
   it('round history view hides per-seat ballots in secret mode and shows them in public mode', () => {
@@ -1907,13 +2054,14 @@ describe('Avalon engine', () => {
     const session = game({ numberOfPlayers: 6, vetoLimit: 3 });
     session.startGame();
     session.passNight();
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       const leader = session.state.leaderSeat;
       session.proposeTeam([leader, (leader + 1) % 6]);
       session.voteAll('reject');
       session.settleVote();
     }
     expect(session.state.roundHistory).toHaveLength(1);
+    session.earlyStrike(session.seatOfRole('merlin'));
     session.send({
       type: 'avalon.game.restart',
       gameSequence: session.state.gameSequence,
@@ -2068,20 +2216,22 @@ describe('Avalon engine', () => {
     expect(session.state.lastVoteResult?.rejectStreak).toBe(2);
   });
 
-  it('records the vote result when the veto limit ends the game', () => {
+  it('records the final proposal as automatic rather than a vote', () => {
     const session = game({ numberOfPlayers: 6, vetoLimit: 3 });
     session.startGame();
     session.passNight();
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       session.proposeTeam([0, 1]);
       session.voteAll('reject');
       session.settleVote();
     }
-    expect(session.state.phase.kind).toBe('ended');
+    session.proposeTeam([0, 1]);
+    expect(session.state.phase.kind).toBe('voteResult');
     const last = session.state.lastVoteResult;
-    expect(last?.approved).toBe(false);
-    expect(last?.rejectStreak).toBe(3);
-    expect(last?.rejectCount).toBe(6);
+    expect(last?.approved).toBe(true);
+    expect(last?.automatic).toBe(true);
+    expect(last?.rejectStreak).toBe(0);
+    expect(last?.rejectCount).toBe(0);
   });
 
   it('clears lastVoteResult when a new team is proposed', () => {
