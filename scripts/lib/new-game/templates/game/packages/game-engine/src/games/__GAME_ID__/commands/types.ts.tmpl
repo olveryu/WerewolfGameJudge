@@ -19,8 +19,6 @@ export type __GAME_PASCAL__PublicCommand =
 //#end
   | { readonly type: '__GAME_ID__.game.begin' }
   | { readonly type: '__GAME_ID__.game.restart'; readonly gameSequence: number; readonly wasEnded: boolean }
-  | { readonly type: '__GAME_ID__.game.abort' }
-  | { readonly type: '__GAME_ID__.game.returnToLobby' }
 //#cap audioOrchestration
   | { readonly type: '__GAME_ID__.audio.ack'; readonly audioBatchId: number }
 //#end

@@ -34,6 +34,21 @@ import {
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
+//#cap identityViewing
+import { listRoomBottomButtons } from '@/features/room/model/RoomBottomActions';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
+import { MemoryRouter } from 'react-router';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
+import { successfulRoomCommand } from '@/test-utils/roomCommand';
+import { __GAME_CAMEL__Review } from '../../review/__GAME_CAMEL__Review';
+import { use__GAME_PASCAL__RoomState } from '../hooks/use__GAME_PASCAL__RoomState';
+//#cap audioOrchestration
+import { createFakeBgm } from '@/test-utils/fakeBgm';
+//#end
+//#end
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 
@@ -45,6 +60,14 @@ import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock'
 //#end
 
 vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn(), showDestructiveAlert: vi.fn() }));
+//#cap identityViewing
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuthContext: () => ({ user: { id: 'host', avatarUrl: null, equippedEffect: null } }),
+}));
+vi.mock('@/features/gacha/queries/useGachaQuery', () => ({
+  useGachaStatusQuery: () => ({ data: undefined }),
+}));
+//#end
 
 type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 
@@ -243,6 +266,17 @@ describe('__GAME_PASCAL__ host controls', () => {
     expect(actualKeys).toEqual(expectedKeys.sort());
   });
 
+  it('marks the lobby host task as pending even when seats are missing', () => {
+    expect(hostModel(lobbyState(false)).pendingActionKeys).toEqual([
+//#cap identityViewing
+      HOST_ACTION_KEYS.assignRoles,
+//#end
+//#cap !identityViewing
+      HOST_ACTION_KEYS.startGame,
+//#end
+    ]);
+  });
+
 //#cap identityViewing
   it('enables begin only after every human and bot identity has been viewed', () => {
     let state = viewingState();
@@ -262,6 +296,21 @@ describe('__GAME_PASCAL__ host controls', () => {
     state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
 //#end
     expect(getBeginAction()?.isEnabled).toBe(true);
+  });
+
+  it('marks start pending only after the host has viewed their own identity', () => {
+    const viewing = viewingState();
+    expect(hostModel(viewing).pendingActionKeys).toEqual([]);
+    const hostViewed = drive(viewing, { type: '__GAME_ID__.role.viewed' });
+    expect(hostModel(hostViewed).pendingActionKeys).toEqual([HOST_ACTION_KEYS.startGame]);
+    const begin = hostModel(hostViewed).sections.flatMap((section) => section.actions)
+      .find((action) => action.key === HOST_ACTION_KEYS.startGame);
+    expect(begin?.isEnabled).toBe(false);
+
+    let unseated = drive(lobbyState(false), { type: 'room.seat.leave' });
+    unseated = drive(unseated, { type: 'room.seat.fillBots' });
+    unseated = drive(unseated, { type: '__GAME_ID__.roles.assign' });
+    expect(hostModel(unseated).pendingActionKeys).toEqual([HOST_ACTION_KEYS.startGame]);
   });
 //#end
 
@@ -395,13 +444,20 @@ const seatController: RoomSeatController = {
   cancel: vi.fn(),
 };
 
-function bottomMessage(
+function shellModel(
   state: __GAME_PASCAL__State,
   audience: RoomViewerAudience,
   buildHostManagement = () => ({ task: null, sections: [] }),
-): string | null {
+  options: {
+    controlledSeat?: number | null;
+//#cap identityViewing
+    isSubmitting?: boolean;
+    onViewRolePress?: () => void;
+//#end
+  } = {},
+) {
   const viewer = viewerFor(audience);
-  const model = create__GAME_PASCAL__RoomShellModel({
+  return create__GAME_PASCAL__RoomShellModel({
     roomCode: '1234',
     viewer,
     capabilities: capabilities(),
@@ -418,7 +474,7 @@ function bottomMessage(
     },
     state,
     revision: 5,
-    controlledSeat: null,
+    controlledSeat: options.controlledSeat ?? null,
     seatsVisuallyDisabled: false,
     onSeatPress: vi.fn(),
     onBotSeatLongPress: null,
@@ -439,12 +495,124 @@ function bottomMessage(
       shareImage: vi.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
+//#cap identityViewing
+    effectiveSeat: options.controlledSeat ?? viewer.seat,
+    isSubmitting: options.isSubmitting ?? false,
+    onViewRolePress: options.onViewRolePress ?? vi.fn(),
+//#end
     buildHostManagement,
     releaseBot: vi.fn(),
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
-  return model.bottomActions.message;
 }
+
+function bottomMessage(
+  state: __GAME_PASCAL__State,
+  audience: RoomViewerAudience,
+  buildHostManagement = () => ({ task: null, sections: [] }),
+): string | null {
+  return shellModel(state, audience, buildHostManagement).bottomActions.message;
+}
+
+//#cap identityViewing
+describe('__GAME_PASCAL__ identity action', () => {
+  it('opens the actual role-viewing flow and confirms for the controlled bot seat', async () => {
+    const state = viewingState();
+    const identity = testIdentity('__GAME_ID__');
+    const session = createFakeRoomLink<__GAME_PASCAL__State, __GAME_PASCAL__Command>(
+      readyLinkSnapshot(identity, createRoomSnapshot(state, 1)),
+      async () => successfulRoomCommand(state),
+    );
+    const props = {
+      session,
+      review: __GAME_CAMEL__Review,
+      room: identity.room,
+      entryReason: null,
+      onOpenMusicSettings: vi.fn(),
+      onOpenRoomSettings: vi.fn(),
+      onOpenUserSettings: vi.fn(),
+      entryController: {
+        requestExit: vi.fn(),
+        connection: { status: { kind: 'live' }, pendingDurableCount: 0, onRetryNow: vi.fn() },
+      },
+//#cap audioOrchestration
+      audio: {
+        preload: vi.fn(async () => undefined),
+        playEffect: vi.fn(async () => undefined),
+        stopNarration: vi.fn(),
+        ...createFakeBgm(),
+        setBgmVolume: vi.fn(),
+        setGameAudioVolume: vi.fn(),
+      },
+//#end
+    } as unknown as Parameters<typeof use__GAME_PASCAL__RoomState>[0];
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => use__GAME_PASCAL__RoomState(props), {
+      wrapper: ({ children }: { readonly children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, createElement(MemoryRouter, null, children)),
+    });
+    act(() => result.current.shellModel.seats.onBotSeatLongPress?.(2));
+    const buttons = listRoomBottomButtons(result.current.shellModel.bottomActions);
+    const button = buttons.find((entry) => entry.key === 'view-identity');
+    if (button === undefined || !button.isEnabled) throw new Error('missing identity action');
+    vi.mocked(showConfirmAlert).mockClear();
+    act(() => button.onPress());
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('missing identity confirmation');
+    act(() => { void confirm(); });
+    expect(result.current.roleViewing.isOpen).toBe(true);
+    expect(session.dispatch).not.toHaveBeenCalled();
+    await act(async () => result.current.roleViewing.close());
+    expect(session.dispatch).toHaveBeenCalledWith(
+      { type: '__GAME_ID__.role.viewed' },
+      expect.objectContaining({ controlledSeat: 2 }),
+    );
+  });
+
+  it('is pending and opens the identity card for a seated player in viewing', () => {
+    const onViewRolePress = vi.fn();
+    const model = shellModel(viewingState(), 'seated', undefined, { onViewRolePress });
+    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked actions');
+    const button = model.bottomActions.layout.primary.find((action) => action.key === 'view-identity');
+    expect(button).toMatchObject({ label: '查看身份', audience: 'participant', isPending: true, isEnabled: true });
+    if (button === undefined || !button.isEnabled) throw new Error('missing identity action');
+    button.onPress();
+    expect(onViewRolePress).toHaveBeenCalledOnce();
+  });
+
+  it('tracks the effective seat, including a bot controlled by the host', () => {
+    const viewed = drive(viewingState(), { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
+    const playerButtons = listRoomBottomButtons(shellModel(viewed, 'seated').bottomActions);
+    expect(playerButtons.find((button) => button.key === 'view-identity')).toMatchObject({ isPending: false });
+
+    const hostViewed = drive(viewed, { type: '__GAME_ID__.role.viewed' });
+    const botModel = shellModel(hostViewed, 'host', undefined, { controlledSeat: 2 });
+    expect(listRoomBottomButtons(botModel.bottomActions).find((button) => button.key === 'view-identity'))
+      .toMatchObject({ isPending: true });
+    const botViewed = drive(hostViewed, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
+    const viewedBotModel = shellModel(botViewed, 'host', undefined, { controlledSeat: 2 });
+    expect(listRoomBottomButtons(viewedBotModel.bottomActions).find((button) => button.key === 'view-identity'))
+      .toMatchObject({ isPending: false });
+  });
+
+  it('hides identity in the lobby and from spectators, and locks it while submitting', () => {
+    expect(listRoomBottomButtons(shellModel(lobbyState(), 'seated').bottomActions)).toEqual([]);
+    expect(listRoomBottomButtons(shellModel(viewingState(), 'spectator').bottomActions)).toEqual([]);
+    const locked = shellModel(viewingState(), 'seated', undefined, { isSubmitting: true });
+    const button = listRoomBottomButtons(locked.bottomActions).find((entry) => entry.key === 'view-identity');
+    expect(button).toMatchObject({ isEnabled: false });
+    expect(button).not.toHaveProperty('onPress');
+  });
+
+  it.each(['playing', 'ended'] as const)('keeps identity as a secondary action in %s', (phase) => {
+    const model = shellModel(stateFor(phase), 'seated');
+    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked actions');
+    expect(model.bottomActions.layout.primary.some((action) => action.key === 'view-identity')).toBe(false);
+    expect(model.bottomActions.layout.secondary.find((action) => action.key === 'view-identity'))
+      .toMatchObject({ isEnabled: true, variant: 'secondary' });
+  });
+});
+//#end
 
 describe('__GAME_UPPER___GUIDANCE_MATRIX', () => {
   it('builds host controls only for the host viewer', () => {
