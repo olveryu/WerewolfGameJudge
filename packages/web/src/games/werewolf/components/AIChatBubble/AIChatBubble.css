@@ -4,20 +4,6 @@
   z-index: 10;
   width: var(--size-button-lg);
   height: var(--size-button-lg);
-  top: var(--ai-bubble-top);
-}
-
-body:has(.room-action-hand) .ai-chat-bubble-anchor {
-  top: max(
-    var(--size-header),
-    min(
-      var(--ai-bubble-top),
-      calc(
-        100dvh - var(--size-hand-card-visible) - var(--size-button-lg) - 2 * var(--space-xlarge) -
-          env(safe-area-inset-bottom)
-      )
-    )
-  );
 }
 
 .ai-chat-bubble {

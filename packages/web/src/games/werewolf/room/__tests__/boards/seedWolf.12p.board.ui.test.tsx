@@ -59,6 +59,28 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
   });
   afterEach(() => detachAlerts());
 
+  it('acknowledges an unavailable infection as a skip', async () => {
+    const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
+    const screen = renderWerewolfRoom(
+      createWerewolfRoomMock({
+        schemaId: 'seedWolfInfect',
+        currentActionRole: 'seedWolf',
+        myRole: 'seedWolf',
+        mySeat: 7,
+        gameStateOverrides: {
+          confirmStatus: { role: 'seedWolf', availability: 'unavailable', reason: 'noTarget' },
+        },
+        hookOverrides: { submitAction },
+      }),
+    );
+    await waitForRoomScreen(screen);
+    await pressText(screen, '感染');
+    expect(submitAction).not.toHaveBeenCalled();
+    await harness.pressPrimaryOnType('confirmTrigger');
+    expect(submitAction).toHaveBeenCalledExactlyOnceWith({ kind: 'skip' });
+    screen.unmount();
+  });
+
   it('covers board dialogs, infection choice, skip, and final acknowledgement', async () => {
     await coverageChainActionPrompt(harness, 'seedWolfInfect', 'seedWolf', 'seedWolf', 7);
 
@@ -77,7 +99,7 @@ describe(`WerewolfRoomScreen UI: ${board.name}`, () => {
     expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
 
     await coverageChainWitchSavePrompt(harness, 9);
-    await coverageChainWitchPoisonSelection(9);
+    await coverageChainWitchPoisonSelection(harness, 9);
 
     const { submitAction: seerAction } = await coverageChainSeatSelection(
       'seerCheck',

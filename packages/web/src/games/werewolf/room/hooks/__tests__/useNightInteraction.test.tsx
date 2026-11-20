@@ -6,6 +6,7 @@
 
 import { type RoleId, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react';
+import { toast } from 'sonner';
 
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
@@ -16,7 +17,7 @@ vi.mock('@/utils/alertPresets', () => ({
   showConfirmAlert: vi.fn(),
   showDismissAlert: vi.fn(),
 }));
-vi.mock('sonner', () => ({ toast: { info: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), error: vi.fn() } }));
 
 const BOARD: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
 const NOW = 10_000;
@@ -93,7 +94,7 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
-  it('only submits an armed draft when the bottom confirmation is pressed', async () => {
+  it('only submits an armed draft after the confirmation dialog is accepted', async () => {
     const { result, submit } = renderWolfNight();
     act(() => {
       result.current.onSeatTap(4);
@@ -112,9 +113,18 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       result.current.onSeatTap(4);
     });
-    await act(async () => {
+    act(() => {
       result.current.onNightButton({ kind: 'submitSeatSelection' });
     });
+    expect(submit).not.toHaveBeenCalled();
+    expect(showConfirmAlert).toHaveBeenCalledWith(
+      '狼人投票',
+      expect.stringContaining('5号'),
+      expect.any(Function),
+    );
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing confirmation callback');
+    await act(async () => confirm());
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit).toHaveBeenCalledWith(
       expect.any(String),
@@ -129,10 +139,28 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       tapped = result.current.onSeatTap(99);
     });
+
     expect(tapped).toBe(false);
     expect(showDismissAlert).not.toHaveBeenCalled();
     expect(showConfirmAlert).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('does not submit a confirmation after the selection has changed', async () => {
+    const { result, submit } = renderWolfNight();
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => {
+      result.current.onSeatTap(4);
+    });
+    act(() => result.current.onNightButton({ kind: 'submitSeatSelection' }));
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing confirmation callback');
+    act(() => {
+      result.current.onSeatTap(5);
+    });
+    await act(async () => confirm());
+    expect(submit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('当前行动或目标已变化，请重新选择。');
   });
 });
 

@@ -59,16 +59,9 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   it('blocked player tapping a seat is inert: the engine hint leaves only the skip', async () => {
     const view = await mountRoomFor(BLOCKED_SEER);
 
-    // The blocked prompt is the engine's override, shown once on entry.
-    await waitFor(() =>
-      expect(harness.events()).toContainEqual(
-        expect.objectContaining({
-          title: BLOCKED_UI_DEFAULTS.title,
-          message: BLOCKED_UI_DEFAULTS.message,
-        }),
-      ),
-    );
-    expect(view.getByText(BLOCKED_UI_DEFAULTS.skipButtonText)).toBeInTheDocument();
+    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(BLOCKED_UI_DEFAULTS.message);
+    expect(harness.events()).toEqual([]);
+    expect(view.getByRole('button', { name: '确认跳过' })).toBeInTheDocument();
 
     harness.clear();
     await tapSeat(view, 1);
@@ -109,7 +102,9 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
       // When blocked, the actor sees the skip button instead of the status confirm.
       await waitFor(() => {
-        expect(view.queryByText(BLOCKED_UI_DEFAULTS.skipButtonText)).toBeInTheDocument();
+        expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
+          BLOCKED_UI_DEFAULTS.message,
+        );
         expect(view.getByRole('button', { name: '确认跳过' })).toBeInTheDocument();
       });
     },
@@ -121,7 +116,9 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
       const view = await mountRoomFor(confirmMockOptions(role, false));
 
       await waitFor(() =>
-        expect(view.queryByText(BLOCKED_UI_DEFAULTS.skipButtonText)).not.toBeInTheDocument(),
+        expect(view.getByTestId(TESTIDS.actionMessage)).not.toHaveTextContent(
+          BLOCKED_UI_DEFAULTS.message,
+        ),
       );
     },
   );

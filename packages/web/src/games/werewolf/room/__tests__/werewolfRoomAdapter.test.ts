@@ -52,6 +52,7 @@ function layoutFor(
     review?: RoomReviewEntry | null;
     night?: NightInteractionModel;
     seatSelection?: NightSeatSelection | null;
+    isActionGroupOpen?: boolean;
   } = {},
 ) {
   const { viewModel, night } = nightModel(state, seat, isHost);
@@ -59,6 +60,7 @@ function layoutFor(
     viewModel,
     night: options.night ?? night,
     seatSelection: options.seatSelection,
+    isActionGroupOpen: options.isActionGroupOpen,
     isHost,
     effectiveSeat: seat,
     isAudioPlaying: options.isAudioPlaying ?? false,
@@ -172,7 +174,7 @@ describe('createWerewolfSeatDataSource', () => {
       revision: 1,
     });
     expect(source.getSeat(0).highlight).toBe('none');
-    expect(source.getSeat(0).indicators?.selection).toEqual({ kind: 'selected', label: '已选' });
+    expect(source.getSeat(0).indicators?.selection).toEqual({ kind: 'selected', label: null });
     expect(source.getSeat(5).highlight).toBe('none');
     expect(source.getSeat(1).highlight).toBe('none');
   });
@@ -283,11 +285,28 @@ describe('createWerewolfBottomActionLayout', () => {
       secondary: [],
       ghost: [],
     });
+
     const seer = layoutFor(night, 2, false);
     expect(seer.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
     expect(seer.secondary.map((button) => button.key)).toEqual(['viewRole']);
     const bystander = layoutFor(night, 5, false);
     expect(bystander.secondary.map((button) => button.key)).toEqual(['viewRole']);
+  });
+
+  it('distinguishes wolf target selection, abandoning and withdrawing votes by icon', () => {
+    const state = nightState({
+      roles: BOARD,
+      stepId: 'wolfKill',
+      overrides: { currentNightResults: { wolfVotesBySeat: { '0': 5 } } },
+    });
+    const layout = layoutFor(state, 0, false, { isActionGroupOpen: true });
+    expect([...layout.primary, ...layout.secondary]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'startSeatSelection', icon: 'locate-outline' }),
+        expect.objectContaining({ key: 'wolfEmpty', icon: 'close-circle-outline' }),
+        expect.objectContaining({ key: 'wolfCancel', icon: 'arrow-undo-outline' }),
+      ]),
+    );
   });
 
   it('marks a required single seat action, but not its selection controls', () => {

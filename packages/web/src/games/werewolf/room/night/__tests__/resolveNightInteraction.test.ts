@@ -321,21 +321,25 @@ describe('witch (compound)', () => {
     const state = witchStep({ killedSeat: 3, canSave, canPoison: true });
     const viewModel = viewAs(state, 3);
     const model = resolve(viewModel);
+    expect(model.kind).toBe('witch');
+    if (model.kind !== 'witch') throw new Error('Expected witch interaction');
     expect(renderActionerMessage(model, viewModel)).toBe(
-      `${message}\n${SCHEMAS.witchAction.ui!.prompt}`,
+      `${message}\n${model.prompt.text}\n${SCHEMAS.witchAction.ui!.prompt}`,
     );
     const otherViewer = viewAs(state, 0);
     expect(renderActionerMessage(resolve(otherViewer), otherViewer)).toBeNull();
   });
 
-  it.each([4, -1])('keeps the normal message when the target is %s', (killedSeat) => {
+  it.each([4, -1])('shows the private witch prompt when the target is %s', (killedSeat) => {
     const viewModel = viewAs(
       witchStep({ killedSeat, canSave: killedSeat >= 0, canPoison: true }),
       3,
     );
-    expect(renderActionerMessage(resolve(viewModel), viewModel)).toBe(
-      SCHEMAS.witchAction.ui!.prompt,
-    );
+    const model = expectKind(resolve(viewModel), 'witch');
+    expect(renderActionerMessage(model, viewModel)).toContain(model.prompt.text);
+    if (killedSeat === -1) {
+      expect(renderActionerMessage(model, viewModel)).toContain(model.prompt.title);
+    }
   });
 
   it('uses the empty-kill title when nobody was attacked', () => {
