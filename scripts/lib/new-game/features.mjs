@@ -31,7 +31,7 @@ export const BASE_TEST_REQUIREMENTS = Object.freeze([
     template: GUIDANCE_TEST,
     testCases: Object.freeze([
       'offers fill-bots only for an open lobby and runs each setup action through its capability',
-      'submits abort only after confirmation',
+      'submits in-game restart only after confirmation',
     ]),
   }),
 ]);

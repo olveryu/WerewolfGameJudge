@@ -2,7 +2,7 @@
  * 阿瓦隆投票结算面板（设计稿 §7 412 行）：全员可见的投票结论展示。
  *
  * 结论横幅（组队通过 / 组队被否决·第 N 次）+ 公投逐人投票（座位号·名字·赞成/反对/弃权）/
- * 暗投仅汇总数量。所有真人确认后进入下一阶段。
+ * 暗投仅汇总数量。所有座位确认后进入下一阶段。
  */
 import type {
   AvalonBallot,
@@ -10,7 +10,6 @@ import type {
   AvalonSeatView,
 } from '@game-judge/game-engine/games/avalon/public';
 
-import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
 
 import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
@@ -24,26 +23,16 @@ const BALLOT_LABEL: Record<AvalonBallot, string> = {
 interface AvalonVoteResultPanelProps {
   readonly result: AvalonLastVoteResultView;
   readonly seats: readonly AvalonSeatView[];
-  readonly confirmedSeats: readonly number[];
-  readonly mySeat: number | null;
-  readonly isSubmitting: boolean;
-  readonly onConfirm: () => void;
+  readonly remainingSeconds: number | null;
 }
 
 /** 投票结算面板，展示确认进度并等待全员确认。 */
 export function AvalonVoteResultPanel({
   result,
   seats,
-  confirmedSeats,
-  mySeat,
-  isSubmitting,
-  onConfirm,
+  remainingSeconds,
 }: AvalonVoteResultPanelProps) {
-  const confirmStageAction = useStageConfirmation(`${mySeat}:${result.rejectStreak}`);
-  const confirmResult = () =>
-    confirmStageAction('确认投票结果？', '确认后将等待其他玩家。', onConfirm);
   const orderedSeats = seats.toSorted((a, b) => a.seat - b.seat);
-  const pendingSeats = orderedSeats.filter((seat) => !confirmedSeats.includes(seat.seat));
   const banner = result.approved ? '组队通过' : `组队被否决·第 ${result.rejectStreak} 次`;
   return (
     <AvalonResultDialog
@@ -51,13 +40,7 @@ export function AvalonVoteResultPanel({
       bannerImageSrc={result.approved ? avalonVoteSuccessImage : avalonVoteFailImage}
       outcome={result.approved ? 'positive' : 'negative'}
       kind="vote"
-      onClose={confirmResult}
-      confirmation={{
-        confirmed: mySeat !== null && confirmedSeats.includes(mySeat),
-        disabled: mySeat === null || isSubmitting,
-        spectator: mySeat === null,
-        onConfirm: confirmResult,
-      }}
+      remainingSeconds={remainingSeconds}
     >
       <p
         className="avalon-result-summary"
@@ -98,27 +81,6 @@ export function AvalonVoteResultPanel({
           </ul>
         </section>
       )}
-      <div
-        className="avalon-result-confirmation"
-        aria-live="polite"
-        data-testid={TESTIDS.avalonVoteResultConfirmation}
-      >
-        <p>
-          已确认 {seats.length - pendingSeats.length} / {seats.length}
-        </p>
-        <progress
-          className="avalon-vote-progress"
-          aria-label="确认进度"
-          value={seats.length - pendingSeats.length}
-          max={Math.max(seats.length, 1)}
-        />
-        <p>
-          {pendingSeats.length > 0
-            ? `等待：${pendingSeats.map((seat) => `${seat.seat + 1}号`).join('、')}`
-            : '全员已确认'}
-        </p>
-      </div>
-      <p className="avalon-vote-hint">全员确认后继续</p>
     </AvalonResultDialog>
   );
 }

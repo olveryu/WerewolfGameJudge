@@ -22,6 +22,11 @@ export const avalonWorkerModule = defineWorkerGameModule({
   engine: avalonEngine,
   stateCodec: AVALON_STATE_CODEC,
   migratePersistedState: migratePersistedAvalonState,
+  getRecoveryCommand: (state) =>
+    (state.phase.kind === 'voteResult' || state.phase.kind === 'questResult') &&
+    state.phase.deadlineAt === null
+      ? { type: 'avalon.phase.recoverLegacyResult' }
+      : null,
   createConfigSchema: avalonCreateConfigSchema,
   publicCommandSchema: avalonPublicCommandSchema,
   internalCommandSchema: avalonInternalCommandSchema,

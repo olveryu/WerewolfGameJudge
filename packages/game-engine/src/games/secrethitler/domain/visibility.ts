@@ -82,13 +82,15 @@ export interface SecrethitlerViewModel {
 
 function currentPresident(state: SecrethitlerState): number | null {
   const { phase } = state;
+  if (phase.kind === 'publicResult') return phase.previous.presidentSeat;
   if (
     phase.kind === 'election' ||
     phase.kind === 'voting' ||
     phase.kind === 'legislativePresident' ||
     phase.kind === 'legislativeChancellor' ||
     phase.kind === 'vetoResponse' ||
-    phase.kind === 'executive'
+    phase.kind === 'executive' ||
+    phase.kind === 'investigationResult'
   )
     return phase.presidentSeat;
   return null;
@@ -96,6 +98,7 @@ function currentPresident(state: SecrethitlerState): number | null {
 
 function currentChancellor(state: SecrethitlerState): number | null {
   const { phase } = state;
+  if (phase.kind === 'publicResult') return phase.previous.chancellorSeat;
   if (
     phase.kind === 'voting' ||
     phase.kind === 'legislativePresident' ||
@@ -176,6 +179,7 @@ export function getSecrethitlerViewModel(
       ? (state.phase.votes[viewerSeat] ?? null)
       : null;
   const myInvestigation =
+    state.phase.kind === 'investigationResult' &&
     state.lastInvestigation?.presidentSeat === viewerSeat
       ? {
           targetSeat: state.lastInvestigation.targetSeat,

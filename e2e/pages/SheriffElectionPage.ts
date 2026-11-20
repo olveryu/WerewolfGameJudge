@@ -330,6 +330,30 @@ export class SheriffElectionPage {
     });
   }
 
+  /** Observe the automatic result before waiting for its server-driven dismissal. */
+  async expectAutomaticResult(round: 'first' | 'runoff'): Promise<void> {
+    const dialog = this.page.getByTestId(TESTIDS.sheriffResultDialog);
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByTestId(TESTIDS.sheriffCompletedRound(round))).toBeVisible();
+    await this.page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+  }
+
+  /** Keep an unsubmitted note open across a public result. */
+  async openNoteDraft(text: string): Promise<void> {
+    await this.closeDetails();
+    await this.page.getByTestId(TESTIDS.roomManualButton).click();
+    await this.page.getByTestId(TESTIDS.werewolfNotepadButton).click();
+    await this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes).fill(text);
+  }
+
+  async expectNoteDraftAndClose(text: string): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes)).toHaveValue(text);
+    await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
+    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
+  }
+
   async expectCanVote(canVote: boolean): Promise<void> {
     await this.ensureDetailsOpen();
     const abstainButton = this.page.getByTestId(TESTIDS.sheriffAbstainButton);

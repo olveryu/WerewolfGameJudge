@@ -51,7 +51,6 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),
   }),
-  z.strictObject({ type: z.literal('avalon.voteResult.confirm') }),
   z.strictObject({
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),
@@ -80,5 +79,8 @@ export const avalonPublicCommandSchema: z.ZodType<AvalonPublicCommand> = z.discr
  */
 export const avalonInternalCommandSchema: z.ZodType<AvalonInternalCommand> = z.discriminatedUnion(
   'type',
-  [z.strictObject({ type: z.literal('avalon.phase.settleExpired') })],
+  [
+    z.strictObject({ type: z.literal('avalon.phase.settleExpired') }),
+    z.strictObject({ type: z.literal('avalon.phase.recoverLegacyResult') }),
+  ],
 );

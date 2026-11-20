@@ -312,6 +312,25 @@ function settleExpired(
 }
 
 //#end
+/** Reset the current game without settlement, preserving seats and configuration. */
+function restartGame(
+  state: __GAME_PASCAL__State,
+  command: Extract<__GAME_PASCAL__Command, { type: '__GAME_ID__.game.restart' }>,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
+  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
+    context, state.hostUserId, __GAME_UPPER___REASONS.notHostRestart,
+  );
+  if (hostRejection !== null) return hostRejection;
+  if (state.phase.kind === 'lobby' || state.gameSequence !== command.gameSequence ||
+      (state.phase.kind === 'ended') !== command.wasEnded) return reject(__GAME_UPPER___REASONS.phase);
+//#cap audioOrchestration
+  const audioReason = guardAudioPlayback(state, __GAME_UPPER___REASONS.audioPlaying);
+  if (audioReason !== null) return reject(audioReason);
+//#end
+  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
+}
+
 /** Aborts without settlement, preserving seats and configuration. */
 function abortGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
   const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
@@ -446,6 +465,8 @@ function decideCommand(
       return settleExpired(state, context, 'uncontrolledUser');
     }
 //#end
+    case '__GAME_ID__.game.restart':
+      return restartGame(state, command, context);
     case '__GAME_ID__.game.returnToLobby':
       return returnToLobby(state, context);
     case '__GAME_ID__.game.abort':

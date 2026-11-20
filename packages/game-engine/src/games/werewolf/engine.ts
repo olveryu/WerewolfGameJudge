@@ -471,6 +471,7 @@ function decideWerewolfCommandRules(
         handleAdvanceSheriffElection(
           { type: 'ADVANCE_SHERIFF_ELECTION' },
           actor.value.handlerContext,
+          context,
         ),
         context,
       );
@@ -483,6 +484,7 @@ function decideWerewolfCommandRules(
         handleEndSheriffElectionBySelfDestruct(
           { type: 'END_SHERIFF_ELECTION_BY_SELF_DESTRUCT' },
           actor.value.handlerContext,
+          context,
         ),
         context,
       );

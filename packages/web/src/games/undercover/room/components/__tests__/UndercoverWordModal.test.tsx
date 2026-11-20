@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 
 import type { RoleRevealAnimatorProps } from '@/features/room/components/RoleRevealEffects/types';
-import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { UndercoverWordModal } from '../UndercoverWordModal';
 
@@ -66,19 +65,14 @@ describe('UndercoverWordModal', () => {
 
     const animator = await screen.findByTestId('role-reveal-animator');
     expect(screen.queryByTestId('undercover-word')).toBeNull();
-    expect(screen.queryByTestId('undercover-confirm')).toBeNull();
+    expect(screen.queryByTestId('role-card-confirm-button')).toBeNull();
     expect(screen.queryByText('隐藏词卡')).toBeNull();
 
     await userEvent.click(animator);
 
     expect(screen.queryByTestId('role-reveal-animator')).toBeNull();
     expect(screen.getByTestId('undercover-word')).toHaveTextContent('苹果');
-    await userEvent.click(screen.getByTestId('undercover-confirm'));
-    expect(onConfirm).not.toHaveBeenCalled();
-    const confirmation = alertStore.getSnapshot();
-    expect(confirmation?.title).toBe('确认记住词卡？');
-    await confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
-    if (confirmation !== null) dismissAlert(confirmation.generation);
+    await userEvent.click(screen.getByText('知道了'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 

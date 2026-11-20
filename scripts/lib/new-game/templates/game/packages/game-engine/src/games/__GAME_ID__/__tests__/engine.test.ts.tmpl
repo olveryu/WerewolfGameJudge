@@ -108,6 +108,44 @@ describe('__GAME_PASCAL__ host abort', () => {
   });
 });
 
+describe('__GAME_PASCAL__ restart', () => {
+  it('resets to preparation only for the host and the intended game and phase', () => {
+    const session = game({ numberOfPlayers: 4 }, 2);
+    __GAME_TEST_BEGIN__
+    const before = session.state;
+    const command = { type: '__GAME_ID__.game.restart', gameSequence: before.gameSequence, wasEnded: false } as const;
+    session.session.expectReject(command, __GAME_UPPER___REASONS.notHostRestart, 'u1');
+    session.session.expectReject(command, REASON_CONTROLLED_SEAT_NOT_ALLOWED, 'host', 2);
+    session.session.expectReject({ ...command, gameSequence: before.gameSequence + 1 }, __GAME_UPPER___REASONS.phase);
+    session.session.expectReject({ ...command, wasEnded: true }, __GAME_UPPER___REASONS.phase);
+    const effectsBefore = session.effects.length;
+    session.send(command);
+    expect(session.state.phase).toEqual({ kind: 'lobby' });
+    expect(session.state.roster).toEqual(before.roster);
+    expect(session.state.config).toEqual(before.config);
+    expect(session.effects).toHaveLength(effectsBefore);
+    session.session.expectReject(command, __GAME_UPPER___REASONS.phase);
+  });
+
+  it('returns an ended game to preparation without another settlement', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    __GAME_TEST_BEGIN__
+    const ended = __GAME_CAMEL__Engine.evolve(session.state, { type: '__GAME_ID__.game.ended' });
+    const decision = __GAME_CAMEL__Engine.decide(
+      ended,
+      { type: '__GAME_ID__.game.restart', gameSequence: ended.gameSequence, wasEnded: true },
+      session.session.context('host'),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+    const reset = decision.events.reduce(__GAME_CAMEL__Engine.evolve, ended);
+    expect(reset.phase).toEqual({ kind: 'lobby' });
+    expect(reset.roster).toEqual(ended.roster);
+    expect(reset.config).toEqual(ended.config);
+  });
+});
+
 //#cap businessStats
 describe('__GAME_PASCAL__ completion statistics eligibility', () => {
   it('emits ordered v2 facts at the exact human threshold and never settles twice', () => {
@@ -437,6 +475,19 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
     );
     expect(blocked.kind).toBe('reject');
     if (blocked.kind === 'reject') expect(blocked.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
+    const restart = {
+      type: '__GAME_ID__.game.restart',
+      gameSequence: playing.gameSequence,
+      wasEnded: true,
+    } as const;
+    const blockedRestart = __GAME_CAMEL__Engine.decide(
+      playing,
+      restart,
+      session.session.context('host'),
+    );
+    expect(blockedRestart.kind).toBe('reject');
+    if (blockedRestart.kind === 'reject')
+      expect(blockedRestart.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
     const ack = __GAME_CAMEL__Engine.decide(
       playing,
       { type: '__GAME_ID__.audio.ack', audioBatchId: playing.audioBatchId },
@@ -451,6 +502,7 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
       session.session.context('host'),
     );
     expect(released.kind).toBe('commit');
+    expect(__GAME_CAMEL__Engine.decide(cleared, restart, session.session.context('host')).kind).toBe('commit');
   });
 });
 

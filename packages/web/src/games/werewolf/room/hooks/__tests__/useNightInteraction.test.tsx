@@ -113,14 +113,12 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       result.current.onSeatTap(4);
     });
-    act(() => {
-      result.current.onNightButton({ kind: 'submitSeatSelection' });
-    });
     expect(submit).not.toHaveBeenCalled();
     expect(showConfirmAlert).toHaveBeenCalledWith(
       '狼人投票',
       expect.stringContaining('5号'),
       expect.any(Function),
+      undefined,
     );
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing confirmation callback');
@@ -152,7 +150,6 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       result.current.onSeatTap(4);
     });
-    act(() => result.current.onNightButton({ kind: 'submitSeatSelection' }));
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing confirmation callback');
     act(() => {
@@ -162,6 +159,64 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(submit).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith('当前行动或目标已变化，请重新选择。');
   });
+});
+
+describe('private status disclosure', () => {
+  it.each([
+    {
+      state: nightState({
+        roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+        stepId: 'cupidLoversReveal',
+        overrides: { loverSeats: [0, 5] },
+      }),
+      viewerSeat: 0,
+      action: { kind: 'openGroupReveal' } as const,
+      command: 'werewolf.groupConfirm.ack',
+    },
+  ])(
+    'asks before disclosure and submits only after acknowledgement',
+    async ({ state, viewerSeat, action, command }) => {
+      const submit = vi.fn(async (): Promise<boolean> => true);
+      const { result } = renderHook(() =>
+        useNightInteraction({
+          state,
+          viewModel: viewAs(state, viewerSeat),
+          userId: `u${viewerSeat}`,
+          roomId: 'room-1',
+          controlledSeat: viewerSeat,
+          effectiveSeat: viewerSeat,
+          isAudioResumeDue: false,
+          isReadingRoomInformation: false,
+          hasPendingCommand: false,
+          nowMs: NOW,
+          submit,
+        }),
+      );
+      vi.clearAllMocks();
+      act(() => result.current.onNightButton(action));
+      expect(showDismissAlert).not.toHaveBeenCalled();
+      expect(submit).not.toHaveBeenCalled();
+      expect(showConfirmAlert).toHaveBeenCalledWith(
+        '查看状态？',
+        expect.any(String),
+        expect.any(Function),
+        { confirmText: '查看' },
+      );
+      const view = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+      if (view === undefined) throw new Error('Missing view callback');
+      await act(async () => view());
+      expect(showDismissAlert).toHaveBeenCalledTimes(1);
+      expect(submit).not.toHaveBeenCalled();
+      const acknowledge = vi.mocked(showDismissAlert).mock.calls.at(-1)?.[2];
+      if (acknowledge === undefined) throw new Error('Missing acknowledgement callback');
+      await act(async () => acknowledge());
+      expect(submit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ type: command }),
+        expect.anything(),
+      );
+    },
+  );
 });
 
 describe('useNightInteraction nightStatusLine', () => {
@@ -185,5 +240,44 @@ describe('useNightInteraction nightStatusLine', () => {
   it('hides the line when the countdown is not armed', () => {
     const { result } = renderWolfNight({ audioPlaying: true });
     expect(result.current.nightStatusLine).toBeNull();
+  });
+
+  it('does not disclose a status after the night step changes', async () => {
+    const state = nightState({
+      roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+      stepId: 'cupidLoversReveal',
+      overrides: { loverSeats: [0, 5] },
+    });
+    const nextState = nightState({
+      roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+      stepId: 'wolfKill',
+    });
+    const submit = vi.fn(async (): Promise<boolean> => true);
+    const { result, rerender } = renderHook(
+      ({ currentState }) =>
+        useNightInteraction({
+          state: currentState,
+          viewModel: viewAs(currentState, 0),
+          userId: 'u0',
+          roomId: 'room-1',
+          controlledSeat: 0,
+          effectiveSeat: 0,
+          isAudioResumeDue: false,
+          isReadingRoomInformation: false,
+          hasPendingCommand: false,
+          nowMs: NOW,
+          submit,
+        }),
+      { initialProps: { currentState: state } },
+    );
+    vi.clearAllMocks();
+    act(() => result.current.onNightButton({ kind: 'openGroupReveal' }));
+    const view = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (view === undefined) throw new Error('Missing view callback');
+    rerender({ currentState: nextState });
+    await act(async () => view());
+    expect(showDismissAlert).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('当前状态已变化，请重新查看。');
+    expect(submit).not.toHaveBeenCalled();
   });
 });

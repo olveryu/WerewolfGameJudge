@@ -39,12 +39,12 @@ import { viewerFor } from '@/test-utils/roomViewer';
 
 import { __GAME_UPPER___GUIDANCE_MATRIX } from '../__GAME_CAMEL__GuidanceMatrix';
 import { create__GAME_PASCAL__HostManagement, create__GAME_PASCAL__RoomShellModel } from '../__GAME_CAMEL__RoomAdapter';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 //#cap audioOrchestration
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 //#end
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn(), showDestructiveAlert: vi.fn() }));
 
 type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 
@@ -227,15 +227,14 @@ describe('__GAME_PASCAL__ host controls', () => {
 //#end
     }
 //#end
-    if (phase === 'playing') expectedKeys.push(HOST_ACTION_KEYS.abortGame);
+    if (phase === 'playing') expectedKeys.push(HOST_ACTION_KEYS.restart);
 //#cap identityViewing
-    if (phase === 'viewing') expectedKeys.push(HOST_ACTION_KEYS.abortGame);
+    if (phase === 'viewing') expectedKeys.push(HOST_ACTION_KEYS.restart);
 //#end
     if (phase === 'ended') {
       expectedKeys.push(
         HOST_ACTION_KEYS.review,
-        HOST_ACTION_KEYS.nextRound,
-        HOST_ACTION_KEYS.returnLobby,
+        HOST_ACTION_KEYS.restart,
       );
     }
 //#cap audioOrchestration
@@ -317,30 +316,21 @@ describe('__GAME_PASCAL__ host controls', () => {
   });
 //#end
 
-  it.each([
-    [
-      HOST_ACTION_KEYS.nextRound,
-      '再来一局',
-//#cap identityViewing
-      { type: '__GAME_ID__.roles.assign' },
-//#end
-//#cap !identityViewing
-      { type: '__GAME_ID__.game.begin' },
-//#end
-    ],
-    [HOST_ACTION_KEYS.returnLobby, '返回大厅', { type: '__GAME_ID__.game.returnToLobby' }],
-  ] as const)('confirms terminal action %s before dispatch', async (key, label, command) => {
+  it('confirms terminal restart before dispatch', async () => {
     submit.mockClear();
-    const action = hostModel(stateFor('ended')).sections
+    const state = stateFor('ended');
+    const action = hostModel(state).sections
       .flatMap((section) => section.actions)
-      .find((entry) => entry.key === key);
-    if (!action?.isEnabled) throw new Error(`Missing enabled terminal action: ${key}`);
+      .find((entry) => entry.key === HOST_ACTION_KEYS.restart);
+    if (!action?.isEnabled) throw new Error('Missing enabled terminal restart');
     action.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (confirm === undefined) throw new Error(`Missing confirmation for ${key}`);
+    const confirm = vi.mocked(showDestructiveAlert).mock.calls.at(-1)?.[3];
+    if (confirm === undefined) throw new Error('Missing restart confirmation');
     await confirm();
-    expect(submit).toHaveBeenCalledWith(label, command);
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded: true,
+    });
   });
 
   it('disables the lobby transition while a host command is submitting', () => {
@@ -357,16 +347,19 @@ describe('__GAME_PASCAL__ host controls', () => {
     expect(action?.isEnabled).toBe(false);
   });
 
-  it('submits abort only after confirmation', async () => {
+  it('submits in-game restart only after confirmation', async () => {
     submit.mockClear();
-    const action = hostModel(playingState()).sections.flatMap((section) => section.actions).find((entry) => entry.key === 'abort-game');
-    if (!action?.isEnabled) throw new Error('Missing abort action');
+    const state = playingState();
+    const action = hostModel(state).sections.flatMap((section) => section.actions).find((entry) => entry.key === HOST_ACTION_KEYS.restart);
+    if (!action?.isEnabled) throw new Error('Missing restart action');
     action.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (confirm === undefined) throw new Error('Missing abort confirmation');
+    const confirm = vi.mocked(showDestructiveAlert).mock.calls.at(-1)?.[3];
+    if (confirm === undefined) throw new Error('Missing restart confirmation');
     await confirm();
-    expect(submit).toHaveBeenCalledWith('中止本局', { type: '__GAME_ID__.game.abort' });
+    expect(submit).toHaveBeenCalledWith('重新开始', {
+      type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded: false,
+    });
   });
 //#cap botBulkViewing
   it('wires bulk viewing and removes its remedy after all bots are marked', () => {
@@ -386,7 +379,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     const locked = applyAudioPlaybackLock(hostModel(playingState()), {
       isAudioPlaying: true, exemptActionKeys: new Set<string>(),
     });
-    const action = locked.sections.flatMap((section) => section.actions).find((entry) => entry.key === 'abort-game');
+    const action = locked.sections.flatMap((section) => section.actions).find((entry) => entry.key === HOST_ACTION_KEYS.restart);
     expect(action?.isEnabled).toBe(false);
     expect(action).not.toHaveProperty('onPress');
   });

@@ -182,20 +182,26 @@ it('conceals cards on control changes, backgrounding and remount', () => {
       }),
     { initialProps: { currentState: state, controlledSeat: null } },
   );
+  const revealCard = () => {
+    act(() => result.current.openCard());
+    const reveal = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (reveal === undefined) throw new Error('Missing word-card view confirmation');
+    act(() => void reveal());
+  };
   expect(result.current.card).toBeNull();
-  act(() => result.current.openCard());
+  revealCard();
   expect(result.current.card).toMatchObject({ seat: 0 });
   rerender({ currentState: state, controlledSeat: 1 });
   expect(result.current.card).toBeNull();
-  act(() => result.current.openCard());
+  revealCard();
   expect(result.current.card).toMatchObject({ seat: 1 });
   rerender({ currentState: state, controlledSeat: null });
   expect(result.current.card).toBeNull();
-  act(() => result.current.openCard());
+  revealCard();
   act(() => setDocumentVisibility('hidden'));
   expect(result.current.card).toBeNull();
   act(() => setDocumentVisibility('visible'));
-  act(() => result.current.openCard());
+  revealCard();
   unmount();
   const remounted = renderHook(() =>
     useUndercoverRoundControls({

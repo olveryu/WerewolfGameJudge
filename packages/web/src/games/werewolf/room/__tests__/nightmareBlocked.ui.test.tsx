@@ -15,6 +15,8 @@ import {
   actorStep,
   confirmStep,
   mountRoomFor,
+  openNightActionGroup,
+  pressText,
   recordAlerts,
   RoomScreenTestHarness,
   tapSeat,
@@ -56,18 +58,24 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   });
   afterEach(() => detachAlerts());
 
-  it('blocked player tapping a seat is inert: the engine hint leaves only the skip', async () => {
+  it('retains the locked action and requires confirmation to skip', async () => {
     const view = await mountRoomFor(BLOCKED_SEER);
 
     expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(BLOCKED_UI_DEFAULTS.message);
     expect(harness.events()).toEqual([]);
-    expect(view.getByRole('button', { name: '确认跳过' })).toBeInTheDocument();
+    await openNightActionGroup(view);
+    expect(view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection'))).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
 
     harness.clear();
     await tapSeat(view, 1);
 
     // No confirm, no client-side "blocked" alert: the client never re-judges the block.
     expect(harness.events()).toEqual([]);
+    await pressText(view, '确认跳过');
+    expect(harness.getLastEvent()?.buttons).toEqual(['取消', '确定']);
   });
 
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
@@ -97,6 +105,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     'confirm schema (%s) shows the skip button when blocked',
     async (role) => {
       const view = await mountRoomFor(confirmMockOptions(role, true));
+      await openNightActionGroup(view);
       const moreActionsButton = view.queryByTestId(TESTIDS.roomMoreActionsButton);
       if (moreActionsButton !== null) fireEvent.click(moreActionsButton);
 
@@ -105,8 +114,13 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
         expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
           BLOCKED_UI_DEFAULTS.message,
         );
-        expect(view.getByRole('button', { name: '确认跳过' })).toBeInTheDocument();
+        expect(view.getByTestId(TESTIDS.werewolfNightButton('confirm'))).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
       });
+      await pressText(view, '确认跳过');
+      expect(harness.getLastEvent()?.buttons).toEqual(['取消', '确定']);
     },
   );
 

@@ -27,7 +27,6 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.team.preselect'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.propose'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote'; readonly vote: AvalonBallot }
-  | { readonly type: 'avalon.voteResult.confirm' }
   | { readonly type: 'avalon.quest.play'; readonly play: AvalonPlay }
   | { readonly type: 'avalon.phase.retrySettle' }
   | { readonly type: 'avalon.lady.check'; readonly seat: number }
@@ -42,6 +41,8 @@ export type AvalonPublicCommand =
  * only expiry channel: there is no public expire command (D3,
  * 2026-11-05 — the client acceleration channel was deleted).
  */
-export type AvalonInternalCommand = { readonly type: 'avalon.phase.settleExpired' };
+export type AvalonInternalCommand =
+  | { readonly type: 'avalon.phase.settleExpired' }
+  | { readonly type: 'avalon.phase.recoverLegacyResult' };
 
 export type AvalonCommand = AvalonPublicCommand | AvalonInternalCommand;

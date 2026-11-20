@@ -101,6 +101,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await fourthElection.voteFor(0);
     await hostElection.expectVoteProgress('1/2 已提交');
     await hostElection.expectOpenBallotsHidden();
+    await thirdElection.openNoteDraft('未提交的投票笔记');
 
     await fifthElection.voteFor(1);
     await hostElection.expectVoteProgress('2/2 已提交');
@@ -109,9 +110,9 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.expectSettleCountdown(/2\/2 人已投票，[1-5]秒后自动公布结果/);
     await hostElection.expectOpenBallotsHidden();
 
-    // No manual publication exists any more: the last ballot arms
-    // the 5s settle countdown and the round publishes itself on
-    // expiry (the Host client drives progression at the deadline).
+    // The result has a separate server-driven display window.
+    await Promise.all(elections.map((election) => election.expectAutomaticResult('first')));
+    await thirdElection.expectNoteDraftAndClose('未提交的投票笔记');
     await Promise.all(elections.map((election) => election.waitForPhase('平票发言')));
     await Promise.all(
       elections.map(async (election) => {
@@ -143,8 +144,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.expectPendingSeatsHidden();
     await hostElection.expectSettleCountdown(/3\/3 人已投票，[1-5]秒后自动公布结果/);
 
-    // Same automatic publication as the first round: wait for the
-    // armed countdown to expire instead of clicking a close button.
+    await Promise.all(elections.map((election) => election.expectAutomaticResult('runoff')));
     await Promise.all(elections.map((election) => election.waitForPhase('竞选结束')));
     await Promise.all(
       elections.map(async (election) => {

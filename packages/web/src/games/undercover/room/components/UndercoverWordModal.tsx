@@ -8,18 +8,16 @@
  * 组件只接收查看者有权看到的 card（服务端裁剪），挂载即展示、卸载即隐藏。
  * 揭示动画走共享 RevealAnimationGate（身份查看协议）：锚点是服务端
  * confirmedSeats——本人尚未确认时首次打开才播，确认后（含回看）恒静态；
- * "我已记住"只在静态卡阶段出现。动画候选池是种类计数（公开配置），
+ * 动画候选池是种类计数（公开配置），
  * 不含座位归属，不泄密。
  */
 import './UndercoverWordModal.css';
 
 import type { UndercoverWordCard } from '@game-judge/game-engine/games/undercover/public';
 
-import { Button } from '@/components/Button';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { RevealAnimationGate } from '@/features/room/components/RoleRevealEffects/RevealAnimationGate';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
-import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
@@ -54,7 +52,6 @@ export function UndercoverWordModal({
   onClose,
   onConfirm,
 }: UndercoverWordModalProps) {
-  const confirmStageAction = useStageConfirmation(`${card.seat}:${shouldConfirm}`);
   const isBlank = card.kind === 'blank';
   const fields: DescriptionField[] = [
     { label: '身份', content: isBlank ? '白板' : '?' },
@@ -82,25 +79,12 @@ export function UndercoverWordModal({
     >
       <RoleCardDialog
         role={role}
-        onClose={onClose}
-        confirmText="隐藏词卡"
+        onClose={shouldConfirm ? onConfirm : onClose}
+        confirmLoading={isSubmitting}
+        requireConfirmation
         testId={TESTIDS.undercoverWordModal}
         nameTestId={TESTIDS.undercoverWord}
         descriptionTitle="身份"
-        footer={
-          shouldConfirm && (
-            <Button
-              className="undercover-word-confirm"
-              variant="primary"
-              size="lg"
-              onClick={() => confirmStageAction('确认记住词卡？', '确认后将隐藏词卡。', onConfirm)}
-              loading={isSubmitting}
-              data-testid={TESTIDS.undercoverConfirm}
-            >
-              我已记住
-            </Button>
-          )
-        }
       />
     </RevealAnimationGate>
   );

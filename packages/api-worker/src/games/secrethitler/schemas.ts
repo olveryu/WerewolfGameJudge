@@ -79,6 +79,7 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     type: z.literal('secrethitler.action.investigate'),
     targetSeatId: z.number().int().min(0).max(9),
   }),
+  z.strictObject({ type: z.literal('secrethitler.action.acknowledgeInvestigation') }),
   z.strictObject({
     type: z.literal('secrethitler.action.specialElection'),
     targetSeatId: z.number().int().min(0).max(9),
@@ -93,5 +94,5 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
 export const secrethitlerPublicCommandSchema: z.ZodType<SecrethitlerPublicCommand> =
   z.discriminatedUnion('type', secrethitlerPublicCommandOptions);
 
-/** The skeleton has no worker-originated commands yet (see the engine commands/types.ts). */
-export const secrethitlerInternalCommandSchema: z.ZodType<SecrethitlerInternalCommand> = z.never();
+export const secrethitlerInternalCommandSchema: z.ZodType<SecrethitlerInternalCommand> =
+  z.strictObject({ type: z.literal('secrethitler.phase.settleExpired') });

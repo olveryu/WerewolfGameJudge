@@ -176,6 +176,8 @@ export function getSheriffWaitingMessage(model: SheriffElectionPanelModel): stri
     case 'firstVote':
     case 'runoffVote':
       return '等待投票完成';
+    case 'result':
+      return '正在公布竞选结果';
     case 'completed':
       return '竞选已结束';
   }

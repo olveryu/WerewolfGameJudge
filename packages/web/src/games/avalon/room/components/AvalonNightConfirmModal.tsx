@@ -28,19 +28,19 @@ export function AvalonNightConfirmModal({
   readonly onConfirm: () => void;
   readonly onClose: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const instruction = resolveNightInstruction(viewModel);
   const dialog = toConfirmDialog(instruction, viewModel);
   if (dialog === null) return null;
-  if (confirming) {
+  if (!revealed) {
     return (
       <AvalonAlertDialog
-        title="确认已查看信息？"
-        message="确认后将等待其他玩家。"
-        onClose={() => setConfirming(false)}
+        title="查看信息？"
+        message="确定现在查看你的夜间信息吗？"
+        onClose={onClose}
         buttons={[
-          { text: '取消', style: 'cancel', onPress: () => setConfirming(false) },
-          { text: '确定', onPress: onConfirm, disabled: isSubmitting },
+          { text: '取消', style: 'cancel', onPress: onClose },
+          { text: '查看', onPress: () => setRevealed(true) },
         ]}
       />
     );
@@ -50,10 +50,11 @@ export function AvalonNightConfirmModal({
       title={dialog.title}
       message={dialog.message}
       onClose={onClose}
+      requireConfirmation
       buttons={[
         {
           text: '确认信息',
-          onPress: () => setConfirming(true),
+          onPress: onConfirm,
           disabled: isSubmitting,
         },
       ]}

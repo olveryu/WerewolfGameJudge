@@ -209,6 +209,18 @@ export type SheriffElectionState = SheriffElectionCommonState &
         /** Settle-countdown deadline (epoch ms); see the firstVote variant. */
         readonly deadline?: number;
       }
+    | {
+        readonly phase: 'result';
+        readonly deadline: number;
+        readonly next:
+          | { readonly kind: 'final'; readonly result: SheriffElectionResult }
+          | {
+              readonly kind: 'runoff';
+              readonly candidateSeats: readonly number[];
+              readonly speakingStartSeat: number;
+              readonly speakingDirection: SheriffSpeakingDirection;
+            };
+      }
     | { readonly phase: 'completed' }
   );
 

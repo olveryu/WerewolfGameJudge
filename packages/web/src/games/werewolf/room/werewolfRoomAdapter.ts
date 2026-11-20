@@ -329,8 +329,29 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
     case 'blocked':
     case 'ackReveal':
       return [];
-    case 'skipOnly':
-      return [{ key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } }];
+    case 'skipOnly': {
+      const original = night.lockedAction;
+      const locked =
+        original === undefined
+          ? []
+          : buildNightButtons(original)
+              .filter((button) => button.action.kind !== 'skip')
+              .map((button) => ({ ...button, disabledReason: night.prompt.text }));
+      const seatAction = original === undefined ? null : nightSeatAction(original);
+      if (seatAction !== null) {
+        locked.push({
+          key: 'startSeatSelection',
+          label: seatAction.label,
+          tier: 'primary',
+          action: { kind: 'startSeatSelection' },
+          disabledReason: night.prompt.text,
+        });
+      }
+      return [
+        ...locked,
+        { key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } },
+      ];
+    }
     case 'pickSeat':
     case 'pickTwoSeats':
     case 'multiSelect':
@@ -357,12 +378,15 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
     }
     case 'witch': {
       const buttons: NightButtonSpec[] = [];
-      if (night.canSave) {
+      if (night.canSave || night.saveUnavailableReason !== null) {
         buttons.push({
           key: 'save',
           label: night.saveLabel,
           tier: 'primary',
           action: { kind: 'save' },
+          ...(night.saveUnavailableReason === null
+            ? {}
+            : { disabledReason: night.saveUnavailableReason }),
         });
       }
       buttons.push({
@@ -380,7 +404,18 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
           label: night.buttonLabel,
           tier: 'primary',
           action: { kind: 'openStatus' },
+          ...(night.isUnavailable ? { disabledReason: night.dialog.text } : {}),
         },
+        ...(night.skipLabel === null
+          ? []
+          : [
+              {
+                key: 'skip',
+                label: night.skipLabel,
+                tier: 'secondary' as const,
+                action: { kind: 'skip' as const },
+              },
+            ]),
       ];
     case 'ackGroupReveal':
       return [
@@ -578,17 +613,21 @@ export function createWerewolfBottomActionLayout(
         specs.splice(
           0,
           specs.length,
-          {
-            key: 'submitSeatSelection',
-            label: selection.confirm?.label ?? '确认选择',
-            tier: 'primary',
-            action: { kind: 'submitSeatSelection' },
-            ...(selection.confirm === null ? { disabledReason: '请选择所需目标' } : {}),
-          },
+          ...(action !== null && action.min !== action.max
+            ? [
+                {
+                  key: 'submitSeatSelection',
+                  label: selection.confirm?.label ?? '确认选择',
+                  tier: 'primary' as const,
+                  action: { kind: 'submitSeatSelection' as const },
+                  ...(selection.confirm === null ? { disabledReason: '请选择所需目标' } : {}),
+                },
+              ]
+            : []),
           {
             key: 'cancelSeatSelection',
             label: '取消选座',
-            tier: 'secondary',
+            tier: action !== null && action.min !== action.max ? 'secondary' : 'primary',
             action: { kind: 'cancelSeatSelection' },
           },
         );

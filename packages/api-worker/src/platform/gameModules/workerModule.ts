@@ -101,12 +101,14 @@ export interface WorkerModuleRuntime<
   TConfig,
   TEffect extends GameEffect,
   TPublicUserStats,
+  TInternalCommand extends GameCommand,
 > {
   readonly stateVersion: number;
   parseCreateConfig(config: unknown): WorkerModuleConfigResult<TConfig>;
   createInitialState(config: unknown, context: CreateGameContext): WorkerModuleCreateResult<TState>;
   parseState(value: unknown): TState;
   readonly migratePersistedState: ((value: unknown) => TState) | null;
+  readonly getRecoveryCommand?: (state: unknown) => TInternalCommand | null;
   parseCommandResult(value: unknown): RoomCommandResult<TState>;
   decidePublic(
     state: unknown,
@@ -149,6 +151,7 @@ export interface WorkerGameModuleDefinition<
   readonly stateCodec: GameStateCodec<TState>;
   readonly projectStateForUser?: (state: TState, userId: string) => TState;
   readonly migratePersistedState?: ((value: unknown) => TState) | null;
+  readonly getRecoveryCommand?: (state: TState) => TInternalCommand | null;
   readonly createConfigSchema: ZodType<TConfig>;
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
@@ -256,13 +259,14 @@ export type WorkerGameModule<
   >,
   | 'getPublicUserStats'
   | 'migratePersistedState'
+  | 'getRecoveryCommand'
   | 'getEffectBusinessKey'
   | 'getEffectDeliveryAt'
   | 'getEffectFailureCommand'
   | 'canReplayFailedEffect'
   | 'handleEffect'
 > &
-  WorkerModuleRuntime<TState, TConfig, TEffect, TPublicUserStats>;
+  WorkerModuleRuntime<TState, TConfig, TEffect, TPublicUserStats, TInternalCommand>;
 
 type ExactCommandPartition<TCommand, TPublicCommand, TInternalCommand> =
   Exclude<TCommand, TPublicCommand | TInternalCommand> extends never
@@ -619,6 +623,10 @@ function buildWorkerGameModule<
       typeof migratePersistedState === 'function'
         ? (value) => parseState(migratePersistedState(value))
         : null,
+    getRecoveryCommand:
+      definition.getRecoveryCommand === undefined
+        ? undefined
+        : (state) => definition.getRecoveryCommand!(parseState(state)),
     parseCommandResult: (value) => parseRoomCommandResult(value, definition.stateCodec),
     decidePublic: (rawState, rawCommand, context) => {
       const state = parseState(rawState);
@@ -713,6 +721,7 @@ export function registerWorkerGameModule<
     createInitialState: (config, context) => module.createInitialState(config, context),
     parseState: (value) => module.parseState(value),
     migratePersistedState: module.migratePersistedState,
+    getRecoveryCommand: module.getRecoveryCommand,
     parseCommandResult: (value) => module.parseCommandResult(value),
     projectStateForUser:
       module.projectStateForUser === undefined

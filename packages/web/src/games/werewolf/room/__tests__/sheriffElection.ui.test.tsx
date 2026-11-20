@@ -3,7 +3,7 @@
 import type { SheriffElectionState } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { act, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, waitFor, within } from '@testing-library/react';
 
 import {
   click,
@@ -52,6 +52,67 @@ const FIRST_VOTE: SheriffElectionState = {
 };
 
 describe('WerewolfRoomScreen sheriff-election composition', () => {
+  it('shows the timed result above an open note and preserves its draft', async () => {
+    const mock = createDayRoomMock(FIRST_VOTE);
+    const screen = await mountWerewolfRoom(mock);
+    await click(screen.getByRole('button', { name: '手册' }));
+    await click(screen.getByRole('button', { name: '笔记' }));
+    const notes = within(await screen.findByRole('dialog', { name: '笔记' })).getByRole('textbox', {
+      name: '投票记录',
+    });
+    fireEvent.change(notes, { target: { value: '测试草稿' } });
+    const result: SheriffElectionState = {
+      phase: 'result',
+      registeredSeats: [0, 1],
+      withdrawnSeats: [],
+      completedRounds: [
+        {
+          round: 'first',
+          candidateSeats: [0, 1],
+          eligibleVoterSeats: [2, 3],
+          ballots: { 2: 0, 3: null },
+          voteCounts: { 0: 1, 1: 0 },
+          abstainingSeats: [3],
+        },
+      ],
+      deadline: Date.now() + 5000,
+      next: { kind: 'final', result: { kind: 'elected', sheriffSeat: 0 } },
+    };
+    act(() =>
+      mock.session.publishRoom(createRoomSnapshot({ ...mock.state, sheriffElection: result }, 2)),
+    );
+    const dialog = await screen.findByRole('dialog', { name: '警长竞选结果' });
+    expect(dialog).toHaveTextContent('当选警长');
+    expect(dialog).toHaveTextContent('弃票');
+    expect(within(dialog).queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();
+    expect(notes).toHaveValue('测试草稿');
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: '警长竞选结果' })).toBeInTheDocument();
+    act(() =>
+      mock.session.publishRoom(
+        createRoomSnapshot(
+          {
+            ...mock.state,
+            status: GameStatus.Ended,
+            sheriffElection: {
+              phase: 'completed',
+              registeredSeats: result.registeredSeats,
+              withdrawnSeats: result.withdrawnSeats,
+              completedRounds: result.completedRounds,
+            },
+            sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+          },
+          3,
+        ),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: '警长竞选结果' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('textbox', { name: '投票记录' })).toBe(notes);
+    expect(notes).toHaveValue('测试草稿');
+  });
+
   it('uses the room status card even without an election', async () => {
     const mock = createWerewolfRoomMock({
       schemaId: 'seerCheck',

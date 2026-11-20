@@ -33,7 +33,6 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
-  seatSelectionSubmitButton,
   startSeatSelection,
   tapSeat,
   witchStep,
@@ -125,19 +124,19 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(view.queryByTestId(TESTIDS.seatProgress(1))).not.toBeInTheDocument();
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
     });
   });
 
   describe('seat selection coverage', () => {
     // Both taps run in one render: the first pick lives in the screen's interaction state.
-    it('magician swap: two picks enable submission', async () => {
+    it('magician swap: two picks open confirmation', async () => {
       const view = await mount(MAGICIAN_STEP);
       await startSeatSelection(view);
       await tapSeat(view, 1);
       await tapSeat(view, 2);
       expect(view.getByText('已选 2 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toBeEnabled();
+      expect(harness.hasSeen('actionConfirm')).toBe(true);
     });
   });
 

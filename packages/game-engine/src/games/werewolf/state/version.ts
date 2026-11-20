@@ -55,11 +55,12 @@
  * v19 persists the host's last-night information acknowledgement; older
  * rooms start without a confirmed acknowledgement.
  * v20 records each user's terminal review acknowledgement.
+ * v21 adds the timed sheriff-election result phase.
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 
-export const WEREWOLF_STATE_VERSION = 20;
+export const WEREWOLF_STATE_VERSION = 21;
 
 export const WEREWOLF_STATE_IDENTITY = {
   gameType: WEREWOLF_GAME_TYPE,

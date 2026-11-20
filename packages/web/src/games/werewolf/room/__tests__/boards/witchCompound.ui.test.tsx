@@ -24,11 +24,11 @@ import {
   pressText,
   recordAlerts,
   RoomScreenTestHarness,
-  seatSelectionSubmitButton,
   startSeatSelection,
   type SubmitActionMock,
   submitSeatSelection,
   successfulWerewolfCommand,
+  tapSeat,
   type WerewolfRoomMockOptions,
 } from '@/games/werewolf/room/__tests__/harness';
 import { TESTIDS } from '@/testids';
@@ -86,6 +86,27 @@ describe('Witch Compound Sequence', () => {
     expect(view.getByRole('button', { name: '女巫行动' })).toHaveFocus();
   });
 
+  it('keeps self-save locked with a reason while poison remains available', async () => {
+    const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
+    const view = await mount(
+      witchWith({ killedSeat: 9, canSave: false, canPoison: true }, submitAction),
+    );
+    await openNightActionGroup(view);
+    const save = view.getByRole('button', { name: '对10号用解药' });
+    expect(save).toHaveAttribute('aria-disabled', 'true');
+    await click(save);
+    expect(view.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveTextContent('当前无法自救');
+    expect(submitAction).not.toHaveBeenCalled();
+    await startSeatSelection(view);
+    await tapSeat(view, 2);
+    await submitSeatSelection(view);
+    expect(submitAction).toHaveBeenCalledExactlyOnceWith({
+      kind: 'witch',
+      saveTarget: null,
+      poisonTarget: 2,
+    });
+  });
+
   // ===========================================================================
   // Sequence: save status → draft poison target → submit
   // ===========================================================================
@@ -97,11 +118,11 @@ describe('Witch Compound Sequence', () => {
         witchWith({ killedSeat: 1, canSave: true, canPoison: true }, submitAction),
       );
       await draftSeatSelection(view, 2);
-      await click(seatSelectionSubmitButton(view));
       expect(harness.getLastEvent()?.message).toContain('3号');
       expect(submitAction).not.toHaveBeenCalled();
       await harness.pressButton('取消');
       expect(submitAction).not.toHaveBeenCalled();
+      await tapSeat(view, 2);
       await submitSeatSelection(view);
       expect(submitAction).toHaveBeenCalledExactlyOnceWith({
         kind: 'witch',
@@ -123,7 +144,7 @@ describe('Witch Compound Sequence', () => {
       expect(view.getByTestId(startId)).toBeVisible();
       harness.clear();
       await draftSeatSelection(view, 2);
-      expect(harness.events()).toEqual([]);
+      expect(harness.hasSeen('witchPoisonPrompt')).toBe(true);
       expect(submitAction).not.toHaveBeenCalled();
       await submitSeatSelection(view);
       expect(submitAction).toHaveBeenCalledExactlyOnceWith({

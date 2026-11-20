@@ -232,8 +232,8 @@ export async function clickSeatAndReadNotice(
 }
 
 /**
- * Enter the night selection mode, draft the target(s), then press the
- * focused submit button. Never replay a toggle or a submission.
+ * Enter selection mode and confirm the chosen target(s). Fixed-size
+ * selections open confirmation immediately; variable-size selections use a button.
  */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<void> {
   await selectAndSubmitSeats(page, [seatIdx]);
@@ -262,10 +262,12 @@ async function selectAndSubmitSeats(
       await expect(tile).toHaveAttribute('aria-pressed', 'true');
     }
     const confirmButton = nightButton(page, 'submitSeatSelection');
-    if (expectedAction !== undefined) await expect(confirmButton).toContainText(expectedAction);
-    await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
+    if (await confirmButton.isVisible()) {
+      if (expectedAction !== undefined) await expect(confirmButton).toContainText(expectedAction);
+      await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
+      await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
+    }
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
-    await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
     await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
       seats.map((seat) => `${seat + 1}号`).join('、'),
     );
@@ -818,6 +820,7 @@ export async function driveGroupConfirmAck(
   ackButtonText: string,
 ): Promise<string> {
   await clickNightButton(page, 'groupConfirmAck', statusButtonText);
+  await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
   const message = await readAlertText(page, 5000);
   const ackButton = page.getByTestId(TESTIDS.alertButton(0));
   await expect(ackButton).toHaveText(ackButtonText);
@@ -833,7 +836,12 @@ export async function driveGroupConfirmAck(
  * Dismiss the step prompt, then press a night button after asserting its
  * label after dismissing its step prompt.
  */
-export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
+export async function clickNightButton(
+  page: Page,
+  key: string,
+  label: string,
+  options?: { readonly revealPrivateStatus?: boolean },
+): Promise<void> {
   let button = nightButton(page, key);
   let panel: Locator | null = null;
   if (!(await button.isVisible())) {
@@ -852,6 +860,9 @@ export async function clickNightButton(page: Page, key: string, label: string): 
   await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
   await button.click({ timeout: CLICK_TIMEOUT_MS });
+  if (options?.revealPrivateStatus === true) {
+    await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
+  }
   if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`clickNightButton — ${key} "${label}" clicked`);
 }

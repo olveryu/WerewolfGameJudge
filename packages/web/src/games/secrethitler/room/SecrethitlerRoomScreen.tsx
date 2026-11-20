@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { Button } from '@/components/Button';
+import { CenterDialog } from '@/components/CenterDialog';
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
@@ -22,6 +23,7 @@ import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/Ro
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -97,6 +99,7 @@ function SecrethitlerRoomContent(
     <RoomShell
       model={screen.shellModel}
       showPlayerHand
+      isSelecting={screen.isSelecting}
       phaseLabel={
         isLobby
           ? '待开局'
@@ -185,6 +188,7 @@ function SecrethitlerRoomContent(
           />
           <RevealRoleCardModal
             visible={screen.roleViewing.isOpen}
+            requireConfirmation
             roleKey={screen.viewModel?.myIdentity ?? null}
             toRoleData={toRevealRoleData}
             allRoles={screen.roleCardAllRoles}
@@ -193,10 +197,95 @@ function SecrethitlerRoomContent(
             onClose={screen.roleViewing.close}
           />
           {screen.actionModalOpen && <SecrethitlerActionSheet screen={screen} />}
+          <SecrethitlerInvestigationResult screen={screen} />
           {screen.reviewOverlay}
+          <SecrethitlerPublicResult screen={screen} />
         </>
       }
     />
+  );
+}
+
+export function SecrethitlerPublicResult({
+  screen,
+}: {
+  readonly screen: Pick<
+    SecrethitlerRoomScreenState,
+    'state' | 'viewModel' | 'effectiveSeat' | 'controlledSeat' | 'isSubmitting' | 'submit'
+  >;
+}) {
+  const phase = screen.state.phase;
+  const { remainingSeconds } = useStageDeadline({
+    deadlineAt: phase.kind === 'publicResult' ? phase.deadlineAt : null,
+  });
+  const view = screen.viewModel;
+  if (phase.kind !== 'publicResult' || view === null) return null;
+  const previous = phase.previous;
+  const votes =
+    previous.kind === 'voting'
+      ? screen.state.livingSeats.map((voter) => ({ seat: voter, vote: previous.votes[voter] }))
+      : [];
+  const yes = votes.filter((vote) => vote.vote === 'ja').length;
+  const policyLabel = (policy: 'liberal' | 'fascist') =>
+    policy === 'liberal' ? '自由派' : '法西斯';
+  return (
+    <CenterDialog open title="公共结果" requireConfirmation onClose={() => undefined}>
+      {previous.kind === 'voting' && (
+        <>
+          <p>
+            政府{yes > votes.length - yes ? '通过' : '未通过'}：赞成 {yes}，反对{' '}
+            {votes.length - yes}
+          </p>
+          {screen.state.config.voteMode === 'public' &&
+            votes.map(({ seat: voter, vote }) => (
+              <p key={voter}>
+                {secrethitlerSeatLabel(view, voter)}：{vote === 'ja' ? '赞成' : '反对'}
+              </p>
+            ))}
+        </>
+      )}
+      {previous.kind === 'legislativeChancellor' && phase.policy !== null && (
+        <p>施行{policyLabel(phase.policy)}政策</p>
+      )}
+      {previous.kind === 'vetoResponse' && <p>总统{phase.vetoApproved ? '同意' : '拒绝'}否决</p>}
+      {phase.chaosPolicy !== null && <p>混乱：自动施行{policyLabel(phase.chaosPolicy)}政策</p>}
+      <p>
+        {remainingSeconds === null || remainingSeconds === 0
+          ? '等待进入下一阶段…'
+          : `${remainingSeconds} 秒后继续`}
+      </p>
+    </CenterDialog>
+  );
+}
+
+/** Displays the pending result only to the investigating seat. */
+export function SecrethitlerInvestigationResult({
+  screen,
+}: {
+  readonly screen: Pick<
+    SecrethitlerRoomScreenState,
+    'viewModel' | 'submit' | 'controlledSeat' | 'isSubmitting'
+  >;
+}) {
+  const view = screen.viewModel;
+  const result = view?.myInvestigation;
+  if (view === null || result === null || result === undefined) return null;
+  const acknowledge = () =>
+    void screen.submit(
+      '确认调查结果',
+      { type: 'secrethitler.action.acknowledgeInvestigation' },
+      { controlledSeat: screen.controlledSeat },
+    );
+  return (
+    <CenterDialog open title="私密调查结果" requireConfirmation onClose={acknowledge}>
+      <p>
+        {secrethitlerSeatLabel(view, result.targetSeat)}：
+        {result.faction === 'liberal' ? '自由派' : '法西斯阵营'}
+      </p>
+      <Button disabled={screen.isSubmitting} onClick={acknowledge}>
+        知道了
+      </Button>
+    </CenterDialog>
   );
 }
 

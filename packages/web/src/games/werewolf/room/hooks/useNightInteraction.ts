@@ -21,7 +21,6 @@ import { toast } from 'sonner';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import { resolveSeatPickTap } from '@/features/room/model/seatPicking';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
-import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -228,6 +227,46 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   if (actionGroup?.open === true && !isActionGroupOpen && model.kind !== 'blocked') {
     setActionGroup(null);
   }
+
+  const confirmSelection = useCallback(
+    (selection: NightSeatSelection) => {
+      if (selection.confirm === null) {
+        throw new Error('[FAIL-FAST] Cannot submit an incomplete night seat selection');
+      }
+      const confirmation = describeNightSeatConfirmation(model, selection);
+      const confirmedInput = selection.confirm.input;
+      const clearOnCancel = (nightSeatAction(model)?.max ?? 0) > 1;
+      showConfirmAlert(
+        confirmation.title,
+        confirmation.text,
+        async () => {
+          const latest = latestSeatSelectionRef.current;
+          if (
+            latest.scopeKey !== scopeKey ||
+            latest.seatSelection?.confirm == null ||
+            JSON.stringify(latest.seatSelection.confirm.input) !== JSON.stringify(confirmedInput) ||
+            JSON.stringify(describeNightSeatConfirmation(latest.model, latest.seatSelection)) !==
+              JSON.stringify(confirmation)
+          ) {
+            toast.error('当前行动或目标已变化，请重新选择。');
+            return;
+          }
+          await dispatch(confirmedInput, 'dialog');
+        },
+        clearOnCancel
+          ? {
+              onCancel: () => {
+                if (latestSeatSelectionRef.current.scopeKey === scopeKey) {
+                  setPicking({ scope: scopeKey, seats: [] });
+                }
+              },
+            }
+          : undefined,
+      );
+    },
+    [dispatch, model, scopeKey],
+  );
+
   const blockedToastAtRef = useRef(0);
   const onSeatTap = useCallback(
     (seat: number): boolean => {
@@ -264,6 +303,15 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           });
           if (result.kind === 'consumed') {
             setPicking({ scope: scopeKey, seats: result.nextSelection });
+            const nextSelection = describeNightSeatSelection(model, result.nextSelection);
+            if (
+              seatAction !== null &&
+              seatAction.min === seatAction.max &&
+              nextSelection?.confirm !== null &&
+              nextSelection !== null
+            ) {
+              confirmSelection(nextSelection);
+            }
           }
           return true;
         }
@@ -277,7 +325,46 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return false;
       }
     },
-    [model, scopeKey, seatSelection],
+    [confirmSelection, model, scopeKey, seatAction, seatSelection],
+  );
+
+  const showPrivateStatus = useCallback(
+    (title: string, text: string, confirmation: NightConfirmation) => {
+      const isCurrent = (): boolean => {
+        const latest = latestSeatSelectionRef.current;
+        if (latest.scopeKey !== scopeKey || latest.model.kind !== model.kind) return false;
+        switch (latest.model.kind) {
+          case 'confirmStatus':
+          case 'ackHunterStatus':
+            return latest.model.dialog.title === title && latest.model.dialog.text === text;
+          case 'ackGroupReveal':
+            return (
+              !latest.model.hasAcked &&
+              latest.model.text.title === title &&
+              latest.model.text.text === text
+            );
+          default:
+            return false;
+        }
+      };
+      const checkCurrent = (): boolean => {
+        if (isCurrent()) return true;
+        toast.error('当前状态已变化，请重新查看。');
+        return false;
+      };
+      showConfirmAlert(
+        '查看状态？',
+        '确定查看你的私密状态吗？',
+        () => {
+          if (!checkCurrent()) return;
+          showDismissAlert(title, text, async () => {
+            if (checkCurrent()) await confirmWith(confirmation)();
+          });
+        },
+        { confirmText: '查看' },
+      );
+    },
+    [confirmWith, model.kind, scopeKey],
   );
 
   // ── Bottom buttons ──
@@ -304,23 +391,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
         case 'submitSeatSelection': {
           if (seatSelection?.confirm == null) throw illegalButton(action, model);
-          const confirmation = describeNightSeatConfirmation(model, seatSelection);
-          const confirmedInput = seatSelection.confirm.input;
-          showConfirmAlert(confirmation.title, confirmation.text, async () => {
-            const latest = latestSeatSelectionRef.current;
-            if (
-              latest.scopeKey !== scopeKey ||
-              latest.seatSelection?.confirm == null ||
-              JSON.stringify(latest.seatSelection.confirm.input) !==
-                JSON.stringify(confirmedInput) ||
-              JSON.stringify(describeNightSeatConfirmation(latest.model, latest.seatSelection)) !==
-                JSON.stringify(confirmation)
-            ) {
-              toast.error('当前行动或目标已变化，请重新选择。');
-              return;
-            }
-            await dispatch(confirmedInput, 'dialog');
-          });
+          confirmSelection(seatSelection);
           return;
         }
         case 'skip':
@@ -352,35 +423,21 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
         case 'openStatus': {
           if (model.kind !== 'confirmStatus') throw illegalButton(action, model);
-          if (model.isUnavailable || model.skipLabel === null) {
-            showDismissAlert(
-              model.dialog.title,
-              model.dialog.text,
-              confirmWith({ kind: model.isUnavailable ? 'skip' : 'confirm' }),
-            );
+          if (model.status.role !== 'seedWolf') {
+            showPrivateStatus(model.dialog.title, model.dialog.text, { kind: 'confirm' });
             return;
           }
-          // Seed wolf: decline (cancel-styled) or infect (primary); both submit.
-          showAlert(model.dialog.title, model.dialog.text, [
-            { text: model.skipLabel, style: 'cancel', onPress: confirmWith({ kind: 'skip' }) },
-            {
-              text: model.buttonLabel,
-              style: 'default',
-              onPress: confirmWith({ kind: 'confirm' }),
-            },
-          ]);
+          if (model.isUnavailable) throw illegalButton(action, model);
+          showConfirmAlert(model.dialog.title, model.dialog.text, confirmWith({ kind: 'confirm' }));
           return;
         }
         case 'openGroupReveal':
           if (model.kind !== 'ackGroupReveal') throw illegalButton(action, model);
-          // The schema names the acknowledgement button (e.g. 我知道了).
-          showAlert(model.text.title, model.text.text, [
-            { text: model.text.confirmLabel, onPress: confirmWith({ kind: 'ack' }) },
-          ]);
+          showPrivateStatus(model.text.title, model.text.text, { kind: 'ack' });
           return;
         case 'openHunterStatus':
           if (model.kind !== 'ackHunterStatus') throw illegalButton(action, model);
-          showDismissAlert(model.dialog.title, model.dialog.text, confirmWith({ kind: 'ack' }));
+          showPrivateStatus(model.dialog.title, model.dialog.text, { kind: 'ack' });
           return;
         case 'openChooseCard':
           if (model.kind !== 'chooseCard') throw illegalButton(action, model);
@@ -388,7 +445,16 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
       }
     },
-    [confirmWith, dispatch, hasMultipleActions, model, scopeKey, seatSelection, stepId],
+    [
+      confirmWith,
+      confirmSelection,
+      hasMultipleActions,
+      model,
+      scopeKey,
+      seatSelection,
+      showPrivateStatus,
+      stepId,
+    ],
   );
 
   const chooseCardModal = useMemo((): NightChooseCardModal | null => {

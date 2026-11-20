@@ -12,6 +12,7 @@
 import {
   type GameState,
   GameStatus,
+  readArmedDeadline,
   REASON_DEADLINE_NOT_REACHED,
   REASON_PHASE_NOT_EXPIRABLE,
   type WerewolfEffect,
@@ -19,14 +20,17 @@ import {
   type WerewolfSettleDueEffect,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
-import { env } from 'cloudflare:test';
-import { describe, expect, it, vi } from 'vitest';
+import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import type { WorkerEffectContext } from '../../../platform/gameModules/workerModule';
+import type { GameRoomRuntime } from '../../../platform/room/GameRoomRuntime';
 import { handleWerewolfEffect, werewolfEffectSchema } from '../effects';
 import { werewolfWorkerModule } from '../module';
 
 const DEADLINE_AT = 6000;
+afterEach(deleteCurrentRoomAlarms);
 
 function baseState(): GameState {
   const created = werewolfWorkerModule.createInitialState(
@@ -195,7 +199,149 @@ describe('Werewolf settle effect', () => {
     const { context, box } = settleContext(state);
     await handleWerewolfEffect(settleEffectFor(state), context);
     expect(box.commands).toEqual([{ type: 'werewolf.phase.settleExpired' }]);
-    expect(box.current.sheriffElection?.phase).not.toBe('firstVote');
+    expect(box.current.sheriffElection).toMatchObject({ phase: 'result', deadline: 11000 });
+    const result = box.current;
+    const resultEffect = werewolfEffectSchema.parse({
+      type: 'werewolf.settle.due',
+      payload: { gameSequence: result.gameSequence, phase: 'sheriffResult', deadlineAt: 11000 },
+    });
+    const stale = settleContext(result, 11000);
+    await handleWerewolfEffect(settleEffectFor(state), stale.context);
+    expect(stale.box.commands).toEqual([]);
+    const next = settleContext(result, 11000);
+    await handleWerewolfEffect(resultEffect, next.context);
+    expect(next.box.current.status).toBe(GameStatus.Ended);
+    expect(next.box.current.sheriffElectionResult).toEqual({ kind: 'elected', sheriffSeat: 0 });
+  });
+
+  it('resumes the timed sheriff result after durable object eviction', async () => {
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
+    const identity = {
+      roomCode: '9301',
+      roomId: stub.id.toString(),
+      creationId: 'sheriff-result-test',
+    };
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO users (id) VALUES ('host'), ('u1'), ('u2'), ('u3'), ('u4')",
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO rooms (id, code, game_type, host_user_id, creation_id, config_json, status, created_at, updated_at, games_started)
+         VALUES (?, ?, 'werewolf', 'host', ?, '{}', 'active', ?, ?, 0)`,
+    )
+      .bind(
+        identity.roomId,
+        identity.roomCode,
+        identity.creationId,
+        new Date().toISOString(),
+        new Date().toISOString(),
+      )
+      .run();
+    await stub.initializeRoom({
+      ...identity,
+      gameType: 'werewolf',
+      hostUserId: 'host',
+      config: { templateRoles: ['wolf', 'wolf', 'seer', 'hunter', 'villager'] },
+    });
+    const initial = { ...armedSheriffVoteState(), roomCode: identity.roomCode };
+    await runInDurableObject(stub, async (_instance: GameRoomRuntime, state) => {
+      state.storage.sql.exec(
+        'UPDATE room_state SET game_state = ? WHERE id = 1',
+        JSON.stringify(initial),
+      );
+    });
+    const cast = await stub.dispatchUserCommand({
+      ...identity,
+      commandId: 'refresh-vote',
+      actorUserId: 'u2',
+      controlledSeat: null,
+      command: { type: 'werewolf.sheriff.vote', targetSeat: 0 },
+    });
+    if (cast.kind !== 'decided' || cast.result.kind !== 'committed')
+      throw new Error('Expected vote commit');
+    await runInDurableObject(stub, async (instance: GameRoomRuntime, state) => {
+      const row = state.storage.sql
+        .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
+        .one();
+      const game = JSON.parse(row.game_state) as { sheriffElection: { deadline: number } };
+      const deadline = Date.now() - 1000;
+      game.sheriffElection.deadline = deadline;
+      const effect = state.storage.sql
+        .exec<{ payload_json: string }>(
+          "SELECT payload_json FROM effect_outbox WHERE effect_type = 'werewolf.settle.due'",
+        )
+        .one();
+      const payload = JSON.parse(effect.payload_json) as {
+        payload: { deadlineAt: number; phase: string; gameSequence: number };
+      };
+      payload.payload.deadlineAt = deadline;
+      state.storage.sql.exec(
+        'UPDATE room_state SET game_state = ? WHERE id = 1',
+        JSON.stringify(game),
+      );
+      state.storage.sql.exec(
+        "UPDATE effect_outbox SET available_at = ?, payload_json = ? WHERE effect_type = 'werewolf.settle.due'",
+        deadline,
+        JSON.stringify(payload),
+      );
+      expect(readArmedDeadline(werewolfWorkerModule.parseState(game))).toEqual({
+        phase: payload.payload.phase,
+        deadlineAt: payload.payload.deadlineAt,
+      });
+      expect(werewolfWorkerModule.parseState(game).isAudioPlaying).toBe(false);
+      expect(werewolfWorkerModule.parseState(game).gameSequence).toBe(payload.payload.gameSequence);
+      await instance.alarm();
+      const remaining = state.storage.sql
+        .exec<{ status: string; last_error: string | null }>(
+          "SELECT status, last_error FROM effect_outbox WHERE effect_type = 'werewolf.settle.due'",
+        )
+        .toArray();
+      if (remaining.some((item) => item.last_error !== null))
+        throw new Error(`Settlement not delivered: ${JSON.stringify(remaining)}`);
+    });
+    const revealed = await stub.getSnapshot(identity);
+    if (revealed === null) throw new Error('Expected snapshot');
+    const result = werewolfWorkerModule.parseState(revealed.state);
+    if (result.sheriffElection?.phase !== 'result')
+      throw new Error(`Expected timed result: ${JSON.stringify(result.sheriffElection)}`);
+    const deadline = result.sheriffElection.deadline;
+    await evictDurableObject(stub);
+    const reconnected = await stub.getSnapshot(identity);
+    if (reconnected === null) throw new Error('Expected reconnected snapshot');
+    expect(werewolfWorkerModule.parseState(reconnected.state).sheriffElection).toMatchObject({
+      phase: 'result',
+      deadline,
+    });
+    await runInDurableObject(stub, async (instance: GameRoomRuntime, state) => {
+      const row = state.storage.sql
+        .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
+        .one();
+      const game = JSON.parse(row.game_state) as { sheriffElection: { deadline: number } };
+      const past = Date.now() - 1000;
+      game.sheriffElection.deadline = past;
+      const effect = state.storage.sql
+        .exec<{ payload_json: string }>(
+          "SELECT payload_json FROM effect_outbox WHERE effect_type = 'werewolf.settle.due'",
+        )
+        .one();
+      const payload = JSON.parse(effect.payload_json) as { payload: { deadlineAt: number } };
+      payload.payload.deadlineAt = past;
+      state.storage.sql.exec(
+        'UPDATE room_state SET game_state = ? WHERE id = 1',
+        JSON.stringify(game),
+      );
+      state.storage.sql.exec(
+        "UPDATE effect_outbox SET available_at = ?, payload_json = ? WHERE effect_type = 'werewolf.settle.due'",
+        past,
+        JSON.stringify(payload),
+      );
+      await instance.alarm();
+    });
+    const completed = await stub.getSnapshot(identity);
+    if (completed === null) throw new Error('Expected completed snapshot');
+    expect(werewolfWorkerModule.parseState(completed.state)).toMatchObject({
+      status: GameStatus.Ended,
+      sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
+    });
   });
 
   it('no-ops deliveries whose pinned arming no longer matches the room', async () => {

@@ -2,10 +2,10 @@
  * Werewolf phase expiry: the one reading of "which deadline is armed
  * right now" and the expiry guard that settles it.
  *
- * Two carriers arm a deadline, each only inside the phase that owns it:
+ * Deadline carriers arm only inside the phase that owns them:
  * the night step's `stepDeadline` (wolf-vote settle countdown, vacant
  * bottom-card auto-skip) and a sheriff voting round's `deadline`
- * (settle countdown). Each arming site emits the matching
+ * (settle countdown), plus the sheriff result display. Each arming site emits the matching
  * `werewolf.settle.due` (effects/settleDue.ts). Settlement is the inline
  * progression pass that every other progression trigger already runs;
  * this module only gates it on the shared phase-expiry chassis
@@ -23,7 +23,7 @@ import { GameStatus } from './models/GameStatus';
 import type { GameState } from './protocol/types';
 import type { StateAction } from './reducer/types';
 
-/** The current phase has no deadline carrier (not a night step, not a sheriff voting round). */
+/** The current phase has no deadline carrier. */
 export const REASON_PHASE_NOT_EXPIRABLE = 'phase_not_expirable' as const;
 /** The carrier exists but no deadline is armed, or it has not been reached. */
 export const REASON_DEADLINE_NOT_REACHED = 'deadline_not_reached' as const;
@@ -39,7 +39,7 @@ function isExpirablePhase(state: GameState): boolean {
   if (state.status === GameStatus.Ongoing) return state.nightStep?.kind === 'inStep';
   if (state.status === GameStatus.Day) {
     const phase = state.sheriffElection?.phase;
-    return phase === 'firstVote' || phase === 'runoffVote';
+    return phase === 'firstVote' || phase === 'runoffVote' || phase === 'result';
   }
   return false;
 }
@@ -55,6 +55,9 @@ export function readArmedDeadline(state: GameState): ArmedDeadline | null {
     if (election?.phase === 'firstVote' || election?.phase === 'runoffVote') {
       const deadlineAt = election.deadline;
       return deadlineAt === undefined ? null : { phase: election.phase, deadlineAt };
+    }
+    if (election?.phase === 'result') {
+      return { phase: 'sheriffResult', deadlineAt: election.deadline };
     }
   }
   return null;

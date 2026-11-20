@@ -101,7 +101,10 @@ function createSheriffSelfDestructAction(
   election: SheriffElectionPanelModel,
 ): RoomHostManagementAction | null {
   const canEndBySelfDestruct =
-    election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech';
+    election.view.phase === 'candidateSpeech' ||
+    election.view.phase === 'runoffSpeech' ||
+    election.view.phase === 'firstVote' ||
+    election.view.phase === 'runoffVote';
   if (!canEndBySelfDestruct) return null;
   const descriptor: RoomHostActionDescriptor = {
     key: 'sheriff-self-destruct',
@@ -258,7 +261,10 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       }
       if (
         election !== null &&
-        (election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech')
+        (election.view.phase === 'candidateSpeech' ||
+          election.view.phase === 'runoffSpeech' ||
+          election.view.phase === 'firstVote' ||
+          election.view.phase === 'runoffVote')
       ) {
         electionMoves.push('sheriff-self-destruct');
       }

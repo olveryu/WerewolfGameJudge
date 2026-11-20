@@ -141,6 +141,7 @@ function FibRoomContent(
               shouldPlay={screen.roleViewing.shouldPlayAnimation}
               allRoles={screen.identityAllRoles}
               remainingCards={screen.roleViewing.remainingCards}
+              requireConfirmation
               onClose={screen.roleViewing.close}
             />
           )}

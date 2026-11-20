@@ -2030,6 +2030,26 @@ describe('NightReview.helpers', () => {
       expect(section).toEqual({ kind: 'registration' });
     });
 
+    it('retains the revealed round and final outcome while the timed result is open', () => {
+      const section = deriveSheriffSection(
+        makeGameState({
+          sheriffElection: {
+            phase: 'result',
+            registeredSeats: [2, 5],
+            withdrawnSeats: [],
+            completedRounds: [FIRST_ROUND],
+            deadline: 6000,
+            next: { kind: 'final', result: { kind: 'elected', sheriffSeat: 2 } },
+          },
+        }),
+      );
+      expect(section).toMatchObject({
+        kind: 'completed',
+        rounds: [FIRST_ROUND_DERIVED],
+        result: { kind: 'elected', sheriffSeat: 2 },
+      });
+    });
+
     it('candidate speech exposes active candidates and withdrawals, no tallies', () => {
       const section = deriveSheriffSection(
         makeGameState({

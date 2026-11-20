@@ -7,6 +7,7 @@ import {
   secrethitlerEngine,
 } from '@game-judge/game-engine/games/secrethitler/public';
 
+import { settleDueBusinessKey, settleDueDeliveryAt } from '../../platform/gameModules/settleDue';
 import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { handleSecrethitlerEffect, secrethitlerEffectSchema } from './effects';
 import { getSecrethitlerPublicUserStats } from './publicUserStats';
@@ -29,6 +30,10 @@ export const secrethitlerWorkerModule = defineWorkerGameModule({
   getPublicUserStats: getSecrethitlerPublicUserStats,
   httpRoutes: [],
   getEffectBusinessKey: (effect, context) =>
-    `secrethitler:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+    effect.type === 'secrethitler.settle.due'
+      ? settleDueBusinessKey('secrethitler:settle', effect.payload)
+      : `secrethitler:game-completed:${context.createdRevision}:${effect.payload.roundId}`,
+  getEffectDeliveryAt: (effect) =>
+    effect.type === 'secrethitler.settle.due' ? settleDueDeliveryAt(effect.payload) : null,
   handleEffect: handleSecrethitlerEffect,
 });

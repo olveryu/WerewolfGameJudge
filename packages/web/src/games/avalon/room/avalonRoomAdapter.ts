@@ -123,6 +123,7 @@ const AVALON_DAY_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   vote: true,
   voteResult: true,
   quest: true,
+  questResult: true,
   lady: true,
   assassin: true,
   ended: false,
@@ -308,6 +309,8 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       }
       return `${questLabel} · 任务执行中`;
     }
+    case 'questResult':
+      return avalonLatestQuestConclusion(state);
   }
 }
 
@@ -327,6 +330,8 @@ export function createAvalonCurrentStatus(state: AvalonState): string | null {
       return '投票结果确认中';
     case 'quest':
       return '任务执行中';
+    case 'questResult':
+      return '任务结果确认中';
     case 'lady':
       return '湖中仙女查验中';
     case 'assassin':
@@ -392,8 +397,6 @@ export interface AvalonBottomActionsInput {
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
-  readonly onLadyAcknowledgePress: () => void;
-  readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
   /** 本局复盘入口（平台 useRoomReview）：终局时存在，底部按钮与主持管理共用；终局前为 null。 */
   readonly review: RoomReviewEntry | null;
@@ -520,20 +523,6 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       testID: TESTIDS.avalonEarlyStrike,
     });
   }
-  // 湖仙查验结果重开入口：结果本体只住弹窗（一次性私密信息），此处只放入口；
-  // VM 只向持有人暴露 lastLadyCheck 结果，非持有人恒无此按钮。
-  if (vm.ladyCheckResult !== null && phase.kind !== 'ended') {
-    secondary.push({
-      key: 'ladyResult',
-      label: '查验结果',
-      audience: 'participant',
-      variant: 'secondary',
-      size: 'md',
-      isEnabled: true,
-      onPress: input.onLadyResultPress,
-      testID: TESTIDS.avalonLadyResultOpen,
-    });
-  }
   switch (phase.kind) {
     case 'nominate': {
       const instruction = resolveNominateInstruction(vm, vm.mySeat);
@@ -641,6 +630,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     case 'voteResult':
       message = '等待全员确认投票结果';
       break;
+    case 'questResult':
+      message = '等待全员确认任务结果';
+      break;
     case 'quest': {
       const instruction = resolveQuestInstruction(vm);
       if (instruction.isTeamMember) {
@@ -677,29 +669,12 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           message =
             '点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。';
           break;
-        case 'holderWait':
-          message = `已选择查验${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认展示。`;
-          break;
-        case 'targetConfirm':
-          message = `${avalonSeatLabel(state, instruction.holderSeat)} 要查验你的阵营，确认展示后对方将看到你是好人还是坏人。`;
-          primary.push({
-            key: 'ladyAcknowledge',
-            label: '查看查验请求',
-            audience: 'participant',
-            variant: 'primary',
-            size: 'md',
-            isPending: true,
-            isEnabled: true,
-            onPress: input.onLadyAcknowledgePress,
-            testID: TESTIDS.avalonLadyAcknowledgeOpen,
-          });
-          break;
         case 'watching':
           // 旁观者看公开进程：谁在查验谁（或还在选对象）。查验结果是
           // 持有人私密信息，不在此句出现。
           message =
             instruction.targetSeat !== null
-              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认`
+              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待持有人确认结果`
               : `${avalonSeatLabel(state, instruction.holderSeat)} 正在选择查验对象`;
           break;
         case 'result':
@@ -762,8 +737,6 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
-  readonly onLadyAcknowledgePress: () => void;
-  readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
   readonly review: RoomReviewEntry | null;
   readonly strikePickMode: boolean;
@@ -1052,8 +1025,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onOpenQuestPress: input.onOpenQuestPress,
       onPreselectTeamPress: input.onPreselectTeamPress,
       onProposeTeamPress: input.onProposeTeamPress,
-      onLadyAcknowledgePress: input.onLadyAcknowledgePress,
-      onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
       review: input.review,
       strikePickMode: input.strikePickMode,

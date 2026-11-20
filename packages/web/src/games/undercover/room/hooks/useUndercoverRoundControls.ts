@@ -5,7 +5,8 @@ import {
   type UndercoverState,
   type UndercoverWordCard,
 } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
@@ -89,6 +90,10 @@ export function useUndercoverRoundControls({
   const card = getUndercoverWordCard(state, userId, controlledSeat);
   const cardKey =
     card === null ? null : `${state.round!.roundId}:${userId}:${card.seat}:${state.hostUserId}`;
+  const latestCardKey = useRef(cardKey);
+  useEffect(() => {
+    latestCardKey.current = cardKey;
+  }, [cardKey]);
   const isSelecting =
     isHost && state.phase === 'ongoing' && selectionRoundId === state.round.roundId;
   // 资格 = 尚未揭晓的座位（与原 selectSeat 的静默守卫同集）：已揭晓座位
@@ -139,12 +144,13 @@ export function useUndercoverRoundControls({
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)
       throw new Error('Card confirmation requires a viewing participant');
-    closeCard();
     void submit(
       '确认词卡',
       { type: 'undercover.role.viewed', roundId: state.round.roundId },
       { controlledSeat },
-    );
+    ).then((success) => {
+      if (success && latestCardKey.current === cardKey) closeCard();
+    });
   };
   const reveal = () => {
     if (state.phase !== 'ongoing' || selectedSeat === null)
@@ -179,7 +185,18 @@ export function useUndercoverRoundControls({
       card !== null && state.phase === 'viewing' && !state.round.confirmedSeats.includes(card.seat),
     openCard: () => {
       if (cardKey === null) throw new Error('No permitted Undercover word card');
-      setVisibleCardKey(cardKey);
+      showConfirmAlert(
+        '查看词卡？',
+        '确定现在查看你的词卡吗？',
+        () => {
+          if (latestCardKey.current !== cardKey) {
+            toast.error('词卡已变化，请重新查看。');
+            return;
+          }
+          setVisibleCardKey(cardKey);
+        },
+        { confirmText: '查看' },
+      );
     },
     closeCard,
     confirmCard,

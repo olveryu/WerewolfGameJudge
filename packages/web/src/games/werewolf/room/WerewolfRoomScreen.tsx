@@ -8,6 +8,8 @@
  */
 import './WerewolfRoomScreen.css';
 
+import { Dialog } from '@ark-ui/react/dialog';
+import { Portal } from '@ark-ui/react/portal';
 import {
   findClosestPresetName,
   type GameState,
@@ -53,6 +55,7 @@ import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
+import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
 import { getSheriffWaitingMessage } from './day/sheriffElectionDockModel';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
@@ -234,6 +237,7 @@ function WerewolfRoomContent(
               {
                 label: '笔记',
                 icon: <IconDocumentTextOutline aria-hidden />,
+                testId: TESTIDS.werewolfNotepadButton,
                 onOpen: () => setIsNotepadOpen(true),
               },
             ]
@@ -423,6 +427,33 @@ function WerewolfRoomContent(
             >
               <BoardStrategyContent boardName={strategyBoardName} />
             </RoomDialog>
+          )}
+          {state.sheriffElection?.phase === 'result' && sheriffElectionPanel !== null && (
+            <Dialog.Root
+              open
+              onEscapeKeyDown={(event) => event.preventDefault()}
+              onInteractOutside={(event) => event.preventDefault()}
+            >
+              <Portal>
+                <Dialog.Backdrop className="center-dialog-backdrop" />
+                <Dialog.Positioner className="center-dialog-positioner">
+                  <Dialog.Content
+                    className="center-dialog"
+                    aria-describedby={undefined}
+                    data-testid={TESTIDS.sheriffResultDialog}
+                  >
+                    <Dialog.Title>警长竞选结果</Dialog.Title>
+                    <p>{sheriffElectionPanel.view.phaseDescription}</p>
+                    <SheriffElectionPanel model={sheriffElectionPanel} />
+                    <p>
+                      {remainingSeconds === null || remainingSeconds === 0
+                        ? '等待进入下一阶段…'
+                        : `${remainingSeconds} 秒后继续`}
+                    </p>
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Portal>
+            </Dialog.Root>
           )}
         </>
       }

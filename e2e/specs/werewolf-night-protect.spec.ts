@@ -10,7 +10,6 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
-  nightButton,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -312,11 +311,11 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         await dismissAlert(wolfPage);
 
         // A rejected vote leaves the draft open so the wolf can replace its target.
-        const submitVote = nightButton(wolfPage, 'submitSeatSelection');
-        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(skSeat)}`);
         await wolfPage.getByTestId(TESTIDS.seatTilePressable(validTarget)).click();
-        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(validTarget)}`);
-        await submitVote.click();
+        await expect(wolfPage.getByTestId(TESTIDS.alertMessage)).toContainText(
+          formatSeat(validTarget),
+        );
+        await wolfPage.getByTestId(TESTIDS.alertButton(1)).click();
         await driveWolfVote(pages, [skIdx], validTarget);
 
         // Night should complete normally

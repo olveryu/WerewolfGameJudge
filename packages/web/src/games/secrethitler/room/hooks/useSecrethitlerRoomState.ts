@@ -11,7 +11,7 @@ import {
   type SecrethitlerState,
   type SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   type RoomBgmControlState,
@@ -32,6 +32,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
+import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
 import {
@@ -50,23 +51,24 @@ import { SECRETHITLER_VOTE_IMAGES } from '@/games/secrethitler/assets/secrethitl
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import { toRevealRoleData } from '@/games/secrethitler/components/SecrethitlerRoleCardAdapter';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
+import { secrethitlerSeatLabel } from '../secrethitlerPresentation';
 import {
   createSecrethitlerHostManagement,
   createSecrethitlerRoomShellModel,
   getSecrethitlerSeatTapIntent,
 } from '../secrethitlerRoomAdapter';
+import { getSecrethitlerRoomCommandFailureMessage } from '../secrethitlerRoomCommandFailureMessage';
+import { useSecrethitlerAudioOrchestration } from './useSecrethitlerAudioOrchestration';
 
 const SECRETHITLER_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
-
 /** 进房间一次预加载的全部公开图片：立绘 + 投票 4 张 + 法案牌 2 张。 */
 const SECRETHITLER_ROOM_IMAGES: readonly string[] = [
   ...getBoardRolePortraits(),
   ...SECRETHITLER_VOTE_IMAGES,
   ...SECRETHITLER_POLICY_IMAGES,
 ];
-import { getSecrethitlerRoomCommandFailureMessage } from '../secrethitlerRoomCommandFailureMessage';
-import { useSecrethitlerAudioOrchestration } from './useSecrethitlerAudioOrchestration';
 
 /**
  * 秘密希特勒房间 Screen 的显式契约：领域推导（视图模型、身份卡锚点）
@@ -95,6 +97,7 @@ export interface SecrethitlerRoomScreenState {
   readonly roleViewing: RoleViewing;
   readonly roleCardAllRoles: readonly RevealRoleData[];
   readonly actionModalOpen: boolean;
+  readonly isSelecting: boolean;
   readonly closeAction: () => void;
 }
 
@@ -197,6 +200,7 @@ export function useSecrethitlerRoomState(
   };
   const onSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
+    inGameAction: privateActions.handleSeatTap,
     state,
     currentSeat: mySeat,
     resolveIntent: getSecrethitlerSeatTapIntent,
@@ -251,6 +255,7 @@ export function useSecrethitlerRoomState(
     review: review.entry,
     openIdentity: privateActions.roleViewing.open,
     openAction: privateActions.openAction,
+    isSelecting: privateActions.isSelecting,
     isSubmitting,
   });
   const viewModel = isLobby ? null : getSecrethitlerViewModel(state, effectiveSeat);
@@ -273,6 +278,7 @@ export function useSecrethitlerRoomState(
     roleViewing: privateActions.roleViewing,
     roleCardAllRoles: privateActions.roleCardAllRoles,
     actionModalOpen: privateActions.actionModalOpen,
+    isSelecting: privateActions.isSelecting,
     closeAction: privateActions.closeAction,
   };
 }
@@ -284,7 +290,73 @@ function useSecrethitlerPrivateActions(
   controlledSeat: number | null,
 ) {
   const [actionKey, setActionKey] = useState<string | null>(null);
+  const [dismissedVoteKey, setDismissedVoteKey] = useState<string | null>(null);
   const currentActionKey = `${state.gameSequence}:${state.phase.kind}:${state.phase.kind === 'night' ? state.phase.step : state.history.governments.length}:${effectiveSeat}`;
+  const mustResolveHand =
+    (state.phase.kind === 'legislativePresident' && effectiveSeat === state.phase.presidentSeat) ||
+    (state.phase.kind === 'legislativeChancellor' && effectiveSeat === state.phase.chancellorSeat);
+  const phase = state.phase;
+  const targetAction =
+    phase.kind === 'election'
+      ? 'nominate'
+      : phase.kind === 'executive' && phase.power !== 'policyPeek'
+        ? phase.power
+        : null;
+  const isSelecting =
+    targetAction !== null &&
+    (phase.kind === 'election' || phase.kind === 'executive') &&
+    phase.presidentSeat === effectiveSeat &&
+    actionKey === currentActionKey;
+  const selectionContext = useRef({ currentActionKey, isSelecting });
+  useEffect(() => {
+    selectionContext.current = { currentActionKey, isSelecting };
+  }, [currentActionKey, isSelecting]);
+  const view = getSecrethitlerViewModel(state, effectiveSeat);
+  const eligibleSeats =
+    targetAction === 'nominate'
+      ? view.eligibleChancellorSeats
+      : targetAction === null
+        ? []
+        : state.livingSeats.filter(
+            (seat) =>
+              seat !== view.presidentSeat &&
+              (targetAction !== 'investigate' || !state.investigatedSeats.includes(seat)),
+          );
+  const seatPicking = useSeatPicking({
+    active: isSelecting,
+    mode: 'trigger',
+    eligibleSeats,
+    ineligibleTap: 'swallow',
+    anchorKey: currentActionKey,
+    storage: { kind: 'local' },
+    onPick: (seat) => {
+      if (targetAction === null) return;
+      const label = secrethitlerSeatLabel(view, seat);
+      const command: SecrethitlerCommand =
+        targetAction === 'nominate'
+          ? { type: 'secrethitler.government.nominate', chancellorSeatId: seat }
+          : targetAction === 'investigate'
+            ? { type: 'secrethitler.action.investigate', targetSeatId: seat }
+            : targetAction === 'specialElection'
+              ? { type: 'secrethitler.action.specialElection', targetSeatId: seat }
+              : { type: 'secrethitler.action.execute', targetSeatId: seat };
+      showConfirmAlert(
+        '确认选择？',
+        `确定选择 ${label}？${targetAction === 'execute' ? '处决不可撤销。' : ''}`,
+        async () => {
+          if (
+            !selectionContext.current.isSelecting ||
+            selectionContext.current.currentActionKey !== currentActionKey
+          ) {
+            showErrorAlert('选择已失效', '当前行动已改变，请重新选择。');
+            return;
+          }
+          if (await submit('总统行动', command, { controlledSeat }))
+            setActionKey((previous) => (previous === currentActionKey ? null : previous));
+        },
+      );
+    },
+  });
   const roleViewing = useRoleViewing({
     effectiveSeat,
     identityKey: state.phase.kind === 'lobby' ? null : state.gameSequence,
@@ -299,8 +371,40 @@ function useSecrethitlerPrivateActions(
   return {
     roleViewing,
     roleCardAllRoles: Array.from(new Set(Object.values(state.identities)), toRevealRoleData),
-    actionModalOpen: actionKey === currentActionKey,
-    openAction: () => setActionKey(currentActionKey),
-    closeAction: () => setActionKey(null),
+    actionModalOpen:
+      mustResolveHand ||
+      (!isSelecting && actionKey === currentActionKey) ||
+      (phase.kind === 'voting' &&
+        effectiveSeat !== null &&
+        state.livingSeats.includes(effectiveSeat) &&
+        phase.votes[effectiveSeat] === undefined &&
+        dismissedVoteKey !== currentActionKey),
+    isSelecting,
+    handleSeatTap: seatPicking.handleSeatTap,
+    openAction: () => {
+      if (isSelecting) {
+        setActionKey(null);
+        return;
+      }
+      if (
+        state.phase.kind === 'night' ||
+        (state.phase.kind === 'executive' && state.phase.power === 'policyPeek')
+      ) {
+        showConfirmAlert(
+          '查看信息？',
+          '确定私下查看信息吗？',
+          () => setActionKey(currentActionKey),
+          {
+            confirmText: '查看',
+          },
+        );
+        return;
+      }
+      setActionKey(currentActionKey);
+    },
+    closeAction: () => {
+      if (phase.kind === 'voting') setDismissedVoteKey(currentActionKey);
+      setActionKey(null);
+    },
   };
 }

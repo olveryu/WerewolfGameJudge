@@ -72,7 +72,13 @@ export function playAvalonTestGame(failedQuests: 0 | 1 | 2 | 3): AvalonState {
     });
   const settle = () => {
     const { phase } = read();
-    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
+    if (
+      (phase.kind !== 'vote' &&
+        phase.kind !== 'quest' &&
+        phase.kind !== 'voteResult' &&
+        phase.kind !== 'questResult') ||
+      phase.deadlineAt === null
+    ) {
       throw new Error(`[FAIL-FAST] Cannot settle Avalon ${phase.kind}`);
     }
     nowMs = phase.deadlineAt;
@@ -122,10 +128,11 @@ export function playAvalonTestGame(failedQuests: 0 | 1 | 2 | 3): AvalonState {
     asSeat({ type: 'avalon.team.propose', seats: team }, leaderSeat);
     for (const seat of seats) asSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     settle();
-    for (const seat of seats) asSeat({ type: 'avalon.voteResult.confirm' }, seat);
+    settle();
     for (const seat of team) {
       asSeat({ type: 'avalon.quest.play', play: seat === evilSeat ? 'fail' : 'success' }, seat);
     }
+    settle();
     settle();
   }
   return read();

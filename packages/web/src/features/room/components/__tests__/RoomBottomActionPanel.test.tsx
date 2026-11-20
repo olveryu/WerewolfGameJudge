@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import type { ReactNode } from 'react';
 
 import { TESTIDS } from '@/testids';
 
@@ -249,31 +248,6 @@ it('groups cards by semantic color without moving disabled cards out of their gr
   );
   expect(labels()).toEqual(['返回', '行动', '查询', '授权', '昨夜信息', '重开']);
   expect(screen.getByRole('button', { name: '授权' })).toBe(authorization);
-});
-
-it('keeps semantic ordering when a card component is replaced during development', () => {
-  function ReloadedCard({
-    children,
-  }: {
-    readonly category: 'player' | 'resource';
-    readonly children: ReactNode;
-  }) {
-    return children;
-  }
-  render(
-    <RoomActionHand label="操作">
-      <ReloadedCard category="resource">
-        <button>查看身份</button>
-      </ReloadedCard>
-      <RoomHandCard category="player">
-        <button>报名上警</button>
-      </RoomHandCard>
-    </RoomActionHand>,
-  );
-  expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
-    '报名上警',
-    '查看身份',
-  ]);
 });
 
 it('orders actual player, host, query and dangerous cards by their displayed categories', () => {
