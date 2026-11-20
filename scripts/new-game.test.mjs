@@ -1108,7 +1108,7 @@ it('night narration derives audio orchestration and renders its full wiring', ()
     `'demoproto.audio.cleared'`,
     'queueAudioBatch(',
     'acknowledgeAudioQueue(',
-    // The platform gate guard at the returnToLobby wiring point.
+    // The platform gate guard at the restart wiring point.
     'guardAudioPlayback(',
     // Per-game audio reasons and their client failure copy.
     `audioPlaying: 'demoproto_audio_playing'`,

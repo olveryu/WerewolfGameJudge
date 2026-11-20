@@ -33,7 +33,6 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
     gameSequence: z.number().int().nonnegative(),
     wasEnded: z.boolean(),
   }),
-  z.strictObject({ type: z.literal('__GAME_ID__.game.abort') }),
 //#cap identityViewing
   z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
 //#end
@@ -43,7 +42,6 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
 //#cap stageDeadline
   z.strictObject({ type: z.literal('__GAME_ID__.phase.retrySettle') }),
 //#end
-  z.strictObject({ type: z.literal('__GAME_ID__.game.returnToLobby') }),
 //#cap audioOrchestration
   z.strictObject({
     type: z.literal('__GAME_ID__.audio.ack'),
