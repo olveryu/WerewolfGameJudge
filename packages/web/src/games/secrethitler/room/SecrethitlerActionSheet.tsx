@@ -7,8 +7,8 @@ import type { ReactNode } from 'react';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -31,6 +31,9 @@ export function SecrethitlerActionSheet({
     'viewModel' | 'state' | 'submit' | 'controlledSeat' | 'closeAction' | 'isSubmitting'
   >;
 }) {
+  const confirmStageAction = useStageConfirmation(
+    `${screen.state.phaseRevision}:${screen.controlledSeat}`,
+  );
   const view = screen.viewModel;
   if (view === null) return null;
   const instruction = secrethitlerInstruction(screen.state, view);
@@ -39,12 +42,16 @@ export function SecrethitlerActionSheet({
     if (await screen.submit(label, command, { controlledSeat: screen.controlledSeat }))
       screen.closeAction();
   };
+  const confirmAndSend = (label: string, command: SecrethitlerCommand) =>
+    confirmStageAction(`确认${instruction.action}？`, `本次选择：${label}`, () =>
+      send(label, command),
+    );
   const button = (label: string, command: SecrethitlerCommand, key = label) => (
     <Button
       key={key}
       variant="secondary"
       disabled={screen.isSubmitting}
-      onClick={() => void send(label, command)}
+      onClick={() => confirmAndSend(label, command)}
     >
       {label}
     </Button>
@@ -56,7 +63,9 @@ export function SecrethitlerActionSheet({
         <SecrethitlerNightRecognition
           view={view}
           isSubmitting={screen.isSubmitting}
-          onConfirm={() => void send('确认信息', { type: 'secrethitler.night.confirm', step: 1 })}
+          onConfirm={() =>
+            confirmAndSend('确认信息', { type: 'secrethitler.night.confirm', step: 1 })
+          }
         />
       );
       break;
@@ -188,7 +197,7 @@ export function SecrethitlerActionSheet({
                   variant={power === 'execute' ? 'danger' : 'secondary'}
                   disabled={screen.isSubmitting}
                   onClick={() =>
-                    showConfirmAlert(
+                    confirmStageAction(
                       instruction.action ?? '确认行动',
                       `确定选择 ${label}？${power === 'execute' ? '处决不可撤销。' : ''}`,
                       () => void send('总统行动', command),

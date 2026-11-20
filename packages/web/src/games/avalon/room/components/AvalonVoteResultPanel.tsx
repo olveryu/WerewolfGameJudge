@@ -10,6 +10,7 @@ import type {
   AvalonSeatView,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
 
 import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
@@ -38,6 +39,9 @@ export function AvalonVoteResultPanel({
   isSubmitting,
   onConfirm,
 }: AvalonVoteResultPanelProps) {
+  const confirmStageAction = useStageConfirmation(`${mySeat}:${result.rejectStreak}`);
+  const confirmResult = () =>
+    confirmStageAction('确认投票结果？', '确认后将等待其他玩家。', onConfirm);
   const orderedSeats = seats.toSorted((a, b) => a.seat - b.seat);
   const pendingSeats = orderedSeats.filter((seat) => !confirmedSeats.includes(seat.seat));
   const banner = result.approved ? '组队通过' : `组队被否决·第 ${result.rejectStreak} 次`;
@@ -47,12 +51,12 @@ export function AvalonVoteResultPanel({
       bannerImageSrc={result.approved ? avalonVoteSuccessImage : avalonVoteFailImage}
       outcome={result.approved ? 'positive' : 'negative'}
       kind="vote"
-      onClose={onConfirm}
+      onClose={confirmResult}
       confirmation={{
         confirmed: mySeat !== null && confirmedSeats.includes(mySeat),
         disabled: mySeat === null || isSubmitting,
         spectator: mySeat === null,
-        onConfirm,
+        onConfirm: confirmResult,
       }}
     >
       <p

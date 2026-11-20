@@ -37,7 +37,6 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import {
-  buildPanelFlowSteps,
   PANEL_FLOW_ACTION_KEYS,
   type PanelFlowProgress,
   resolvePanelFlowCurrentStep,
@@ -263,21 +262,18 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       ) {
         electionMoves.push('sheriff-self-destruct');
       }
-      if (election !== null && election.view.phase !== 'completed') {
-        electionMoves.push(PANEL_FLOW_ACTION_KEYS.grantReview);
-      }
-      const steps = buildPanelFlowSteps(flow) ?? undefined;
       const moves = infoPending
         ? [...electionMoves, PANEL_FLOW_ACTION_KEYS.lastNightInfo]
         : electionMoves;
+      if (election !== null && election.view.phase !== 'completed') {
+        moves.push(PANEL_FLOW_ACTION_KEYS.grantReview);
+      }
       if (moves.length > 1) {
-        return { kind: 'choice', actionKeys: moves, ...(infoPending ? { steps } : {}) };
+        return { kind: 'choice', actionKeys: moves };
       }
       const [onlyMove] = moves;
       if (onlyMove !== undefined) {
-        return hostActionTask(onlyMove, {
-          ...(infoPending ? { steps } : {}),
-        });
+        return hostActionTask(onlyMove);
       }
       return null;
     }
@@ -287,17 +283,15 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         progress: input.panelFlow,
         reviewShared: input.isReviewShared,
       };
-      const steps = buildPanelFlowSteps(flow) ?? undefined;
       switch (resolvePanelFlowCurrentStep(flow)) {
         case 'lastNightInfo':
-          return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
+          return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo);
         case 'grantReview':
         case 'closing':
         case null:
           return {
             kind: 'choice',
             actionKeys: [PANEL_FLOW_ACTION_KEYS.grantReview, HOST_ACTION_KEYS.review, 'restart'],
-            steps,
           };
       }
     }
@@ -387,9 +381,6 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   } as const;
   return [
     buildReviewHostAction(review),
-    input.panelFlow.lastNightInfoConfirmed
-      ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
-      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
@@ -400,6 +391,9 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
       },
       input.onLastNightInfo,
     ),
+    input.panelFlow.lastNightInfoConfirmed
+      ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
+      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
   ];
 }
 

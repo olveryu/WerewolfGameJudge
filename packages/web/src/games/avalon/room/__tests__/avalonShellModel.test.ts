@@ -738,10 +738,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       label: '修改投票',
       isPending: false,
     });
-    const pendingSeats = [0, 1, 2, 3, 4].filter((seat) => seat !== voter);
-    expect(cast.message).toBe(
-      `已投 1/5 · 未投票：${pendingSeats.map((seat) => `${seat + 1}号`).join(' ')}`,
-    );
+    expect(cast.message).toBe('已投 1/5');
     for (let seat = 0; seat < 5; seat += 1) {
       if (seat !== voter)
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -771,10 +768,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (outsider === undefined) throw new Error('expected a non-team seat');
     const outsiderBottom = shellFor(running, outsider);
     expect(findStageAction(outsiderBottom, 'openQuest')).toBeUndefined();
-    const pendingTeam = [...team].sort((a, b) => a - b);
-    expect(outsiderBottom.message).toBe(
-      `已出牌 0/2 · 未出牌：${pendingTeam.map((seat) => `${seat + 1}号`).join(' ')}`,
-    );
+    expect(outsiderBottom.message).toBe('已出牌 0/2');
     const memberBottom = shellFor(running, evil);
     expect(findStageAction(memberBottom, 'openQuest')).toMatchObject({
       label: '去出牌',
@@ -789,7 +783,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       label: '修改出牌',
       isPending: false,
     });
-    expect(played.message).toBe(`已出牌 1/2 · 未出牌：${leader + 1}号`);
+    expect(played.message).toBe('已出牌 1/2');
     expect(played.message).not.toContain('失败');
     running.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(leader));
     if (running.state.phase.kind !== 'quest' || running.state.phase.deadlineAt === null) {
@@ -908,8 +902,8 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
     if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
-    expect(shellFor(running, 1).message).toBe('已投 1/5 · 未投票：1号 3号 4号 5号');
-    expect(shellFor(running, 2).message).toBe('已投 1/5 · 未投票：1号 3号 4号 5号');
+    expect(shellFor(running, 1).message).toBe('已投 1/5');
+    expect(shellFor(running, 2).message).toBe('已投 1/5');
   });
 
   it('lady: bystanders read the public process before and after the target is chosen', () => {

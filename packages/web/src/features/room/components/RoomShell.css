@@ -135,27 +135,24 @@
 
 .room-board-status-card {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-tight) var(--space-small);
+  gap: var(--space-tight);
   padding: var(--space-small) var(--space-medium);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  text-align: center;
 }
 
 .room-board-phase {
   margin: 0;
-  padding: 0 var(--space-small);
-  border-radius: var(--radius-small);
-  background: var(--color-primary-a10);
-  color: var(--color-primary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
 }
 
 .room-board-status-title {
-  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   color: var(--color-text);
@@ -169,6 +166,20 @@
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
+  font-weight: var(--weight-normal);
+  overflow-wrap: anywhere;
+}
+
+.room-board-status-summary {
+  width: 100%;
+  min-width: 0;
+}
+
+.room-board-status-summary > .room-status-summary {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .room-workspace {

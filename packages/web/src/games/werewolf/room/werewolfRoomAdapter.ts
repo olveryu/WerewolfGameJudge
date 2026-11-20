@@ -669,7 +669,6 @@ interface WerewolfBottomActionsInput {
   readonly nightStatusLine: string | null;
   readonly guideMessage: string | null;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
-  readonly isSheriffInspectorVisible: boolean;
   readonly openSheriffDetails: () => void;
 }
 
@@ -682,7 +681,6 @@ export function createWerewolfBottomActions(
       election: input.sheriffElectionPanel,
       roomTools: layout,
       isHost: input.isHost,
-      isInspectorVisible: input.isSheriffInspectorVisible,
       isAudioPlaying: input.isAudioPlaying,
       openDetails: input.openSheriffDetails,
     });

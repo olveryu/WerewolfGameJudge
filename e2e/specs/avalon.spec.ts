@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { pressAlertButton } from '../helpers/alerts';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
 import { anySeatTestId } from '../helpers/ui';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -86,6 +86,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     const markBotsViewed = panel.getByTestId(TESTIDS.roomMarkBotsViewedButton);
     await expect(markBotsViewed).toHaveText('标记机器人已查看');
     await markBotsViewed.click();
+    await confirmAlert(hostPage, '标记机器人已查看？');
     await expect(panel).toBeVisible();
     await hostRoom.startGame();
 
@@ -136,6 +137,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         });
       }
       await markBots.click();
+      await confirmAlert(hostPage, '标记机器人已确认？');
       await expect(panel).toBeVisible();
       await hostRoom.closeHostManagement();
       await expect(hostPage.getByTestId(TESTIDS.roomProgressIndicator)).toContainText(/第2步/);
@@ -280,6 +282,7 @@ async function confirmNightInfo(
   const message = await page.getByTestId(TESTIDS.alertMessage).innerText();
   expect(parseSeatNumbers(message)).toEqual([...expectedSeats].sort((a, b) => a - b));
   await page.getByTestId(TESTIDS.alertButton(0)).click();
+  await confirmAlert(page, '确认已查看信息？');
   await expect(modal).toBeHidden({ timeout: 10_000 });
 }
 
@@ -574,23 +577,22 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
       if (seat === 0) {
-        // 未投票名单全房公开：底部消息报已投计数 + 未投票座位，不再只给
-        // 已投票者看个人票；同一名单也出现在投票弹窗与顶部摘要条第二行。
-        const pending = Array.from(
-          { length: PLAYER_COUNT - 1 },
-          (_, index) => `${index + 2}号`,
-        ).join(' ');
+        // 已投人数和未投票名单分别展示，名单也可在投票弹窗中查看。
+        const pending = Array.from({ length: PLAYER_COUNT - 1 }, (_, index) => `${index + 2}`).join(
+          '',
+        );
         await waitForBottomActionMessage(pages[0]!);
         await expect(pages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
-          `已投 1/${PLAYER_COUNT} · 未投票：${pending}`,
+          `已投 1/${PLAYER_COUNT}`,
           { timeout: 10_000 },
         );
         await expect(pages[0]!.getByTestId(TESTIDS.avalonVotePendingSeats)).toBeVisible({
           timeout: 10_000,
         });
-        await expect(pages[0]!.getByTestId(TESTIDS.avalonHistorySummaryPendingSeats)).toBeVisible({
-          timeout: 10_000,
-        });
+        await expect(pages[0]!.getByTestId(TESTIDS.avalonHistorySummaryPendingSeats)).toHaveText(
+          `未投票：${pending}`,
+          { timeout: 10_000 },
+        );
       }
     }
   });
@@ -601,6 +603,7 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
       const page = pages[seat]!;
       await expect(page.getByTestId(TESTIDS.avalonResultPanel('vote'))).toBeVisible();
       await page.getByTestId(TESTIDS.avalonResultClose('vote')).click();
+      await confirmAlert(page, '确认投票结果？');
       if (seat < pages.length - 1) {
         await expect(page.getByTestId(TESTIDS.avalonResultClose('vote'))).toHaveText(
           '已确认，等待其他玩家',
@@ -711,6 +714,7 @@ async function runLadyCheck(
   await expect(ackModal).toBeVisible({ timeout: 15_000 });
   await expect(ackModal).toContainText(`${holderSeat + 1} 号`);
   await targetPage.getByTestId(TESTIDS.avalonLadyAcknowledge).click();
+  await confirmAlert(targetPage, '确认展示阵营？');
   await expect(ackModal).toBeHidden({ timeout: 10_000 });
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toBeVisible();
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toHaveCount(0);
@@ -957,7 +961,7 @@ test.describe('Avalon full game', () => {
         ));
 
       await test.step('对局记录：按任务分 tab 回看已结算轮次', async () => {
-        await hostPage.getByTestId(TESTIDS.avalonHistorySummary).click();
+        await hostPage.getByTestId(TESTIDS.avalonHistoryButton).click();
         await expect(hostPage.getByTestId(TESTIDS.avalonHistoryTab(1))).toBeVisible({
           timeout: 10_000,
         });
@@ -1078,9 +1082,8 @@ test.describe('Avalon full game', () => {
         await expect(hostReview).not.toContainText('查验结果只给当时持有人看');
         await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
         await expect(hostReview).toBeHidden();
-        await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText(
-          '本局结束 · 坏人获胜',
-        );
+        await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).toContainText('本局结束');
+        await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toHaveText('坏人获胜');
         // PR-B G-6: the ended wait lives only in the bottom panel of
         // seated non-host players (shared constant, no full stop);
         // the settlement section no longer repeats it for anyone and

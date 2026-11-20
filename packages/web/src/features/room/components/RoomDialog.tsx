@@ -76,7 +76,7 @@ export function RoomDialog({
             <div className="room-dialog-body" data-flush={isContentFlush}>
               {children}
             </div>
-            <footer className="room-dialog-footer">{footer}</footer>
+            {footer !== null && <footer className="room-dialog-footer">{footer}</footer>}
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

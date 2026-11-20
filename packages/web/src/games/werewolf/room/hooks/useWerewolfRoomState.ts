@@ -41,12 +41,10 @@ import { useRoomPresentationController } from '@/features/room/controllers/useRo
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
-import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
-import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
@@ -129,7 +127,6 @@ export interface WerewolfRoomScreenState {
   readonly audioResume: RoomAudioResume;
   readonly night: NightInteraction;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
-  readonly isSheriffInspectorVisible: boolean;
   readonly isSheriffDetailsVisible: boolean;
   readonly openSheriffDetails: () => void;
   readonly closeSheriffDetails: () => void;
@@ -288,13 +285,8 @@ export function useWerewolfRoomState(
     remainingSeconds,
     submit: (label, command) => submit(label, command, { controlledSeat }),
   });
-  const viewportWidth = useViewportWidth();
-  const isSheriffInspectorVisible =
-    sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
-  // The sheet closes when the election ends or the inspector takes over (adjusting state on a
-  // change of the facts it depends on).
-  if (isSheriffDetailsVisible && (sheriffElectionPanel === null || isSheriffInspectorVisible)) {
+  if (isSheriffDetailsVisible && sheriffElectionPanel === null) {
     setIsSheriffDetailsVisible(false);
   }
 
@@ -405,7 +397,6 @@ export function useWerewolfRoomState(
     nightStatusLine: night.nightStatusLine,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
     sheriffElectionPanel,
-    isSheriffInspectorVisible,
     openSheriffDetails,
   });
 
@@ -471,7 +462,6 @@ export function useWerewolfRoomState(
     audioResume,
     night,
     sheriffElectionPanel,
-    isSheriffInspectorVisible,
     isSheriffDetailsVisible,
     openSheriffDetails,
     closeSheriffDetails: () => setIsSheriffDetailsVisible(false),

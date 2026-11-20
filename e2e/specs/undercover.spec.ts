@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { pressAlertButton } from '../helpers/alerts';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
 import { gateCommandFrames, type HeldCommand } from '../helpers/command-frames';
 import {
   closeReviewDialog,
@@ -138,10 +138,12 @@ for (const viewport of [
       for (const page of joinerPages) {
         await (await new RoomPage(page).viewIdentityButton()).click();
         await page.getByTestId(TESTIDS.undercoverConfirm).click();
+        await confirmAlert(page, '确认记住词卡？');
       }
       await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
       await (await hostRoom.viewIdentityButton()).click();
       await hostPage.getByTestId(TESTIDS.undercoverConfirm).click();
+      await confirmAlert(hostPage, '确认记住词卡？');
       await hostRoom.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.startGameButton).click();
@@ -286,6 +288,7 @@ for (const viewport of [
       for (const page of allPages) {
         await (await new RoomPage(page).viewIdentityButton()).click();
         await page.getByTestId(TESTIDS.undercoverConfirm).click();
+        await confirmAlert(page, '确认记住词卡？');
       }
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.startGameButton).click();

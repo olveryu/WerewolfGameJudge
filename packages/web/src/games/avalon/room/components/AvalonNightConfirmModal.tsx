@@ -6,6 +6,7 @@
  */
 
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
+import { useState } from 'react';
 
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 
@@ -27,9 +28,23 @@ export function AvalonNightConfirmModal({
   readonly onConfirm: () => void;
   readonly onClose: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const instruction = resolveNightInstruction(viewModel);
   const dialog = toConfirmDialog(instruction, viewModel);
   if (dialog === null) return null;
+  if (confirming) {
+    return (
+      <AvalonAlertDialog
+        title="确认已查看信息？"
+        message="确认后将等待其他玩家。"
+        onClose={() => setConfirming(false)}
+        buttons={[
+          { text: '取消', style: 'cancel', onPress: () => setConfirming(false) },
+          { text: '确定', onPress: onConfirm, disabled: isSubmitting },
+        ]}
+      />
+    );
+  }
   return (
     <AvalonAlertDialog
       title={dialog.title}
@@ -38,7 +53,7 @@ export function AvalonNightConfirmModal({
       buttons={[
         {
           text: '确认信息',
-          onPress: onConfirm,
+          onPress: () => setConfirming(true),
           disabled: isSubmitting,
         },
       ]}

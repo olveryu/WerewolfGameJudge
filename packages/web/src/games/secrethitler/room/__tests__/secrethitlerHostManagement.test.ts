@@ -10,7 +10,7 @@ import {
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
-import { showDestructiveAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 
@@ -96,6 +96,7 @@ it('warns about the settled round and review before restarting an ended game', a
 });
 
 it('exposes bulk viewing as the blocked-start remedy and removes it once complete', () => {
+  submit.mockClear();
   const state = stateFor('viewing');
   const panel = model(state);
   const action = panel.sections
@@ -103,6 +104,11 @@ it('exposes bulk viewing as the blocked-start remedy and removes it once complet
     .find((entry) => entry.key === 'mark-bots-viewed');
   if (!action?.isEnabled) throw new Error('Missing bulk viewing');
   action.onPress();
+  expect(submit).not.toHaveBeenCalled();
+  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Missing confirmation');
+  expect(confirmation[0]).toBe('标记机器人已查看？');
+  void confirmation[2]();
   expect(submit).toHaveBeenCalledWith('标记机器人已查看', {
     type: 'secrethitler.bots.markAllBotsViewed',
   });
@@ -148,12 +154,18 @@ it('locks all host commands during opening and closing narration without droppin
 });
 
 it('dispatches night bot confirmation and disables mutating tools while submitting', () => {
+  submit.mockClear();
   const state = stateFor('night');
   const action = model(state)
     .sections.flatMap((section) => section.actions)
     .find((entry) => entry.key === 'mark-bots-confirmed');
   if (!action?.isEnabled) throw new Error('Missing bot confirmation');
   action.onPress();
+  expect(submit).not.toHaveBeenCalled();
+  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Missing confirmation');
+  expect(confirmation[0]).toBe('标记机器人已确认？');
+  void confirmation[2]();
   expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
     type: 'secrethitler.bots.markAllBotsGroupConfirmed',
   });

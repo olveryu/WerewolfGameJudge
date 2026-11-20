@@ -11,6 +11,7 @@ import { useId, useState } from 'react';
 import { Button } from '@/components/Button';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
 import { showErrorAlert } from '@/utils/alertPresets';
 import IconArrowUndoOutline from '~icons/ion/arrow-undo-outline';
@@ -103,6 +104,9 @@ export function StoryRelayTaskEditor({
   const isValid = text.length <= STORY_RELAY_TEXT_MAX_LENGTH;
   const editorCopy = getEditorCopy(state, task);
   const countId = useId();
+  const confirmStageAction = useStageConfirmation(
+    `${task.roundId}:${task.stepIndex}:${task.chainId}:${state.phase}:${isExpired}`,
+  );
   const changeText = (value: string) => {
     inputs.set(task.authorSeat, value);
     setText(value);
@@ -112,16 +116,21 @@ export function StoryRelayTaskEditor({
       showErrorAlert('无法准备', '正文超过 512 字符，请缩短后再准备');
       return;
     }
-    void submit(
-      '更新准备状态',
-      {
-        type: 'storyrelay.task.ready.set',
-        roundId: task.roundId,
-        stepIndex: task.stepIndex,
-        chainId: task.chainId,
-        isReady: !isReady,
-      },
-      { controlledSeat },
+    confirmStageAction(
+      isReady ? '取消准备？' : '确认准备好了？',
+      isReady ? '取消准备后可以继续修改。' : '确认后将等待其他玩家完成。',
+      () =>
+        void submit(
+          '更新准备状态',
+          {
+            type: 'storyrelay.task.ready.set',
+            roundId: task.roundId,
+            stepIndex: task.stepIndex,
+            chainId: task.chainId,
+            isReady: !isReady,
+          },
+          { controlledSeat },
+        ),
     );
   };
   const previous = task.previousEntry;

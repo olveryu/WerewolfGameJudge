@@ -43,6 +43,8 @@ type RoomShellContent =
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
+      readonly summaryReplacesMessage?: boolean;
+      readonly summaryIsStatus?: boolean;
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
       readonly sideInspector: ReactElement | null;
@@ -346,7 +348,9 @@ export function RoomShell({
                     selectionUsesHostTask={selectionUsesHostTask}
                     boardStatus={{
                       phaseLabel,
+                      summaryIsStatus: content.summaryIsStatus,
                       title: lobbyTitle,
+                      summaryReplacesMessage: content.summaryReplacesMessage === true,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,
                     }}

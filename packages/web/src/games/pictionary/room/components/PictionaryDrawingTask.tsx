@@ -19,6 +19,7 @@ import {
   reduceDrawingDraft,
 } from '@/features/drawing/model/drawing';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
 import { showDestructiveAlert } from '@/utils/alertPresets';
@@ -87,16 +88,24 @@ export function PictionaryDrawingTask({
   };
 
   const isReady = state.readySeats.includes(effectiveSeat);
+  const confirmStageAction = useStageConfirmation(
+    `${state.phase}:${state.stepIndex}:${effectiveSeat}:${isExpired}`,
+  );
   const toggleReady = (): void => {
     if (!isReady && draft.elements.length === 0) return;
-    void submit(
-      isReady ? '继续编辑' : '完成编辑',
-      createPictionaryCommand(
-        state,
-        { type: 'pictionary.task.ready.set', isReady: !isReady },
-        effectiveSeat,
-      ),
-      { controlledSeat, durable: true },
+    confirmStageAction(
+      isReady ? '继续编辑？' : '确认完成绘画？',
+      isReady ? '取消准备后可以继续修改。' : '确认后将等待其他玩家完成。',
+      () =>
+        void submit(
+          isReady ? '继续编辑' : '完成编辑',
+          createPictionaryCommand(
+            state,
+            { type: 'pictionary.task.ready.set', isReady: !isReady },
+            effectiveSeat,
+          ),
+          { controlledSeat, durable: true },
+        ),
     );
   };
 

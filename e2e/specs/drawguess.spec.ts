@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { pressAlertButton } from '../helpers/alerts';
+import { confirmAlert, pressAlertButton } from '../helpers/alerts';
 import { observeCommandFrames } from '../helpers/command-frames';
 import { setOffline } from '../helpers/resilience';
 import { waitForRoomScreenReady } from '../helpers/waits';
@@ -172,11 +172,9 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       );
       await startButton.focus();
       await hostPage.keyboard.press('Enter');
-      await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('暂不可用');
-      await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
+      await expect(panel.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveText(
         '座位尚未坐满（还差 2 人）',
       );
-      await hostPage.getByTestId(TESTIDS.alertButton(0)).click();
       await expect(panel.getByTestId(TESTIDS.startGameButton)).toBeDisabled();
       await room.closeHostManagement();
     });
@@ -207,6 +205,7 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       const word = await wordChoice.innerText();
       // Click the first word choice button (words are dealt randomly).
       await wordChoice.click();
+      await confirmAlert(hostPage, '确认选择题目？');
       // After word selection, the word choices disappear and the drawer
       // sees the drawing canvas.
       await expect(hostPage.getByTestId(TESTIDS.drawGuessWordSelectTitle)).toHaveCount(0, {

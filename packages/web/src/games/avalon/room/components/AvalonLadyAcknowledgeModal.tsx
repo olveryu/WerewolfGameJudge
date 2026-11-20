@@ -8,6 +8,7 @@ import { type AvalonViewModel } from '@game-judge/game-engine/games/avalon/publi
 
 import { Button } from '@/components/Button';
 import { CenterDialog } from '@/components/CenterDialog';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
 
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
@@ -25,6 +26,7 @@ export function AvalonLadyAcknowledgeModal({
   readonly onAcknowledge: () => void;
   readonly onClose: () => void;
 }) {
+  const confirmStageAction = useStageConfirmation(`${viewModel.phase}:${viewModel.mySeat}`);
   const instruction = resolveLadyInstruction(viewModel);
   const holderSeat = instruction.kind === 'targetConfirm' ? instruction.holderSeat : null;
   // 渲染门控已保证 targetConfirm；竞态下指令已变则不渲染空名文案。
@@ -44,7 +46,9 @@ export function AvalonLadyAcknowledgeModal({
         <Button
           size="lg"
           loading={isSubmitting}
-          onClick={onAcknowledge}
+          onClick={() =>
+            confirmStageAction('确认展示阵营？', '确认后，对方将看到你的阵营。', onAcknowledge)
+          }
           data-testid={TESTIDS.avalonLadyAcknowledge}
         >
           确认展示

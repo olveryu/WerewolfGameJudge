@@ -267,7 +267,12 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       if (hasUnviewedBot) {
         actions.push(
           buildMarkBotsViewedAction({
-            onPress: input.markAllBotsViewed,
+            onPress: () =>
+              showConfirmAlert(
+                '标记机器人已查看？',
+                '将标记所有未查看身份的机器人。',
+                input.markAllBotsViewed,
+              ),
             isEnabled: !input.isCommandSubmitting,
             isLoading: input.isCommandSubmitting,
           }),

@@ -26,13 +26,14 @@ import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer'
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
+import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { AvalonGuide } from '../screens/AvalonGuideScreen';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
-import { createAvalonHistorySummary } from './avalonRoomAdapter';
+import { createAvalonCurrentStatus, createAvalonHistorySummary } from './avalonRoomAdapter';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -49,6 +50,7 @@ import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
 import { useRevealWatermark } from './hooks/useRevealWatermark';
 import {
+  formatAvalonQuestLabel,
   resolveLadyInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
@@ -86,6 +88,19 @@ function AvalonRoomContent(
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
   const isReading = information !== null || historyVisible || screen.rolePreviewId !== null;
   const historySummary = createAvalonHistorySummary(screen.state);
+  const currentStatus = createAvalonCurrentStatus(screen.state);
+  const phase = screen.state.phase;
+  const statusContext =
+    phase.kind === 'nominate' || phase.kind === 'vote'
+      ? `${formatAvalonQuestLabel(phase.round)} · 第${(screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1}次提案`
+      : phase.kind === 'voteResult' || phase.kind === 'quest'
+        ? formatAvalonQuestLabel(phase.round)
+        : phase.kind === 'lady'
+          ? formatAvalonQuestLabel(phase.afterRound)
+          : null;
+  if (historyVisible && (historySummary === null || viewModel === null)) {
+    setHistoryVisible(false);
+  }
   // 底部摘要：投票/任务进行中显示未提交名单（与警长摘要同形）。
   const historyPendingSeats =
     viewModel === null
@@ -236,7 +251,7 @@ function AvalonRoomContent(
               ? '夜晚'
               : screen.state.phase.kind === 'ended'
                 ? '本局结束'
-                : '游戏进行中'
+                : (statusContext ?? '游戏进行中')
       }
       lobbyAction={
         isLobby
@@ -244,6 +259,18 @@ function AvalonRoomContent(
           : null
       }
       isSelecting={screen.seatPicking.isActive}
+      mainEntries={
+        historySummary !== null && viewModel !== null
+          ? [
+              {
+                label: '对局记录',
+                testId: TESTIDS.avalonHistoryButton,
+                icon: <IconDocumentTextOutline aria-hidden />,
+                onOpen: () => setHistoryVisible(true),
+              },
+            ]
+          : []
+      }
       configurationEntry={
         !isPreGame && viewModel !== null && !screen.seatPicking.isActive
           ? { onOpen: () => setInformation('configuration') }
@@ -271,12 +298,17 @@ function AvalonRoomContent(
               contextHeader: null,
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
               bottomSummary:
-                historySummary === null ? null : (
+                historySummary === null || currentStatus === null ? null : (
                   <AvalonHistorySummary
-                    summary={historySummary}
+                    status={currentStatus}
+                    latestResult={
+                      screen.state.phase.kind !== 'ended' &&
+                      (screen.state.lastVoteResult !== null || screen.state.questHistory.length > 0)
+                        ? historySummary
+                        : null
+                    }
                     pendingSeats={historyPendingSeats}
                     pendingLabel={historyPendingLabel}
-                    onOpenHistory={() => setHistoryVisible(true)}
                   />
                 ),
               sideInspector: null,

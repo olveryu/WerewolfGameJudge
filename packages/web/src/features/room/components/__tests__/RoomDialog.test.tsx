@@ -33,6 +33,15 @@ function ConfirmedDialog() {
 }
 
 describe('RoomDialog', () => {
+  it('does not render an empty footer when none is provided', () => {
+    render(
+      <RoomDialog title="详情" onClose={vi.fn()} footer={null}>
+        内容
+      </RoomDialog>,
+    );
+    expect(screen.getByRole('dialog').querySelector('footer')).toBeNull();
+  });
+
   it('closes on Escape when explicitly allowed', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

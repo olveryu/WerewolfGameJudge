@@ -1,11 +1,8 @@
-/** Presentational coverage for adaptive sheriff-election surfaces. */
+/** Presentational coverage for sheriff-election details. */
 
 import { fireEvent, render, screen } from '@testing-library/react';
 
-import {
-  SheriffElectionInspector,
-  SheriffElectionSheet,
-} from '@/games/werewolf/room/components/SheriffElectionDetailsSurfaces';
+import { SheriffElectionDialog } from '@/games/werewolf/room/components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from '@/games/werewolf/room/components/SheriffElectionHud';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
@@ -41,29 +38,22 @@ const model: SheriffElectionPanelModel = {
   requestEndBySelfDestruct: vi.fn(),
 };
 
-describe('adaptive sheriff-election surfaces', () => {
-  it('opens details from the compact privacy-safe HUD', () => {
-    const openDetails = vi.fn();
-    render(<SheriffElectionHud model={model} onOpenDetails={openDetails} />);
+describe('sheriff-election details', () => {
+  it('shows a compact privacy-safe HUD without a details control', () => {
+    render(<SheriffElectionHud model={model} isHost={false} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('报名上警');
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('报名进行中');
     expect(screen.queryByText(/1号|2号/)).toBeNull();
-    fireEvent.click(screen.getByTestId(TESTIDS.sheriffElectionHud));
-    expect(openDetails).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId(TESTIDS.sheriffDetailsButton)).not.toBeInTheDocument();
   });
 
-  it('renders and closes the compact details sheet', () => {
+  it('renders and closes the details dialog', () => {
     const close = vi.fn();
-    render(<SheriffElectionSheet model={model} onClose={close} />);
+    render(<SheriffElectionDialog model={model} onClose={close} />);
 
-    expect(screen.getByTestId(TESTIDS.sheriffElectionSheet)).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId(TESTIDS.sheriffDetailsCloseButton));
-    expect(close).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders details in the persistent wide inspector', () => {
-    render(<SheriffElectionInspector model={model} />);
-    expect(screen.getByTestId(TESTIDS.sheriffElectionInspector)).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '警长竞选详情' })).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.sheriffElectionPanel)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId(TESTIDS.roomDialogCloseButton));
+    expect(close).toHaveBeenCalledTimes(1);
   });
 });

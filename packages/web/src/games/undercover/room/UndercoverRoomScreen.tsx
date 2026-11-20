@@ -2,6 +2,7 @@
 import {
   getUndercoverOccupiedSeatCount,
   UNDERCOVER_CATEGORY_NAMES,
+  UNDERCOVER_ROLE_NAMES,
   type UndercoverRole,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -14,6 +15,7 @@ import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -134,7 +136,13 @@ function UndercoverRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
-        bottomSummary: null,
+        bottomSummary:
+          state.phase === 'ended' ? (
+            <RoomStatusSummary
+              summary={`${UNDERCOVER_ROLE_NAMES[state.winner]}获胜`}
+              action={null}
+            />
+          ) : null,
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (

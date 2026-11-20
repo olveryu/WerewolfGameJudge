@@ -3,6 +3,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
+import { confirmAlert } from '../helpers/alerts';
 import { type CommandFrameObservation, observeCommandFrames } from '../helpers/command-frames';
 import { dismissDialogByOutsideClick } from '../helpers/ui';
 import { RoomPage } from './RoomPage';
@@ -71,6 +72,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(submitButton).toHaveAccessibleName('完成编辑');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
+    await confirmAlert(this.page, '确认完成编辑？');
   }
 
   /** Prove that a ready text draft can return to editing before collection. */
@@ -79,12 +81,15 @@ export class PictionaryRoomPage extends RoomPage {
     const completionButton = this.page.getByTestId(TESTIDS.pictionaryTextSubmitButton);
     await input.fill(initialText);
     await completionButton.click();
+    await confirmAlert(this.page, '确认完成编辑？');
     await expect(input).not.toBeEditable();
     await expect(completionButton).toHaveAccessibleName('继续编辑');
     await completionButton.click();
+    await confirmAlert(this.page, '继续编辑？');
     await expect(input).toBeEditable();
     await input.fill(finalText);
     await completionButton.click();
+    await confirmAlert(this.page, '确认完成编辑？');
     await expect(input).not.toBeEditable();
   }
 
@@ -318,6 +323,7 @@ export class PictionaryRoomPage extends RoomPage {
     const completionButton = this.page.getByTestId(TESTIDS.pictionaryDrawingSubmitButton);
     await expect(completionButton).toHaveAccessibleName('完成编辑');
     await completionButton.click();
+    await confirmAlert(this.page, '确认完成绘画？');
   }
 
   /** Wait for a guess task and its protected source drawing. */
@@ -350,6 +356,7 @@ export class PictionaryRoomPage extends RoomPage {
     await expect(submitButton).toHaveAccessibleName('完成编辑');
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
+    await confirmAlert(this.page, '确认完成编辑？');
   }
 
   /** Wait until synchronized manual gallery playback begins. */

@@ -6,6 +6,8 @@ import type {
 } from '@game-judge/game-engine/games/avalon/public';
 import { act, fireEvent, render } from '@testing-library/react';
 
+import { alertStore, dismissAlert } from '@/utils/alert';
+
 import { AvalonVoteResultPanel } from '../AvalonVoteResultPanel';
 
 const SEATS = [
@@ -96,6 +98,11 @@ describe('AvalonVoteResultPanel', () => {
     expect(getByText('等待：1号、2号、4号')).toBeTruthy();
     expect(getByTestId('avalon-vote-result-confirmation').querySelector('progress')).toHaveValue(1);
     fireEvent.click(getByTestId('avalon-vote-result-close'));
+    expect(onConfirm).not.toHaveBeenCalled();
+    const confirmation = alertStore.getSnapshot();
+    expect(confirmation?.title).toBe('确认投票结果？');
+    void confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
+    if (confirmation !== null) dismissAlert(confirmation.generation);
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
   });

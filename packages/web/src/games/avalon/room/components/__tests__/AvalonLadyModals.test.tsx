@@ -3,9 +3,12 @@
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react';
 
+import { alertStore, dismissAlert } from '@/utils/alert';
+
 import { AvalonLadyAcknowledgeModal } from '../AvalonLadyAcknowledgeModal';
 import { AvalonLadyCheckConfirmModal } from '../AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from '../AvalonLadyResultModal';
+import { AvalonNightConfirmModal } from '../AvalonNightConfirmModal';
 
 function ladyViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewModel {
   return {
@@ -99,6 +102,11 @@ describe('AvalonLadyAcknowledgeModal', () => {
     );
     expect(getByText(/2 号 · 玩家2 要查验你的阵营/)).toBeTruthy();
     fireEvent.click(getByTestId('avalon-lady-acknowledge'));
+    expect(onAcknowledge).not.toHaveBeenCalled();
+    const confirmation = alertStore.getSnapshot();
+    expect(confirmation?.title).toBe('确认展示阵营？');
+    void confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
+    if (confirmation !== null) dismissAlert(confirmation.generation);
     expect(onAcknowledge).toHaveBeenCalledTimes(1);
   });
 });
@@ -112,5 +120,26 @@ describe('AvalonLadyResultModal', () => {
     expect(getByTestId('avalon-lady-result-text')).toHaveTextContent('3 号 · 玩家3 是坏人。');
     fireEvent.click(getByTestId('avalon-lady-result-close'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('AvalonNightConfirmModal', () => {
+    it('requires confirmation before submitting and lets the player cancel', () => {
+      const onConfirm = vi.fn();
+      const { getByText } = render(
+        <AvalonNightConfirmModal
+          viewModel={ladyViewModel({ phase: 'night', nightStep: 'evilReveal', evilPeers: [1] })}
+          isSubmitting={false}
+          onConfirm={onConfirm}
+          onClose={vi.fn()}
+        />,
+      );
+      fireEvent.click(getByText('确认信息'));
+      expect(onConfirm).not.toHaveBeenCalled();
+      fireEvent.click(getByText('取消'));
+      expect(onConfirm).not.toHaveBeenCalled();
+      fireEvent.click(getByText('确认信息'));
+      fireEvent.click(getByText('确定'));
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -258,8 +258,10 @@ test('four humans write four turns without restoring unsubmitted input and revea
           await Promise.all(fixture.pages.map(expectFixedTask));
           if (stepIndex === 0) {
             await hostPage.getByTestId(TESTIDS.storyRelayReady).click();
+            await confirmAlert(hostPage, '确认准备好了？');
             await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).not.toBeEditable();
             await hostPage.getByTestId(TESTIDS.storyRelayReady).click();
+            await confirmAlert(hostPage, '取消准备？');
             for (const [index, viewport] of ['desktop', 'mobile', 'small'].entries())
               await test.info().attach(`storyrelay-writing-${viewport}`, {
                 body: await fixture.pages[index]!.screenshot(),
@@ -293,7 +295,10 @@ test('four humans write four turns without restoring unsubmitted input and revea
             );
           }
           await Promise.all(
-            fixture.pages.map((page) => page.getByTestId(TESTIDS.storyRelayReady).click()),
+            fixture.pages.map(async (page) => {
+              await page.getByTestId(TESTIDS.storyRelayReady).click();
+              await confirmAlert(page, '确认准备好了？');
+            }),
           );
           if (stepIndex < 3)
             await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
@@ -355,7 +360,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
         buttonIndex: 1,
         buttonLabel: '重新开始',
       });
-      await room.startGame();
+      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
       await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
       await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
     } finally {

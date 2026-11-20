@@ -537,7 +537,6 @@ describe('createWerewolfBottomActions', () => {
         viewModel,
       }),
       sheriffElectionPanel: null,
-      isSheriffInspectorVisible: false,
       openSheriffDetails: vi.fn(),
     });
   }
