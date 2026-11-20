@@ -168,11 +168,15 @@ describe('createAvalonHistorySummary', () => {
     expect(createAvalonHistorySummary(room.state)).toBe(expected);
   });
 
-  it('shows the end conclusion after the veto limit ends the game', () => {
+  it('shows automatic approval without vote counts', () => {
     const room = session();
     room.toNominate();
-    for (let attempt = 0; attempt < 5; attempt += 1) room.settleVote('reject');
-    expect(room.state.phase.kind).toBe('ended');
-    expect(createAvalonHistorySummary(room.state)).toBe('本局结束 · 坏人获胜');
+    for (let attempt = 0; attempt < 4; attempt += 1) room.settleVote('reject');
+    const leader = room.state.leaderSeat;
+    const team = [leader, (leader + 1) % 5];
+    room.send({ type: 'avalon.team.preselect', seats: team }, room.userOf(leader));
+    room.send({ type: 'avalon.team.propose', seats: team }, room.userOf(leader));
+    expect(room.state.phase.kind).toBe('voteResult');
+    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 队伍自动通过');
   });
 });

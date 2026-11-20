@@ -390,6 +390,11 @@ function proposeTeam(
   if (state.phase.preselectedSeats.length === 0) return reject(AVALON_REASONS.notPreselected);
   const rejection = rejectTeam(state, state.phase.requiredSize, seats, context);
   if (rejection !== null) return rejection;
+  if (state.rejectStreak >= state.config.vetoLimit - 1) {
+    return armResultCountdown(state, context, 'voteResult', state.phase.round, [
+      { type: 'avalon.team.autoApproved', seats: [...seats] },
+    ]);
+  }
   return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
 }
 
@@ -436,19 +441,12 @@ function completeResult(
       ? { type: 'avalon.voteResult.completed' }
       : { type: 'avalon.questResult.completed' },
   ];
-  const vetoLimitReached =
-    state.lastVoteResult !== null &&
-    phase.kind === 'voteResult' &&
-    !state.lastVoteResult.approved &&
-    state.lastVoteResult.rejectStreak >= state.config.vetoLimit;
   const questFailuresReached =
     phase.kind === 'questResult' &&
     state.questResults.filter((result) => result === 'fail').length >= AVALON_QUESTS_TO_WIN;
   return commitAvalon(
     events,
-    (vetoLimitReached || questFailuresReached) && !state.xpSettled
-      ? completionEffects(state, events, context)
-      : [],
+    questFailuresReached && !state.xpSettled ? completionEffects(state, events, context) : [],
   );
 }
 
@@ -594,6 +592,7 @@ function commitQuestSettled(
     approveCount: state.phase.approveCount,
     rejectCount: state.phase.rejectCount,
     abstainCount: state.phase.abstainCount,
+    automatic: state.phase.automatic,
     result,
     successCount,
     failCount,

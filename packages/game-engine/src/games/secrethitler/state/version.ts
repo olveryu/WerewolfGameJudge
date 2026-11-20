@@ -1,8 +1,8 @@
-/** v7 persists the public chancellor preselection. */
+/** v8 persists the latest public result in chronological order. */
 
 import { SECRETHITLER_GAME_TYPE } from './types';
 
-export const SECRETHITLER_STATE_VERSION = 7;
+export const SECRETHITLER_STATE_VERSION = 8;
 
 export const SECRETHITLER_STATE_IDENTITY = {
   gameType: SECRETHITLER_GAME_TYPE,

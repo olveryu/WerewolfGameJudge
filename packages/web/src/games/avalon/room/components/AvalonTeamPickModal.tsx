@@ -30,11 +30,14 @@ export function AvalonTeamPickModal({
 }) {
   const requiredSize = viewModel.requiredSize ?? 0;
   const preselected = viewModel.preselectedSeats ?? [];
+  const isFinalAttempt = viewModel.rejectStreak >= viewModel.vetoLimit - 1;
   const title = kind === 'preselect' ? '预选队伍' : '最终队伍';
   const hint =
     kind === 'preselect'
       ? '确认后预选即锁定、全房可见；随后可调整最终队伍，预选记录不动。'
-      : `提交后立即进入投票，无法再改；本轮被否决会计入否决串，累计 ${viewModel.vetoLimit} 次否决坏人直接获胜。`;
+      : isFinalAttempt
+        ? '这是最后一次组队，提交后自动通过，不再投票。'
+        : `提交后进入投票，无法再改；第 ${viewModel.vetoLimit} 次组队将自动通过。`;
 
   return (
     <RoomPlayerPickModal
@@ -50,7 +53,9 @@ export function AvalonTeamPickModal({
         disabledReason: null,
       }))}
       isSubmitting={isSubmitting}
-      confirmLabel={kind === 'preselect' ? '确认预选' : '确认提交'}
+      confirmLabel={
+        kind === 'preselect' ? '确认预选' : isFinalAttempt ? '确认并自动通过' : '确认提交'
+      }
       onConfirm={onConfirm}
       onClose={onClose}
       testIds={{

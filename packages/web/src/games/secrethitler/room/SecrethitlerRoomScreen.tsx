@@ -52,6 +52,7 @@ import {
   SECRETHITLER_POWER_COPY,
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
+import { SecrethitlerRoomTracks } from './SecrethitlerRoomTracks';
 
 type SecrethitlerRoomScreenProps = GameRoomScreenProps<'secrethitler'> & {
   readonly session: SecrethitlerRoomSession;
@@ -138,6 +139,8 @@ function SecrethitlerRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
+        scrollInformationWithSeats: showHistory,
+        summaryAfterMessage: true,
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
@@ -357,11 +360,10 @@ export function SecrethitlerBoardHeader({
   const view = screen.viewModel;
   if (view === null || !shouldShowMatchSummary(screen.state)) return null;
   return (
-    <RoomStatusSummary
-      summary={getMatchSummary(screen.state)}
-      detail={`自由派 ${view.liberalPolicies}/5 · 法西斯 ${view.fascistPolicies}/6 · 选举失败 ${view.electionTracker}/3`}
-      action={null}
-    />
+    <>
+      <RoomStatusSummary summary={getMatchSummary(screen.state)} action={null} />
+      <SecrethitlerRoomTracks state={screen.state} view={view} />
+    </>
   );
 }
 

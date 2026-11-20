@@ -152,7 +152,7 @@ export interface AvalonConfig {
   readonly numberOfPlayers: AvalonPlayerCount;
   /** 组队投票模式：公投 / 暗投，默认公投（D7）；任务出牌永远是暗投。 */
   readonly voteMode: AvalonVoteMode;
-  /** 单轮连续否决上限，默认 5（D8）。 */
+  /** 每轮最多组队次数，最后一次自动通过；默认 5。 */
   readonly vetoLimit: 3 | 4 | 5;
 }
 
@@ -182,8 +182,8 @@ export const AVALON_CONFIG_SCHEMA: GameConfigSchema<AvalonConfig> = {
     },
     vetoLimit: {
       kind: 'count',
-      label: '否决上限',
-      hint: '单轮连续否决达到上限，坏人直接获胜（官方规则为 5）。',
+      label: '最多组队次数',
+      hint: '每轮最后一次组队自动通过，不再投票。',
       min: AVALON_VETO_LIMIT_MIN,
       max: AVALON_VETO_LIMIT_MAX,
     },
@@ -295,6 +295,7 @@ export type AvalonPhase =
       readonly approveCount: number;
       readonly rejectCount: number;
       readonly abstainCount: number;
+      readonly automatic: boolean;
     }
   | {
       readonly kind: 'questResult';
@@ -359,6 +360,7 @@ export interface AvalonProposalRecord {
   readonly rejectCount: number;
   readonly abstainCount: number;
   readonly approved: boolean;
+  readonly automatic: boolean;
 }
 
 /** The settled quest outcome of a round; failCount never names its casters. */
@@ -387,6 +389,7 @@ export interface AvalonQuestHistoryEntry {
   readonly approveCount: number;
   readonly rejectCount: number;
   readonly abstainCount: number;
+  readonly automatic: boolean;
   readonly result: 'success' | 'fail';
   readonly successCount: number;
   readonly failCount: number;
@@ -423,6 +426,7 @@ export interface AvalonLastVoteResult {
   readonly approveCount: number;
   readonly rejectCount: number;
   readonly abstainCount: number;
+  readonly automatic: boolean;
 }
 
 export interface AvalonHumanSeat extends SeatOccupant {

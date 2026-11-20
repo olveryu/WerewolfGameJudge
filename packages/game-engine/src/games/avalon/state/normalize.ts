@@ -67,7 +67,10 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
   invariant(
     Number.isSafeInteger(state.rejectStreak) &&
       state.rejectStreak >= 0 &&
-      state.rejectStreak < state.config.vetoLimit,
+      (state.rejectStreak < state.config.vetoLimit ||
+        (state.phase.kind === 'ended' &&
+          state.phase.reason === 'vetoLimitReached' &&
+          state.rejectStreak === state.config.vetoLimit)),
     'reject streak',
   );
   invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
@@ -119,31 +122,26 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
           entry.teamSeats.every(isSeat) &&
           new Set(entry.teamSeats).size === entry.teamSeats.length &&
           entry.result === state.questResults[index] &&
-          entry.approveCount + entry.rejectCount + entry.abstainCount ===
-            occupiedCount(state, count) &&
-          Object.keys(entry.ballots).length === entry.approveCount + entry.rejectCount &&
-          Object.keys(entry.ballots).every(
-            (seat) =>
-              isSeat(Number(seat)) &&
-              (entry.ballots[Number(seat)] === 'approve' ||
-                entry.ballots[Number(seat)] === 'reject'),
-          ) &&
-          Object.entries(entry.ballots).filter(([, vote]) => vote === 'approve').length ===
-            entry.approveCount &&
-          Object.entries(entry.ballots).filter(([, vote]) => vote === 'reject').length ===
-            entry.rejectCount,
+          isValidVoteRecord(entry, state, isSeat),
       ),
     'quest history',
   );
 
-  // 对局记录：轮次严格递增；每轮 1..vetoLimit 条提案；至多一条通过且必为
-  // 最后一条（通过即出任务）；每条提案的计数与逐人票自洽、结论与计数一致。
+  // A migrated final rejection can be followed by one extra automatic proposal.
   invariant(
     state.roundHistory.every((record, index) => {
       if (!isAvalonQuestRound(record.round)) return false;
       if (index > 0 && record.round <= state.roundHistory[index - 1]!.round) return false;
-      if (record.proposals.length === 0 || record.proposals.length > state.config.vetoLimit)
-        return false;
+      if (record.proposals.length === 0) return false;
+      if (record.proposals.length > state.config.vetoLimit) {
+        const last = record.proposals.at(-1);
+        if (
+          record.proposals.length !== state.config.vetoLimit + 1 ||
+          last?.automatic !== true ||
+          record.proposals.slice(0, -1).some((proposal) => proposal.approved || proposal.automatic)
+        )
+          return false;
+      }
       const approvedCount = record.proposals.filter((proposal) => proposal.approved).length;
       if (approvedCount > 1) return false;
       if (approvedCount === 1 && !record.proposals[record.proposals.length - 1]!.approved)
@@ -154,15 +152,10 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
           proposal.teamSeats.length === getAvalonQuestSize(count, record.round) &&
           proposal.teamSeats.every(isSeat) &&
           new Set(proposal.teamSeats).size === proposal.teamSeats.length &&
-          isValidBallots(proposal.ballots, state, isSeat) &&
-          proposal.approveCount + proposal.rejectCount + proposal.abstainCount ===
-            occupiedCount(state, count) &&
-          Object.keys(proposal.ballots).length === proposal.approveCount + proposal.rejectCount &&
-          Object.entries(proposal.ballots).filter(([, vote]) => vote === 'approve').length ===
-            proposal.approveCount &&
-          Object.entries(proposal.ballots).filter(([, vote]) => vote === 'reject').length ===
-            proposal.rejectCount &&
-          proposal.approved === proposal.approveCount > proposal.rejectCount,
+          isValidVoteRecord(proposal, state, isSeat) &&
+          (proposal.automatic
+            ? proposal.approved
+            : proposal.approved === proposal.approveCount > proposal.rejectCount),
       );
     }),
     'round history proposals',
@@ -186,6 +179,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
         approved.approveCount === entry.approveCount &&
         approved.rejectCount === entry.rejectCount &&
         approved.abstainCount === entry.abstainCount &&
+        approved.automatic === entry.automatic &&
         approved.teamSeats.length === entry.teamSeats.length &&
         approved.teamSeats.every((seat, seatIndex) => seat === entry.teamSeats[seatIndex])
       );
@@ -276,14 +270,8 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
         Number.isSafeInteger(lastVote.rejectStreak) &&
         lastVote.rejectStreak >= 0 &&
         lastVote.rejectStreak <= state.config.vetoLimit &&
-        isValidBallots(lastVote.ballots, state, isSeat) &&
-        lastVote.approveCount + lastVote.rejectCount + lastVote.abstainCount ===
-          occupiedCount(state, count) &&
-        Object.keys(lastVote.ballots).length === lastVote.approveCount + lastVote.rejectCount &&
-        Object.entries(lastVote.ballots).filter(([, vote]) => vote === 'approve').length ===
-          lastVote.approveCount &&
-        Object.entries(lastVote.ballots).filter(([, vote]) => vote === 'reject').length ===
-          lastVote.rejectCount),
+        isValidVoteRecord(lastVote, state, isSeat) &&
+        (!lastVote.automatic || lastVote.approved)),
     'last vote result',
   );
 
@@ -361,7 +349,9 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
           proposal !== undefined &&
           proposal.leaderSeat === state.leaderSeat &&
           proposal.approved === lastVote.approved &&
-          lastVote.approved === lastVote.approveCount > lastVote.rejectCount &&
+          proposal.automatic === lastVote.automatic &&
+          (lastVote.automatic ||
+            lastVote.approved === lastVote.approveCount > lastVote.rejectCount) &&
           lastVote.rejectStreak === (lastVote.approved ? 0 : state.rejectStreak + 1) &&
           proposal.approveCount === lastVote.approveCount &&
           proposal.rejectCount === lastVote.rejectCount &&
@@ -397,11 +387,7 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
         }),
         'quest plays',
       );
-      invariant(isValidBallots(phase.ballots, state, isSeat), 'quest ballots');
-      invariant(
-        phase.approveCount + phase.rejectCount + phase.abstainCount === occupiedCount(state, count),
-        'quest vote counts',
-      );
+      invariant(isValidVoteRecord(phase, state, isSeat), 'quest vote counts');
       return state;
     }
     case 'questResult': {
@@ -500,4 +486,30 @@ function isValidBallots(
       isSeat(seat) && isAvalonOccupiedSeat(state, seat) && (vote === 'approve' || vote === 'reject')
     );
   });
+}
+
+function isValidVoteRecord(
+  record: {
+    readonly automatic: boolean;
+    readonly ballots: Readonly<Record<number, AvalonBallot>>;
+    readonly approveCount: number;
+    readonly rejectCount: number;
+    readonly abstainCount: number;
+  },
+  state: AvalonState,
+  isSeat: (seat: number) => boolean,
+): boolean {
+  const { automatic, ballots, approveCount, rejectCount, abstainCount } = record;
+  return (
+    typeof automatic === 'boolean' &&
+    [approveCount, rejectCount, abstainCount].every(
+      (count) => Number.isSafeInteger(count) && count >= 0,
+    ) &&
+    isValidBallots(ballots, state, isSeat) &&
+    approveCount + rejectCount + abstainCount ===
+      (automatic ? 0 : occupiedCount(state, state.config.numberOfPlayers)) &&
+    Object.keys(ballots).length === approveCount + rejectCount &&
+    Object.values(ballots).filter((vote) => vote === 'approve').length === approveCount &&
+    Object.values(ballots).filter((vote) => vote === 'reject').length === rejectCount
+  );
 }

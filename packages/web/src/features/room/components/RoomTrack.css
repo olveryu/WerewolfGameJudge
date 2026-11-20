@@ -1,0 +1,67 @@
+.room-track-group {
+  display: grid;
+  gap: var(--space-small);
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.room-track-heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.room-track-cells {
+  display: flex;
+  gap: var(--space-tight);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-track-cell {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--size-button-md);
+  padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-caption-small);
+  text-align: center;
+}
+
+.room-track-cell[data-state='current'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-a10);
+}
+
+.room-track-cell[data-state='success'] {
+  border-color: var(--color-success);
+  background: var(--color-success-a12);
+}
+
+.room-track-cell[data-state='fail'] {
+  border-color: var(--color-error);
+  background: var(--color-error-a10);
+}
+
+button.room-track-cell {
+  width: 100%;
+  cursor: pointer;
+}
+
+.room-track-cells > li {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}

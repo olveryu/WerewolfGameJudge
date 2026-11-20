@@ -33,7 +33,11 @@ export function AvalonVoteResultPanel({
   remainingSeconds,
 }: AvalonVoteResultPanelProps) {
   const orderedSeats = seats.toSorted((a, b) => a.seat - b.seat);
-  const banner = result.approved ? '组队通过' : `组队被否决·第 ${result.rejectStreak} 次`;
+  const banner = result.automatic
+    ? '最后一次组队自动通过'
+    : result.approved
+      ? '组队通过'
+      : `组队被否决·第 ${result.rejectStreak} 次`;
   return (
     <AvalonResultDialog
       banner={banner}
@@ -42,16 +46,20 @@ export function AvalonVoteResultPanel({
       kind="vote"
       remainingSeconds={remainingSeconds}
     >
-      <p
-        className="avalon-result-summary"
-        data-testid={
-          result.ballots === null ? TESTIDS.avalonVoteResultCounts : TESTIDS.avalonVoteResultSummary
-        }
-      >
-        {result.ballots !== null && '汇总：'}赞成 {result.approveCount} · 反对 {result.rejectCount}{' '}
-        · 弃权 {result.abstainCount}
-      </p>
-      {result.ballots !== null && (
+      {!result.automatic && (
+        <p
+          className="avalon-result-summary"
+          data-testid={
+            result.ballots === null
+              ? TESTIDS.avalonVoteResultCounts
+              : TESTIDS.avalonVoteResultSummary
+          }
+        >
+          {result.ballots !== null && '汇总：'}赞成 {result.approveCount} · 反对{' '}
+          {result.rejectCount} · 弃权 {result.abstainCount}
+        </p>
+      )}
+      {!result.automatic && result.ballots !== null && (
         <section className="avalon-vote-details" aria-label="投票明细">
           <p className="avalon-vote-section-title">投票明细</p>
           <ul className="avalon-result-list">

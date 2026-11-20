@@ -13,6 +13,7 @@ const ENTRY: AvalonQuestHistoryView = {
   approveCount: 5,
   rejectCount: 0,
   abstainCount: 0,
+  automatic: false,
   result: 'fail',
   successCount: 2,
   failCount: 1,

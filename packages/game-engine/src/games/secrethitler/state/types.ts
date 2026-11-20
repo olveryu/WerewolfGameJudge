@@ -170,6 +170,20 @@ export interface SecrethitlerPublicHistory {
   readonly actions: readonly SecrethitlerActionRecord[];
 }
 
+export type SecrethitlerLastPublicResult =
+  | { readonly kind: 'government'; readonly approved: boolean }
+  | {
+      readonly kind: 'policy';
+      readonly policy: SecrethitlerPolicy;
+      readonly source: 'government' | 'chaos';
+    }
+  | { readonly kind: 'veto'; readonly approved: boolean }
+  | {
+      readonly kind: 'action';
+      readonly action: SecrethitlerPower;
+      readonly targetSeat: number | null;
+    };
+
 export const SECRETHITLER_PHASES = [
   'lobby',
   'viewing',
@@ -226,6 +240,7 @@ export interface SecrethitlerState extends BaseGameState<typeof SECRETHITLER_GAM
     readonly faction: SecrethitlerFaction;
   } | null;
   readonly history: SecrethitlerPublicHistory;
+  readonly lastPublicResult: SecrethitlerLastPublicResult | null;
 }
 
 export type SecrethitlerGameplayPatch = Pick<
@@ -243,6 +258,7 @@ export type SecrethitlerGameplayPatch = Pick<
   | 'investigatedSeats'
   | 'lastInvestigation'
   | 'history'
+  | 'lastPublicResult'
 >;
 
 /** Returns the seat held by a user, or null when they hold no seat. */
