@@ -165,7 +165,6 @@ function bottomFor(
       viewModel,
     }),
     sheriffElectionPanel,
-    isSheriffInspectorVisible: false,
     openSheriffDetails: vi.fn(),
   });
   const model = createWerewolfRoomShellModel({

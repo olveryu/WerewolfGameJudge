@@ -7,6 +7,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { IonIcon } from '@/components/icons/IonIcon';
+import { Spinner } from '@/components/Spinner';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import {
@@ -20,13 +21,13 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
-import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconArrowForward from '~icons/ion/arrow-forward';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
 import IconClose from '~icons/ion/close';
+import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 
-import { RoomActionHand } from './RoomActionHand';
+import { PendingActionMarker, RoomActionHand, RoomHandCard } from './RoomActionHand';
 import {
   resolveRoomBottomActionPresentation,
   type RoomPanelPlayerAction,
@@ -530,17 +531,22 @@ function HostManagementHand({
           <p className="host-task-note">{task.note}</p>
         )}
         <RoomActionHand label={HOST_MANAGEMENT_LABEL}>
-          <Button
-            ref={focusBackButton}
-            variant="secondary"
-            onClick={onBack}
-            data-testid={TESTIDS.roomHostManagementCloseButton}
-          >
-            <IconArrowBack aria-hidden />
-            <span>返回</span>
-          </Button>
+          <RoomHandCard category="back">
+            <Button
+              ref={focusBackButton}
+              variant="secondary"
+              onClick={onBack}
+              data-testid={TESTIDS.roomHostManagementCloseButton}
+            >
+              <IconArrowBack aria-hidden />
+              <span>返回</span>
+            </Button>
+          </RoomHandCard>
           {orderedActions.map((action, index) => {
-            const reason = action.isEnabled ? null : action.disabledReason;
+            const reason =
+              action.isEnabled || action.isLoading === true
+                ? null
+                : action.disabledReason || '当前暂不可用';
             const reasonId = `${reasonIdPrefix}-${index}`;
             const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
             const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
@@ -562,39 +568,40 @@ function HostManagementHand({
                       ? TESTIDS.roomNextStepRemedyButton
                       : undefined));
             return (
-              <Button
+              <RoomHandCard
                 key={action.key}
-                variant={action.variant}
-                data-card-category={action.category ?? 'host'}
-                loading={action.isLoading === true}
-                disabled={!action.isEnabled && reason === null}
-                aria-disabled={!action.isEnabled && reason !== null ? true : undefined}
-                aria-label={isActionableTask || reason !== null ? action.label : undefined}
-                aria-describedby={reason !== null || isActionableTask ? reasonId : undefined}
-                data-testid={testId}
-                onClick={
-                  action.isEnabled
-                    ? action.onPress
-                    : reason !== null
-                      ? () => showAlert('暂不可用', reason)
-                      : undefined
-                }
+                unavailable={!action.isEnabled || action.isLoading === true}
+                category={action.variant === 'danger' ? 'danger' : (action.category ?? 'host')}
               >
-                <IonIcon name={action.icon} />
-                <span>{action.label}</span>
-                {isActionableTask && (
-                  <span className="bottom-action-pending" aria-hidden>
-                    待办
-                  </span>
-                )}
-                {(reason !== null || isActionableTask) && (
-                  <span id={reasonId} className="visually-hidden">
-                    {isActionableTask ? '有待处理操作' : ''}
-                    {isActionableTask && reason !== null ? '；' : ''}
-                    {reason}
-                  </span>
-                )}
-              </Button>
+                <Button
+                  variant={action.variant}
+                  data-card-category={action.category ?? 'host'}
+                  data-disabled-reason={reason ?? undefined}
+                  loading={action.isLoading === true}
+                  aria-disabled={reason !== null ? true : undefined}
+                  aria-label={isActionableTask || reason !== null ? action.label : undefined}
+                  aria-describedby={reason !== null || isActionableTask ? reasonId : undefined}
+                  data-testid={testId}
+                  onClick={action.isEnabled ? action.onPress : undefined}
+                >
+                  {action.isLoading === true ? (
+                    <Spinner label="提交中" />
+                  ) : reason !== null ? (
+                    <IconLockClosedOutline aria-hidden />
+                  ) : (
+                    <IonIcon name={action.icon} />
+                  )}
+                  <span>{action.label}</span>
+                  {isActionableTask && <PendingActionMarker />}
+                  {(reason !== null || isActionableTask) && (
+                    <span id={reasonId} className="visually-hidden">
+                      {isActionableTask ? '有待处理操作' : ''}
+                      {isActionableTask && reason !== null ? '；' : ''}
+                      {reason}
+                    </span>
+                  )}
+                </Button>
+              </RoomHandCard>
             );
           })}
         </RoomActionHand>

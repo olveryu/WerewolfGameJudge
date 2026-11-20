@@ -18,6 +18,7 @@ import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-util
 import { pictionaryTestText, playPictionaryTestRound } from '@/test-utils/pictionaryState';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { PictionaryStage } from '../PictionaryStage';
 
@@ -81,6 +82,11 @@ describe('PictionaryStage', () => {
     const submit = vi.fn<Submit>().mockResolvedValue(true);
     renderStage(state, submit);
     await user.type(screen.getByRole('textbox', { name: '接龙题目' }), '月球上的猫{Enter}');
+    expect(submit).not.toHaveBeenCalled();
+    const confirmation = alertStore.getSnapshot();
+    expect(confirmation?.title).toBe('确认完成编辑？');
+    await confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
+    if (confirmation !== null) dismissAlert(confirmation.generation);
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit).toHaveBeenCalledWith(
       '完成编辑',

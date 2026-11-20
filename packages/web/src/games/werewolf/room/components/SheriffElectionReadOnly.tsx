@@ -16,7 +16,6 @@ import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import type { SheriffElectionPresentationRow } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import { TESTIDS } from '@/testids';
 import IconShieldCheckmark from '~icons/ion/shield-checkmark';
-import IconShieldCheckmarkOutline from '~icons/ion/shield-checkmark-outline';
 import IconShieldOutline from '~icons/ion/shield-outline';
 import IconTrophy from '~icons/ion/trophy';
 
@@ -24,30 +23,6 @@ type SheriffRow<TKind extends SheriffElectionPresentationRow['kind']> = Extract<
   SheriffElectionPresentationRow,
   { readonly kind: TKind }
 >;
-
-/** Panel header: shield mark, title, phase badge, and phase description. */
-export function SheriffElectionPhaseHeader({
-  phaseTitle,
-  phaseDescription,
-}: {
-  readonly phaseTitle: string;
-  readonly phaseDescription: string;
-}) {
-  return (
-    <>
-      <div className="sheriff-panel-header">
-        <span className="sheriff-title-group">
-          <IconShieldCheckmarkOutline aria-hidden />
-          <h2 className="sheriff-panel-title">警长竞选</h2>
-        </span>
-        <span className="sheriff-phase-badge" data-testid={TESTIDS.sheriffElectionPhase}>
-          {phaseTitle}
-        </span>
-      </div>
-      <p className="sheriff-description">{phaseDescription}</p>
-    </>
-  );
-}
 
 /** Outcome banner: gold medal block for an elected sheriff, neutral otherwise. */
 export function SheriffElectionResultBanner({ row }: { readonly row: SheriffRow<'result'> }) {

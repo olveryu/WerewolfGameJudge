@@ -325,7 +325,12 @@ export function createUndercoverHostManagement(
       if (hasUnviewedBot)
         actions.push(
           buildMarkBotsViewedAction({
-            onPress: controls.markAllBotsViewed,
+            onPress: () =>
+              showConfirmAlert(
+                '标记机器人已查看？',
+                '将标记所有未查看词卡的机器人。',
+                controls.markAllBotsViewed,
+              ),
             isEnabled: !controls.isSubmitting,
             isLoading: controls.isSubmitting,
           }),

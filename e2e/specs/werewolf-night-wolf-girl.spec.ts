@@ -166,7 +166,7 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
           await expect(
-            pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
+            nightButton(pages[wolfGirlPageIndex]!, 'startSeatSelection'),
             'Confess step prompt should show the 表白 verb',
           ).toContainText('选择表白目标');
 

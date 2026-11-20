@@ -8,6 +8,7 @@ import {
   buildSecrethitlerPhaseStates,
   sendSecrethitlerSeatCommand,
 } from '@/test-utils/secrethitlerState';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -33,7 +34,14 @@ function props(state: SecrethitlerState, seat: number | null) {
   };
 }
 
-it('keeps 7–10 player Hitler and spectators out of the private recognition sheet', () => {
+async function confirmAction() {
+  const confirmation = alertStore.getSnapshot();
+  expect(confirmation).not.toBeNull();
+  await confirmation?.buttons.find((button) => button.text === '确定')?.onPress?.();
+  if (confirmation !== null) dismissAlert(confirmation.generation);
+}
+
+it('keeps 7–10 player Hitler and spectators out of the private recognition sheet', async () => {
   let state = fixture('night');
   // The phase collector saves the opening night; advance to the recognition cue.
   const identities = Object.entries(state.identities);
@@ -50,6 +58,8 @@ it('keeps 7–10 player Hitler and spectators out of the private recognition she
   rendered.rerender(<SecrethitlerActionSheet screen={input} />);
   expect(screen.getByText(new RegExp(`${Number(hitler[0]) + 1} 号.*希特勒`))).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '确认信息' }));
+  expect(input.submit).not.toHaveBeenCalled();
+  await confirmAction();
   expect(input.submit).toHaveBeenCalledWith(
     '确认信息',
     { type: 'secrethitler.night.confirm', step: 1 },
@@ -85,6 +95,19 @@ it('keeps a failed secret ballot submission open for retry', async () => {
   fireEvent.click(screen.getByRole('button', { name: '反对' }));
   await waitFor(() => expect(input.submit).toHaveBeenCalled());
   expect(input.closeAction).not.toHaveBeenCalled();
+});
+
+it('submits a vote directly and closes after success', async () => {
+  const state = fixture('voting');
+  const input = props(state, 1);
+  render(<SecrethitlerActionSheet screen={input} />);
+  fireEvent.click(screen.getByTestId('secrethitler-vote-yes'));
+  expect(input.submit).toHaveBeenCalledWith(
+    '赞成',
+    { type: 'secrethitler.government.castVote', vote: 'ja' },
+    { controlledSeat: 1 },
+  );
+  await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
 });
 
 it('renders vote choice cards with distinct images and no ballot selected yet', () => {

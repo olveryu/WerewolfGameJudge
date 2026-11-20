@@ -16,8 +16,8 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 import { useState } from 'react';
 
-import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
+import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { TESTIDS } from '@/testids';
 
 import { formatAvalonQuestSizes, formatAvalonVoteMode } from '../avalonRecordCopy';
@@ -52,10 +52,24 @@ export function AvalonHistoryOverlay({
   // 湖仙进行中只属于最后已结算轮的下一节：lady 阶段发生在该轮结算后。
   const latestSettledRound = rounds.filter((record) => record.quest !== null).at(-1)?.round;
   return (
-    <BottomSheet title="对局记录" onClose={onClose} testId={TESTIDS.avalonHistoryOverlay}>
+    <RoomDialog
+      title="对局记录"
+      onClose={onClose}
+      testId={TESTIDS.avalonHistoryOverlay}
+      allowEscape
+      footer={
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onClose}
+          data-testid={TESTIDS.avalonHistoryClose}
+        >
+          关闭
+        </Button>
+      }
+    >
       <div className="avalon-history-sheet">
         <div className="avalon-history-header">
-          <h2 className="avalon-history-title">对局记录</h2>
           <p
             className="avalon-history-score"
             aria-label={`成功 ${successCount} · 失败 ${failCount}`}
@@ -114,15 +128,7 @@ export function AvalonHistoryOverlay({
             />
           )}
         </div>
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={onClose}
-          data-testid={TESTIDS.avalonHistoryClose}
-        >
-          关闭
-        </Button>
       </div>
-    </BottomSheet>
+    </RoomDialog>
   );
 }

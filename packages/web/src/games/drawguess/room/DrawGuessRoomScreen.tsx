@@ -28,6 +28,7 @@ import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
 import { buildEndedWaitingMessage } from '@/features/room/model/RoomBottomActions';
@@ -286,17 +287,25 @@ function DrawGuessWordSelectView({
   const { state, viewModel, effectiveSeat, controlledSeat, submit } = screen;
   const isDrawer = viewModel.drawerSeat !== null && effectiveSeat === viewModel.drawerSeat;
   const drawerName = findDisplayName(viewModel, viewModel.drawerSeat) ?? '画手';
+  const confirmStageAction = useStageConfirmation(
+    `${state.turnIndex}:${state.phaseRevision}:${effectiveSeat}`,
+  );
   // Choosing is the drawer's seat action: a host driving a bot drawer sends it with that seat.
   const choose = (word: string): void => {
-    void submit(
-      '选择题目',
-      {
-        type: 'drawguess.word.choose',
-        word,
-        phaseRevision: state.phaseRevision,
-        turnIndex: state.turnIndex,
-      },
-      { controlledSeat },
+    confirmStageAction(
+      '确认选择题目？',
+      `本轮题目：${word}`,
+      () =>
+        void submit(
+          '选择题目',
+          {
+            type: 'drawguess.word.choose',
+            word,
+            phaseRevision: state.phaseRevision,
+            turnIndex: state.turnIndex,
+          },
+          { controlledSeat },
+        ),
     );
   };
   return (

@@ -26,6 +26,7 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import { useAvalonRoomState } from '../useAvalonRoomState';
@@ -210,6 +211,11 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     const markAction = findHostAction(result.current.shellModel.hostManagement, '标记机器人已查看');
     await act(async () => {
       markAction.onPress();
+      expect(dispatch).not.toHaveBeenCalled();
+      const confirmation = alertStore.getSnapshot();
+      if (confirmation === null) throw new Error('expected bot confirmation');
+      await confirmation.buttons.find((button) => button.text === '确定')?.onPress?.();
+      dismissAlert(confirmation.generation);
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.bots.markAllBotsViewed' },

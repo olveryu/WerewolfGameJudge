@@ -344,7 +344,11 @@ function createSecrethitlerHostTools(
       actions.push(
         buildMarkBotsViewedAction({
           onPress: () =>
-            void input.submit('标记机器人已查看', { type: 'secrethitler.bots.markAllBotsViewed' }),
+            showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
+              void input.submit('标记机器人已查看', {
+                type: 'secrethitler.bots.markAllBotsViewed',
+              });
+            }),
           isEnabled: !input.isSubmitting,
           isLoading: input.isSubmitting,
         }),
@@ -368,8 +372,10 @@ function createSecrethitlerHostTools(
           },
           input.isSubmitting,
           () =>
-            void input.submit('标记机器人已确认', {
-              type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+            showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
+              void input.submit('标记机器人已确认', {
+                type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+              });
             }),
         ),
       );

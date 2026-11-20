@@ -20,7 +20,6 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
-import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -309,6 +308,31 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       }
       return `${questLabel} · 任务执行中`;
     }
+  }
+}
+
+/** 当前阶段，不以最近一次结算替代正在进行的操作。 */
+export function createAvalonCurrentStatus(state: AvalonState): string | null {
+  const phase = state.phase;
+  switch (phase.kind) {
+    case 'lobby':
+    case 'viewing':
+    case 'night':
+      return null;
+    case 'nominate':
+      return '组队进行中';
+    case 'vote':
+      return '提案投票中';
+    case 'voteResult':
+      return '投票结果确认中';
+    case 'quest':
+      return '任务执行中';
+    case 'lady':
+      return '湖中仙女查验中';
+    case 'assassin':
+      return '刺杀阶段';
+    case 'ended':
+      return phase.winner === 'good' ? '好人获胜' : '坏人获胜';
   }
 }
 
@@ -607,7 +631,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         input.settleCountdownSeconds > 0
           ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
-            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)} · ${formatPendingSeats('未投票', vm.pendingVoteSeats)}`
+            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
             : null;
       if (message === null && !instruction.canVote) {
         message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
@@ -639,7 +663,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         input.settleCountdownSeconds > 0
           ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
-            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length} · ${formatPendingSeats('未出牌', vm.pendingPlaySeats)}`
+            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length}`
             : null;
       if (message === null && !instruction.isTeamMember) {
         message = '等待队员出牌…';
@@ -806,7 +830,9 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
     actions.push(
       buildMarkBotsViewedAction({
         onPress: () =>
-          void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
+          showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
+            void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' });
+          }),
         isEnabled: !input.isSubmitting,
         isLoading: input.isSubmitting,
       }),
@@ -830,7 +856,11 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
         },
         input.isSubmitting,
         () =>
-          void input.submit('标记机器人已确认', { type: 'avalon.bots.markAllBotsGroupConfirmed' }),
+          showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
+            void input.submit('标记机器人已确认', {
+              type: 'avalon.bots.markAllBotsGroupConfirmed',
+            });
+          }),
       ),
     );
   if (actions.length > 0) sections.push({ key: 'tools', title: '辅助工具', actions });

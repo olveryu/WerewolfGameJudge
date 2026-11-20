@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import { TESTIDS } from '@/testids';
 import IconAlertCircleOutline from '~icons/ion/alert-circle-outline';
 
@@ -116,6 +117,9 @@ export function PictionaryTextTask({
   const [openingPromptExample] = useState(() => randomPick(PICTIONARY_OPENING_PROMPT_EXAMPLES));
   const isOpeningPrompt = state.stepIndex === 0;
   const isReady = state.readySeats.includes(effectiveSeat);
+  const confirmStageAction = useStageConfirmation(
+    `${state.phase}:${state.stepIndex}:${effectiveSeat}:${isExpired}`,
+  );
   if (isOpeningPrompt && task.previousEntry !== null) {
     throw new Error('[FAIL-FAST] Opening Pictionary prompt cannot have previous context');
   }
@@ -131,14 +135,19 @@ export function PictionaryTextTask({
   const canComplete = isValidPictionaryText(text);
   const toggleReady = (): void => {
     if (!isReady && !canComplete) return;
-    void submit(
-      isReady ? '继续编辑' : '完成编辑',
-      createPictionaryCommand(
-        state,
-        { type: 'pictionary.task.ready.set', isReady: !isReady },
-        effectiveSeat,
-      ),
-      { controlledSeat, durable: true },
+    confirmStageAction(
+      isReady ? '继续编辑？' : '确认完成编辑？',
+      isReady ? '取消准备后可以继续修改。' : '确认后将等待其他玩家完成。',
+      () =>
+        void submit(
+          isReady ? '继续编辑' : '完成编辑',
+          createPictionaryCommand(
+            state,
+            { type: 'pictionary.task.ready.set', isReady: !isReady },
+            effectiveSeat,
+          ),
+          { controlledSeat, durable: true },
+        ),
     );
   };
 

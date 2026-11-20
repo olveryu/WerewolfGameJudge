@@ -51,12 +51,10 @@ import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
-import {
-  SheriffElectionInspector,
-  SheriffElectionSheet,
-} from './components/SheriffElectionDetailsSurfaces';
+import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
+import { getSheriffWaitingMessage } from './day/sheriffElectionDockModel';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
 import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 
@@ -129,7 +127,6 @@ function WerewolfRoomContent(
     audioResume,
     night,
     sheriffElectionPanel,
-    isSheriffInspectorVisible,
     isSheriffDetailsVisible,
     openSheriffDetails,
     closeSheriffDetails,
@@ -206,7 +203,16 @@ function WerewolfRoomContent(
                     },
                   ]),
             ]
-          : []
+          : sheriffElectionPanel !== null
+            ? [
+                {
+                  label: '警长详情',
+                  testId: TESTIDS.sheriffDetailsButton,
+                  icon: <IconDocumentTextOutline aria-hidden />,
+                  onOpen: openSheriffDetails,
+                },
+              ]
+            : []
       }
       manualEntries={[
         {
@@ -240,6 +246,7 @@ function WerewolfRoomContent(
       }
       content={{
         kind: 'seats',
+        summaryIsStatus: status === GameStatus.Day,
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue
@@ -255,9 +262,13 @@ function WerewolfRoomContent(
           sheriffElectionPanel === null ? null : (
             <SheriffElectionHud
               model={sheriffElectionPanel}
-              onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+              isHost={isHost}
+              isDay={status === GameStatus.Day}
             />
           ),
+        summaryReplacesMessage:
+          sheriffElectionPanel !== null &&
+          shellModel.bottomActions.message === getSheriffWaitingMessage(sheriffElectionPanel),
         beforeSeatBoard: (
           <>
             {!useConfigurationDialog && (
@@ -272,10 +283,7 @@ function WerewolfRoomContent(
           </>
         ),
         afterSeatBoard: null,
-        sideInspector:
-          sheriffElectionPanel === null ? null : (
-            <SheriffElectionInspector model={sheriffElectionPanel} />
-          ),
+        sideInspector: null,
       }}
       leadingExtraActions={
         isHost &&
@@ -303,11 +311,9 @@ function WerewolfRoomContent(
               onClose={closeMvpSelection}
             />
           )}
-          {sheriffElectionPanel !== null &&
-            !isSheriffInspectorVisible &&
-            isSheriffDetailsVisible && (
-              <SheriffElectionSheet model={sheriffElectionPanel} onClose={closeSheriffDetails} />
-            )}
+          {sheriffElectionPanel !== null && isSheriffDetailsVisible && (
+            <SheriffElectionDialog model={sheriffElectionPanel} onClose={closeSheriffDetails} />
+          )}
 
           <RoomAudioResumeDialog
             visible={audioResume.isDue}

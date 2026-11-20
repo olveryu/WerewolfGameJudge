@@ -14,6 +14,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
+import { Spinner } from '@/components/Spinner';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
@@ -31,15 +32,15 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
-import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconConstructOutline from '~icons/ion/construct-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
 import IconHandLeftOutline from '~icons/ion/hand-left-outline';
+import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 import IconOptionsOutline from '~icons/ion/options-outline';
 
-import { RoomActionHand } from './RoomActionHand';
+import { PendingActionMarker, RoomActionHand, RoomHandCard } from './RoomActionHand';
 import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
 import { DisabledReasonCaption } from './RoomControls';
 
@@ -116,6 +117,8 @@ export function RoomActionStatus({
     readonly phaseLabel: string | null;
     readonly title: string | null;
     readonly detail: string | null;
+    readonly summaryReplacesMessage?: boolean;
+    readonly summaryIsStatus?: boolean;
   };
 }) {
   const taskBody =
@@ -123,21 +126,36 @@ export function RoomActionStatus({
       ? resolveHostTaskView(hostManagement)?.body
       : null;
   const message = resolveStatusMessage(model, isAudioPlaying, taskBody ?? null);
-  const title = isAudioPlaying || isSelecting ? message : (boardStatus?.title ?? message);
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
+  const title =
+    isAudioPlaying || isSelecting
+      ? message
+      : boardStatus?.summaryReplacesMessage && hasSummary
+        ? boardStatus.title
+        : (boardStatus?.title ?? message);
   if (boardStatus !== undefined) {
+    if (boardStatus.summaryIsStatus && hasSummary && !isAudioPlaying && !isSelecting) {
+      return (
+        <>
+          {summary}
+          {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
+        </>
+      );
+    }
     return (
       <>
         {(boardStatus.phaseLabel !== null ||
           (title !== null && title.length > 0) ||
-          (!isAudioPlaying && !isSelecting && boardStatus.detail !== null)) && (
+          (!isAudioPlaying && !isSelecting && boardStatus.detail !== null) ||
+          hasSummary) && (
           <div className="room-board-status-card">
             {boardStatus.phaseLabel !== null && (
               <p className="room-board-phase">{boardStatus.phaseLabel}</p>
             )}
+            {hasSummary && <div className="room-board-status-summary">{summary}</div>}
             {title !== null && title.length > 0 && (
               <h2
-                className="room-board-status-title"
+                className={hasSummary ? 'room-board-status-detail' : 'room-board-status-title'}
                 aria-live="polite"
                 data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
               >
@@ -150,7 +168,6 @@ export function RoomActionStatus({
           </div>
         )}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-        {hasSummary && <div className="bottom-action-summary">{summary}</div>}
       </>
     );
   }
@@ -196,7 +213,9 @@ function LayoutButton({
   const reason = model.isEnabled
     ? null
     : visibleDisabledReason(model.disabledReason, hideAudioLockReason);
-  const explanation = !model.isEnabled ? model.disabledReason : null;
+  const isLoading = 'isLoading' in model && model.isLoading === true;
+  const explanation =
+    !model.isEnabled && !isLoading ? model.disabledReason || '当前暂不可用' : null;
   const isPending = isHand && 'isPending' in model && model.isPending === true;
   return (
     <div className="bottom-action-slot">
@@ -206,9 +225,10 @@ function LayoutButton({
           'variant' in model ? model.variant : model.tone === 'danger' ? 'danger' : 'secondary'
         }
         size={'size' in model ? model.size : 'md'}
-        loading={'isLoading' in model && model.isLoading === true}
-        data-card-category={isHand ? ('category' in model ? model.category : 'player') : undefined}
-        disabled={!model.isEnabled && (!isHand || explanation === null)}
+        loading={isLoading}
+        data-card-category={isHand ? (model.category ?? 'player') : undefined}
+        data-disabled-reason={isHand ? (explanation ?? undefined) : undefined}
+        disabled={!model.isEnabled && !isHand}
         aria-disabled={isHand && !model.isEnabled && explanation !== null ? true : undefined}
         aria-label={isHand && (explanation !== null || isPending) ? model.label : undefined}
         aria-describedby={isHand && (explanation !== null || isPending) ? reasonId : undefined}
@@ -217,25 +237,19 @@ function LayoutButton({
         data-player-action-ids={
           'containedActionTestIDs' in model ? model.containedActionTestIDs?.join(' ') : undefined
         }
-        onClick={
-          model.isEnabled
-            ? model.onPress
-            : isHand && explanation !== null
-              ? () => showAlert('暂不可用', explanation)
-              : undefined
-        }
+        onClick={model.isEnabled ? model.onPress : undefined}
       >
-        {model.icon !== undefined ? (
+        {isHand && isLoading ? (
+          <Spinner label="提交中" />
+        ) : isHand && explanation !== null ? (
+          <IconLockClosedOutline aria-hidden />
+        ) : model.icon !== undefined ? (
           <IonIcon name={model.icon} />
         ) : (
           isHand && <IconHandLeftOutline aria-hidden />
         )}
         <span>{model.label}</span>
-        {isPending && (
-          <span className="bottom-action-pending" aria-hidden>
-            待办
-          </span>
-        )}
+        {isPending && <PendingActionMarker />}
         {isHand && (explanation !== null || isPending) && (
           <span id={reasonId} className="visually-hidden">
             {isPending ? '有待处理操作' : ''}
@@ -297,77 +311,89 @@ function PlayerHand({
     <>
       <RoomActionHand label="行动手牌">
         {actions.map((action) => (
-          <LayoutButton
+          <RoomHandCard
             key={`action:${action.key}`}
-            model={action}
-            hideAudioLockReason={isAudioPlaying}
-            isHand
-          />
+            unavailable={!action.isEnabled || ('isLoading' in action && action.isLoading === true)}
+            category={
+              ('variant' in action && action.variant === 'danger') ||
+              ('tone' in action && action.tone === 'danger')
+                ? 'danger'
+                : (action.category ?? 'player')
+            }
+          >
+            <LayoutButton model={action} hideAudioLockReason={isAudioPlaying} isHand />
+          </RoomHandCard>
         ))}
         {selectionAction !== null && (
-          <LayoutButton
+          <RoomHandCard
             key={`selection:${selectionAction.key}`}
-            model={selectionAction}
-            hideAudioLockReason={isAudioPlaying}
-            isHand
-          />
+            unavailable={!selectionAction.isEnabled || selectionAction.isLoading === true}
+            category={
+              selectionAction.variant === 'danger'
+                ? 'danger'
+                : (selectionAction.category ?? 'player')
+            }
+          >
+            <LayoutButton model={selectionAction} hideAudioLockReason={isAudioPlaying} isHand />
+          </RoomHandCard>
         )}
         {configurationEntry !== null && (
-          <Button
-            key="room-entry:configuration"
-            variant="secondary"
-            data-card-category="resource"
-            onClick={configurationEntry.onOpen}
-            aria-haspopup="dialog"
-          >
-            <IconOptionsOutline aria-hidden />
-            <span>本局配置</span>
-          </Button>
+          <RoomHandCard key="room-entry:configuration" category="resource">
+            <Button
+              variant="secondary"
+              data-card-category="resource"
+              onClick={configurationEntry.onOpen}
+              aria-haspopup="dialog"
+            >
+              <IconOptionsOutline aria-hidden />
+              <span>本局配置</span>
+            </Button>
+          </RoomHandCard>
         )}
         {hasManual && (
-          <Button
-            key="room-entry:manual"
-            ref={manualEntryRef}
-            variant="secondary"
-            data-card-category="resource"
-            data-testid={TESTIDS.roomManualButton}
-            onClick={onOpenManual}
-          >
-            <IconBookOutline aria-hidden />
-            <span>手册</span>
-          </Button>
+          <RoomHandCard key="room-entry:manual" category="resource">
+            <Button
+              ref={manualEntryRef}
+              variant="secondary"
+              data-card-category="resource"
+              data-testid={TESTIDS.roomManualButton}
+              onClick={onOpenManual}
+            >
+              <IconBookOutline aria-hidden />
+              <span>手册</span>
+            </Button>
+          </RoomHandCard>
         )}
         {mainEntries.map((entry) => (
-          <Button
-            key={`main-entry:${entry.label}`}
-            variant="secondary"
-            aria-haspopup="dialog"
-            data-testid={entry.testId}
-            onClick={entry.onOpen}
-          >
-            {entry.icon ?? <IconCreateOutline aria-hidden />}
-            <span>{entry.label}</span>
-          </Button>
+          <RoomHandCard key={`main-entry:${entry.label}`} category="resource">
+            <Button
+              variant="secondary"
+              data-card-category="resource"
+              aria-haspopup="dialog"
+              data-testid={entry.testId}
+              onClick={entry.onOpen}
+            >
+              {entry.icon ?? <IconCreateOutline aria-hidden />}
+              <span>{entry.label}</span>
+            </Button>
+          </RoomHandCard>
         ))}
         {hasMoreActions && (
-          <Button
-            key="room-entry:host"
-            ref={hostEntryRef}
-            variant="secondary"
-            data-card-category="host"
-            data-testid={TESTIDS.roomMoreActionsButton}
-            data-player-action-ids=""
-            onClick={onOpenMoreActions}
-            aria-label={hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined}
-          >
-            <IconConstructOutline aria-hidden />
-            <span>{moreActionsLabel}</span>
-            {hasReadyTask && (
-              <span className="bottom-action-pending" aria-hidden>
-                待办
-              </span>
-            )}
-          </Button>
+          <RoomHandCard key="room-entry:host" category="host">
+            <Button
+              ref={hostEntryRef}
+              variant="secondary"
+              data-card-category="host"
+              data-testid={TESTIDS.roomMoreActionsButton}
+              data-player-action-ids=""
+              onClick={onOpenMoreActions}
+              aria-label={hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined}
+            >
+              <IconConstructOutline aria-hidden />
+              <span>{moreActionsLabel}</span>
+              {hasReadyTask && <PendingActionMarker />}
+            </Button>
+          </RoomHandCard>
         )}
       </RoomActionHand>
     </>

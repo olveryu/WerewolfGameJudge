@@ -35,7 +35,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     expect(nightResult.phase).toBe('Day');
     await Promise.all(elections.map((election) => election.waitForPhase('报名上警')));
 
-    await hostElection.expectWideInspector();
+    await hostElection.expectDetailsClosed();
     // The phase flip queued the night-end announcement in the same
     // state write, so it is still playing now — and while audio plays
     // the host's main action is in its blocked form (no
@@ -48,6 +48,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await dismissAlert(setup.hostPage);
     await hostRoom.closeHostManagement();
     await hostElection.expectHostRegistrationActions('register');
+    await hostRoom.screenshot(testInfo, 'sheriff-election-host-registration-desktop.png');
     const desktopViewport = setup.hostPage.viewportSize();
     if (desktopViewport === null) throw new Error('Sheriff E2E requires a viewport');
     await setup.hostPage.setViewportSize({ width: 320, height: 640 });
@@ -58,13 +59,13 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await setup.hostPage.reload();
     await hostElection.expectHostRegistrationActions('register');
     await hostRoom.screenshot(testInfo, 'sheriff-election-host-registration-dock.png');
-    await hostElection.openCompactDetails();
+    await hostElection.openDetails();
     await hostRoom.screenshot(testInfo, 'sheriff-election-compact.png');
-    await hostElection.closeCompactDetails();
+    await hostElection.closeDetails();
     await setup.hostPage.setViewportSize(desktopViewport);
     await setup.hostPage.reload();
     await hostElection.waitForPhase('报名上警');
-    await hostElection.expectWideInspector();
+    await hostElection.expectDetailsClosed();
 
     await thirdElection.register();
     await hostElection.register();
@@ -95,7 +96,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
 
     await fourthElection.voteFor(1);
     await hostElection.expectVoteProgress('1/2 已提交');
-    // HUD 第二行只剩 5 号没投（0-based 座位 4）。
+    // 详情中只剩 5 号没投（0-based 座位 4）。
     await hostElection.expectPendingSeatVisible(4);
     await fourthElection.voteFor(0);
     await hostElection.expectVoteProgress('1/2 已提交');
@@ -161,6 +162,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
       }),
     );
 
+    await hostElection.closeDetails();
     expect(await hostRoom.isLastNightInfoVisible()).toBe(true);
     await hostRoom.screenshot(testInfo, 'sheriff-election-completed.png');
   } finally {

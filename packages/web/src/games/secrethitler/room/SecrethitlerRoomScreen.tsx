@@ -28,6 +28,7 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { TESTIDS } from '@/testids';
+import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 
 import {
   secrethitlerVoteFailImage,
@@ -87,8 +88,11 @@ function SecrethitlerRoomContent(
 ) {
   const screen = useSecrethitlerRoomState(props);
   const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const isLobby = screen.state.phase.kind === 'lobby';
   const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
+  const showHistory = screen.viewModel !== null && shouldShowMatchSummary(screen.state);
+  if (historyVisible && !showHistory) setHistoryVisible(false);
   return (
     <RoomShell
       model={screen.shellModel}
@@ -110,6 +114,17 @@ function SecrethitlerRoomContent(
           : null
       }
       configurationEntry={isPreGame ? null : { onOpen: () => setInformation('configuration') }}
+      mainEntries={
+        showHistory
+          ? [
+              {
+                label: '对局记录',
+                icon: <IconDocumentTextOutline aria-hidden />,
+                onOpen: () => setHistoryVisible(true),
+              },
+            ]
+          : []
+      }
       manualEntries={[
         {
           label: '玩法',
@@ -120,9 +135,7 @@ function SecrethitlerRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
-        bottomSummary: shouldShowMatchSummary(screen.state) ? (
-          <SecrethitlerBoardHeader screen={screen} />
-        ) : null,
+        bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
         sideInspector: null,
@@ -157,6 +170,14 @@ function SecrethitlerRoomContent(
             >
               <SecrethitlerBoardInfo state={screen.state} embedded />
             </RoomDialog>
+          )}
+          {historyVisible && screen.viewModel !== null && showHistory && (
+            <SecrethitlerHistoryDialog
+              state={screen.state}
+              view={screen.viewModel}
+              mySeat={screen.mySeat}
+              onClose={() => setHistoryVisible(false)}
+            />
           )}
           <RoomAudioResumeDialog
             visible={screen.audioResume.isDue}
@@ -238,46 +259,56 @@ export function SecrethitlerBoardInfo({
   );
 }
 
-/** Compact public status; the shared dialog owns the scrollable match details. */
+/** Compact public status; match details are opened from the room hand. */
 export function SecrethitlerBoardHeader({
   screen,
 }: {
   readonly screen: Pick<SecrethitlerRoomScreenState, 'state' | 'viewModel' | 'mySeat'>;
 }) {
-  const [historyVisible, setHistoryVisible] = useState(false);
-  const phase = screen.state.phase;
   const view = screen.viewModel;
   if (view === null || !shouldShowMatchSummary(screen.state)) return null;
-  const summary =
-    phase.kind === 'ended'
-      ? `${phase.winner === 'liberal' ? '自由派' : '法西斯阵营'}获胜`
-      : SECRETHITLER_PHASE_LABELS[phase.kind];
   return (
-    <>
-      <RoomStatusSummary
-        summary={summary}
-        detail={`自由派 ${view.liberalPolicies}/5 · 法西斯 ${view.fascistPolicies}/6 · 选举失败 ${view.electionTracker}/3`}
-        action={{
-          label: '对局记录',
-          accessibleLabel: '对局记录',
-          onOpen: () => setHistoryVisible(true),
-        }}
-      />
-      {historyVisible && (
-        <RoomDialog
-          title="对局记录"
-          subtitle={summary}
-          onClose={() => setHistoryVisible(false)}
-          footer={
-            <Button variant="secondary" onClick={() => setHistoryVisible(false)}>
-              关闭
-            </Button>
-          }
-        >
-          <SecrethitlerMatchDetails state={screen.state} view={view} mySeat={screen.mySeat} />
-        </RoomDialog>
-      )}
-    </>
+    <RoomStatusSummary
+      summary={getMatchSummary(screen.state)}
+      detail={`自由派 ${view.liberalPolicies}/5 · 法西斯 ${view.fascistPolicies}/6 · 选举失败 ${view.electionTracker}/3`}
+      action={null}
+    />
+  );
+}
+
+function getMatchSummary(state: SecrethitlerState): string {
+  const phase = state.phase;
+  return phase.kind === 'ended'
+    ? `${phase.winner === 'liberal' ? '自由派' : '法西斯阵营'}获胜`
+    : SECRETHITLER_PHASE_LABELS[phase.kind];
+}
+
+/** Match record dialog, using the same viewer-cropped details as the room. */
+export function SecrethitlerHistoryDialog({
+  state,
+  view,
+  mySeat,
+  onClose,
+}: {
+  readonly state: SecrethitlerState;
+  readonly view: SecrethitlerViewModel;
+  readonly mySeat: number | null;
+  readonly onClose: () => void;
+}) {
+  return (
+    <RoomDialog
+      title="对局记录"
+      subtitle={getMatchSummary(state)}
+      onClose={onClose}
+      allowEscape
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          关闭
+        </Button>
+      }
+    >
+      <SecrethitlerMatchDetails state={state} view={view} mySeat={mySeat} />
+    </RoomDialog>
   );
 }
 

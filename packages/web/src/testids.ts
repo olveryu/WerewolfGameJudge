@@ -127,6 +127,7 @@ export const TESTIDS = {
   roomUserSettingsCard: 'room-user-settings-card',
   roomHostManagementButton: 'room-host-management-button',
   roomMoreActionsButton: 'room-more-actions-button',
+  roomHandUnavailableReason: 'room-hand-unavailable-reason',
   roomHostTaskCard: 'room-host-task-card',
   roomHostTaskEscapeButton: 'room-host-task-card-escape',
   roomHostManagementPanel: 'room-host-management-panel',
@@ -226,6 +227,7 @@ export const TESTIDS = {
 
   // Avalon history
   avalonHistorySummary: 'avalon-history-summary',
+  avalonHistoryButton: 'avalon-history-button',
   avalonHistorySummaryPendingSeats: 'avalon-history-summary-pending-seats',
   avalonHistoryOverlay: 'avalon-history-overlay',
   avalonHistoryTab: (round: number) => `avalon-history-tab-${round}`,
@@ -256,10 +258,7 @@ export const TESTIDS = {
   sheriffElectionHud: 'sheriff-election-hud',
   sheriffElectionHudPhase: 'sheriff-election-hud-phase',
   sheriffDetailsButton: 'sheriff-details-button',
-  sheriffDetailsCloseButton: 'sheriff-details-close-button',
-  sheriffElectionSheet: 'sheriff-election-sheet',
-  sheriffElectionInspector: 'sheriff-election-inspector',
-  sheriffElectionPhase: 'sheriff-election-phase',
+  sheriffElectionDialog: 'sheriff-election-dialog',
   sheriffRegisteredSeats: 'sheriff-registered-seats',
   sheriffWithdrawnSeats: 'sheriff-withdrawn-seats',
   sheriffActiveCandidateSeats: 'sheriff-active-candidate-seats',

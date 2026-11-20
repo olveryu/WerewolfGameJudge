@@ -116,11 +116,15 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
   );
 
   const markAllBotsViewed = useCallback(() => {
-    void submit('机器人查看身份', { type: 'werewolf.bots.markAllBotsViewed' });
+    showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', async () => {
+      await submit('机器人查看身份', { type: 'werewolf.bots.markAllBotsViewed' });
+    });
   }, [submit]);
 
   const markAllBotsGroupConfirmed = useCallback(() => {
-    void submit('机器人确认', { type: 'werewolf.groupConfirm.ackBots' });
+    showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', async () => {
+      await submit('机器人确认', { type: 'werewolf.groupConfirm.ackBots' });
+    });
   }, [submit]);
 
   const canSelectMvp = state.status === GameStatus.Ended && state.mvpUserId === undefined;

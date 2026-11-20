@@ -18,7 +18,6 @@ import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
-import { alertStore } from '@/utils/alert';
 
 import { RoomShell } from '../RoomShell';
 import { RoomStageMenu } from '../RoomStageMenu';
@@ -43,10 +42,7 @@ it('explains an unavailable stage-menu action without closing the menu', () => {
   expect(action).toHaveAttribute('aria-disabled', 'true');
   expect(action).toHaveAccessibleDescription('语音播报中，请稍候');
   fireEvent.click(action);
-  expect(alertStore.getSnapshot()).toMatchObject({
-    title: '暂不可用',
-    message: '语音播报中，请稍候',
-  });
+  expect(screen.getByRole('status')).toHaveTextContent('语音播报中，请稍候');
   expect(onClose).not.toHaveBeenCalled();
 });
 

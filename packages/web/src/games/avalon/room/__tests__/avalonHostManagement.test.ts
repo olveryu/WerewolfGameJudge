@@ -21,7 +21,7 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showDestructiveAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createAvalonHostManagement } from '../avalonRoomAdapter';
 
@@ -443,6 +443,7 @@ describe('createAvalonHostManagement', () => {
   });
 
   it('exposes bot confirmation after narration and submits the host command without takeover', () => {
+    submit.mockClear();
     const game = session();
     game.fill();
     game.send({ type: 'avalon.roles.assign' });
@@ -454,6 +455,11 @@ describe('createAvalonHostManagement', () => {
       .find((entry) => entry.key === 'mark-bots-confirmed');
     if (!action?.isEnabled) throw new Error('expected enabled bot confirmation');
     action.onPress();
+    expect(submit).not.toHaveBeenCalled();
+    const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+    if (confirmation === undefined) throw new Error('expected bot confirmation dialog');
+    expect(confirmation[0]).toBe('标记机器人已确认？');
+    void confirmation[2]();
     expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
       type: 'avalon.bots.markAllBotsGroupConfirmed',
     });

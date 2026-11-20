@@ -7,6 +7,29 @@
     max(var(--space-small), env(safe-area-inset-bottom));
 }
 
+.room-action-hand:not(.room-stage-menu) {
+  position: relative;
+}
+
+.room-hand-reason {
+  position: absolute;
+  z-index: 101;
+  bottom: 100%;
+  inset-inline: 0;
+}
+
+.room-hand-reason:not(:empty) {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
 .room-action-card-cell {
   position: relative;
   z-index: var(--hand-card-order);
@@ -101,26 +124,29 @@
 
 .room-action-card-cell .button > .bottom-action-pending {
   position: absolute;
-  top: calc(-1 * var(--space-small));
-  right: var(--space-tight);
+  top: calc(-1 * var(--line-caption));
+  left: 50%;
   padding: 0 var(--space-tight);
   border-radius: var(--radius-small) var(--radius-small) 0 0;
-  background: var(--color-text);
-  color: var(--color-text-inverse);
+  background: var(--hand-ink);
+  color: var(--hand-paper);
   font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
   line-height: var(--line-caption);
   white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
-  --hand-ink: var(--color-text-secondary);
-  --hand-paper: var(--color-surface-hover);
   opacity: 1;
 }
 
 .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true'])::before {
   border-color: var(--hand-ink);
   border-style: dashed;
+  background:
+    linear-gradient(var(--color-hand-disabled-veil), var(--color-hand-disabled-veil)),
+    var(--hand-paper);
 }
 
 .room-action-card-cell .button:focus-visible {
@@ -145,21 +171,20 @@
       rotate 160ms ease-out,
       translate 160ms ease-out;
   }
+}
 
-  @media (forced-colors: active) {
-    .room-action-card-cell .button[data-variant] {
-      --hand-ink: ButtonText !important;
-      --hand-paper: ButtonFace !important;
-    }
+@media (forced-colors: active) {
+  .room-action-card-cell .button[data-variant] {
+    --hand-ink: ButtonText !important;
+    --hand-paper: ButtonFace !important;
+  }
 
-    .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
-      --hand-ink: GrayText !important;
-    }
+  .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
+    --hand-ink: GrayText !important;
+  }
 
-    .room-action-card-cell .button > .bottom-action-pending {
-      background: Highlight;
-      color: HighlightText;
-      border: 1px solid HighlightText;
-    }
+  .room-action-card-cell .button > .bottom-action-pending {
+    background: Highlight;
+    color: HighlightText;
   }
 }

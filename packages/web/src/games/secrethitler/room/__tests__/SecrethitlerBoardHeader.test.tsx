@@ -1,18 +1,42 @@
 import {
   getSecrethitlerViewModel,
+  type SecrethitlerCommand,
   secrethitlerEngine,
+  type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
-import { render, screen } from '@testing-library/react';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 
+import { createFakeBgm } from '@/test-utils/fakeBgm';
+import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import {
   buildSecrethitlerPhaseStates,
   buildSecrethitlerTestLobby,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
 
+import { secrethitlerReview } from '../../review/secrethitlerReview';
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
-import { SecrethitlerBoardHeader, SecrethitlerBoardInfo } from '../SecrethitlerRoomScreen';
+import {
+  SecrethitlerBoardHeader,
+  SecrethitlerBoardInfo,
+  SecrethitlerHistoryDialog,
+  SecrethitlerRoomScreen,
+} from '../SecrethitlerRoomScreen';
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuthContext: () => ({
+    user: { id: 'host', avatarUrl: null, equippedEffect: null },
+    loading: false,
+  }),
+}));
+vi.mock('@/features/gacha/queries/useGachaQuery', () => ({
+  useGachaStatusQuery: () => ({ data: undefined }),
+}));
+vi.mock('@/features/room/services/recentRooms', () => ({ addRecentRoom: vi.fn() }));
 
 it('allows assigning roles when every occupied seat is a bot', () => {
   const initial = secrethitlerEngine.createInitialState(
@@ -89,9 +113,8 @@ it('keeps the match summary hidden until first-night narration finishes', () => 
       screen={{ state: election, viewModel: getSecrethitlerViewModel(election, 0), mySeat: 0 }}
     />,
   );
-  expect(screen.getByRole('button', { name: '对局记录' })).toHaveTextContent(
-    '自由派 0/5 · 法西斯 0/6 · 选举失败 0/3',
-  );
+  expect(screen.getByText('自由派 0/5 · 法西斯 0/6 · 选举失败 0/3')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
 });
 
 it('uses electronic first-night guidance without a reading script or manual progression controls', () => {
@@ -138,18 +161,15 @@ it('keeps terminal details behind the shared record dialog and preserves results
   const user = userEvent.setup();
   const state = buildSecrethitlerPhaseStates().get('ended');
   if (state === undefined || state.phase.kind !== 'ended') throw new Error('Missing ended fixture');
-  render(
-    <SecrethitlerBoardHeader
-      screen={{
-        state,
-        viewModel: getSecrethitlerViewModel(state, null),
-        mySeat: 0,
-      }}
-    />,
+  const view = getSecrethitlerViewModel(state, null);
+  if (view === null) throw new Error('Missing ended view');
+  const { rerender } = render(
+    <SecrethitlerBoardHeader screen={{ state, viewModel: view, mySeat: 0 }} />,
   );
-  expect(screen.getByRole('button', { name: '对局记录' })).toHaveTextContent(/获胜/);
+  expect(screen.getByText(/获胜/)).toBeInTheDocument();
   expect(screen.queryByText('1 号 · 房主（你）')).not.toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: '对局记录' }));
+  const onClose = vi.fn();
+  rerender(<SecrethitlerHistoryDialog state={state} view={view} mySeat={0} onClose={onClose} />);
   expect(screen.getByRole('dialog', { name: '对局记录' })).toBeInTheDocument();
   expect(screen.getByText('1 号 · 房主（你）')).toBeInTheDocument();
   expect(screen.getAllByText(/（机器人）/)).toHaveLength(6);
@@ -164,7 +184,54 @@ it('keeps terminal details behind the shared record dialog and preserves results
   );
   expect(screen.getByText('公开对局记录')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '关闭详情' }));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(onClose).toHaveBeenCalledOnce();
+});
+
+it('opens the match record from a green hand card only when public records are available', () => {
+  const states = buildSecrethitlerPhaseStates();
+  const viewing = states.get('viewing');
+  const election = states.get('election');
+  if (viewing === undefined || election === undefined) throw new Error('Missing phase fixture');
+  const identity = testIdentity('secrethitler');
+  const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
+    readyLinkSnapshot(identity, createRoomSnapshot(viewing, 1)),
+  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    configurable: true,
+    value: 390,
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <SecrethitlerRoomScreen
+          room={identity.room}
+          entryReason={null}
+          onOpenMusicSettings={vi.fn()}
+          onOpenRoomSettings={vi.fn()}
+          onOpenUserSettings={vi.fn()}
+          session={session}
+          review={secrethitlerReview}
+          audio={{
+            ...createFakeBgm(),
+            preload: vi.fn(),
+            playEffect: vi.fn(async () => undefined),
+            stopNarration: vi.fn(),
+            setBgmVolume: vi.fn(),
+            setGameAudioVolume: vi.fn(),
+          }}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(screen.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
+  act(() => session.publishRoom(createRoomSnapshot(election, 2)));
+  const record = screen.getByRole('button', { name: '对局记录' });
+  expect(record).toHaveAttribute('data-card-category', 'resource');
+  fireEvent.click(record);
+  expect(screen.getByRole('dialog', { name: '对局记录' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: '关闭详情' }));
+  expect(screen.queryByRole('dialog', { name: '对局记录' })).not.toBeInTheDocument();
 });
 
 it('shows public composition in the room dialog without revealing seat identities', async () => {

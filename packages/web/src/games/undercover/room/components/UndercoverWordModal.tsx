@@ -19,6 +19,7 @@ import { Button } from '@/components/Button';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { RevealAnimationGate } from '@/features/room/components/RoleRevealEffects/RevealAnimationGate';
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { useStageConfirmation } from '@/features/room/hooks/useStageConfirmation';
 import type { DescriptionField, RevealRoleData } from '@/features/room/model/RevealRoleData';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
@@ -53,6 +54,7 @@ export function UndercoverWordModal({
   onClose,
   onConfirm,
 }: UndercoverWordModalProps) {
+  const confirmStageAction = useStageConfirmation(`${card.seat}:${shouldConfirm}`);
   const isBlank = card.kind === 'blank';
   const fields: DescriptionField[] = [
     { label: '身份', content: isBlank ? '白板' : '?' },
@@ -91,7 +93,7 @@ export function UndercoverWordModal({
               className="undercover-word-confirm"
               variant="primary"
               size="lg"
-              onClick={onConfirm}
+              onClick={() => confirmStageAction('确认记住词卡？', '确认后将隐藏词卡。', onConfirm)}
               loading={isSubmitting}
               data-testid={TESTIDS.undercoverConfirm}
             >

@@ -260,6 +260,22 @@ describe('AvalonRoomScreen reveal replay guard', () => {
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 
+  it('opens the public match record from a green hand card only after it becomes available', async () => {
+    const game = drivenGame(5, []);
+    const { session, push } = createMutableSession(game.viewingState, 'host');
+    const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
+    expect(view.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
+
+    await pushState(push, game.state);
+    const record = view.getByRole('button', { name: '对局记录' });
+    expect(record).toHaveAttribute('data-card-category', 'resource');
+    expect(view.getByTestId(TESTIDS.avalonHistorySummary).tagName).not.toBe('BUTTON');
+    fireEvent.click(record);
+    expect(view.getByRole('dialog', { name: '对局记录' })).toBeVisible();
+    fireEvent.click(view.getByTestId(TESTIDS.avalonHistoryClose));
+    expect(view.queryByRole('dialog', { name: '对局记录' })).not.toBeInTheDocument();
+  });
+
   it('does not replay the vote or quest result when entering mid-game', () => {
     const game = midGameAfterFirstQuest();
     const { session } = createMutableSession(game.state, 'host');
