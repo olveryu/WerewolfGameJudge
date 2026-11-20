@@ -1,4 +1,4 @@
-.avalon-team-pick {
+.room-player-pick {
   display: flex;
   flex-direction: column;
   gap: var(--space-small);
@@ -8,13 +8,13 @@
   overflow-y: auto;
 }
 
-.avalon-team-pick-header {
+.room-player-pick-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.avalon-team-pick-title {
+.room-player-pick-title {
   margin: 0;
   color: var(--color-text);
   font-size: var(--font-title);
@@ -22,28 +22,28 @@
   font-weight: var(--weight-bold);
 }
 
-.avalon-team-pick-count,
-.avalon-team-pick-hint,
-.avalon-team-pick-tag {
+.room-player-pick-count,
+.room-player-pick-hint,
+.room-player-pick-tag {
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
 }
 
-.avalon-team-pick-hint {
+.room-player-pick-hint {
   margin: 0;
 }
 
-.avalon-team-pick-tag[data-preselected] {
+.room-player-pick-tag[data-preselected] {
   color: var(--color-primary);
 }
 
-.avalon-team-pick-list {
+.room-player-pick-list {
   display: flex;
   flex-direction: column;
 }
 
-.avalon-team-pick-row {
+.room-player-pick-row {
   display: flex;
   align-items: center;
   gap: var(--space-small);
@@ -57,15 +57,15 @@
   cursor: pointer;
 }
 
-.avalon-team-pick-row:active {
+.room-player-pick-row:active {
   opacity: var(--opacity-pressed);
 }
 
-.avalon-team-pick-row:disabled {
+.room-player-pick-row:disabled {
   cursor: default;
 }
 
-.avalon-team-pick-checkbox {
+.room-player-pick-checkbox {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -77,18 +77,18 @@
   color: var(--color-text-inverse);
 }
 
-.avalon-team-pick-row[aria-checked='true'] .avalon-team-pick-checkbox {
+.room-player-pick-row[aria-checked='true'] .room-player-pick-checkbox {
   border-color: var(--color-primary);
   background: var(--color-primary);
 }
 
-.avalon-team-pick-label {
+.room-player-pick-label {
   flex: 1;
   font-size: var(--font-body);
   line-height: var(--line-body);
 }
 
-.avalon-team-pick-full {
+.room-player-pick-full {
   margin: 0;
   color: var(--color-warning);
   font-size: var(--font-secondary);
@@ -96,12 +96,12 @@
   text-align: center;
 }
 
-.avalon-team-pick-footer {
+.room-player-pick-footer {
   display: flex;
   gap: var(--space-small);
   margin-top: var(--space-small);
 }
 
-.avalon-team-pick-footer > * {
+.room-player-pick-footer > * {
   flex: 1;
 }

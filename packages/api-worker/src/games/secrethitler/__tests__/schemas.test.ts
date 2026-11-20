@@ -76,6 +76,7 @@ describe('Secrethitler public command schema', () => {
       { type: 'secrethitler.role.viewed' },
       { type: 'secrethitler.night.replay', step: 1 },
       { type: 'secrethitler.night.confirm', step: 1 },
+      { type: 'secrethitler.government.preselect', chancellorSeatId: 3 },
       { type: 'secrethitler.government.nominate', chancellorSeatId: 3 },
       { type: 'secrethitler.government.castVote', vote: 'ja' },
       { type: 'secrethitler.policy.presidentDiscard', policy: 'liberal' },

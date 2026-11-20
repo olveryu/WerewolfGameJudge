@@ -27,6 +27,11 @@ function makeSession(): PhaseDeadlineSession {
   const target = session.state.livingSeats.find((seat) => seat !== election.presidentSeat);
   if (target === undefined) throw new Error('Missing chancellor candidate');
   session.send(
+    { type: 'secrethitler.government.preselect', chancellorSeatId: target },
+    'host',
+    election.presidentSeat,
+  );
+  session.send(
     { type: 'secrethitler.government.nominate', chancellorSeatId: target },
     'host',
     election.presidentSeat,

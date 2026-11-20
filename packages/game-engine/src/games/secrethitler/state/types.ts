@@ -107,6 +107,7 @@ export type SecrethitlerPhase =
       readonly kind: 'election';
       readonly presidentSeat: number;
       readonly returnToSeat: number | null;
+      readonly preselectedChancellorSeat: number | null;
     }
   | SecrethitlerVotingPhase
   | {

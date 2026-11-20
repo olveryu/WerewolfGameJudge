@@ -30,6 +30,7 @@ export const getSecrethitlerRoomCommandFailureMessage =
     [SECRETHITLER_REASONS.notPresident]: '只有当前总统可以执行此操作',
     [SECRETHITLER_REASONS.notLiving]: '当前不能由你的座位执行此操作',
     [SECRETHITLER_REASONS.nomination]: '该玩家不符合总理任期限制，请重新选择',
+    [SECRETHITLER_REASONS.preselection]: '预选状态已改变，请按当前提示操作',
     [SECRETHITLER_REASONS.notEligibleVote]: '只有存活玩家可以投票',
     [SECRETHITLER_REASONS.handChoice]: '请选择当前手牌中的政策',
     [SECRETHITLER_REASONS.veto]: '当前不能请求否决，请选择一张政策施行',

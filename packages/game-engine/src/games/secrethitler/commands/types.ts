@@ -25,6 +25,7 @@ export type SecrethitlerPublicCommand =
   | { readonly type: 'secrethitler.role.viewed' }
   | { readonly type: 'secrethitler.night.replay'; readonly step: number }
   | { readonly type: 'secrethitler.night.confirm'; readonly step: number }
+  | { readonly type: 'secrethitler.government.preselect'; readonly chancellorSeatId: number }
   | { readonly type: 'secrethitler.government.nominate'; readonly chancellorSeatId: number }
   | { readonly type: 'secrethitler.government.castVote'; readonly vote: 'ja' | 'nein' }
   | {

@@ -39,7 +39,12 @@ describe('Secrethitler persisted state migration', () => {
       expect(migrated.phase).toEqual(
         step <= 1
           ? { kind: 'night', step: 1, confirmedSeats }
-          : { kind: 'election', presidentSeat: legacy.nextPresidentSeat, returnToSeat: null },
+          : {
+              kind: 'election',
+              presidentSeat: legacy.nextPresidentSeat,
+              returnToSeat: null,
+              preselectedChancellorSeat: null,
+            },
       );
       expect(migrated.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual(
         step === 0
@@ -85,6 +90,35 @@ describe('Secrethitler persisted state migration', () => {
     expect(migratePersistedSecrethitlerState(persisted)).toEqual(state);
     expect(migratePersistedSecrethitlerState({ ...state, stateVersion: 1 })).toEqual(state);
     expect(migratePersistedSecrethitlerState({ ...state, stateVersion: 4 })).toEqual(state);
+  });
+
+  it('migrates a v6 election into the preselection flow', () => {
+    const session = createEngineSession(secrethitlerEngine, {
+      config: DEFAULT_SECRETHITLER_CONFIG,
+      parse: parseSecrethitlerState,
+    });
+    session.send({ type: 'room.seat.fillBots' });
+    session.send({ type: 'secrethitler.roles.assign' });
+    session.send({ type: 'secrethitler.bots.markAllBotsViewed' });
+    session.send({ type: 'secrethitler.game.begin' });
+    session.send({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' });
+    while (session.state.isAudioPlaying)
+      session.send({ type: 'secrethitler.audio.ack', audioBatchId: session.state.audioBatchId });
+    const election = session.state.phase;
+    if (election.kind !== 'election') throw new Error('Expected election');
+    const legacy = {
+      ...session.state,
+      stateVersion: 6,
+      phase: {
+        kind: 'election',
+        presidentSeat: election.presidentSeat,
+        returnToSeat: election.returnToSeat,
+      },
+    };
+    expect(migratePersistedSecrethitlerState(legacy).phase).toEqual({
+      ...legacy.phase,
+      preselectedChancellorSeat: null,
+    });
   });
 
   it('migrates v2 rooms to public voting without changing the match', () => {

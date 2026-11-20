@@ -297,14 +297,10 @@ function useSecrethitlerPrivateActions(
     (state.phase.kind === 'legislativeChancellor' && effectiveSeat === state.phase.chancellorSeat);
   const phase = state.phase;
   const targetAction =
-    phase.kind === 'election'
-      ? 'nominate'
-      : phase.kind === 'executive' && phase.power !== 'policyPeek'
-        ? phase.power
-        : null;
+    phase.kind === 'executive' && phase.power !== 'policyPeek' ? phase.power : null;
   const isSelecting =
     targetAction !== null &&
-    (phase.kind === 'election' || phase.kind === 'executive') &&
+    phase.kind === 'executive' &&
     phase.presidentSeat === effectiveSeat &&
     actionKey === currentActionKey;
   const selectionContext = useRef({ currentActionKey, isSelecting });
@@ -313,15 +309,13 @@ function useSecrethitlerPrivateActions(
   }, [currentActionKey, isSelecting]);
   const view = getSecrethitlerViewModel(state, effectiveSeat);
   const eligibleSeats =
-    targetAction === 'nominate'
-      ? view.eligibleChancellorSeats
-      : targetAction === null
-        ? []
-        : state.livingSeats.filter(
-            (seat) =>
-              seat !== view.presidentSeat &&
-              (targetAction !== 'investigate' || !state.investigatedSeats.includes(seat)),
-          );
+    targetAction === null
+      ? []
+      : state.livingSeats.filter(
+          (seat) =>
+            seat !== view.presidentSeat &&
+            (targetAction !== 'investigate' || !state.investigatedSeats.includes(seat)),
+        );
   const seatPicking = useSeatPicking({
     active: isSelecting,
     mode: 'trigger',
@@ -333,13 +327,11 @@ function useSecrethitlerPrivateActions(
       if (targetAction === null) return;
       const label = secrethitlerSeatLabel(view, seat);
       const command: SecrethitlerCommand =
-        targetAction === 'nominate'
-          ? { type: 'secrethitler.government.nominate', chancellorSeatId: seat }
-          : targetAction === 'investigate'
-            ? { type: 'secrethitler.action.investigate', targetSeatId: seat }
-            : targetAction === 'specialElection'
-              ? { type: 'secrethitler.action.specialElection', targetSeatId: seat }
-              : { type: 'secrethitler.action.execute', targetSeatId: seat };
+        targetAction === 'investigate'
+          ? { type: 'secrethitler.action.investigate', targetSeatId: seat }
+          : targetAction === 'specialElection'
+            ? { type: 'secrethitler.action.specialElection', targetSeatId: seat }
+            : { type: 'secrethitler.action.execute', targetSeatId: seat };
       showConfirmAlert(
         '确认选择？',
         `确定选择 ${label}？${targetAction === 'execute' ? '处决不可撤销。' : ''}`,

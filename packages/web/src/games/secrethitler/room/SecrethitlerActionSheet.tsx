@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
+import { RoomPlayerPickModal } from '@/features/room/components/RoomPlayerPickModal';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -39,6 +40,61 @@ export function SecrethitlerActionSheet({
   if (view === null) return null;
   const instruction = secrethitlerInstruction(screen.state, view);
   if (instruction.action === null) return null;
+  if (screen.state.phase.kind === 'election') {
+    const phase = screen.state.phase;
+    const isFinal = phase.preselectedChancellorSeat !== null;
+    return (
+      <RoomPlayerPickModal
+        title={isFinal ? '最终提名' : '预选总理'}
+        hint={isFinal ? '确认后进入投票，无法再更改。' : '确认后预选将公开，最终提名仍可更改。'}
+        requiredSize={1}
+        initialSelection={
+          phase.preselectedChancellorSeat === null ? [] : [phase.preselectedChancellorSeat]
+        }
+        players={view.seats.map(({ seat }) => ({
+          seat,
+          label: secrethitlerSeatLabel(view, seat),
+          tag: seat === phase.presidentSeat ? '总统' : null,
+          isPreselected: isFinal && seat === phase.preselectedChancellorSeat,
+          disabledReason: view.eligibleChancellorSeats.includes(seat)
+            ? null
+            : !view.livingSeats.includes(seat)
+              ? '已出局'
+              : seat === phase.presidentSeat
+                ? '总统不能提名自己'
+                : '任期限制',
+        }))}
+        isSubmitting={screen.isSubmitting}
+        confirmLabel={isFinal ? '确认提交' : '确认预选'}
+        onConfirm={(seats) => {
+          const chancellorSeatId = seats[0];
+          if (chancellorSeatId === undefined) throw new Error('Missing selected chancellor');
+          void screen
+            .submit(
+              isFinal ? '提名总理' : '预选总理',
+              {
+                type: isFinal
+                  ? 'secrethitler.government.nominate'
+                  : 'secrethitler.government.preselect',
+                chancellorSeatId,
+              },
+              { controlledSeat: screen.controlledSeat },
+            )
+            .then((success) => {
+              if (success) screen.closeAction();
+            });
+        }}
+        onClose={screen.closeAction}
+        testIds={{
+          modal: TESTIDS.secrethitlerNominationModal,
+          count: TESTIDS.secrethitlerNominationCount,
+          row: TESTIDS.secrethitlerNominationRow,
+          cancel: TESTIDS.secrethitlerNominationCancel,
+          confirm: TESTIDS.secrethitlerNominationConfirm,
+        }}
+      />
+    );
+  }
   const mustResolveHand =
     screen.state.phase.kind === 'legislativePresident' ||
     screen.state.phase.kind === 'legislativeChancellor';

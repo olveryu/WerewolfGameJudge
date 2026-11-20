@@ -92,8 +92,16 @@ export function secrethitlerInstruction(
           action: null,
         };
       return {
-        message: `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 提名总理`,
-        action: seat === state.phase.presidentSeat ? '提名总理' : null,
+        message:
+          state.phase.preselectedChancellorSeat === null
+            ? `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 预选总理`
+            : '总统已预选，正在确定最终总理',
+        action:
+          seat === state.phase.presidentSeat
+            ? state.phase.preselectedChancellorSeat === null
+              ? '预选总理'
+              : '最终提名'
+            : null,
       };
     case 'voting':
       return {

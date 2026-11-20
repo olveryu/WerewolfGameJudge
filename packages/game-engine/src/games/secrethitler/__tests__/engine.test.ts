@@ -307,6 +307,11 @@ function nominateAndVote(
   if (chancellor === undefined) throw new Error('No eligible Secret Hitler chancellor');
   const president = current.actorForSeat(phase.presidentSeat);
   current.send(
+    { type: 'secrethitler.government.preselect', chancellorSeatId: chancellor },
+    president.userId,
+    president.controlledSeat,
+  );
+  current.send(
     { type: 'secrethitler.government.nominate', chancellorSeatId: chancellor },
     president.userId,
     president.controlledSeat,
@@ -625,6 +630,49 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
 });
 
 describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
+  it('publishes and locks a preselection before allowing a different final nominee', () => {
+    const current = game(5);
+    enterElection(current);
+    const election = current.session.state.phase;
+    if (election.kind !== 'election') throw new Error('Expected election');
+    const candidates = eligibleChancellors(current.session.state, election.presidentSeat);
+    const first = candidates[0];
+    const second = candidates[1];
+    if (first === undefined || second === undefined) throw new Error('Expected two candidates');
+    const president = current.actorForSeat(election.presidentSeat);
+    const firstCommand = {
+      type: 'secrethitler.government.preselect',
+      chancellorSeatId: first,
+    } as const;
+    current.session.expectReject(
+      { type: 'secrethitler.government.nominate', chancellorSeatId: first },
+      SECRETHITLER_REASONS.preselection,
+      president.userId,
+      president.controlledSeat,
+    );
+    const outsider = current.actorForSeat(first);
+    current.session.expectReject(
+      firstCommand,
+      SECRETHITLER_REASONS.notPresident,
+      outsider.userId,
+      outsider.controlledSeat,
+    );
+    current.send(firstCommand, president.userId, president.controlledSeat);
+    const restored = parseSecrethitlerState(JSON.parse(JSON.stringify(current.session.state)));
+    expect(restored.phase).toMatchObject({ kind: 'election', preselectedChancellorSeat: first });
+    current.session.expectReject(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: second },
+      SECRETHITLER_REASONS.preselection,
+      president.userId,
+      president.controlledSeat,
+    );
+    current.send(
+      { type: 'secrethitler.government.nominate', chancellorSeatId: second },
+      president.userId,
+      president.controlledSeat,
+    );
+    expect(current.session.state.phase).toMatchObject({ kind: 'voting', chancellorSeat: second });
+  });
   it.each([1, 2, 3, 4, 5])(
     'migrates a partially cast v%i vote without losing ballots',
     (version) => {
@@ -635,6 +683,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       const candidate = eligibleChancellors(current.session.state, election.presidentSeat)[0];
       if (candidate === undefined) throw new Error('Expected candidate');
       const president = current.actorForSeat(election.presidentSeat);
+      current.send(
+        { type: 'secrethitler.government.preselect', chancellorSeatId: candidate },
+        president.userId,
+        president.controlledSeat,
+      );
       current.send(
         { type: 'secrethitler.government.nominate', chancellorSeatId: candidate },
         president.userId,
@@ -667,6 +720,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const president = current.actorForSeat(election.presidentSeat);
     const chancellor = eligibleChancellors(current.session.state, election.presidentSeat)[0];
     if (chancellor === undefined) throw new Error('Missing chancellor');
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: chancellor },
+      president.userId,
+      president.controlledSeat,
+    );
     current.send(
       { type: 'secrethitler.government.nominate', chancellorSeatId: chancellor },
       president.userId,
@@ -732,6 +790,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const chancellorSeat = eligibleChancellors(current.session.state, election.presidentSeat)[0];
     if (chancellorSeat === undefined) throw new Error('No candidate');
     const president = current.actorForSeat(election.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: chancellorSeat },
+      president.userId,
+      president.controlledSeat,
+    );
     current.send(
       { type: 'secrethitler.government.nominate', chancellorSeatId: chancellorSeat },
       president.userId,
@@ -800,6 +863,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const chancellorSeat = eligibleChancellors(current.session.state, election.presidentSeat)[0];
     if (chancellorSeat === undefined) throw new Error('No candidate');
     const president = current.actorForSeat(election.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: chancellorSeat },
+      president.userId,
+      president.controlledSeat,
+    );
     current.send(
       { type: 'secrethitler.government.nominate', chancellorSeatId: chancellorSeat },
       president.userId,
@@ -870,6 +938,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     const target = eligibleChancellors(current.session.state, phase.presidentSeat)[0];
     if (target === undefined) throw new Error('No candidate');
     const president = current.actorForSeat(phase.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: target },
+      president.userId,
+      president.controlledSeat,
+    );
     current.send(
       { type: 'secrethitler.government.nominate', chancellorSeatId: target },
       president.userId,
@@ -950,6 +1023,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     expect(fivePlayer.session.state.livingSeats.length).toBe(5);
     if (currentPresident !== formerPresident) {
       const president = fivePlayer.actorForSeat(currentPresident);
+      fivePlayer.send(
+        { type: 'secrethitler.government.preselect', chancellorSeatId: formerPresident },
+        president.userId,
+        president.controlledSeat,
+      );
       const allowed = fivePlayer.session.decide(
         { type: 'secrethitler.government.nominate', chancellorSeatId: formerPresident },
         president.userId,
@@ -997,12 +1075,14 @@ describe('Secret Hitler policies, powers, and settlement', () => {
       kind: 'election',
       presidentSeat: target,
       returnToSeat: (phase.presidentSeat + 1) % 8,
+      preselectedChancellorSeat: null,
     });
     nominateAndVote(current, 'nein');
     expect(current.session.state.phase).toEqual({
       kind: 'election',
       presidentSeat: (phase.presidentSeat + 1) % 8,
       returnToSeat: null,
+      preselectedChancellorSeat: null,
     });
   });
 
@@ -1071,6 +1151,11 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     }
     if (phase.kind !== 'election') throw new Error('Expected next election');
     const president = current.actorForSeat(phase.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: hitler },
+      president.userId,
+      president.controlledSeat,
+    );
     current.send(
       { type: 'secrethitler.government.nominate', chancellorSeatId: hitler },
       president.userId,

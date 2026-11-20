@@ -140,6 +140,11 @@ function endSecrethitlerTestGame(from: SecrethitlerState): SecrethitlerState {
     const chancellor = view.eligibleChancellorSeats[0];
     if (chancellor === undefined) throw new Error('Missing fixture chancellor');
     state = sendSecrethitlerSeatCommand(state, state.phase.presidentSeat, {
+      type: 'secrethitler.government.preselect',
+      chancellorSeatId: chancellor,
+    });
+    if (state.phase.kind !== 'election') throw new Error('Expected election after preselection');
+    state = sendSecrethitlerSeatCommand(state, state.phase.presidentSeat, {
       type: 'secrethitler.government.nominate',
       chancellorSeatId: chancellor,
     });
@@ -179,6 +184,10 @@ export function buildSecrethitlerPhaseStates(): ReadonlyMap<
         phase.presidentSeat,
       ).eligibleChancellorSeats.find((seat) => state.identities[seat] !== 'hitler');
       if (target === undefined) throw new Error('Missing non-Hitler candidate');
+      send(phase.presidentSeat, {
+        type: 'secrethitler.government.preselect',
+        chancellorSeatId: target,
+      });
       send(phase.presidentSeat, {
         type: 'secrethitler.government.nominate',
         chancellorSeatId: target,

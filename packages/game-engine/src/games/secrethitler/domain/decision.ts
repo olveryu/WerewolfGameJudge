@@ -39,6 +39,7 @@ export const SECRETHITLER_REASONS = {
   notPresident: 'secrethitler_not_current_president',
   notLiving: 'secrethitler_not_living_player',
   nomination: 'secrethitler_chancellor_ineligible',
+  preselection: 'secrethitler_preselection_invalid',
   notEligibleVote: 'secrethitler_voter_ineligible',
   deadline: 'secrethitler_deadline_invalid',
   handChoice: 'secrethitler_policy_choice_invalid',
