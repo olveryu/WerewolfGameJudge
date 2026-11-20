@@ -89,6 +89,7 @@ export type AvalonEvent =
   | { readonly type: 'avalon.game.begun' }
   | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.role.viewed'; readonly seat: number }
+  | { readonly type: 'avalon.review.completed'; readonly userId: string }
   | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }
   | { readonly type: 'avalon.night.completed' }
   | {

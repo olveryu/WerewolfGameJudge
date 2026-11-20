@@ -179,9 +179,9 @@ function stateFor(phase: Phase): StoryRelayState {
       if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
     case 'aborted':
-      session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
-      if (session.state.phase !== 'aborted') throw new Error('expected aborted');
-      return session.state;
+      return storyRelayEngine.normalize(
+        storyRelayEngine.evolve(session.state, { type: 'storyrelay.round.aborted', abortedAt: 1 }),
+      );
     default:
       throw new Error(`unhandled phase ${phase}`);
   }

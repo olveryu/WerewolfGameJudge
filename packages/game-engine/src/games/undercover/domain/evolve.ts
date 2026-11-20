@@ -19,6 +19,7 @@ export function evolveUndercoverState(
     config: state.config,
     roster: state.roster,
     usedWordPairIds: state.usedWordPairIds,
+    reviewCompletedUserIds: state.reviewCompletedUserIds,
   };
   switch (event.type) {
     case 'undercover.seats.changed':
@@ -80,6 +81,10 @@ export function evolveUndercoverState(
       return { ...base, phase: 'aborted', round: state.round, abortedRoundId };
     }
     case 'undercover.game.returnedToLobby':
-      return { ...base, phase: 'lobby', round: null };
+      return { ...base, reviewCompletedUserIds: [], phase: 'lobby', round: null };
+    case 'undercover.review.completed':
+      return state.reviewCompletedUserIds.includes(event.userId)
+        ? state
+        : { ...state, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
   }
 }

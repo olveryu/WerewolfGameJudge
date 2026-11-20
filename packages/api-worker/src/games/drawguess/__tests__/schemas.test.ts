@@ -40,9 +40,13 @@ describe('DrawGuess public command schema', () => {
     }
   });
 
-  it('accepts a game-scoped abort', () => {
-    const command = { type: 'drawguess.game.abort', gameSequence: 1 };
-    expect(drawGuessPublicCommandSchema.parse(command)).toEqual(command);
+  it('rejects obsolete reset commands', () => {
+    for (const command of [
+      { type: 'drawguess.game.abort', gameSequence: 1 },
+      { type: 'drawguess.game.returnToLobby' },
+    ]) {
+      expect(drawGuessPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
   });
 
   it('accepts the phase retrySettle command', () => {
@@ -76,8 +80,11 @@ describe('DrawGuess public command schema', () => {
 
   it.each([undefined, null, -1, 0.5, '1'])('rejects invalid game sequence %s', (gameSequence) => {
     expect(
-      drawGuessPublicCommandSchema.safeParse({ type: 'drawguess.game.abort', gameSequence })
-        .success,
+      drawGuessPublicCommandSchema.safeParse({
+        type: 'drawguess.game.restart',
+        gameSequence,
+        expectedPhase: 'playing',
+      }).success,
     ).toBe(false);
   });
 

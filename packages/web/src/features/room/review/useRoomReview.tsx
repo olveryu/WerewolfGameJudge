@@ -48,6 +48,9 @@ export interface UseRoomReviewInput<TState> {
   readonly roomCode: string;
   /** Fired when the dialog opens, after the game's confirmation; null when the game tracks nothing. */
   readonly onOpened: (() => void) | null;
+  /** Captured when the dialog opens; invoked only when that dialog is explicitly closed. */
+  readonly onClosed?: (() => void) | null;
+  readonly isPending?: boolean;
 }
 
 export interface RoomReviewController {
@@ -130,7 +133,7 @@ function resolveShareControls(input: {
 }
 
 export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomReviewController {
-  const { contribution, state, viewer, roomId, roomCode, onOpened } = input;
+  const { contribution, state, viewer, roomId, roomCode, onOpened, onClosed, isPending } = input;
   const { userId, isHost, seat } = viewer;
   const availability = useMemo(() => {
     const resolved = contribution.resolve({ state, viewer: { userId, isHost, seat }, roomCode });
@@ -163,6 +166,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
   const [openState, setOpenState] = useState<{
     readonly roundKey: string;
     readonly pageKey: string;
+    readonly onClosed: (() => void) | null;
   } | null>(null);
   if (openState !== null && openState.roundKey !== roundKey) setOpenState(null);
   const openPageIndex =
@@ -188,7 +192,11 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
       const targetKey = pageKey ?? firstPage.key;
       pageIndexOf(openedDocument, targetKey);
       const show = () => {
-        setOpenState({ roundKey: openedDocument.roundKey, pageKey: targetKey });
+        setOpenState({
+          roundKey: openedDocument.roundKey,
+          pageKey: targetKey,
+          onClosed: onClosed ?? null,
+        });
         if (onOpened !== null) onOpened();
       };
       if (confirmation === null) {
@@ -199,7 +207,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
         confirmText: confirmation.confirmText,
       });
     },
-    [availability, onOpened],
+    [availability, onOpened, onClosed],
   );
 
   const shareAll = useCallback(() => {
@@ -233,8 +241,12 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
     availability.kind === 'notEnded'
       ? null
       : availability.kind === 'notPermitted'
-        ? { isEnabled: false, disabledReason: availability.reason }
-        : { isEnabled: true, onPress: () => open(null) };
+        ? {
+            isEnabled: false,
+            disabledReason: availability.reason,
+            ...(isPending ? { isPending } : {}),
+          }
+        : { isEnabled: true, onPress: () => open(null), ...(isPending ? { isPending } : {}) };
 
   const overlay = (
     <ReviewAssetStoreContext.Provider value={assetStore}>
@@ -245,10 +257,15 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
           onPageChange={(pageIndex) => {
             const page = document.pages[pageIndex];
             if (page === undefined) throw new Error(`[FAIL-FAST] Review has no page ${pageIndex}`);
-            setOpenState({ roundKey: document.roundKey, pageKey: page.key });
+            setOpenState((previous) =>
+              previous === null ? null : { ...previous, pageKey: page.key },
+            );
           }}
           shareControls={shareControls}
-          onClose={() => setOpenState(null)}
+          onClose={() => {
+            setOpenState(null);
+            openState?.onClosed?.();
+          }}
         />
       )}
       {exporter.stageRequest !== null && (

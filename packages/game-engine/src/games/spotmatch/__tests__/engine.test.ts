@@ -251,6 +251,12 @@ describe('Spotmatch natural completion, privacy and settlement', () => {
         symbolId: 0,
       }).kind,
     ).toBe('reject');
+    expect(session.decide({ type: 'spotmatch.game.begin' }).kind).toBe('reject');
+    session.send({
+      type: 'spotmatch.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'ended',
+    });
     session.send({ type: 'spotmatch.game.begin' });
     expect(session.state.round!.players.every((player) => player.correct === 0)).toBe(true);
     expect(session.state.round!.roundId).toBe('spotmatch:game:2');
@@ -275,16 +281,6 @@ describe('Spotmatch natural completion, privacy and settlement', () => {
       session.advance(SPOTMATCH_SUCCESS_PAUSE_MS);
     }
     expect(session.state.phase.kind).toBe('ended');
-    expect(session.effects).toEqual([]);
-  });
-
-  it('abort is host-only, emits no completion, clears gameplay and preserves config/seats', () => {
-    const session = game();
-    expect(session.decide({ type: 'spotmatch.game.abort' }, 'u1').kind).toBe('reject');
-    session.send({ type: 'spotmatch.game.abort' });
-    expect(session.state.phase.kind).toBe('lobby');
-    expect(session.state.round).toBeNull();
-    expect(Object.keys(session.state.roster)).toHaveLength(4);
     expect(session.effects).toEqual([]);
   });
 

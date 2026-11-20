@@ -14,6 +14,7 @@ function resetSecrethitlerGame(state: SecrethitlerState): SecrethitlerState {
     phaseRevision: state.phaseRevision + 1,
     identities: {},
     roleViewedSeats: [],
+    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -72,6 +73,10 @@ export function evolveSecrethitlerState(
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
+    case 'secrethitler.review.completed':
+      return state.reviewCompletedUserIds.includes(event.userId)
+        ? state
+        : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
     case 'secrethitler.audio.queued': {
       // The shared machine owns the transition (replace + gate close + next batch id);
       // an empty batch cannot reach here — queueing fail-fasts in decide.

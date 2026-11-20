@@ -13,6 +13,7 @@ export type SecrethitlerPublicCommand =
   | { readonly type: 'secrethitler.config.update'; readonly config: SecrethitlerConfig }
   | { readonly type: 'secrethitler.roles.assign' }
   | { readonly type: 'secrethitler.game.begin' }
+  | { readonly type: 'secrethitler.review.complete'; readonly gameSequence: number }
   | {
       readonly type: 'secrethitler.game.restart';
       readonly gameSequence: number;

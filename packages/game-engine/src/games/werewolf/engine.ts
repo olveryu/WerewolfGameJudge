@@ -12,6 +12,8 @@ import {
 import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
 import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
 import { decideConfirmViewed, decideMarkBotsViewed } from '../../platform/room/identityViewing';
+import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
+import { findRosterSeatByUserId } from '../../platform/room/seating';
 import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
@@ -101,6 +103,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.config.update':
     case 'werewolf.review.share':
     case 'werewolf.lastNightInfo.confirm':
+    case 'werewolf.review.complete':
     case 'werewolf.board.nominate':
     case 'werewolf.board.upvote':
     case 'werewolf.board.withdraw':
@@ -311,6 +314,35 @@ function decideWerewolfCommandRules(
         return reject('invalid_status');
       }
       return commitActions([{ type: 'CONFIRM_LAST_NIGHT_INFO' }]);
+    }
+    case 'werewolf.review.complete': {
+      const completion = resolveReviewCompletion({
+        context,
+        isEnded: state.status === GameStatus.Ended,
+        currentIdentity: state.gameSequence,
+        expectedIdentity: command.gameSequence,
+        completedUserIds: state.reviewCompletedUserIds ?? [],
+        isEligible: (userId) => {
+          if (userId === state.hostUserId) {
+            return (
+              state.lastNightInfoConfirmed === true &&
+              (state.nightReviewAllowedSeats ?? []).some((seat) => state.roster[seat] !== undefined)
+            );
+          }
+          const seat = findRosterSeatByUserId(
+            state.roster,
+            Object.keys(state.players).length,
+            userId,
+          );
+          return seat !== null && (state.nightReviewAllowedSeats ?? []).includes(seat);
+        },
+      });
+      if (completion.kind === 'reject') return reject('invalid_status');
+      return commitActions(
+        completion.kind === 'complete'
+          ? [{ type: 'COMPLETE_REVIEW', userId: completion.userId }]
+          : [],
+      );
     }
     case 'werewolf.review.share': {
       const actor = resolveHostActor(state, context);

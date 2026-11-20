@@ -969,6 +969,19 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     });
     expect(current.session.effects[0]?.payload.participantUserIds).toHaveLength(5);
     const previousSequence = current.session.state.gameSequence;
+    const review = {
+      type: 'secrethitler.review.complete',
+      gameSequence: previousSequence,
+    } as const;
+    expect(current.session.decide(review, 'spectator').kind).toBe('reject');
+    expect(current.session.decide(review, 'host', 1).kind).toBe('reject');
+    expect(current.session.decide({ ...review, gameSequence: previousSequence - 1 }).kind).toBe(
+      'reject',
+    );
+    current.send(review);
+    current.send(review, 'u1');
+    current.send(review, 'u1');
+    expect(current.session.state.reviewCompletedUserIds).toEqual(['host', 'u1']);
     current.session.expectReject({ type: 'secrethitler.roles.assign' }, SECRETHITLER_REASONS.phase);
     const unfinishedCommand = {
       type: 'secrethitler.game.restart',
@@ -979,6 +992,8 @@ describe('Secret Hitler policies, powers, and settlement', () => {
     const effectsBefore = current.session.effects.length;
     current.send({ ...unfinishedCommand, wasEnded: true });
     expect(current.session.state.phase.kind).toBe('lobby');
+    expect(current.session.state.reviewCompletedUserIds).toEqual([]);
+    expect(current.session.decide(review).kind).toBe('reject');
     expect(current.session.effects).toHaveLength(effectsBefore);
     current.send({ type: 'secrethitler.roles.assign' });
     expect(current.session.state.gameSequence).toBe(previousSequence + 1);

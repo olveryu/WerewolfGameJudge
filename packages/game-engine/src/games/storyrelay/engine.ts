@@ -157,10 +157,6 @@ export function decideStoryRelayCommand(
       return state.phase === 'lobby'
         ? startRound(state, context)
         : reject(STORY_RELAY_REASONS.phase);
-    case 'storyrelay.game.next':
-      return state.phase === 'ended'
-        ? startRound(state, context)
-        : reject(STORY_RELAY_REASONS.phase);
     case 'storyrelay.task.ready.set':
     case 'storyrelay.text.submit':
     case 'storyrelay.task.empty.submit':
@@ -173,11 +169,6 @@ export function decideStoryRelayCommand(
   const hostRejection = requireHost<StoryRelayEvent, StoryRelayEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
   switch (command.type) {
-    case 'storyrelay.game.abort':
-      return ['answering', 'settling', 'transition'].includes(state.phase) &&
-        state.completedAt === null
-        ? commitStoryRelay([{ type: 'storyrelay.round.aborted', abortedAt: context.nowMs }])
-        : reject(STORY_RELAY_REASONS.phase);
     case 'storyrelay.phase.retrySettle':
       // Host self-rescue (D3 follow-up): re-drives the current phase's
       // settle through the same guard sequence and dispatch as the
@@ -185,10 +176,6 @@ export function decideStoryRelayCommand(
       // gate already ran above; a host acting through a takeover seat
       // is rejected by requireHost.
       return expirePhase(state, context, 'uncontrolledUser');
-    case 'storyrelay.game.returnToLobby':
-      return state.phase === 'ended' || state.phase === 'aborted'
-        ? commitStoryRelay([{ type: 'storyrelay.game.returnedToLobby' }])
-        : reject(STORY_RELAY_REASONS.phase);
     case 'storyrelay.game.restart':
       return state.phase === 'lobby'
         ? reject(STORY_RELAY_REASONS.phase)

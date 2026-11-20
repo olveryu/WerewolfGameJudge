@@ -247,9 +247,10 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
-    expect(game.state.phase).toBe('aborted');
-    const model = build(game.state, false, { isEnabled: true, onPress: vi.fn() });
+    const aborted = storyRelayEngine.normalize(
+      storyRelayEngine.evolve(game.state, { type: 'storyrelay.round.aborted', abortedAt: 1 }),
+    );
+    const model = build(aborted, false, { isEnabled: true, onPress: vi.fn() });
     expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(model.task).toBeNull();
   });
@@ -294,8 +295,10 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
-    expect(() => build(game.state, false)).toThrow(
+    const aborted = storyRelayEngine.normalize(
+      storyRelayEngine.evolve(game.state, { type: 'storyrelay.round.aborted', abortedAt: 1 }),
+    );
+    expect(() => build(aborted, false)).toThrow(
       '[FAIL-FAST] Story Relay aborted host has no review entry',
     );
   });

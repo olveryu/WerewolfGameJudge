@@ -129,6 +129,11 @@ export function parseUndercoverState(value: unknown): UndercoverState {
       `${path}.usedWordPairIds`,
       parseNonEmptyString,
     ),
+    reviewCompletedUserIds: parseArray(
+      raw.reviewCompletedUserIds,
+      `${path}.reviewCompletedUserIds`,
+      parseNonEmptyString,
+    ),
   } as const;
   let state: UndercoverState;
   switch (raw.phase) {
@@ -202,11 +207,12 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
                 ),
         }
       : {};
-  if (raw.stateVersion === 4 || raw.stateVersion === 5) {
+  if (raw.stateVersion === 4 || raw.stateVersion === 5 || raw.stateVersion === 6) {
     // v4 renamed reading to viewing; v6 retains an identity for aborted rounds.
     return parseUndercoverState({
       ...raw,
       stateVersion: UNDERCOVER_STATE_VERSION,
+      reviewCompletedUserIds: [],
       phase: raw.stateVersion === 4 && raw.phase === 'reading' ? 'viewing' : raw.phase,
       ...abortedRoundIdentity,
     });
@@ -245,6 +251,7 @@ export function migratePersistedUndercoverState(value: unknown): UndercoverState
   return parseUndercoverState({
     ...rest,
     stateVersion: UNDERCOVER_STATE_VERSION,
+    reviewCompletedUserIds: [],
     config: parsedConfig,
     round: migratedRound,
     roster,

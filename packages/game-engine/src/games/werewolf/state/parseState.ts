@@ -1005,6 +1005,11 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.lastNightInfoConfirmed',
       parseBoolean,
     ),
+    reviewCompletedUserIds: parseOptional(
+      raw.reviewCompletedUserIds,
+      'GameState.reviewCompletedUserIds',
+      (items, path) => parseArray(items, path, parseNonEmptyString),
+    ),
     deathReasons: parseOptional(raw.deathReasons, 'GameState.deathReasons', parseDeathReasons),
     sheriffElection: parseOptional(
       raw.sheriffElection,
@@ -1239,7 +1244,7 @@ export function migratePersistedWerewolfState(value: unknown): GameState {
   }
   if (raw.stateVersion === 17)
     return parseWerewolfState(migrateElection({ ...raw, stateVersion: WEREWOLF_STATE_VERSION }));
-  if (raw.stateVersion === 18)
+  if (raw.stateVersion === 18 || raw.stateVersion === 19)
     return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION });
   if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
     throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);

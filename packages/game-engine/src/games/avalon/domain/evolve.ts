@@ -26,6 +26,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     phaseRevision: state.phaseRevision + 1,
     roles: {},
     roleViewedSeats: [],
+    reviewCompletedUserIds: [],
     nightInfo: { evilPeers: {}, merlinSees: [], percivalSees: [] },
     leaderSeat: -1,
     rejectStreak: 0,
@@ -127,6 +128,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
+    case 'avalon.review.completed':
+      return state.reviewCompletedUserIds.includes(event.userId)
+        ? state
+        : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
     case 'avalon.night.stepped': {
       if (state.phase.kind !== 'night') return state;
       return { ...bumped, phase: { kind: 'night', step: event.step, confirmedSeats: [] } };

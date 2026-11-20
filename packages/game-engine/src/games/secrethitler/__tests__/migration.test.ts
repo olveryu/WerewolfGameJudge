@@ -5,6 +5,7 @@ import { getSecrethitlerNightParticipants } from '../domain/rules';
 import { secrethitlerEngine } from '../engine';
 import { migratePersistedSecrethitlerState, parseSecrethitlerState } from '../state/parseState';
 import { DEFAULT_SECRETHITLER_CONFIG } from '../state/types';
+import { SECRETHITLER_STATE_VERSION } from '../state/version';
 
 describe('Secrethitler persisted state migration', () => {
   it.each([0, 1, 2, 3])(
@@ -33,7 +34,7 @@ describe('Secrethitler persisted state migration', () => {
         pendingAudioEffects: [{ audioKey }],
       };
       const migrated = migratePersistedSecrethitlerState(legacy);
-      expect(migrated.stateVersion).toBe(3);
+      expect(migrated.stateVersion).toBe(SECRETHITLER_STATE_VERSION);
       expect(migrated.config.voteMode).toBe('public');
       expect(migrated.phase).toEqual(
         step <= 1
@@ -65,7 +66,7 @@ describe('Secrethitler persisted state migration', () => {
       expect(() =>
         migratePersistedSecrethitlerState({ ...legacy, phase: { ...legacy.phase, step: 4 } }),
       ).toThrow();
-      expect(() => migratePersistedSecrethitlerState({ ...legacy, stateVersion: 4 })).toThrow();
+      expect(() => migratePersistedSecrethitlerState({ ...legacy, stateVersion: 5 })).toThrow();
     },
   );
 

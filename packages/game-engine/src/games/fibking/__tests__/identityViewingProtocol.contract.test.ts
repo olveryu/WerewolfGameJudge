@@ -301,6 +301,12 @@ describe('identity viewing protocol (fibking)', () => {
     state = dispatch(state, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.game.begin' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.round.reveal' }, userContext('host'));
+    if (state.phase !== 'ended') throw new Error('Expected ended state');
+    state = dispatch(
+      state,
+      { type: 'fibking.game.restart', roundId: state.round.roundId, wasEnded: true },
+      userContext('host'),
+    );
     const nextRound = dealRound(state, 'round-2', '灯塔');
     if (nextRound.phase !== 'viewing') throw new Error('Expected viewing state');
     expect(nextRound.round.viewedSeats).toEqual([]);

@@ -468,7 +468,9 @@ export function createWerewolfHostManagement(
         ? [PANEL_FLOW_ACTION_KEYS.lastNightInfo]
         : !input.isReviewShared
           ? [PANEL_FLOW_ACTION_KEYS.grantReview]
-          : [];
+          : input.review?.isPending
+            ? [HOST_ACTION_KEYS.review]
+            : [];
   return applyAudioPlaybackLock(
     {
       task: createHostTask(input),
@@ -486,7 +488,7 @@ export function createWerewolfHostManagement(
               ? { pendingActionKeys: sheriffAdvancePending ? ['sheriff-advance'] : [] }
               : input.roomStatus === GameStatus.Ended
                 ? { pendingActionKeys: endedPendingKeys }
-                : {}),
+                : { pendingActionKeys: [] }),
     },
     { isAudioPlaying: input.isAudioPlaying, exemptActionKeys: AUDIO_LOCK_EXEMPT_ACTION_KEYS },
   );

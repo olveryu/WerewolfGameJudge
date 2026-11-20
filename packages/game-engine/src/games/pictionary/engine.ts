@@ -82,7 +82,7 @@ function decideStartPictionaryRound(
 ): PictionaryDecision {
   const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
-  if (state.phase !== 'lobby' && state.phase !== 'ended') {
+  if (state.phase !== 'lobby') {
     return reject(REASON_PICTIONARY_PHASE_INVALID);
   }
   if (!isPictionaryRoomFull(state)) return reject(REASON_PICTIONARY_ROOM_NOT_FULL);
@@ -238,17 +238,6 @@ function decideMovePictionaryGallery(
   );
 }
 
-function decideReturnPictionaryToLobby(
-  state: PictionaryState,
-  context: CommandContext,
-): PictionaryDecision {
-  const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  return state.phase === 'ended' || state.phase === 'aborted'
-    ? commitPictionary([{ type: 'pictionary.game.returnedToLobby' }])
-    : reject(REASON_PICTIONARY_PHASE_INVALID);
-}
-
 function createInitialPictionaryState(
   config: PictionaryConfig,
   context: CreateGameContext,
@@ -317,7 +306,6 @@ export function decidePictionaryCommand(
     case 'pictionary.config.update':
       return decidePictionaryRoom(state, command, context);
     case 'pictionary.game.begin':
-    case 'pictionary.game.next':
       return decideStartPictionaryRound(state, context);
     case 'pictionary.task.ready.set':
     case 'pictionary.task.empty.submit':
@@ -325,19 +313,6 @@ export function decidePictionaryCommand(
       return decidePictionaryTask(state, command, context);
     case 'pictionary.drawing.reserve':
       return decideReservePictionaryDrawing(state, context);
-    case 'pictionary.game.abort': {
-      const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
-        context,
-        state.hostUserId,
-      );
-      if (hostRejection !== null) return hostRejection;
-      if (
-        !['answering', 'settling', 'transition'].includes(state.phase) ||
-        (state.phase === 'transition' && state.stepIndex === state.config.numberOfPlayers - 1)
-      )
-        return reject(REASON_PICTIONARY_PHASE_INVALID);
-      return commitPictionary([{ type: 'pictionary.round.aborted' }]);
-    }
     case 'pictionary.drawing.commit':
       return decideCommitPictionaryDrawing(state, command.submissionId, command.media, context);
     case 'pictionary.phase.settleExpired':
@@ -370,8 +345,6 @@ export function decidePictionaryCommand(
       if (hostRejection !== null) return hostRejection;
       return controlPictionaryGallery(state, command.type, context.nowMs);
     }
-    case 'pictionary.game.returnToLobby':
-      return decideReturnPictionaryToLobby(state, context);
     case 'pictionary.game.restart': {
       const hostRejection = requireHost<PictionaryEvent, PictionaryEffect>(
         context,

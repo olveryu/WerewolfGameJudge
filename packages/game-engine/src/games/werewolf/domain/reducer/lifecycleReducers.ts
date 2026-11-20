@@ -112,6 +112,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     resolvedNightEffects: [],
     lastNightDeaths: undefined,
     lastNightInfoConfirmed: undefined,
+    reviewCompletedUserIds: undefined,
     deathReasons: undefined,
     sheriffElection: undefined,
     sheriffElectionResult: undefined,

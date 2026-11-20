@@ -435,6 +435,11 @@ export interface ConfirmLastNightInfoAction {
   type: 'CONFIRM_LAST_NIGHT_INFO';
 }
 
+export interface CompleteReviewAction {
+  type: 'COMPLETE_REVIEW';
+  userId: string;
+}
+
 // =============================================================================
 // Piper groupConfirm ACK
 // =============================================================================
@@ -546,6 +551,7 @@ export interface UpdateRosterLevelsAction {
 
 export type StateAction =
   | { readonly type: 'SELECT_MVP'; readonly mvpUserId: string }
+  | CompleteReviewAction
   // Lifecycle
   | InitializeGameAction
   | RestartGameAction

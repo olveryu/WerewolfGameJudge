@@ -233,6 +233,27 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
   });
 
   const phases = buildSecrethitlerPhaseStates();
+  it('marks a first vote pending but not the optional change after submission', () => {
+    const voting = phases.get('voting');
+    if (voting === undefined) throw new Error('Missing voting fixture');
+    const before = roomShellModel(voting, 'host').bottomActions;
+    if (before.kind !== 'stacked') throw new Error('Expected stacked room actions');
+    expect(before.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+      label: '秘密投票',
+      isPending: true,
+    });
+    const voted = sendSecrethitlerSeatCommand(voting, 0, {
+      type: 'secrethitler.government.castVote',
+      vote: 'ja',
+    });
+    const after = roomShellModel(voted, 'host').bottomActions;
+    if (after.kind !== 'stacked') throw new Error('Expected stacked room actions');
+    expect(after.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+      label: '修改选票',
+      isPending: false,
+    });
+  });
+
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(SECRETHITLER_GUIDANCE_MATRIX).sort()).toEqual(
       [...SECRETHITLER_PHASES].sort(),

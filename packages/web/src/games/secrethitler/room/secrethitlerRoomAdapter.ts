@@ -278,6 +278,7 @@ export function createSecrethitlerHostManagement(
       throw new Error('[FAIL-FAST] Secrethitler ended without a review entry');
     return {
       task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
+      pendingActionKeys: input.review.isPending ? [HOST_ACTION_KEYS.review] : [],
       sections: [
         {
           key: 'current-flow',
@@ -294,6 +295,7 @@ export function createSecrethitlerHostManagement(
   }
   return {
     task: null,
+    pendingActionKeys: [],
     sections: [
       ...(roomActions.length > 0 ? [{ key: 'room', title: '房间管理', actions: roomActions }] : []),
       ...tools,
@@ -310,7 +312,9 @@ function buildSecrethitlerRestartAction(
       showDestructiveAlert(
         '重新开始？',
         state.phase.kind === 'ended'
-          ? '保留座位和配置，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          ? input.review?.isPending
+            ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
@@ -387,6 +391,7 @@ function createNightHostManagement(
   const phase = state.phase;
   return {
     task: null,
+    pendingActionKeys: [],
     sections: [
       {
         key: 'night',
@@ -450,6 +455,7 @@ export function createSecrethitlerRoomShellModel(
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: state.phase.kind !== 'voting' || view.myVote === null,
           ...(input.isSubmitting
             ? { isEnabled: false, disabledReason: '正在提交' }
             : { isEnabled: true, onPress: input.openAction }),

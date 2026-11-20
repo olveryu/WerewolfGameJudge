@@ -765,7 +765,7 @@ async function tryDismissAlert(page: Page): Promise<boolean> {
 
 /**
  * Wait until a groupConfirm reveal step is active, detected by its
- * status button becoming visible on any page; the button's label must
+ * status button becoming visible on any page; its accessible name must
  * be `statusButtonText` (e.g. '情侣状态', '表白状态').
  *
  * While polling, only dismiss blocking alert modals. Never click
@@ -783,7 +783,7 @@ export async function waitForGroupConfirmStep(
     for (const page of pages) {
       const statusButton = nightButton(page, 'groupConfirmAck');
       if (await statusButton.isVisible().catch(() => false)) {
-        await expect(statusButton).toHaveText(statusButtonText);
+        await expect(statusButton).toHaveAccessibleName(statusButtonText);
         return;
       }
     }

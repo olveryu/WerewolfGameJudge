@@ -545,13 +545,7 @@ function HostManagementHand({
             const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
             const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
             const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
-            const isActionableTask =
-              model?.pendingActionKeys !== undefined
-                ? model.pendingActionKeys.includes(action.key)
-                : (isReadyTask || isChoice) &&
-                  action.isEnabled &&
-                  action.isLoading !== true &&
-                  action.variant !== 'danger';
+            const isActionableTask = model?.pendingActionKeys?.includes(action.key) === true;
             const isRemedy =
               task?.body.kind === 'blocked' &&
               model?.task?.kind === 'action' &&

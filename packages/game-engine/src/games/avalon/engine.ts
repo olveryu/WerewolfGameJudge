@@ -22,6 +22,7 @@ import {
   guardPhaseExpiry,
   type PhaseExpiryActorChannel,
 } from '../../platform/room/phaseDeadline';
+import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { getHumanSeatMap, isBotSeat, isRoomFull } from '../../platform/room/seating';
 import { decideSettleCountdownArm } from '../../platform/room/settleCountdown';
 import type { AvalonCommand } from './commands/types';
@@ -59,6 +60,7 @@ import {
   type AvalonQuestHistoryEntry,
   type AvalonState,
   getAvalonOccupiedSeatCount,
+  getAvalonUserSeat,
   getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonGoodRole,
@@ -93,6 +95,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     ladyHistory: [],
     lastVoteResult: null,
     gameSequence: 0,
+    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -812,6 +815,23 @@ function decideCommand(
       return beginGame(state, context);
     case 'avalon.game.restart':
       return restartGame(state, command, context);
+    case 'avalon.review.complete': {
+      const completion = resolveReviewCompletion({
+        context,
+        isEnded: state.phase.kind === 'ended',
+        currentIdentity: state.gameSequence,
+        expectedIdentity: command.gameSequence,
+        completedUserIds: state.reviewCompletedUserIds,
+        isEligible: (userId) =>
+          userId === state.hostUserId || getAvalonUserSeat(state, userId) !== null,
+      });
+      if (completion.kind === 'reject') return reject(AVALON_REASONS.phase);
+      return commitAvalon(
+        completion.kind === 'complete'
+          ? [{ type: 'avalon.review.completed', userId: completion.userId }]
+          : [],
+      );
+    }
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
     case 'avalon.bots.markAllBotsViewed':

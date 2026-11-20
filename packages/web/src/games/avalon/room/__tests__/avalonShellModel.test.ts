@@ -624,6 +624,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(preselect).toMatchObject({
       label: '预选队伍',
       isEnabled: true,
+      isPending: true,
       testID: 'avalon-nominate-preselect',
     });
     expect(findTierAction(empty, 'primary', 'preselectTeam')).toBe(preselect);
@@ -644,6 +645,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(final).toMatchObject({
       label: '最终队伍',
       isEnabled: true,
+      isPending: true,
       testID: 'avalon-nominate-submit',
     });
     expect(findTierAction(preselected, 'primary', 'proposeTeam')).toBe(final);
@@ -721,7 +723,12 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onOpenVotePress = vi.fn();
     const before = shellFor(running, voter, { onOpenVotePress });
     const open = findStageAction(before, 'openVote');
-    expect(open).toMatchObject({ label: '去投票', isEnabled: true, testID: 'avalon-vote-open' });
+    expect(open).toMatchObject({
+      label: '去投票',
+      isEnabled: true,
+      isPending: true,
+      testID: 'avalon-vote-open',
+    });
     expect(findTierAction(before, 'primary', 'openVote')).toBe(open);
     if (open && open.isEnabled) open.onPress();
     expect(onOpenVotePress).toHaveBeenCalledTimes(1);
@@ -729,6 +736,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const cast = shellFor(running, voter);
     expect(findStageAction(cast, 'openVote')).toMatchObject({
       label: '修改投票',
+      isPending: false,
     });
     const pendingSeats = [0, 1, 2, 3, 4].filter((seat) => seat !== voter);
     expect(cast.message).toBe(
@@ -770,6 +778,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const memberBottom = shellFor(running, evil);
     expect(findStageAction(memberBottom, 'openQuest')).toMatchObject({
       label: '去出牌',
+      isPending: true,
       testID: 'avalon-quest-open',
     });
     expect(findTierAction(memberBottom, 'primary', 'openQuest')).toBeDefined();
@@ -778,6 +787,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const played = shellFor(running, evil);
     expect(findStageAction(played, 'openQuest')).toMatchObject({
       label: '修改出牌',
+      isPending: false,
     });
     expect(played.message).toBe(`已出牌 1/2 · 未出牌：${leader + 1}号`);
     expect(played.message).not.toContain('失败');
@@ -811,6 +821,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(ack).toMatchObject({
       label: '查看查验请求',
       isEnabled: true,
+      isPending: true,
       testID: 'avalon-lady-acknowledge-open',
     });
     expect(findTierAction(targetBottom, 'primary', 'ladyAcknowledge')).toBe(ack);
@@ -876,7 +887,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     if (pending === undefined) throw new Error('expected a participant seat');
     const pendingShell = shellFor(running, pending);
     expect(pendingShell.message).toBeNull();
-    expect(findStageAction(pendingShell, 'nightInfo')).toBeDefined();
+    expect(findStageAction(pendingShell, 'nightInfo')).toMatchObject({ isPending: true });
     expect(findTierAction(pendingShell, 'primary', 'nightInfo')).toBeDefined();
     running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
     const confirmedShell = shellFor(running, pending);

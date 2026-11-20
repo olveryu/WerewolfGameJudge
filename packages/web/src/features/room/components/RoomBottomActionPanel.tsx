@@ -425,12 +425,8 @@ function RoomBottomActionPanelComponent({
   const selectionAction =
     isSelecting && selectionUsesHostTask && taskBody?.kind === 'message' ? taskBody.escape : null;
   const hasReadyTask =
-    hostManagement?.pendingActionKeys !== undefined
-      ? hostManagement.pendingActionKeys.length > 0 || hostManagement.hasPendingDecision === true
-      : taskBody?.kind === 'ready'
-        ? taskBody.action.isLoading !== true
-        : taskBody?.kind === 'choice' &&
-          taskBody.actions.some((action) => action.isEnabled && action.isLoading !== true);
+    (hostManagement?.pendingActionKeys?.length ?? 0) > 0 ||
+    hostManagement?.hasPendingDecision === true;
   const moreActionsLabel =
     hiddenActions.length === 0 && hostManagement !== null
       ? HOST_MANAGEMENT_LABEL

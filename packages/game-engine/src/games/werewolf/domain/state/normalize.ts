@@ -172,6 +172,7 @@ export function normalizeState(raw: GameState): GameState {
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
     lastNightInfoConfirmed: raw.lastNightInfoConfirmed,
+    reviewCompletedUserIds: raw.reviewCompletedUserIds,
     deathReasons: raw.deathReasons,
     sheriffElection: normalizeSheriffElection(raw.sheriffElection),
     sheriffElectionResult: raw.sheriffElectionResult,

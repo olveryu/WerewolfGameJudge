@@ -94,6 +94,11 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleEndNight(state, action);
     case 'CONFIRM_LAST_NIGHT_INFO':
       return { ...state, lastNightInfoConfirmed: true };
+    case 'COMPLETE_REVIEW':
+      return {
+        ...state,
+        reviewCompletedUserIds: [...(state.reviewCompletedUserIds ?? []), action.userId],
+      };
 
     // ── First-day sheriff election ──────────────────────
     case 'REGISTER_SHERIFF_CANDIDATE':

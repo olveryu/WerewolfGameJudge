@@ -91,7 +91,15 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
           showDestructiveAlert(
             '重新开始？',
             state.status === GameStatus.Ended
-              ? '保留座位和板子，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+              ? state.lastNightInfoConfirmed !== true
+                ? '你尚未确认昨夜信息。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                : !(state.nightReviewAllowedSeats ?? []).some(
+                      (seat) => state.roster[seat] !== undefined,
+                    )
+                  ? '你尚未授权玩家查看复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                  : !(state.reviewCompletedUserIds ?? []).includes(state.hostUserId)
+                    ? '你尚未查看本局复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                    : '保留座位和板子，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
               : '保留座位和板子，清除本局并回到准备。本局中止，不结算完成奖励。',
             '重新开始',
             () =>
@@ -104,7 +112,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
           return;
       }
     },
-    [resetAudioThenSubmit, state.gameSequence, state.status, submit],
+    [resetAudioThenSubmit, state, submit],
   );
 
   const markAllBotsViewed = useCallback(() => {

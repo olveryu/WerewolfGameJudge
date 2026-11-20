@@ -240,6 +240,11 @@ export function useFibRoomState({
   });
 
   // ── 本局复盘 ──
+  const reviewRoundId = state.phase === 'ended' ? state.round.roundId : null;
+  const hasPendingReview =
+    reviewRoundId !== null &&
+    (isHost || mySeat !== null) &&
+    !state.reviewCompletedUserIds.includes(user.id);
   const review = useRoomReview({
     contribution: reviewContribution,
     state,
@@ -247,6 +252,13 @@ export function useFibRoomState({
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
+    isPending: hasPendingReview,
+    onClosed:
+      hasPendingReview && reviewRoundId !== null
+        ? () => {
+            void submit('确认复盘', { type: 'fibking.review.complete', roundId: reviewRoundId });
+          }
+        : null,
   });
 
   // ── 座位 / 壳 ──

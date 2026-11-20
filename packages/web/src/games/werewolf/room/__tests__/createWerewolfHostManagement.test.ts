@@ -163,6 +163,24 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
     expect(granted.pendingActionKeys).toEqual([]);
+    const pendingReview = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true, reviewCompleted: false },
+        isReviewShared: true,
+        review: { isEnabled: true, isPending: true, onPress: vi.fn() },
+      }),
+    );
+    expect(pendingReview.pendingActionKeys).toEqual(['review']);
+    const revoked = createWerewolfHostManagement(
+      createInput({
+        roomStatus: GameStatus.Ended,
+        panelFlow: { lastNightInfoConfirmed: true, reviewCompleted: true },
+        isReviewShared: false,
+        review: { isEnabled: true, onPress: vi.fn() },
+      }),
+    );
+    expect(revoked.pendingActionKeys).toEqual(['grant-review']);
   });
 
   it.each(['registration', 'candidateSpeech', 'runoffSpeech'] as const)(

@@ -391,6 +391,11 @@ export function parseAvalonState(value: unknown): AvalonState {
         ladyHistory: parseArray(raw.ladyHistory, `${path}.ladyHistory`, ladyHistoryRecord),
         lastVoteResult: parseNullable(raw.lastVoteResult, `${path}.lastVoteResult`, lastVoteResult),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+        reviewCompletedUserIds: parseArray(
+          raw.reviewCompletedUserIds,
+          `${path}.reviewCompletedUserIds`,
+          parseNonEmptyString,
+        ),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
         pendingAudioEffects: parseArray(
           raw.pendingAudioEffects,
@@ -499,7 +504,13 @@ function dropNominateDraft(phase: unknown): unknown {
 }
 
 export function migratePersistedAvalonState(value: unknown): AvalonState {
-  const raw = parseObject(value, 'AvalonState');
+  const persisted = parseObject(value, 'AvalonState');
+  const raw =
+    typeof persisted.stateVersion === 'number' &&
+    persisted.stateVersion >= 1 &&
+    persisted.stateVersion <= 11
+      ? { ...persisted, reviewCompletedUserIds: [] }
+      : persisted;
   // v3/v4 predate the viewing stage; their phases all exist unchanged
   // in v5 (a v4 game is either undealt or already past the deal), so
   // migration is a pure version bump with field-for-field equivalence.
@@ -514,7 +525,7 @@ export function migratePersistedAvalonState(value: unknown): AvalonState {
   // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
   // now travels on preselect / propose. A persisted draft was never a
   // commitment, so it is dropped.
-  if (raw.stateVersion === 10) {
+  if (raw.stateVersion === 10 || raw.stateVersion === 11) {
     return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
   }
   if (raw.stateVersion === 9) {

@@ -366,7 +366,7 @@ it('uses the declared host task label as the management hint', () => {
   expect(screen.getByText('当前待办 · 开始游戏')).toBeInTheDocument();
 });
 
-it('marks a host hand with a pending tab only while its task can be executed', () => {
+it('marks a host hand only when the game declares a pending task', () => {
   const action = {
     key: 'start-game',
     label: '开始游戏',
@@ -382,6 +382,7 @@ it('marks a host hand with a pending tab only while its task can be executed', (
           readonly isEnabled: false;
           readonly disabledReason: string;
         }),
+    pendingActionKeys: readonly string[] = [],
   ) => (
     <RoomBottomActionPanel
       model={EMPTY_STACK}
@@ -389,6 +390,7 @@ it('marks a host hand with a pending tab only while its task can be executed', (
       isAudioPlaying={false}
       hostManagement={{
         task: { kind: 'action', actionKey: 'start-game' },
+        pendingActionKeys,
         sections: [{ key: 'lobby', title: '房间', actions: [taskAction] }],
       }}
       onOpenMoreActions={() => undefined}
@@ -397,17 +399,21 @@ it('marks a host hand with a pending tab only while its task can be executed', (
   );
   const { rerender } = render(panel(action));
   const hostEntry = screen.getByTestId(TESTIDS.roomMoreActionsButton);
+  expect(hostEntry).toHaveAccessibleName('主持管理');
+  expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+
+  rerender(panel(action, ['start-game']));
   expect(hostEntry).toHaveAccessibleName('主持管理，有待处理操作');
   expect(hostEntry.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
 
-  rerender(panel({ ...action, isEnabled: false, disabledReason: '座位尚未坐满' }));
-  expect(hostEntry).toHaveAccessibleName('主持管理');
-  expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+  rerender(panel({ ...action, isEnabled: false, disabledReason: '座位尚未坐满' }, ['start-game']));
+  expect(hostEntry).toHaveAccessibleName('主持管理，有待处理操作');
+  expect(hostEntry.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
 
   const loadingAction = { ...action, isLoading: true };
-  rerender(panel(loadingAction));
-  expect(hostEntry).toHaveAccessibleName('主持管理');
-  expect(hostEntry.querySelector('.bottom-action-pending')).not.toBeInTheDocument();
+  rerender(panel(loadingAction, ['start-game']));
+  expect(hostEntry).toHaveAccessibleName('主持管理，有待处理操作');
+  expect(hostEntry.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
 });
 
 it('keeps the host entry available and marked when a declared task is blocked', () => {

@@ -26,6 +26,7 @@ function createInitialState(config: UndercoverConfig, context: CreateGameContext
     config: { ...config },
     roster: {},
     usedWordPairIds: [],
+    reviewCompletedUserIds: [],
     phase: 'lobby',
     round: null,
   });

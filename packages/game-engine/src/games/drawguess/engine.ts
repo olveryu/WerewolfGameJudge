@@ -167,12 +167,11 @@ function completionEffect(
   };
 }
 
-/** Host starts the game (or restarts from ended): build the drawer queue and deal words. */
+/** Host starts a prepared game: build the drawer queue and deal words. */
 function startGame(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
   const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
   if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
-    return reject(DRAWGUESS_REASONS.phase);
+  if (state.phase.kind !== 'lobby') return reject(DRAWGUESS_REASONS.phase);
   if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(DRAWGUESS_REASONS.full);
   const drawerQueue = Array.from({ length: state.config.numberOfPlayers }, (_, seat) => seat);
@@ -553,20 +552,6 @@ function commitDrawing(
   ]);
 }
 
-/** Aborts the displayed unfinished game without rewards or roster changes. */
-function abortGame(
-  state: DrawGuessState,
-  gameSequence: number,
-  context: CommandContext,
-): DrawGuessDecision {
-  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  if (state.gameSequence !== gameSequence) return reject(DRAWGUESS_REASONS.stale);
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(DRAWGUESS_REASONS.phase);
-  return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
-}
-
 function restartGame(
   state: DrawGuessState,
   command: Extract<DrawGuessPublicCommand, { readonly type: 'drawguess.game.restart' }>,
@@ -662,13 +647,6 @@ function expirePhase(
   });
 }
 
-function returnToLobby(state: DrawGuessState, context: CommandContext): DrawGuessDecision {
-  const hostRejection = requireHost<DrawGuessEvent, DrawGuessEffect>(context, state.hostUserId);
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'ended') return reject(DRAWGUESS_REASONS.phase);
-  return commitDrawGuess([{ type: 'drawguess.game.returnedToLobby' }]);
-}
-
 function decidePublicCommand(
   state: DrawGuessState,
   command: DrawGuessPublicCommand,
@@ -705,12 +683,8 @@ function decidePublicCommand(
       );
     case 'drawguess.drawing.reserve':
       return reserveDrawing(state, context);
-    case 'drawguess.game.abort':
-      return abortGame(state, command.gameSequence, context);
     case 'drawguess.game.restart':
       return restartGame(state, command, context);
-    case 'drawguess.game.returnToLobby':
-      return returnToLobby(state, context);
     case 'drawguess.phase.retrySettle': {
       // Host self-rescue (D3 follow-up): re-drives the current phase's
       // settle through the same guard sequence and dispatch as the

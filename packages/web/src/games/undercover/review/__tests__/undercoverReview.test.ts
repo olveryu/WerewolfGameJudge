@@ -10,6 +10,7 @@ import { assertReviewDocument } from '@/features/room/review/assertReviewDocumen
 import type { RoomReviewDocument } from '@/features/room/review/types';
 import {
   dispatchUndercoverTestCommand,
+  legacyAbortedUndercoverState,
   playUndercoverTestRound,
 } from '@/test-utils/undercoverState';
 
@@ -76,19 +77,13 @@ describe('undercoverReview.resolve', () => {
 
   it('reviews a round aborted after the deal, and nothing for an abort during preparation', () => {
     const viewing = playUndercoverTestRound('viewing');
-    const aborted = dispatchUndercoverTestCommand(viewing, {
-      type: 'undercover.game.abort',
-      roundId: 'undercover-round:start',
-    });
+    const aborted = legacyAbortedUndercoverState(viewing);
     const availability = resolve(aborted);
     if (availability.kind !== 'available') throw new Error('expected an available review');
     expect(availability.document.isAborted).toBe(true);
     expect(availability.sharing).toEqual({ isAllowed: true });
 
-    const abortedEarly = dispatchUndercoverTestCommand(playUndercoverTestRound('preparing'), {
-      type: 'undercover.game.abort',
-      roundId: 'undercover-round:start',
-    });
+    const abortedEarly = legacyAbortedUndercoverState(playUndercoverTestRound('preparing'));
     expect(abortedEarly).toMatchObject({ phase: 'aborted', round: null });
     expect(resolve(abortedEarly)).toEqual({ kind: 'notEnded' });
   });

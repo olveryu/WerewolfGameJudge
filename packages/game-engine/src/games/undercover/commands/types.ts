@@ -16,19 +16,18 @@ export type UndercoverPublicCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'undercover.config.update'; readonly config: UndercoverConfig }
   | { readonly type: 'undercover.roles.assign'; readonly shouldAllowRepeated: boolean }
-  | { readonly type: 'undercover.game.redeal'; readonly roundId: string | null }
   | { readonly type: 'undercover.round.retry'; readonly roundId: string }
+  | { readonly type: 'undercover.round.allowRepeated'; readonly roundId: string }
   | { readonly type: 'undercover.role.viewed'; readonly roundId: string }
+  | { readonly type: 'undercover.review.complete'; readonly roundId: string }
   | { readonly type: 'undercover.game.begin'; readonly roundId: string }
   | { readonly type: 'undercover.bots.markAllBotsViewed'; readonly roundId: string }
   | { readonly type: 'undercover.round.reveal'; readonly roundId: string; readonly seat: number }
-  | { readonly type: 'undercover.game.abort'; readonly roundId: string }
   | {
       readonly type: 'undercover.game.restart';
       readonly roundId: string;
       readonly wasEnded: boolean;
-    }
-  | { readonly type: 'undercover.game.returnToLobby' };
+    };
 
 export type UndercoverInternalCommand =
   | {

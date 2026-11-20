@@ -65,7 +65,14 @@ export function buildSpotmatchTestLobby(): SpotmatchState {
 
 /** Starts a game from a full lobby or a finished game and plays it into its playing phase. */
 export function startSpotmatchTestGame(from: SpotmatchState): SpotmatchState {
-  const state = from;
+  const state =
+    from.phase.kind === 'ended'
+      ? driveSpotmatchTestCommand(from, {
+          type: 'spotmatch.game.restart',
+          gameSequence: from.gameSequence,
+          expectedPhase: 'ended',
+        })
+      : from;
   return driveSpotmatchTestCommand(state, { type: 'spotmatch.game.begin' });
 }
 

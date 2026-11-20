@@ -14,6 +14,19 @@ describe('Pictionary public command schema', () => {
     );
   });
 
+  it('rejects obsolete reset and direct next-round commands', () => {
+    for (const type of [
+      'pictionary.game.abort',
+      'pictionary.game.returnToLobby',
+      'pictionary.game.next',
+    ]) {
+      expect(
+        pictionaryPublicCommandSchema.safeParse({ type, roundId: 'round', phaseRevision: 3 })
+          .success,
+      ).toBe(false);
+    }
+  });
+
   it('accepts the phase retrySettle command with exact payload', () => {
     const command = { type: 'pictionary.phase.retrySettle', roundId: null, phaseRevision: 0 };
     expect(pictionaryPublicCommandSchema.parse(command)).toEqual(command);

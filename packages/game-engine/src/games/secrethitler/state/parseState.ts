@@ -284,6 +284,11 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
         identities: identities(raw.identities, `${path}.identities`),
         roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+        reviewCompletedUserIds: parseArray(
+          raw.reviewCompletedUserIds,
+          `${path}.reviewCompletedUserIds`,
+          parseNonEmptyString,
+        ),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
         pendingAudioEffects: audioEffects(raw.pendingAudioEffects, `${path}.pendingAudioEffects`),
         isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
@@ -341,11 +346,19 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
 export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
   const raw = parseObject(value, 'SecrethitlerState');
   if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseSecrethitlerState(raw);
+  if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
+    return parseSecrethitlerState(raw);
+  if (raw.stateVersion === 3)
+    return parseSecrethitlerState({
+      ...raw,
+      stateVersion: SECRETHITLER_STATE_VERSION,
+      reviewCompletedUserIds: [],
+    });
   const rawConfig = parseObject(raw.config, 'SecrethitlerState.config');
   const upgraded = {
     ...raw,
     stateVersion: SECRETHITLER_STATE_VERSION,
+    reviewCompletedUserIds: [],
     config: {
       ...rawConfig,
       voteMode:

@@ -173,6 +173,11 @@ export function parseFibState(value: unknown): FibState {
     numberOfPlayers: parseInteger(raw.numberOfPlayers, 'FibState.numberOfPlayers'),
     roster: parseRoomRoster(raw.roster, 'FibState.roster'),
     usedWords: parseArray(raw.usedWords, 'FibState.usedWords', parseNonEmptyString),
+    reviewCompletedUserIds: parseArray(
+      raw.reviewCompletedUserIds,
+      'FibState.reviewCompletedUserIds',
+      parseNonEmptyString,
+    ),
   };
 
   switch (raw.phase) {
@@ -281,10 +286,19 @@ function withMaterializedRoster(raw: Record<string, unknown>): Record<string, un
  */
 export function migratePersistedFibState(value: unknown): FibState {
   const raw = parseObject(value, 'FibState');
-  if (raw.stateVersion !== 5 && raw.stateVersion !== 6 && raw.stateVersion !== 7) {
+  if (
+    raw.stateVersion !== 5 &&
+    raw.stateVersion !== 6 &&
+    raw.stateVersion !== 7 &&
+    raw.stateVersion !== 8
+  ) {
     return parseFibState(raw);
   }
-  let upgraded: Record<string, unknown> = { ...raw, stateVersion: FIB_STATE_VERSION };
+  let upgraded: Record<string, unknown> = {
+    ...raw,
+    stateVersion: FIB_STATE_VERSION,
+    reviewCompletedUserIds: [],
+  };
   if (raw.stateVersion === 5 && raw.round !== null && raw.round !== undefined) {
     const round = parseObject(raw.round, 'FibState.round');
     if ('viewedSeats' in round) {
@@ -303,6 +317,6 @@ export function migratePersistedFibState(value: unknown): FibState {
       upgraded = { ...upgraded, round: { ...round, guesses: [] } };
     }
   }
-  if (raw.stateVersion === 7) return parseFibState(upgraded);
+  if (raw.stateVersion === 7 || raw.stateVersion === 8) return parseFibState(upgraded);
   return parseFibState(withMaterializedRoster(upgraded));
 }

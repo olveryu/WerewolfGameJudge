@@ -453,6 +453,8 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   readonly lastVoteResult: AvalonLastVoteResult | null;
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
   readonly gameSequence: number;
+  /** Users who have closed the terminal review for this game. */
+  readonly reviewCompletedUserIds: readonly string[];
   /** winner 结算幂等标记：growth settlement effect 恰好触发一次。 */
   readonly xpSettled: boolean;
   /** 待播放的第一晚播报队列（共享 AudioEffect，音频 key 见各入队点）；房主播完提交 ack 后清空。 */

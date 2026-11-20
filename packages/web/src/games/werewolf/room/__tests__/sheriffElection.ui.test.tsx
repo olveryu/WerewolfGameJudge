@@ -216,7 +216,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
   });
 
   it.each([390, WIDE_VIEWPORT_WIDTH])(
-    'keeps the Ended grant/review tools before both exits at viewport width %s',
+    'keeps the Ended grant/review tools before restart at viewport width %s',
     async (viewportWidth) => {
       const harness = new RoomScreenTestHarness();
       const detachAlerts = recordAlerts(harness);
@@ -237,7 +237,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         expect(steps.getAllByRole('button').map((button) => button.textContent)).toEqual([
           '昨夜信息',
           '授权',
-          '收尾',
+          '本局复盘',
         ]);
         await click(task.getByTestId(TESTIDS.lastNightInfoButton));
         await harness.pressButton('确定查看');
@@ -254,8 +254,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         const choiceTestIds = new Set<string>([
           TESTIDS.shareReviewButton,
           TESTIDS.roomReviewHostAction,
-          TESTIDS.nextRoundButton,
-          TESTIDS.returnLobbyButton,
+          TESTIDS.restartButton,
         ]);
         const choices = task
           .getAllByRole('button')
@@ -263,8 +262,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         expect(choices.map((button) => button.dataset.testid)).toEqual([
           TESTIDS.shareReviewButton,
           TESTIDS.roomReviewHostAction,
-          TESTIDS.nextRoundButton,
-          TESTIDS.returnLobbyButton,
+          TESTIDS.restartButton,
         ]);
         expect(task.getByTestId(TESTIDS.shareReviewButton)).toHaveTextContent('待办');
         expect(task.getByTestId(TESTIDS.roomReviewHostAction)).not.toHaveTextContent('待办');
@@ -300,7 +298,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           'data-state',
           'complete',
         );
-        expect(steps.getByRole('button', { name: '收尾' })).toHaveAttribute(
+        expect(steps.getByRole('button', { name: '本局复盘' })).toHaveAttribute(
           'data-state',
           'current',
         );

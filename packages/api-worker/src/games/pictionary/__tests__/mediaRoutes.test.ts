@@ -9,6 +9,7 @@ import {
   PICTIONARY_STATE_CODEC,
   type PictionaryCommandInput,
   type PictionaryDrawingReservation,
+  pictionaryEngine,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
@@ -106,6 +107,23 @@ async function advancePhaseViaAlarm(room: RoomIdentity): Promise<PictionaryState
   const snapshot = await stub.getSnapshot({ ...room, creationId: 'pictionary-media-bot-control' });
   if (snapshot === null) throw new Error('Pictionary test room is missing');
   return PICTIONARY_STATE_CODEC.parse(snapshot.state);
+}
+
+async function restoreLegacyAbortedRound(room: RoomIdentity): Promise<PictionaryState> {
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
+  const snapshot = await stub.getSnapshot({ ...room, creationId: 'pictionary-media-bot-control' });
+  if (snapshot === null) throw new Error('Pictionary test room is missing');
+  const current = PICTIONARY_STATE_CODEC.parse(snapshot.state);
+  const aborted = pictionaryEngine.normalize(
+    pictionaryEngine.evolve(current, { type: 'pictionary.round.aborted' }),
+  );
+  await runInDurableObject(stub, async (_instance: GameRoomRuntime, durableState) => {
+    durableState.storage.sql.exec(
+      'UPDATE room_state SET game_state = ? WHERE id = 1',
+      JSON.stringify(aborted),
+    );
+  });
+  return aborted;
 }
 
 function createTestPng(): Uint8Array<ArrayBuffer> {
@@ -448,7 +466,7 @@ describe('Pictionary spectator media', () => {
     const get = () =>
       SELF.fetch(readUrl, { headers: { Authorization: `Bearer ${viewer.access_token}` } });
     expect((await get()).status).toBe(403);
-    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
+    await restoreLegacyAbortedRound(room);
     const read = await get();
     expect(read.status).toBe(200);
     expect(await read.json()).toEqual(replay);
@@ -528,7 +546,7 @@ describe('Pictionary spectator media', () => {
       2,
     );
     const aborted = requireReservation(state, 2);
-    state = await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
+    state = await restoreLegacyAbortedRound(room);
     expect(state.phase).toBe('aborted');
     expect(state.reservations).toHaveLength(0);
     expect((await putDrawing(room, host.access_token, aborted, '2')).status).toBe(409);
@@ -542,12 +560,7 @@ describe('Pictionary spectator media', () => {
 
   it('answers 410 for a filed drawing whose stored object has expired', async () => {
     const { host, room, state, mediaUrl } = await setupRoomToAnswering();
-    const aborted = await dispatchCommand(
-      room,
-      host.access_token,
-      { type: 'pictionary.game.abort' },
-      null,
-    );
+    const aborted = await restoreLegacyAbortedRound(room);
     expect(aborted.phase).toBe('aborted');
     const entry = state.chains
       .flatMap((chain) => chain.entries)

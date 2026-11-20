@@ -446,6 +446,8 @@ export const TESTIDS = {
   // ShareReviewModal (werewolf: grant seats access to the review)
   shareReviewButton: 'share-review-button',
   shareReviewModal: 'share-review-modal',
+  shareReviewSeat: (seat: number) => `share-review-seat-${seat}`,
+  shareReviewConfirmButton: 'share-review-confirm-button',
 
   // QRCodeModal
   qrCodeModal: 'qr-code-modal',

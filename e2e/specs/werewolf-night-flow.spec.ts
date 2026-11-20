@@ -76,6 +76,11 @@ test.describe('Werewolf Night — Flow Verification', () => {
       const wolfPage = pages[wolfIdx]!;
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
+      const hostSeat = roleMap.get(0)!.seat;
+      const reviewRecipient = [...roleMap.values()].find((role) => role.seat !== hostSeat);
+      if (reviewRecipient === undefined) {
+        throw new Error('Expected a non-host player to authorize for the review');
+      }
 
       // Wait for the wolf's step itself, settled: the room step flips
       // to wolfKill when the wolf's turn starts, and the settle waits
@@ -129,10 +134,23 @@ test.describe('Werewolf Night — Flow Verification', () => {
           testInfo.attach('2p-death-result.png', { body: buf, contentType: 'image/png' }),
         );
 
+      await test.step('host grants the review to the other player', async () => {
+        await dismissAlert(hostPage);
+        await new RoomPage(hostPage).clickHostManagementAction(TESTIDS.shareReviewButton);
+        const shareModal = hostPage.getByTestId(TESTIDS.shareReviewModal);
+        await expect(shareModal).toBeVisible();
+        const recipientOption = shareModal.getByTestId(
+          TESTIDS.shareReviewSeat(reviewRecipient.seat),
+        );
+        await recipientOption.click();
+        await expect(recipientOption).toHaveAttribute('aria-checked', 'true');
+        await shareModal.getByTestId(TESTIDS.shareReviewConfirmButton).click();
+        await expect(shareModal).toHaveCount(0);
+      });
+
       await test.step('host opens the night review and exports the report image', async () => {
         // The night report is the room's review （本局复盘）: the host opens it from host
         // management, passes the spoiler confirmation, and shares it from the dialog itself.
-        await dismissAlert(hostPage);
         await new RoomPage(hostPage).clickHostManagementAction(TESTIDS.roomReviewHostAction);
         await pressAlertButton(hostPage, {
           title: '查看本局复盘？',

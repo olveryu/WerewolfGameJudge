@@ -436,11 +436,8 @@ describe('Pictionary relay-chain contract', () => {
     expect(revision()).toBe(afterStart + 2);
     session.expireCurrentPhase();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'pictionary.game.abort' });
+    session.send({ type: 'pictionary.game.restart' });
     expect(revision()).toBe(afterStart + 4);
-    expect(session.state.phase).toBe('aborted');
-    session.send({ type: 'pictionary.game.returnToLobby' });
-    expect(revision()).toBe(afterStart + 5);
     expect(session.state.phase).toBe('lobby');
   });
 

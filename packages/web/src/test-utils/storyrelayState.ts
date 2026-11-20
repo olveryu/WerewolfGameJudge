@@ -119,7 +119,9 @@ export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryR
   };
   for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
     if (round.abortAtStep === stepIndex) {
-      asSeat({ type: 'storyrelay.game.abort', phaseRevision: read().phaseRevision }, 0);
+      state = storyRelayEngine.normalize(
+        storyRelayEngine.evolve(state, { type: 'storyrelay.round.aborted', abortedAt: nowMs }),
+      );
       return read();
     }
     if (isStopAt(stepIndex, 'answering')) return read();
