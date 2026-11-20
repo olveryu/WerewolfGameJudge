@@ -34,7 +34,7 @@ import {
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/roster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, type RenderResult, waitFor } from '@testing-library/react';
+import { act, render, type RenderResult, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { Mock } from 'vitest';
@@ -53,6 +53,7 @@ import {
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import type { DialogEvent, RoomScreenTestHarness } from './RoomScreenTestHarness';
 import { TEST_USER_ID } from './testAuthContext';
@@ -528,6 +529,12 @@ export async function submitSeatSelection(view: RenderResult): Promise<void> {
   const button = seatSelectionSubmitButton(view);
   expect(button).toBeEnabled();
   await click(button);
+  const alert = alertStore.getSnapshot();
+  if (alert === null || alert.buttons[1]?.onPress === undefined) {
+    throw new Error('[TEST] Missing seat selection confirmation');
+  }
+  await act(async () => alert.buttons[1]?.onPress?.());
+  dismissAlert(alert.generation);
 }
 
 /** Enter selection mode and verify that tapping a target creates a submittable draft. */
@@ -794,7 +801,7 @@ export async function coverageChainConfirmTrigger(
   );
 
   const bottomActionText = requireBottomActionText(schemaId, 'confirmTrigger coverage');
-  await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+  await waitFor(() => harness.expectInlineStatus('actionPrompt'));
   await pressText(view, bottomActionText);
   await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
   await harness.pressPrimaryOnType('confirmTrigger');
@@ -847,7 +854,7 @@ export async function coverageChainActionPrompt(
       mySeat: seat,
     }),
   );
-  await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+  await waitFor(() => harness.expectInlineStatus('actionPrompt'));
   view.unmount();
 }
 
@@ -864,11 +871,14 @@ export async function coverageChainWitchSavePrompt(
       witchContext: { killedSeat: seat === 1 ? 0 : 1, canSave: true, canPoison: true },
     }),
   );
-  await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+  await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
   view.unmount();
 }
 
-export async function coverageChainWitchPoisonSelection(seat: number): Promise<void> {
+export async function coverageChainWitchPoisonSelection(
+  harness: RoomScreenTestHarness,
+  seat: number,
+): Promise<void> {
   const view = await mountWerewolfRoom(
     createWerewolfRoomMock({
       schemaId: 'witchAction',
@@ -879,6 +889,7 @@ export async function coverageChainWitchPoisonSelection(seat: number): Promise<v
     }),
   );
 
+  await waitFor(() => harness.expectInlineStatus('witchNoKill'));
   await draftSeatSelection(view, seat === 1 ? 0 : 1);
   view.unmount();
 }

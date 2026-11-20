@@ -256,14 +256,9 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         // Wait for witch's turn — she was targeted, should see self-save rejection
         await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
 
-        // Read the prompt — should mention "无法自救"
-        const alertText = await readAlertText(
-          pages[witchIdx]!,
-          10_000,
-          '女巫请行动（可救人、用毒或点「不用技能」跳过）',
-        );
-        expect(alertText).toContain('无法自救');
-        await dismissAlert(pages[witchIdx]!);
+        // The self-save restriction is visible without an interrupting prompt.
+        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('无法自救');
+        await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
         // Witch skips (no save, no poison)
         await clickNightButton(pages[witchIdx]!, 'skip', '不用技能');

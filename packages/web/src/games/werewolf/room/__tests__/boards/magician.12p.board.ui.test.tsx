@@ -68,7 +68,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -82,19 +82,19 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('confirmTrigger coverage', () => {
     it('darkWolfKing confirm: shows confirm trigger', async () => {
       await mount(actorStep('darkWolfKingConfirm', 'darkWolfKing', 7));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
 
     it('hunter confirm: shows confirm trigger', async () => {
       await mount(confirmStep('hunterConfirm', 'hunter', 10, { role: 'hunter', canShoot: true }));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt', async () => {
       await mount(witchStep(9, 1));
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
     });
   });
 
@@ -123,7 +123,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         'aria-pressed',
         'true',
       );
-      expect(view.getByTestId(TESTIDS.seatProgress(1))).toHaveTextContent('已选');
+      expect(view.queryByTestId(TESTIDS.seatProgress(1))).not.toBeInTheDocument();
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
       expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
     });
@@ -153,7 +153,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(9, -1));
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
     });
   });
 
@@ -211,7 +211,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 9);
 
       // Step 5: witch poison selection
-      await coverageChainWitchPoisonSelection(9);
+      await coverageChainWitchPoisonSelection(harness, 9);
 
       // Step 6: magicianSwap → draft two targets → submit
       const { submitAction: magicianSubmit } = await coverageChainMagicianSwap(11, 1, 2);

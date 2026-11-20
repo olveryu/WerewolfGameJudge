@@ -506,6 +506,7 @@ export function renderActionerMessage(
 ): string | null {
   const hint = viewModel.night.actorHint;
   if (hint?.bottomAction === 'skipOnly' || hint?.bottomAction === 'wolfEmptyOnly') {
+    if (model.kind === 'skipOnly') return model.prompt.text;
     if (model.kind === 'wolfVote' && model.countdownText !== null) {
       return renderNightMessage([hint.message, model.statusLine]);
     }
@@ -530,11 +531,14 @@ export function renderActionerMessage(
     case 'witch': {
       const schema = requireActionSchema(viewModel, model.kind);
       const prompt = requireSchemaText(schema, 'prompt', schema.ui?.prompt);
-      if (model.killedSeat === null || model.killedSeat !== viewModel.mySeat) return prompt;
+      if (model.killedSeat === null)
+        return renderNightMessage([model.prompt.title, model.prompt.text]);
+      if (model.killedSeat !== viewModel.mySeat)
+        return renderNightMessage([model.prompt.text, prompt]);
       const selfSaveMessage = model.canSave
         ? '你被狼人袭击，可以使用解药自救。'
         : '你被狼人袭击，本局规则不允许自救。';
-      return renderNightMessage([selfSaveMessage, prompt]);
+      return renderNightMessage([selfSaveMessage, model.prompt.text, prompt]);
     }
     case 'pickSeat':
     case 'pickTwoSeats':
@@ -543,10 +547,7 @@ export function renderActionerMessage(
     case 'chooseCard':
     case 'skipOnly':
     case 'ackGroupReveal': {
-      // The bottom line is the step's plain prompt; dialogs carry the
-      // personalized text (witch info, group reveal, hint overrides).
-      const schema = requireActionSchema(viewModel, model.kind);
-      return requireSchemaText(schema, 'prompt', schema.ui?.prompt);
+      return model.prompt.text;
     }
   }
 }

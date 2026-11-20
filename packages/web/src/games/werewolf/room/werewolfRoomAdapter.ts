@@ -247,7 +247,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
                 markers: [],
                 progressLabel: null,
                 selection: isSelected
-                  ? { kind: 'selected', label: '已选' }
+                  ? { kind: 'selected', label: null }
                   : { kind: 'available', label: null },
               }
             : null,
@@ -466,10 +466,40 @@ function isPendingSingleNightAction(
 }
 
 function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): RoomBottomButton {
+  const icon = ((): RoomBottomButton['icon'] => {
+    switch (spec.action.kind) {
+      case 'submitSeatSelection':
+        return 'checkmark-outline';
+      case 'cancelSeatSelection':
+      case 'closeActionGroup':
+        return 'arrow-back';
+      case 'startSeatSelection':
+        return 'locate-outline';
+      case 'skip':
+        return 'play-forward-outline';
+      case 'emptyVote':
+        return 'close-circle-outline';
+      case 'withdrawVote':
+        return 'arrow-undo-outline';
+      case 'save':
+        return 'flask-outline';
+      case 'openStatus':
+        return 'information-circle-outline';
+      case 'openGroupReveal':
+        return 'people-outline';
+      case 'openHunterStatus':
+        return 'shield-outline';
+      case 'openChooseCard':
+        return 'albums-outline';
+      case 'openActionGroup':
+        return 'sparkles-outline';
+    }
+  })();
   const base = {
     key: spec.key,
     label: spec.label,
     audience: 'participant' as const,
+    icon,
     variant: spec.tier,
     size: 'md' as const,
     testID: TESTIDS.werewolfNightButton(spec.key),
@@ -481,11 +511,6 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
     ...(spec.containedActionTestIDs === undefined
       ? {}
       : { containedActionTestIDs: spec.containedActionTestIDs }),
-    ...(spec.action.kind === 'submitSeatSelection'
-      ? { icon: 'checkmark-outline' as const }
-      : spec.action.kind === 'cancelSeatSelection' || spec.action.kind === 'closeActionGroup'
-        ? { icon: 'arrow-back' as const }
-        : {}),
   };
   if (input.isActionSubmitting) {
     return { ...base, isEnabled: false, disabledReason: ACTION_SUBMITTING_REASON };

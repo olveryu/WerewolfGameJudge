@@ -37,6 +37,7 @@ import IconBookOutline from '~icons/ion/book-outline';
 import IconConstructOutline from '~icons/ion/construct-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
 import IconHandLeftOutline from '~icons/ion/hand-left-outline';
+import IconOptionsOutline from '~icons/ion/options-outline';
 
 import { RoomActionHand } from './RoomActionHand';
 import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
@@ -319,7 +320,7 @@ function PlayerHand({
             onClick={configurationEntry.onOpen}
             aria-haspopup="dialog"
           >
-            <IconBookOutline aria-hidden />
+            <IconOptionsOutline aria-hidden />
             <span>本局配置</span>
           </Button>
         )}
@@ -492,7 +493,7 @@ function RoomBottomActionPanelComponent({
                 data-testid={entry.testId}
                 onClick={entry.onOpen}
               >
-                <IconBookOutline aria-hidden />
+                {entry.icon ?? <IconBookOutline aria-hidden />}
                 <span>{entry.label}</span>
               </Button>
             ))}

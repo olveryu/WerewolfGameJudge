@@ -40,6 +40,10 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
+import IconBulbOutline from '~icons/ion/bulb-outline';
+import IconCreateOutline from '~icons/ion/create-outline';
+import IconDocumentTextOutline from '~icons/ion/document-text-outline';
+import IconEyeOutline from '~icons/ion/eye-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
@@ -187,12 +191,17 @@ function WerewolfRoomContent(
       mainEntries={
         isSetup
           ? [
-              { label: nominationLabel, onOpen: () => setNominationEditorTitle(nominationLabel) },
+              {
+                label: nominationLabel,
+                icon: <IconCreateOutline aria-hidden />,
+                onOpen: () => setNominationEditorTitle(nominationLabel),
+              },
               ...(nominationCount === 0
                 ? []
                 : [
                     {
                       label: `查看建议 (${nominationCount})`,
+                      icon: <IconEyeOutline aria-hidden />,
                       onOpen: () => setIsNominationListOpen(true),
                     },
                   ]),
@@ -207,8 +216,22 @@ function WerewolfRoomContent(
         },
         ...(matchedStrategyName === null
           ? []
-          : [{ label: '攻略', onOpen: () => setStrategyBoardName(matchedStrategyName) }]),
-        ...(canOpenNotepad ? [{ label: '笔记', onOpen: () => setIsNotepadOpen(true) }] : []),
+          : [
+              {
+                label: '攻略',
+                icon: <IconBulbOutline aria-hidden />,
+                onOpen: () => setStrategyBoardName(matchedStrategyName),
+              },
+            ]),
+        ...(canOpenNotepad
+          ? [
+              {
+                label: '笔记',
+                icon: <IconDocumentTextOutline aria-hidden />,
+                onOpen: () => setIsNotepadOpen(true),
+              },
+            ]
+          : []),
       ]}
       configurationEntry={
         useConfigurationDialog && night.seatSelection === null

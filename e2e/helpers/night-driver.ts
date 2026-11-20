@@ -266,6 +266,10 @@ async function selectAndSubmitSeats(
     await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
     await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
+    await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
+      seats.map((seat) => `${seat + 1}号`).join('、'),
+    );
+    await pressConfirm(page);
     log(`seat selection submitted — step=${stepBefore} seats=${seats.join(',')}`);
   } catch (error) {
     return failNightAction(`Seat selection [${seats}] failed in ${stepBefore}`, [page], error);

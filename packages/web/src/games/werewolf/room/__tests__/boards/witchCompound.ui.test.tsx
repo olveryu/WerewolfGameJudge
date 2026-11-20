@@ -24,6 +24,7 @@ import {
   pressText,
   recordAlerts,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
   startSeatSelection,
   type SubmitActionMock,
   submitSeatSelection,
@@ -78,6 +79,7 @@ describe('Witch Compound Sequence', () => {
     );
     expect(view.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     await startSeatSelection(view);
+    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('2号被狼人袭击');
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '返回' })).toHaveFocus();
     await click(view.getByRole('button', { name: '返回' }));
@@ -85,21 +87,36 @@ describe('Witch Compound Sequence', () => {
   });
 
   // ===========================================================================
-  // Sequence: save prompt → dismiss → draft poison target → submit
+  // Sequence: save status → draft poison target → submit
   // ===========================================================================
 
-  describe('save prompt dismiss → poison flow', () => {
-    it('dismisses the save prompt, then drafts and submits a poison target', async () => {
+  describe('save status → poison flow', () => {
+    it('lets the witch cancel a poison confirmation without submitting', async () => {
+      const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
+      const view = await mount(
+        witchWith({ killedSeat: 1, canSave: true, canPoison: true }, submitAction),
+      );
+      await draftSeatSelection(view, 2);
+      await click(seatSelectionSubmitButton(view));
+      expect(harness.getLastEvent()?.message).toContain('3号');
+      expect(submitAction).not.toHaveBeenCalled();
+      await harness.pressButton('取消');
+      expect(submitAction).not.toHaveBeenCalled();
+      await submitSeatSelection(view);
+      expect(submitAction).toHaveBeenCalledExactlyOnceWith({
+        kind: 'witch',
+        saveTarget: null,
+        poisonTarget: 2,
+      });
+    });
+
+    it('shows the save status, then drafts and submits a poison target', async () => {
       const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
       const view = await mount(
         witchWith({ killedSeat: 1, canSave: true, canPoison: true }, submitAction),
       );
 
-      // Step 1: witchSavePrompt auto-triggers
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
-
-      // Step 2: dismiss the save prompt
-      await harness.pressPrimaryOnType('witchSavePrompt');
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
 
       await openNightActionGroup(view);
       const startId = TESTIDS.werewolfNightButton('startSeatSelection');
@@ -118,23 +135,17 @@ describe('Witch Compound Sequence', () => {
   });
 
   // ===========================================================================
-  // Sequence: no-kill info → dismiss → skip all → skipConfirm → submit
+  // Sequence: no-kill status → skip all → skipConfirm → submit
   // ===========================================================================
 
-  describe('save prompt dismiss → skip all flow', () => {
-    it('save prompt appears, dismiss, then pressing skip triggers skipConfirm', async () => {
+  describe('no-kill status → skip all flow', () => {
+    it('shows no-kill status, then pressing skip triggers skipConfirm', async () => {
       const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
       const view = await mount(
         witchWith({ killedSeat: -1, canSave: false, canPoison: true }, submitAction),
       );
 
-      // Step 1: witchNoKill info prompt auto-triggers
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
-
-      // Step 2: dismiss the info prompt
-      await harness.pressPrimaryOnType('witchNoKill');
-
-      // Step 3: press the skip button
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
       await pressText(view, poisonSkipText);
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
@@ -158,11 +169,7 @@ describe('Witch Compound Sequence', () => {
         witchWith({ killedSeat: -1, canSave: false, canPoison: false }, submitAction),
       );
 
-      // witchNoKill should auto-trigger
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
-
-      // Dismiss and press skip
-      await harness.pressPrimaryOnType('witchNoKill');
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
       await pressText(view, poisonSkipText);
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
