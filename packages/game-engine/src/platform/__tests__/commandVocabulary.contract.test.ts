@@ -64,38 +64,13 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
   undercover: [
     'undercover.roles.assign',
     'undercover.game.begin',
-    'undercover.game.redeal',
     'undercover.game.restart',
-    'undercover.game.returnToLobby',
-    'undercover.game.abort',
     'undercover.role.viewed',
   ],
-  pictionary: [
-    'pictionary.game.begin',
-    'pictionary.game.next',
-    'pictionary.game.restart',
-    'pictionary.game.returnToLobby',
-    'pictionary.game.abort',
-  ],
-  storyrelay: [
-    'storyrelay.game.begin',
-    'storyrelay.game.next',
-    'storyrelay.game.restart',
-    'storyrelay.game.returnToLobby',
-    'storyrelay.game.abort',
-  ],
-  drawguess: [
-    'drawguess.game.begin',
-    'drawguess.game.abort',
-    'drawguess.game.restart',
-    'drawguess.game.returnToLobby',
-  ],
-  spotmatch: [
-    'spotmatch.game.begin',
-    'spotmatch.game.abort',
-    'spotmatch.game.restart',
-    'spotmatch.game.returnToLobby',
-  ],
+  pictionary: ['pictionary.game.begin', 'pictionary.game.restart'],
+  storyrelay: ['storyrelay.game.begin', 'storyrelay.game.restart'],
+  drawguess: ['drawguess.game.begin', 'drawguess.game.restart'],
+  spotmatch: ['spotmatch.game.begin', 'spotmatch.game.restart'],
 };
 
 function commandLiterals(game: GameId): string[] {

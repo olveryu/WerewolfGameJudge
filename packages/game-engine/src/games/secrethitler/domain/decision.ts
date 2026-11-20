@@ -64,6 +64,7 @@ export type SecrethitlerEvent =
       readonly patch: Partial<SecrethitlerGameplayPatch>;
     }
   | { readonly type: 'secrethitler.role.viewed'; readonly seat: number }
+  | { readonly type: 'secrethitler.review.completed'; readonly userId: string }
   | {
       readonly type: 'secrethitler.audio.queued';
       readonly effects: readonly AudioEffect[];

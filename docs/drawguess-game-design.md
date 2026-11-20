@@ -145,7 +145,7 @@ drawerGain（一次猜中即时加）= 首个猜中者：round(该猜中者得�
 - 作画不许写字、数字（Gartic 规则）。画布工具不提供文字工具（沿用接龙版约束），属房间规则页明示的房间规则。
 - 沿用仓库「同桌面信任模型」：不做笔画内容的自动检测与判罚。
 - 不提供画手提前结束本轮的操作，作画统一等倒计时结束。
-- 房主可在主持管理中确认「中止本局」（`drawguess.game.abort`），直接返回大厅；清除本局画作、猜词记录和比分，保留座位、设置及对局序号，不发完成奖励。
+- 房主可在主持管理中确认「重新开始」（`drawguess.game.restart`），返回准备阶段；清除本局画作、猜词记录和比分，保留座位、设置及对局序号，未完成的局不发完成奖励。
 
 ### 3.6 鲜花、鸡蛋、番茄与个人统计
 
@@ -360,19 +360,18 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 ### 7.1 Public commands
 
-| 命令                           | 发送方                                     | 阶段                                  | 说明                                                               |
-| ------------------------------ | ------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------ |
-| `drawguess.config.update`      | 房主                                       | `lobby`                               | 修改配置（人数）                                                   |
-| `drawguess.game.begin`         | 房主                                       | `lobby` / `ended`                     | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
-| `drawguess.word.choose`        | 画手（或接管人）                           | `wordSelect`                          | 从 3 个候选中选定题目，生成 `revealOrder`                          |
-| `drawguess.stroke.add`         | 画手（或接管人）                           | `drawing`                             | 整笔提交（客户端 `onElementComplete` 触发）                        |
-| `drawguess.stroke.undo`        | 画手（或接管人）                           | `drawing`                             | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
-| `drawguess.stroke.clear`       | 画手（或接管人）                           | `drawing`                             | 清空画布（客户端二次确认）                                         |
-| `drawguess.guess.submit`       | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`                             | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
-| `drawguess.reaction.send`      | 已入座的非画手玩家（或接管人）             | `drawing` / `roundEnd`                | 向当轮画手送鲜花、鸡蛋或番茄；每座位每回合一次，不影响比分         |
-| `drawguess.drawing.reserve`    | 画手                                       | `roundEnd`                            | 获取终稿 PNG 的一次性 `submissionId`                               |
-| `drawguess.game.abort`         | 房主                                       | `wordSelect` / `drawing` / `roundEnd` | 中止整局并清除本局数据，保留座位和设置返回大厅，不发完成奖励       |
-| `drawguess.game.returnToLobby` | 房主                                       | `ended`                               | 返回大厅                                                           |
+| 命令                        | 发送方                                     | 阶段                   | 说明                                                               |
+| --------------------------- | ------------------------------------------ | ---------------------- | ------------------------------------------------------------------ |
+| `drawguess.config.update`   | 房主                                       | `lobby`                | 修改配置（人数）                                                   |
+| `drawguess.game.begin`      | 房主                                       | `lobby` / `ended`      | 开始游戏：生成画手队列、清零比分；`ended` 时为再来一局             |
+| `drawguess.word.choose`     | 画手（或接管人）                           | `wordSelect`           | 从 3 个候选中选定题目，生成 `revealOrder`                          |
+| `drawguess.stroke.add`      | 画手（或接管人）                           | `drawing`              | 整笔提交（客户端 `onElementComplete` 触发）                        |
+| `drawguess.stroke.undo`     | 画手（或接管人）                           | `drawing`              | 撤销最后一笔（广播，否则画面分叉）；V1 无重做                      |
+| `drawguess.stroke.clear`    | 画手（或接管人）                           | `drawing`              | 清空画布（客户端二次确认）                                         |
+| `drawguess.guess.submit`    | 已入座的非画手、未锁定猜题者（或其接管人） | `drawing`              | 提交猜词；客户端节流 1 次/2 秒，服务端 per-seat 速率限制（见 §13） |
+| `drawguess.reaction.send`   | 已入座的非画手玩家（或接管人）             | `drawing` / `roundEnd` | 向当轮画手送鲜花、鸡蛋或番茄；每座位每回合一次，不影响比分         |
+| `drawguess.drawing.reserve` | 画手                                       | `roundEnd`             | 获取终稿 PNG 的一次性 `submissionId`                               |
+| `drawguess.game.restart`    | 房主                                       | 进行中或 `ended`       | 清除本局数据，保留座位和设置返回准备阶段，未完成的局不发完成奖励   |
 
 共享入座、离座、踢人和房间操作继续使用平台命令，不复制 DrawGuess 版本。
 

@@ -112,6 +112,12 @@ export function normalizeUndercoverState(state: UndercoverState): UndercoverStat
   }
   assertSeats(state);
   if (
+    new Set(state.reviewCompletedUserIds).size !== state.reviewCompletedUserIds.length ||
+    state.reviewCompletedUserIds.some((userId) => userId.trim().length === 0) ||
+    (state.phase !== 'ended' && state.reviewCompletedUserIds.length !== 0)
+  )
+    throw new Error('Invalid Undercover review completion');
+  if (
     new Set(state.usedWordPairIds).size !== state.usedWordPairIds.length ||
     state.usedWordPairIds.some((id) => id.length === 0)
   )

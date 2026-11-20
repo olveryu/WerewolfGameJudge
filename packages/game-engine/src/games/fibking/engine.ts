@@ -29,7 +29,8 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../platform/room/preparation';
-import { getHumanSeatMap } from '../../platform/room/seating';
+import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
+import { findRosterSeatByUserId, getHumanSeatMap } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
 import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
@@ -410,6 +411,7 @@ function createInitialFibState(config: FibConfig, context: CreateGameContext): F
     numberOfPlayers: config.numberOfPlayers,
     roster: {},
     usedWords: [],
+    reviewCompletedUserIds: [],
     phase: 'lobby',
     pendingRound: null,
     preparationFailure: null,
@@ -449,6 +451,24 @@ export function decideFibCommand(
       return decideFibRoom(state, command, context);
     case 'fibking.game.restart':
       return decideRestartFibGame(state, command, context);
+    case 'fibking.review.complete': {
+      const completion = resolveReviewCompletion({
+        context,
+        isEnded: state.phase === 'ended',
+        currentIdentity: state.round?.roundId ?? '',
+        expectedIdentity: command.roundId,
+        completedUserIds: state.reviewCompletedUserIds,
+        isEligible: (userId) =>
+          userId === state.hostUserId ||
+          findRosterSeatByUserId(state.roster, state.numberOfPlayers, userId) !== null,
+      });
+      if (completion.kind === 'reject') return reject(REASON_FIB_ROUND_MISMATCH);
+      return commitFib(
+        completion.kind === 'complete'
+          ? [{ type: 'fibking.review.completed', userId: completion.userId }]
+          : [],
+      );
+    }
     case 'fibking.roles.assign':
       return decideStartFibRound(state, context);
     case 'fibking.round.reveal':

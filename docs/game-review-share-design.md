@@ -279,7 +279,7 @@ readonly turnHistory: readonly DrawGuessTurnRecord[];
 readonly guessedSeats: readonly number[];
 ```
 
-- `evolve`：`drawguess.turn.started`（关闭上一轮 `roundEnd` 时）与 `drawguess.game.ended` 把当前 `roundEnd` 快照 push 进 `turnHistory`；`drawguess.game.started`（开局、再来一局）与 `drawguess.game.returnedToLobby`（`drawguess.game.abort` 中止整局与 `drawguess.game.returnToLobby` 返回大厅共用此事件）清空。
+- `evolve`：`drawguess.turn.started`（关闭上一轮 `roundEnd` 时）与 `drawguess.game.ended` 把当前 `roundEnd` 快照 push 进 `turnHistory`；`drawguess.game.started` 和 `drawguess.game.returnedToLobby`（统一重开时产生）清空。
 - `DRAWGUESS_STATE_VERSION` v3 → v4，`migratePersistedDrawGuessState` 为 v3 持久化状态显式迁移 `turnHistory: []`，并为进行中的 `roundEnd` 按 `roundScores` 重建 `guessedSeats`；v1/v2 经同一链路升到 v4（正式 migration，不是运行时 fallback）。
 - `visibility`：`turnHistory` 公开（终局身份、题目全公开），`DrawGuessViewModel.turnHistory` 对所有观看者原样投影。客户端从 `@game-judge/game-engine/games/drawguess/public` 引入 `DrawGuessTurnRecord`。
 

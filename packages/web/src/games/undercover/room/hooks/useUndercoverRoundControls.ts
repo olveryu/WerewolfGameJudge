@@ -162,8 +162,12 @@ export function useUndercoverRoundControls({
       '仅下一局允许重复词对？',
       '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
       async () => {
-        if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
-          await submit('分配角色', { type: 'undercover.roles.assign', shouldAllowRepeated: true });
+        if (state.phase !== 'preparationFailed' || state.failureCode !== 'inventoryExhausted')
+          throw new Error('Allowing repeated words requires exhausted inventory');
+        await submit('允许重复词对', {
+          type: 'undercover.round.allowRepeated',
+          roundId: state.pendingRound.roundId,
+        });
       },
     );
   return {

@@ -189,9 +189,9 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
       return session.state;
     }
     case 'aborted':
-      session.dispatch({ type: 'pictionary.game.abort' });
-      if (session.state.phase !== 'aborted') throw new Error('expected aborted');
-      return session.state;
+      return pictionaryEngine.normalize(
+        pictionaryEngine.evolve(session.state, { type: 'pictionary.round.aborted' }),
+      );
     default:
       throw new Error(`unhandled phase ${phase}`);
   }

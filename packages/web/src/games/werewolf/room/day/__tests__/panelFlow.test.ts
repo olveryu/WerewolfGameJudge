@@ -52,17 +52,27 @@ describe('resolvePanelFlowCurrentStep', () => {
       'grantReview',
     );
   });
+
+  it('keeps a completed review complete when access is revoked and restored', () => {
+    const completed = { ...INFO_CONFIRMED, reviewCompleted: true };
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, completed, true))).toBeNull();
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, completed))).toBe('grantReview');
+    expect(
+      buildPanelFlowSteps(flow(GameStatus.Ended, completed))?.map((step) => step.state),
+    ).toEqual(['complete', 'current', 'complete']);
+    expect(resolvePanelFlowCurrentStep(flow(GameStatus.Ended, completed, true))).toBeNull();
+  });
 });
 
 describe('buildPanelFlowSteps', () => {
   it('shows the Day guidance steps in order', () => {
     const steps = buildPanelFlowSteps(flow(GameStatus.Day, EMPTY_PANEL_FLOW_PROGRESS));
-    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '收尾']);
+    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '本局复盘']);
   });
 
   it('keeps the Ended grant step between last-night info and closing', () => {
     const steps = buildPanelFlowSteps(flow(GameStatus.Ended, INFO_CONFIRMED));
-    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '收尾']);
+    expect(steps?.map((step) => step.label)).toEqual(['昨夜信息', '授权', '本局复盘']);
     expect(steps?.map((step) => step.state)).toEqual(['complete', 'current', 'upcoming']);
     expect(steps?.map((step) => step.actionKey)).toEqual([
       PANEL_FLOW_ACTION_KEYS.lastNightInfo,

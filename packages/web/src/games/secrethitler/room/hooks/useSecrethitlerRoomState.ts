@@ -170,6 +170,10 @@ export function useSecrethitlerRoomState(
     onResumed: bgm.startBgmIfEnabled,
   });
   // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
+  const hasPendingReview =
+    state.phase.kind === 'ended' &&
+    (isHost || mySeat !== null) &&
+    !state.reviewCompletedUserIds.includes(user.id);
   const review = useRoomReview({
     contribution: props.review,
     state,
@@ -177,6 +181,15 @@ export function useSecrethitlerRoomState(
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
+    isPending: hasPendingReview,
+    onClosed: hasPendingReview
+      ? () => {
+          void submit('确认复盘', {
+            type: 'secrethitler.review.complete',
+            gameSequence: state.gameSequence,
+          });
+        }
+      : null,
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,

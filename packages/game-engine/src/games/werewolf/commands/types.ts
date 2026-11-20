@@ -61,6 +61,7 @@ type WerewolfGameCommand =
     }
   | { readonly type: 'werewolf.review.share'; readonly allowedSeats: readonly number[] }
   | { readonly type: 'werewolf.lastNightInfo.confirm'; readonly gameSequence: number }
+  | { readonly type: 'werewolf.review.complete'; readonly gameSequence: number }
   | {
       readonly type: 'werewolf.board.nominate';
       readonly displayName: string;

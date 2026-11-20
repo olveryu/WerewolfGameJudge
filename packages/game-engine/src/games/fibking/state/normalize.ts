@@ -137,6 +137,13 @@ export function normalizeFibState(state: FibState): FibState {
   }
   assertRoster(state);
   assertUsedWords(state);
+  if (
+    new Set(state.reviewCompletedUserIds).size !== state.reviewCompletedUserIds.length ||
+    state.reviewCompletedUserIds.some((userId) => userId.trim().length === 0) ||
+    (state.phase !== 'ended' && state.reviewCompletedUserIds.length !== 0)
+  ) {
+    throw new Error('Fib review completion must contain unique users only in an ended round');
+  }
 
   switch (state.phase) {
     case 'lobby':

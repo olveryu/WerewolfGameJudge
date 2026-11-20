@@ -40,6 +40,12 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     'phase revision',
   );
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
+  invariant(
+    new Set(state.reviewCompletedUserIds).size === state.reviewCompletedUserIds.length &&
+      state.reviewCompletedUserIds.every((userId) => userId.trim().length > 0) &&
+      (state.phase.kind === 'ended' || state.reviewCompletedUserIds.length === 0),
+    'review completion',
+  );
   const entries = Object.entries(state.roster);
   invariant(
     entries.every(

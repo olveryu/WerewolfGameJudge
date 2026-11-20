@@ -15,6 +15,7 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
+import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { isBotSeat, isRoomFull } from '../../platform/room/seating';
 import type { SecrethitlerCommand } from './commands/types';
 import {
@@ -39,6 +40,7 @@ import {
 import { decideSecrethitlerRoom } from './domain/seating';
 import { normalizeSecrethitlerState } from './state/normalize';
 import {
+  getSecrethitlerUserSeat,
   getSecrethitlerViewingParticipants,
   isValidSecrethitlerConfig,
   SECRETHITLER_GAME_TYPE,
@@ -64,6 +66,7 @@ function createInitialState(
     identities: {},
     roleViewedSeats: [],
     gameSequence: 0,
+    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -261,6 +264,23 @@ function decideCommand(
       return beginGame(state, context);
     case 'secrethitler.game.restart':
       return restartGame(state, command, context);
+    case 'secrethitler.review.complete': {
+      const completion = resolveReviewCompletion({
+        context,
+        isEnded: state.phase.kind === 'ended',
+        currentIdentity: state.gameSequence,
+        expectedIdentity: command.gameSequence,
+        completedUserIds: state.reviewCompletedUserIds,
+        isEligible: (userId) =>
+          userId === state.hostUserId || getSecrethitlerUserSeat(state, userId) !== null,
+      });
+      if (completion.kind === 'reject') return reject(SECRETHITLER_REASONS.phase);
+      return commitSecrethitler(
+        completion.kind === 'complete'
+          ? [{ type: 'secrethitler.review.completed', userId: completion.userId }]
+          : [],
+      );
+    }
     case 'secrethitler.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
     case 'secrethitler.bots.markAllBotsGroupConfirmed':

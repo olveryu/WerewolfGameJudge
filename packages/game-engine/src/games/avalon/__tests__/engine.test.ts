@@ -1662,6 +1662,28 @@ describe('Avalon engine', () => {
     expect(Object.keys(session.state.roles)).toHaveLength(0);
   });
 
+  it('records terminal review for each eligible user and clears it on restart', () => {
+    const session = game({ numberOfPlayers: 6 });
+    const command = { type: 'avalon.review.complete', gameSequence: 1 } as const;
+    session.expectReject(command, 'avalon_phase_invalid');
+    session.startGame();
+    session.passNight();
+    session.earlyStrike(session.seatOfRole('merlin'));
+    session.expectReject({ ...command, gameSequence: 0 }, 'avalon_phase_invalid');
+    session.expectReject(command, 'avalon_phase_invalid', 'spectator');
+    session.expectReject(command, 'avalon_phase_invalid', 'host', 1);
+    session.send(command, 'host');
+    session.send(command, 'u1');
+    session.send(command, 'u1');
+    expect(session.state.reviewCompletedUserIds).toEqual(['host', 'u1']);
+    expect(
+      parseAvalonState(JSON.parse(JSON.stringify(session.state))).reviewCompletedUserIds,
+    ).toEqual(['host', 'u1']);
+    session.send({ type: 'avalon.game.restart', gameSequence: 1, wasEnded: true });
+    expect(session.state.reviewCompletedUserIds).toEqual([]);
+    session.expectReject(command, 'avalon_phase_invalid');
+  });
+
   it('restarts on a changed roster after returning to the lobby', () => {
     const session = game({ numberOfPlayers: 6 });
     session.startGame();

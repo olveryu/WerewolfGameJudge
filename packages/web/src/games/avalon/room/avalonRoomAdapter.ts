@@ -450,6 +450,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: true,
           isEnabled: true,
           onPress: input.onNightInfoPress,
           testID: TESTIDS.avalonNightInfo,
@@ -527,6 +528,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: true,
               onPress: input.onPreselectTeamPress,
               testID: TESTIDS.avalonNominatePreselect,
@@ -538,6 +540,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
@@ -553,6 +556,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: true,
               onPress: input.onProposeTeamPress,
               testID: TESTIDS.avalonNominateSubmit,
@@ -564,6 +568,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
@@ -587,6 +592,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: instruction.myBallot === null,
           isEnabled: true,
           onPress: input.onOpenVotePress,
           testID: TESTIDS.avalonVoteOpen,
@@ -620,6 +626,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: instruction.myPlay === null,
           isEnabled: true,
           onPress: input.onOpenQuestPress,
           testID: TESTIDS.avalonQuestOpen,
@@ -657,6 +664,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
             audience: 'participant',
             variant: 'primary',
             size: 'md',
+            isPending: true,
             isEnabled: true,
             onPress: input.onLadyAcknowledgePress,
             testID: TESTIDS.avalonLadyAcknowledgeOpen,
@@ -764,7 +772,9 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostMan
       showDestructiveAlert(
         '重新开始？',
         state.phase.kind === 'ended'
-          ? '保留座位和配置，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          ? input.review?.isPending
+            ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
@@ -954,6 +964,7 @@ export function createAvalonHostManagement(
   if (state.phase.kind === 'ended') {
     return applyLock({
       task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
+      pendingActionKeys: input.review?.isPending ? [HOST_ACTION_KEYS.review] : [],
       sections: [
         {
           key: 'current-flow',
@@ -966,6 +977,7 @@ export function createAvalonHostManagement(
   // 局中投票 / 任务自动结算，房主无推进命令：此刻没有待操作。
   return applyLock({
     task: null,
+    pendingActionKeys: [],
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   });
 }

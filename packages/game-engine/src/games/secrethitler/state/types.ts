@@ -177,6 +177,7 @@ export interface SecrethitlerState extends BaseGameState<typeof SECRETHITLER_GAM
   readonly roleViewedSeats: readonly number[];
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
   readonly gameSequence: number;
+  readonly reviewCompletedUserIds: readonly string[];
   /** 终局结算 effect 恰好发出一次的标记。 */
   readonly xpSettled: boolean;
   /** 待播放的播报队列（共享 AudioEffect，音频 key 见各入队点）；房主播完提交 ack 后清空。 */

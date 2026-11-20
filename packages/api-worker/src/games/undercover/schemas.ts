@@ -38,12 +38,10 @@ const undercoverPublicCommandOptions = definePublicCommandOptions<UndercoverPubl
     config: undercoverCreateConfigSchema,
   }),
   z.strictObject({ type: z.literal('undercover.roles.assign'), shouldAllowRepeated: z.boolean() }),
-  z.strictObject({
-    type: z.literal('undercover.game.redeal'),
-    roundId: z.string().min(1).nullable(),
-  }),
   z.strictObject({ type: z.literal('undercover.round.retry'), roundId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('undercover.round.allowRepeated'), roundId: z.string().min(1) }),
   z.strictObject({ type: z.literal('undercover.role.viewed'), roundId: z.string().min(1) }),
+  z.strictObject({ type: z.literal('undercover.review.complete'), roundId: z.string().min(1) }),
   z.strictObject({ type: z.literal('undercover.game.begin'), roundId: z.string().min(1) }),
   z.strictObject({
     type: z.literal('undercover.bots.markAllBotsViewed'),
@@ -57,13 +55,11 @@ const undercoverPublicCommandOptions = definePublicCommandOptions<UndercoverPubl
       .min(0)
       .max(UNDERCOVER_MAX_PLAYERS - 1),
   }),
-  z.strictObject({ type: z.literal('undercover.game.abort'), roundId: z.string().min(1) }),
   z.strictObject({
     type: z.literal('undercover.game.restart'),
     roundId: z.string().min(1),
     wasEnded: z.boolean(),
   }),
-  z.strictObject({ type: z.literal('undercover.game.returnToLobby') }),
 ]);
 
 export const undercoverPublicCommandSchema: z.ZodType<UndercoverPublicCommand> =

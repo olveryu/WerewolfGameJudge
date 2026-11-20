@@ -363,6 +363,8 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   /** The host acknowledged last-night information for this game. */
   lastNightInfoConfirmed?: boolean;
+  /** Users who have closed the full terminal review in this game. */
+  reviewCompletedUserIds?: readonly string[];
 
   /** Previous night death reasons (seat -> cause) */
   deathReasons?: Readonly<Record<number, DeathReason>>;

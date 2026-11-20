@@ -196,7 +196,15 @@ describe('Story Relay engine', () => {
       expect(
         session.effects.filter((effect) => effect.type === 'storyrelay.game.completed'),
       ).toHaveLength(1);
-      session.send({ type: 'storyrelay.game.next' });
+      expect(
+        storyRelayEngine.decide(
+          session.state,
+          { type: 'storyrelay.game.begin' },
+          session.context(null),
+        ).kind,
+      ).toBe('reject');
+      session.send({ type: 'storyrelay.game.restart', phaseRevision: session.state.phaseRevision });
+      session.send({ type: 'storyrelay.game.begin' });
       expect(session.state).toMatchObject({ phase: 'answering', stepIndex: 0, completedAt: null });
       expect(session.state.chains.every((chain) => chain.entries.length === 0)).toBe(true);
     },
@@ -260,8 +268,8 @@ describe('Story Relay engine', () => {
       ).kind,
     ).toBe('reject');
     expect(getStoryRelayTaskForSeat(session.state, 0)!.previousEntry!.kind).toBe('empty');
-    session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
-    expect(session.state.phase).toBe('aborted');
+    session.send({ type: 'storyrelay.game.restart', phaseRevision: session.state.phaseRevision });
+    expect(session.state.phase).toBe('lobby');
     expect(
       session.effects.filter((effect) => effect.type === 'storyrelay.game.completed'),
     ).toHaveLength(0);

@@ -81,7 +81,7 @@ function completionEffect(state: SpotmatchState, context: CommandContext): Spotm
   };
 }
 
-/** Host starts the game (or restarts from ended) without a deadline. */
+/** Host starts a prepared game without a deadline. */
 function startGame(state: SpotmatchState, context: CommandContext): SpotmatchDecision {
   const hostRejection = requireHost<SpotmatchEvent, SpotmatchEffect>(
     context,
@@ -89,8 +89,7 @@ function startGame(state: SpotmatchState, context: CommandContext): SpotmatchDec
     SPOTMATCH_REASONS.notHostStart,
   );
   if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
-    return reject(SPOTMATCH_REASONS.phase);
+  if (state.phase.kind !== 'lobby') return reject(SPOTMATCH_REASONS.phase);
   if (!isRoomFull(state.roster, state.config.numberOfPlayers))
     return reject(SPOTMATCH_REASONS.full);
   const gameSequence = state.gameSequence + 1;
@@ -138,17 +137,6 @@ function startGame(state: SpotmatchState, context: CommandContext): SpotmatchDec
       },
     },
   ]);
-}
-
-function returnToLobby(state: SpotmatchState, context: CommandContext): SpotmatchDecision {
-  const hostRejection = requireHost<SpotmatchEvent, SpotmatchEffect>(
-    context,
-    state.hostUserId,
-    SPOTMATCH_REASONS.notHostReturnToLobby,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'ended') return reject(SPOTMATCH_REASONS.phase);
-  return commitSpotmatch([{ type: 'spotmatch.game.returnedToLobby' }]);
 }
 
 export function endSpotmatchGame(
@@ -278,20 +266,8 @@ function decideCommand(
       return decideSpotmatchRoom(state, command, context);
     case 'spotmatch.game.begin':
       return startGame(state, context);
-    case 'spotmatch.game.returnToLobby':
-      return returnToLobby(state, context);
     case 'spotmatch.card.claim':
       return claimCard(state, command, context);
-    case 'spotmatch.game.abort': {
-      const denied = requireHost<SpotmatchEvent, SpotmatchEffect>(
-        context,
-        state.hostUserId,
-        SPOTMATCH_REASONS.notHostReturnToLobby,
-      );
-      if (denied !== null) return denied;
-      if (state.phase.kind !== 'playing') return reject(SPOTMATCH_REASONS.phase);
-      return commitSpotmatch([{ type: 'spotmatch.game.returnedToLobby' }]);
-    }
     case 'spotmatch.game.restart': {
       const denied = requireHost<SpotmatchEvent, SpotmatchEffect>(
         context,

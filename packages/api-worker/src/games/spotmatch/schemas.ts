@@ -24,8 +24,6 @@ const spotmatchPublicCommandOptions = definePublicCommandOptions<SpotmatchPublic
     config: spotmatchConfigSchema,
   }),
   z.strictObject({ type: z.literal('spotmatch.game.begin') }),
-  z.strictObject({ type: z.literal('spotmatch.game.returnToLobby') }),
-  z.strictObject({ type: z.literal('spotmatch.game.abort') }),
   z.strictObject({
     type: z.literal('spotmatch.game.restart'),
     gameSequence: z.int().positive(),

@@ -50,6 +50,7 @@ function stateFor(phase: FibPhase): FibState {
       1: { userId: 'u1', seat: 1, profile: { displayName: 'P1' } },
     },
     usedWords: [],
+    reviewCompletedUserIds: [],
   };
   switch (phase) {
     case 'lobby':

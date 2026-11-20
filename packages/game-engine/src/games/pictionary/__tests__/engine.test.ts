@@ -160,7 +160,12 @@ describe('Pictionary engine', () => {
       })),
     });
 
-    send({ type: 'pictionary.game.returnToLobby' });
+    const context = session.context('user-0');
+    expect(
+      session.decideAs(bind(session.state, { type: 'pictionary.game.begin' }, context), context)
+        .kind,
+    ).toBe('reject');
+    send({ type: 'pictionary.game.restart' });
     expect(session.state.phase).toBe('lobby');
     expect(session.state.participants).toEqual([]);
   });

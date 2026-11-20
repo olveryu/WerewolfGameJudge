@@ -90,15 +90,10 @@ const publicCommandOptions = definePublicCommandOptions<DrawGuessPublicCommand>(
   z.strictObject({ type: z.literal('drawguess.config.update'), config: drawGuessConfigSchema }),
   z.strictObject({ type: z.literal('drawguess.game.begin') }),
   z.strictObject({
-    type: z.literal('drawguess.game.abort'),
-    gameSequence: z.int().nonnegative(),
-  }),
-  z.strictObject({
     type: z.literal('drawguess.game.restart'),
     gameSequence: z.int().nonnegative(),
     expectedPhase: z.enum(['playing', 'ended']),
   }),
-  z.strictObject({ type: z.literal('drawguess.game.returnToLobby') }),
   z.strictObject({ type: z.literal('drawguess.phase.retrySettle') }),
   z.strictObject({ type: z.literal('drawguess.drawing.reserve') }),
   z.strictObject({

@@ -12,6 +12,10 @@ import { act, renderHook } from '@testing-library/react';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
+import {
+  legacyAbortedUndercoverState,
+  playUndercoverTestRound,
+} from '@/test-utils/undercoverState';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
@@ -219,7 +223,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     }),
   );
   const capabilities = createUndercoverRoomCapabilities({
-    state: dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
+    state: legacyAbortedUndercoverState(state),
     isHost: true,
     mySeat: null,
     requestTakeSeat: vi.fn(),
@@ -233,10 +237,11 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     openProfile: vi.fn(),
     takeOverBots: createBotTakeoverCapability(true, vi.fn()),
   });
-  const lobby = dispatch(
-    dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
-    { type: 'undercover.game.returnToLobby' },
-  );
+  const lobby = dispatch(state, {
+    type: 'undercover.game.restart',
+    roundId: state.round!.roundId,
+    wasEnded: false,
+  });
   const empty = dispatch(lobby, { type: 'room.seat.clear' });
   const unseatedCapabilities = createUndercoverRoomCapabilities({
     state: empty,
@@ -399,7 +404,7 @@ it('restarts a confirmed round with its identity and completion boundary', async
     { type: 'undercover.game.restart', roundId: state.round.roundId, wasEnded: false },
     { controlledSeat: null, label: '重新开始', durable: false },
   );
-  const aborted = dispatch(state, { type: 'undercover.game.abort', roundId: state.round.roundId });
+  const aborted = legacyAbortedUndercoverState(state);
   rerender({ currentState: aborted });
   expect(
     createUndercoverBottomActions(
@@ -449,6 +454,45 @@ it('restarts a confirmed round with its identity and completion boundary', async
     await terminalConfirmation[3]();
   });
   expect(session.dispatch).toHaveBeenCalledTimes(2);
+});
+
+it('allows repeated words with one round-bound command after confirmation', async () => {
+  const preparing = playUndercoverTestRound('preparing');
+  if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+  const failed = dispatch(
+    preparing,
+    {
+      type: 'undercover.round.failPreparation',
+      roundId: preparing.pendingRound.roundId,
+      failureCode: 'inventoryExhausted',
+    },
+    true,
+  );
+  const session = {
+    dispatch: vi.fn().mockResolvedValue({ kind: 'committed', outcome: { kind: 'success' } }),
+  } as unknown as UndercoverRoomSession;
+  const { result } = renderHook(() =>
+    useUndercoverRoundControls({
+      state: failed,
+      userId: 'host',
+      controlledSeat: null,
+      submit: submitVia(session),
+      isSubmitting: false,
+    }),
+  );
+  vi.mocked(showConfirmAlert).mockClear();
+  act(() => result.current.allowRepeated());
+  expect(session.dispatch).not.toHaveBeenCalled();
+  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+  if (confirmation === undefined) throw new Error('Expected confirmation');
+  await act(async () => {
+    await confirmation[2]();
+  });
+  expect(session.dispatch).toHaveBeenCalledTimes(1);
+  expect(session.dispatch).toHaveBeenCalledWith(
+    { type: 'undercover.round.allowRepeated', roundId: preparing.pendingRound.roundId },
+    { controlledSeat: null, label: '允许重复词对', durable: false },
+  );
 });
 
 describe('createUndercoverBoardInfoSections', () => {
@@ -879,10 +923,7 @@ describe('createUndercoverHostManagement task body', () => {
 
   it('offers the review of an aborted round beside the return to the lobby', () => {
     const viewing = createViewingState();
-    const aborted = dispatch(viewing, {
-      type: 'undercover.game.abort',
-      roundId: viewing.round!.roundId,
-    });
+    const aborted = legacyAbortedUndercoverState(viewing);
     const { model } = buildFor(aborted);
     expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
     expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
@@ -894,10 +935,7 @@ describe('createUndercoverHostManagement task body', () => {
       shouldAllowRepeated: false,
     });
     if (preparing.phase !== 'preparing') throw new Error('expected a preparing state');
-    const aborted = dispatch(preparing, {
-      type: 'undercover.game.abort',
-      roundId: preparing.pendingRound.roundId,
-    });
+    const aborted = legacyAbortedUndercoverState(preparing);
     expect(aborted).toMatchObject({ phase: 'aborted', round: null });
     const { model } = buildFor(aborted);
     expect(model.task).toEqual({ kind: 'action', actionKey: 'restart' });
@@ -1050,10 +1088,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
 
   it('gives aborted players the conclusion plus the host wait', () => {
     const ongoing = createOngoingState();
-    const aborted = dispatch(ongoing, {
-      type: 'undercover.game.abort',
-      roundId: ongoing.round!.roundId,
-    });
+    const aborted = legacyAbortedUndercoverState(ongoing);
     expect(aborted.phase).toBe('aborted');
     expect(
       createUndercoverBottomActions(
@@ -1103,10 +1138,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     ).toMatchObject({ kind: 'stacked', layout: { primary: [], secondary: [], ghost: [] } });
 
     const ongoing = createOngoingState();
-    const aborted = dispatch(ongoing, {
-      type: 'undercover.game.abort',
-      roundId: ongoing.round!.roundId,
-    });
+    const aborted = legacyAbortedUndercoverState(ongoing);
     expect(
       createUndercoverBottomActions(
         idleControls,

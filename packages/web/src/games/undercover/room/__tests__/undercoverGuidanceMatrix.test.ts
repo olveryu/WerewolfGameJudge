@@ -12,6 +12,7 @@ import {
 
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
+import { legacyAbortedUndercoverState } from '@/test-utils/undercoverState';
 
 import { undercoverReview } from '../../review/undercoverReview';
 import type { UndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
@@ -116,10 +117,7 @@ function ongoingState(): UndercoverState {
 function abortedState(): UndercoverState {
   const viewing = viewingState();
   if (viewing.round === null) throw new Error('expected round');
-  const state = dispatch(viewing, {
-    type: 'undercover.game.abort',
-    roundId: viewing.round.roundId,
-  });
+  const state = legacyAbortedUndercoverState(viewing);
   if (state.phase !== 'aborted') throw new Error('expected aborted');
   return state;
 }

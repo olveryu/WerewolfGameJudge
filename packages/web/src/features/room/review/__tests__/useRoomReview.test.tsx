@@ -73,10 +73,14 @@ function capture(review: RoomReviewController) {
 function Harness({
   state,
   onOpened = null,
+  onClosed = null,
+  isPending = false,
   onRender = capture,
 }: {
   readonly state: TestState;
   readonly onOpened?: (() => void) | null;
+  readonly onClosed?: (() => void) | null;
+  readonly isPending?: boolean;
   readonly onRender?: (review: RoomReviewController) => void;
 }) {
   const review = useRoomReview({
@@ -86,6 +90,8 @@ function Harness({
     roomId: 'room-1',
     roomCode: '1234',
     onOpened,
+    onClosed,
+    isPending,
   });
   onRender(review);
   return <>{review.overlay}</>;
@@ -202,9 +208,11 @@ describe('useRoomReview dialog', () => {
   });
 
   it('closes when the reviewed round changes', () => {
+    const onClosed = vi.fn();
     const view = render(
       <Harness
         state={available(reviewDocument(), { sharing: { isAllowed: false, reason: 'x' } })}
+        onClosed={onClosed}
       />,
     );
     act(() => current().open(null));
@@ -218,6 +226,23 @@ describe('useRoomReview dialog', () => {
       />,
     );
     expect(screen.queryByTestId(TESTIDS.roomReviewDialog)).toBeNull();
+    expect(onClosed).not.toHaveBeenCalled();
+  });
+
+  it('only reports an explicit close and preserves the callback captured on open', () => {
+    const onClosed = vi.fn();
+    const nextOnClosed = vi.fn();
+    const state = available(reviewDocument(), {
+      sharing: { isAllowed: false, reason: 'x' },
+    });
+    const view = render(<Harness state={state} onClosed={onClosed} isPending />);
+    expect(current().entry).toMatchObject({ isPending: true });
+    act(() => current().open(null));
+    expect(onClosed).not.toHaveBeenCalled();
+    view.rerender(<Harness state={state} onClosed={nextOnClosed} isPending />);
+    fireEvent.click(screen.getByLabelText('关闭详情'));
+    expect(onClosed).toHaveBeenCalledTimes(1);
+    expect(nextOnClosed).not.toHaveBeenCalled();
   });
 });
 

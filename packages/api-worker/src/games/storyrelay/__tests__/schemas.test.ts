@@ -24,6 +24,18 @@ describe('Story Relay Worker', () => {
     );
   });
 
+  it('rejects obsolete resets and direct next-round commands', () => {
+    for (const type of [
+      'storyrelay.game.abort',
+      'storyrelay.game.returnToLobby',
+      'storyrelay.game.next',
+    ]) {
+      expect(storyRelayPublicCommandSchema.safeParse({ type, phaseRevision: 1 }).success).toBe(
+        false,
+      );
+    }
+  });
+
   it('rejects the removed host finish command', () => {
     expect(
       storyRelayPublicCommandSchema.safeParse({

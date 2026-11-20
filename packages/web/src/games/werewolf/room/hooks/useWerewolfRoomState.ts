@@ -299,7 +299,14 @@ export function useWerewolfRoomState(
   }
 
   // ── Review: the shared 本局复盘, plus the host's seat grants ──
-  const panelFlow = { lastNightInfoConfirmed: state.lastNightInfoConfirmed === true };
+  const hasPendingReview =
+    status === GameStatus.Ended &&
+    (isHost || mySeat !== null) &&
+    !(state.reviewCompletedUserIds ?? []).includes(user.id);
+  const panelFlow = {
+    lastNightInfoConfirmed: state.lastNightInfoConfirmed === true,
+    reviewCompleted: status === GameStatus.Ended && !hasPendingReview,
+  };
   const review = useRoomReview({
     contribution: props.review,
     state,
@@ -307,6 +314,15 @@ export function useWerewolfRoomState(
     roomId: room.roomId,
     roomCode,
     onOpened: null,
+    isPending: hasPendingReview,
+    onClosed: hasPendingReview
+      ? () => {
+          void submit('确认复盘', {
+            type: 'werewolf.review.complete',
+            gameSequence: state.gameSequence,
+          });
+        }
+      : null,
   });
   const modals = useRoomModals({
     gameSequence: state.gameSequence,

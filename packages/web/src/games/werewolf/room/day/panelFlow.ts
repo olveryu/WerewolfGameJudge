@@ -7,8 +7,7 @@
  * the host may also grant seats access to the private review. Once the
  * game ends, the flow continues through granting access and closing. The
  * host review action also requires confirmed night info and a current grant.
- * Per-user review completion is not yet persisted by this model.
- * The last-night acknowledgement is persisted in the authoritative game state.
+ * Both acknowledgements are persisted in the authoritative game state.
  *
  * The flow is rendered on the host task card (room-shell-contract "Host
  * Task"): steps come from here, the current step's sheet action is the
@@ -26,6 +25,7 @@ type PanelFlowStepId = 'lastNightInfo' | 'grantReview' | 'closing';
 
 export interface PanelFlowProgress {
   readonly lastNightInfoConfirmed: boolean;
+  readonly reviewCompleted?: boolean;
 }
 
 export const EMPTY_PANEL_FLOW_PROGRESS: PanelFlowProgress = {
@@ -41,7 +41,7 @@ export const PANEL_FLOW_ACTION_KEYS = {
 const PANEL_FLOW_STEP_LABELS: Readonly<Record<PanelFlowStepId, string>> = {
   lastNightInfo: '昨夜信息',
   grantReview: '授权',
-  closing: '收尾',
+  closing: '本局复盘',
 };
 
 const PANEL_FLOW_STEP_ORDER: readonly PanelFlowStepId[] = [
@@ -60,7 +60,7 @@ interface PanelFlowInput {
 function isStepComplete(step: PanelFlowStepId, input: PanelFlowInput): boolean {
   if (step === 'lastNightInfo') return input.progress.lastNightInfoConfirmed;
   if (step === 'grantReview') return input.reviewShared;
-  return false;
+  return input.progress.reviewCompleted === true;
 }
 
 /**
@@ -74,7 +74,8 @@ export function resolvePanelFlowCurrentStep(input: PanelFlowInput): PanelFlowSte
   }
   if (input.roomStatus === GameStatus.Ended) {
     if (!input.progress.lastNightInfoConfirmed) return 'lastNightInfo';
-    return input.reviewShared ? 'closing' : 'grantReview';
+    if (!input.reviewShared) return 'grantReview';
+    return input.progress.reviewCompleted === true ? null : 'closing';
   }
   return null;
 }

@@ -198,6 +198,7 @@ interface UndercoverStateBase extends BaseGameState<'undercover'> {
   readonly config: UndercoverConfig;
   readonly roster: RosterMap<UndercoverHumanSeat>;
   readonly usedWordPairIds: readonly string[];
+  readonly reviewCompletedUserIds: readonly string[];
 }
 
 export type UndercoverState = UndercoverStateBase &

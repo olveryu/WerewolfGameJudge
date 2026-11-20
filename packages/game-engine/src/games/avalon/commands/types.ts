@@ -13,6 +13,7 @@ export type AvalonPublicCommand =
   | { readonly type: 'avalon.config.update'; readonly config: AvalonConfig }
   | { readonly type: 'avalon.roles.assign' }
   | { readonly type: 'avalon.game.begin' }
+  | { readonly type: 'avalon.review.complete'; readonly gameSequence: number }
   | {
       readonly type: 'avalon.game.restart';
       readonly gameSequence: number;

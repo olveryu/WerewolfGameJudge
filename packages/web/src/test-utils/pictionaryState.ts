@@ -156,7 +156,9 @@ export function playPictionaryTestRound(round: PictionaryTestRound = {}): Pictio
   };
   for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
     if (round.abortAtStep === stepIndex) {
-      asSeat({ type: 'pictionary.game.abort' }, 0, null);
+      state = pictionaryEngine.normalize(
+        pictionaryEngine.evolve(state, { type: 'pictionary.round.aborted' }),
+      );
       return read();
     }
     if (isStopAt(stepIndex, 'answering')) return read();

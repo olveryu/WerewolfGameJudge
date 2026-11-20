@@ -60,6 +60,7 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
       },
     },
     usedWords: [],
+    reviewCompletedUserIds: [],
     pendingRound: null,
     preparationFailure: null,
     round: null,
@@ -763,7 +764,7 @@ describe('FibKing room adapter', () => {
 describe('createFibHostManagement task body', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  const build = (state: FibState, review = reviewEntryFor(state)) =>
+  const build = (state: FibState, review = reviewEntryFor(state), isGuessing = false) =>
     createFibHostManagement({
       state,
       isCommandSubmitting: false,
@@ -771,7 +772,7 @@ describe('createFibHostManagement task body', () => {
       startRound: vi.fn(),
       markAllBotsViewed: vi.fn(),
       beginRound: vi.fn(),
-      isGuessing: false,
+      isGuessing,
       toggleGuessMode: vi.fn(),
       revealRound: vi.fn(),
       redrawRound: vi.fn(),
@@ -829,10 +830,19 @@ describe('createFibHostManagement task body', () => {
     if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('offers the reveal as the ongoing task', () => {
-    expect(hostTaskBody(build(createOngoing()))).toMatchObject({
+  it('marks guessing as the ongoing task, without marking the selection or optional reveal', () => {
+    const ongoing = createOngoing();
+    const model = build(ongoing);
+    expect(model.pendingActionKeys).toEqual(['guess-seat']);
+    expect(hostTaskBody(model)).toMatchObject({
       kind: 'ready',
-      action: { key: 'reveal-round', label: '公布答案' },
+      action: { key: 'guess-seat', label: '大聪明选人' },
+    });
+    const selecting = build(ongoing, null, true);
+    expect(selecting.pendingActionKeys).toEqual([]);
+    expect(hostTaskBody(selecting)).toMatchObject({
+      kind: 'message',
+      escape: { key: 'guess-seat', label: '取消选人' },
     });
   });
 

@@ -155,6 +155,10 @@ export function useAvalonRoomState(
   });
   const mySeat = getAvalonUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
+  const hasPendingReview =
+    state.phase.kind === 'ended' &&
+    (isHost || mySeat !== null) &&
+    !state.reviewCompletedUserIds.includes(user.id);
   // 本局复盘：终局后人人可看可分享；底部按钮与主持管理共用同一入口。
   const review = useRoomReview({
     contribution: props.review,
@@ -163,6 +167,15 @@ export function useAvalonRoomState(
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
+    isPending: hasPendingReview,
+    onClosed: hasPendingReview
+      ? () => {
+          void submit('确认复盘', {
+            type: 'avalon.review.complete',
+            gameSequence: state.gameSequence,
+          });
+        }
+      : null,
   });
   const isLobby = state.phase.kind === 'lobby';
   const [rolePreviewId, setRolePreviewId] = useState<AvalonRoleId | null>(null);

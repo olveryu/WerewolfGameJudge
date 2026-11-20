@@ -35,6 +35,7 @@ import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
 import { isBotOccupant } from '../public';
+import { parseWerewolfState } from '../state/parseState';
 import { WEREWOLF_STATE_VERSION } from '../state/version';
 
 const TEMPLATE: GameTemplate = {
@@ -119,6 +120,74 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
+  it('records terminal reviews only for eligible users and clears them on restart', () => {
+    const state = createState({
+      status: GameStatus.Ended,
+      gameSequence: 4,
+      lastNightInfoConfirmed: true,
+      nightReviewAllowedSeats: [1],
+      currentNightResults: {},
+      players: {
+        0: { seat: 0, role: 'wolf' },
+        1: { seat: 1, role: 'seer' },
+        2: { seat: 2, role: 'hunter' },
+        3: { seat: 3, role: 'villager' },
+      },
+      roster: {
+        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+        2: { seat: 2, kind: 'bot' },
+        3: { seat: 3, kind: 'bot' },
+      },
+    });
+    const command: WerewolfCommand = { type: 'werewolf.review.complete', gameSequence: 4 };
+    expect(werewolfEngine.decide(state, command, userContext('spectator')).kind).toBe('reject');
+    expect(werewolfEngine.decide(state, command, userContext('host', 2)).kind).toBe('reject');
+    expect(werewolfEngine.decide(state, command, systemContext()).kind).toBe('reject');
+    expect(
+      werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')).kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide({ ...state, status: GameStatus.Day }, command, userContext('host'))
+        .kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide(
+        { ...state, nightReviewAllowedSeats: [] },
+        command,
+        userContext('user-1'),
+      ).kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide(
+        { ...state, lastNightInfoConfirmed: false },
+        command,
+        userContext('host'),
+      ).kind,
+    ).toBe('reject');
+    expect(
+      werewolfEngine.decide({ ...state, nightReviewAllowedSeats: [] }, command, userContext('host'))
+        .kind,
+    ).toBe('reject');
+
+    const afterHost = evolveCommittedCommand(state, command, userContext('host'));
+    const afterPlayer = evolveCommittedCommand(afterHost, command, userContext('user-1'));
+    const completed = werewolfEngine.normalize(
+      evolveCommittedCommand(afterPlayer, command, userContext('user-1')),
+    );
+    expect(completed.reviewCompletedUserIds).toEqual(['host', 'user-1']);
+    expect(
+      parseWerewolfState(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds,
+    ).toEqual(['host', 'user-1']);
+    const restarted = evolveCommittedCommand(
+      completed,
+      { type: 'werewolf.game.restart', gameSequence: 4, wasEnded: true },
+      userContext('host'),
+    );
+    expect(restarted.reviewCompletedUserIds).toBeUndefined();
+    expect(werewolfEngine.decide(restarted, command, userContext('host')).kind).toBe('reject');
+  });
+
   it.each([GameStatus.Assigned, GameStatus.Ongoing, GameStatus.Ended])(
     'restarts %s without effects and rejects stale or unauthorized confirmations',
     (status) => {
@@ -636,6 +705,7 @@ describe('Werewolf engine definition and catalog', () => {
       templateRoles: ['villager'],
     },
     'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
+    'werewolf.review.complete': { type: 'werewolf.review.complete', gameSequence: 0 },
     'werewolf.lastNightInfo.confirm': { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0 },
     'werewolf.board.nominate': {
       type: 'werewolf.board.nominate',

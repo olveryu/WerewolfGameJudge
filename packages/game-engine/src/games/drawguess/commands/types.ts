@@ -27,13 +27,11 @@ export type DrawGuessPublicCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'drawguess.config.update'; readonly config: DrawGuessConfig }
   | { readonly type: 'drawguess.game.begin' }
-  | { readonly type: 'drawguess.game.abort'; readonly gameSequence: number }
   | {
       readonly type: 'drawguess.game.restart';
       readonly gameSequence: number;
       readonly expectedPhase: 'playing' | 'ended';
     }
-  | { readonly type: 'drawguess.game.returnToLobby' }
   | { readonly type: 'drawguess.phase.retrySettle' }
   | { readonly type: 'drawguess.drawing.reserve' }
   | (PhaseRevisionCommand & {

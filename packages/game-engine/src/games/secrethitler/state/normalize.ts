@@ -43,6 +43,12 @@ function assertSetupState(state: SecrethitlerState): void {
     'phase revision',
   );
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
+  invariant(
+    new Set(state.reviewCompletedUserIds).size === state.reviewCompletedUserIds.length &&
+      state.reviewCompletedUserIds.every((userId) => userId.trim().length > 0) &&
+      (state.phase.kind === 'ended' || state.reviewCompletedUserIds.length === 0),
+    'review completion',
+  );
   invariant(typeof state.xpSettled === 'boolean', 'xp settled flag');
   invariant(Number.isSafeInteger(state.audioBatchId) && state.audioBatchId >= 0, 'audio batch id');
   invariant(typeof state.isAudioPlaying === 'boolean', 'audio playing flag');

@@ -269,20 +269,17 @@ describe('Story Relay relay-chain contract', () => {
     expect(revision()).toBe(afterStart + 2);
     const before = session.state;
     // The settle command carries no revision (D3), so the stale-revision
-    // pin lives on a real revisioned command: abort with the pre-round
+    // pin lives on a real revisioned command: restart with the pre-round
     // revision rejects at the decide entry, before any host/phase gate.
     session.expectReject(
-      { type: 'storyrelay.game.abort', phaseRevision: afterStart },
+      { type: 'storyrelay.game.restart', phaseRevision: afterStart },
       'storyrelay_task_changed',
     );
     expect(session.state).toBe(before);
     session.expire();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'storyrelay.game.abort', phaseRevision: revision() });
+    session.send({ type: 'storyrelay.game.restart', phaseRevision: revision() });
     expect(revision()).toBe(afterStart + 4);
-    expect(session.state.phase).toBe('aborted');
-    session.send({ type: 'storyrelay.game.returnToLobby' });
-    expect(revision()).toBe(afterStart + 5);
     expect(session.state.phase).toBe('lobby');
   });
 });

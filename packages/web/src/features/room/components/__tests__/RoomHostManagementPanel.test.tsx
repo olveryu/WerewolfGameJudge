@@ -139,7 +139,7 @@ it('marks explicitly declared blocked and independent tasks without marking othe
   expect(blocked).toHaveAccessibleDescription('有待处理操作；等待其他玩家');
 });
 
-it('highlights only actionable host tasks while preserving dangerous actions', () => {
+it('marks only explicitly declared tasks regardless of loading or danger', () => {
   const assign: RoomHostManagementAction = {
     key: 'assign',
     label: '分配角色',
@@ -163,6 +163,7 @@ it('highlights only actionable host tasks while preserving dangerous actions', (
           task === 'action'
             ? { kind: 'action', actionKey: 'assign' }
             : { kind: 'choice', actionKeys: ['assign', 'other'] },
+        pendingActionKeys: ['assign'],
         sections: [{ key: 'room', title: '房间', actions: [taskAction, other] }],
       }}
       bottomActions={null}
@@ -183,15 +184,15 @@ it('highlights only actionable host tasks while preserving dangerous actions', (
   rerender(panel(assign, 'choice'));
   expect(
     screen.getByRole('button', { name: '其他操作' }).querySelector('.bottom-action-pending'),
-  ).toHaveTextContent('待办');
+  ).toBeNull();
   rerender(panel({ ...assign, isLoading: true }));
   expect(
     screen.getByRole('button', { name: '分配角色' }).querySelector('.bottom-action-pending'),
-  ).toBeNull();
+  ).toHaveTextContent('待办');
   rerender(panel({ ...assign, variant: 'danger' }));
   const dangerousTask = screen.getByRole('button', { name: '分配角色' });
   expect(dangerousTask).toHaveAttribute('data-variant', 'danger');
-  expect(dangerousTask.querySelector('.bottom-action-pending')).toBeNull();
+  expect(dangerousTask.querySelector('.bottom-action-pending')).toHaveTextContent('待办');
 });
 
 it('groups player actions and the host task in one panel without duplicating its command', () => {
@@ -371,6 +372,7 @@ it('keeps host commands in one hand and allows revisiting a completed task step'
             { key: 'current', label: '当前', state: 'current', actionKey: 'current' },
           ],
         },
+        pendingActionKeys: ['current'],
         sections: [
           {
             key: 'actions',
