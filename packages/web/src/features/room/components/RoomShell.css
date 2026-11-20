@@ -126,8 +126,11 @@
   display: grid;
   flex-shrink: 0;
   gap: var(--space-small);
-  padding: var(--space-medium);
-  background: var(--color-surface);
+  padding: var(--space-medium) var(--space-medium) 0;
+}
+
+.room-board-information > .room-game-summary {
+  margin-bottom: 0;
 }
 
 .room-board-status-card {

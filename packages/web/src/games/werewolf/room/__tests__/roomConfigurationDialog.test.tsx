@@ -199,6 +199,7 @@ describe('Werewolf room configuration', () => {
 
   it('switches the host and player hands in the same bottom panel', async () => {
     const view = await mountRoomFor({ ...actorStep('seerCheck', 'seer', 0), isHost: true });
+    await click(view.getByRole('button', { name: '继续游戏' }));
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
     await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
 

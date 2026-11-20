@@ -154,7 +154,7 @@ describe('createWerewolfSeatDataSource', () => {
     expect(source.getSeat(0)).toMatchObject({ showLevel, decorationsEnabled });
   });
 
-  it('highlights the night draft picks', () => {
+  it('marks night draft picks without adding selection borders', () => {
     const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'];
     const state = nightState({ roles, stepId: 'cupidChooseLovers' });
     const viewModel = getWerewolfViewModel(state, { seat: 3, isHost: false });
@@ -171,9 +171,25 @@ describe('createWerewolfSeatDataSource', () => {
       sheriffElectionView: null,
       revision: 1,
     });
-    expect(source.getSeat(0).highlight).toBe('selected');
-    expect(source.getSeat(5).highlight).toBe('selected');
+    expect(source.getSeat(0).highlight).toBe('none');
+    expect(source.getSeat(0).indicators?.selection).toEqual({ kind: 'selected', label: '已选' });
+    expect(source.getSeat(5).highlight).toBe('none');
     expect(source.getSeat(1).highlight).toBe('none');
+  });
+
+  it('keeps eligible seats free of selection borders and visible availability labels', () => {
+    const state = nightState({ roles: BOARD, stepId: 'seerCheck' });
+    const { viewModel, night } = nightModel(state, 2);
+    const source = createWerewolfSeatDataSource({
+      state,
+      viewModel,
+      seatSelection: describeNightSeatSelection(night, []),
+      controlledSeat: null,
+      sheriffElectionView: null,
+      revision: 1,
+    });
+    expect(source.getSeat(0).highlight).toBe('none');
+    expect(source.getSeat(0).indicators?.selection).toEqual({ kind: 'available', label: null });
   });
 });
 

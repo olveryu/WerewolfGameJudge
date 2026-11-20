@@ -80,6 +80,21 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
   });
   afterEach(() => detachAlerts());
 
+  describe('night re-entry', () => {
+    it('asks the host to continue and restarts music even when no narration is pending', async () => {
+      const mock = createWerewolfRoomMock({ ...seerStep(false), isHost: true });
+      const view = await mountWerewolfRoom(mock);
+
+      expect(view.getByRole('alertdialog', { name: '游戏已恢复' })).toBeVisible();
+      expect(mock.audio.isBgmPlaying()).toBe(false);
+      await click(view.getByRole('button', { name: '继续游戏' }));
+      expect(mock.audio.isBgmPlaying()).toBe(true);
+      await waitFor(() => {
+        expect(view.queryByRole('alertdialog', { name: '游戏已恢复' })).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('daytime narration recovery', () => {
     it('shows the existing continue dialog and replays the daytime batch before acknowledging', async () => {
       const mock = createWerewolfRoomMock({
@@ -169,6 +184,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     it('closes the host hand on narration and restores the player hand afterward', async () => {
       const reactive = createReactiveWerewolfRoomMock({ ...seerStep(false), isHost: true });
       const view = await mountWerewolfRoom(reactive.mock);
+      await click(view.getByRole('button', { name: '继续游戏' }));
       await click(view.getByTestId(TESTIDS.roomMoreActionsButton));
       expect(view.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
 
