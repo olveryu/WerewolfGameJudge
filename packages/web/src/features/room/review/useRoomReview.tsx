@@ -16,11 +16,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 
 import { showConfirmAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { roomScreenLog } from '@/utils/logger';
 
 import type { RoomViewer } from '../model/RoomViewer';
 import { assertReviewDocument } from './assertReviewDocument';
@@ -49,7 +52,7 @@ export interface UseRoomReviewInput<TState> {
   /** Fired when the dialog opens, after the game's confirmation; null when the game tracks nothing. */
   readonly onOpened: (() => void) | null;
   /** Captured when the dialog opens; invoked only when that dialog is explicitly closed. */
-  readonly onClosed?: (() => void) | null;
+  readonly onClosed?: (() => Promise<boolean>) | null;
   readonly isPending?: boolean;
 }
 
@@ -166,8 +169,9 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
   const [openState, setOpenState] = useState<{
     readonly roundKey: string;
     readonly pageKey: string;
-    readonly onClosed: (() => void) | null;
+    readonly onClosed: (() => Promise<boolean>) | null;
   } | null>(null);
+  const completingRounds = useRef(new Set<string>());
   if (openState !== null && openState.roundKey !== roundKey) setOpenState(null);
   const openPageIndex =
     document !== null && openState !== null && openState.roundKey === document.roundKey
@@ -264,7 +268,19 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
           shareControls={shareControls}
           onClose={() => {
             setOpenState(null);
-            openState?.onClosed?.();
+            if (openState === null || openState.onClosed === null) return;
+            const { roundKey: closedRoundKey, onClosed: completeReview } = openState;
+            if (completingRounds.current.has(closedRoundKey)) return;
+            completingRounds.current.add(closedRoundKey);
+            void completeReview()
+              .catch((error: unknown) => {
+                handleError(error, {
+                  label: '确认复盘',
+                  logger: roomScreenLog,
+                  alertMessage: '确认复盘失败，请重新查看复盘后重试',
+                });
+              })
+              .finally(() => completingRounds.current.delete(closedRoundKey));
           }}
         />
       )}

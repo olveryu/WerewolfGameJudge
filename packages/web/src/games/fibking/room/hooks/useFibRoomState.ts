@@ -255,9 +255,7 @@ export function useFibRoomState({
     isPending: hasPendingReview,
     onClosed:
       hasPendingReview && reviewRoundId !== null
-        ? () => {
-            void submit('确认复盘', { type: 'fibking.review.complete', roundId: reviewRoundId });
-          }
+        ? () => submit('确认复盘', { type: 'fibking.review.complete', roundId: reviewRoundId })
         : null,
   });
 
