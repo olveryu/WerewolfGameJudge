@@ -92,7 +92,6 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: <PictionaryRoomSummary config={config} guide={null} />,
             }
           : screen.stageHud !== null

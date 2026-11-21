@@ -469,13 +469,13 @@ tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.
 
 `content` is an explicit discriminated union:
 
-- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, `sideInspector`, and `bottomSummary` form the shared seat-board view. `bottomSummary` places a compact game-owned `RoomStatusSummary` inside the shared bottom action card, above progress, messages and buttons; it remains visible even when the action model is otherwise empty. Games own its phase visibility and detail action. Optional visual content is explicitly `null`.
+- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard` and `bottomSummary` form the shared seat-board view. The summary is rendered through the shared status component; games own its phase visibility and detail action. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
 - `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown and optional secondary chips — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock. Optional `hudAction` is game-owned and rendered in the secondary information row; the shared shell does not interpret its behavior.
 
 Stage content changes three shell surfaces and nothing else:
 
-- **Host entry in the header.** The host opens host management from a header button (`roomHostManagementButton`); there is no bottom panel and therefore no host task card. A stage shell model must have `hostManagement.task === null`, an empty `bottomActions` (no message, progress or button) and no narration; `assertRoomStageShellModel` throws otherwise.
+- **Stage menu in the header.** Every viewer can open the shared menu from `roomStageMenuButton`; there is no bottom panel. A stage model must have empty player actions, `hostManagement.task === null` and no narration; `assertRoomStageShellModel` throws otherwise.
 
 Stages opting into `stageMenu` replace the host-only header button with a menu
 for every viewer. It opens as an unframed hand at the room's bottom edge,

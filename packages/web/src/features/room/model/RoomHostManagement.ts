@@ -7,41 +7,7 @@
  * references sheet actions by key and never carries a handler of its own.
  */
 
-import type { IoniconName } from '@/components/icons/IonIcon';
-
-type RoomHostManagementIconName = IoniconName;
-
-type RoomHostManagementActionAvailability =
-  | {
-      readonly isEnabled: true;
-      readonly onPress: () => void;
-    }
-  | {
-      readonly isEnabled: false;
-      readonly disabledReason: string | null;
-    };
-
-interface RoomHostManagementActionBase {
-  readonly key: string;
-  readonly label: string;
-  readonly icon: RoomHostManagementIconName;
-  readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
-  readonly testID?: string;
-  readonly isLoading?: boolean;
-  readonly category?: 'host' | 'resource';
-  readonly closeManagementOnPress?: boolean;
-  readonly placement?: 'room-entry';
-  readonly stageMenuRole?: 'abort';
-}
-
-export type RoomHostManagementAction = RoomHostManagementActionBase &
-  RoomHostManagementActionAvailability;
-
-export interface RoomHostManagementSection {
-  readonly key: string;
-  readonly title: string;
-  readonly actions: readonly RoomHostManagementAction[];
-}
+import type { RoomHostAction } from './RoomAction';
 
 /** One step of a multi-step host flow rendered on the task card. */
 export interface RoomHostTaskStep {

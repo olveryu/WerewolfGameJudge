@@ -113,22 +113,6 @@ export const getPictionarySeatTapIntent = createRoomSeatTapIntentResolver(
   getPictionaryProfileTarget,
 );
 
-/**
- * The gallery feeds the bottom panel's slim progress row; the relay steps report their progress
- * in the stage information bar, and every other phase has no step progress.
- */
-export function derivePictionaryBottomProgress(state: PictionaryState): NightStepProgress | null {
-  if (state.phase !== 'gallery') return null;
-  if (state.gallery === null) {
-    throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
-  }
-  return {
-    current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
-    total: state.config.numberOfPlayers * (state.stepIndex + 1),
-    label: '接龙揭晓中',
-  };
-}
-
 /** The review entry of a finished round for seats and spectators; the host uses the task card. */
 function createPictionaryReviewButtons(
   state: PictionaryState,

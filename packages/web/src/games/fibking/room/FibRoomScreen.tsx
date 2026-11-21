@@ -99,7 +99,6 @@ function FibRoomContent(
         contextHeader: null,
         bottomSummary: null,
         afterSeatBoard: null,
-        sideInspector: null,
         beforeSeatBoard: (
           <FibRoomSummary
             phase={screen.phase}

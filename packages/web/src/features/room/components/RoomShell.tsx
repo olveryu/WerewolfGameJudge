@@ -46,7 +46,6 @@ type RoomShellContent =
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
-      readonly sideInspector: ReactElement | null;
     }
   | { readonly kind: 'workspace'; readonly element: ReactElement }
   /**
@@ -186,10 +185,6 @@ export function RoomShell({
     onGamesPlayedChange: (gamesPlayed: number | null) => void,
   ) => ReactNode;
 }) {
-  const isWideLayout = usesRoomSideInspector(useViewportWidth());
-  const [isActionsPanelOpen, setIsActionsPanelOpen] = useState(false);
-  const [isStageMenuOpen, setIsStageMenuOpen] = useState(false);
-  if (stageMenu === null && isStageMenuOpen) setIsStageMenuOpen(false);
   const stageMenuEntryRef = useRef<HTMLButtonElement>(null);
   const restoreHostEntryFocus = useRef(false);
   const hostEntryRef = useCallback((button: HTMLButtonElement | null) => {
@@ -293,19 +288,6 @@ export function RoomShell({
             >
               菜单
             </button>
-          ) : (
-            isStage &&
-            hostManagement !== null && (
-              <button
-                type="button"
-                className="room-header-host-button"
-                aria-haspopup="dialog"
-                onClick={openActionsPanel}
-                data-testid={TESTIDS.roomHostManagementButton}
-              >
-                {HOST_MANAGEMENT_LABEL}
-              </button>
-            )
           )}
           {model.header.userAction !== null && <RoomUserButton action={model.header.userAction} />}
         </div>
@@ -363,7 +345,6 @@ export function RoomShell({
         ) : (
           <div className="room-workspace">{content.element}</div>
         )}
-        {isWideLayout && sideInspector}
       </div>
       {hasBottomPanel && actionHandVisibility === 'visible' && (
         <RoomBottomActionPanel

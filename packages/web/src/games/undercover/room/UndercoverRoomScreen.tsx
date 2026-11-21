@@ -142,7 +142,6 @@ function UndercoverRoomContent(
               action={null}
             />
           ) : null,
-        sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
           <>

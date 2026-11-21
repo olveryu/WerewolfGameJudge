@@ -67,35 +67,7 @@ describe('host management action builders', () => {
 
   it('defaults the disabled reason to null', () => {
     const action = buildStartGameAction({ onPress: () => undefined, isEnabled: false });
-    expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
-  });
-
-  it('builds the share-room action from the capability, disabled with its reason when denied', () => {
-    const execute = vi.fn();
-    expect(buildShareRoomAction({ isAllowed: true, execute })).toMatchObject({
-      key: 'share-room',
-      label: '分享房间',
-      isEnabled: true,
-      onPress: execute,
-      placement: 'room-entry',
-    });
-    expect(
-      buildShareRoomAction({ isAllowed: false, reason: '当前阶段不能分享房间' }),
-    ).toMatchObject({
-      key: 'share-room',
-      isEnabled: false,
-      disabledReason: '当前阶段不能分享房间',
-      placement: 'room-entry',
-    });
-  });
-
-  it('keeps settings actions open through explicit panel behavior', () => {
-    expect(buildRoomConfigAction({ onPress: vi.fn() })).toMatchObject({
-      closeManagementOnPress: false,
-    });
-    expect(buildMusicSettingsAction({ onPress: vi.fn() })).toMatchObject({
-      closeManagementOnPress: false,
-    });
+    expect(action.state).toEqual({ kind: 'blocked', reason: null });
   });
 
   it('builds host tasks that reference sheet actions by key only', () => {

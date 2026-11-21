@@ -121,7 +121,6 @@ function SpotmatchRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="一眼成对"

@@ -289,7 +289,6 @@ function WerewolfRoomContent(
           </>
         ),
         afterSeatBoard: null,
-        sideInspector: null,
       }}
       leadingExtraActions={
         isHost &&

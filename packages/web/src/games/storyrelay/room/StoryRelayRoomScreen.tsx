@@ -95,7 +95,6 @@ function StoryRelayRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="轮流讲故事"

@@ -148,7 +148,6 @@ function SecrethitlerRoomContent(
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
-        sideInspector: null,
       }}
       leadingExtraActions={
         screen.isHost && screen.state.phase.kind === 'night' ? (

@@ -266,7 +266,6 @@ function AvalonRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: gameConfiguration,
             }
           : {
@@ -291,7 +290,6 @@ function AvalonRoomContent(
                     pendingLabel={historyPendingLabel}
                   />
                 ),
-              sideInspector: null,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }

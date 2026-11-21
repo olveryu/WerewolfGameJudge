@@ -471,9 +471,6 @@ export async function click(element: Element): Promise<void> {
 async function revealBottomActionText(view: RenderResult, text: string): Promise<void> {
   if (view.queryByText(text) !== null) return;
   await openNightActionGroup(view);
-  if (view.queryByText(text) !== null) return;
-  const moreActionsButton = view.queryByTestId(TESTIDS.roomMoreActionsButton);
-  if (moreActionsButton !== null) await click(moreActionsButton);
 }
 
 export async function openNightActionGroup(view: RenderResult): Promise<void> {
@@ -503,9 +500,6 @@ async function pressSeatSelectionAction(
 ): Promise<void> {
   const testId = TESTIDS.werewolfNightButton(key);
   if (view.queryByTestId(testId) === null) await openNightActionGroup(view);
-  if (view.queryByTestId(testId) === null) {
-    await click(view.getByTestId(TESTIDS.roomMoreActionsButton));
-  }
   await click(await view.findByTestId(testId));
 }
 

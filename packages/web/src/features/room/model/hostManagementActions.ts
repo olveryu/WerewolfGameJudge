@@ -258,33 +258,27 @@ export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAct
 }
 
 /** "房间设置" — secondary action for opening room settings. */
-export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAction {
-  return {
-    ...buildAction(
-      'configure-game',
-      '房间设置',
-      'options-outline',
-      'secondary',
-      TESTIDS.roomSettingsButton,
-      input,
-    ),
-    closeManagementOnPress: false,
-  };
+export function buildRoomConfigAction(input: ActionInput): RoomHostAction {
+  return buildAction(
+    'configure-game',
+    '房间设置',
+    'options-outline',
+    'resource',
+    TESTIDS.roomSettingsButton,
+    { ...input, opensDialog: true },
+  );
 }
 
 /** "音乐设置" — tools-section entry; each game decides when it is offered. */
-export function buildMusicSettingsAction(input: ActionInput): RoomHostManagementAction {
-  return {
-    ...buildAction(
-      HOST_ACTION_KEYS.musicSettings,
-      '音乐设置',
-      'musical-notes-outline',
-      'secondary',
-      TESTIDS.roomMusicSettingsButton,
-      input,
-    ),
-    closeManagementOnPress: false,
-  };
+export function buildMusicSettingsAction(input: ActionInput): RoomHostAction {
+  return buildAction(
+    HOST_ACTION_KEYS.musicSettings,
+    '音乐设置',
+    'musical-notes-outline',
+    'resource',
+    TESTIDS.roomMusicSettingsButton,
+    { ...input, opensDialog: true },
+  );
 }
 
 /** Canonical sheet keys referenced by host tasks across games. */

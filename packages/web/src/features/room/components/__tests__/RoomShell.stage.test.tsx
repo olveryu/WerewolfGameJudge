@@ -196,7 +196,6 @@ describe('RoomShell stage content', () => {
           bottomSummary: <p>本局记录</p>,
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
-          sideInspector: null,
         }}
         leadingExtraActions={null}
         trailingExtraActions={null}
@@ -238,7 +237,6 @@ describe('RoomShell stage content', () => {
           bottomSummary: null,
           beforeSeatBoard: <p>座位说明</p>,
           afterSeatBoard: null,
-          sideInspector: null,
         }}
         leadingExtraActions={null}
         trailingExtraActions={null}
@@ -302,7 +300,6 @@ describe('RoomShell stage content', () => {
           bottomSummary: null,
           beforeSeatBoard: <p>角色配置</p>,
           afterSeatBoard: null,
-          sideInspector: null,
         }}
         phaseLabel="待开局"
         lobbyAction={{ label: '分配角色', occupiedSeats }}
@@ -371,7 +368,6 @@ describe('RoomShell stage content', () => {
           bottomSummary: null,
           beforeSeatBoard: <></>,
           afterSeatBoard: null,
-          sideInspector: null,
         }}
         selectionMode="host-task"
         leadingExtraActions={null}
@@ -433,7 +429,6 @@ describe('RoomShell stage content', () => {
             bottomSummary: null,
             beforeSeatBoard: <></>,
             afterSeatBoard: null,
-            sideInspector: null,
           }}
           leadingExtraActions={null}
           trailingExtraActions={null}
@@ -470,7 +465,6 @@ describe('RoomShell stage content', () => {
                   bottomSummary: null,
                   beforeSeatBoard: <></>,
                   afterSeatBoard: null,
-                  sideInspector: null,
                 }
           }
           selectionMode={afterTransition && transition === 'seat selection' ? 'player' : undefined}
@@ -547,19 +541,19 @@ describe('RoomShell stage content', () => {
     expect(onRelease).toHaveBeenCalledOnce();
   });
 
-  it('opens host management from the header', async () => {
-    const user = userEvent.setup();
-    renderStage();
-    const entry = screen.getByTestId(TESTIDS.roomHostManagementButton);
-    expect(screen.getByTestId(TESTIDS.roomHeader)).toContainElement(entry);
-
-    await user.click(entry);
-    expect(await screen.findByRole('button', { name: /结束本局/ })).toBeInTheDocument();
-  });
-
-  it('shows no host entry for a player', () => {
-    renderStage({ viewer: viewerFor('seated') });
-    expect(screen.queryByTestId(TESTIDS.roomHostManagementButton)).not.toBeInTheDocument();
+  it('requires a menu instead of a host-management header entry', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    expect(() =>
+      render(
+        <TestRoomShell
+          model={createRoomShellModel(shellInput())}
+          content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+          leadingExtraActions={null}
+          trailingExtraActions={null}
+          gameOverlays={null}
+        />,
+      ),
+    ).toThrow('Stage content requires a stage menu');
   });
 
   it('switches the stage hand without remounting the stage or trapping it in a dialog', async () => {
@@ -663,14 +657,14 @@ describe('RoomShell stage content', () => {
       />
     );
     const view = render(shell(true));
-    await user.click(screen.getByTestId(TESTIDS.roomHostManagementButton));
+    await user.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
     expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
 
     view.rerender(shell(false));
     expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
     view.rerender(shell(true));
 
-    expect(screen.getByTestId(TESTIDS.roomHostManagementButton)).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.roomMoreActionsButton)).toBeInTheDocument();
     expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
   });
 

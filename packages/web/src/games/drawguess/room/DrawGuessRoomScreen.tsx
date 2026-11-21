@@ -147,7 +147,6 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="你画我猜"

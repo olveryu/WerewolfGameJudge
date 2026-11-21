@@ -1,16 +1,14 @@
 /// <reference lib="dom" />
 
-import { errors, type Locator, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { alertPrimaryButton, dismissCurrentAlert } from '../e2e/helpers/alerts';
 import {
   clickSeatAndConfirm,
-  tryClickNightButton,
   waitForRoleTurn,
   waitForStepAndSettle,
 } from '../e2e/helpers/night-driver';
-import { RoomPage } from '../e2e/pages/RoomPage';
 import { TESTIDS } from '../packages/web/src/testids';
 
 vi.mock('../e2e/helpers/waits', () => ({ ensureConnected: vi.fn() }));
@@ -49,59 +47,6 @@ function roomPage() {
     }),
   } as unknown as Page;
   return { page, state, tick, click };
-}
-
-function nightPanelPage(key: string) {
-  const fixture = roomPage();
-  const state = Object.assign(fixture.state, {
-    step: 'wolfKill',
-    audio: false,
-    modal: false,
-    actionsOpen: false,
-    buttonAvailable: false,
-  });
-  const originalGetByTestId = fixture.page.getByTestId.bind(fixture.page);
-  const button = {
-    isVisible: vi.fn(async () => state.actionsOpen && state.buttonAvailable),
-    click: vi.fn(async () => {
-      state.actionsOpen = false;
-    }),
-  };
-  const panel = {
-    _apiName: 'Locator',
-    isVisible: async () => state.actionsOpen,
-    getByTestId: () => button,
-    _expect: async () => ({ matches: state.actionsOpen }),
-  } as unknown as Locator;
-  const entry = {
-    evaluateAll: async (
-      callback: (entries: { getAttribute: () => string }[], target: string) => boolean,
-      target: string,
-    ) =>
-      callback(
-        [{ getAttribute: () => (state.buttonAvailable ? TESTIDS.werewolfNightButton(key) : '') }],
-        target,
-      ),
-  };
-  fixture.page.getByTestId = vi.fn((testId: string) => {
-    if (testId === TESTIDS.werewolfNightButton(key)) return button;
-    if (testId === TESTIDS.roomHostManagementPanel) return panel;
-    if (testId === TESTIDS.roomMoreActionsButton || testId === TESTIDS.roomHostManagementButton)
-      return entry;
-    return originalGetByTestId(testId);
-  }) as unknown as Page['getByTestId'];
-  const openPanel = vi
-    .spyOn(RoomPage.prototype, 'openHostManagement')
-    .mockImplementation(async () => {
-      state.actionsOpen = true;
-      return panel;
-    });
-  const closePanel = vi
-    .spyOn(RoomPage.prototype, 'closeHostManagement')
-    .mockImplementation(async () => {
-      state.actionsOpen = false;
-    });
-  return { ...fixture, state, button, panel, openPanel, closePanel };
 }
 
 afterEach(() => {
@@ -205,49 +150,6 @@ describe('night driver readiness', () => {
       /No active step before seat selection/,
     );
     expect(click).not.toHaveBeenCalled();
-  });
-});
-
-describe('night driver declared panel actions', () => {
-  it('never opens for an absent or audio-locked action, then discovers it when offered', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    const { page, state, button, openPanel } = nightPanelPage('wolfEmpty');
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
-    expect(openPanel).not.toHaveBeenCalled();
-
-    state.audio = true;
-    state.buttonAvailable = true;
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
-    expect(openPanel).not.toHaveBeenCalled();
-
-    state.audio = false;
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(true);
-    expect(button.click).toHaveBeenCalledOnce();
-  });
-
-  it('logs a failed interaction only as obsolete when the action was withdrawn', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    const { page, state, button, openPanel } = nightPanelPage('skip');
-    state.buttonAvailable = true;
-    openPanel.mockImplementationOnce(async () => {
-      state.buttonAvailable = false;
-      state.step = 'seerCheck';
-      throw new errors.TimeoutError('entry detached');
-    });
-
-    expect(await tryClickNightButton(page, 'skip')).toBe(false);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('entry detached'));
-    expect(button.click).not.toHaveBeenCalled();
-  });
-
-  it('fails with the original error and anchors when the action is still offered', async () => {
-    const { page, state, openPanel } = nightPanelPage('skip');
-    state.buttonAvailable = true;
-    openPanel.mockRejectedValueOnce(new errors.TimeoutError('entry remains blocked'));
-
-    await expect(tryClickNightButton(page, 'skip')).rejects.toThrow(
-      /Panel action wolfKill\/skip failed: entry remains blocked\nP0=Ongoing\/wolfKill/,
-    );
   });
 });
 
