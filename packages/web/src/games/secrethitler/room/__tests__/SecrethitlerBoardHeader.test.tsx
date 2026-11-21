@@ -285,11 +285,7 @@ it('uses electronic first-night guidance without a reading script or manual prog
   });
   expect(panel.task).toBeNull();
   const actions = panel.actions;
-  expect(actions.map((action) => action.label)).toEqual([
-    '重播当前语音',
-    '标记机器人已确认',
-    '重新开始',
-  ]);
+  expect(actions.map((action) => action.label)).toEqual(['标记机器人已确认', '重新开始']);
 });
 
 it('keeps terminal details behind the shared record dialog and preserves results and labels', async () => {

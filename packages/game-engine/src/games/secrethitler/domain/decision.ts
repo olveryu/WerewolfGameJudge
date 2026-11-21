@@ -34,7 +34,6 @@ export const SECRETHITLER_REASONS = {
   notHostAckAudio: 'secrethitler_not_host_ack_audio',
   unknownAudioBatch: 'secrethitler_unknown_audio_batch',
   occupied: 'secrethitler_occupied_seat_out_of_range',
-  notHostNightReplay: 'secrethitler_not_host_night_replay',
   nightStep: 'secrethitler_night_step_invalid',
   nightParticipant: 'secrethitler_not_night_participant',
   notPresident: 'secrethitler_not_current_president',

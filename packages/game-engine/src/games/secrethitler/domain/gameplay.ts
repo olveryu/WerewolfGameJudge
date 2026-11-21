@@ -325,29 +325,6 @@ function nextElectionAfterGovernment(
   return { nextSeat, returnToSeat: null };
 }
 
-function decideNightReplay(
-  state: SecrethitlerState,
-  command: Extract<SecrethitlerCommand, { readonly type: 'secrethitler.night.replay' }>,
-  context: CommandContext,
-): SecrethitlerDecision {
-  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
-    context,
-    state.hostUserId,
-    SECRETHITLER_REASONS.notHostNightReplay,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'night') return reject(SECRETHITLER_REASONS.phase);
-  if (command.step !== state.phase.step) return reject(SECRETHITLER_REASONS.nightStep);
-  const audioReason = guardAudioPlayback(state, SECRETHITLER_REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-  return commitSecrethitler([
-    {
-      type: 'secrethitler.audio.queued',
-      effects: [{ audioKey: recognitionAudioKey(state.config.numberOfPlayers) }],
-    },
-  ]);
-}
-
 /** Audio completion and authorized confirmations jointly advance the electronic first night. */
 export function evaluateSecrethitlerNightCompletion(
   state: SecrethitlerState,
@@ -998,8 +975,6 @@ export function decideSecrethitlerGameplay(
   context: CommandContext,
 ): SecrethitlerDecision | null {
   switch (command.type) {
-    case 'secrethitler.night.replay':
-      return decideNightReplay(state, command, context);
     case 'secrethitler.night.confirm':
       return decideNightConfirm(state, command, context);
     case 'secrethitler.government.nominate':

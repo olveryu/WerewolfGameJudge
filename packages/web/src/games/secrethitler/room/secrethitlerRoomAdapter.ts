@@ -269,10 +269,6 @@ export function createSecrethitlerHostManagement(
       ],
     };
   }
-  if (state.phase.kind === 'night') {
-    const night = createNightHostManagement(input);
-    return { ...night, actions: [...night.actions, ...tools] };
-  }
   return {
     task: null,
     pendingActionKeys: [],
@@ -367,40 +363,6 @@ function createSecrethitlerHostTools(
     actions.push(buildSecrethitlerRestartAction(input));
   }
   return actions;
-}
-
-function createNightHostManagement(
-  input: SecrethitlerHostManagementInput,
-): RoomHostManagementModel {
-  const { state } = input;
-  if (state.phase.kind !== 'night') throw new Error('Night host management requires night phase');
-  const phase = state.phase;
-  return {
-    task: null,
-    pendingActionKeys: [],
-    actions: [
-      {
-        key: 'narration-replay',
-        label: '重播当前语音',
-        icon: 'play-outline',
-        category: 'host',
-        state: input.isSubmitting
-          ? { kind: 'blocked', reason: '正在提交' }
-          : {
-              kind: 'ready',
-              onPress: () =>
-                void input.submit(
-                  '重播语音',
-                  {
-                    type: 'secrethitler.night.replay',
-                    step: phase.step,
-                  },
-                  { actionKey: 'narration-replay' },
-                ),
-            },
-      },
-    ],
-  };
 }
 
 /** Assembles the Secrethitler RoomShellModel from the hook's projections. */

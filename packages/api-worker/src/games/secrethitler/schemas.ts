@@ -45,10 +45,6 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     audioBatchId: z.number().int().nonnegative(),
   }),
   z.strictObject({
-    type: z.literal('secrethitler.night.replay'),
-    step: z.number().int().min(0).max(3),
-  }),
-  z.strictObject({
     type: z.literal('secrethitler.night.confirm'),
     step: z.number().int().min(1).max(1),
   }),
