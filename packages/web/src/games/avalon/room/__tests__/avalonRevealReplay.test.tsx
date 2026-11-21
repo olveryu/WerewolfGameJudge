@@ -366,6 +366,44 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
   });
 
+  it('defers the voting dialog until the guide is closed', async () => {
+    const game = midGameAfterFirstQuest();
+    const { session, push } = createMutableSession(game.state, 'host');
+    const { queryByTestId, getByTestId, getByRole } = render(screenElement(session), {
+      wrapper: AvalonRoomTestProviders,
+    });
+    fireEvent.click(getByTestId(TESTIDS.roomManualButton));
+    fireEvent.click(getByTestId(TESTIDS.roomGuideButton('avalon')));
+    const phase = game.state.phase;
+    if (phase.kind !== 'nominate') throw new Error('expected nominate');
+    const seats = Array.from({ length: phase.requiredSize }, (_, seat) => seat);
+    game.actAs(game.state.leaderSeat, { type: 'avalon.team.preselect', seats });
+    game.actAs(game.state.leaderSeat, { type: 'avalon.team.propose', seats });
+    await pushState(push, game.state);
+
+    expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
+    expect(queryByTestId(TESTIDS.avalonVoteModal)).toBeNull();
+    fireEvent.click(getByTestId(TESTIDS.roomDialogCloseButton));
+    expect(getByTestId(TESTIDS.avalonVoteModal)).toBeVisible();
+  });
+
+  it('defers the quest dialog until the guide is closed', async () => {
+    const game = midGameAfterFirstQuest();
+    const { session, push } = createMutableSession(game.state, 'host');
+    const { queryByTestId, getByTestId, getByRole } = render(screenElement(session), {
+      wrapper: AvalonRoomTestProviders,
+    });
+    fireEvent.click(getByTestId(TESTIDS.roomManualButton));
+    fireEvent.click(getByTestId(TESTIDS.roomGuideButton('avalon')));
+    proposeAndSettleVote(game, 'approve');
+    await pushState(push, game.state);
+
+    expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
+    expect(queryByTestId(TESTIDS.avalonQuestModal)).toBeNull();
+    fireEvent.click(getByTestId(TESTIDS.roomDialogCloseButton));
+    expect(getByTestId(TESTIDS.avalonQuestModal)).toBeVisible();
+  });
+
   it('reveals vote and quest settlements after entry in snapshot order, each exactly once', async () => {
     const game = midGameAfterFirstQuest();
     const { session, push } = createMutableSession(game.state, 'host');

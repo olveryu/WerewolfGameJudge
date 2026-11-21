@@ -1,7 +1,20 @@
 /** Exercises __GAME_PASCAL__ through authoritative commands, never injecting progressed state. */
 
-import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
-import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
+import {
+  createEngineSession,
+//#cap identityViewing
+  dispatchCommand,
+//#end
+} from '../../../platform/engine/__tests__/engineSession';
+import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+//#cap identityViewing
+  REASON_GAME_IN_PROGRESS,
+  REASON_REVIEW_IDENTITY_MISMATCH,
+  REASON_REVIEW_NOT_ELIGIBLE,
+  REASON_USER_ACTOR_REQUIRED,
+//#end
+} from '../../../platform/protocol/reasons';
 //#cap identityViewing
 import { getBotSeats, isBotSeat } from '../../../platform/room/seating';
 //#end
@@ -262,6 +275,79 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
     expect(endedSpectatorView.seats.map((seat) => seat.identity)).toEqual(
       Object.values(ended.identities),
     );
+  });
+});
+
+describe('__GAME_PASCAL__ terminal review', () => {
+  it('tracks terminal review for eligible users without blocking restart', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    const command = { type: '__GAME_ID__.review.complete', gameSequence: 1 } as const;
+    session.session.expectReject(command, REASON_GAME_IN_PROGRESS);
+    viewAllAndBegin(session);
+    const endDecision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
+    if (endDecision.kind !== 'commit') throw new Error(endDecision.reason);
+    const ended = parse__GAME_PASCAL__State(
+      JSON.parse(JSON.stringify(endDecision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state))),
+    );
+    const decide = (userId: string, controlledSeat: number | null = null) =>
+      __GAME_CAMEL__Engine.decide(ended, command, session.session.context(userId, controlledSeat));
+    expect(decide('spectator')).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
+    expect(decide('host', 1)).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED });
+    expect(
+      __GAME_CAMEL__Engine.decide(
+        ended,
+        { ...command, gameSequence: 0 },
+        session.session.context('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_IDENTITY_MISMATCH });
+    expect(
+      __GAME_CAMEL__Engine.decide(ended, command, session.session.systemContext('review')),
+    ).toEqual({ kind: 'reject', reason: REASON_USER_ACTOR_REQUIRED });
+
+    const restart = {
+      type: '__GAME_ID__.game.restart',
+      gameSequence: ended.gameSequence,
+      wasEnded: true,
+    } as const;
+    const resetWithoutReview = dispatchCommand(
+      __GAME_CAMEL__Engine, ended, restart, session.session.context('host'), parse__GAME_PASCAL__State,
+    );
+    expect(resetWithoutReview.phase.kind).toBe('lobby');
+    let completed = dispatchCommand(
+      __GAME_CAMEL__Engine, ended, command, session.session.context('host'), parse__GAME_PASCAL__State,
+    );
+    completed = dispatchCommand(
+      __GAME_CAMEL__Engine, completed, command, session.session.context('u1'), parse__GAME_PASCAL__State,
+    );
+    expect(completed.reviewCompletedUserIds).toEqual(['host', 'u1']);
+    expect(__GAME_CAMEL__Engine.decide(completed, command, session.session.context('u1'))).toMatchObject({
+      kind: 'commit', events: [], broadcast: 'none',
+    });
+    const reset = dispatchCommand(
+      __GAME_CAMEL__Engine, completed, restart, session.session.context('host'), parse__GAME_PASCAL__State,
+    );
+    expect(reset.reviewCompletedUserIds).toEqual([]);
+    expect(
+      __GAME_CAMEL__Engine.decide(reset, command, session.session.context('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_GAME_IN_PROGRESS });
+  });
+
+  it('allows the host to complete a review without occupying a seat', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    session.send({ type: 'room.seat.leave' });
+    session.send({ type: 'room.seat.fillBots' });
+    viewAllAndBegin(session);
+    const endDecision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
+    if (endDecision.kind !== 'commit') throw new Error(endDecision.reason);
+    const ended = endDecision.events.reduce(__GAME_CAMEL__Engine.evolve, session.state);
+    const completed = dispatchCommand(
+      __GAME_CAMEL__Engine,
+      ended,
+      { type: '__GAME_ID__.review.complete', gameSequence: ended.gameSequence },
+      session.session.context('host'),
+      parse__GAME_PASCAL__State,
+    );
+    expect(completed.reviewCompletedUserIds).toEqual(['host']);
   });
 });
 

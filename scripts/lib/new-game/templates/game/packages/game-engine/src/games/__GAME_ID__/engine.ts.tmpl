@@ -23,6 +23,7 @@ import {
 //#end
   haveAllViewed,
 } from '../../platform/room/identityViewing';
+import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 //#end
 //#cap stageDeadline
 import {
@@ -51,6 +52,7 @@ import { decide__GAME_PASCAL__Room } from './domain/seating';
 import { normalize__GAME_PASCAL__State } from './state/normalize';
 import {
 //#cap identityViewing
+  get__GAME_PASCAL__UserSeat,
   get__GAME_PASCAL__ViewingParticipants,
 //#end
   isValid__GAME_PASCAL__Config,
@@ -79,6 +81,7 @@ function createInitialState(
 //#cap identityViewing
     identities: {},
     roleViewedSeats: [],
+    reviewCompletedUserIds: [],
 //#end
     gameSequence: 0,
     xpSettled: false,
@@ -407,6 +410,23 @@ function decideCommand(
       return beginGame(state, context);
     case '__GAME_ID__.role.viewed':
       return markRoleViewed(state, context);
+    case '__GAME_ID__.review.complete': {
+      const completion = resolveReviewCompletion({
+        context,
+        isEnded: state.phase.kind === 'ended',
+        currentIdentity: state.gameSequence,
+        expectedIdentity: command.gameSequence,
+        completedUserIds: state.reviewCompletedUserIds,
+        isEligible: (userId) =>
+          userId === state.hostUserId || get__GAME_PASCAL__UserSeat(state, userId) !== null,
+      });
+      if (completion.kind === 'reject') return reject(completion.reason);
+      return commit__GAME_PASCAL__(
+        completion.kind === 'complete'
+          ? [{ type: '__GAME_ID__.review.completed', userId: completion.userId }]
+          : [],
+      );
+    }
 //#end
 //#cap botBulkViewing
     case '__GAME_ID__.bots.markAllBotsViewed':

@@ -10,9 +10,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomStageHudRenderer } from '@/features/room/components/RoomStageHud';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -68,7 +71,7 @@ function SpotmatchRoomContent(
   const screen = useSpotmatchRoomState(props);
   const [assetsReady, setAssetsReady] = useState(false);
   const [assetError, setAssetError] = useState(false);
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   useEffect(() => {
     let active = true;
     void Promise.all(
@@ -182,27 +185,18 @@ function SpotmatchRoomContent(
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="一眼成对玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <SpotmatchRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`一眼成对（${config.numberOfPlayers}人）`}</p>
-              <RoomGameSettings settings={settings} />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="一眼成对玩法"
+            guide={<SpotmatchRules embedded />}
+            configuration={
+              <>
+                <p>{`一眼成对（${config.numberOfPlayers}人）`}</p>
+                <RoomGameSettings settings={settings} />
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {screen.reviewOverlay}
         </>
       }

@@ -38,6 +38,7 @@ import {
   getSecrethitlerFaction,
   getSecrethitlerNightParticipants,
   getSecrethitlerPolicyPower,
+  tallySecrethitlerVotes,
 } from './rules';
 
 function recognitionAudioKey(playerCount: number): string {
@@ -471,13 +472,9 @@ function settleVote(
   chaosPreview: ChaosPolicyPreview | null,
 ): SecrethitlerDecision {
   if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
-  const votes = state.phase.votes;
-  const revealedVotes = state.livingSeats
-    .slice()
-    .sort((left, right) => left - right)
-    .map((voterSeat) => ({ seat: voterSeat, vote: votes[voterSeat] ?? 'nein' }));
-  const yesCount = revealedVotes.filter(({ vote }) => vote === 'ja').length;
-  const passed = yesCount > revealedVotes.length - yesCount;
+  const tally = tallySecrethitlerVotes(state.livingSeats, state.phase.votes);
+  const revealedVotes = [...tally.votes].sort((left, right) => left.seat - right.seat);
+  const { passed } = tally;
   const government: SecrethitlerGovernmentRecord = {
     presidentSeat: state.phase.presidentSeat,
     chancellorSeat: state.phase.chancellorSeat,
@@ -559,10 +556,8 @@ function decideVoteExpiry(
     dispatch: () => {
       if (state.phase.kind === 'publicResult') return finishPublicResult(state, context);
       if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
-      const yes = state.livingSeats.filter(
-        (seat) => state.phase.kind === 'voting' && state.phase.votes[seat] === 'ja',
-      ).length;
-      const chaos = yes <= state.livingSeats.length - yes && state.electionTracker === 2;
+      const { passed } = tallySecrethitlerVotes(state.livingSeats, state.phase.votes);
+      const chaos = !passed && state.electionTracker === 2;
       return publicResult(
         state,
         context,

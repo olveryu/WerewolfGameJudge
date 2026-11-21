@@ -19,7 +19,7 @@ Generate the message from the inspected diff (`git status --short`, `git diff`, 
 ## Enforced limits (only what the configuration enforces)
 
 - Header: at most 100 characters. Enforced by `header-max-length: 100` in `commitlint.config.js`, plus the subject-case rule.
-- Body and footer lines: no line-length rule exists in `commitlint.config.js`; wrap them as a style preference only.
+- Body and footer lines: at most 100 characters, inherited from `@commitlint/config-conventional`.
 
 ## Staging procedure
 

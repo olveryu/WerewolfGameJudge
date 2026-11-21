@@ -1,4 +1,4 @@
-/** Strict __GAME_PASCAL__ persistence and transport codec; v1 is the current version. */
+/** Strict __GAME_PASCAL__ persistence and transport codec. */
 
 import {
   failDecode,
@@ -107,10 +107,7 @@ function phase(value: unknown, path: string): __GAME_PASCAL__Phase {
         raw,
         {
           kind: 'playing' as const,
-          deadlineAt:
-            raw.deadlineAt === undefined
-              ? null
-              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
+          deadlineAt: parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -140,6 +137,13 @@ export function parse__GAME_PASCAL__State(value: unknown): __GAME_PASCAL__State 
         roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
 //#end
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+//#cap identityViewing
+        reviewCompletedUserIds: parseArray(
+          raw.reviewCompletedUserIds,
+          `${path}.reviewCompletedUserIds`,
+          parseNonEmptyString,
+        ),
+//#end
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
 //#cap audioOrchestration
         pendingAudioEffects: audioEffects(

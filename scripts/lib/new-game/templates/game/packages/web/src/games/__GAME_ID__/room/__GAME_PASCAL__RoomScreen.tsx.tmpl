@@ -6,7 +6,10 @@
 //#end
 import './__GAME_PASCAL__RoomScreen.css';
 
-import type { __GAME_PASCAL__State } from '@game-judge/game-engine/games/__GAME_ID__/public';
+import {
+  get__GAME_PASCAL__OccupiedSeatCount,
+  type __GAME_PASCAL__State,
+} from '@game-judge/game-engine/games/__GAME_ID__/public';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -16,8 +19,8 @@ import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardMo
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 //#end
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import { type RoomInformation, RoomInformationDialog } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 //#cap audioOrchestration
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
@@ -89,7 +92,7 @@ function __GAME_PASCAL__RoomContent(
   const screen = use__GAME_PASCAL__RoomState(props);
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const openGuide = () => setInformation('guide');
   const openConfiguration = () => setInformation('configuration');
 //#cap identityViewing
@@ -106,6 +109,30 @@ function __GAME_PASCAL__RoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      phaseLabel={
+        isLobby
+          ? '待开局'
+//#cap identityViewing
+          : screen.state.phase.kind === 'viewing'
+            ? '已发牌'
+//#end
+            : screen.state.phase.kind === 'ended'
+              ? '本局结束'
+              : '游戏进行中'
+      }
+      lobbyAction={
+        isLobby
+          ? {
+//#cap identityViewing
+              label: '分配角色',
+//#end
+//#cap !identityViewing
+              label: '开始游戏',
+//#end
+              occupiedSeats: get__GAME_PASCAL__OccupiedSeatCount(screen.state),
+            }
+          : null
+      }
 //#cap identityViewing
       configurationEntry={isPreGame ? null : { onOpen: openConfiguration }}
 //#end
@@ -180,19 +207,20 @@ function __GAME_PASCAL__RoomContent(
 //#end
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog title="__GAME_DISPLAY_NAME__玩法" onClose={() => setInformation(null)} footer={null}>
-              <__GAME_PASCAL__Rules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog title="本局配置" onClose={() => setInformation(null)} footer={null}>
-              <p>{`__GAME_DISPLAY_NAME__（${config.numberOfPlayers}人）`}</p>
+          <RoomInformationDialog
+            information={information}
+            guideTitle="__GAME_DISPLAY_NAME__玩法"
+            guide={<__GAME_PASCAL__Rules embedded />}
+            configuration={
+              <>
+                <p>{`__GAME_DISPLAY_NAME__（${config.numberOfPlayers}人）`}</p>
 //#cap identityViewing
-              {board}
+                {board}
 //#end
-            </RoomDialog>
-          )}
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
 //#cap audioOrchestration
           <RoomAudioResumeDialog visible={screen.audioResume.isDue} onContinue={screen.audioResume.continueGame} />
 //#end

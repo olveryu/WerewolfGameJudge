@@ -156,40 +156,71 @@ describe('GameRoom initialization', () => {
     });
   });
 
-  it('validates the current schema idempotently', async () => {
+  it('validates the current schema idempotently without losing room state', async () => {
     const stub = getStub();
-    await stub.getSnapshot(roomIdentity(stub));
+    expect(await initialize(stub)).toMatchObject({ success: true });
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('current');
-      await expect(initializeRoomStorage(state.storage, Date.now() + 1)).resolves.toBe('current');
-      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 4,
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('current');
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('current');
+      expect(state.storage.sql.exec('SELECT revision FROM room_state').one()).toEqual({
+        revision: 1,
       });
     });
   });
 
-  it('discards storage created by the migration-chain schema instead of migrating it', async () => {
+  it('logs room identity and rethrows when persisted game state cannot be parsed', async () => {
+    const stub = getStub();
+    await initialize(stub);
+    const report = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await runInDurableObject(stub, async (instance: GameRoom, state) => {
+        state.storage.sql.exec("UPDATE room_state SET game_state = '{}' WHERE id = 1");
+        await expect(instance.getSnapshot(roomIdentity(stub))).rejects.toThrow();
+      });
+      expect(report).toHaveBeenCalledOnce();
+      const message: unknown = report.mock.calls[0]?.[0];
+      if (typeof message !== 'string') throw new Error('Missing structured state failure log');
+      const logged: unknown = JSON.parse(message);
+      expect(logged).toMatchObject({
+        module: 'RoomStateStore',
+        msg: 'persisted game state is invalid',
+        roomCode: ROOM_CODE,
+        creationId: 'creation-1',
+        gameType: 'werewolf',
+        revision: 1,
+      });
+      if (
+        logged === null ||
+        typeof logged !== 'object' ||
+        !('errorMessage' in logged) ||
+        typeof logged.errorMessage !== 'string'
+      )
+        throw new Error('Missing state decoding error message');
+      expect(logged.errorMessage).not.toBe('');
+    } finally {
+      report.mockRestore();
+    }
+  });
+
+  it('discards storage with an unexpected table', async () => {
     const stub = getStub();
     await initialize(stub);
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      state.storage.sql.exec('DROP TABLE room_schema');
       state.storage.sql.exec(`
-        CREATE TABLE _sql_schema_migrations (id INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL) STRICT;
-        INSERT INTO _sql_schema_migrations (id, applied_at) VALUES (1, 0), (2, 0);
+        CREATE TABLE unexpected_table (id INTEGER PRIMARY KEY) STRICT;
+        INSERT INTO unexpected_table (id) VALUES (1);
       `);
-      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('discarded');
       expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM room_state').one()).toEqual({
         count: 0,
       });
       expect(
         state.storage.sql
-          .exec("SELECT name FROM sqlite_master WHERE name = '_sql_schema_migrations'")
+          .exec("SELECT name FROM sqlite_master WHERE name = 'unexpected_table'")
           .toArray(),
       ).toEqual([]);
-      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 4,
-      });
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('current');
     });
   });
 
@@ -264,12 +295,12 @@ describe('GameRoom initialization', () => {
     });
   });
 
-  it('discards an unversioned room schema and recreates the current one', async () => {
+  it('discards storage with missing columns and recreates the current schema', async () => {
     const stub = getStub();
-    await stub.getSnapshot(roomIdentity(stub));
+    await initialize(stub);
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      await state.storage.deleteAll();
+      state.storage.sql.exec('DROP TABLE room_state');
       state.storage.sql.exec(`
         CREATE TABLE room_state (
           id INTEGER PRIMARY KEY,
@@ -281,7 +312,7 @@ describe('GameRoom initialization', () => {
         "INSERT INTO room_state (id, game_state, revision) VALUES (1, '{}', 3)",
       );
 
-      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('discarded');
       expect(
         state.storage.sql
           .exec<{ name: string }>('PRAGMA table_info(room_state)')
@@ -294,16 +325,24 @@ describe('GameRoom initialization', () => {
     });
   });
 
-  it('discards a different room_schema version', async () => {
+  it('discards storage with an unexpected column and clears its alarm', async () => {
     const stub = getStub();
-    await stub.getSnapshot(roomIdentity(stub));
+    await initialize(stub);
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-      state.storage.sql.exec('UPDATE room_schema SET version = 99');
-      await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
-      expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 4,
+      state.storage.sql.exec('ALTER TABLE command_receipts ADD COLUMN unexpected TEXT');
+      await state.storage.setAlarm(Date.now() + 60_000);
+      await expect(initializeRoomStorage(state.storage)).resolves.toBe('discarded');
+      expect(await state.storage.getAlarm()).toBeNull();
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM room_state').one()).toEqual({
+        count: 0,
       });
+      expect(
+        state.storage.sql
+          .exec<{ name: string }>('PRAGMA table_info(command_receipts)')
+          .toArray()
+          .map((column) => column.name),
+      ).not.toContain('unexpected');
     });
   });
 });

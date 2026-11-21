@@ -793,9 +793,9 @@ for (const scenario of FEATURE_SCENARIOS) {
     );
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
     assert.ok(!adapterSource.includes('hostReviewClosingTask()'));
-    assert.ok(adapterSource.includes('task: null,'));
-    assert.ok(adapterSource.includes('pendingActionKeys: [],'));
     if (capabilities.identityViewing) {
+      assert.ok(adapterSource.includes("task: { kind: 'choice', actionKeys:"));
+      assert.ok(adapterSource.includes('pendingActionKeys: input.review.isPending'));
       assert.ok(
         adapterSource.includes('resolveHighlight 返回 danger'),
         'identity skeleton directs private recognition to shared avatar color highlights',
@@ -839,6 +839,8 @@ for (const scenario of FEATURE_SCENARIOS) {
         'identity actions stay in the bottom model',
       );
     } else {
+      assert.ok(adapterSource.includes('task: null,'));
+      assert.ok(adapterSource.includes('pendingActionKeys: [],'));
       assert.ok(!clientGameDir.includes('RevealRoleCardModal'));
       const screenSource = readFixture(
         root,

@@ -216,6 +216,12 @@ export function use__GAME_PASCAL__RoomState(
   });
 //#end
   // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
+//#cap identityViewing
+  const hasPendingReview =
+    state.phase.kind === 'ended' &&
+    (isHost || mySeat !== null) &&
+    !state.reviewCompletedUserIds.includes(user.id);
+//#end
   const review = useRoomReview({
     contribution: props.review,
     state,
@@ -223,6 +229,16 @@ export function use__GAME_PASCAL__RoomState(
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
+//#cap identityViewing
+    isPending: hasPendingReview,
+    onClosed: hasPendingReview
+      ? () =>
+          submit('确认复盘', {
+            type: '__GAME_ID__.review.complete',
+            gameSequence: state.gameSequence,
+          })
+      : null,
+//#end
   });
   const capabilities: RoomCapabilities = {
     ...setupCapabilities,

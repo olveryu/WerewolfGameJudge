@@ -24,6 +24,7 @@ export type __GAME_PASCAL__PublicCommand =
 //#end
 //#cap identityViewing
   | { readonly type: '__GAME_ID__.role.viewed' }
+  | { readonly type: '__GAME_ID__.review.complete'; readonly gameSequence: number }
 //#end
 //#cap botBulkViewing
   | { readonly type: '__GAME_ID__.bots.markAllBotsViewed' }

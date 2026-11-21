@@ -14,9 +14,12 @@ import { useNavigate } from 'react-router';
 import { IconButton } from '@/components/IconButton';
 import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardModal';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -83,7 +86,7 @@ function AvalonRoomContent(
   const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
   const viewModel = screen.viewModel;
   const [historyVisible, setHistoryVisible] = useState(false);
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const isReading = information !== null || historyVisible || screen.rolePreviewId !== null;
   const historySummary = createAvalonHistorySummary(screen.state);
   const currentStatus = createAvalonCurrentStatus(screen.state);
@@ -315,28 +318,19 @@ function AvalonRoomContent(
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="阿瓦隆玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <AvalonGuide parentPath={null} />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`阿瓦隆（${config.numberOfPlayers}人）`}</p>
-              {board}
-              <RoomGameSettings settings={settings} />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="阿瓦隆玩法"
+            guide={<AvalonGuide parentPath={null} />}
+            configuration={
+              <>
+                <p>{`阿瓦隆（${config.numberOfPlayers}人）`}</p>
+                {board}
+                <RoomGameSettings settings={settings} />
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {viewModel === null ? null : (
             <>
               {historyVisible && (

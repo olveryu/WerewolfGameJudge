@@ -1,6 +1,6 @@
 # 房间手牌与信息区：设计与实施方案
 
-状态：实施中，九款游戏已接入，完整验收尚未完成。交付沿用 [Draft PR #482](https://github.com/olveryu/WerewolfGameJudge/pull/482)；[原型](../mockups/action-wheel.html)仅演示交互，不是功能清单。
+状态：实施中，九款游戏已接入，完整验收尚未完成。交付沿用 [Draft PR #482](https://github.com/olveryu/WerewolfGameJudge/pull/482)；早期原型仅演示交互，不是功能清单。
 
 本文件保留此前的迁移方案和验收背景，其中待办、颜色、用户设置手牌、终局操作和复盘等内容已被新的决定取代。最新体验规则、逐游戏清单和待确认事项以[效果说明](room-hand-and-information-design.md)为准；本文件中的旧接口及验收条目不能作为新规则的实现依据，也不是已完成的声明。
 

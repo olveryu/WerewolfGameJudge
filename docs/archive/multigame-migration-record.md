@@ -238,9 +238,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 ### 当前提交：Phase 3 delivery 与 protocol hardening
 
 - Generic `GameRoom` 只接受空存储或表名、列名与当前结构完全匹配的存储。`0034_room_instance_identity_cutover.sql`
-  已在同一 release 使旧 active room 失效，因此删除旧 `room_state` / `settle_pending` 猜测迁移；未版本化或
-  future version 的 DO storage 直接 fail fast，不保留兼容 reader。
-- 所有 public command 从 JWT actor 进入同一 pipeline；receipt 绑定 game/version、actor、controlled seat、
+  已在同一 release 使旧 active room 失效，因此删除旧 `room_state` / `settle_pending` 猜测迁移；不匹配的
+  DO storage 会被记录并丢弃重建，不保留兼容 reader。
+- 所有 public command 从 JWT actor 进入同一 pipeline；receipt 绑定 game、actor、controlled seat、
   command type 和 canonical request。accepted 与 engine rejection 都持久化，ID 换 actor/body 直接冲突。
 - `no_state` 从 command decision 中分离为 404 availability；DO room identity 不一致改为完整性异常。所有
   canonical decision 使用 HTTP 200 返回并校验 exact command ID，避免 transport status 绕过协议验证。

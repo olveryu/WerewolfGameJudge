@@ -54,7 +54,10 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
     }),
     Object.freeze({
       template: ENGINE_TEST,
-      testCases: Object.freeze(['holds begin until every seat — bots included — has viewed']),
+      testCases: Object.freeze([
+        'holds begin until every seat — bots included — has viewed',
+        'tracks terminal review for eligible users without blocking restart',
+      ]),
     }),
     Object.freeze({
       template: GUIDANCE_TEST,
@@ -66,6 +69,7 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
         'tracks the effective seat, including a bot controlled by the host',
         'hides identity in the lobby and from spectators, and locks it while submitting',
         'wires bulk viewing and removes its remedy after all bots are marked',
+        'marks terminal review pending without blocking confirmed restart',
       ]),
     }),
   ]),

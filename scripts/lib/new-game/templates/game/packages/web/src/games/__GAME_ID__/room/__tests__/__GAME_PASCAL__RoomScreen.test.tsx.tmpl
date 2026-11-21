@@ -57,6 +57,8 @@ vi.mock('@/features/room/components/RoomShell', () => ({
     manualEntries,
     configurationEntry,
     stageMenu,
+    phaseLabel,
+    lobbyAction,
   }: {
     content: {
       kind: string;
@@ -68,8 +70,12 @@ vi.mock('@/features/room/components/RoomShell', () => ({
     manualEntries: readonly { label: string; onOpen: () => void }[];
     configurationEntry: { onOpen: () => void } | null;
     stageMenu?: { onOpenGuide: () => void; onOpenConfiguration: () => void } | null;
+    phaseLabel: string | null;
+    lobbyAction: { label: string; occupiedSeats: number } | null;
   }) => (
     <section aria-label="房间内容" data-kind={content.kind}>
+      {phaseLabel && <span data-testid="phase-label">{phaseLabel}</span>}
+      {lobbyAction && <span data-testid="lobby-action">{`${lobbyAction.label} · ${lobbyAction.occupiedSeats}`}</span>}
       {content.beforeSeatBoard}
       {content.bottomSummary}
       {content.element}
@@ -133,6 +139,18 @@ function renderRoom() {
   );
 }
 
+it('provides the lobby status and action to the room shell', () => {
+  state = build__GAME_PASCAL__TestLobby();
+  renderRoom();
+  expect(screen.getByTestId('phase-label')).toHaveTextContent('待开局');
+//#cap identityViewing
+  expect(screen.getByTestId('lobby-action')).toHaveTextContent('分配角色 · 4');
+//#end
+//#cap !identityViewing
+  expect(screen.getByTestId('lobby-action')).toHaveTextContent('开始游戏 · 4');
+//#end
+});
+
 //#cap identityViewing
 it.each(['lobby', 'viewing', 'playing', 'ended'] as const)(
   'preserves the role-game board in %s',
@@ -184,6 +202,9 @@ it('opens the same guide in the room without navigating', async () => {
   expect(screen.getByRole('dialog', { name: '__GAME_DISPLAY_NAME__玩法' })).toBeInTheDocument();
   expect(screen.getByText('坐满开局')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: '关闭详情' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: '玩法' }));
+  await user.keyboard('{Escape}');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 

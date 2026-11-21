@@ -7,9 +7,12 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -48,7 +51,7 @@ function StoryRelayRoomContent(
 ) {
   const screen = useStoryRelayRoomState(props);
   const config = screen.state.config;
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const isLobby = screen.state.phase === 'lobby';
   const hasStageMenu = screen.stageHud !== null || screen.state.phase === 'gallery';
   const openGuide = () => setInformation('guide');
@@ -113,27 +116,18 @@ function StoryRelayRoomContent(
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="轮流讲故事玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <StoryRelayRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`轮流讲故事（${config.numberOfPlayers}人）`}</p>
-              <RoomGameSettings settings={settings} />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="轮流讲故事玩法"
+            guide={<StoryRelayRules embedded />}
+            configuration={
+              <>
+                <p>{`轮流讲故事（${config.numberOfPlayers}人）`}</p>
+                <RoomGameSettings settings={settings} />
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {screen.reviewOverlay}
         </>
       }

@@ -7,6 +7,7 @@ import { AlertHost } from '@/components/AlertHost';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { RoomDialog } from '../RoomDialog';
+import { RoomInformationDialog } from '../RoomInformationDialog';
 
 function ConfirmedDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,6 +41,41 @@ describe('RoomDialog', () => {
       </RoomDialog>,
     );
     expect(screen.getByRole('dialog').querySelector('footer')).toBeNull();
+  });
+
+  describe('RoomInformationDialog', () => {
+    it.each([
+      ['guide', '玩法', '规则内容'],
+      ['configuration', '本局配置', '配置内容'],
+    ] as const)(
+      'renders %s with an accessible title and Escape dismissal',
+      async (kind, title, content) => {
+        const user = userEvent.setup();
+        const onClose = vi.fn();
+        const { rerender } = render(
+          <RoomInformationDialog
+            information={kind}
+            guideTitle="玩法"
+            guide="规则内容"
+            configuration="配置内容"
+            onClose={onClose}
+          />,
+        );
+        expect(screen.getByRole('dialog', { name: title })).toHaveTextContent(content);
+        await user.keyboard('{Escape}');
+        expect(onClose).toHaveBeenCalledOnce();
+        rerender(
+          <RoomInformationDialog
+            information={null}
+            guideTitle="玩法"
+            guide="规则内容"
+            configuration="配置内容"
+            onClose={onClose}
+          />,
+        );
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      },
+    );
   });
 
   it('closes on Escape when explicitly allowed', async () => {

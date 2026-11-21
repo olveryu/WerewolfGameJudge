@@ -731,6 +731,11 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       previous: { kind: 'voting', votes: { 1: 'nein' } },
       deadlineAt: armed.deadlineAt + 5000,
     });
+    expect(getSecrethitlerViewModel(current.session.state, 0).publicVoteResult).toMatchObject({
+      yesCount: 4,
+      noCount: 1,
+      passed: true,
+    });
     current.session.advance(4999);
     expect(current.session.decideAs(expiry, current.session.systemContext('result-early'))).toEqual(
       {
@@ -741,6 +746,49 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     current.session.advance(1);
     current.session.sendAs(expiry, current.session.systemContext('result-due'));
     expect(current.session.state.phase.kind).toBe('legislativePresident');
+  });
+
+  it('projects a tied vote as rejected and settles it the same way', () => {
+    const current = game(6);
+    enterElection(current);
+    const election = current.session.state.phase;
+    if (election.kind !== 'election') throw new Error('Expected election');
+    const chancellor = eligibleChancellors(current.session.state, election.presidentSeat)[0];
+    if (chancellor === undefined) throw new Error('Missing chancellor');
+    const president = current.actorForSeat(election.presidentSeat);
+    current.send(
+      { type: 'secrethitler.government.preselect', chancellorSeatId: chancellor },
+      president.userId,
+      president.controlledSeat,
+    );
+    current.send(
+      { type: 'secrethitler.government.nominate', chancellorSeatId: chancellor },
+      president.userId,
+      president.controlledSeat,
+    );
+    for (const seat of current.session.state.livingSeats) {
+      const actor = current.actorForSeat(seat);
+      current.send(
+        { type: 'secrethitler.government.castVote', vote: seat < 3 ? 'ja' : 'nein' },
+        actor.userId,
+        actor.controlledSeat,
+      );
+    }
+    const voting = current.session.state.phase;
+    if (voting.kind !== 'voting' || voting.deadlineAt === null)
+      throw new Error('Expected armed vote countdown');
+    current.session.setNow(voting.deadlineAt);
+    current.session.sendAs(
+      { type: 'secrethitler.phase.settleExpired' },
+      current.session.systemContext('vote-settle'),
+    );
+    expect(getSecrethitlerViewModel(current.session.state, 0).publicVoteResult).toMatchObject({
+      yesCount: 3,
+      noCount: 3,
+      passed: false,
+    });
+    confirmResult(current);
+    expect(current.session.state.history.governments.at(-1)?.outcome).toBe('rejected');
   });
 
   it('keeps votes private until everyone votes and reveals the completed public ballot', () => {

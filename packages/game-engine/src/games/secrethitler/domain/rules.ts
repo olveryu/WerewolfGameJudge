@@ -7,7 +7,22 @@ import type {
   SecrethitlerPower,
   SecrethitlerRole,
   SecrethitlerState,
+  SecrethitlerVote,
 } from '../state/types';
+
+/** Resolves the public tally and outcome using the same votes as settlement. */
+export function tallySecrethitlerVotes(
+  livingSeats: readonly number[],
+  votes: Readonly<Record<number, SecrethitlerVote>>,
+) {
+  const revealedVotes = livingSeats.map((seat) => ({
+    seat,
+    vote: votes[seat] ?? 'nein',
+  }));
+  const yesCount = revealedVotes.filter(({ vote }) => vote === 'ja').length;
+  const noCount = revealedVotes.length - yesCount;
+  return { votes: revealedVotes, yesCount, noCount, passed: yesCount > noCount };
+}
 
 /** Returns the presidential power for a normally enacted fascist policy. */
 export function getSecrethitlerPolicyPower(

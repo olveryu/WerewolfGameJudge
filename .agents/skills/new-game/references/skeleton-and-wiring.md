@@ -268,9 +268,11 @@ generator ships it wired into every skeleton (report step 3):
   cross-game contract `packages/web/src/__tests__/roomReview.contract.test.ts`.
 - Room wiring: the room state hook calls `useRoomReview` and hands
   the overlay to the screen's `gameOverlays`; the adapter adds
-  `buildReviewBottomButton(entry, 'secondary')` for every viewer
-  while a review exists, `buildReviewHostAction(entry)` to the ended
-  host section, and `hostReviewClosingTask()` as the ended task.
+  `buildViewerReviewBottomButtons(entry, 'secondary', viewer)` while a review
+  exists, and `buildReviewHostAction(entry)` to the ended host section.
+  Identity games show review and restart in the
+  host task, marking review pending until that user closes it; completion is
+  not required to restart. Other generated games leave the ended task empty.
 
 The block vocabulary is closed (`packages/web/src/features/room/review/types.ts`;
 the renderer, export and share flow live in

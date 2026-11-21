@@ -119,6 +119,10 @@ export interface __GAME_PASCAL__State extends BaseGameState<typeof __GAME_UPPER_
 //#end
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
   readonly gameSequence: number;
+//#cap identityViewing
+  /** 终局后已查看本局复盘的房主和入座玩家。 */
+  readonly reviewCompletedUserIds: readonly string[];
+//#end
   /** 终局结算 effect 恰好发出一次的标记。 */
   readonly xpSettled: boolean;
 //#cap audioOrchestration
