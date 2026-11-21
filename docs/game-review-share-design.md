@@ -190,9 +190,9 @@ export type ReviewInline =
 
 入口沿用现有动作框架，`RoomShellModel` 不加字段：
 
-- `useRoomReview({ contribution, state, viewer, roomId, roomCode, onOpened })` 返回 `{ entry, open(pageKey | null), shareAll(), overlay }`；`resolve` 的文档先经 `assertReviewDocument`。
+- `useRoomReview({ contribution, state, viewer, roomId, roomCode, onOpened, onClosed, isPending })` 返回 `{ entry, open(pageKey | null), shareAll(), overlay }`；`resolve` 的文档先经 `assertReviewDocument`。
 - `entry`：`notEnded` → `null`；`notPermitted` → `{ isEnabled: false, disabledReason }`；`available` → `{ isEnabled: true, onPress }`，有 `confirmation` 时先确认再打开。
-- 游戏只通过 `buildReviewBottomButton(entry, variant)`（底部按钮，audience `anyone`）与 `buildReviewHostAction(entry)`（主持台动作，key `review`）摆放入口；终局任务用 `hostReviewClosingTask()`：`choice: [本局复盘, 再来一局, 返回大厅]`。狼人杀 Day 阶段保留授权动作；进入 Ended 后所有人都能查看、分享复盘，收尾任务为 `choice: [本局复盘, 再来一局, 返回大厅]`。
+- 游戏只通过 `buildReviewBottomButton(entry, variant)`（底部按钮，audience `anyone`）与 `buildReviewHostAction(entry)`（主持台动作，key `review`）摆放入口。身份游戏的终局任务提供复盘和重新开始；复盘可显示待办，但不阻止确认重开。舞台游戏在主持动作中提供复盘和重新开始。狼人杀 Day 阶段保留授权动作；Ended 时先确认昨夜信息，再提供授权、复盘和重新开始。
 - `overlay` 放入 `gameOverlays`；`open(pageKey)` 让画廊「分享本篇」直接打开复盘并定位到该页；换局（`roundKey` 变化）时对话框自动关闭。
 
 ## 5. 各游戏复盘内容

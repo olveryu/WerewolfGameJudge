@@ -10,7 +10,6 @@ import {
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   hostActionTask,
-  hostClosingTask,
   hostMessageTask,
   hostStartTask,
   projectViewingProgress,
@@ -104,10 +103,6 @@ describe('host management action builders', () => {
       kind: 'action',
       actionKey: 'start-game',
       remedyActionKey: 'share-room',
-    });
-    expect(hostClosingTask()).toEqual({
-      kind: 'choice',
-      actionKeys: ['next-round', 'return-lobby'],
     });
     expect(hostMessageTask('等待', { actionKey: 'mark-bots-viewed' })).toEqual({
       kind: 'message',

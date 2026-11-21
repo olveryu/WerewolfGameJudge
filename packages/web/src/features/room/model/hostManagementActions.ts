@@ -143,10 +143,7 @@ export function buildResetToLobbyAction(input: ActionInput): RoomHostManagementA
 export const HOST_FLOW_CONFIRM = {
   assignTitle: '分配角色？',
   startTitle: '开始游戏？',
-  nextRoundTitle: '再来一局',
-  returnLobbyTitle: '返回大厅',
   abortTitle: '中止本局？',
-  returnLobbyBody: '保留座位和设置，清除当前对局。',
 } as const;
 
 /** "全员已查看{身份|词卡}，…" — the viewing-complete confirm body pattern. */
@@ -295,8 +292,6 @@ export const HOST_ACTION_KEYS = {
   startGame: 'start-game',
   assignRoles: 'assign-roles',
   restart: 'restart',
-  nextRound: 'next-round',
-  returnLobby: 'return-lobby',
   fillBots: 'fill-bots',
   markBotsViewed: 'mark-bots-viewed',
   clearSeats: 'clear-seats',
@@ -351,32 +346,6 @@ export function hostMessageTask(
   extras: HostTaskExtras & { readonly actionKey?: string } = {},
 ): RoomHostTask {
   return { kind: 'message', text, ...extras };
-}
-
-/**
- * The shared closing task every game ends on: equal options
- * (再来一局 / 返回大厅), never one primary and one buried option.
- */
-export function hostClosingTask(extras: HostTaskExtras = {}): RoomHostTask {
-  return {
-    kind: 'choice',
-    actionKeys: [HOST_ACTION_KEYS.nextRound, HOST_ACTION_KEYS.returnLobby],
-    ...extras,
-  };
-}
-
-/**
- * The closing task of a game whose review is part of closing: 本局复盘
- * stands as an equal option beside 再来一局 / 返回大厅 — the review is
- * gone once the next round starts. A game with its own review step
- * (Werewolf's panel flow) closes with `hostClosingTask` instead.
- */
-export function hostReviewClosingTask(extras: HostTaskExtras = {}): RoomHostTask {
-  return {
-    kind: 'choice',
-    actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.nextRound, HOST_ACTION_KEYS.returnLobby],
-    ...extras,
-  };
 }
 
 /**
