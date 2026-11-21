@@ -214,6 +214,10 @@ export class RoomPage {
 
   /** Click a viewer action whether it is focused at the bottom or expanded in the shared surface. */
   async clickRoomAction(actionTestID: string): Promise<void> {
+    // A host-started seat selection returns to host management, which hides the main hand.
+    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
+      await this.closeHostManagement();
+    }
     const bottomAction = this.page.getByTestId(actionTestID);
     if ((await bottomAction.count()) > 0) {
       await bottomAction.click();

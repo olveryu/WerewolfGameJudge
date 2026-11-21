@@ -176,8 +176,8 @@ export function RoomShell({
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
   const resolvedActionSurface = actionSurface ?? 'hand';
-  const hasBottomPanel = !isStage && resolvedActionSurface === 'hand';
-  const statusInBoard = content.kind === 'seats' && hasBottomPanel;
+  // A hidden hand (werewolf narration) keeps the board status visible.
+  const statusInBoard = content.kind === 'seats' && resolvedActionSurface !== 'menu';
   const seatsMissing =
     lobbyAction === null ? 0 : model.seats.source.count - lobbyAction.occupiedSeats;
   const lobbyTask =

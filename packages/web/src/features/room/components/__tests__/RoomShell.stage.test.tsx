@@ -320,6 +320,7 @@ describe('RoomShell stage content', () => {
           afterSeatBoard: null,
         }}
         selectionMode="host-task"
+        actionSurface={isAudioPlaying ? 'hidden' : 'hand'}
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -336,6 +337,7 @@ describe('RoomShell stage content', () => {
       screen.getByTestId(TESTIDS.audioWaitingMessage).closest('.room-board-information'),
     ).not.toBeNull();
     expect(screen.queryByTestId(TESTIDS.actionMessage)).toBeNull();
+    expect(screen.queryByRole('button', { name: '取消选择' })).toBeNull();
   });
 
   it.each(['host', 'seated'] as const)(
