@@ -13,8 +13,8 @@ import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useShe
 import { resolveNightInteraction } from '@/games/werewolf/room/night/resolveNightInteraction';
 import { buildWerewolfGuideMessage } from '@/games/werewolf/room/werewolfGuideMessage';
 import {
-  createWerewolfBottomActionLayout,
-  createWerewolfBottomActions,
+  createWerewolfPlayerActionList,
+  createWerewolfPlayerActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
 } from '@/games/werewolf/room/werewolfRoomAdapter';
@@ -101,10 +101,7 @@ function createElection(): SheriffElectionPanelModel {
   };
 }
 
-function bottomFor(
-  status: GameStatus,
-  audience: RoomViewerAudience,
-): { kind: string; message: string | null } {
+function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message: string | null } {
   const viewer = viewerFor(audience, { hostUserId: 'HOST', seatedUserId: 'p1' });
   const state = createGameState({ status });
   const viewModel = getWerewolfViewModel(state, { seat: viewer.seat, isHost: viewer.isHost });
@@ -135,23 +132,22 @@ function bottomFor(
     takeOverBots: { isAllowed: false, reason: null },
     shareRoom: vi.fn(),
   });
-  const layout = createWerewolfBottomActionLayout({
+  const actionList = createWerewolfPlayerActionList({
     viewModel,
     night,
     isHost: viewer.isHost,
     effectiveSeat: viewer.seat,
     isAudioPlaying: false,
-    isActionSubmitting: false,
     review,
     onNightButton: vi.fn(),
     onViewRole: vi.fn(),
   });
-  const bottomActions = createWerewolfBottomActions({
+  const playerActions = createWerewolfPlayerActions({
     state,
     viewModel,
     isHost: viewer.isHost,
     isAudioPlaying: false,
-    layout,
+    actions: actionList,
     actionMessage: null,
     nightStatusLine: null,
     guideMessage: buildWerewolfGuideMessage({
@@ -198,7 +194,7 @@ function bottomFor(
     onBotSeatLongPress: null,
     isActionSubmitting: false,
     isHostActionSubmitting: false,
-    bottomActions,
+    playerActions,
     sheriffElectionPanel,
     panelFlow: { lastNightInfoConfirmed: false },
     onHostControl: vi.fn(),
@@ -210,7 +206,7 @@ function bottomFor(
     onLastNightInfo: vi.fn(),
     onSelectMvp: vi.fn(),
   });
-  return { kind: model.bottomActions.kind, message: model.bottomActions.message };
+  return { message: model.playerActions.message };
 }
 
 describe('WEREWOLF_GUIDANCE_MATRIX', () => {
@@ -230,7 +226,6 @@ describe('WEREWOLF_GUIDANCE_MATRIX', () => {
       const cell = WEREWOLF_GUIDANCE_MATRIX[status][viewer];
       const bottom = bottomFor(status, viewer);
       if (status === GameStatus.Day) {
-        expect(bottom.kind).toBe('dock');
         expect(bottom.message).toBe('报名进行中');
         continue;
       }

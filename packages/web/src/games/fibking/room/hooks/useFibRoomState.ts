@@ -40,8 +40,8 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getFibRevealRolePool } from '../components/FibRoleCardAdapter';
 import {
-  createFibBottomActions,
   createFibHostManagement,
+  createFibPlayerActions,
   createFibRoomCapabilities,
   createFibRoomShellModel,
   createFibSeatDataSource,
@@ -330,7 +330,7 @@ export function useFibRoomState({
       gameDetails,
     }),
     share,
-    bottomActions: createFibBottomActions({
+    playerActions: createFibPlayerActions({
       state,
       isHost,
       viewerSeat: effectiveSeat,

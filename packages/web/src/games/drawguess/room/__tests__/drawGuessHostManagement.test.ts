@@ -157,29 +157,27 @@ describe('createDrawGuessHostManagement', () => {
     game.seatHost();
     const model = build(game.state, true);
     expect(model?.pendingActionKeys).toEqual(['start-game']);
-    expect(model?.sections.map((section) => section.key)).toEqual(['game', 'room']);
-    const start = model?.sections[0]?.actions[0];
+    expect(model?.actions.map((action) => action.key)).toEqual([
+      'start-game',
+      'configure-game',
+      'fill-bots',
+      'clear-seats',
+    ]);
+    const start = model?.actions[0];
     expect(start).toMatchObject({
       key: 'start-game',
       label: '开始游戏',
       testID: 'start-game-button',
-      isEnabled: false,
-      disabledReason: '座位尚未坐满（还差 3 人）',
+      state: { kind: 'blocked', reason: '座位尚未坐满（还差 3 人）' },
     });
-    expect(model?.sections[1]?.actions.map((action) => action.key)).toEqual([
-      'configure-game',
-      'fill-bots',
-      'clear-seats',
-      'share-room',
-    ]);
   });
 
   it('enables start once the room is full', () => {
     const game = session();
     game.seatHost();
     game.send({ type: 'room.seat.fillBots' });
-    const start = build(game.state, true)?.sections[0]?.actions[0];
-    expect(start).toMatchObject({ key: 'start-game', isEnabled: true });
+    const start = build(game.state, true)?.actions[0];
+    expect(start).toMatchObject({ key: 'start-game', state: { kind: 'ready' } });
   });
 
   it('derives the task body from the lobby start gate', () => {
@@ -187,13 +185,16 @@ describe('createDrawGuessHostManagement', () => {
     game.seatHost();
     const blocked = hostTaskBody(build(game.state, true));
     expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(blocked.reason).toBe('座位尚未坐满（还差 3 人）');
-    expect(blocked.remedy?.label).toBe('分享房间');
+    if (blocked?.kind !== 'action') throw new Error('expected an action task body');
+    expect(blocked.action.state).toEqual({
+      kind: 'blocked',
+      reason: '座位尚未坐满（还差 3 人）',
+    });
 
     game.send({ type: 'room.seat.fillBots' });
     const ready = hostTaskBody(build(game.state, true));
-    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it.each(['wordSelect', 'drawing', 'roundEnd'] as const)(
@@ -207,11 +208,8 @@ describe('createDrawGuessHostManagement', () => {
       expect(game.state.phase.kind).toBe(phase);
       const model = build(game.state, false);
       expect(model.task).toBeNull();
-      expect(model.sections.map((section) => section.key)).toEqual(['room', 'danger']);
-      // Setup capabilities are all denied mid-game, exactly like Avalon.
-      expect(model?.sections[0]?.actions).toEqual([]);
-      expect(model.sections[1]!.actions).toMatchObject([
-        { key: 'restart', label: '重新开始', isEnabled: true, variant: 'danger' },
+      expect(model.actions).toMatchObject([
+        { key: 'restart', label: '重新开始', category: 'danger', state: { kind: 'ready' } },
       ]);
     },
   );
@@ -220,9 +218,9 @@ describe('createDrawGuessHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    const action = build(game.state, false).sections[1]!.actions[0]!;
-    if (!action.isEnabled) throw new Error('Expected enabled abort');
-    action.onPress();
+    const action = build(game.state, false).actions[0]!;
+    if (action.state.kind !== 'ready') throw new Error('Expected enabled abort');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
     const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
     if (confirmation === undefined) throw new Error('Expected abort confirmation');
@@ -240,9 +238,8 @@ describe('createDrawGuessHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    const action = build(game.state, false, true).sections[1]!.actions[0]!;
-    expect(action.isEnabled).toBe(false);
-    expect(action).not.toHaveProperty('onPress');
+    const action = build(game.state, false, true).actions[0]!;
+    expect(action.state).toEqual({ kind: 'busy' });
   });
 
   it('offers optional review and a single restart after the game ends', async () => {
@@ -254,21 +251,23 @@ describe('createDrawGuessHostManagement', () => {
     const openReview = vi.fn();
     const model = build(game.state, false, false, { isEnabled: true, onPress: openReview });
     expect(model.task).toBeNull();
-    const actions = model?.sections[0]?.actions ?? [];
+    const actions = model?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
       'restart-button',
     ]);
     const [review] = actions;
-    expect(review).toMatchObject({ label: '本局复盘', isEnabled: true });
-    if (review === undefined || !review.isEnabled) throw new Error('expected an enabled review');
-    review.onPress();
+    expect(review).toMatchObject({ label: '本局复盘', state: { kind: 'ready' } });
+    if (review === undefined || review.state.kind !== 'ready')
+      throw new Error('expected an enabled review');
+    review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
     expect(submit).not.toHaveBeenCalled();
     const restart = actions[1];
-    if (restart === undefined || !restart.isEnabled) throw new Error('expected enabled restart');
-    restart.onPress();
+    if (restart === undefined || restart.state.kind !== 'ready')
+      throw new Error('expected enabled restart');
+    restart.state.onPress();
     const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
     if (confirmation === undefined) throw new Error('Expected restart confirmation');
     expect(confirmation[1]).toContain('已结算的战绩和奖励保留');

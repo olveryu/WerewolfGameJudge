@@ -17,7 +17,7 @@ import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/ros
 import { getMvpGoldenDraws } from '@game-judge/game-engine/product/rewards';
 import { useCallback, useState } from 'react';
 
-import { HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
+import { HOST_ACTION_KEYS, HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showConfirmAlert, showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
@@ -103,11 +103,15 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
               : '保留座位和板子，清除本局并回到准备。本局中止，不结算完成奖励。',
             '重新开始',
             () =>
-              resetAudioThenSubmit('重新开始', {
-                type: 'werewolf.game.restart',
-                gameSequence: state.gameSequence,
-                wasEnded: state.status === GameStatus.Ended,
-              }),
+              resetAudioThenSubmit(
+                '重新开始',
+                {
+                  type: 'werewolf.game.restart',
+                  gameSequence: state.gameSequence,
+                  wasEnded: state.status === GameStatus.Ended,
+                },
+                HOST_ACTION_KEYS.restart,
+              ),
           );
           return;
       }

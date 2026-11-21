@@ -15,7 +15,7 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 
 async function requestUndercoverRestart(
   state: UndercoverState,
-  submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
+  submit: ReadyRoomSession<UndercoverState, UndercoverPublicCommand>['submit'],
   closeCard: () => void,
   clearSelection: () => void,
 ) {

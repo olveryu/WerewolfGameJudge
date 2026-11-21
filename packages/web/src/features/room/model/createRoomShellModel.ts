@@ -10,8 +10,8 @@
 
 import { buildRoomHeaderModel, type BuildRoomHeaderModelInput } from './buildRoomHeaderModel';
 import { resolveHostTaskView, type RoomHostTaskBody } from './resolveHostTaskView';
-import { listRoomBottomButtons, type RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomHostManagementModel } from './RoomHostManagement';
+import type { RoomPlayerActionModel } from './RoomPlayerActions';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomSeatBoardModel, RoomShellModel } from './RoomShellModel';
 import { resolveEffectiveSeat, type RoomViewer } from './RoomViewer';
@@ -43,16 +43,16 @@ export interface RoomShellModelWithHeaderInput extends Omit<
  * emitting an action its viewer may not hold — the exact bug the
  * ownership contract exists to surface.
  */
-function assertBottomActionAudiences(
+function assertPlayerActionAudiences(
   viewer: RoomViewer,
   controlledSeat: number | null,
-  bottomActions: RoomBottomActionModel,
+  playerActions: RoomPlayerActionModel,
 ): void {
   const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
   for (const button of listRoomBottomButtons(bottomActions)) {
     if (button.audience === 'participant' && effectiveSeat === null) {
       throw new Error(
-        `Bottom action "${button.key}" is a participant action but the viewer holds no seat`,
+        `Player action "${action.key}" is a participant action but the viewer holds no seat`,
       );
     }
   }
@@ -60,8 +60,7 @@ function assertBottomActionAudiences(
 
 function hostTaskActionKeys(taskBody: RoomHostTaskBody): readonly string[] {
   switch (taskBody.kind) {
-    case 'ready':
-    case 'blocked':
+    case 'action':
       return [taskBody.action.key];
     case 'choice':
       return taskBody.actions.map((action) => action.key);
@@ -71,12 +70,12 @@ function hostTaskActionKeys(taskBody: RoomHostTaskBody): readonly string[] {
 }
 
 /**
- * The bottom panel carries no host flow: an action the host task card
+ * The player hand carries no host flow: an action the host task card
  * renders must not also stand on the bottom panel, or the host sees it twice.
  */
 function assertBottomActionsOutsideHostTask(
   taskBody: RoomHostTaskBody,
-  bottomActions: RoomBottomActionModel,
+  playerActions: RoomPlayerActionModel,
 ): void {
   const taskActionKeys = new Set(hostTaskActionKeys(taskBody));
   for (const button of listRoomBottomButtons(bottomActions)) {
@@ -90,16 +89,16 @@ function assertBottomActionsOutsideHostTask(
 export function createRoomShellModel(
   input: RoomShellModelInput | RoomShellModelWithHeaderInput,
 ): RoomShellModel {
-  assertBottomActionAudiences(
+  assertPlayerActionAudiences(
     input.viewer,
     input.controlledSeat === null ? null : input.controlledSeat.seat,
-    input.bottomActions,
+    input.playerActions,
   );
   const hostManagement = input.viewer.isHost ? input.buildHostManagement() : null;
   // Validate task references at assembly so a dangling key fails here, not in render.
   const hostTaskView = hostManagement === null ? null : resolveHostTaskView(hostManagement);
   if (hostTaskView !== null)
-    assertBottomActionsOutsideHostTask(hostTaskView.body, input.bottomActions);
+    assertBottomActionsOutsideHostTask(hostTaskView.body, input.playerActions);
   return {
     roomCode: input.roomCode,
     viewer: input.viewer,
@@ -118,7 +117,7 @@ export function createRoomShellModel(
     seatConfirmation: input.seatConfirmation,
     profile: input.profile,
     share: input.share,
-    bottomActions: input.bottomActions,
+    playerActions: input.playerActions,
     hostManagement,
     controlledSeat: input.controlledSeat,
   };

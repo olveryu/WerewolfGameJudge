@@ -1,6 +1,6 @@
 /**
  * FibKing guidance matrix: every (phase × viewer) cell declared in
- * fibGuidanceMatrix.ts is held true against createFibBottomActions,
+ * fibGuidanceMatrix.ts is held true against createFibPlayerActions,
  * using the same hand-built state literals as fibRoomAdapter.test.ts
  * (this game's established adapter-test idiom).
  */
@@ -11,7 +11,7 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 
 import { FIBKING_GUIDANCE_MATRIX } from '../fibGuidanceMatrix';
-import { createFibBottomActions } from '../fibRoomAdapter';
+import { createFibPlayerActions } from '../fibRoomAdapter';
 
 const FIB_PHASES: readonly FibPhase[] = [
   'lobby',
@@ -104,7 +104,7 @@ function stateFor(phase: FibPhase): FibState {
 type Viewer = 'host' | 'seated' | 'spectator';
 
 function bottomMessage(state: FibState, viewer: Viewer): string | null {
-  return createFibBottomActions({
+  return createFibPlayerActions({
     state,
     isHost: viewer === 'host',
     viewerSeat: viewer === 'host' ? 0 : viewer === 'seated' ? 1 : null,

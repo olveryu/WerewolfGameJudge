@@ -4,11 +4,11 @@
  *
  * The top status ribbon, the next-step strip model and the disabled-press
  * popup channel were removed as mechanisms: host guidance is one declared
- * task (room-shell-contract "Host Task") rendered on the host task card
- * and referencing the sheet's actions by key; a disabled action's reason
+ * task (room-shell-contract "Host Task") rendered in the shared host task
+ * header and referencing the hand's actions by key; a disabled action's reason
  * renders as a caption where the action sits. The flat info bottom model
- * was likewise removed: the stacked three-tier layout (plus the sheriff
- * dock) is the only bottom-actions model, and it carries no host flow.
+ * was likewise removed: player actions can declare one scoped child hand,
+ * while the host task references actions by key.
  * These identifiers must not reappear in room production code or in the
  * new-game generator templates that distribute the same parts.
  */
@@ -114,6 +114,6 @@ describe('room guidance surfaces contract', () => {
       'utf-8',
     );
     expect(shellModel).not.toMatch(/statusRibbon/);
-    expect(shellModel).toMatch(/readonly bottomActions: RoomBottomActionModel;/);
+    expect(shellModel).toMatch(/readonly playerActions: RoomPlayerActionModel;/);
   });
 });

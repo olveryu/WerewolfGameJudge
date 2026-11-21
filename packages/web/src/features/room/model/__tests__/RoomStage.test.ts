@@ -1,15 +1,14 @@
 /** Stage model: roster grouping shared by the roster chip and sheet, and the stage shell guard. */
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 
-import type { RoomBottomStackModel } from '../RoomBottomActions';
+import type { RoomPlayerActionModel } from '../RoomPlayerActions';
 import {
   assertRoomStageShellModel,
   countRoomStageRoster,
   groupRoomStageRoster,
 } from '../RoomStage';
 
-const EMPTY_STACK: RoomBottomStackModel = {
-  kind: 'stacked',
+const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
   layout: { primary: [], secondary: [], ghost: [] },
@@ -66,30 +65,29 @@ describe('groupRoomStageRoster', () => {
 });
 
 describe('assertRoomStageShellModel', () => {
-  const valid = { bottomActions: EMPTY_STACK, isAudioPlaying: false, hostManagement: null };
+  const valid = { playerActions: EMPTY_STACK, isAudioPlaying: false, hostManagement: null };
 
   it('accepts an empty bottom model with host management that has no task', () => {
     expect(() => assertRoomStageShellModel(valid)).not.toThrow();
     expect(() =>
-      assertRoomStageShellModel({ ...valid, hostManagement: { task: null, sections: [] } }),
+      assertRoomStageShellModel({ ...valid, hostManagement: { task: null, actions: [] } }),
     ).not.toThrow();
   });
 
   it('rejects bottom messages, progress and buttons', () => {
     expect(() =>
-      assertRoomStageShellModel({ ...valid, bottomActions: { ...EMPTY_STACK, message: '等待' } }),
+      assertRoomStageShellModel({ ...valid, playerActions: { ...EMPTY_STACK, message: '等待' } }),
     ).toThrow('Stage content cannot carry bottom actions');
     expect(() =>
       assertRoomStageShellModel({
         ...valid,
-        bottomActions: { ...EMPTY_STACK, progress: { current: 1, total: 3, label: '' } },
+        playerActions: { ...EMPTY_STACK, progress: { current: 1, total: 3, label: '' } },
       }),
     ).toThrow('Stage content cannot carry bottom actions');
     expect(() =>
       assertRoomStageShellModel({
         ...valid,
-        bottomActions: {
-          kind: 'dock',
+        playerActions: {
           message: null,
           progress: null,
           leading: null,
@@ -115,7 +113,7 @@ describe('assertRoomStageShellModel', () => {
     expect(() =>
       assertRoomStageShellModel({
         ...valid,
-        hostManagement: { task: { kind: 'message', text: '等待' }, sections: [] },
+        hostManagement: { task: { kind: 'message', text: '等待' }, actions: [] },
       }),
     ).toThrow('Stage content cannot carry a host task card');
   });

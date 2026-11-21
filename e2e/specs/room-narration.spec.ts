@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomBottomActions';
+import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomPlayerActions';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import {

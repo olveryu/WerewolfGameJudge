@@ -1,17 +1,13 @@
 import {
   buildAssignRolesAction,
   buildEnabledHostAction,
-  buildMusicSettingsAction,
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
-  buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   hostActionTask,
   hostMessageTask,
-  hostStartTask,
   projectViewingProgress,
   type RoomHostActionDescriptor,
 } from '../hostManagementActions';
@@ -24,11 +20,11 @@ describe('host management action builders', () => {
       key: 'start-game',
       label: '开始游戏',
       icon: 'play-outline',
-      variant: 'primary',
+      category: 'host',
       testID: 'start-game-button',
-      isEnabled: true,
+      state: { kind: 'ready' },
     });
-    if (action.isEnabled) action.onPress();
+    if (action.state.kind === 'ready') action.state.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -44,25 +40,22 @@ describe('host management action builders', () => {
   it('marks reset-to-lobby as the explicit stage-menu abort action', () => {
     expect(buildResetToLobbyAction({ onPress: () => undefined })).toMatchObject({
       key: 'restart',
-      variant: 'danger',
+      category: 'danger',
       stageMenuRole: 'abort',
     });
   });
 
-  it('carries the reason into the disabled variant', () => {
+  it('carries the reason into the blocked state', () => {
     const action = buildStartGameAction({
       onPress: () => undefined,
       isEnabled: false,
       disabledReason: '座位尚未坐满',
-      isLoading: true,
     });
     expect(action).toMatchObject({
       key: 'start-game',
-      isEnabled: false,
-      disabledReason: '座位尚未坐满',
-      isLoading: true,
+      state: { kind: 'blocked', reason: '座位尚未坐满' },
     });
-    expect(action).not.toHaveProperty('onPress');
+    expect(action.state).not.toHaveProperty('onPress');
   });
 
   it('defaults the disabled reason to null', () => {
@@ -71,15 +64,14 @@ describe('host management action builders', () => {
   });
 
   it('builds host tasks that reference sheet actions by key only', () => {
-    expect(hostStartTask(HOST_ACTION_KEYS.startGame)).toEqual({
+    expect(hostActionTask(HOST_ACTION_KEYS.startGame)).toEqual({
       kind: 'action',
       actionKey: 'start-game',
-      remedyActionKey: 'share-room',
     });
-    expect(hostMessageTask('等待', { actionKey: 'mark-bots-viewed' })).toEqual({
+    expect(hostMessageTask('等待', { escapeActionKey: 'mark-bots-viewed' })).toEqual({
       kind: 'message',
       text: '等待',
-      actionKey: 'mark-bots-viewed',
+      escapeActionKey: 'mark-bots-viewed',
     });
     expect(hostActionTask('x', { note: 'n' })).toEqual({
       kind: 'action',
@@ -94,16 +86,15 @@ describe('host action pending marshal', () => {
     key: 'sample-action',
     label: '示例操作',
     icon: 'checkmark-done-outline',
-    variant: 'primary',
+    category: 'host',
     testID: 'sample-action-button',
-    isLoading: true,
   };
 
   it('binds the press handler when not pending', () => {
     const onPress = vi.fn();
     const action = buildPendingAwareHostAction(descriptor, false, onPress);
-    expect(action).toMatchObject({ ...descriptor, isEnabled: true });
-    if (action.isEnabled) action.onPress();
+    expect(action).toMatchObject({ ...descriptor, state: { kind: 'ready' } });
+    if (action.state.kind === 'ready') action.state.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -111,10 +102,9 @@ describe('host action pending marshal', () => {
     const action = buildPendingAwareHostAction(descriptor, true, () => undefined);
     expect(action).toMatchObject({
       ...descriptor,
-      isEnabled: false,
-      disabledReason: null,
+      state: { kind: 'blocked', reason: null },
     });
-    expect(action).not.toHaveProperty('onPress');
+    expect(action.state).not.toHaveProperty('onPress');
   });
 
   it('builds an enabled action from a descriptor without a loading declaration', () => {
@@ -124,12 +114,12 @@ describe('host action pending marshal', () => {
         key: 'night-review',
         label: '本局复盘',
         icon: 'document-text-outline',
-        variant: 'secondary',
+        category: 'resource',
       },
       onPress,
     );
-    expect(action).toMatchObject({ key: 'night-review', isEnabled: true });
-    if (action.isEnabled) action.onPress();
+    expect(action).toMatchObject({ key: 'night-review', state: { kind: 'ready' } });
+    if (action.state.kind === 'ready') action.state.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 });

@@ -11,6 +11,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useState } from 'react';
 
+import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import {
@@ -51,7 +52,7 @@ interface UseSheriffElectionInput {
    * The room's single-flight submit, bound to the effective seat by the
    * caller; failures are presented by the submission itself.
    */
-  readonly submit: (label: string, command: WerewolfPublicCommand) => Promise<boolean>;
+  readonly submit: WerewolfSubmit;
 }
 
 export function useSheriffElection(

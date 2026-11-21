@@ -43,32 +43,26 @@ import {
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
+import type { RoomHostAction, RoomPlayerAction } from '@/features/room/model/RoomAction';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import {
   buildEndedWaitingMessage,
   buildViewIdentityButton,
   resolveViewIdentityAction,
-  type RoomBottomButton,
-  type RoomBottomStackModel,
   VIEW_IDENTITY_LABEL,
-} from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
-import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementSection,
-} from '@/features/room/model/RoomHostManagement';
+} from '@/features/room/model/RoomPlayerActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
@@ -413,11 +407,11 @@ export interface AvalonBottomActionsInput {
  * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
  * 一次性信息归弹窗。
  */
-function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomStackModel {
+function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerActionModel {
   const { state } = input;
-  const primary: RoomBottomButton[] = [];
-  const secondary: RoomBottomButton[] = [];
-  const ghost: RoomBottomButton[] = [];
+  const primary: RoomPlayerAction[] = [];
+  const secondary: RoomPlayerAction[] = [];
+  const ghost: RoomPlayerAction[] = [];
   let message: string | null = null;
   if (input.isLobby) {
     // 大厅客人等分配（个人提示）；房主走房主面板。
@@ -425,7 +419,6 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
-  // 层级按 2026 规则：查看阶段是 primary，其余阶段是 secondary，永不进 ghost。
   const isViewingStep = state.phase.kind === 'viewing';
   const viewIdentityAction = resolveViewIdentityAction({
     isVisible: input.effectiveSeat !== null,
@@ -433,11 +426,10 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
     onPress: input.onViewRolePress,
   });
   if (viewIdentityAction !== null) {
-    (isViewingStep ? primary : secondary).push(
+    secondary.push(
       buildViewIdentityButton(viewIdentityAction, {
         isSubmitting: input.isSubmitting,
         key: 'viewRole',
-        variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',
         testID: TESTIDS.roomViewIdentityButton,
         isPending:
@@ -476,17 +468,14 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           key: 'nightInfo',
           label: '确认信息',
           audience: 'participant',
-          variant: 'primary',
-          size: 'md',
+          category: 'player',
           isPending: true,
-          isEnabled: true,
-          onPress: input.onNightInfoPress,
+          state: { kind: 'ready', onPress: input.onNightInfoPress },
           testID: TESTIDS.avalonNightInfo,
         });
       }
     }
     return {
-      kind: 'stacked',
       message,
       progress: deriveAvalonBottomProgress(state),
       layout: { primary, secondary, ghost },
@@ -503,10 +492,8 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         key: 'earlyStrike',
         label: '取消刺杀',
         audience: 'participant',
-        variant: 'secondary',
-        size: 'md',
-        isEnabled: true,
-        onPress: input.onCancelEarlyStrikePress,
+        category: 'player',
+        state: { kind: 'ready', onPress: input.onCancelEarlyStrikePress },
         testID: TESTIDS.avalonEarlyStrike,
       });
       message =
@@ -517,10 +504,8 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       key: 'earlyStrike',
       label: '刺杀',
       audience: 'participant',
-      variant: 'secondary',
-      size: 'md',
-      isEnabled: true,
-      onPress: input.onEarlyStrikePress,
+      category: 'player',
+      state: { kind: 'ready', onPress: input.onEarlyStrikePress },
       testID: TESTIDS.avalonEarlyStrike,
     });
   }
@@ -540,11 +525,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               key: 'preselectTeam',
               label: '预选队伍',
               audience: 'participant',
-              variant: 'primary',
-              size: 'md',
+              category: 'player',
               isPending: true,
-              isEnabled: true,
-              onPress: input.onPreselectTeamPress,
+              state: { kind: 'ready', onPress: input.onPreselectTeamPress },
               testID: TESTIDS.avalonNominatePreselect,
             });
           } else {
@@ -552,12 +535,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               key: 'preselectTeam',
               label: '预选队伍',
               audience: 'participant',
-              variant: 'primary',
-              size: 'md',
+              category: 'player',
               isPending: true,
-              isEnabled: false,
-              disabledReason: null,
-              isLoading: true,
+              state: { kind: 'busy' },
               testID: TESTIDS.avalonNominatePreselect,
             });
           }
@@ -568,11 +548,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               key: 'proposeTeam',
               label: '最终队伍',
               audience: 'participant',
-              variant: 'primary',
-              size: 'md',
+              category: 'player',
               isPending: true,
-              isEnabled: true,
-              onPress: input.onProposeTeamPress,
+              state: { kind: 'ready', onPress: input.onProposeTeamPress },
               testID: TESTIDS.avalonNominateSubmit,
             });
           } else {
@@ -580,12 +558,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               key: 'proposeTeam',
               label: '最终队伍',
               audience: 'participant',
-              variant: 'primary',
-              size: 'md',
+              category: 'player',
               isPending: true,
-              isEnabled: false,
-              disabledReason: null,
-              isLoading: true,
+              state: { kind: 'busy' },
               testID: TESTIDS.avalonNominateSubmit,
             });
           }
@@ -604,11 +579,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           key: 'openVote',
           label: instruction.myBallot === null ? '去投票' : '修改投票',
           audience: 'participant',
-          variant: 'primary',
-          size: 'md',
+          category: 'player',
           isPending: instruction.myBallot === null,
-          isEnabled: true,
-          onPress: input.onOpenVotePress,
+          state: { kind: 'ready', onPress: input.onOpenVotePress },
           testID: TESTIDS.avalonVoteOpen,
         });
       }
@@ -641,11 +614,9 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           key: 'openQuest',
           label: instruction.myPlay === null ? '去出牌' : '修改出牌',
           audience: 'participant',
-          variant: 'primary',
-          size: 'md',
+          category: 'player',
           isPending: instruction.myPlay === null,
-          isEnabled: true,
-          onPress: input.onOpenQuestPress,
+          state: { kind: 'ready', onPress: input.onOpenQuestPress },
           testID: TESTIDS.avalonQuestOpen,
         });
       }
@@ -699,7 +670,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       // 房主的复盘入口与再来一局 / 返回大厅并列在房主任务卡。
       const { review } = input;
       if (review === null) throw new Error('[FAIL-FAST] Avalon ended has no review entry');
-      secondary.push(...buildViewerReviewBottomButtons(review, 'secondary', input.viewer));
+      secondary.push(...buildViewerReviewBottomButtons(review, input.viewer));
       message = buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer });
       break;
     }
@@ -717,7 +688,7 @@ export interface AvalonRoomShellModelInput extends Omit<
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
-  | 'bottomActions'
+  | 'playerActions'
   | 'controlledSeat'
 > {
   readonly state: AvalonState;
@@ -763,7 +734,7 @@ export interface AvalonHostManagementInput {
 /** Avalon management actions remain subject to the authoritative narration lock. */
 const AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
 
-function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostManagementAction {
+function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAction {
   const { state } = input;
   return buildResetToLobbyAction({
     onPress: () =>
@@ -788,14 +759,12 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostMan
   });
 }
 
-function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManagementSection[] {
+function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction[] {
   const { state } = input;
-  const sections: RoomHostManagementSection[] = [];
-  const actions: RoomHostManagementAction[] = [];
+  const actions: RoomHostAction[] = [];
   if (state.phase.kind === 'lobby' || state.phase.kind === 'viewing')
     actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return actions.length > 0 ? [{ key: 'tools', title: '辅助工具', actions }] : [];
+  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended') return actions;
   if (
     getAvalonViewingParticipants(state).some(
       (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
@@ -824,9 +793,8 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
           key: 'mark-bots-confirmed',
           label: '标记机器人已确认',
           icon: 'checkmark-done-outline',
-          variant: 'secondary',
+          category: 'host',
           testID: TESTIDS.roomMarkBotsConfirmedButton,
-          isLoading: input.isSubmitting,
         },
         input.isSubmitting,
         () =>
@@ -837,16 +805,10 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
           }),
       ),
     );
-  if (actions.length > 0) sections.push({ key: 'tools', title: '辅助工具', actions });
-  sections.push({
-    key: 'danger',
-    title: '危险操作',
-    actions: [buildAvalonRestartAction(input)],
-  });
-  return sections;
+  return [...actions, buildAvalonRestartAction(input)];
 }
 
-function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostManagementAction[] {
+function createAvalonEndedActions(input: AvalonHostManagementInput): RoomHostAction[] {
   const { review } = input;
   if (review === null) throw new Error('[FAIL-FAST] Avalon ended host has no review entry');
   return [buildReviewHostAction(review), buildAvalonRestartAction(input)];
@@ -865,17 +827,14 @@ export function createAvalonHostManagement(
     applyAudioPlaybackLock(
       {
         ...model,
-        sections: [
-          ...model.sections.filter((section) => section.actions.length > 0),
-          ...createAvalonHostTools(input),
-        ],
+        actions: [...model.actions, ...createAvalonHostTools(input)],
       },
       {
         isAudioPlaying: state.isAudioPlaying,
         exemptActionKeys: AVALON_AUDIO_LOCK_EXEMPT_ACTION_KEYS,
       },
     ) ?? model;
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
@@ -901,20 +860,9 @@ export function createAvalonHostManagement(
       isLoading: input.isSubmitting,
     });
     return applyLock({
-      task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      task: hostActionTask(HOST_ACTION_KEYS.assignRoles),
       pendingActionKeys: [HOST_ACTION_KEYS.assignRoles],
-      sections: [
-        {
-          key: 'game',
-          title: '游戏',
-          actions: [assignAction],
-        },
-        {
-          key: 'room',
-          title: '房间管理',
-          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
-      ],
+      actions: [assignAction, ...roomActions],
     });
   }
   if (state.phase.kind === 'viewing') {
@@ -939,50 +887,30 @@ export function createAvalonHostManagement(
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
     });
-    const sections: RoomHostManagementSection[] = [
-      {
-        key: 'game',
-        title: '游戏',
-        actions: [beginAction],
-      },
-    ];
-    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    const hasUnviewedBot = participants.some(
-      (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
-    );
     const hostSeat = getAvalonUserSeat(state, state.hostUserId);
-    // The task is the start; until every seat viewed it is blocked by the
-    // sheet action's reason, with the bot scaffold as the remedy.
+    // The task is the start; until every seat viewed it is blocked by
+    // the action's own state.
     return applyLock({
-      task: hostActionTask(
-        HOST_ACTION_KEYS.startGame,
-        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
-      ),
+      task: hostActionTask(HOST_ACTION_KEYS.startGame),
       pendingActionKeys:
         hostSeat !== null && !state.roleViewedSeats.includes(hostSeat)
           ? []
           : [HOST_ACTION_KEYS.startGame],
-      sections,
+      actions: [beginAction, ...roomActions],
     });
   }
   if (state.phase.kind === 'ended') {
     return applyLock({
       task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
       pendingActionKeys: input.review?.isPending ? [HOST_ACTION_KEYS.review] : [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: createAvalonEndedActions(input),
-        },
-      ],
+      actions: createAvalonEndedActions(input),
     });
   }
   // 局中投票 / 任务自动结算，房主无推进命令：此刻没有待操作。
   return applyLock({
     task: null,
     pendingActionKeys: [],
-    sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
+    actions: roomActions,
   });
 }
 
@@ -1012,7 +940,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onLeaveSeat: input.onProfileLeaveSeat,
       gameDetails: input.gameDetails,
     }),
-    bottomActions: createAvalonBottomActions({
+    playerActions: createAvalonPlayerActions({
       state,
       isLobby: input.isLobby,
       viewer: input.viewer,

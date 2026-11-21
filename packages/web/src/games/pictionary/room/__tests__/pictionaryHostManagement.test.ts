@@ -110,11 +110,15 @@ describe('createPictionaryHostManagement task body', () => {
     session.dispatch({ type: 'pictionary.game.begin' });
     const { model, restartRound } = build(session.state);
     expect(model.task).toBeNull();
-    expect(model.sections.map((section) => section.key)).toEqual(['danger']);
-    const action = model.sections[0]!.actions[0]!;
-    expect(action).toMatchObject({ key: 'restart', variant: 'danger', isEnabled: true });
-    if (!action.isEnabled) throw new Error('expected an enabled restart');
-    action.onPress();
+    expect(model.actions.map((action) => action.key)).toEqual(['restart']);
+    const action = model.actions[0]!;
+    expect(action).toMatchObject({
+      key: 'restart',
+      category: 'danger',
+      state: { kind: 'ready' },
+    });
+    if (action.state.kind !== 'ready') throw new Error('expected an enabled restart');
+    action.state.onPress();
     const confirmation = alertStore.getSnapshot();
     expect(confirmation?.message).toContain('不结算完成奖励');
     expect(restartRound).not.toHaveBeenCalled();
@@ -124,24 +128,24 @@ describe('createPictionaryHostManagement task body', () => {
 
   it('warns that restarting the final transition does not settle rewards', () => {
     const state = playPictionaryTestRound({ stopAt: { stepIndex: 3, phase: 'transition' } });
-    const action = build(state).model.sections[0]?.actions[0];
-    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
-    action.onPress();
+    const action = build(state).model.actions[0];
+    if (action?.state.kind !== 'ready') throw new Error('expected an enabled restart');
+    action.state.onPress();
     expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
   });
 
-  it('blocks game start in a non-full lobby and offers room sharing as the remedy', () => {
+  it('blocks game start in a non-full lobby without a remedy action', () => {
     const session = createSession();
     session.dispatch({ type: 'room.seat.take', seat: 0, profile: { displayName: '房主' } });
-    const { model, shareRoom } = build(session.state);
+    const { model } = build(session.state);
     expect(model.pendingActionKeys).toEqual(['start-game']);
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (step?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
-    expect(step.remedy?.label).toBe('分享房间');
-    step.remedy?.onPress();
-    expect(shareRoom).toHaveBeenCalledTimes(1);
+    if (step?.kind !== 'action') throw new Error('expected an action task body');
+    expect(step.action.state).toEqual({
+      kind: 'blocked',
+      reason: '座位尚未坐满（还差 3 人）',
+    });
   });
 
   it('offers game start once every seat is taken', () => {
@@ -151,22 +155,22 @@ describe('createPictionaryHostManagement task body', () => {
     const { model } = build(session.state);
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (step?.kind !== 'action' || step.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it('keeps review optional and offers only restart after a finished round', () => {
     const openReview = vi.fn();
     const { model } = build(playPictionaryTestRound(), { isEnabled: true, onPress: openReview });
-    expect(model.sections.map((section) => section.key)).toEqual(['current-flow']);
-    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    expect(model.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(model.task).toBeNull();
-    const [review, restart] = model.sections[0]!.actions;
-    if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
+    const [review, restart] = model.actions;
+    if (review?.state.kind !== 'ready') throw new Error('expected an enabled review action');
     expect(review.testID).toBe('room-review-host-action');
-    review.onPress();
+    review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
-    if (restart?.isEnabled !== true) throw new Error('expected an enabled restart');
-    restart.onPress();
+    if (restart?.state.kind !== 'ready') throw new Error('expected an enabled restart');
+    restart.state.onPress();
     expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
   });
 

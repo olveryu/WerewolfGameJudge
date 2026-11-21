@@ -20,7 +20,7 @@ import { act, renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 
-import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
+import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { avalonReview } from '@/games/avalon/review/avalonReview';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
@@ -143,20 +143,16 @@ function renderRoomState(state: AvalonState) {
 
 type RoomStateResult = ReturnType<typeof renderRoomState>['result'];
 
-function findProposeAction(result: RoomStateResult): RoomBottomButton {
-  const bottom = result.current.shellModel.bottomActions;
-  if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
-  const action = bottom.layout.primary.find(
-    (candidate) => candidate.testID === 'avalon-nominate-submit',
-  );
+function findProposeAction(result: RoomStateResult): RoomPlayerAction {
+  const bottom = result.current.shellModel.playerActions;
+  const action = bottom.actions.find((candidate) => candidate.testID === 'avalon-nominate-submit');
   if (action === undefined) throw new Error('propose action not found');
   return action;
 }
 
-function findPreselectAction(result: RoomStateResult): RoomBottomButton {
-  const bottom = result.current.shellModel.bottomActions;
-  if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
-  const action = bottom.layout.primary.find(
+function findPreselectAction(result: RoomStateResult): RoomPlayerAction {
+  const bottom = result.current.shellModel.playerActions;
+  const action = bottom.actions.find(
     (candidate) => candidate.testID === 'avalon-nominate-preselect',
   );
   if (action === undefined) throw new Error('preselect action not found');
@@ -200,15 +196,15 @@ describe('useAvalonRoomState nomination team pick', () => {
     // The full-team gate lives on the modal confirm; the final button
     // does not exist before the preselect echo.
     const preselectAction = findPreselectAction(result);
-    expect(preselectAction.isEnabled).toBe(true);
-    const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+    expect(preselectAction.state.kind).toBe('ready');
+    const bottom = result.current.shellModel.playerActions;
     expect(
-      bottom.layout.primary.find((candidate) => candidate.testID === 'avalon-nominate-submit'),
+      bottom.actions.find((candidate) => candidate.testID === 'avalon-nominate-submit'),
     ).toBeUndefined();
-    if (!preselectAction.isEnabled) throw new Error('preselect action must be enabled');
+    if (preselectAction.state.kind !== 'ready') throw new Error('preselect action must be enabled');
+    const onPress = preselectAction.state.onPress;
     act(() => {
-      preselectAction.onPress?.();
+      onPress();
     });
     expect(result.current.teamPickModal).toBe('preselect');
   });
@@ -218,15 +214,15 @@ describe('useAvalonRoomState nomination team pick', () => {
     mockAuth.currentUserId = seatUserOf(state.leaderSeat);
     const { result } = renderRoomState(state);
     const proposeAction = findProposeAction(result);
-    expect(proposeAction.isEnabled).toBe(true);
-    const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
+    expect(proposeAction.state.kind).toBe('ready');
+    const bottom = result.current.shellModel.playerActions;
     expect(
-      bottom.layout.primary.find((candidate) => candidate.testID === 'avalon-nominate-preselect'),
+      bottom.actions.find((candidate) => candidate.testID === 'avalon-nominate-preselect'),
     ).toBeUndefined();
-    if (!proposeAction.isEnabled) throw new Error('propose action must be enabled');
+    if (proposeAction.state.kind !== 'ready') throw new Error('propose action must be enabled');
+    const onPress = proposeAction.state.onPress;
     act(() => {
-      proposeAction.onPress?.();
+      onPress();
     });
     expect(result.current.teamPickModal).toBe('final');
   });

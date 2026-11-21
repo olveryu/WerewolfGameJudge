@@ -4,7 +4,7 @@
  * Every function here is a pure mapping from the authoritative facts
  * (GameState, the viewer-cropped WerewolfViewModel, the night
  * interaction model) plus a few UI states into the shared room
- * contracts: capabilities, seat data source, bottom actions, board
+ * contracts: capabilities, seat data source, player actions, board
  * info, and the shell model. No game rule is derived here — the engine
  * projected them; this file only decides presentation.
  */
@@ -53,6 +53,12 @@ import {
   type RoomCapability,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
+import {
+  buildStepActorWaitingMessage,
+  buildViewIdentityButton,
+  type RoomPlayerActionModel,
+  VIEW_IDENTITY_LABEL,
+} from '@/features/room/model/RoomPlayerActions';
 import type {
   RoomSeatDataSource,
   RoomSeatStatusBadge,
@@ -72,14 +78,13 @@ import {
   type WerewolfHostControlAction,
 } from './createWerewolfHostManagement';
 import type { PanelFlowProgress } from './day/panelFlow';
-import { createSheriffElectionDockModel } from './day/sheriffElectionDockModel';
+import { createSheriffElectionPlayerActions } from './day/sheriffElectionPlayerActions';
 import type { SheriffElectionViewModel } from './day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from './day/useSheriffElection';
 import type { NightInteractionModel } from './night/NightInteractionModel';
 import { nightSeatAction, type NightSeatSelection } from './night/nightSeatSelection';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
-const ACTION_SUBMITTING_REASON = '行动正在确认中';
 
 // =============================================================================
 // Capabilities
@@ -447,7 +452,7 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
   }
 }
 
-interface WerewolfBottomLayoutInput {
+interface WerewolfPlayerActionListInput {
   readonly viewModel: WerewolfViewModel;
   readonly night: NightInteractionModel;
   readonly seatSelection?: NightSeatSelection | null;
@@ -456,7 +461,6 @@ interface WerewolfBottomLayoutInput {
   readonly isHost: boolean;
   readonly effectiveSeat: number | null;
   readonly isAudioPlaying: boolean;
-  readonly isActionSubmitting: boolean;
   /** The shared review entry for this viewer; null before the night review exists. */
   readonly review: RoomReviewEntry | null;
   readonly onNightButton: (action: NightButtonAction) => void;
@@ -500,8 +504,11 @@ function isPendingSingleNightAction(
   }
 }
 
-function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): RoomBottomButton {
-  const icon = ((): RoomBottomButton['icon'] => {
+function nightButton(
+  spec: NightButtonSpec,
+  input: WerewolfPlayerActionListInput,
+): RoomPlayerAction {
+  const icon = ((): RoomPlayerAction['icon'] => {
     switch (spec.action.kind) {
       case 'submitSeatSelection':
         return 'checkmark-outline';
@@ -530,13 +537,16 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
         return 'sparkles-outline';
     }
   })();
-  const base = {
+  const state: RoomActionState =
+    spec.disabledReason !== undefined
+      ? { kind: 'blocked', reason: spec.disabledReason }
+      : { kind: 'ready', onPress: () => input.onNightButton(spec.action, spec.key) };
+  return {
     key: spec.key,
     label: spec.label,
     audience: 'participant' as const,
+    category: 'player',
     icon,
-    variant: spec.tier,
-    size: 'md' as const,
     testID: TESTIDS.werewolfNightButton(spec.key),
     ...(spec.isPending === true ||
     (input.seatSelection == null && isPendingSingleNightAction(input.night, spec.action))
@@ -547,27 +557,16 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
       ? {}
       : { containedActionTestIDs: spec.containedActionTestIDs }),
   };
-  if (input.isActionSubmitting) {
-    return { ...base, isEnabled: false, disabledReason: ACTION_SUBMITTING_REASON };
-  }
-  if (spec.disabledReason !== undefined) {
-    return { ...base, isEnabled: false, disabledReason: spec.disabledReason };
-  }
-  return { ...base, isEnabled: true, onPress: () => input.onNightButton(spec.action) };
 }
 
-function viewRoleButton(
-  input: WerewolfBottomLayoutInput,
-  variant: 'primary' | 'secondary',
-): RoomBottomButton {
+function viewRoleButton(input: WerewolfPlayerActionListInput): RoomPlayerAction {
   return buildViewIdentityButton(
     { label: VIEW_IDENTITY_LABEL, onPress: input.onViewRole },
     {
       key: 'viewRole',
-      variant,
       audience: 'participant',
       testID: TESTIDS.roomViewIdentityButton,
-      isSubmitting: input.isActionSubmitting,
+      isSubmitting: false,
       isPending:
         input.viewModel.status === GameStatus.Assigned &&
         input.effectiveSeat !== null &&
@@ -579,31 +578,30 @@ function viewRoleButton(
 const EMPTY_LAYOUT: RoomBottomActionLayout = { primary: [], secondary: [], ghost: [] };
 
 /**
- * The bottom button layout per status and audience: identity viewing from
+ * The player actions per status and audience: identity viewing from
  * the deal on, the night step's own buttons for the actioner, the review
  * entry for every non-host from the day on (spectators read it, a seat
  * needs a grant during Day, and every room user can read it once ended);
  * the host reaches the review through host management. Nothing while
  * narration plays.
  */
-export function createWerewolfBottomActionLayout(
-  input: WerewolfBottomLayoutInput,
-): RoomBottomActionLayout {
+export function createWerewolfPlayerActionList(
+  input: WerewolfPlayerActionListInput,
+): WerewolfPlayerActionList {
   const { viewModel, night } = input;
   const audience = resolveRoomViewerAudience({ isHost: input.isHost, seat: input.effectiveSeat });
   const hasSeat = input.effectiveSeat !== null;
-  const viewRole = (variant: 'primary' | 'secondary') =>
-    hasSeat ? [viewRoleButton(input, variant)] : [];
+  const viewRole = () => (hasSeat ? [viewRoleButton(input)] : []);
 
   switch (viewModel.status) {
     case GameStatus.Unseated:
     case GameStatus.Seated:
-      return EMPTY_LAYOUT;
+      return EMPTY_ACTIONS;
     case GameStatus.Assigned:
     case GameStatus.Ready:
       return { primary: viewRole('primary'), secondary: [], ghost: [] };
     case GameStatus.Ongoing: {
-      if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
+      if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_ACTIONS;
       const selection = input.seatSelection;
       const action = nightSeatAction(night);
       const specs: NightButtonSpec[] = [...buildNightButtons(night)];
@@ -679,7 +677,7 @@ export function createWerewolfBottomActionLayout(
       // after the status has moved on. Every audience collapses,
       // spectators included — opening the review starts capture, so it
       // is not read-only.
-      if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_LAYOUT;
+      if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_ACTIONS;
       const { review } = input;
       if (review === null) {
         throw new Error(`[FAIL-FAST] Werewolf ${viewModel.status} has no review entry`);
@@ -696,12 +694,12 @@ export function createWerewolfBottomActionLayout(
   }
 }
 
-interface WerewolfBottomActionsInput {
+interface WerewolfPlayerActionsInput {
   readonly state: GameState;
   readonly viewModel: WerewolfViewModel;
   readonly isHost: boolean;
   readonly isAudioPlaying: boolean;
-  readonly layout: RoomBottomActionLayout;
+  readonly actions: WerewolfPlayerActionList;
   /** The actioner's bottom message (prompt + status lines); null for non-actioners. */
   readonly actionMessage: string | null;
   /** The wolf settle countdown line, shown while audio playback locks the bottom message; null otherwise. */
@@ -711,14 +709,14 @@ interface WerewolfBottomActionsInput {
   readonly openSheriffDetails: () => void;
 }
 
-export function createWerewolfBottomActions(
-  input: WerewolfBottomActionsInput,
-): RoomBottomActionModel {
-  const { state, viewModel, layout } = input;
+export function createWerewolfPlayerActions(
+  input: WerewolfPlayerActionsInput,
+): RoomPlayerActionModel {
+  const { state, viewModel, actions } = input;
   if (viewModel.status === GameStatus.Day && input.sheriffElectionPanel !== null) {
-    return createSheriffElectionDockModel({
+    return createSheriffElectionPlayerActions({
       election: input.sheriffElectionPanel,
-      roomTools: layout,
+      roomTools: actions.actions,
       isHost: input.isHost,
       isAudioPlaying: input.isAudioPlaying,
       openDetails: input.openSheriffDetails,
@@ -734,7 +732,6 @@ export function createWerewolfBottomActions(
       ? buildStepActorWaitingMessage(progress)
       : null;
   return {
-    kind: 'stacked',
     message: isAudioPlaybackLocked(input.isAudioPlaying)
       ? input.nightStatusLine
       : isActioner
@@ -949,7 +946,7 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     }),
     seatsVisuallyDisabled: isAudioPlaybackLocked(state.isAudioPlaying) || input.isActionSubmitting,
     onBotSeatLongPress: input.onBotSeatLongPress,
-    bottomActions: input.bottomActions,
+    playerActions: input.playerActions,
     buildHostManagement,
     controlledSeat: createControlledSeatModel({
       controlledSeat,

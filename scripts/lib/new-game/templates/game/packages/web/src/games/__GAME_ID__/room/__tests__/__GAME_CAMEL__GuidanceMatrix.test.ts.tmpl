@@ -35,7 +35,6 @@ import {
 } from '@/features/room/model/RoomCapabilities';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 //#cap identityViewing
-import { listRoomBottomButtons } from '@/features/room/model/RoomBottomActions';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { REASON_REVIEW_IDENTITY_MISMATCH } from '@game-judge/game-engine/platform/protocol/reasons';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -248,7 +247,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     });
   }
   it.each(__GAME_UPPER___PHASES)('exposes only the expected host actions in %s', (phase) => {
-    const actions = hostModel(stateFor(phase)).sections.flatMap((section) => section.actions);
+    const actions = hostModel(stateFor(phase)).actions;
     const actualKeys = actions.map((action) => action.key).sort();
     const expectedKeys: string[] = [];
     if (phase === 'lobby') {
@@ -261,7 +260,6 @@ describe('__GAME_PASCAL__ host controls', () => {
 //#end
         HOST_ACTION_KEYS.configureGame,
         HOST_ACTION_KEYS.clearSeats,
-        HOST_ACTION_KEYS.shareRoom,
       );
     }
 //#cap identityViewing
@@ -303,10 +301,9 @@ describe('__GAME_PASCAL__ host controls', () => {
   it('enables begin only after every human and bot identity has been viewed', () => {
     let state = viewingState();
     const getBeginAction = () =>
-      hostModel(state).sections
-        .flatMap((section) => section.actions)
+      hostModel(state).actions
         .find((entry) => entry.key === HOST_ACTION_KEYS.startGame);
-    expect(getBeginAction()?.isEnabled).toBe(false);
+    expect(getBeginAction()?.state.kind).toBe('blocked');
 
     state = drive(state, { type: '__GAME_ID__.role.viewed' });
     state = drive(state, { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
@@ -317,7 +314,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
     state = drive(state, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 3 });
 //#end
-    expect(getBeginAction()?.isEnabled).toBe(true);
+    expect(getBeginAction()?.state.kind).toBe('ready');
   });
 
   it('marks start pending only after the host has viewed their own identity', () => {
@@ -325,9 +322,9 @@ describe('__GAME_PASCAL__ host controls', () => {
     expect(hostModel(viewing).pendingActionKeys).toEqual([]);
     const hostViewed = drive(viewing, { type: '__GAME_ID__.role.viewed' });
     expect(hostModel(hostViewed).pendingActionKeys).toEqual([HOST_ACTION_KEYS.startGame]);
-    const begin = hostModel(hostViewed).sections.flatMap((section) => section.actions)
+    const begin = hostModel(hostViewed).actions
       .find((action) => action.key === HOST_ACTION_KEYS.startGame);
-    expect(begin?.isEnabled).toBe(false);
+    expect(begin?.state.kind).toBe('blocked');
 
     let unseated = drive(lobbyState(false), { type: 'room.seat.leave' });
     unseated = drive(unseated, { type: 'room.seat.fillBots' });
@@ -338,19 +335,16 @@ describe('__GAME_PASCAL__ host controls', () => {
 
   it('offers fill-bots only for an open lobby and runs each setup action through its capability', () => {
     const roomCapabilities = capabilities(true, false);
-    const actions = hostModel(lobbyState(false), false, roomCapabilities).sections.flatMap(
-      (section) => section.actions,
-    );
+    const actions = hostModel(lobbyState(false), false, roomCapabilities).actions;
     for (const [actionKey, capability] of [
       [HOST_ACTION_KEYS.configureGame, roomCapabilities.canConfigureGame],
       [HOST_ACTION_KEYS.fillBots, roomCapabilities.canFillBots],
       [HOST_ACTION_KEYS.clearSeats, roomCapabilities.canClearSeats],
-      [HOST_ACTION_KEYS.shareRoom, roomCapabilities.canShareRoom],
     ] as const) {
       const action = actions.find((entry) => entry.key === actionKey);
-      if (!action?.isEnabled || action.onPress === undefined || !capability.isAllowed)
+      if (action?.state.kind !== 'ready' || !capability.isAllowed)
         throw new Error(`Missing enabled setup action: ${actionKey}`);
-      action.onPress();
+      action.state.onPress();
       expect(capability.execute).toHaveBeenCalledOnce();
     }
     expect(actions.map((action) => action.key)).toContain(HOST_ACTION_KEYS.fillBots);
@@ -359,11 +353,10 @@ describe('__GAME_PASCAL__ host controls', () => {
 //#cap identityViewing
   it('dispatches the role assignment only after host confirmation', async () => {
     submit.mockClear();
-    const action = hostModel(lobbyState()).sections
-      .flatMap((section) => section.actions)
+    const action = hostModel(lobbyState()).actions
       .find((entry) => entry.key === HOST_ACTION_KEYS.assignRoles);
-    if (!action?.isEnabled) throw new Error('Missing enabled role assignment');
-    action.onPress();
+    if (action?.state.kind !== 'ready') throw new Error('Missing enabled role assignment');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing role assignment confirmation');
@@ -374,11 +367,10 @@ describe('__GAME_PASCAL__ host controls', () => {
 //#cap !identityViewing
   it('dispatches game start only after host confirmation', async () => {
     submit.mockClear();
-    const action = hostModel(lobbyState()).sections
-      .flatMap((section) => section.actions)
+    const action = hostModel(lobbyState()).actions
       .find((entry) => entry.key === HOST_ACTION_KEYS.startGame);
-    if (!action?.isEnabled) throw new Error('Missing enabled game start');
-    action.onPress();
+    if (action?.state.kind !== 'ready') throw new Error('Missing enabled game start');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing game start confirmation');
@@ -390,11 +382,10 @@ describe('__GAME_PASCAL__ host controls', () => {
   it('confirms terminal restart before dispatch', async () => {
     submit.mockClear();
     const state = stateFor('ended');
-    const action = hostModel(state).sections
-      .flatMap((section) => section.actions)
+    const action = hostModel(state).actions
       .find((entry) => entry.key === HOST_ACTION_KEYS.restart);
-    if (!action?.isEnabled) throw new Error('Missing enabled terminal restart');
-    action.onPress();
+    if (action?.state.kind !== 'ready') throw new Error('Missing enabled terminal restart');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
     const confirm = vi.mocked(showDestructiveAlert).mock.calls.at(-1)?.[3];
     if (confirm === undefined) throw new Error('Missing restart confirmation');
@@ -415,10 +406,10 @@ describe('__GAME_PASCAL__ host controls', () => {
       actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.restart],
     });
     expect(model.pendingActionKeys).toEqual([HOST_ACTION_KEYS.review]);
-    const restart = model.sections.flatMap((section) => section.actions)
+    const restart = model.actions
       .find((entry) => entry.key === HOST_ACTION_KEYS.restart);
-    if (!restart?.isEnabled) throw new Error('Missing enabled terminal restart');
-    restart.onPress();
+    if (restart?.state.kind !== 'ready') throw new Error('Missing enabled terminal restart');
+    restart.state.onPress();
     expect(showDestructiveAlert).toHaveBeenCalledWith(
       '重新开始？', expect.stringContaining('尚未查看'), '重新开始', expect.any(Function),
     );
@@ -442,18 +433,17 @@ describe('__GAME_PASCAL__ host controls', () => {
 //#cap !identityViewing
       HOST_ACTION_KEYS.startGame;
 //#end
-    const action = hostModel(lobbyState(), true).sections
-      .flatMap((section) => section.actions)
+    const action = hostModel(lobbyState(), true).actions
       .find((entry) => entry.key === key);
-    expect(action?.isEnabled).toBe(false);
+    expect(action?.state.kind).toBe('busy');
   });
 
   it('submits in-game restart only after confirmation', async () => {
     submit.mockClear();
     const state = playingState();
-    const action = hostModel(state).sections.flatMap((section) => section.actions).find((entry) => entry.key === HOST_ACTION_KEYS.restart);
-    if (!action?.isEnabled) throw new Error('Missing restart action');
-    action.onPress();
+    const action = hostModel(state).actions.find((entry) => entry.key === HOST_ACTION_KEYS.restart);
+    if (action?.state.kind !== 'ready') throw new Error('Missing restart action');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
     const confirm = vi.mocked(showDestructiveAlert).mock.calls.at(-1)?.[3];
     if (confirm === undefined) throw new Error('Missing restart confirmation');
@@ -463,7 +453,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     });
   });
 //#cap botBulkViewing
-  it('wires bulk viewing and removes its remedy after all bots are marked', () => {
+  it('wires bulk viewing and removes it after all bots are marked', () => {
     const state = viewingState();
     const panel = hostModel(state);
     expect(panel.task).toMatchObject({ remedyActionKey: 'mark-bots-viewed' });
@@ -472,7 +462,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     action.onPress();
     expect(submit).toHaveBeenCalledWith('标记机器人已查看', { type: '__GAME_ID__.bots.markAllBotsViewed' });
     const marked = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
-    expect(hostModel(marked).sections.flatMap((section) => section.actions).some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);
+    expect(hostModel(marked).actions.some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);
   });
 //#end
 //#cap audioOrchestration
@@ -480,9 +470,9 @@ describe('__GAME_PASCAL__ host controls', () => {
     const locked = applyAudioPlaybackLock(hostModel(playingState()), {
       isAudioPlaying: true, exemptActionKeys: new Set<string>(),
     });
-    const action = locked.sections.flatMap((section) => section.actions).find((entry) => entry.key === HOST_ACTION_KEYS.restart);
-    expect(action?.isEnabled).toBe(false);
-    expect(action).not.toHaveProperty('onPress');
+    const action = locked.actions.find((entry) => entry.key === HOST_ACTION_KEYS.restart);
+    expect(action?.state.kind).toBe('blocked');
+    expect(action?.state).not.toHaveProperty('onPress');
   });
 //#end
 });
@@ -499,7 +489,7 @@ const seatController: RoomSeatController = {
 function shellModel(
   state: __GAME_PASCAL__State,
   audience: RoomViewerAudience,
-  buildHostManagement = () => ({ task: null, sections: [] }),
+  buildHostManagement = () => ({ task: null, actions: [] }),
   options: {
     controlledSeat?: number | null;
 //#cap identityViewing
@@ -561,9 +551,9 @@ function shellModel(
 function bottomMessage(
   state: __GAME_PASCAL__State,
   audience: RoomViewerAudience,
-  buildHostManagement = () => ({ task: null, sections: [] }),
+  buildHostManagement = () => ({ task: null, actions: [] }),
 ): string | null {
-  return shellModel(state, audience, buildHostManagement).bottomActions.message;
+  return shellModel(state, audience, buildHostManagement).playerActions.message;
 }
 
 //#cap identityViewing
@@ -618,18 +608,17 @@ function renderRoomState(state: __GAME_PASCAL__State, userId = 'host', rejectCom
 function reviewAction(room: ReturnType<typeof use__GAME_PASCAL__RoomState>) {
   if (room.isHost) {
     const model = room.shellModel.hostManagement;
-    const action = model?.sections
-      .flatMap((section) => section.actions)
+    const action = model?.actions
       .find((entry) => entry.key === HOST_ACTION_KEYS.review);
     return action === undefined
       ? null
       : { action, isPending: model?.pendingActionKeys?.includes(HOST_ACTION_KEYS.review) ?? false };
   }
-  const action = listRoomBottomButtons(room.shellModel.bottomActions)
+  const action = room.shellModel.playerActions.actions
     .find((entry) => entry.key === HOST_ACTION_KEYS.review);
   return action === undefined
     ? null
-    : { action, isPending: 'isPending' in action && action.isPending === true };
+    : { action, isPending: action.isPending === true };
 }
 
 describe('__GAME_PASCAL__ identity action', () => {
@@ -637,11 +626,12 @@ describe('__GAME_PASCAL__ identity action', () => {
     const state = viewingState();
     const { session, result } = renderRoomState(state);
     act(() => result.current.shellModel.seats.onBotSeatLongPress?.(2));
-    const buttons = listRoomBottomButtons(result.current.shellModel.bottomActions);
+    const buttons = result.current.shellModel.playerActions.actions;
     const button = buttons.find((entry) => entry.key === 'view-identity');
-    if (button === undefined || !button.isEnabled) throw new Error('missing identity action');
+    if (button?.state.kind !== 'ready') throw new Error('missing identity action');
+    const openIdentity = button.state.onPress;
     vi.mocked(showConfirmAlert).mockClear();
-    act(() => button.onPress());
+    act(() => openIdentity());
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('missing identity confirmation');
     act(() => { void confirm(); });
@@ -657,44 +647,41 @@ describe('__GAME_PASCAL__ identity action', () => {
   it('is pending and opens the identity card for a seated player in viewing', () => {
     const onViewRolePress = vi.fn();
     const model = shellModel(viewingState(), 'seated', undefined, { onViewRolePress });
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked actions');
-    const button = model.bottomActions.layout.primary.find((action) => action.key === 'view-identity');
-    expect(button).toMatchObject({ label: '查看身份', audience: 'participant', isPending: true, isEnabled: true });
-    if (button === undefined || !button.isEnabled) throw new Error('missing identity action');
-    button.onPress();
+    const button = model.playerActions.actions.find((action) => action.key === 'view-identity');
+    expect(button).toMatchObject({ label: '查看身份', audience: 'participant', isPending: true, state: { kind: 'ready' } });
+    if (button?.state.kind !== 'ready') throw new Error('missing identity action');
+    button.state.onPress();
     expect(onViewRolePress).toHaveBeenCalledOnce();
   });
 
   it('tracks the effective seat, including a bot controlled by the host', () => {
     const viewed = drive(viewingState(), { type: '__GAME_ID__.role.viewed' }, { userId: 'u1' });
-    const playerButtons = listRoomBottomButtons(shellModel(viewed, 'seated').bottomActions);
+    const playerButtons = shellModel(viewed, 'seated').playerActions.actions;
     expect(playerButtons.find((button) => button.key === 'view-identity')).toMatchObject({ isPending: false });
 
     const hostViewed = drive(viewed, { type: '__GAME_ID__.role.viewed' });
     const botModel = shellModel(hostViewed, 'host', undefined, { controlledSeat: 2 });
-    expect(listRoomBottomButtons(botModel.bottomActions).find((button) => button.key === 'view-identity'))
+    expect(botModel.playerActions.actions.find((button) => button.key === 'view-identity'))
       .toMatchObject({ isPending: true });
     const botViewed = drive(hostViewed, { type: '__GAME_ID__.role.viewed' }, { controlledSeat: 2 });
     const viewedBotModel = shellModel(botViewed, 'host', undefined, { controlledSeat: 2 });
-    expect(listRoomBottomButtons(viewedBotModel.bottomActions).find((button) => button.key === 'view-identity'))
+    expect(viewedBotModel.playerActions.actions.find((button) => button.key === 'view-identity'))
       .toMatchObject({ isPending: false });
   });
 
   it('hides identity in the lobby and from spectators, and locks it while submitting', () => {
-    expect(listRoomBottomButtons(shellModel(lobbyState(), 'seated').bottomActions)).toEqual([]);
-    expect(listRoomBottomButtons(shellModel(viewingState(), 'spectator').bottomActions)).toEqual([]);
+    expect(shellModel(lobbyState(), 'seated').playerActions.actions).toEqual([]);
+    expect(shellModel(viewingState(), 'spectator').playerActions.actions).toEqual([]);
     const locked = shellModel(viewingState(), 'seated', undefined, { isSubmitting: true });
-    const button = listRoomBottomButtons(locked.bottomActions).find((entry) => entry.key === 'view-identity');
-    expect(button).toMatchObject({ isEnabled: false });
-    expect(button).not.toHaveProperty('onPress');
+    const button = locked.playerActions.actions.find((entry) => entry.key === 'view-identity');
+    expect(button?.state.kind).toBe('blocked');
+    expect(button?.state).not.toHaveProperty('onPress');
   });
 
-  it.each(['playing', 'ended'] as const)('keeps identity as a secondary action in %s', (phase) => {
+  it.each(['playing', 'ended'] as const)('keeps identity available in %s', (phase) => {
     const model = shellModel(stateFor(phase), 'seated');
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked actions');
-    expect(model.bottomActions.layout.primary.some((action) => action.key === 'view-identity')).toBe(false);
-    expect(model.bottomActions.layout.secondary.find((action) => action.key === 'view-identity'))
-      .toMatchObject({ isEnabled: true, variant: 'secondary' });
+    expect(model.playerActions.actions.find((action) => action.key === 'view-identity'))
+      .toMatchObject({ state: { kind: 'ready' } });
   });
 });
 
@@ -709,9 +696,9 @@ describe('__GAME_PASCAL__ terminal review action', () => {
     if (userId === 'host') act(() => result.current.shellModel.seats.onBotSeatLongPress?.(2));
     const entry = reviewAction(result.current);
     expect(entry?.isPending ?? false).toBe(pending);
-    if (entry === null || !entry.action.isEnabled) throw new Error('Missing enabled review');
-    const action = entry.action;
-    act(() => action.onPress());
+    if (entry === null || entry.action.state.kind !== 'ready') throw new Error('Missing enabled review');
+    const openReview = entry.action.state.onPress;
+    act(() => openReview());
     render(result.current.reviewOverlay);
     fireEvent.click(screen.getByLabelText('关闭详情'));
     if (!pending) {
@@ -735,9 +722,9 @@ describe('__GAME_PASCAL__ terminal review action', () => {
     const state = stateFor('ended');
     const { session, result } = renderRoomState(state, 'u1', true);
     const entry = reviewAction(result.current);
-    if (entry === null || !entry.action.isEnabled) throw new Error('Missing enabled review');
-    const action = entry.action;
-    act(() => action.onPress());
+    if (entry === null || entry.action.state.kind !== 'ready') throw new Error('Missing enabled review');
+    const openReview = entry.action.state.onPress;
+    act(() => openReview());
     render(result.current.reviewOverlay);
     fireEvent.click(screen.getByLabelText('关闭详情'));
     await waitFor(() => expect(showErrorAlert).toHaveBeenCalledOnce());
@@ -749,7 +736,7 @@ describe('__GAME_PASCAL__ terminal review action', () => {
 
 describe('__GAME_UPPER___GUIDANCE_MATRIX', () => {
   it('builds host controls only for the host viewer', () => {
-    const buildHostManagement = vi.fn(() => ({ task: null, sections: [] }));
+    const buildHostManagement = vi.fn(() => ({ task: null, actions: [] }));
     bottomMessage(lobbyState(), 'seated', buildHostManagement);
     bottomMessage(lobbyState(), 'spectator', buildHostManagement);
     expect(buildHostManagement).not.toHaveBeenCalled();

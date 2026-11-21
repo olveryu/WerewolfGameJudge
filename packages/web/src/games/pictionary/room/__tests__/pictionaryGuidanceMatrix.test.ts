@@ -248,7 +248,7 @@ function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): st
     buildHostManagement: () => null,
     controlledSeat: null,
   });
-  return model.bottomActions.message;
+  return model.playerActions.message;
 }
 
 describe('PICTIONARY_GUIDANCE_MATRIX', () => {

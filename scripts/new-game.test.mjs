@@ -767,7 +767,7 @@ for (const scenario of FEATURE_SCENARIOS) {
     // Every generated game wires the review end to end: the module declares the
     // contribution, the room state resolves it through the platform
     // hook, the screen mounts its overlay, and the adapter places the
-    // shared entry on the bottom tier and the host sheet without
+    // shared entry among player and host actions without
     // referencing removed terminal actions from the ended task.
     const clientModule = readFixture(root, 'packages/web/src/games/demoproto/module.ts');
     assert.ok(clientModule.includes('review: demoprotoReview,'), 'module declares the review');
@@ -786,11 +786,7 @@ for (const scenario of FEATURE_SCENARIOS) {
       root,
       'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts',
     );
-    assert.ok(
-      adapterSource.includes(
-        `buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)`,
-      ),
-    );
+    assert.ok(adapterSource.includes(`buildViewerReviewBottomButtons(input.review, input.viewer)`));
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
     assert.ok(!adapterSource.includes('hostReviewClosingTask()'));
     if (capabilities.identityViewing) {

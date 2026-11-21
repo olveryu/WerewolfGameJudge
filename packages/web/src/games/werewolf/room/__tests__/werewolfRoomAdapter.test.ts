@@ -21,8 +21,8 @@ import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
   buildNightButtons,
   createWerewolfBoardInfoSections,
-  createWerewolfBottomActionLayout,
-  createWerewolfBottomActions,
+  createWerewolfPlayerActionList,
+  createWerewolfPlayerActions,
   createWerewolfSeatDataSource,
   deriveWerewolfBottomProgress,
   deriveWerewolfSeatCounts,
@@ -262,21 +262,21 @@ describe('buildNightButtons', () => {
   });
 });
 
-describe('createWerewolfBottomActionLayout', () => {
+describe('createWerewolfPlayerActionList', () => {
   const night = nightState({ roles: BOARD, stepId: 'seerCheck' });
 
   it('shows nothing in the lobby and the identity button once dealt', () => {
     const lobby: GameState = { ...night, status: GameStatus.Seated, nightStep: null };
-    expect(layoutFor(lobby, 0, false)).toEqual({ primary: [], secondary: [], ghost: [] });
+    expect(layoutFor(lobby, 0, false)).toEqual([]);
     const assigned: GameState = { ...night, status: GameStatus.Assigned, nightStep: null };
-    expect(layoutFor(assigned, 0, false).primary.map((button) => button.key)).toEqual(['viewRole']);
-    expect(layoutFor({ ...assigned, roleViewedSeats: [] }, 0, false).primary[0]).toMatchObject({
+    expect(layoutFor(assigned, 0, false).map((button) => button.key)).toEqual(['viewRole']);
+    expect(layoutFor({ ...assigned, roleViewedSeats: [] }, 0, false)[0]).toMatchObject({
       isPending: true,
     });
-    expect(layoutFor({ ...assigned, roleViewedSeats: [0] }, 0, false).primary[0]).toMatchObject({
+    expect(layoutFor({ ...assigned, roleViewedSeats: [0] }, 0, false)[0]).toMatchObject({
       isPending: false,
     });
-    expect(layoutFor(assigned, null, false).primary).toEqual([]);
+    expect(layoutFor(assigned, null, false)).toEqual([]);
   });
 
   it('hides every button while narration plays and keeps the identity button at night', () => {
@@ -290,7 +290,7 @@ describe('createWerewolfBottomActionLayout', () => {
     expect(seer.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
     expect(seer.secondary.map((button) => button.key)).toEqual(['viewRole']);
     const bystander = layoutFor(night, 5, false);
-    expect(bystander.secondary.map((button) => button.key)).toEqual(['viewRole']);
+    expect(bystander.map((button) => button.key)).toEqual(['viewRole']);
   });
 
   it('distinguishes wolf target selection, abandoning and withdrawing votes by icon', () => {
@@ -313,15 +313,13 @@ describe('createWerewolfBottomActionLayout', () => {
     const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'wildChild', 'hunter', 'villager'];
     const state = nightState({ roles, stepId: 'wildChildChooseIdol' });
     const { night: interaction } = nightModel(state, 3);
-    expect(layoutFor(state, 3, false).primary).toMatchObject([
-      { key: 'startSeatSelection', isPending: true },
-    ]);
+    expect(
+      layoutFor(state, 3, false).find((button) => button.key === 'startSeatSelection'),
+    ).toMatchObject({ isPending: true });
     const selection = describeNightSeatSelection(interaction, [0]);
     expect(selection).not.toBeNull();
     const selecting = layoutFor(state, 3, false, { seatSelection: selection });
-    expect(
-      [...selecting.primary, ...selecting.secondary].map((button) => button.isPending),
-    ).toEqual([undefined]);
+    expect(selecting.map((button) => button.isPending)).toEqual([undefined]);
   });
 
   it('marks skipping as pending when there are no eligible targets', () => {
@@ -329,7 +327,9 @@ describe('createWerewolfBottomActionLayout', () => {
     const { night: interaction } = nightModel(state, 2);
     if (interaction.kind !== 'pickSeat') throw new Error('Expected seat selection');
     expect(
-      layoutFor(state, 2, false, { night: { ...interaction, selectable: [] } }).secondary[0],
+      layoutFor(state, 2, false, { night: { ...interaction, selectable: [] } }).find(
+        (button) => button.key === 'skip',
+      ),
     ).toMatchObject({ key: 'skip', isPending: true });
   });
 
@@ -339,9 +339,9 @@ describe('createWerewolfBottomActionLayout', () => {
       stepId: 'hunterConfirm',
       overrides: { confirmStatus: { role: 'hunter', canShoot: true } },
     });
-    expect(layoutFor(hunter, 4, false).primary).toMatchObject([
-      { key: 'confirm', isPending: true },
-    ]);
+    expect(layoutFor(hunter, 4, false).find((button) => button.key === 'confirm')).toMatchObject({
+      isPending: true,
+    });
 
     const roles: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'];
     const state = nightState({
@@ -351,12 +351,13 @@ describe('createWerewolfBottomActionLayout', () => {
     });
     const { night: interaction } = nightModel(state, 0);
     if (interaction.kind !== 'ackGroupReveal') throw new Error('Expected group reveal');
-    expect(layoutFor(state, 0, false).primary).toMatchObject([
-      { key: 'groupConfirmAck', isPending: true },
-    ]);
     expect(
-      layoutFor(state, 0, false, { night: { ...interaction, hasAcked: true } }).primary[0]
-        ?.isPending,
+      layoutFor(state, 0, false).find((button) => button.key === 'groupConfirmAck'),
+    ).toMatchObject({ isPending: true });
+    expect(
+      layoutFor(state, 0, false, { night: { ...interaction, hasAcked: true } }).find(
+        (button) => button.key === 'groupConfirmAck',
+      )?.isPending,
     ).toBeUndefined();
   });
 
@@ -383,12 +384,14 @@ describe('createWerewolfBottomActionLayout', () => {
       layoutFor(state, 0, false, { night: { ...interaction, myVote: null } }).primary[0]?.isPending,
     ).toBe(true);
     const onlyEmpty = { ...interaction, emptyVoteOnly: true };
-    expect(layoutFor(state, 0, false, { night: onlyEmpty }).secondary).toMatchObject([
+    expect(layoutFor(state, 0, false, { night: onlyEmpty })).toMatchObject([
       { key: 'wolfEmpty', isPending: true },
       { key: 'viewRole' },
     ]);
     expect(
-      layoutFor(state, 0, false, { night: { ...onlyEmpty, myVote: -1 } }).secondary[0]?.isPending,
+      layoutFor(state, 0, false, { night: { ...onlyEmpty, myVote: -1 } }).find(
+        (button) => button.key === 'wolfEmpty',
+      )?.isPending,
     ).toBeUndefined();
   });
 
@@ -401,41 +404,36 @@ describe('createWerewolfBottomActionLayout', () => {
     for (const status of [GameStatus.Day, GameStatus.Ended]) {
       const state: GameState = { ...night, status, nightStep: null };
       for (const [seat, isHost] of viewers) {
-        expect(layoutFor(state, seat, isHost, { isAudioPlaying: true })).toEqual({
-          primary: [],
-          secondary: [],
-          ghost: [],
-        });
+        expect(layoutFor(state, seat, isHost, { isAudioPlaying: true })).toEqual([]);
       }
     }
   });
 
   it('shows the Day and Ended buttons again once the announcement ends', () => {
     const day: GameState = { ...night, status: GameStatus.Day, nightStep: null };
-    expect(layoutFor(day, 0, true).secondary.map((button) => button.key)).toEqual(['viewRole']);
-    expect(layoutFor(day, null, false).primary.map((button) => button.key)).toEqual(['review']);
+    expect(layoutFor(day, 0, true).map((button) => button.key)).toEqual(['viewRole']);
+    expect(layoutFor(day, null, false).map((button) => button.key)).toEqual(['review']);
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
-    expect(layoutFor(ended, 1, false).ghost.map((button) => button.key)).toEqual(['review']);
+    expect(layoutFor(ended, 1, false).map((button) => button.key)).toEqual(['viewRole', 'review']);
   });
 
   it('gives every ended non-host the enabled review tool; the host uses the panel', () => {
     const ended: GameState = { ...night, status: GameStatus.Ended, nightStep: null };
-    expect(layoutFor(ended, null, false).primary).toMatchObject([
-      { key: 'review', audience: 'anyone', variant: 'primary', isEnabled: true },
+    expect(layoutFor(ended, null, false)).toMatchObject([
+      { key: 'review', audience: 'anyone', state: { kind: 'ready' } },
     ]);
     const host = layoutFor(ended, 0, true);
-    expect(host.secondary.map((button) => button.key)).toEqual(['viewRole']);
-    expect(host.ghost).toEqual([]);
-    expect(layoutFor(ended, 1, false).ghost).toMatchObject([
-      { key: 'review', variant: 'ghost', isEnabled: true },
-    ]);
+    expect(host.map((button) => button.key)).toEqual(['viewRole']);
+    expect(layoutFor(ended, 1, false).find((button) => button.key === 'review')).toMatchObject({
+      state: { kind: 'ready' },
+    });
     const day: GameState = { ...night, status: GameStatus.Day, nightStep: null };
     // Day privacy remains in place for a seat the host has not granted.
     expect(
       layoutFor(day, 1, false, {
         review: { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
-      }).ghost,
-    ).toMatchObject([{ key: 'review', isEnabled: false, disabledReason: '房主尚未向你开放复盘' }]);
+      }).find((button) => button.key === 'review'),
+    ).toMatchObject({ state: { kind: 'blocked', reason: '房主尚未向你开放复盘' } });
   });
 
   it('fails fast when Day or Ended has no review entry', () => {
@@ -500,8 +498,8 @@ describe('progress, board info and counts', () => {
   });
 });
 
-describe('createWerewolfBottomActions', () => {
-  function bottomActions(
+describe('createWerewolfPlayerActions', () => {
+  function playerActions(
     state: GameState,
     options: { isAudioPlaying: boolean; nightStatusLine: string | null },
   ) {
@@ -511,23 +509,22 @@ describe('createWerewolfBottomActions', () => {
       locks: { isAudioPlaying: options.isAudioPlaying, hasPendingCommand: false },
       nowMs: 0,
     });
-    const layout = createWerewolfBottomActionLayout({
+    const actions = createWerewolfPlayerActionList({
       viewModel,
       night,
       isHost: false,
       effectiveSeat: 0,
       isAudioPlaying: options.isAudioPlaying,
-      isActionSubmitting: false,
       review: null,
       onNightButton: vi.fn(),
       onViewRole: vi.fn(),
     });
-    return createWerewolfBottomActions({
+    return createWerewolfPlayerActions({
       state,
       viewModel,
       isHost: false,
       isAudioPlaying: options.isAudioPlaying,
-      layout,
+      actions,
       actionMessage: 'action',
       nightStatusLine: options.nightStatusLine,
       guideMessage: buildWerewolfGuideMessage({
@@ -544,29 +541,23 @@ describe('createWerewolfBottomActions', () => {
   const state = () => nightState({ roles: BOARD, stepId: 'wolfKill' });
 
   it('shows the countdown line while audio playback locks the message', () => {
-    const model = bottomActions(state(), {
+    const model = playerActions(state(), {
       isAudioPlaying: true,
       nightStatusLine: '1/2 狼人已确认（5秒后确认）',
     });
-    expect(model.kind).toBe('stacked');
-    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
     expect(model.message).toBe('1/2 狼人已确认（5秒后确认）');
   });
 
   it('shows nothing while audio playback locks the message without a countdown', () => {
-    const model = bottomActions(state(), { isAudioPlaying: true, nightStatusLine: null });
-    expect(model.kind).toBe('stacked');
-    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
+    const model = playerActions(state(), { isAudioPlaying: true, nightStatusLine: null });
     expect(model.message).toBeNull();
   });
 
   it('shows the action message once audio playback ends', () => {
-    const model = bottomActions(state(), {
+    const model = playerActions(state(), {
       isAudioPlaying: false,
       nightStatusLine: '1/2 狼人已确认（5秒后确认）',
     });
-    expect(model.kind).toBe('stacked');
-    if (model.kind !== 'stacked') throw new Error('Expected a stacked bottom model');
     expect(model.message).toBe('action');
   });
 });

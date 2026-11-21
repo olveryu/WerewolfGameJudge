@@ -181,14 +181,10 @@ function renderRoomState(state: AvalonState) {
 }
 
 function findHostAction(model: RoomHostManagementModel | null, label: string) {
-  for (const section of model?.sections ?? []) {
-    for (const action of section.actions) {
-      if (action.label !== label) continue;
-      if (!action.isEnabled) throw new Error(`host action is disabled: ${label}`);
-      return action;
-    }
-  }
-  throw new Error(`host action not found: ${label}`);
+  const action = model?.actions.find((candidate) => candidate.label === label);
+  if (action === undefined) throw new Error(`host action not found: ${label}`);
+  if (action.state.kind !== 'ready') throw new Error(`host action is disabled: ${label}`);
+  return action;
 }
 
 describe('useAvalonRoomState takeover dispatch discipline', () => {
@@ -209,8 +205,10 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     // Host scaffold action: must reach the engine without the controlled
     // seat, or the platform host gate rejects it as "not the host".
     const markAction = findHostAction(result.current.shellModel.hostManagement, '标记机器人已查看');
+    if (markAction.state.kind !== 'ready') throw new Error('expected ready host action');
+    const markBots = markAction.state.onPress;
     await act(async () => {
-      markAction.onPress();
+      markBots();
       expect(dispatch).not.toHaveBeenCalled();
       const confirmation = alertStore.getSnapshot();
       if (confirmation === null) throw new Error('expected bot confirmation');
@@ -224,15 +222,13 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
 
     // Seat action (view the controlled bot's role): must carry seat 3.
     dispatch.mockClear();
-    const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in viewing');
-    const viewRole = bottom.layout.primary.find(
+    const viewRole = result.current.shellModel.playerActions.actions.find(
       (action) => action.testID === TESTIDS.roomViewIdentityButton,
     );
-    if (viewRole === undefined || !viewRole.isEnabled)
-      throw new Error('view-role action missing or disabled');
+    if (viewRole?.state.kind !== 'ready') throw new Error('view-role action missing or disabled');
+    const openRole = viewRole.state.onPress;
     await act(async () => {
-      viewRole.onPress();
+      openRole();
     });
     const confirmation = alertStore.getSnapshot();
     if (confirmation === null) throw new Error('expected role viewing confirmation');
@@ -283,11 +279,10 @@ describe('useAvalonRoomState takeover nomination modal', () => {
 
     // The host's own seat does not lead: no preselect button is
     // offered to a non-leader viewer at all.
-    const bottomBefore = result.current.shellModel.bottomActions;
-    if (bottomBefore.kind !== 'stacked')
-      throw new Error('expected stacked bottom actions in nominate');
     expect(
-      bottomBefore.layout.primary.find((action) => action.testID === 'avalon-nominate-preselect'),
+      result.current.shellModel.playerActions.actions.find(
+        (action) => action.testID === 'avalon-nominate-preselect',
+      ),
     ).toBeUndefined();
 
     // Take over the bot leader seat: the leader's screen now offers
@@ -297,21 +292,21 @@ describe('useAvalonRoomState takeover nomination modal', () => {
       result.current.shellModel.seats.onBotSeatLongPress?.(leaderSeat);
     });
     expect(result.current.controlledSeat).toBe(leaderSeat);
-    const bottom = result.current.shellModel.bottomActions;
-    if (bottom.kind !== 'stacked') throw new Error('expected stacked bottom actions in nominate');
     // No preselect echo yet, so the stage main action is the preselect
     // button (the final button only appears after the preselect echo).
-    const preselect = bottom.layout.primary.find(
+    const preselect = result.current.shellModel.playerActions.actions.find(
       (action) => action.testID === 'avalon-nominate-preselect',
     );
     if (preselect === undefined) throw new Error('preselect action not found under takeover');
-    expect(preselect.isEnabled).toBe(true);
-    if (!preselect.isEnabled) throw new Error('preselect action must be enabled under takeover');
+    expect(preselect.state.kind).toBe('ready');
+    if (preselect.state.kind !== 'ready')
+      throw new Error('preselect action must be enabled under takeover');
+    const openPreselect = preselect.state.onPress;
 
     // Modal confirm dispatches the preselect, team on the command,
     // under the controlled bot leader seat.
     act(() => {
-      preselect.onPress?.();
+      openPreselect();
     });
     expect(result.current.teamPickModal).toBe('preselect');
     await act(async () => {

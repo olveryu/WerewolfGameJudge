@@ -12,7 +12,8 @@ import type {
   RoomBottomStackModel,
 } from '../RoomBottomActions';
 import type { RoomCapabilities } from '../RoomCapabilities';
-import type { RoomHostManagementAction, RoomHostManagementModel } from '../RoomHostManagement';
+import type { RoomHostManagementModel } from '../RoomHostManagement';
+import type { RoomPlayerActionModel } from '../RoomPlayerActions';
 import type { RoomViewer } from '../RoomViewer';
 
 const deniedCapabilities: RoomCapabilities = {
@@ -29,22 +30,19 @@ const deniedCapabilities: RoomCapabilities = {
   shouldConfirmExit: false,
 };
 
-const EMPTY_STACK: RoomBottomStackModel = {
-  kind: 'stacked',
+const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
   layout: { primary: [], secondary: [], ghost: [] },
 };
 
-function button(key: string, audience: RoomBottomButton['audience']): RoomBottomButton {
+function button(key: string, audience: RoomPlayerAction['audience']): RoomPlayerAction {
   return {
     key,
     label: key,
     audience,
-    variant: 'secondary',
-    size: 'md',
-    isEnabled: true,
-    onPress: vi.fn(),
+    category: 'player',
+    state: { kind: 'ready', onPress: vi.fn() },
   };
 }
 
@@ -95,8 +93,8 @@ function input(
       copyLink: vi.fn(async () => undefined),
       shareImage: vi.fn(async () => undefined),
     },
-    bottomActions: EMPTY_STACK,
-    buildHostManagement: () => ({ task: null, sections: [] }),
+    playerActions: EMPTY_STACK,
+    buildHostManagement: () => ({ task: null, actions: [] }),
     controlledSeat: null,
     ...overrides,
   };
@@ -105,7 +103,7 @@ function input(
 describe('createRoomShellModel ownership', () => {
   describe('host management', () => {
     it('builds the host surface only for the host and never calls the builder otherwise', () => {
-      const hostModel: RoomHostManagementModel = { task: null, sections: [] };
+      const hostModel: RoomHostManagementModel = { task: null, actions: [] };
       const buildHostManagement = vi.fn(() => hostModel);
 
       const host = createRoomShellModel(input(viewerFor('host'), { buildHostManagement }));
@@ -134,19 +132,19 @@ describe('createRoomShellModel ownership', () => {
     });
   });
 
-  describe('bottom action audiences', () => {
+  describe('player action audiences', () => {
     it('accepts participant buttons for a seated viewer and anyone buttons for everyone', () => {
       for (const viewer of [viewerFor('host'), viewerFor('seated')]) {
         expect(() =>
           createRoomShellModel(
-            input(viewer, { bottomActions: stacked(button('view', 'participant')) }),
+            input(viewer, { playerActions: playerActions(button('view', 'participant')) }),
           ),
         ).not.toThrow();
       }
       for (const viewer of [viewerFor('host'), viewerFor('seated'), viewerFor('spectator')]) {
         expect(() =>
           createRoomShellModel(
-            input(viewer, { bottomActions: stacked(button('review', 'anyone')) }),
+            input(viewer, { playerActions: playerActions(button('review', 'anyone')) }),
           ),
         ).not.toThrow();
       }
@@ -155,7 +153,9 @@ describe('createRoomShellModel ownership', () => {
     it('rejects a participant button for a spectator without an effective seat', () => {
       expect(() =>
         createRoomShellModel(
-          input(viewerFor('spectator'), { bottomActions: stacked(button('view', 'participant')) }),
+          input(viewerFor('spectator'), {
+            playerActions: playerActions(button('view', 'participant')),
+          }),
         ),
       ).toThrow('Bottom action "view" is a participant action but the viewer holds no seat');
     });
@@ -165,22 +165,22 @@ describe('createRoomShellModel ownership', () => {
       expect(() =>
         createRoomShellModel(
           input(unseatedHost, {
-            bottomActions: stacked(button('view', 'participant')),
+            playerActions: playerActions(button('view', 'participant')),
             controlledSeat: { seat: 3, displayName: 'Bot 4', onRelease: vi.fn() },
           }),
         ),
       ).not.toThrow();
       expect(() =>
         createRoomShellModel(
-          input(unseatedHost, { bottomActions: stacked(button('view', 'participant')) }),
+          input(unseatedHost, { playerActions: playerActions(button('view', 'participant')) }),
         ),
-      ).toThrow('Bottom action "view" is a participant action but the viewer holds no seat');
+      ).toThrow('Player action "view" is a participant action but the viewer holds no seat');
     });
 
     it('validates the host task references at assembly for the host', () => {
       const model: RoomHostManagementModel = {
         task: { kind: 'action', actionKey: 'missing' },
-        sections: [],
+        actions: [],
       };
       expect(() =>
         createRoomShellModel(input(viewerFor('host'), { buildHostManagement: () => model })),
@@ -190,34 +190,33 @@ describe('createRoomShellModel ownership', () => {
       ).not.toThrow();
     });
 
-    it('rejects a bottom button that repeats an action of the host task card', () => {
-      const sheetAction = (key: string): RoomHostManagementAction => ({
+    it('rejects a player action that repeats an action of the host task card', () => {
+      const sheetAction = (key: string): RoomHostAction => ({
         key,
         label: key,
         icon: 'document-text-outline',
-        variant: 'secondary',
-        isEnabled: true,
-        onPress: vi.fn(),
+        category: 'resource',
+        state: { kind: 'ready', onPress: vi.fn() },
       });
       const model: RoomHostManagementModel = {
         task: { kind: 'choice', actionKeys: ['review', 'next-round'] },
-        sections: [
-          {
-            key: 'flow',
-            title: 'flow',
-            actions: [sheetAction('review'), sheetAction('next-round')],
-          },
-        ],
+        actions: [sheetAction('review'), sheetAction('next-round')],
       };
-      const bottomActions = stacked(button('review', 'anyone'));
+      const playerActionsModel = playerActions(button('review', 'anyone'));
       expect(() =>
         createRoomShellModel(
-          input(viewerFor('host'), { bottomActions, buildHostManagement: () => model }),
+          input(viewerFor('host'), {
+            playerActions: playerActionsModel,
+            buildHostManagement: () => model,
+          }),
         ),
-      ).toThrow('Bottom action "review" duplicates the host task card');
+      ).toThrow('Player action "review" duplicates the host task card');
       expect(() =>
         createRoomShellModel(
-          input(viewerFor('seated'), { bottomActions, buildHostManagement: () => model }),
+          input(viewerFor('seated'), {
+            playerActions: playerActionsModel,
+            buildHostManagement: () => model,
+          }),
         ),
       ).not.toThrow();
     });
