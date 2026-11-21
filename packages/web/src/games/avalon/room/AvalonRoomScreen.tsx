@@ -250,9 +250,7 @@ function AvalonRoomContent(
           : []
       }
       configurationEntry={
-        !isPreGame && viewModel !== null && !screen.seatPicking.isActive
-          ? { onOpen: () => setInformation('configuration') }
-          : null
+        !isPreGame && viewModel !== null ? { onOpen: () => setInformation('configuration') } : null
       }
       manualEntries={[
         {
