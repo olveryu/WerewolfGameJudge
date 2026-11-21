@@ -29,16 +29,16 @@ identity handling rather than relying on a separately remembered option.
 
 The generator's behavior-test contract is part of this mapping: base games
 require host-only confirmed abort and bot setup tests; identity requires
-all-bot viewing-gate and host bulk-view tests; narration requires engine queue,
-host-ack and client privacy/recovery tests; deadlines require host/actor/expiry
-boundary tests. `FEATURE_TEST_REQUIREMENTS` names these files and cases;
+all-bot viewing-gate, host bulk-view, and terminal review task tests;
+narration requires engine queue, host-ack and client privacy/recovery tests;
+deadlines require host/actor/expiry boundary tests. `FEATURE_TEST_REQUIREMENTS` names these files and cases;
 generation fails if a required file or case disappears, and the generator
 Vitest suite runs representative generated packages through their tests.
 
 Every generated game includes host-only abort, resetting to the lobby without
 settlement and preserving seats/configuration; the UI requires confirmation.
-Audio-enabled games keep the narration lock and expose music settings in setup,
-viewing and ended phases. Add game-specific bot night-confirmation tools when the
+Audio-enabled games keep the narration lock and expose music settings in setup
+and viewing phases. Add game-specific bot night-confirmation tools when the
 rules require them; do not generate a fake night phase for games without one.
 
 `identityViewing` also selects the role-game room layout: seats stay visible
@@ -47,6 +47,10 @@ previews; identity actions remain in the bottom model. It does not generate
 a second identity workspace. With this capability off, the existing
 non-identity workspace remains; do not invent a role board for drawing or
 other stage-based play. Special gameplay layouts still require design approval.
+At the end, identity games mark review as pending for the host and seated
+players until they close it; spectators have no pending task, and the host can
+still restart after confirmation without viewing it. Other games keep review
+optional.
 Both branches generate the same single game-name/count and guide header;
 collapse controls appear only when public content exists. Games without roles
 still have a configuration card in the lobby.

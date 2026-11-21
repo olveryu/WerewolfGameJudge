@@ -19,6 +19,7 @@ function reset__GAME_PASCAL__Game(state: __GAME_PASCAL__State): __GAME_PASCAL__S
 //#cap identityViewing
     identities: {},
     roleViewedSeats: [],
+    reviewCompletedUserIds: [],
 //#end
     xpSettled: false,
 //#cap audioOrchestration
@@ -91,6 +92,10 @@ export function evolve__GAME_PASCAL__State(
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
+    case '__GAME_ID__.review.completed':
+      return state.reviewCompletedUserIds.includes(event.userId)
+        ? state
+        : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
 //#end
 //#cap audioOrchestration
     case '__GAME_ID__.audio.queued': {

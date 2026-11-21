@@ -20,6 +20,10 @@ import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
@@ -91,7 +95,7 @@ function SecrethitlerRoomContent(
   props: SecrethitlerRoomScreenProps & { readonly entryController: RoomEntryController },
 ) {
   const screen = useSecrethitlerRoomState(props);
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const [historyVisible, setHistoryVisible] = useState(false);
   const isLobby = screen.state.phase.kind === 'lobby';
   const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
@@ -157,26 +161,13 @@ function SecrethitlerRoomContent(
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="秘密希特勒玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <SecrethitlerRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <SecrethitlerBoardInfo state={screen.state} embedded />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="秘密希特勒玩法"
+            guide={<SecrethitlerRules embedded />}
+            configuration={<SecrethitlerBoardInfo state={screen.state} embedded />}
+            onClose={() => setInformation(null)}
+          />
           {historyVisible && screen.viewModel !== null && showHistory && (
             <SecrethitlerHistoryDialog
               state={screen.state}
@@ -243,8 +234,8 @@ export function SecrethitlerPublicResult({
       {previous.kind === 'voting' && voteResult !== null && (
         <>
           <p>
-            政府{voteResult.yesCount > voteResult.noCount ? '通过' : '未通过'}：赞成{' '}
-            {voteResult.yesCount}，反对 {voteResult.noCount}
+            政府{voteResult.passed ? '通过' : '未通过'}：赞成 {voteResult.yesCount}，反对{' '}
+            {voteResult.noCount}
           </p>
           {view.voteMode === 'public' &&
             voteResult.votes?.map(({ seat: voter, vote }) => (

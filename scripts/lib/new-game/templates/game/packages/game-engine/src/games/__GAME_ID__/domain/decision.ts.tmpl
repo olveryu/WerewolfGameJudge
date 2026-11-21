@@ -72,6 +72,7 @@ export type __GAME_PASCAL__Event =
 //#end
 //#cap identityViewing
   | { readonly type: '__GAME_ID__.role.viewed'; readonly seat: number }
+  | { readonly type: '__GAME_ID__.review.completed'; readonly userId: string }
 //#end
 //#cap audioOrchestration
   | {

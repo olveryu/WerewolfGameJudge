@@ -1,7 +1,6 @@
 .bottom-action-panel {
   flex-shrink: 0;
-  padding: var(--space-small) var(--space-medium)
-    0;
+  padding: var(--space-small) var(--space-medium) 0;
   border-top: 0;
   background: transparent;
 }

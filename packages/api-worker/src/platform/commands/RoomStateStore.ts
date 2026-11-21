@@ -10,6 +10,7 @@ import {
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { WorkerGameModuleResolver } from '../gameModules/runtimeGameModule';
+import { createLogger } from '../observability/logger';
 import type { InitializeRoomCommand, InitializeRoomResult, StoredRoomRow } from '../room/types';
 import {
   parseJsonObject,
@@ -43,6 +44,7 @@ export interface StoredRoomInitialization {
 }
 
 const INITIALIZATION_KEYS = ['roomCode', 'gameType', 'hostUserId', 'config', 'creationId'];
+const log = createLogger('RoomStateStore');
 
 function parseRoomInitialization(value: unknown): StoredRoomInitialization {
   const initializationJson = parseNonEmptyString(value, 'room_state.initialization_json');
@@ -67,9 +69,23 @@ function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolv
   const gameType = parseGameType(raw.game_type);
   const module = resolveGameModule(gameType);
   const stateJson = parseNonEmptyString(raw.game_state, 'room_state.game_state');
-  const state = module.parseState(JSON.parse(stateJson));
   const creationId = parseNonEmptyString(raw.creation_id, 'room_state.creation_id');
   const initialization = parseRoomInitialization(raw.initialization_json);
+  const revision = parsePositiveInteger(raw.revision, 'room_state.revision');
+  let state: BaseGameState<GameType>;
+  try {
+    state = module.parseState(JSON.parse(stateJson));
+  } catch (error) {
+    log.error('persisted game state is invalid', {
+      roomCode: initialization.roomCode,
+      creationId,
+      gameType,
+      revision,
+      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
   if (
     initialization.creationId !== creationId ||
     initialization.gameType !== gameType ||
@@ -87,7 +103,7 @@ function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolv
     initializationJson: initialization.initializationJson,
     state,
     stateJson,
-    revision: parsePositiveInteger(raw.revision, 'room_state.revision'),
+    revision,
     createdAt: parseNonNegativeInteger(raw.created_at, 'room_state.created_at'),
     updatedAt: parseNonNegativeInteger(raw.updated_at, 'room_state.updated_at'),
   };

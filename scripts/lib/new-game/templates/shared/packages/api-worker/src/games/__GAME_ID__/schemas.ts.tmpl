@@ -35,6 +35,10 @@ const __GAME_CAMEL__PublicCommandOptions = definePublicCommandOptions<__GAME_PAS
   }),
 //#cap identityViewing
   z.strictObject({ type: z.literal('__GAME_ID__.role.viewed') }),
+  z.strictObject({
+    type: z.literal('__GAME_ID__.review.complete'),
+    gameSequence: z.number().int().nonnegative(),
+  }),
 //#end
 //#cap botBulkViewing
   z.strictObject({ type: z.literal('__GAME_ID__.bots.markAllBotsViewed') }),

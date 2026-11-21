@@ -12,7 +12,9 @@ During each grill-me interview, record the user's confirmed decisions in the rel
 
 ## Learnings
 
-The client is a web page, including in the mini-program web-view. When changing the client and server together, do not retain obsolete commands solely for old client versions: users can refresh after deployment. This does not replace persisted-state migrations or justify silently ignoring version errors.
+The client is a web page, including in the mini-program web-view. Unless the user explicitly requests compatibility, do not retain obsolete client commands, game-state versions, or migration paths solely for older application versions. Users can refresh after deployment; current game-state codecs reject invalid persisted state.
+
+Base changes on verified behavior and current ecosystem guidance, not speculation or defensive patches. Preserve architectural boundaries, fail fast on broken invariants, and report actionable failures through the owning logger and error pipeline.
 
 ## Project snapshot
 
@@ -28,10 +30,7 @@ Layout: a pnpm workspace with four parts — the root (cross-package contracts i
 
 Games (9): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler.
 
-State versions: werewolf 19, avalon 11, fibking 8, pictionary 11, undercover 6, storyrelay 4, drawguess 5, spotmatch 2, secrethitler 3.
-Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
-
-The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.
+The application release version is authoritative in the root `package.json`; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it. Game state has no version field or read-time migration: parsers validate the current shape and identity, and invalid persisted state fails fast.
 
 ## Commands
 
@@ -68,7 +67,7 @@ The engine decides state transitions, rule decisions, and settlement in `package
 
 Layers: `platform/` holds shared protocol, realtime, room, and audio chassis code; `games/` holds one directory per game; `product/` holds growth, rewards, and word-supply modules. One game never imports another, and cross-package game code is reached only through that game's `public` entrypoint, pinned by the game-module dependency boundary and public-entrypoint tests in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`. The engine package has no React, Cloudflare, network, storage, or Node dependencies.
 
-Room link and state identity: the client link lives in `packages/web/src/platform/realtime/` (`RoomLink`, pure reducer plus runtime). Commands go over HTTP `POST /room/command` and are correlated by `commandId`; state arrives over the WebSocket as snapshots. A snapshot is `RoomSnapshot { gameType, stateVersion, revision, state }`, decoded by the game's `GameStateCodec`. The wire protocol is v2: the client sends `SYNC` only; the server sends `SYNC_RESULT`, `STATE_UPDATE`, or `INBOX_HINT` (online/offline presence was removed 2026-11-07: no `PRESENCE` frame is sent or rendered). Terminal close codes are 1002 and 4000–4003; 4004 is rate-limited and retries. Reconnection is unbounded and driven by the pure reducer.
+Room link and state identity: the client link lives in `packages/web/src/platform/realtime/` (`RoomLink`, pure reducer plus runtime). Commands go over HTTP `POST /room/command` and are correlated by `commandId`; state arrives over the WebSocket as snapshots. A snapshot is `RoomSnapshot { gameType, revision, state }`, decoded by the game's `GameStateCodec`. The wire protocol is v2: the client sends `SYNC` only; the server sends `SYNC_RESULT`, `STATE_UPDATE`, or `INBOX_HINT` (online/offline presence was removed 2026-11-07: no `PRESENCE` frame is sent or rendered). Terminal close codes are 1002 and 4000–4003; 4004 is rate-limited and retries. Reconnection is unbounded and driven by the pure reducer.
 
 Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 

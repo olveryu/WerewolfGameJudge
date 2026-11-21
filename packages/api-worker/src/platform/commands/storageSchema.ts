@@ -1,9 +1,8 @@
 /**
- * Durable Object SQLite schema for one room: single current version, no migration chain.
+ * Durable Object SQLite schema for one room: current structure only, no migration chain.
  *
- * Storage created by any earlier schema is discarded on wake (rooms are short-lived party sessions
- * and old rooms are not carried across a platform storage redesign). Game state version evolution
- * inside `room_state.game_state` remains the game module's own concern.
+ * Storage with mismatched tables or columns is discarded on wake. Game state is parsed directly
+ * by its current codec; there is no per-game version or migration path.
  */
 
 const ROOM_STATE_COLUMNS = [
@@ -11,7 +10,6 @@ const ROOM_STATE_COLUMNS = [
   'creation_id',
   'initialization_json',
   'game_type',
-  'state_version',
   'game_state',
   'revision',
   'created_at',
@@ -21,7 +19,6 @@ const ROOM_STATE_COLUMNS = [
 const COMMAND_RECEIPT_COLUMNS = [
   'command_id',
   'game_type',
-  'state_version',
   'actor_kind',
   'actor_id',
   'controlled_seat',
@@ -117,7 +114,6 @@ function createSchema(sql: SqlStorage): void {
       initialization_json TEXT NOT NULL
         CHECK (json_valid(initialization_json) AND json_type(initialization_json) = 'object'),
       game_type TEXT NOT NULL CHECK (length(game_type) > 0),
-      state_version INTEGER NOT NULL CHECK (state_version > 0),
       game_state TEXT NOT NULL
         CHECK (json_valid(game_state) AND json_type(game_state) = 'object'),
       revision INTEGER NOT NULL CHECK (revision > 0),
@@ -128,7 +124,6 @@ function createSchema(sql: SqlStorage): void {
     CREATE TABLE command_receipts (
       command_id TEXT PRIMARY KEY CHECK (length(command_id) BETWEEN 1 AND 200),
       game_type TEXT NOT NULL CHECK (length(game_type) > 0),
-      state_version INTEGER NOT NULL CHECK (state_version > 0),
       actor_kind TEXT NOT NULL CHECK (actor_kind IN ('user', 'system')),
       actor_id TEXT NOT NULL CHECK (length(actor_id) > 0),
       controlled_seat INTEGER,

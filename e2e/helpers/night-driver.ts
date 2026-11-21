@@ -242,7 +242,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 async function selectAndSubmitSeats(
   page: Page,
   seats: readonly number[],
-  expectedAction?: string,
+  expectation?: { readonly actionLabel: string; readonly confirmationTitle: string },
 ): Promise<void> {
   const stepBefore = await readRoomStep(page);
   try {
@@ -270,11 +270,17 @@ async function selectAndSubmitSeats(
       )
       .toBe(true);
     if (await selectionButton.isVisible()) {
-      if (expectedAction !== undefined) await expect(selectionButton).toContainText(expectedAction);
+      if (expectation !== undefined)
+        await expect(selectionButton).toContainText(expectation.actionLabel);
       await expect(selectionButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
       await selectionButton.click({ timeout: CLICK_TIMEOUT_MS });
     }
     await expect(confirmationDialog).toBeVisible({ timeout: CONFIRM_TIMEOUT_MS });
+    if (expectation !== undefined) {
+      await expect(confirmationDialog.getByTestId(TESTIDS.alertTitle)).toHaveText(
+        expectation.confirmationTitle,
+      );
+    }
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
     await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
       seats.map((seat) => `${seat + 1}号`).join('、'),
@@ -291,8 +297,9 @@ export async function driveMultiSelect(
   page: Page,
   targetSeats: readonly number[],
   actionLabel: string,
+  confirmationTitle: string,
 ): Promise<void> {
-  await selectAndSubmitSeats(page, targetSeats, actionLabel);
+  await selectAndSubmitSeats(page, targetSeats, { actionLabel, confirmationTitle });
 }
 
 /** Select and confirm the first enabled card inside the bottom-card modal. */
@@ -883,5 +890,8 @@ export async function clickNightButton(
  * Draft and submit the magician's two-seat swap.
  */
 export async function driveMagicianSwap(page: Page, seat1: number, seat2: number): Promise<void> {
-  await selectAndSubmitSeats(page, [seat1, seat2], '确认交换');
+  await selectAndSubmitSeats(page, [seat1, seat2], {
+    actionLabel: '确认交换',
+    confirmationTitle: '确认交换',
+  });
 }

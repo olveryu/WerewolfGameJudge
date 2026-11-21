@@ -13,7 +13,11 @@ import {
   type SecrethitlerVote,
   type SecrethitlerVoteMode,
 } from '../state/types';
-import { getKnownFascistSeats, getSecrethitlerNightParticipants } from './rules';
+import {
+  getKnownFascistSeats,
+  getSecrethitlerNightParticipants,
+  tallySecrethitlerVotes,
+} from './rules';
 
 export interface SecrethitlerSeatView {
   readonly seat: number;
@@ -77,6 +81,7 @@ export interface SecrethitlerViewModel {
   readonly publicVoteResult: {
     readonly yesCount: number;
     readonly noCount: number;
+    readonly passed: boolean;
     readonly votes: readonly { readonly seat: number; readonly vote: SecrethitlerVote }[] | null;
   } | null;
   readonly history: SecrethitlerHistoryView;
@@ -165,15 +170,12 @@ function getPublicVoteResult(state: SecrethitlerState): SecrethitlerViewModel['p
   if (state.phase.kind !== 'publicResult') return null;
   const previous = state.phase.previous;
   if (previous.kind !== 'voting') return null;
-  const votes = state.livingSeats.map((seat) => ({
-    seat,
-    vote: previous.votes[seat] ?? 'nein',
-  }));
-  const yesCount = votes.filter(({ vote }) => vote === 'ja').length;
+  const tally = tallySecrethitlerVotes(state.livingSeats, previous.votes);
   return {
-    yesCount,
-    noCount: votes.length - yesCount,
-    votes: state.config.voteMode === 'public' ? votes : null,
+    yesCount: tally.yesCount,
+    noCount: tally.noCount,
+    passed: tally.passed,
+    votes: state.config.voteMode === 'public' ? tally.votes : null,
   };
 }
 

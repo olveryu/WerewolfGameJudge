@@ -21,9 +21,12 @@ import {
   type DrawingWidth,
   isDrawingColor,
 } from '@/features/drawing/model/drawing';
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
@@ -112,7 +115,7 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
   const screen = useDrawGuessRoomState({ ...props, entryController });
   const config = screen.state.config;
   const isLobby = screen.state.phase.kind === 'lobby';
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const openGuide = () => setInformation('guide');
   const openConfiguration = () => setInformation('configuration');
   const settings = createDrawGuessRoomSummarySettings(config);
@@ -181,27 +184,18 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="你画我猜玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <DrawGuessRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`你画我猜（${config.numberOfPlayers}人）`}</p>
-              <RoomGameSettings settings={settings} />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="你画我猜玩法"
+            guide={<DrawGuessRules embedded />}
+            configuration={
+              <>
+                <p>{`你画我猜（${config.numberOfPlayers}人）`}</p>
+                <RoomGameSettings settings={settings} />
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {screen.reviewOverlay}
         </>
       }

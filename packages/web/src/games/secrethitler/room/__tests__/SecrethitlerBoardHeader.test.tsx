@@ -62,6 +62,7 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
   };
   render(<SecrethitlerPublicResult screen={props} />);
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
+  expect(screen.getByText(/政府通过/)).toBeVisible();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();
@@ -83,6 +84,7 @@ it('projects aggregate vote results while hiding secret ballots', () => {
   const publicVoteResult = publicView.publicVoteResult;
   if (publicVoteResult === null) throw new Error('Missing public vote result projection');
   expect(publicVoteResult.votes).toHaveLength(state.livingSeats.length);
+  expect(publicVoteResult.passed).toBe(true);
 
   const secretView = getSecrethitlerViewModel(
     { ...state, config: { ...state.config, voteMode: 'secret' } } satisfies SecrethitlerState,
@@ -91,6 +93,7 @@ it('projects aggregate vote results while hiding secret ballots', () => {
   expect(secretView.publicVoteResult).toEqual({
     yesCount: publicVoteResult.yesCount,
     noCount: publicVoteResult.noCount,
+    passed: publicVoteResult.passed,
     votes: null,
   });
 });

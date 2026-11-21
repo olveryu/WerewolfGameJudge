@@ -65,6 +65,7 @@ describe('__GAME_PASCAL__ public command schema', () => {
       { type: '__GAME_ID__.game.restart', gameSequence: 1, wasEnded: true },
 //#cap identityViewing
       { type: '__GAME_ID__.role.viewed' },
+      { type: '__GAME_ID__.review.complete', gameSequence: 1 },
 //#end
 //#cap botBulkViewing
       { type: '__GAME_ID__.bots.markAllBotsViewed' },
@@ -94,6 +95,19 @@ describe('__GAME_PASCAL__ public command schema', () => {
     }
   });
 
+//#cap identityViewing
+  it('rejects invalid review completion payloads', () => {
+    for (const command of [
+      { type: '__GAME_ID__.review.complete' },
+      { type: '__GAME_ID__.review.complete', gameSequence: -1 },
+      { type: '__GAME_ID__.review.complete', gameSequence: 1.5 },
+      { type: '__GAME_ID__.review.complete', gameSequence: 1, extra: true },
+    ]) {
+      expect(__GAME_CAMEL__PublicCommandSchema.safeParse(command).success).toBe(false);
+    }
+  });
+
+//#end
   it('rejects unknown commands, extra fields and worker-internal commands', () => {
     expect(__GAME_CAMEL__PublicCommandSchema.safeParse({ type: '__GAME_ID__.nope' }).success).toBe(
       false,

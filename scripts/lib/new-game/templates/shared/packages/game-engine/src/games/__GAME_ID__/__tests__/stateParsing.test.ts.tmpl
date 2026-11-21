@@ -22,4 +22,25 @@ describe('__GAME_PASCAL__ state parser', () => {
     const foreign = { ...(JSON.parse(JSON.stringify(state)) as object), gameType: 'werewolf' };
     expect(() => parse__GAME_PASCAL__State(foreign)).toThrow();
   });
+//#cap identityViewing
+  it('rejects missing or non-terminal review completion records', () => {
+    const state = __GAME_CAMEL__Engine.createInitialState(
+      { ...DEFAULT___GAME_UPPER___CONFIG },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
+    );
+    expect(() => parse__GAME_PASCAL__State({ ...state, reviewCompletedUserIds: undefined })).toThrow();
+    expect(() => parse__GAME_PASCAL__State({ ...state, reviewCompletedUserIds: ['host'] })).toThrow();
+  });
+//#end
+//#cap stageDeadline
+  it('rejects a playing state with a missing deadline', () => {
+    const state = __GAME_CAMEL__Engine.createInitialState(
+      { ...DEFAULT___GAME_UPPER___CONFIG },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
+    );
+    expect(() => parse__GAME_PASCAL__State({ ...state, phase: { kind: 'playing' } })).toThrow(
+      /deadlineAt/,
+    );
+  });
+//#end
 });

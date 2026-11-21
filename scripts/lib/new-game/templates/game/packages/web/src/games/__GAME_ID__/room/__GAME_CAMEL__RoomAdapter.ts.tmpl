@@ -374,8 +374,14 @@ export function create__GAME_PASCAL__HostManagement(
   if (state.phase.kind === 'ended') {
     if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
     return {
+//#cap identityViewing
+      task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, HOST_ACTION_KEYS.restart] },
+      pendingActionKeys: input.review.isPending ? [HOST_ACTION_KEYS.review] : [],
+//#end
+//#cap !identityViewing
       task: null,
       pendingActionKeys: [],
+//#end
       sections: [
         {
           key: 'current-flow',

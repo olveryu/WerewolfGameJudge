@@ -5,8 +5,11 @@ import { useNavigate } from 'react-router';
 
 import { BoardInfoContent } from '@/features/room/components/BoardInfoContent';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -48,7 +51,7 @@ function FibRoomContent(
   const screen = useFibRoomState(props);
   // BoardInfo 角色预览（纯展示状态）：只显示种类说明，不走身份查看协议。
   const [previewRole, setPreviewRole] = useState<FibRole | null>(null);
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const hasStarted = screen.phase === 'ongoing' || screen.phase === 'ended';
   const board = (
     <BoardInfoContent
@@ -111,27 +114,18 @@ function FibRoomContent(
       }}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="瞎掰王玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <FibRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`瞎掰王（${screen.playerCount}人）`}</p>
-              {board}
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="瞎掰王玩法"
+            guide={<FibRules embedded />}
+            configuration={
+              <>
+                <p>{`瞎掰王（${screen.playerCount}人）`}</p>
+                {board}
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {screen.roleViewing.isOpen && screen.roundView !== null && (
             <FibIdentityModal
               view={screen.roundView}

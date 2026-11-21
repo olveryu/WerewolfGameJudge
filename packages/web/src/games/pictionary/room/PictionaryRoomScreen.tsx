@@ -4,9 +4,12 @@ import type { PictionaryState } from '@game-judge/game-engine/games/pictionary/p
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings } from '@/features/room/components/RoomGameSummary';
+import {
+  type RoomInformation,
+  RoomInformationDialog,
+} from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -49,7 +52,7 @@ interface PictionaryRoomContentProps extends PictionaryRoomScreenProps {
 
 function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomContentProps) {
   const screen = usePictionaryRoomState({ ...props, entryController });
-  const [information, setInformation] = useState<'guide' | 'configuration' | null>(null);
+  const [information, setInformation] = useState<RoomInformation>(null);
   const config = screen.state.config;
   const isLobby = screen.state.phase === 'lobby';
   const hasStageMenu = screen.stageHud !== null || screen.state.phase === 'gallery';
@@ -103,27 +106,18 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
       )}
       gameOverlays={
         <>
-          {information === 'guide' && (
-            <RoomDialog
-              title="你画我猜接龙玩法"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <PictionaryRules embedded />
-            </RoomDialog>
-          )}
-          {information === 'configuration' && (
-            <RoomDialog
-              title="本局配置"
-              onClose={() => setInformation(null)}
-              dismissOnEscape
-              footer={null}
-            >
-              <p>{`你画我猜接龙（${config.numberOfPlayers}人）`}</p>
-              <RoomGameSettings settings={createPictionaryRoomSummarySettings(config)} />
-            </RoomDialog>
-          )}
+          <RoomInformationDialog
+            information={information}
+            guideTitle="你画我猜接龙玩法"
+            guide={<PictionaryRules embedded />}
+            configuration={
+              <>
+                <p>{`你画我猜接龙（${config.numberOfPlayers}人）`}</p>
+                <RoomGameSettings settings={createPictionaryRoomSummarySettings(config)} />
+              </>
+            }
+            onClose={() => setInformation(null)}
+          />
           {screen.reviewOverlay}
         </>
       }
