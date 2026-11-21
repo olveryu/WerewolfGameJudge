@@ -1,6 +1,7 @@
 import {
   type GameState,
   GameStatus,
+  WEREWOLF_STATE_VERSION,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { render, screen } from '@testing-library/react';
@@ -30,6 +31,7 @@ function readySession(status: GameStatus) {
   return createFakeRoomLink<GameState, WerewolfPublicCommand>(
     readyLinkSnapshot<GameState>(testIdentity('werewolf'), {
       gameType: 'werewolf',
+      stateVersion: WEREWOLF_STATE_VERSION,
       revision: 1,
       state: buildWerewolfTestState({ status }),
     }),

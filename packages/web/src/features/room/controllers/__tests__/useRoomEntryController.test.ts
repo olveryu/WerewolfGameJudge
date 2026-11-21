@@ -25,6 +25,7 @@ vi.mock('@/features/room/services/recentRooms', () => ({
 
 interface TestState {
   readonly gameType: 'werewolf';
+  readonly stateVersion: 1;
   readonly roomCode: string;
   readonly hostUserId: string;
 }
@@ -47,6 +48,7 @@ function roomSnapshotFor(identity: RoomIdentity<'werewolf'>) {
   return createRoomSnapshot<TestState>(
     {
       gameType: 'werewolf',
+      stateVersion: 1,
       roomCode: identity.room.roomCode,
       hostUserId: identity.room.hostUserId,
     },

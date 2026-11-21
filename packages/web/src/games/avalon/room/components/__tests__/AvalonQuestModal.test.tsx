@@ -4,11 +4,8 @@ import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/publi
 import { fireEvent, render } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { AvalonQuestModal } from '../AvalonQuestModal';
-
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
 
 function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewModel {
   return {
@@ -121,25 +118,10 @@ describe('AvalonQuestModal', () => {
     expect(getByTestId('avalon-quest-success').querySelector('.choice-check')).toBeNull();
   });
 
-  it('offers both cards to evil players and submits only after confirmation', () => {
+  it('offers both cards to evil players and reports the play', () => {
     const { getByTestId, onPlay } = renderModal({ myRole: 'minion' });
     fireEvent.click(getByTestId('avalon-quest-fail'));
-    expect(onPlay).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-    if (confirmation === undefined) throw new Error('expected play confirmation');
-    void confirmation[2]();
     expect(onPlay).toHaveBeenCalledWith('fail');
-  });
-
-  it('prevents dismissal before a play but permits it afterward', () => {
-    const before = renderModal();
-    expect(before.queryByTestId(TESTIDS.avalonQuestClose)).toBeNull();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(before.onClose).not.toHaveBeenCalled();
-    before.unmount();
-    const after = renderModal({ myPlay: 'success' });
-    fireEvent.click(after.getByTestId(TESTIDS.avalonQuestClose));
-    expect(after.onClose).toHaveBeenCalledOnce();
   });
 
   it('shows the reveal countdown once every play is in', () => {

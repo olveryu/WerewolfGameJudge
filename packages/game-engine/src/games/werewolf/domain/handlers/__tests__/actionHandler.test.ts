@@ -17,6 +17,7 @@ import {
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { ApplyResolverResultAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import {
   expectError,
@@ -44,7 +45,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
       };
   }
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,
@@ -67,7 +68,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     cupidLoversRevealAcks: [],
     roster: rosterOverride ?? derivedRoster,
     currentNightResults: {},
-    resolvedWolfKillTarget: null,
     ...rest,
   };
 }
@@ -683,8 +683,6 @@ describe('handleSubmitAction', () => {
           blockedSeat: 99, // someone else blocked
           wolfVotesBySeat: { '1': 0 },
         },
-        resolvedWolfKillTarget: 0,
-        resolvedWolfKillVerdict: { type: 'sharedTarget', targetSeat: 0 },
         witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
       const context = createContext(state);

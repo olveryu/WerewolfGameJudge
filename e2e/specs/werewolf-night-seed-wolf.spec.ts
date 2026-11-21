@@ -73,7 +73,7 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
           const confirmation = await readAlertText(pages[seedWolfPageIndex]!);
           expect(confirmation).toContain(`${infectionTargetSeat + 1}号`);
           const infectButton = pages[seedWolfPageIndex]!.getByTestId(TESTIDS.alertButton(1));
-          await expect(infectButton).toHaveText('确定');
+          await expect(infectButton).toHaveText('感染');
           await infectButton.click();
         });
 

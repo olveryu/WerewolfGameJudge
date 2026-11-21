@@ -12,8 +12,6 @@ import {
 import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
 import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
 import { decideConfirmViewed, decideMarkBotsViewed } from '../../platform/room/identityViewing';
-import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
-import { findRosterSeatByUserId } from '../../platform/room/seating';
 import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
@@ -69,6 +67,7 @@ import { buildInitialGameState } from './domain/state/buildInitialState';
 import { normalizeState } from './domain/state/normalize';
 import { createWerewolfGameEndedEffect } from './effects/gameEnded';
 import type { WerewolfEffect } from './effects/types';
+import { WEREWOLF_STATE_VERSION } from './state/version';
 
 export interface WerewolfConfig {
   readonly templateRoles: readonly RoleId[];
@@ -102,7 +101,6 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.config.update':
     case 'werewolf.review.share':
     case 'werewolf.lastNightInfo.confirm':
-    case 'werewolf.review.complete':
     case 'werewolf.board.nominate':
     case 'werewolf.board.upvote':
     case 'werewolf.board.withdraw':
@@ -312,37 +310,7 @@ function decideWerewolfCommandRules(
       if (state.status !== GameStatus.Day && state.status !== GameStatus.Ended) {
         return reject('invalid_status');
       }
-      if (state.lastNightInfoConfirmed === true) return commitActions([]);
       return commitActions([{ type: 'CONFIRM_LAST_NIGHT_INFO' }]);
-    }
-    case 'werewolf.review.complete': {
-      const completion = resolveReviewCompletion({
-        context,
-        isEnded: state.status === GameStatus.Ended,
-        currentIdentity: state.gameSequence,
-        expectedIdentity: command.gameSequence,
-        completedUserIds: state.reviewCompletedUserIds ?? [],
-        isEligible: (userId) => {
-          if (userId === state.hostUserId) {
-            return (
-              state.lastNightInfoConfirmed === true &&
-              (state.nightReviewAllowedSeats ?? []).some((seat) => state.roster[seat] !== undefined)
-            );
-          }
-          const seat = findRosterSeatByUserId(
-            state.roster,
-            Object.keys(state.players).length,
-            userId,
-          );
-          return seat !== null && (state.nightReviewAllowedSeats ?? []).includes(seat);
-        },
-      });
-      if (completion.kind === 'reject') return reject(completion.reason);
-      return commitActions(
-        completion.kind === 'complete'
-          ? [{ type: 'COMPLETE_REVIEW', userId: completion.userId }]
-          : [],
-      );
     }
     case 'werewolf.review.share': {
       const actor = resolveHostActor(state, context);
@@ -471,7 +439,6 @@ function decideWerewolfCommandRules(
         handleAdvanceSheriffElection(
           { type: 'ADVANCE_SHERIFF_ELECTION' },
           actor.value.handlerContext,
-          context,
         ),
         context,
       );
@@ -484,7 +451,6 @@ function decideWerewolfCommandRules(
         handleEndSheriffElectionBySelfDestruct(
           { type: 'END_SHERIFF_ELECTION_BY_SELF_DESTRUCT' },
           actor.value.handlerContext,
-          context,
         ),
         context,
       );
@@ -586,6 +552,7 @@ export function decideWerewolfCommand(
 
 export const werewolfEngine = {
   gameType: WEREWOLF_GAME_TYPE,
+  stateVersion: WEREWOLF_STATE_VERSION,
   capabilities: {
     nightPhase: true,
     botsAndTakeover: true,

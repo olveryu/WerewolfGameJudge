@@ -1,4 +1,4 @@
-/** Strict Story Relay persistence and transport codec. */
+/** Strict Story Relay persistence and transport codec; v1 states migrate at this boundary. */
 
 import {
   failDecode,
@@ -13,7 +13,8 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { parseRoomRoster } from '../../../platform/room/roster';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
+import type { BotSeatOccupant } from '../../../platform/room/seating';
 import { normalizeStoryRelayState } from './normalize';
 import {
   STORY_RELAY_GALLERY_DURATIONS,
@@ -23,8 +24,10 @@ import {
   STORY_RELAY_WRITING_DURATIONS,
   type StoryRelayConfig,
   type StoryRelayEntry,
+  type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
+import { STORY_RELAY_STATE_VERSION } from './version';
 
 /** Parses only the supported ordinary writing settings. */
 export function parseStoryRelayConfig(value: unknown, path = 'StoryRelayConfig'): StoryRelayConfig {
@@ -51,6 +54,19 @@ export function parseStoryRelayConfig(value: unknown, path = 'StoryRelayConfig')
     },
     path,
   );
+}
+
+function legacyRealSeats(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, StoryRelayHumanSeat>> {
+  const raw = parseObject(value, path);
+  const result: Record<number, StoryRelayHumanSeat> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    result[parseSeat(Number(key), `${path}.${key}`)] = parseRoomHumanSeat(value, `${path}.${key}`);
+  }
+  return result;
 }
 
 function entry(value: unknown, path: string): StoryRelayEntry {
@@ -127,6 +143,9 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [STORY_RELAY_GAME_TYPE]),
+        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
+          STORY_RELAY_STATE_VERSION,
+        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: parseChoice(raw.phase, `${path}.phase`, STORY_RELAY_PHASES),
@@ -149,8 +168,55 @@ export function parseStoryRelayState(value: unknown): StoryRelayState {
           `${path}.revealSettlementPending`,
         ),
         completedAt: parseNullable(raw.completedAt, `${path}.completedAt`, parseInteger),
+        abortedAt: parseNullable(raw.abortedAt, `${path}.abortedAt`, parseInteger),
       },
       path,
     ),
   );
+}
+
+/** Upgrades a stored v1 state (separate realSeats + botSeats) to the unified roster.
+ * @throws When the stored state is malformed or the two legacy seat sets overlap.
+ */
+export function migratePersistedStoryRelayState(value: unknown): StoryRelayState {
+  const raw = parseObject(value, 'StoryRelayState');
+  if (raw.stateVersion === 3) return upgradeStoryRelayV3(raw);
+  if (raw.stateVersion === 2) return upgradeStoryRelayV2(raw);
+  if (raw.stateVersion !== 1) return parseStoryRelayState(raw);
+  const merged: Record<number, StoryRelayHumanSeat | BotSeatOccupant> = {
+    ...legacyRealSeats(raw.realSeats, 'StoryRelayState.realSeats'),
+  };
+  for (const seat of parseArray(raw.botSeats, 'StoryRelayState.botSeats', parseSeat)) {
+    if (merged[seat] !== undefined)
+      return failDecode('StoryRelayState.botSeats', 'seats disjoint from realSeats');
+    merged[seat] = { seat, kind: 'bot' };
+  }
+  const { realSeats: _legacyRealSeats, botSeats: _legacyBotSeats, ...rest } = raw;
+  return upgradeStoryRelayV2({
+    ...rest,
+    stateVersion: 2,
+    roster: merged,
+  });
+}
+
+function upgradeStoryRelayV2(raw: Record<string, unknown>): StoryRelayState {
+  const gallery =
+    raw.gallery === null
+      ? null
+      : {
+          ...parseObject(raw.gallery, 'StoryRelayState.gallery'),
+          revealStartedAt: null,
+          revealDurationMs: 0,
+        };
+  return upgradeStoryRelayV3({ ...raw, stateVersion: 3, gallery });
+}
+
+function upgradeStoryRelayV3(raw: Record<string, unknown>): StoryRelayState {
+  return parseStoryRelayState({
+    ...raw,
+    stateVersion: STORY_RELAY_STATE_VERSION,
+    revealSettlementPending:
+      (raw.phase === 'answering' || raw.phase === 'settling' || raw.phase === 'transition') &&
+      raw.completedAt === null,
+  });
 }

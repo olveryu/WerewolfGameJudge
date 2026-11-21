@@ -63,6 +63,7 @@ function FibRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
       phaseLabel={
         screen.phase === 'lobby'
           ? '待开局'
@@ -79,7 +80,8 @@ function FibRoomContent(
           ? { label: '分配角色', occupiedSeats: screen.occupiedSeatCount }
           : null
       }
-      selectionMode={screen.isGuessing ? 'host-task' : undefined}
+      isSelecting={screen.isGuessing}
+      selectionUsesHostTask
       configurationEntry={
         hasStarted && !screen.isGuessing ? { onOpen: () => setInformation('configuration') } : null
       }
@@ -115,7 +117,7 @@ function FibRoomContent(
             <RoomDialog
               title="瞎掰王玩法"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <FibRules embedded />
@@ -125,7 +127,7 @@ function FibRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <p>{`瞎掰王（${screen.playerCount}人）`}</p>
@@ -139,8 +141,6 @@ function FibRoomContent(
               shouldPlay={screen.roleViewing.shouldPlayAnimation}
               allRoles={screen.identityAllRoles}
               remainingCards={screen.roleViewing.remainingCards}
-              requireConfirmation
-              confirmDisabled={screen.roleViewing.isConfirmationDisabled}
               onClose={screen.roleViewing.close}
             />
           )}

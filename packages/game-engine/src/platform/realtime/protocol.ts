@@ -236,7 +236,10 @@ export const INBOX_HINT_FRAME: InboxHintFrame = Object.freeze({ type: 'INBOX_HIN
 function assertSnapshotIdentity<TState extends BaseGameState<string>>(
   snapshot: RoomSnapshot<TState>,
 ): void {
-  if (snapshot.gameType !== snapshot.state.gameType) {
+  if (
+    snapshot.gameType !== snapshot.state.gameType ||
+    snapshot.stateVersion !== snapshot.state.stateVersion
+  ) {
     throw new Error('Snapshot identity does not match its state');
   }
 }

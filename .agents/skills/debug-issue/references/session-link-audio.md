@@ -4,9 +4,24 @@ This reference holds the detail behind the three one-line pointers in Step 2 of 
 
 ## State identity
 
-Each game owns a strict parser in `state/parseState.ts` and a codec in `state/codec.ts`. The codec validates the current state shape and game identity at the protocol and persistence boundaries. There is no per-game state version or persisted-state migration; invalid stored state fails fast when the worker reads it.
+Each game owns its state identity: a version constant in `packages/game-engine/src/games/<game>/state/version.ts`, a strict parser in `state/parseState.ts` that accepts only the current version, and a codec in `state/codec.ts`. Persisted states are upgraded by that game's `migratePersisted*State` function, exported through the game's public entry point and wired into its worker module. The worker-side reader upgrades an older stored state in place at read time and throws on a newer or unsupported version.
 
-Deciding files: `packages/game-engine/src/games/<game>/state/parseState.ts`, `packages/game-engine/src/games/<game>/state/codec.ts`, `packages/game-engine/src/platform/protocol/roomSnapshot.ts`, and `packages/api-worker/src/platform/commands/RoomStateStore.ts`.
+Current versions at drafting time (verify again before citing a number in a report):
+
+| Game       | Current version |
+| ---------- | --------------- |
+| werewolf   | 17              |
+| avalon     | 10              |
+| fibking    | 8               |
+| pictionary | 9               |
+| undercover | 6               |
+| storyrelay | 2               |
+| drawguess  | 4               |
+| demo       | 1               |
+
+The upgrade range each `migratePersisted*State` accepts is defined per game in its `state/parseState.ts`; read the migration function for the game in question. Older versions outside the accepted range are rejected by the strict parser. Werewolf migrates versions 12–16 to 17 and rejects 11 or older (`migratePersistedWerewolfState` in `state/parseState.ts`).
+
+Deciding files: `packages/game-engine/src/games/<game>/state/version.ts`, `packages/game-engine/src/games/<game>/state/parseState.ts`, `packages/game-engine/src/platform/protocol/roomSnapshot.ts`, `packages/api-worker/src/platform/commands/RoomStateStore.ts`.
 
 ## Realtime link (RoomLink)
 

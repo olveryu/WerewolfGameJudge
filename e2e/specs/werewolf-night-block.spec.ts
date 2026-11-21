@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-import { TESTIDS } from '../../packages/web/src/testids';
-import { confirmAlert } from '../helpers/alerts';
+import { confirmAlert, readAlertText } from '../helpers/alerts';
 import {
   clickNightButton,
   clickSeatAndConfirm,
+  dismissAlert,
   driveWolfDisabledEmptyVote,
   driveWolfVote,
   findAllRolePageIndices,
@@ -125,13 +125,14 @@ test.describe('Werewolf Night — Block', () => {
         await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
-        // Wait for seer's blocked turn and inspect the inline status.
+        // Wait for seer's blocked turn — alert or action message contains "封锁"
         await test.step('Seer should see blocked prompt', () =>
           waitForRoleTurn(pages[seerIdx]!, 'seerCheck', pages));
 
         // Verify blocked text
-        await expect(pages[seerIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
-        await expect(pages[seerIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
+        const blockedText = await readAlertText(pages[seerIdx]!, 10_000, '技能被封锁');
+        expect(blockedText).toContain('封锁');
+        await dismissAlert(pages[seerIdx]!);
 
         // Finish night
         await waitForNightEnd(pages);
@@ -181,8 +182,9 @@ test.describe('Werewolf Night — Block', () => {
           waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages));
 
         // Verify blocked text
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
+        const blockedText = await readAlertText(pages[witchIdx]!, 10_000, '技能被封锁');
+        expect(blockedText).toContain('封锁');
+        await dismissAlert(pages[witchIdx]!);
 
         // Finish night — villager dies (witch couldn't save)
         await waitForNightEnd(pages);
@@ -272,8 +274,9 @@ test.describe('Werewolf Night — Block', () => {
         await test.step('Dreamcatcher should see blocked prompt', () =>
           waitForRoleTurn(pages[dcIdx]!, 'dreamcatcherDream', pages));
 
-        await expect(pages[dcIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('封锁');
-        await expect(pages[dcIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
+        const blockedText = await readAlertText(pages[dcIdx]!, 10_000, '技能被封锁');
+        expect(blockedText).toContain('封锁');
+        await dismissAlert(pages[dcIdx]!);
 
         // Skip the blocked step on DC's page
         await clickNightButton(pages[dcIdx]!, 'skip', '确认跳过');

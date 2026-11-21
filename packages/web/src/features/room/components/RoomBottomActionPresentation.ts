@@ -6,10 +6,6 @@ import type {
 
 export type RoomPanelPlayerAction = RoomBottomButton | RoomBottomToolButton;
 
-export type RoomSelectionMode = 'player' | 'host-task';
-
-export type RoomSummaryPresentation = 'status' | 'after-message' | 'replaces-message';
-
 export interface RoomBottomActionPresentation {
   readonly focusAction: RoomBottomButton | null;
   readonly additionalActions: readonly RoomPanelPlayerAction[];

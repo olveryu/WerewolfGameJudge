@@ -98,7 +98,7 @@ export function AvalonGameplayContent() {
       <div className="game-guide">
         <h2 className="game-guide-heading">好人做任务，坏人搞破坏</h2>
         <p className="game-guide-intro">
-          {`${AVALON_MIN_PLAYERS}–${AVALON_MAX_PLAYERS} 人身份推理：好人阵营轮流组队执行 ${AVALON_QUEST_COUNT} 轮任务，先拿下 ${AVALON_QUESTS_TO_WIN} 个任务获胜；坏人混在队伍里出失败牌破坏任务，或在终局刺杀梅林获胜。`}
+          {`${AVALON_MIN_PLAYERS}–${AVALON_MAX_PLAYERS} 人身份推理：好人阵营轮流组队执行 ${AVALON_QUEST_COUNT} 轮任务，先拿下 ${AVALON_QUESTS_TO_WIN} 个任务获胜；坏人混在队伍里出失败牌破坏任务，连续否决组队或终局刺杀梅林也能获胜。`}
         </p>
         <GameGuideSection title="一轮怎么玩">
           <RuleItem
@@ -114,7 +114,7 @@ export function AvalonGameplayContent() {
           <RuleItem
             icon="checkbox-outline"
             title="投票：赞成 / 反对"
-            description={`全员对队伍投票，可改票。全员投完武装 ${SETTLE_COUNTDOWN_SECONDS} 秒倒计时、到期自动结算：赞成多于反对则通过，否则否决（含平票）。每轮最多组队 ${AVALON_VETO_LIMIT_MIN}–${AVALON_VETO_LIMIT_MAX} 次（建房时设置，默认 ${AVALON_DEFAULT_VETO_LIMIT}）；最后一次组队自动通过，不再投票。公投模式同时亮票，暗投模式只公布赞成 / 反对数量。`}
+            description={`全员对队伍投票，可改票。全员投完武装 ${SETTLE_COUNTDOWN_SECONDS} 秒倒计时、到期自动结算：赞成多于反对则通过，否则否决（含平票）；单轮连续否决达到上限（建房时设置，${AVALON_VETO_LIMIT_MIN}–${AVALON_VETO_LIMIT_MAX}，默认 ${AVALON_DEFAULT_VETO_LIMIT}），坏人直接获胜。公投模式同时亮票，暗投模式只公布赞成 / 反对数量。`}
           />
           <RuleItem
             icon="trophy-outline"

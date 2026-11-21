@@ -13,7 +13,6 @@ import { captureElementPngBase64 } from '@/features/room/services/captureElement
 import { shareImagesBase64 } from '@/features/room/services/shareImage';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
 
 import type { RoomReviewAvailability, RoomReviewContribution, RoomReviewDocument } from '../types';
 import { type RoomReviewController, useRoomReview } from '../useRoomReview';
@@ -74,14 +73,10 @@ function capture(review: RoomReviewController) {
 function Harness({
   state,
   onOpened = null,
-  onClosed = null,
-  isPending = false,
   onRender = capture,
 }: {
   readonly state: TestState;
   readonly onOpened?: (() => void) | null;
-  readonly onClosed?: (() => Promise<boolean>) | null;
-  readonly isPending?: boolean;
   readonly onRender?: (review: RoomReviewController) => void;
 }) {
   const review = useRoomReview({
@@ -91,8 +86,6 @@ function Harness({
     roomId: 'room-1',
     roomCode: '1234',
     onOpened,
-    onClosed,
-    isPending,
   });
   onRender(review);
   return <>{review.overlay}</>;
@@ -209,11 +202,9 @@ describe('useRoomReview dialog', () => {
   });
 
   it('closes when the reviewed round changes', () => {
-    const onClosed = vi.fn(async () => true);
     const view = render(
       <Harness
         state={available(reviewDocument(), { sharing: { isAllowed: false, reason: 'x' } })}
-        onClosed={onClosed}
       />,
     );
     act(() => current().open(null));
@@ -227,71 +218,6 @@ describe('useRoomReview dialog', () => {
       />,
     );
     expect(screen.queryByTestId(TESTIDS.roomReviewDialog)).toBeNull();
-    expect(onClosed).not.toHaveBeenCalled();
-  });
-
-  it('does not submit the same review completion twice while it is in flight', async () => {
-    let resolve: ((result: boolean) => void) | undefined;
-    const promise = new Promise<boolean>((resolveCompletion) => {
-      resolve = resolveCompletion;
-    });
-    const onClosed = vi.fn(() => promise);
-    render(
-      <Harness
-        state={available(reviewDocument(), { sharing: { isAllowed: false, reason: 'x' } })}
-        onClosed={onClosed}
-        isPending
-      />,
-    );
-
-    act(() => current().open(null));
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-    act(() => current().open(null));
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-
-    expect(onClosed).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      if (resolve === undefined) throw new Error('Review completion was not initialized');
-      resolve(false);
-    });
-    act(() => current().open(null));
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-    expect(onClosed).toHaveBeenCalledTimes(2);
-  });
-
-  it('reports an unexpected completion failure and allows a later retry', async () => {
-    const error = new Error('Room operation is already in progress');
-    const onClosed = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce(true);
-    render(
-      <Harness
-        state={available(reviewDocument(), { sharing: { isAllowed: false, reason: 'x' } })}
-        onClosed={onClosed}
-        isPending
-      />,
-    );
-
-    act(() => current().open(null));
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-    await waitFor(() => expect(handleError).toHaveBeenCalledWith(error, expect.any(Object)));
-    act(() => current().open(null));
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-    expect(onClosed).toHaveBeenCalledTimes(2);
-  });
-
-  it('only reports an explicit close and preserves the callback captured on open', () => {
-    const onClosed = vi.fn(async () => true);
-    const nextOnClosed = vi.fn(async () => true);
-    const state = available(reviewDocument(), {
-      sharing: { isAllowed: false, reason: 'x' },
-    });
-    const view = render(<Harness state={state} onClosed={onClosed} isPending />);
-    expect(current().entry).toMatchObject({ isPending: true });
-    act(() => current().open(null));
-    expect(onClosed).not.toHaveBeenCalled();
-    view.rerender(<Harness state={state} onClosed={nextOnClosed} isPending />);
-    fireEvent.click(screen.getByLabelText('关闭详情'));
-    expect(onClosed).toHaveBeenCalledTimes(1);
-    expect(nextOnClosed).not.toHaveBeenCalled();
   });
 });
 

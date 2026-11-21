@@ -81,7 +81,7 @@ function PictionaryStageContent({
       </div>
     );
   }
-  if (state.phase === 'ended') {
+  if (state.phase === 'ended' || state.phase === 'aborted') {
     return (
       <div className="pictionary-stage">
         <PictionaryEndedStage state={state} openReview={openReview} />

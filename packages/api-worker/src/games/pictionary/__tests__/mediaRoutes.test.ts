@@ -275,7 +275,7 @@ describe('Pictionary current persisted relay state', () => {
     );
   });
 
-  it('rejects invalid persisted state without rewriting room data', async () => {
+  it('rejects unsupported persisted versions without rewriting room data', async () => {
     const host = await createAnonymousSession();
     const room = await createPictionaryRoom(host.access_token);
     await dispatchCommand(room, host.access_token, { type: 'room.seat.fillBots' }, null);
@@ -283,11 +283,12 @@ describe('Pictionary current persisted relay state', () => {
     const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(room.roomId));
     await runInDurableObject(stub, async (_instance: GameRoomRuntime, durableState) => {
       const sql = durableState.storage.sql;
-      sql.exec(`UPDATE room_state SET game_state = json_set(game_state, '$.gameType', 'fibking')`);
+      sql.exec(`UPDATE room_state SET state_version = 7,
+        game_state = json_set(game_state, '$.stateVersion', 7)`);
       const before = sql.exec('SELECT * FROM room_state').one();
       const receipts = sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray();
       const roomState = new RoomStateStore(durableState.storage, getWorkerGameModule);
-      expect(() => roomState.read()).toThrow('PictionaryState.gameType');
+      expect(() => roomState.read()).toThrow('state version');
       expect(sql.exec('SELECT * FROM room_state').one()).toEqual(before);
       expect(sql.exec('SELECT * FROM command_receipts ORDER BY command_id').toArray()).toEqual(
         receipts,
@@ -430,14 +431,7 @@ describe('Pictionary spectator media', () => {
       1,
     );
     const legacyReservation = requireReservation(state, 1);
-    const legacyUpload = await putDrawing(room, host.access_token, legacyReservation, '1');
-    expect(legacyUpload.status).toBe(200);
-    const legacyUploadResult = parseRoomCommandResult(
-      await legacyUpload.json(),
-      PICTIONARY_STATE_CODEC,
-    );
-    if (legacyUploadResult.kind !== 'committed') throw new Error('Drawing commit rejected');
-    state = legacyUploadResult.snapshot.state;
+    expect((await putDrawing(room, host.access_token, legacyReservation, '1')).status).toBe(200);
     const lateReplay = await SELF.fetch(
       `https://test.local/api/games/pictionary/rooms/${room.roomCode}/submissions/${legacyReservation.submissionId}/replay?controlledSeat=1`,
       {
@@ -454,33 +448,15 @@ describe('Pictionary spectator media', () => {
     const get = () =>
       SELF.fetch(readUrl, { headers: { Authorization: `Bearer ${viewer.access_token}` } });
     expect((await get()).status).toBe(403);
-    for (const seat of [2, 3]) {
-      state = await commitSeatDrawing(room, host.access_token, seat, seat);
-    }
-    state = await advancePhaseViaAlarm(room);
-    state = await markEverySeatReady(room, host.access_token, state);
-    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-      state = await dispatchCommand(
-        room,
-        host.access_token,
-        { type: 'pictionary.text.submit', text: '续写' },
-        seat === 0 ? null : seat,
-      );
-    }
-    state = await advancePhaseViaAlarm(room);
-    state = await markEverySeatReady(room, host.access_token, state);
-    for (let seat = 0; seat < state.config.numberOfPlayers; seat += 1) {
-      state = await commitSeatDrawing(room, host.access_token, seat, seat === 0 ? null : seat);
-    }
-    state = await advancePhaseViaAlarm(room);
-    expect(state.phase).toBe('gallery');
+    await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
     const read = await get();
     expect(read.status).toBe(200);
     expect(await read.json()).toEqual(replay);
   });
 
-  it('rejects removed finish and legacy task commands', async () => {
+  it('invalidates aborted uploads while preserving accepted artwork', async () => {
     const host = await createAnonymousSession();
+    const viewer = await createAnonymousSession();
     const room = await createPictionaryRoom(host.access_token);
     await dispatchCommand(
       room,
@@ -522,24 +498,66 @@ describe('Pictionary spectator media', () => {
       host.access_token,
     );
     expect(oldProtocol.status).toBe(400);
+    for (const seat of [1, 2, 3])
+      await dispatchCommand(
+        room,
+        host.access_token,
+        { type: 'pictionary.task.empty.submit' },
+        seat,
+      );
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.text.submit', text: '题目' },
+      null,
+    );
+    expect(
+      state.chains.flatMap((chain) => chain.entries).filter((entry) => entry.kind === 'missed'),
+    ).toHaveLength(3);
+    state = await advancePhaseViaAlarm(room);
+    state = await markEverySeatReady(room, host.access_token, state);
+    state = await commitSeatDrawing(room, host.access_token, 0, null);
+    const accepted = state.chains
+      .flatMap((chain) => chain.entries)
+      .find((entry) => entry.kind === 'drawing');
+    if (accepted === undefined) throw new Error('Accepted drawing is missing');
+    state = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.drawing.reserve' },
+      2,
+    );
+    const aborted = requireReservation(state, 2);
+    state = await dispatchCommand(room, host.access_token, { type: 'pictionary.game.abort' }, null);
+    expect(state.phase).toBe('aborted');
+    expect(state.reservations).toHaveLength(0);
+    expect((await putDrawing(room, host.access_token, aborted, '2')).status).toBe(409);
+    const image = await SELF.fetch(
+      `https://test.local/api/games/pictionary/rooms/${room.roomCode}/media/${accepted.id}`,
+      { headers: { Authorization: `Bearer ${viewer.access_token}` } },
+    );
+    expect(image.status).toBe(200);
+    expect(new Uint8Array(await image.arrayBuffer())).toEqual(createTestPng());
   });
 
   it('answers 410 for a filed drawing whose stored object has expired', async () => {
-    const { host, state, mediaUrl } = await setupRoomToAnswering();
+    const { host, room, state, mediaUrl } = await setupRoomToAnswering();
+    const aborted = await dispatchCommand(
+      room,
+      host.access_token,
+      { type: 'pictionary.game.abort' },
+      null,
+    );
+    expect(aborted.phase).toBe('aborted');
     const entry = state.chains
       .flatMap((chain) => chain.entries)
       .find((candidate) => candidate.kind === 'drawing');
     if (entry === undefined) throw new Error('Round is missing its test drawing');
-    const taskSeat = state.seatOrder.find(
-      (seat) => getPictionaryTaskForSeat(state, seat)?.previousEntry?.id === entry.id,
-    );
-    if (taskSeat === undefined) throw new Error('Drawing is not assigned to a current task');
     await env.GAME_MEDIA.delete(entry.media.objectKey);
 
-    const expired = await SELF.fetch(
-      `${mediaUrl}${taskSeat === 0 ? '' : `?controlledSeat=${taskSeat}`}`,
-      { headers: { Authorization: `Bearer ${host.access_token}` } },
-    );
+    const expired = await SELF.fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${host.access_token}` },
+    });
     expect(expired.status).toBe(410);
     expect(await expired.json()).toEqual({ success: false, reason: 'PICTIONARY_MEDIA_EXPIRED' });
   });

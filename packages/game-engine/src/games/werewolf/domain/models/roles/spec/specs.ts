@@ -948,7 +948,7 @@ const ROLE_SPEC_DEFINITIONS = {
           confirmStatusUi: {
             kind: 'infection',
             statusDialogTitle: '感染目标',
-            targetTemplate: '确定对{seat}发动感染吗？',
+            targetTemplate: '狼人选择袭击{seat}玩家，是否发动感染？',
             unavailableText: '本夜没有可感染的狼人袭击目标',
             skipButtonText: '不用技能',
           },

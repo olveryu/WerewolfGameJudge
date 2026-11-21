@@ -3,7 +3,9 @@
  * album order — an album too long for one image continues on numbered
  * parts. Every leg is labelled with its number and author, as the relay
  * ran: the starting word and each guess as a paragraph, a drawing as an
- * image, a missed leg as the game's blank-leg copy.
+ * image, a missed leg as the game's blank-leg copy. An album that
+ * received nothing (a round aborted before its first hand-in) is one
+ * missing paragraph.
  *
  * Every fact comes from the round's chains and its participant snapshot.
  * The builder is pure: a drawing loads through the injected loader when a
@@ -28,6 +30,8 @@ import {
   getPictionarySeatDisplayName,
   PICTIONARY_MISSED_ENTRY_TEXT,
 } from '@/games/pictionary/model/pictionarySelectors';
+
+const EMPTY_ALBUM_TEXT = '本册尚无已提交作品';
 
 /** Loads one drawing of the reviewed round by its entry id. */
 export type PictionaryDrawingLoader = (
@@ -94,17 +98,20 @@ function albumGroups(
   chain: PictionaryChain,
   loadDrawing: PictionaryDrawingLoader,
 ): readonly ReviewFlowGroup[] {
+  if (chain.entries.length === 0) {
+    return [[{ kind: 'paragraph', caption: null, text: EMPTY_ALBUM_TEXT, isMissing: true }]];
+  }
   return chain.entries.map((entry, index) => [legBlock(state, entry, index + 1, loadDrawing)]);
 }
 
-/** Builds the review of an ended Pictionary round. */
+/** Builds the review of an ended or aborted Pictionary round. */
 export function toPictionaryReviewDocument(input: {
   readonly state: PictionaryState;
   readonly roomCode: string;
   readonly loadDrawing: PictionaryDrawingLoader;
 }): RoomReviewDocument {
   const { state, roomCode, loadDrawing } = input;
-  if (state.phase !== 'ended') {
+  if (state.phase !== 'ended' && state.phase !== 'aborted') {
     throw new Error(`[FAIL-FAST] Pictionary review built during ${state.phase}`);
   }
   return {
@@ -112,6 +119,7 @@ export function toPictionaryReviewDocument(input: {
     kicker: `🖼️ 第 ${state.roundNumber} 轮 · 画册`,
     fileStem: `pictionary-${roomCode}-${state.roundNumber}`,
     footer: REVIEW_GENERATED_FOOTER,
+    isAborted: state.phase === 'aborted',
     pages: state.chains.flatMap((chain, albumIndex) =>
       paginateReviewUnit({
         key: pictionaryAlbumPageKey(chain),

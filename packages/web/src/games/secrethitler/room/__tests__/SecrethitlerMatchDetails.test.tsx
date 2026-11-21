@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 
 import {
   buildSecrethitlerPhaseStates,
-  completeSecrethitlerTestVote,
   sendSecrethitlerSeatCommand,
 } from '@/test-utils/secrethitlerState';
 
@@ -40,11 +39,6 @@ it('shows the fail banner for a settled rejected government', () => {
   const chancellor = view.eligibleChancellorSeats[0];
   if (chancellor === undefined) throw new Error('Missing chancellor');
   state = sendSecrethitlerSeatCommand(state, state.phase.presidentSeat, {
-    type: 'secrethitler.government.preselect',
-    chancellorSeatId: chancellor,
-  });
-  if (state.phase.kind !== 'election') throw new Error('Expected election after preselection');
-  state = sendSecrethitlerSeatCommand(state, state.phase.presidentSeat, {
     type: 'secrethitler.government.nominate',
     chancellorSeatId: chancellor,
   });
@@ -54,7 +48,6 @@ it('shows the fail banner for a settled rejected government', () => {
       vote: 'nein',
     });
   }
-  state = completeSecrethitlerTestVote(state);
   render(
     <SecrethitlerMatchDetails state={state} view={getSecrethitlerViewModel(state, 0)} mySeat={0} />,
   );

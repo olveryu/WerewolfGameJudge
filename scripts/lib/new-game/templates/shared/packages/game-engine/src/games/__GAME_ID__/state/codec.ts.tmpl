@@ -3,8 +3,9 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import { parse__GAME_PASCAL__State } from './parseState';
 import type { __GAME_PASCAL__State } from './types';
+import { __GAME_UPPER___STATE_IDENTITY } from './version';
 
 export const __GAME_UPPER___STATE_CODEC = {
-  gameType: '__GAME_ID__',
+  ...__GAME_UPPER___STATE_IDENTITY,
   parse: parse__GAME_PASCAL__State,
 } satisfies GameStateCodec<__GAME_PASCAL__State>;

@@ -6,7 +6,8 @@
  * the generator templates. These pins keep the forked vocabularies
  * (per-game start/assign/abort/next-round wordings, the label
  * override hatch, hand-written terminal descriptors) from regrowing.
- * Migrated games and the generator use one reset-to-lobby action.
+ * Migrated games use one reset-to-lobby action; other identity games
+ * and the generator retain the previous terminal pair until migrated.
  * Game content (confirm bodies carrying the game's own nouns, rules
  * copy, encyclopedia text) is out of scope and never scanned here.
  */
@@ -81,9 +82,8 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     expect(source).not.toMatch(/input\.label/);
     expect(source).not.toMatch(/readonly label\?:/);
     expect(source).toMatch(/export function buildAssignRolesAction/);
-    expect(source).not.toMatch(
-      /export function build(?:AbortGame|RestartGame|NextRound|ReturnLobby)Action/,
-    );
+    expect(source).toMatch(/export function buildAbortGameAction/);
+    expect(source).toMatch(/export function buildRestartGameAction/);
     expect(source).toMatch(/export const HOST_FLOW_CONFIRM/);
   });
 
@@ -102,7 +102,33 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     }
   });
 
-  it('uses only the reset-to-lobby builder for migrated games and generated games', () => {
+  it('keeps the existing terminal pair in identity games and the generator until migration', () => {
+    for (const file of [
+      'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
+    ]) {
+      const source = readSource(file);
+      expect({
+        file,
+        builder: 'buildNextRoundAction',
+        present: source.includes('buildNextRoundAction({'),
+      }).toEqual({
+        file,
+        builder: 'buildNextRoundAction',
+        present: true,
+      });
+      expect({
+        file,
+        builder: 'buildReturnLobbyAction',
+        present: source.includes('buildReturnLobbyAction({'),
+      }).toEqual({
+        file,
+        builder: 'buildReturnLobbyAction',
+        present: true,
+      });
+    }
+  });
+
+  it('uses only the reset-to-lobby builder for migrated games', () => {
     for (const file of [
       'packages/web/src/games/fibking/room/fibRoomAdapter.ts',
       'packages/web/src/games/undercover/room/undercoverRoomAdapter.ts',
@@ -111,7 +137,6 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
       'packages/web/src/games/storyrelay/room/storyRelayRoomAdapter.ts',
       'packages/web/src/games/drawguess/room/drawGuessRoomAdapter.ts',
       'packages/web/src/games/spotmatch/room/spotmatchRoomAdapter.ts',
-      'scripts/lib/new-game/templates/game/packages/web/src/games/__GAME_ID__/room/__GAME_CAMEL__RoomAdapter.ts.tmpl',
     ]) {
       const source = readSource(file);
       expect({ file, present: source.includes('buildResetToLobbyAction({') }).toEqual({

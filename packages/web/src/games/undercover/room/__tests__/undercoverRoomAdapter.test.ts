@@ -12,9 +12,7 @@ import { act, renderHook } from '@testing-library/react';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { playUndercoverTestRound } from '@/test-utils/undercoverState';
 import { TESTIDS } from '@/testids';
-import { dismissAlert } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
@@ -33,18 +31,10 @@ import {
 } from '../undercoverRoomAdapter';
 
 vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(
-    (
-      _title: string,
-      _message: string,
-      _onConfirm: () => void | Promise<void>,
-      options?: { onShown?: (generation: number | null) => void },
-    ) => options?.onShown?.(17),
-  ),
+  showConfirmAlert: vi.fn(),
   showDestructiveAlert: vi.fn(),
   showErrorAlert: vi.fn(),
 }));
-vi.mock('@/utils/alert', () => ({ dismissAlert: vi.fn() }));
 
 /** Sets the page visibility and notifies listeners, as a browser does when the tab is hidden. */
 function setDocumentVisibility(visibility: DocumentVisibilityState) {
@@ -188,26 +178,20 @@ it('conceals cards on control changes, backgrounding and remount', () => {
       }),
     { initialProps: { currentState: state, controlledSeat: null } },
   );
-  const revealCard = () => {
-    act(() => result.current.openCard());
-    const reveal = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (reveal === undefined) throw new Error('Missing word-card view confirmation');
-    act(() => void reveal());
-  };
   expect(result.current.card).toBeNull();
-  revealCard();
+  act(() => result.current.openCard());
   expect(result.current.card).toMatchObject({ seat: 0 });
   rerender({ currentState: state, controlledSeat: 1 });
   expect(result.current.card).toBeNull();
-  revealCard();
+  act(() => result.current.openCard());
   expect(result.current.card).toMatchObject({ seat: 1 });
   rerender({ currentState: state, controlledSeat: null });
   expect(result.current.card).toBeNull();
-  revealCard();
+  act(() => result.current.openCard());
   act(() => setDocumentVisibility('hidden'));
   expect(result.current.card).toBeNull();
   act(() => setDocumentVisibility('visible'));
-  revealCard();
+  act(() => result.current.openCard());
   unmount();
   const remounted = renderHook(() =>
     useUndercoverRoundControls({
@@ -220,30 +204,6 @@ it('conceals cards on control changes, backgrounding and remount', () => {
   );
   expect(remounted.result.current.card).toBeNull();
   remounted.unmount();
-});
-
-it('dismisses a pending card confirmation when the permitted card changes', () => {
-  const state = createViewingState();
-  const session = { dispatch: vi.fn() } as unknown as UndercoverRoomSession;
-  const { result, rerender } = renderHook<
-    UndercoverRoundControls,
-    { currentState: UndercoverState; controlledSeat: number | null }
-  >(
-    ({ currentState, controlledSeat }) =>
-      useUndercoverRoundControls({
-        state: currentState,
-        userId: 'host',
-        controlledSeat,
-        submit: submitVia(session),
-        isSubmitting: false,
-      }),
-    { initialProps: { currentState: state, controlledSeat: null } },
-  );
-  act(() => result.current.openCard());
-
-  rerender({ currentState: state, controlledSeat: 1 });
-
-  expect(dismissAlert).toHaveBeenCalledWith(17);
 });
 
 it('offers unseated host bot filling and bulk viewing only while bots remain unconfirmed', () => {
@@ -259,7 +219,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     }),
   );
   const capabilities = createUndercoverRoomCapabilities({
-    state,
+    state: dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
     isHost: true,
     mySeat: null,
     requestTakeSeat: vi.fn(),
@@ -273,11 +233,10 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
     openProfile: vi.fn(),
     takeOverBots: createBotTakeoverCapability(true, vi.fn()),
   });
-  const lobby = dispatch(state, {
-    type: 'undercover.game.restart',
-    roundId: state.round!.roundId,
-    wasEnded: false,
-  });
+  const lobby = dispatch(
+    dispatch(state, { type: 'undercover.game.abort', roundId: state.round!.roundId }),
+    { type: 'undercover.game.returnToLobby' },
+  );
   const empty = dispatch(lobby, { type: 'room.seat.clear' });
   const unseatedCapabilities = createUndercoverRoomCapabilities({
     state: empty,
@@ -419,7 +378,10 @@ it('restarts a confirmed round with its identity and completion boundary', async
   const session = {
     dispatch: vi.fn().mockResolvedValue({ kind: 'committed', outcome: { kind: 'success' } }),
   } as unknown as UndercoverRoomSession;
-  const { result } = renderHook<UndercoverRoundControls, { currentState: UndercoverState }>(
+  const { result, rerender } = renderHook<
+    UndercoverRoundControls,
+    { currentState: UndercoverState }
+  >(
     ({ currentState }) =>
       useUndercoverRoundControls({
         state: currentState,
@@ -437,45 +399,56 @@ it('restarts a confirmed round with its identity and completion boundary', async
     { type: 'undercover.game.restart', roundId: state.round.roundId, wasEnded: false },
     { controlledSeat: null, label: '重新开始', durable: false },
   );
-});
-
-it('allows repeated words with one round-bound command after confirmation', async () => {
-  const preparing = playUndercoverTestRound('preparing');
-  if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
-  const failed = dispatch(
-    preparing,
-    {
-      type: 'undercover.round.failPreparation',
-      roundId: preparing.pendingRound.roundId,
-      failureCode: 'inventoryExhausted',
-    },
-    true,
-  );
-  const session = {
-    dispatch: vi.fn().mockResolvedValue({ kind: 'committed', outcome: { kind: 'success' } }),
-  } as unknown as UndercoverRoomSession;
-  const { result } = renderHook(() =>
-    useUndercoverRoundControls({
-      state: failed,
-      userId: 'host',
-      controlledSeat: null,
-      submit: submitVia(session),
-      isSubmitting: false,
-    }),
-  );
-  vi.mocked(showConfirmAlert).mockClear();
-  act(() => result.current.allowRepeated());
-  expect(session.dispatch).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
-  if (confirmation === undefined) throw new Error('Expected confirmation');
-  await act(async () => {
-    await confirmation[2]();
+  const aborted = dispatch(state, { type: 'undercover.game.abort', roundId: state.round.roundId });
+  rerender({ currentState: aborted });
+  expect(
+    createUndercoverBottomActions(
+      result.current,
+      aborted,
+      { userId: 'host', isHost: true, seat: getUndercoverUserSeat(aborted, 'host') },
+      reviewEntryFor(aborted),
+    ),
+  ).toMatchObject({
+    kind: 'stacked',
+    message: '本局已中止',
+    layout: { primary: [], secondary: [], ghost: [] },
   });
-  expect(session.dispatch).toHaveBeenCalledTimes(1);
-  expect(session.dispatch).toHaveBeenCalledWith(
-    { type: 'undercover.round.allowRepeated', roundId: preparing.pendingRound.roundId },
-    { controlledSeat: null, label: '允许重复词对', durable: false },
-  );
+  const capabilities = createUndercoverRoomCapabilities({
+    state: aborted,
+    isHost: true,
+    mySeat: null,
+    requestTakeSeat: vi.fn(),
+    requestMoveSeat: vi.fn(),
+    leaveSeat: vi.fn(),
+    kickSeat: vi.fn(),
+    clearSeats: vi.fn(),
+    fillBots: vi.fn(),
+    configureGame: vi.fn(),
+    shareRoom: vi.fn(),
+    openProfile: vi.fn(),
+    takeOverBots: createBotTakeoverCapability(true, vi.fn()),
+  });
+  const hostManagement = createUndercoverHostManagement({
+    state: aborted,
+    capabilities,
+    controls: result.current,
+    review: reviewEntryFor(aborted),
+  });
+  const restart = hostManagement.sections[0]?.actions.find((action) => action.key === 'restart');
+  if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
+  vi.mocked(showDestructiveAlert).mockClear();
+  await act(async () => {
+    restart.onPress();
+  });
+  const terminalConfirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+  if (terminalConfirmation === undefined) throw new Error('Expected restart confirmation');
+  expect(terminalConfirmation[0]).toBe('重新开始？');
+  expect(terminalConfirmation[1]).toContain('不结算完成奖励');
+  expect(terminalConfirmation[2]).toBe('重新开始');
+  await act(async () => {
+    await terminalConfirmation[3]();
+  });
+  expect(session.dispatch).toHaveBeenCalledTimes(2);
 });
 
 describe('createUndercoverBoardInfoSections', () => {
@@ -904,6 +877,33 @@ describe('createUndercoverHostManagement task body', () => {
     );
   });
 
+  it('offers the review of an aborted round beside the return to the lobby', () => {
+    const viewing = createViewingState();
+    const aborted = dispatch(viewing, {
+      type: 'undercover.game.abort',
+      roundId: viewing.round!.roundId,
+    });
+    const { model } = buildFor(aborted);
+    expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
+    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+  });
+
+  it('closes an abort during word preparation on the return to the lobby alone', () => {
+    const preparing = dispatch(lobbyState(true), {
+      type: 'undercover.roles.assign',
+      shouldAllowRepeated: false,
+    });
+    if (preparing.phase !== 'preparing') throw new Error('expected a preparing state');
+    const aborted = dispatch(preparing, {
+      type: 'undercover.game.abort',
+      roundId: preparing.pendingRound.roundId,
+    });
+    expect(aborted).toMatchObject({ phase: 'aborted', round: null });
+    const { model } = buildFor(aborted);
+    expect(model.task).toEqual({ kind: 'action', actionKey: 'restart' });
+    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['restart']);
+  });
+
   it('fails fast when an ended round reaches the host panel without its review', () => {
     expect(() => buildFor(createEndedState(), null)).toThrow(
       '[FAIL-FAST] Undercover ended host has no review entry',
@@ -1048,6 +1048,31 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     ).toBe(expected);
   });
 
+  it('gives aborted players the conclusion plus the host wait', () => {
+    const ongoing = createOngoingState();
+    const aborted = dispatch(ongoing, {
+      type: 'undercover.game.abort',
+      roundId: ongoing.round!.roundId,
+    });
+    expect(aborted.phase).toBe('aborted');
+    expect(
+      createUndercoverBottomActions(
+        idleControls,
+        aborted,
+        { userId: 'u1', isHost: false, seat: 2 },
+        reviewEntryFor(aborted),
+      ).message,
+    ).toBe('本局已中止，等待房主处理');
+    expect(
+      createUndercoverBottomActions(
+        idleControls,
+        aborted,
+        { userId: 'host', isHost: true, seat: 0 },
+        reviewEntryFor(aborted),
+      ).message,
+    ).toBe('本局已中止');
+  });
+
   it('offers the review to seats and spectators of a concluded round; the host uses the task card', () => {
     const ended = createEndedState();
     const review = reviewEntryFor(ended);
@@ -1076,6 +1101,20 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
         review,
       ),
     ).toMatchObject({ kind: 'stacked', layout: { primary: [], secondary: [], ghost: [] } });
+
+    const ongoing = createOngoingState();
+    const aborted = dispatch(ongoing, {
+      type: 'undercover.game.abort',
+      roundId: ongoing.round!.roundId,
+    });
+    expect(
+      createUndercoverBottomActions(
+        idleControls,
+        aborted,
+        { userId: 'u1', isHost: false, seat: 2 },
+        reviewEntryFor(aborted),
+      ),
+    ).toMatchObject({ kind: 'stacked', layout: { secondary: [reviewButton] } });
   });
 
   it('fails fast when an ended round reaches the bottom panel without its review', () => {

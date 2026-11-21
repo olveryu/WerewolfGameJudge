@@ -139,6 +139,11 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.hostManagement?.task).toMatchObject({
       kind: 'action',
       actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'grantReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
     });
   });
 

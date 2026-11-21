@@ -67,12 +67,12 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('mirrorSeer action: shows action prompt', async () => {
       await mount(MIRROR_STEP);
-      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
     });
 
     it('guard action: shows action prompt', async () => {
       await mount(actorStep('guardProtect', 'guard', 10));
-      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
     });
   });
 
@@ -86,7 +86,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt', async () => {
       await mount(witchStep(9, 1));
-      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
     });
   });
 
@@ -116,7 +116,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(9, -1));
-      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
+      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
     });
   });
 
@@ -166,7 +166,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 9);
 
       // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(harness, 9);
+      await coverageChainWitchPoisonSelection(9);
 
       // Step 5: confirmTrigger (darkWolfKing) → press primary + assertNoLoop
       await coverageChainConfirmTrigger(

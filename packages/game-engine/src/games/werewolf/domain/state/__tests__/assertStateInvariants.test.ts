@@ -1,10 +1,11 @@
+import { WEREWOLF_STATE_IDENTITY } from '../../../state/version';
 import { GameStatus } from '../../models';
 import type { GameState } from '../../protocol/types';
 import { assertWerewolfStateInvariants } from '../assertStateInvariants';
 
 function createTreasureMasterState(overrides: Partial<GameState> = {}): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'host',
     status: GameStatus.Assigned,
@@ -52,7 +53,7 @@ function createThiefState(overrides: Partial<GameState> = {}): GameState {
 
 function createSheriffElectionState(overrides: Partial<GameState> = {}): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'host',
     status: GameStatus.Day,

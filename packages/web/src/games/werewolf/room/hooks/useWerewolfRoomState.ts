@@ -41,10 +41,12 @@ import { useRoomPresentationController } from '@/features/room/controllers/useRo
 import { useRoomRosterController } from '@/features/room/controllers/useRoomRosterController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { createRoomProfileCardModel } from '@/features/room/model/createRoomProfileCardModel';
 import { createRoomSeatConfirmationModel } from '@/features/room/model/createRoomSeatConfirmationModel';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
+import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
@@ -127,6 +129,7 @@ export interface WerewolfRoomScreenState {
   readonly audioResume: RoomAudioResume;
   readonly night: NightInteraction;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
+  readonly isSheriffInspectorVisible: boolean;
   readonly isSheriffDetailsVisible: boolean;
   readonly openSheriffDetails: () => void;
   readonly closeSheriffDetails: () => void;
@@ -265,7 +268,6 @@ export function useWerewolfRoomState(
     hasViewed: effectiveSeat !== null && viewModel.viewedSeats.includes(effectiveSeat),
     occupiedSeatCount: viewModel.seats.length,
     viewedSeatCount: viewModel.viewedSeats.length,
-    isSubmitting: ready.isSubmitting,
     submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
   });
   const ownOccupant = mySeat === null ? null : state.roster[mySeat];
@@ -286,20 +288,18 @@ export function useWerewolfRoomState(
     remainingSeconds,
     submit: (label, command) => submit(label, command, { controlledSeat }),
   });
+  const viewportWidth = useViewportWidth();
+  const isSheriffInspectorVisible =
+    sheriffElectionPanel !== null && usesRoomSideInspector(viewportWidth);
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
-  if (isSheriffDetailsVisible && sheriffElectionPanel === null) {
+  // The sheet closes when the election ends or the inspector takes over (adjusting state on a
+  // change of the facts it depends on).
+  if (isSheriffDetailsVisible && (sheriffElectionPanel === null || isSheriffInspectorVisible)) {
     setIsSheriffDetailsVisible(false);
   }
 
   // ── Review: the shared 本局复盘, plus the host's seat grants ──
-  const hasPendingReview =
-    status === GameStatus.Ended &&
-    (isHost || mySeat !== null) &&
-    !(state.reviewCompletedUserIds ?? []).includes(user.id);
-  const panelFlow = {
-    lastNightInfoConfirmed: state.lastNightInfoConfirmed === true,
-    reviewCompleted: status === GameStatus.Ended && !hasPendingReview,
-  };
+  const panelFlow = { lastNightInfoConfirmed: state.lastNightInfoConfirmed === true };
   const review = useRoomReview({
     contribution: props.review,
     state,
@@ -307,14 +307,6 @@ export function useWerewolfRoomState(
     roomId: room.roomId,
     roomCode,
     onOpened: null,
-    isPending: hasPendingReview,
-    onClosed: hasPendingReview
-      ? () =>
-          submit('确认复盘', {
-            type: 'werewolf.review.complete',
-            gameSequence: state.gameSequence,
-          })
-      : null,
   });
   const modals = useRoomModals({
     gameSequence: state.gameSequence,
@@ -398,6 +390,7 @@ export function useWerewolfRoomState(
     nightStatusLine: night.nightStatusLine,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
     sheriffElectionPanel,
+    isSheriffInspectorVisible,
     openSheriffDetails,
   });
 
@@ -463,6 +456,7 @@ export function useWerewolfRoomState(
     audioResume,
     night,
     sheriffElectionPanel,
+    isSheriffInspectorVisible,
     isSheriffDetailsVisible,
     openSheriffDetails,
     closeSheriffDetails: () => setIsSheriffDetailsVisible(false),

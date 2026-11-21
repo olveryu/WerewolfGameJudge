@@ -1,6 +1,6 @@
 /**
  * The Pictionary review contribution: available to every viewer once the
- * round ends, and its drawings load through the real media
+ * round ended or was aborted, and its drawings load through the real media
  * transport with the media route's permanent refusals mapped to
  * `unavailable` and every other failure left to retry.
  */
@@ -46,6 +46,7 @@ function firstDrawing(state: PictionaryState): ReviewImageBlock {
 
 describe('pictionaryReview', () => {
   const ended = playPictionaryTestRound();
+  const aborted = playPictionaryTestRound({ abortAtStep: 2 });
 
   beforeEach(() => {
     readBinary.mockReset();
@@ -62,13 +63,19 @@ describe('pictionaryReview', () => {
     }
   });
 
-  it.each(VIEWERS)('offers the ended round to viewer seat $seat to read and share', (viewer) => {
-    const availability = resolveFor(ended, viewer);
-    if (availability.kind !== 'available') throw new Error('expected an available review');
-    expect(availability.sharing).toEqual({ isAllowed: true });
-    expect(availability.confirmation).toBeNull();
-    expect(availability.document.pages).toHaveLength(ended.chains.length);
-  });
+  it.each(VIEWERS)(
+    'offers ended and aborted rounds to viewer seat $seat to read and share',
+    (viewer) => {
+      for (const state of [ended, aborted]) {
+        const availability = resolveFor(state, viewer);
+        if (availability.kind !== 'available') throw new Error('expected an available review');
+        expect(availability.sharing).toEqual({ isAllowed: true });
+        expect(availability.confirmation).toBeNull();
+        expect(availability.document.isAborted).toBe(state.phase === 'aborted');
+        expect(availability.document.pages).toHaveLength(state.chains.length);
+      }
+    },
+  );
 
   it('reads a drawing through the media route as the viewer, without a controlled seat', async () => {
     readBinary.mockResolvedValue(new Uint8Array(PNG_BYTES).buffer);

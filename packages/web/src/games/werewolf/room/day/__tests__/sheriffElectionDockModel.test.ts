@@ -82,6 +82,7 @@ describe('createSheriffElectionDockModel', () => {
       election: createElection({ canRegister: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -111,6 +112,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -143,6 +145,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -166,6 +169,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -185,6 +189,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -209,6 +214,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -223,6 +229,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -239,6 +246,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -262,6 +270,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails,
     });
@@ -285,6 +294,7 @@ describe('createSheriffElectionDockModel', () => {
         election: createElection({ phase: 'firstVote', canVote: true, myBallot }),
         roomTools: ROOM_TOOLS,
         isHost: false,
+        isInspectorVisible: false,
         isAudioPlaying: false,
         openDetails: vi.fn(),
       });
@@ -306,6 +316,7 @@ describe('createSheriffElectionDockModel', () => {
         ghost: [buildReviewBottomButton({ isEnabled: true, onPress: openNightReview }, 'ghost')],
       },
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -342,6 +353,7 @@ describe('createSheriffElectionDockModel', () => {
         ],
       },
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -372,6 +384,7 @@ describe('createSheriffElectionDockModel', () => {
         ghost: [buildReviewBottomButton({ isEnabled: true, onPress: vi.fn() }, 'ghost')],
       },
       isHost: true,
+      isInspectorVisible: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
@@ -380,25 +393,24 @@ describe('createSheriffElectionDockModel', () => {
     expect(dock.leading).toMatchObject({ key: 'viewRole' });
   });
 
-  it('opens the ballot from the vote action', () => {
+  it('directs wide-layout voting to the persistent inspector', () => {
     const election = createElection({
       phase: 'firstVote',
       canVote: true,
       myBallot: { kind: 'notSubmitted' },
       voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
     });
-    const openDetails = vi.fn();
     const dock = createSheriffElectionDockModel({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: true,
       isAudioPlaying: false,
-      openDetails,
+      openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({ label: '选择投票', isEnabled: true });
-    if (dock.primary?.isEnabled) dock.primary.onPress();
-    expect(openDetails).toHaveBeenCalledOnce();
+    expect(dock.primary).toBeNull();
+    expect(dock.message).toBe('请在「警长竞选」中投票');
   });
 
   it('locks the registration command while narration audio plays', () => {
@@ -407,6 +419,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
@@ -426,6 +439,7 @@ describe('createSheriffElectionDockModel', () => {
       election: createElection({ canCancelRegistration: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
@@ -440,6 +454,7 @@ describe('createSheriffElectionDockModel', () => {
       election: createElection({ canWithdraw: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
@@ -463,6 +478,7 @@ describe('createSheriffElectionDockModel', () => {
       }),
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails,
     });
@@ -482,6 +498,7 @@ describe('createSheriffElectionDockModel', () => {
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
@@ -514,6 +531,7 @@ describe('createSheriffElectionDockModel', () => {
         ],
       },
       isHost: false,
+      isInspectorVisible: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });

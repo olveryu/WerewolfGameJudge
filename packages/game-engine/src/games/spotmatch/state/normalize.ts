@@ -8,12 +8,13 @@ import {
 import { isBotOccupant } from '../../../platform/room/seating';
 import { SPOTMATCH_CARD_TYPES } from '../domain/cards';
 import { isValidSpotmatchConfig, type SpotmatchHumanSeat, type SpotmatchState } from './types';
+import { SPOTMATCH_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('Spotmatch');
 
 /** Validates authoritative state without repairing or dropping submitted content. */
 export function normalizeSpotmatchState(state: SpotmatchState): SpotmatchState {
-  assertStateIdentity(state, 'spotmatch', 'Spotmatch');
+  assertStateIdentity(state, SPOTMATCH_STATE_IDENTITY, 'Spotmatch');
   invariant(isValidSpotmatchConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;

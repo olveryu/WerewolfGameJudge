@@ -778,6 +778,7 @@ export function toWerewolfReviewDocument(input: {
     kicker: KICKER,
     fileStem: `werewolf-${roomCode}-${gameSequence + 1}`,
     footer: FOOTER,
+    isAborted: false,
     pages: [{ key: 'night-1', label: null, blocks }],
   };
 }

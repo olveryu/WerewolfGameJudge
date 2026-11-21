@@ -315,7 +315,6 @@ export class RoomPage {
     const viewButton = await this.viewIdentityButton();
     await expect(viewButton).toHaveAccessibleName('查看身份', { timeout: 15_000 });
     await viewButton.click();
-    await pressAlertButton(this.page, { title: '查看身份？', buttonIndex: 1, buttonLabel: '查看' });
     const modal = this.page.getByTestId(TESTIDS.roleCardModal);
     // The first view may play the viewer's reveal effect before the card shows.
     await expect(modal).toBeVisible({ timeout: 15_000 });

@@ -1,6 +1,8 @@
 /**
  * The undercover review document: how the round concluded, its facts, the
- * identity wall and the elimination order.
+ * identity wall and the elimination order. An aborted round shows only
+ * what play made public — the eliminated seats and their roles — never the
+ * words or an unrevealed identity, as the abort itself promised.
  */
 
 import {
@@ -26,7 +28,11 @@ import type {
   RoomReviewDocument,
 } from '@/features/room/review/types';
 
-import { formatUndercoverBlankMode } from '../room/undercoverCopy';
+import {
+  formatUndercoverBlankMode,
+  UNDERCOVER_ABORT_NOTICE,
+  UNDERCOVER_ABORTED_TEXT,
+} from '../room/undercoverCopy';
 
 // The state carries no round ordinal, so the kicker names the round 本局.
 const KICKER = '🕵️ 本局 · 终局';
@@ -43,11 +49,9 @@ const ROLE_TONES: Readonly<Record<UndercoverRole, ReviewTone>> = {
   blank: 'special',
 };
 
-/** How the reviewed round concluded. */
-export interface UndercoverRoundConclusion {
-  readonly kind: 'won';
-  readonly winner: UndercoverRole;
-}
+/** How the reviewed round concluded: a side won, or the host aborted it. */
+export type UndercoverRoundConclusion =
+  { readonly kind: 'won'; readonly winner: UndercoverRole } | { readonly kind: 'aborted' };
 
 /** The facts of one concluded round. */
 export interface UndercoverReviewInput {
@@ -73,7 +77,7 @@ function seatName(roster: UndercoverState['roster'], seat: number): string {
   return target.rosterName;
 }
 
-function heroBlock(round: UndercoverRound, winner: UndercoverRole): ReviewBlock {
+function heroBlock(round: UndercoverRound, conclusion: UndercoverRoundConclusion): ReviewBlock {
   const stamps: ReviewStamp[] = round.revelations.map((revelation, index) => ({
     seat: revelation.seat,
     tone: 'out',
@@ -81,26 +85,39 @@ function heroBlock(round: UndercoverRound, winner: UndercoverRole): ReviewBlock 
     caption: eliminationCaption(index),
     note: null,
   }));
-  return {
-    kind: 'hero',
-    headline: [{ kind: 'text', text: `${UNDERCOVER_ROLE_NAMES[winner]}获胜` }],
-    tone: ROLE_TONES[winner],
-    stamps,
-    byline: null,
-  };
+  return conclusion.kind === 'won'
+    ? {
+        kind: 'hero',
+        headline: [{ kind: 'text', text: `${UNDERCOVER_ROLE_NAMES[conclusion.winner]}获胜` }],
+        tone: ROLE_TONES[conclusion.winner],
+        stamps,
+        byline: null,
+      }
+    : {
+        kind: 'hero',
+        headline: [{ kind: 'text', text: UNDERCOVER_ABORTED_TEXT }],
+        tone: 'neutral',
+        stamps,
+        byline: UNDERCOVER_ABORT_NOTICE,
+      };
 }
 
 /**
- * The words, drawn pair's category and settings carry the settings' own labels.
+ * The words and the drawn pair's category once the round was won; an
+ * aborted round keeps both undisclosed and states its configured category.
+ * Setting facts carry the settings' own labels.
  */
 function factItems(input: UndercoverReviewInput): readonly ReviewLabeledValue[] {
-  const { round, config } = input;
+  const { round, conclusion, config } = input;
   const { fields } = UNDERCOVER_CONFIG_SCHEMA;
   const categoryLabel = settingLabel(fields.category);
   const blankMode = {
     label: settingLabel(fields.hasBlank),
     value: formatUndercoverBlankMode(config.hasBlank),
   };
+  if (conclusion.kind === 'aborted') {
+    return [{ label: categoryLabel, value: UNDERCOVER_CATEGORY_NAMES[config.category] }, blankMode];
+  }
   return [
     { label: CIVILIAN_WORD_LABEL, value: round.civilianWord },
     { label: UNDERCOVER_WORD_LABEL, value: round.undercoverWord },
@@ -149,17 +166,19 @@ function eliminationStep(revelation: Revelation): ReviewTimelineStep {
   };
 }
 
-/** The one-page review of a completed round. */
+/** The one-page review of a won or aborted round. */
 export function toUndercoverReviewDocument(input: UndercoverReviewInput): RoomReviewDocument {
   const { round, conclusion, roster, roomCode } = input;
   const blocks: ReviewBlock[] = [
-    heroBlock(round, conclusion.winner),
+    heroBlock(round, conclusion),
     { kind: 'facts', items: factItems(input) },
   ];
-  blocks.push(
-    { kind: 'section', title: IDENTITIES_TITLE },
-    { kind: 'roster', columns: 1, rows: rosterRows(round, roster) },
-  );
+  if (conclusion.kind === 'won') {
+    blocks.push(
+      { kind: 'section', title: IDENTITIES_TITLE },
+      { kind: 'roster', columns: 1, rows: rosterRows(round, roster) },
+    );
+  }
   if (round.revelations.length > 0) {
     blocks.push(
       { kind: 'section', title: ELIMINATIONS_TITLE },
@@ -171,6 +190,7 @@ export function toUndercoverReviewDocument(input: UndercoverReviewInput): RoomRe
     kicker: KICKER,
     fileStem: `undercover-${roomCode}`,
     footer: REVIEW_GENERATED_FOOTER,
+    isAborted: conclusion.kind === 'aborted',
     pages: [{ key: PAGE_KEY, label: null, blocks }],
   };
 }

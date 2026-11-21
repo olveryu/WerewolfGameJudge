@@ -36,7 +36,7 @@ export const colors = {
   handHostPaper: '#EEE5F8',
   handDangerInk: '#9A2529',
   handDangerPaper: '#FCE8E8',
-  handDisabledVeil: 'rgba(255, 255, 255, 0.4)',
+
   wolf: '#C82828',
   villager: '#1A9A4A',
   god: '#7B3FBF',

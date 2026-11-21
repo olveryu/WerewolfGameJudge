@@ -13,7 +13,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
-import { parseStoryRelayState } from '../state/parseState';
+import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 const NUMBER_OF_PLAYERS = 4;
@@ -118,6 +118,7 @@ describe('Story Relay relay-chain contract', () => {
       roster: before.roster,
       config: before.config,
       completedAt: null,
+      abortedAt: null,
       phaseRevision: before.phaseRevision + 1,
     });
     expect(gameSession.effects).toHaveLength(effectsBefore);
@@ -137,6 +138,24 @@ describe('Story Relay relay-chain contract', () => {
     expect(gameSession.effects).toEqual(effectsBefore);
   });
 
+  it('migrates a v2 gallery without replaying its old reveal', () => {
+    const session = game();
+    session.playRound();
+    const gallery = session.state.gallery;
+    if (gallery === null) throw new Error('Missing gallery');
+    const { revealStartedAt: _start, revealDurationMs: _duration, ...legacyGallery } = gallery;
+    const migrated = migratePersistedStoryRelayState({
+      ...session.state,
+      stateVersion: 2,
+      gallery: legacyGallery,
+    });
+    expect(migrated.stateVersion).toBe(4);
+    expect(migrated.gallery).toEqual({
+      ...legacyGallery,
+      revealStartedAt: null,
+      revealDurationMs: 0,
+    });
+  });
   it('anchors the first text even in a manually paged gallery', () => {
     const session = game(null);
     session.playRound();
@@ -250,17 +269,20 @@ describe('Story Relay relay-chain contract', () => {
     expect(revision()).toBe(afterStart + 2);
     const before = session.state;
     // The settle command carries no revision (D3), so the stale-revision
-    // pin lives on a real revisioned command: restart with the pre-round
+    // pin lives on a real revisioned command: abort with the pre-round
     // revision rejects at the decide entry, before any host/phase gate.
     session.expectReject(
-      { type: 'storyrelay.game.restart', phaseRevision: afterStart },
+      { type: 'storyrelay.game.abort', phaseRevision: afterStart },
       'storyrelay_task_changed',
     );
     expect(session.state).toBe(before);
     session.expire();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'storyrelay.game.restart', phaseRevision: revision() });
+    session.send({ type: 'storyrelay.game.abort', phaseRevision: revision() });
     expect(revision()).toBe(afterStart + 4);
+    expect(session.state.phase).toBe('aborted');
+    session.send({ type: 'storyrelay.game.returnToLobby' });
+    expect(revision()).toBe(afterStart + 5);
     expect(session.state.phase).toBe('lobby');
   });
 });

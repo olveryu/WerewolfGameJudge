@@ -17,7 +17,6 @@ import type {
 export interface RoomHostTaskRemedy {
   readonly label: string;
   readonly testID?: string;
-  readonly placement?: 'room-entry';
   readonly onPress: () => void;
 }
 
@@ -133,9 +132,6 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
           ? {
               label: remedyAction.label,
               testID: remedyAction.testID,
-              ...(remedyAction.placement === undefined
-                ? {}
-                : { placement: remedyAction.placement }),
               onPress: remedyAction.onPress,
             }
           : null;

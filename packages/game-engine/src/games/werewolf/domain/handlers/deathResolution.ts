@@ -237,20 +237,6 @@ function findActionBySchemaId(
   return actions.find((a) => a.schemaId === schemaId);
 }
 
-function requireResolvedActionTarget(
-  state: GameState,
-  schemaId: SchemaId,
-  resolvedTarget: number | undefined,
-): number | undefined {
-  const action = findActionBySchemaId(state.actions, schemaId);
-  if (action?.targetSeat !== undefined && action.targetSeat !== resolvedTarget) {
-    throw new Error(
-      `[FAIL-FAST] ${schemaId} action target ${action.targetSeat} does not match resolved target ${String(resolvedTarget)}`,
-    );
-  }
-  return resolvedTarget;
-}
-
 /**
  * Reconstruct WitchAction from currentNightResults.
  *
@@ -284,6 +270,7 @@ function extractWitchAction(currentNightResults?: {
  * - currentNightResults (resolver output): wolfVotesBySeat, witchAction, swappedSeats
  *   -> these fields are processed by resolvers, representing final semantic results (e.g. witch save/poison distinction).
  * - currentNightResults.charmedSeat / dreamingSeat: confirmed charm and dream targets.
+ *   ProtocolAction.targetSeat remains a fallback for older states without these result slots.
  * - ProtocolAction[] (raw submissions): guardProtect, nightmareBlock
  *   -> these fields are simple chooseSeat targets, resolvers do no extra transformation, targetSeat is the final value.
  * - Check-type reflection sources (seerCheck etc.) are no longer collected into NightActions, driven by buildReflectionSources instead.
@@ -332,21 +319,15 @@ function buildNightActions(state: GameState, wolfKillResolution: WolfKillResolut
   nightActions.witchAction = extractWitchAction(state.currentNightResults);
 
   // Wolf Queen charm
-  const charmedSeat = requireResolvedActionTarget(
-    state,
-    'wolfQueenCharm',
-    state.currentNightResults?.charmedSeat,
-  );
+  const wolfQueenAction = findActionBySchemaId(actions, 'wolfQueenCharm');
+  const charmedSeat = state.currentNightResults?.charmedSeat ?? wolfQueenAction?.targetSeat;
   if (charmedSeat !== undefined) {
     nightActions.wolfQueenCharm = charmedSeat;
   }
 
   // Dreamcatcher dream
-  const dreamingSeat = requireResolvedActionTarget(
-    state,
-    'dreamcatcherDream',
-    state.currentNightResults?.dreamingSeat,
-  );
+  const dreamcatcherAction = findActionBySchemaId(actions, 'dreamcatcherDream');
+  const dreamingSeat = state.currentNightResults?.dreamingSeat ?? dreamcatcherAction?.targetSeat;
   if (dreamingSeat !== undefined) {
     nightActions.dreamcatcherDream = dreamingSeat;
   }
@@ -388,7 +369,8 @@ function calculateNightDeathsFromActions(
  * Build all death-calculation inputs from authoritative state and
  * settle the night from the settled wolf-kill target.
  * @pre target is the single settlement for this night
- * (GameState.resolvedWolfKillTarget); it is never re-resolved here.
+ *   (GameState.resolvedWolfKillTarget, or a legacy fallback the caller
+ *   persists in the same command); it is never re-resolved here.
  */
 export function calculateNightDeaths(state: GameState, target: number | null): DeathsDetailed {
   return calculateNightDeathsFromActions(

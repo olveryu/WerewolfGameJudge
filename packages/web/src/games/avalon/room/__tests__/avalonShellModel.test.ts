@@ -73,14 +73,11 @@ function session(humanCount: number) {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
-    const result = state.phase;
-    if (
-      (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
-      result.deadlineAt === null
-    )
-      throw new Error('expected result countdown');
-    nowMs = result.deadlineAt;
-    sendSystem({ type: 'avalon.phase.settleExpired' });
+    if (phase.kind === 'vote') {
+      for (let seat = 0; seat < humanCount; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, seat === 0 ? 'host' : `u${seat}`);
+      }
+    }
   };
   return {
     get state() {
@@ -171,6 +168,8 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     onOpenQuestPress: vi.fn(),
     onPreselectTeamPress: vi.fn(),
     onProposeTeamPress: vi.fn(),
+    onLadyAcknowledgePress: vi.fn(),
+    onLadyResultPress: vi.fn(),
     onEarlyStrikePress: vi.fn(),
     review: null,
     strikePickMode: false,
@@ -516,14 +515,11 @@ function ninePlayerDaytimeSession(): RunningSession {
     if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
     nowMs = phase.deadlineAt;
     sendSystem({ type: 'avalon.phase.settleExpired' });
-    const result = state.phase;
-    if (
-      (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
-      result.deadlineAt === null
-    )
-      throw new Error('expected result countdown');
-    nowMs = result.deadlineAt;
-    sendSystem({ type: 'avalon.phase.settleExpired' });
+    if (phase.kind === 'vote') {
+      for (let seat = 0; seat < 9; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
+      }
+    }
   };
   return {
     get state() {
@@ -610,7 +606,7 @@ function completeLadyIfPresent(running: RunningSession) {
   const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
   if (target === undefined) throw new Error('no eligible lady target');
   running.send({ type: 'avalon.lady.check', seat: target }, seatUser(holderSeat));
-  running.send({ type: 'avalon.lady.acknowledge' }, seatUser(holderSeat));
+  running.send({ type: 'avalon.lady.acknowledge' }, seatUser(target));
   return { holderSeat, target };
 }
 
@@ -628,7 +624,6 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(preselect).toMatchObject({
       label: '预选队伍',
       isEnabled: true,
-      isPending: true,
       testID: 'avalon-nominate-preselect',
     });
     expect(findTierAction(empty, 'primary', 'preselectTeam')).toBe(preselect);
@@ -649,7 +644,6 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(final).toMatchObject({
       label: '最终队伍',
       isEnabled: true,
-      isPending: true,
       testID: 'avalon-nominate-submit',
     });
     expect(findTierAction(preselected, 'primary', 'proposeTeam')).toBe(final);
@@ -727,12 +721,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onOpenVotePress = vi.fn();
     const before = shellFor(running, voter, { onOpenVotePress });
     const open = findStageAction(before, 'openVote');
-    expect(open).toMatchObject({
-      label: '去投票',
-      isEnabled: true,
-      isPending: true,
-      testID: 'avalon-vote-open',
-    });
+    expect(open).toMatchObject({ label: '去投票', isEnabled: true, testID: 'avalon-vote-open' });
     expect(findTierAction(before, 'primary', 'openVote')).toBe(open);
     if (open && open.isEnabled) open.onPress();
     expect(onOpenVotePress).toHaveBeenCalledTimes(1);
@@ -740,9 +729,11 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const cast = shellFor(running, voter);
     expect(findStageAction(cast, 'openVote')).toMatchObject({
       label: '修改投票',
-      isPending: false,
     });
-    expect(cast.message).toBe('已投 1/5');
+    const pendingSeats = [0, 1, 2, 3, 4].filter((seat) => seat !== voter);
+    expect(cast.message).toBe(
+      `已投 1/5 · 未投票：${pendingSeats.map((seat) => `${seat + 1}号`).join(' ')}`,
+    );
     for (let seat = 0; seat < 5; seat += 1) {
       if (seat !== voter)
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -772,11 +763,13 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (outsider === undefined) throw new Error('expected a non-team seat');
     const outsiderBottom = shellFor(running, outsider);
     expect(findStageAction(outsiderBottom, 'openQuest')).toBeUndefined();
-    expect(outsiderBottom.message).toBe('已出牌 0/2');
+    const pendingTeam = [...team].sort((a, b) => a - b);
+    expect(outsiderBottom.message).toBe(
+      `已出牌 0/2 · 未出牌：${pendingTeam.map((seat) => `${seat + 1}号`).join(' ')}`,
+    );
     const memberBottom = shellFor(running, evil);
     expect(findStageAction(memberBottom, 'openQuest')).toMatchObject({
       label: '去出牌',
-      isPending: true,
       testID: 'avalon-quest-open',
     });
     expect(findTierAction(memberBottom, 'primary', 'openQuest')).toBeDefined();
@@ -785,9 +778,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const played = shellFor(running, evil);
     expect(findStageAction(played, 'openQuest')).toMatchObject({
       label: '修改出牌',
-      isPending: false,
     });
-    expect(played.message).toBe('已出牌 1/2');
+    expect(played.message).toBe(`已出牌 1/2 · 未出牌：${leader + 1}号`);
     expect(played.message).not.toContain('失败');
     running.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(leader));
     if (running.state.phase.kind !== 'quest' || running.state.phase.deadlineAt === null) {
@@ -799,7 +791,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBeNull();
   });
 
-  it('lady: holder sees the result, target waits, and the result remains private', () => {
+  it('lady: holder guidance, target acknowledge button, and a holder-only result reopen', () => {
     const running = ninePlayerDaytimeSession();
     playQuestRound(running);
     playQuestRound(running);
@@ -812,13 +804,27 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
     if (target === undefined) throw new Error('no eligible lady target');
     running.send({ type: 'avalon.lady.check', seat: target }, seatUser(holderSeat));
-    const targetBottom = shellFor(running, target);
-    expect(targetBottom.message).toContain('等待持有人确认结果');
-    expect(findStageAction(targetBottom, 'ladyAcknowledge')).toBeUndefined();
-    expect(findStageAction(shellFor(running, holderSeat), 'ladyResult')).toBeUndefined();
-    running.send({ type: 'avalon.lady.acknowledge' }, seatUser(holderSeat));
+    const onLadyAcknowledgePress = vi.fn();
+    const targetBottom = shellFor(running, target, { onLadyAcknowledgePress });
+    expect(targetBottom.message).toContain('要查验你的阵营');
+    const ack = findStageAction(targetBottom, 'ladyAcknowledge');
+    expect(ack).toMatchObject({
+      label: '查看查验请求',
+      isEnabled: true,
+      testID: 'avalon-lady-acknowledge-open',
+    });
+    expect(findTierAction(targetBottom, 'primary', 'ladyAcknowledge')).toBe(ack);
+    if (ack && ack.isEnabled) ack.onPress();
+    expect(onLadyAcknowledgePress).toHaveBeenCalledTimes(1);
+    running.send({ type: 'avalon.lady.acknowledge' }, seatUser(target));
     const holderAfter = shellFor(running, holderSeat);
-    expect(findStageAction(holderAfter, 'ladyResult')).toBeUndefined();
+    expect(findStageAction(holderAfter, 'ladyResult')).toMatchObject({
+      label: '查验结果',
+      testID: 'avalon-lady-result-open',
+    });
+    // Tier ownership: the result reopen is a follow-up — secondary tier.
+    expect(findTierAction(holderAfter, 'secondary', 'ladyResult')).toBeDefined();
+    expect(findTierAction(holderAfter, 'primary', 'ladyResult')).toBeUndefined();
     const targetAfter = shellFor(running, target);
     expect(findStageAction(targetAfter, 'ladyResult')).toBeUndefined();
   });
@@ -870,7 +876,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     if (pending === undefined) throw new Error('expected a participant seat');
     const pendingShell = shellFor(running, pending);
     expect(pendingShell.message).toBeNull();
-    expect(findStageAction(pendingShell, 'nightInfo')).toMatchObject({ isPending: true });
+    expect(findStageAction(pendingShell, 'nightInfo')).toBeDefined();
     expect(findTierAction(pendingShell, 'primary', 'nightInfo')).toBeDefined();
     running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
     const confirmedShell = shellFor(running, pending);
@@ -891,8 +897,8 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
     if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
-    expect(shellFor(running, 1).message).toBe('已投 1/5');
-    expect(shellFor(running, 2).message).toBe('已投 1/5');
+    expect(shellFor(running, 1).message).toBe('已投 1/5 · 未投票：1号 3号 4号 5号');
+    expect(shellFor(running, 2).message).toBe('已投 1/5 · 未投票：1号 3号 4号 5号');
   });
 
   it('lady: bystanders read the public process before and after the target is chosen', () => {
@@ -914,7 +920,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     const other = seats.find((seat) => seat !== holderSeat && seat !== target);
     if (other === undefined) throw new Error('expected another bystander seat');
     expect(shellFor(running, other).message).toBe(
-      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待持有人确认结果`,
+      `${holderSeat + 1} 号 · P${holderSeat} 已选择查验 ${target + 1} 号 · P${target}，等待对方确认`,
     );
   });
 

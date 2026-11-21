@@ -46,12 +46,7 @@ function guessingState(): DrawGuessState {
   send({ type: 'room.seat.fillBots' }, 'host');
   send({ type: 'drawguess.game.begin' });
   session.sendAs(
-    {
-      type: 'drawguess.words.dealt',
-      gameSequence: session.state.gameSequence,
-      turnIndex: 0,
-      choices: CHOICES,
-    },
+    { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
     session.systemContext('effect:1'),
   );
   const phase = session.state.phase;

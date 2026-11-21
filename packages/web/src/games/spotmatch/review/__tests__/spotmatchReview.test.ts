@@ -41,6 +41,7 @@ describe('toSpotmatchReviewDocument', () => {
       kicker: '一眼成对 · 第 1 局',
       fileStem: 'spotmatch-1234-1',
       footer: '本局复盘由对局记录自动生成',
+      isAborted: false,
       pages: [
         {
           key: 'result',

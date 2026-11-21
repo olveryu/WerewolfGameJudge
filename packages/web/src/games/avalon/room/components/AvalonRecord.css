@@ -488,6 +488,14 @@ button.avalon-rejected-header {
   gap: var(--space-small);
 }
 
+.avalon-history-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-subtitle);
+}
+
 .avalon-history-score,
 .avalon-history-config {
   margin: 0;
@@ -539,6 +547,8 @@ button.avalon-rejected-header {
   flex-direction: column;
   gap: var(--space-small);
   min-height: 0;
+  padding: var(--space-small) var(--space-medium);
+  padding-bottom: max(var(--space-medium), env(safe-area-inset-bottom));
 }
 
 .avalon-history-scroll {
@@ -548,6 +558,7 @@ button.avalon-rejected-header {
   gap: var(--space-small);
   min-height: 0;
   padding-bottom: var(--space-small);
+  overflow-y: auto;
 }
 
 .avalon-history-empty {

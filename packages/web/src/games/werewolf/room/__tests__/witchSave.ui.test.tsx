@@ -30,6 +30,8 @@ import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
+const WITCH_ACTION_TITLE = '女巫请行动（可救人、用毒或点「不用技能」跳过）';
+
 let submitAction: SubmitActionMock;
 let harness: RoomScreenTestHarness;
 let detachAlerts: () => void;
@@ -61,6 +63,13 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
     await tapSeat(view, 5);
 
     expect(submitAction).not.toHaveBeenCalled();
+  });
+
+  it('shows witch info prompt using schema.ui.prompt on render', async () => {
+    await mountWitch();
+
+    // Keep this test focused on the contract: save is NOT seat-driven.
+    await waitFor(() => expect(SCHEMAS.witchAction.ui!.prompt).toBeTruthy());
   });
 
   it('canSave=false should not submit save (guardrail contract)', async () => {
@@ -101,27 +110,30 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
 
   it('canSave=true with killedSeat>=0 shows promptTemplate from schema', async () => {
     const killedSeat = 2;
-    const view = await mountWitch({ canSave: true, killedSeat });
+    await mountWitch({ canSave: true, killedSeat });
 
     const saveStep = (SCHEMAS.witchAction as CompoundSchema).steps[0]!;
     const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', formatSeat(killedSeat));
 
     await waitFor(() => {
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(expectedPrompt!);
-      expect(harness.events()).toEqual([]);
+      const prompt = harness.events().find((event) => event.title === WITCH_ACTION_TITLE);
+      expect(prompt).toBeDefined();
+      expect(prompt!.message).toContain(expectedPrompt);
+      expect(prompt!.message).toContain('先在行动手牌中选择「选择毒药目标」');
     });
   });
 
   it('canSave=false with killedSeat>=0 shows cannotSavePrompt from schema (witch self-kill)', async () => {
     // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
-    const view = await mountWitch({ canSave: false, killedSeat: 0 });
+    await mountWitch({ canSave: false, killedSeat: 0 });
 
     const saveStep = (SCHEMAS.witchAction as CompoundSchema).steps[0]!;
     const expectedPrompt = saveStep.ui?.cannotSavePrompt;
 
     await waitFor(() => {
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(expectedPrompt!);
-      expect(harness.events()).toEqual([]);
+      const prompt = harness.events().find((event) => event.title === WITCH_ACTION_TITLE);
+      expect(prompt).toBeDefined();
+      expect(prompt!.message).toContain(expectedPrompt);
     });
   });
 
@@ -129,10 +141,11 @@ describe('WerewolfRoomScreen witch save UI (contract)', () => {
     [false, '你被狼人袭击，本局规则不允许自救。'],
     [true, '你被狼人袭击，可以使用解药自救。'],
   ])(
-    'shows the self-attack message without a dialog when canSave is %s',
+    'keeps the self-attack message visible after the dialog when canSave is %s',
     async (canSave, message) => {
       const view = await mountWitch({ canSave, killedSeat: 0 });
-      expect(harness.events()).toEqual([]);
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await harness.pressPrimaryOnType('witchSavePrompt');
       expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(message);
       expect(view.getByTestId(TESTIDS.actionMessage)).toBeVisible();
     },

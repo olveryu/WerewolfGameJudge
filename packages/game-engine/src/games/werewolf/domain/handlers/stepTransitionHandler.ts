@@ -43,7 +43,8 @@ import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
 import {
-  getStoredWolfKillSettlement,
+  classifyWolfKillVerdict,
+  getLegacyWolfKillTarget,
   maybeCreateResolvedWolfKillTargetAction,
   settleWolfKillFromVotes,
 } from './wolfKillResolution';
@@ -148,6 +149,7 @@ export function handleAdvanceNight(
               resolvedWolfKillVerdict: settledWolfKillVerdict,
             }
           : state,
+        wolfVoteRng,
       )
     : null;
   if (witchContextAction) {
@@ -155,7 +157,12 @@ export function handleAdvanceNight(
   }
 
   // Unified entry: if about to enter hunterConfirm / darkWolfKingConfirm, set confirmStatus
-  const wolfKillTarget = pastWolfKill ? settledWolfKillTarget : undefined;
+  const wolfKillTarget =
+    nextStepId === 'seedWolfInfect'
+      ? settledWolfKillTarget === null
+        ? undefined
+        : settledWolfKillTarget
+      : undefined;
   const confirmStatusAction = nextStepId
     ? maybeCreateConfirmStatusAction(nextStepId, state, wolfKillTarget)
     : null;
@@ -244,8 +251,10 @@ function createSeedWolfFinalizationActions(state: HandlerContext['state']): Stat
  * 4. night_not_complete (nightStep must be exhausted - all steps must be finished)
  *
  * Logic:
- * - Reuse the settled wolf-kill target; when no wolf-kill step ran,
- *   settle once here and persist it with the night result.
+ * - Reuse the settled wolf-kill target (stored, or the legacy
+ *   fallback for pre-field rooms); only when neither exists is the
+ *   target settled fresh here, and that settlement is persisted in
+ *   this same command so the night review reads the same target.
  * - Build NightActions from actions
  * - Call calculateDeaths to compute deaths
  * - Return END_NIGHT action
@@ -269,9 +278,15 @@ export function handleEndNight(
     return handlerError('night_not_complete');
   }
 
+  // The target and the verdict settle in the same SET. A legacy
+  // target is classified deterministically from the votes and that
+  // already-known target (no re-roll); a fresh settlement computes
+  // both from one resolveWolfVotes call.
+  const legacyTarget = getLegacyWolfKillTarget(state);
   const settled =
-    getStoredWolfKillSettlement(state) ??
-    settleWolfKillFromVotes(state, createSeededRng(`${execution.randomSeed}:wolf-vote`));
+    legacyTarget !== undefined
+      ? { target: legacyTarget, verdict: classifyWolfKillVerdict(state, legacyTarget) }
+      : settleWolfKillFromVotes(state, createSeededRng(`${execution.randomSeed}:wolf-vote`));
   const { deaths, deathReasons } = calculateNightDeaths(state, settled.target);
 
   const endNightAction: EndNightAction = {

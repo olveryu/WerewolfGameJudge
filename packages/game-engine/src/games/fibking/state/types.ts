@@ -125,7 +125,6 @@ interface FibStateBase extends BaseGameState<FibKingGameType> {
   readonly numberOfPlayers: number;
   readonly roster: RosterMap<FibHumanSeat>;
   readonly usedWords: readonly string[];
-  readonly reviewCompletedUserIds: readonly string[];
 }
 
 export interface FibLobbyState extends FibStateBase {

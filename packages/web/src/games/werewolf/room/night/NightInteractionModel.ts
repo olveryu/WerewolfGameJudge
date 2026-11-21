@@ -101,7 +101,6 @@ export type NightInteractionModel =
       readonly kind: 'witch';
       readonly killedSeat: number | null;
       readonly canSave: boolean;
-      readonly saveUnavailableReason: string | null;
       readonly canPoison: boolean;
       readonly selectable: readonly number[];
       readonly prompt: NightPrompt;
@@ -119,9 +118,9 @@ export type NightInteractionModel =
       readonly prompt: NightPrompt;
       readonly dialog: NightPrompt;
       readonly buttonLabel: string;
-      /** Seed wolf only: the separate skip action. */
+      /** Seed wolf only: the skip alternative when infection is available. */
       readonly skipLabel: string | null;
-      /** Seed wolf cannot infect because there is no eligible target. */
+      /** The status cannot be acted on (seed wolf without a target): acknowledge only. */
       readonly isUnavailable: boolean;
     }
   /** chooseCard: pick a bottom card; legality comes from the engine. */
@@ -152,9 +151,4 @@ export type NightInteractionModel =
       readonly buttonLabel: string;
     }
   /** skip-only step (a hint restricted the actioner to skipping, or the schema is skip). */
-  | {
-      readonly kind: 'skipOnly';
-      readonly prompt: NightPrompt;
-      readonly skipLabel: string;
-      readonly lockedAction?: NightInteractionModel;
-    };
+  | { readonly kind: 'skipOnly'; readonly prompt: NightPrompt; readonly skipLabel: string };

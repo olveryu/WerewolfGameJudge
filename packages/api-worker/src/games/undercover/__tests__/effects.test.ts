@@ -102,11 +102,7 @@ describe('Undercover Worker effects', () => {
     });
     expect(undercoverWorkerModule.canReplayFailedEffect(effect)).toBe(true);
     expect(undercoverWorkerModule.getEffectFailureCommand(effect, preparing.state)).toBeNull();
-    const lobby = applyCommand(
-      decision.state,
-      { type: 'undercover.game.restart', roundId, wasEnded: true },
-      'lobby',
-    );
+    const lobby = applyCommand(decision.state, { type: 'undercover.game.returnToLobby' }, 'lobby');
     const publishUserEvent = vi
       .fn()
       .mockRejectedValueOnce(new Error('inbox unavailable'))

@@ -4,7 +4,6 @@ import type {
   BaseGameState,
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
 import * as Sentry from '@sentry/react';
 
 import { API_BASE_URL } from '@/config/api';
@@ -30,9 +29,7 @@ function openBrowserSocket(url: string): RealtimeSocket {
     onclose: null,
     onerror: null,
     send: (data) => socket.send(data),
-    // Browsers cannot send reserved protocol close codes; the runtime still reports the error.
-    close: (code, reason) =>
-      socket.close(code === REALTIME_CLOSE_CODE.PROTOCOL_ERROR ? 1000 : code, reason),
+    close: (code, reason) => socket.close(code, reason),
   };
   socket.onopen = () => port.onopen?.();
   socket.onmessage = (event) => port.onmessage?.({ data: event.data });

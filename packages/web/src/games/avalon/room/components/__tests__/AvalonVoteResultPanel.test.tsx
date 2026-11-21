@@ -4,9 +4,7 @@ import type {
   AvalonLastVoteResultView,
   AvalonSeatView,
 } from '@game-judge/game-engine/games/avalon/public';
-import { fireEvent, render } from '@testing-library/react';
-
-import { TESTIDS } from '@/testids';
+import { act, fireEvent, render } from '@testing-library/react';
 
 import { AvalonVoteResultPanel } from '../AvalonVoteResultPanel';
 
@@ -19,7 +17,6 @@ const SEATS = [
 
 const REJECTED_RESULT: AvalonLastVoteResultView = {
   approved: false,
-  automatic: false,
   rejectStreak: 2,
   ballots: { 0: 'approve', 1: 'reject', 2: 'reject' },
   approveCount: 1,
@@ -30,26 +27,19 @@ const REJECTED_RESULT: AvalonLastVoteResultView = {
 function renderPanel(
   result: AvalonLastVoteResultView = REJECTED_RESULT,
   seats: readonly AvalonSeatView[] = SEATS,
-  rescue = {
-    remainingSeconds: 4 as number | null,
-    isOverdue: false,
-    isHost: false,
-    isSubmitting: false,
-    onRetry: vi.fn(),
-  },
 ) {
+  const onConfirm = vi.fn();
   const utils = render(
     <AvalonVoteResultPanel
       result={result}
       seats={seats}
-      remainingSeconds={rescue.remainingSeconds}
-      isOverdue={rescue.isOverdue}
-      isHost={rescue.isHost}
-      isSubmitting={rescue.isSubmitting}
-      onRetry={rescue.onRetry}
+      confirmedSeats={[2]}
+      mySeat={0}
+      isSubmitting={false}
+      onConfirm={onConfirm}
     />,
   );
-  return utils;
+  return { ...utils, onConfirm };
 }
 
 describe('AvalonVoteResultPanel', () => {
@@ -100,24 +90,43 @@ describe('AvalonVoteResultPanel', () => {
     expect(queryByTestId('avalon-vote-result-row-0')).toBeNull();
   });
 
-  it('displays the timer without a confirmation or dismiss action', () => {
-    const { getByTestId, getByText, queryByRole } = renderPanel();
-    expect(getByText('4 秒后继续')).toBeVisible();
-    fireEvent.keyDown(document, { key: 'Escape' });
+  it('reports pending seats and confirms without closing', () => {
+    const { getByTestId, getByText, onConfirm } = renderPanel();
+    expect(getByText('已确认 1 / 4')).toBeTruthy();
+    expect(getByText('等待：1号、2号、4号')).toBeTruthy();
+    expect(getByTestId('avalon-vote-result-confirmation').querySelector('progress')).toHaveValue(1);
+    fireEvent.click(getByTestId('avalon-vote-result-close'));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
-    expect(queryByRole('button', { name: '知道了' })).toBeNull();
   });
 
-  it('lets the overdue host retry result settlement', () => {
-    const onRetry = vi.fn();
-    const { getByTestId } = renderPanel(REJECTED_RESULT, SEATS, {
-      remainingSeconds: 0,
-      isOverdue: true,
-      isHost: true,
-      isSubmitting: false,
-      onRetry,
-    });
-    fireEvent.click(getByTestId(TESTIDS.stageSettleRescueRetryButton));
-    expect(onRetry).toHaveBeenCalledOnce();
+  it('does not auto-confirm after 6 seconds', () => {
+    vi.useFakeTimers();
+    try {
+      const { onConfirm, getByTestId } = renderPanel();
+      act(() => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets spectators see progress without offering a confirmation action', () => {
+    const onConfirm = vi.fn();
+    const { getByTestId } = render(
+      <AvalonVoteResultPanel
+        result={REJECTED_RESULT}
+        seats={SEATS}
+        confirmedSeats={[2]}
+        mySeat={null}
+        isSubmitting={false}
+        onConfirm={onConfirm}
+      />,
+    );
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByTestId('avalon-vote-result-close')).toHaveTextContent('等待玩家确认');
   });
 });

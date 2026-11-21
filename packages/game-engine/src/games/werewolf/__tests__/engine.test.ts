@@ -11,10 +11,7 @@ import { GAME_TYPES } from '../../../platform/protocol/gameTypes';
 import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_CONTROLLED_SEAT_NOT_BOT,
-  REASON_GAME_IN_PROGRESS,
   REASON_NOT_HOST,
-  REASON_REVIEW_IDENTITY_MISMATCH,
-  REASON_REVIEW_NOT_ELIGIBLE,
   REASON_SEAT_EMPTY,
   REASON_SYSTEM_ACTOR_REQUIRED,
   REASON_USER_ACTOR_REQUIRED,
@@ -38,7 +35,7 @@ import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
 import { isBotOccupant } from '../public';
-import { parseWerewolfState } from '../state/parseState';
+import { WEREWOLF_STATE_VERSION } from '../state/version';
 
 const TEMPLATE: GameTemplate = {
   name: 'test',
@@ -122,88 +119,6 @@ function evolveCommittedCommand(
 }
 
 describe('Werewolf authoritative actor resolution', () => {
-  it('records terminal reviews only for eligible users and clears them on restart', () => {
-    const state = createState({
-      status: GameStatus.Ended,
-      gameSequence: 4,
-      lastNightInfoConfirmed: true,
-      nightReviewAllowedSeats: [1],
-      currentNightResults: {},
-      players: {
-        0: { seat: 0, role: 'wolf' },
-        1: { seat: 1, role: 'seer' },
-        2: { seat: 2, role: 'hunter' },
-        3: { seat: 3, role: 'villager' },
-      },
-      roster: {
-        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
-        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
-        2: { seat: 2, kind: 'bot' },
-        3: { seat: 3, kind: 'bot' },
-      },
-    });
-    const command: WerewolfCommand = { type: 'werewolf.review.complete', gameSequence: 4 };
-    expect(werewolfEngine.decide(state, command, userContext('spectator'))).toEqual({
-      kind: 'reject',
-      reason: REASON_REVIEW_NOT_ELIGIBLE,
-    });
-    expect(werewolfEngine.decide(state, command, userContext('host', 2))).toEqual({
-      kind: 'reject',
-      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
-    });
-    expect(werewolfEngine.decide(state, command, systemContext())).toEqual({
-      kind: 'reject',
-      reason: REASON_USER_ACTOR_REQUIRED,
-    });
-    expect(
-      werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')),
-    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_IDENTITY_MISMATCH });
-    expect(
-      werewolfEngine.decide({ ...state, status: GameStatus.Day }, command, userContext('host')),
-    ).toEqual({ kind: 'reject', reason: REASON_GAME_IN_PROGRESS });
-    expect(
-      werewolfEngine.decide(
-        { ...state, nightReviewAllowedSeats: [] },
-        command,
-        userContext('user-1'),
-      ),
-    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
-    expect(
-      werewolfEngine.decide(
-        { ...state, lastNightInfoConfirmed: false },
-        command,
-        userContext('host'),
-      ),
-    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
-    expect(
-      werewolfEngine.decide(
-        { ...state, nightReviewAllowedSeats: [] },
-        command,
-        userContext('host'),
-      ),
-    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
-
-    const afterHost = evolveCommittedCommand(state, command, userContext('host'));
-    const afterPlayer = evolveCommittedCommand(afterHost, command, userContext('user-1'));
-    const completed = werewolfEngine.normalize(
-      evolveCommittedCommand(afterPlayer, command, userContext('user-1')),
-    );
-    expect(completed.reviewCompletedUserIds).toEqual(['host', 'user-1']);
-    expect(
-      parseWerewolfState(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds,
-    ).toEqual(['host', 'user-1']);
-    const restarted = evolveCommittedCommand(
-      completed,
-      { type: 'werewolf.game.restart', gameSequence: 4, wasEnded: true },
-      userContext('host'),
-    );
-    expect(restarted.reviewCompletedUserIds).toBeUndefined();
-    expect(werewolfEngine.decide(restarted, command, userContext('host'))).toMatchObject({
-      kind: 'reject',
-      reason: REASON_GAME_IN_PROGRESS,
-    });
-  });
-
   it.each([GameStatus.Assigned, GameStatus.Ongoing, GameStatus.Ended])(
     'restarts %s without effects and rejects stale or unauthorized confirmations',
     (status) => {
@@ -280,12 +195,6 @@ describe('Werewolf authoritative actor resolution', () => {
         evolveCommittedCommand(state, command, userContext('host')),
       );
       expect(confirmed.lastNightInfoConfirmed).toBe(true);
-      expect(werewolfEngine.decide(confirmed, command, userContext('host'))).toMatchObject({
-        kind: 'commit',
-        events: [],
-        effects: [],
-        broadcast: 'none',
-      });
       expect(
         evolveCommittedCommand(confirmed, command, userContext('host')).lastNightInfoConfirmed,
       ).toBe(true);
@@ -727,7 +636,6 @@ describe('Werewolf engine definition and catalog', () => {
       templateRoles: ['villager'],
     },
     'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
-    'werewolf.review.complete': { type: 'werewolf.review.complete', gameSequence: 0 },
     'werewolf.lastNightInfo.confirm': { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0 },
     'werewolf.board.nominate': {
       type: 'werewolf.board.nominate',
@@ -928,6 +836,7 @@ describe('Werewolf engine definition and catalog', () => {
 
     expect(state).toMatchObject({
       gameType: 'werewolf',
+      stateVersion: WEREWOLF_STATE_VERSION,
       roomCode: '9876',
       hostUserId: 'creator',
       status: GameStatus.Unseated,
@@ -1167,24 +1076,6 @@ describe('Werewolf engine definition and catalog', () => {
       settleSystemContext(6000),
     );
     expect(state.sheriffElection).toMatchObject({
-      phase: 'result',
-      deadline: 11000,
-      next: { kind: 'runoff', candidateSeats: [2, 0] },
-      completedRounds: [{ round: 'first', ballots: { 3: 0, 4: 2 } }],
-    });
-    expect(
-      werewolfEngine.decide(
-        state,
-        { type: 'werewolf.phase.settleExpired' },
-        settleSystemContext(10999),
-      ),
-    ).toEqual({ kind: 'reject', reason: REASON_DEADLINE_NOT_REACHED });
-    state = evolveCommittedCommand(
-      state,
-      { type: 'werewolf.phase.settleExpired' },
-      settleSystemContext(11000),
-    );
-    expect(state.sheriffElection).toMatchObject({
       phase: 'runoffSpeech',
       candidateSeats: [2, 0],
       speakingStartSeat: 2,
@@ -1212,12 +1103,12 @@ describe('Werewolf engine definition and catalog', () => {
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
-      { ...userContext('user-1'), nowMs: 11000 },
+      userContext('user-1'),
     );
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
-      { ...userContext('user-3'), nowMs: 11000 },
+      userContext('user-3'),
     );
     if (state.sheriffElection?.phase !== 'runoffVote') {
       throw new Error('Expected the runoff vote to still be collecting ballots');
@@ -1226,33 +1117,16 @@ describe('Werewolf engine definition and catalog', () => {
     state = evolveCommittedCommand(
       state,
       { type: 'werewolf.sheriff.vote', targetSeat: 0 },
-      { ...userContext('user-4'), nowMs: 11000 },
+      userContext('user-4'),
     );
     if (state.sheriffElection?.phase !== 'runoffVote') {
       throw new Error('Expected the completed runoff vote to await its deadline');
     }
-    expect(state.sheriffElection.deadline).toBe(16000);
-    const revealDecision = werewolfEngine.decide(
-      state,
-      { type: 'werewolf.phase.settleExpired' },
-      settleSystemContext(16000),
-    );
-    if (revealDecision.kind === 'reject') throw new Error(revealDecision.reason);
-    expect(revealDecision.effects).toMatchObject([
-      { type: 'werewolf.settle.due', payload: { phase: 'sheriffResult', deadlineAt: 21000 } },
-    ]);
-    state = revealDecision.events.reduce(werewolfEngine.evolve, state);
-    expect(state).toMatchObject({
-      status: GameStatus.Day,
-      sheriffElection: {
-        phase: 'result',
-        next: { kind: 'final', result: { kind: 'elected', sheriffSeat: 0 } },
-      },
-    });
+    expect(state.sheriffElection.deadline).toBe(6000);
     const finalDecision = werewolfEngine.decide(
       state,
       { type: 'werewolf.phase.settleExpired' },
-      settleSystemContext(21000),
+      settleSystemContext(6000),
     );
     if (finalDecision.kind === 'reject') {
       throw new Error(`Expected election completion, received ${finalDecision.reason}`);
@@ -1328,12 +1202,6 @@ describe('Werewolf engine definition and catalog', () => {
       { type: 'werewolf.phase.settleExpired' },
       settleSystemContext(7000),
     );
-    expect(state.sheriffElection).toMatchObject({ phase: 'result', deadline: 12000 });
-    state = evolveCommittedCommand(
-      state,
-      { type: 'werewolf.phase.settleExpired' },
-      settleSystemContext(12000),
-    );
     expect(state).toMatchObject({
       status: GameStatus.Ended,
       sheriffElection: { phase: 'completed' },
@@ -1379,15 +1247,12 @@ describe('Werewolf engine definition and catalog', () => {
       settleSystemContext(6000),
     );
     expect(closedState).toMatchObject({
-      status: GameStatus.Day,
-      sheriffElection: {
-        phase: 'result',
-        next: { kind: 'final', result: { kind: 'elected', sheriffSeat: 0 } },
-      },
+      status: GameStatus.Ended,
+      sheriffElectionResult: { kind: 'elected', sheriffSeat: 0 },
     });
   });
 
-  it('displays self-destruct results without exposing interrupted ballots', () => {
+  it('ends the election by self-destruct during speeches but rejects voting phases', () => {
     const commonElectionState = {
       registeredSeats: [0, 1],
       withdrawnSeats: [],
@@ -1414,7 +1279,7 @@ describe('Werewolf engine definition and catalog', () => {
         phase: 'firstVote',
         candidateSeats: [0, 1],
         eligibleVoterSeats: [2],
-        ballots: { 2: 0 },
+        ballots: {},
       },
       {
         ...commonElectionState,
@@ -1425,7 +1290,7 @@ describe('Werewolf engine definition and catalog', () => {
       },
     ];
 
-    for (const sheriffElection of [...speakingStates, ...votingStates]) {
+    for (const sheriffElection of speakingStates) {
       const state = evolveCommittedCommand(
         createState({
           status: GameStatus.Day,
@@ -1437,117 +1302,28 @@ describe('Werewolf engine definition and catalog', () => {
         userContext('host'),
       );
       expect(state).toMatchObject({
-        status: GameStatus.Day,
-        sheriffElection: {
-          phase: 'result',
-          deadline: 6000,
-          completedRounds: [],
-          next: { kind: 'final', result: { kind: 'noSheriff', reason: 'selfDestruct' } },
-        },
-      });
-      expect(state.sheriffElection).not.toHaveProperty('ballots');
-      const ended = evolveCommittedCommand(
-        state,
-        { type: 'werewolf.phase.settleExpired' },
-        settleSystemContext(6000),
-      );
-      expect(ended).toMatchObject({
         status: GameStatus.Ended,
+        sheriffElection: { phase: 'completed' },
         sheriffElectionResult: { kind: 'noSheriff', reason: 'selfDestruct' },
       });
     }
-  });
 
-  it.each([
-    {
-      election: {
-        phase: 'registration',
-        registeredSeats: [],
-        withdrawnSeats: [],
-        completedRounds: [],
-      },
-      expected: { kind: 'noSheriff', reason: 'noCandidates' },
-      roundCount: 0,
-    },
-    {
-      election: {
-        phase: 'candidateSpeech',
-        registeredSeats: [0],
-        withdrawnSeats: [],
-        completedRounds: [],
-        speakingStartSeat: 0,
-        speakingDirection: 'clockwise',
-      },
-      expected: { kind: 'elected', sheriffSeat: 0 },
-      roundCount: 0,
-    },
-    {
-      election: {
-        phase: 'candidateSpeech',
-        registeredSeats: [0, 1, 2, 3],
-        withdrawnSeats: [],
-        completedRounds: [],
-        speakingStartSeat: 0,
-        speakingDirection: 'clockwise',
-      },
-      expected: { kind: 'noSheriff', reason: 'noVotes' },
-      roundCount: 1,
-    },
-  ] satisfies readonly {
-    election: SheriffElectionState;
-    expected:
-      | { kind: 'elected'; sheriffSeat: number }
-      | { kind: 'noSheriff'; reason: 'noCandidates' | 'noVotes' };
-    roundCount: number;
-  }[])(
-    'displays a timed outcome for a no-ballot election',
-    ({ election, expected, roundCount }) => {
-      const initial = createState({
+    for (const sheriffElection of votingStates) {
+      const state = createState({
         status: GameStatus.Day,
         rules: { isSheriffElectionEnabled: true },
         isAudioPlaying: false,
-        currentNightResults: {},
-        players: {
-          0: { seat: 0, role: 'wolf' },
-          1: { seat: 1, role: 'seer' },
-          2: { seat: 2, role: 'hunter' },
-          3: { seat: 3, role: 'villager' },
-        },
-        roster: {
-          0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
-          1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
-          2: { seat: 2, kind: 'bot' },
-          3: { seat: 3, kind: 'bot' },
-        },
-        sheriffElection: election,
+        sheriffElection,
       });
-      const decision = werewolfEngine.decide(
-        initial,
-        { type: 'werewolf.sheriff.advance' },
-        userContext('host'),
-      );
-      if (decision.kind === 'reject') throw new Error(decision.reason);
-      expect(decision.effects).toMatchObject([
-        { type: 'werewolf.settle.due', payload: { phase: 'sheriffResult', deadlineAt: 6000 } },
-      ]);
-      const result = werewolfEngine.normalize(
-        decision.events.reduce(werewolfEngine.evolve, initial),
-      );
-      expect(result.sheriffElection).toMatchObject({
-        phase: 'result',
-        deadline: 6000,
-        next: { kind: 'final', result: expected },
-      });
-      expect(result.sheriffElection?.completedRounds).toHaveLength(roundCount);
-      const ended = evolveCommittedCommand(
-        result,
-        { type: 'werewolf.phase.settleExpired' },
-        settleSystemContext(6000),
-      );
-      expect(ended.sheriffElectionResult).toEqual(expected);
-      expect(ended.status).toBe(GameStatus.Ended);
-    },
-  );
+      expect(
+        werewolfEngine.decide(
+          state,
+          { type: 'werewolf.sheriff.endBySelfDestruct' },
+          userContext('host'),
+        ),
+      ).toEqual({ kind: 'reject', reason: 'invalid_election_phase' });
+    }
+  });
 
   it('cancels registration without recording withdrawal and allows registration again', () => {
     let state = createState({

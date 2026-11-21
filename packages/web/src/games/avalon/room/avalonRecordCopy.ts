@@ -40,12 +40,8 @@ export const AVALON_QUEST_CARD_LABELS: Readonly<Record<AvalonPlay, string>> = {
 
 /** 提案票数「赞成 4 · 反对 1」，有弃权时追加「 · 弃权 N」。 */
 export function formatAvalonVoteTally(
-  proposal: Pick<
-    AvalonProposalRecordView,
-    'approveCount' | 'rejectCount' | 'abstainCount' | 'automatic'
-  >,
+  proposal: Pick<AvalonProposalRecordView, 'approveCount' | 'rejectCount' | 'abstainCount'>,
 ): string {
-  if (proposal.automatic) return '自动通过（未投票）';
   const abstain = proposal.abstainCount > 0 ? ` · 弃权 ${proposal.abstainCount}` : '';
   return `赞成 ${proposal.approveCount} · 反对 ${proposal.rejectCount}${abstain}`;
 }

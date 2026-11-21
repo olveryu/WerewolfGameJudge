@@ -97,6 +97,13 @@
   padding: var(--space-small) var(--space-large) 0;
 }
 
+.review-masthead-lead {
+  display: flex;
+  flex-shrink: 1;
+  align-items: center;
+  gap: var(--space-small);
+}
+
 .review-kicker {
   font-size: var(--font-body);
   line-height: var(--line-body);

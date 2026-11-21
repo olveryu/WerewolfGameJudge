@@ -30,7 +30,6 @@ import { getFibRoundView, getFibUserSeat } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine, getFibLifecycle } from '../engine';
 import { fibkingCompletionPayloadSchema } from '../publicStats';
-import { parseFibState } from '../state/parseState';
 import {
   FIB_MAX_PLAYERS,
   FIB_PREPARATION_STAGES,
@@ -147,39 +146,6 @@ function confirmAllRoleViews(state: FibState): FibState {
   }
   return dispatch(marked, { type: 'fibking.game.begin' }, userContext('host'));
 }
-
-it('records each eligible terminal review once and clears it on restart', () => {
-  const active = confirmAllRoleViews(
-    completeRound(startPreparing(createFullLobby(2)), '云朵', '悬浮在空中的水滴或冰晶集合'),
-  );
-  if (active.round === null) throw new Error('Expected round');
-  const roundId = active.round.roundId;
-  const command = { type: 'fibking.review.complete', roundId } as const;
-  expect(decideFibCommand(active, command, userContext('host')).kind).toBe('reject');
-  const ended = dispatch(active, { type: 'fibking.round.reveal' }, userContext('host'));
-  expect(decideFibCommand(ended, command, userContext('spectator')).kind).toBe('reject');
-  expect(decideFibCommand(ended, command, userContext('host', { controlledSeat: 2 })).kind).toBe(
-    'reject',
-  );
-  expect(decideFibCommand(ended, { ...command, roundId: 'stale' }, userContext('host')).kind).toBe(
-    'reject',
-  );
-  const hostComplete = dispatch(ended, command, userContext('host'));
-  const playerComplete = dispatch(hostComplete, command, userContext('u1'));
-  const completed = dispatch(playerComplete, command, userContext('u1'));
-  expect(completed.reviewCompletedUserIds).toEqual(['host', 'u1']);
-  expect(parseFibState(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds).toEqual([
-    'host',
-    'u1',
-  ]);
-  const reset = dispatch(
-    completed,
-    { type: 'fibking.game.restart', roundId, wasEnded: true },
-    userContext('host'),
-  );
-  expect(reset.reviewCompletedUserIds).toEqual([]);
-  expect(decideFibCommand(reset, command, userContext('host')).kind).toBe('reject');
-});
 
 it('emits a completion reward roster only on the first host reveal', () => {
   const state = confirmAllRoleViews(
@@ -443,13 +409,13 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
+      stateVersion: 8,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',
       numberOfPlayers: 8,
       roster: {},
       usedWords: [],
-      reviewCompletedUserIds: [],
       pendingRound: null,
       preparationFailure: null,
       round: null,

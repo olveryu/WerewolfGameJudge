@@ -237,7 +237,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 
 ### 当前提交：Phase 3 delivery 与 protocol hardening
 
-- Generic `GameRoom` 只接受 fresh storage 或当前 schema version。`0034_room_instance_identity_cutover.sql`
+- Generic `GameRoom` 只接受空存储或表名、列名与当前结构完全匹配的存储。`0034_room_instance_identity_cutover.sql`
   已在同一 release 使旧 active room 失效，因此删除旧 `room_state` / `settle_pending` 猜测迁移；未版本化或
   future version 的 DO storage 直接 fail fast，不保留兼容 reader。
 - 所有 public command 从 JWT actor 进入同一 pipeline；receipt 绑定 game/version、actor、controlled seat、

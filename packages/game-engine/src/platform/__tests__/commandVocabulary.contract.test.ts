@@ -1,6 +1,7 @@
 /**
- * Lifecycle command vocabulary contract: every game uses the unified suffixes.
- * Game restart is the atomic reset to preparation.
+ * Lifecycle command vocabulary contract: games use the unified suffixes.
+ * Migrated games expose game.restart for the atomic reset
+ * to preparation; other games still reject that legacy suffix until migrated.
  * Gameplay commands (round.* mechanics, phase.*, gallery.*, …) are each
  * game's own vocabulary and out of scope.
  *
@@ -19,7 +20,6 @@ const GAME_IDS = [
   'werewolf',
   'avalon',
   'fibking',
-  'secrethitler',
   'undercover',
   'pictionary',
   'storyrelay',
@@ -31,6 +31,7 @@ type GameId = (typeof GAME_IDS)[number];
 
 const FORBIDDEN_SUFFIXES = [
   '.game.start',
+  '.game.restart',
   '.night.start',
   '.round.start',
   '.round.begin',
@@ -60,17 +61,41 @@ const EXPECTED_LIFECYCLE: Record<GameId, readonly string[]> = {
     'fibking.game.restart',
     'fibking.role.viewed',
   ],
-  secrethitler: ['secrethitler.game.begin', 'secrethitler.game.restart'],
   undercover: [
     'undercover.roles.assign',
     'undercover.game.begin',
+    'undercover.game.redeal',
     'undercover.game.restart',
+    'undercover.game.returnToLobby',
+    'undercover.game.abort',
     'undercover.role.viewed',
   ],
-  pictionary: ['pictionary.game.begin', 'pictionary.game.restart'],
-  storyrelay: ['storyrelay.game.begin', 'storyrelay.game.restart'],
-  drawguess: ['drawguess.game.begin', 'drawguess.game.restart'],
-  spotmatch: ['spotmatch.game.begin', 'spotmatch.game.restart'],
+  pictionary: [
+    'pictionary.game.begin',
+    'pictionary.game.next',
+    'pictionary.game.restart',
+    'pictionary.game.returnToLobby',
+    'pictionary.game.abort',
+  ],
+  storyrelay: [
+    'storyrelay.game.begin',
+    'storyrelay.game.next',
+    'storyrelay.game.restart',
+    'storyrelay.game.returnToLobby',
+    'storyrelay.game.abort',
+  ],
+  drawguess: [
+    'drawguess.game.begin',
+    'drawguess.game.abort',
+    'drawguess.game.restart',
+    'drawguess.game.returnToLobby',
+  ],
+  spotmatch: [
+    'spotmatch.game.begin',
+    'spotmatch.game.abort',
+    'spotmatch.game.restart',
+    'spotmatch.game.returnToLobby',
+  ],
 };
 
 function commandLiterals(game: GameId): string[] {
@@ -85,8 +110,10 @@ function commandLiterals(game: GameId): string[] {
 
 describe('lifecycle command vocabulary', () => {
   it.each(GAME_IDS)('%s declares no banned lifecycle suffix', (game) => {
-    const offenders = commandLiterals(game).filter((literal) =>
-      FORBIDDEN_SUFFIXES.some((suffix) => literal.endsWith(suffix)),
+    const offenders = commandLiterals(game).filter(
+      (literal) =>
+        FORBIDDEN_SUFFIXES.some((suffix) => literal.endsWith(suffix)) &&
+        !(literal.endsWith('.game.restart') && EXPECTED_LIFECYCLE[game].includes(literal)),
     );
     expect(offenders).toEqual([]);
   });

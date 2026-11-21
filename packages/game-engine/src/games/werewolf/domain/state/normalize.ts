@@ -9,6 +9,7 @@
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../../platform/protocol/gameTypes';
+import { WEREWOLF_STATE_VERSION } from '../../state/version';
 import type { GameState } from '../protocol/types';
 import type { SheriffElectionRoundResult, SheriffElectionState } from '../protocol/types';
 import { assertWerewolfStateInvariants } from './assertStateInvariants';
@@ -112,16 +113,6 @@ function normalizeSheriffElection(
         speakingStartSeat: election.speakingStartSeat,
         speakingDirection: election.speakingDirection,
       };
-    case 'result':
-      return {
-        ...common,
-        phase: election.phase,
-        deadline: election.deadline,
-        next:
-          election.next.kind === 'final'
-            ? election.next
-            : { ...election.next, candidateSeats: [...election.next.candidateSeats] },
-      };
   }
   const exhaustive: never = election;
   return exhaustive;
@@ -152,6 +143,7 @@ export function normalizeState(raw: GameState): GameState {
   const normalized = {
     // Required fields (fail-fast to avoid masking state corruption)
     gameType: requireIdentity(raw.gameType, WEREWOLF_GAME_TYPE, 'gameType'),
+    stateVersion: requireIdentity(raw.stateVersion, WEREWOLF_STATE_VERSION, 'stateVersion'),
     roomCode: requireField(raw.roomCode, 'roomCode'),
     hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),
@@ -159,26 +151,27 @@ export function normalizeState(raw: GameState): GameState {
     rules: raw.rules,
     // Player keys retain the authoritative state representation.
     players: requireField(raw.players, 'players'),
-    roleViewedSeats: requireField(raw.roleViewedSeats, 'roleViewedSeats'),
+    // Viewed-role seat set (boundary normalize: legacy in-memory states
+    // without the field default to an empty set)
+    roleViewedSeats: raw.roleViewedSeats ?? [],
     startingParticipants: raw.startingParticipants,
     mvpUserId: raw.mvpUserId,
     // Seat occupancy roster (seat -> human occupant or bot marker)
-    roster: requireField(raw.roster, 'roster'),
+    roster: raw.roster ?? {},
     nightStep: requireField(raw.nightStep, 'nightStep'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
     audioBatchId: requireField(raw.audioBatchId, 'audioBatchId'),
     gameSequence: requireField(raw.gameSequence, 'gameSequence'),
 
-    // Execution state
-    actions: requireField(raw.actions, 'actions'),
+    // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
+    actions: raw.actions ?? [],
     currentNightResults,
     resolvedWolfKillTarget: raw.resolvedWolfKillTarget,
     resolvedWolfKillVerdict: raw.resolvedWolfKillVerdict,
     resolvedNightEffects: raw.resolvedNightEffects ?? [],
-    pendingRevealAcks: requireField(raw.pendingRevealAcks, 'pendingRevealAcks'),
+    pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
     lastNightInfoConfirmed: raw.lastNightInfoConfirmed,
-    reviewCompletedUserIds: raw.reviewCompletedUserIds,
     deathReasons: raw.deathReasons,
     sheriffElection: normalizeSheriffElection(raw.sheriffElection),
     sheriffElectionResult: raw.sheriffElectionResult,
@@ -203,7 +196,9 @@ export function normalizeState(raw: GameState): GameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
-    pendingAudioEffects: requireField(raw.pendingAudioEffects, 'pendingAudioEffects'),
+    // Pending audio effect queue (boundary normalize: legacy states
+    // without the field default to an empty queue)
+    pendingAudioEffects: raw.pendingAudioEffects ?? [],
 
     // UI Hints (Host broadcast-driven, UI read-only display, must be passed through)
     ui: raw.ui,

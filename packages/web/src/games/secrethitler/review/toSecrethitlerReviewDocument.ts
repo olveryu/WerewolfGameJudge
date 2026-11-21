@@ -97,6 +97,7 @@ export function toSecrethitlerReviewDocument(input: {
     kicker: `第 ${state.gameSequence} 局 · 终局`,
     fileStem: `secrethitler-${roomCode}-${state.gameSequence}`,
     footer: REVIEW_GENERATED_FOOTER,
+    isAborted: false,
     pages: [
       {
         key: 'result',

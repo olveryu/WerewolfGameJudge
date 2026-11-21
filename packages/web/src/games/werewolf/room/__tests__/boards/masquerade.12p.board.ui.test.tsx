@@ -61,7 +61,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
+      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
     });
   });
 
@@ -75,7 +75,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt', async () => {
       await mount(witchStep(10, 1));
-      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
+      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
     });
   });
 
@@ -105,7 +105,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(10, -1));
-      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
+      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
     });
   });
 
@@ -141,7 +141,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 10);
 
       // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(harness, 10);
+      await coverageChainWitchPoisonSelection(10);
 
       // Step 5: seat selection (seer target) → submit → submitAction called
       const { submitAction: seerSubmit } = await coverageChainSeatSelection(

@@ -24,6 +24,7 @@ import {
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { ActionRejectedAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import {
   expectError,
@@ -56,7 +57,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   }
   const roster: GameState['roster'] = rosterOverride ?? derivedRoster;
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,

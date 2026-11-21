@@ -45,6 +45,7 @@ function parsePictionaryState(value: unknown): PictionaryState {
   if (value.gameType !== UNREGISTERED_GAME_TYPE) {
     throw new Error('Pictionary state has an invalid game type');
   }
+  if (value.stateVersion !== 1) throw new Error('Pictionary state has an invalid version');
   if (typeof value.roomCode !== 'string' || value.roomCode.length === 0) {
     throw new Error('Pictionary state requires a room code');
   }
@@ -56,6 +57,7 @@ function parsePictionaryState(value: unknown): PictionaryState {
   }
   return {
     gameType: UNREGISTERED_GAME_TYPE,
+    stateVersion: 1,
     roomCode: value.roomCode,
     hostUserId: value.hostUserId,
     round: value.round,
@@ -64,11 +66,13 @@ function parsePictionaryState(value: unknown): PictionaryState {
 
 export const pictionaryStateCodec = {
   gameType: UNREGISTERED_GAME_TYPE,
+  stateVersion: 1,
   parse: parsePictionaryState,
 } satisfies GameStateCodec<PictionaryState>;
 
 export const pictionaryEngine = {
   gameType: UNREGISTERED_GAME_TYPE,
+  stateVersion: 1,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: false,
@@ -84,6 +88,7 @@ export const pictionaryEngine = {
   createInitialState(_config, context) {
     return {
       gameType: UNREGISTERED_GAME_TYPE,
+      stateVersion: 1,
       roomCode: context.roomCode,
       hostUserId: context.hostUserId,
       round: 0,

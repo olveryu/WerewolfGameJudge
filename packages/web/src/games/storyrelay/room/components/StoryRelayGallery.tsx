@@ -24,6 +24,7 @@ import {
   getStoryRelayAuthorName,
   getStoryRelayVisibleStories,
   STORY_RELAY_BLANK_ENTRY_TEXT,
+  STORY_RELAY_EMPTY_STORY_TEXT,
 } from '../storyRelayPresentation';
 
 type StoryRelayGalleryCommandType = Extract<
@@ -182,7 +183,7 @@ export function StoryRelayGallery({
       )}
       heading={
         <GalleryAlbumHeading
-          eyebrow="故事揭晓"
+          eyebrow={state.phase === 'aborted' ? '未完成的故事' : '故事揭晓'}
           title={`第 ${chainIndex + 1} / ${stories.length} 篇`}
           description={isHost ? '你的播放操作会同步给房间内所有玩家。' : '由房主控制播放进度。'}
           remainingSeconds={playback === null ? null : remainingSeconds}
@@ -192,6 +193,7 @@ export function StoryRelayGallery({
       controls={controls}
       testId={TESTIDS.storyRelayGallery}
       listTestId={TESTIDS.storyRelayGalleryList}
+      emptyContent={<p className="storyrelay-muted">{STORY_RELAY_EMPTY_STORY_TEXT}</p>}
     />
   );
 }

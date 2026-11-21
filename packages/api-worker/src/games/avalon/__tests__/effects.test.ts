@@ -199,12 +199,7 @@ function settleEffectFor(
   state: AvalonState,
   overrides: Partial<Extract<AvalonEffect, { type: 'avalon.settle.due' }>['payload']> = {},
 ): AvalonEffect {
-  if (
-    state.phase.kind !== 'vote' &&
-    state.phase.kind !== 'quest' &&
-    state.phase.kind !== 'voteResult' &&
-    state.phase.kind !== 'questResult'
-  ) {
+  if (state.phase.kind !== 'vote' && state.phase.kind !== 'quest') {
     throw new Error('Expected a vote or quest phase');
   }
   return avalonEffectSchema.parse({
@@ -307,11 +302,14 @@ describe('Avalon settle effect', () => {
     const voteSettle = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), voteSettle.context);
     state = voteSettle.box.current;
-    if (state.phase.kind !== 'voteResult' || state.phase.deadlineAt === null)
-      throw new Error('Expected vote result');
-    const voteResultSettle = settleContext(state, state.phase.deadlineAt);
-    await handleAvalonEffect(settleEffectFor(state), voteResultSettle.context);
-    state = voteResultSettle.box.current;
+    for (let seat = 0; seat < 5; seat += 1) {
+      state = applyPublic(
+        state,
+        { type: 'avalon.voteResult.confirm' },
+        seatUser(seat),
+        `confirm-${seat}`,
+      );
+    }
     state = applyPublic(
       state,
       { type: 'avalon.quest.play', play: 'success' },
@@ -330,13 +328,8 @@ describe('Avalon settle effect', () => {
     const { context, box } = settleContext(state);
     await handleAvalonEffect(settleEffectFor(state), context);
     expect(box.commands).toEqual([{ type: 'avalon.phase.settleExpired' }]);
-    expect(box.current.phase.kind).toBe('questResult');
+    expect(box.current.phase.kind).toBe('nominate');
     expect(box.current.questResults[0]).toBe('success');
-    if (box.current.phase.kind !== 'questResult' || box.current.phase.deadlineAt === null)
-      throw new Error('Expected quest result');
-    const resultSettle = settleContext(box.current, box.current.phase.deadlineAt);
-    await handleAvalonEffect(settleEffectFor(box.current), resultSettle.context);
-    expect(resultSettle.box.current.phase.kind).toBe('nominate');
   });
 
   it('no-ops deliveries whose pinned arming no longer matches the room', async () => {

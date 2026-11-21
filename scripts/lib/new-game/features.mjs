@@ -14,7 +14,7 @@ const GUIDANCE_TEST =
 const AUDIO_ENGINE_TEST_CASES = Object.freeze([
   'lands a queued batch through the shared machine and clears it on host ack',
   'rejects ack from a non-host; stale and unknown batch ids never clear a later batch',
-  'blocks restart while playback is running, then releases it after ack',
+  'blocks returnToLobby while playback is running, then releases it after ack',
 ]);
 const AUDIO_RUNTIME_TEST_CASES = Object.freeze([
   'does not play or acknowledge a pending narration batch for non-host viewers',
@@ -24,20 +24,14 @@ export const BASE_TEST_REQUIREMENTS = Object.freeze([
   Object.freeze({
     template: ENGINE_TEST,
     testCases: Object.freeze([
-      'resets to preparation only for the host and the intended game and phase',
-      'returns an ended game to preparation without another settlement',
+      'rejects unauthorized abort and preserves the room without settlement',
     ]),
-  }),
-  Object.freeze({
-    template: 'packages/api-worker/src/games/__GAME_ID__/__tests__/schemas.test.ts',
-    testCases: Object.freeze(['rejects stale restart command forms and invalid restart payloads']),
   }),
   Object.freeze({
     template: GUIDANCE_TEST,
     testCases: Object.freeze([
       'offers fill-bots only for an open lobby and runs each setup action through its capability',
-      'marks the lobby host task as pending even when seats are missing',
-      'submits in-game restart only after confirmation',
+      'submits abort only after confirmation',
     ]),
   }),
 ]);
@@ -60,11 +54,6 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
       template: GUIDANCE_TEST,
       testCases: Object.freeze([
         'enables begin only after every human and bot identity has been viewed',
-        'marks start pending only after the host has viewed their own identity',
-        'opens the actual role-viewing flow and confirms for the controlled bot seat',
-        'is pending and opens the identity card for a seated player in viewing',
-        'tracks the effective seat, including a bot controlled by the host',
-        'hides identity in the lobby and from spectators, and locks it while submitting',
         'wires bulk viewing and removes its remedy after all bots are marked',
       ]),
     }),

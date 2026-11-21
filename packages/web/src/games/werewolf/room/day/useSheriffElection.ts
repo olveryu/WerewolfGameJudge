@@ -36,7 +36,7 @@ export interface SheriffElectionPanelModel {
   readonly withdraw: () => Promise<void>;
   readonly vote: (targetSeat: number | null) => Promise<void>;
   readonly advance: () => Promise<void>;
-  /** Host tap on the advance action asks for confirmation. */
+  /** Host tap on the advance action: closing registration asks first. */
   readonly requestAdvance: () => void;
   readonly requestEndBySelfDestruct: () => void;
 }
@@ -113,11 +113,16 @@ export function useSheriffElection(
     [executeCommand],
   );
   const requestAdvance = useCallback(() => {
+    // Closing registration is irreversible and registration is still
+    // secret at that point, so the confirm copy names no counts or
+    // seats — it only states the consequence. Later phases advance
+    // directly: ending a speech or confirming the candidate list is
+    // the Host's pacing call at the table.
     if (view !== null && view.phase === 'registration') {
       showConfirmAlert('结束报名？', '结束后，未报名的玩家不能再参选。', advance);
       return;
     }
-    showConfirmAlert('结束发言？', '确认后将推进警长竞选。', advance);
+    void advance();
   }, [advance, view]);
   const endBySelfDestruct = useCallback(
     () =>

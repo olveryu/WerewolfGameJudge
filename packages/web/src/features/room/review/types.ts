@@ -167,6 +167,8 @@ export interface RoomReviewDocument {
   readonly fileStem: string;
   /** The line under the last block: `REVIEW_GENERATED_FOOTER`, or the game's own notice. */
   readonly footer: string;
+  /** An aborted round: the masthead carries the 未完成 stamp. */
+  readonly isAborted: boolean;
   readonly pages: readonly RoomReviewPage[];
 }
 

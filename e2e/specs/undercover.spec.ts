@@ -16,17 +16,12 @@ test.setTimeout(300_000);
 
 const VIEWING_PROGRESS_PATTERN = /^(有待处理操作；)?\d+\/6 位玩家已查看词卡，等待剩余玩家$/;
 
-/** Acknowledge the open word card. */
+/** Dismiss the open word card through its 「隐藏词卡」 confirm button. */
 async function hideWordCard(page: Page): Promise<void> {
   const hideButton = page.getByTestId(TESTIDS.roleCardConfirmButton);
-  await expect(hideButton).toHaveText('知道了');
+  await expect(hideButton).toHaveText('隐藏词卡');
   await hideButton.click();
   await expect(page.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
-}
-
-async function openWordCard(page: Page): Promise<void> {
-  await (await new RoomPage(page).viewIdentityButton()).click();
-  await pressAlertButton(page, { title: '查看词卡？', buttonIndex: 1, buttonLabel: '查看' });
 }
 
 for (const viewport of [
@@ -133,16 +128,20 @@ for (const viewport of [
       await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
       // Every real player views their own word card on their own page.
       const cards: string[] = [];
-      for (const page of joinerPages) {
-        await openWordCard(page);
+      for (const page of allPages) {
+        await (await new RoomPage(page).viewIdentityButton()).click();
         cards.push(await page.getByTestId(TESTIDS.undercoverWord).innerText());
         await hideWordCard(page);
       }
-      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
-      await openWordCard(hostPage);
-      cards.unshift(await hostPage.getByTestId(TESTIDS.undercoverWord).innerText());
-      await hideWordCard(hostPage);
       expect(cards.filter((word) => word === '你是白板')).toHaveLength(1);
+      // Five players confirm first, then the host confirms last.
+      for (const page of joinerPages) {
+        await (await new RoomPage(page).viewIdentityButton()).click();
+        await page.getByTestId(TESTIDS.undercoverConfirm).click();
+      }
+      await hostRoom.expectHostTaskBlockedReason(TESTIDS.startGameButton, VIEWING_PROGRESS_PATTERN);
+      await (await hostRoom.viewIdentityButton()).click();
+      await hostPage.getByTestId(TESTIDS.undercoverConfirm).click();
       await hostRoom.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.startGameButton).click();
@@ -160,11 +159,6 @@ for (const viewport of [
       ).toBeVisible();
       await hostRoom.closeHostManagement();
       await hostRoom.clickRoomAction(TESTIDS.roomViewIdentityButton);
-      await pressAlertButton(hostPage, {
-        title: '查看词卡？',
-        buttonIndex: 1,
-        buttonLabel: '查看',
-      });
       await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveText(cards[0]!);
       await hostPage.reload();
       await hostRoom.waitForReady('host');
@@ -241,11 +235,6 @@ for (const viewport of [
         }
         if (seat === 0 && civilians[civilians.length - 1]?.seat !== 0) {
           await hostRoom.clickRoomAction(TESTIDS.roomViewIdentityButton);
-          await pressAlertButton(hostPage, {
-            title: '查看词卡？',
-            buttonIndex: 1,
-            buttonLabel: '查看',
-          });
           await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveText(cards[0]!);
           await hideWordCard(hostPage);
         }
@@ -295,8 +284,8 @@ for (const viewport of [
       await hostRoom.confirmHostActionDialog('分配角色？');
       await hostRoom.closeHostManagement();
       for (const page of allPages) {
-        await openWordCard(page);
-        await hideWordCard(page);
+        await (await new RoomPage(page).viewIdentityButton()).click();
+        await page.getByTestId(TESTIDS.undercoverConfirm).click();
       }
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.startGameButton).click();

@@ -72,6 +72,7 @@ function StoryRelayRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
       phaseLabel={isLobby ? '待开局' : null}
       lobbyAction={
         isLobby
@@ -117,7 +118,7 @@ function StoryRelayRoomContent(
             <RoomDialog
               title="轮流讲故事玩法"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <StoryRelayRules embedded />
@@ -127,7 +128,7 @@ function StoryRelayRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <p>{`轮流讲故事（${config.numberOfPlayers}人）`}</p>

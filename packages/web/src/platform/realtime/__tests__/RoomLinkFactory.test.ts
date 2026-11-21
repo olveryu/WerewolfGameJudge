@@ -1,17 +1,12 @@
-import { REALTIME_CLOSE_CODE } from '@game-judge/game-engine/platform/realtime/closeCodes';
-
-import type { RealtimeSocket } from '../SocketChannel';
 import type { RoomIdentity } from '../types';
 
 class FakeLink {
   static created: FakeLink[] = [];
   identity: RoomIdentity<string> | null = null;
-  readonly createSocket: (url: string) => RealtimeSocket;
   readonly close = vi.fn(() => {
     this.identity = null;
   });
-  constructor(options: { readonly createSocket: (url: string) => RealtimeSocket }) {
-    this.createSocket = options.createSocket;
+  constructor() {
     FakeLink.created.push(this);
   }
   getSnapshot() {
@@ -44,34 +39,6 @@ function bind(link: FakeLink | undefined, roomCode: string, userId: string): Fak
 describe('createRoomLinkFactory releaseOutside', () => {
   beforeEach(() => {
     FakeLink.created = [];
-  });
-
-  describe('browser socket close', () => {
-    afterEach(() => vi.unstubAllGlobals());
-
-    it('closes protocol errors using a browser-permitted code without hiding the reason', () => {
-      const close = vi.fn((code: number) => {
-        if (code !== 1000 && (code < 3000 || code > 4999)) {
-          throw new DOMException('Invalid close code', 'InvalidAccessError');
-        }
-      });
-      vi.stubGlobal(
-        'WebSocket',
-        class {
-          readonly close = close;
-        },
-      );
-      FakeLink.created = [];
-      createRoomLinkFactory({ onInboxWake: vi.fn() }).create({ gameType: 'avalon' } as never);
-      const link = FakeLink.created[0];
-      if (link === undefined) throw new Error('link was not created');
-      const socket = link.createSocket('ws://example.test');
-
-      socket.close(REALTIME_CLOSE_CODE.PROTOCOL_ERROR, 'protocol_error');
-      expect(close).toHaveBeenCalledWith(1000, 'protocol_error');
-      socket.close(REALTIME_CLOSE_CODE.AUTH_REJECTED, 'auth');
-      expect(close).toHaveBeenCalledWith(REALTIME_CLOSE_CODE.AUTH_REJECTED, 'auth');
-    });
   });
 
   it('keeps the link of the route room and user and closes the rest', () => {

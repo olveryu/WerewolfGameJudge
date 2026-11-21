@@ -33,6 +33,7 @@ export interface TestCommand {
 
 export const TEST_CODEC: GameStateCodec<TestState> = {
   gameType: 'werewolf',
+  stateVersion: 1,
   parse(value: unknown): TestState {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       throw new Error('Test state must be an object');
@@ -40,6 +41,7 @@ export const TEST_CODEC: GameStateCodec<TestState> = {
     const fields: Partial<Record<keyof TestState, unknown>> = { ...value };
     if (
       fields.gameType !== 'werewolf' ||
+      fields.stateVersion !== 1 ||
       typeof fields.roomCode !== 'string' ||
       typeof fields.hostUserId !== 'string' ||
       typeof fields.counter !== 'number'
@@ -48,6 +50,7 @@ export const TEST_CODEC: GameStateCodec<TestState> = {
     }
     return {
       gameType: 'werewolf',
+      stateVersion: 1,
       roomCode: fields.roomCode,
       hostUserId: fields.hostUserId,
       counter: fields.counter,
@@ -67,7 +70,7 @@ export const IDENTITY: RoomIdentity<'werewolf'> = {
 };
 
 export function testState(counter = 0, hostUserId = 'host-user'): TestState {
-  return { gameType: 'werewolf', roomCode: '1234', hostUserId, counter };
+  return { gameType: 'werewolf', stateVersion: 1, roomCode: '1234', hostUserId, counter };
 }
 
 export function snapshotAt(revision: number, counter = revision): RoomSnapshot<TestState> {

@@ -16,7 +16,6 @@ import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomBool, randomIntInclusive } from '../../../../platform/random';
 import { decideSettleCountdownArm } from '../../../../platform/room/settleCountdown';
 import { werewolfSettleDueEffect } from '../../effects/settleDue';
-import type { WerewolfEffect } from '../../effects/types';
 import type {
   AdvanceSheriffElectionIntent,
   CancelSheriffRegistrationIntent,
@@ -255,7 +254,7 @@ function advanceRunoffSpeech(
 function closeFirstVote(
   state: GameState,
   election: Extract<SheriffElectionState, { phase: 'firstVote' }>,
-): AdvanceSheriffElectionAction | CompleteSheriffElectionAction {
+): StateAction {
   const completedRound = closeVotingRound(election);
   const leadingCandidateSeats = getLeadingCandidateSeats(completedRound);
   if (leadingCandidateSeats.length === 0) {
@@ -294,73 +293,10 @@ function closeFirstVote(
 export function closeSheriffVotingRound(
   state: GameState,
   election: VotingElectionState,
-): AdvanceSheriffElectionAction | CompleteSheriffElectionAction {
+): StateAction {
   return election.phase === 'firstVote'
     ? closeFirstVote(state, election)
     : closeRunoffVote(election);
-}
-
-/** Publish a closed election outcome before applying its next phase. */
-export function startSheriffResult(
-  state: GameState,
-  action: AdvanceSheriffElectionAction | CompleteSheriffElectionAction,
-  nowMs: number,
-): { readonly action: AdvanceSheriffElectionAction; readonly effect: WerewolfEffect } {
-  const election = state.sheriffElection;
-  if (election === undefined) throw new Error('[FAIL-FAST] Sheriff result requires an election');
-  const arm = decideSettleCountdownArm({ complete: true, armedDeadlineAt: null, nowMs });
-  if (arm.type !== 'set') throw new Error('[FAIL-FAST] Failed to arm sheriff result countdown');
-  const deadline = arm.deadlineAt;
-  if (action.type === 'COMPLETE_SHERIFF_ELECTION') {
-    return {
-      action: createAdvanceAction({
-        phase: 'result',
-        registeredSeats: election.registeredSeats,
-        withdrawnSeats: election.withdrawnSeats,
-        completedRounds:
-          action.payload.completedRound === undefined
-            ? election.completedRounds
-            : [...election.completedRounds, action.payload.completedRound],
-        deadline,
-        next: { kind: 'final', result: action.payload.result },
-      }),
-      effect: werewolfSettleDueEffect(state, 'sheriffResult', deadline),
-    };
-  }
-  const next = action.payload.election;
-  if (next.phase !== 'runoffSpeech') throw new Error('[FAIL-FAST] Expected runoff after tied vote');
-  return {
-    action: createAdvanceAction({
-      phase: 'result',
-      registeredSeats: next.registeredSeats,
-      withdrawnSeats: next.withdrawnSeats,
-      completedRounds: next.completedRounds,
-      deadline,
-      next: {
-        kind: 'runoff',
-        candidateSeats: next.candidateSeats,
-        speakingStartSeat: next.speakingStartSeat,
-        speakingDirection: next.speakingDirection,
-      },
-    }),
-    effect: werewolfSettleDueEffect(state, 'sheriffResult', deadline),
-  };
-}
-
-/** Apply the previously published election outcome after its display deadline. */
-export function finishSheriffResult(
-  election: Extract<SheriffElectionState, { phase: 'result' }>,
-): AdvanceSheriffElectionAction | CompleteSheriffElectionAction {
-  if (election.next.kind === 'final') return createCompleteAction(election.next.result);
-  return createAdvanceAction({
-    phase: 'runoffSpeech',
-    registeredSeats: election.registeredSeats,
-    withdrawnSeats: election.withdrawnSeats,
-    completedRounds: election.completedRounds,
-    candidateSeats: election.next.candidateSeats,
-    speakingStartSeat: election.next.speakingStartSeat,
-    speakingDirection: election.next.speakingDirection,
-  });
 }
 
 function closeRunoffVote(
@@ -510,7 +446,6 @@ export function handleCastSheriffVote(
 export function handleAdvanceSheriffElection(
   _intent: AdvanceSheriffElectionIntent,
   context: HandlerContext,
-  execution: HandlerExecutionContext,
 ): HandlerResult {
   const gate = resolveSheriffElectionGate(context);
   if (gate.kind === 'rejected') return gate.error;
@@ -548,28 +483,8 @@ export function handleAdvanceSheriffElection(
     case 'runoffSpeech':
       action = advanceRunoffSpeech(context.state, election);
       break;
-    case 'result':
     case 'completed':
       return handlerError('invalid_election_phase');
-  }
-  if (action.type === 'COMPLETE_SHERIFF_ELECTION') {
-    const result = startSheriffResult(context.state, action, execution.nowMs);
-    return handlerSuccess([result.action], { effects: [result.effect] });
-  }
-  if (action.type === 'ADVANCE_SHERIFF_ELECTION') {
-    const next = action.payload.election;
-    if (
-      (next.phase === 'firstVote' || next.phase === 'runoffVote') &&
-      next.eligibleVoterSeats.length === 0
-    ) {
-      const state = gameReducer(context.state, action);
-      const result = startSheriffResult(
-        state,
-        closeSheriffVotingRound(state, next),
-        execution.nowMs,
-      );
-      return handlerSuccess([action, result.action], { effects: [result.effect] });
-    }
   }
   return handlerSuccess([action]);
 }
@@ -578,23 +493,12 @@ export function handleAdvanceSheriffElection(
 export function handleEndSheriffElectionBySelfDestruct(
   _intent: EndSheriffElectionBySelfDestructIntent,
   context: HandlerContext,
-  execution: HandlerExecutionContext,
 ): HandlerResult {
   const gate = resolveSheriffElectionGate(context);
   if (gate.kind === 'rejected') return gate.error;
   const { election } = gate;
-  if (
-    election.phase !== 'candidateSpeech' &&
-    election.phase !== 'runoffSpeech' &&
-    election.phase !== 'firstVote' &&
-    election.phase !== 'runoffVote'
-  ) {
+  if (election.phase !== 'candidateSpeech' && election.phase !== 'runoffSpeech') {
     return handlerError('invalid_election_phase');
   }
-  const result = startSheriffResult(
-    context.state,
-    createCompleteAction({ kind: 'noSheriff', reason: 'selfDestruct' }),
-    execution.nowMs,
-  );
-  return handlerSuccess([result.action], { effects: [result.effect] });
+  return handlerSuccess([createCompleteAction({ kind: 'noSheriff', reason: 'selfDestruct' })]);
 }

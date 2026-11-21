@@ -229,7 +229,7 @@ export function createUndercoverHostManagement(
   const actions: RoomHostManagementAction[] = [];
   const roomActions: RoomHostManagementAction[] = [];
   let task: RoomHostTask | null = null;
-  let pendingActionKeys: readonly string[] = [];
+  let pendingActionKeys: readonly string[] | undefined;
   if (state.phase !== 'lobby')
     actions.push(
       buildResetToLobbyAction({
@@ -237,9 +237,7 @@ export function createUndercoverHostManagement(
           showDestructiveAlert(
             '重新开始？',
             state.phase === 'ended'
-              ? input.review?.isPending
-                ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
-                : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+              ? '保留座位、配置和已用词记录，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
               : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
             '重新开始',
             controls.restart,
@@ -325,12 +323,7 @@ export function createUndercoverHostManagement(
       if (hasUnviewedBot)
         actions.push(
           buildMarkBotsViewedAction({
-            onPress: () =>
-              showConfirmAlert(
-                '标记机器人已查看？',
-                '将标记所有未查看词卡的机器人。',
-                controls.markAllBotsViewed,
-              ),
+            onPress: controls.markAllBotsViewed,
             isEnabled: !controls.isSubmitting,
             isLoading: controls.isSubmitting,
           }),
@@ -415,9 +408,8 @@ export function createUndercoverHostManagement(
         task = hostActionTask('select-player');
       }
       break;
-    case 'ended': {
-      pendingActionKeys =
-        state.phase === 'ended' && input.review?.isPending ? [HOST_ACTION_KEYS.review] : [];
+    case 'ended':
+    case 'aborted': {
       if (input.review === null && state.phase === 'ended')
         throw new Error('[FAIL-FAST] Undercover ended host has no review entry');
       if (input.review !== null) {
@@ -435,7 +427,7 @@ export function createUndercoverHostManagement(
   return {
     task,
     sections,
-    pendingActionKeys,
+    ...(pendingActionKeys === undefined ? {} : { pendingActionKeys }),
     ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
   };
 }

@@ -13,8 +13,10 @@ import type {
   Player,
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 
+const TEST_RNG = () => 0.75;
+
 function maybeCreateWitchContextAction(nextStepId: SchemaId, state: GameState) {
-  return createWitchContextAction(nextStepId, state);
+  return createWitchContextAction(nextStepId, state, TEST_RNG);
 }
 
 // =============================================================================
@@ -42,7 +44,6 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     actions: [],
     currentNightResults: {},
-    resolvedWolfKillTarget: null,
     pendingRevealAcks: [],
     roster: {
       0: { seat: 0, userId: 'uid-0', profile: { displayName: '玩家1' } },
@@ -67,7 +68,6 @@ describe('maybeCreateWitchContextAction', () => {
     it('should set canSave=true when wolf kills someone else (normal case)', () => {
       const state = createOngoingState({
         currentNightResults: { wolfVotesBySeat: { '0': 2 } }, // wolf kills villager at seat 2
-        resolvedWolfKillTarget: 2,
       });
 
       const action = maybeCreateWitchContextAction('witchAction', state);
@@ -82,7 +82,6 @@ describe('maybeCreateWitchContextAction', () => {
         const state = createOngoingState({
           rules: { witchCanSelfHeal },
           currentNightResults: { wolfVotesBySeat: { '0': 1 } },
-          resolvedWolfKillTarget: 1,
         });
 
         const action = maybeCreateWitchContextAction('witchAction', state);
@@ -113,17 +112,6 @@ describe('maybeCreateWitchContextAction', () => {
 
       expect(action?.payload.killedSeat).toBe(-1);
       expect(action?.payload.canSave).toBe(false);
-    });
-
-    it('fails fast when the wolf-kill target has not been settled', () => {
-      const state = createOngoingState({
-        currentNightResults: { wolfVotesBySeat: { '0': 2 } },
-        resolvedWolfKillTarget: undefined,
-      });
-
-      expect(() => maybeCreateWitchContextAction('witchAction', state)).toThrow(
-        '[FAIL-FAST] wolf-kill target has not been settled',
-      );
     });
 
     it('should set canSave=false when wolfKillOverride is set', () => {
@@ -175,7 +163,6 @@ describe('maybeCreateWitchContextAction', () => {
   it('should return SET_WITCH_CONTEXT action when entering witchAction step', () => {
     const state = createOngoingState({
       currentNightResults: { wolfVotesBySeat: { '0': 2 } },
-      resolvedWolfKillTarget: 2,
     });
 
     const action = maybeCreateWitchContextAction('witchAction', state);

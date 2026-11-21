@@ -70,7 +70,7 @@ function createTransitionTimer(input: PictionaryStageHudInput): RoomStageTimerMo
 
 /**
  * Builds the information bar for answering, transition and settling; null for the lobby, the
- * gallery and a finished round, which are not stage content.
+ * gallery and a finished or aborted round, which are not stage content.
  */
 export function createPictionaryStageHud(input: PictionaryStageHudInput): RoomStageHudModel | null {
   const { state } = input;

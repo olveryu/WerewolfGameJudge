@@ -158,6 +158,7 @@ export function reviewDocument(overrides: Partial<RoomReviewDocument> = {}): Roo
     kicker: '🌙 第一夜 · 夜报',
     fileStem: 'room-1234-1',
     footer: '本局复盘由对局记录自动生成',
+    isAborted: false,
     pages: [page('only', null, TEXT_BLOCKS)],
     ...overrides,
   };

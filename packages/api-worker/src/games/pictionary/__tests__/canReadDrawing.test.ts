@@ -3,6 +3,7 @@
 import {
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
+  PICTIONARY_STATE_VERSION,
   type PictionaryChain,
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
@@ -16,6 +17,7 @@ function createMinimalState(
 ): PictionaryState {
   return {
     gameType: 'pictionary',
+    stateVersion: PICTIONARY_STATE_VERSION,
     roomCode: '1234',
     hostUserId: 'host-1',
     phase,
@@ -77,6 +79,11 @@ describe('canReadDrawing', () => {
 
   it('allows anyone in ended phase', () => {
     const state = createMinimalState('ended');
+    expect(canReadDrawing(state, null, 'entry-1')).toBe(true);
+  });
+
+  it('allows anyone in aborted phase', () => {
+    const state = createMinimalState('aborted');
     expect(canReadDrawing(state, null, 'entry-1')).toBe(true);
   });
 

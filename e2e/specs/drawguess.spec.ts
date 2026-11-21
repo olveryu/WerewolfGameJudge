@@ -167,14 +167,14 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
       const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
-      await expect(startButton).toHaveAccessibleDescription(
-        '有待处理操作；座位尚未坐满（还差 2 人）',
-      );
+      await expect(startButton).toHaveAccessibleDescription('座位尚未坐满（还差 2 人）');
       await startButton.focus();
       await hostPage.keyboard.press('Enter');
-      await expect(panel.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveText(
+      await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('暂不可用');
+      await expect(hostPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
         '座位尚未坐满（还差 2 人）',
       );
+      await hostPage.getByTestId(TESTIDS.alertButton(0)).click();
       await expect(panel.getByTestId(TESTIDS.startGameButton)).toBeDisabled();
       await room.closeHostManagement();
     });

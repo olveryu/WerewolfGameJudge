@@ -1,6 +1,7 @@
 import {
   type GameTemplate,
   WEREWOLF_STATE_CODEC,
+  WEREWOLF_STATE_IDENTITY,
   werewolfEngine,
 } from '../../../games/werewolf/public';
 import { createRoomSnapshot, parseRoomSnapshot } from '../roomSnapshot';
@@ -10,6 +11,8 @@ const TEMPLATE: GameTemplate = {
   numberOfPlayers: 4,
   roles: ['wolf', 'seer', 'villager', 'villager'],
 };
+
+const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_IDENTITY.stateVersion + 1;
 
 function createState() {
   return werewolfEngine.createInitialState(
@@ -23,7 +26,7 @@ describe('room snapshot protocol', () => {
     const state = createState();
 
     expect(createRoomSnapshot(state, 7)).toEqual({
-      gameType: 'werewolf',
+      ...WEREWOLF_STATE_IDENTITY,
       revision: 7,
       state,
     });
@@ -33,6 +36,14 @@ describe('room snapshot protocol', () => {
     const state = createState();
     expect(() => createRoomSnapshot(state, revision)).toThrow(
       'revision must be a positive safe integer',
+    );
+  });
+
+  it('rejects an invalid state version', () => {
+    const state = { ...createState(), stateVersion: 0 };
+
+    expect(() => createRoomSnapshot(state, 1)).toThrow(
+      'stateVersion must be a positive safe integer',
     );
   });
 
@@ -53,15 +64,15 @@ describe('room snapshot protocol', () => {
     );
   });
 
-  it('rejects a snapshot for a different game', () => {
+  it('rejects envelope and payload identity drift', () => {
     const state = createState();
     const encoded = {
       ...createRoomSnapshot(state, 3),
-      gameType: 'spotmatch',
+      stateVersion: UNSUPPORTED_WEREWOLF_STATE_VERSION,
     };
 
     expect(() => parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toThrow(
-      'Unexpected snapshot game type: spotmatch',
+      `Unsupported snapshot state version: ${UNSUPPORTED_WEREWOLF_STATE_VERSION}`,
     );
   });
 });

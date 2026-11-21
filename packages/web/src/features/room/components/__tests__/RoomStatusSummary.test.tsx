@@ -8,7 +8,7 @@ it('opens details from the whole summary with pointer and keyboard while exposin
   const onOpen = vi.fn();
   render(
     <RoomStatusSummary
-      header={{ title: '本轮状态', phase: '表决中' }}
+      header={{ title: '本轮状态', icon: null, phase: '表决中' }}
       summary="2/4 人已提交"
       pendingSeats={[1, 3]}
       pendingLabel="未提交"

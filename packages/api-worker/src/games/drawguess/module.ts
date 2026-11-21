@@ -3,6 +3,7 @@
 import {
   DRAWGUESS_STATE_CODEC,
   drawGuessEngine,
+  migratePersistedDrawGuessState,
   parseDrawGuessPublicStats,
 } from '@game-judge/game-engine/games/drawguess/public';
 
@@ -21,6 +22,7 @@ export const drawGuessWorkerModule = defineWorkerGameModule({
   gameType: 'drawguess',
   engine: drawGuessEngine,
   stateCodec: DRAWGUESS_STATE_CODEC,
+  migratePersistedState: migratePersistedDrawGuessState,
   createConfigSchema: drawGuessCreateConfigSchema,
   publicCommandSchema: drawGuessPublicCommandSchema,
   internalCommandSchema: drawGuessInternalCommandSchema,

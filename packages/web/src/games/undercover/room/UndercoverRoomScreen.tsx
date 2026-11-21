@@ -2,7 +2,6 @@
 import {
   getUndercoverOccupiedSeatCount,
   UNDERCOVER_CATEGORY_NAMES,
-  UNDERCOVER_ROLE_NAMES,
   type UndercoverRole,
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
@@ -15,7 +14,6 @@ import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { deriveRemainingRevealCards } from '@/features/room/model/RevealRoleData';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
@@ -95,6 +93,7 @@ function UndercoverRoomContent(
   return (
     <RoomShell
       model={shellModel}
+      showPlayerHand
       phaseLabel={
         state.phase === 'lobby'
           ? '待开局'
@@ -104,14 +103,17 @@ function UndercoverRoomContent(
               ? '准备词语'
               : state.phase === 'ended'
                 ? '本局结束'
-                : '游戏进行中'
+                : state.phase === 'aborted'
+                  ? '本局中止'
+                  : '游戏进行中'
       }
       lobbyAction={
         state.phase === 'lobby'
           ? { label: '分配角色', occupiedSeats: getUndercoverOccupiedSeatCount(state) }
           : null
       }
-      selectionMode={controls.isSelecting ? 'host-task' : undefined}
+      isSelecting={controls.isSelecting}
+      selectionUsesHostTask
       configurationEntry={
         !isPreGame && !controls.isSelecting
           ? { onOpen: () => setInformation('configuration') }
@@ -132,13 +134,7 @@ function UndercoverRoomContent(
       content={{
         kind: 'seats',
         contextHeader: null,
-        bottomSummary:
-          state.phase === 'ended' ? (
-            <RoomStatusSummary
-              summary={`${UNDERCOVER_ROLE_NAMES[state.winner]}获胜`}
-              action={null}
-            />
-          ) : null,
+        bottomSummary: null,
         sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
@@ -163,7 +159,7 @@ function UndercoverRoomContent(
             <RoomDialog
               title="谁是卧底玩法"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <UndercoverRules embedded />
@@ -173,7 +169,7 @@ function UndercoverRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <p>{`谁是卧底（${state.config.numberOfPlayers}人）`}</p>

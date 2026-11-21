@@ -94,7 +94,6 @@ export class RoomAudioOrchestrator<
   readonly #deps: RoomAudioOrchestratorDeps<TEffect, TState>;
   #isPlayingEffects = false;
   #needsResume = false;
-  #awaitingEntryGesture = false;
   #disposed = false;
   #playedBatchId: number | null = null;
   #acknowledgedBatchId: number | null = null;
@@ -107,7 +106,7 @@ export class RoomAudioOrchestrator<
       if (!snapshot.isAudioPlaying) {
         this.#playedBatchId = null;
         this.#acknowledgedBatchId = null;
-        if (!this.#awaitingEntryGesture) this.setNeedsResume(false);
+        this.setNeedsResume(false);
       } else if (!this.#needsResume) {
         void this.#playPendingAudioEffects(snapshot).catch((error: unknown) => {
           this.#deps.onError(error, '语音播报');
@@ -126,12 +125,6 @@ export class RoomAudioOrchestrator<
     if (this.#needsResume === value) return;
     this.#needsResume = value;
     this.#deps.onResumeRequiredChange();
-  }
-
-  /** Keep playback gated until the returning host supplies an audio gesture. */
-  requireEntryGesture(): void {
-    this.#awaitingEntryGesture = true;
-    this.setNeedsResume(true);
   }
 
   /** Stop observing the queue when the link epoch ends. */
@@ -166,7 +159,6 @@ export class RoomAudioOrchestrator<
    */
   async resumeInterrupted(): Promise<void> {
     if (!this.#needsResume || !this.#isActive()) return;
-    this.#awaitingEntryGesture = false;
     const snapshot = this.#deps.queueSource.getSnapshot();
     if (snapshot === null || !snapshot.isAudioPlaying) {
       this.setNeedsResume(false);

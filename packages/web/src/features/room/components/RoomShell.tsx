@@ -14,6 +14,7 @@ import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
 import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
@@ -26,7 +27,7 @@ import IconShareOutline from '~icons/ion/share-outline';
 
 import { PlayerProfileCard } from './PlayerProfileCard';
 import { RoomActionStatus, RoomBottomActionPanel } from './RoomBottomActionPanel';
-import type { RoomSelectionMode, RoomSummaryPresentation } from './RoomBottomActionPresentation';
+import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
 import { RoomHostManagementPanel } from './RoomHostManagementPanel';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
@@ -42,8 +43,6 @@ type RoomShellContent =
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
-      readonly summaryPresentation?: RoomSummaryPresentation;
-      readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
       readonly sideInspector: ReactElement | null;
@@ -160,8 +159,10 @@ export function RoomShell({
   manualEntries,
   mainEntries,
   stageMenu = null,
-  actionHandVisibility = 'visible',
-  selectionMode,
+  showPlayerHand = false,
+  hideActionHand = false,
+  isSelecting = false,
+  selectionUsesHostTask = false,
   phaseLabel = null,
   lobbyAction = null,
   gameOverlays,
@@ -175,8 +176,10 @@ export function RoomShell({
   readonly manualEntries?: ComponentProps<typeof RoomBottomActionPanel>['manualEntries'];
   readonly mainEntries?: ComponentProps<typeof RoomBottomActionPanel>['mainEntries'];
   readonly stageMenu?: RoomStageMenuModel | null;
-  readonly actionHandVisibility?: 'visible' | 'hidden';
-  readonly selectionMode?: RoomSelectionMode;
+  readonly showPlayerHand?: boolean;
+  readonly hideActionHand?: boolean;
+  readonly isSelecting?: boolean;
+  readonly selectionUsesHostTask?: boolean;
   readonly phaseLabel?: string | null;
   readonly lobbyAction?: { readonly label: string; readonly occupiedSeats: number } | null;
   readonly gameOverlays: ReactNode;
@@ -199,15 +202,14 @@ export function RoomShell({
   }, []);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
-  const isSelecting = selectionMode !== undefined;
-  const isHandContext = !isStage && !isSelecting;
+  const isHandContext = showPlayerHand && !isStage && !isSelecting;
   const [previousHandContext, setPreviousHandContext] = useState(isHandContext);
   if (previousHandContext !== isHandContext) {
     setPreviousHandContext(isHandContext);
     if (previousHandContext && isActionsPanelOpen) setIsActionsPanelOpen(false);
   }
   const hasBottomPanel = !isStage && stageMenu === null;
-  const statusInBoard = content.kind === 'seats' && hasBottomPanel;
+  const statusInBoard = showPlayerHand && content.kind === 'seats' && hasBottomPanel;
   const seatsMissing =
     lobbyAction === null ? 0 : model.seats.source.count - lobbyAction.occupiedSeats;
   const lobbyTask =
@@ -222,6 +224,7 @@ export function RoomShell({
             lobbyTask.body.action.isLoading !== true
           ? `座位已满，可以${lobbyAction.label}`
           : `座位已满，等待房主${lobbyAction.label}`;
+  const bottomActions = hasBottomPanel ? model.bottomActions : null;
   const share = model.capabilities.canShareRoom;
   const playerMainEntries = [
     ...(mainEntries ?? []),
@@ -236,7 +239,12 @@ export function RoomShell({
         ]
       : []),
   ];
-  const canOpenActionsPanel = actionHandVisibility === 'visible' && hostManagement !== null;
+  const panelPlayerActions = showPlayerHand ? null : bottomActions;
+  const hasAdditionalPlayerActions =
+    panelPlayerActions !== null &&
+    resolveRoomBottomActionPresentation(panelPlayerActions).additionalActions.length > 0;
+  const canOpenActionsPanel =
+    !hideActionHand && (hostManagement !== null || hasAdditionalPlayerActions);
   if (isActionsPanelOpen && !canOpenActionsPanel) {
     setIsActionsPanelOpen(false);
   }
@@ -247,13 +255,13 @@ export function RoomShell({
   };
   const closeActionsPanel = () => setIsActionsPanelOpen(false);
   const isActionsPanelShown = isActionsPanelOpen && canOpenActionsPanel;
-  const isHostHandShown = isActionsPanelShown && !isStage;
+  const isHostHandShown = isActionsPanelShown && showPlayerHand && !isStage;
 
   const sideInspector =
     isActionsPanelShown && !isHostHandShown ? (
       <RoomHostManagementPanel
         model={hostManagement}
-        bottomActions={null}
+        bottomActions={panelPlayerActions}
         presentation="inspector"
         onClose={closeActionsPanel}
         isAudioPlaying={model.isAudioPlaying}
@@ -322,10 +330,7 @@ export function RoomShell({
       )}
       <div className="room-content">
         {content.kind === 'seats' ? (
-          <div
-            className="room-board-column"
-            data-scroll-information={content.informationLayout === 'scroll-with-seats'}
-          >
+          <div className="room-board-column">
             {content.contextHeader !== null && (
               <div className="room-context-header">{content.contextHeader}</div>
             )}
@@ -337,10 +342,10 @@ export function RoomShell({
                     summary={content.bottomSummary}
                     isAudioPlaying={model.isAudioPlaying}
                     hostManagement={hostManagement}
-                    selectionMode={selectionMode}
+                    isSelecting={isSelecting}
+                    selectionUsesHostTask={selectionUsesHostTask}
                     boardStatus={{
                       phaseLabel,
-                      summaryPresentation: content.summaryPresentation,
                       title: lobbyTitle,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,
@@ -365,7 +370,7 @@ export function RoomShell({
         )}
         {isWideLayout && sideInspector}
       </div>
-      {hasBottomPanel && actionHandVisibility === 'visible' && (
+      {hasBottomPanel && !hideActionHand && (
         <RoomBottomActionPanel
           model={model.bottomActions}
           summary={content.kind === 'seats' ? content.bottomSummary : null}
@@ -375,7 +380,9 @@ export function RoomShell({
           configurationEntry={configurationEntry}
           manualEntries={manualEntries}
           mainEntries={playerMainEntries}
-          selectionMode={selectionMode}
+          showPlayerHand={showPlayerHand}
+          isSelecting={isSelecting}
+          selectionUsesHostTask={selectionUsesHostTask}
           statusInBoard={statusInBoard}
           hostEntryRef={hostEntryRef}
           hostHand={
@@ -398,7 +405,7 @@ export function RoomShell({
       {isActionsPanelShown && !isHostHandShown && !isWideLayout && (
         <RoomHostManagementPanel
           model={hostManagement}
-          bottomActions={null}
+          bottomActions={panelPlayerActions}
           presentation="sheet"
           onClose={closeActionsPanel}
           isAudioPlaying={model.isAudioPlaying}
@@ -418,7 +425,11 @@ export function RoomShell({
           model={stageMenu}
           abortAction={hostManagement?.sections
             .flatMap((section) => section.actions)
-            .find((action) => action.stageMenuRole === 'abort')}
+            .find(
+              (action) =>
+                action.key === HOST_ACTION_KEYS.abortGame ||
+                (action.key === HOST_ACTION_KEYS.restart && action.variant === 'danger'),
+            )}
           onClose={() => {
             setIsStageMenuOpen(false);
             stageMenuEntryRef.current?.focus({ preventScroll: true });

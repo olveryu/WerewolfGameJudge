@@ -65,14 +65,14 @@ describe('UndercoverWordModal', () => {
 
     const animator = await screen.findByTestId('role-reveal-animator');
     expect(screen.queryByTestId('undercover-word')).toBeNull();
-    expect(screen.queryByTestId('role-card-confirm-button')).toBeNull();
+    expect(screen.queryByTestId('undercover-confirm')).toBeNull();
     expect(screen.queryByText('隐藏词卡')).toBeNull();
 
     await userEvent.click(animator);
 
     expect(screen.queryByTestId('role-reveal-animator')).toBeNull();
     expect(screen.getByTestId('undercover-word')).toHaveTextContent('苹果');
-    await userEvent.click(screen.getByText('知道了'));
+    await userEvent.click(screen.getByTestId('undercover-confirm'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 

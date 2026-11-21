@@ -28,6 +28,7 @@ import {
 import { TargetConstraint } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
 import type { ApplyResolverResultAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectRejection, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
@@ -135,7 +136,7 @@ function createMinimalState(
   overrides?: Partial<GameState>,
 ): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,

@@ -1,6 +1,6 @@
 /**
  * The Story Relay review contribution: available to every viewer once the
- * round ends, shareable, and with nothing to confirm.
+ * round ended or was aborted, shareable, and with nothing to confirm.
  */
 
 import type { StoryRelayState } from '@game-judge/game-engine/games/storyrelay/public';
@@ -22,6 +22,7 @@ function resolveFor(state: StoryRelayState, viewer: RoomViewer) {
 
 describe('storyRelayReview', () => {
   const ended = playStoryRelayTestRound();
+  const aborted = playStoryRelayTestRound({ abortAtStep: 1 });
 
   it('has nothing to review before the round ends', () => {
     const states: readonly StoryRelayState[] = [
@@ -34,11 +35,17 @@ describe('storyRelayReview', () => {
     }
   });
 
-  it.each(VIEWERS)('offers the ended round to viewer seat $seat to read and share', (viewer) => {
-    const availability = resolveFor(ended, viewer);
-    if (availability.kind !== 'available') throw new Error('expected an available review');
-    expect(availability.sharing).toEqual({ isAllowed: true });
-    expect(availability.confirmation).toBeNull();
-    expect(availability.document.pages).toHaveLength(ended.chains.length);
-  });
+  it.each(VIEWERS)(
+    'offers ended and aborted rounds to viewer seat $seat to read and share',
+    (viewer) => {
+      for (const state of [ended, aborted]) {
+        const availability = resolveFor(state, viewer);
+        if (availability.kind !== 'available') throw new Error('expected an available review');
+        expect(availability.sharing).toEqual({ isAllowed: true });
+        expect(availability.confirmation).toBeNull();
+        expect(availability.document.isAborted).toBe(state.phase === 'aborted');
+        expect(availability.document.pages).toHaveLength(state.chains.length);
+      }
+    },
+  );
 });

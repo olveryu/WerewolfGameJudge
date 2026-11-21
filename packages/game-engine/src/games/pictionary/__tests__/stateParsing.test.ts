@@ -4,6 +4,7 @@ import type { CreateGameContext } from '../../../platform/engine';
 import { pictionaryEngine } from '../engine';
 import { parsePictionaryState } from '../state/parseState';
 import { DEFAULT_PICTIONARY_CONFIG } from '../state/types';
+import { PICTIONARY_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT: CreateGameContext = {
   roomCode: '2468',
@@ -43,8 +44,16 @@ describe('Pictionary state parsing', () => {
     );
   });
 
-  it('accepts the current state for persistence and transport', () => {
+  it('accepts only the latest state for persistence and transport', () => {
     const state = pictionaryEngine.createInitialState(DEFAULT_PICTIONARY_CONFIG, CREATE_CONTEXT);
+    const legacy: Record<string, unknown> = { ...state, stateVersion: 6 };
+    delete legacy.stepOffsets;
+
+    expect(() => parsePictionaryState(legacy)).toThrow();
     expect(parsePictionaryState(state)).toEqual(state);
+
+    expect(() => parsePictionaryState(legacy)).toThrow(
+      `PictionaryState.stateVersion must be state version ${PICTIONARY_STATE_VERSION}`,
+    );
   });
 });

@@ -1,6 +1,6 @@
 /** Music settings page: persistence failures and game-owned audio preview playback. */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import type { Mock } from 'vitest';
@@ -10,7 +10,6 @@ import { BGM_TRACKS } from '@/features/product/model/BgmCatalog';
 import { audioSettings } from '@/features/settings/audioSettings';
 import { type ClientGameAudioPreview, loadClientGameAudioPreviews } from '@/games/catalog';
 import { MusicSettingsPage } from '@/routes/settings/MusicSettingsPage';
-import { AudioPreviewUnavailableError } from '@/services/infra/AudioService';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { handleError } from '@/utils/errorPipeline';
 
@@ -95,42 +94,6 @@ describe('MusicSettingsPage', () => {
 
     act(() => audioService.stopOnItsOwn());
     expect(screen.getByRole('button', { name: `试听 ${firstTrack.label}` })).toBeInTheDocument();
-  });
-
-  it('reports unavailable BGM previews with the expected reason', async () => {
-    const error = new AudioPreviewUnavailableError();
-    vi.spyOn(audioService, 'startBgm').mockImplementationOnce(() => {
-      throw error;
-    });
-    renderPage();
-    const firstTrack = BGM_TRACKS[0];
-    if (firstTrack === undefined) throw new Error('BGM catalog is empty');
-
-    await userEvent.click(await screen.findByRole('button', { name: `试听 ${firstTrack.label}` }));
-    expect(handleError).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        label: '试听背景音乐',
-        alertMessage: error.message,
-      }),
-    );
-  });
-
-  it('reports unavailable game-audio previews with their reason', async () => {
-    const error = new AudioPreviewUnavailableError();
-    previewPlay.mockRejectedValueOnce(error);
-    renderPage();
-
-    await userEvent.click(await screen.findByText('试听效果'));
-    await waitFor(() =>
-      expect(handleError).toHaveBeenCalledWith(
-        error,
-        expect.objectContaining({
-          label: '试听游戏音效',
-          alertMessage: error.message,
-        }),
-      ),
-    );
   });
 
   it('plays and stops the game-owned audio preview contribution', async () => {

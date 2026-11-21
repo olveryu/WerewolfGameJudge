@@ -1,5 +1,7 @@
-/** Strict DrawGuess persistence and transport codec. */
+/** Strict DrawGuess persistence and transport codec; v1 through v4
+ * payloads migrate through migratePersistedDrawGuessState. */
 
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
@@ -13,7 +15,7 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { parseRoomRoster } from '../../../platform/room/roster';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeDrawGuessState } from './normalize';
 import {
   DRAWGUESS_DRAWING_DURATION_SECONDS,
@@ -27,6 +29,7 @@ import {
   type DrawGuessConfig,
   type DrawGuessDrawingReservation,
   type DrawGuessGuessLogEntry,
+  type DrawGuessHumanSeat,
   type DrawGuessMedia,
   type DrawGuessPhase,
   type DrawGuessReaction,
@@ -35,6 +38,7 @@ import {
   type DrawGuessTurnRecord,
   type DrawGuessWordChoice,
 } from './types';
+import { DRAWGUESS_STATE_VERSION } from './version';
 
 /** Parses only the supported lobby settings. */
 export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): DrawGuessConfig {
@@ -65,6 +69,19 @@ export function parseDrawGuessConfig(value: unknown, path = 'DrawGuessConfig'): 
     },
     path,
   );
+}
+
+function legacyRealSeats(value: unknown, path: string): Record<number, DrawGuessHumanSeat> {
+  const raw = parseObject(value, path);
+  const result: Record<number, DrawGuessHumanSeat> = {};
+  for (const [key, occupant] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
+    result[parseSeat(Number(key), `${path}.${key}`)] = parseRoomHumanSeat(
+      occupant,
+      `${path}.${key}`,
+    );
+  }
+  return result;
 }
 
 function wordChoice(value: unknown, path: string): DrawGuessWordChoice {
@@ -282,14 +299,22 @@ function phase(value: unknown, path: string): DrawGuessPhase {
           roundScores: scores(raw.roundScores, `${path}.roundScores`),
           drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
           reactionsBySeat: reactionsBySeat(raw.reactionsBySeat, `${path}.reactionsBySeat`),
-          guessAttemptsBySeat: nonnegativeSeatCounts(
-            raw.guessAttemptsBySeat,
-            `${path}.guessAttemptsBySeat`,
-          ),
-          guessTimeMsBySeat: nonnegativeSeatCounts(
-            raw.guessTimeMsBySeat,
-            `${path}.guessTimeMsBySeat`,
-          ),
+          ...(Object.prototype.hasOwnProperty.call(raw, 'guessAttemptsBySeat')
+            ? {
+                guessAttemptsBySeat: nonnegativeSeatCounts(
+                  raw.guessAttemptsBySeat,
+                  `${path}.guessAttemptsBySeat`,
+                ),
+              }
+            : {}),
+          ...(Object.prototype.hasOwnProperty.call(raw, 'guessTimeMsBySeat')
+            ? {
+                guessTimeMsBySeat: nonnegativeSeatCounts(
+                  raw.guessTimeMsBySeat,
+                  `${path}.guessTimeMsBySeat`,
+                ),
+              }
+            : {}),
           pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
           reservation: parseNullable(raw.reservation, `${path}.reservation`, reservation),
           deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
@@ -320,11 +345,22 @@ function turnRecord(value: unknown, path: string): DrawGuessTurnRecord {
       roundScores: scores(raw.roundScores, `${path}.roundScores`),
       drawerZeroed: parseBoolean(raw.drawerZeroed, `${path}.drawerZeroed`),
       reactionsBySeat: reactionsBySeat(raw.reactionsBySeat, `${path}.reactionsBySeat`),
-      guessAttemptsBySeat: nonnegativeSeatCounts(
-        raw.guessAttemptsBySeat,
-        `${path}.guessAttemptsBySeat`,
-      ),
-      guessTimeMsBySeat: nonnegativeSeatCounts(raw.guessTimeMsBySeat, `${path}.guessTimeMsBySeat`),
+      ...(Object.prototype.hasOwnProperty.call(raw, 'guessAttemptsBySeat')
+        ? {
+            guessAttemptsBySeat: nonnegativeSeatCounts(
+              raw.guessAttemptsBySeat,
+              `${path}.guessAttemptsBySeat`,
+            ),
+          }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(raw, 'guessTimeMsBySeat')
+        ? {
+            guessTimeMsBySeat: nonnegativeSeatCounts(
+              raw.guessTimeMsBySeat,
+              `${path}.guessTimeMsBySeat`,
+            ),
+          }
+        : {}),
       entryId: parseNullable(raw.entryId, `${path}.entryId`, parseNonEmptyString),
       pngEntry: parseNullable(raw.pngEntry, `${path}.pngEntry`, pngEntry),
     },
@@ -343,6 +379,9 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [DRAWGUESS_GAME_TYPE]),
+        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
+          DRAWGUESS_STATE_VERSION,
+        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -357,6 +396,107 @@ export function parseDrawGuessState(value: unknown): DrawGuessState {
         turnHistory: parseArray(raw.turnHistory, `${path}.turnHistory`, turnRecord),
       },
       path,
+    ),
+  );
+}
+
+/**
+ * Upgrades a stored v2 document to v3: roundEnd phases gain drawerZeroed.
+ * v2 never recorded a zeroing, so the default is false; a document that
+ * already carries the field keeps its value.
+ */
+function upgradeV2ToV3(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...raw, stateVersion: 3 };
+  const phase = parseObject(raw.phase, 'DrawGuessState.phase');
+  if (phase.kind !== 'roundEnd' || 'drawerZeroed' in phase) return next;
+  return { ...next, phase: { ...phase, drawerZeroed: false } };
+}
+
+/**
+ * Upgrades a stored v3 document to v4: the state gains an empty
+ * turnHistory (v3 kept no finished turns), and a roundEnd phase gains
+ * guessedSeats. v3 dropped the guess order at round end, so it is
+ * rebuilt from roundScores: every non-drawer seat holding a round score
+ * guessed, and a guesser score only decays with time, so a higher score
+ * guessed earlier; equal scores fall back to seat order.
+ */
+function upgradeV3ToV4(raw: Record<string, unknown>): Record<string, unknown> {
+  const path = 'DrawGuessState.phase';
+  const next = { ...raw, stateVersion: 4, turnHistory: [] };
+  const phase = parseObject(raw.phase, path);
+  if (phase.kind !== 'roundEnd') return next;
+  const drawerSeat = parseSeat(phase.drawerSeat, `${path}.drawerSeat`);
+  const guessedSeats = Object.entries(scores(phase.roundScores, `${path}.roundScores`))
+    .map(([seat, score]) => ({ seat: Number(seat), score }))
+    .filter((entry) => entry.seat !== drawerSeat)
+    .sort((left, right) => right.score - left.score || left.seat - right.seat)
+    .map((entry) => entry.seat);
+  return { ...next, phase: { ...phase, guessedSeats } };
+}
+
+/** Adds per-turn reactions. Existing closed turns keep guess stats unknown. */
+function upgradeV4ToV5(raw: Record<string, unknown>): Record<string, unknown> {
+  const path = 'DrawGuessState';
+  const phase = parseObject(raw.phase, `${path}.phase`);
+  const migratedPhase =
+    phase.kind === 'drawing' || phase.kind === 'roundEnd'
+      ? { ...phase, reactionsBySeat: {} }
+      : phase;
+  const turnHistory = parseArray(raw.turnHistory, `${path}.turnHistory`, parseObject).map(
+    (record) => ({ ...record, reactionsBySeat: {} }),
+  );
+  return {
+    ...raw,
+    stateVersion: DRAWGUESS_STATE_VERSION,
+    phase: migratedPhase,
+    turnHistory,
+  };
+}
+
+/**
+ * Upgrades stored v1 rooms: v1 stored the roster as realSeats plus an
+ * excluded-seat list, with the bot-fill flag inside the config; the v2
+ * roster materializes exactly the seats the old derivation called bots
+ * and the config flag retires. Older rooms continue through sequential
+ * version upgrades. Anything else goes through the
+ * strict parser, which rejects unsupported versions.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedDrawGuessState(value: unknown): DrawGuessState {
+  const path = 'DrawGuessState';
+  const raw = parseObject(value, path);
+  if (raw.stateVersion === DRAWGUESS_STATE_VERSION) return parseDrawGuessState(raw);
+  if (raw.stateVersion === 4) return parseDrawGuessState(upgradeV4ToV5(raw));
+  if (raw.stateVersion === 3) return parseDrawGuessState(upgradeV4ToV5(upgradeV3ToV4(raw)));
+  if (raw.stateVersion === 2)
+    return parseDrawGuessState(upgradeV4ToV5(upgradeV3ToV4(upgradeV2ToV3(raw))));
+  if (raw.stateVersion !== 1) return parseDrawGuessState(raw);
+  const rawConfig = parseObject(raw.config, `${path}.config`);
+  const fill = parseBoolean(
+    rawConfig.fillEmptySeatsWithBots,
+    `${path}.config.fillEmptySeatsWithBots`,
+  );
+  const { fillEmptySeatsWithBots: _legacyFill, ...configRest } = rawConfig;
+  const config = parseDrawGuessConfig(configRest, `${path}.config`);
+  const humans = legacyRealSeats(raw.realSeats, `${path}.realSeats`);
+  const excluded = parseArray(raw.excludedBotSeats, `${path}.excludedBotSeats`, parseSeat);
+  const nextRoster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: config.numberOfPlayers,
+  });
+  const { realSeats: _legacySeats, excludedBotSeats: _legacyExcluded, ...rest } = raw;
+  return parseDrawGuessState(
+    upgradeV4ToV5(
+      upgradeV3ToV4(
+        upgradeV2ToV3({
+          ...rest,
+          stateVersion: 2,
+          config,
+          roster: nextRoster,
+        }),
+      ),
     ),
   );
 }

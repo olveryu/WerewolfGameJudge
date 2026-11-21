@@ -8,7 +8,7 @@ import type { SchemaId } from '../domain/models/roles/spec/schemas';
  * night step's `stepDeadline` is armed, or a sheriff voting round
  * while the election's settle `deadline` is armed.
  */
-export type WerewolfDeadlinePhase = SchemaId | 'firstVote' | 'runoffVote' | 'sheriffResult';
+export type WerewolfDeadlinePhase = SchemaId | 'firstVote' | 'runoffVote';
 
 /**
  * Scheduled settlement of one armed deadline. The payload pins the

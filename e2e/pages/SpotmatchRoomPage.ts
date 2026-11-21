@@ -29,11 +29,11 @@ export class SpotmatchRoomPage extends RoomPage {
   }
 
   override async returnToLobby() {
-    await this.clickHostManagementAction(TESTIDS.restartButton);
+    await this.clickHostManagementAction(TESTIDS.returnLobbyButton);
     await pressAlertButton(this.page, {
-      title: '重新开始？',
+      title: '返回大厅',
       buttonIndex: 1,
-      buttonLabel: '重新开始',
+      buttonLabel: '返回大厅',
     });
     await this.expectHostManagementAction(TESTIDS.startGameButton, '开始游戏');
   }

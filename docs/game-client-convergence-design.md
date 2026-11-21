@@ -517,7 +517,7 @@ v3 初稿默认"六家是基准、狼人杀向六家看齐"，把两处狼人杀
 
 ### v3 实施修订（步骤 1–5）
 
-- 历史实现记录（当前已废弃）：步骤 1 曾将狼人杀状态升级到 v15，并由 `migratePersistedWerewolfState` 迁移 v12–14；后续架构已移除所有游戏状态版本和持久化迁移，见[多游戏平台架构](multigame-platform-design.md)。
+- 步骤 1：状态版本落为 **v15**（v14 已被占用），`migratePersistedWerewolfState` 迁 v12–14；`recordedActions` 投影字段无消费者，删除。
 - 步骤 2：`deathSources` 持久化撤回（§6.3 / D3 / D11）；`speakingInstruction` → `speakingOrder` 结构化；`sheriffElectionRecord` 与复盘测试随事实层迁入引擎。
 - 步骤 4：`useNowMs(intervalMs, isActive)` 带激活门——无倒计时的房间（大厅）不每秒重渲染，`useStageDeadline` 以 `deadlineAt !== null` 激活并返回 `{ remainingSeconds, nowMs }`；drawguess 自建 ticker 删除。`shareImagesBase64` 返回 `'shared' | 'cancelled'`，取消判定只有 Web Share `AbortError`——`expo-sharing@56` 的 `shareAsync` 对关闭与完成一律 resolve void，原稿「expo-sharing dismiss 结果」不存在，撤回。`useRoleViewing` 冻结的 `remainingCards` 取**确认前**记录（自己的牌仍在桌上），不是原稿的「确认后排除本座位」——`CardPick` 的桌面牌数语义要求本人的牌在场。`useLastActionToast` 按**命令类型**匹配（`lastCommand.type` 是命令类型，狼人杀原 hook 匹配 `KICK_PLAYER` 等 action 名从未命中，是死代码）；「天亮了」类状态迁移提示不走此 hook。`RoomOccupant` 落地：`RoomSeatPlayer.occupant` / `RoomProfileTarget.occupant`，bot 头像种子 `bot:<seat>`，`createRoomProfileTargetResolver` 删除（各家直接 `getRoomProfileTarget(state.roster, seat)`），`useUserProfileQuery` 接受 `null`。`useScopedDraft` 的存储访问放 `services/scopedDraftStore.ts`（架构契约：直接存储访问只在 services / platform）。`RoomAudioResumeDialog` 只在 `onClose` 绑一次 continue（狼人杀原实现按钮与 onClose 双绑，continue 跑两次）。new-game 生成器模板同步。
 - 步骤 3：到期命令无 payload（同阿瓦隆，pin 只在效果上）；新增 `GameState.gameSequence`，状态 v16；`handleProgressionRequest` 删除，hand-built "exhausted" 测试状态改经音频 ack 触发收夜（线上 exhausted 态只会停在音频/确认门后）。

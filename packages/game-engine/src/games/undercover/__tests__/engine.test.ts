@@ -3,13 +3,14 @@
 import type { CommandContext } from '../../../platform/engine';
 import { dispatchCommand } from '../../../platform/engine/__tests__/engineSession';
 import { REASON_CONTROLLED_SEAT_NOT_BOT } from '../../../platform/protocol/reasons';
-import { getBotSeats } from '../../../platform/room/seating';
+import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
 import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
 import { UNDERCOVER_STATE_CODEC } from '../state/codec';
+import { migratePersistedUndercoverState } from '../state/parseState';
 import {
   getUndercoverParticipantUserIds,
   type UndercoverConfig,
@@ -120,30 +121,6 @@ function reveal(state: UndercoverState, role: UndercoverRole, context = user()):
 }
 
 describe('Undercover authoritative engine', () => {
-  it('records each eligible terminal review once and clears it on restart', () => {
-    const active = ongoing(2);
-    if (active.round === null) throw new Error('Expected round');
-    const roundId = active.round.roundId;
-    const command = { type: 'undercover.review.complete', roundId } as const;
-    expect(undercoverEngine.decide(active, command, user()).kind).toBe('reject');
-    const ended = reveal(reveal(reveal(active, 'blank'), 'undercover'), 'undercover');
-    expect(undercoverEngine.decide(ended, command, user('spectator')).kind).toBe('reject');
-    expect(undercoverEngine.decide(ended, command, user('host', 2)).kind).toBe('reject');
-    expect(undercoverEngine.decide(ended, { ...command, roundId: 'stale' }, user()).kind).toBe(
-      'reject',
-    );
-    const hostComplete = dispatch(ended, command);
-    const playerComplete = dispatch(hostComplete, command, user('u1'));
-    const completed = dispatch(playerComplete, command, user('u1'));
-    expect(completed.reviewCompletedUserIds).toEqual(['host', 'u1']);
-    expect(
-      UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds,
-    ).toEqual(['host', 'u1']);
-    const reset = dispatch(completed, { type: 'undercover.game.restart', roundId, wasEnded: true });
-    expect(reset.reviewCompletedUserIds).toEqual([]);
-    expect(undercoverEngine.decide(reset, command, user()).kind).toBe('reject');
-  });
-
   it('resets each round atomically while rejecting stale, unauthorized and changed completion requests', () => {
     const preparing = prepare();
     if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
@@ -159,13 +136,25 @@ describe('Undercover authoritative engine', () => {
       },
       system(),
     );
-    const states = [preparing, failed, complete(preparing), active, ended];
+    const states = [
+      preparing,
+      failed,
+      complete(preparing),
+      active,
+      ended,
+      dispatch(preparing, {
+        type: 'undercover.game.abort',
+        roundId: preparing.pendingRound.roundId,
+      }),
+    ];
     for (const state of states) {
       if (state.phase === 'lobby') throw new Error('Expected round');
       const roundId =
         state.phase === 'preparing' || state.phase === 'preparationFailed'
           ? state.pendingRound.roundId
-          : state.round.roundId;
+          : state.phase === 'aborted'
+            ? state.abortedRoundId
+            : state.round.roundId;
       const command = {
         type: 'undercover.game.restart',
         roundId,
@@ -205,58 +194,144 @@ describe('Undercover authoritative engine', () => {
     }
   });
 
-  it('allows repeated words only for the current exhausted selection', () => {
+  it('migrates older aborted rounds and preserves their restart identity', () => {
     const preparing = prepare();
     if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
-    const roundId = preparing.pendingRound.roundId;
-    const failed = dispatch(
-      preparing,
-      { type: 'undercover.round.failPreparation', roundId, failureCode: 'inventoryExhausted' },
-      system(),
-    );
-    const command = { type: 'undercover.round.allowRepeated', roundId } as const;
-    expect(undercoverEngine.decide(failed, command, user('visitor')).kind).toBe('reject');
-    expect(undercoverEngine.decide(failed, { ...command, roundId: 'stale' }, user()).kind).toBe(
-      'reject',
-    );
-    const decision = undercoverEngine.decide(failed, command, user('host', null, 'repeat'));
-    if (decision.kind === 'reject') throw new Error(decision.reason);
-    expect(decision.effects).toEqual([
-      {
-        type: 'undercover.word.select',
-        payload: {
-          roundId: 'undercover-round:repeat',
-          category: failed.config.category,
-          avoidWordPairIds: failed.usedWordPairIds,
-          shouldAllowRepeated: true,
-        },
-      },
-    ]);
-    const next = dispatch(failed, command, user('host', null, 'repeat'));
-    expect(next).toMatchObject({
-      phase: 'preparing',
-      roster: failed.roster,
-      config: failed.config,
-      pendingRound: { roundId: 'undercover-round:repeat', shouldAllowRepeated: true },
+    const aborted = dispatch(preparing, {
+      type: 'undercover.game.abort',
+      roundId: preparing.pendingRound.roundId,
     });
-    expect(undercoverEngine.decide(next, command, user()).kind).toBe('reject');
+    if (aborted.phase !== 'aborted') throw new Error('Expected abort');
+    const { abortedRoundId: _identity, ...oldState } = aborted;
+    const migrated = migratePersistedUndercoverState({ ...oldState, stateVersion: 5 });
+    expect(migrated).toMatchObject({
+      phase: 'aborted',
+      abortedRoundId: 'legacy-aborted-preparation',
+    });
+    const newAbort = dispatch(preparing, {
+      type: 'undercover.game.abort',
+      roundId: preparing.pendingRound.roundId,
+    });
     expect(
       undercoverEngine.decide(
-        next,
+        newAbort,
         {
-          type: 'undercover.round.complete',
-          roundId,
-          wordPair: { id: 'late', wordA: 'Milk', wordB: 'Tea', category: 'food' },
+          type: 'undercover.game.restart',
+          roundId: 'legacy-aborted-preparation',
+          wasEnded: false,
         },
-        system(),
+        user(),
       ).kind,
     ).toBe('reject');
-    const otherFailure = dispatch(
-      preparing,
-      { type: 'undercover.round.failPreparation', roundId, failureCode: 'selectionFailed' },
-      system(),
+    const viewing = complete(prepare());
+    const abortedViewing = dispatch(viewing, {
+      type: 'undercover.game.abort',
+      roundId: viewing.round!.roundId,
+    });
+    if (abortedViewing.phase !== 'aborted') throw new Error('Expected abort');
+    const { abortedRoundId: _viewingIdentity, ...oldViewingAbort } = abortedViewing;
+    expect(migratePersistedUndercoverState({ ...oldViewingAbort, stateVersion: 5 })).toEqual(
+      abortedViewing,
     );
-    expect(undercoverEngine.decide(otherFailure, command, user()).kind).toBe('reject');
+    expect(() =>
+      migratePersistedUndercoverState({ ...viewing, stateVersion: 5, phase: 'reading' }),
+    ).toThrow();
+  });
+
+  it('atomically restarts while retaining the roster, config and used words, rejecting stale requests', () => {
+    const active = reveal(ongoing(), 'civilian');
+    if (active.round === null) throw new Error('Expected round');
+    const preparing = prepare();
+    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
+    const states = [
+      preparing,
+      complete(preparing),
+      active,
+      reveal(reveal(reveal(ongoing(), 'blank'), 'undercover'), 'undercover'),
+      dispatch(active, { type: 'undercover.game.abort', roundId: active.round.roundId }),
+      dispatch(preparing, {
+        type: 'undercover.game.abort',
+        roundId: preparing.pendingRound.roundId,
+      }),
+      dispatch(
+        preparing,
+        {
+          type: 'undercover.round.failPreparation',
+          roundId: preparing.pendingRound.roundId,
+          failureCode: 'selectionFailed',
+        },
+        system(),
+      ),
+    ];
+    for (const state of states) {
+      const roundId =
+        state.phase === 'preparing' || state.phase === 'preparationFailed'
+          ? state.pendingRound.roundId
+          : (state.round?.roundId ?? null);
+      const command = { type: 'undercover.game.redeal', roundId } as const;
+      expect(undercoverEngine.decide(state, command, user('visitor')).kind).toBe('reject');
+      const decision = undercoverEngine.decide(state, command, user('host', null, 'restart'));
+      if (decision.kind === 'reject') throw new Error(decision.reason);
+      expect(decision.effects).toEqual([
+        {
+          type: 'undercover.word.select',
+          payload: {
+            roundId: 'undercover-round:restart',
+            category: state.config.category,
+            avoidWordPairIds: state.usedWordPairIds,
+            shouldAllowRepeated: false,
+          },
+        },
+      ]);
+      const restarted = dispatch(state, command, user('host', null, 'restart'));
+      expect(restarted).toEqual({
+        gameType: state.gameType,
+        stateVersion: state.stateVersion,
+        roomCode: state.roomCode,
+        hostUserId: state.hostUserId,
+        config: state.config,
+        roster: state.roster,
+        usedWordPairIds: state.usedWordPairIds,
+        phase: 'preparing',
+        round: null,
+        pendingRound: {
+          roundId: 'undercover-round:restart',
+          requestedAt: 1000,
+          shouldAllowRepeated: false,
+        },
+      });
+      expect(undercoverEngine.decide(restarted, command, user()).kind).toBe('reject');
+      expect(
+        undercoverEngine.decide(
+          restarted,
+          {
+            type: 'undercover.round.complete',
+            roundId: 'undercover-round:start',
+            wordPair: { id: 'stale', wordA: 'Milk', wordB: 'Soy milk', category: 'food' },
+          },
+          system(),
+        ).kind,
+      ).toBe('reject');
+      const next = dispatch(
+        restarted,
+        {
+          type: 'undercover.round.complete',
+          roundId: 'undercover-round:restart',
+          wordPair: { id: 'pair-2', wordA: 'Tea', wordB: 'Coffee', category: 'food' },
+        },
+        system(),
+      );
+      expect(next.phase).toBe('viewing');
+      expect(next.round).toMatchObject({ confirmedSeats: [], revelations: [] });
+      expect(next.usedWordPairIds).toContain('pair-2');
+    }
+    expect(
+      undercoverEngine.decide(
+        createLobby(),
+        { type: 'undercover.game.redeal', roundId: null },
+        user(),
+      ).kind,
+    ).toBe('reject');
   });
 
   it('persists a valid speaking start seat across confirmations and snapshot decoding', () => {
@@ -293,12 +368,63 @@ describe('Undercover authoritative engine', () => {
         },
         system(),
       ),
+      dispatch(active, { type: 'undercover.game.abort', roundId: active.round.roundId }),
       reveal(reveal(reveal(active, 'blank'), 'undercover'), 'undercover'),
     ];
     for (const state of states) {
       expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(state)))).toEqual(state);
       expect(() => UNDERCOVER_STATE_CODEC.parse({ ...state, unexpected: true })).toThrow();
+      for (const stateVersion of [1, 2, 3]) {
+        const legacyRound: Record<string, unknown> | null =
+          state.round === null ? null : { ...state.round };
+        if (legacyRound !== null && stateVersion !== 3) delete legacyRound.speakingStartSeat;
+        const legacy = {
+          ...state,
+          stateVersion,
+          realSeats: getHumanSeatMap(state.roster, state.config.numberOfPlayers),
+          botSeats: getBotSeats(state.roster),
+          round: legacyRound,
+          config:
+            stateVersion === 1
+              ? { ...state.config, isTestMode: getBotSeats(state.roster).length > 0 }
+              : state.config,
+        };
+        const migrated = migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)));
+        expect(migrated).toEqual({
+          ...state,
+          round:
+            state.round === null || stateVersion === 3
+              ? state.round
+              : { ...state.round, speakingStartSeat: expect.any(Number) as unknown },
+        });
+        expect(migratePersistedUndercoverState(legacy)).toEqual(migrated);
+        expect(() => UNDERCOVER_STATE_CODEC.parse(legacy)).toThrow();
+      }
+      expect(migratePersistedUndercoverState(state)).toEqual(state);
     }
+  });
+
+  it('migrates v4 states by renaming the reading phase to viewing, field-equal', () => {
+    let viewing = complete(prepare());
+    if (viewing.round === null) throw new Error('Expected round');
+    viewing = dispatch(
+      viewing,
+      { type: 'undercover.role.viewed', roundId: viewing.round.roundId },
+      user('host', 1),
+    );
+    const v4Viewing: Record<string, unknown> = {
+      ...(JSON.parse(JSON.stringify(viewing)) as Record<string, unknown>),
+      stateVersion: 4,
+      phase: 'reading',
+    };
+    expect(migratePersistedUndercoverState(v4Viewing)).toEqual(viewing);
+
+    const active = ongoing();
+    const v4Ongoing: Record<string, unknown> = {
+      ...(JSON.parse(JSON.stringify(active)) as Record<string, unknown>),
+      stateVersion: 4,
+    };
+    expect(migratePersistedUndercoverState(v4Ongoing)).toEqual(active);
   });
 
   it('limits cards to the real player or host-controlled robot and hides affiliation', () => {
@@ -313,6 +439,11 @@ describe('Undercover authoritative engine', () => {
       expect(card).not.toHaveProperty('category');
     }
     if (state.round === null) throw new Error('Expected round');
+    const aborted = dispatch(state, {
+      type: 'undercover.game.abort',
+      roundId: state.round.roundId,
+    });
+    expect(getUndercoverWordCard(aborted, 'host', 1)).toBeNull();
   });
   it('lets one host confirm all robot seats without changing host identity', () => {
     const state = ongoing();
@@ -404,12 +535,12 @@ describe('Undercover authoritative engine', () => {
     ).toBe('ended');
   });
 
-  it('does not reward an in-progress round when restarting', () => {
+  it('does not reward an aborted round', () => {
     const state = ongoing();
     if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
     const decision = undercoverEngine.decide(
       state,
-      { type: 'undercover.game.restart', roundId: state.round.roundId, wasEnded: false },
+      { type: 'undercover.game.abort', roundId: state.round.roundId },
       user(),
     );
     if (decision.kind === 'reject') throw new Error(decision.reason);
@@ -643,7 +774,8 @@ describe('Undercover authoritative engine', () => {
     const initial = ongoing();
     if (initial.round === null) throw new Error('Expected round');
     const roundId = initial.round.roundId;
-    const lobby = dispatch(initial, { type: 'undercover.game.restart', roundId, wasEnded: false });
+    const aborted = dispatch(initial, { type: 'undercover.game.abort', roundId });
+    const lobby = dispatch(aborted, { type: 'undercover.game.returnToLobby' });
     expect(lobby).toMatchObject({
       phase: 'lobby',
       round: null,
@@ -659,11 +791,7 @@ describe('Undercover authoritative engine', () => {
       user('host', null, 'next-round'),
     );
     expect(
-      undercoverEngine.decide(
-        restarted,
-        { type: 'undercover.game.restart', roundId, wasEnded: false },
-        user(),
-      ),
+      undercoverEngine.decide(restarted, { type: 'undercover.game.abort', roundId }, user()),
     ).toEqual({ kind: 'reject', reason: UNDERCOVER_REASONS.round });
   });
 });

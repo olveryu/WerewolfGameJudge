@@ -30,6 +30,7 @@ type TestCommand = { readonly type: 'avalon.noop' };
 
 const state: TestState = {
   gameType: 'avalon',
+  stateVersion: 1,
   roomCode: '1234',
   hostUserId: 'host',
 };
@@ -48,6 +49,7 @@ const user: User = {
 };
 const ready = readyLinkSnapshot<TestState>(testIdentity('avalon'), {
   gameType: 'avalon',
+  stateVersion: 1,
   revision: 7,
   state,
 });

@@ -9,6 +9,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/model
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 interface PlayerInput {
   userId: string;
@@ -46,7 +47,7 @@ function createStateWithPlayers(
   const allSeated = players.every((p) => p !== null);
 
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,

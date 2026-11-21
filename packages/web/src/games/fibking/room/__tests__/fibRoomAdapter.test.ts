@@ -1,4 +1,8 @@
-import { FIB_MAX_PLAYERS, type FibState } from '@game-judge/game-engine/games/fibking/public';
+import {
+  FIB_MAX_PLAYERS,
+  FIB_STATE_VERSION,
+  type FibState,
+} from '@game-judge/game-engine/games/fibking/public';
 
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
@@ -43,6 +47,7 @@ const callbacks = {
 function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }> {
   return {
     gameType: 'fibking',
+    stateVersion: FIB_STATE_VERSION,
     roomCode: '4321',
     hostUserId: 'host',
     phase: 'lobby',
@@ -55,7 +60,6 @@ function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }>
       },
     },
     usedWords: [],
-    reviewCompletedUserIds: [],
     pendingRound: null,
     preparationFailure: null,
     round: null,
@@ -759,7 +763,7 @@ describe('FibKing room adapter', () => {
 describe('createFibHostManagement task body', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  const build = (state: FibState, review = reviewEntryFor(state), isGuessing = false) =>
+  const build = (state: FibState, review = reviewEntryFor(state)) =>
     createFibHostManagement({
       state,
       isCommandSubmitting: false,
@@ -767,7 +771,7 @@ describe('createFibHostManagement task body', () => {
       startRound: vi.fn(),
       markAllBotsViewed: vi.fn(),
       beginRound: vi.fn(),
-      isGuessing,
+      isGuessing: false,
       toggleGuessMode: vi.fn(),
       revealRound: vi.fn(),
       redrawRound: vi.fn(),
@@ -825,19 +829,10 @@ describe('createFibHostManagement task body', () => {
     if (step?.kind !== 'ready') throw new Error('expected a ready task body');
   });
 
-  it('marks guessing as the ongoing task, without marking the selection or optional reveal', () => {
-    const ongoing = createOngoing();
-    const model = build(ongoing);
-    expect(model.pendingActionKeys).toEqual(['guess-seat']);
-    expect(hostTaskBody(model)).toMatchObject({
+  it('offers the reveal as the ongoing task', () => {
+    expect(hostTaskBody(build(createOngoing()))).toMatchObject({
       kind: 'ready',
-      action: { key: 'guess-seat', label: '大聪明选人' },
-    });
-    const selecting = build(ongoing, null, true);
-    expect(selecting.pendingActionKeys).toEqual([]);
-    expect(hostTaskBody(selecting)).toMatchObject({
-      kind: 'message',
-      escape: { key: 'guess-seat', label: '取消选人' },
+      action: { key: 'reveal-round', label: '公布答案' },
     });
   });
 

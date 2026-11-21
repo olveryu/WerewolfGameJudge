@@ -115,12 +115,7 @@ export function playDrawGuessTestGame(script: readonly DrawGuessTestTurn[]): Dra
       if (choice === undefined) throw new Error('[FAIL-FAST] DrawGuess test word missing');
       return choice;
     });
-    asSystem({
-      type: 'drawguess.words.dealt',
-      gameSequence: read().gameSequence,
-      turnIndex,
-      choices,
-    });
+    asSystem({ type: 'drawguess.words.dealt', turnIndex, choices });
     const dealt = read().phase;
     const [choice] = choices;
     if (dealt.kind !== 'wordSelect' || choice === undefined) {

@@ -119,11 +119,6 @@ export function useUndercoverRoomState({
     submit,
     isSubmitting,
   });
-  const reviewRoundId = state.phase === 'ended' ? state.round.roundId : null;
-  const hasPendingReview =
-    reviewRoundId !== null &&
-    (isHost || mySeat !== null) &&
-    !state.reviewCompletedUserIds.includes(user.id);
   const review = useRoomReview({
     contribution: reviewContribution,
     state,
@@ -131,11 +126,6 @@ export function useUndercoverRoomState({
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
-    isPending: hasPendingReview,
-    onClosed:
-      hasPendingReview && reviewRoundId !== null
-        ? () => submit('确认复盘', { type: 'undercover.review.complete', roundId: reviewRoundId })
-        : null,
   });
   // 对局中（非选人）点座位只开资料卡；空位与禁用座位按共享规则提示。
   const onSeatPress = createRoomSeatPressHandler({

@@ -163,24 +163,6 @@ describe('createWerewolfHostManagement', () => {
       }),
     );
     expect(granted.pendingActionKeys).toEqual([]);
-    const pendingReview = createWerewolfHostManagement(
-      createInput({
-        roomStatus: GameStatus.Ended,
-        panelFlow: { lastNightInfoConfirmed: true, reviewCompleted: false },
-        isReviewShared: true,
-        review: { isEnabled: true, isPending: true, onPress: vi.fn() },
-      }),
-    );
-    expect(pendingReview.pendingActionKeys).toEqual(['review']);
-    const revoked = createWerewolfHostManagement(
-      createInput({
-        roomStatus: GameStatus.Ended,
-        panelFlow: { lastNightInfoConfirmed: true, reviewCompleted: true },
-        isReviewShared: false,
-        review: { isEnabled: true, onPress: vi.fn() },
-      }),
-    );
-    expect(revoked.pendingActionKeys).toEqual(['grant-review']);
   });
 
   it.each(['registration', 'candidateSpeech', 'runoffSpeech'] as const)(
@@ -278,13 +260,18 @@ describe('createWerewolfHostManagement', () => {
     expect(actionLabels(model)).toEqual([
       '结束报名',
       '本局复盘',
-      '昨夜信息',
       '授权玩家查看',
+      '昨夜信息',
       '重新开始',
     ]);
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['sheriff-advance', 'last-night-info', 'grant-review'],
+      actionKeys: ['sheriff-advance', 'grant-review', 'last-night-info'],
+      steps: [
+        { key: 'lastNightInfo', state: 'current' },
+        { key: 'grantReview', state: 'upcoming' },
+        { key: 'closing', state: 'upcoming' },
+      ],
     });
     const body = hostTaskBody(model);
     if (body?.kind !== 'choice') throw new Error('Expected a choice task');
@@ -324,7 +311,7 @@ describe('createWerewolfHostManagement', () => {
     );
     expect(model.task).toMatchObject({
       kind: 'choice',
-      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'last-night-info', 'grant-review'],
+      actionKeys: ['sheriff-advance', 'sheriff-self-destruct', 'grant-review', 'last-night-info'],
     });
     const body = hostTaskBody(model);
     if (body?.kind !== 'choice') throw new Error('Expected a choice task');
@@ -363,6 +350,11 @@ describe('createWerewolfHostManagement', () => {
     expect(model.task).toMatchObject({
       kind: 'action',
       actionKey: 'last-night-info',
+      steps: [
+        { key: 'lastNightInfo', state: 'current', actionKey: 'last-night-info' },
+        { key: 'grantReview', state: 'upcoming', actionKey: 'grant-review' },
+        { key: 'closing', state: 'upcoming' },
+      ],
     });
   });
 
@@ -409,7 +401,7 @@ describe('createWerewolfHostManagement', () => {
       expect(actions.find((action) => action.key === 'sheriff-advance')).toBeUndefined();
       expect(model.task).toMatchObject({
         kind: 'choice',
-        actionKeys: ['sheriff-self-destruct', 'last-night-info', 'grant-review'],
+        actionKeys: ['grant-review', 'last-night-info'],
       });
       expect(model.task).not.toHaveProperty('note');
       const confirmed = createWerewolfHostManagement(
@@ -420,10 +412,7 @@ describe('createWerewolfHostManagement', () => {
           capabilities: deniedRoomCapabilities,
         }),
       );
-      expect(confirmed.task).toEqual({
-        kind: 'choice',
-        actionKeys: ['sheriff-self-destruct', 'grant-review'],
-      });
+      expect(confirmed.task).toEqual({ kind: 'action', actionKey: 'grant-review' });
     },
   );
 
@@ -451,10 +440,9 @@ describe('createWerewolfHostManagement', () => {
   it.each([
     ['candidateSpeech', true],
     ['runoffSpeech', true],
-    ['firstVote', true],
-    ['runoffVote', true],
-    ['result', false],
-  ] as const)('shows self-destruct only before the result during %s', (phase, isVisible) => {
+    ['firstVote', false],
+    ['runoffVote', false],
+  ] as const)('shows self-destruct only during sheriff speech phase %s', (phase, isVisible) => {
     const requestEndBySelfDestruct = vi.fn();
     const sheriffElection = createSheriffElection(
       { phase, advanceLabel: '推进竞选' },
@@ -650,8 +638,8 @@ describe('createWerewolfHostManagement', () => {
       '评选 MVP',
       '重新开始',
       '本局复盘',
-      '昨夜信息',
       '授权玩家查看',
+      '昨夜信息',
     ]);
     const actions = model.sections.flatMap((section) => section.actions);
     const reviewAction = actions.find((action) => action.key === 'review');
@@ -677,6 +665,11 @@ describe('createWerewolfHostManagement', () => {
     expect(model.task).toMatchObject({
       kind: 'choice',
       actionKeys: ['grant-review', 'review', 'restart'],
+      steps: [
+        { key: 'lastNightInfo', state: 'complete' },
+        { key: 'grantReview', state: 'current' },
+        { key: 'closing', state: 'upcoming' },
+      ],
     });
     const view = resolveHostTaskView(model);
     if (view?.body.kind !== 'choice') throw new Error('Expected the post-game choices');
@@ -684,7 +677,9 @@ describe('createWerewolfHostManagement', () => {
     if (grantAction?.isEnabled !== true) throw new Error('Expected enabled post-game grant');
     grantAction.onPress();
     expect(onGrantReviewAccess).toHaveBeenCalledTimes(1);
-    expect(view.steps).toBeNull();
+    expect(view.steps?.find((step) => step.key === 'grantReview')).toMatchObject({
+      onPress: onGrantReviewAccess,
+    });
   });
 
   it('keeps both tools above the exits after authorization, with the grant step revisitable', () => {
@@ -699,6 +694,11 @@ describe('createWerewolfHostManagement', () => {
     expect(model.task).toMatchObject({
       kind: 'choice',
       actionKeys: ['grant-review', 'review', 'restart'],
+      steps: [
+        { key: 'lastNightInfo', state: 'complete' },
+        { key: 'grantReview', state: 'complete' },
+        { key: 'closing', state: 'current' },
+      ],
     });
     // The task only references sheet actions: a misspelled key must fail
     // here, not at render time when the card resolves the view.
@@ -713,7 +713,7 @@ describe('createWerewolfHostManagement', () => {
       expect(action.isEnabled).toBe(true);
       expect(action).toHaveProperty('onPress');
     }
-    expect(view.steps).toBeNull();
+    expect(view.steps?.find((step) => step.key === 'grantReview')).toHaveProperty('onPress');
   });
 
   it('locks all post-game moves during audio playback', () => {

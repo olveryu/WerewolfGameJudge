@@ -154,44 +154,6 @@ describe('FibIdentityModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('requires the confirmation button for an identity card', async () => {
-    const onClose = vi.fn();
-    render(
-      <FibIdentityModal
-        view={createViewingView(false)}
-        {...baseProps}
-        requireConfirmation
-        onClose={onClose}
-      />,
-    );
-
-    await userEvent.keyboard('{Escape}');
-    expect(onClose).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: '知道了' }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('allows Escape to close the public result', async () => {
-    const onClose = vi.fn();
-    const view: Extract<FibRoundView, { phase: 'ended' }> = {
-      phase: 'ended',
-      roundId: 'round-1',
-      viewerSeat: null,
-      viewerRole: null,
-      word: '山谷',
-      definition: {
-        coreMeaning: '两山之间低洼而且狭长的自然地形区域。',
-        usageNote: '常用于描述山地之间可供河流或道路穿行的低地。',
-      },
-      guesserSeat: 0,
-      honestSeat: 1,
-    };
-    render(<FibIdentityModal view={view} {...baseProps} onClose={onClose} />);
-
-    await userEvent.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
   describe('equipped reveal animation gate (server anchor)', () => {
     it('plays the animation first and swaps to the static card on completion', async () => {
       render(

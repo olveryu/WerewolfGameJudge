@@ -26,6 +26,8 @@ interface GalleryAlbumStageProps<TEntry extends { readonly id: string }> {
   readonly controls: ReactNode;
   readonly testId: string;
   readonly listTestId: string;
+  /** Shown when entries is empty. */
+  readonly emptyContent: ReactNode;
 }
 
 /** Distance from the bottom (px) within which the list keeps following new entries. */
@@ -54,6 +56,7 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
   controls,
   testId,
   listTestId,
+  emptyContent,
 }: GalleryAlbumStageProps<TEntry>) {
   const listRef = useRef<HTMLDivElement>(null);
   const latestEntryRef = useRef<HTMLDivElement>(null);
@@ -113,11 +116,13 @@ export function GalleryAlbumStage<TEntry extends { readonly id: string }>({
         onScroll={follow === 'bottom' ? handleScroll : undefined}
       >
         {heading}
-        {entries.map((entry, index) => (
-          <div key={entry.id} ref={index === entries.length - 1 ? latestEntryRef : undefined}>
-            {renderEntry(entry, index)}
-          </div>
-        ))}
+        {entries.length === 0
+          ? emptyContent
+          : entries.map((entry, index) => (
+              <div key={entry.id} ref={index === entries.length - 1 ? latestEntryRef : undefined}>
+                {renderEntry(entry, index)}
+              </div>
+            ))}
         {follow === 'top' && <div ref={spacerRef} className="gallery-album-spacer" aria-hidden />}
       </div>
       <div className="gallery-album-controls">{controls}</div>

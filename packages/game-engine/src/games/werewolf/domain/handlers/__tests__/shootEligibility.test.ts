@@ -177,26 +177,6 @@ describe('shooting eligibility respects protection and transferred damage', () =
     expect(calculateNightDeaths(charmed, null).deathReasons[0]).toBe('wolfQueenLink');
     expectEligibility(charmed, 0, false);
   });
-
-  it.each([
-    { role: 'dreamcatcher', schemaId: 'dreamcatcherDream' },
-    { role: 'wolfQueen', schemaId: 'wolfQueenCharm' },
-  ] as const)(
-    'rejects $schemaId actions without a matching resolved target',
-    ({ role, schemaId }) => {
-      const base = createGame(['hunter', role, 'wolf']).getGameState();
-      const state: GameState = {
-        ...base,
-        resolvedWolfKillTarget: null,
-        currentNightResults: {},
-        actions: [{ schemaId, actorSeat: 1, targetSeat: 0, timestamp: 0 }],
-      };
-
-      expect(() => calculateNightDeaths(state, null)).toThrow(
-        `[FAIL-FAST] ${schemaId} action target 0 does not match resolved target undefined`,
-      );
-    },
-  );
 });
 
 describe('bottom-card roles use the same death and shooting rules', () => {

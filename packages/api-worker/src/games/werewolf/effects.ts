@@ -38,10 +38,7 @@ const roleIdSchema = z.custom<RoleId>(
 const deadlinePhaseSchema = z.custom<WerewolfDeadlinePhase>(
   (value): value is WerewolfDeadlinePhase =>
     typeof value === 'string' &&
-    (value === 'firstVote' ||
-      value === 'runoffVote' ||
-      value === 'sheriffResult' ||
-      isValidSchemaId(value)),
+    (value === 'firstVote' || value === 'runoffVote' || isValidSchemaId(value)),
 );
 
 export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUnion('type', [

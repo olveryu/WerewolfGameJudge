@@ -119,7 +119,7 @@ export interface __GAME_PASCAL__RoomScreenState {
   /** 本局复盘弹窗、导出舞台与分享进度（平台 useRoomReview），放进房间 gameOverlays。 */
   readonly reviewOverlay: ReactNode;
 //#cap identityViewing
-  /** 身份卡：确认后展示，首次关闭时提交查看记录（平台 useRoleViewing）。 */
+  /** 身份卡：先落查看记录、确认后再弹卡（平台 useRoleViewing）。 */
   readonly roleViewing: RoleViewing;
   readonly roleCardAllRoles: readonly RevealRoleData[];
 //#end
@@ -201,7 +201,7 @@ export function use__GAME_PASCAL__RoomState(
   const viewModel = get__GAME_PASCAL__ViewModel(state, effectiveSeat);
 //#end
 //#cap identityViewing
-  // 身份查看协议：接管时查看并确认的是被接管座位。
+  // 身份查看协议：查看记录先落（接管时是被接管座位），服务端确认后才弹卡。
   const roleViewing = useRoleViewing({
     effectiveSeat,
     identityKey: isLobby ? null : state.gameSequence,
@@ -210,7 +210,6 @@ export function use__GAME_PASCAL__RoomState(
       (effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: get__GAME_PASCAL__OccupiedSeatCount(state),
     viewedSeatCount: state.roleViewedSeats.length,
-    isSubmitting,
     submitViewed: () =>
       submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat }),
   });
@@ -298,11 +297,6 @@ export function use__GAME_PASCAL__RoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
-//#cap identityViewing
-    effectiveSeat,
-    isSubmitting,
-    onViewRolePress: roleViewing.open,
-//#end
     buildHostManagement,
     releaseBot: bots.release,
     review: review.entry,

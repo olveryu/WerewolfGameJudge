@@ -18,10 +18,9 @@ interface CenterDialogProps {
   closeButtonLabel?: string;
   className?: string;
   children: ReactNode;
-  requireConfirmation?: boolean;
 }
 
-/** Centered modal dialog (Ark UI), with optional explicit-confirmation dismissal. */
+/** Centered modal dialog (Ark UI): focus trap, Escape / backdrop dismissal, enter / exit motion. */
 export function CenterDialog({
   open,
   onClose,
@@ -32,15 +31,12 @@ export function CenterDialog({
   closeButtonLabel,
   className,
   children,
-  requireConfirmation = false,
 }: CenterDialogProps) {
   return (
     <Dialog.Root
       open={open}
-      closeOnEscape={!requireConfirmation}
-      closeOnInteractOutside={!requireConfirmation}
       onOpenChange={(details) => {
-        if (!details.open && !requireConfirmation) onClose();
+        if (!details.open) onClose();
       }}
       lazyMount
       unmountOnExit

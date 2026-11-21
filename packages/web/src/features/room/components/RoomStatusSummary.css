@@ -10,7 +10,7 @@
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  text-align: center;
+  text-align: start;
 }
 
 button.room-status-summary {
@@ -26,24 +26,44 @@ button.room-status-summary:focus-visible {
   outline-offset: var(--border-width-thick);
 }
 
+.room-status-summary-header,
 .room-status-summary-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: var(--space-small);
 }
 
-.room-status-summary-context {
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
+.room-status-summary-title-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+}
+
+.room-status-summary-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.room-status-summary-title {
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
   overflow-wrap: anywhere;
 }
 
 .room-status-summary-phase {
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-bold);
+  flex-shrink: 1;
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -52,7 +72,6 @@ button.room-status-summary:focus-visible {
   min-width: 0;
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
-  font-weight: var(--weight-bold);
   overflow-wrap: anywhere;
 }
 
@@ -67,6 +86,7 @@ button.room-status-summary:focus-visible {
   line-height: var(--line-secondary);
 }
 
+.room-status-summary-icon svg,
 .room-status-summary-entry svg {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
@@ -83,9 +103,4 @@ button.room-status-summary:focus-visible {
 .room-status-summary[data-has-header='true'] .room-status-summary-text,
 .room-status-summary-detail {
   color: var(--color-text-secondary);
-  font-weight: var(--weight-normal);
-}
-
-.room-status-summary .pending-seats-row {
-  justify-content: center;
 }

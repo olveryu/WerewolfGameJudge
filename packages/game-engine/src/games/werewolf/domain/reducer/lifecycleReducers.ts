@@ -87,6 +87,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
   return {
     // ── Preserved fields (unchanged across games) ──────────────────────────────
     gameType: state.gameType,
+    stateVersion: state.stateVersion,
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
@@ -111,7 +112,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     resolvedNightEffects: [],
     lastNightDeaths: undefined,
     lastNightInfoConfirmed: undefined,
-    reviewCompletedUserIds: undefined,
     deathReasons: undefined,
     sheriffElection: undefined,
     sheriffElectionResult: undefined,

@@ -1,167 +1,190 @@
+/**
+ * useRoleViewing: first view submits, opens only on confirmation with
+ * reveal facts frozen from the pre-confirm record; a rejection opens
+ * nothing; an already-viewed seat opens immediately without animation;
+ * a seat change or a deal change closes the card.
+ */
 import { act, renderHook } from '@testing-library/react';
-
-import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { useRoleViewing } from '../useRoleViewing';
 
 interface Props {
   effectiveSeat: number | null;
-  identityKey: string | number | null;
+  identityKey?: string | number | null;
   hasViewed: boolean;
   viewedSeatCount: number;
-  isSubmitting: boolean;
   submitViewed: () => Promise<boolean>;
 }
 
 function renderViewing(initial: Props) {
-  return renderHook((props: Props) => useRoleViewing({ ...props, occupiedSeatCount: 6 }), {
-    initialProps: initial,
-  });
+  return renderHook(
+    ({ identityKey = 1, ...props }: Props) =>
+      useRoleViewing({ ...props, identityKey, occupiedSeatCount: 6 }),
+    { initialProps: initial },
+  );
 }
-
-async function chooseView() {
-  const alert = alertStore.getSnapshot();
-  const view = alert?.buttons[1]?.onPress;
-  if (alert === null || view === undefined) throw new Error('Missing identity view prompt');
-  await act(async () => view());
-  act(() => dismissAlert(alert.generation));
-}
-
-afterEach(() => {
-  const alert = alertStore.getSnapshot();
-  if (alert !== null) dismissAlert(alert.generation);
-});
 
 describe('useRoleViewing', () => {
-  it('does not disclose or submit on cancellation, and records the first view only after acknowledgement', async () => {
-    let resolveViewed: (value: boolean) => void = () => undefined;
-    const submitViewed = vi.fn(() => new Promise<boolean>((resolve) => (resolveViewed = resolve)));
-    const { result } = renderViewing({
+  it('opens after confirmation with the pre-confirm reveal facts frozen', async () => {
+    let confirm!: (value: boolean) => void;
+    const submitViewed = vi.fn(() => new Promise<boolean>((resolve) => (confirm = resolve)));
+    const { result, rerender } = renderViewing({
       effectiveSeat: 2,
-      identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 2,
-      isSubmitting: false,
       submitViewed,
     });
-    act(() => result.current.open());
-    const alert = alertStore.getSnapshot();
-    expect(alert?.buttons.map((button) => button.text)).toEqual(['取消', '查看']);
-    if (alert === null) throw new Error('Missing identity prompt');
-    act(() => dismissAlert(alert.generation));
-    expect(result.current.isOpen).toBe(false);
-    expect(submitViewed).not.toHaveBeenCalled();
 
     act(() => result.current.open());
-    await chooseView();
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isOpen).toBe(false);
+    expect(submitViewed).toHaveBeenCalledTimes(1);
+
+    // The record lands underneath (this seat now counted) before the card opens.
+    rerender({ effectiveSeat: 2, hasViewed: true, viewedSeatCount: 3, submitViewed });
+    await act(async () => confirm(true));
+    expect(result.current.isPending).toBe(false);
     expect(result.current.isOpen).toBe(true);
     expect(result.current.shouldPlayAnimation).toBe(true);
     expect(result.current.remainingCards).toBe(4);
-    expect(submitViewed).not.toHaveBeenCalled();
-    act(() => result.current.close());
-    expect(result.current.isPending).toBe(true);
-    expect(submitViewed).toHaveBeenCalledTimes(1);
-    await act(async () => resolveViewed(true));
-    expect(result.current.isOpen).toBe(false);
   });
 
-  it('keeps the card open when acknowledgement fails', async () => {
+  it('opens nothing when the submit is rejected', async () => {
     const submitViewed = vi.fn(async () => false);
     const { result } = renderViewing({
       effectiveSeat: 2,
-      identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 0,
-      isSubmitting: false,
       submitViewed,
     });
-    act(() => result.current.open());
-    await chooseView();
-    await act(async () => result.current.close());
-    expect(result.current.isOpen).toBe(true);
+    await act(async () => result.current.open());
     expect(result.current.isPending).toBe(false);
+    expect(result.current.isOpen).toBe(false);
   });
 
-  it('asks before a repeat view and closes without another submission', async () => {
+  it('opens an already-viewed seat immediately without a submit or animation', () => {
     const submitViewed = vi.fn(async () => true);
     const { result } = renderViewing({
       effectiveSeat: 2,
-      identityKey: 1,
       hasViewed: true,
       viewedSeatCount: 5,
-      isSubmitting: false,
       submitViewed,
     });
     act(() => result.current.open());
-    expect(result.current.isOpen).toBe(false);
-    await chooseView();
+    expect(submitViewed).not.toHaveBeenCalled();
+    expect(result.current.isOpen).toBe(true);
     expect(result.current.shouldPlayAnimation).toBe(false);
     expect(result.current.remainingCards).toBe(1);
-    act(() => result.current.close());
-    expect(result.current.isOpen).toBe(false);
-    expect(submitViewed).not.toHaveBeenCalled();
   });
 
-  it('does not reveal a stale card after the seat or deal changes', async () => {
-    const submitViewed = vi.fn(async () => true);
-    const props = {
+  it('closes on an effective seat change and ignores a late confirmation', async () => {
+    let confirm!: (value: boolean) => void;
+    const submitViewed = vi.fn(() => new Promise<boolean>((resolve) => (confirm = resolve)));
+    const { result, rerender } = renderViewing({
       effectiveSeat: 2,
-      identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 0,
-      isSubmitting: false,
       submitViewed,
-    };
-    const { result, rerender } = renderViewing(props);
-    act(() => result.current.open());
-    rerender({ ...props, effectiveSeat: 4 });
-    await chooseView();
-    expect(result.current.isOpen).toBe(false);
-    expect(submitViewed).not.toHaveBeenCalled();
-  });
-
-  it('fails fast without a seat or a deal', () => {
-    const props = {
-      effectiveSeat: null,
-      identityKey: 1,
-      hasViewed: false,
-      viewedSeatCount: 0,
-      isSubmitting: false,
-      submitViewed: vi.fn(async () => true),
-    };
-    const { result, rerender } = renderViewing(props);
-    expect(() => result.current.open()).toThrow('without an effective seat');
-    rerender({ ...props, effectiveSeat: 1, identityKey: null });
-    expect(() => result.current.open()).toThrow('without a viewable identity');
-  });
-
-  it('disables acknowledgement while another command is in flight and recovers from a lock race', async () => {
-    const submitViewed = vi.fn(async () => {
-      throw new Error('Room operation is already in progress');
     });
-    const props = {
-      effectiveSeat: 2,
-      identityKey: 1,
+    act(() => result.current.open());
+    rerender({ effectiveSeat: 4, hasViewed: false, viewedSeatCount: 0, submitViewed });
+    expect(result.current.isPending).toBe(false);
+    await act(async () => confirm(true));
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('fails fast without an effective seat and ignores a repeated open', () => {
+    const submitViewed = vi.fn(async () => true);
+    const unseated = renderViewing({
+      effectiveSeat: null,
       hasViewed: false,
       viewedSeatCount: 0,
-      isSubmitting: false,
       submitViewed,
-    };
-    const { result, rerender } = renderViewing(props);
+    });
+    expect(() => unseated.result.current.open()).toThrow(
+      '[FAIL-FAST] Role viewing opened without an effective seat',
+    );
+    const noDeal = renderViewing({
+      effectiveSeat: 1,
+      identityKey: null,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(() => noDeal.result.current.open()).toThrow(
+      '[FAIL-FAST] Role viewing opened without a viewable identity',
+    );
 
-    act(() => result.current.open());
-    await chooseView();
-    expect(result.current.isConfirmationDisabled).toBe(false);
-
-    rerender({ ...props, isSubmitting: true });
-    expect(result.current.isConfirmationDisabled).toBe(true);
-    act(() => result.current.close());
+    const viewed = renderViewing({
+      effectiveSeat: 1,
+      hasViewed: true,
+      viewedSeatCount: 1,
+      submitViewed,
+    });
+    act(() => viewed.result.current.open());
+    act(() => viewed.result.current.open());
+    expect(viewed.result.current.isOpen).toBe(true);
     expect(submitViewed).not.toHaveBeenCalled();
+  });
 
-    rerender(props);
-    await act(async () => result.current.close());
-    expect(result.current.isPending).toBe(false);
+  it('closes when the deal changes (return to lobby or a new deal)', () => {
+    const submitViewed = vi.fn(async () => true);
+    const { result, rerender } = renderViewing({
+      effectiveSeat: 1,
+      identityKey: 1,
+      hasViewed: true,
+      viewedSeatCount: 1,
+      submitViewed,
+    });
+    act(() => result.current.open());
     expect(result.current.isOpen).toBe(true);
-    expect(submitViewed).toHaveBeenCalledOnce();
+    rerender({
+      effectiveSeat: 1,
+      identityKey: null,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(result.current.isOpen).toBe(false);
+    rerender({
+      effectiveSeat: 1,
+      identityKey: 2,
+      hasViewed: true,
+      viewedSeatCount: 1,
+      submitViewed,
+    });
+    act(() => result.current.open());
+    expect(result.current.isOpen).toBe(true);
+    rerender({
+      effectiveSeat: 1,
+      identityKey: 3,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('ignores a repeated open while the confirmation is pending', async () => {
+    let resolveViewed: (confirmed: boolean) => void = () => undefined;
+    const submitViewed = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveViewed = resolve;
+        }),
+    );
+    const { result } = renderViewing({
+      effectiveSeat: 1,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      submitViewed,
+    });
+    act(() => result.current.open());
+    act(() => result.current.open());
+    expect(submitViewed).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveViewed(true);
+    });
+    expect(result.current.isOpen).toBe(true);
   });
 });

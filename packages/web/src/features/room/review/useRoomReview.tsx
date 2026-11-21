@@ -16,14 +16,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 
 import { showConfirmAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { roomScreenLog } from '@/utils/logger';
 
 import type { RoomViewer } from '../model/RoomViewer';
 import { assertReviewDocument } from './assertReviewDocument';
@@ -51,9 +48,6 @@ export interface UseRoomReviewInput<TState> {
   readonly roomCode: string;
   /** Fired when the dialog opens, after the game's confirmation; null when the game tracks nothing. */
   readonly onOpened: (() => void) | null;
-  /** Captured when the dialog opens; invoked only when that dialog is explicitly closed. */
-  readonly onClosed?: (() => Promise<boolean>) | null;
-  readonly isPending?: boolean;
 }
 
 export interface RoomReviewController {
@@ -136,7 +130,7 @@ function resolveShareControls(input: {
 }
 
 export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomReviewController {
-  const { contribution, state, viewer, roomId, roomCode, onOpened, onClosed, isPending } = input;
+  const { contribution, state, viewer, roomId, roomCode, onOpened } = input;
   const { userId, isHost, seat } = viewer;
   const availability = useMemo(() => {
     const resolved = contribution.resolve({ state, viewer: { userId, isHost, seat }, roomCode });
@@ -169,9 +163,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
   const [openState, setOpenState] = useState<{
     readonly roundKey: string;
     readonly pageKey: string;
-    readonly onClosed: (() => Promise<boolean>) | null;
   } | null>(null);
-  const completingRounds = useRef(new Set<string>());
   if (openState !== null && openState.roundKey !== roundKey) setOpenState(null);
   const openPageIndex =
     document !== null && openState !== null && openState.roundKey === document.roundKey
@@ -196,11 +188,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
       const targetKey = pageKey ?? firstPage.key;
       pageIndexOf(openedDocument, targetKey);
       const show = () => {
-        setOpenState({
-          roundKey: openedDocument.roundKey,
-          pageKey: targetKey,
-          onClosed: onClosed ?? null,
-        });
+        setOpenState({ roundKey: openedDocument.roundKey, pageKey: targetKey });
         if (onOpened !== null) onOpened();
       };
       if (confirmation === null) {
@@ -211,7 +199,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
         confirmText: confirmation.confirmText,
       });
     },
-    [availability, onOpened, onClosed],
+    [availability, onOpened],
   );
 
   const shareAll = useCallback(() => {
@@ -245,12 +233,8 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
     availability.kind === 'notEnded'
       ? null
       : availability.kind === 'notPermitted'
-        ? {
-            isEnabled: false,
-            disabledReason: availability.reason,
-            ...(isPending ? { isPending } : {}),
-          }
-        : { isEnabled: true, onPress: () => open(null), ...(isPending ? { isPending } : {}) };
+        ? { isEnabled: false, disabledReason: availability.reason }
+        : { isEnabled: true, onPress: () => open(null) };
 
   const overlay = (
     <ReviewAssetStoreContext.Provider value={assetStore}>
@@ -261,27 +245,10 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
           onPageChange={(pageIndex) => {
             const page = document.pages[pageIndex];
             if (page === undefined) throw new Error(`[FAIL-FAST] Review has no page ${pageIndex}`);
-            setOpenState((previous) =>
-              previous === null ? null : { ...previous, pageKey: page.key },
-            );
+            setOpenState({ roundKey: document.roundKey, pageKey: page.key });
           }}
           shareControls={shareControls}
-          onClose={() => {
-            setOpenState(null);
-            if (openState === null || openState.onClosed === null) return;
-            const { roundKey: closedRoundKey, onClosed: completeReview } = openState;
-            if (completingRounds.current.has(closedRoundKey)) return;
-            completingRounds.current.add(closedRoundKey);
-            void completeReview()
-              .catch((error: unknown) => {
-                handleError(error, {
-                  label: '确认复盘',
-                  logger: roomScreenLog,
-                  alertMessage: '确认复盘失败，请重新查看复盘后重试',
-                });
-              })
-              .finally(() => completingRounds.current.delete(closedRoundKey));
-          }}
+          onClose={() => setOpenState(null)}
         />
       )}
       {exporter.stageRequest !== null && (

@@ -98,6 +98,7 @@ function SpotmatchRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
       phaseLabel={isLobby ? '待开局' : null}
       lobbyAction={
         isLobby
@@ -186,7 +187,7 @@ function SpotmatchRoomContent(
             <RoomDialog
               title="一眼成对玩法"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <SpotmatchRules embedded />
@@ -196,7 +197,7 @@ function SpotmatchRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              dismissOnEscape
+              allowEscape
               footer={null}
             >
               <p>{`一眼成对（${config.numberOfPlayers}人）`}</p>

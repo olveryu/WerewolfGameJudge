@@ -24,7 +24,11 @@ export {
   parseDrawGuessPublicStats,
 } from './publicStats';
 export { DRAWGUESS_STATE_CODEC } from './state/codec';
-export { parseDrawGuessConfig, parseDrawGuessState } from './state/parseState';
+export {
+  migratePersistedDrawGuessState,
+  parseDrawGuessConfig,
+  parseDrawGuessState,
+} from './state/parseState';
 export {
   DEFAULT_DRAWGUESS_CONFIG,
   DRAWGUESS_ALL_GUESSED_REMAINING_SECONDS,
@@ -61,3 +65,4 @@ export {
   getDrawGuessTotalTurns,
   getDrawGuessUserSeat,
 } from './state/types';
+export { DRAWGUESS_STATE_IDENTITY, DRAWGUESS_STATE_VERSION } from './state/version';

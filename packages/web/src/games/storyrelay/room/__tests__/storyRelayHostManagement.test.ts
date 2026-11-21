@@ -243,6 +243,17 @@ describe('createStoryRelayHostManagement', () => {
     expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
   });
 
+  it('offers legacy aborted rounds their review and restart', () => {
+    const game = session();
+    game.seatHost();
+    game.fillAndStart();
+    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
+    expect(game.state.phase).toBe('aborted');
+    const model = build(game.state, false, { isEnabled: true, onPress: vi.fn() });
+    expect(model?.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    expect(model.task).toBeNull();
+  });
+
   it('allows restart during the already-settled gallery', () => {
     const game = session();
     game.seatHost();
@@ -283,10 +294,9 @@ describe('createStoryRelayHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fillAndStart();
-    game.playToGallery();
-    game.send({ type: 'storyrelay.gallery.finish', phaseRevision: game.state.phaseRevision });
+    game.send({ type: 'storyrelay.game.abort', phaseRevision: game.state.phaseRevision });
     expect(() => build(game.state, false)).toThrow(
-      '[FAIL-FAST] Story Relay ended host has no review entry',
+      '[FAIL-FAST] Story Relay aborted host has no review entry',
     );
   });
 });

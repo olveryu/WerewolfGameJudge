@@ -18,6 +18,7 @@ import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/domain/models/ro
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { ApplyResolverResultAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
@@ -27,7 +28,7 @@ import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   const state: GameState = {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Ongoing,
@@ -104,10 +105,9 @@ describe('Witch buildActionInput contract', () => {
       const state = createMinimalState({
         rules: { witchCanSelfHeal: true },
         currentNightResults: { wolfVotesBySeat: { '1': 3 } },
-        resolvedWolfKillTarget: 3,
         witchContext: undefined,
       });
-      const witchContextAction = maybeCreateWitchContextAction('witchAction', state);
+      const witchContextAction = maybeCreateWitchContextAction('witchAction', state, () => 0.75);
       expect(witchContextAction).not.toBeNull();
 
       const context = createContext({ ...state, witchContext: witchContextAction!.payload });
@@ -131,7 +131,6 @@ describe('Witch buildActionInput contract', () => {
     it('should parse stepResults.save correctly', () => {
       const state = createMinimalState({
         currentNightResults: { wolfVotesBySeat: { '1': 0 } }, // wolf killed seat 0
-        resolvedWolfKillTarget: 0,
       });
       const context = createContext(state);
       const intent: SubmitActionIntent = {

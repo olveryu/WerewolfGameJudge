@@ -24,12 +24,13 @@ import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/d
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   const state: GameState = {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Unseated,

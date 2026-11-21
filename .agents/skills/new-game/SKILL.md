@@ -71,8 +71,7 @@ supply, or both). Host-controlled bot seats and host takeover are a
 platform baseline for every game, not selectable features. Also specify reward policy (flat or levelRoll) and
 numbers, terminal settlement unit, statistics facts/ownership, units,
 denominators and zero-denominator display, timestamp precision,
-history gaps/backfill and payload/D1 migration policy (game state has no
-compatibility migration unless explicitly requested), immediate
+history gaps/backfill and state/payload/D1 migration policy, immediate
 or delayed visibility and cache revalidation. Do not invent wins,
 scores or a default metric from unrelated games.
 

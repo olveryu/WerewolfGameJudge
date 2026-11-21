@@ -15,8 +15,8 @@
  * Pictionary persists its gallery position two-dimensionally
  * ({chainIndex, entryIndex}); the machine speaks a linear position.
  * The slice adapter converts on the way in and the phase-event
- * factory converts back on the way out, so the persisted shape remains
- * independent from the machine's linear position.
+ * factory converts back on the way out, so the persisted shape
+ * is preserved across state versions.
  */
 
 import {

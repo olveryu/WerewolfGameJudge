@@ -170,6 +170,15 @@ describe('createPictionaryHostManagement task body', () => {
     expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
   });
 
+  it('offers legacy aborted rounds their review and restart', () => {
+    const { model } = build(playPictionaryTestRound({ abortAtStep: 1 }), {
+      isEnabled: true,
+      onPress: vi.fn(),
+    });
+    expect(model.task).toBeNull();
+    expect(model.sections[0]!.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+  });
+
   it('fails fast when a finished round reaches the host panel without its review entry', () => {
     expect(() => build(playPictionaryTestRound())).toThrow(
       '[FAIL-FAST] Pictionary ended host has no review entry',

@@ -5,11 +5,9 @@ import {
   type UndercoverState,
   type UndercoverWordCard,
 } from '@game-judge/game-engine/games/undercover/public';
-import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
-import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -23,7 +21,9 @@ async function requestUndercoverRestart(
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
-      : state.round.roundId;
+      : state.phase === 'aborted'
+        ? state.abortedRoundId
+        : state.round.roundId;
   closeCard();
   if (
     await submit('重新开始', {
@@ -89,10 +89,6 @@ export function useUndercoverRoundControls({
   const card = getUndercoverWordCard(state, userId, controlledSeat);
   const cardKey =
     card === null ? null : `${state.round!.roundId}:${userId}:${card.seat}:${state.hostUserId}`;
-  const latestCardKey = useRef(cardKey);
-  useEffect(() => {
-    latestCardKey.current = cardKey;
-  }, [cardKey]);
   const isSelecting =
     isHost && state.phase === 'ongoing' && selectionRoundId === state.round.roundId;
   // 资格 = 尚未揭晓的座位（与原 selectSeat 的静默守卫同集）：已揭晓座位
@@ -140,19 +136,15 @@ export function useUndercoverRoundControls({
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
-  const trackConfirmationAlert = useScopedAlert(
-    JSON.stringify([cardKey, state.phase, roundId, state.hostUserId]),
-  );
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)
       throw new Error('Card confirmation requires a viewing participant');
+    closeCard();
     void submit(
       '确认词卡',
       { type: 'undercover.role.viewed', roundId: state.round.roundId },
       { controlledSeat },
-    ).then((success) => {
-      if (success && latestCardKey.current === cardKey) closeCard();
-    });
+    );
   };
   const reveal = () => {
     if (state.phase !== 'ongoing' || selectedSeat === null)
@@ -165,21 +157,15 @@ export function useUndercoverRoundControls({
       if (success) exitSelection();
     });
   };
-  const allowRepeated = () => {
+  const allowRepeated = () =>
     showConfirmAlert(
       '仅下一局允许重复词对？',
       '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
       async () => {
-        if (state.phase !== 'preparationFailed' || state.failureCode !== 'inventoryExhausted')
-          throw new Error('Allowing repeated words requires exhausted inventory');
-        await submit('允许重复词对', {
-          type: 'undercover.round.allowRepeated',
-          roundId: state.pendingRound.roundId,
-        });
+        if (await submit('返回大厅', { type: 'undercover.game.returnToLobby' }))
+          await submit('分配角色', { type: 'undercover.roles.assign', shouldAllowRepeated: true });
       },
-      { onShown: trackConfirmationAlert },
     );
-  };
   return {
     isSubmitting,
     controlledSeat,
@@ -189,18 +175,7 @@ export function useUndercoverRoundControls({
       card !== null && state.phase === 'viewing' && !state.round.confirmedSeats.includes(card.seat),
     openCard: () => {
       if (cardKey === null) throw new Error('No permitted Undercover word card');
-      showConfirmAlert(
-        '查看词卡？',
-        '确定现在查看你的词卡吗？',
-        () => {
-          if (latestCardKey.current !== cardKey) {
-            toast.error('词卡已变化，请重新查看。');
-            return;
-          }
-          setVisibleCardKey(cardKey);
-        },
-        { confirmText: '查看', onShown: trackConfirmationAlert },
-      );
+      setVisibleCardKey(cardKey);
     },
     closeCard,
     confirmCard,

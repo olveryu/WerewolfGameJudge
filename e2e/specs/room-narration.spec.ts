@@ -39,11 +39,11 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
     // The waiter's timeout starts here, but the ack can only arrive after
     // room setup, seating, role viewing and game start plus the first
     // audio batch — well past the 30s default — so allow 120s.
-    const heldAckPromise = ackGate!.waitForHeld(`${gameId}.audio.ack`, 120_000).then(
-      (held) => ({ kind: 'held', held }) as const,
-      (error: unknown) => ({ kind: 'error', error }) as const,
-    );
-    // Record host commands to distinguish a missing ack from a gate failure.
+    const heldAckPromise = ackGate!.waitForHeld(`${gameId}.audio.ack`, 120_000);
+    // TEMPORARY DIAGNOSTIC (revert after root cause is found): observe the
+    // host's COMMAND frames in parallel with the gate. If the ack never
+    // arrives at the gate, the observed list shows whether the host sent it
+    // at all (gate bug) or never sent it (audio/dispatch bug).
     const hostObservation = observeCommandFrames(hostPage);
 
     try {
@@ -115,8 +115,6 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
             AUDIO_WAITING_LABEL,
           );
           await page.getByTestId(TESTIDS.avalonNightInfo).click();
-          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看信息？');
-          await page.getByTestId(TESTIDS.alertButton(1)).click();
           await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
           await page.getByTestId(TESTIDS.alertButton(0)).click();
           await expect(page.getByTestId(TESTIDS.alertModal)).toBeHidden();
@@ -128,8 +126,12 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       }
 
       await test.step('真实播报 ack 后各视角移除状态', async () => {
-        const heldAck = await heldAckPromise;
-        if (heldAck.kind === 'error') {
+        let heldAck;
+        try {
+          heldAck = await heldAckPromise;
+        } catch (error) {
+          // TEMPORARY DIAGNOSTIC: attach what the host actually sent so the
+          // failure bundle shows whether the ack frame ever left the page.
           await testInfo.attach(`${gameId}-host-observed-commands`, {
             body: JSON.stringify(
               {
@@ -148,9 +150,9 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
             ),
             contentType: 'application/json',
           });
-          throw heldAck.error;
+          throw error;
         }
-        heldAck.held.release();
+        heldAck.release();
         for (const page of [hostPage, playerPages[1]!, spectatorPage]) {
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveCount(0, {
             timeout: 45_000,

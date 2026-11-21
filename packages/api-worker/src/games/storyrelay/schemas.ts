@@ -29,7 +29,13 @@ const commands = definePublicCommandOptions<StoryRelayPublicCommand>()([
     type: z.literal('storyrelay.config.update'),
     config: storyRelayCreateConfigSchema,
   }),
-  z.strictObject({ type: z.literal('storyrelay.game.begin') }),
+  z.strictObject({
+    type: z.literal([
+      'storyrelay.game.begin',
+      'storyrelay.game.next',
+      'storyrelay.game.returnToLobby',
+    ]),
+  }),
   z.strictObject({ type: z.literal('storyrelay.task.ready.set'), ...task, isReady: z.boolean() }),
   z.strictObject({ type: z.literal('storyrelay.task.empty.submit'), ...task }),
   z.strictObject({
@@ -42,6 +48,7 @@ const commands = definePublicCommandOptions<StoryRelayPublicCommand>()([
   }),
   z.strictObject({
     type: z.literal([
+      'storyrelay.game.abort',
       'storyrelay.game.restart',
       'storyrelay.phase.retrySettle',
       'storyrelay.gallery.pause',

@@ -3,8 +3,9 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import { parseStoryRelayState } from './parseState';
 import type { StoryRelayState } from './types';
+import { STORY_RELAY_STATE_IDENTITY } from './version';
 
 export const STORY_RELAY_STATE_CODEC = {
-  gameType: 'storyrelay',
+  ...STORY_RELAY_STATE_IDENTITY,
   parse: parseStoryRelayState,
 } satisfies GameStateCodec<StoryRelayState>;

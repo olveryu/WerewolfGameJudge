@@ -73,6 +73,7 @@ const PHASES: readonly PictionaryPhase[] = [
   'settling',
   'transition',
   'gallery',
+  'aborted',
   'ended',
 ];
 
@@ -187,6 +188,10 @@ function stateFor(phase: PictionaryPhase): PictionaryState {
       if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
     }
+    case 'aborted':
+      session.dispatch({ type: 'pictionary.game.abort' });
+      if (session.state.phase !== 'aborted') throw new Error('expected aborted');
+      return session.state;
     default:
       throw new Error(`unhandled phase ${phase}`);
   }

@@ -59,4 +59,5 @@ export type PictionaryEvent =
       readonly deadlineAt: number | null;
       readonly gallery: PictionaryGalleryState | null;
     })
+  | (GameEvent & { readonly type: 'pictionary.round.aborted' })
   | (GameEvent & { readonly type: 'pictionary.game.returnedToLobby' });

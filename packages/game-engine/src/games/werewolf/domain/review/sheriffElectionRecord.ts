@@ -108,10 +108,6 @@ function getActiveCandidateSeats(election: SheriffElectionState): readonly numbe
       return election.candidateSeats;
     case 'runoffSpeech':
       return election.candidateSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
-    case 'result':
-      return election.next.kind === 'runoff'
-        ? election.next.candidateSeats
-        : election.registeredSeats.filter((seat) => !election.withdrawnSeats.includes(seat));
     case 'registration':
     case 'candidateSpeech':
     case 'completed':

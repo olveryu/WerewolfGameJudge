@@ -17,6 +17,7 @@ import {
   isValidFibPlayerCount,
   isValidFibWord,
 } from './types';
+import { FIB_STATE_VERSION } from './version';
 
 function assertNonEmpty(value: string, label: string): void {
   if (value.length === 0) throw new Error(`${label} must be non-empty`);
@@ -124,6 +125,9 @@ export function normalizeFibState(state: FibState): FibState {
   if (state.gameType !== FIBKING_GAME_TYPE) {
     throw new Error(`Fib gameType must be ${FIBKING_GAME_TYPE}`);
   }
+  if (state.stateVersion !== FIB_STATE_VERSION) {
+    throw new Error(`Unsupported Fib state version ${state.stateVersion}`);
+  }
   assertNonEmpty(state.roomCode, 'Fib roomCode');
   assertNonEmpty(state.hostUserId, 'Fib hostUserId');
   if (!isValidFibPlayerCount(state.numberOfPlayers)) {
@@ -133,13 +137,6 @@ export function normalizeFibState(state: FibState): FibState {
   }
   assertRoster(state);
   assertUsedWords(state);
-  if (
-    new Set(state.reviewCompletedUserIds).size !== state.reviewCompletedUserIds.length ||
-    state.reviewCompletedUserIds.some((userId) => userId.trim().length === 0) ||
-    (state.phase !== 'ended' && state.reviewCompletedUserIds.length !== 0)
-  ) {
-    throw new Error('Fib review completion must contain unique users only in an ended round');
-  }
 
   switch (state.phase) {
     case 'lobby':

@@ -220,9 +220,7 @@ function buildFibRestartAction(input: FibHostManagementInput): RoomHostManagemen
       showDestructiveAlert(
         '重新开始？',
         input.state.phase === 'ended'
-          ? input.review?.isPending
-            ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
-            : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+          ? '保留座位、配置和已用词记录，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
           : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         input.restartGame,
@@ -267,12 +265,7 @@ function createFibCurrentFlowActions(input: FibHostManagementInput): RoomHostMan
       if (hasUnviewedBot) {
         actions.push(
           buildMarkBotsViewedAction({
-            onPress: () =>
-              showConfirmAlert(
-                '标记机器人已查看？',
-                '将标记所有未查看身份的机器人。',
-                input.markAllBotsViewed,
-              ),
+            onPress: input.markAllBotsViewed,
             isEnabled: !input.isCommandSubmitting,
             isLoading: input.isCommandSubmitting,
           }),
@@ -423,7 +416,7 @@ function createFibHostTask(input: FibHostManagementInput): RoomHostTask | null {
       // 大聪明选人中：点座位盘选人，退出走同一个切换动作。
       return input.isGuessing
         ? hostMessageTask('点座位盘选择大聪明猜中的玩家', { actionKey: 'guess-seat' })
-        : hostActionTask('guess-seat');
+        : hostActionTask('reveal-round');
     case 'ended':
       return { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] };
   }
@@ -470,17 +463,13 @@ export function createFibHostManagement(input: FibHostManagementInput): RoomHost
         ? hostSeat !== null && !state.round.viewedSeats.includes(hostSeat)
           ? []
           : [HOST_ACTION_KEYS.startGame]
-        : state.phase === 'ended'
-          ? input.review?.isPending
-            ? [HOST_ACTION_KEYS.review]
-            : []
-          : state.phase === 'ongoing' && !input.isGuessing
-            ? ['guess-seat']
-            : [];
+        : state.phase === 'preparationFailed'
+          ? []
+          : undefined;
   return {
     task: createFibHostTask(input),
     sections,
-    pendingActionKeys,
+    ...(pendingActionKeys === undefined ? {} : { pendingActionKeys }),
     ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
   };
 }

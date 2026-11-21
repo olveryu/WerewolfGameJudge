@@ -1,7 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
-import { confirmAlert } from '../helpers/alerts';
 import { anySeatTestId } from '../helpers/ui';
 import { RoomPage } from './RoomPage';
 
@@ -16,46 +15,33 @@ export class SheriffElectionPage {
   }
 
   async waitForPhase(phaseTitle: string): Promise<void> {
-    const hudPhase =
-      phaseTitle === '报名上警'
-        ? '报名进行中'
-        : phaseTitle === '竞选结束'
-          ? /当选警长|本局没有警长/
-          : phaseTitle;
-    await expect(this.page.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveText(hudPhase, {
+    await expect(this.panel).toBeVisible({ timeout: 15_000 });
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionPhase)).toHaveText(phaseTitle, {
       timeout: 15_000,
     });
   }
 
-  async expectDetailsClosed(): Promise<void> {
+  async expectWideInspector(): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.sheriffElectionHud)).toBeVisible();
-    await expect(this.page.getByTestId(TESTIDS.sheriffElectionDialog)).not.toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionInspector)).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionSheet)).not.toBeVisible();
   }
 
-  async openDetails(): Promise<void> {
+  async openCompactDetails(): Promise<void> {
     const hud = this.page.getByTestId(TESTIDS.sheriffElectionHud);
     await expect(hud).toBeVisible();
-    const detailsCard = this.page.getByTestId(TESTIDS.sheriffDetailsButton);
-    await expect(detailsCard).toHaveAttribute('data-card-category', 'resource');
-    await detailsCard.click();
-    await expect(this.page.getByTestId(TESTIDS.sheriffElectionDialog)).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionInspector)).not.toBeVisible();
+    await hud.click();
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionSheet)).toBeVisible();
   }
 
-  async closeDetails(): Promise<void> {
-    if (!(await this.page.getByTestId(TESTIDS.sheriffElectionDialog).isVisible())) return;
-    await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
-    await expect(this.page.getByTestId(TESTIDS.sheriffElectionDialog)).not.toBeVisible();
-  }
-
-  private async ensureDetailsOpen(): Promise<void> {
-    if (!(await this.page.getByTestId(TESTIDS.sheriffElectionDialog).isVisible())) {
-      await this.openDetails();
-    }
+  async closeCompactDetails(): Promise<void> {
+    await this.page.getByTestId(TESTIDS.sheriffDetailsCloseButton).click();
+    await expect(this.page.getByTestId(TESTIDS.sheriffElectionSheet)).not.toBeVisible();
   }
 
   /** Assert the Host's personal registration action and distinct phase-advance command. */
   async expectHostRegistrationActions(personalAction: 'register' | 'cancel'): Promise<void> {
-    await this.closeDetails();
     const personalLabel = personalAction === 'register' ? '报名上警' : '取消报名';
     const personalButton = this.page.getByTestId(
       personalAction === 'register'
@@ -67,14 +53,6 @@ export class SheriffElectionPage {
     await expect(personalButton).toHaveText(personalLabel, { timeout: 15_000 });
     await expect(personalButton).toBeEnabled();
     await expect(hostManagementButton).toContainText(/更多操作|主持管理/);
-    const identityButton = this.page.getByTestId(TESTIDS.roomViewIdentityButton);
-    await expect(identityButton).toHaveAttribute('data-card-category', 'resource');
-    const personalBounds = await personalButton.boundingBox();
-    const identityBounds = await identityButton.boundingBox();
-    if (personalBounds === null || identityBounds === null) {
-      throw new Error('Sheriff action and identity cards must have layout bounds');
-    }
-    expect(personalBounds.x).toBeLessThan(identityBounds.x);
     await this.expectVisibleButtonLabel(personalButton, personalLabel);
     await this.expectVisibleButtonLabel(hostManagementButton, '主持管理');
 
@@ -117,12 +95,12 @@ export class SheriffElectionPage {
     }
 
     await advanceButton.focus();
+    await this.expectReachableByTab(grantButton);
     await this.expectReachableByTab(infoButton);
     const outlineStyle = await infoButton.evaluate(
       (element) => getComputedStyle(element).outlineStyle,
     );
     expect(outlineStyle).not.toBe('none');
-    await this.expectReachableByTab(grantButton);
 
     await room.closeHostManagement();
   }
@@ -166,42 +144,30 @@ export class SheriffElectionPage {
   }
 
   async register(): Promise<void> {
-    await this.closeDetails();
     const button = this.page.getByTestId(TESTIDS.sheriffRegisterButton);
     await button.click();
-    await confirmAlert(this.page, '报名上警？');
     await expect(button).not.toBeVisible({ timeout: 15_000 });
   }
 
   async withdraw(): Promise<void> {
-    await this.closeDetails();
     const button = this.page.getByTestId(TESTIDS.sheriffWithdrawButton);
     await button.click();
-    await confirmAlert(this.page, '确认退水？');
     await expect(button).not.toBeVisible({ timeout: 15_000 });
   }
 
   async advance(): Promise<void> {
-    await this.closeDetails();
-    const room = new RoomPage(this.page);
-    await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束发言？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await new RoomPage(this.page).clickHostManagementAction(TESTIDS.sheriffAdvanceButton);
   }
 
   /** Close registration; the advance action asks the Host to confirm first. */
   async endRegistration(): Promise<void> {
-    await this.closeDetails();
-    const room = new RoomPage(this.page);
-    await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束报名？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await new RoomPage(this.page).clickHostManagementActionAndConfirm(
+      TESTIDS.sheriffAdvanceButton,
+      '结束报名？',
+    );
   }
 
   async voteFor(candidateSeat: number): Promise<void> {
-    await this.ensureDetailsOpen();
     const candidateButton = this.page.getByTestId(TESTIDS.sheriffCandidateButton(candidateSeat));
     await candidateButton.click();
     await expect(candidateButton).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 });
@@ -212,14 +178,12 @@ export class SheriffElectionPage {
 
   /** Assert that candidate identities remain private while registration is open. */
   async expectCandidateRecordsHidden(): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.page.getByTestId(TESTIDS.sheriffRegisteredSeats)).not.toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.sheriffWithdrawnSeats)).not.toBeVisible();
     await expect(this.page.getByTestId(TESTIDS.sheriffActiveCandidateSeats)).not.toBeVisible();
   }
 
   async expectRegisteredOrder(displaySeats: readonly number[]): Promise<void> {
-    await this.ensureDetailsOpen();
     const dots = this.page
       .getByTestId(TESTIDS.sheriffRegisteredSeats)
       .getByTestId(REGISTERED_SEAT_DOT);
@@ -252,7 +216,6 @@ export class SheriffElectionPage {
       readonly voters: readonly number[];
     }[],
   ): Promise<void> {
-    await this.ensureDetailsOpen();
     for (const group of groups) {
       const tallyGroup = this.page.getByTestId(
         TESTIDS.sheriffTallyGroup(round, group.candidate - 1),
@@ -276,7 +239,6 @@ export class SheriffElectionPage {
   }
 
   async expectWithdrawnSeat(displaySeat: number): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.page.getByTestId(TESTIDS.sheriffWithdrawnSeats)).toContainText(
       `${displaySeat}号`,
       { timeout: 15_000 },
@@ -285,7 +247,6 @@ export class SheriffElectionPage {
 
   /** Read the displayed authoritative speaking instruction. */
   async getSpeakingInstruction(): Promise<string> {
-    await this.ensureDetailsOpen();
     const instruction = this.page.getByTestId(TESTIDS.sheriffSpeakingInstruction);
     await expect(instruction).toBeVisible({ timeout: 15_000 });
     return instruction.innerText();
@@ -293,7 +254,6 @@ export class SheriffElectionPage {
 
   /** Assert that this client displays the same authoritative speaking instruction. */
   async expectSpeakingInstruction(instruction: string): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.page.getByTestId(TESTIDS.sheriffSpeakingInstruction)).toHaveText(
       instruction,
       { timeout: 15_000 },
@@ -301,26 +261,23 @@ export class SheriffElectionPage {
   }
 
   async expectVoteProgress(progress: string): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.page.getByTestId(TESTIDS.sheriffVoteProgress)).toHaveText(progress, {
       timeout: 15_000,
     });
   }
 
-  /** Assert the election details name a seat that has not voted yet (0-based seat). */
+  /** Assert the HUD names a seat that has not voted yet (0-based seat). */
   async expectPendingSeatVisible(seat: number): Promise<void> {
-    await this.ensureDetailsOpen();
-    await expect(this.page.getByTestId(TESTIDS.sheriffVoteProgressPendingSeats)).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.sheriffHudPendingSeats)).toBeVisible({
       timeout: 15_000,
     });
     await expect(
-      this.page.getByTestId(`${TESTIDS.sheriffVoteProgressPendingSeats}-seat-${seat}`),
+      this.page.getByTestId(`${TESTIDS.sheriffHudPendingSeats}-seat-${seat}`),
     ).toBeVisible({ timeout: 15_000 });
   }
 
   async expectPendingSeatsHidden(): Promise<void> {
-    await this.ensureDetailsOpen();
-    await expect(this.page.getByTestId(TESTIDS.sheriffVoteProgressPendingSeats)).not.toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.sheriffHudPendingSeats)).not.toBeVisible();
   }
 
   /** Assert the HUD counts down the armed settle countdown; seconds tick, so match the range. */
@@ -330,32 +287,7 @@ export class SheriffElectionPage {
     });
   }
 
-  /** Observe the automatic result before waiting for its server-driven dismissal. */
-  async expectAutomaticResult(round: 'first' | 'runoff'): Promise<void> {
-    const dialog = this.page.getByTestId(TESTIDS.sheriffResultDialog);
-    await expect(dialog).toBeVisible({ timeout: 15_000 });
-    await expect(dialog.getByTestId(TESTIDS.sheriffCompletedRound(round))).toBeVisible();
-    await this.page.keyboard.press('Escape');
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toBeHidden({ timeout: 15_000 });
-  }
-
-  /** Keep an unsubmitted note open across a public result. */
-  async openNoteDraft(text: string): Promise<void> {
-    await this.closeDetails();
-    await this.page.getByTestId(TESTIDS.roomManualButton).click();
-    await this.page.getByTestId(TESTIDS.werewolfNotepadButton).click();
-    await this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes).fill(text);
-  }
-
-  async expectNoteDraftAndClose(text: string): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes)).toHaveValue(text);
-    await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
-    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
-  }
-
   async expectCanVote(canVote: boolean): Promise<void> {
-    await this.ensureDetailsOpen();
     const abstainButton = this.page.getByTestId(TESTIDS.sheriffAbstainButton);
     if (canVote) {
       await expect(abstainButton).toBeVisible({ timeout: 15_000 });
@@ -365,7 +297,6 @@ export class SheriffElectionPage {
   }
 
   async expectOpenBallotsHidden(): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.panel).not.toContainText('→');
     await expect(this.page.getByTestId(TESTIDS.sheriffCompletedRound('first'))).not.toBeVisible();
   }
@@ -374,7 +305,6 @@ export class SheriffElectionPage {
     round: 'first' | 'runoff',
     expectedText: readonly string[],
   ): Promise<void> {
-    await this.ensureDetailsOpen();
     const roundRecord = this.page.getByTestId(TESTIDS.sheriffCompletedRound(round));
     await expect(roundRecord).toBeVisible({ timeout: 15_000 });
     for (const text of expectedText) {
@@ -383,7 +313,6 @@ export class SheriffElectionPage {
   }
 
   async expectResult(expectedText: string): Promise<void> {
-    await this.ensureDetailsOpen();
     await expect(this.page.getByTestId(TESTIDS.sheriffElectionResult)).toContainText(expectedText, {
       timeout: 15_000,
     });

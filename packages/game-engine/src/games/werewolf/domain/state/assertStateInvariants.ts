@@ -350,20 +350,6 @@ function assertSheriffElectionPhase(state: GameState, election: SheriffElectionS
     case 'runoffVote':
       assertActiveSheriffVotingPhase(state, election);
       return;
-    case 'result':
-      if (!Number.isSafeInteger(election.deadline) || election.deadline < 0)
-        fail('sheriff result deadline is invalid');
-      if (election.next.kind === 'final' && election.next.result.kind === 'elected') {
-        const seat = election.next.result.sheriffSeat;
-        if (!election.registeredSeats.includes(seat) || election.withdrawnSeats.includes(seat))
-          fail(`result sheriff seat ${seat} is not an active candidate`);
-      }
-      if (election.next.kind === 'runoff') {
-        assertOccupiedSeats(state, election.next.candidateSeats, 'runoff result candidates');
-        if (!election.next.candidateSeats.includes(election.next.speakingStartSeat))
-          fail('runoff result starts from a non-candidate');
-      }
-      return;
   }
   const exhaustive: never = election;
   return exhaustive;

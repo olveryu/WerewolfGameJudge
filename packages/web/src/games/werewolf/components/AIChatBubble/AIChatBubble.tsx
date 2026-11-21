@@ -9,7 +9,7 @@ import './AIChatBubble.css';
 
 import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 
 import { IconButton } from '@/components/IconButton';
 import { Spinner } from '@/components/Spinner';
@@ -81,12 +81,14 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
     return '↑';
   };
 
+  const bubbleStyle: CSSProperties & { '--ai-bubble-top': string } = {
+    left: chat.bubble.position.x,
+    '--ai-bubble-top': `${chat.bubble.position.y}px`,
+  };
+
   return (
     <>
-      <div
-        className="ai-chat-bubble-anchor"
-        style={{ left: chat.bubble.position.x, top: chat.bubble.position.y }}
-      >
+      <div className="ai-chat-bubble-anchor" style={bubbleStyle}>
         {pulseCount > 0 && <span key={pulseCount} className="ai-chat-pulse" aria-hidden />}
         <button
           type="button"

@@ -185,9 +185,8 @@ abort, plus bot confirmation when the current night step has unconfirmed bot par
 Host commands remain subject to submission and narration locks. Setup controls do not become
 available during play, and vote/quest settlement remains automatic.
 
-`avalon.game.restart` carries the game sequence and ended status and returns the game to
-lobby, preserving seats, configuration and game sequence. Restarting an unfinished game
-does not emit a winner or reward settlement. `avalon.bots.markAllBotsGroupConfirmed`
+`avalon.game.abort` resets the current game to lobby, preserving seats, configuration and
+game sequence without emitting a winner or reward settlement. `avalon.bots.markAllBotsGroupConfirmed`
 confirms only bots participating in the current night step. Human confirmations and narration
 acknowledgement are still required before advancing.
 
@@ -209,14 +208,7 @@ lobby, identity viewing, play and ended. Public configuration goes through
 `RoomGameSummary`, collapsed by default after dealing, with shared `BoardInfoContent`.
 Public role composition comes from configured counts, never dealt seat
 identities; role previews do not mark any participant's identity as viewed.
-The viewing-phase identity action is primary and tracks the effective seat's
-view status; in play and at the end it is secondary. Spectators have no
-identity action, and a pending command disables it. The host task is pending
-in the lobby and, after the host has viewed their own identity (or has no
-seat), during viewing. Non-identity templates retain their workspace.
-Generated games expose only the host's sequence- and phase-checked `game.restart`
-command for returning to preparation; stale `game.abort` and `game.returnToLobby`
-commands are rejected at the public boundary.
+Non-identity templates retain their workspace.
 
 Every game, including non-identity games, uses the same `RoomGameSummary`
 card wherever its room information is shown. Its one header contains
