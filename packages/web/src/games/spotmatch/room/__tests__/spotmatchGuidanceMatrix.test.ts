@@ -186,6 +186,7 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       state,
       capabilities: capabilities(),
       isSubmitting: false,
+      isScorePause: false,
       submit: vi.fn(async () => true),
       review: null,
     });
@@ -202,6 +203,7 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
         state,
         capabilities: capabilities(),
         isSubmitting: false,
+        isScorePause: false,
         submit,
         review: phase === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
       });
@@ -226,6 +228,23 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       confirm.mockRestore();
     },
   );
+
+  it('disables restart during score pause without marking it as pending', () => {
+    const host = createSpotmatchHostManagement({
+      state: playingState(),
+      capabilities: capabilities(),
+      isSubmitting: false,
+      isScorePause: true,
+      submit: vi.fn(async () => true),
+      review: null,
+    });
+    const restart = host.sections
+      .flatMap((section) => section.actions)
+      .find(({ key }) => key === 'restart');
+
+    expect(host.pendingActionKeys).toEqual([]);
+    expect(restart).toMatchObject({ isEnabled: false, isLoading: false });
+  });
 
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(SPOTMATCH_GUIDANCE_MATRIX).sort()).toEqual([...SPOTMATCH_PHASES].sort());

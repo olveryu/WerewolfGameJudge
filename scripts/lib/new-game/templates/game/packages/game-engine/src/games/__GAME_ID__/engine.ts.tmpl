@@ -59,7 +59,6 @@ import {
   type __GAME_PASCAL__State,
   __GAME_UPPER___MIN_PLAYERS,
 } from './state/types';
-import { __GAME_UPPER___STATE_VERSION } from './state/version';
 //#cap businessStats
 import { buildGameCompletionPayloadV2 } from '../../platform/engine/completionEffect';
 //#end
@@ -71,7 +70,6 @@ function createInitialState(
   if (!isValid__GAME_PASCAL__Config(config)) throw new Error(__GAME_UPPER___REASONS.config);
   return normalize__GAME_PASCAL__State({
     gameType: __GAME_UPPER___GAME_TYPE,
-    stateVersion: __GAME_UPPER___STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -312,14 +310,18 @@ function settleExpired(
 }
 
 //#end
-/** Aborts without settlement, preserving seats and configuration. */
-function abortGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
+/** Reset the current game without settlement, preserving seats and configuration. */
+function restartGame(
+  state: __GAME_PASCAL__State,
+  command: Extract<__GAME_PASCAL__Command, { type: '__GAME_ID__.game.restart' }>,
+  context: CommandContext,
+): __GAME_PASCAL__Decision {
   const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
-    context, state.hostUserId, __GAME_UPPER___REASONS.notHostAbort,
+    context, state.hostUserId, __GAME_UPPER___REASONS.notHostRestart,
   );
   if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind === 'lobby' || state.phase.kind === 'ended')
-    return reject(__GAME_UPPER___REASONS.phase);
+  if (state.phase.kind === 'lobby' || state.gameSequence !== command.gameSequence ||
+      (state.phase.kind === 'ended') !== command.wasEnded) return reject(__GAME_UPPER___REASONS.phase);
 //#cap audioOrchestration
   const audioReason = guardAudioPlayback(state, __GAME_UPPER___REASONS.audioPlaying);
   if (audioReason !== null) return reject(audioReason);
@@ -327,21 +329,6 @@ function abortGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
   return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
 }
 
-function returnToLobby(state: __GAME_PASCAL__State, context: CommandContext): __GAME_PASCAL__Decision {
-  const hostRejection = requireHost<__GAME_PASCAL__Event, __GAME_PASCAL__Effect>(
-    context,
-    state.hostUserId,
-    __GAME_UPPER___REASONS.notHostReturnToLobby,
-  );
-  if (hostRejection !== null) return hostRejection;
-  if (state.phase.kind !== 'ended') return reject(__GAME_UPPER___REASONS.phase);
-//#cap audioOrchestration
-  // 播报未播完时阻塞回大厅，避免 orphan 音频队列（与阿瓦隆同口径）。
-  const audioReason = guardAudioPlayback(state, __GAME_UPPER___REASONS.audioPlaying);
-  if (audioReason !== null) return reject(audioReason);
-//#end
-  return commit__GAME_PASCAL__([{ type: '__GAME_ID__.game.returnedToLobby' }]);
-}
 //#cap audioOrchestration
 
 /** 房主播完指定批次后提交 ack：当前批次清空队列、释放音频门；旧批次幂等空转；未入队的批次拒绝。 */
@@ -446,10 +433,8 @@ function decideCommand(
       return settleExpired(state, context, 'uncontrolledUser');
     }
 //#end
-    case '__GAME_ID__.game.returnToLobby':
-      return returnToLobby(state, context);
-    case '__GAME_ID__.game.abort':
-      return abortGame(state, context);
+    case '__GAME_ID__.game.restart':
+      return restartGame(state, command, context);
 //#cap audioOrchestration
     case '__GAME_ID__.audio.ack':
       return ackAudio(state, command.audioBatchId, context);
@@ -482,7 +467,6 @@ export function get__GAME_PASCAL__Lifecycle(state: __GAME_PASCAL__State): Common
 
 export const __GAME_CAMEL__Engine = {
   gameType: __GAME_UPPER___GAME_TYPE,
-  stateVersion: __GAME_UPPER___STATE_VERSION,
   capabilities: {
 //#cap nightPhase
     nightPhase: true,

@@ -10,6 +10,7 @@
 import {
   get__GAME_PASCAL__OccupiedSeatCount,
 //#cap identityViewing
+  get__GAME_PASCAL__UserSeat,
   get__GAME_PASCAL__ViewingParticipants,
 //#end
   type __GAME_PASCAL__Command,
@@ -30,7 +31,7 @@ import {
   buildAssignRolesAction,
 //#end
   buildClearSeatsAction,
-  buildAbortGameAction,
+  buildResetToLobbyAction,
 //#cap audioOrchestration
   buildMusicSettingsAction,
 //#end
@@ -38,8 +39,6 @@ import {
 //#cap botBulkViewing
   buildMarkBotsViewedAction,
 //#end
-  buildNextRoundAction,
-  buildReturnLobbyAction,
   buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
@@ -51,7 +50,6 @@ import {
 //#cap identityViewing
   hostActionTask,
 //#end
-  hostReviewClosingTask,
 //#cap identityViewing
 //#end
   hostStartTask,
@@ -66,6 +64,11 @@ import {
 import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
+//#cap identityViewing
+  buildViewIdentityButton,
+  resolveViewIdentityAction,
+  VIEW_IDENTITY_LABEL,
+//#end
 } from '@/features/room/model/RoomBottomActions';
 //#cap identityViewing
 import { toRevealRoleData } from '../components/__GAME_PASCAL__RoleCardAdapter';
@@ -84,7 +87,10 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert } from '@/utils/alertPresets';
+//#cap identityViewing
+import { TESTIDS } from '@/testids';
+//#end
+import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 const get__GAME_PASCAL__ProfileTarget = (
@@ -151,6 +157,11 @@ export interface __GAME_PASCAL__RoomShellModelInput extends Omit<
   readonly onProfileClose: () => void;
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
+//#cap identityViewing
+  readonly effectiveSeat: number | null;
+  readonly isSubmitting: boolean;
+  readonly onViewRolePress: () => void;
+//#end
   readonly releaseBot: () => void;
   /** 本局复盘入口（平台 useRoomReview）；没有可复盘的对局时为 null。 */
   readonly review: RoomReviewEntry | null;
@@ -175,21 +186,37 @@ function create__GAME_PASCAL__HostTools(input: __GAME_PASCAL__HostManagementInpu
   const { state } = input;
   const sections: RoomHostManagementSection[] = [];
 //#cap audioOrchestration
-  if (state.phase.kind !== 'playing')
+  if (state.phase.kind !== 'playing' && state.phase.kind !== 'ended')
     sections.push({ key: 'tools', title: '辅助工具', actions: [
       buildMusicSettingsAction({ onPress: input.onMusicSettings }),
     ] });
 //#end
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended')
     sections.push({ key: 'danger', title: '危险操作', actions: [
-      buildAbortGameAction({
-        onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.abortTitle,
-          '清除当前对局并返回大厅，保留座位和设置，不结算奖励。',
-          () => void input.submit('中止本局', { type: '__GAME_ID__.game.abort' })),
-        isEnabled: !input.isSubmitting, isLoading: input.isSubmitting,
-      }),
+      build__GAME_PASCAL__RestartAction(input),
     ] });
   return sections;
+}
+
+function build__GAME_PASCAL__RestartAction(input: __GAME_PASCAL__HostManagementInput): RoomHostManagementAction {
+  const { state } = input;
+  const wasEnded = state.phase.kind === 'ended';
+  return buildResetToLobbyAction({
+    onPress: () => showDestructiveAlert(
+      '重新开始？',
+      wasEnded
+        ? input.review?.isPending
+          ? '你尚未查看本局复盘。重新开始将保留座位和配置，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
+          : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+        : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+      '重新开始',
+      () => void input.submit('重新开始', {
+        type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded,
+      }),
+    ),
+    isEnabled: !input.isSubmitting,
+    isLoading: input.isSubmitting,
+  });
 }
 
 /** Assembles the __GAME_PASCAL__ host panel for the current phase. Host gating belongs to the shell factory. */
@@ -231,6 +258,7 @@ export function create__GAME_PASCAL__HostManagement(
     // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
       task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      pendingActionKeys: [HOST_ACTION_KEYS.assignRoles],
       sections: [
         {
           key: 'game',
@@ -262,6 +290,7 @@ export function create__GAME_PASCAL__HostManagement(
     // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
       task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      pendingActionKeys: [HOST_ACTION_KEYS.startGame],
       sections: [
         {
           key: 'game',
@@ -333,73 +362,32 @@ export function create__GAME_PASCAL__HostManagement(
     sections.push({ key: 'room', title: '房间管理', actions: roomActions });
     const task = hostActionTask(HOST_ACTION_KEYS.startGame, {});
 //#end
-    return { task, sections: [...sections.filter((section) => section.actions.length > 0), ...tools] };
+    const hostSeat = get__GAME_PASCAL__UserSeat(state, state.hostUserId);
+    const hostHasViewed = hostSeat === null || state.roleViewedSeats.includes(hostSeat);
+    return {
+      task,
+      pendingActionKeys: hostHasViewed ? [HOST_ACTION_KEYS.startGame] : [],
+      sections: [...sections.filter((section) => section.actions.length > 0), ...tools],
+    };
   }
 //#end
-//#cap identityViewing
   if (state.phase.kind === 'ended') {
     if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
     return {
-      task: hostReviewClosingTask(),
+      task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'current-flow',
           title: '当前流程',
           actions: [
             buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(
-                  HOST_FLOW_CONFIRM.nextRoundTitle,
-                  '重新分配身份，开始新的一局。',
-                  async () => {
-                    await input.submit('再来一局', { type: '__GAME_ID__.roles.assign' });
-                  },
-                ),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
-                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
-                }),
-            }),
+            build__GAME_PASCAL__RestartAction(input),
           ],
         }, ...tools,
       ],
     };
   }
-//#end
-//#cap !identityViewing
-  if (state.phase.kind === 'ended') {
-    if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
-    // 本局复盘与再来一局 / 返回大厅并列：下一局开始后本局复盘随之消失。
-    return {
-      task: hostReviewClosingTask(),
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [
-            buildReviewHostAction(input.review),
-            buildNextRoundAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.nextRoundTitle, '将重新分配并清零比分，开始新的一局。', async () => {
-                  await input.submit('再来一局', { type: '__GAME_ID__.game.begin' });
-                }),
-            }),
-            buildReturnLobbyAction({
-              onPress: () =>
-                showConfirmAlert(HOST_FLOW_CONFIRM.returnLobbyTitle, HOST_FLOW_CONFIRM.returnLobbyBody, async () => {
-                  await input.submit('返回大厅', { type: '__GAME_ID__.game.returnToLobby' });
-                }),
-            }),
-          ],
-        }, ...tools,
-      ],
-    };
-  }
-//#end
   // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
     task: null,
@@ -418,6 +406,22 @@ export function create__GAME_PASCAL__RoomShellModel(
     userId: input.viewer.userId,
     controlledSeat: input.controlledSeat,
   });
+//#cap identityViewing
+  const identityAction = resolveViewIdentityAction({
+    isVisible: state.phase.kind !== 'lobby' && input.effectiveSeat !== null,
+    label: VIEW_IDENTITY_LABEL,
+    onPress: input.onViewRolePress,
+  });
+  const identityButton = identityAction === null ? null : buildViewIdentityButton(identityAction, {
+    key: 'view-identity',
+    variant: state.phase.kind === 'viewing' ? 'primary' : 'secondary',
+    audience: 'participant',
+    testID: TESTIDS.roomViewIdentityButton,
+    isSubmitting: input.isSubmitting,
+    isPending: state.phase.kind === 'viewing' && input.effectiveSeat !== null &&
+      !state.roleViewedSeats.includes(input.effectiveSeat),
+  });
+//#end
   return createRoomShellModel({
     ...input,
 //#cap audioOrchestration
@@ -453,11 +457,20 @@ export function create__GAME_PASCAL__RoomShellModel(
       progress: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       layout: {
-        primary: [],
+        primary: [
+//#cap identityViewing
+          ...(state.phase.kind === 'viewing' && identityButton !== null ? [identityButton] : []),
+//#end
+        ],
         secondary:
-          input.review === null
-            ? []
-            : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer),
+          [
+//#cap identityViewing
+            ...(state.phase.kind !== 'viewing' && identityButton !== null ? [identityButton] : []),
+//#end
+            ...(input.review === null
+              ? []
+              : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)),
+          ],
         ghost: [],
       },
     },

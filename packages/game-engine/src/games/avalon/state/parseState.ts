@@ -1,7 +1,6 @@
-/** Strict Avalon persistence and transport codec; v1 payloads migrate through migratePersistedAvalonState. */
+/** Strict Avalon persistence and transport codec. */
 
 import { type AudioEffect, parseAudioBatchId } from '../../../platform/audio';
-import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
@@ -14,13 +13,12 @@ import {
   parseObject,
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
-import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
+import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeAvalonState } from './normalize';
 import {
   AVALON_BALLOTS,
   AVALON_END_REASONS,
   AVALON_GAME_TYPE,
-  AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
   AVALON_NIGHT_STEPS,
   AVALON_PHASES,
@@ -30,9 +28,7 @@ import {
   AVALON_VOTE_MODES,
   type AvalonBallot,
   type AvalonConfig,
-  type AvalonHumanSeat,
   type AvalonLadyCheckRecord,
-  type AvalonLadyCheckResult,
   type AvalonLastVoteResult,
   type AvalonNightInfo,
   type AvalonPhase,
@@ -47,7 +43,6 @@ import {
   isAvalonPlayerCount,
   isAvalonVetoLimit,
 } from './types';
-import { AVALON_STATE_VERSION } from './version';
 
 /** Parses only the supported lobby settings. */
 export function parseAvalonConfig(value: unknown, path = 'AvalonConfig'): AvalonConfig {
@@ -66,16 +61,6 @@ export function parseAvalonConfig(value: unknown, path = 'AvalonConfig'): Avalon
     },
     path,
   );
-}
-
-function legacyRealSeats(value: unknown, path: string): Readonly<Record<number, AvalonHumanSeat>> {
-  const raw = parseObject(value, path);
-  const result: Record<number, AvalonHumanSeat> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (!/^(0|[1-9]\d*)$/.test(key)) failDecode(`${path}.${key}`, 'a canonical seat key');
-    result[parseSeat(Number(key), `${path}.${key}`)] = parseRoomHumanSeat(value, `${path}.${key}`);
-  }
-  return result;
 }
 
 function seatRecord<T>(value: unknown, path: string, decode: (value: unknown, path: string) => T) {
@@ -131,6 +116,7 @@ function proposalRecord(value: unknown, path: string): AvalonProposalRecord {
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
       approved: parseBoolean(raw.approved, `${path}.approved`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
     },
     path,
   );
@@ -174,22 +160,10 @@ function historyEntry(value: unknown, path: string): AvalonQuestHistoryEntry {
       approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
       result: parseChoice(raw.result, `${path}.result`, ['success', 'fail'] as const),
       successCount: parseInteger(raw.successCount, `${path}.successCount`),
       failCount: parseInteger(raw.failCount, `${path}.failCount`),
-    },
-    path,
-  );
-}
-
-function ladyCheck(value: unknown, path: string): AvalonLadyCheckResult {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      holderSeat: parseSeat(raw.holderSeat, `${path}.holderSeat`),
-      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      faction: parseChoice(raw.faction, `${path}.faction`, ['good', 'evil'] as const),
     },
     path,
   );
@@ -234,6 +208,7 @@ function lastVoteResult(value: unknown, path: string): AvalonLastVoteResult {
       approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
       rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
       abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+      automatic: parseBoolean(raw.automatic, `${path}.automatic`),
     },
     path,
   );
@@ -264,12 +239,7 @@ function phase(value: unknown, path: string): AvalonPhase {
           kind: 'nominate' as const,
           round: questRound(raw.round, `${path}.round`),
           requiredSize: parseInteger(raw.requiredSize, `${path}.requiredSize`),
-          // Pre-v8 states carry no preselectedSeats; like vote.deadlineAt
-          // on v3 phases, a missing field parses as the empty value.
-          preselectedSeats:
-            raw.preselectedSeats === undefined
-              ? []
-              : parseArray(raw.preselectedSeats, `${path}.preselectedSeats`, parseSeat),
+          preselectedSeats: parseArray(raw.preselectedSeats, `${path}.preselectedSeats`, parseSeat),
         },
         path,
       );
@@ -281,10 +251,7 @@ function phase(value: unknown, path: string): AvalonPhase {
           round: questRound(raw.round, `${path}.round`),
           proposedSeats: parseArray(raw.proposedSeats, `${path}.proposedSeats`, parseSeat),
           ballots: ballotRecord(raw.ballots, `${path}.ballots`),
-          deadlineAt:
-            raw.deadlineAt === undefined
-              ? null
-              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
+          deadlineAt: parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -295,7 +262,7 @@ function phase(value: unknown, path: string): AvalonPhase {
           kind: 'voteResult' as const,
           round: questRound(raw.round, `${path}.round`),
           proposedSeats: parseArray(raw.proposedSeats, `${path}.proposedSeats`, parseSeat),
-          confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
+          deadlineAt: parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -307,14 +274,22 @@ function phase(value: unknown, path: string): AvalonPhase {
           round: questRound(raw.round, `${path}.round`),
           teamSeats: parseArray(raw.teamSeats, `${path}.teamSeats`, parseSeat),
           plays: playRecord(raw.plays, `${path}.plays`),
-          deadlineAt:
-            raw.deadlineAt === undefined
-              ? null
-              : parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
+          deadlineAt: parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
           ballots: ballotRecord(raw.ballots, `${path}.ballots`),
           approveCount: parseInteger(raw.approveCount, `${path}.approveCount`),
           rejectCount: parseInteger(raw.rejectCount, `${path}.rejectCount`),
           abstainCount: parseInteger(raw.abstainCount, `${path}.abstainCount`),
+          automatic: parseBoolean(raw.automatic, `${path}.automatic`),
+        },
+        path,
+      );
+    case 'questResult':
+      return finishObject(
+        raw,
+        {
+          kind: 'questResult' as const,
+          round: questRound(raw.round, `${path}.round`),
+          deadlineAt: parseNullable(raw.deadlineAt, `${path}.deadlineAt`, parseInteger),
         },
         path,
       );
@@ -364,7 +339,6 @@ export function parseAvalonState(value: unknown): AvalonState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [AVALON_GAME_TYPE]),
-        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [AVALON_STATE_VERSION]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -387,10 +361,14 @@ export function parseAvalonState(value: unknown): AvalonState {
           parseSeat,
         ),
         roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
-        lastLadyCheck: parseNullable(raw.lastLadyCheck, `${path}.lastLadyCheck`, ladyCheck),
         ladyHistory: parseArray(raw.ladyHistory, `${path}.ladyHistory`, ladyHistoryRecord),
         lastVoteResult: parseNullable(raw.lastVoteResult, `${path}.lastVoteResult`, lastVoteResult),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+        reviewCompletedUserIds: parseArray(
+          raw.reviewCompletedUserIds,
+          `${path}.reviewCompletedUserIds`,
+          parseNonEmptyString,
+        ),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
         pendingAudioEffects: parseArray(
           raw.pendingAudioEffects,
@@ -403,181 +381,4 @@ export function parseAvalonState(value: unknown): AvalonState {
       path,
     ),
   );
-}
-
-/**
- * Derives the v6 round record from what pre-v6 payloads actually stored:
- * every settled quest (questHistory keeps its approved proposal and its
- * outcome) plus an in-flight quest (the quest phase itself still carries
- * the approved proposal). Rejected proposals of older rounds were never
- * persisted anywhere, so they stay absent — v6 settlements record all.
- * Runs on the raw payload so the strict parser (and its mirror
- * invariants) only ever sees the completed state.
- */
-function deriveLegacyRoundHistory(
-  raw: Readonly<Record<string, unknown>>,
-): readonly AvalonRoundRecord[] {
-  const questHistory =
-    raw.questHistory === undefined
-      ? []
-      : parseArray(raw.questHistory, 'AvalonState.questHistory', historyEntry);
-  const rounds: AvalonRoundRecord[] = questHistory.map((entry) => {
-    const proposal: AvalonProposalRecord = {
-      leaderSeat: entry.leaderSeat,
-      teamSeats: entry.teamSeats,
-      ballots: entry.ballots,
-      approveCount: entry.approveCount,
-      rejectCount: entry.rejectCount,
-      abstainCount: entry.abstainCount,
-      approved: true,
-    };
-    const quest: AvalonQuestRecord = {
-      result: entry.result,
-      successCount: entry.successCount,
-      failCount: entry.failCount,
-    };
-    return { round: entry.round, proposals: [proposal], quest };
-  });
-  const rawPhase = phase(raw.phase, 'AvalonState.phase');
-  if (rawPhase.kind === 'quest' && !rounds.some((record) => record.round === rawPhase.round)) {
-    rounds.push({
-      round: rawPhase.round,
-      proposals: [
-        {
-          leaderSeat: parseInteger(raw.leaderSeat, 'AvalonState.leaderSeat'),
-          teamSeats: rawPhase.teamSeats,
-          ballots: rawPhase.ballots,
-          approveCount: rawPhase.approveCount,
-          rejectCount: rawPhase.rejectCount,
-          abstainCount: rawPhase.abstainCount,
-          approved: true,
-        },
-      ],
-      quest: null,
-    });
-  }
-  return rounds;
-}
-
-/**
- * Derives completed lady checks from what pre-v7 payloads actually stored:
- * examinedSeats[0] is the initial holder, each later entry is the next
- * checked seat, in check order. The first completed check follows round 2,
- * the second follows round 3, the third follows round 4, so afterRound is
- * the checked entry's index + 1. A check still in progress (lady phase
- * with a chosen target not yet acknowledged) is not in examinedSeats and
- * is correctly not derived.
- */
-function deriveLegacyLadyHistory(
-  raw: Readonly<Record<string, unknown>>,
-): readonly AvalonLadyCheckRecord[] {
-  const config = parseAvalonConfig(raw.config, 'AvalonState.config');
-  if (config.numberOfPlayers < AVALON_LADY_MIN_PLAYERS) return [];
-  const examined =
-    raw.ladyExaminedSeats === undefined
-      ? []
-      : parseArray(raw.ladyExaminedSeats, 'AvalonState.ladyExaminedSeats', parseSeat);
-  return examined.slice(1).map((targetSeat, index) => ({
-    afterRound: AVALON_LADY_ROUNDS[index]!,
-    holderSeat: examined[index]!,
-    targetSeat,
-  }));
-}
-
-/**
- * Upgrades stored v1/v2 rooms. v1 predates role viewing, so its record
- * starts empty. v2 stored the roster as realSeats plus the implicit-bot
- * derivation inputs; the v3 roster materializes exactly the seats the
- * old derivation would have called bots.
- * @throws When the stored state is malformed or invalid after migration.
- */
-/** v<10 nominate phases carried the leader's draft; it is not part of the state any more. */
-function dropNominateDraft(phase: unknown): unknown {
-  if (typeof phase !== 'object' || phase === null || !('draftSeats' in phase)) return phase;
-  const { draftSeats: _dropped, ...rest } = phase;
-  return rest;
-}
-
-export function migratePersistedAvalonState(value: unknown): AvalonState {
-  const raw = parseObject(value, 'AvalonState');
-  // v3/v4 predate the viewing stage; their phases all exist unchanged
-  // in v5 (a v4 game is either undealt or already past the deal), so
-  // migration is a pure version bump with field-for-field equivalence.
-  // v5 -> v6 adds roundHistory, derived from what the old state stored
-  // (see deriveLegacyRoundHistory); v3/v4 take the same derivation.
-  // v6 -> v7 adds ladyHistory, derived from examinedSeats (see above).
-  // v7 -> v8 adds preselectedSeats; the nominate parser defaults a
-  // missing field to the empty value (no preselect yet), so migration
-  // is a pure version bump.
-  // v8 -> v9 adds audioBatchId; every older payload starts at 0 and the
-  // host acks a queue written before ids as batch 0.
-  // v9 -> v10 removes the nominate draft (`phase.draftSeats`): the team
-  // now travels on preselect / propose. A persisted draft was never a
-  // commitment, so it is dropped.
-  if (raw.stateVersion === 10) {
-    return parseAvalonState({ ...raw, stateVersion: AVALON_STATE_VERSION });
-  }
-  if (raw.stateVersion === 9) {
-    return parseAvalonState({
-      ...raw,
-      stateVersion: AVALON_STATE_VERSION,
-      phase: dropNominateDraft(raw.phase),
-    });
-  }
-  if (raw.stateVersion === 7 || raw.stateVersion === 8) {
-    return parseAvalonState({
-      ...raw,
-      stateVersion: AVALON_STATE_VERSION,
-      phase: dropNominateDraft(raw.phase),
-      audioBatchId: 0,
-    });
-  }
-  if (raw.stateVersion === 3 || raw.stateVersion === 4 || raw.stateVersion === 5) {
-    return parseAvalonState({
-      ...raw,
-      stateVersion: AVALON_STATE_VERSION,
-      phase: dropNominateDraft(raw.phase),
-      roundHistory: deriveLegacyRoundHistory(raw),
-      ladyHistory: deriveLegacyLadyHistory(raw),
-      audioBatchId: 0,
-    });
-  }
-  if (raw.stateVersion === 6) {
-    return parseAvalonState({
-      ...raw,
-      stateVersion: AVALON_STATE_VERSION,
-      phase: dropNominateDraft(raw.phase),
-      ladyHistory: deriveLegacyLadyHistory(raw),
-      audioBatchId: 0,
-    });
-  }
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseAvalonState(raw);
-  if (raw.stateVersion === 1 && 'roleViewedSeats' in raw)
-    return failDecode('AvalonState.roleViewedSeats', 'absent from version 1 states');
-  const config = parseAvalonConfig(raw.config, 'AvalonState.config');
-  const humans = legacyRealSeats(raw.realSeats, 'AvalonState.realSeats');
-  const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'AvalonState.fillEmptySeatsWithBots');
-  const excluded = parseArray(raw.excludedBotSeats, 'AvalonState.excludedBotSeats', parseSeat);
-  const roster = materializeLegacyRoster({
-    humans,
-    fillEmptySeatsWithBots: fill,
-    excludedBotSeats: excluded,
-    numberOfPlayers: config.numberOfPlayers,
-  });
-  const {
-    realSeats: _legacyRealSeats,
-    fillEmptySeatsWithBots: _legacyFill,
-    excludedBotSeats: _legacyExcluded,
-    ...rest
-  } = raw;
-  return parseAvalonState({
-    ...rest,
-    stateVersion: AVALON_STATE_VERSION,
-    phase: dropNominateDraft(rest.phase),
-    roleViewedSeats: raw.stateVersion === 1 ? [] : raw.roleViewedSeats,
-    roster,
-    roundHistory: deriveLegacyRoundHistory(rest),
-    ladyHistory: deriveLegacyLadyHistory(rest),
-    audioBatchId: 0,
-  });
 }

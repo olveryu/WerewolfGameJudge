@@ -12,8 +12,6 @@ export type SpotmatchPublicCommand =
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'spotmatch.config.update'; readonly config: SpotmatchConfig }
   | { readonly type: 'spotmatch.game.begin' }
-  | { readonly type: 'spotmatch.game.returnToLobby' }
-  | { readonly type: 'spotmatch.game.abort' }
   | {
       readonly type: 'spotmatch.game.restart';
       readonly gameSequence: number;

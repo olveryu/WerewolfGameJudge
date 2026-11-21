@@ -38,11 +38,6 @@ export const PICTIONARY_GUIDANCE_MATRIX: RoomGuidanceMatrix<PictionaryPhase> = {
     seated: guidanceExempt('画廊在对局工作区播放（自动推进），步进归底部进度行'),
     spectator: guidanceExempt('画廊在对局工作区播放（自动推进），步进归底部进度行'),
   },
-  aborted: {
-    host: guidanceExempt('中止标记在工作区图册标题；本局复盘归底部按钮，房主后续动作归房主面板'),
-    seated: guidanceExempt('中止标记在工作区图册标题（未完成，房主中止）；本局复盘归底部按钮'),
-    spectator: guidanceExempt('中止标记在工作区图册标题（未完成，房主中止）；本局复盘归底部按钮'),
-  },
   ended: {
     host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
     seated: guidanceExempt('图册回顾在对局工作区，本局复盘归底部按钮，房主后续动作归房主面板'),

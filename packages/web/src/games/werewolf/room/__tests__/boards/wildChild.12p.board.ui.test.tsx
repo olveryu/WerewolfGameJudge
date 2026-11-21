@@ -73,7 +73,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -87,7 +87,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt when someone died', async () => {
       await mount(witchStep(10, 1));
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
     });
   });
 
@@ -135,11 +135,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     expect(action).toHaveAccessibleDescription('有待处理操作');
 
     await startSeatSelection(view);
-    expect(
-      view
-        .getByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))
-        .querySelector('.bottom-action-pending'),
-    ).toBeNull();
+    expect(view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))).toBeNull();
     expect(
       view
         .getByTestId(TESTIDS.werewolfNightButton('cancelSeatSelection'))
@@ -164,7 +160,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(10, -1));
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
     });
   });
 
@@ -208,7 +204,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 10);
 
       // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(10);
+      await coverageChainWitchPoisonSelection(harness, 10);
 
       // Step 5: confirmTrigger (hunter) -> press primary + assertNoLoop
       await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 11);

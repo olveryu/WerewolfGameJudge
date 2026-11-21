@@ -84,7 +84,7 @@ function createTransitionTimer(input: StoryRelayStageHudInput): RoomStageTimerMo
 
 /**
  * Builds the information bar for answering, settling and transition; null for the lobby, the
- * gallery and a finished or aborted round, which are not stage content.
+ * gallery and a finished round, which are not stage content.
  */
 export function createStoryRelayStageHud(input: StoryRelayStageHudInput): RoomStageHudModel | null {
   const { state } = input;

@@ -15,7 +15,6 @@ import type {
   GameState,
   WerewolfHumanSeat,
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
 // Test Helper
@@ -23,7 +22,7 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 
 function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
   const state: GameState = {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
@@ -54,6 +53,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},
+    resolvedWolfKillTarget: null,
     ...overrides,
   };
   // Every fixture in this file seats user `p<seat>` at each occupied seat;
@@ -240,6 +240,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     const state = createOngoingState({
       loverSeats: [3, 6] as readonly [number, number],
       witchContext: { killedSeat: 3, canSave: true, canPoison: true },
+      resolvedWolfKillTarget: 3,
       currentNightResults: {},
     });
     const action = maybeCreateConfirmStatusAction('hunterConfirm', state);
@@ -298,6 +299,7 @@ describe('maybeCreateConfirmStatusAction', () => {
         7: { seat: 7, role: 'dreamcatcher' },
       },
       witchContext: { killedSeat: 7, canSave: true, canPoison: true },
+      resolvedWolfKillTarget: 7,
       currentNightResults: { dreamingSeat: 6 },
     });
     const action = maybeCreateConfirmStatusAction('hunterConfirm', state);
@@ -581,6 +583,7 @@ describe('computeCanShootForSeat', () => {
     const state = createOngoingState({
       loverSeats: [3, 6] as readonly [number, number],
       witchContext: { killedSeat: 3, canSave: true, canPoison: true },
+      resolvedWolfKillTarget: 3,
       currentNightResults: {},
     });
     expect(computeCanShootForSeat(6, state)).toBe(false);
@@ -609,6 +612,7 @@ describe('computeCanShootForSeat', () => {
         7: { seat: 7, role: 'dreamcatcher' },
       },
       witchContext: { killedSeat: 7, canSave: true, canPoison: true },
+      resolvedWolfKillTarget: 7,
       currentNightResults: { dreamingSeat: 6 },
     });
     expect(computeCanShootForSeat(6, state)).toBe(false);

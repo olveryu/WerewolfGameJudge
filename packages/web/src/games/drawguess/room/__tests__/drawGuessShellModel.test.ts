@@ -272,6 +272,7 @@ describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
       state,
       {
         type: 'drawguess.words.dealt',
+        gameSequence: state.gameSequence,
         turnIndex: 0,
         choices: [
           { word: '苹果', pinyinInitials: 'p g' },

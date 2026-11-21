@@ -8,7 +8,6 @@
  * - Call runInlineProgression and verify: steps advanced, authoritative audio queue, finalState
  */
 
-import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
 import { TEST_HANDLER_EXECUTION } from '../handlers/__tests__/handlerTestUtils';
 import { runInlineProgression as executeInlineProgression } from '../inlineProgression';
 import { GameStatus } from '../models/GameStatus';
@@ -33,7 +32,7 @@ function runInlineProgression(
 function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_2P);
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
@@ -68,7 +67,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
 function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_5P);
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
@@ -329,7 +328,7 @@ describe('runInlineProgression', () => {
 
       const nowMs = Date.now();
       const state: GameState = {
-        ...WEREWOLF_STATE_IDENTITY,
+        gameType: 'werewolf',
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -396,7 +395,7 @@ describe('runInlineProgression', () => {
 
       const nowMs = Date.now();
       const state: GameState = {
-        ...WEREWOLF_STATE_IDENTITY,
+        gameType: 'werewolf',
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -464,7 +463,7 @@ describe('runInlineProgression', () => {
 
       const nowMs = Date.now();
       const state: GameState = {
-        ...WEREWOLF_STATE_IDENTITY,
+        gameType: 'werewolf',
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,

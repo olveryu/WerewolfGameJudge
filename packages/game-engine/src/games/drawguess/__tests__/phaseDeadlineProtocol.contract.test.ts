@@ -99,7 +99,12 @@ function armedHarness(): DrawGuessHarness {
   }
   send({ type: 'drawguess.game.begin' }, harness.userContext('host', null, 1000));
   send(
-    { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
+    {
+      type: 'drawguess.words.dealt',
+      gameSequence: harness.state().gameSequence,
+      turnIndex: 0,
+      choices: CHOICES,
+    },
     harness.systemContext(1000),
   );
   return harness;

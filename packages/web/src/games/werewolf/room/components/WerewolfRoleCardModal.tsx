@@ -25,6 +25,7 @@ export function WerewolfRoleCardModal({
   shouldPlayAnimation,
   allRoleIds,
   remainingCards,
+  confirmDisabled,
   onClose,
   seerLabelMap,
 }: {
@@ -40,6 +41,7 @@ export function WerewolfRoleCardModal({
   readonly allRoleIds: readonly RoleId[];
   /** Seats that have not viewed their card yet (card-pick layout). */
   readonly remainingCards: number;
+  readonly confirmDisabled: boolean;
   readonly onClose: () => void;
   /** Labels for seer + mirrorSeer coexistence (from GameState). */
   readonly seerLabelMap: Readonly<Record<string, number>> | undefined;
@@ -79,6 +81,8 @@ export function WerewolfRoleCardModal({
       shouldPlay={shouldPlayAnimation}
       allRoles={allRoleIds.map((id) => toRevealRoleData(id, { showRealIdentity: true }))}
       remainingCards={remainingCards}
+      requireConfirmation
+      confirmDisabled={confirmDisabled}
     />
   );
 }

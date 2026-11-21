@@ -204,7 +204,7 @@ test.describe('Werewolf Night — Special Roles: Thief & Cupid', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]!, '情侣状态', '我知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '情侣状态', '知道了');
 
             if (loverSeats.includes(role.seat)) {
               expect(msg).toContain('情侣');

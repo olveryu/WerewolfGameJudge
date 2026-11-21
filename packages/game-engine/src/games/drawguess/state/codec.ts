@@ -3,9 +3,8 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import { parseDrawGuessState } from './parseState';
 import type { DrawGuessState } from './types';
-import { DRAWGUESS_STATE_IDENTITY } from './version';
 
 export const DRAWGUESS_STATE_CODEC = {
-  ...DRAWGUESS_STATE_IDENTITY,
+  gameType: 'drawguess',
   parse: parseDrawGuessState,
 } satisfies GameStateCodec<DrawGuessState>;

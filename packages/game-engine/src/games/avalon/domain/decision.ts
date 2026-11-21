@@ -89,6 +89,7 @@ export type AvalonEvent =
   | { readonly type: 'avalon.game.begun' }
   | { readonly type: 'avalon.night.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.role.viewed'; readonly seat: number }
+  | { readonly type: 'avalon.review.completed'; readonly userId: string }
   | { readonly type: 'avalon.night.stepped'; readonly step: AvalonNightStep }
   | { readonly type: 'avalon.night.completed' }
   | {
@@ -98,6 +99,7 @@ export type AvalonEvent =
   | { readonly type: 'avalon.audio.cleared'; readonly audioBatchId: number }
   | { readonly type: 'avalon.team.preselected'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.proposed'; readonly seats: readonly number[] }
+  | { readonly type: 'avalon.team.autoApproved'; readonly seats: readonly number[] }
   | { readonly type: 'avalon.team.vote.cast'; readonly seat: number; readonly vote: AvalonBallot }
   | { readonly type: 'avalon.vote.allCast'; readonly deadlineAt: number }
   | {
@@ -108,10 +110,11 @@ export type AvalonEvent =
       readonly rejectCount: number;
       readonly abstainCount: number;
     }
-  | { readonly type: 'avalon.voteResult.confirmed'; readonly seat: number }
+  | { readonly type: 'avalon.result.countdownStarted'; readonly deadlineAt: number }
   | { readonly type: 'avalon.voteResult.completed' }
   | { readonly type: 'avalon.quest.played'; readonly seat: number; readonly play: AvalonPlay }
   | { readonly type: 'avalon.quest.allPlayed'; readonly deadlineAt: number }
+  | { readonly type: 'avalon.questResult.completed' }
   | {
       readonly type: 'avalon.quest.settled';
       readonly round: AvalonQuestRound;
@@ -124,7 +127,6 @@ export type AvalonEvent =
   | {
       readonly type: 'avalon.lady.acknowledged';
       readonly targetSeat: number;
-      readonly faction: 'good' | 'evil';
       readonly nextRound: AvalonQuestRound;
       readonly nextRequiredSize: number;
       readonly nextLeaderSeat: number;
@@ -155,7 +157,7 @@ export type AvalonEffect =
       readonly type: 'avalon.settle.due';
       readonly payload: {
         readonly gameSequence: number;
-        readonly phase: 'vote' | 'quest';
+        readonly phase: 'vote' | 'quest' | 'voteResult' | 'questResult';
         readonly round: AvalonQuestRound;
         readonly deadlineAt: number;
       };

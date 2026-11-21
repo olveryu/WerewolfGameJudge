@@ -1,7 +1,6 @@
 /** Undercover Worker module; domain state and command authority remain in the pure engine. */
 
 import {
-  migratePersistedUndercoverState,
   parseUndercoverPublicStats,
   UNDERCOVER_STATE_CODEC,
   undercoverEngine,
@@ -22,7 +21,6 @@ export const undercoverWorkerModule = defineWorkerGameModule({
   gameType: 'undercover',
   engine: undercoverEngine,
   stateCodec: UNDERCOVER_STATE_CODEC,
-  migratePersistedState: migratePersistedUndercoverState,
   createConfigSchema: undercoverCreateConfigSchema,
   publicCommandSchema: undercoverPublicCommandSchema,
   internalCommandSchema: undercoverInternalCommandSchema,

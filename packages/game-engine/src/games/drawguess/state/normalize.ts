@@ -21,7 +21,6 @@ import {
   type DrawGuessTurnRecord,
   isValidDrawGuessConfig,
 } from './types';
-import { DRAWGUESS_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('DrawGuess');
 
@@ -119,14 +118,12 @@ function areValidReactionsBySeat(
 }
 
 function areValidGuessStats(
-  attempts: Readonly<Record<number, number>> | undefined,
-  times: Readonly<Record<number, number>> | undefined,
+  attempts: Readonly<Record<number, number>>,
+  times: Readonly<Record<number, number>>,
   guessedSeats: readonly number[],
   drawerSeat: number,
   isSeat: SeatCheck,
 ): boolean {
-  if ((attempts === undefined) !== (times === undefined)) return false;
-  if (attempts === undefined || times === undefined) return true;
   return (
     areValidSeatCounts(attempts, isSeat) &&
     areValidSeatCounts(times, isSeat) &&
@@ -166,21 +163,19 @@ function isValidTurnRecord(
 /**
  * Finished turns are contiguous and end at the last closed turn: the
  * previous turn while one is running, the final turn once ended; the
- * lobby holds none. A room migrated from v3 mid-game starts its history
- * at the migration turn, so the first record may come after turn 0.
+ * lobby holds none.
  */
 function isValidTurnHistory(state: DrawGuessState, isSeat: SeatCheck): boolean {
   const history = state.turnHistory;
   if (state.phase.kind === 'lobby') return history.length === 0;
   const lastTurn = state.phase.kind === 'ended' ? state.turnIndex : state.turnIndex - 1;
-  const firstTurn = lastTurn - history.length + 1;
+  const expectedHistoryLength = lastTurn + 1;
   const entryIds = history.flatMap((record) => (record.entryId === null ? [] : [record.entryId]));
   return (
-    firstTurn >= 0 &&
+    history.length === expectedHistoryLength &&
     history.every(
       (record, index) =>
-        record.turnIndex === firstTurn + index &&
-        isValidTurnRecord(record, state.drawerQueue, isSeat),
+        record.turnIndex === index && isValidTurnRecord(record, state.drawerQueue, isSeat),
     ) &&
     new Set(entryIds).size === entryIds.length
   );
@@ -291,7 +286,7 @@ function assertRoundEndPhase(state: DrawGuessState, phase: RoundEndPhase, isSeat
 
 /** Validates authoritative state without repairing or dropping submitted content. */
 export function normalizeDrawGuessState(state: DrawGuessState): DrawGuessState {
-  assertStateIdentity(state, DRAWGUESS_STATE_IDENTITY, 'DrawGuess');
+  assertStateIdentity(state, 'drawguess', 'DrawGuess');
   invariant(isValidDrawGuessConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;

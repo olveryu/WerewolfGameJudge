@@ -74,6 +74,11 @@ export interface SecrethitlerViewModel {
   readonly lastPresidentSeat: number | null;
   readonly lastChancellorSeat: number | null;
   readonly voteMode: SecrethitlerVoteMode;
+  readonly publicVoteResult: {
+    readonly yesCount: number;
+    readonly noCount: number;
+    readonly votes: readonly { readonly seat: number; readonly vote: SecrethitlerVote }[] | null;
+  } | null;
   readonly history: SecrethitlerHistoryView;
   readonly winner: 'liberal' | 'fascist' | null;
   readonly endReason:
@@ -82,13 +87,15 @@ export interface SecrethitlerViewModel {
 
 function currentPresident(state: SecrethitlerState): number | null {
   const { phase } = state;
+  if (phase.kind === 'publicResult') return phase.previous.presidentSeat;
   if (
     phase.kind === 'election' ||
     phase.kind === 'voting' ||
     phase.kind === 'legislativePresident' ||
     phase.kind === 'legislativeChancellor' ||
     phase.kind === 'vetoResponse' ||
-    phase.kind === 'executive'
+    phase.kind === 'executive' ||
+    phase.kind === 'investigationResult'
   )
     return phase.presidentSeat;
   return null;
@@ -96,6 +103,7 @@ function currentPresident(state: SecrethitlerState): number | null {
 
 function currentChancellor(state: SecrethitlerState): number | null {
   const { phase } = state;
+  if (phase.kind === 'publicResult') return phase.previous.chancellorSeat;
   if (
     phase.kind === 'voting' ||
     phase.kind === 'legislativePresident' ||
@@ -153,6 +161,22 @@ function publicHistory(state: SecrethitlerState): SecrethitlerHistoryView {
   };
 }
 
+function getPublicVoteResult(state: SecrethitlerState): SecrethitlerViewModel['publicVoteResult'] {
+  if (state.phase.kind !== 'publicResult') return null;
+  const previous = state.phase.previous;
+  if (previous.kind !== 'voting') return null;
+  const votes = state.livingSeats.map((seat) => ({
+    seat,
+    vote: previous.votes[seat] ?? 'nein',
+  }));
+  const yesCount = votes.filter(({ vote }) => vote === 'ja').length;
+  return {
+    yesCount,
+    noCount: votes.length - yesCount,
+    votes: state.config.voteMode === 'public' ? votes : null,
+  };
+}
+
 /**
  * Builds a viewer-cropped projection. Secret ballots, unrevealed legislative
  * hands, faction lists, investigation results and policy previews never cross
@@ -176,6 +200,7 @@ export function getSecrethitlerViewModel(
       ? (state.phase.votes[viewerSeat] ?? null)
       : null;
   const myInvestigation =
+    state.phase.kind === 'investigationResult' &&
     state.lastInvestigation?.presidentSeat === viewerSeat
       ? {
           targetSeat: state.lastInvestigation.targetSeat,
@@ -239,6 +264,7 @@ export function getSecrethitlerViewModel(
     lastPresidentSeat: state.lastPresidentSeat,
     lastChancellorSeat: state.lastChancellorSeat,
     voteMode: state.config.voteMode,
+    publicVoteResult: getPublicVoteResult(state),
     history: publicHistory(state),
     winner: state.phase.kind === 'ended' ? state.phase.winner : null,
     endReason: state.phase.kind === 'ended' ? state.phase.reason : null,

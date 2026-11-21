@@ -29,7 +29,6 @@ interface SheriffElectionDockInput {
   readonly roomTools: RoomBottomActionLayout;
   /** The host's review lives in host management; the dock's trailing review tool is for everyone else. */
   readonly isHost: boolean;
-  readonly isInspectorVisible: boolean;
   readonly isAudioPlaying: boolean;
   readonly openDetails: () => void;
 }
@@ -156,9 +155,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
   if (election.view.canVote) {
     return {
       key: 'sheriff-open-vote',
-      label: input.isInspectorVisible
-        ? '请在「警长竞选」中投票'
-        : getSheriffVoteButtonLabel(election),
+      label: getSheriffVoteButtonLabel(election),
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
       variant: 'primary',
@@ -169,7 +166,7 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
   return null;
 }
 
-function getSheriffWaitingMessage(model: SheriffElectionPanelModel): string {
+export function getSheriffWaitingMessage(model: SheriffElectionPanelModel): string {
   switch (model.view.phase) {
     case 'registration':
       return '报名进行中';
@@ -179,6 +176,8 @@ function getSheriffWaitingMessage(model: SheriffElectionPanelModel): string {
     case 'firstVote':
     case 'runoffVote':
       return '等待投票完成';
+    case 'result':
+      return '正在公布竞选结果';
     case 'completed':
       return '竞选已结束';
   }
@@ -200,12 +199,7 @@ export function createSheriffElectionDockModel(
       );
 
   const personalAction = getPersonalAction(input);
-  const message =
-    personalAction === null
-      ? getSheriffWaitingMessage(input.election)
-      : input.isInspectorVisible && personalAction.key === 'sheriff-open-vote'
-        ? personalAction.label
-        : null;
+  const message = personalAction === null ? getSheriffWaitingMessage(input.election) : null;
   const primary =
     personalAction === null || message !== null
       ? null

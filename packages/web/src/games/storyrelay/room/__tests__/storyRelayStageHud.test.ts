@@ -66,7 +66,6 @@ describe('createStoryRelayStageHud', () => {
       hud(playStoryRelayTestRound({ stopAt: { stepIndex: STEP_COUNT - 1, phase: 'gallery' } }), 5),
     ).toBeNull();
     expect(hud(playStoryRelayTestRound(), null)).toBeNull();
-    expect(hud(playStoryRelayTestRound({ abortAtStep: 1 }), null)).toBeNull();
   });
 
   it('shows the passage, the readiness roster and the writing countdown', () => {

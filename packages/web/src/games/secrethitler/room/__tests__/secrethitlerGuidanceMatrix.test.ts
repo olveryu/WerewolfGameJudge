@@ -25,7 +25,6 @@ import {
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
-import * as alerts from '@/utils/alert';
 
 import { SECRETHITLER_GUIDANCE_MATRIX } from '../secrethitlerGuidanceMatrix';
 import { secrethitlerInstruction } from '../secrethitlerPresentation';
@@ -110,6 +109,7 @@ function roomShellModel(
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
     openIdentity: vi.fn(),
     openAction: vi.fn(),
+    isSelecting: false,
     isSubmitting: false,
   });
 }
@@ -233,6 +233,27 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
   });
 
   const phases = buildSecrethitlerPhaseStates();
+  it('marks a first vote pending but not the optional change after submission', () => {
+    const voting = phases.get('voting');
+    if (voting === undefined) throw new Error('Missing voting fixture');
+    const before = roomShellModel(voting, 'host').bottomActions;
+    if (before.kind !== 'stacked') throw new Error('Expected stacked room actions');
+    expect(before.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+      label: '秘密投票',
+      isPending: true,
+    });
+    const voted = sendSecrethitlerSeatCommand(voting, 0, {
+      type: 'secrethitler.government.castVote',
+      vote: 'ja',
+    });
+    const after = roomShellModel(voted, 'host').bottomActions;
+    if (after.kind !== 'stacked') throw new Error('Expected stacked room actions');
+    expect(after.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+      label: '修改选票',
+      isPending: false,
+    });
+  });
+
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {
     expect(Object.keys(SECRETHITLER_GUIDANCE_MATRIX).sort()).toEqual(
       [...SECRETHITLER_PHASES].sort(),
@@ -264,7 +285,7 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
     }
   });
 
-  it("keeps investigation results in the owning seat's private bottom action", () => {
+  it('does not offer investigation result replay after acknowledgement', () => {
     const state = phases.get('vetoResponse');
     const investigation = state?.lastInvestigation;
     if (state === undefined || investigation === null || investigation === undefined)
@@ -276,18 +297,10 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
       ownerSeat >= 2 ? ownerSeat : null,
     );
     if (owner.bottomActions.kind !== 'stacked') throw new Error('Expected stacked room actions');
-    const action = owner.bottomActions.layout.secondary.find(
-      (button) => button.key === 'investigation-result',
-    );
-    expect(action?.label).toBe('查看调查结果');
-    const showAlert = vi.spyOn(alerts, 'showAlert').mockImplementation(() => undefined);
-    if (action === undefined || !action.isEnabled) throw new Error('Missing investigation action');
-    action.onPress();
-    expect(showAlert).toHaveBeenCalledWith(
-      '私密调查结果',
-      expect.stringContaining(investigation.faction === 'liberal' ? '自由派' : '法西斯阵营'),
-      [{ text: '关闭', style: 'cancel' }],
-    );
+    expect(
+      owner.bottomActions.layout.secondary.some((button) => button.key === 'investigation-result'),
+    ).toBe(false);
+    expect(getSecrethitlerViewModel(state, ownerSeat).myInvestigation).toBeNull();
     for (const audience of ['host', 'seated', 'spectator'] as const) {
       if (audience === 'host' && ownerSeat === 0) continue;
       if (audience === 'seated' && ownerSeat === 1) continue;
@@ -297,6 +310,5 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
         false,
       );
     }
-    showAlert.mockRestore();
   });
 });

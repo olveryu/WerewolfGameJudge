@@ -15,7 +15,9 @@ export const SECRETHITLER_PHASE_LABELS: Readonly<Record<SecrethitlerPhaseKind, s
   legislativePresident: '总统弃牌',
   legislativeChancellor: '总理施政',
   vetoResponse: '回应否决',
+  publicResult: '结果展示',
   executive: '总统权力',
+  investigationResult: '调查结果',
   ended: '本局结束',
 };
 
@@ -90,8 +92,16 @@ export function secrethitlerInstruction(
           action: null,
         };
       return {
-        message: `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 提名总理`,
-        action: seat === state.phase.presidentSeat ? '提名总理' : null,
+        message:
+          state.phase.preselectedChancellorSeat === null
+            ? `等待 ${secrethitlerSeatLabel(view, state.phase.presidentSeat)} 预选总理`
+            : '总统已预选，正在确定最终总理',
+        action:
+          seat === state.phase.presidentSeat
+            ? state.phase.preselectedChancellorSeat === null
+              ? '预选总理'
+              : '最终提名'
+            : null,
       };
     case 'voting':
       return {
@@ -121,11 +131,21 @@ export function secrethitlerInstruction(
         message: '总理请求否决，等待总统回应',
         action: seat === state.phase.presidentSeat ? '回应否决' : null,
       };
+    case 'publicResult':
+      return {
+        message: '正在展示结果',
+        action: null,
+      };
     case 'executive':
       return {
         message: `等待总统执行${SECRETHITLER_POWER_COPY[state.phase.power]}`,
         action:
           seat === state.phase.presidentSeat ? SECRETHITLER_POWER_COPY[state.phase.power] : null,
+      };
+    case 'investigationResult':
+      return {
+        message: seat === state.phase.presidentSeat ? '请确认私密调查结果' : '等待总统确认调查结果',
+        action: null,
       };
     case 'ended':
       return { message: SECRETHITLER_END_COPY[state.phase.reason], action: null };

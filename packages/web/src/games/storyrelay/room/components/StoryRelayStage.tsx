@@ -73,8 +73,7 @@ function StoryRelayStageContent({
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);
   const task = effectiveSeat === null ? null : getStoryRelayTaskForSeat(state, effectiveSeat);
-  const isGallery =
-    state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted';
+  const isGallery = state.phase === 'gallery' || state.phase === 'ended';
   return (
     <div className="storyrelay-stage" data-testid={TESTIDS.storyRelayStage}>
       {finalizer.status === 'failed' && (

@@ -37,6 +37,11 @@ interface StoredNotepad {
   readonly state: WerewolfNotepadState;
 }
 
+interface StoredNotepadEnvelope {
+  readonly roundId: WerewolfNotepadRoundId;
+  readonly state: unknown;
+}
+
 type JsonObject = Record<string, unknown>;
 
 function isJsonObject(value: unknown): value is JsonObject {
@@ -139,16 +144,15 @@ function parseNotepadState(value: unknown, seatCount: number): WerewolfNotepadSt
   };
 }
 
-function parseStoredNotepad(value: unknown, seatCount: number): StoredNotepad {
+function parseStoredNotepadEnvelope(value: unknown): StoredNotepadEnvelope {
   const object = requireObject(value, 'Stored Werewolf notepad');
   assertExactKeys(object, ['version', 'roundId', 'state'], 'Stored Werewolf notepad');
   if (object.version !== STORAGE_VERSION) {
     throw new Error('Stored Werewolf notepad has an unsupported version');
   }
   return {
-    version: STORAGE_VERSION,
     roundId: requireRoundId(object.roundId),
-    state: parseNotepadState(object.state, seatCount),
+    state: object.state,
   };
 }
 
@@ -177,10 +181,9 @@ export function readWerewolfNotepad(
   const raw = storage.getString(storageKey);
   if (raw === undefined) return { kind: 'missing' };
   const parsed: unknown = JSON.parse(raw);
-  const stored = parseStoredNotepad(parsed, canonicalSeatCount);
-  return stored.roundId === canonicalRoundId
-    ? { kind: 'found', state: stored.state }
-    : { kind: 'stale' };
+  const stored = parseStoredNotepadEnvelope(parsed);
+  if (stored.roundId !== canonicalRoundId) return { kind: 'stale' };
+  return { kind: 'found', state: parseNotepadState(stored.state, canonicalSeatCount) };
 }
 
 export function writeWerewolfNotepad(

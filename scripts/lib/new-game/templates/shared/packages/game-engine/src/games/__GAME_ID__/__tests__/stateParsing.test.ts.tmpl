@@ -1,18 +1,17 @@
-/** v1 is the current version: persisted states round-trip unchanged through the migration entry. */
+/** State parsing round-trips the current shape and rejects foreign game identity. */
 
 import { __GAME_CAMEL__Engine } from '../engine';
-import { migratePersisted__GAME_PASCAL__State, parse__GAME_PASCAL__State } from '../state/parseState';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
 import { DEFAULT___GAME_UPPER___CONFIG } from '../state/types';
 
-describe('__GAME_PASCAL__ persisted state migration', () => {
-  it('accepts a current-version lobby state unchanged', () => {
+describe('__GAME_PASCAL__ state parser', () => {
+  it('accepts a lobby state unchanged', () => {
     const state = __GAME_CAMEL__Engine.createInitialState(
       { ...DEFAULT___GAME_UPPER___CONFIG },
       { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
     );
     const persisted = JSON.parse(JSON.stringify(state)) as unknown;
     expect(parse__GAME_PASCAL__State(persisted)).toEqual(state);
-    expect(migratePersisted__GAME_PASCAL__State(persisted)).toEqual(state);
   });
 
   it('rejects a state carrying another game identity', () => {
@@ -21,6 +20,6 @@ describe('__GAME_PASCAL__ persisted state migration', () => {
       { roomCode: '1234', hostUserId: 'host', nowMs: 0, commandId: 'create' },
     );
     const foreign = { ...(JSON.parse(JSON.stringify(state)) as object), gameType: 'werewolf' };
-    expect(() => migratePersisted__GAME_PASCAL__State(foreign)).toThrow();
+    expect(() => parse__GAME_PASCAL__State(foreign)).toThrow();
   });
 });

@@ -23,6 +23,10 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
   z.strictObject({ type: z.literal('avalon.roles.assign') }),
   z.strictObject({ type: z.literal('avalon.game.begin') }),
   z.strictObject({
+    type: z.literal('avalon.review.complete'),
+    gameSequence: z.number().int().nonnegative(),
+  }),
+  z.strictObject({
     type: z.literal('avalon.game.restart'),
     gameSequence: z.number().int().nonnegative(),
     wasEnded: z.boolean(),
@@ -47,7 +51,6 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     type: z.literal('avalon.team.vote'),
     vote: z.enum(['approve', 'reject']),
   }),
-  z.strictObject({ type: z.literal('avalon.voteResult.confirm') }),
   z.strictObject({
     type: z.literal('avalon.quest.play'),
     play: z.enum(['success', 'fail']),

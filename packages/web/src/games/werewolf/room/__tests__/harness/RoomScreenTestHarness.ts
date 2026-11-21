@@ -3,6 +3,7 @@
  *
  * Responsibilities:
  * - Record every alert the room publishes to the alert store (`recordAlerts`)
+ * - Verify inline night statuses separately from recorded dialog events
  * - Provide fluent API for event inspection and assertions
  * - Single source of truth for dialog type classification (centralized classification)
  * - Press recorded buttons the way `AlertHost` does (await the callback, close on success,
@@ -17,8 +18,9 @@
  */
 
 import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
-import { act } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 
+import { TESTIDS } from '@/testids';
 import {
   type AlertButton,
   type AlertConfig,
@@ -269,6 +271,18 @@ function classifyDialog(title: string, message: string): DialogType {
 
 export class RoomScreenTestHarness {
   #events: DialogEvent[] = [];
+  #inlineStatuses = new Set<'actionPrompt' | 'witchSavePrompt' | 'witchNoKill'>();
+
+  /** Verify an ordinary night prompt is visible inline, not presented as a dialog. */
+  expectInlineStatus(type: 'actionPrompt' | 'witchSavePrompt' | 'witchNoKill'): void {
+    const status = screen.getAllByTestId(TESTIDS.actionMessage).at(-1);
+    expect(status).toBeVisible();
+    expect(status?.textContent?.trim()).toBeTruthy();
+    if (type === 'witchSavePrompt') expect(status).toHaveTextContent('被狼人袭击');
+    if (type === 'witchNoKill') expect(status).toHaveTextContent('昨夜平安夜');
+    expect(this.hasSeen(type)).toBe(false);
+    this.#inlineStatuses.add(type);
+  }
 
   /** Get all recorded dialog events */
   events(): DialogEvent[] {
@@ -310,9 +324,14 @@ export class RoomScreenTestHarness {
     }
   }
 
-  /** Assert coverage: all required types must have been seen */
+  /** Assert coverage: prompts were verified inline and required dialogs were seen. */
   assertCoverage(requiredTypes: DialogType[]): void {
-    const missing = requiredTypes.filter((type) => !this.hasSeen(type));
+    const missing = requiredTypes.filter((type) => {
+      if (type === 'actionPrompt' || type === 'witchSavePrompt' || type === 'witchNoKill') {
+        return !this.#inlineStatuses.has(type);
+      }
+      return !this.hasSeen(type);
+    });
     if (missing.length > 0) {
       const seenTypes = [...new Set(this.#events.map((e) => e.type))];
       throw new Error(

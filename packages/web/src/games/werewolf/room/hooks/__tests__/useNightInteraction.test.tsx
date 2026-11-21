@@ -6,17 +6,34 @@
 
 import { type RoleId, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react';
+import { toast } from 'sonner';
 
+import { dismissAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
 import { nightState, viewAs } from '../../night/__tests__/nightFixtures';
 import { useNightInteraction } from '../useNightInteraction';
 
 vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDismissAlert: vi.fn(),
+  showConfirmAlert: vi.fn(
+    (
+      _title: string,
+      _message: string,
+      _onConfirm: () => void | Promise<void>,
+      options?: { onShown?: (generation: number | null) => void },
+    ) => options?.onShown?.(42),
+  ),
+  showDismissAlert: vi.fn(
+    (
+      _title: string,
+      _message: string,
+      _onDismiss?: () => void | Promise<void>,
+      onShown?: (generation: number | null) => void,
+    ) => onShown?.(43),
+  ),
 }));
-vi.mock('sonner', () => ({ toast: { info: vi.fn() } }));
+vi.mock('@/utils/alert', () => ({ dismissAlert: vi.fn() }));
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), error: vi.fn() } }));
 
 const BOARD: readonly RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'hunter', 'villager'];
 const NOW = 10_000;
@@ -93,7 +110,7 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
-  it('only submits an armed draft when the bottom confirmation is pressed', async () => {
+  it('only submits an armed draft after the confirmation dialog is accepted', async () => {
     const { result, submit } = renderWolfNight();
     act(() => {
       result.current.onSeatTap(4);
@@ -112,9 +129,15 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       result.current.onSeatTap(4);
     });
-    await act(async () => {
-      result.current.onNightButton({ kind: 'submitSeatSelection' });
-    });
+    expect(submit).not.toHaveBeenCalled();
+    const confirmationCall = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+    expect(confirmationCall?.[0]).toBe('狼人投票');
+    expect(confirmationCall?.[1]).toContain('5号');
+    expect(typeof confirmationCall?.[2]).toBe('function');
+    expect(typeof confirmationCall?.[3]?.onShown).toBe('function');
+    const confirm = confirmationCall?.[2];
+    if (confirm === undefined) throw new Error('Missing confirmation callback');
+    await act(async () => confirm());
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit).toHaveBeenCalledWith(
       expect.any(String),
@@ -129,11 +152,98 @@ describe('useNightInteraction wolfVote seat taps', () => {
     act(() => {
       tapped = result.current.onSeatTap(99);
     });
+
     expect(tapped).toBe(false);
     expect(showDismissAlert).not.toHaveBeenCalled();
     expect(showConfirmAlert).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
   });
+
+  it('does not submit a confirmation after the selection has changed', async () => {
+    const { result, submit } = renderWolfNight();
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => {
+      result.current.onSeatTap(4);
+    });
+    const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (confirm === undefined) throw new Error('Missing confirmation callback');
+    act(() => {
+      result.current.onSeatTap(5);
+    });
+    await act(async () => confirm());
+    expect(submit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('当前行动或目标已变化，请重新选择。');
+  });
+
+  it('dismisses a seat confirmation when selection mode is cancelled', () => {
+    const { result } = renderWolfNight();
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => {
+      result.current.onSeatTap(4);
+    });
+
+    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }));
+
+    expect(dismissAlert).toHaveBeenCalledWith(42);
+  });
+});
+
+describe('private status disclosure', () => {
+  it.each([
+    {
+      state: nightState({
+        roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+        stepId: 'cupidLoversReveal',
+        overrides: { loverSeats: [0, 5] },
+      }),
+      viewerSeat: 0,
+      action: { kind: 'openGroupReveal' } as const,
+      command: 'werewolf.groupConfirm.ack',
+    },
+  ])(
+    'asks before disclosure and submits only after acknowledgement',
+    async ({ state, viewerSeat, action, command }) => {
+      const submit = vi.fn(async (): Promise<boolean> => true);
+      const { result } = renderHook(() =>
+        useNightInteraction({
+          state,
+          viewModel: viewAs(state, viewerSeat),
+          userId: `u${viewerSeat}`,
+          roomId: 'room-1',
+          controlledSeat: viewerSeat,
+          effectiveSeat: viewerSeat,
+          isAudioResumeDue: false,
+          isReadingRoomInformation: false,
+          hasPendingCommand: false,
+          nowMs: NOW,
+          submit,
+        }),
+      );
+      vi.clearAllMocks();
+      act(() => result.current.onNightButton(action));
+      expect(showDismissAlert).not.toHaveBeenCalled();
+      expect(submit).not.toHaveBeenCalled();
+      const confirmationCall = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+      expect(confirmationCall?.[0]).toBe('查看状态？');
+      expect(typeof confirmationCall?.[1]).toBe('string');
+      expect(typeof confirmationCall?.[2]).toBe('function');
+      expect(confirmationCall?.[3]).toMatchObject({ confirmText: '查看' });
+      expect(typeof confirmationCall?.[3]?.onShown).toBe('function');
+      const view = confirmationCall?.[2];
+      if (view === undefined) throw new Error('Missing view callback');
+      await act(async () => view());
+      expect(showDismissAlert).toHaveBeenCalledTimes(1);
+      expect(submit).not.toHaveBeenCalled();
+      const acknowledge = vi.mocked(showDismissAlert).mock.calls.at(-1)?.[2];
+      if (acknowledge === undefined) throw new Error('Missing acknowledgement callback');
+      await act(async () => acknowledge());
+      expect(submit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ type: command }),
+        expect.anything(),
+      );
+    },
+  );
 });
 
 describe('useNightInteraction nightStatusLine', () => {
@@ -157,5 +267,44 @@ describe('useNightInteraction nightStatusLine', () => {
   it('hides the line when the countdown is not armed', () => {
     const { result } = renderWolfNight({ audioPlaying: true });
     expect(result.current.nightStatusLine).toBeNull();
+  });
+
+  it('does not disclose a status after the night step changes', async () => {
+    const state = nightState({
+      roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+      stepId: 'cupidLoversReveal',
+      overrides: { loverSeats: [0, 5] },
+    });
+    const nextState = nightState({
+      roles: ['wolf', 'wolf', 'seer', 'cupid', 'hunter', 'villager'],
+      stepId: 'wolfKill',
+    });
+    const submit = vi.fn(async (): Promise<boolean> => true);
+    const { result, rerender } = renderHook(
+      ({ currentState }) =>
+        useNightInteraction({
+          state: currentState,
+          viewModel: viewAs(currentState, 0),
+          userId: 'u0',
+          roomId: 'room-1',
+          controlledSeat: 0,
+          effectiveSeat: 0,
+          isAudioResumeDue: false,
+          isReadingRoomInformation: false,
+          hasPendingCommand: false,
+          nowMs: NOW,
+          submit,
+        }),
+      { initialProps: { currentState: state } },
+    );
+    vi.clearAllMocks();
+    act(() => result.current.onNightButton({ kind: 'openGroupReveal' }));
+    const view = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
+    if (view === undefined) throw new Error('Missing view callback');
+    rerender({ currentState: nextState });
+    await act(async () => view());
+    expect(showDismissAlert).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('当前状态已变化，请重新查看。');
+    expect(submit).not.toHaveBeenCalled();
   });
 });

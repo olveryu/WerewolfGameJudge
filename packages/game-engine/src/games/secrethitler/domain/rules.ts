@@ -4,9 +4,25 @@ import { createSeededRng, randomPick, shuffleArray } from '../../../platform/ran
 import type {
   SecrethitlerFaction,
   SecrethitlerPolicy,
+  SecrethitlerPower,
   SecrethitlerRole,
   SecrethitlerState,
 } from '../state/types';
+
+/** Returns the presidential power for a normally enacted fascist policy. */
+export function getSecrethitlerPolicyPower(
+  numberOfPlayers: number,
+  policyNumber: number,
+): SecrethitlerPower | null {
+  getSecrethitlerRoleCounts(numberOfPlayers);
+  if (!Number.isInteger(policyNumber) || policyNumber < 1 || policyNumber > 6)
+    throw new Error(`Unsupported Secret Hitler policy number: ${policyNumber}`);
+  if ((policyNumber === 1 && numberOfPlayers >= 9) || (policyNumber === 2 && numberOfPlayers >= 7))
+    return 'investigate';
+  if (policyNumber === 3) return numberOfPlayers <= 6 ? 'policyPeek' : 'specialElection';
+  if (policyNumber === 4 || policyNumber === 5) return 'execute';
+  return null;
+}
 
 const LIBERAL_ROLE_COUNTS: Readonly<Record<number, number>> = {
   5: 3,

@@ -170,7 +170,9 @@ export function AvalonRecordProposal({
             <strong>{proposal.leaderSeat + 1} 号</strong>
             <span className="avalon-proposer-meta"> · 组队者 · 第 {index + 1} 次提议</span>
           </span>
-          <span className="avalon-adopted-badge">通过 · 采用</span>
+          <span className="avalon-adopted-badge">
+            {proposal.automatic ? '自动通过' : '通过 · 采用'}
+          </span>
         </div>
         <div className="avalon-team-row" data-testid={`${prefix}-team`}>
           <span className="avalon-team-label">队伍</span>
@@ -183,8 +185,8 @@ export function AvalonRecordProposal({
             />
           ))}
         </div>
-        <VoteRatioBar proposal={proposal} />
-        {proposal.ballots === null ? (
+        {!proposal.automatic && <VoteRatioBar proposal={proposal} />}
+        {proposal.automatic ? null : proposal.ballots === null ? (
           <p className="avalon-secret-note">暗投模式不公布逐人票</p>
         ) : (
           <BallotChips ballots={proposal.ballots} testIdPrefix={prefix} />

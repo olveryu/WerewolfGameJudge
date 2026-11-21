@@ -7,14 +7,16 @@
 import { act, renderHook } from '@testing-library/react';
 
 import { useRoomModals } from '@/games/werewolf/room/hooks/useRoomModals';
-import { showAlert } from '@/utils/alert';
+import { showAlert, showAlertWithGeneration } from '@/utils/alert';
 
 vi.mock('@/utils/alert', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/utils/alert')>()),
   showAlert: vi.fn(),
+  showAlertWithGeneration: vi.fn(),
 }));
 
 const mockShowAlert = vi.mocked(showAlert);
+const mockShowAlertWithGeneration = vi.mocked(showAlertWithGeneration);
 
 function createDeps(
   overrides: Partial<Parameters<typeof useRoomModals>[0]> = {},
@@ -107,7 +109,7 @@ describe('useRoomModals last-night info confirmation', () => {
   });
 
   function pressLastNightInfoConfirm() {
-    const confirmCall = mockShowAlert.mock.calls.find((call) => call[0] === '提示');
+    const confirmCall = mockShowAlertWithGeneration.mock.calls.find((call) => call[0] === '提示');
     const confirmButton = confirmCall?.[2]?.find(({ text }) => text === '确定查看');
     expect(confirmButton).toBeDefined();
     act(() => {
@@ -125,7 +127,7 @@ describe('useRoomModals last-night info confirmation', () => {
 
     act(() => result.current.showLastNightInfo());
 
-    expect(mockShowAlert).toHaveBeenCalledWith(
+    expect(mockShowAlertWithGeneration).toHaveBeenCalledWith(
       '提示',
       '昨夜信息可能影响警长竞选，请确认是否现在查看。',
       expect.anything(),
@@ -162,7 +164,7 @@ describe('useRoomModals last-night info confirmation', () => {
       await infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
     });
     expect(onLastNightInfoConfirmed).toHaveBeenCalledTimes(1);
-    expect(mockShowAlert).toHaveBeenCalledWith(
+    expect(mockShowAlertWithGeneration).toHaveBeenCalledWith(
       '乌鸦诅咒',
       '3号被诅咒（放逐+1票）',
       expect.anything(),
@@ -184,7 +186,7 @@ describe('useRoomModals last-night info confirmation', () => {
     await act(async () => {
       await infoCall?.[2]?.find(({ text }) => text === '查看诅咒')?.onPress?.();
     });
-    expect(mockShowAlert).not.toHaveBeenCalledWith(
+    expect(mockShowAlertWithGeneration).not.toHaveBeenCalledWith(
       '乌鸦诅咒',
       expect.anything(),
       expect.anything(),
@@ -197,7 +199,7 @@ describe('useRoomModals last-night info confirmation', () => {
 
     act(() => result.current.showLastNightInfo());
 
-    const confirmCall = mockShowAlert.mock.calls.find((call) => call[0] === '提示');
+    const confirmCall = mockShowAlertWithGeneration.mock.calls.find((call) => call[0] === '提示');
     expect(confirmCall?.[1]).toBe('请确认是否现在查看昨夜信息。');
     expect(confirmCall?.[1]).not.toContain('警长竞选');
   });

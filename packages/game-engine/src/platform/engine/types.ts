@@ -109,7 +109,6 @@ export interface GameEngineDefinition<
   TEffect extends GameEffect,
 > {
   readonly gameType: TGameType;
-  readonly stateVersion: number;
   readonly capabilities: GameEngineCapabilities;
   createInitialState(config: TConfig, context: CreateGameContext): TState;
   decide(state: TState, command: TCommand, context: CommandContext): Decision<TEvent, TEffect>;

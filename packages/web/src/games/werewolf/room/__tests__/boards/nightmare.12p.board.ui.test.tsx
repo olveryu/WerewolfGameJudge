@@ -89,12 +89,12 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('nightmare block selection: shows action prompt', async () => {
       await mount(actorStep('nightmareBlock', 'nightmare', 7));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
 
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -162,7 +162,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt when someone died', async () => {
       await mount(witchStep(9, 1));
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
     });
   });
 
@@ -177,7 +177,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('confirmTrigger coverage', () => {
     it('hunter confirm: shows confirm trigger dialog', async () => {
       await mount(confirmStep('hunterConfirm', 'hunter', 10, { role: 'hunter', canShoot: true }));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -227,7 +227,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(9, -1));
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
     });
   });
 
@@ -293,7 +293,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 9);
 
       // Step 5: witch poison selection
-      await coverageChainWitchPoisonSelection(9);
+      await coverageChainWitchPoisonSelection(harness, 9);
 
       // Step 6: confirmTrigger (hunter) -> confirm button pressed -> assertNoLoop
       await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 10);

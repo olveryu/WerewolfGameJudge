@@ -198,6 +198,7 @@ interface UndercoverStateBase extends BaseGameState<'undercover'> {
   readonly config: UndercoverConfig;
   readonly roster: RosterMap<UndercoverHumanSeat>;
   readonly usedWordPairIds: readonly string[];
+  readonly reviewCompletedUserIds: readonly string[];
 }
 
 export type UndercoverState = UndercoverStateBase &
@@ -216,11 +217,6 @@ export type UndercoverState = UndercoverStateBase &
       }
     | { readonly phase: 'viewing' | 'ongoing'; readonly round: UndercoverRound }
     | { readonly phase: 'ended'; readonly round: UndercoverRound; readonly winner: UndercoverRole }
-    | {
-        readonly phase: 'aborted';
-        readonly round: UndercoverRound | null;
-        readonly abortedRoundId: string;
-      }
   );
 
 /** Returns whether an index is a seat in this room. */

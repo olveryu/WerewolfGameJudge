@@ -15,6 +15,7 @@ import {
   type BgmTrackSetting,
 } from '@/features/product/model/BgmCatalog';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
+import { reportAudioPreviewFailure } from '@/features/settings/audioPreviewFailure';
 import { audioSettings } from '@/features/settings/audioSettings';
 import { isExpectedStorageError } from '@/features/settings/services/userSettingsStorage';
 import { type ClientGameAudioPreview, loadClientGameAudioPreviews } from '@/games/catalog';
@@ -193,11 +194,7 @@ function BgmSection({
       previewActiveRef.current = true;
       setRequestedPreview(track);
     } catch (error) {
-      handleError(error, {
-        label: '试听背景音乐',
-        logger: musicSettingsLog,
-        alertMessage: '试听失败，请检查游戏音频状态和网络后重试',
-      });
+      reportAudioPreviewFailure(error, '试听背景音乐');
     }
   };
 
@@ -334,11 +331,7 @@ function GameAudioSection({
       .play()
       .catch((error: unknown) => {
         if (activePlaybackRef.current !== playback) return;
-        handleError(error, {
-          label: '试听游戏音效',
-          logger: musicSettingsLog,
-          alertMessage: '试听失败，请检查游戏音频状态和网络后重试',
-        });
+        reportAudioPreviewFailure(error, '试听游戏音效');
       })
       .finally(() => {
         if (activePlaybackRef.current !== playback) return;

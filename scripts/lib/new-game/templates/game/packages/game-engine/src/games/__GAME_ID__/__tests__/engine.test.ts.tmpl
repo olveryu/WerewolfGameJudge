@@ -89,22 +89,43 @@ function viewAllAndBegin(session: ReturnType<typeof game>): void {
 }
 
 //#end
-describe('__GAME_PASCAL__ host abort', () => {
-  it('rejects unauthorized abort and preserves the room without settlement', () => {
+describe('__GAME_PASCAL__ restart', () => {
+  it('resets to preparation only for the host and the intended game and phase', () => {
     const session = game({ numberOfPlayers: 4 }, 2);
-    session.session.expectReject({ type: '__GAME_ID__.game.abort' }, __GAME_UPPER___REASONS.phase);
     __GAME_TEST_BEGIN__
     const before = session.state;
+    const command = { type: '__GAME_ID__.game.restart', gameSequence: before.gameSequence, wasEnded: false } as const;
+    session.session.expectReject(command, __GAME_UPPER___REASONS.notHostRestart, 'u1');
+    session.session.expectReject(command, REASON_CONTROLLED_SEAT_NOT_ALLOWED, 'host', 2);
+    session.session.expectReject({ ...command, gameSequence: before.gameSequence + 1 }, __GAME_UPPER___REASONS.phase);
+    session.session.expectReject({ ...command, wasEnded: true }, __GAME_UPPER___REASONS.phase);
     const effectsBefore = session.effects.length;
-    session.session.expectReject({ type: '__GAME_ID__.game.abort' }, __GAME_UPPER___REASONS.notHostAbort, 'u1');
-    session.session.expectReject({ type: '__GAME_ID__.game.abort' }, REASON_CONTROLLED_SEAT_NOT_ALLOWED, 'host', 2);
-    session.send({ type: '__GAME_ID__.game.abort' });
+    session.send(command);
     expect(session.state.phase).toEqual({ kind: 'lobby' });
     expect(session.state.roster).toEqual(before.roster);
     expect(session.state.config).toEqual(before.config);
     expect(session.state.gameSequence).toBe(before.gameSequence);
     expect(session.state.xpSettled).toBe(false);
     expect(session.effects).toHaveLength(effectsBefore);
+    session.session.expectReject(command, __GAME_UPPER___REASONS.phase);
+  });
+
+  it('returns an ended game to preparation without another settlement', () => {
+    const session = game({ numberOfPlayers: 4 }, 4);
+    __GAME_TEST_BEGIN__
+    const ended = __GAME_CAMEL__Engine.evolve(session.state, { type: '__GAME_ID__.game.ended' });
+    const decision = __GAME_CAMEL__Engine.decide(
+      ended,
+      { type: '__GAME_ID__.game.restart', gameSequence: ended.gameSequence, wasEnded: true },
+      session.session.context('host'),
+    );
+    expect(decision.kind).toBe('commit');
+    if (decision.kind !== 'commit') throw new Error(decision.reason);
+    expect(decision.effects).toEqual([]);
+    const reset = decision.events.reduce(__GAME_CAMEL__Engine.evolve, ended);
+    expect(reset.phase).toEqual({ kind: 'lobby' });
+    expect(reset.roster).toEqual(ended.roster);
+    expect(reset.config).toEqual(ended.config);
   });
 });
 
@@ -423,20 +444,26 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
       expect(unknown.reason).toBe(__GAME_UPPER___REASONS.unknownAudioBatch);
   });
 
-  it('blocks returnToLobby while playback is running, then releases it after ack', () => {
+  it('blocks restart while playback is running, then releases it after ack', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     const ended = __GAME_CAMEL__Engine.evolve(session.state, { type: '__GAME_ID__.game.ended' });
     const playing = __GAME_CAMEL__Engine.evolve(ended, {
       type: '__GAME_ID__.audio.queued',
       effects: [{ audioKey: 'night_end', isEndAudio: true }],
     });
-    const blocked = __GAME_CAMEL__Engine.decide(
+    const restart = {
+      type: '__GAME_ID__.game.restart',
+      gameSequence: playing.gameSequence,
+      wasEnded: true,
+    } as const;
+    const blockedRestart = __GAME_CAMEL__Engine.decide(
       playing,
-      { type: '__GAME_ID__.game.returnToLobby' },
+      restart,
       session.session.context('host'),
     );
-    expect(blocked.kind).toBe('reject');
-    if (blocked.kind === 'reject') expect(blocked.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
+    expect(blockedRestart.kind).toBe('reject');
+    if (blockedRestart.kind === 'reject')
+      expect(blockedRestart.reason).toBe(__GAME_UPPER___REASONS.audioPlaying);
     const ack = __GAME_CAMEL__Engine.decide(
       playing,
       { type: '__GAME_ID__.audio.ack', audioBatchId: playing.audioBatchId },
@@ -445,12 +472,7 @@ describe('__GAME_PASCAL__ audio queue and ack', () => {
     expect(ack.kind).toBe('commit');
     if (ack.kind !== 'commit') return;
     const cleared = ack.events.reduce(__GAME_CAMEL__Engine.evolve, playing);
-    const released = __GAME_CAMEL__Engine.decide(
-      cleared,
-      { type: '__GAME_ID__.game.returnToLobby' },
-      session.session.context('host'),
-    );
-    expect(released.kind).toBe('commit');
+    expect(__GAME_CAMEL__Engine.decide(cleared, restart, session.session.context('host')).kind).toBe('commit');
   });
 });
 

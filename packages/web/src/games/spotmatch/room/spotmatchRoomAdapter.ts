@@ -128,6 +128,7 @@ export interface SpotmatchHostManagementInput {
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
+  readonly isScorePause: boolean;
   readonly submit: (label: string, command: SpotmatchCommand) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
@@ -193,7 +194,7 @@ export function createSpotmatchHostManagement(
           });
         },
       ),
-    isEnabled: !input.isSubmitting,
+    isEnabled: !input.isSubmitting && !input.isScorePause,
     isLoading: input.isSubmitting,
   });
   if (expectedPhase === 'ended') {

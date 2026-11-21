@@ -20,7 +20,7 @@ import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
 import { getAvalonNightParticipants } from '../domain/rules';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
-import { migratePersistedAvalonState, parseAvalonState } from '../state/parseState';
+import { parseAvalonState } from '../state/parseState';
 import {
   AVALON_NIGHT_STEPS,
   type AvalonConfig,
@@ -28,7 +28,6 @@ import {
   DEFAULT_AVALON_CONFIG,
   getAvalonViewingParticipants,
 } from '../state/types';
-import { AVALON_STATE_VERSION } from '../state/version';
 
 function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) {
   const nowMs = 1000;
@@ -301,27 +300,6 @@ describe('Identity Viewing Protocol — avalon record and pre-quest checkpoint',
     const nonHost = session.decideAs({ type: 'avalon.game.begin' }, session.seatUser(1));
     expect(nonHost.kind).toBe('reject');
     if (nonHost.kind === 'reject') expect(nonHost.reason).toBe(AVALON_REASONS.notHostBegin);
-  });
-
-  it('loads a persisted v1 state (no roleViewedSeats) through the migration', () => {
-    const session = game({ numberOfPlayers: 5 });
-    session.startGame();
-    const persisted = JSON.parse(JSON.stringify(session.state)) as Record<string, unknown>;
-    delete persisted.roleViewedSeats;
-    persisted.stateVersion = 1;
-    // A genuine v1 document stores the implicit-bot trio, not a roster.
-    const roster = persisted.roster as Record<string, { userId?: string }>;
-    delete persisted.roster;
-    persisted.realSeats = Object.fromEntries(
-      Object.entries(roster).filter(([, occupant]) => occupant.userId !== undefined),
-    );
-    persisted.fillEmptySeatsWithBots = true;
-    persisted.excludedBotSeats = [];
-    const migrated = migratePersistedAvalonState(persisted);
-    expect(migrated.stateVersion).toBe(AVALON_STATE_VERSION);
-    expect(migrated.roleViewedSeats).toEqual([]);
-    // The strict current-version parser still rejects the legacy shape.
-    expect(() => parseAvalonState(persisted)).toThrow();
   });
 });
 

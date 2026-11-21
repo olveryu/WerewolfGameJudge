@@ -29,6 +29,9 @@ interface RoomHostManagementActionBase {
   readonly testID?: string;
   readonly isLoading?: boolean;
   readonly category?: 'host' | 'resource';
+  readonly closeManagementOnPress?: boolean;
+  readonly placement?: 'room-entry';
+  readonly stageMenuRole?: 'abort';
 }
 
 export type RoomHostManagementAction = RoomHostManagementActionBase &

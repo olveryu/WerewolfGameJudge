@@ -104,6 +104,7 @@ function createGame() {
       const begun = send({ type: 'drawguess.game.begin' });
       const dealt = sendInternal({
         type: 'drawguess.words.dealt',
+        gameSequence: begun.state.gameSequence,
         turnIndex: 0,
         choices: CHOICES,
       });
@@ -180,6 +181,7 @@ describe('DrawGuess settle arming', () => {
     expect(advanced.effects.some((effect) => effect.type === 'drawguess.words.deal')).toBe(true);
     const dealt = game.sendInternal({
       type: 'drawguess.words.dealt',
+      gameSequence: game.state.gameSequence,
       turnIndex: 1,
       choices: CHOICES,
     });
@@ -314,6 +316,7 @@ describe('DrawGuess settle arming', () => {
       if (turn > 0) {
         const dealt = game.sendInternal({
           type: 'drawguess.words.dealt',
+          gameSequence: game.state.gameSequence,
           turnIndex: turn,
           choices: CHOICES,
         });

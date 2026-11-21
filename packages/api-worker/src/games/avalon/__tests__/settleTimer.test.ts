@@ -165,7 +165,7 @@ interface SettleRow {
 
 async function readSettleRow(
   stub: DurableObjectStub<GameRoom>,
-  phase: 'vote' | 'quest',
+  phase: 'vote' | 'quest' | 'voteResult' | 'questResult',
 ): Promise<SettleRow | null> {
   let row: SettleRow | null = null;
   await runInDurableObject(stub, async (_instance: GameRoom, state) => {
@@ -197,7 +197,7 @@ async function readAlarm(stub: DurableObjectStub<GameRoom>): Promise<number | nu
  */
 async function fastForwardArmedCountdown(
   stub: DurableObjectStub<GameRoom>,
-  phase: 'vote' | 'quest',
+  phase: 'vote' | 'quest' | 'voteResult' | 'questResult',
   pastDeadlineAt: number,
 ): Promise<void> {
   await runInDurableObject(stub, async (_instance: GameRoom, state) => {
@@ -285,9 +285,8 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     // No manual finish exists: the armed vote countdown settles on alarm.
     await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
     await fireAlarm(stub);
-    for (let seat = 0; seat < 5; seat += 1) {
-      await send(stub, seatUser(seat), { type: 'avalon.voteResult.confirm' });
-    }
+    await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+    await fireAlarm(stub);
     await send(stub, seatUser(0), { type: 'avalon.quest.play', play: 'success' });
     await send(stub, seatUser(1), { type: 'avalon.quest.play', play: 'success' });
     const armed = await readState(stub);
@@ -303,9 +302,54 @@ describe('Avalon scheduled settle (Durable Object)', () => {
     await fastForwardArmedCountdown(stub, 'quest', Date.now() - 1000);
     await fireAlarm(stub);
     const settled = await readState(stub);
-    expect(settled.phase.kind).toBe('nominate');
+    expect(settled.phase.kind).toBe('questResult');
     expect(settled.questResults[0]).toBe('success');
     expect(await readSettleRow(stub, 'quest')).toBeNull();
+    await fastForwardArmedCountdown(stub, 'questResult', Date.now() - 1000);
+    await fireAlarm(stub);
+    expect((await readState(stub)).phase.kind).toBe('nominate');
+  });
+
+  it('advances the automatically approved final team only after its result deadline', async () => {
+    const stub = getStub();
+    await armedVoteRoom(stub);
+    for (let proposal = 0; proposal < 4; proposal += 1) {
+      for (let seat = 0; seat < 5; seat += 1) {
+        await send(stub, seatUser(seat), { type: 'avalon.team.vote', vote: 'reject' });
+      }
+      await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
+      await fireAlarm(stub);
+      const result = await readState(stub);
+      expect(result.phase.kind).toBe('voteResult');
+      expect(result.xpSettled).toBe(false);
+      await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+      await fireAlarm(stub);
+      const next = await readState(stub);
+      expect(next.phase.kind).toBe('nominate');
+      await send(stub, seatUser(next.leaderSeat), {
+        type: 'avalon.team.preselect',
+        seats: [0, 1],
+      });
+      await send(stub, seatUser(next.leaderSeat), { type: 'avalon.team.propose', seats: [0, 1] });
+    }
+    const automatic = await readState(stub);
+    expect(automatic.phase.kind).toBe('voteResult');
+    expect(automatic.lastVoteResult).toMatchObject({
+      automatic: true,
+      approved: true,
+      ballots: {},
+    });
+    expect(await readSettleRow(stub, 'voteResult')).not.toBeNull();
+    await fireAlarm(stub);
+    expect((await readState(stub)).phase.kind).toBe('voteResult');
+    await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
+    await fireAlarm(stub);
+    expect(await readState(stub).then((state) => state.phase)).toMatchObject({
+      kind: 'quest',
+      automatic: true,
+    });
+    await fireAlarm(stub);
+    expect((await readState(stub)).phase.kind).toBe('quest');
   });
 
   it('does not double-settle a parked row after the game is aborted', async () => {

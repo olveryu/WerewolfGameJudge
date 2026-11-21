@@ -42,11 +42,6 @@ export const STORY_RELAY_GUIDANCE_MATRIX: RoomGuidanceMatrix<StoryRelayState['ph
       '画廊在对局工作区播放，工作区有「由房主控制播放进度。」提示，第几篇归工作区故事标题',
     ),
   },
-  aborted: {
-    host: guidanceExempt('中止标记在工作区故事标题；本局复盘归底部按钮，房主后续动作归房主面板'),
-    seated: guidanceExempt('中止标记在工作区故事标题（未完成，房主中止）；本局复盘归底部按钮'),
-    spectator: guidanceExempt('中止标记在工作区故事标题（未完成，房主中止）；本局复盘归底部按钮'),
-  },
   ended: {
     host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
     seated: guidanceExempt('故事揭晓在对局工作区，本局复盘归底部按钮，房主后续动作归房主面板'),

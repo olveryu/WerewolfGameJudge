@@ -42,6 +42,7 @@ export interface AvalonQuestHistoryView {
   readonly approveCount: number;
   readonly rejectCount: number;
   readonly abstainCount: number;
+  readonly automatic: boolean;
   readonly result: 'success' | 'fail';
   readonly successCount: number;
   readonly failCount: number;
@@ -56,6 +57,7 @@ export interface AvalonProposalRecordView {
   readonly rejectCount: number;
   readonly abstainCount: number;
   readonly approved: boolean;
+  readonly automatic: boolean;
 }
 
 /** 正在投票的提案（未结算）：只给进度、未投票座位与本人的一票；任何人的票都不外泄。 */
@@ -104,6 +106,7 @@ export interface AvalonLastVoteResultView {
   readonly approveCount: number;
   readonly rejectCount: number;
   readonly abstainCount: number;
+  readonly automatic: boolean;
 }
 
 /** 湖仙查验结果的持有人视图：被查验座位与其阵营。 */
@@ -163,7 +166,7 @@ export interface AvalonViewModel {
   /** 对局记录（按轮）：含已开始的当前轮；大厅 / 查看 / 夜晚阶段为空。 */
   readonly roundHistory: readonly AvalonRoundRecordView[];
   readonly lady: AvalonLadyView | null;
-  /** 最近一次湖仙查验结果（目标座位 + 阵营），仅查验时的持有人可见。 */
+  /** 待确认的湖仙查验结果（目标座位 + 阵营），仅持有人可见。 */
   readonly ladyCheckResult: AvalonLadyCheckResultView | null;
   /** 已完成湖仙查验的公开历史，所有视角同值。 */
   readonly ladyHistory: readonly AvalonLadyCheckRecordView[];
@@ -212,7 +215,8 @@ function roundRecordViews(
     phase.kind === 'nominate' ||
     phase.kind === 'vote' ||
     phase.kind === 'voteResult' ||
-    phase.kind === 'quest'
+    phase.kind === 'quest' ||
+    phase.kind === 'questResult'
       ? phase.round
       : phase.kind === 'lady'
         ? phase.afterRound
@@ -253,11 +257,12 @@ function roundRecordViews(
         proposals: (record?.proposals ?? []).map((proposal) => ({
           leaderSeat: proposal.leaderSeat,
           teamSeats: proposal.teamSeats,
-          ballots: showBallots ? proposal.ballots : null,
+          ballots: showBallots && !proposal.automatic ? proposal.ballots : null,
           approveCount: proposal.approveCount,
           rejectCount: proposal.rejectCount,
           abstainCount: proposal.abstainCount,
           approved: proposal.approved,
+          automatic: proposal.automatic,
         })),
         quest: record?.quest ?? null,
         vetoEnded: vetoRound === round,
@@ -290,10 +295,11 @@ function historyViews(state: AvalonState): readonly AvalonQuestHistoryView[] {
     round: entry.round,
     leaderSeat: entry.leaderSeat,
     teamSeats: entry.teamSeats,
-    ballots: showBallots ? entry.ballots : null,
+    ballots: showBallots && !entry.automatic ? entry.ballots : null,
     approveCount: entry.approveCount,
     rejectCount: entry.rejectCount,
     abstainCount: entry.abstainCount,
+    automatic: entry.automatic,
     result: entry.result,
     successCount: entry.successCount,
     failCount: entry.failCount,
@@ -357,28 +363,37 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     myPlay = viewerSeat === null ? null : (phase.plays[viewerSeat] ?? null);
     pendingPlaySeats = getPendingSeats(phase.teamSeats, phase.plays);
     // 亮票：公投模式全员可见个人投票，暗投模式只公布数量（D7）。
-    if (state.config.voteMode === 'public') {
+    if (state.config.voteMode === 'public' && !phase.automatic) {
       ballots = phase.ballots;
     }
-    voteCounts = {
-      approve: phase.approveCount,
-      reject: phase.rejectCount,
-      abstain: phase.abstainCount,
-    };
+    if (!phase.automatic)
+      voteCounts = {
+        approve: phase.approveCount,
+        reject: phase.rejectCount,
+        abstain: phase.abstainCount,
+      };
   } else if (phase.kind === 'lady') {
     lady = {
       holderSeat: phase.holderSeat,
       examinedSeats: phase.examinedSeats,
       targetSeat: phase.targetSeat,
       canCheck: viewerSeat === phase.holderSeat && phase.targetSeat === null,
-      needsAcknowledge: viewerSeat === phase.targetSeat,
+      needsAcknowledge: phase.targetSeat !== null && viewerSeat === phase.holderSeat,
     };
   }
 
-  const lastCheck = state.lastLadyCheck;
-  const ladyCheckResult =
-    lastCheck !== null && viewerSeat === lastCheck.holderSeat
-      ? { targetSeat: lastCheck.targetSeat, faction: lastCheck.faction }
+  const pendingLadyTarget =
+    phase.kind === 'lady' && viewerSeat === phase.holderSeat ? phase.targetSeat : null;
+  const pendingLadyRole = pendingLadyTarget === null ? undefined : state.roles[pendingLadyTarget];
+  if (pendingLadyTarget !== null && pendingLadyRole === undefined) {
+    throw new Error('[FAIL-FAST] Avalon lady target has no role');
+  }
+  const ladyCheckResult: AvalonLadyCheckResultView | null =
+    pendingLadyTarget !== null && pendingLadyRole !== undefined
+      ? {
+          targetSeat: pendingLadyTarget,
+          faction: isAvalonEvilRole(pendingLadyRole) ? 'evil' : 'good',
+        }
       : null;
 
   // 投票结算面板：公投亮逐人投票，暗投只给汇总数量（D7）。
@@ -389,10 +404,12 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
       : {
           approved: lastVote.approved,
           rejectStreak: lastVote.rejectStreak,
-          ballots: state.config.voteMode === 'public' ? lastVote.ballots : null,
+          ballots:
+            state.config.voteMode === 'public' && !lastVote.automatic ? lastVote.ballots : null,
           approveCount: lastVote.approveCount,
           rejectCount: lastVote.rejectCount,
           abstainCount: lastVote.abstainCount,
+          automatic: lastVote.automatic,
         };
 
   return {

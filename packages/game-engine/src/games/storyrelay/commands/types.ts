@@ -15,7 +15,6 @@ export interface StoryRelayTaskIdentity {
 
 type RevisionCommand = { readonly phaseRevision: number } & {
   readonly type:
-    | 'storyrelay.game.abort'
     | 'storyrelay.game.restart'
     | 'storyrelay.phase.retrySettle'
     | 'storyrelay.gallery.pause'
@@ -29,10 +28,7 @@ export type StoryRelayPublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
   | RoomProfileUpdateCommand<RoomProfileUpdate>
   | { readonly type: 'storyrelay.config.update'; readonly config: StoryRelayConfig }
-  | {
-      readonly type:
-        'storyrelay.game.begin' | 'storyrelay.game.next' | 'storyrelay.game.returnToLobby';
-    }
+  | { readonly type: 'storyrelay.game.begin' }
   | (StoryRelayTaskIdentity & {
       readonly type: 'storyrelay.task.ready.set';
       readonly isReady: boolean;

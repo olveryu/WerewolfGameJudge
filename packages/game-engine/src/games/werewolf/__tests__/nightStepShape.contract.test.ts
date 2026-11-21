@@ -1,10 +1,7 @@
 /**
- * Anti-reflow contract for the v9 night-step shape (state-model plan §6.1):
+ * Anti-reflow contract for the night-step shape (state-model plan §6.1):
  * the flat step window (currentStepIndex / currentStepId / stepDeadline as
- * GameState fields) must never come back. The only sanctioned mentions of
- * the legacy keys are the migration inputs in state/parseState.ts (which
- * destructure them out of pre-v9 records) and the version-history comment
- * in state/version.ts.
+ * GameState fields) must never come back.
  */
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -25,10 +22,9 @@ function listProductionSources(dir: string): string[] {
   return files;
 }
 
-describe('night step shape (v9) anti-reflow contract', () => {
+describe('night step shape anti-reflow contract', () => {
   const sources = listProductionSources(WEREWOLF_SRC).filter(
-    (file) =>
-      !file.endsWith(join('state', 'parseState.ts')) && !file.endsWith(join('state', 'version.ts')),
+    (file) => !file.endsWith(join('state', 'parseState.ts')),
   );
 
   it('no production source mentions the stored step index', () => {

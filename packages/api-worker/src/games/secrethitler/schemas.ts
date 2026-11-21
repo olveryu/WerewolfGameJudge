@@ -28,6 +28,11 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
   z.strictObject({ type: z.literal('secrethitler.roles.assign') }),
   z.strictObject({ type: z.literal('secrethitler.game.begin') }),
   z.strictObject({
+    type: z.literal('secrethitler.review.complete'),
+    gameSequence: z.number().int().nonnegative(),
+  }),
+  z.strictObject({ type: z.literal('secrethitler.phase.retrySettle') }),
+  z.strictObject({
     type: z.literal('secrethitler.game.restart'),
     gameSequence: z.number().int().nonnegative(),
     wasEnded: z.boolean(),
@@ -46,6 +51,10 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
   z.strictObject({
     type: z.literal('secrethitler.night.confirm'),
     step: z.number().int().min(1).max(1),
+  }),
+  z.strictObject({
+    type: z.literal('secrethitler.government.preselect'),
+    chancellorSeatId: z.number().int().min(0).max(9),
   }),
   z.strictObject({
     type: z.literal('secrethitler.government.nominate'),
@@ -75,6 +84,7 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     type: z.literal('secrethitler.action.investigate'),
     targetSeatId: z.number().int().min(0).max(9),
   }),
+  z.strictObject({ type: z.literal('secrethitler.action.acknowledgeInvestigation') }),
   z.strictObject({
     type: z.literal('secrethitler.action.specialElection'),
     targetSeatId: z.number().int().min(0).max(9),
@@ -89,5 +99,5 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
 export const secrethitlerPublicCommandSchema: z.ZodType<SecrethitlerPublicCommand> =
   z.discriminatedUnion('type', secrethitlerPublicCommandOptions);
 
-/** The skeleton has no worker-originated commands yet (see the engine commands/types.ts). */
-export const secrethitlerInternalCommandSchema: z.ZodType<SecrethitlerInternalCommand> = z.never();
+export const secrethitlerInternalCommandSchema: z.ZodType<SecrethitlerInternalCommand> =
+  z.strictObject({ type: z.literal('secrethitler.phase.settleExpired') });

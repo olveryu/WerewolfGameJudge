@@ -185,5 +185,4 @@ export {
   type WerewolfPublicStats,
 } from './publicStats';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
-export { migratePersistedWerewolfState, parseWerewolfState } from './state/parseState';
-export { WEREWOLF_STATE_IDENTITY, WEREWOLF_STATE_VERSION } from './state/version';
+export { parseWerewolfState } from './state/parseState';

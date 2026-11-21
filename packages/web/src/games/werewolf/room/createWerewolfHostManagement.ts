@@ -37,7 +37,6 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import {
-  buildPanelFlowSteps,
   PANEL_FLOW_ACTION_KEYS,
   type PanelFlowProgress,
   resolvePanelFlowCurrentStep,
@@ -102,7 +101,10 @@ function createSheriffSelfDestructAction(
   election: SheriffElectionPanelModel,
 ): RoomHostManagementAction | null {
   const canEndBySelfDestruct =
-    election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech';
+    election.view.phase === 'candidateSpeech' ||
+    election.view.phase === 'runoffSpeech' ||
+    election.view.phase === 'firstVote' ||
+    election.view.phase === 'runoffVote';
   if (!canEndBySelfDestruct) return null;
   const descriptor: RoomHostActionDescriptor = {
     key: 'sheriff-self-destruct',
@@ -259,25 +261,25 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
       }
       if (
         election !== null &&
-        (election.view.phase === 'candidateSpeech' || election.view.phase === 'runoffSpeech')
+        (election.view.phase === 'candidateSpeech' ||
+          election.view.phase === 'runoffSpeech' ||
+          election.view.phase === 'firstVote' ||
+          election.view.phase === 'runoffVote')
       ) {
         electionMoves.push('sheriff-self-destruct');
       }
-      if (election !== null && election.view.phase !== 'completed') {
-        electionMoves.push(PANEL_FLOW_ACTION_KEYS.grantReview);
-      }
-      const steps = buildPanelFlowSteps(flow) ?? undefined;
       const moves = infoPending
         ? [...electionMoves, PANEL_FLOW_ACTION_KEYS.lastNightInfo]
         : electionMoves;
+      if (election !== null && election.view.phase !== 'completed') {
+        moves.push(PANEL_FLOW_ACTION_KEYS.grantReview);
+      }
       if (moves.length > 1) {
-        return { kind: 'choice', actionKeys: moves, ...(infoPending ? { steps } : {}) };
+        return { kind: 'choice', actionKeys: moves };
       }
       const [onlyMove] = moves;
       if (onlyMove !== undefined) {
-        return hostActionTask(onlyMove, {
-          ...(infoPending ? { steps } : {}),
-        });
+        return hostActionTask(onlyMove);
       }
       return null;
     }
@@ -287,17 +289,15 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
         progress: input.panelFlow,
         reviewShared: input.isReviewShared,
       };
-      const steps = buildPanelFlowSteps(flow) ?? undefined;
       switch (resolvePanelFlowCurrentStep(flow)) {
         case 'lastNightInfo':
-          return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo, { steps });
+          return hostActionTask(PANEL_FLOW_ACTION_KEYS.lastNightInfo);
         case 'grantReview':
         case 'closing':
         case null:
           return {
             kind: 'choice',
             actionKeys: [PANEL_FLOW_ACTION_KEYS.grantReview, HOST_ACTION_KEYS.review, 'restart'],
-            steps,
           };
       }
     }
@@ -387,9 +387,6 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
   } as const;
   return [
     buildReviewHostAction(review),
-    input.panelFlow.lastNightInfoConfirmed
-      ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
-      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
@@ -400,6 +397,9 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
       },
       input.onLastNightInfo,
     ),
+    input.panelFlow.lastNightInfoConfirmed
+      ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
+      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
   ];
 }
 
@@ -468,7 +468,9 @@ export function createWerewolfHostManagement(
         ? [PANEL_FLOW_ACTION_KEYS.lastNightInfo]
         : !input.isReviewShared
           ? [PANEL_FLOW_ACTION_KEYS.grantReview]
-          : [];
+          : input.review?.isPending
+            ? [HOST_ACTION_KEYS.review]
+            : [];
   return applyAudioPlaybackLock(
     {
       task: createHostTask(input),
@@ -486,7 +488,7 @@ export function createWerewolfHostManagement(
               ? { pendingActionKeys: sheriffAdvancePending ? ['sheriff-advance'] : [] }
               : input.roomStatus === GameStatus.Ended
                 ? { pendingActionKeys: endedPendingKeys }
-                : {}),
+                : { pendingActionKeys: [] }),
     },
     { isAudioPlaying: input.isAudioPlaying, exemptActionKeys: AUDIO_LOCK_EXEMPT_ACTION_KEYS },
   );

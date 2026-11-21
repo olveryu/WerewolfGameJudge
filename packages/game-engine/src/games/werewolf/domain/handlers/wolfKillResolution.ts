@@ -14,18 +14,8 @@
  *   are therefore computed exactly once, from the same votes and the
  *   same random pick, stored on GameState.resolvedWolfKillTarget and
  *   GameState.resolvedWolfKillVerdict, and every later consumer reuses
- *   them instead of re-resolving the votes. The only fresh resolution
- *   allowed after storage exists is the legacy fallback in
- *   getLegacyWolfKillTarget, used by END_NIGHT for rooms that started
- *   before this field existed; its result is persisted in the same
- *   END_NIGHT command, so it also settles once. The verdict for a
- *   legacy target is classified deterministically from the votes and
- *   that already-known target (classifyWolfKillVerdict), never by
- *   re-rolling the tie: a target that was one of the tied maxima is
- *   tiePicked, a unique maximum is splitKilled, a single distinct
- *   target is sharedTarget, and a null target with votes is splitTied
- *   only because the v12 engine could only produce a null with votes
- *   under cupid unanimity.
+ *   them instead of re-resolving the votes. If no wolf-kill step runs,
+ *   END_NIGHT performs the single settlement after all night actions.
  */
 
 import type { Rng } from '../../../../platform/random';
@@ -33,13 +23,26 @@ import type { GameState, ResolvedWolfKillVerdict } from '../protocol/types';
 import type { SetResolvedWolfKillTargetAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 
-/**
- * The settled target as stored on state.
- * undefined = not yet settled; null = settled to no kill; a seat
- * number = the settled kill target.
- */
-export function getStoredWolfKillTarget(state: GameState): number | null | undefined {
-  return state.resolvedWolfKillTarget;
+/** Reads the required settled target from a step that depends on it. */
+export function requireStoredWolfKillTarget(state: GameState): number | null {
+  const target = state.resolvedWolfKillTarget;
+  if (target === undefined) {
+    throw new Error('[FAIL-FAST] wolf-kill target has not been settled');
+  }
+  return target;
+}
+
+export function getStoredWolfKillSettlement(
+  state: GameState,
+):
+  { readonly target: number | null; readonly verdict: ResolvedWolfKillVerdict | null } | undefined {
+  const target = state.resolvedWolfKillTarget;
+  if (target === undefined) return undefined;
+  const verdict = state.resolvedWolfKillVerdict;
+  if (verdict === undefined) {
+    throw new Error('[FAIL-FAST] settled wolf-kill target is missing its verdict');
+  }
+  return { target, verdict };
 }
 
 /** The wolf votes as a seat -> target map (-1 = abstain). */
@@ -59,8 +62,7 @@ function buildWolfVotesMap(state: GameState): Map<number, number> {
 /**
  * Classify a known wolf-kill target against the current votes, without
  * any randomness: the target is an input, never re-picked here. Used
- * by settleWolfKillFromVotes for the verdict twin of a fresh pick, and
- * by END_NIGHT for a legacy target recovered from an older room.
+ * by settleWolfKillFromVotes for the verdict twin of a fresh pick.
  * A wolf-kill override has no vote verdict and yields null; it must
  * never be reported as splitTied (the night report's wolfGiveUp card
  * carries the override cause instead).
@@ -96,12 +98,8 @@ export function classifyWolfKillVerdict(
 
 /**
  * The settled wolf-kill target and verdict, computed together.
- * @pre The wolf votes are final (the wolfKill step has passed, or the
- *   plan has no wolfKill step). Callers must not invoke this while
- *   wolves can still change their votes. Exactly one resolveWolfVotes
- *   call runs here, so the verdict's targetSeat is always the picked
- *   target; classifyWolfKillVerdict only reads the votes and that
- *   target and consumes no randomness.
+ * @pre The wolf votes are final. Callers must not invoke this while
+ * wolves can still change their votes.
  */
 export function settleWolfKillFromVotes(
   state: GameState,
@@ -133,23 +131,4 @@ export function maybeCreateResolvedWolfKillTargetAction(
     type: 'SET_RESOLVED_WOLF_KILL_TARGET',
     payload: { target: settled.target, verdict: settled.verdict },
   };
-}
-
-/**
- * Best available wolf-kill target for a state that may predate the
- * stored field (a v12 room migrated to v13, or a night already past
- * the witch step where witchContext was cleared on advance).
- * Order: stored value, then the witch's recorded save (a save was
- * only accepted when it equalled the wolf-kill target at submission
- * time, so a recorded save proves that seat was the target), then
- * the live witch context. undefined means no prior settlement can
- * be recovered and the caller must settle fresh (once) and persist it.
- */
-export function getLegacyWolfKillTarget(state: GameState): number | null | undefined {
-  if (state.resolvedWolfKillTarget !== undefined) return state.resolvedWolfKillTarget;
-  const savedSeat = state.currentNightResults?.savedSeat;
-  if (savedSeat !== undefined) return savedSeat;
-  const killedSeat = state.witchContext?.killedSeat;
-  if (killedSeat !== undefined) return killedSeat >= 0 ? killedSeat : null;
-  return undefined;
 }

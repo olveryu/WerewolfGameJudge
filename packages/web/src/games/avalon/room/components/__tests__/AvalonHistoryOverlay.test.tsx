@@ -72,6 +72,7 @@ const settledRound: AvalonRoundRecordView = {
       rejectCount: 3,
       abstainCount: 0,
       approved: false,
+      automatic: false,
     },
     {
       leaderSeat: 1,
@@ -81,6 +82,7 @@ const settledRound: AvalonRoundRecordView = {
       rejectCount: 1,
       abstainCount: 0,
       approved: true,
+      automatic: false,
     },
   ],
   quest: { result: 'success', successCount: 2, failCount: 0 },
@@ -215,6 +217,7 @@ describe('AvalonHistoryOverlay', () => {
           rejectCount: 0,
           abstainCount: 0,
           approved: true,
+          automatic: false,
         },
       ],
       quest: { result: 'success', successCount: 2, failCount: 0 },
@@ -329,7 +332,7 @@ describe('AvalonHistoryOverlay', () => {
 
   it('shows the config line in the header', () => {
     const { getByText } = renderOverlay([settledRound], { voteMode: 'secret' });
-    expect(getByText('投票暗投 · 否决上限 5 · 任务人数 2 / 3 / 2 / 3 / 3')).toBeTruthy();
+    expect(getByText('投票暗投 · 最多组队 5 次 · 任务人数 2 / 3 / 2 / 3 / 3')).toBeTruthy();
   });
 
   it('marks an ended interrupted round as unfinished, not in progress', () => {

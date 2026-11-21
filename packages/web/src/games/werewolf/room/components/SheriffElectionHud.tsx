@@ -3,17 +3,19 @@ import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewo
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary';
-import { getSheriffVoteButtonLabel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
+import {
+  getSheriffVoteButtonLabel,
+  getSheriffWaitingMessage,
+} from '@/games/werewolf/room/day/sheriffElectionDockModel';
 import { getSettleCountdownSuffix } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
-import IconShieldCheckmarkOutline from '~icons/ion/shield-checkmark-outline';
 
 function getResultSummary(result: SheriffElectionResult): string {
   return result.kind === 'elected' ? `${formatSeat(result.sheriffSeat)} 当选警长` : '本局没有警长';
 }
 
-export function getHudSummary(model: SheriffElectionPanelModel): string {
+export function getHudSummary(model: SheriffElectionPanelModel, isHost = false): string {
   const { view } = model;
   if (view.finalResult !== null) return getResultSummary(view.finalResult);
   if (view.speakingInstruction !== null) return `发言顺序：${view.speakingInstruction}`;
@@ -33,7 +35,12 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
     }
     return progress;
   }
-  if (view.canCancelRegistration) return '你已报名，可在底部取消报名';
+  if (view.phase === 'registration') {
+    if (view.canCancelRegistration) return '你已报名，可在底部取消报名';
+    if (isHost) return '请在主持管理中结束报名';
+    if (view.canRegister) return '可在底部报名上警';
+    return '等待房主结束报名';
+  }
   if (view.candidateRecords !== null) {
     return `${view.candidateRecords.activeCandidateSeats.length} 位候选人留在警上`;
   }
@@ -42,33 +49,29 @@ export function getHudSummary(model: SheriffElectionPanelModel): string {
 
 export function SheriffElectionHud({
   model,
-  onOpenDetails,
+  isHost,
+  isDay = true,
 }: {
   readonly model: SheriffElectionPanelModel;
-  /** Null while the side inspector shows the details. */
-  readonly onOpenDetails: (() => void) | null;
+  readonly isHost: boolean;
+  readonly isDay?: boolean;
 }) {
   const { view } = model;
   return (
     <RoomStatusSummary
       header={{
+        prefix: isDay ? '白天' : undefined,
         title: '警长竞选',
-        icon: <IconShieldCheckmarkOutline />,
-        phase: view.phaseTitle,
+        phase:
+          view.finalResult !== null
+            ? getResultSummary(view.finalResult)
+            : view.phase === 'registration'
+              ? getSheriffWaitingMessage(model)
+              : view.phaseTitle,
         phaseTestId: TESTIDS.sheriffElectionHudPhase,
       }}
-      summary={getHudSummary(model)}
-      pendingSeats={view.voteProgress?.pendingSeats}
-      action={
-        onOpenDetails === null
-          ? null
-          : {
-              label: '详情',
-              accessibleLabel: '查看警长竞选详情',
-              onOpen: onOpenDetails,
-              testId: TESTIDS.sheriffDetailsButton,
-            }
-      }
+      summary={view.finalResult === null ? getHudSummary(model, isHost) : ''}
+      action={null}
       testId={TESTIDS.sheriffElectionHud}
       pendingTestId={TESTIDS.sheriffHudPendingSeats}
     />

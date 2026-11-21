@@ -90,7 +90,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     await mountWerewolfRoom(createWerewolfRoomMockFromState(game.getGameState(), MY_SEAT));
 
     // Witch should see save prompt since seat 0 was killed and canSave=true
-    await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+    await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
   });
 
   it('seerCheck step with real state -> shows actionPrompt', async () => {
@@ -107,6 +107,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     await mountWerewolfRoom(createWerewolfRoomMockFromState(game.getGameState(), seerSeat));
 
     // Seer should see action prompt
-    await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+    await waitFor(() => harness.expectInlineStatus('actionPrompt'));
   });
 });

@@ -1,9 +1,6 @@
 /** Generic room HTTP authentication, saga creation, command, and deletion contracts. */
 
-import {
-  WEREWOLF_STATE_CODEC,
-  WEREWOLF_STATE_VERSION,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_CODEC } from '@game-judge/game-engine/games/werewolf/public';
 import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import {
   REASON_COMMAND_ID_CONFLICT,
@@ -116,7 +113,6 @@ describe('POST /room/create', () => {
       roomCode: body.room.roomCode,
       hostUserId: auth.user.id,
       gameType: 'werewolf',
-      stateVersion: WEREWOLF_STATE_VERSION,
       templateRoles: TEMPLATE_ROLES,
     });
     expect(snapshot.revision).toBe(1);

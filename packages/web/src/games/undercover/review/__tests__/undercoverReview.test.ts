@@ -59,7 +59,6 @@ describe('undercoverReview.resolve', () => {
     expect(availability.confirmation).toBeNull();
     expect(availability.document).toMatchObject({
       roundKey: state.round.roundId,
-      isAborted: false,
     });
     expect(() => assertReviewDocument(availability.document)).not.toThrow();
     expect(availability.document.pages[0]?.blocks.map((block) => block.kind)).toEqual([
@@ -72,25 +71,6 @@ describe('undercoverReview.resolve', () => {
     ]);
     // Pure: the same state resolves to a structurally equal result.
     expect(resolve(state)).toEqual(availability);
-  });
-
-  it('reviews a round aborted after the deal, and nothing for an abort during preparation', () => {
-    const viewing = playUndercoverTestRound('viewing');
-    const aborted = dispatchUndercoverTestCommand(viewing, {
-      type: 'undercover.game.abort',
-      roundId: 'undercover-round:start',
-    });
-    const availability = resolve(aborted);
-    if (availability.kind !== 'available') throw new Error('expected an available review');
-    expect(availability.document.isAborted).toBe(true);
-    expect(availability.sharing).toEqual({ isAllowed: true });
-
-    const abortedEarly = dispatchUndercoverTestCommand(playUndercoverTestRound('preparing'), {
-      type: 'undercover.game.abort',
-      roundId: 'undercover-round:start',
-    });
-    expect(abortedEarly).toMatchObject({ phase: 'aborted', round: null });
-    expect(resolve(abortedEarly)).toEqual({ kind: 'notEnded' });
   });
 });
 
@@ -136,7 +116,6 @@ describe('toUndercoverReviewDocument', () => {
       kicker: '🕵️ 本局 · 终局',
       fileStem: 'undercover-1234',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
       pages: [
         {
           key: 'round',
@@ -274,62 +253,6 @@ describe('toUndercoverReviewDocument', () => {
       toUndercoverReviewDocument({ ...INPUT, config: { ...INPUT.config, hasBlank: false } }),
     )[1];
     expect(facts).toMatchObject({ kind: 'facts', items: [{}, {}, {}, { value: '无白板' }] });
-  });
-
-  it('reviews an aborted round with only what play made public', () => {
-    const document = toUndercoverReviewDocument({
-      ...INPUT,
-      round: { ...ROUND, revelations: [{ seat: 3, role: 'blank', revealedAt: 10 }] },
-      conclusion: { kind: 'aborted' },
-    });
-    expect(document.isAborted).toBe(true);
-    expect(blocksOf(document)).toEqual([
-      {
-        kind: 'hero',
-        headline: [{ kind: 'text', text: '本局已中止' }],
-        tone: 'neutral',
-        stamps: [{ seat: 3, tone: 'out', title: '白板', caption: '第 1 个出局', note: null }],
-        byline: '本局不计胜负，不公开未揭晓身份和词语。',
-      },
-      {
-        kind: 'facts',
-        items: [
-          { label: '词语分类', value: '全部分类' },
-          { label: '白板', value: '有白板' },
-        ],
-      },
-      { kind: 'section', title: '出局顺序' },
-      {
-        kind: 'timeline',
-        steps: [
-          {
-            title: null,
-            tone: 'special',
-            lines: [
-              [
-                { kind: 'seat', seat: 3, tone: 'out' },
-                { kind: 'tag', text: '白板', tone: 'special' },
-              ],
-            ],
-          },
-        ],
-      },
-    ]);
-    // Neither word, the drawn category nor an unrevealed role reaches the review.
-    const text = JSON.stringify(document);
-    for (const secret of ['豆浆', '牛奶', '吃喝美食', '平民', '卧底']) {
-      expect(text).not.toContain(secret);
-    }
-  });
-
-  it('reviews an abort before any elimination as the verdict and the room facts alone', () => {
-    const document = toUndercoverReviewDocument({
-      ...INPUT,
-      round: { ...ROUND, revelations: [] },
-      conclusion: { kind: 'aborted' },
-    });
-    expect(blocksOf(document).map((block) => block.kind)).toEqual(['hero', 'facts']);
-    expect(blocksOf(document)[0]).toMatchObject({ stamps: [] });
   });
 
   it('fails fast on a seat of the round that holds no player', () => {

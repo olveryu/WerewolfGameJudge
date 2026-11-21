@@ -138,7 +138,7 @@ describe('useSheriffElection', () => {
     expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
   });
 
-  it('advances directly without a confirm outside registration', async () => {
+  it('asks before ending candidate speeches', async () => {
     const { result, submit } = renderElection(
       dayState({
         phase: 'candidateSpeech',
@@ -149,8 +149,15 @@ describe('useSheriffElection', () => {
         speakingDirection: 'clockwise',
       }),
     );
-    await act(async () => result.current!.requestAdvance());
-    expect(mockShowConfirmAlert).not.toHaveBeenCalled();
+    act(() => result.current!.requestAdvance());
+    expect(submit).not.toHaveBeenCalled();
+    expect(mockShowConfirmAlert).toHaveBeenCalledWith(
+      '结束发言？',
+      '确认后将推进警长竞选。',
+      expect.any(Function),
+    );
+    const [, , onConfirm] = mockShowConfirmAlert.mock.calls[0]!;
+    await act(async () => onConfirm());
     expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
   });
 

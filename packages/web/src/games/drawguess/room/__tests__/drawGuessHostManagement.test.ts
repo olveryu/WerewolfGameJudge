@@ -78,14 +78,28 @@ function session() {
     fillAndStart() {
       send({ type: 'room.seat.fillBots' });
       send({ type: 'drawguess.game.begin' });
-      send({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES }, 'host', true);
+      send(
+        {
+          type: 'drawguess.words.dealt',
+          gameSequence: state.gameSequence,
+          turnIndex: 0,
+          choices: CHOICES,
+        },
+        'host',
+        true,
+      );
     },
     playToEnd() {
       for (let step = 0; step < 60 && state.phase.kind !== 'ended'; step += 1) {
         settle();
         if (state.phase.kind === 'wordSelect') {
           send(
-            { type: 'drawguess.words.dealt', turnIndex: state.turnIndex, choices: CHOICES },
+            {
+              type: 'drawguess.words.dealt',
+              gameSequence: state.gameSequence,
+              turnIndex: state.turnIndex,
+              choices: CHOICES,
+            },
             'host',
             true,
           );

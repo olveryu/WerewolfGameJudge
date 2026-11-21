@@ -35,6 +35,7 @@ const publicCommandOptions = definePublicCommandOptions<FibPublicCommand>()([
     wasEnded: z.boolean(),
   }),
   z.strictObject({ type: z.literal('fibking.roles.assign') }),
+  z.strictObject({ type: z.literal('fibking.review.complete'), roundId: z.string().min(1) }),
   z.strictObject({ type: z.literal('fibking.role.viewed') }),
   z.strictObject({ type: z.literal('fibking.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('fibking.game.begin') }),

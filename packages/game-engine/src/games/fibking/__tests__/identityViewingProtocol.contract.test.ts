@@ -20,7 +20,6 @@ import {
 import { getFibRoundView } from '../domain/visibility';
 import type { FibEffect } from '../effects/types';
 import { decideFibCommand, fibEngine } from '../engine';
-import { migratePersistedFibState, parseFibState } from '../state/parseState';
 import { getFibViewingParticipants } from '../state/types';
 import { FIB_PREPARATION_STAGES, type FibState } from '../state/types';
 
@@ -78,29 +77,6 @@ function takeSeat(state: FibState, seat: number, userId: string): FibState {
 }
 
 /** Three humans (seats 0-2) plus one implicit bot (seat 3). */
-/** Rebuilds a genuine pre-roster document (trio fields) from a current state. */
-function downgradeRoster(state: FibState): Record<string, unknown> {
-  const raw = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
-  const roster = raw.roster as Record<string, { userId?: string }>;
-  delete raw.roster;
-  const realSeats: Record<string, unknown> = {};
-  const excludedBotSeats: number[] = [];
-  let hasBots = false;
-  const count = state.numberOfPlayers;
-  for (let seat = 0; seat < count; seat += 1) {
-    const occupant = roster[String(seat)];
-    if (occupant?.userId !== undefined) realSeats[String(seat)] = occupant;
-    else if (occupant !== undefined) hasBots = true;
-    else excludedBotSeats.push(seat);
-  }
-  return {
-    ...raw,
-    realSeats,
-    fillEmptySeatsWithBots: hasBots,
-    excludedBotSeats: hasBots ? excludedBotSeats : [],
-  };
-}
-
 function createRoom(): FibState {
   let state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT);
   state = takeSeat(state, 0, 'host');
@@ -301,6 +277,12 @@ describe('identity viewing protocol (fibking)', () => {
     state = dispatch(state, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.game.begin' }, userContext('host'));
     state = dispatch(state, { type: 'fibking.round.reveal' }, userContext('host'));
+    if (state.phase !== 'ended') throw new Error('Expected ended state');
+    state = dispatch(
+      state,
+      { type: 'fibking.game.restart', roundId: state.round.roundId, wasEnded: true },
+      userContext('host'),
+    );
     const nextRound = dealRound(state, 'round-2', '灯塔');
     if (nextRound.phase !== 'viewing') throw new Error('Expected viewing state');
     expect(nextRound.round.viewedSeats).toEqual([]);
@@ -314,39 +296,6 @@ describe('identity viewing protocol (fibking)', () => {
     expect(
       decideFibCommand(createRoom(), { type: 'fibking.role.viewed' }, userContext('host')),
     ).toEqual({ kind: 'reject', reason: REASON_FIB_ROUND_NOT_VIEWING });
-  });
-
-  it('migrates v5 rooms: in-flight rounds count as fully viewed', () => {
-    const viewing = dealRound(createRoom());
-    const serialized = downgradeRoster(viewing);
-    const round = serialized.round as Record<string, unknown>;
-    delete round.viewedSeats;
-    serialized.stateVersion = 5;
-    serialized.phase = 'ongoing';
-
-    const migrated = migratePersistedFibState(serialized);
-    if (migrated.phase !== 'ongoing') throw new Error('Expected ongoing state');
-    expect(migrated.round.viewedSeats).toEqual([0, 1, 2, 3]);
-    expect(migrated.round.guesses).toEqual([]);
-    expect(parseFibState(JSON.parse(JSON.stringify(migrated)))).toEqual(migrated);
-
-    const lobby = downgradeRoster(
-      fibEngine.createInitialState({ numberOfPlayers: 4 }, CREATE_CONTEXT),
-    );
-    lobby.stateVersion = 5;
-    expect(migratePersistedFibState(lobby).phase).toBe('lobby');
-
-    let ended = dealRound(createRoom());
-    ended = confirm(confirm(confirm(ended, 'host'), 'alice'), 'bob');
-    ended = dispatch(ended, { type: 'fibking.bots.markAllBotsViewed' }, userContext('host'));
-    ended = dispatch(ended, { type: 'fibking.game.begin' }, userContext('host'));
-    ended = dispatch(ended, { type: 'fibking.round.reveal' }, userContext('host'));
-    const endedSerialized = downgradeRoster(ended);
-    delete (endedSerialized.round as Record<string, unknown>).viewedSeats;
-    endedSerialized.stateVersion = 5;
-    const migratedEnded = migratePersistedFibState(endedSerialized);
-    if (migratedEnded.phase !== 'ended') throw new Error('Expected ended state');
-    expect(migratedEnded.round.viewedSeats).toEqual([0, 1, 2, 3]);
   });
 });
 

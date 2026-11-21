@@ -124,11 +124,13 @@ export class FibRoomPage extends RoomPage {
 
   async viewIdentity(): Promise<FibIdentity> {
     await (await this.viewIdentityButton()).click();
+    await pressAlertButton(this.page, { title: '查看身份？', buttonIndex: 1, buttonLabel: '查看' });
     return this.readOpenIdentity();
   }
 
   async viewResult(): Promise<FibWordDetails> {
     await this.clickRoomAction(TESTIDS.fibViewResultButton);
+    await pressAlertButton(this.page, { title: '查看身份？', buttonIndex: 1, buttonLabel: '查看' });
     const modal = this.page.getByTestId(TESTIDS.fibIdentityModal);
     await expect(modal).toBeVisible();
     await expect(modal.getByTestId(TESTIDS.fibIdentityRole)).toHaveText('公开结果');
@@ -144,8 +146,7 @@ export class FibRoomPage extends RoomPage {
   }
 
   /**
-   * Viewing phase: the view record is submitted before the card opens
-   * (shared role-viewing protocol), so closing the card is all that is left.
+   * Viewing phase: closing the revealed card records the first view.
    */
   async confirmIdentityView(): Promise<void> {
     await this.closeIdentity();

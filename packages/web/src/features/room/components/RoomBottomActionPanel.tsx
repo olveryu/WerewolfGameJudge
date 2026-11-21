@@ -7,14 +7,11 @@ import {
   type ReactNode,
   type Ref,
   useCallback,
-  useId,
   useRef,
   useState,
 } from 'react';
 
-import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
-import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import type { NightStepProgress } from '@/features/room/model/nightProgress';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
 import {
@@ -31,16 +28,15 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
-import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
 import IconConstructOutline from '~icons/ion/construct-outline';
 import IconCreateOutline from '~icons/ion/create-outline';
-import IconHandLeftOutline from '~icons/ion/hand-left-outline';
+import IconOptionsOutline from '~icons/ion/options-outline';
 
-import { RoomActionHand } from './RoomActionHand';
-import { resolveRoomBottomActionPresentation } from './RoomBottomActionPresentation';
-import { DisabledReasonCaption } from './RoomControls';
+import { RoomActionHand, type RoomHandCard } from './RoomActionHand';
+import type { RoomSelectionMode, RoomSummaryPresentation } from './RoomBottomActionPresentation';
+import { RoomHandButton } from './RoomHandButton';
 
 interface RoomManualEntry {
   readonly label: string;
@@ -51,15 +47,6 @@ interface RoomManualEntry {
 
 function focusManualBack(button: HTMLButtonElement | null) {
   button?.focus({ preventScroll: true });
-}
-
-/**
- * A disabled reason stays visible unless the panel already announces the audio playback
- * lock above it: the lock reason must appear once.
- */
-function visibleDisabledReason(reason: string | null, hideAudioLockReason: boolean): string | null {
-  if (reason === null || reason.length === 0) return null;
-  return hideAudioLockReason && reason === AUDIO_PLAYBACK_LOCK_REASON ? null : reason;
 }
 
 /** Progress of the active step sequence: "第n步 / 共m步", an optional label, and a bar. */
@@ -89,67 +76,93 @@ function RoomProgressIndicator({ progress }: { readonly progress: NightStepProgr
 function resolveStatusMessage(
   model: RoomBottomActionModel,
   isAudioPlaying: boolean,
+  selectionMode: RoomSelectionMode | undefined,
   selectionBody: NonNullable<ReturnType<typeof resolveHostTaskView>>['body'] | null,
 ): string | null {
   if (isAudioPlaying) return AUDIO_WAITING_LABEL;
-  return selectionBody?.kind === 'message' ? selectionBody.text : model.message;
+  return selectionMode === 'host-task' && selectionBody?.kind === 'message'
+    ? selectionBody.text
+    : model.message;
 }
 
-/** Status shared by the room information area and the legacy bottom panel. */
+/** Status shared by the room information area and the action panel. */
 export function RoomActionStatus({
   model,
   summary,
   isAudioPlaying,
   hostManagement,
-  isSelecting,
-  selectionUsesHostTask,
+  selectionMode,
   boardStatus,
 }: {
   readonly model: RoomBottomActionModel;
   readonly summary: ReactNode;
   readonly isAudioPlaying: boolean;
   readonly hostManagement: RoomHostManagementModel | null;
-  readonly isSelecting: boolean;
-  readonly selectionUsesHostTask: boolean;
+  readonly selectionMode?: RoomSelectionMode;
   readonly boardStatus?: {
     readonly phaseLabel: string | null;
     readonly title: string | null;
     readonly detail: string | null;
+    readonly summaryPresentation?: RoomSummaryPresentation;
   };
 }) {
   const taskBody =
-    isSelecting && selectionUsesHostTask && hostManagement !== null
+    selectionMode === 'host-task' && hostManagement !== null
       ? resolveHostTaskView(hostManagement)?.body
       : null;
-  const message = resolveStatusMessage(model, isAudioPlaying, taskBody ?? null);
-  const title = isAudioPlaying || isSelecting ? message : (boardStatus?.title ?? message);
+  const message = resolveStatusMessage(model, isAudioPlaying, selectionMode, taskBody ?? null);
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
+  const title =
+    isAudioPlaying || selectionMode !== undefined
+      ? message
+      : boardStatus?.summaryPresentation === 'replaces-message' && hasSummary
+        ? boardStatus.title
+        : (boardStatus?.title ?? message);
   if (boardStatus !== undefined) {
+    if (
+      boardStatus.summaryPresentation === 'status' &&
+      hasSummary &&
+      !isAudioPlaying &&
+      selectionMode === undefined
+    ) {
+      return (
+        <>
+          {summary}
+          {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
+        </>
+      );
+    }
     return (
       <>
         {(boardStatus.phaseLabel !== null ||
           (title !== null && title.length > 0) ||
-          (!isAudioPlaying && !isSelecting && boardStatus.detail !== null)) && (
+          (!isAudioPlaying && selectionMode === undefined && boardStatus.detail !== null) ||
+          hasSummary) && (
           <div className="room-board-status-card">
             {boardStatus.phaseLabel !== null && (
               <p className="room-board-phase">{boardStatus.phaseLabel}</p>
             )}
+            {hasSummary && boardStatus.summaryPresentation !== 'after-message' && (
+              <div className="room-board-status-summary">{summary}</div>
+            )}
             {title !== null && title.length > 0 && (
               <h2
-                className="room-board-status-title"
+                className={hasSummary ? 'room-board-status-detail' : 'room-board-status-title'}
                 aria-live="polite"
                 data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
               >
                 {title}
               </h2>
             )}
-            {!isAudioPlaying && !isSelecting && boardStatus.detail !== null && (
+            {!isAudioPlaying && selectionMode === undefined && boardStatus.detail !== null && (
               <p className="room-board-status-detail">{boardStatus.detail}</p>
+            )}
+            {hasSummary && boardStatus.summaryPresentation === 'after-message' && (
+              <div className="room-board-status-summary">{summary}</div>
             )}
           </div>
         )}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
-        {hasSummary && <div className="bottom-action-summary">{summary}</div>}
       </>
     );
   }
@@ -173,14 +186,9 @@ export function RoomActionStatus({
 
 function LayoutButton({
   model,
-  hideAudioLockReason,
-  isHand = false,
 }: {
   readonly model: RoomBottomButton | RoomBottomToolButton | RoomHostManagementAction;
-  readonly hideAudioLockReason: boolean;
-  readonly isHand?: boolean;
 }) {
-  const reasonId = useId();
   const focusOnMount = 'focusOnMount' in model && model.focusOnMount === true;
   const buttonRef = useCallback(
     (button: HTMLButtonElement | null) => {
@@ -192,79 +200,39 @@ function LayoutButton({
     ...('textColor' in model ? { color: model.textColor } : {}),
     ...('buttonColor' in model ? { background: model.buttonColor } : {}),
   };
-  const reason = model.isEnabled
-    ? null
-    : visibleDisabledReason(model.disabledReason, hideAudioLockReason);
-  const explanation = !model.isEnabled ? model.disabledReason : null;
-  const isPending = isHand && 'isPending' in model && model.isPending === true;
+  const isLoading = 'isLoading' in model && model.isLoading === true;
+  const disabledReason =
+    !model.isEnabled && 'disabledReason' in model ? model.disabledReason : null;
+  const isPending = 'isPending' in model && model.isPending === true;
+  const variant =
+    'variant' in model ? model.variant : model.tone === 'danger' ? 'danger' : 'secondary';
   return (
     <div className="bottom-action-slot">
-      <Button
+      <RoomHandButton
         ref={buttonRef}
-        variant={
-          'variant' in model ? model.variant : model.tone === 'danger' ? 'danger' : 'secondary'
-        }
-        size={'size' in model ? model.size : 'md'}
-        loading={'isLoading' in model && model.isLoading === true}
-        data-card-category={isHand ? ('category' in model ? model.category : 'player') : undefined}
-        disabled={!model.isEnabled && (!isHand || explanation === null)}
-        aria-disabled={isHand && !model.isEnabled && explanation !== null ? true : undefined}
-        aria-label={isHand && (explanation !== null || isPending) ? model.label : undefined}
-        aria-describedby={isHand && (explanation !== null || isPending) ? reasonId : undefined}
-        style={style}
-        data-testid={model.testID}
-        data-player-action-ids={
-          'containedActionTestIDs' in model ? model.containedActionTestIDs?.join(' ') : undefined
-        }
-        onClick={
-          model.isEnabled
-            ? model.onPress
-            : isHand && explanation !== null
-              ? () => showAlert('暂不可用', explanation)
-              : undefined
-        }
-      >
-        {model.icon !== undefined ? (
-          <IonIcon name={model.icon} />
-        ) : (
-          isHand && <IconHandLeftOutline aria-hidden />
-        )}
-        <span>{model.label}</span>
-        {isPending && (
-          <span className="bottom-action-pending" aria-hidden>
-            待办
-          </span>
-        )}
-        {isHand && (explanation !== null || isPending) && (
-          <span id={reasonId} className="visually-hidden">
-            {isPending ? '有待处理操作' : ''}
-            {isPending && explanation !== null ? '；' : ''}
-            {explanation}
-          </span>
-        )}
-      </Button>
-      {!isHand && reason !== null && <DisabledReasonCaption reason={reason} />}
+        model={{
+          label: model.label,
+          category: model.category ?? 'player',
+          variant,
+          size: 'size' in model ? model.size : 'md',
+          icon: model.icon === undefined ? undefined : <IonIcon name={model.icon} />,
+          isEnabled: model.isEnabled,
+          onPress: model.isEnabled ? model.onPress : undefined,
+          disabledReason,
+          isLoading,
+          isPending,
+          testId: model.testID,
+          dataPlayerActionIds:
+            'containedActionTestIDs' in model ? model.containedActionTestIDs?.join(' ') : undefined,
+          style,
+        }}
+      />
     </div>
   );
 }
 
-function hostTaskLabel(model: RoomHostManagementModel): string | null {
-  const view = resolveHostTaskView(model);
-  if (view === null) return null;
-  switch (view.body.kind) {
-    case 'ready':
-    case 'blocked':
-      return view.body.action.label;
-    case 'choice':
-      return view.body.actions.map((action) => action.label).join(' / ');
-    case 'message':
-      return view.body.text;
-  }
-}
-
 function PlayerHand({
   model,
-  isAudioPlaying,
   configurationEntry,
   hasManual,
   manualEntryRef,
@@ -278,7 +246,6 @@ function PlayerHand({
   selectionAction,
 }: {
   readonly model: RoomBottomActionModel;
-  readonly isAudioPlaying: boolean;
   readonly configurationEntry: { readonly onOpen: () => void } | null;
   readonly hasManual: boolean;
   readonly manualEntryRef: Ref<HTMLButtonElement>;
@@ -292,85 +259,108 @@ function PlayerHand({
   readonly selectionAction: RoomHostManagementAction | null;
 }) {
   const actions = listRoomBottomButtons(model);
-  return (
-    <>
-      <RoomActionHand label="行动手牌">
-        {actions.map((action) => (
-          <LayoutButton
-            key={`action:${action.key}`}
-            model={action}
-            hideAudioLockReason={isAudioPlaying}
-            isHand
-          />
-        ))}
-        {selectionAction !== null && (
-          <LayoutButton
-            key={`selection:${selectionAction.key}`}
-            model={selectionAction}
-            hideAudioLockReason={isAudioPlaying}
-            isHand
-          />
-        )}
-        {configurationEntry !== null && (
-          <Button
-            key="room-entry:configuration"
-            variant="secondary"
-            data-card-category="resource"
-            onClick={configurationEntry.onOpen}
-            aria-haspopup="dialog"
-          >
-            <IconBookOutline aria-hidden />
-            <span>本局配置</span>
-          </Button>
-        )}
-        {hasManual && (
-          <Button
-            key="room-entry:manual"
-            ref={manualEntryRef}
-            variant="secondary"
-            data-card-category="resource"
-            data-testid={TESTIDS.roomManualButton}
-            onClick={onOpenManual}
-          >
-            <IconBookOutline aria-hidden />
-            <span>手册</span>
-          </Button>
-        )}
-        {mainEntries.map((entry) => (
-          <Button
-            key={`main-entry:${entry.label}`}
-            variant="secondary"
-            aria-haspopup="dialog"
-            data-testid={entry.testId}
-            onClick={entry.onOpen}
-          >
-            {entry.icon ?? <IconCreateOutline aria-hidden />}
-            <span>{entry.label}</span>
-          </Button>
-        ))}
-        {hasMoreActions && (
-          <Button
-            key="room-entry:host"
-            ref={hostEntryRef}
-            variant="secondary"
-            data-card-category="host"
-            data-testid={TESTIDS.roomMoreActionsButton}
-            data-player-action-ids=""
-            onClick={onOpenMoreActions}
-            aria-label={hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined}
-          >
-            <IconConstructOutline aria-hidden />
-            <span>{moreActionsLabel}</span>
-            {hasReadyTask && (
-              <span className="bottom-action-pending" aria-hidden>
-                待办
-              </span>
-            )}
-          </Button>
-        )}
-      </RoomActionHand>
-    </>
-  );
+  const cards: RoomHandCard[] = actions.map((action) => ({
+    id: `action:${action.key}`,
+    category:
+      ('variant' in action && action.variant === 'danger') ||
+      ('tone' in action && action.tone === 'danger')
+        ? 'danger'
+        : (action.category ?? 'player'),
+    unavailable: !action.isEnabled || ('isLoading' in action && action.isLoading === true),
+    content: <LayoutButton model={action} />,
+  }));
+  if (selectionAction !== null) {
+    cards.push({
+      id: `selection:${selectionAction.key}`,
+      category:
+        selectionAction.variant === 'danger' ? 'danger' : (selectionAction.category ?? 'player'),
+      unavailable: !selectionAction.isEnabled || selectionAction.isLoading === true,
+      content: <LayoutButton model={selectionAction} />,
+    });
+  }
+  if (configurationEntry !== null) {
+    cards.push({
+      id: 'room-entry:configuration',
+      category: 'resource',
+      content: (
+        <RoomHandButton
+          model={{
+            label: '本局配置',
+            category: 'resource',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: configurationEntry.onOpen,
+            icon: <IconOptionsOutline aria-hidden />,
+            ariaHasPopup: 'dialog',
+          }}
+        />
+      ),
+    });
+  }
+  if (hasManual) {
+    cards.push({
+      id: 'room-entry:manual',
+      category: 'resource',
+      content: (
+        <RoomHandButton
+          ref={manualEntryRef}
+          model={{
+            label: '手册',
+            category: 'resource',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: onOpenManual,
+            icon: <IconBookOutline aria-hidden />,
+            testId: TESTIDS.roomManualButton,
+          }}
+        />
+      ),
+    });
+  }
+  for (const entry of mainEntries) {
+    cards.push({
+      id: `main-entry:${entry.label}`,
+      category: 'resource',
+      content: (
+        <RoomHandButton
+          model={{
+            label: entry.label,
+            category: 'resource',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: entry.onOpen,
+            icon: entry.icon ?? <IconCreateOutline aria-hidden />,
+            testId: entry.testId,
+            ariaHasPopup: 'dialog',
+          }}
+        />
+      ),
+    });
+  }
+  if (hasMoreActions) {
+    cards.push({
+      id: 'room-entry:host',
+      category: 'host',
+      content: (
+        <RoomHandButton
+          ref={hostEntryRef}
+          model={{
+            label: moreActionsLabel,
+            category: 'host',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: onOpenMoreActions,
+            icon: <IconConstructOutline aria-hidden />,
+            testId: TESTIDS.roomMoreActionsButton,
+            dataPlayerActionIds: '',
+            ariaLabel: hasReadyTask ? `${moreActionsLabel}，有待处理操作` : undefined,
+            isPending: hasReadyTask,
+          }}
+        />
+      ),
+    });
+  }
+  return <RoomActionHand label="行动手牌" cards={cards} />;
 }
 
 function RoomBottomActionPanelComponent({
@@ -380,9 +370,7 @@ function RoomBottomActionPanelComponent({
   hostManagement,
   onOpenMoreActions,
   configurationEntry = null,
-  showPlayerHand = false,
-  isSelecting = false,
-  selectionUsesHostTask = false,
+  selectionMode,
   statusInBoard = false,
   hostHand,
   hostEntryRef,
@@ -395,9 +383,7 @@ function RoomBottomActionPanelComponent({
   readonly hostManagement: RoomHostManagementModel | null;
   readonly onOpenMoreActions: () => void;
   readonly configurationEntry?: { readonly onOpen: () => void } | null;
-  readonly showPlayerHand?: boolean;
-  readonly isSelecting?: boolean;
-  readonly selectionUsesHostTask?: boolean;
+  readonly selectionMode?: RoomSelectionMode;
   readonly statusInBoard?: boolean;
   readonly hostHand?: ReactNode;
   readonly hostEntryRef?: Ref<HTMLButtonElement>;
@@ -412,41 +398,31 @@ function RoomBottomActionPanelComponent({
     button.focus({ preventScroll: true });
   }, []);
   const hasManual =
-    showPlayerHand && !isSelecting && manualEntries !== undefined && manualEntries.length > 0;
+    selectionMode === undefined && manualEntries !== undefined && manualEntries.length > 0;
   if (isManualOpen && !hasManual) setIsManualOpen(false);
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
-  const { focusAction, additionalActions, hasMultiplePrimaryChoices } =
-    resolveRoomBottomActionPresentation(model);
-  const hiddenActions = showPlayerHand ? [] : additionalActions;
-  const hasMoreActions = !isSelecting && (hiddenActions.length > 0 || hostManagement !== null);
-  const taskLabel = hostManagement === null ? null : hostTaskLabel(hostManagement);
+  const hasMoreActions = selectionMode === undefined && hostManagement !== null;
   const taskBody =
-    !showPlayerHand || hostManagement === null ? null : resolveHostTaskView(hostManagement)?.body;
+    selectionMode !== 'host-task' || hostManagement === null
+      ? null
+      : resolveHostTaskView(hostManagement)?.body;
   const selectionAction =
-    isSelecting && selectionUsesHostTask && taskBody?.kind === 'message' ? taskBody.escape : null;
+    selectionMode === 'host-task' && taskBody?.kind === 'message' ? taskBody.escape : null;
   const hasReadyTask =
-    hostManagement?.pendingActionKeys !== undefined
-      ? hostManagement.pendingActionKeys.length > 0 || hostManagement.hasPendingDecision === true
-      : taskBody?.kind === 'ready'
-        ? taskBody.action.isLoading !== true
-        : taskBody?.kind === 'choice' &&
-          taskBody.actions.some((action) => action.isEnabled && action.isLoading !== true);
-  const moreActionsLabel =
-    hiddenActions.length === 0 && hostManagement !== null
-      ? HOST_MANAGEMENT_LABEL
-      : hasMultiplePrimaryChoices && hostManagement === null
-        ? '选择操作'
-        : '更多操作';
+    (hostManagement?.pendingActionKeys?.length ?? 0) > 0 ||
+    hostManagement?.hasPendingDecision === true;
+  const moreActionsLabel = HOST_MANAGEMENT_LABEL;
   const statusMessage = resolveStatusMessage(
     model,
     isAudioPlaying,
-    isSelecting && selectionUsesHostTask ? (taskBody ?? null) : null,
+    selectionMode,
+    taskBody ?? null,
   );
   if (
     !hasSummary &&
     statusMessage === null &&
-    configurationEntry === null &&
-    (isSelecting || mainEntries.length === 0) &&
+    (selectionMode !== undefined || configurationEntry === null) &&
+    (selectionMode !== undefined || mainEntries.length === 0) &&
     !hasManual &&
     isRoomBottomActionModelEmpty(model) &&
     selectionAction === null &&
@@ -459,7 +435,6 @@ function RoomBottomActionPanelComponent({
     <footer
       className="bottom-action-panel"
       data-kind={model.kind}
-      data-hand={showPlayerHand}
       data-testid={TESTIDS.bottomActionPanel}
     >
       {!statusInBoard && (
@@ -468,48 +443,63 @@ function RoomBottomActionPanelComponent({
           summary={summary}
           isAudioPlaying={isAudioPlaying}
           hostManagement={hostManagement}
-          isSelecting={isSelecting}
-          selectionUsesHostTask={showPlayerHand && selectionUsesHostTask}
+          selectionMode={selectionMode}
         />
       )}
       {hostHand ??
         (isManualOpen && hasManual ? (
-          <RoomActionHand label="手册">
-            <Button
-              ref={focusManualBack}
-              variant="secondary"
-              data-testid={TESTIDS.roomManualBackButton}
-              onClick={() => {
-                restoreManualFocus.current = true;
-                setIsManualOpen(false);
-              }}
-            >
-              <IconArrowBack aria-hidden />
-              返回
-            </Button>
-            {manualEntries.map((entry) => (
-              <Button
-                key={entry.label}
-                variant="secondary"
-                data-card-category="resource"
-                aria-haspopup="dialog"
-                data-testid={entry.testId}
-                onClick={entry.onOpen}
-              >
-                <IconBookOutline aria-hidden />
-                <span>{entry.label}</span>
-              </Button>
-            ))}
-          </RoomActionHand>
-        ) : showPlayerHand ? (
+          <RoomActionHand
+            label="手册"
+            cards={[
+              {
+                id: 'manual:back',
+                category: 'back',
+                content: (
+                  <RoomHandButton
+                    ref={focusManualBack}
+                    model={{
+                      label: '返回',
+                      category: 'back',
+                      variant: 'secondary',
+                      isEnabled: true,
+                      onPress: () => {
+                        restoreManualFocus.current = true;
+                        setIsManualOpen(false);
+                      },
+                      icon: <IconArrowBack aria-hidden />,
+                      testId: TESTIDS.roomManualBackButton,
+                    }}
+                  />
+                ),
+              },
+              ...manualEntries.map((entry) => ({
+                id: `manual:${entry.label}`,
+                category: 'resource' as const,
+                content: (
+                  <RoomHandButton
+                    model={{
+                      label: entry.label,
+                      category: 'resource',
+                      variant: 'secondary',
+                      isEnabled: true,
+                      onPress: entry.onOpen,
+                      icon: entry.icon ?? <IconBookOutline aria-hidden />,
+                      testId: entry.testId,
+                      ariaHasPopup: 'dialog',
+                    }}
+                  />
+                ),
+              })),
+            ]}
+          />
+        ) : (
           <PlayerHand
             model={model}
-            isAudioPlaying={isAudioPlaying}
-            configurationEntry={isSelecting ? null : configurationEntry}
+            configurationEntry={selectionMode === undefined ? configurationEntry : null}
             hasManual={hasManual}
             manualEntryRef={manualEntryRef}
             onOpenManual={() => setIsManualOpen(true)}
-            mainEntries={isSelecting ? [] : mainEntries}
+            mainEntries={selectionMode === undefined ? mainEntries : []}
             hasMoreActions={hasMoreActions}
             hostEntryRef={hostEntryRef}
             onOpenMoreActions={onOpenMoreActions}
@@ -517,46 +507,6 @@ function RoomBottomActionPanelComponent({
             moreActionsLabel={moreActionsLabel}
             selectionAction={selectionAction}
           />
-        ) : (
-          <div
-            className="bottom-action-control-row"
-            data-has-focus={focusAction !== null || configurationEntry !== null}
-          >
-            {focusAction !== null && (
-              <div className="bottom-action-focus">
-                <LayoutButton model={focusAction} hideAudioLockReason={isAudioPlaying} />
-              </div>
-            )}
-            {configurationEntry !== null && (
-              <Button
-                variant="secondary"
-                className="bottom-action-focus"
-                onClick={configurationEntry.onOpen}
-                aria-haspopup="dialog"
-              >
-                本局配置
-              </Button>
-            )}
-            {hasMoreActions && (
-              <Button
-                ref={hostEntryRef}
-                variant={focusAction === null ? 'primary' : 'secondary'}
-                className="bottom-action-more"
-                data-testid={TESTIDS.roomMoreActionsButton}
-                data-player-action-ids={hiddenActions
-                  .filter((action) => action.isEnabled)
-                  .map((action) => action.testID)
-                  .join(' ')}
-                onClick={onOpenMoreActions}
-                aria-haspopup="dialog"
-              >
-                <span className="bottom-action-more-title">{moreActionsLabel}</span>
-                {taskLabel !== null && (
-                  <span className="bottom-action-more-hint">当前待办 · {taskLabel}</span>
-                )}
-              </Button>
-            )}
-          </div>
         ))}
     </footer>
   );

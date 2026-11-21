@@ -4,14 +4,12 @@ import type { GameType } from './gameTypes';
 
 export interface BaseGameState<TGameType extends string> {
   readonly gameType: TGameType;
-  readonly stateVersion: number;
   readonly roomCode: string;
   readonly hostUserId: string;
 }
 
 export interface GameStateIdentity<TGameType extends string = GameType> {
   readonly gameType: TGameType;
-  readonly stateVersion: number;
 }
 
 export interface GameStateCodec<TState extends BaseGameState<string>> extends GameStateIdentity<
@@ -22,12 +20,11 @@ export interface GameStateCodec<TState extends BaseGameState<string>> extends Ga
 
 export interface RoomSnapshot<TState extends BaseGameState<string>> {
   readonly gameType: TState['gameType'];
-  readonly stateVersion: number;
   readonly revision: number;
   readonly state: TState;
 }
 
-function assertPositiveVersion(value: number, label: string): void {
+function assertPositiveInteger(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new Error(`${label} must be a positive safe integer`);
   }
@@ -44,11 +41,11 @@ function parseRecord(value: unknown, label: string): Record<string, unknown> {
   return value;
 }
 
-function parsePositiveVersion(value: unknown, label: string): number {
+function parsePositiveInteger(value: unknown, label: string): number {
   if (typeof value !== 'number') {
     throw new Error(`${label} must be a positive safe integer`);
   }
-  assertPositiveVersion(value, label);
+  assertPositiveInteger(value, label);
   return value;
 }
 
@@ -74,11 +71,9 @@ export function createRoomSnapshot<TState extends BaseGameState<string>>(
   state: TState,
   revision: number,
 ): RoomSnapshot<TState> {
-  assertPositiveVersion(state.stateVersion, 'stateVersion');
-  assertPositiveVersion(revision, 'revision');
+  assertPositiveInteger(revision, 'revision');
   return {
     gameType: state.gameType,
-    stateVersion: state.stateVersion,
     revision,
     state,
   };
@@ -89,18 +84,13 @@ export function parseRoomSnapshot<TState extends BaseGameState<string>>(
   codec: GameStateCodec<TState>,
 ): RoomSnapshot<TState> {
   const raw = parseRecord(value, 'RoomSnapshot');
-  assertExactKeys(raw, ['gameType', 'stateVersion', 'revision', 'state'], 'RoomSnapshot');
+  assertExactKeys(raw, ['gameType', 'revision', 'state'], 'RoomSnapshot');
   if (raw.gameType !== codec.gameType) {
     throw new Error(`Unexpected snapshot game type: ${String(raw.gameType)}`);
   }
-  const stateVersion = parsePositiveVersion(raw.stateVersion, 'stateVersion');
-  if (stateVersion !== codec.stateVersion) {
-    throw new Error(`Unsupported snapshot state version: ${stateVersion}`);
-  }
   const snapshot = {
     gameType: codec.gameType,
-    stateVersion,
-    revision: parsePositiveVersion(raw.revision, 'revision'),
+    revision: parsePositiveInteger(raw.revision, 'revision'),
     state: codec.parse(raw.state),
   };
   assertRoomSnapshotIdentity(snapshot, codec);
@@ -111,14 +101,8 @@ export function assertRoomSnapshotIdentity<TState extends BaseGameState<string>>
   snapshot: RoomSnapshot<TState>,
   expected: GameStateIdentity<TState['gameType']>,
 ): void {
-  assertPositiveVersion(snapshot.revision, 'revision');
+  assertPositiveInteger(snapshot.revision, 'revision');
   if (snapshot.gameType !== expected.gameType || snapshot.state.gameType !== expected.gameType) {
     throw new Error(`Unexpected snapshot game type: ${snapshot.gameType}`);
-  }
-  if (
-    snapshot.stateVersion !== expected.stateVersion ||
-    snapshot.state.stateVersion !== expected.stateVersion
-  ) {
-    throw new Error(`Unsupported snapshot state version: ${snapshot.stateVersion}`);
   }
 }

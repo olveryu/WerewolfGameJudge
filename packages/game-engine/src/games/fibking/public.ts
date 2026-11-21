@@ -45,7 +45,7 @@ export {
   parseFibPublicStats,
 } from './publicStats';
 export { FIB_STATE_CODEC } from './state/codec';
-export { migratePersistedFibState, parseFibState } from './state/parseState';
+export { parseFibState } from './state/parseState';
 export {
   DEFAULT_FIB_CONFIG,
   FIB_CONFIG_SCHEMA,
@@ -92,4 +92,3 @@ export {
   isValidFibWord,
   type PendingFibRound,
 } from './state/types';
-export { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';

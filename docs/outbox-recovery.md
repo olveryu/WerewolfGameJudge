@@ -37,7 +37,7 @@ Settlement continues to use its original deterministic reward seed, participant 
 
 ## Retention and Operations
 
-- The room storage schema includes the effect replay audit table alongside room state, receipts, and outbox rows.
+- DO schema version 2 adds the audit table without replacing room state, receipts, or outbox rows.
 - `requested_by` is `admin-token`, the shared authenticated principal. The reason identifies the operator or incident by convention; it is not independently authenticated personal identity.
 - Audits live in the room DO and are deleted with explicitly deleted/expired room storage. Export required incident records before room expiry. This is not a permanent cross-room audit service.
 - Fix the failing dependency before replay. Do not edit payloads, mint replacement effect IDs, or manually credit balances to work around the ledger.

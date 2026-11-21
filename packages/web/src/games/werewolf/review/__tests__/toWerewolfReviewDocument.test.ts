@@ -369,7 +369,6 @@ describe('toWerewolfReviewDocument', () => {
         kicker: '🌙 第一夜 · 夜报',
         fileStem: 'werewolf-1234-3',
         footer: FOOTER,
-        isAborted: false,
       });
       expect(document.pages.map((page) => ({ key: page.key, label: page.label }))).toEqual([
         { key: 'night-1', label: null },
@@ -999,6 +998,7 @@ describe('toWerewolfReviewDocument', () => {
             [4, makeReviewPlayer(4, 'villager')],
           ]),
           currentNightResults: { wolfVotesBySeat: { '0': 4 } },
+          resolvedWolfKillTarget: 4,
         }),
       );
       expect(nightSentences(canShoot)).toContain('3号猎人可以发动。');
@@ -1014,6 +1014,7 @@ describe('toWerewolfReviewDocument', () => {
             [4, makeReviewPlayer(4, 'villager')],
           ]),
           currentNightResults: { wolfVotesBySeat: { '0': 4 }, poisonedSeat: 2 },
+          resolvedWolfKillTarget: 4,
         }),
       );
       expect(nightSentences(cannotShoot)).toContain('3号猎人不能发动。');

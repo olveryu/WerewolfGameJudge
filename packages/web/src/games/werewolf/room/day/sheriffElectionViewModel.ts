@@ -111,6 +111,10 @@ export const SHERIFF_ELECTION_PHASE_CONTENT: Record<
     title: '平票投票',
     description: '除平票候选人外，其他在座玩家均可投票',
   },
+  result: {
+    title: '竞选结果',
+    description: '结果公布中',
+  },
   completed: {
     title: '竞选结束',
     description: '报名、退水与每轮投票结果均已公开并保留',
@@ -166,6 +170,7 @@ function getAdvanceLabel(election: SheriffElectionState): string | null {
       // Voting phases close on settle-countdown expiry; there is
       // no Host advance to label.
       return null;
+    case 'result':
     case 'completed':
       return null;
   }
@@ -307,9 +312,11 @@ export function createSheriffElectionViewModel(
     phase: election.phase,
     phaseTitle: phaseContent.title,
     phaseDescription:
-      input.isHost && phaseContent.hostDescription !== undefined
-        ? phaseContent.hostDescription
-        : phaseContent.description,
+      election.phase === 'result' && election.next.kind === 'runoff'
+        ? '首轮平票，接下来进行平票发言'
+        : input.isHost && phaseContent.hostDescription !== undefined
+          ? phaseContent.hostDescription
+          : phaseContent.description,
     candidateRecords,
     speakingInstruction,
     voteProgress: getSheriffVoteProgress(election),
@@ -324,7 +331,12 @@ export function createSheriffElectionViewModel(
     completedRounds: election.completedRounds.map((round) =>
       createCompletedRoundViewModel(input.gameState, round),
     ),
-    finalResult: getFinalResult(input.gameState, input.gameState.sheriffElectionResult),
+    finalResult: getFinalResult(
+      input.gameState,
+      election.phase === 'result' && election.next.kind === 'final'
+        ? election.next.result
+        : input.gameState.sheriffElectionResult,
+    ),
     canRegister:
       election.phase === 'registration' &&
       input.effectiveSeat !== null &&
@@ -338,6 +350,7 @@ export function createSheriffElectionViewModel(
     canAdvance:
       input.isHost &&
       election.phase !== 'completed' &&
+      election.phase !== 'result' &&
       election.phase !== 'firstVote' &&
       election.phase !== 'runoffVote',
     advanceLabel: getAdvanceLabel(election),

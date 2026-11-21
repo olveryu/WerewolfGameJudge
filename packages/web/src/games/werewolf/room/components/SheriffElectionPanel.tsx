@@ -25,7 +25,6 @@ import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
 
 import {
   SheriffElectionCompletedRound,
-  SheriffElectionPhaseHeader,
   SheriffElectionRecords,
   SheriffElectionResultBanner,
   SheriffElectionVoteProgressRow,
@@ -89,10 +88,6 @@ export function SheriffElectionPanel({ model }: { readonly model: SheriffElectio
   // decision (rows, order, winner) is made once in the projection. Ballot interaction still reads
   // the view model.
   const presentation = createSheriffElectionPresentationFromView(view);
-  const phaseRow = presentation.rows.find((row) => row.kind === 'phase');
-  if (phaseRow === undefined) {
-    throw new Error('[FAIL-FAST] Sheriff election presentation has no phase row');
-  }
   const resultRow = presentation.rows.find((row) => row.kind === 'result');
   const registrationRow = presentation.rows.find((row) => row.kind === 'registration');
   const candidatesRow = presentation.rows.find((row) => row.kind === 'candidates') ?? null;
@@ -108,11 +103,9 @@ export function SheriffElectionPanel({ model }: { readonly model: SheriffElectio
 
   return (
     <div className="sheriff-panel" data-testid={TESTIDS.sheriffElectionPanel}>
-      <SheriffElectionPhaseHeader
-        phaseTitle={phaseRow.title}
-        phaseDescription={phaseRow.description}
-      />
-
+      {registrationRow === undefined && resultRow === undefined && roundRows.length === 0 && (
+        <p className="sheriff-record-empty">报名结束后显示公开竞选记录。</p>
+      )}
       {resultRow !== undefined && <SheriffElectionResultBanner row={resultRow} />}
 
       {registrationRow !== undefined && (

@@ -16,7 +16,6 @@ import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeSecrethitlerState } from './normalize';
 import {
   isValidSecrethitlerConfig,
-  SECRETHITLER_DEFAULT_VOTE_MODE,
   SECRETHITLER_GAME_TYPE,
   SECRETHITLER_PHASES,
   SECRETHITLER_VOTE_MODES,
@@ -27,7 +26,6 @@ import {
   type SecrethitlerState,
   type SecrethitlerVote,
 } from './types';
-import { SECRETHITLER_STATE_VERSION } from './version';
 
 /** Parses only the supported lobby settings. */
 export function parseSecrethitlerConfig(
@@ -172,6 +170,39 @@ function history(value: unknown, path: string): SecrethitlerState['history'] {
   return finishObject(raw, { governments, policies: policiesHistory, actions }, path);
 }
 
+function lastPublicResult(value: unknown, path: string): SecrethitlerState['lastPublicResult'] {
+  if (value === null) return null;
+  const raw = parseObject(value, path);
+  const kind = parseChoice(raw.kind, `${path}.kind`, ['government', 'policy', 'veto', 'action']);
+  if (kind === 'government' || kind === 'veto') {
+    return finishObject(
+      raw,
+      { kind, approved: parseBoolean(raw.approved, `${path}.approved`) },
+      path,
+    );
+  }
+  if (kind === 'policy') {
+    return finishObject(
+      raw,
+      {
+        kind,
+        policy: parseChoice(raw.policy, `${path}.policy`, FACTIONS),
+        source: parseChoice(raw.source, `${path}.source`, ['government', 'chaos']),
+      },
+      path,
+    );
+  }
+  return finishObject(
+    raw,
+    {
+      kind,
+      action: parseChoice(raw.action, `${path}.action`, POWERS),
+      targetSeat: nullableSeat(raw.targetSeat, `${path}.targetSeat`),
+    },
+    path,
+  );
+}
+
 function phase(value: unknown, path: string): SecrethitlerPhase {
   const raw = parseObject(value, path);
   const kind = parseChoice(raw.kind, `${path}.kind`, SECRETHITLER_PHASES);
@@ -197,6 +228,10 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
           kind: 'election' as const,
           presidentSeat: parseSeat(raw.presidentSeat, `${path}.presidentSeat`),
           returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
+          preselectedChancellorSeat: nullableSeat(
+            raw.preselectedChancellorSeat,
+            `${path}.preselectedChancellorSeat`,
+          ),
         },
         path,
       );
@@ -209,6 +244,8 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
           chancellorSeat: parseSeat(raw.chancellorSeat, `${path}.chancellorSeat`),
           returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
           votes: voteMap(raw.votes, `${path}.votes`),
+          deadlineAt:
+            raw.deadlineAt === null ? null : parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
         },
         path,
       );
@@ -250,6 +287,47 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
         },
         path,
       );
+    case 'publicResult': {
+      const previous = phase(raw.previous, `${path}.previous`);
+      if (
+        previous.kind !== 'voting' &&
+        previous.kind !== 'legislativeChancellor' &&
+        previous.kind !== 'vetoResponse'
+      )
+        failDecode(`${path}.previous`, 'a result-producing phase');
+      return finishObject(
+        raw,
+        {
+          kind: 'publicResult' as const,
+          previous,
+          policy: raw.policy === null ? null : parseChoice(raw.policy, `${path}.policy`, FACTIONS),
+          vetoApproved:
+            raw.vetoApproved === null
+              ? null
+              : parseBoolean(raw.vetoApproved, `${path}.vetoApproved`),
+          chaosPolicy:
+            raw.chaosPolicy === null
+              ? null
+              : parseChoice(raw.chaosPolicy, `${path}.chaosPolicy`, FACTIONS),
+          chaosPolicyDeck:
+            raw.chaosPolicyDeck === null
+              ? null
+              : policies(raw.chaosPolicyDeck, `${path}.chaosPolicyDeck`),
+          deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
+        },
+        path,
+      );
+    }
+    case 'investigationResult':
+      return finishObject(
+        raw,
+        {
+          kind: 'investigationResult' as const,
+          presidentSeat: parseSeat(raw.presidentSeat, `${path}.presidentSeat`),
+          returnToSeat: nullableSeat(raw.returnToSeat, `${path}.returnToSeat`),
+        },
+        path,
+      );
     case 'ended':
       return finishObject(
         raw,
@@ -272,9 +350,6 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [SECRETHITLER_GAME_TYPE]),
-        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
-          SECRETHITLER_STATE_VERSION,
-        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -284,6 +359,11 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
         identities: identities(raw.identities, `${path}.identities`),
         roleViewedSeats: parseArray(raw.roleViewedSeats, `${path}.roleViewedSeats`, parseSeat),
         gameSequence: parseInteger(raw.gameSequence, `${path}.gameSequence`),
+        reviewCompletedUserIds: parseArray(
+          raw.reviewCompletedUserIds,
+          `${path}.reviewCompletedUserIds`,
+          parseNonEmptyString,
+        ),
         xpSettled: parseBoolean(raw.xpSettled, `${path}.xpSettled`),
         pendingAudioEffects: audioEffects(raw.pendingAudioEffects, `${path}.pendingAudioEffects`),
         isAudioPlaying: parseBoolean(raw.isAudioPlaying, `${path}.isAudioPlaying`),
@@ -331,59 +411,9 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
                 );
               })(),
         history: history(raw.history, `${path}.history`),
+        lastPublicResult: lastPublicResult(raw.lastPublicResult, `${path}.lastPublicResult`),
       },
       path,
     ),
   );
-}
-
-/** Upgrades legacy vote-mode and narration data into the current strict state. */
-export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
-  const raw = parseObject(value, 'SecrethitlerState');
-  if (raw.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(raw);
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2) return parseSecrethitlerState(raw);
-  const rawConfig = parseObject(raw.config, 'SecrethitlerState.config');
-  const upgraded = {
-    ...raw,
-    stateVersion: SECRETHITLER_STATE_VERSION,
-    config: {
-      ...rawConfig,
-      voteMode:
-        rawConfig.voteMode === undefined ? SECRETHITLER_DEFAULT_VOTE_MODE : rawConfig.voteMode,
-    },
-  };
-  if (raw.stateVersion === 2) return parseSecrethitlerState(upgraded);
-  const previousPhase = phase(raw.phase, 'SecrethitlerState.phase');
-  if (previousPhase.kind !== 'night' || previousPhase.step === 1)
-    return parseSecrethitlerState(upgraded);
-  if (![0, 2, 3].includes(previousPhase.step) || previousPhase.confirmedSeats.length !== 0)
-    failDecode('SecrethitlerState.phase', 'a valid v1 night step');
-  const pending = audioEffects(raw.pendingAudioEffects, 'SecrethitlerState.pendingAudioEffects');
-  const wasAudioPlaying = parseBoolean(raw.isAudioPlaying, 'SecrethitlerState.isAudioPlaying');
-  const appendAudioKey =
-    previousPhase.step === 0
-      ? parseSecrethitlerConfig(upgraded.config).numberOfPlayers <= 6
-        ? 'evil_reveal_5_6'
-        : 'fascist_reveal_7_10'
-      : previousPhase.step === 2
-        ? 'night_end'
-        : null;
-  return parseSecrethitlerState({
-    ...upgraded,
-    phase:
-      previousPhase.step === 0
-        ? { kind: 'night', step: 1, confirmedSeats: [] }
-        : {
-            kind: 'election',
-            presidentSeat: parseSeat(raw.nextPresidentSeat, 'SecrethitlerState.nextPresidentSeat'),
-            returnToSeat: null,
-          },
-    phaseRevision: parseInteger(raw.phaseRevision, 'SecrethitlerState.phaseRevision') + 1,
-    pendingAudioEffects:
-      appendAudioKey === null ? pending : [...pending, { audioKey: appendAudioKey }],
-    isAudioPlaying: appendAudioKey === null ? wasAudioPlaying : true,
-    audioBatchId:
-      parseAudioBatchId(raw.audioBatchId, 'SecrethitlerState.audioBatchId') +
-      (appendAudioKey === null ? 0 : 1),
-  });
 }

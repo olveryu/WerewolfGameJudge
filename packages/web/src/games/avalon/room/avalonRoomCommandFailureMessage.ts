@@ -16,7 +16,7 @@ import {
 /** 把房间命令的失败原因翻译成用户可读的中文。 */
 export const getAvalonRoomCommandFailureMessage = createRoomCommandFailureMessage<AvalonState>(
   {
-    [AVALON_REASONS.config]: '配置无效，请检查人数（5 至 10 人）、投票模式与否决上限设置',
+    [AVALON_REASONS.config]: '配置无效，请检查人数（5 至 10 人）、投票模式与最多组队次数设置',
     [AVALON_REASONS.phase]: ROOM_COMMAND_FAILURE_WRONG_PHASE,
     [AVALON_REASONS.notHostStart]: '只有房主可以开始游戏',
     [AVALON_REASONS.notHostBegin]: '只有房主可以开始游戏',

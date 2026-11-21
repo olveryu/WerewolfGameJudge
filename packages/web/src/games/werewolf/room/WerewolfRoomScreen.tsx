@@ -8,6 +8,8 @@
  */
 import './WerewolfRoomScreen.css';
 
+import { Dialog } from '@ark-ui/react/dialog';
+import { Portal } from '@ark-ui/react/portal';
 import {
   findClosestPresetName,
   type GameState,
@@ -40,6 +42,10 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
+import IconBulbOutline from '~icons/ion/bulb-outline';
+import IconCreateOutline from '~icons/ion/create-outline';
+import IconDocumentTextOutline from '~icons/ion/document-text-outline';
+import IconEyeOutline from '~icons/ion/eye-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
@@ -47,12 +53,11 @@ import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
-import {
-  SheriffElectionInspector,
-  SheriffElectionSheet,
-} from './components/SheriffElectionDetailsSurfaces';
+import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
+import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
+import { getSheriffWaitingMessage } from './day/sheriffElectionDockModel';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
 import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 
@@ -125,7 +130,6 @@ function WerewolfRoomContent(
     audioResume,
     night,
     sheriffElectionPanel,
-    isSheriffInspectorVisible,
     isSheriffDetailsVisible,
     openSheriffDetails,
     closeSheriffDetails,
@@ -167,8 +171,7 @@ function WerewolfRoomContent(
   return (
     <RoomShell
       model={shellModel}
-      showPlayerHand
-      hideActionHand={shellModel.isAudioPlaying}
+      actionHandVisibility={shellModel.isAudioPlaying ? 'hidden' : 'visible'}
       phaseLabel={
         isSetup
           ? '待开局'
@@ -183,21 +186,35 @@ function WerewolfRoomContent(
                   : '本局结束'
       }
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
-      isSelecting={night.seatSelection !== null || night.isActionGroupOpen}
+      selectionMode={night.seatSelection !== null || night.isActionGroupOpen ? 'player' : undefined}
       mainEntries={
         isSetup
           ? [
-              { label: nominationLabel, onOpen: () => setNominationEditorTitle(nominationLabel) },
+              {
+                label: nominationLabel,
+                icon: <IconCreateOutline aria-hidden />,
+                onOpen: () => setNominationEditorTitle(nominationLabel),
+              },
               ...(nominationCount === 0
                 ? []
                 : [
                     {
                       label: `查看建议 (${nominationCount})`,
+                      icon: <IconEyeOutline aria-hidden />,
                       onOpen: () => setIsNominationListOpen(true),
                     },
                   ]),
             ]
-          : []
+          : sheriffElectionPanel !== null
+            ? [
+                {
+                  label: '警长详情',
+                  testId: TESTIDS.sheriffDetailsButton,
+                  icon: <IconDocumentTextOutline aria-hidden />,
+                  onOpen: openSheriffDetails,
+                },
+              ]
+            : []
       }
       manualEntries={[
         {
@@ -207,8 +224,23 @@ function WerewolfRoomContent(
         },
         ...(matchedStrategyName === null
           ? []
-          : [{ label: '攻略', onOpen: () => setStrategyBoardName(matchedStrategyName) }]),
-        ...(canOpenNotepad ? [{ label: '笔记', onOpen: () => setIsNotepadOpen(true) }] : []),
+          : [
+              {
+                label: '攻略',
+                icon: <IconBulbOutline aria-hidden />,
+                onOpen: () => setStrategyBoardName(matchedStrategyName),
+              },
+            ]),
+        ...(canOpenNotepad
+          ? [
+              {
+                label: '笔记',
+                icon: <IconDocumentTextOutline aria-hidden />,
+                testId: TESTIDS.werewolfNotepadButton,
+                onOpen: () => setIsNotepadOpen(true),
+              },
+            ]
+          : []),
       ]}
       configurationEntry={
         useConfigurationDialog && night.seatSelection === null
@@ -217,6 +249,13 @@ function WerewolfRoomContent(
       }
       content={{
         kind: 'seats',
+        summaryPresentation:
+          status === GameStatus.Day
+            ? 'status'
+            : sheriffElectionPanel !== null &&
+                shellModel.bottomActions.message === getSheriffWaitingMessage(sheriffElectionPanel)
+              ? 'replaces-message'
+              : undefined,
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue
@@ -232,7 +271,8 @@ function WerewolfRoomContent(
           sheriffElectionPanel === null ? null : (
             <SheriffElectionHud
               model={sheriffElectionPanel}
-              onOpenDetails={isSheriffInspectorVisible ? null : openSheriffDetails}
+              isHost={isHost}
+              isDay={status === GameStatus.Day}
             />
           ),
         beforeSeatBoard: (
@@ -249,10 +289,7 @@ function WerewolfRoomContent(
           </>
         ),
         afterSeatBoard: null,
-        sideInspector:
-          sheriffElectionPanel === null ? null : (
-            <SheriffElectionInspector model={sheriffElectionPanel} />
-          ),
+        sideInspector: null,
       }}
       leadingExtraActions={
         isHost &&
@@ -280,11 +317,9 @@ function WerewolfRoomContent(
               onClose={closeMvpSelection}
             />
           )}
-          {sheriffElectionPanel !== null &&
-            !isSheriffInspectorVisible &&
-            isSheriffDetailsVisible && (
-              <SheriffElectionSheet model={sheriffElectionPanel} onClose={closeSheriffDetails} />
-            )}
+          {sheriffElectionPanel !== null && isSheriffDetailsVisible && (
+            <SheriffElectionDialog model={sheriffElectionPanel} onClose={closeSheriffDetails} />
+          )}
 
           <RoomAudioResumeDialog
             visible={audioResume.isDue}
@@ -299,6 +334,7 @@ function WerewolfRoomContent(
               shouldPlayAnimation={roleCard.viewing.shouldPlayAnimation}
               allRoleIds={state.templateRoles}
               remainingCards={roleCard.viewing.remainingCards}
+              confirmDisabled={roleCard.viewing.isConfirmationDisabled}
               onClose={roleCard.viewing.close}
               seerLabelMap={state.seerLabelMap}
             />
@@ -309,6 +345,7 @@ function WerewolfRoomContent(
               title="本局配置"
               subtitle={`狼人杀（${seatCount}人）`}
               onClose={() => setIsConfigurationOpen(false)}
+              dismissOnEscape
               footer={null}
             >
               <BoardInfoContent
@@ -373,7 +410,7 @@ function WerewolfRoomContent(
             <RoomDialog
               title="狼人杀玩法"
               onClose={() => setIsGuideOpen(false)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <WerewolfEncyclopedia gameState={state} isHost={isHost} hasRoomContext />
@@ -389,11 +426,38 @@ function WerewolfRoomContent(
             <RoomDialog
               title={`${strategyBoardName} · 攻略`}
               onClose={() => setStrategyBoardName(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <BoardStrategyContent boardName={strategyBoardName} />
             </RoomDialog>
+          )}
+          {state.sheriffElection?.phase === 'result' && sheriffElectionPanel !== null && (
+            <Dialog.Root
+              open
+              onEscapeKeyDown={(event) => event.preventDefault()}
+              onInteractOutside={(event) => event.preventDefault()}
+            >
+              <Portal>
+                <Dialog.Backdrop className="center-dialog-backdrop" />
+                <Dialog.Positioner className="center-dialog-positioner">
+                  <Dialog.Content
+                    className="center-dialog"
+                    aria-describedby={undefined}
+                    data-testid={TESTIDS.sheriffResultDialog}
+                  >
+                    <Dialog.Title>警长竞选结果</Dialog.Title>
+                    <p>{sheriffElectionPanel.view.phaseDescription}</p>
+                    <SheriffElectionPanel model={sheriffElectionPanel} />
+                    <p>
+                      {remainingSeconds === null || remainingSeconds === 0
+                        ? '等待进入下一阶段…'
+                        : `${remainingSeconds} 秒后继续`}
+                    </p>
+                  </Dialog.Content>
+                </Dialog.Positioner>
+              </Portal>
+            </Dialog.Root>
           )}
         </>
       }

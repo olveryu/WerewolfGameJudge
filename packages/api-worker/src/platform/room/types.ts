@@ -99,7 +99,6 @@ export interface StoredRoomRow {
   readonly hostUserId: string;
   readonly creationId: string;
   readonly initializationJson: string;
-  readonly stateVersion: number;
   readonly state: BaseGameState<GameType>;
   readonly stateJson: string;
   readonly revision: number;

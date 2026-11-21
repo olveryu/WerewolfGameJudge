@@ -63,10 +63,10 @@ function SeatMarkers({ seat, indicators }: { seat: number; indicators: RoomSeatI
 }
 
 function SeatProgress({ seat, indicators }: { seat: number; indicators: RoomSeatIndicators }) {
-  if (indicators.selection === null && indicators.progressLabel === null) return null;
+  if (indicators.selection?.label == null && indicators.progressLabel === null) return null;
   return (
     <div className="seat-progress" data-testid={TESTIDS.seatProgress(seat)}>
-      {indicators.selection !== null && (
+      {indicators.selection?.label != null && (
         <span className="seat-selection-label">{indicators.selection.label}</span>
       )}
       {indicators.progressLabel !== null && (
