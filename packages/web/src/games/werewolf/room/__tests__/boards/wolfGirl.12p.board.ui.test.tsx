@@ -57,7 +57,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 

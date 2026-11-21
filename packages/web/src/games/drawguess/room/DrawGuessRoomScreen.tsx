@@ -122,7 +122,6 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
   return (
     <RoomShell
       model={screen.shellModel}
-      showPlayerHand
       phaseLabel={isLobby ? '待开局' : null}
       lobbyAction={
         isLobby
@@ -186,7 +185,7 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
             <RoomDialog
               title="你画我猜玩法"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <DrawGuessRules embedded />
@@ -196,7 +195,7 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <p>{`你画我猜（${config.numberOfPlayers}人）`}</p>

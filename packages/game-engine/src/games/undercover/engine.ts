@@ -15,17 +15,16 @@ import { decideUndercoverRound } from './domain/round';
 import { decideUndercoverRoom } from './domain/seating';
 import { normalizeUndercoverState } from './state/normalize';
 import { type UndercoverConfig, type UndercoverState } from './state/types';
-import { UNDERCOVER_STATE_VERSION } from './state/version';
 
 function createInitialState(config: UndercoverConfig, context: CreateGameContext): UndercoverState {
   return normalizeUndercoverState({
     gameType: UNDERCOVER_GAME_TYPE,
-    stateVersion: UNDERCOVER_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     config: { ...config },
     roster: {},
     usedWordPairIds: [],
+    reviewCompletedUserIds: [],
     phase: 'lobby',
     round: null,
   });
@@ -55,7 +54,6 @@ function getLifecycle(state: UndercoverState): CommonGameLifecycle {
     case 'lobby':
       return 'setup';
     case 'ended':
-    case 'aborted':
       return 'ended';
     case 'preparing':
     case 'preparationFailed':
@@ -67,7 +65,6 @@ function getLifecycle(state: UndercoverState): CommonGameLifecycle {
 
 export const undercoverEngine = {
   gameType: UNDERCOVER_GAME_TYPE,
-  stateVersion: UNDERCOVER_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

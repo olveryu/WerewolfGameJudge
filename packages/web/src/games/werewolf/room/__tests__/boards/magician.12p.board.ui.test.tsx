@@ -33,12 +33,12 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
-  seatSelectionSubmitButton,
   startSeatSelection,
   tapSeat,
   witchStep,
   wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
@@ -67,7 +67,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('actionPrompt coverage', () => {
     it('seer action: shows action prompt', async () => {
       await mount(SEER_STEP);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -81,19 +81,19 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('confirmTrigger coverage', () => {
     it('darkWolfKing confirm: shows confirm trigger', async () => {
       await mount(actorStep('darkWolfKingConfirm', 'darkWolfKing', 7));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
 
     it('hunter confirm: shows confirm trigger', async () => {
       await mount(confirmStep('hunterConfirm', 'hunter', 10, { role: 'hunter', canShoot: true }));
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
   describe('witchSavePrompt coverage', () => {
     it('witch action: shows save prompt', async () => {
       await mount(witchStep(9, 1));
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
     });
   });
 
@@ -108,21 +108,35 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
     it('magician swap: one target is drafted but cannot be submitted', async () => {
       const view = await mount(MAGICIAN_STEP);
       await startSeatSelection(view);
+      expect(view.queryByText('可选')).not.toBeInTheDocument();
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'data-highlight',
+        'none',
+      );
       await tapSeat(view, 1);
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(view.queryByTestId(TESTIDS.seatProgress(1))).not.toBeInTheDocument();
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
+      expect(harness.hasSeen('actionConfirm')).toBe(false);
     });
   });
 
   describe('seat selection coverage', () => {
     // Both taps run in one render: the first pick lives in the screen's interaction state.
-    it('magician swap: two picks enable submission', async () => {
+    it('magician swap: two picks open confirmation', async () => {
       const view = await mount(MAGICIAN_STEP);
       await startSeatSelection(view);
       await tapSeat(view, 1);
       await tapSeat(view, 2);
       expect(view.getByText('已选 2 / 2 人')).toBeInTheDocument();
-      expect(seatSelectionSubmitButton(view)).toBeEnabled();
+      expect(harness.hasSeen('actionConfirm')).toBe(true);
     });
   });
 
@@ -138,7 +152,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
   describe('witchNoKill coverage', () => {
     it('witch: shows witchNoKill when killedSeat=-1', async () => {
       await mount(witchStep(9, -1));
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
     });
   });
 
@@ -196,7 +210,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 9);
 
       // Step 5: witch poison selection
-      await coverageChainWitchPoisonSelection(9);
+      await coverageChainWitchPoisonSelection(harness, 9);
 
       // Step 6: magicianSwap → draft two targets → submit
       const { submitAction: magicianSubmit } = await coverageChainMagicianSwap(11, 1, 2);

@@ -22,24 +22,28 @@ export interface AvalonAlertDialogButton {
   readonly disabled?: boolean;
 }
 
-/** An open confirmation; Escape and the backdrop report `onClose`. */
+/** An open dialog; required confirmations cannot be dismissed implicitly. */
 export function AvalonAlertDialog({
   title,
   message,
   buttons,
   onClose,
+  requireConfirmation = false,
 }: {
   readonly title: string;
   readonly message: string;
   readonly buttons: readonly AvalonAlertDialogButton[];
   readonly onClose: () => void;
+  readonly requireConfirmation?: boolean;
 }) {
   return (
     <Dialog.Root
       open
       role="alertdialog"
+      closeOnEscape={!requireConfirmation}
+      closeOnInteractOutside={!requireConfirmation}
       onOpenChange={(details) => {
-        if (!details.open) onClose();
+        if (!details.open && !requireConfirmation) onClose();
       }}
       lazyMount
       unmountOnExit

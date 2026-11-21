@@ -8,7 +8,6 @@
 import './review.css';
 
 import type { RoomReviewDocument } from '../types';
-import { ReviewTag } from './ReviewAtoms';
 import { ReviewBlockView } from './ReviewBlockView';
 
 export type ReviewDocumentViewProps = {
@@ -35,10 +34,7 @@ export function ReviewDocumentView(props: ReviewDocumentViewProps) {
       <div className="review-chrome">
         <div className="review-accent-bar" />
         <div className="review-masthead">
-          <div className="review-masthead-lead">
-            <p className="review-kicker">{document.kicker}</p>
-            {document.isAborted && <ReviewTag text="未完成" tone="out" />}
-          </div>
+          <p className="review-kicker">{document.kicker}</p>
           {props.mode === 'export' && <p className="review-masthead-title">{props.shareTitle}</p>}
         </div>
         {isExport && page.label !== null && (

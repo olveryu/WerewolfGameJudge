@@ -313,6 +313,8 @@ pnpm exec wrangler rollback <VERSION_ID> --config wrangler.toml
 
 D1 migrations are not reverted by a Worker rollback. Database rollback requires a separately reviewed forward migration that preserves compatibility with the selected Worker version.
 
+Game-room state has no per-game version or compatibility migration. Invalid persisted game state fails parsing; Durable Object storage-schema mismatches discard the room. A Worker rollback does not restore discarded room state.
+
 ## Troubleshooting
 
 ### npm publish reports `ENEEDAUTH`

@@ -135,7 +135,19 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
   const hint = night.actorHint;
 
   if (hint?.bottomAction === 'skipOnly') {
-    return { kind: 'skipOnly', prompt, skipLabel: SKIP_CONFIRM_LABEL };
+    const lockedAction =
+      schema.kind === 'compound'
+        ? undefined
+        : resolveNightInteraction({
+            ...input,
+            viewModel: { ...viewModel, night: { ...night, actorHint: null } },
+          });
+    return {
+      kind: 'skipOnly',
+      prompt,
+      skipLabel: SKIP_CONFIRM_LABEL,
+      ...(lockedAction === undefined ? {} : { lockedAction }),
+    };
   }
 
   switch (schema.kind) {
@@ -231,6 +243,8 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
         kind: 'witch',
         killedSeat: witchContext.killedSeat >= 0 ? witchContext.killedSeat : null,
         canSave: witchContext.killedSeat >= 0 && witchContext.canSave,
+        saveUnavailableReason:
+          witchContext.killedSeat === mySeat && !witchContext.canSave ? '当前无法自救' : null,
         canPoison: witchContext.canPoison,
         selectable: selectableSeats(viewModel),
         prompt: renderWitchPrompt(schema, witchContext),
@@ -288,7 +302,7 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
               prompt,
               dialog: { title: dialogTitle, text: statusUi.unavailableText },
               buttonLabel,
-              skipLabel: null,
+              skipLabel: statusUi.skipButtonText,
               isUnavailable: true,
             };
           }
@@ -506,6 +520,7 @@ export function renderActionerMessage(
 ): string | null {
   const hint = viewModel.night.actorHint;
   if (hint?.bottomAction === 'skipOnly' || hint?.bottomAction === 'wolfEmptyOnly') {
+    if (model.kind === 'skipOnly') return model.prompt.text;
     if (model.kind === 'wolfVote' && model.countdownText !== null) {
       return renderNightMessage([hint.message, model.statusLine]);
     }
@@ -530,11 +545,14 @@ export function renderActionerMessage(
     case 'witch': {
       const schema = requireActionSchema(viewModel, model.kind);
       const prompt = requireSchemaText(schema, 'prompt', schema.ui?.prompt);
-      if (model.killedSeat === null || model.killedSeat !== viewModel.mySeat) return prompt;
+      if (model.killedSeat === null)
+        return renderNightMessage([model.prompt.title, model.prompt.text]);
+      if (model.killedSeat !== viewModel.mySeat)
+        return renderNightMessage([model.prompt.text, prompt]);
       const selfSaveMessage = model.canSave
         ? '你被狼人袭击，可以使用解药自救。'
         : '你被狼人袭击，本局规则不允许自救。';
-      return renderNightMessage([selfSaveMessage, prompt]);
+      return renderNightMessage([selfSaveMessage, model.prompt.text, prompt]);
     }
     case 'pickSeat':
     case 'pickTwoSeats':
@@ -543,10 +561,7 @@ export function renderActionerMessage(
     case 'chooseCard':
     case 'skipOnly':
     case 'ackGroupReveal': {
-      // The bottom line is the step's plain prompt; dialogs carry the
-      // personalized text (witch info, group reveal, hint overrides).
-      const schema = requireActionSchema(viewModel, model.kind);
-      return requireSchemaText(schema, 'prompt', schema.ui?.prompt);
+      return model.prompt.text;
     }
   }
 }

@@ -152,7 +152,13 @@ async function armedWordSelectRoom(stub: DurableObjectStub<GameRoom>): Promise<D
     });
   }
   await send(stub, HOST, { type: 'drawguess.game.begin' });
-  await sendInternal(stub, { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
+  const started = await readState(stub);
+  await sendInternal(stub, {
+    type: 'drawguess.words.dealt',
+    gameSequence: started.gameSequence,
+    turnIndex: 0,
+    choices: CHOICES,
+  });
   const state = await readState(stub);
   if (state.phase.kind !== 'wordSelect' || state.phase.deadlineAt === null) {
     throw new Error('Expected an armed wordSelect deadline');

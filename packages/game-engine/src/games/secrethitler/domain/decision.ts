@@ -25,6 +25,7 @@ export const SECRETHITLER_REASONS = {
   notHostStart: 'secrethitler_not_host_start',
   notHostBegin: 'secrethitler_not_host_begin',
   notHostAbort: 'secrethitler_not_host_abort',
+  notHostRetrySettle: 'secrethitler_not_host_retry_settle',
   notHostMarkBots: 'secrethitler_not_host_mark_bots',
   noBotSeats: 'secrethitler_no_bot_seats',
   notAllViewed: 'secrethitler_not_all_viewed',
@@ -39,7 +40,9 @@ export const SECRETHITLER_REASONS = {
   notPresident: 'secrethitler_not_current_president',
   notLiving: 'secrethitler_not_living_player',
   nomination: 'secrethitler_chancellor_ineligible',
+  preselection: 'secrethitler_preselection_invalid',
   notEligibleVote: 'secrethitler_voter_ineligible',
+  deadline: 'secrethitler_deadline_invalid',
   handChoice: 'secrethitler_policy_choice_invalid',
   veto: 'secrethitler_veto_unavailable',
   power: 'secrethitler_power_unavailable',
@@ -64,6 +67,7 @@ export type SecrethitlerEvent =
       readonly patch: Partial<SecrethitlerGameplayPatch>;
     }
   | { readonly type: 'secrethitler.role.viewed'; readonly seat: number }
+  | { readonly type: 'secrethitler.review.completed'; readonly userId: string }
   | {
       readonly type: 'secrethitler.audio.queued';
       readonly effects: readonly AudioEffect[];
@@ -83,11 +87,20 @@ export type SecrethitlerEvent =
  * （引擎测试、Worker schemas）一律按 `type` 窄化后读 payload，
  * 不许直取某个成员的字段——加第二个成员时它们不需要改。
  */
-export type SecrethitlerEffect = {
-  /** Terminal completion: one v2 fact per eligible human in frozen seat order. */
-  readonly type: 'secrethitler.game.completed';
-  readonly payload: SecrethitlerCompletionPayload | GameCompletionPayload;
-};
+export type SecrethitlerEffect =
+  | {
+      readonly type: 'secrethitler.game.completed';
+      readonly payload: SecrethitlerCompletionPayload | GameCompletionPayload;
+    }
+  | {
+      readonly type: 'secrethitler.settle.due';
+      readonly payload: {
+        readonly gameSequence: number;
+        readonly phase: 'voting' | 'resultVoting' | 'resultPolicy' | 'resultVeto';
+        readonly round: number;
+        readonly deadlineAt: number;
+      };
+    };
 
 export type SecrethitlerDecision = Decision<SecrethitlerEvent, SecrethitlerEffect>;
 

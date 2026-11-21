@@ -400,9 +400,7 @@ describe('Pictionary persistence round-trip', () => {
     expect(room.peek().phase).toBe('ended');
 
     // Back to the lobby; a final reject observes no phantom change.
-    expect(
-      room.dispatch({ type: 'pictionary.game.returnToLobby' }, room.user(HOST, 270_000)),
-    ).toBeNull();
+    expect(room.dispatch({ type: 'pictionary.game.restart' }, room.user(HOST, 270_000))).toBeNull();
     expect(room.peek().phase).toBe('lobby');
     expect(
       room.dispatch(

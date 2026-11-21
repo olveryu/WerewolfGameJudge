@@ -85,6 +85,7 @@ type PhaseDeadlineSettlePin =
   | 'sequence+deadline'
   | 'sequence+phase+deadline'
   | 'sequence+phase+round+deadline'
+  | 'sequence+round+deadline'
   | 'round+revision+deadline'
   | 'sequence+revision+turn+deadline';
 
@@ -158,7 +159,15 @@ const EXPECTED_PHASE_DEADLINE_VARIANTS: Readonly<Record<GameType, PhaseDeadlineR
     },
   },
   spotmatch: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
-  secrethitler: { adoption: 'outOfDomain', domain: 'noStageDeadline' },
+  secrethitler: {
+    adoption: 'switched',
+    variant: {
+      actorChannel: 'systemOnly',
+      revisionPolicy: 'none',
+      settlePin: 'sequence+round+deadline',
+      lateSubmission: 'gameGuard',
+    },
+  },
 };
 
 /** Concatenated non-test source of one directory tree (engine or worker side). */

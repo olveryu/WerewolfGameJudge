@@ -47,6 +47,11 @@ export const AVALON_GUIDANCE_MATRIX: RoomGuidanceMatrix<AvalonPhaseKind> = {
     seated: GUIDANCE_MESSAGE,
     spectator: GUIDANCE_MESSAGE,
   },
+  questResult: {
+    host: GUIDANCE_MESSAGE,
+    seated: GUIDANCE_MESSAGE,
+    spectator: GUIDANCE_MESSAGE,
+  },
   lady: {
     host: GUIDANCE_MESSAGE,
     seated: GUIDANCE_MESSAGE,

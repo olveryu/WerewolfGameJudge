@@ -20,7 +20,6 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
-import { formatPendingSeats } from '@/features/room/components/PendingSeatsRow';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -124,6 +123,7 @@ const AVALON_DAY_BADGE_PHASES: Readonly<Record<AvalonPhaseKind, boolean>> = {
   vote: true,
   voteResult: true,
   quest: true,
+  questResult: true,
   lady: true,
   assassin: true,
   ended: false,
@@ -290,8 +290,9 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       const record = state.roundHistory.find((candidate) => candidate.round === round);
       // 本轮已有提案结算（否决后回到组队、或通过后任务进行中）：
       // 最新结算就是这次投票结论。
-      if (state.lastVoteResult !== null && record !== undefined && record.proposals.length > 0) {
-        const vote = state.lastVoteResult;
+      const vote = record?.proposals.at(-1);
+      if (vote !== undefined) {
+        if (vote.automatic) return `${questLabel} · 队伍自动通过`;
         return `${questLabel} · ${vote.approved ? '队伍通过' : '提案被否决'}（赞成 ${vote.approveCount} · 反对 ${vote.rejectCount}）`;
       }
       // 本轮尚无提案结算时，最新结算是上一轮的任务结论。
@@ -309,6 +310,35 @@ export function createAvalonHistorySummary(state: AvalonState): string | null {
       }
       return `${questLabel} · 任务执行中`;
     }
+    case 'questResult':
+      return avalonLatestQuestConclusion(state);
+  }
+}
+
+/** 当前阶段，不以最近一次结算替代正在进行的操作。 */
+export function createAvalonCurrentStatus(state: AvalonState): string | null {
+  const phase = state.phase;
+  switch (phase.kind) {
+    case 'lobby':
+    case 'viewing':
+    case 'night':
+      return null;
+    case 'nominate':
+      return '组队进行中';
+    case 'vote':
+      return '提案投票中';
+    case 'voteResult':
+      return '投票结果确认中';
+    case 'quest':
+      return '任务执行中';
+    case 'questResult':
+      return '任务结果确认中';
+    case 'lady':
+      return '湖中仙女查验中';
+    case 'assassin':
+      return '刺杀阶段';
+    case 'ended':
+      return phase.winner === 'good' ? '好人获胜' : '坏人获胜';
   }
 }
 
@@ -368,8 +398,6 @@ export interface AvalonBottomActionsInput {
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
-  readonly onLadyAcknowledgePress: () => void;
-  readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
   /** 本局复盘入口（平台 useRoomReview）：终局时存在，底部按钮与主持管理共用；终局前为 null。 */
   readonly review: RoomReviewEntry | null;
@@ -450,6 +478,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: true,
           isEnabled: true,
           onPress: input.onNightInfoPress,
           testID: TESTIDS.avalonNightInfo,
@@ -495,20 +524,6 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       testID: TESTIDS.avalonEarlyStrike,
     });
   }
-  // 湖仙查验结果重开入口：结果本体只住弹窗（一次性私密信息），此处只放入口；
-  // VM 只向持有人暴露 lastLadyCheck 结果，非持有人恒无此按钮。
-  if (vm.ladyCheckResult !== null && phase.kind !== 'ended') {
-    secondary.push({
-      key: 'ladyResult',
-      label: '查验结果',
-      audience: 'participant',
-      variant: 'secondary',
-      size: 'md',
-      isEnabled: true,
-      onPress: input.onLadyResultPress,
-      testID: TESTIDS.avalonLadyResultOpen,
-    });
-  }
   switch (phase.kind) {
     case 'nominate': {
       const instruction = resolveNominateInstruction(vm, vm.mySeat);
@@ -527,6 +542,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: true,
               onPress: input.onPreselectTeamPress,
               testID: TESTIDS.avalonNominatePreselect,
@@ -538,6 +554,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
@@ -553,6 +570,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: true,
               onPress: input.onProposeTeamPress,
               testID: TESTIDS.avalonNominateSubmit,
@@ -564,6 +582,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
               audience: 'participant',
               variant: 'primary',
               size: 'md',
+              isPending: true,
               isEnabled: false,
               disabledReason: null,
               isLoading: true,
@@ -587,6 +606,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: instruction.myBallot === null,
           isEnabled: true,
           onPress: input.onOpenVotePress,
           testID: TESTIDS.avalonVoteOpen,
@@ -601,7 +621,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         input.settleCountdownSeconds > 0
           ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
-            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)} · ${formatPendingSeats('未投票', vm.pendingVoteSeats)}`
+            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
             : null;
       if (message === null && !instruction.canVote) {
         message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
@@ -609,7 +629,10 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
       break;
     }
     case 'voteResult':
-      message = '等待全员确认投票结果';
+      message = '结果展示后自动继续';
+      break;
+    case 'questResult':
+      message = '结果展示后自动继续';
       break;
     case 'quest': {
       const instruction = resolveQuestInstruction(vm);
@@ -620,6 +643,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           audience: 'participant',
           variant: 'primary',
           size: 'md',
+          isPending: instruction.myPlay === null,
           isEnabled: true,
           onPress: input.onOpenQuestPress,
           testID: TESTIDS.avalonQuestOpen,
@@ -632,7 +656,7 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
         input.settleCountdownSeconds > 0
           ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
           : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
-            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length} · ${formatPendingSeats('未出牌', vm.pendingPlaySeats)}`
+            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length}`
             : null;
       if (message === null && !instruction.isTeamMember) {
         message = '等待队员出牌…';
@@ -646,28 +670,12 @@ function createAvalonBottomActions(input: AvalonBottomActionsInput): RoomBottomS
           message =
             '点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。';
           break;
-        case 'holderWait':
-          message = `已选择查验${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认展示。`;
-          break;
-        case 'targetConfirm':
-          message = `${avalonSeatLabel(state, instruction.holderSeat)} 要查验你的阵营，确认展示后对方将看到你是好人还是坏人。`;
-          primary.push({
-            key: 'ladyAcknowledge',
-            label: '查看查验请求',
-            audience: 'participant',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: true,
-            onPress: input.onLadyAcknowledgePress,
-            testID: TESTIDS.avalonLadyAcknowledgeOpen,
-          });
-          break;
         case 'watching':
           // 旁观者看公开进程：谁在查验谁（或还在选对象）。查验结果是
           // 持有人私密信息，不在此句出现。
           message =
             instruction.targetSeat !== null
-              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待对方确认`
+              ? `${avalonSeatLabel(state, instruction.holderSeat)} 已选择查验 ${avalonSeatLabel(state, instruction.targetSeat)}，等待持有人确认结果`
               : `${avalonSeatLabel(state, instruction.holderSeat)} 正在选择查验对象`;
           break;
         case 'result':
@@ -730,8 +738,6 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
   readonly onProposeTeamPress: () => void;
-  readonly onLadyAcknowledgePress: () => void;
-  readonly onLadyResultPress: () => void;
   readonly onEarlyStrikePress: () => void;
   readonly review: RoomReviewEntry | null;
   readonly strikePickMode: boolean;
@@ -764,7 +770,9 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostMan
       showDestructiveAlert(
         '重新开始？',
         state.phase.kind === 'ended'
-          ? '保留座位和配置，清除本局并回到准备。本局已结算，之后可能无法查看复盘，请先确认是否需要查看。'
+          ? input.review?.isPending
+            ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
@@ -796,7 +804,9 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
     actions.push(
       buildMarkBotsViewedAction({
         onPress: () =>
-          void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' }),
+          showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
+            void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' });
+          }),
         isEnabled: !input.isSubmitting,
         isLoading: input.isSubmitting,
       }),
@@ -820,7 +830,11 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostManage
         },
         input.isSubmitting,
         () =>
-          void input.submit('标记机器人已确认', { type: 'avalon.bots.markAllBotsGroupConfirmed' }),
+          showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
+            void input.submit('标记机器人已确认', {
+              type: 'avalon.bots.markAllBotsGroupConfirmed',
+            });
+          }),
       ),
     );
   if (actions.length > 0) sections.push({ key: 'tools', title: '辅助工具', actions });
@@ -954,6 +968,7 @@ export function createAvalonHostManagement(
   if (state.phase.kind === 'ended') {
     return applyLock({
       task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
+      pendingActionKeys: input.review?.isPending ? [HOST_ACTION_KEYS.review] : [],
       sections: [
         {
           key: 'current-flow',
@@ -966,6 +981,7 @@ export function createAvalonHostManagement(
   // 局中投票 / 任务自动结算，房主无推进命令：此刻没有待操作。
   return applyLock({
     task: null,
+    pendingActionKeys: [],
     sections: [{ key: 'room', title: '房间管理', actions: roomActions }],
   });
 }
@@ -1010,8 +1026,6 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       onOpenQuestPress: input.onOpenQuestPress,
       onPreselectTeamPress: input.onPreselectTeamPress,
       onProposeTeamPress: input.onProposeTeamPress,
-      onLadyAcknowledgePress: input.onLadyAcknowledgePress,
-      onLadyResultPress: input.onLadyResultPress,
       onEarlyStrikePress: input.onEarlyStrikePress,
       review: input.review,
       strikePickMode: input.strikePickMode,

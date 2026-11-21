@@ -98,13 +98,15 @@ function session(playerCount: 5 | 9): Session {
       if (!applySystem({ type: 'avalon.phase.settleExpired' })) {
         throw new Error('rejected: avalon.phase.settleExpired');
       }
-      if (phase.kind === 'vote') {
-        for (let seat = 0; seat < playerCount; seat += 1) {
-          if (!apply({ type: 'avalon.voteResult.confirm' }, seatUser(seat))) {
-            throw new Error('rejected: avalon.voteResult.confirm');
-          }
-        }
-      }
+      const result = state.phase;
+      if (
+        (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
+        result.deadlineAt === null
+      )
+        throw new Error('expected result countdown');
+      nowMs = result.deadlineAt;
+      if (!applySystem({ type: 'avalon.phase.settleExpired' }))
+        throw new Error('rejected: result settlement');
     },
   };
 }
@@ -256,8 +258,6 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     onOpenQuestPress: vi.fn(),
     onPreselectTeamPress: vi.fn(),
     onProposeTeamPress: vi.fn(),
-    onLadyAcknowledgePress: vi.fn(),
-    onLadyResultPress: vi.fn(),
     onEarlyStrikePress: vi.fn(),
     // The room hook hands over a review entry once the game ended, none before.
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,

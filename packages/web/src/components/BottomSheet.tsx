@@ -12,19 +12,23 @@ export function BottomSheet({
   title,
   onClose,
   testId,
+  requireConfirmation = false,
   children,
 }: {
   /** Accessible name; the caller renders its own visible heading. */
   readonly title: string;
   readonly onClose: () => void;
   readonly testId?: string;
+  readonly requireConfirmation?: boolean;
   readonly children: ReactNode;
 }) {
   return (
     <Dialog.Root
       open
+      closeOnEscape={!requireConfirmation}
+      closeOnInteractOutside={!requireConfirmation}
       onOpenChange={(details) => {
-        if (!details.open) onClose();
+        if (!details.open && !requireConfirmation) onClose();
       }}
     >
       <Portal>

@@ -142,7 +142,8 @@ export function useSpotmatchRoomState(
     createSpotmatchHostManagement({
       state: presentationState,
       capabilities,
-      isSubmitting: isSubmitting || successPaused,
+      isSubmitting,
+      isScorePause: successPaused,
       submit,
       review: isShowingFinalSuccess ? null : review.entry,
     });

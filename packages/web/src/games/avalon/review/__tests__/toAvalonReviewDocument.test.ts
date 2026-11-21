@@ -61,6 +61,7 @@ function proposal(
     rejectCount: votes.reject,
     abstainCount: votes.abstain ?? 0,
     approved: votes.approve > votes.reject,
+    automatic: false,
   };
 }
 
@@ -185,7 +186,6 @@ describe('toAvalonReviewDocument', () => {
       kicker: '🏰 第 2 局 · 终局',
       fileStem: 'avalon-1234-2',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
     });
     expect(document.pages).toHaveLength(1);
     expect(document.pages[0]).toMatchObject({ key: 'ended', label: null });
@@ -257,7 +257,7 @@ describe('toAvalonReviewDocument', () => {
   it('states the table configuration with the board grouped by side', () => {
     expect(blockOf(build(endedViewModel()), 'facts').items).toEqual([
       { label: '投票', value: '暗投' },
-      { label: '否决上限', value: '5' },
+      { label: '最多组队', value: '5' },
       { label: '任务人数', value: '2 / 3 / 2 / 3 / 3' },
       { label: '湖仙', value: '不启用' },
       { label: '坏人', value: '莫甘娜、刺客' },
@@ -265,7 +265,7 @@ describe('toAvalonReviewDocument', () => {
     ]);
     expect(blockOf(build(ladyTableViewModel()), 'facts').items).toEqual([
       { label: '投票', value: '公投' },
-      { label: '否决上限', value: '5' },
+      { label: '最多组队', value: '5' },
       { label: '任务人数', value: '3 / 4 / 4 / 5 / 5' },
       { label: '湖仙', value: '启用' },
       { label: '坏人', value: '莫甘娜、刺客、奥伯伦、莫德雷德' },

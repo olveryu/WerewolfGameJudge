@@ -25,7 +25,6 @@ const PHASES: readonly Phase[] = [
   'preparationFailed',
   'viewing',
   'ongoing',
-  'aborted',
   'ended',
 ];
 
@@ -113,17 +112,6 @@ function ongoingState(): UndercoverState {
   return state;
 }
 
-function abortedState(): UndercoverState {
-  const viewing = viewingState();
-  if (viewing.round === null) throw new Error('expected round');
-  const state = dispatch(viewing, {
-    type: 'undercover.game.abort',
-    roundId: viewing.round.roundId,
-  });
-  if (state.phase !== 'aborted') throw new Error('expected aborted');
-  return state;
-}
-
 function endedState(): UndercoverState {
   let state = ongoingState();
   // Reveal every non-civilian seat; the game ends when the last one falls.
@@ -156,8 +144,6 @@ function stateFor(phase: Phase): UndercoverState {
       return viewingState();
     case 'ongoing':
       return ongoingState();
-    case 'aborted':
-      return abortedState();
     case 'ended':
       return endedState();
   }

@@ -16,16 +16,6 @@ function reviewedRound(state: UndercoverState, roomCode: string): RoomReviewDocu
         roster: state.roster,
         roomCode,
       });
-    case 'aborted':
-      return state.round === null
-        ? null
-        : toUndercoverReviewDocument({
-            round: state.round,
-            conclusion: { kind: 'aborted' },
-            config: state.config,
-            roster: state.roster,
-            roomCode,
-          });
     case 'lobby':
     case 'preparing':
     case 'preparationFailed':
@@ -36,10 +26,8 @@ function reviewedRound(state: UndercoverState, roomCode: string): RoomReviewDocu
 }
 
 /**
- * A round is reviewable once it is over: won, or aborted after its cards
- * were dealt (an abort during word preparation leaves no round to review).
- * The document holds only what is public by then, so every reader may
- * share it, with no confirmation.
+ * The document holds the public result of the completed round, so every
+ * reader may share it, with no confirmation.
  */
 export const undercoverReview: RoomReviewContribution<UndercoverState> = {
   resolve: ({ state, roomCode }) => {

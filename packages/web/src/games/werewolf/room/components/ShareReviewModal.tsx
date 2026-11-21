@@ -89,6 +89,7 @@ export function ShareReviewModal({
                     role="checkbox"
                     aria-checked={isSelected}
                     className="share-review-seat"
+                    data-testid={TESTIDS.shareReviewSeat(seat)}
                     onClick={() => toggleSeat(seat)}
                   >
                     <span className="share-review-checkbox" aria-hidden>
@@ -103,7 +104,11 @@ export function ShareReviewModal({
               <Button variant="secondary" onClick={onClose}>
                 取消
               </Button>
-              <Button disabled={isSubmitting} onClick={() => void handleConfirm()}>
+              <Button
+                data-testid={TESTIDS.shareReviewConfirmButton}
+                disabled={isSubmitting}
+                onClick={() => void handleConfirm()}
+              >
                 {isSubmitting
                   ? '提交中…'
                   : `确认${selected.size > 0 ? `（${selected.size}人）` : ''}`}

@@ -136,6 +136,7 @@ export function useFibRoomState({
       (effectiveSeat !== null && state.round.viewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     viewedSeatCount: state.round === null ? 0 : state.round.viewedSeats.length,
+    isSubmitting,
     submitViewed: () => submit('确认查看身份', { type: 'fibking.role.viewed' }, { controlledSeat }),
   });
   // 旁观者：题目 / 公开结果是公开信息，没有查看记录也没有揭示动画。
@@ -240,6 +241,11 @@ export function useFibRoomState({
   });
 
   // ── 本局复盘 ──
+  const reviewRoundId = state.phase === 'ended' ? state.round.roundId : null;
+  const hasPendingReview =
+    reviewRoundId !== null &&
+    (isHost || mySeat !== null) &&
+    !state.reviewCompletedUserIds.includes(user.id);
   const review = useRoomReview({
     contribution: reviewContribution,
     state,
@@ -247,6 +253,11 @@ export function useFibRoomState({
     roomId: room.roomId,
     roomCode: room.roomCode,
     onOpened: null,
+    isPending: hasPendingReview,
+    onClosed:
+      hasPendingReview && reviewRoundId !== null
+        ? () => submit('确认复盘', { type: 'fibking.review.complete', roundId: reviewRoundId })
+        : null,
   });
 
   // ── 座位 / 壳 ──

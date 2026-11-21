@@ -295,7 +295,7 @@ describe('system settle channel', () => {
       werewolfEngine.decide(state, { type: 'werewolf.phase.settleExpired' }, systemContext(6_000)),
     );
     expect(closed.sheriffElection?.phase).not.toBe('firstVote');
-    expect(readArmedDeadline(closed)).toBeNull();
+    expect(readArmedDeadline(closed)).toEqual({ phase: 'sheriffResult', deadlineAt: 11000 });
 
     expect(
       werewolfEngine.decide(

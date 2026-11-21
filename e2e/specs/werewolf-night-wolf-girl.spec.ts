@@ -48,18 +48,18 @@ test.setTimeout(300_000);
 
 async function confirmConfession(page: Page, wolfSeat: number, targetSeat: number): Promise<void> {
   await clickNightButton(page, 'startSeatSelection', '选择表白目标');
-  const confirmButton = nightButton(page, 'submitSeatSelection');
   const wolfTile = page.getByTestId(TESTIDS.seatTilePressable(wolfSeat));
   const targetTile = page.getByTestId(TESTIDS.seatTilePressable(targetSeat));
 
   await expect(targetTile).toHaveAttribute('aria-pressed', 'false');
   await expect(wolfTile).toBeDisabled();
   await wolfTile.press('Enter');
-  await expect(confirmButton).toBeDisabled();
+  await expect(page.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
   await targetTile.click();
   await expect(targetTile).toHaveAttribute('aria-pressed', 'true');
-  await clickNightButton(page, 'submitSeatSelection', `确认表白 ${formatSeat(targetSeat)}`);
+  await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(formatSeat(targetSeat));
+  await page.getByTestId(TESTIDS.alertButton(1)).click();
 }
 
 async function driveGuardProtect(
@@ -104,7 +104,9 @@ async function drivePostConfessNight(
     await test.step('Hunter turn should become active', () =>
       waitForRoleTurn(pages[hunterPageIndex]!, 'hunterConfirm', pages));
     await dismissAlert(pages[hunterPageIndex]!);
-    await clickNightButton(pages[hunterPageIndex]!, 'confirm', '发动状态');
+    await clickNightButton(pages[hunterPageIndex]!, 'confirm', '发动状态', {
+      revealPrivateStatus: true,
+    });
     const alertText = await readAlertText(pages[hunterPageIndex]!);
     expect(alertText).toContain('猎人');
     expect(alertText).toMatch(/可以发动技能|不能发动技能/);
@@ -166,9 +168,9 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
           await expect(
-            pages[wolfGirlPageIndex]!.getByTestId(TESTIDS.alertMessage),
+            nightButton(pages[wolfGirlPageIndex]!, 'startSeatSelection'),
             'Confess step prompt should show the 表白 verb',
-          ).toContainText('先按「选择表白目标」');
+          ).toContainText('选择表白目标');
 
           await test.step('Wolf Girl cannot select a wolf but can confirm a civilian', () =>
             confirmConfession(pages[wolfGirlPageIndex]!, wolfSeats[0]!, confessTargetSeat));

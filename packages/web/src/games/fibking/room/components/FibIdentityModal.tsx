@@ -25,7 +25,9 @@ interface FibIdentityModalProps {
   readonly allRoles: readonly RevealRoleData[];
   /** 桌上未看牌数（已占座位数 − 已查看数）。 */
   readonly remainingCards: number;
-  /** 关闭：查看记录已在弹卡前落下（useRoleViewing），这里只收起卡片。 */
+  readonly requireConfirmation?: boolean;
+  readonly confirmDisabled?: boolean;
+  /** 确认首次查看并收起卡片；回看时只收起卡片。 */
   readonly onClose: () => void;
 }
 
@@ -36,6 +38,8 @@ export function FibIdentityModal({
   shouldPlay,
   allRoles,
   remainingCards,
+  requireConfirmation = false,
+  confirmDisabled = false,
   onClose,
 }: FibIdentityModalProps) {
   const role = toFibRevealRoleData(view);
@@ -54,6 +58,8 @@ export function FibIdentityModal({
         confirmText="知道了"
         testId={TESTIDS.fibIdentityModal}
         nameTestId={TESTIDS.fibIdentityRole}
+        requireConfirmation={requireConfirmation}
+        confirmDisabled={confirmDisabled}
       />
     </RevealAnimationGate>
   );

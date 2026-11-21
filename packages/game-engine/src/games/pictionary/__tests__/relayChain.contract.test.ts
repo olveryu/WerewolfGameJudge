@@ -46,7 +46,7 @@ import {
 } from '../domain/reasons';
 import { getPictionaryTaskForSeat } from '../domain/visibility';
 import { pictionaryEngine } from '../engine';
-import { migratePersistedPictionaryState, parsePictionaryState } from '../state/parseState';
+import { parsePictionaryState } from '../state/parseState';
 import {
   DEFAULT_PICTIONARY_CONFIG,
   getPictionaryExpectedKind,
@@ -208,39 +208,6 @@ describe('Pictionary relay-chain contract', () => {
     expect(gameSession.effects).toEqual(effectsBefore);
   });
 
-  it('migrates v9 galleries and drawing metadata without replay', () => {
-    const session = game();
-    session.playRound();
-    const gallery = session.state.gallery;
-    if (gallery === null) throw new Error('Missing gallery');
-    const { revealStartedAt: _start, revealDurationMs: _duration, ...legacyGallery } = gallery;
-    const chains = session.state.chains.map((chain) => ({
-      ...chain,
-      entries: chain.entries.map((entry) => {
-        if (entry.kind !== 'drawing') return entry;
-        const { replay: _replay, ...media } = entry.media;
-        return { ...entry, media };
-      }),
-    }));
-    const migrated = migratePersistedPictionaryState({
-      ...session.state,
-      stateVersion: 9,
-      chains,
-      gallery: legacyGallery,
-    });
-    expect(migrated.stateVersion).toBe(11);
-    expect(migrated.gallery).toEqual({
-      ...legacyGallery,
-      revealStartedAt: null,
-      revealDurationMs: 0,
-    });
-    expect(
-      migrated.chains
-        .flatMap((chain) => chain.entries)
-        .filter((entry) => entry.kind === 'drawing')
-        .every((entry) => entry.media.replay === null),
-    ).toBe(true);
-  });
   it('anchors the first text in a manual gallery', () => {
     const session = game(null);
     session.playRound();
@@ -331,13 +298,8 @@ describe('Pictionary relay-chain contract', () => {
     ).toHaveLength(1);
   });
 
-  it('does not reward a restart before reveal or re-settle a legacy completed transition', () => {
+  it('does not reward a restart before reveal', () => {
     const gameSession = game();
-    const { revealSettlementPending: _initialPending, ...oldActiveState } = gameSession.state;
-    expect(
-      migratePersistedPictionaryState({ ...oldActiveState, stateVersion: 10 })
-        .revealSettlementPending,
-    ).toBe(true);
     for (let step = 0; step < NUMBER_OF_PLAYERS - 1; step += 1) gameSession.playStep();
     gameSession.expireCurrentPhase();
     for (let seat = 0; seat < NUMBER_OF_PLAYERS; seat += 1) {
@@ -346,18 +308,6 @@ describe('Pictionary relay-chain contract', () => {
     const before = gameSession.state;
     expect(before.phase).toBe('transition');
     expect(before.revealSettlementPending).toBe(true);
-    const { revealSettlementPending: _pending, ...oldState } = before;
-    const migrated = migratePersistedPictionaryState({ ...oldState, stateVersion: 10 });
-    expect(migrated.revealSettlementPending).toBe(false);
-    const legacyDecision = pictionaryEngine.decide(
-      migrated,
-      { type: 'pictionary.phase.settleExpired' },
-      { ...gameSession.session.systemContext('settle'), nowMs: migrated.deadlineAt! },
-    );
-    if (legacyDecision.kind !== 'commit') throw new Error('expected legacy gallery transition');
-    expect(
-      legacyDecision.effects.some((effect) => effect.type === 'pictionary.game.completed'),
-    ).toBe(false);
     gameSession.send({ type: 'pictionary.game.restart' });
     expect(gameSession.state.phase).toBe('lobby');
     expect(gameSession.effects.some((effect) => effect.type === 'pictionary.game.completed')).toBe(
@@ -436,11 +386,8 @@ describe('Pictionary relay-chain contract', () => {
     expect(revision()).toBe(afterStart + 2);
     session.expireCurrentPhase();
     expect(revision()).toBe(afterStart + 3);
-    session.send({ type: 'pictionary.game.abort' });
+    session.send({ type: 'pictionary.game.restart' });
     expect(revision()).toBe(afterStart + 4);
-    expect(session.state.phase).toBe('aborted');
-    session.send({ type: 'pictionary.game.returnToLobby' });
-    expect(revision()).toBe(afterStart + 5);
     expect(session.state.phase).toBe('lobby');
   });
 

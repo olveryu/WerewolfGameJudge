@@ -72,7 +72,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         }),
       );
       await waitForRoomScreen(view);
-      await waitFor(() => expect(harness.hasSeen('actionPrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
     });
   });
 
@@ -104,7 +104,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         }),
       );
       await waitForRoomScreen(view);
-      await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
     });
   });
 
@@ -213,7 +213,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
         }),
       );
       await waitForRoomScreen(view);
-      await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
+      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
     });
   });
 
@@ -269,7 +269,7 @@ describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
       await coverageChainWitchSavePrompt(harness, 9);
 
       // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(9);
+      await coverageChainWitchPoisonSelection(harness, 9);
 
       // Step 5: confirmTrigger (hunter) → press primary + assertNoLoop
       await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 10);

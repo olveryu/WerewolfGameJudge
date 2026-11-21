@@ -18,7 +18,6 @@ import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
-import { alertStore } from '@/utils/alert';
 
 import { RoomShell } from '../RoomShell';
 import { RoomStageMenu } from '../RoomStageMenu';
@@ -43,10 +42,7 @@ it('explains an unavailable stage-menu action without closing the menu', () => {
   expect(action).toHaveAttribute('aria-disabled', 'true');
   expect(action).toHaveAccessibleDescription('语音播报中，请稍候');
   fireEvent.click(action);
-  expect(alertStore.getSnapshot()).toMatchObject({
-    title: '暂不可用',
-    message: '语音播报中，请稍候',
-  });
+  expect(screen.getByRole('status')).toHaveTextContent('语音播报中，请稍候');
   expect(onClose).not.toHaveBeenCalled();
 });
 
@@ -202,7 +198,6 @@ describe('RoomShell stage content', () => {
           afterSeatBoard: null,
           sideInspector: null,
         }}
-        showPlayerHand
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -245,7 +240,6 @@ describe('RoomShell stage content', () => {
           afterSeatBoard: null,
           sideInspector: null,
         }}
-        showPlayerHand
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -310,7 +304,6 @@ describe('RoomShell stage content', () => {
           afterSeatBoard: null,
           sideInspector: null,
         }}
-        showPlayerHand
         phaseLabel="待开局"
         lobbyAction={{ label: '分配角色', occupiedSeats }}
         leadingExtraActions={null}
@@ -380,9 +373,7 @@ describe('RoomShell stage content', () => {
           afterSeatBoard: null,
           sideInspector: null,
         }}
-        showPlayerHand
-        isSelecting
-        selectionUsesHostTask
+        selectionMode="host-task"
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -426,6 +417,7 @@ describe('RoomShell stage content', () => {
                         label: '分享房间',
                         icon: 'share-social-outline',
                         variant: 'secondary',
+                        placement: 'room-entry',
                         isEnabled: true,
                         onPress: shareRoom,
                       },
@@ -443,7 +435,6 @@ describe('RoomShell stage content', () => {
             afterSeatBoard: null,
             sideInspector: null,
           }}
-          showPlayerHand
           leadingExtraActions={null}
           trailingExtraActions={null}
           gameOverlays={null}
@@ -482,8 +473,7 @@ describe('RoomShell stage content', () => {
                   sideInspector: null,
                 }
           }
-          showPlayerHand
-          isSelecting={afterTransition && transition === 'seat selection'}
+          selectionMode={afterTransition && transition === 'seat selection' ? 'player' : undefined}
           leadingExtraActions={null}
           trailingExtraActions={null}
           gameOverlays={null}
@@ -599,7 +589,6 @@ describe('RoomShell stage content', () => {
     const hand = screen.getByRole('group', { name: '菜单' });
     expect(hand).not.toHaveAttribute('role', 'dialog');
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
-    expect(screen.queryByTestId(TESTIDS.abortGameButton)).not.toBeInTheDocument();
     await user.click(within(hand).getByTestId(TESTIDS.roomManualButton));
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
     await user.click(screen.getByTestId(TESTIDS.roomStageGuideButton));
@@ -617,53 +606,48 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
   });
 
-  it.each([
-    { key: HOST_ACTION_KEYS.abortGame, label: '中止游戏', testID: TESTIDS.abortGameButton },
-    { key: HOST_ACTION_KEYS.restart, label: '重新开始', testID: TESTIDS.restartButton },
-  ])(
-    'uses the current authorized host $label action from the stage hand',
-    async ({ key, label, testID }) => {
-      const user = userEvent.setup();
-      const onAbort = vi.fn();
-      render(
-        <RoomShell
-          model={createRoomShellModel(
-            shellInput({
-              buildHostManagement: () => ({
-                task: null,
-                sections: [
-                  {
-                    key: 'danger',
-                    title: '危险操作',
-                    actions: [
-                      {
-                        key,
-                        label,
-                        icon: 'stop-circle-outline',
-                        variant: 'danger',
-                        isEnabled: true,
-                        onPress: onAbort,
-                        testID,
-                      },
-                    ],
-                  },
-                ],
-              }),
+  it('uses the action declared for the stage menu abort entry', async () => {
+    const user = userEvent.setup();
+    const onAbort = vi.fn();
+    render(
+      <RoomShell
+        model={createRoomShellModel(
+          shellInput({
+            buildHostManagement: () => ({
+              task: null,
+              sections: [
+                {
+                  key: 'danger',
+                  title: '危险操作',
+                  actions: [
+                    {
+                      key: HOST_ACTION_KEYS.restart,
+                      label: '重新开始',
+                      icon: 'stop-circle-outline',
+                      variant: 'danger',
+                      stageMenuRole: 'abort',
+                      isEnabled: true,
+                      onPress: onAbort,
+                      testID: TESTIDS.restartButton,
+                    },
+                  ],
+                },
+              ],
             }),
-          )}
-          content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
-          leadingExtraActions={null}
-          trailingExtraActions={null}
-          stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
-          gameOverlays={null}
-        />,
-      );
-      await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
-      await user.click(screen.getByTestId(testID));
-      expect(onAbort).toHaveBeenCalledOnce();
-      expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
-    },
-  );
+          }),
+        )}
+        content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+        leadingExtraActions={null}
+        trailingExtraActions={null}
+        stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+        gameOverlays={null}
+      />,
+    );
+    await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
+    await user.click(screen.getByTestId(TESTIDS.restartButton));
+    expect(onAbort).toHaveBeenCalledOnce();
+    expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
+  });
 
   it('does not reopen an obsolete panel when actions become available again', async () => {
     const user = userEvent.setup();

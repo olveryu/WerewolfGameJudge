@@ -3,7 +3,7 @@
  *
  * Round-slice landing shapes come from the shared relay machine
  * (platform/room/relay/evolve); this module lands Story Relay's own
- * fields (startedAt / completedAt / abortedAt, roster, config) and
+ * fields (startedAt / completedAt, roster, config) and
  * clears them wherever the shared reset clears the round.
  */
 
@@ -33,7 +33,6 @@ export function evolveStoryRelayState(
         ...state,
         ...applyRelayRoundStarted(state, event.round),
         completedAt: null,
-        abortedAt: null,
         revealSettlementPending: true,
       };
     case 'storyrelay.task.ready':
@@ -48,23 +47,12 @@ export function evolveStoryRelayState(
       };
     case 'storyrelay.round.completed':
       return { ...state, completedAt: event.completedAt };
-    case 'storyrelay.round.aborted':
-      return {
-        ...state,
-        phase: 'aborted',
-        phaseRevision: state.phaseRevision + 1,
-        abortedAt: event.abortedAt,
-        deadlineAt: null,
-        readySeats: [],
-        revealSettlementPending: false,
-      };
     case 'storyrelay.game.returnedToLobby':
       return {
         ...state,
         ...clearRelayRound<StoryRelayEntry>(state),
         startedAt: null,
         completedAt: null,
-        abortedAt: null,
         revealSettlementPending: false,
       };
   }

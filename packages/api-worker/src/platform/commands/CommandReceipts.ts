@@ -19,7 +19,6 @@ const COMMAND_RECEIPT_RETENTION_MS = 7 * 24 * 60 * 60 * 1_000;
 
 interface RawCommandReceipt extends Record<string, SqlStorageValue> {
   readonly game_type: SqlStorageValue;
-  readonly state_version: SqlStorageValue;
   readonly actor_kind: SqlStorageValue;
   readonly actor_id: SqlStorageValue;
   readonly controlled_seat: SqlStorageValue;
@@ -104,7 +103,7 @@ export class CommandReceipts {
   ): StoredCommandReceipt | null | 'conflict' {
     const rows = this.#sql
       .exec<RawCommandReceipt>(
-        `SELECT game_type, state_version, actor_kind, actor_id, controlled_seat, command_type,
+        `SELECT game_type, actor_kind, actor_id, controlled_seat, command_type,
           request_json, random_seed, decision_kind, revision, result_json
         FROM command_receipts WHERE command_id = ?`,
         request.commandId,
@@ -122,8 +121,6 @@ export class CommandReceipts {
         : parseNonNegativeInteger(row.controlled_seat, 'command_receipts.controlled_seat');
     if (
       parseGameType(row.game_type) !== room.gameType ||
-      parsePositiveInteger(row.state_version, 'command_receipts.state_version') !==
-        room.stateVersion ||
       parseActorKind(row.actor_kind) !== request.actor.kind ||
       parseNonEmptyString(row.actor_id, 'command_receipts.actor_id') !== actorId(request.actor) ||
       storedControlledSeat !== request.controlledSeat ||
@@ -162,13 +159,12 @@ export class CommandReceipts {
   insert(receipt: NewCommandReceipt): void {
     this.#sql.exec(
       `INSERT INTO command_receipts (
-        command_id, game_type, state_version, actor_kind, actor_id, controlled_seat,
+        command_id, game_type, actor_kind, actor_id, controlled_seat,
         command_type, request_json, random_seed, decision_kind, revision, result_json,
         created_at, expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       receipt.request.commandId,
       receipt.room.gameType,
-      receipt.room.stateVersion,
       receipt.request.actor.kind,
       actorId(receipt.request.actor),
       receipt.request.controlledSeat,

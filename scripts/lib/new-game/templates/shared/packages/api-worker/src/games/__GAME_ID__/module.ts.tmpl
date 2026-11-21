@@ -4,7 +4,6 @@ import {
 //#cap businessStats
   parse__GAME_PASCAL__PublicStats,
 //#end
-  migratePersisted__GAME_PASCAL__State,
   __GAME_UPPER___STATE_CODEC,
   __GAME_CAMEL__Engine,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
@@ -27,7 +26,6 @@ export const __GAME_CAMEL__WorkerModule = defineWorkerGameModule({
   gameType: '__GAME_ID__',
   engine: __GAME_CAMEL__Engine,
   stateCodec: __GAME_UPPER___STATE_CODEC,
-  migratePersistedState: migratePersisted__GAME_PASCAL__State,
   createConfigSchema: __GAME_CAMEL__CreateConfigSchema,
   publicCommandSchema: __GAME_CAMEL__PublicCommandSchema,
   internalCommandSchema: __GAME_CAMEL__InternalCommandSchema,

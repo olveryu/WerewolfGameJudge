@@ -98,7 +98,12 @@ function game(numberOfPlayers = 4, humanCount = 4) {
     startGame() {
       send({ type: 'drawguess.game.begin' });
       // Worker deals 3 word choices (simulated here via internal command).
-      sendInternal({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
+      sendInternal({
+        type: 'drawguess.words.dealt',
+        gameSequence: session.state.gameSequence,
+        turnIndex: 0,
+        choices: CHOICES,
+      });
     },
     chooseFirstWord(drawerSeat: number) {
       const userId = drawerSeat === 0 ? 'host' : `u${drawerSeat}`;
@@ -240,7 +245,12 @@ describe('DrawGuess engine', () => {
       payload: { turnIndex: 0 },
     });
     expect(session.state.drawerQueue).toEqual([0, 1, 2, 3, 4, 5]);
-    session.sendInternal({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
+    session.sendInternal({
+      type: 'drawguess.words.dealt',
+      gameSequence: session.state.gameSequence,
+      turnIndex: 0,
+      choices: CHOICES,
+    });
     if (session.state.phase.kind !== 'wordSelect') throw new Error('phase');
     expect(session.state.phase.choices).toHaveLength(DRAWGUESS_WORD_CHOICE_COUNT);
     expect(session.state.phase.deadlineAt).not.toBeNull();
@@ -917,12 +927,16 @@ describe('DrawGuess engine', () => {
     expect(session.state.phase.pngEntry?.objectKey).toBe('drawguess/abc/turn-0/x.png');
   });
 
-  it('returns to lobby only from ended via host', () => {
+  it('rejects a restart whose completion boundary does not match', () => {
     const session = game();
     session.startGame();
     const decision = drawGuessEngine.decide(
       session.state,
-      { type: 'drawguess.game.returnToLobby' },
+      {
+        type: 'drawguess.game.restart',
+        gameSequence: session.state.gameSequence,
+        expectedPhase: 'ended',
+      },
       {
         actor: { kind: 'user', userId: 'host' },
         controlledSeat: null,
@@ -990,7 +1004,11 @@ describe('DrawGuess abort', () => {
       const before = session.state;
       const effectCount = session.effects.length;
       expect(before.phase.kind).toBe(phase);
-      session.send({ type: 'drawguess.game.abort', gameSequence: before.gameSequence });
+      session.send({
+        type: 'drawguess.game.restart',
+        gameSequence: before.gameSequence,
+        expectedPhase: 'playing',
+      });
       expect(session.state).toMatchObject({
         phase: { kind: 'lobby' },
         phaseRevision: before.phaseRevision + 1,
@@ -1018,17 +1036,27 @@ describe('DrawGuess abort', () => {
     session.send({ type: 'room.seat.leave' });
     session.send({ type: 'room.seat.fillBots' });
     session.send({ type: 'drawguess.game.begin' });
+    const staleGameSequence = session.state.gameSequence;
     expect(session.state.phase).toMatchObject({
       kind: 'wordSelect',
       choices: [],
       deadlineAt: null,
     });
-    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    session.send({
+      type: 'drawguess.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
+    });
     expect(session.state.phase.kind).toBe('lobby');
     expect(isBotSeat(session.state.roster, 0)).toBe(true);
     expect(
       session.decideAs(
-        { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
+        {
+          type: 'drawguess.words.dealt',
+          gameSequence: staleGameSequence,
+          turnIndex: 0,
+          choices: CHOICES,
+        },
         session.systemContext('delayed-words'),
       ),
     ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
@@ -1038,8 +1066,9 @@ describe('DrawGuess abort', () => {
     const session = game();
     session.startGame();
     const command: DrawGuessPublicCommand = {
-      type: 'drawguess.game.abort',
+      type: 'drawguess.game.restart',
       gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
     };
     for (const userId of ['u1', 'spectator'])
       expect(session.decide(command, userId)).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
@@ -1058,12 +1087,16 @@ describe('DrawGuess abort', () => {
     const session = game();
     session.startGame();
     const command: DrawGuessPublicCommand = {
-      type: 'drawguess.game.abort',
+      type: 'drawguess.game.restart',
       gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
     };
     session.send(command);
     session.startGame();
-    expect(session.decide(command)).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
+    expect(session.decide(command)).toEqual({
+      kind: 'reject',
+      reason: DRAWGUESS_REASONS.staleRestart,
+    });
     expect(session.state.phase.kind).toBe('wordSelect');
   });
 
@@ -1084,7 +1117,11 @@ describe('DrawGuess abort', () => {
       byteLength: 1234,
       sha256: 'aborted-drawing',
     };
-    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    session.send({
+      type: 'drawguess.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
+    });
     expect(session.decideAs(command, session.systemContext('delayed-upload'))).toEqual({
       kind: 'reject',
       reason: DRAWGUESS_REASONS.stale,
@@ -1096,8 +1133,9 @@ describe('DrawGuess abort', () => {
     const session = game();
     session.startGame();
     const command: DrawGuessPublicCommand = {
-      type: 'drawguess.game.abort',
+      type: 'drawguess.game.restart',
       gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
     };
     session.chooseFirstWord(0);
     session.send({
@@ -1113,8 +1151,12 @@ describe('DrawGuess abort', () => {
   it('rejects aborts in the lobby and after normal completion', () => {
     const session = game();
     expect(
-      session.decide({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence }),
-    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+      session.decide({
+        type: 'drawguess.game.restart',
+        gameSequence: session.state.gameSequence,
+        expectedPhase: 'playing',
+      }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.staleRestart });
     session.startGame();
     const totalTurns = session.state.config.numberOfPlayers * session.state.config.roundsPerDrawer;
     for (let turnIndex = 0; turnIndex < totalTurns; turnIndex += 1) {
@@ -1124,14 +1166,19 @@ describe('DrawGuess abort', () => {
       if (session.state.phase.kind === 'wordSelect')
         session.sendInternal({
           type: 'drawguess.words.dealt',
+          gameSequence: session.state.gameSequence,
           turnIndex: session.state.turnIndex,
           choices: CHOICES,
         });
     }
     expect(session.state.phase.kind).toBe('ended');
     expect(
-      session.decide({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence }),
-    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.phase });
+      session.decide({
+        type: 'drawguess.game.restart',
+        gameSequence: session.state.gameSequence,
+        expectedPhase: 'playing',
+      }),
+    ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.staleRestart });
     expect(
       session.effects.filter((effect) => effect.type === 'drawguess.game.completed'),
     ).toHaveLength(1);
@@ -1188,6 +1235,7 @@ describe('DrawGuess turn history', () => {
     if (session.state.phase.kind === 'wordSelect') {
       session.sendInternal({
         type: 'drawguess.words.dealt',
+        gameSequence: session.state.gameSequence,
         turnIndex: session.state.turnIndex,
         choices: CHOICES,
       });
@@ -1400,6 +1448,34 @@ describe('DrawGuess turn history', () => {
     ]);
   });
 
+  it('rejects missing guess metrics and gaps in completed-turn history', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.settleExpired();
+
+    const missingPhaseMetrics = JSON.parse(JSON.stringify(session.state)) as {
+      phase: Record<string, unknown>;
+    };
+    delete missingPhaseMetrics.phase['guessAttemptsBySeat'];
+    expect(() => parseDrawGuessState(missingPhaseMetrics)).toThrow('guessAttemptsBySeat');
+
+    closeRoundEnd(session);
+    const missingHistoryMetrics = JSON.parse(JSON.stringify(session.state)) as {
+      turnHistory: Record<string, unknown>[];
+    };
+    const firstTurn = missingHistoryMetrics.turnHistory[0];
+    if (firstTurn === undefined) throw new Error('expected a completed turn');
+    delete firstTurn['guessTimeMsBySeat'];
+    expect(() => parseDrawGuessState(missingHistoryMetrics)).toThrow('guessTimeMsBySeat');
+
+    const historyGap = JSON.parse(JSON.stringify(session.state)) as {
+      turnHistory: Record<string, unknown>[];
+    };
+    historyGap.turnHistory.splice(0, 1);
+    expect(() => parseDrawGuessState(historyGap)).toThrow('turn history');
+  });
+
   it('keeps the running turn out of the history every viewer sees', () => {
     const session = game();
     session.startGame();
@@ -1445,22 +1521,36 @@ describe('DrawGuess turn history', () => {
     session.settleExpired();
     closeRoundEnd(session);
     expect(session.state.turnHistory).toHaveLength(1);
-    session.send({ type: 'drawguess.game.abort', gameSequence: session.state.gameSequence });
+    session.send({
+      type: 'drawguess.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'playing',
+    });
     expect(session.state.phase).toEqual({ kind: 'lobby' });
     expect(session.state.turnHistory).toEqual([]);
   });
 
-  it('clears the history on rematch and on return to lobby', () => {
+  it('clears the history on restart before the next game', () => {
     const session = game();
     session.startGame();
     playToEnd(session);
     expect(session.state.turnHistory).toHaveLength(8);
+    expect(session.decide({ type: 'drawguess.game.begin' }).kind).toBe('reject');
+    session.send({
+      type: 'drawguess.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'ended',
+    });
     session.startGame();
     expect(session.state.phase.kind).toBe('wordSelect');
     expect(session.state.turnHistory).toEqual([]);
     playToEnd(session);
     expect(session.state.turnHistory).toHaveLength(8);
-    session.send({ type: 'drawguess.game.returnToLobby' });
+    session.send({
+      type: 'drawguess.game.restart',
+      gameSequence: session.state.gameSequence,
+      expectedPhase: 'ended',
+    });
     expect(session.state.phase).toEqual({ kind: 'lobby' });
     expect(session.state.turnHistory).toEqual([]);
   });

@@ -1,7 +1,6 @@
 import {
   type GameTemplate,
   WEREWOLF_STATE_CODEC,
-  WEREWOLF_STATE_IDENTITY,
   werewolfEngine,
 } from '../../../games/werewolf/public';
 import { createRoomCommandResult, RoomCommandProtocolError } from '../../protocol/commandResult';
@@ -223,7 +222,7 @@ describe('realtime protocol v3 — server frames', () => {
   it('rejects snapshot identity drift at construction', () => {
     const drifted = {
       ...createSnapshot(4),
-      stateVersion: WEREWOLF_STATE_IDENTITY.stateVersion + 1,
+      gameType: 'spotmatch' as 'werewolf',
     };
 
     expect(() => createSyncSnapshotFrame('req', drifted)).toThrow(

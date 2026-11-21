@@ -2,7 +2,7 @@
 
 import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
-import { applyRosterChanges, isBotSeat } from '../../../platform/room/seating';
+import { applyRosterChanges } from '../../../platform/room/seating';
 import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
@@ -26,6 +26,7 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     phaseRevision: state.phaseRevision + 1,
     roles: {},
     roleViewedSeats: [],
+    reviewCompletedUserIds: [],
     nightInfo: { evilPeers: {}, merlinSees: [], percivalSees: [] },
     leaderSeat: -1,
     rejectStreak: 0,
@@ -34,7 +35,6 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
-    lastLadyCheck: null,
     ladyHistory: [],
     lastVoteResult: null,
     xpSettled: false,
@@ -127,6 +127,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
+    case 'avalon.review.completed':
+      return state.reviewCompletedUserIds.includes(event.userId)
+        ? state
+        : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
     case 'avalon.night.stepped': {
       if (state.phase.kind !== 'night') return state;
       return { ...bumped, phase: { kind: 'night', step: event.step, confirmedSeats: [] } };
@@ -156,6 +160,38 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
     case 'avalon.team.preselected': {
       if (state.phase.kind !== 'nominate') return state;
       return { ...bumped, phase: { ...state.phase, preselectedSeats: [...event.seats] } };
+    }
+    case 'avalon.team.autoApproved': {
+      if (state.phase.kind !== 'nominate') return state;
+      const result: AvalonLastVoteResult = {
+        approved: true,
+        automatic: true,
+        rejectStreak: 0,
+        ballots: {},
+        approveCount: 0,
+        rejectCount: 0,
+        abstainCount: 0,
+      };
+      return {
+        ...bumped,
+        phase: {
+          kind: 'voteResult',
+          round: state.phase.round,
+          proposedSeats: [...event.seats],
+          deadlineAt: null,
+        },
+        lastVoteResult: result,
+        roundHistory: appendAvalonProposalRecord(state.roundHistory, state.phase.round, {
+          leaderSeat: state.leaderSeat,
+          teamSeats: [...event.seats],
+          approved: true,
+          automatic: true,
+          ballots: {},
+          approveCount: 0,
+          rejectCount: 0,
+          abstainCount: 0,
+        }),
+      };
     }
     case 'avalon.team.proposed': {
       if (state.phase.kind !== 'nominate') return state;
@@ -188,6 +224,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       // 投票结算面板（设计稿 §7）：三种路径都写入，展示后随下一阶段推进。
       const lastVoteResult: AvalonLastVoteResult = {
         approved: event.approved,
+        automatic: false,
         rejectStreak: event.approved ? 0 : state.rejectStreak + 1,
         ballots: { ...event.ballots },
         approveCount: event.approveCount,
@@ -204,6 +241,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         rejectCount: event.rejectCount,
         abstainCount: event.abstainCount,
         approved: event.approved,
+        automatic: false,
       });
       return {
         ...bumped,
@@ -211,39 +249,19 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'voteResult',
           round: state.phase.round,
           proposedSeats: [...state.phase.proposedSeats],
-          confirmedSeats: Object.keys(state.roster)
-            .map(Number)
-            .filter((seat) => isBotSeat(state.roster, seat)),
+          deadlineAt: null,
         },
         lastVoteResult,
         roundHistory,
       };
     }
-    case 'avalon.voteResult.confirmed': {
-      if (state.phase.kind !== 'voteResult') return state;
-      return {
-        ...bumped,
-        phase: {
-          ...state.phase,
-          confirmedSeats: [...state.phase.confirmedSeats, event.seat],
-        },
-      };
+    case 'avalon.result.countdownStarted': {
+      if (state.phase.kind !== 'voteResult' && state.phase.kind !== 'questResult') return state;
+      return { ...bumped, phase: { ...state.phase, deadlineAt: event.deadlineAt } };
     }
     case 'avalon.voteResult.completed': {
       if (state.phase.kind !== 'voteResult' || state.lastVoteResult === null) return state;
       const lastVoteResult = state.lastVoteResult;
-      if (!lastVoteResult.approved && lastVoteResult.rejectStreak >= state.config.vetoLimit) {
-        return {
-          ...bumped,
-          phase: {
-            kind: 'ended',
-            winner: 'evil',
-            reason: 'vetoLimitReached',
-            accusedSeat: null,
-          },
-          xpSettled: true,
-        };
-      }
       if (lastVoteResult.approved) {
         return {
           ...bumped,
@@ -257,6 +275,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
             approveCount: lastVoteResult.approveCount,
             rejectCount: lastVoteResult.rejectCount,
             abstainCount: lastVoteResult.abstainCount,
+            automatic: lastVoteResult.automatic,
           },
           rejectStreak: 0,
         };
@@ -288,9 +307,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       if (state.phase.kind !== 'quest') return state;
       const questResults = [...state.questResults, event.result];
       const questHistory = [...state.questHistory, event.historyEntry];
-      const successes = questResults.filter((result) => result === 'success').length;
-      const failures = questResults.filter((result) => result === 'fail').length;
-      const settled = {
+      return {
         ...bumped,
         questResults,
         questHistory,
@@ -300,13 +317,20 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           successCount: event.successCount,
           failCount: event.failCount,
         }),
+        phase: { kind: 'questResult', round: event.round, deadlineAt: null },
       };
+    }
+    case 'avalon.questResult.completed': {
+      if (state.phase.kind !== 'questResult') return state;
+      const round = state.phase.round;
+      const successes = state.questResults.filter((result) => result === 'success').length;
+      const failures = state.questResults.filter((result) => result === 'fail').length;
       if (successes >= AVALON_QUESTS_TO_WIN) {
-        return { ...settled, phase: { kind: 'assassin', accusedSeat: null } };
+        return { ...bumped, phase: { kind: 'assassin', accusedSeat: null } };
       }
       if (failures >= AVALON_QUESTS_TO_WIN) {
         return {
-          ...settled,
+          ...bumped,
           phase: { kind: 'ended', winner: 'evil', reason: 'threeFail', accusedSeat: null },
           xpSettled: true,
         };
@@ -314,25 +338,25 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       // 9/10 人局第 2/3/4 轮任务结算后进入湖仙查验（§2.3）。
       if (
         state.config.numberOfPlayers >= AVALON_LADY_MIN_PLAYERS &&
-        isLadyRound(event.round) &&
+        isLadyRound(round) &&
         state.ladyHolderSeat !== null
       ) {
         return {
-          ...settled,
+          ...bumped,
           phase: {
             kind: 'lady',
-            afterRound: event.round,
+            afterRound: round,
             holderSeat: state.ladyHolderSeat,
             examinedSeats: [...state.ladyExaminedSeats],
             targetSeat: null,
           },
         };
       }
-      const nextRoundNumber = event.round + 1;
+      const nextRoundNumber = round + 1;
       if (!isAvalonQuestRound(nextRoundNumber)) return state;
       const nextRound = nextRoundNumber;
       return {
-        ...settled,
+        ...bumped,
         phase: {
           kind: 'nominate',
           round: nextRound,
@@ -347,7 +371,6 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       return {
         ...bumped,
         phase: { ...state.phase, targetSeat: event.targetSeat },
-        lastLadyCheck: null,
       };
     }
     case 'avalon.lady.acknowledged': {
@@ -363,13 +386,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         leaderSeat: event.nextLeaderSeat,
         ladyHolderSeat: event.targetSeat,
         ladyExaminedSeats: [...state.ladyExaminedSeats, event.targetSeat],
-        lastLadyCheck: {
-          holderSeat: state.phase.holderSeat,
-          targetSeat: event.targetSeat,
-          faction: event.faction,
-        },
-        // 查验完成才落历史：checked 只选了对象、对方还没确认展示，
-        // 那一刻不写历史，避免把“已选择”写成“已查验”。
+        // Record the handover only after the holder acknowledges the result.
         ladyHistory: [
           ...state.ladyHistory,
           {

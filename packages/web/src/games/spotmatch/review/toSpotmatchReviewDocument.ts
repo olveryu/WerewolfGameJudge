@@ -21,7 +21,6 @@ export function toSpotmatchReviewDocument(input: {
     kicker: `一眼成对 · 第 ${state.gameSequence} 局`,
     fileStem: `spotmatch-${roomCode}-${state.gameSequence}`,
     footer: REVIEW_GENERATED_FOOTER,
-    isAborted: false,
     pages: [
       {
         key: 'result',

@@ -56,7 +56,6 @@ export type StoryRelayEvent =
       readonly gallery: StoryRelayState['gallery'];
     }
   | { readonly type: 'storyrelay.round.completed'; readonly completedAt: number }
-  | { readonly type: 'storyrelay.round.aborted'; readonly abortedAt: number }
   | { readonly type: 'storyrelay.game.returnedToLobby' };
 
 export interface StoryRelaySettleDueEffect {

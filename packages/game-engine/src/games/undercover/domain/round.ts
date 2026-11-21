@@ -31,10 +31,12 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../../platform/room/preparation';
+import { resolveReviewCompletion } from '../../../platform/room/reviewCompletion';
 import { getHumanSeatMap, isRoomFull } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { isValidUndercoverWordPair } from '../state/normalize';
 import {
+  getUndercoverUserSeat,
   getUndercoverViewingParticipants,
   isUndercoverSeat,
   type UndercoverPendingRound,
@@ -266,27 +268,35 @@ export function decideUndercoverRound(
     return decideInternal(state, command, context);
   if (command.type === 'undercover.role.viewed')
     return decideConfirmation(state, command.roundId, context);
+  if (command.type === 'undercover.review.complete') {
+    const completion = resolveReviewCompletion({
+      context,
+      isEnded: state.phase === 'ended',
+      currentIdentity: state.round?.roundId ?? '',
+      expectedIdentity: command.roundId,
+      completedUserIds: state.reviewCompletedUserIds,
+      isEligible: (userId) =>
+        userId === state.hostUserId || getUndercoverUserSeat(state, userId) !== null,
+    });
+    if (completion.kind === 'reject') return reject(completion.reason);
+    return commitUndercover(
+      completion.kind === 'complete'
+        ? [{ type: 'undercover.review.completed', userId: completion.userId }]
+        : [],
+    );
+  }
   const hostActor = resolveHostActorId(context, state.hostUserId);
   if (hostActor.kind === 'rejected') return reject(hostActor.reason);
   if (command.type === 'undercover.roles.assign')
     return state.phase === 'lobby'
       ? decideStart(state, command.shouldAllowRepeated, context)
       : reject(UNDERCOVER_REASONS.phase);
-  if (command.type === 'undercover.game.returnToLobby') {
-    return state.phase === 'ended' ||
-      state.phase === 'aborted' ||
-      state.phase === 'preparationFailed'
-      ? commitUndercover([{ type: 'undercover.game.returnedToLobby' }])
-      : reject(UNDERCOVER_REASONS.phase);
-  }
   if (command.type === 'undercover.game.restart') {
     if (state.phase === 'lobby') return reject(UNDERCOVER_REASONS.phase);
     const currentRoundId =
       state.phase === 'preparing' || state.phase === 'preparationFailed'
         ? state.pendingRound.roundId
-        : state.phase === 'aborted'
-          ? state.abortedRoundId
-          : state.round.roundId;
+        : state.round.roundId;
     if (currentRoundId !== command.roundId || (state.phase === 'ended') !== command.wasEnded)
       return reject(UNDERCOVER_REASONS.round);
     return commitUndercover([{ type: 'undercover.game.returnedToLobby' }]);
@@ -295,11 +305,6 @@ export function decideUndercoverRound(
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
-  if (command.type === 'undercover.game.redeal') {
-    if (state.phase === 'lobby') return reject(UNDERCOVER_REASONS.phase);
-    if ((roundId ?? null) !== command.roundId) return reject(UNDERCOVER_REASONS.round);
-    return decideStart(state, false, context);
-  }
   if (roundId !== command.roundId) return reject(UNDERCOVER_REASONS.round);
   switch (command.type) {
     case 'undercover.game.begin': {
@@ -345,12 +350,9 @@ export function decideUndercoverRound(
             commit: commitUndercover,
           })
         : reject(UNDERCOVER_REASONS.phase);
-    case 'undercover.game.abort':
-      return state.phase === 'preparing' ||
-        state.phase === 'preparationFailed' ||
-        state.phase === 'viewing' ||
-        state.phase === 'ongoing'
-        ? commitUndercover([{ type: 'undercover.round.aborted' }])
+    case 'undercover.round.allowRepeated':
+      return state.phase === 'preparationFailed' && state.failureCode === 'inventoryExhausted'
+        ? decideStart(state, true, context)
         : reject(UNDERCOVER_REASONS.phase);
     case 'undercover.round.reveal':
       return decideRevelation(state, command.seat, context);

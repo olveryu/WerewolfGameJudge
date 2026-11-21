@@ -12,7 +12,6 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/model
 import type { Player } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { werewolfEngine } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 import type { CommandContext } from '@game-judge/game-engine/platform/engine';
 
 // =============================================================================
@@ -35,7 +34,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   }
 
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Unseated,

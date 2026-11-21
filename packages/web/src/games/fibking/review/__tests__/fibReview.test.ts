@@ -58,7 +58,6 @@ describe('fibReview.resolve', () => {
     expect(availability.confirmation).toBeNull();
     expect(availability.document).toMatchObject({
       roundKey: state.round.roundId,
-      isAborted: false,
     });
     expect(() => assertReviewDocument(availability.document)).not.toThrow();
     // Pure: the same state resolves to a structurally equal result.
@@ -142,7 +141,6 @@ describe('toFibReviewDocument', () => {
       kicker: '💡 本局 · 终局',
       fileStem: 'fibking-4321',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
       pages: [
         {
           key: 'round',
