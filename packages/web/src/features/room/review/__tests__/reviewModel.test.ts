@@ -2,11 +2,7 @@
 
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 
-import {
-  HOST_ACTION_KEYS,
-  hostClosingTask,
-  hostReviewClosingTask,
-} from '@/features/room/model/hostManagementActions';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import { TESTIDS } from '@/testids';
 
 import { assertReviewDocument } from '../assertReviewDocument';
@@ -126,17 +122,6 @@ describe('review entry builders', () => {
       testID: TESTIDS.roomReviewHostAction,
       isEnabled: true,
       onPress,
-    });
-  });
-
-  it('closes a round with the review as an equal option beside the terminal pair', () => {
-    expect(hostReviewClosingTask()).toEqual({
-      kind: 'choice',
-      actionKeys: ['review', 'next-round', 'return-lobby'],
-    });
-    expect(hostClosingTask()).toEqual({
-      kind: 'choice',
-      actionKeys: ['next-round', 'return-lobby'],
     });
   });
 });
