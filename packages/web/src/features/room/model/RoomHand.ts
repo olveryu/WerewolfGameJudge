@@ -128,6 +128,20 @@ function navigationCard(
   };
 }
 
+/**
+ * True while an action reached through an entry owns the in-flight submission.
+ * Sub-hand actions return to the main hand before submitting, so the entry that
+ * opened them is the one visible place to show that submission as busy.
+ */
+export function isSubmissionOwnedBy(
+  submission: { readonly isSubmitting: boolean; readonly pendingActionKey: string | null },
+  actions: readonly RoomAction[],
+): boolean {
+  return (
+    submission.isSubmitting && actions.some((action) => action.key === submission.pendingActionKey)
+  );
+}
+
 /** Every sub-hand action returns to the main hand. */
 function returningToMain(card: RoomHandCard, navigation: RoomHandNavigation): RoomHandCard {
   if (card.state.kind !== 'ready') return card;
@@ -148,21 +162,25 @@ function playerCard(action: RoomPlayerAction): RoomHandCard {
   return actionCard(`action:${action.key}`, action, { isPending: action.isPending });
 }
 
-function groupCard(group: RoomPlayerActionGroup, open: (key: string) => void): RoomHandCard {
+function groupCard(group: RoomPlayerActionGroup, input: RoomHandInput): RoomHandCard {
   const action: RoomAction = {
     key: group.key,
     label: group.label,
     category: 'player',
     icon: group.icon ?? 'sparkles-outline',
     testID: group.testID,
-    state: { kind: 'ready', onPress: () => open(group.key) },
+    state: isSubmissionOwnedBy(input, group.actions)
+      ? { kind: 'busy' }
+      : { kind: 'ready', onPress: () => input.navigation.openGroup(group.key) },
   };
-  return actionCard(`group:${group.key}`, action, {
+  const card = actionCard(`group:${group.key}`, action, {
     isPending: group.isPending,
     containedActionTestIDs: group.actions.flatMap((entry) =>
       entry.testID === undefined ? [] : [entry.testID],
     ),
   });
+  // The group entry navigates; only the actions inside it are commands.
+  return { ...card, actionKey: null };
 }
 
 function configurationCard(open: () => void): RoomHandCard {
@@ -182,7 +200,7 @@ function configurationCard(open: () => void): RoomHandCard {
 function buildMainCards(input: RoomHandInput): RoomHandCard[] {
   const cards = input.playerActions.actions.map(playerCard);
   if (input.playerActions.group !== null) {
-    cards.push(groupCard(input.playerActions.group, input.navigation.openGroup));
+    cards.push(groupCard(input.playerActions.group, input));
   }
   const hostTask = input.hostManagement === null ? null : resolveHostTaskView(input.hostManagement);
   if (input.selectionMode === 'host-task' && hostTask?.body.kind === 'message') {
@@ -228,15 +246,19 @@ function buildMainCards(input: RoomHandInput): RoomHandCard[] {
     const hasPending =
       (input.hostManagement.pendingActionKeys?.length ?? 0) > 0 ||
       input.hostManagement.hasPendingDecision === true;
+    const hostEntry = navigationCard(
+      'room-entry:host',
+      HOST_MANAGEMENT_LABEL,
+      'host',
+      'construct-outline',
+      input.navigation.openHost,
+      TESTIDS.roomMoreActionsButton,
+    );
     cards.push({
-      ...navigationCard(
-        'room-entry:host',
-        HOST_MANAGEMENT_LABEL,
-        'host',
-        'construct-outline',
-        input.navigation.openHost,
-        TESTIDS.roomMoreActionsButton,
-      ),
+      ...hostEntry,
+      state: isSubmissionOwnedBy(input, input.hostManagement.actions)
+        ? { kind: 'busy' }
+        : hostEntry.state,
       isPending: hasPending,
       accessibleLabel: hasPending ? `${HOST_MANAGEMENT_LABEL}，有待处理操作` : null,
     });

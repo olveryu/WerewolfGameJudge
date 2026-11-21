@@ -16,6 +16,7 @@ export function RoomHandCardButton({
 }) {
   const descriptionId = useId();
   const reason = card.state.kind === 'blocked' ? (card.state.reason ?? '当前暂不可用') : null;
+  const isBusy = card.state.kind === 'busy';
   const description = [card.isPending ? '有待处理操作' : '', reason ?? '']
     .filter(Boolean)
     .join('；');
@@ -29,9 +30,8 @@ export function RoomHandCardButton({
       data-player-action-ids={
         card.containedActionTestIDs.length > 0 ? card.containedActionTestIDs.join(' ') : undefined
       }
-      disabled={card.state.kind === 'busy'}
-      aria-busy={card.state.kind === 'busy'}
-      aria-disabled={reason === null ? undefined : true}
+      aria-busy={isBusy}
+      aria-disabled={reason === null && !isBusy ? undefined : true}
       aria-haspopup={card.opensDialog ? 'dialog' : undefined}
       aria-label={
         card.accessibleLabel ?? (reason !== null || card.isPending ? card.label : undefined)
@@ -42,7 +42,7 @@ export function RoomHandCardButton({
         else if (reason !== null) onBlocked(reason);
       }}
     >
-      {card.state.kind === 'busy' ? (
+      {isBusy ? (
         <Spinner label="提交中" />
       ) : (
         <IonIcon name={reason === null ? card.icon : 'lock-closed-outline'} />

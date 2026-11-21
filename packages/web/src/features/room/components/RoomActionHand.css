@@ -134,11 +134,11 @@
   transform: translateX(-50%);
 }
 
-.room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true']) {
+.room-action-card-cell .room-hand-card[aria-disabled='true'] {
   opacity: 1;
 }
 
-.room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true'])::before {
+.room-action-card-cell .room-hand-card[aria-disabled='true']::before {
   border-color: var(--hand-ink);
   border-style: dashed;
   background:
@@ -156,7 +156,7 @@
     z-index: 100;
   }
 
-  .room-action-card-cell .room-hand-card:not(:disabled):hover {
+  .room-action-card-cell .room-hand-card:not([aria-busy='true']):hover {
     rotate: 0deg;
     translate: 0 calc(-1 * var(--space-medium));
   }
@@ -176,7 +176,7 @@
     --hand-paper: ButtonFace !important;
   }
 
-  .room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true']) {
+  .room-action-card-cell .room-hand-card[aria-disabled='true'] {
     --hand-ink: GrayText !important;
   }
 

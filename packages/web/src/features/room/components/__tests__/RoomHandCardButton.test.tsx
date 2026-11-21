@@ -44,13 +44,20 @@ describe('RoomHandCardButton', () => {
     expect(press).not.toHaveBeenCalled();
   });
 
-  it('uses a native disabled busy control and executes a ready action', async () => {
+  it('keeps a busy card focusable but inert, then executes it once ready', async () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <RoomHandCardButton card={card({ kind: 'busy' })} onBlocked={blocked} />,
     );
-    expect(screen.getByRole('button')).toBeDisabled();
-    expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true');
+    const button = screen.getByRole('button');
+    expect(button).toBeEnabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await user.tab();
+    expect(button).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(press).not.toHaveBeenCalled();
+    expect(blocked).not.toHaveBeenCalled();
     rerender(
       <RoomHandCardButton card={card({ kind: 'ready', onPress: press })} onBlocked={blocked} />,
     );

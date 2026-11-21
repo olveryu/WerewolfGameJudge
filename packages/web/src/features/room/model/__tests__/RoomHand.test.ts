@@ -256,6 +256,45 @@ describe('buildRoomHand', () => {
     expect(hand.cards.find((card) => card.id === 'main-entry:settings')?.state.kind).toBe('ready');
   });
 
+  it('spins the entry whose sub-hand owns the submission and keeps other entries navigable', () => {
+    const base = input();
+    const submitting = (pendingActionKey: string) =>
+      buildRoomHand({
+        ...base,
+        isSubmitting: true,
+        pendingActionKey,
+        playerActions: {
+          ...base.playerActions,
+          actions: [player('direct', { kind: 'ready', onPress: press })],
+          group: {
+            key: 'night-step',
+            label: '女巫行动',
+            audience: 'participant',
+            isPending: false,
+            actions: [
+              player('save', { kind: 'ready', onPress: press }),
+              player('poison', { kind: 'ready', onPress: press }),
+            ],
+          },
+        },
+        hostManagement: {
+          task: null,
+          actions: [host('fill-bots', { kind: 'ready', onPress: press })],
+        },
+      });
+    const entryStates = (pendingActionKey: string) => {
+      const cards = submitting(pendingActionKey).cards;
+      return {
+        group: cards.find((card) => card.id === 'group:night-step')?.state.kind,
+        host: cards.find((card) => card.id === 'room-entry:host')?.state.kind,
+      };
+    };
+
+    expect(entryStates('fill-bots')).toEqual({ group: 'ready', host: 'busy' });
+    expect(entryStates('poison')).toEqual({ group: 'busy', host: 'ready' });
+    expect(entryStates('direct')).toEqual({ group: 'ready', host: 'ready' });
+  });
+
   it('rejects duplicate card identifiers and empty blocked reasons', () => {
     const base = input();
     expect(() =>

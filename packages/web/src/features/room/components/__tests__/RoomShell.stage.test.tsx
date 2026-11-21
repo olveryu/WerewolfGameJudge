@@ -559,13 +559,15 @@ describe('RoomShell stage content', () => {
     expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
   });
 
-  it('uses the action declared for the stage menu abort entry', async () => {
+  it('uses the action declared for the stage menu abort entry and spins the menu while it submits', async () => {
     const user = userEvent.setup();
     const onAbort = vi.fn();
-    render(
+    const shell = (isSubmitting: boolean) => (
       <TestRoomShell
         model={createRoomShellModel(
           shellInput({
+            isSubmitting,
+            pendingActionKey: isSubmitting ? HOST_ACTION_KEYS.restart : null,
             buildHostManagement: () => ({
               task: null,
               actions: [
@@ -587,12 +589,26 @@ describe('RoomShell stage content', () => {
         trailingExtraActions={null}
         actionSurface="menu"
         gameOverlays={null}
-      />,
+      />
     );
+    const { rerender } = render(shell(false));
     await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
     await user.click(screen.getByTestId(TESTIDS.restartButton));
     expect(onAbort).toHaveBeenCalledOnce();
     expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
+
+    rerender(shell(true));
+    const trigger = screen.getByTestId(TESTIDS.roomStageMenuButton);
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-busy', 'true');
+    expect(trigger).toHaveAttribute('aria-disabled', 'true');
+    await user.click(trigger);
+    expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
+
+    rerender(shell(false));
+    expect(trigger).toHaveAttribute('aria-busy', 'false');
+    await user.click(trigger);
+    expect(screen.getByTestId(TESTIDS.restartButton)).toBeInTheDocument();
   });
 
   it('does not reopen the host-management hand when actions become available again', async () => {

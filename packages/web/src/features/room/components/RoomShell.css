@@ -209,7 +209,10 @@
 
 /* Stage content: header host entry, information bar, then the game element filling the rest. */
 .room-header-host-button {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-tight);
   min-height: var(--size-button-sm);
   padding: 0 var(--space-small);
   border: var(--border-width) solid var(--color-primary);
@@ -222,6 +225,15 @@
   font-weight: var(--weight-semibold);
   white-space: nowrap;
   cursor: pointer;
+}
+
+.room-header-host-button .spinner {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.room-header-host-button[aria-busy='true'] {
+  cursor: progress;
 }
 
 .room-stage-column {

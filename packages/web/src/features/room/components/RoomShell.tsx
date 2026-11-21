@@ -5,10 +5,15 @@ import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
+import { Spinner } from '@/components/Spinner';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
 import { useRoomHandNavigation } from '@/features/room/hooks/useRoomHandNavigation';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
-import { buildRoomHand, type RoomHandDirectory } from '@/features/room/model/RoomHand';
+import {
+  buildRoomHand,
+  isSubmissionOwnedBy,
+  type RoomHandDirectory,
+} from '@/features/room/model/RoomHand';
 import { isRoomPlayerActionModelEmpty } from '@/features/room/model/RoomPlayerActions';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { assertRoomStageShellModel, type RoomStageHudModel } from '@/features/room/model/RoomStage';
@@ -236,6 +241,10 @@ export function RoomShell({
       );
     }
   }
+  const isStageMenuBusy =
+    resolvedActionSurface === 'menu' &&
+    hostManagement !== null &&
+    isSubmissionOwnedBy(model, hostManagement.actions);
   useEffect(() => {
     if (navigation.focus === 'stage-menu:trigger') {
       stageMenuEntryRef.current?.focus({ preventScroll: true });
@@ -269,9 +278,12 @@ export function RoomShell({
               type="button"
               className="room-header-host-button"
               aria-expanded={navigation.isMenuOpen}
-              onClick={navigation.openMenu}
+              aria-busy={isStageMenuBusy}
+              aria-disabled={isStageMenuBusy ? true : undefined}
+              onClick={isStageMenuBusy ? undefined : navigation.openMenu}
               data-testid={TESTIDS.roomStageMenuButton}
             >
+              {isStageMenuBusy && <Spinner label="提交中" />}
               菜单
             </button>
           )}
