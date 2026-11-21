@@ -1,4 +1,5 @@
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
 import {
   describePhaseDeadlineProtocol,
   type PhaseDeadlineSession,
@@ -9,7 +10,7 @@ import { secrethitlerEngine } from '../engine';
 import { parseSecrethitlerState } from '../state/parseState';
 import { DEFAULT_SECRETHITLER_CONFIG } from '../state/types';
 
-function makeSession(): PhaseDeadlineSession {
+function armedVotingSession() {
   const session = createEngineSession(secrethitlerEngine, {
     config: { ...DEFAULT_SECRETHITLER_CONFIG, numberOfPlayers: 5 },
     parse: parseSecrethitlerState,
@@ -38,6 +39,13 @@ function makeSession(): PhaseDeadlineSession {
   );
   for (const seat of session.state.livingSeats)
     session.send({ type: 'secrethitler.government.castVote', vote: 'ja' }, 'host', seat);
+  const armed = session.state.phase;
+  if (armed.kind !== 'voting' || armed.deadlineAt === null) throw new Error('Expected armed vote');
+  return session;
+}
+
+function makeSession(): PhaseDeadlineSession {
+  const session = armedVotingSession();
   const armed = session.state.phase;
   if (armed.kind !== 'voting' || armed.deadlineAt === null) throw new Error('Expected armed vote');
   return {
@@ -71,4 +79,41 @@ describePhaseDeadlineProtocol({
     staleReason: null,
     dispatchAdvances: true,
   },
+});
+
+describe('secrethitler.phase.retrySettle (host self-rescue)', () => {
+  it('allows only the uncontrolled host to settle an overdue public result', () => {
+    const session = armedVotingSession();
+    const voting = session.state.phase;
+    if (voting.kind !== 'voting' || voting.deadlineAt === null)
+      throw new Error('Expected an armed vote');
+    session.setNow(voting.deadlineAt);
+    session.sendAs(
+      { type: 'secrethitler.phase.settleExpired' },
+      session.systemContext('vote-settle'),
+    );
+    const result = session.state.phase;
+    if (result.kind !== 'publicResult' || result.deadlineAt === null)
+      throw new Error('Expected an armed public result');
+
+    const retry = { type: 'secrethitler.phase.retrySettle' } as const;
+    session.setNow(result.deadlineAt - 1);
+    expect(session.decide(retry, 'host')).toEqual({
+      kind: 'reject',
+      reason: SECRETHITLER_REASONS.deadline,
+    });
+
+    session.setNow(result.deadlineAt);
+    expect(session.decide(retry, 'guest')).toEqual({
+      kind: 'reject',
+      reason: SECRETHITLER_REASONS.notHostRetrySettle,
+    });
+    expect(session.decide(retry, 'host', 0)).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+
+    session.send(retry, 'host');
+    expect(session.state.phase.kind).not.toBe('publicResult');
+  });
 });

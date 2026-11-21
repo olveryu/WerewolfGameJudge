@@ -110,12 +110,10 @@ export type AvalonEvent =
       readonly rejectCount: number;
       readonly abstainCount: number;
     }
-  | { readonly type: 'avalon.voteResult.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.result.countdownStarted'; readonly deadlineAt: number }
   | { readonly type: 'avalon.voteResult.completed' }
   | { readonly type: 'avalon.quest.played'; readonly seat: number; readonly play: AvalonPlay }
   | { readonly type: 'avalon.quest.allPlayed'; readonly deadlineAt: number }
-  | { readonly type: 'avalon.questResult.confirmed'; readonly seat: number }
   | { readonly type: 'avalon.questResult.completed' }
   | {
       readonly type: 'avalon.quest.settled';
@@ -129,7 +127,6 @@ export type AvalonEvent =
   | {
       readonly type: 'avalon.lady.acknowledged';
       readonly targetSeat: number;
-      readonly faction: 'good' | 'evil';
       readonly nextRound: AvalonQuestRound;
       readonly nextRequiredSize: number;
       readonly nextLeaderSeat: number;

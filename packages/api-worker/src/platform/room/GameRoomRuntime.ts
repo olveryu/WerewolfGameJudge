@@ -114,23 +114,6 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
           roomId: ctx.id.toString(),
         });
       }
-      const room = this.#roomState.read();
-      const recovery =
-        room === null
-          ? null
-          : (this.#gameModuleResolver(room.gameType).getRecoveryCommand?.(room.state) ?? null);
-      if (room !== null && recovery !== null) {
-        const commandId = `recovery:${room.revision}`;
-        const dispatch = await this.#runPipeline({
-          roomCode: room.roomCode,
-          commandId,
-          actor: { kind: 'system', effectId: commandId },
-          controlledSeat: null,
-          command: recovery,
-        });
-        if (dispatch.kind !== 'decided' || dispatch.result.kind !== 'committed')
-          throw new Error('Unable to recover persisted room phase');
-      }
       await this.#scheduleAlarm();
     });
   }

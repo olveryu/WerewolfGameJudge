@@ -13,7 +13,6 @@ export function evolveUndercoverState(
 ): UndercoverState {
   const base = {
     gameType: state.gameType,
-    stateVersion: state.stateVersion,
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     config: state.config,
@@ -70,15 +69,6 @@ export function evolveUndercoverState(
       return event.winner === null
         ? { ...base, phase: 'ongoing', round }
         : { ...base, phase: 'ended', round, winner: event.winner };
-    }
-    case 'undercover.round.aborted': {
-      if (state.phase === 'lobby' || state.phase === 'ended' || state.phase === 'aborted')
-        throw new Error('Expected active Undercover state');
-      const abortedRoundId =
-        state.phase === 'preparing' || state.phase === 'preparationFailed'
-          ? state.pendingRound.roundId
-          : state.round.roundId;
-      return { ...base, phase: 'aborted', round: state.round, abortedRoundId };
     }
     case 'undercover.game.returnedToLobby':
       return { ...base, reviewCompletedUserIds: [], phase: 'lobby', round: null };

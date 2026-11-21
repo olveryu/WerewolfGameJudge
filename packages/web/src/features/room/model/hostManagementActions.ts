@@ -18,15 +18,6 @@ import type {
   RoomHostTaskStep,
 } from './RoomHostManagement';
 
-/**
- * Variant of the two terminal (closing) actions — 再来一局 and
- * 返回大厅. Single source: the shared builders below read it, and
- * every surface that re-presents the same actions (the werewolf
- * bottom panel's closing row) reads it too, instead of restating
- * the literal.
- */
-export const TERMINAL_ACTION_VARIANT = 'danger' as const;
-
 interface ActionInput {
   readonly onPress: () => void;
   readonly isEnabled?: boolean;
@@ -127,40 +118,19 @@ export function buildAssignRolesAction(input: ActionInput): RoomHostManagementAc
   );
 }
 
-/** "重新开始" — in-game redeal in place (the round restarts with fresh deals, seats and settings kept). */
-export function buildRestartGameAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'restart',
-    '重新开始',
-    'refresh-outline',
-    'secondary',
-    TESTIDS.restartButton,
-    input,
-  );
-}
-
 /** Reset the current round to preparation without starting another round. */
 export function buildResetToLobbyAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'restart',
-    '重新开始',
-    'refresh-outline',
-    'danger',
-    TESTIDS.restartButton,
-    input,
-  );
-}
-
-/** "中止本局" — danger action: discard the current game without a redeal. */
-export function buildAbortGameAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'abort-game',
-    '中止本局',
-    'stop-circle-outline',
-    'danger',
-    TESTIDS.abortGameButton,
-    input,
-  );
+  return {
+    ...buildAction(
+      'restart',
+      '重新开始',
+      'refresh-outline',
+      'danger',
+      TESTIDS.restartButton,
+      input,
+    ),
+    stageMenuRole: 'abort',
+  };
 }
 
 /**
@@ -249,30 +219,6 @@ export function createViewingBeginGate(input: ViewingBeginGateInput): ViewingBeg
   };
 }
 
-/** "再来一局" — danger terminal action; the game's confirm copy stays in onPress. */
-export function buildNextRoundAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'next-round',
-    '再来一局',
-    'play-forward-outline',
-    TERMINAL_ACTION_VARIANT,
-    TESTIDS.nextRoundButton,
-    input,
-  );
-}
-
-/** "返回大厅" — danger terminal action; the game's confirm copy stays in onPress. */
-export function buildReturnLobbyAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'return-lobby',
-    '返回大厅',
-    'return-down-back-outline',
-    TERMINAL_ACTION_VARIANT,
-    TESTIDS.returnLobbyButton,
-    input,
-  );
-}
-
 /** "填充机器人" — secondary action for filling empty seats with bots. */
 export function buildFillBotsAction(input: ActionInput): RoomHostManagementAction {
   return buildAction(
@@ -316,26 +262,32 @@ export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAct
 
 /** "房间设置" — secondary action for opening room settings. */
 export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    'configure-game',
-    '房间设置',
-    'options-outline',
-    'secondary',
-    TESTIDS.roomSettingsButton,
-    input,
-  );
+  return {
+    ...buildAction(
+      'configure-game',
+      '房间设置',
+      'options-outline',
+      'secondary',
+      TESTIDS.roomSettingsButton,
+      input,
+    ),
+    closeManagementOnPress: false,
+  };
 }
 
 /** "音乐设置" — tools-section entry; each game decides when it is offered. */
 export function buildMusicSettingsAction(input: ActionInput): RoomHostManagementAction {
-  return buildAction(
-    HOST_ACTION_KEYS.musicSettings,
-    '音乐设置',
-    'musical-notes-outline',
-    'secondary',
-    TESTIDS.roomMusicSettingsButton,
-    input,
-  );
+  return {
+    ...buildAction(
+      HOST_ACTION_KEYS.musicSettings,
+      '音乐设置',
+      'musical-notes-outline',
+      'secondary',
+      TESTIDS.roomMusicSettingsButton,
+      input,
+    ),
+    closeManagementOnPress: false,
+  };
 }
 
 /** Canonical sheet keys referenced by host tasks across games. */
@@ -343,7 +295,6 @@ export const HOST_ACTION_KEYS = {
   startGame: 'start-game',
   assignRoles: 'assign-roles',
   restart: 'restart',
-  abortGame: 'abort-game',
   nextRound: 'next-round',
   returnLobby: 'return-lobby',
   fillBots: 'fill-bots',
@@ -367,6 +318,7 @@ export function buildShareRoomAction(canShareRoom: RoomCapability): RoomHostMana
         icon: 'share-social-outline',
         variant: 'secondary',
         testID: TESTIDS.roomShareHostActionButton,
+        placement: 'room-entry',
         isEnabled: true,
         onPress: canShareRoom.execute,
       }
@@ -376,6 +328,7 @@ export function buildShareRoomAction(canShareRoom: RoomCapability): RoomHostMana
         icon: 'share-social-outline',
         variant: 'secondary',
         testID: TESTIDS.roomShareHostActionButton,
+        placement: 'room-entry',
         isEnabled: false,
         disabledReason: canShareRoom.reason,
       };

@@ -34,6 +34,14 @@ const BLOCKED_SEER: WerewolfRoomMockOptions = {
   gameStateOverrides: BLOCKED_AT_SEAT_0,
 };
 
+const BLOCKED_WITCH: WerewolfRoomMockOptions = {
+  ...actorStep('witchAction', 'witch', 0),
+  gameStateOverrides: {
+    ...BLOCKED_AT_SEAT_0,
+    witchContext: { killedSeat: 2, canSave: true, canPoison: true },
+  },
+};
+
 function confirmMockOptions(
   role: 'hunter' | 'darkWolfKing',
   isBlocked: boolean,
@@ -76,6 +84,16 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     expect(harness.events()).toEqual([]);
     await pressText(view, '确认跳过');
     expect(harness.getLastEvent()?.buttons).toEqual(['取消', '确定']);
+  });
+
+  it('does not expose the witch target or potions while Nightmare blocks the action', async () => {
+    const view = await mountRoomFor(BLOCKED_WITCH);
+
+    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(BLOCKED_UI_DEFAULTS.message);
+    await openNightActionGroup(view);
+
+    expect(view.queryByTestId(TESTIDS.werewolfNightButton('save'))).toBeNull();
+    expect(view.queryByText(/对3号用解药|用毒药/)).toBeNull();
   });
 
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {

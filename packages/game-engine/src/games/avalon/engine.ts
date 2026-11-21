@@ -10,7 +10,6 @@ import {
   reject,
   requireHost,
 } from '../../platform/engine';
-import { REASON_SYSTEM_ACTOR_REQUIRED } from '../../platform/protocol/reasons';
 import { randomIntInclusive } from '../../platform/random';
 import { resolveActingSeat } from '../../platform/room/actingSeat';
 import {
@@ -69,13 +68,11 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './state/types';
-import { AVALON_STATE_VERSION } from './state/version';
 
 function createInitialState(config: AvalonConfig, context: CreateGameContext): AvalonState {
   if (!isValidAvalonConfig(config)) throw new Error(AVALON_REASONS.config);
   return normalizeAvalonState({
     gameType: AVALON_GAME_TYPE,
-    stateVersion: AVALON_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -92,7 +89,6 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
-    lastLadyCheck: null,
     ladyHistory: [],
     lastVoteResult: null,
     gameSequence: 0,
@@ -679,8 +675,6 @@ function acknowledgeLady(state: AvalonState, context: CommandContext): AvalonDec
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   if (resolved.value !== state.phase.holderSeat) return reject(AVALON_REASONS.notLadyHolder);
-  const role = state.roles[targetSeat];
-  if (role === undefined) return reject(AVALON_REASONS.phase);
   const count = state.config.numberOfPlayers;
   const nextRoundNumber = state.phase.afterRound + 1;
   if (!isAvalonQuestRound(nextRoundNumber)) return reject(AVALON_REASONS.phase);
@@ -688,7 +682,6 @@ function acknowledgeLady(state: AvalonState, context: CommandContext): AvalonDec
     {
       type: 'avalon.lady.acknowledged',
       targetSeat,
-      faction: isAvalonEvilRole(role) ? 'evil' : 'good',
       nextRound: nextRoundNumber,
       nextRequiredSize: getAvalonQuestSize(count, nextRoundNumber),
       nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
@@ -852,7 +845,7 @@ function decideCommand(
         isEligible: (userId) =>
           userId === state.hostUserId || getAvalonUserSeat(state, userId) !== null,
       });
-      if (completion.kind === 'reject') return reject(AVALON_REASONS.phase);
+      if (completion.kind === 'reject') return reject(completion.reason);
       return commitAvalon(
         completion.kind === 'complete'
           ? [{ type: 'avalon.review.completed', userId: completion.userId }]
@@ -877,14 +870,6 @@ function decideCommand(
       return playQuest(state, command.play, context);
     case 'avalon.phase.settleExpired':
       return timeoutSettle(state, context);
-    case 'avalon.phase.recoverLegacyResult':
-      if (context.actor.kind !== 'system') return reject(REASON_SYSTEM_ACTOR_REQUIRED);
-      if (
-        (state.phase.kind !== 'voteResult' && state.phase.kind !== 'questResult') ||
-        state.phase.deadlineAt !== null
-      )
-        return reject(AVALON_REASONS.phase);
-      return armResultCountdown(state, context, state.phase.kind, state.phase.round);
     case 'avalon.phase.retrySettle': {
       // Host self-rescue (D3 follow-up): re-drives the current phase's
       // settle through the same guard sequence and dispatch as the
@@ -955,7 +940,6 @@ export function getAvalonLifecycle(state: AvalonState): CommonGameLifecycle {
 
 export const avalonEngine = {
   gameType: AVALON_GAME_TYPE,
-  stateVersion: AVALON_STATE_VERSION,
   capabilities: {
     nightPhase: true,
     botsAndTakeover: true,

@@ -2,7 +2,6 @@
 
 import {
   WEREWOLF_STATE_CODEC,
-  WEREWOLF_STATE_VERSION,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
@@ -30,11 +29,6 @@ import type { DispatchRoomResult, InitializeRoomResult } from '../types';
 
 const ROOM_CODE = '1234';
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
-// v5 became a supported migration source with the roster split (v6), so an
-// unsupported version must be one no migration path exists for.
-// Below the oldest migratable werewolf version (v5): no migration
-// path exists, so loading must reject as unsupported.
-const UNSUPPORTED_WEREWOLF_STATE_VERSION = 4;
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();
@@ -154,7 +148,6 @@ describe('GameRoom initialization', () => {
     const state = WEREWOLF_STATE_CODEC.parse(first.snapshot.state);
     expect(state).toMatchObject({
       gameType: 'werewolf',
-      stateVersion: WEREWOLF_STATE_VERSION,
       roomCode: ROOM_CODE,
       hostUserId: 'host-1',
       status: GameStatus.Unseated,
@@ -171,7 +164,7 @@ describe('GameRoom initialization', () => {
       await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('current');
       await expect(initializeRoomStorage(state.storage, Date.now() + 1)).resolves.toBe('current');
       expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 3,
+        version: 4,
       });
     });
   });
@@ -195,7 +188,7 @@ describe('GameRoom initialization', () => {
           .toArray(),
       ).toEqual([]);
       expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 3,
+        version: 4,
       });
     });
   });
@@ -309,7 +302,7 @@ describe('GameRoom initialization', () => {
       state.storage.sql.exec('UPDATE room_schema SET version = 99');
       await expect(initializeRoomStorage(state.storage, Date.now())).resolves.toBe('discarded');
       expect(state.storage.sql.exec('SELECT version FROM room_schema').one()).toEqual({
-        version: 3,
+        version: 4,
       });
     });
   });
@@ -510,7 +503,7 @@ describe('GameRoom command receipts', () => {
         }),
       );
       const room = state.storage.sql
-        .exec('SELECT game_type, state_version, revision FROM room_state WHERE id = 1')
+        .exec('SELECT game_type, revision FROM room_state WHERE id = 1')
         .one();
       const receipt = state.storage.sql
         .exec(
@@ -520,7 +513,6 @@ describe('GameRoom command receipts', () => {
         .one();
       expect(room).toEqual({
         game_type: 'werewolf',
-        state_version: WEREWOLF_STATE_VERSION,
         revision: 2,
       });
       expect(receipt).toEqual({
@@ -558,23 +550,17 @@ describe('GameRoom command receipts', () => {
     expect(participant).toEqual({ user_id: 'host-1' });
   });
 
-  it('authorizes and deletes storage whose game state version is no longer supported', async () => {
+  it('fails fast on invalid persisted state and still authorizes room deletion', async () => {
     const stub = getStub();
     await initialize(stub);
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec(
-        `UPDATE room_state
-        SET state_version = ?, game_state = json_set(game_state, '$.stateVersion', ?)
-        WHERE id = 1`,
-        UNSUPPORTED_WEREWOLF_STATE_VERSION,
-        UNSUPPORTED_WEREWOLF_STATE_VERSION,
+        `UPDATE room_state SET game_state = json_remove(game_state, '$.status') WHERE id = 1`,
       );
     });
 
     await runInDurableObject(stub, async (instance: GameRoom) => {
-      await expect(instance.getSnapshot(roomIdentity(stub))).rejects.toThrow(
-        `Unsupported werewolf state version: ${UNSUPPORTED_WEREWOLF_STATE_VERSION}`,
-      );
+      await expect(instance.getSnapshot(roomIdentity(stub))).rejects.toThrow('GameState.status');
       await expect(
         instance.authorizeRoomDeletion({
           ...roomIdentity(stub, 'wrong-creation'),

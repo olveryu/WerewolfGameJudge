@@ -35,7 +35,6 @@ function resetAvalonGame(state: AvalonState): AvalonState {
     roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
-    lastLadyCheck: null,
     ladyHistory: [],
     lastVoteResult: null,
     xpSettled: false,
@@ -179,7 +178,6 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'voteResult',
           round: state.phase.round,
           proposedSeats: [...event.seats],
-          confirmedSeats: [],
           deadlineAt: null,
         },
         lastVoteResult: result,
@@ -251,21 +249,10 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           kind: 'voteResult',
           round: state.phase.round,
           proposedSeats: [...state.phase.proposedSeats],
-          confirmedSeats: [],
           deadlineAt: null,
         },
         lastVoteResult,
         roundHistory,
-      };
-    }
-    case 'avalon.voteResult.confirmed': {
-      if (state.phase.kind !== 'voteResult') return state;
-      return {
-        ...bumped,
-        phase: {
-          ...state.phase,
-          confirmedSeats: [...state.phase.confirmedSeats, event.seat],
-        },
       };
     }
     case 'avalon.result.countdownStarted': {
@@ -302,8 +289,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           preselectedSeats: [],
         },
         leaderSeat: nextAvalonLeaderSeat(state.leaderSeat, state.config.numberOfPlayers),
-        // A migrated legacy final vote may already have rejected the last slot.
-        rejectStreak: Math.min(state.rejectStreak + 1, state.config.vetoLimit - 1),
+        rejectStreak: state.rejectStreak + 1,
       };
     }
     case 'avalon.quest.allPlayed': {
@@ -331,14 +317,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
           successCount: event.successCount,
           failCount: event.failCount,
         }),
-        phase: { kind: 'questResult', round: event.round, confirmedSeats: [], deadlineAt: null },
-      };
-    }
-    case 'avalon.questResult.confirmed': {
-      if (state.phase.kind !== 'questResult') return state;
-      return {
-        ...bumped,
-        phase: { ...state.phase, confirmedSeats: [...state.phase.confirmedSeats, event.seat] },
+        phase: { kind: 'questResult', round: event.round, deadlineAt: null },
       };
     }
     case 'avalon.questResult.completed': {
@@ -392,7 +371,6 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       return {
         ...bumped,
         phase: { ...state.phase, targetSeat: event.targetSeat },
-        lastLadyCheck: null,
       };
     }
     case 'avalon.lady.acknowledged': {
@@ -408,11 +386,6 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
         leaderSeat: event.nextLeaderSeat,
         ladyHolderSeat: event.targetSeat,
         ladyExaminedSeats: [...state.ladyExaminedSeats, event.targetSeat],
-        lastLadyCheck: {
-          holderSeat: state.phase.holderSeat,
-          targetSeat: event.targetSeat,
-          faction: event.faction,
-        },
         // Record the handover only after the holder acknowledges the result.
         ladyHistory: [
           ...state.ladyHistory,

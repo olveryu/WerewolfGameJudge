@@ -8,6 +8,7 @@ import { resolveActingSeat } from '../../../platform/room/actingSeat';
 import {
   buildSettleDueEffect,
   guardPhaseExpiry,
+  type PhaseExpiryActorChannel,
   rejectIfPastDeadline,
 } from '../../../platform/room/phaseDeadline';
 import { getHumanSeatMap } from '../../../platform/room/seating';
@@ -245,24 +246,21 @@ function chaosPolicy(
   state: SecrethitlerState,
   context: CommandContext,
   returnToSeat: number | null,
-  revealedPolicy: SecrethitlerPolicy,
+  preview: ChaosPolicyPreview,
   history = state.history,
   policyDiscardOverride = state.policyDiscard,
 ): SecrethitlerDecision {
   let deck = [...state.policyDeck];
   let discard = [...policyDiscardOverride];
   if (deck.length === 0) {
-    deck = shuffleArray(
-      discard,
-      createSeededRng(`${context.randomSeed}:secrethitler-chaos-reshuffle`),
-    );
-    const revealedIndex = deck.indexOf(revealedPolicy);
-    if (revealedIndex < 0) throw new Error('Secret Hitler chaos result not in discard');
-    deck.splice(revealedIndex, 1);
-    deck.unshift(revealedPolicy);
+    if (preview.reshuffledDeck === null)
+      throw new Error('Secret Hitler chaos reshuffle was not persisted');
+    deck = [...preview.reshuffledDeck];
     discard = [];
+  } else if (preview.reshuffledDeck !== null) {
+    throw new Error('Secret Hitler chaos reshuffle no longer matches the policy deck');
   }
-  if (deck[0] !== revealedPolicy) throw new Error('Secret Hitler chaos result changed');
+  if (deck[0] !== preview.policy) throw new Error('Secret Hitler chaos result changed');
   const policy = deck.shift();
   if (policy === undefined) throw new Error('Secret Hitler chaos policy deck exhausted');
   const liberalPolicies = state.liberalPolicies + (policy === 'liberal' ? 1 : 0);
@@ -470,7 +468,7 @@ function decideVote(
 function settleVote(
   state: SecrethitlerState,
   context: CommandContext,
-  revealedPolicy: SecrethitlerPolicy | null,
+  chaosPreview: ChaosPolicyPreview | null,
 ): SecrethitlerDecision {
   if (state.phase.kind !== 'voting') return reject(SECRETHITLER_REASONS.phase);
   const votes = state.phase.votes;
@@ -491,8 +489,8 @@ function settleVote(
   if (!passed) {
     const tracker = state.electionTracker + 1;
     if (tracker >= 3) {
-      if (revealedPolicy === null) throw new Error('Missing Secret Hitler chaos result');
-      return chaosPolicy(state, context, state.phase.returnToSeat, revealedPolicy, history);
+      if (chaosPreview === null) throw new Error('Missing Secret Hitler chaos result');
+      return chaosPolicy(state, context, state.phase.returnToSeat, chaosPreview, history);
     }
     const { nextSeat } = nextElectionAfterGovernment(
       state,
@@ -542,13 +540,17 @@ function settleVote(
   });
 }
 
-function decideVoteExpiry(state: SecrethitlerState, context: CommandContext): SecrethitlerDecision {
+function decideVoteExpiry(
+  state: SecrethitlerState,
+  context: CommandContext,
+  actorChannel: PhaseExpiryActorChannel = 'system',
+): SecrethitlerDecision {
   return guardPhaseExpiry(context, {
     phaseRejection:
       state.phase.kind === 'voting' || state.phase.kind === 'publicResult'
         ? null
         : reject(SECRETHITLER_REASONS.phase),
-    actorChannel: 'system',
+    actorChannel,
     deadlineAt:
       state.phase.kind === 'voting' || state.phase.kind === 'publicResult'
         ? state.phase.deadlineAt
@@ -572,11 +574,24 @@ function decideVoteExpiry(state: SecrethitlerState, context: CommandContext): Se
   });
 }
 
+function decideRetrySettle(
+  state: SecrethitlerState,
+  context: CommandContext,
+): SecrethitlerDecision {
+  const hostRejection = requireHost<SecrethitlerEvent, SecrethitlerEffect>(
+    context,
+    state.hostUserId,
+    SECRETHITLER_REASONS.notHostRetrySettle,
+  );
+  if (hostRejection !== null) return hostRejection;
+  return decideVoteExpiry(state, context, 'uncontrolledUser');
+}
+
 function peekChaosPolicy(
   state: SecrethitlerState,
   context: CommandContext,
   discard: readonly SecrethitlerPolicy[] = state.policyDiscard,
-): SecrethitlerPolicy {
+): ChaosPolicyPreview {
   const deck =
     state.policyDeck.length > 0
       ? state.policyDeck
@@ -586,7 +601,15 @@ function peekChaosPolicy(
         );
   const policy = deck[0];
   if (policy === undefined) throw new Error('Secret Hitler chaos policy deck exhausted');
-  return policy;
+  return {
+    policy,
+    reshuffledDeck: state.policyDeck.length > 0 ? null : deck,
+  };
+}
+
+interface ChaosPolicyPreview {
+  readonly policy: SecrethitlerPolicy;
+  readonly reshuffledDeck: readonly SecrethitlerPolicy[] | null;
 }
 
 function publicResult(
@@ -594,7 +617,7 @@ function publicResult(
   context: CommandContext,
   policy: SecrethitlerPolicy | null,
   vetoApproved: boolean | null,
-  chaosPolicy: SecrethitlerPolicy | null,
+  chaosPreview: ChaosPolicyPreview | null,
 ): SecrethitlerDecision {
   const previous = state.phase;
   if (
@@ -626,7 +649,8 @@ function publicResult(
         previous,
         policy,
         vetoApproved,
-        chaosPolicy,
+        chaosPolicy: chaosPreview?.policy ?? null,
+        chaosPolicyDeck: chaosPreview?.reshuffledDeck ?? null,
         deadlineAt,
       },
     },
@@ -720,18 +744,18 @@ function decideVetoRespond(
   if (state.phase.kind !== 'vetoResponse') return reject(SECRETHITLER_REASONS.phase);
   const president = requireCurrentPresident(state, context, state.phase.presidentSeat);
   if (typeof president !== 'number') return president;
-  const chaos =
+  const chaosPreview =
     command.approve && state.electionTracker === 2
       ? peekChaosPolicy(state, context, [...state.policyDiscard, ...state.phase.hand])
       : null;
-  return publicResult(state, context, null, command.approve, chaos);
+  return publicResult(state, context, null, command.approve, chaosPreview);
 }
 
 function resolveVeto(
   state: SecrethitlerState,
   approve: boolean,
   context: CommandContext,
-  revealedPolicy: SecrethitlerPolicy | null,
+  chaosPreview: ChaosPolicyPreview | null,
 ): SecrethitlerDecision {
   if (state.phase.kind !== 'vetoResponse') return reject(SECRETHITLER_REASONS.phase);
   if (!approve)
@@ -749,12 +773,12 @@ function resolveVeto(
   const history = state.history;
   const policyDiscard = [...state.policyDiscard, ...state.phase.hand];
   if (electionTracker >= 3) {
-    if (revealedPolicy === null) throw new Error('Missing Secret Hitler chaos result');
+    if (chaosPreview === null) throw new Error('Missing Secret Hitler chaos result');
     return chaosPolicy(
       state,
       context,
       state.phase.returnToSeat,
-      revealedPolicy,
+      chaosPreview,
       history,
       policyDiscard,
     );
@@ -784,11 +808,15 @@ function finishPublicResult(
   const phase = state.phase;
   if (phase.kind !== 'publicResult') return reject(SECRETHITLER_REASONS.phase);
   const resumed = { ...state, phase: phase.previous };
-  if (phase.previous.kind === 'voting') return settleVote(resumed, context, phase.chaosPolicy);
+  const chaosPreview =
+    phase.chaosPolicy === null
+      ? null
+      : { policy: phase.chaosPolicy, reshuffledDeck: phase.chaosPolicyDeck };
+  if (phase.previous.kind === 'voting') return settleVote(resumed, context, chaosPreview);
   if (phase.previous.kind === 'legislativeChancellor' && phase.policy !== null)
     return enactPolicy(resumed, phase.policy, context);
   if (phase.previous.kind === 'vetoResponse' && phase.vetoApproved !== null)
-    return resolveVeto(resumed, phase.vetoApproved, context, phase.chaosPolicy);
+    return resolveVeto(resumed, phase.vetoApproved, context, chaosPreview);
   throw new Error('Invalid Secret Hitler result continuation');
 }
 
@@ -986,6 +1014,8 @@ export function decideSecrethitlerGameplay(
       return decideVote(state, command, context);
     case 'secrethitler.phase.settleExpired':
       return decideVoteExpiry(state, context);
+    case 'secrethitler.phase.retrySettle':
+      return decideRetrySettle(state, context);
     case 'secrethitler.policy.presidentDiscard':
       return decidePresidentDiscard(state, command, context);
     case 'secrethitler.policy.chancellorResolve':

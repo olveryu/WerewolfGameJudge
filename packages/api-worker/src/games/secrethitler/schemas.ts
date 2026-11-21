@@ -31,6 +31,7 @@ const secrethitlerPublicCommandOptions = definePublicCommandOptions<Secrethitler
     type: z.literal('secrethitler.review.complete'),
     gameSequence: z.number().int().nonnegative(),
   }),
+  z.strictObject({ type: z.literal('secrethitler.phase.retrySettle') }),
   z.strictObject({
     type: z.literal('secrethitler.game.restart'),
     gameSequence: z.number().int().nonnegative(),

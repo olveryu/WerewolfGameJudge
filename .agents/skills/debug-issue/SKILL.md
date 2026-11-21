@@ -57,7 +57,7 @@ Never use dynamic diagnosis when static analysis can locate the issue.
 3. Check recent changes for the touched paths.
 4. Start from the first-check paths in `references/first-check-map.md` for the classified branch.
 5. Pointers, one line each (detail lives in `references/session-link-audio.md`):
-   - State identity: see `references/session-link-audio.md` (per-game state versions and migration entry points).
+   - State identity: see `references/session-link-audio.md` (game identity, state parser, and codec).
    - Realtime link: see `references/session-link-audio.md` (link modules, snapshot phases, and dispatch outcomes).
    - Audio-playback lock: see `references/session-link-audio.md` (the one lock predicate and combinator).
 

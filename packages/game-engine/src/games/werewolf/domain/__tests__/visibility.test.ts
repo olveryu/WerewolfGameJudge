@@ -12,7 +12,6 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
 import {
   createTemplateFromRoles,
   GameStatus,
@@ -93,7 +92,7 @@ function createState(spec: StateSpec): GameState {
   });
 
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host',
     status: spec.status ?? GameStatus.Ongoing,

@@ -16,9 +16,17 @@ import { AvalonResultDialog } from './AvalonResultDialog';
 export function AvalonQuestResultPanel({
   entry,
   remainingSeconds,
+  isOverdue,
+  isHost,
+  isSubmitting,
+  onRetry,
 }: {
   readonly entry: AvalonQuestHistoryView;
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
+  readonly isSubmitting: boolean;
+  readonly onRetry: () => void;
 }) {
   const succeeded = entry.result === 'success';
   return (
@@ -28,6 +36,10 @@ export function AvalonQuestResultPanel({
       outcome={succeeded ? 'positive' : 'negative'}
       kind="quest"
       remainingSeconds={remainingSeconds}
+      isOverdue={isOverdue}
+      isHost={isHost}
+      isSubmitting={isSubmitting}
+      onRetry={onRetry}
     >
       <p className="avalon-result-counts" data-testid={TESTIDS.avalonQuestResultCounts}>
         成功牌 {entry.successCount} · 失败牌 {entry.failCount}

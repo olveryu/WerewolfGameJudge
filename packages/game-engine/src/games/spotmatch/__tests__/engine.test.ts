@@ -3,7 +3,7 @@ import { SPOTMATCH_CARD_TYPES } from '../domain/cards';
 import { SPOTMATCH_REASONS } from '../domain/decision';
 import { projectSpotmatchStateForUser } from '../domain/visibility';
 import { spotmatchEngine } from '../engine';
-import { migratePersistedSpotmatchState, parseSpotmatchState } from '../state/parseState';
+import { parseSpotmatchState } from '../state/parseState';
 import {
   DEFAULT_SPOTMATCH_CONFIG,
   SPOTMATCH_SUCCESS_PAUSE_MS,
@@ -302,12 +302,9 @@ describe('Spotmatch natural completion, privacy and settlement', () => {
     expect(session.state.round!.players.every((player) => player.top !== null)).toBe(true);
   });
 
-  it('round-trips persisted current state and rejects malformed/unsupported states', () => {
+  it('round-trips persisted current state and rejects malformed states', () => {
     const session = game();
-    expect(migratePersistedSpotmatchState(JSON.parse(JSON.stringify(session.state)))).toEqual(
-      session.state,
-    );
-    expect(() => migratePersistedSpotmatchState({ ...session.state, stateVersion: 0 })).toThrow();
+    expect(parseSpotmatchState(JSON.parse(JSON.stringify(session.state)))).toEqual(session.state);
     expect(() => parseSpotmatchState({ ...session.state, unexpected: true })).toThrow();
     expect(() =>
       parseSpotmatchState({
@@ -368,20 +365,5 @@ describe('Spotmatch natural completion, privacy and settlement', () => {
     )!;
     session.expectReject({ ...claim(session.state, 0), symbolId }, SPOTMATCH_REASONS.symbol);
     expect(session.state.round!.players[0]!.mistakes).toBe(0);
-  });
-
-  it('migrates active v1 rooms without losing hands or scores', () => {
-    const session = game();
-    const { success: _success, ...round } = session.state.round!;
-    const legacy = {
-      ...session.state,
-      stateVersion: 1,
-      round: {
-        ...round,
-        players: round.players.map(({ lastMistake: _mistake, ...player }) => player),
-      },
-    };
-    expect(migratePersistedSpotmatchState(legacy)).toEqual(session.state);
-    expect(() => parseSpotmatchState(legacy)).toThrow();
   });
 });

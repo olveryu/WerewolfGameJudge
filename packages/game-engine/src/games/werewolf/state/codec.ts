@@ -3,9 +3,8 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import type { GameState } from '../domain/protocol/types';
 import { parseWerewolfState } from './parseState';
-import { WEREWOLF_STATE_IDENTITY } from './version';
 
 export const WEREWOLF_STATE_CODEC = {
-  ...WEREWOLF_STATE_IDENTITY,
+  gameType: 'werewolf',
   parse: parseWerewolfState,
 } satisfies GameStateCodec<GameState>;

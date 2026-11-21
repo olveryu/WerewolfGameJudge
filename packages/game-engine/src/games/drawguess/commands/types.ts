@@ -58,8 +58,8 @@ export type DrawGuessPublicCommand =
 export type DrawGuessInternalCommand =
   | {
       readonly type: 'drawguess.words.dealt';
-      /** New deliveries pin the game; optional for legacy internal commands. */
-      readonly gameSequence?: number;
+      /** Pins the word delivery to the game that requested it. */
+      readonly gameSequence: number;
       readonly turnIndex: number;
       readonly choices: readonly DrawGuessWordChoice[];
     }

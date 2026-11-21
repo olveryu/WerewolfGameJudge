@@ -261,12 +261,20 @@ async function selectAndSubmitSeats(
       await tile.click({ timeout: CLICK_TIMEOUT_MS });
       await expect(tile).toHaveAttribute('aria-pressed', 'true');
     }
-    const confirmButton = nightButton(page, 'submitSeatSelection');
-    if (await confirmButton.isVisible()) {
-      if (expectedAction !== undefined) await expect(confirmButton).toContainText(expectedAction);
-      await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
-      await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
+    const selectionButton = nightButton(page, 'submitSeatSelection');
+    const confirmationDialog = alertModal(page);
+    await expect
+      .poll(
+        async () => (await selectionButton.isVisible()) || (await confirmationDialog.isVisible()),
+        { timeout: CONFIRM_TIMEOUT_MS },
+      )
+      .toBe(true);
+    if (await selectionButton.isVisible()) {
+      if (expectedAction !== undefined) await expect(selectionButton).toContainText(expectedAction);
+      await expect(selectionButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
+      await selectionButton.click({ timeout: CLICK_TIMEOUT_MS });
     }
+    await expect(confirmationDialog).toBeVisible({ timeout: CONFIRM_TIMEOUT_MS });
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
     await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
       seats.map((seat) => `${seat + 1}号`).join('、'),

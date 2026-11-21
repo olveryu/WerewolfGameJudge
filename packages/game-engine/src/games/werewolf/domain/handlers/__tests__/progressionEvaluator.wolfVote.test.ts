@@ -15,7 +15,6 @@ import type {
   GameState,
   WerewolfHumanSeat,
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
 // Test Helpers
@@ -23,7 +22,7 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 
 function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
   const state: GameState = {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,

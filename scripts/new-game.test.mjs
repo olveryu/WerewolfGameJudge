@@ -187,7 +187,6 @@ function expectedCreatedFiles(gameId, features) {
   const worker = `packages/api-worker/src/games/${gameId}`;
   const client = `packages/web/src/games/${gameId}`;
   const files = [
-    `${engine}/state/version.ts`,
     `${engine}/state/codec.ts`,
     `${engine}/state/types.ts`,
     `${engine}/state/parseState.ts`,
@@ -201,7 +200,7 @@ function expectedCreatedFiles(gameId, features) {
     `${engine}/engine.ts`,
     `${engine}/public.ts`,
     `${engine}/__tests__/engine.test.ts`,
-    `${engine}/__tests__/migration.test.ts`,
+    `${engine}/__tests__/stateParsing.test.ts`,
     `${worker}/schemas.ts`,
     `${worker}/effects.ts`,
     `${worker}/module.ts`,
@@ -768,8 +767,8 @@ for (const scenario of FEATURE_SCENARIOS) {
     // Every generated game wires the review end to end: the module declares the
     // contribution, the room state resolves it through the platform
     // hook, the screen mounts its overlay, and the adapter places the
-    // shared entry on the bottom tier and the host sheet, closing the
-    // ended task with the review beside next round / return to lobby.
+    // shared entry on the bottom tier and the host sheet without
+    // referencing removed terminal actions from the ended task.
     const clientModule = readFixture(root, 'packages/web/src/games/demoproto/module.ts');
     assert.ok(clientModule.includes('review: demoprotoReview,'), 'module declares the review');
     const reviewHook = readFixture(
@@ -793,8 +792,9 @@ for (const scenario of FEATURE_SCENARIOS) {
       ),
     );
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
-    assert.ok(adapterSource.includes('hostReviewClosingTask()'));
-    assert.ok(!adapterSource.includes('hostClosingTask('), 'ended task offers the review');
+    assert.ok(!adapterSource.includes('hostReviewClosingTask()'));
+    assert.ok(adapterSource.includes('task: null,'));
+    assert.ok(adapterSource.includes('pendingActionKeys: [],'));
     if (capabilities.identityViewing) {
       assert.ok(
         adapterSource.includes('resolveHighlight 返回 danger'),

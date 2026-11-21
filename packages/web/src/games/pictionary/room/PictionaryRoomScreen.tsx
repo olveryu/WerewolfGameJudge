@@ -73,7 +73,6 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
   return (
     <RoomShell
       model={screen.shellModel}
-      showPlayerHand
       phaseLabel={isLobby ? '待开局' : null}
       lobbyAction={isLobby ? { label: '开始游戏', occupiedSeats: screen.occupiedSeatCount } : null}
       stageMenu={
@@ -108,7 +107,7 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
             <RoomDialog
               title="你画我猜接龙玩法"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <PictionaryRules embedded />
@@ -118,7 +117,7 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <p>{`你画我猜接龙（${config.numberOfPlayers}人）`}</p>

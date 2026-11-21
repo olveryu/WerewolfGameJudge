@@ -217,7 +217,6 @@ function AvalonRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
-      showPlayerHand
       phaseLabel={
         isLobby
           ? '待开局'
@@ -234,7 +233,7 @@ function AvalonRoomContent(
           ? { label: '分配角色', occupiedSeats: getAvalonOccupiedSeatCount(screen.state) }
           : null
       }
-      isSelecting={screen.seatPicking.isActive}
+      selectionMode={screen.strikePickMode ? 'player' : undefined}
       mainEntries={
         historySummary !== null && viewModel !== null
           ? [
@@ -272,8 +271,8 @@ function AvalonRoomContent(
           : {
               kind: 'seats',
               contextHeader: null,
-              scrollInformationWithSeats: historySummary !== null,
-              summaryAfterMessage: true,
+              informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
+              summaryPresentation: 'after-message',
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
               bottomSummary:
                 historySummary === null || currentStatus === null ? null : (
@@ -320,7 +319,7 @@ function AvalonRoomContent(
             <RoomDialog
               title="阿瓦隆玩法"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <AvalonGuide parentPath={null} />
@@ -330,7 +329,7 @@ function AvalonRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <p>{`阿瓦隆（${config.numberOfPlayers}人）`}</p>
@@ -473,6 +472,9 @@ function AvalonRoomContent(
             shouldPlay={screen.rolePreviewId === null && screen.roleViewing.shouldPlayAnimation}
             allRoles={screen.roleCardAllRoles}
             remainingCards={screen.roleViewing.remainingCards}
+            confirmDisabled={
+              screen.rolePreviewId === null && screen.roleViewing.isConfirmationDisabled
+            }
             requireConfirmation={screen.rolePreviewId === null}
             onClose={() => {
               if (screen.rolePreviewId !== null) screen.setRolePreviewId(null);
@@ -487,6 +489,10 @@ function AvalonRoomContent(
               result={voteResult}
               seats={viewModel.seats}
               remainingSeconds={screen.phaseRemainingSeconds}
+              isOverdue={screen.isOverdue}
+              isHost={screen.isHost}
+              isSubmitting={screen.isSubmitting}
+              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
             />
           ) : null}
           {viewModel !== null &&
@@ -496,6 +502,10 @@ function AvalonRoomContent(
             <AvalonQuestResultPanel
               entry={questResultEntry}
               remainingSeconds={screen.phaseRemainingSeconds}
+              isOverdue={screen.isOverdue}
+              isHost={screen.isHost}
+              isSubmitting={screen.isSubmitting}
+              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
             />
           ) : null}
         </>

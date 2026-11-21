@@ -10,8 +10,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { showConfirmAlert } from '@/utils/alertPresets';
+import { log } from '@/utils/logger';
 
 import { deriveRemainingRevealCards } from '../model/RevealRoleData';
+
+const roleViewingLog = log.extend('RoleViewing');
 
 export interface RoleViewingOptions {
   /** The seat whose identity is viewed (own or controlled bot seat); null while unseated. */
@@ -26,13 +29,14 @@ export interface RoleViewingOptions {
   readonly occupiedSeatCount: number;
   /** Seats whose view is on the server record. */
   readonly viewedSeatCount: number;
+  /** Shared command lock; acknowledgement must wait for any active room operation. */
+  readonly isSubmitting: boolean;
   /**
    * Submit `role.viewed` for the effective seat; resolves true only on a
    * committed success. Failures are presented by the submission itself
-   * (`useReadyRoomSession.submit`). It rejects only on the room's
-   * single-flight lock — a programming error: every entry that calls
-   * `open` is disabled while a command is in flight
-   * (`buildViewIdentityButton.isSubmitting`).
+   * (`useReadyRoomSession.submit`). A concurrent command can still win the
+   * race after the confirmation is enabled, so the single-flight rejection
+   * is handled here and leaves the card available for retry.
    */
   readonly submitViewed: () => Promise<boolean>;
 }
@@ -45,6 +49,8 @@ export interface RoleViewing {
   readonly shouldPlayAnimation: boolean;
   /** Frozen at open: cards still face-down for the reveal effect. */
   readonly remainingCards: number;
+  /** Disable acknowledgement while another room command owns the single-flight lock. */
+  readonly isConfirmationDisabled: boolean;
   readonly open: () => void;
   readonly close: () => void;
 }
@@ -68,6 +74,7 @@ export function useRoleViewing({
   hasViewed,
   occupiedSeatCount,
   viewedSeatCount,
+  isSubmitting,
   submitViewed,
 }: RoleViewingOptions): RoleViewing {
   const scopeKey = `${effectiveSeat ?? '-'}/${identityKey ?? '-'}`;
@@ -91,21 +98,35 @@ export function useRoleViewing({
   }, [scopeKey]);
 
   const close = useCallback(() => {
-    if (card === null || isPending) return;
+    if (card === null || isPending || isSubmitting) return;
     if (hasViewed) {
       setView((previous) => ({ scopeKey, run: previous.run + 1, card: null, isPending: false }));
       return;
     }
     const run = view.run + 1;
     setView({ scopeKey, run, card, isPending: true });
-    void submitViewed().then((confirmed) => {
-      setView((previous) =>
-        previous.scopeKey !== scopeKey || previous.run !== run
-          ? previous
-          : { ...previous, card: confirmed ? null : previous.card, isPending: false },
-      );
-    });
-  }, [card, hasViewed, isPending, scopeKey, submitViewed, view.run]);
+    void submitViewed().then(
+      (confirmed) => {
+        setView((previous) =>
+          previous.scopeKey !== scopeKey || previous.run !== run
+            ? previous
+            : { ...previous, card: confirmed ? null : previous.card, isPending: false },
+        );
+      },
+      (error: unknown) => {
+        roleViewingLog.warn('identity acknowledgement blocked by an active room command', {
+          error,
+          scopeKey,
+        });
+        toast.error('有操作正在处理中，请稍后确认身份。');
+        setView((previous) =>
+          previous.scopeKey !== scopeKey || previous.run !== run
+            ? previous
+            : { ...previous, isPending: false },
+        );
+      },
+    );
+  }, [card, hasViewed, isPending, isSubmitting, scopeKey, submitViewed, view.run]);
 
   const open = useCallback(() => {
     if (effectiveSeat === null) {
@@ -116,7 +137,7 @@ export function useRoleViewing({
     }
     // A second tap while the card is open or the confirmation is in flight
     // is the same request already being served; it is not an error.
-    if (card !== null || isPending) return;
+    if (card !== null || isPending || isSubmitting) return;
     showConfirmAlert(
       '查看身份？',
       '确定现在查看你的身份吗？',
@@ -141,6 +162,7 @@ export function useRoleViewing({
     hasViewed,
     identityKey,
     isPending,
+    isSubmitting,
     occupiedSeatCount,
     scopeKey,
     viewedSeatCount,
@@ -151,6 +173,7 @@ export function useRoleViewing({
     isPending,
     shouldPlayAnimation: card?.shouldPlayAnimation ?? false,
     remainingCards: card?.remainingCards ?? 0,
+    isConfirmationDisabled: isSubmitting || isPending,
     open,
     close,
   };

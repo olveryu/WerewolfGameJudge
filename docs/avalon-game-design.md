@@ -361,7 +361,6 @@ interface AvalonNightInfo {
 }
 
 interface AvalonState {
-  readonly stateVersion: number;
   readonly roomCode: string;
   readonly hostUserId: string;
   readonly realSeats: Readonly<Record<number, SeatOccupant | undefined>>; // 共享座位状态

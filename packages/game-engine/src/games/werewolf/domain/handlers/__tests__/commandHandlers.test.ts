@@ -7,7 +7,6 @@ import {
 import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import {
   handleApplyRosterLevels,
@@ -24,7 +23,7 @@ const ACKED_BOT_SEAT = 4;
 
 function createState(overrides: Partial<GameState> = {}): GameState {
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: HOST_USER_ID,
     status: GameStatus.Ongoing,
@@ -138,8 +137,7 @@ const GROUP_CONFIRM_TEMPLATE_ROLES: Record<string, GameState['templateRoles']> =
 describe('Werewolf command handlers', () => {
   describe('handleAudioAck', () => {
     // A GameState with an absent queue is unrepresentable now that the
-    // field is required; legacy states missing it are defaulted to []
-    // at the parse/normalize boundary (migration tests there pin that).
+    // field is required by the current state shape.
     it('is an idempotent no-op when the current batch has an empty queue and nothing is playing', () => {
       const state = createState({ pendingAudioEffects: [] });
       const result = handleAudioAck(state.audioBatchId, createContext(state));

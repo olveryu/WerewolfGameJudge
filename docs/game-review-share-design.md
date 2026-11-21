@@ -105,7 +105,6 @@ export interface RoomReviewDocument {
   readonly kicker: string; // 页眉：「🌙 第一夜 · 夜报」「🏰 第 3 局 · 终局」
   readonly fileStem: string; // `${gameType}-${roomCode}-${roundTag}`；无局号的游戏省略 roundTag；多页追加 `-p<n>`
   readonly footer: string; // REVIEW_GENERATED_FOOTER，或游戏自己的声明（狼人杀）
-  readonly isAborted: boolean; // 中止局：页眉加「未完成」戳
   readonly pages: readonly RoomReviewPage[];
 }
 
@@ -231,7 +230,7 @@ export type ReviewInline =
 ### 5.3 谁是卧底 `undercover`
 
 - **事实来源**：`state.winner`、`round.civilianWord` / `undercoverWord` / `wordPair.category` / `roles` / `revelations`、`config.hasBlank`。
-- **可用条件**：`phase === 'ended'`；`phase === 'aborted' && round !== null` → `isAborted: true`，`hero` 改为 `本局已中止`，且只呈现对局中已公开的事实（出局座位与其身份），按中止时的承诺不公开词语与未揭示的身份。
+- **可用条件**：`phase === 'ended'`。
 - **kicker**：`🕵️ 本局 · 终局`——状态没有局号，不印「第 N 局」；**文件名**：`undercover-${roomCode}.png`。
 - **1 页**：
   1. `hero`：`${UNDERCOVER_ROLE_NAMES[winner]}获胜`，`tone` 平民 `good` / 卧底 `evil` / 白板 `special`；`stamps` = 出局座位（按顺序）。
@@ -280,7 +279,7 @@ readonly guessedSeats: readonly number[];
 ```
 
 - `evolve`：`drawguess.turn.started`（关闭上一轮 `roundEnd` 时）与 `drawguess.game.ended` 把当前 `roundEnd` 快照 push 进 `turnHistory`；`drawguess.game.started` 和 `drawguess.game.returnedToLobby`（统一重开时产生）清空。
-- `DRAWGUESS_STATE_VERSION` v3 → v4，`migratePersistedDrawGuessState` 为 v3 持久化状态显式迁移 `turnHistory: []`，并为进行中的 `roundEnd` 按 `roundScores` 重建 `guessedSeats`；v1/v2 经同一链路升到 v4（正式 migration，不是运行时 fallback）。
+- 历史实现记录（当前已废弃）：当时通过 `migratePersistedDrawGuessState` 升级旧 DrawGuess 状态；后续架构已移除所有游戏状态版本和持久化迁移，见[多游戏平台架构](multigame-platform-design.md)。
 - `visibility`：`turnHistory` 公开（终局身份、题目全公开），`DrawGuessViewModel.turnHistory` 对所有观看者原样投影。客户端从 `@game-judge/game-engine/games/drawguess/public` 引入 `DrawGuessTurnRecord`。
 
 **Worker（`packages/api-worker/src/games/drawguess/mediaRoutes.ts`）**
@@ -302,12 +301,12 @@ readonly guessedSeats: readonly number[];
 ### 5.6 你画我猜接龙 `pictionary`
 
 - **事实来源**：`state.chains`、`participants`、`roundNumber`、`phase`。
-- **可用条件**：`phase === 'ended' | 'aborted'`（`aborted` → `isAborted`）。
+- **可用条件**：`phase === 'ended'`。
 - **kicker**：`🖼️ 第 ${roundNumber} 轮 · 画册`。
 - **每篇画册一个单元**（`label` = `第 k 篇 · ${originSeat 名字} 的画册`，key = chain id），每棒一组、标签印在内容上方：
   1. 起手词与每次猜词：`paragraph`，`caption` = `第 k 棒 · 作者`。
   2. 画作：`image`（`load` 包 `pictionaryMediaTransport.readDrawingDataUri`，`caption` = `第 k 棒 · 作者`）。R2 对象已过期 → Worker 答 410 `PICTIONARY_MEDIA_EXPIRED` → `unavailable`「画作已过期」，不阻塞导出。
-  3. 缺棒：`paragraph.isMissing`「这一棒交了空白」；空册：单个 `paragraph.isMissing`「本册尚无已提交作品」。
+  3. 缺棒：`paragraph.isMissing`「这一棒交了空白」。
 - **分页**：`paginateReviewUnit` 把超长画册（20 人、每句 512 字）切成「（m/n）」续页，首页沿用画册 key。
 - 画廊「分享本篇画册」打开复盘并定位到该篇首页。
 - **删除**：`PictionaryAlbumExport`（图片加载 / 重试由平台 `ReviewImageBlock` 承担）。
@@ -315,9 +314,9 @@ readonly guessedSeats: readonly number[];
 ### 5.7 轮流讲故事 `storyrelay`
 
 - **事实来源**：`getStoryRelayVisibleStories(state)`、`participants`、`roundNumber`。
-- **可用条件**：`phase === 'ended' | 'aborted'`。
+- **可用条件**：`phase === 'ended'`。
 - **kicker**：`📖 第 ${roundNumber} 轮 · 故事`。
-- **每篇故事一个单元**（`label` = `第 k 篇故事`，key = chain id）：每棒一段 `paragraph`，`caption` = `第 k 棒 · 作者`，保留原文换行；空白棒 `isMissing`「（空白）」；未收到任何稿件的故事为单个 `paragraph.isMissing`「这篇故事尚未收录稿件」。
+- **每篇故事一个单元**（`label` = `第 k 篇故事`，key = chain id）：每棒一段 `paragraph`，`caption` = `第 k 棒 · 作者`，保留原文换行；空白棒 `isMissing`「（空白）」。
 - **分页**：同 §5.6，超长故事切成编号续页（20 人 × 512 字可达约 1.7 万像素高，超过单页上限与 iOS 画布）。
 - 画廊「分享本篇故事」打开复盘并定位到该篇首页。
 - **删除**：`StoryRelayImageShare`、`useStoryRelayImageShare`。

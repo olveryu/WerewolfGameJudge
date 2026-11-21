@@ -5,8 +5,8 @@
  * Each applier returns the round-slice fields an event changes; the
  * game spreads them into its own state and lands its game-owned
  * fields (timestamps, roster, config) itself. Phase changes are the
- * only round-slice writers of phaseRevision besides round start,
- * abort and return-to-lobby, which is what keeps the revision
+ * only round-slice writers of phaseRevision besides round start and
+ * return-to-lobby, which is what keeps the revision
  * contract: exactly those events advance the revision.
  */
 

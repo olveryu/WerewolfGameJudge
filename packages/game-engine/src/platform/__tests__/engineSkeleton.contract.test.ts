@@ -8,11 +8,10 @@
  *   domain/decision.ts         the Decision alias + commit helper
  *   domain/evolve.ts           event application (the definition's evolve)
  *   domain/visibility.ts       viewer projections (privacy boundary home)
- *   state/codec.ts             the thin {...IDENTITY, parse} codec shell
- *   state/parseState.ts        strict parser + persisted-state migration
+ *   state/codec.ts             the thin {gameType, parse} codec shell
+ *   state/parseState.ts        strict state parser
  *   state/normalize.ts         semantic invariants over authoritative state
  *   state/types.ts             state shape, config, state-derived helpers
- *   state/version.ts           X_STATE_VERSION + X_STATE_IDENTITY
  *
  * Registered exceptions (deliberate, do not "fix" without a ruling):
  * werewolf predates the skeleton and keeps its reducer architecture —
@@ -47,7 +46,6 @@ const REQUIRED_MODULES = [
   'state/parseState.ts',
   'state/normalize.ts',
   'state/types.ts',
-  'state/version.ts',
 ] as const;
 
 /** Registered per-game replacements for required modules (AU-34). */

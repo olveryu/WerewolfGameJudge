@@ -136,6 +136,7 @@ export function useFibRoomState({
       (effectiveSeat !== null && state.round.viewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     viewedSeatCount: state.round === null ? 0 : state.round.viewedSeats.length,
+    isSubmitting,
     submitViewed: () => submit('确认查看身份', { type: 'fibking.role.viewed' }, { controlledSeat }),
   });
   // 旁观者：题目 / 公开结果是公开信息，没有查看记录也没有揭示动画。

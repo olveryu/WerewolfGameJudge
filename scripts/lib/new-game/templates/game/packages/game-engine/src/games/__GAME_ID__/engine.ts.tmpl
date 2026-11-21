@@ -59,7 +59,6 @@ import {
   type __GAME_PASCAL__State,
   __GAME_UPPER___MIN_PLAYERS,
 } from './state/types';
-import { __GAME_UPPER___STATE_VERSION } from './state/version';
 //#cap businessStats
 import { buildGameCompletionPayloadV2 } from '../../platform/engine/completionEffect';
 //#end
@@ -71,7 +70,6 @@ function createInitialState(
   if (!isValid__GAME_PASCAL__Config(config)) throw new Error(__GAME_UPPER___REASONS.config);
   return normalize__GAME_PASCAL__State({
     gameType: __GAME_UPPER___GAME_TYPE,
-    stateVersion: __GAME_UPPER___STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -469,7 +467,6 @@ export function get__GAME_PASCAL__Lifecycle(state: __GAME_PASCAL__State): Common
 
 export const __GAME_CAMEL__Engine = {
   gameType: __GAME_UPPER___GAME_TYPE,
-  stateVersion: __GAME_UPPER___STATE_VERSION,
   capabilities: {
 //#cap nightPhase
     nightPhase: true,

@@ -4,7 +4,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import type { StoryRelayCommand } from '../commands/types';
 import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
-import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
+import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 function game(
@@ -71,13 +71,8 @@ function game(
 }
 
 describe('Story Relay engine', () => {
-  it('does not reward a restart before reveal or re-settle a legacy completed transition', () => {
+  it('does not reward a restart before reveal', () => {
     const session = game(4, null, DEFAULT_STORY_RELAY_CONFIG.writingDurationSeconds, 4);
-    const { revealSettlementPending: _initialPending, ...oldActiveState } = session.state;
-    expect(
-      migratePersistedStoryRelayState({ ...oldActiveState, stateVersion: 3 })
-        .revealSettlementPending,
-    ).toBe(true);
     for (let step = 0; step < 4; step += 1) {
       session.finish();
       for (let seat = 0; seat < 4; seat += 1) {
@@ -94,24 +89,6 @@ describe('Story Relay engine', () => {
     expect(session.effects.some((effect) => effect.type === 'storyrelay.game.completed')).toBe(
       false,
     );
-    const { revealSettlementPending: _pending, ...oldState } = before;
-    const migrated = migratePersistedStoryRelayState({ ...oldState, stateVersion: 3 });
-    expect(migrated.revealSettlementPending).toBe(false);
-    const legacyDecision = storyRelayEngine.decide(
-      migrated,
-      { type: 'storyrelay.phase.settleExpired' },
-      {
-        actor: { kind: 'system', effectId: 'settle' },
-        controlledSeat: null,
-        nowMs: migrated.deadlineAt!,
-        commandId: 'legacy-settle',
-        randomSeed: 'round',
-      },
-    );
-    if (legacyDecision.kind !== 'commit') throw new Error('expected legacy gallery transition');
-    expect(
-      legacyDecision.effects.some((effect) => effect.type === 'storyrelay.game.completed'),
-    ).toBe(false);
     session.send({ type: 'storyrelay.game.restart', phaseRevision: before.phaseRevision });
     expect(session.state.phase).toBe('lobby');
     expect(session.effects.some((effect) => effect.type === 'storyrelay.game.completed')).toBe(

@@ -228,7 +228,6 @@ export function toDrawGuessReviewDocument(input: {
     kicker: `🎨 第 ${state.gameSequence} 局 · 终局`,
     fileStem: `drawguess-${roomCode}-${state.gameSequence}`,
     footer: REVIEW_GENERATED_FOOTER,
-    isAborted: false,
     pages: [standingsPage(rankStandings(state, phase), turnPages.length === 0), ...turnPages],
   };
 }

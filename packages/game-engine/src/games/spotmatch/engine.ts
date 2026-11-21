@@ -33,13 +33,11 @@ import {
   type SpotmatchConfig,
   type SpotmatchState,
 } from './state/types';
-import { SPOTMATCH_STATE_VERSION } from './state/version';
 
 function createInitialState(config: SpotmatchConfig, context: CreateGameContext): SpotmatchState {
   if (!isValidSpotmatchConfig(config)) throw new Error(SPOTMATCH_REASONS.config);
   return normalizeSpotmatchState({
     gameType: SPOTMATCH_GAME_TYPE,
-    stateVersion: SPOTMATCH_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -304,7 +302,6 @@ export function getSpotmatchLifecycle(state: SpotmatchState): CommonGameLifecycl
 
 export const spotmatchEngine = {
   gameType: SPOTMATCH_GAME_TYPE,
-  stateVersion: SPOTMATCH_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

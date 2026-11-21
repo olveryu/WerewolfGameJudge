@@ -7,7 +7,6 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { WEREWOLF_STATE_IDENTITY } from '../../../state/version';
 import type { DeathReason } from '../../DeathCalculator';
 import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
 import { NIGHT_STEPS, type RoleSpec } from '../../models/roles/spec';
@@ -116,7 +115,7 @@ function makeGameState(
 ): GameState {
   const players: Players = overrides.players ?? new Map<number, Player | null>();
   const state: GameState = {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'REVIEW',
     hostUserId: 'host',
     status: GameStatus.Day,
@@ -144,6 +143,7 @@ function makeGameState(
         : {}),
       ...(overrides.thiefChosenCard ? { thiefChosenCard: overrides.thiefChosenCard } : {}),
     },
+    resolvedWolfKillTarget: null,
     lastNightDeaths: overrides.lastNightDeaths ?? [],
   };
   const optional: Partial<GameState> = {};
@@ -731,6 +731,7 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           loverSeats: [0, 1],
+          resolvedWolfKillTarget: 1,
           witchContext: { killedSeat: 1, canSave: true, canPoison: true },
         }),
       );
@@ -1202,6 +1203,7 @@ describe('NightReview.helpers', () => {
           wolfVotesBySeat: { '0': 8 },
           blockedSeat: 3,
           guardedSeat: 4,
+          charmedSeat: 2,
           silencedSeat: 19,
           votebannedSeat: 20,
           savedSeat: 5,
@@ -1826,6 +1828,7 @@ describe('NightReview.helpers', () => {
         name: 'charm',
         state: makeGameState({
           players: roster([6, 'wolfQueen']),
+          currentNightResults: { charmedSeat: 2 },
           actions: new Map([['wolfQueen', makeActionTarget(2)]]),
         }),
         kind: 'charm',

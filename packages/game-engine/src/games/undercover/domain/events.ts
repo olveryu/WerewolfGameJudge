@@ -29,7 +29,6 @@ export type UndercoverEvent =
       readonly revelation: UndercoverRevelation;
       readonly winner: UndercoverRole | null;
     }
-  | { readonly type: 'undercover.round.aborted' }
   | { readonly type: 'undercover.review.completed'; readonly userId: string }
   | { readonly type: 'undercover.game.returnedToLobby' };
 

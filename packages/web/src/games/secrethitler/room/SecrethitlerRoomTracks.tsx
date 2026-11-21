@@ -118,7 +118,7 @@ export function SecrethitlerRoomTracks({
         <RoomDialog
           title={`${detail.kind === 'liberal' ? '自由派' : '法西斯'}政策 ${detail.number}`}
           onClose={() => setDetail(null)}
-          allowEscape
+          dismissOnEscape
           footer={
             <Button variant="secondary" onClick={() => setDetail(null)}>
               关闭

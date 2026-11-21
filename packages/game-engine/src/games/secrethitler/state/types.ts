@@ -126,6 +126,7 @@ export type SecrethitlerPhase =
       readonly policy: SecrethitlerPolicy | null;
       readonly vetoApproved: boolean | null;
       readonly chaosPolicy: SecrethitlerPolicy | null;
+      readonly chaosPolicyDeck: readonly SecrethitlerPolicy[] | null;
       readonly deadlineAt: number;
     }
   | {

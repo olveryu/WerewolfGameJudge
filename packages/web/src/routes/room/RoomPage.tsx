@@ -70,7 +70,7 @@ function GameRoom({ room }: { readonly room: RoomRecord }) {
           onClose={() => setIsMusicSettingsOpen(false)}
           footer={null}
           isContentFlush
-          allowEscape
+          dismissOnEscape
         >
           <MusicSettingsContent />
         </RoomDialog>
@@ -81,7 +81,7 @@ function GameRoom({ room }: { readonly room: RoomRecord }) {
           onClose={() => setIsUserSettingsOpen(false)}
           footer={null}
           isContentFlush
-          allowEscape
+          dismissOnEscape
         >
           <SettingsContent />
         </RoomDialog>

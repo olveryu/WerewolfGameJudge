@@ -86,7 +86,6 @@ describe('toDrawGuessReviewDocument', () => {
       kicker: '🎨 第 1 局 · 终局',
       fileStem: 'drawguess-ABCD-1',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
     });
     expect(document.pages.map((page) => page.key)).toEqual([
       'standings',
@@ -279,13 +278,6 @@ describe('toDrawGuessReviewDocument', () => {
       label: '本轮收到',
       value: '鲜花 1 · 鸡蛋 1 · 番茄 1',
     });
-  });
-
-  it('renders a single unlabeled page when the history is empty', () => {
-    // A room migrated from state v3 after its last turn closed keeps no history.
-    const migrated = documentFor({ ...ended, turnHistory: [] });
-    expect(() => assertReviewDocument(migrated)).not.toThrow();
-    expect(migrated.pages.map((page) => [page.key, page.label])).toEqual([['standings', null]]);
   });
 
   it('fails fast outside the ended phase', () => {

@@ -66,7 +66,6 @@ describe('createPictionaryStageHud', () => {
       hud(playPictionaryTestRound({ stopAt: { stepIndex: STEP_COUNT - 1, phase: 'gallery' } }), 20),
     ).toBeNull();
     expect(hud(playPictionaryTestRound(), null)).toBeNull();
-    expect(hud(playPictionaryTestRound({ abortAtStep: 1 }), null)).toBeNull();
   });
 
   it('shows the step, the submission roster and the prompt countdown on the opening step', () => {

@@ -8,6 +8,7 @@ import { Dialog } from '@ark-ui/react/dialog';
 import { Portal } from '@ark-ui/react/portal';
 import type { ReactNode } from 'react';
 
+import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
 
 /** 结算面板：banner 是对话框标题，outcome 决定横幅颜色；有 bannerImageSrc 时标题上方渲染全宽横幅图。 */
@@ -17,6 +18,10 @@ export function AvalonResultDialog({
   outcome,
   kind,
   remainingSeconds,
+  isOverdue,
+  isHost,
+  isSubmitting,
+  onRetry,
   children,
 }: {
   readonly banner: string;
@@ -25,6 +30,10 @@ export function AvalonResultDialog({
   /** Which settlement this is; keys the panel / banner / close test ids. */
   readonly kind: 'vote' | 'quest';
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
+  readonly isSubmitting: boolean;
+  readonly onRetry: () => void;
   readonly children: ReactNode;
 }) {
   return (
@@ -59,11 +68,18 @@ export function AvalonResultDialog({
               {banner}
             </Dialog.Title>
             {children}
-            <p>
-              {remainingSeconds === null || remainingSeconds === 0
-                ? '等待进入下一阶段…'
-                : `${remainingSeconds} 秒后继续`}
-            </p>
+            {remainingSeconds === null && <p>等待进入下一阶段…</p>}
+            {remainingSeconds !== null && remainingSeconds > 0 && (
+              <p>{`${remainingSeconds} 秒后继续`}</p>
+            )}
+            <StageSettleRescue
+              remainingSeconds={remainingSeconds}
+              isOverdue={isOverdue}
+              isHost={isHost}
+              isRetrying={isSubmitting}
+              onRetry={onRetry}
+              waitingLabel="等待进入下一阶段…"
+            />
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

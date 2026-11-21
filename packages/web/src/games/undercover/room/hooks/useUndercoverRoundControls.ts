@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
+import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -22,9 +23,7 @@ async function requestUndercoverRestart(
   const roundId =
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
-      : state.phase === 'aborted'
-        ? state.abortedRoundId
-        : state.round.roundId;
+      : state.round.roundId;
   closeCard();
   if (
     await submit('重新开始', {
@@ -141,6 +140,9 @@ export function useUndercoverRoundControls({
     state.phase === 'preparing' || state.phase === 'preparationFailed'
       ? state.pendingRound.roundId
       : state.round?.roundId;
+  const trackConfirmationAlert = useScopedAlert(
+    JSON.stringify([cardKey, state.phase, roundId, state.hostUserId]),
+  );
   const confirmCard = () => {
     if (state.phase !== 'viewing' || card === null)
       throw new Error('Card confirmation requires a viewing participant');
@@ -163,7 +165,7 @@ export function useUndercoverRoundControls({
       if (success) exitSelection();
     });
   };
-  const allowRepeated = () =>
+  const allowRepeated = () => {
     showConfirmAlert(
       '仅下一局允许重复词对？',
       '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
@@ -175,7 +177,9 @@ export function useUndercoverRoundControls({
           roundId: state.pendingRound.roundId,
         });
       },
+      { onShown: trackConfirmationAlert },
     );
+  };
   return {
     isSubmitting,
     controlledSeat,
@@ -195,7 +199,7 @@ export function useUndercoverRoundControls({
           }
           setVisibleCardKey(cardKey);
         },
-        { confirmText: '查看' },
+        { confirmText: '查看', onShown: trackConfirmationAlert },
       );
     },
     closeCard,

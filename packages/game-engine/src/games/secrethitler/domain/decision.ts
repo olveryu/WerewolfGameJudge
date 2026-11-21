@@ -25,6 +25,7 @@ export const SECRETHITLER_REASONS = {
   notHostStart: 'secrethitler_not_host_start',
   notHostBegin: 'secrethitler_not_host_begin',
   notHostAbort: 'secrethitler_not_host_abort',
+  notHostRetrySettle: 'secrethitler_not_host_retry_settle',
   notHostMarkBots: 'secrethitler_not_host_mark_bots',
   noBotSeats: 'secrethitler_no_bot_seats',
   notAllViewed: 'secrethitler_not_all_viewed',

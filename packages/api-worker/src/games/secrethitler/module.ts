@@ -1,7 +1,6 @@
 /** Worker runtime module for Secrethitler (秘密希特勒). */
 
 import {
-  migratePersistedSecrethitlerState,
   parseSecrethitlerPublicStats,
   SECRETHITLER_STATE_CODEC,
   secrethitlerEngine,
@@ -21,7 +20,6 @@ export const secrethitlerWorkerModule = defineWorkerGameModule({
   gameType: 'secrethitler',
   engine: secrethitlerEngine,
   stateCodec: SECRETHITLER_STATE_CODEC,
-  migratePersistedState: migratePersistedSecrethitlerState,
   createConfigSchema: secrethitlerCreateConfigSchema,
   publicCommandSchema: secrethitlerPublicCommandSchema,
   internalCommandSchema: secrethitlerInternalCommandSchema,

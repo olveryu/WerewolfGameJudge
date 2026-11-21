@@ -163,7 +163,7 @@ export function WerewolfNotepad({
       {editor}
     </div>
   ) : (
-    <RoomDialog title="笔记" onClose={surface.onClose} allowEscape footer={actions}>
+    <RoomDialog title="笔记" onClose={surface.onClose} dismissOnEscape footer={actions}>
       {editor}
     </RoomDialog>
   );

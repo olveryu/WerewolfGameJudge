@@ -238,7 +238,7 @@ export interface SetWitchContextAction {
  * the no-kill comes from a wolf-kill override (no vote verdict); in
  * every other settled case it is the verdict twin of the target.
  * Emitted by the first handler that settles the votes (advance past
- * wolfKill, witch entry, or END_NIGHT legacy settlement); later
+ * wolfKill, witch entry, or END_NIGHT when no wolf-kill step ran); later
  * handlers reuse GameState.resolvedWolfKillTarget and
  * GameState.resolvedWolfKillVerdict and never emit it again for the
  * same night.

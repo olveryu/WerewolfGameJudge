@@ -12,7 +12,7 @@ During each grill-me interview, record the user's confirmed decisions in the rel
 
 ## Learnings
 
-The client is a web page, including in the mini-program web-view. When changing the client and server together, do not retain obsolete commands solely for old client versions: users can refresh after deployment. This does not replace persisted-state migrations or justify silently ignoring version errors.
+The client is a web page, including in the mini-program web-view. When changing the client and server together, do not retain obsolete commands solely for old client versions: users can refresh after deployment. Game state has no per-game version or compatibility migration; strict parsers reject invalid state. Durable Object storage-schema versioning is separate and discards rooms on mismatch.
 
 Base changes on verified behavior and current ecosystem guidance, not speculation or defensive patches. Preserve architectural boundaries, fail fast on broken invariants, and report actionable failures through the owning logger and error pipeline.
 
@@ -30,10 +30,7 @@ Layout: a pnpm workspace with four parts — the root (cross-package contracts i
 
 Games (9): werewolf, fibking, pictionary, undercover, storyrelay, drawguess, avalon, spotmatch, secrethitler.
 
-State versions: werewolf 21, avalon 14, fibking 9, pictionary 11, undercover 7, storyrelay 4, drawguess 5, spotmatch 2, secrethitler 8.
-Persisted states migrate in place at read through each game's `migratePersisted*State`; a newer or unsupported version throws. A Durable Object storage-schema mismatch discards the room instead; that is a different mechanism.
-
-The version number is authoritative in the root `package.json` only; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it.
+The application release version is authoritative in the root `package.json`; `packages/web/src/config/version.ts` imports it, and the release script generates the `CHANGELOG.md` entry from it. Game state has no version field or read-time migration: parsers validate the current shape and identity, and invalid persisted state fails fast. Durable Object storage schema versioning is a separate mechanism.
 
 ## Commands
 
@@ -70,11 +67,11 @@ The engine decides state transitions, rule decisions, and settlement in `package
 
 Layers: `platform/` holds shared protocol, realtime, room, and audio chassis code; `games/` holds one directory per game; `product/` holds growth, rewards, and word-supply modules. One game never imports another, and cross-package game code is reached only through that game's `public` entrypoint, pinned by the game-module dependency boundary and public-entrypoint tests in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`. The engine package has no React, Cloudflare, network, storage, or Node dependencies.
 
-Room link and state identity: the client link lives in `packages/web/src/platform/realtime/` (`RoomLink`, pure reducer plus runtime). Commands go over HTTP `POST /room/command` and are correlated by `commandId`; state arrives over the WebSocket as snapshots. A snapshot is `RoomSnapshot { gameType, stateVersion, revision, state }`, decoded by the game's `GameStateCodec`. The wire protocol is v2: the client sends `SYNC` only; the server sends `SYNC_RESULT`, `STATE_UPDATE`, or `INBOX_HINT` (online/offline presence was removed 2026-11-07: no `PRESENCE` frame is sent or rendered). Terminal close codes are 1002 and 4000–4003; 4004 is rate-limited and retries. Reconnection is unbounded and driven by the pure reducer.
+Room link and state identity: the client link lives in `packages/web/src/platform/realtime/` (`RoomLink`, pure reducer plus runtime). Commands go over HTTP `POST /room/command` and are correlated by `commandId`; state arrives over the WebSocket as snapshots. A snapshot is `RoomSnapshot { gameType, revision, state }`, decoded by the game's `GameStateCodec`. The wire protocol is v2: the client sends `SYNC` only; the server sends `SYNC_RESULT`, `STATE_UPDATE`, or `INBOX_HINT` (online/offline presence was removed 2026-11-07: no `PRESENCE` frame is sent or rendered). Terminal close codes are 1002 and 4000–4003; 4004 is rate-limited and retries. Reconnection is unbounded and driven by the pure reducer.
 
 Settlement uses one arm decision (`decideSettleCountdownArm`, `SETTLE_COUNTDOWN_MS = 5000`) with no manual finish, pinned by `settleCountdown.contract.test.ts` (`packages/game-engine/src/platform/room/settleCountdown.ts`).
 
-Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (38, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 3, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
+Persistence: D1 is the relational store and Drizzle is the typed layer over it, with a schema-free driver and hand-written SQL migrations; D1 tables are declared once in owner `dbSchema.ts` modules (38, pinned by `declares every physical D1 table exactly once in its owner module` in `contracts/architecture.contract.test.ts`), and tables reached only through raw SQL have no such declaration. Room authority state lives in the Durable Object's own SQLite storage (schema version 4, no migration chain: a stored mismatch discards the room), together with command receipts and the effect outbox. R2 provides the `AVATARS` and `GAME_MEDIA` buckets; D1, Durable Object, rate-limit, workflow, cron, and analytics bindings are declared in the worker `wrangler.toml`.
 
 A new game is registered in the engine registry, the engine catalog, the worker catalog, the web client catalog, and the static web factories, with a D1 registration migration and contract-test whitelists updated. The generator also wires completed-games statistics end to end; approved gameplay metrics and reward/stat semantics remain go-live requirements. See the new-game skill.
 

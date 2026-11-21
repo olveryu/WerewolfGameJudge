@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
 import { resolveSeatPickTap } from '@/features/room/model/seatPicking';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
@@ -172,7 +173,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       }
       return ok;
     },
-    [controlledSeat, model, roleRevealRandomNonce, stepId, submit],
+    [controlledSeat, model, roleRevealRandomNonce, setPicking, stepId, submit],
   );
 
   /** A dialog callback that submits one confirmation. */
@@ -197,6 +198,24 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     showDismissAlert(`${NIGHT_ACTION_LABEL}失败`, rejection.reason);
   }, [input.isReadingRoomInformation, viewModel.night.rejection]);
 
+  // ── Seat taps ──
+  const seatSelection =
+    picking?.scope === scopeKey ? describeNightSeatSelection(model, picking.seats) : null;
+  const selectionInput = seatSelection?.confirm?.input ?? null;
+  const disclosureContentKey =
+    model.kind === 'confirmStatus' || model.kind === 'ackHunterStatus'
+      ? JSON.stringify([model.dialog.title, model.dialog.text])
+      : model.kind === 'ackGroupReveal'
+        ? JSON.stringify([model.text.title, model.text.text])
+        : null;
+  const alertContextKey = JSON.stringify([
+    scopeKey,
+    model.kind,
+    selectionInput,
+    disclosureContentKey,
+  ]);
+  const trackAlert = useScopedAlert(alertContextKey);
+
   // ── An owed reveal acknowledgement, once per step scope ──
   const promptedKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -205,12 +224,16 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     const key = `${scopeKey}|ackReveal`;
     if (promptedKeyRef.current === key) return;
     promptedKeyRef.current = key;
-    showDismissAlert(model.title, model.reveal.result, confirmWith({ kind: 'ack' }));
-  }, [confirmWith, input.isAudioResumeDue, input.isReadingRoomInformation, model, scopeKey]);
+    showDismissAlert(model.title, model.reveal.result, confirmWith({ kind: 'ack' }), trackAlert);
+  }, [
+    confirmWith,
+    input.isAudioResumeDue,
+    input.isReadingRoomInformation,
+    model,
+    scopeKey,
+    trackAlert,
+  ]);
 
-  // ── Seat taps ──
-  const seatSelection =
-    picking?.scope === scopeKey ? describeNightSeatSelection(model, picking.seats) : null;
   const latestSeatSelectionRef = useRef({ scopeKey, model, seatSelection });
   useEffect(() => {
     latestSeatSelectionRef.current = { scopeKey, model, seatSelection };
@@ -236,6 +259,12 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       const confirmation = describeNightSeatConfirmation(model, selection);
       const confirmedInput = selection.confirm.input;
       const clearOnCancel = (nightSeatAction(model)?.max ?? 0) > 1;
+      const selectionAlertContextKey = JSON.stringify([
+        scopeKey,
+        model.kind,
+        confirmedInput,
+        disclosureContentKey,
+      ]);
       showConfirmAlert(
         confirmation.title,
         confirmation.text,
@@ -253,18 +282,19 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           }
           await dispatch(confirmedInput, 'dialog');
         },
-        clearOnCancel
-          ? {
-              onCancel: () => {
+        {
+          onCancel: clearOnCancel
+            ? () => {
                 if (latestSeatSelectionRef.current.scopeKey === scopeKey) {
                   setPicking({ scope: scopeKey, seats: [] });
                 }
-              },
-            }
-          : undefined,
+              }
+            : undefined,
+          onShown: (generation) => trackAlert(generation, selectionAlertContextKey),
+        },
       );
     },
-    [dispatch, model, scopeKey],
+    [dispatch, disclosureContentKey, model, scopeKey, trackAlert, setPicking],
   );
 
   const blockedToastAtRef = useRef(0);
@@ -325,7 +355,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return false;
       }
     },
-    [confirmSelection, model, scopeKey, seatAction, seatSelection],
+    [confirmSelection, model, scopeKey, seatAction, seatSelection, setPicking],
   );
 
   const showPrivateStatus = useCallback(
@@ -357,14 +387,19 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
         '确定查看你的私密状态吗？',
         () => {
           if (!checkCurrent()) return;
-          showDismissAlert(title, text, async () => {
-            if (checkCurrent()) await confirmWith(confirmation)();
-          });
+          showDismissAlert(
+            title,
+            text,
+            async () => {
+              if (checkCurrent()) await confirmWith(confirmation)();
+            },
+            trackAlert,
+          );
         },
-        { confirmText: '查看' },
+        { confirmText: '查看', onShown: trackAlert },
       );
     },
-    [confirmWith, model.kind, scopeKey],
+    [confirmWith, model.kind, scopeKey, trackAlert],
   );
 
   // ── Bottom buttons ──
@@ -395,7 +430,9 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
         }
         case 'skip':
-          showConfirmAlert(SKIP_CONFIRM_TITLE, SKIP_CONFIRM_TEXT, confirmWith({ kind: 'skip' }));
+          showConfirmAlert(SKIP_CONFIRM_TITLE, SKIP_CONFIRM_TEXT, confirmWith({ kind: 'skip' }), {
+            onShown: trackAlert,
+          });
           return;
         case 'emptyVote':
           if (model.kind !== 'wolfVote') throw illegalButton(action, model);
@@ -403,6 +440,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             model.confirmTitle,
             model.emptyVoteConfirmText,
             confirmWith({ kind: 'emptyVote' }),
+            { onShown: trackAlert },
           );
           return;
         case 'withdrawVote':
@@ -411,6 +449,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             WOLF_WITHDRAW_CONFIRM_TITLE,
             WOLF_WITHDRAW_CONFIRM_TEXT,
             confirmWith({ kind: 'withdrawVote' }),
+            { onShown: trackAlert },
           );
           return;
         case 'save':
@@ -419,6 +458,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             model.saveConfirmTitle,
             model.saveConfirmText,
             confirmWith({ kind: 'save' }),
+            { onShown: trackAlert },
           );
           return;
         case 'openStatus': {
@@ -428,7 +468,12 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             return;
           }
           if (model.isUnavailable) throw illegalButton(action, model);
-          showConfirmAlert(model.dialog.title, model.dialog.text, confirmWith({ kind: 'confirm' }));
+          showConfirmAlert(
+            model.dialog.title,
+            model.dialog.text,
+            confirmWith({ kind: 'confirm' }),
+            { onShown: trackAlert },
+          );
           return;
         }
         case 'openGroupReveal':
@@ -449,6 +494,10 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       confirmWith,
       confirmSelection,
       hasMultipleActions,
+      setActionGroup,
+      setChooseCardOpenStepId,
+      setPicking,
+      trackAlert,
       model,
       scopeKey,
       seatSelection,

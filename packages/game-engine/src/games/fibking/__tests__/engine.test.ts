@@ -443,7 +443,6 @@ describe('FibKing engine configuration and seating', () => {
   it('creates compact lobby state and rejects invalid create config', () => {
     expect(createLobby(8)).toEqual({
       gameType: 'fibking',
-      stateVersion: 9,
       roomCode: '4321',
       hostUserId: 'host',
       phase: 'lobby',

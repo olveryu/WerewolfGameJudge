@@ -11,13 +11,6 @@ import type { ReviewTestRounds } from './reviewTestRounds';
 /** Who sends a scripted command: the host, or the system's word-selection effect. */
 export type UndercoverTestActor = 'host' | 'system';
 
-/** Reconstructs an aborted state that can still exist in a persisted older room. */
-export function legacyAbortedUndercoverState(state: UndercoverState): UndercoverState {
-  return undercoverEngine.normalize(
-    undercoverEngine.evolve(state, { type: 'undercover.round.aborted' }),
-  );
-}
-
 /** Applies one command as `actor`; a rejected command fails the test. */
 export function dispatchUndercoverTestCommand(
   state: UndercoverState,

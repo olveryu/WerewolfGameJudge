@@ -130,7 +130,6 @@ export function toFibReviewDocument(input: FibReviewInput): RoomReviewDocument {
     kicker: KICKER,
     fileStem: `fibking-${roomCode}`,
     footer: REVIEW_GENERATED_FOOTER,
-    isAborted: false,
     pages: [{ key: PAGE_KEY, label: null, blocks }],
   };
 }

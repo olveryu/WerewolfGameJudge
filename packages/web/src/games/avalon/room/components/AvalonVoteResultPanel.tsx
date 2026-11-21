@@ -24,6 +24,10 @@ interface AvalonVoteResultPanelProps {
   readonly result: AvalonLastVoteResultView;
   readonly seats: readonly AvalonSeatView[];
   readonly remainingSeconds: number | null;
+  readonly isOverdue: boolean;
+  readonly isHost: boolean;
+  readonly isSubmitting: boolean;
+  readonly onRetry: () => void;
 }
 
 /** 投票结算面板，展示确认进度并等待全员确认。 */
@@ -31,6 +35,10 @@ export function AvalonVoteResultPanel({
   result,
   seats,
   remainingSeconds,
+  isOverdue,
+  isHost,
+  isSubmitting,
+  onRetry,
 }: AvalonVoteResultPanelProps) {
   const orderedSeats = seats.toSorted((a, b) => a.seat - b.seat);
   const banner = result.automatic
@@ -45,6 +53,10 @@ export function AvalonVoteResultPanel({
       outcome={result.approved ? 'positive' : 'negative'}
       kind="vote"
       remainingSeconds={remainingSeconds}
+      isOverdue={isOverdue}
+      isHost={isHost}
+      isSubmitting={isSubmitting}
+      onRetry={onRetry}
     >
       {!result.automatic && (
         <p

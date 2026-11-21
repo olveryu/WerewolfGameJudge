@@ -11,7 +11,10 @@ import { GAME_TYPES } from '../../../platform/protocol/gameTypes';
 import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_CONTROLLED_SEAT_NOT_BOT,
+  REASON_GAME_IN_PROGRESS,
   REASON_NOT_HOST,
+  REASON_REVIEW_IDENTITY_MISMATCH,
+  REASON_REVIEW_NOT_ELIGIBLE,
   REASON_SEAT_EMPTY,
   REASON_SYSTEM_ACTOR_REQUIRED,
   REASON_USER_ACTOR_REQUIRED,
@@ -36,7 +39,6 @@ import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
 import { isBotOccupant } from '../public';
 import { parseWerewolfState } from '../state/parseState';
-import { WEREWOLF_STATE_VERSION } from '../state/version';
 
 const TEMPLATE: GameTemplate = {
   name: 'test',
@@ -141,34 +143,45 @@ describe('Werewolf authoritative actor resolution', () => {
       },
     });
     const command: WerewolfCommand = { type: 'werewolf.review.complete', gameSequence: 4 };
-    expect(werewolfEngine.decide(state, command, userContext('spectator')).kind).toBe('reject');
-    expect(werewolfEngine.decide(state, command, userContext('host', 2)).kind).toBe('reject');
-    expect(werewolfEngine.decide(state, command, systemContext()).kind).toBe('reject');
+    expect(werewolfEngine.decide(state, command, userContext('spectator'))).toEqual({
+      kind: 'reject',
+      reason: REASON_REVIEW_NOT_ELIGIBLE,
+    });
+    expect(werewolfEngine.decide(state, command, userContext('host', 2))).toEqual({
+      kind: 'reject',
+      reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+    });
+    expect(werewolfEngine.decide(state, command, systemContext())).toEqual({
+      kind: 'reject',
+      reason: REASON_USER_ACTOR_REQUIRED,
+    });
     expect(
-      werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')).kind,
-    ).toBe('reject');
+      werewolfEngine.decide(state, { ...command, gameSequence: 3 }, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_IDENTITY_MISMATCH });
     expect(
-      werewolfEngine.decide({ ...state, status: GameStatus.Day }, command, userContext('host'))
-        .kind,
-    ).toBe('reject');
+      werewolfEngine.decide({ ...state, status: GameStatus.Day }, command, userContext('host')),
+    ).toEqual({ kind: 'reject', reason: REASON_GAME_IN_PROGRESS });
     expect(
       werewolfEngine.decide(
         { ...state, nightReviewAllowedSeats: [] },
         command,
         userContext('user-1'),
-      ).kind,
-    ).toBe('reject');
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
     expect(
       werewolfEngine.decide(
         { ...state, lastNightInfoConfirmed: false },
         command,
         userContext('host'),
-      ).kind,
-    ).toBe('reject');
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
     expect(
-      werewolfEngine.decide({ ...state, nightReviewAllowedSeats: [] }, command, userContext('host'))
-        .kind,
-    ).toBe('reject');
+      werewolfEngine.decide(
+        { ...state, nightReviewAllowedSeats: [] },
+        command,
+        userContext('host'),
+      ),
+    ).toEqual({ kind: 'reject', reason: REASON_REVIEW_NOT_ELIGIBLE });
 
     const afterHost = evolveCommittedCommand(state, command, userContext('host'));
     const afterPlayer = evolveCommittedCommand(afterHost, command, userContext('user-1'));
@@ -185,7 +198,10 @@ describe('Werewolf authoritative actor resolution', () => {
       userContext('host'),
     );
     expect(restarted.reviewCompletedUserIds).toBeUndefined();
-    expect(werewolfEngine.decide(restarted, command, userContext('host')).kind).toBe('reject');
+    expect(werewolfEngine.decide(restarted, command, userContext('host'))).toMatchObject({
+      kind: 'reject',
+      reason: REASON_GAME_IN_PROGRESS,
+    });
   });
 
   it.each([GameStatus.Assigned, GameStatus.Ongoing, GameStatus.Ended])(
@@ -264,6 +280,12 @@ describe('Werewolf authoritative actor resolution', () => {
         evolveCommittedCommand(state, command, userContext('host')),
       );
       expect(confirmed.lastNightInfoConfirmed).toBe(true);
+      expect(werewolfEngine.decide(confirmed, command, userContext('host'))).toMatchObject({
+        kind: 'commit',
+        events: [],
+        effects: [],
+        broadcast: 'none',
+      });
       expect(
         evolveCommittedCommand(confirmed, command, userContext('host')).lastNightInfoConfirmed,
       ).toBe(true);
@@ -906,7 +928,6 @@ describe('Werewolf engine definition and catalog', () => {
 
     expect(state).toMatchObject({
       gameType: 'werewolf',
-      stateVersion: WEREWOLF_STATE_VERSION,
       roomCode: '9876',
       hostUserId: 'creator',
       status: GameStatus.Unseated,

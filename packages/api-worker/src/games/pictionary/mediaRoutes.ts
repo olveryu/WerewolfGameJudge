@@ -140,7 +140,7 @@ export function canReadDrawing(
   seat: number | null,
   entryId: string,
 ): boolean {
-  if (state.phase === 'gallery' || state.phase === 'ended' || state.phase === 'aborted') {
+  if (state.phase === 'gallery' || state.phase === 'ended') {
     return true;
   }
   if (seat === null) return false;
@@ -285,11 +285,7 @@ pictionaryMediaRoutes.get('/:roomCode/media/:entryId/replay', requireAuth, async
   const entry = findDrawingEntry(roomContext.state, c.req.param('entryId'));
   if (entry === null || entry.media.replay === null)
     return failMediaRequest(404, 'PICTIONARY_MEDIA_NOT_FOUND');
-  if (
-    roomContext.state.phase !== 'gallery' &&
-    roomContext.state.phase !== 'ended' &&
-    roomContext.state.phase !== 'aborted'
-  ) {
+  if (roomContext.state.phase !== 'gallery' && roomContext.state.phase !== 'ended') {
     return failMediaRequest(403, 'PICTIONARY_MEDIA_FORBIDDEN');
   }
   const object = await c.env.GAME_MEDIA.get(entry.media.replay.objectKey);

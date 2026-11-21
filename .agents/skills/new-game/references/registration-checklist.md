@@ -27,7 +27,7 @@ dependency: `SHARED_EDITS` performs none.
 6. `[G][C]` Worker module in `WORKER_GAME_CATALOG`
    (`packages/api-worker/src/games/catalog.ts`) with
    `packages/api-worker/src/games/<id>/module.ts` binding engine,
-   codec, schemas, effects, `migratePersistedState`, and HTTP routes.
+   codec, schemas, effects, and HTTP routes.
    Pinned by `packages/api-worker/src/games/__tests__/catalog.test.ts`
    (one module per `GAME_TYPES` entry, same order; routes equal the
    registry's `httpRoutes`).
@@ -62,10 +62,10 @@ AccountStats: <Game>StatsPanel }` from the game's home and panel.
     current rebuild/schema/index/trigger/copy-cost review remain manual.
 12. `[C]` `httpRoutes` declared in the registry entry and implemented
     in the worker module; an empty list is valid.
-13. The game itself: engine object with `stateVersion` /
+13. The game itself: engine object with `gameType` /
     `capabilities`, `public.ts` as the only cross-package entrypoint,
-    `state/{version,parseState,normalize,codec}.ts` with a
-    `migratePersisted*State` wired into the worker module, worker
+    `state/{parseState,normalize,codec}.ts` with strict parsing of the
+    current state shape, worker
     schemas/effects, the client room screen + room state modules, and
     the review contribution declared as the client module's required
     `review` (`packages/web/src/games/<id>/review/`).

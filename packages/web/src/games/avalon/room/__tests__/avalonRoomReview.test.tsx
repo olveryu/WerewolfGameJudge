@@ -72,6 +72,23 @@ function expectAvalonReviewDialog() {
 }
 
 describe('AvalonRoomScreen review', () => {
+  it('keeps room information entries available during mandatory Assassin picking', () => {
+    const finished = playAvalonTestGame(3);
+    const assassin = Object.entries(finished.roles).find(([, role]) => role === 'assassin');
+    if (assassin === undefined) throw new Error('Expected the dealt Assassin role');
+    const assassinSeat = Number(assassin[0]);
+    const state: AvalonState = {
+      ...finished,
+      phase: { kind: 'assassin', accusedSeat: null },
+    };
+
+    renderRoom(state, avalonTestSeatUser(assassinSeat));
+
+    expect(screen.getByTestId(TESTIDS.avalonHistoryButton)).toBeVisible();
+    fireEvent.click(screen.getByTestId(TESTIDS.roomManualButton));
+    expect(screen.getByTestId(TESTIDS.roomGuideButton('avalon'))).toBeVisible();
+  });
+
   it('offers no review while the game runs', () => {
     renderRoom(playAvalonTestGame(1), avalonTestSeatUser(0));
     expect(screen.queryByTestId(TESTIDS.roomReviewOpenButton)).toBeNull();

@@ -73,7 +73,6 @@ export interface RuntimeWorkerEffectContext {
 /** Runtime-erased game operations consumed by the generic room authority. */
 export interface RuntimeWorkerGameModule {
   readonly gameType: GameType;
-  readonly stateVersion: number;
   parseCreateConfig(config: unknown): RuntimeConfigResult;
   createInitialState(config: unknown, context: CreateGameContext): RuntimeCreateResult;
   parseState(value: unknown): BaseGameState<GameType>;
@@ -81,8 +80,6 @@ export interface RuntimeWorkerGameModule {
     state: BaseGameState<GameType>,
     userId: string,
   ) => BaseGameState<GameType>;
-  readonly migratePersistedState: ((value: unknown) => BaseGameState<GameType>) | null;
-  readonly getRecoveryCommand?: (state: unknown) => GameCommand | null;
   parseCommandResult(value: unknown): RoomCommandResult<BaseGameState<GameType>>;
   decidePublic(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;

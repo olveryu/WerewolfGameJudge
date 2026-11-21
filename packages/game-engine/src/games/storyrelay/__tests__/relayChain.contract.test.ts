@@ -13,7 +13,7 @@ import { createEngineSession } from '../../../platform/engine/__tests__/engineSe
 import type { StoryRelayCommand, StoryRelayTaskIdentity } from '../commands/types';
 import { getStoryRelayTaskForSeat } from '../domain/relay';
 import { storyRelayEngine } from '../engine';
-import { migratePersistedStoryRelayState, parseStoryRelayState } from '../state/parseState';
+import { parseStoryRelayState } from '../state/parseState';
 import { DEFAULT_STORY_RELAY_CONFIG } from '../state/types';
 
 const NUMBER_OF_PLAYERS = 4;
@@ -118,7 +118,6 @@ describe('Story Relay relay-chain contract', () => {
       roster: before.roster,
       config: before.config,
       completedAt: null,
-      abortedAt: null,
       phaseRevision: before.phaseRevision + 1,
     });
     expect(gameSession.effects).toHaveLength(effectsBefore);
@@ -138,24 +137,6 @@ describe('Story Relay relay-chain contract', () => {
     expect(gameSession.effects).toEqual(effectsBefore);
   });
 
-  it('migrates a v2 gallery without replaying its old reveal', () => {
-    const session = game();
-    session.playRound();
-    const gallery = session.state.gallery;
-    if (gallery === null) throw new Error('Missing gallery');
-    const { revealStartedAt: _start, revealDurationMs: _duration, ...legacyGallery } = gallery;
-    const migrated = migratePersistedStoryRelayState({
-      ...session.state,
-      stateVersion: 2,
-      gallery: legacyGallery,
-    });
-    expect(migrated.stateVersion).toBe(4);
-    expect(migrated.gallery).toEqual({
-      ...legacyGallery,
-      revealStartedAt: null,
-      revealDurationMs: 0,
-    });
-  });
   it('anchors the first text even in a manually paged gallery', () => {
     const session = game(null);
     session.playRound();

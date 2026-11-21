@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { handleError } from '@/utils/errorPipeline';
+
 import {
   fetchMaintenance,
   formatMaintenanceEnd,
@@ -125,6 +127,30 @@ describe('maintenance startup boundary', () => {
     expect(fetchMaintenance).toHaveBeenCalledTimes(3);
     expect(screen.getByRole('textbox', { name: '故事草稿' })).toBe(input);
     expect(input).toHaveValue('还未提交的故事');
+    client.clear();
+  });
+
+  it('reports the same maintenance outage once while continuing automatic retries', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetchMaintenance)
+      .mockResolvedValueOnce({ ...configuration, enabled: false })
+      .mockRejectedValue(new Error('Unavailable'));
+    const { client } = mountGate();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: MAINTENANCE_QUERY_KEY });
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(handleError).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_001);
+    });
+    expect(fetchMaintenance).toHaveBeenCalledTimes(3);
+    expect(handleError).toHaveBeenCalledOnce();
     client.clear();
   });
 

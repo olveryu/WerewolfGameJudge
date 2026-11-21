@@ -171,8 +171,7 @@ function WerewolfRoomContent(
   return (
     <RoomShell
       model={shellModel}
-      showPlayerHand
-      hideActionHand={shellModel.isAudioPlaying}
+      actionHandVisibility={shellModel.isAudioPlaying ? 'hidden' : 'visible'}
       phaseLabel={
         isSetup
           ? '待开局'
@@ -187,7 +186,7 @@ function WerewolfRoomContent(
                   : '本局结束'
       }
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
-      isSelecting={night.seatSelection !== null || night.isActionGroupOpen}
+      selectionMode={night.seatSelection !== null || night.isActionGroupOpen ? 'player' : undefined}
       mainEntries={
         isSetup
           ? [
@@ -250,7 +249,13 @@ function WerewolfRoomContent(
       }
       content={{
         kind: 'seats',
-        summaryIsStatus: status === GameStatus.Day,
+        summaryPresentation:
+          status === GameStatus.Day
+            ? 'status'
+            : sheriffElectionPanel !== null &&
+                shellModel.bottomActions.message === getSheriffWaitingMessage(sheriffElectionPanel)
+              ? 'replaces-message'
+              : undefined,
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue
@@ -270,9 +275,6 @@ function WerewolfRoomContent(
               isDay={status === GameStatus.Day}
             />
           ),
-        summaryReplacesMessage:
-          sheriffElectionPanel !== null &&
-          shellModel.bottomActions.message === getSheriffWaitingMessage(sheriffElectionPanel),
         beforeSeatBoard: (
           <>
             {!useConfigurationDialog && (
@@ -332,6 +334,7 @@ function WerewolfRoomContent(
               shouldPlayAnimation={roleCard.viewing.shouldPlayAnimation}
               allRoleIds={state.templateRoles}
               remainingCards={roleCard.viewing.remainingCards}
+              confirmDisabled={roleCard.viewing.isConfirmationDisabled}
               onClose={roleCard.viewing.close}
               seerLabelMap={state.seerLabelMap}
             />
@@ -342,6 +345,7 @@ function WerewolfRoomContent(
               title="本局配置"
               subtitle={`狼人杀（${seatCount}人）`}
               onClose={() => setIsConfigurationOpen(false)}
+              dismissOnEscape
               footer={null}
             >
               <BoardInfoContent
@@ -406,7 +410,7 @@ function WerewolfRoomContent(
             <RoomDialog
               title="狼人杀玩法"
               onClose={() => setIsGuideOpen(false)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <WerewolfEncyclopedia gameState={state} isHost={isHost} hasRoomContext />
@@ -422,7 +426,7 @@ function WerewolfRoomContent(
             <RoomDialog
               title={`${strategyBoardName} · 攻略`}
               onClose={() => setStrategyBoardName(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <BoardStrategyContent boardName={strategyBoardName} />

@@ -3,14 +3,13 @@
 import type { CommandContext } from '../../../platform/engine';
 import { dispatchCommand } from '../../../platform/engine/__tests__/engineSession';
 import { REASON_CONTROLLED_SEAT_NOT_BOT } from '../../../platform/protocol/reasons';
-import { getBotSeats, getHumanSeatMap } from '../../../platform/room/seating';
+import { getBotSeats } from '../../../platform/room/seating';
 import type { UndercoverCommand } from '../commands/types';
 import { UNDERCOVER_REASONS } from '../domain/decision';
 import type { UndercoverRole } from '../domain/rules';
 import { getUndercoverWordCard } from '../domain/visibility';
 import { undercoverEngine } from '../engine';
 import { UNDERCOVER_STATE_CODEC } from '../state/codec';
-import { migratePersistedUndercoverState } from '../state/parseState';
 import {
   getUndercoverParticipantUserIds,
   type UndercoverConfig,
@@ -53,12 +52,6 @@ function dispatch(
   context = user(),
 ): UndercoverState {
   return dispatchCommand(undercoverEngine, state, command, context);
-}
-
-function legacyAborted(state: UndercoverState): UndercoverState {
-  return undercoverEngine.normalize(
-    undercoverEngine.evolve(state, { type: 'undercover.round.aborted' }),
-  );
 }
 
 function createLobby(settings: UndercoverConfig = config): UndercoverState {
@@ -144,7 +137,7 @@ describe('Undercover authoritative engine', () => {
     const completed = dispatch(playerComplete, command, user('u1'));
     expect(completed.reviewCompletedUserIds).toEqual(['host', 'u1']);
     expect(
-      migratePersistedUndercoverState(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds,
+      UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(completed))).reviewCompletedUserIds,
     ).toEqual(['host', 'u1']);
     const reset = dispatch(completed, { type: 'undercover.game.restart', roundId, wasEnded: true });
     expect(reset.reviewCompletedUserIds).toEqual([]);
@@ -166,22 +159,13 @@ describe('Undercover authoritative engine', () => {
       },
       system(),
     );
-    const states = [
-      preparing,
-      failed,
-      complete(preparing),
-      active,
-      ended,
-      legacyAborted(preparing),
-    ];
+    const states = [preparing, failed, complete(preparing), active, ended];
     for (const state of states) {
       if (state.phase === 'lobby') throw new Error('Expected round');
       const roundId =
         state.phase === 'preparing' || state.phase === 'preparationFailed'
           ? state.pendingRound.roundId
-          : state.phase === 'aborted'
-            ? state.abortedRoundId
-            : state.round.roundId;
+          : state.round.roundId;
       const command = {
         type: 'undercover.game.restart',
         roundId,
@@ -219,41 +203,6 @@ describe('Undercover authoritative engine', () => {
         ).kind,
       ).toBe('reject');
     }
-  });
-
-  it('migrates older aborted rounds and preserves their restart identity', () => {
-    const preparing = prepare();
-    if (preparing.phase !== 'preparing') throw new Error('Expected preparation');
-    const aborted = legacyAborted(preparing);
-    if (aborted.phase !== 'aborted') throw new Error('Expected abort');
-    const { abortedRoundId: _identity, ...oldState } = aborted;
-    const migrated = migratePersistedUndercoverState({ ...oldState, stateVersion: 5 });
-    expect(migrated).toMatchObject({
-      phase: 'aborted',
-      abortedRoundId: 'legacy-aborted-preparation',
-    });
-    const newAbort = legacyAborted(preparing);
-    expect(
-      undercoverEngine.decide(
-        newAbort,
-        {
-          type: 'undercover.game.restart',
-          roundId: 'legacy-aborted-preparation',
-          wasEnded: false,
-        },
-        user(),
-      ).kind,
-    ).toBe('reject');
-    const viewing = complete(prepare());
-    const abortedViewing = legacyAborted(viewing);
-    if (abortedViewing.phase !== 'aborted') throw new Error('Expected abort');
-    const { abortedRoundId: _viewingIdentity, ...oldViewingAbort } = abortedViewing;
-    expect(migratePersistedUndercoverState({ ...oldViewingAbort, stateVersion: 5 })).toEqual(
-      abortedViewing,
-    );
-    expect(() =>
-      migratePersistedUndercoverState({ ...viewing, stateVersion: 5, phase: 'reading' }),
-    ).toThrow();
   });
 
   it('allows repeated words only for the current exhausted selection', () => {
@@ -344,63 +293,12 @@ describe('Undercover authoritative engine', () => {
         },
         system(),
       ),
-      legacyAborted(active),
       reveal(reveal(reveal(active, 'blank'), 'undercover'), 'undercover'),
     ];
     for (const state of states) {
       expect(UNDERCOVER_STATE_CODEC.parse(JSON.parse(JSON.stringify(state)))).toEqual(state);
       expect(() => UNDERCOVER_STATE_CODEC.parse({ ...state, unexpected: true })).toThrow();
-      for (const stateVersion of [1, 2, 3]) {
-        const legacyRound: Record<string, unknown> | null =
-          state.round === null ? null : { ...state.round };
-        if (legacyRound !== null && stateVersion !== 3) delete legacyRound.speakingStartSeat;
-        const legacy = {
-          ...state,
-          stateVersion,
-          realSeats: getHumanSeatMap(state.roster, state.config.numberOfPlayers),
-          botSeats: getBotSeats(state.roster),
-          round: legacyRound,
-          config:
-            stateVersion === 1
-              ? { ...state.config, isTestMode: getBotSeats(state.roster).length > 0 }
-              : state.config,
-        };
-        const migrated = migratePersistedUndercoverState(JSON.parse(JSON.stringify(legacy)));
-        expect(migrated).toEqual({
-          ...state,
-          round:
-            state.round === null || stateVersion === 3
-              ? state.round
-              : { ...state.round, speakingStartSeat: expect.any(Number) as unknown },
-        });
-        expect(migratePersistedUndercoverState(legacy)).toEqual(migrated);
-        expect(() => UNDERCOVER_STATE_CODEC.parse(legacy)).toThrow();
-      }
-      expect(migratePersistedUndercoverState(state)).toEqual(state);
     }
-  });
-
-  it('migrates v4 states by renaming the reading phase to viewing, field-equal', () => {
-    let viewing = complete(prepare());
-    if (viewing.round === null) throw new Error('Expected round');
-    viewing = dispatch(
-      viewing,
-      { type: 'undercover.role.viewed', roundId: viewing.round.roundId },
-      user('host', 1),
-    );
-    const v4Viewing: Record<string, unknown> = {
-      ...(JSON.parse(JSON.stringify(viewing)) as Record<string, unknown>),
-      stateVersion: 4,
-      phase: 'reading',
-    };
-    expect(migratePersistedUndercoverState(v4Viewing)).toEqual(viewing);
-
-    const active = ongoing();
-    const v4Ongoing: Record<string, unknown> = {
-      ...(JSON.parse(JSON.stringify(active)) as Record<string, unknown>),
-      stateVersion: 4,
-    };
-    expect(migratePersistedUndercoverState(v4Ongoing)).toEqual(active);
   });
 
   it('limits cards to the real player or host-controlled robot and hides affiliation', () => {
@@ -415,8 +313,6 @@ describe('Undercover authoritative engine', () => {
       expect(card).not.toHaveProperty('category');
     }
     if (state.round === null) throw new Error('Expected round');
-    const aborted = legacyAborted(state);
-    expect(getUndercoverWordCard(aborted, 'host', 1)).toBeNull();
   });
   it('lets one host confirm all robot seats without changing host identity', () => {
     const state = ongoing();
@@ -508,7 +404,7 @@ describe('Undercover authoritative engine', () => {
     ).toBe('ended');
   });
 
-  it('does not reward an aborted round', () => {
+  it('does not reward an in-progress round when restarting', () => {
     const state = ongoing();
     if (state.phase !== 'ongoing') throw new Error('Expected ongoing round');
     const decision = undercoverEngine.decide(

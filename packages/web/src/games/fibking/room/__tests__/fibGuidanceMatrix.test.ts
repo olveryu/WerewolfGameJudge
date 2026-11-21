@@ -5,7 +5,6 @@
  * (this game's established adapter-test idiom).
  */
 import {
-  FIB_STATE_VERSION,
   type FibPhase,
   type FibRound,
   type FibState,
@@ -41,7 +40,6 @@ function baseRound(viewedSeats: readonly number[]): FibRound {
 function stateFor(phase: FibPhase): FibState {
   const base = {
     gameType: 'fibking' as const,
-    stateVersion: FIB_STATE_VERSION,
     roomCode: '4321',
     hostUserId: 'host',
     numberOfPlayers: 4,

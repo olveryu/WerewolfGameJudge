@@ -9,7 +9,6 @@
  */
 
 import { WEREWOLF_GAME_TYPE } from '../../../../platform/protocol/gameTypes';
-import { WEREWOLF_STATE_VERSION } from '../../state/version';
 import type { GameState } from '../protocol/types';
 import type { SheriffElectionRoundResult, SheriffElectionState } from '../protocol/types';
 import { assertWerewolfStateInvariants } from './assertStateInvariants';
@@ -153,7 +152,6 @@ export function normalizeState(raw: GameState): GameState {
   const normalized = {
     // Required fields (fail-fast to avoid masking state corruption)
     gameType: requireIdentity(raw.gameType, WEREWOLF_GAME_TYPE, 'gameType'),
-    stateVersion: requireIdentity(raw.stateVersion, WEREWOLF_STATE_VERSION, 'stateVersion'),
     roomCode: requireField(raw.roomCode, 'roomCode'),
     hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),
@@ -161,25 +159,23 @@ export function normalizeState(raw: GameState): GameState {
     rules: raw.rules,
     // Player keys retain the authoritative state representation.
     players: requireField(raw.players, 'players'),
-    // Viewed-role seat set (boundary normalize: legacy in-memory states
-    // without the field default to an empty set)
-    roleViewedSeats: raw.roleViewedSeats ?? [],
+    roleViewedSeats: requireField(raw.roleViewedSeats, 'roleViewedSeats'),
     startingParticipants: raw.startingParticipants,
     mvpUserId: raw.mvpUserId,
     // Seat occupancy roster (seat -> human occupant or bot marker)
-    roster: raw.roster ?? {},
+    roster: requireField(raw.roster, 'roster'),
     nightStep: requireField(raw.nightStep, 'nightStep'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
     audioBatchId: requireField(raw.audioBatchId, 'audioBatchId'),
     gameSequence: requireField(raw.gameSequence, 'gameSequence'),
 
-    // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
-    actions: raw.actions ?? [],
+    // Execution state
+    actions: requireField(raw.actions, 'actions'),
     currentNightResults,
     resolvedWolfKillTarget: raw.resolvedWolfKillTarget,
     resolvedWolfKillVerdict: raw.resolvedWolfKillVerdict,
     resolvedNightEffects: raw.resolvedNightEffects ?? [],
-    pendingRevealAcks: raw.pendingRevealAcks ?? [],
+    pendingRevealAcks: requireField(raw.pendingRevealAcks, 'pendingRevealAcks'),
     lastNightDeaths: raw.lastNightDeaths,
     lastNightInfoConfirmed: raw.lastNightInfoConfirmed,
     reviewCompletedUserIds: raw.reviewCompletedUserIds,
@@ -207,9 +203,7 @@ export function normalizeState(raw: GameState): GameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
-    // Pending audio effect queue (boundary normalize: legacy states
-    // without the field default to an empty queue)
-    pendingAudioEffects: raw.pendingAudioEffects ?? [],
+    pendingAudioEffects: requireField(raw.pendingAudioEffects, 'pendingAudioEffects'),
 
     // UI Hints (Host broadcast-driven, UI read-only display, must be passed through)
     ui: raw.ui,

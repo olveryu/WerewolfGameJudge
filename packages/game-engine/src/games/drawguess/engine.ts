@@ -61,13 +61,11 @@ import {
   getDrawGuessTotalTurns,
   isValidDrawGuessConfig,
 } from './state/types';
-import { DRAWGUESS_STATE_VERSION } from './state/version';
 
 function createInitialState(config: DrawGuessConfig, context: CreateGameContext): DrawGuessState {
   if (!isValidDrawGuessConfig(config)) throw new Error(DRAWGUESS_REASONS.config);
   return normalizeDrawGuessState({
     gameType: DRAWGUESS_GAME_TYPE,
-    stateVersion: DRAWGUESS_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -125,9 +123,9 @@ function completionEffect(
       }
       guessRounds += 1;
       if (turn.guessedSeats.includes(human.seat)) guessedRounds += 1;
-      const attempts = turn.guessAttemptsBySeat?.[human.seat];
+      const attempts = turn.guessAttemptsBySeat[human.seat];
       if (attempts !== undefined) guessAttempts += attempts;
-      const elapsedMs = turn.guessTimeMsBySeat?.[human.seat];
+      const elapsedMs = turn.guessTimeMsBySeat[human.seat];
       if (elapsedMs !== undefined) {
         guessTimeMs += elapsedMs;
         guessTimedRounds += 1;
@@ -224,10 +222,10 @@ function dealWords(
   turnIndex: number,
   choices: readonly DrawGuessWordChoice[],
   context: CommandContext,
-  gameSequence?: number,
+  gameSequence: number,
 ): DrawGuessDecision {
   if (
-    (gameSequence !== undefined && state.gameSequence !== gameSequence) ||
+    state.gameSequence !== gameSequence ||
     state.phase.kind !== 'wordSelect' ||
     state.turnIndex !== turnIndex
   )
@@ -755,7 +753,6 @@ export function getDrawGuessLifecycle(state: DrawGuessState): CommonGameLifecycl
 
 export const drawGuessEngine = {
   gameType: DRAWGUESS_GAME_TYPE,
-  stateVersion: DRAWGUESS_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

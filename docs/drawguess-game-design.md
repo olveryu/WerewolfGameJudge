@@ -330,7 +330,6 @@ interface DrawGuessTurnRecord {
 }
 
 interface DrawGuessState {
-  readonly stateVersion: number;
   readonly roomCode: string;
   readonly hostUserId: string;
   readonly realSeats: Readonly<Record<number, SeatOccupant | undefined>>;
@@ -346,13 +345,13 @@ interface DrawGuessState {
 }
 ```
 
-`DrawGuessState` 还保存：`stateVersion`、`roomCode`、`hostUserId` 和共享座位状态。不保存：
+`DrawGuessState` 还保存：`roomCode`、`hostUserId` 和共享座位状态。不保存：
 
 - PNG、二进制画作字节（只保存 R2 object key 与元数据）。
 - 本地撤销栈、未发送的笔画、未提交的猜词输入。
 - 可推导的第二份"已猜中集合"（`guessedSeats` 即权威）。
 
-`turnHistory`（v4）是本局复盘的数据源：`drawguess.turn.started` 关闭上一轮 `roundEnd`、`drawguess.game.ended` 关闭最后一轮时，把该 `roundEnd` 冻结为一条记录追加进去；`drawguess.game.started`（开局、再来一局）与 `drawguess.game.returnedToLobby`（中止整局、返回大厅）清空。不变量：记录按 `turnIndex` 升序连续，进行中阶段末条为上一回合、`ended` 末条为最后一回合，`lobby` 为空；画手与 `drawerQueue` 一致；`guessedSeats` 恰为 `roundScores` 中除画手外的座位；`entryId` 与 `pngEntry` 同为 null 或同时存在，非空 `entryId` 不重复。记录不含笔画，只保留终稿 R2 元数据，控制状态体积。v3 房间迁移时 `turnHistory` 置空（迁移前已结束的回合不补录），进行中的 `roundEnd` 按 `roundScores` 重建 `guessedSeats`（得分高者在前，同分按座位号）。
+`turnHistory` 是本局复盘的数据源：`drawguess.turn.started` 关闭上一轮 `roundEnd`、`drawguess.game.ended` 关闭最后一轮时，把该 `roundEnd` 冻结为一条记录追加进去；`drawguess.game.started`（开局、再来一局）与 `drawguess.game.returnedToLobby`（中止整局、返回大厅）清空。不变量：记录按 `turnIndex` 升序连续，进行中阶段末条为上一回合、`ended` 末条为最后一回合，`lobby` 为空；画手与 `drawerQueue` 一致；`guessedSeats` 恰为 `roundScores` 中除画手外的座位；`entryId` 与 `pngEntry` 同为 null 或同时存在，非空 `entryId` 不重复。记录不含笔画，只保留终稿 R2 元数据，控制状态体积。
 
 Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、阶段不变量（`drawing` 的 `word` 非空、`pinyinInitials.length === word.length`、`guessedSeats` 不含画手、`turnIndex` 上界）；损坏状态直接失败，不猜测修复。
 
@@ -381,7 +380,7 @@ Codec 必须用 `z.strictObject` 精确验证：座位范围、笔画字段、�
 
 `game.abort` 必须携带当前 `gameSequence`，旧确认不能中止新一局。该命令绑定整局而非笔画版本，确认期间的正常作画、猜词或阶段推进不使其失效；房主以未接管身份发送，服务端校验权限和局中阶段。
 
-`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。持久化版本为 v5（v3 新增 `drawerZeroed`；v4 新增 `turnHistory` 与 `roundEnd.guessedSeats`；v5 新增互动及猜词次数、用时采集，见 §3.6）；v1/v2/v3/v4 payload 经 `migratePersistedDrawGuessState` 升级，旧房间不作废，迁移前未采集的指标不伪造历史记录。
+`drawguess.round.ended` 由 `drawing` 跃迁时结算清零：若 `guessedSeats.length >= numberOfPlayers - 1`（全员猜中口径，与 3 秒压缩一致），画手本轮累计（`turnScores[drawerSeat]`）清零并从 `scores` 同额扣回，`roundScores` 取清零后数值，`roundEnd` 阶段 `drawerZeroed` 为 true；否则为 false。当前严格 codec 只接受当前状态形状，不兼容旧的 persisted state；无法解析的房间状态直接失败。
 
 ### 7.2 Internal commands
 

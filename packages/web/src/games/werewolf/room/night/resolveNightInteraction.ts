@@ -135,11 +135,19 @@ export function resolveNightInteraction(input: NightInteractionInput): NightInte
   const hint = night.actorHint;
 
   if (hint?.bottomAction === 'skipOnly') {
-    const lockedAction = resolveNightInteraction({
-      ...input,
-      viewModel: { ...viewModel, night: { ...night, actorHint: null } },
-    });
-    return { kind: 'skipOnly', prompt, skipLabel: SKIP_CONFIRM_LABEL, lockedAction };
+    const lockedAction =
+      schema.kind === 'compound'
+        ? undefined
+        : resolveNightInteraction({
+            ...input,
+            viewModel: { ...viewModel, night: { ...night, actorHint: null } },
+          });
+    return {
+      kind: 'skipOnly',
+      prompt,
+      skipLabel: SKIP_CONFIRM_LABEL,
+      ...(lockedAction === undefined ? {} : { lockedAction }),
+    };
   }
 
   switch (schema.kind) {

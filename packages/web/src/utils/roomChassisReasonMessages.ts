@@ -10,12 +10,10 @@
  * every surface (presenters, host/seat/profile controllers) shows the
  * same sentence for the same chassis code.
  *
- * Three platform codes have no established copy and are deliberately
- * absent: `user_actor_required` and `system_actor_required` are
- * engine-internal actor-kind guards unreachable from player UI, and
- * `room_instance_mismatch` is an api-worker routing response handled by
- * the API error surface. They fall through to the generic fallback
- * until a copy ruling adds them here.
+ * Two platform codes have no established copy and are deliberately
+ * absent: `system_actor_required` is an engine-internal actor-kind guard,
+ * and `room_instance_mismatch` is an api-worker routing response handled
+ * by the API error surface. They fall through to the generic fallback.
  */
 
 import {
@@ -28,10 +26,13 @@ import {
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
+  REASON_REVIEW_IDENTITY_MISMATCH,
+  REASON_REVIEW_NOT_ELIGIBLE,
   REASON_ROOM_EFFECTS_PENDING,
   REASON_ROOM_INITIALIZATION_CONFLICT,
   REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
+  REASON_USER_ACTOR_REQUIRED,
 } from '@game-judge/game-engine/platform/protocol/reasons';
 
 /** User-facing copy for the platform room-operation reason codes. */
@@ -41,8 +42,11 @@ export const ROOM_CHASSIS_REASON_MESSAGES: Readonly<Record<string, string>> = {
   [REASON_INVALID_SEAT]: '座位不存在',
   [REASON_SEAT_TAKEN]: '座位已被占用',
   [REASON_GAME_IN_PROGRESS]: '游戏进行中，无法操作',
+  [REASON_REVIEW_IDENTITY_MISMATCH]: '复盘对应的对局已变化，请刷新后重试',
+  [REASON_REVIEW_NOT_ELIGIBLE]: '当前账号不可确认此复盘',
   [REASON_NOT_SEATED]: '你还没有入座',
   [REASON_NOT_HOST]: '仅房主可以执行此操作',
+  [REASON_USER_ACTOR_REQUIRED]: '当前操作需要玩家身份',
   [REASON_SEAT_EMPTY]: '该座位没有玩家',
   [REASON_CONTROLLED_SEAT_NOT_ALLOWED]: '当前操作不支持接管座位',
   [REASON_CONTROLLED_SEAT_NOT_BOT]: '只能接管机器人座位',

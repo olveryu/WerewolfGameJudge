@@ -14,13 +14,11 @@
  * @remarks Computes authoritative antidote availability before entering witchAction, including rule overrides.
  */
 
-import type { Rng } from '../../../../platform/random';
-import { GameStatus } from '../models';
 import type { SchemaId } from '../models/roles/spec';
 import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
 import type { GameState } from '../protocol/types';
 import type { SetWitchContextAction } from '../reducer/types';
-import { getStoredWolfKillTarget, settleWolfKillFromVotes } from './wolfKillResolution';
+import { requireStoredWolfKillTarget } from './wolfKillResolution';
 
 /**
  * Compute the witch context (pure function)
@@ -33,38 +31,13 @@ import { getStoredWolfKillTarget, settleWolfKillFromVotes } from './wolfKillReso
  * @param state current game state
  * @returns witchContext payload
  */
-function computeWitchContext(
-  state: GameState,
-  rng: Rng,
-): {
+function computeWitchContext(state: GameState): {
   killedSeat: number;
   canSave: boolean;
   canPoison: boolean;
 } {
-  // 1. Compute the attack target (killedSeat). The stored settled
-  // target wins: re-resolving a tied vote here with a fresh seed is
-  // exactly how the witch could be shown one target while settlement
-  // later picked another. Production callers (advance, START_NIGHT)
-  // settle first and pass the settled state, so this stored branch
-  // is the only one they take. Only a direct call with nothing
-  // stored yet takes the fresh branch, where settleWolfKillFromVotes
-  // computes the target and its verdict together and this context
-  // reads only the target; a direct call emits no SET, so no verdict
-  // is persisted by it.
-  let killedSeat = -1;
-
-  const storedTarget = getStoredWolfKillTarget(state);
-  if (storedTarget !== undefined) {
-    killedSeat = storedTarget === null ? -1 : storedTarget;
-  } else if (!state.wolfKillOverride) {
-    if (!state.currentNightResults && state.status !== GameStatus.Ready) {
-      throw new Error('[FAIL-FAST] witchAction step has no currentNightResults');
-    }
-    const settled = settleWolfKillFromVotes(state, rng);
-    if (settled.target !== null) {
-      killedSeat = settled.target;
-    }
-  }
+  const target = requireStoredWolfKillTarget(state);
+  const killedSeat = target === null ? -1 : target;
 
   // 2. Find the witch's seat, used for the notSelf constraint
   const witchActor = resolveNightStepActor(state, 'witch');
@@ -94,7 +67,6 @@ function computeWitchContext(
 export function maybeCreateWitchContextAction(
   nextStepId: SchemaId,
   state: GameState,
-  rng: Rng,
 ): SetWitchContextAction | null {
   const hasWitch = state.templateRoles.includes('witch');
 
@@ -110,6 +82,6 @@ export function maybeCreateWitchContextAction(
 
   return {
     type: 'SET_WITCH_CONTEXT',
-    payload: computeWitchContext(state, rng),
+    payload: computeWitchContext(state),
   };
 }

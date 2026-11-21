@@ -278,7 +278,7 @@ export function decideUndercoverRound(
       isEligible: (userId) =>
         userId === state.hostUserId || getUndercoverUserSeat(state, userId) !== null,
     });
-    if (completion.kind === 'reject') return reject(UNDERCOVER_REASONS.round);
+    if (completion.kind === 'reject') return reject(completion.reason);
     return commitUndercover(
       completion.kind === 'complete'
         ? [{ type: 'undercover.review.completed', userId: completion.userId }]
@@ -296,9 +296,7 @@ export function decideUndercoverRound(
     const currentRoundId =
       state.phase === 'preparing' || state.phase === 'preparationFailed'
         ? state.pendingRound.roundId
-        : state.phase === 'aborted'
-          ? state.abortedRoundId
-          : state.round.roundId;
+        : state.round.roundId;
     if (currentRoundId !== command.roundId || (state.phase === 'ended') !== command.wasEnded)
       return reject(UNDERCOVER_REASONS.round);
     return commitUndercover([{ type: 'undercover.game.returnedToLobby' }]);

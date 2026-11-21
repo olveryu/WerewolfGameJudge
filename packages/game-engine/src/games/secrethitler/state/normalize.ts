@@ -14,7 +14,6 @@ import {
   type SecrethitlerPolicy,
   type SecrethitlerState,
 } from './types';
-import { SECRETHITLER_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('Secrethitler');
 
@@ -34,7 +33,7 @@ function countPolicies(
 }
 
 function assertSetupState(state: SecrethitlerState): void {
-  assertStateIdentity(state, SECRETHITLER_STATE_IDENTITY, 'Secrethitler');
+  assertStateIdentity(state, 'secrethitler', 'Secrethitler');
   invariant(isValidSecrethitlerConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;
@@ -286,15 +285,29 @@ function assertPhaseState(state: SecrethitlerState): void {
       state.electionTracker === 2 &&
       (failedVote || (result.previous.kind === 'vetoResponse' && result.vetoApproved === true));
     invariant((result.chaosPolicy !== null) === expectsChaos, 'chaos result');
+    invariant(
+      (result.chaosPolicyDeck !== null) ===
+        (result.chaosPolicy !== null && state.policyDeck.length === 0),
+      'chaos policy deck presence',
+    );
     if (result.chaosPolicy !== null) {
-      const available =
-        state.policyDeck.length > 0
-          ? state.policyDeck.slice(0, 1)
-          : [
-              ...state.policyDiscard,
-              ...(result.previous.kind === 'vetoResponse' ? result.previous.hand : []),
-            ];
-      invariant(available.includes(result.chaosPolicy), 'chaos result policy');
+      if (state.policyDeck.length > 0) {
+        invariant(state.policyDeck[0] === result.chaosPolicy, 'chaos result policy');
+      } else {
+        const available = [
+          ...state.policyDiscard,
+          ...(result.previous.kind === 'vetoResponse' ? result.previous.hand : []),
+        ];
+        const preview = result.chaosPolicyDeck;
+        invariant(
+          preview !== null &&
+            preview[0] === result.chaosPolicy &&
+            preview.length === available.length &&
+            countPolicies(preview, 'liberal') === countPolicies(available, 'liberal') &&
+            countPolicies(preview, 'fascist') === countPolicies(available, 'fascist'),
+          'chaos policy deck',
+        );
+      }
     }
   }
   if (state.phase.kind === 'night') {

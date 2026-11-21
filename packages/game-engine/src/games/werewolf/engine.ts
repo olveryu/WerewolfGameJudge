@@ -69,7 +69,6 @@ import { buildInitialGameState } from './domain/state/buildInitialState';
 import { normalizeState } from './domain/state/normalize';
 import { createWerewolfGameEndedEffect } from './effects/gameEnded';
 import type { WerewolfEffect } from './effects/types';
-import { WEREWOLF_STATE_VERSION } from './state/version';
 
 export interface WerewolfConfig {
   readonly templateRoles: readonly RoleId[];
@@ -313,6 +312,7 @@ function decideWerewolfCommandRules(
       if (state.status !== GameStatus.Day && state.status !== GameStatus.Ended) {
         return reject('invalid_status');
       }
+      if (state.lastNightInfoConfirmed === true) return commitActions([]);
       return commitActions([{ type: 'CONFIRM_LAST_NIGHT_INFO' }]);
     }
     case 'werewolf.review.complete': {
@@ -337,7 +337,7 @@ function decideWerewolfCommandRules(
           return seat !== null && (state.nightReviewAllowedSeats ?? []).includes(seat);
         },
       });
-      if (completion.kind === 'reject') return reject('invalid_status');
+      if (completion.kind === 'reject') return reject(completion.reason);
       return commitActions(
         completion.kind === 'complete'
           ? [{ type: 'COMPLETE_REVIEW', userId: completion.userId }]
@@ -586,7 +586,6 @@ export function decideWerewolfCommand(
 
 export const werewolfEngine = {
   gameType: WEREWOLF_GAME_TYPE,
-  stateVersion: WEREWOLF_STATE_VERSION,
   capabilities: {
     nightPhase: true,
     botsAndTakeover: true,

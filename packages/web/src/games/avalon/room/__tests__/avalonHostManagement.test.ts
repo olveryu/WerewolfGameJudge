@@ -488,7 +488,7 @@ describe('createAvalonHostManagement', () => {
       game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     }
     game.settle(false);
-    expect(game.state.phase).toMatchObject({ kind: 'voteResult', confirmedSeats: [] });
+    expect(game.state.phase).toMatchObject({ kind: 'voteResult' });
     const action = build(game.state, false)
       ?.sections.flatMap((section) => section.actions)
       .find((entry) => entry.key === 'mark-bots-confirmed');

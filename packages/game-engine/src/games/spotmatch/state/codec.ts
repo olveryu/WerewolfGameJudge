@@ -3,9 +3,8 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import { parseSpotmatchState } from './parseState';
 import type { SpotmatchState } from './types';
-import { SPOTMATCH_STATE_IDENTITY } from './version';
 
 export const SPOTMATCH_STATE_CODEC = {
-  ...SPOTMATCH_STATE_IDENTITY,
+  gameType: 'spotmatch',
   parse: parseSpotmatchState,
 } satisfies GameStateCodec<SpotmatchState>;

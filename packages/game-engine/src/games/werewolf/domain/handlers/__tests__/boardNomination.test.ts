@@ -16,13 +16,12 @@ import type {
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import { handleUpvoteBoardNomination } from '@game-judge/game-engine/games/werewolf/domain/reducer/lifecycleReducers';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
-    ...WEREWOLF_STATE_IDENTITY,
+    gameType: 'werewolf',
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Unseated,

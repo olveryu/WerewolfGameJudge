@@ -1,13 +1,7 @@
 .bottom-action-panel {
   flex-shrink: 0;
   padding: var(--space-small) var(--space-medium)
-    max(var(--space-medium), env(safe-area-inset-bottom));
-  border-top: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.bottom-action-panel[data-hand='true'] {
-  padding-bottom: 0;
+    0;
   border-top: 0;
   background: transparent;
 }
@@ -36,49 +30,6 @@
 
 .bottom-action-message[data-animate='true'] {
   animation: bottom-message-in 150ms ease-out;
-}
-
-.bottom-action-control-row {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-small);
-}
-
-.bottom-action-focus {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.bottom-action-focus > .bottom-action-slot,
-.bottom-action-more {
-  height: 100%;
-}
-
-.bottom-action-more {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  min-width: 0;
-  text-align: start;
-}
-
-.bottom-action-control-row[data-has-focus='false'] .bottom-action-more {
-  flex-basis: 100%;
-  align-items: center;
-  text-align: center;
-}
-
-.bottom-action-more-title,
-.bottom-action-more-hint {
-  overflow-wrap: anywhere;
-}
-
-.bottom-action-more-hint {
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  font-weight: var(--weight-regular);
 }
 
 .bottom-action-row {

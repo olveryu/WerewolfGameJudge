@@ -25,13 +25,12 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './types';
-import { AVALON_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('Avalon');
 
 /** Validates authoritative state without repairing or dropping submitted content. */
 export function normalizeAvalonState(state: AvalonState): AvalonState {
-  assertStateIdentity(state, AVALON_STATE_IDENTITY, 'Avalon');
+  assertStateIdentity(state, 'avalon', 'Avalon');
   invariant(isValidAvalonConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;
@@ -89,7 +88,6 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     invariant(state.roundHistory.length === 0, 'lobby round history');
     invariant(state.ladyHolderSeat === null, 'lobby lady holder');
     invariant(state.ladyExaminedSeats.length === 0, 'lobby lady examined');
-    invariant(state.lastLadyCheck === null, 'lobby lady check');
     invariant(state.ladyHistory.length === 0, 'lobby lady history');
     invariant(state.rejectStreak === 0, 'lobby reject streak');
     invariant(state.lastVoteResult === null, 'lobby last vote result');
@@ -127,21 +125,12 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     'quest history',
   );
 
-  // A migrated final rejection can be followed by one extra automatic proposal.
   invariant(
     state.roundHistory.every((record, index) => {
       if (!isAvalonQuestRound(record.round)) return false;
       if (index > 0 && record.round <= state.roundHistory[index - 1]!.round) return false;
-      if (record.proposals.length === 0) return false;
-      if (record.proposals.length > state.config.vetoLimit) {
-        const last = record.proposals.at(-1);
-        if (
-          record.proposals.length !== state.config.vetoLimit + 1 ||
-          last?.automatic !== true ||
-          record.proposals.slice(0, -1).some((proposal) => proposal.approved || proposal.automatic)
-        )
-          return false;
-      }
+      if (record.proposals.length === 0 || record.proposals.length > state.config.vetoLimit)
+        return false;
       const approvedCount = record.proposals.filter((proposal) => proposal.approved).length;
       if (approvedCount > 1) return false;
       if (approvedCount === 1 && !record.proposals[record.proposals.length - 1]!.approved)
@@ -235,15 +224,6 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
       new Set(state.ladyExaminedSeats).size === state.ladyExaminedSeats.length,
     'lady examined seats',
   );
-  const lastCheck = state.lastLadyCheck;
-  invariant(
-    lastCheck === null ||
-      (isSeat(lastCheck.holderSeat) &&
-        isSeat(lastCheck.targetSeat) &&
-        lastCheck.holderSeat !== lastCheck.targetSeat &&
-        (lastCheck.faction === 'good' || lastCheck.faction === 'evil')),
-    'last lady check',
-  );
   // 公开湖仙历史：最多 3 次（任务二 / 三 / 四后各一次），afterRound 递增，
   // 同一座位不重复被查验，且每条的历史链与 examinedSeats 的顺序一致
   // （examinedSeats[0] 为首任持有人，其后依次为各次被查验者）。
@@ -334,11 +314,6 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
           new Set(phase.proposedSeats).size === phase.proposedSeats.length,
         'vote result proposal',
       );
-      invariant(
-        phase.confirmedSeats.every((seat) => isSeat(seat) && isAvalonOccupiedSeat(state, seat)) &&
-          new Set(phase.confirmedSeats).size === phase.confirmedSeats.length,
-        'vote result confirmed seats',
-      );
       const lastVote = state.lastVoteResult;
       const proposals = state.roundHistory.find(
         (record) => record.round === phase.round,
@@ -393,11 +368,6 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
     case 'questResult': {
       const phase = state.phase;
       invariant(isAvalonQuestRound(phase.round), 'quest result round');
-      invariant(
-        phase.confirmedSeats.every((seat) => isSeat(seat) && isAvalonOccupiedSeat(state, seat)) &&
-          new Set(phase.confirmedSeats).size === phase.confirmedSeats.length,
-        'quest result confirmed seats',
-      );
       invariant(
         state.questHistory.at(-1)?.round === phase.round &&
           state.roundHistory.some(

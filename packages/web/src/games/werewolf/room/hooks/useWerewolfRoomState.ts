@@ -265,6 +265,7 @@ export function useWerewolfRoomState(
     hasViewed: effectiveSeat !== null && viewModel.viewedSeats.includes(effectiveSeat),
     occupiedSeatCount: viewModel.seats.length,
     viewedSeatCount: viewModel.viewedSeats.length,
+    isSubmitting: ready.isSubmitting,
     submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
   });
   const ownOccupant = mySeat === null ? null : state.roster[mySeat];

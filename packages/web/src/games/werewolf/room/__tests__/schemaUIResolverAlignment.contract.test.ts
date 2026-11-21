@@ -38,7 +38,11 @@ function createContext(actorSeat: number, actorRoleId: RoleId): ResolverContext 
     players,
     currentNightResults: {},
     witchState: { canSave: true, canPoison: true },
-    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
+    gameState: {
+      isNight1: true,
+      isWolfVoteUnanimityRequired: false,
+      resolvedWolfKillTarget: 0,
+    },
   };
 }
 

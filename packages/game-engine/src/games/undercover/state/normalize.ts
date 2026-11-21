@@ -10,7 +10,6 @@ import {
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
-import { UNDERCOVER_STATE_VERSION } from './version';
 
 /** Validates a selected word pair; content quality belongs to the supply review pipeline. */
 export function isValidUndercoverWordPair(pair: UndercoverWordPair): boolean {
@@ -103,7 +102,6 @@ function assertRound(state: UndercoverState): void {
 export function normalizeUndercoverState(state: UndercoverState): UndercoverState {
   if (
     state.gameType !== 'undercover' ||
-    state.stateVersion !== UNDERCOVER_STATE_VERSION ||
     state.roomCode.length === 0 ||
     state.hostUserId.length === 0 ||
     !isValidUndercoverConfig(state.config)
@@ -131,12 +129,6 @@ export function normalizeUndercoverState(state: UndercoverState): UndercoverStat
     if (state.pendingRound.roundId.length === 0 || !Number.isFinite(state.pendingRound.requestedAt))
       throw new Error('Invalid Undercover preparation');
   }
-  if (
-    state.phase === 'aborted' &&
-    (state.abortedRoundId.length === 0 ||
-      (state.round !== null && state.round.roundId !== state.abortedRoundId))
-  )
-    throw new Error('Invalid Undercover aborted round identity');
   assertRound(state);
   return state;
 }
