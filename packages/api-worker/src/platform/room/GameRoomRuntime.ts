@@ -108,7 +108,7 @@ export abstract class GameRoomRuntime extends DurableObject<Env> implements IGam
       dispatchCommand: (request) => this.#runPipeline(request),
     });
     void ctx.blockConcurrencyWhile(async () => {
-      const initialization = await initializeRoomStorage(ctx.storage, Date.now());
+      const initialization = await initializeRoomStorage(ctx.storage);
       if (initialization === 'discarded') {
         log.warn('discarded room storage with an unsupported schema', {
           roomId: ctx.id.toString(),

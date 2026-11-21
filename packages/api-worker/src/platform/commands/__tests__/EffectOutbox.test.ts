@@ -9,7 +9,7 @@ import { initializeRoomStorage } from '../storageSchema';
 it('a delivery watchdog never pushes an earlier alarm (stale-socket sweep) later', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
   await runInDurableObject(stub, async (_instance, state) => {
-    await initializeRoomStorage(state.storage, Date.now());
+    await initializeRoomStorage(state.storage);
     state.storage.sql.exec(
       `INSERT INTO effect_outbox (
       id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
@@ -31,7 +31,7 @@ it('a delivery watchdog never pushes an earlier alarm (stale-socket sweep) later
 it('leases exhausted work without prematurely marking it failed', async () => {
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
   await runInDurableObject(stub, async (_instance, state) => {
-    await initializeRoomStorage(state.storage, Date.now());
+    await initializeRoomStorage(state.storage);
     state.storage.sql.exec(
       `INSERT INTO effect_outbox (
       id, origin_command_id, scope, game_type, effect_type, business_key, payload_json,
