@@ -65,11 +65,15 @@ it('dispatches restart only after confirmation', async () => {
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[1]).toContain('不结算完成奖励');
   await confirmation[3]();
-  expect(submit).toHaveBeenCalledWith('重新开始', {
-    type: 'secrethitler.game.restart',
-    gameSequence: state.gameSequence,
-    wasEnded: false,
-  });
+  expect(submit).toHaveBeenCalledWith(
+    '重新开始',
+    {
+      type: 'secrethitler.game.restart',
+      gameSequence: state.gameSequence,
+      wasEnded: false,
+    },
+    { actionKey: 'restart' },
+  );
 });
 
 it('warns about the settled round and review before restarting an ended game', async () => {
@@ -84,11 +88,15 @@ it('warns about the settled round and review before restarting an ended game', a
   expect(confirmation[1]).toContain('本局已结算');
   expect(confirmation[1]).toContain('复盘');
   await confirmation[3]();
-  expect(submit).toHaveBeenCalledWith('重新开始', {
-    type: 'secrethitler.game.restart',
-    gameSequence: state.gameSequence,
-    wasEnded: true,
-  });
+  expect(submit).toHaveBeenCalledWith(
+    '重新开始',
+    {
+      type: 'secrethitler.game.restart',
+      gameSequence: state.gameSequence,
+      wasEnded: true,
+    },
+    { actionKey: 'restart' },
+  );
 });
 
 it('keeps the blocked start task separate from bulk viewing and removes viewing when complete', () => {
@@ -103,10 +111,15 @@ it('keeps the blocked start task separate from bulk viewing and removes viewing 
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[0]).toBe('标记机器人已查看？');
   void confirmation[2]();
-  expect(submit).toHaveBeenCalledWith('标记机器人已查看', {
-    type: 'secrethitler.bots.markAllBotsViewed',
-  });
-  expect(panel.task).toMatchObject({ remedyActionKey: 'mark-bots-viewed' });
+  expect(submit).toHaveBeenCalledWith(
+    '标记机器人已查看',
+    {
+      type: 'secrethitler.bots.markAllBotsViewed',
+    },
+    { actionKey: 'mark-bots-viewed' },
+  );
+  expect(panel.task).toMatchObject({ kind: 'action', actionKey: 'start-game' });
+  expect(panel.actions.find((entry) => entry.key === 'start-game')?.state.kind).toBe('blocked');
   const viewed = sendSecrethitlerSeatCommand(state, 0, {
     type: 'secrethitler.bots.markAllBotsViewed',
   });
@@ -154,12 +167,16 @@ it('dispatches night bot confirmation and disables mutating tools while submitti
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[0]).toBe('标记机器人已确认？');
   void confirmation[2]();
-  expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
-    type: 'secrethitler.bots.markAllBotsGroupConfirmed',
-  });
-  for (const entry of model(state, true).sections.flatMap((section) => section.actions)) {
-    expect(entry.isEnabled).toBe(false);
-    expect(entry).not.toHaveProperty('onPress');
+  expect(submit).toHaveBeenCalledWith(
+    '标记机器人已确认',
+    {
+      type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+    },
+    { actionKey: 'mark-bots-confirmed' },
+  );
+  for (const entry of model(state, true).actions) {
+    expect(['busy', 'blocked']).toContain(entry.state.kind);
+    expect(entry.state).not.toHaveProperty('onPress');
   }
   const settings = model(stateFor('lobby')).actions.find((entry) => entry.key === 'music-settings');
   if (settings?.state.kind !== 'ready') throw new Error('Missing music settings');

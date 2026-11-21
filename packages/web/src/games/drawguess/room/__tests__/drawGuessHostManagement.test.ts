@@ -227,11 +227,15 @@ describe('createDrawGuessHostManagement', () => {
     expect(confirmation[0]).toBe('重新开始？');
     expect(confirmation[1]).toContain('不结算战绩与奖励');
     await confirmation[3]();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'drawguess.game.restart',
-      gameSequence: game.state.gameSequence,
-      expectedPhase: 'playing',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'drawguess.game.restart',
+        gameSequence: game.state.gameSequence,
+        expectedPhase: 'playing',
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('disables restart while another command is submitting', () => {
@@ -273,11 +277,15 @@ describe('createDrawGuessHostManagement', () => {
     expect(confirmation[1]).toContain('已结算的战绩和奖励保留');
     expect(confirmation[1]).toContain('可能无法查看复盘');
     await confirmation[3]();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'drawguess.game.restart',
-      gameSequence: game.state.gameSequence,
-      expectedPhase: 'ended',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'drawguess.game.restart',
+        gameSequence: game.state.gameSequence,
+        expectedPhase: 'ended',
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('fails fast when the ended panel has no review entry', () => {

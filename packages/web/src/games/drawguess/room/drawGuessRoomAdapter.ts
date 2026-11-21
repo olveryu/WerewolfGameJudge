@@ -133,7 +133,11 @@ export interface DrawGuessHostManagementInput {
     'canConfigureGame' | 'canFillBots' | 'canClearSeats'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: DrawGuessCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
   /** The shared review entry; present exactly once the game has ended. */
   readonly review: RoomReviewEntry | null;
 }
@@ -162,7 +166,12 @@ export function createDrawGuessHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.game.begin' });
+    const submitStart = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'drawguess.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画猜词', submitStart),
@@ -186,11 +195,15 @@ export function createDrawGuessHostManagement(
           : '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。本局中止，不结算战绩与奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'drawguess.game.restart',
-            gameSequence: state.gameSequence,
-            expectedPhase,
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'drawguess.game.restart',
+              gameSequence: state.gameSequence,
+              expectedPhase,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,

@@ -69,7 +69,7 @@ describe('resolveHostTaskView', () => {
 
   it('keeps the blocked action state on the task body', () => {
     const view = resolveHostTaskView(
-      model({ kind: 'action', actionKey: 'start-game', remedyActionKey: 'share-room' }, [
+      model({ kind: 'action', actionKey: 'start-game' }, [
         disabled('start-game', '座位尚未坐满（还差 2 人）'),
       ]),
     );

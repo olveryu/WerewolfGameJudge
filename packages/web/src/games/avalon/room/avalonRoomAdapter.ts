@@ -734,7 +734,11 @@ export interface AvalonHostManagementInput {
   /** 本局复盘入口（平台 useRoomReview）：与底部按钮同一入口；终局前为 null。 */
   readonly review: RoomReviewEntry | null;
   readonly onMusicSettings: () => void;
-  readonly submit: (label: string, command: AvalonPublicCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: AvalonPublicCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
 }
 
 /** Avalon management actions remain subject to the authoritative narration lock. */
@@ -753,11 +757,15 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAct
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'avalon.game.restart',
-            gameSequence: state.gameSequence,
-            wasEnded: state.phase.kind === 'ended',
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'avalon.game.restart',
+              gameSequence: state.gameSequence,
+              wasEnded: state.phase.kind === 'ended',
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,
@@ -780,7 +788,11 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
       buildMarkBotsViewedAction({
         onPress: () =>
           showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
-            void input.submit('标记机器人已查看', { type: 'avalon.bots.markAllBotsViewed' });
+            void input.submit(
+              '标记机器人已查看',
+              { type: 'avalon.bots.markAllBotsViewed' },
+              { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+            );
           }),
         isEnabled: !input.isSubmitting,
         isLoading: input.isSubmitting,
@@ -805,9 +817,13 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
         input.isSubmitting,
         () =>
           showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
-            void input.submit('标记机器人已确认', {
-              type: 'avalon.bots.markAllBotsGroupConfirmed',
-            });
+            void input.submit(
+              '标记机器人已确认',
+              {
+                type: 'avalon.bots.markAllBotsGroupConfirmed',
+              },
+              { actionKey: 'mark-bots-confirmed' },
+            );
           }),
       ),
     );
@@ -853,7 +869,12 @@ export function createAvalonHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitAssign = () => void submit('分配角色', { type: 'avalon.roles.assign' });
+    const submitAssign = () =>
+      void submit(
+        '分配角色',
+        { type: 'avalon.roles.assign' },
+        { actionKey: HOST_ACTION_KEYS.assignRoles },
+      );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -881,7 +902,12 @@ export function createAvalonHostManagement(
       submitting: input.isSubmitting,
       notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
     });
-    const submitBegin = () => void submit('开始游戏', { type: 'avalon.game.begin' });
+    const submitBegin = () =>
+      void submit(
+        '开始游戏',
+        { type: 'avalon.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const beginAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(

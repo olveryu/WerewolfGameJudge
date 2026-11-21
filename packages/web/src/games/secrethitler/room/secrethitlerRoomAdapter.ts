@@ -163,7 +163,11 @@ export interface SecrethitlerHostManagementInput {
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: SecrethitlerCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: SecrethitlerCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
   readonly onMusicSettings: () => void;
@@ -191,7 +195,12 @@ export function createSecrethitlerHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitAssign = () => void input.submit('分配角色', { type: 'secrethitler.roles.assign' });
+    const submitAssign = () =>
+      void input.submit(
+        '分配角色',
+        { type: 'secrethitler.roles.assign' },
+        { actionKey: HOST_ACTION_KEYS.assignRoles },
+      );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -219,7 +228,12 @@ export function createSecrethitlerHostManagement(
       submitting: input.isSubmitting,
       notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
     });
-    const submitBegin = () => void input.submit('开始游戏', { type: 'secrethitler.game.begin' });
+    const submitBegin = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'secrethitler.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const beginAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(
@@ -279,11 +293,15 @@ function buildSecrethitlerRestartAction(input: SecrethitlerHostManagementInput):
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'secrethitler.game.restart',
-            gameSequence: state.gameSequence,
-            wasEnded: state.phase.kind === 'ended',
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'secrethitler.game.restart',
+              gameSequence: state.gameSequence,
+              wasEnded: state.phase.kind === 'ended',
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,
@@ -305,9 +323,13 @@ function createSecrethitlerHostTools(
         buildMarkBotsViewedAction({
           onPress: () =>
             showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
-              void input.submit('标记机器人已查看', {
-                type: 'secrethitler.bots.markAllBotsViewed',
-              });
+              void input.submit(
+                '标记机器人已查看',
+                {
+                  type: 'secrethitler.bots.markAllBotsViewed',
+                },
+                { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+              );
             }),
           isEnabled: !input.isSubmitting,
           isLoading: input.isSubmitting,
@@ -332,9 +354,13 @@ function createSecrethitlerHostTools(
           input.isSubmitting,
           () =>
             showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
-              void input.submit('标记机器人已确认', {
-                type: 'secrethitler.bots.markAllBotsGroupConfirmed',
-              });
+              void input.submit(
+                '标记机器人已确认',
+                {
+                  type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+                },
+                { actionKey: 'mark-bots-confirmed' },
+              );
             }),
         ),
       );
@@ -354,26 +380,24 @@ function createNightHostManagement(
     pendingActionKeys: [],
     actions: [
       {
-        key: 'night',
-        title: '首夜语音',
-        actions: [
-          {
-            key: 'narration-replay',
-            label: '重播当前语音',
-            icon: 'play-outline',
-            variant: 'secondary',
-            ...(!input.isSubmitting
-              ? {
-                  isEnabled: true,
-                  onPress: () =>
-                    void input.submit('重播语音', {
-                      type: 'secrethitler.night.replay',
-                      step: phase.step,
-                    }),
-                }
-              : { isEnabled: false, disabledReason: '正在提交' }),
-          },
-        ],
+        key: 'narration-replay',
+        label: '重播当前语音',
+        icon: 'play-outline',
+        category: 'host',
+        state: input.isSubmitting
+          ? { kind: 'blocked', reason: '正在提交' }
+          : {
+              kind: 'ready',
+              onPress: () =>
+                void input.submit(
+                  '重播语音',
+                  {
+                    type: 'secrethitler.night.replay',
+                    step: phase.step,
+                  },
+                  { actionKey: 'narration-replay' },
+                ),
+            },
       },
     ],
   };

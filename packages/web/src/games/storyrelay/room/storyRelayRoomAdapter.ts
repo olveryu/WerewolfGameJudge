@@ -160,7 +160,11 @@ export interface StoryRelayHostManagementInput {
     'canConfigureGame' | 'canFillBots' | 'canClearSeats'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: StoryRelayCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
   /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;
 }
@@ -179,7 +183,12 @@ export function createStoryRelayHostManagement(
   if (capabilities.canClearSeats.isAllowed)
     roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   if (state.phase === 'lobby') {
-    const submitStart = () => void submit('开始游戏', { type: 'storyrelay.game.begin' });
+    const submitStart = () =>
+      void submit(
+        '开始游戏',
+        { type: 'storyrelay.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(
@@ -215,10 +224,14 @@ export function createStoryRelayHostManagement(
           : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
-          await submit('重新开始', {
-            type: 'storyrelay.game.restart',
-            phaseRevision: state.phaseRevision,
-          });
+          await submit(
+            '重新开始',
+            {
+              type: 'storyrelay.game.restart',
+              phaseRevision: state.phaseRevision,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,

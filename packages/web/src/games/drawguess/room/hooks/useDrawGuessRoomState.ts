@@ -91,10 +91,8 @@ export function useDrawGuessRoomState({
   session,
   review: reviewContribution,
 }: UseDrawGuessRoomStateParams): DrawGuessRoomScreenState {
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getDrawGuessRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getDrawGuessRoomCommandFailureMessage);
   const isHost = state.hostUserId === user.id;
   const mySeat = getDrawGuessUserSeat(state, user.id);
   const viewer = useMemo(
@@ -131,6 +129,7 @@ export function useDrawGuessRoomState({
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -174,6 +173,8 @@ export function useDrawGuessRoomState({
     });
 
   const shellModel: RoomShellModel = createDrawGuessRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

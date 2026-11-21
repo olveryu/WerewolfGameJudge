@@ -72,10 +72,8 @@ export function useSpotmatchRoomState(
   },
 ): SpotmatchRoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getSpotmatchRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getSpotmatchRoomCommandFailureMessage);
   const isHost = state.hostUserId === user.id;
   const mySeat = getSpotmatchUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
@@ -106,6 +104,7 @@ export function useSpotmatchRoomState(
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -149,6 +148,8 @@ export function useSpotmatchRoomState(
     });
 
   const shellModel: RoomShellModel = createSpotmatchRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

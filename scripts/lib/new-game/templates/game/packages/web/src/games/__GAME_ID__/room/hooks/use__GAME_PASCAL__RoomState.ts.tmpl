@@ -137,7 +137,7 @@ export function use__GAME_PASCAL__RoomState(
   },
 ): __GAME_PASCAL__RoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
+  const { user, state, revision, submit, submitOperation, isSubmitting } = useReadyRoomSession(
     session,
     get__GAME_PASCAL__RoomCommandFailureMessage,
   );
@@ -164,6 +164,7 @@ export function use__GAME_PASCAL__RoomState(
   const { seatController, profile, capabilities: setupCapabilities } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,

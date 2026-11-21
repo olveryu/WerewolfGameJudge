@@ -126,7 +126,11 @@ export interface SpotmatchHostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly isScorePause: boolean;
-  readonly submit: (label: string, command: SpotmatchCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: SpotmatchCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
 }
@@ -149,7 +153,12 @@ export function createSpotmatchHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: 'spotmatch.game.begin' });
+    const submitStart = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'spotmatch.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
       isEnabled: !input.isSubmitting && canStart,
@@ -173,11 +182,15 @@ export function createSpotmatchHostManagement(
           : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'spotmatch.game.restart',
-            gameSequence: state.gameSequence,
-            expectedPhase,
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'spotmatch.game.restart',
+              gameSequence: state.gameSequence,
+              expectedPhase,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting && !input.isScorePause,

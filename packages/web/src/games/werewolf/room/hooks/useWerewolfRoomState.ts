@@ -220,6 +220,7 @@ export function useWerewolfRoomState(
     session,
     user,
     mySeat,
+    submitOperation: ready.submitOperation,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '狼人杀战绩', '本游戏局数');
   const capabilities = createWerewolfRoomCapabilities({
@@ -266,7 +267,12 @@ export function useWerewolfRoomState(
     occupiedSeatCount: viewModel.seats.length,
     viewedSeatCount: viewModel.viewedSeats.length,
     isSubmitting: ready.isSubmitting,
-    submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
+    submitViewed: () =>
+      submit(
+        '查看身份',
+        { type: 'werewolf.role.viewed' },
+        { controlledSeat, actionKey: 'viewRole' },
+      ),
   });
   const ownOccupant = mySeat === null ? null : state.roster[mySeat];
   // A bot card opened through takeover never animates (no equipped effect).
@@ -400,6 +406,8 @@ export function useWerewolfRoomState(
   });
 
   const shellModel = createWerewolfRoomShellModel({
+    isSubmitting: ready.isSubmitting,
+    pendingActionKey: ready.pendingActionKey,
     state,
     viewModel,
     seatSelection: night.seatSelection,

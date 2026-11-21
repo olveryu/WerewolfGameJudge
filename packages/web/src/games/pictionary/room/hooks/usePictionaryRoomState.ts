@@ -93,10 +93,8 @@ export function usePictionaryRoomState({
   session,
   review: reviewContribution,
 }: UsePictionaryRoomScreenStateParams): PictionaryRoomScreenState {
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getPictionaryRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getPictionaryRoomCommandFailureMessage);
   const isHost = state.hostUserId === user.id;
   const mySeat = getPictionaryUserSeat(state, user.id);
   const viewer = useMemo(
@@ -123,6 +121,7 @@ export function usePictionaryRoomState({
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -153,11 +152,17 @@ export function usePictionaryRoomState({
   const gameDetails = useGameProfileDetails(profile.selection, '你画我猜接龙战绩', '本游戏局数');
 
   // 房主流程命令：不带接管座位（房主门只认未接管身份）。
-  const startRound = () => void submit('开始游戏', { type: 'pictionary.game.begin' });
+  const startRound = () =>
+    void submit(
+      '开始游戏',
+      { type: 'pictionary.game.begin' },
+      { actionKey: HOST_ACTION_KEYS.startGame },
+    );
   const restartRound = () =>
     void submit(
       '重新开始',
       createPictionaryCommand(state, { type: 'pictionary.game.restart' }, null),
+      { actionKey: HOST_ACTION_KEYS.restart },
     );
 
   const onSeatPress = createRoomSeatPressHandler({
@@ -173,6 +178,8 @@ export function usePictionaryRoomState({
     [controlledSeat, revision, state, user.id],
   );
   const shellModel: RoomShellModel = createPictionaryRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

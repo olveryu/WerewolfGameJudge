@@ -212,10 +212,14 @@ describe('createStoryRelayHostManagement', () => {
     expect(confirmation?.message).toContain('不结算完成奖励');
     expect(submit).not.toHaveBeenCalled();
     await confirmation?.buttons.find((button) => button.text === '重新开始')?.onPress?.();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'storyrelay.game.restart',
-      phaseRevision: game.state.phaseRevision,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'storyrelay.game.restart',
+        phaseRevision: game.state.phaseRevision,
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('keeps only the abort action outside answering while the round can abort', () => {

@@ -182,6 +182,8 @@ describe('createPictionaryRoomShellModel', () => {
       'header',
       'hostManagement',
       'isAudioPlaying',
+      'isSubmitting',
+      'pendingActionKey',
       'phase',
       'playerActions',
       'profile',

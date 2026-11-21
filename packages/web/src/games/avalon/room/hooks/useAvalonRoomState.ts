@@ -127,10 +127,8 @@ export function useAvalonRoomState(
   },
 ): AvalonRoomScreenState {
   const { session, room, entryController, audio } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getAvalonRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getAvalonRoomCommandFailureMessage);
   useRoomImagePreload([
     ...getBoardRolePortraits(state.config.numberOfPlayers),
     ...AVALON_VOTE_IMAGES,
@@ -203,6 +201,7 @@ export function useAvalonRoomState(
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -290,6 +289,7 @@ export function useAvalonRoomState(
     ).then(() => undefined);
   };
   const shellModel: RoomShellModel = createAvalonRoomShellModel({
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

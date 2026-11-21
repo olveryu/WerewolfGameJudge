@@ -71,6 +71,28 @@ describe('useRoomCommandSubmission', () => {
     expect(mockShowErrorAlert).not.toHaveBeenCalled();
   });
 
+  it('exposes and clears the key of the action currently being submitted', async () => {
+    let resolveOperation!: (outcome: DispatchOutcome<typeof state>) => void;
+    const operation = new Promise<DispatchOutcome<typeof state>>((resolve) => {
+      resolveOperation = resolve;
+    });
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '请重试'));
+    let submission!: Promise<boolean>;
+
+    act(() => {
+      submission = result.current.submit('开始游戏', () => operation, { actionKey: 'start-game' });
+    });
+    expect(result.current.isSubmitting).toBe(true);
+    expect(result.current.pendingActionKey).toBe('start-game');
+
+    await act(async () => {
+      resolveOperation(successfulRoomCommand(state, 'start-command'));
+      await submission;
+    });
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.pendingActionKey).toBeNull();
+  });
+
   it('presents an authoritative rejection through the supplied game message policy', async () => {
     const rejection = rejectedRoomCommand<typeof state>('invalid_status', 'clear-command');
     const getFailureMessage = vi.fn(() => '当前状态不允许此操作');

@@ -313,30 +313,31 @@ inventory; every task reference resolves to one of these actions, so the task ha
 ```ts
 interface RoomHostManagementModel {
   readonly task: RoomHostTask | null;
-  /** The complete command inventory (the shared surface). Every host command's onPress lives here. */
-  readonly sections: readonly RoomHostManagementSection[];
+  readonly pendingActionKeys?: readonly string[];
+  readonly hasPendingDecision?: boolean;
+  readonly actions: readonly RoomHostAction[];
 }
 
-type RoomHostTask = {
-  /** Multi-step flow progress; omitted for a single step. At most one `current`. */
-  readonly steps?: readonly RoomHostTaskStep[];
-  /** Reminder rendered under the task (e.g. 记得把复盘分享给第一天出局的玩家). */
-  readonly note?: string;
-  /** A concrete remedy for a blocked action (e.g. 分享房间), referenced by key. */
-  readonly remedyActionKey?: string;
-} & (
-  | { readonly kind: 'action'; readonly actionKey: string }
-  | { readonly kind: 'choice'; readonly actionKeys: readonly string[] }
-  | { readonly kind: 'message'; readonly text: string; readonly actionKey?: string }
-);
-
-interface RoomHostTaskStep {
-  readonly key: string;
-  readonly label: string;
-  readonly state: 'complete' | 'current' | 'upcoming';
-  /** A completed step may be revisited through this sheet action. */
-  readonly actionKey?: string;
-}
+type RoomHostTask =
+  | {
+      readonly kind: 'action';
+      readonly actionKey: string;
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    }
+  | {
+      readonly kind: 'choice';
+      readonly actionKeys: readonly string[];
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    }
+  | {
+      readonly kind: 'message';
+      readonly text: string;
+      readonly escapeActionKey?: string;
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    };
 ```
 
 An action's `state` carries its availability and blocked reason; a message may reference one

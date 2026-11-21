@@ -193,6 +193,8 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     controlledSeat: null,
     onReleaseBot: vi.fn(),
     onBotSeatLongPress: null,
+    isSubmitting: false,
+    pendingActionKey: null,
     isActionSubmitting: false,
     isHostActionSubmitting: false,
     playerActions,

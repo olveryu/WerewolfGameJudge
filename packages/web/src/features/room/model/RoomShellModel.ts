@@ -73,6 +73,8 @@ export interface RoomShellModel {
   readonly step: string | null;
   /** Authoritative narration status; presentation only, never an interaction gate. */
   readonly isAudioPlaying: boolean;
+  readonly isSubmitting?: boolean;
+  readonly pendingActionKey?: string | null;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;

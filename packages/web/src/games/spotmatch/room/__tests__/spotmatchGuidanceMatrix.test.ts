@@ -220,11 +220,15 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       const handler = confirm.mock.calls[0]?.[3];
       if (handler === undefined) throw new Error('Missing restart confirmation');
       await handler();
-      expect(submit).toHaveBeenCalledWith('重新开始', {
-        type: 'spotmatch.game.restart',
-        gameSequence: state.gameSequence,
-        expectedPhase: phase,
-      });
+      expect(submit).toHaveBeenCalledWith(
+        '重新开始',
+        {
+          type: 'spotmatch.game.restart',
+          gameSequence: state.gameSequence,
+          expectedPhase: phase,
+        },
+        { actionKey: 'restart' },
+      );
       confirm.mockRestore();
     },
   );

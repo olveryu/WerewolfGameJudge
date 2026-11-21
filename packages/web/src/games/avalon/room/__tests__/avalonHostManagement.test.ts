@@ -445,11 +445,15 @@ describe('createAvalonHostManagement', () => {
     expect(confirmation[1]).toContain('不结算完成奖励');
     const confirm = confirmation[3];
     await confirm();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'avalon.game.restart',
-      gameSequence: game.state.gameSequence,
-      wasEnded: false,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'avalon.game.restart',
+        gameSequence: game.state.gameSequence,
+        wasEnded: false,
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('exposes bot confirmation after narration and submits the host command without takeover', () => {
@@ -470,9 +474,13 @@ describe('createAvalonHostManagement', () => {
     if (confirmation === undefined) throw new Error('expected bot confirmation dialog');
     expect(confirmation[0]).toBe('标记机器人已确认？');
     void confirmation[2]();
-    expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
-      type: 'avalon.bots.markAllBotsGroupConfirmed',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '标记机器人已确认',
+      {
+        type: 'avalon.bots.markAllBotsGroupConfirmed',
+      },
+      { actionKey: 'mark-bots-confirmed' },
+    );
   });
 
   it('does not offer bot confirmations at the automatic vote result', () => {

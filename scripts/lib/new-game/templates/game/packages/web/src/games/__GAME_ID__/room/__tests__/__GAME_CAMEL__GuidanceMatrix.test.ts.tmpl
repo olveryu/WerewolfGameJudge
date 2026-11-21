@@ -456,10 +456,10 @@ describe('__GAME_PASCAL__ host controls', () => {
   it('wires bulk viewing and removes it after all bots are marked', () => {
     const state = viewingState();
     const panel = hostModel(state);
-    expect(panel.task).toMatchObject({ remedyActionKey: 'mark-bots-viewed' });
-    const action = panel.sections.flatMap((section) => section.actions).find((entry) => entry.key === 'mark-bots-viewed');
-    if (!action?.isEnabled) throw new Error('Missing bot viewing action');
-    action.onPress();
+    expect(panel.task).toMatchObject({ kind: 'action', actionKey: 'start-game' });
+    const action = panel.actions.find((entry) => entry.key === 'mark-bots-viewed');
+    if (action?.state.kind !== 'ready') throw new Error('Missing bot viewing action');
+    action.state.onPress();
     expect(submit).toHaveBeenCalledWith('标记机器人已查看', { type: '__GAME_ID__.bots.markAllBotsViewed' });
     const marked = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
     expect(hostModel(marked).actions.some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);

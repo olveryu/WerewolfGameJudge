@@ -193,22 +193,32 @@ export function RoomShell({
           ? `座位已满，可以${lobbyAction.label}`
           : `座位已满，等待房主${lobbyAction.label}`;
   const share = model.capabilities.canShareRoom;
-  const playerMainEntries = [
-    ...(mainEntries ?? []),
-    ...(share.isAllowed
-      ? [
-          {
-            label: '分享房间',
-            testId: TESTIDS.roomShareButton,
-            icon: <IconShareOutline aria-hidden />,
-            onOpen: share.execute,
-          },
-        ]
-      : []),
-  ];
-  const canOpenActionsPanel = actionHandVisibility === 'visible' && hostManagement !== null;
-  if (isActionsPanelOpen && !canOpenActionsPanel) {
-    setIsActionsPanelOpen(false);
+  const navigation = useRoomHandNavigation({
+    surface: resolvedActionSurface,
+    selectionMode,
+    hasManual: directory.manual.length > 0,
+    hasHost: hostManagement !== null,
+    groupKey: model.playerActions.group?.key ?? null,
+  });
+  const hand =
+    resolvedActionSurface === 'hidden' ||
+    (resolvedActionSurface === 'menu' && !navigation.isMenuOpen)
+      ? null
+      : buildRoomHand({
+          phase: model.phase,
+          isSubmitting: model.isSubmitting ?? false,
+          pendingActionKey: model.pendingActionKey ?? null,
+          face: navigation.face,
+          playerActions: model.playerActions,
+          hostManagement,
+          directory,
+          share: share.isAllowed ? share : { isAllowed: false, reason: share.reason },
+          selectionMode,
+          navigation,
+        });
+  if (isStage) {
+    assertRoomStageShellModel(model);
+    if (resolvedActionSurface !== 'menu') throw new Error('Stage content requires a stage menu');
   }
   if (resolvedActionSurface === 'menu') {
     if (!isRoomPlayerActionModelEmpty(model.playerActions)) {

@@ -455,7 +455,7 @@ interface WerewolfPlayerActionListInput {
   readonly isAudioPlaying: boolean;
   /** The shared review entry for this viewer; null before the night review exists. */
   readonly review: RoomReviewEntry | null;
-  readonly onNightButton: (action: NightButtonAction) => void;
+  readonly onNightButton: (action: NightButtonAction, actionKey?: string) => void;
   readonly onViewRole: () => void;
 }
 
@@ -832,7 +832,9 @@ interface WerewolfRoomShellModelInput extends Pick<
   readonly onBotSeatLongPress: ((seat: number) => void) | null;
   readonly isActionSubmitting: boolean;
   readonly isHostActionSubmitting: boolean;
-  readonly bottomActions: RoomBottomActionModel;
+  readonly isSubmitting: boolean;
+  readonly pendingActionKey: string | null;
+  readonly playerActions: RoomPlayerActionModel;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
   readonly panelFlow: PanelFlowProgress;
   readonly onHostControl: (action: WerewolfHostControlAction) => void;

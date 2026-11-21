@@ -69,7 +69,7 @@ export interface NightInteraction {
   readonly seatSelection: NightSeatSelection | null;
   /** Consumes an in-game seat tap; false lets the shared handler apply. */
   readonly onSeatTap: (seat: number) => boolean;
-  readonly onNightButton: (action: NightButtonAction) => void;
+  readonly onNightButton: (action: NightButtonAction, actionKey?: string) => void;
   readonly chooseCardModal: NightChooseCardModal | null;
 }
 
@@ -151,6 +151,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     async (
       confirmation: NightConfirmation,
       surface: 'dialog' | 'button' = 'button',
+      actionKey?: string,
     ): Promise<boolean> => {
       if (stepId === null) {
         throw new Error('[FAIL-FAST] Night confirmation outside a night step');
@@ -159,6 +160,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       const ok = await submit(confirmationLabel(confirmation), command, {
         controlledSeat,
         durable: isDurableNightCommand(command),
+        ...(actionKey === undefined ? {} : { actionKey }),
         domainRejection: 'state',
         transportFailure: surface === 'dialog' ? 'toastAndRethrow' : 'alert',
       });
@@ -172,8 +174,8 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
 
   /** A dialog callback that submits one confirmation. */
   const confirmWith = useCallback(
-    (confirmation: NightConfirmation) => (): Promise<void> =>
-      dispatch(confirmation, 'dialog').then(() => undefined),
+    (confirmation: NightConfirmation, actionKey?: string) => (): Promise<void> =>
+      dispatch(confirmation, 'dialog', actionKey).then(() => undefined),
     [dispatch],
   );
 
@@ -234,7 +236,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   }, [scopeKey, model, seatSelection]);
   const seatAction = nightSeatAction(model);
   const confirmSelection = useCallback(
-    (selection: NightSeatSelection) => {
+    (selection: NightSeatSelection, actionKey = 'startSeatSelection') => {
       if (selection.confirm === null) {
         throw new Error('[FAIL-FAST] Cannot submit an incomplete night seat selection');
       }
@@ -262,7 +264,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             toast.error('当前行动或目标已变化，请重新选择。');
             return;
           }
-          await dispatch(confirmedInput, 'dialog');
+          await dispatch(confirmedInput, 'dialog', actionKey);
         },
         {
           onCancel: clearOnCancel
@@ -341,7 +343,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   );
 
   const showPrivateStatus = useCallback(
-    (title: string, text: string, confirmation: NightConfirmation) => {
+    (title: string, text: string, confirmation: NightConfirmation, actionKey: string) => {
       const isCurrent = (): boolean => {
         const latest = latestSeatSelectionRef.current;
         if (latest.scopeKey !== scopeKey || latest.model.kind !== model.kind) return false;
@@ -373,7 +375,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             title,
             text,
             async () => {
-              if (checkCurrent()) await confirmWith(confirmation)();
+              if (checkCurrent()) await confirmWith(confirmation, actionKey)();
             },
             trackAlert,
           );
@@ -390,7 +392,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   const isChooseCardOpen = model.kind === 'chooseCard' && chooseCardOpenStepId === stepId;
 
   const onNightButton = useCallback(
-    (action: NightButtonAction): void => {
+    (action: NightButtonAction, actionKey?: string): void => {
       switch (action.kind) {
         case 'startSeatSelection':
           if (nightSeatAction(model) === null) throw illegalButton(action, model);
@@ -401,20 +403,25 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           return;
         case 'submitSeatSelection': {
           if (seatSelection?.confirm == null) throw illegalButton(action, model);
-          confirmSelection(seatSelection);
+          confirmSelection(seatSelection, actionKey);
           return;
         }
         case 'skip':
-          showConfirmAlert(SKIP_CONFIRM_TITLE, SKIP_CONFIRM_TEXT, confirmWith({ kind: 'skip' }), {
-            onShown: trackAlert,
-          });
+          showConfirmAlert(
+            SKIP_CONFIRM_TITLE,
+            SKIP_CONFIRM_TEXT,
+            confirmWith({ kind: 'skip' }, actionKey),
+            {
+              onShown: trackAlert,
+            },
+          );
           return;
         case 'emptyVote':
           if (model.kind !== 'wolfVote') throw illegalButton(action, model);
           showConfirmAlert(
             model.confirmTitle,
             model.emptyVoteConfirmText,
-            confirmWith({ kind: 'emptyVote' }),
+            confirmWith({ kind: 'emptyVote' }, actionKey),
             { onShown: trackAlert },
           );
           return;
@@ -423,7 +430,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           showConfirmAlert(
             WOLF_WITHDRAW_CONFIRM_TITLE,
             WOLF_WITHDRAW_CONFIRM_TEXT,
-            confirmWith({ kind: 'withdrawVote' }),
+            confirmWith({ kind: 'withdrawVote' }, actionKey),
             { onShown: trackAlert },
           );
           return;
@@ -432,32 +439,47 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
           showConfirmAlert(
             model.saveConfirmTitle,
             model.saveConfirmText,
-            confirmWith({ kind: 'save' }),
+            confirmWith({ kind: 'save' }, actionKey),
             { onShown: trackAlert },
           );
           return;
         case 'openStatus': {
           if (model.kind !== 'confirmStatus') throw illegalButton(action, model);
           if (model.status.role !== 'seedWolf') {
-            showPrivateStatus(model.dialog.title, model.dialog.text, { kind: 'confirm' });
+            showPrivateStatus(
+              model.dialog.title,
+              model.dialog.text,
+              { kind: 'confirm' },
+              actionKey ?? 'confirm',
+            );
             return;
           }
           if (model.isUnavailable) throw illegalButton(action, model);
           showConfirmAlert(
             model.dialog.title,
             model.dialog.text,
-            confirmWith({ kind: 'confirm' }),
+            confirmWith({ kind: 'confirm' }, actionKey),
             { onShown: trackAlert },
           );
           return;
         }
         case 'openGroupReveal':
           if (model.kind !== 'ackGroupReveal') throw illegalButton(action, model);
-          showPrivateStatus(model.text.title, model.text.text, { kind: 'ack' });
+          showPrivateStatus(
+            model.text.title,
+            model.text.text,
+            { kind: 'ack' },
+            actionKey ?? 'groupConfirmAck',
+          );
           return;
         case 'openHunterStatus':
           if (model.kind !== 'ackHunterStatus') throw illegalButton(action, model);
-          showPrivateStatus(model.dialog.title, model.dialog.text, { kind: 'ack' });
+          showPrivateStatus(
+            model.dialog.title,
+            model.dialog.text,
+            { kind: 'ack' },
+            actionKey ?? 'viewHunterStatus',
+          );
           return;
         case 'openChooseCard':
           if (model.kind !== 'chooseCard') throw illegalButton(action, model);

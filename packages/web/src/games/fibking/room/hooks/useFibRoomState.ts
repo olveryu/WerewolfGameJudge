@@ -97,10 +97,8 @@ export function useFibRoomState({
   session,
   review: reviewContribution,
 }: UseFibRoomScreenStateParams): FibRoomScreenState {
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getFibRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getFibRoomCommandFailureMessage);
   useRoomImagePreload(FIBKING_ROLE_PORTRAITS);
   const isHost = state.hostUserId === user.id;
   const mySeat = getFibUserSeat(state, user.id);
@@ -116,7 +114,12 @@ export function useFibRoomState({
   });
   const { controlledSeat, effectiveSeat } = bots;
   // 资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
-  const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
+  const { seatController, profile, actions } = useRoomRosterController({
+    session,
+    user,
+    mySeat,
+    submitOperation,
+  });
   const gameDetails = useGameProfileDetails(profile.selection, '瞎掰王战绩', '本游戏轮数');
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
@@ -137,7 +140,12 @@ export function useFibRoomState({
     occupiedSeatCount: getFibOccupiedSeatCount(state),
     viewedSeatCount: state.round === null ? 0 : state.round.viewedSeats.length,
     isSubmitting,
-    submitViewed: () => submit('确认查看身份', { type: 'fibking.role.viewed' }, { controlledSeat }),
+    submitViewed: () =>
+      submit(
+        '确认查看身份',
+        { type: 'fibking.role.viewed' },
+        { controlledSeat, actionKey: 'view-identity' },
+      ),
   });
   // 旁观者：题目 / 公开结果是公开信息，没有查看记录也没有揭示动画。
   const [isPublicViewOpen, setIsPublicViewOpen] = useState(false);
@@ -164,17 +172,27 @@ export function useFibRoomState({
         : state.phase === 'preparationFailed'
           ? '重新准备'
           : '分配角色';
-    void submit(label, { type: 'fibking.roles.assign' });
+    void submit(
+      label,
+      { type: 'fibking.roles.assign' },
+      {
+        actionKey: state.phase === 'preparationFailed' ? 'retry-preparation' : 'assign-roles',
+      },
+    );
   };
   const beginRound = () => {
-    void submit('开始游戏', { type: 'fibking.game.begin' });
+    void submit('开始游戏', { type: 'fibking.game.begin' }, { actionKey: 'start-game' });
   };
   const markAllBotsViewed = () => {
-    void submit('标记机器人已查看', { type: 'fibking.bots.markAllBotsViewed' });
+    void submit(
+      '标记机器人已查看',
+      { type: 'fibking.bots.markAllBotsViewed' },
+      { actionKey: 'mark-bots-viewed' },
+    );
   };
   const revealRound = () => {
     showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
-      await submit('公布答案', { type: 'fibking.round.reveal' });
+      await submit('公布答案', { type: 'fibking.round.reveal' }, { actionKey: 'reveal-round' });
     });
   };
   const redrawRound = () => {
@@ -182,7 +200,7 @@ export function useFibRoomState({
       '重新抽词？',
       '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
       async () => {
-        await submit('重新抽词', { type: 'fibking.roles.assign' });
+        await submit('重新抽词', { type: 'fibking.roles.assign' }, { actionKey: 'redraw-round' });
       },
     );
   };
@@ -194,11 +212,15 @@ export function useFibRoomState({
         : state.phase === 'preparationFailed'
           ? state.preparationFailure.roundId
           : state.round.roundId;
-    await submit('重新开始', {
-      type: 'fibking.game.restart',
-      roundId,
-      wasEnded: state.phase === 'ended',
-    });
+    await submit(
+      '重新开始',
+      {
+        type: 'fibking.game.restart',
+        roundId,
+        wasEnded: state.phase === 'ended',
+      },
+      { actionKey: 'restart' },
+    );
   };
 
   // ── 大聪明选人（房主本地模式，按 roundId 锚定）──
@@ -217,7 +239,11 @@ export function useFibRoomState({
       `确定选择 ${seat + 1} 号座位是老实人？`,
       '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
       async () => {
-        const succeeded = await submit('大聪明选人', { type: 'fibking.round.guess', seat });
+        const succeeded = await submit(
+          '大聪明选人',
+          { type: 'fibking.round.guess', seat },
+          { actionKey: 'guess-seat' },
+        );
         if (succeeded) setGuessRoundId(null);
       },
     );
@@ -306,6 +332,8 @@ export function useFibRoomState({
     review: review.entry,
   });
   const shellModel: RoomShellModel = createFibRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

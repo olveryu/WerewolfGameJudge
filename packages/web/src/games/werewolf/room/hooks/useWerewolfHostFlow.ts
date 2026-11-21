@@ -64,8 +64,8 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
   const isMvpOpen = mvpOpenNonce !== null && mvpOpenNonce.nonce === roleRevealRandomNonce;
 
   const resetAudioThenSubmit = useCallback(
-    async (label: string, command: WerewolfPublicCommand) => {
-      const succeeded = await submit(label, command);
+    async (label: string, command: WerewolfPublicCommand, actionKey: string) => {
+      const succeeded = await submit(label, command, { actionKey });
       if (succeeded) {
         audio.stopNarration();
         audio.clearPreloaded();
@@ -79,12 +79,20 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
       switch (action) {
         case 'prepareToFlip':
           showConfirmAlert(HOST_FLOW_CONFIRM.assignTitle, ASSIGN_CONFIRM_TEXT, async () => {
-            await submit('分配角色', { type: 'werewolf.roles.assign' });
+            await submit(
+              '分配角色',
+              { type: 'werewolf.roles.assign' },
+              { actionKey: HOST_ACTION_KEYS.assignRoles },
+            );
           });
           return;
         case 'startGame':
           showConfirmAlert(START_CONFIRM_TITLE, START_CONFIRM_TEXT, async () => {
-            await submit('开始游戏', { type: 'werewolf.game.begin' });
+            await submit(
+              '开始游戏',
+              { type: 'werewolf.game.begin' },
+              { actionKey: HOST_ACTION_KEYS.startGame },
+            );
           });
           return;
         case 'restart':
@@ -121,13 +129,23 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
 
   const markAllBotsViewed = useCallback(() => {
     showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', async () => {
-      await submit('机器人查看身份', { type: 'werewolf.bots.markAllBotsViewed' });
+      await submit(
+        '机器人查看身份',
+        { type: 'werewolf.bots.markAllBotsViewed' },
+        { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+      );
     });
   }, [submit]);
 
   const markAllBotsGroupConfirmed = useCallback(() => {
     showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', async () => {
-      await submit('机器人确认', { type: 'werewolf.groupConfirm.ackBots' });
+      await submit(
+        '机器人确认',
+        { type: 'werewolf.groupConfirm.ackBots' },
+        {
+          actionKey: 'mark-bots-confirmed',
+        },
+      );
     });
   }, [submit]);
 
@@ -168,7 +186,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
         const ok = await submit(
           '评选 MVP',
           { type: 'werewolf.mvp.select', selection: { roleRevealRandomNonce, mvpUserId } },
-          { durable: true },
+          { durable: true, actionKey: 'select-mvp' },
         );
         if (ok) setMvpOpenNonce(null);
       },
