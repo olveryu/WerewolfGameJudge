@@ -546,7 +546,8 @@ export function createFibPlayerActions(input: FibBottomActionsInput): RoomPlayer
   return {
     message: input.isHost ? null : getPlayerMessage(input.state, input.viewerSeat),
     progress: null,
-    layout: { primary, secondary, ghost },
+    actions: [...primary, ...secondary, ...ghost],
+    group: null,
   };
 }
 

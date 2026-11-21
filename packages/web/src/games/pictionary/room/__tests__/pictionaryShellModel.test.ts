@@ -206,7 +206,8 @@ describe('createPictionaryRoomShellModel', () => {
     expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.share).toBe(share);
     // The shell phase anchor carries the PictionaryState phase verbatim.

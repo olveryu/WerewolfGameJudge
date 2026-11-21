@@ -377,9 +377,8 @@ export function useWerewolfRoomState(
   const playerActionList = createWerewolfPlayerActionList({
     viewModel,
     night: night.model,
+    actionGroupKey: night.actionGroupKey,
     seatSelection: night.seatSelection,
-    isActionGroupOpen: night.isActionGroupOpen,
-    restoreActionGroupFocus: night.restoreActionGroupFocus,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,

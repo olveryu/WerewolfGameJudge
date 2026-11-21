@@ -135,6 +135,7 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
   const actionList = createWerewolfPlayerActionList({
     viewModel,
     night,
+    actionGroupKey: 'guidance-matrix',
     isHost: viewer.isHost,
     effectiveSeat: viewer.seat,
     isAudioPlaying: false,

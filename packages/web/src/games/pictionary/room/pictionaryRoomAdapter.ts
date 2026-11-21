@@ -126,12 +126,9 @@ function createPictionaryPlayerActions(
   const message = buildLobbyHostStartMessage({ isLobby: state.phase === 'lobby', viewer });
   return {
     message,
-    progress: derivePictionaryBottomProgress(state),
-    layout: {
-      primary: [],
-      secondary: createPictionaryReviewButtons(state, review, viewer),
-      ghost: [],
-    },
+    progress: null,
+    actions: createPictionaryReviewButtons(state, review, viewer),
+    group: null,
   };
 }
 

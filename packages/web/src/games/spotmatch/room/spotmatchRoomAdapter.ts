@@ -232,6 +232,7 @@ export function createSpotmatchRoomShellModel(input: SpotmatchRoomShellModelInpu
             ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
             : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
+      group: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       actions:
         input.review === null ? [] : buildViewerReviewBottomButtons(input.review, input.viewer),

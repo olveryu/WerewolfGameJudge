@@ -878,7 +878,8 @@ describe('createFibRoomShellModel', () => {
     const playerActions = {
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     };
     const connection = {
       status: { kind: 'live' as const },
@@ -970,7 +971,8 @@ describe('createFibRoomShellModel', () => {
       playerActions: {
         message: null,
         progress: null,
-        layout: { primary: [], secondary: [], ghost: [] },
+        actions: [],
+        group: null,
       },
       buildHostManagement: () => null,
       controlledSeat: null,

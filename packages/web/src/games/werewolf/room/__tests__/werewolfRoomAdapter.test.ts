@@ -43,6 +43,32 @@ function nightModel(state: GameState, seat: number | null, isHost = false) {
   return { viewModel, night };
 }
 
+function playerActionListFor(
+  state: GameState,
+  seat: number | null,
+  isHost: boolean,
+  options: {
+    isAudioPlaying?: boolean;
+    review?: RoomReviewEntry | null;
+    night?: NightInteractionModel;
+    seatSelection?: NightSeatSelection | null;
+  } = {},
+) {
+  const { viewModel, night } = nightModel(state, seat, isHost);
+  return createWerewolfPlayerActionList({
+    viewModel,
+    night: options.night ?? night,
+    actionGroupKey: 'adapter-test',
+    seatSelection: options.seatSelection,
+    isHost,
+    effectiveSeat: seat,
+    isAudioPlaying: options.isAudioPlaying ?? false,
+    review: options.review === undefined ? ENABLED_REVIEW : options.review,
+    onNightButton: vi.fn(),
+    onViewRole: vi.fn(),
+  });
+}
+
 function layoutFor(
   state: GameState,
   seat: number | null,
@@ -52,23 +78,9 @@ function layoutFor(
     review?: RoomReviewEntry | null;
     night?: NightInteractionModel;
     seatSelection?: NightSeatSelection | null;
-    isActionGroupOpen?: boolean;
   } = {},
 ) {
-  const { viewModel, night } = nightModel(state, seat, isHost);
-  return createWerewolfBottomActionLayout({
-    viewModel,
-    night: options.night ?? night,
-    seatSelection: options.seatSelection,
-    isActionGroupOpen: options.isActionGroupOpen,
-    isHost,
-    effectiveSeat: seat,
-    isAudioPlaying: options.isAudioPlaying ?? false,
-    isActionSubmitting: false,
-    review: options.review === undefined ? ENABLED_REVIEW : options.review,
-    onNightButton: vi.fn(),
-    onViewRole: vi.fn(),
-  });
+  return playerActionListFor(state, seat, isHost, options).actions;
 }
 
 describe('createWerewolfSeatDataSource', () => {
@@ -280,15 +292,16 @@ describe('createWerewolfPlayerActionList', () => {
   });
 
   it('hides every button while narration plays and keeps the identity button at night', () => {
-    expect(layoutFor(night, 2, false, { isAudioPlaying: true })).toEqual({
-      primary: [],
-      secondary: [],
-      ghost: [],
-    });
+    expect(layoutFor(night, 2, false, { isAudioPlaying: true })).toEqual([]);
 
-    const seer = layoutFor(night, 2, false);
-    expect(seer.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
-    expect(seer.secondary.map((button) => button.key)).toEqual(['viewRole']);
+    const seer = playerActionListFor(night, 2, false);
+    expect(seer.actions.map((button) => button.key)).toEqual(['viewRole']);
+    expect(seer.group).toMatchObject({
+      label: '预言家行动',
+      isPending: true,
+    });
+    expect(seer.group?.testID).toBeTypeOf('string');
+    expect(seer.group?.backTestID).toBeTypeOf('string');
     const bystander = layoutFor(night, 5, false);
     expect(bystander.map((button) => button.key)).toEqual(['viewRole']);
   });
@@ -299,8 +312,8 @@ describe('createWerewolfPlayerActionList', () => {
       stepId: 'wolfKill',
       overrides: { currentNightResults: { wolfVotesBySeat: { '0': 5 } } },
     });
-    const layout = layoutFor(state, 0, false, { isActionGroupOpen: true });
-    expect([...layout.primary, ...layout.secondary]).toEqual(
+    const actionList = playerActionListFor(state, 0, false);
+    expect(actionList.group?.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'startSeatSelection', icon: 'locate-outline' }),
         expect.objectContaining({ key: 'wolfEmpty', icon: 'close-circle-outline' }),
@@ -367,21 +380,23 @@ describe('createWerewolfPlayerActionList', () => {
       stepId: 'witchAction',
       overrides: { witchContext: { killedSeat: 0, canSave: true, canPoison: true } },
     });
-    const choices = layoutFor(witch, 3, false);
-    expect(choices.primary).toMatchObject([{ key: 'openActionGroup', isPending: true }]);
+    const choices = playerActionListFor(witch, 3, false);
+    expect(choices.group).toMatchObject({ label: '女巫行动', isPending: true });
 
     const state = nightState({ roles: BOARD, stepId: 'wolfKill' });
     const { night: interaction } = nightModel(state, 0);
     if (interaction.kind !== 'wolfVote') throw new Error('Expected wolf vote');
-    expect(layoutFor(state, 0, false, { night: interaction }).primary[0]).toMatchObject({
-      key: 'openActionGroup',
+    expect(playerActionListFor(state, 0, false, { night: interaction }).group).toMatchObject({
+      label: '狼人行动',
       isPending: true,
     });
     expect(
-      layoutFor(state, 0, false, { night: { ...interaction, myVote: 5 } }).primary[0]?.isPending,
-    ).toBeUndefined();
+      playerActionListFor(state, 0, false, { night: { ...interaction, myVote: 5 } }).group
+        ?.isPending,
+    ).toBe(false);
     expect(
-      layoutFor(state, 0, false, { night: { ...interaction, myVote: null } }).primary[0]?.isPending,
+      playerActionListFor(state, 0, false, { night: { ...interaction, myVote: null } }).group
+        ?.isPending,
     ).toBe(true);
     const onlyEmpty = { ...interaction, emptyVoteOnly: true };
     expect(layoutFor(state, 0, false, { night: onlyEmpty })).toMatchObject([
@@ -512,6 +527,7 @@ describe('createWerewolfPlayerActions', () => {
     const actions = createWerewolfPlayerActionList({
       viewModel,
       night,
+      actionGroupKey: 'player-actions-test',
       isHost: false,
       effectiveSeat: 0,
       isAudioPlaying: options.isAudioPlaying,

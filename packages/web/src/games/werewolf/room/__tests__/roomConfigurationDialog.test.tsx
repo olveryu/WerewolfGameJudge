@@ -200,13 +200,13 @@ describe('Werewolf room configuration', () => {
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
     await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
 
-    expect(bottom.getByRole('region', { name: '主持管理' })).toBeVisible();
+    expect(bottom.getByRole('group', { name: '主持管理' })).toBeVisible();
     expect(bottom.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     const back = bottom.getByRole('button', { name: '返回' });
     expect(back).toHaveFocus();
     await click(back);
 
-    expect(bottom.queryByRole('region', { name: '主持管理' })).not.toBeInTheDocument();
+    expect(bottom.queryByRole('group', { name: '主持管理' })).not.toBeInTheDocument();
     expect(bottom.getByRole('button', { name: '本局配置' })).toBeVisible();
     expect(bottom.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveFocus();
   });

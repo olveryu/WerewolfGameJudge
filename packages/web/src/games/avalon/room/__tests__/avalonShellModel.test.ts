@@ -195,7 +195,8 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -231,7 +232,8 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.playerActions).toEqual({
       message: '等待房主分配角色',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });

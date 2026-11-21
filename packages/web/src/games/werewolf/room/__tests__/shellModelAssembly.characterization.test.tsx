@@ -71,17 +71,14 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
   it('surfaces the action message when it is my action', async () => {
     const model = await captureModel(seerStepRoom({ myRole: 'seer', mySeat: 0 }));
 
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
-      expect(model.bottomActions.layout.primary).toEqual([
-        expect.objectContaining({ key: 'openActionGroup', label: '预言家行动', isPending: true }),
-      ]);
-      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['viewRole', '查看身份', 'secondary'],
-      ]);
-      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);
-    }
+    expect(model.playerActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+    expect(model.playerActions.actions).toEqual([
+      expect.objectContaining({ key: 'viewRole', label: '查看身份' }),
+    ]);
+    expect(model.playerActions.group).toMatchObject({
+      label: '预言家行动',
+      isPending: true,
+    });
   });
 
   it.each(['host', 'player', 'spectator'] as const)(

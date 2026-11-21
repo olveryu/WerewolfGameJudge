@@ -43,7 +43,7 @@ import {
   wolfCountdownFragment,
   wolfStatusLine,
 } from '../night/resolveNightInteraction';
-import { buildNightButtons, type NightButtonAction } from '../werewolfRoomAdapter';
+import type { NightButtonAction } from '../werewolfRoomAdapter';
 
 const NIGHT_ACTION_LABEL = '操作';
 const SKIP_CONFIRM_TITLE = '跳过本次行动？';
@@ -61,13 +61,12 @@ interface NightChooseCardModal {
 
 export interface NightInteraction {
   readonly model: NightInteractionModel;
+  readonly actionGroupKey: string;
   /** The actioner's bottom message; null for non-actioners. */
   readonly actionMessage: string | null;
   /** The wolf settle countdown line, visible while audio playback blocks the interaction model; null otherwise. */
   readonly nightStatusLine: string | null;
   readonly seatSelection: NightSeatSelection | null;
-  readonly isActionGroupOpen: boolean;
-  readonly restoreActionGroupFocus: boolean;
   /** Consumes an in-game seat tap; false lets the shared handler apply. */
   readonly onSeatTap: (seat: number) => boolean;
   readonly onNightButton: (action: NightButtonAction) => void;
@@ -117,11 +116,6 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     readonly seats: readonly number[];
   } | null>(null);
   if (picking !== null && picking.scope !== scopeKey) setPicking(null);
-  const [actionGroup, setActionGroup] = useState<{
-    readonly scope: string;
-    readonly open: boolean;
-  } | null>(null);
-  if (actionGroup !== null && actionGroup.scope !== scopeKey) setActionGroup(null);
 
   const model = useMemo(
     () =>
@@ -239,18 +233,6 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     latestSeatSelectionRef.current = { scopeKey, model, seatSelection };
   }, [scopeKey, model, seatSelection]);
   const seatAction = nightSeatAction(model);
-  const hasMultipleActions =
-    buildNightButtons(model).length +
-      (seatAction !== null && seatAction.eligible.length > 0 ? 1 : 0) >
-    1;
-  const isActionGroupOpen =
-    actionGroup?.scope === scopeKey &&
-    actionGroup.open &&
-    (hasMultipleActions || seatSelection !== null);
-  if (actionGroup?.open === true && !isActionGroupOpen && model.kind !== 'blocked') {
-    setActionGroup(null);
-  }
-
   const confirmSelection = useCallback(
     (selection: NightSeatSelection) => {
       if (selection.confirm === null) {
@@ -410,13 +392,6 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
   const onNightButton = useCallback(
     (action: NightButtonAction): void => {
       switch (action.kind) {
-        case 'openActionGroup':
-          if (!hasMultipleActions) throw illegalButton(action, model);
-          setActionGroup({ scope: scopeKey, open: true });
-          return;
-        case 'closeActionGroup':
-          setActionGroup({ scope: scopeKey, open: false });
-          return;
         case 'startSeatSelection':
           if (nightSeatAction(model) === null) throw illegalButton(action, model);
           setPicking({ scope: scopeKey, seats: [] });
@@ -493,8 +468,6 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
     [
       confirmWith,
       confirmSelection,
-      hasMultipleActions,
-      setActionGroup,
       setChooseCardOpenStepId,
       setPicking,
       trackAlert,
@@ -512,7 +485,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
       model,
       close: () => setChooseCardOpenStepId(null),
       choose: async (cardIndex) => {
-        const ok = await dispatch({ kind: 'card', cardIndex });
+        const ok = await dispatch({ kind: 'card', cardIndex }, 'button', 'chooseCard');
         if (ok) setChooseCardOpenStepId(null);
       },
     };
@@ -520,6 +493,7 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
 
   return {
     model,
+    actionGroupKey: scopeKey,
     actionMessage:
       seatSelection === null
         ? renderActionerMessage(model, viewModel)
@@ -530,8 +504,6 @@ export function useNightInteraction(input: UseNightInteractionInput): NightInter
             : seatSelection.message,
     nightStatusLine,
     seatSelection,
-    isActionGroupOpen,
-    restoreActionGroupFocus: actionGroup?.scope === scopeKey && !actionGroup.open,
     onSeatTap,
     onNightButton,
     chooseCardModal,

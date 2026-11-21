@@ -248,7 +248,8 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       // 进行中阶段是舞台内容：底部为空，结算等待由信息条的「结算」倒计时承载。
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: createDrawGuessBottomLayout(state, input.review, input.viewer),
+      actions: createDrawGuessPlayerActions(state, input.review, input.viewer),
+      group: null,
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

@@ -11,7 +11,8 @@ import {
 const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
-  layout: { primary: [], secondary: [], ghost: [] },
+  actions: [],
+  group: null,
 };
 
 describe('groupRoomStageRoster', () => {
@@ -90,17 +91,16 @@ describe('assertRoomStageShellModel', () => {
         playerActions: {
           message: null,
           progress: null,
-          leading: null,
-          trailing: null,
-          primary: {
-            key: 'ready',
-            label: '准备',
-            audience: 'participant',
-            variant: 'primary',
-            size: 'md',
-            isEnabled: false,
-            disabledReason: null,
-          },
+          group: null,
+          actions: [
+            {
+              key: 'ready',
+              label: '准备',
+              audience: 'participant',
+              category: 'player',
+              state: { kind: 'blocked', reason: null },
+            },
+          ],
         },
       }),
     ).toThrow('Stage content cannot carry bottom actions');

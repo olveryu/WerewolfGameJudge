@@ -37,14 +37,11 @@ import {
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
 import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
-import {
-  buildStepActorWaitingMessage,
-  buildViewIdentityButton,
-  type RoomBottomActionLayout,
-  type RoomBottomActionModel,
-  type RoomBottomButton,
-  VIEW_IDENTITY_LABEL,
-} from '@/features/room/model/RoomBottomActions';
+import type {
+  RoomActionState,
+  RoomPlayerAction,
+  RoomPlayerActionGroup,
+} from '@/features/room/model/RoomAction';
 import {
   createRoomSetupCapabilities,
   createShareRoomCapability,
@@ -302,8 +299,6 @@ export function deriveWerewolfBottomProgress(state: GameState): NightStepProgres
 
 /** What a night button does when pressed; the hook maps each to a dialog or a submit. */
 export type NightButtonAction =
-  | { readonly kind: 'openActionGroup' }
-  | { readonly kind: 'closeActionGroup' }
   | { readonly kind: 'startSeatSelection' }
   | { readonly kind: 'cancelSeatSelection' }
   | { readonly kind: 'submitSeatSelection' }
@@ -323,8 +318,6 @@ interface NightButtonSpec {
   readonly action: NightButtonAction;
   readonly disabledReason?: string;
   readonly isPending?: boolean;
-  readonly focusOnMount?: boolean;
-  readonly containedActionTestIDs?: readonly string[];
 }
 
 /** The night step's buttons for the actioner, per model kind. */
@@ -455,9 +448,8 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
 interface WerewolfPlayerActionListInput {
   readonly viewModel: WerewolfViewModel;
   readonly night: NightInteractionModel;
+  readonly actionGroupKey: string;
   readonly seatSelection?: NightSeatSelection | null;
-  readonly isActionGroupOpen?: boolean;
-  readonly restoreActionGroupFocus?: boolean;
   readonly isHost: boolean;
   readonly effectiveSeat: number | null;
   readonly isAudioPlaying: boolean;
@@ -513,7 +505,6 @@ function nightButton(
       case 'submitSeatSelection':
         return 'checkmark-outline';
       case 'cancelSeatSelection':
-      case 'closeActionGroup':
         return 'arrow-back';
       case 'startSeatSelection':
         return 'locate-outline';
@@ -533,8 +524,6 @@ function nightButton(
         return 'shield-outline';
       case 'openChooseCard':
         return 'albums-outline';
-      case 'openActionGroup':
-        return 'sparkles-outline';
     }
   })();
   const state: RoomActionState =
@@ -552,10 +541,7 @@ function nightButton(
     (input.seatSelection == null && isPendingSingleNightAction(input.night, spec.action))
       ? { isPending: true }
       : {}),
-    ...(spec.focusOnMount === true ? { focusOnMount: true } : {}),
-    ...(spec.containedActionTestIDs === undefined
-      ? {}
-      : { containedActionTestIDs: spec.containedActionTestIDs }),
+    state,
   };
 }
 
@@ -575,7 +561,12 @@ function viewRoleButton(input: WerewolfPlayerActionListInput): RoomPlayerAction 
   );
 }
 
-const EMPTY_LAYOUT: RoomBottomActionLayout = { primary: [], secondary: [], ghost: [] };
+interface WerewolfPlayerActionList {
+  readonly actions: readonly RoomPlayerAction[];
+  readonly group: RoomPlayerActionGroup | null;
+}
+
+const EMPTY_ACTIONS: WerewolfPlayerActionList = { actions: [], group: null };
 
 /**
  * The player actions per status and audience: identity viewing from
@@ -599,7 +590,7 @@ export function createWerewolfPlayerActionList(
       return EMPTY_ACTIONS;
     case GameStatus.Assigned:
     case GameStatus.Ready:
-      return { primary: viewRole('primary'), secondary: [], ghost: [] };
+      return { actions: viewRole(), group: null };
     case GameStatus.Ongoing: {
       if (isAudioPlaybackLocked(input.isAudioPlaying)) return EMPTY_ACTIONS;
       const selection = input.seatSelection;
@@ -637,38 +628,29 @@ export function createWerewolfPlayerActionList(
           action: { kind: 'startSeatSelection' },
         });
       }
-      if (selection == null && hasMultipleActions) {
-        if (input.isActionGroupOpen === true) {
-          specs.unshift({
-            key: 'closeActionGroup',
-            label: '返回',
-            tier: 'primary',
-            action: { kind: 'closeActionGroup' },
-            focusOnMount: true,
-          });
-        } else {
-          const role = viewModel.night.currentActionRole;
-          if (role === null) throw new Error('[FAIL-FAST] Night action group has no role');
-          const containedActionTestIDs = specs.map((spec) => TESTIDS.werewolfNightButton(spec.key));
-          specs.splice(0, specs.length, {
-            key: 'openActionGroup',
-            label: `${getRoleDisplayName(role)}行动`,
-            tier: 'primary',
-            action: { kind: 'openActionGroup' },
-            isPending: night.kind !== 'wolfVote' || night.myVote === null,
-            focusOnMount: input.restoreActionGroupFocus === true,
-            containedActionTestIDs,
-          });
-        }
-      }
-      const buttons = specs.map((spec) => nightButton(spec, input));
+      const primary = specs
+        .filter((spec) => spec.tier === 'primary')
+        .map((spec) => nightButton(spec, input));
+      const secondary = specs
+        .filter((spec) => spec.tier === 'secondary')
+        .map((spec) => nightButton(spec, input));
+      const actions = [...primary, ...secondary];
+      if (selection != null) return { actions, group: null };
+      if (!hasMultipleActions) return { actions: [...actions, ...viewRole()], group: null };
+      const role = viewModel.night.currentActionRole;
+      if (role === null) throw new Error('[FAIL-FAST] Night action group has no role');
       return {
-        primary: buttons.filter((button) => button.variant === 'primary'),
-        secondary: [
-          ...buttons.filter((button) => button.variant === 'secondary'),
-          ...(selection == null && input.isActionGroupOpen !== true ? viewRole('secondary') : []),
-        ],
-        ghost: [],
+        actions: viewRole(),
+        group: {
+          key: input.actionGroupKey,
+          label: `${getRoleDisplayName(role)}行动`,
+          icon: 'sparkles-outline',
+          audience: 'participant',
+          isPending: night.kind !== 'wolfVote' || night.myVote === null,
+          testID: TESTIDS.werewolfNightButton('openActionGroup'),
+          backTestID: TESTIDS.werewolfNightButton('closeActionGroup'),
+          actions,
+        },
       };
     }
     case GameStatus.Day:
@@ -683,12 +665,14 @@ export function createWerewolfPlayerActionList(
         throw new Error(`[FAIL-FAST] Werewolf ${viewModel.status} has no review entry`);
       }
       if (audience === 'spectator') {
-        return { primary: [buildReviewBottomButton(review, 'primary')], secondary: [], ghost: [] };
+        return { actions: [buildReviewBottomButton(review)], group: null };
       }
       return {
-        primary: [],
-        secondary: viewRole('secondary'),
-        ghost: audience === 'seated' ? [buildReviewBottomButton(review, 'ghost')] : [],
+        actions: [
+          ...viewRole(),
+          ...(audience === 'seated' ? [buildReviewBottomButton(review)] : []),
+        ],
+        group: null,
       };
     }
   }
@@ -723,7 +707,7 @@ export function createWerewolfPlayerActions(
     });
   }
   if (viewModel.status === GameStatus.Ended) {
-    return { kind: 'stacked', message: input.guideMessage, progress: null, layout };
+    return { message: input.guideMessage, progress: null, actions: actions.actions, group: null };
   }
   const progress = deriveWerewolfBottomProgress(state);
   const isActioner = viewModel.status === GameStatus.Ongoing && viewModel.night.isActioner;
@@ -738,7 +722,8 @@ export function createWerewolfPlayerActions(
         ? input.actionMessage
         : (waiting ?? input.guideMessage),
     progress,
-    layout,
+    actions: actions.actions,
+    group: actions.group,
   };
 }
 

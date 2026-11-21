@@ -6,11 +6,7 @@
 import { viewerFor } from '@/test-utils/roomViewer';
 
 import { createRoomShellModel, type RoomShellModelInput } from '../createRoomShellModel';
-import type {
-  RoomBottomActionModel,
-  RoomBottomButton,
-  RoomBottomStackModel,
-} from '../RoomBottomActions';
+import type { RoomHostAction, RoomPlayerAction, RoomPlayerActionGroup } from '../RoomAction';
 import type { RoomCapabilities } from '../RoomCapabilities';
 import type { RoomHostManagementModel } from '../RoomHostManagement';
 import type { RoomPlayerActionModel } from '../RoomPlayerActions';
@@ -33,7 +29,8 @@ const deniedCapabilities: RoomCapabilities = {
 const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
-  layout: { primary: [], secondary: [], ghost: [] },
+  actions: [],
+  group: null,
 };
 
 function button(key: string, audience: RoomPlayerAction['audience']): RoomPlayerAction {
@@ -46,8 +43,21 @@ function button(key: string, audience: RoomPlayerAction['audience']): RoomPlayer
   };
 }
 
-function stacked(...buttons: RoomBottomButton[]): RoomBottomActionModel {
-  return { ...EMPTY_STACK, layout: { primary: buttons, secondary: [], ghost: [] } };
+function playerActions(...actions: RoomPlayerAction[]): RoomPlayerActionModel {
+  return { ...EMPTY_STACK, actions };
+}
+
+function playerGroup(
+  audience: RoomPlayerActionGroup['audience'],
+  actions: readonly RoomPlayerAction[] = [],
+): RoomPlayerActionGroup {
+  return {
+    key: 'night',
+    label: '夜间行动',
+    audience,
+    isPending: false,
+    actions,
+  };
 }
 
 function input(
@@ -157,7 +167,29 @@ describe('createRoomShellModel ownership', () => {
             playerActions: playerActions(button('view', 'participant')),
           }),
         ),
-      ).toThrow('Bottom action "view" is a participant action but the viewer holds no seat');
+      ).toThrow('Player action "view" is a participant action but the viewer holds no seat');
+    });
+
+    it('validates group visibility and every grouped action against the viewer', () => {
+      expect(() =>
+        createRoomShellModel(
+          input(viewerFor('spectator'), {
+            playerActions: { ...EMPTY_STACK, group: playerGroup('participant') },
+          }),
+        ),
+      ).toThrow('Player action group "night" is a participant action but the viewer holds no seat');
+      expect(() =>
+        createRoomShellModel(
+          input(viewerFor('spectator'), {
+            playerActions: {
+              ...EMPTY_STACK,
+              group: playerGroup('anyone', [button('night-action', 'participant')]),
+            },
+          }),
+        ),
+      ).toThrow(
+        'Player action "night-action" is a participant action but the viewer holds no seat',
+      );
     });
 
     it('accepts a participant button for an unseated host acting as a taken-over bot seat', () => {

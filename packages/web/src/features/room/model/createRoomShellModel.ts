@@ -49,8 +49,14 @@ function assertPlayerActionAudiences(
   playerActions: RoomPlayerActionModel,
 ): void {
   const effectiveSeat = resolveEffectiveSeat(viewer, controlledSeat);
-  for (const button of listRoomBottomButtons(bottomActions)) {
-    if (button.audience === 'participant' && effectiveSeat === null) {
+  const actions = [...playerActions.actions, ...(playerActions.group?.actions ?? [])];
+  if (playerActions.group?.audience === 'participant' && effectiveSeat === null) {
+    throw new Error(
+      `Player action group "${playerActions.group.key}" is a participant action but the viewer holds no seat`,
+    );
+  }
+  for (const action of actions) {
+    if (action.audience === 'participant' && effectiveSeat === null) {
       throw new Error(
         `Player action "${action.key}" is a participant action but the viewer holds no seat`,
       );
@@ -78,9 +84,10 @@ function assertBottomActionsOutsideHostTask(
   playerActions: RoomPlayerActionModel,
 ): void {
   const taskActionKeys = new Set(hostTaskActionKeys(taskBody));
-  for (const button of listRoomBottomButtons(bottomActions)) {
-    if (taskActionKeys.has(button.key)) {
-      throw new Error(`Bottom action "${button.key}" duplicates the host task card`);
+  const actions = [...playerActions.actions, ...(playerActions.group?.actions ?? [])];
+  for (const action of actions) {
+    if (taskActionKeys.has(action.key)) {
+      throw new Error(`Player action "${action.key}" duplicates the host task card`);
     }
   }
 }

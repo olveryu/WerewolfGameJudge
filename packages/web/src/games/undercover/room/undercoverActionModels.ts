@@ -108,6 +108,7 @@ export function createUndercoverPlayerActions(
   return {
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),
     progress: null,
-    layout: { primary, secondary, ghost },
+    actions,
+    group: null,
   };
 }

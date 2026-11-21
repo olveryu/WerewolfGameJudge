@@ -416,7 +416,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
   if (input.isLobby) {
     // 大厅客人等分配（个人提示）；房主走房主面板。
     if (!input.viewer.isHost && input.viewer.seat !== null) message = '等待房主分配角色';
-    return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
+    return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
   // 查看身份：局内常驻（对齐狼人杀）。用 effectiveSeat：房主代打 bot 时也能看 bot 的身份。
   const isViewingStep = state.phase.kind === 'viewing';
@@ -445,7 +445,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
       message = '请点击下方「查看身份」，查看你的角色';
     }
-    return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
+    return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
   if (phase.kind === 'night') {
     // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
@@ -478,7 +478,8 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     return {
       message,
       progress: deriveAvalonBottomProgress(state),
-      layout: { primary, secondary, ghost },
+      actions: [...primary, ...secondary, ...ghost],
+      group: null,
     };
   }
   const vm = getAvalonViewModel(state, input.effectiveSeat);
@@ -498,7 +499,12 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       });
       message =
         '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
-      return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
+      return {
+        message,
+        progress: null,
+        actions: [...primary, ...secondary, ...ghost],
+        group: null,
+      };
     }
     secondary.push({
       key: 'earlyStrike',
@@ -677,7 +683,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     default:
       break;
   }
-  return { kind: 'stacked', message, progress: null, layout: { primary, secondary, ghost } };
+  return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
 }
 
 export interface AvalonRoomShellModelInput extends Omit<

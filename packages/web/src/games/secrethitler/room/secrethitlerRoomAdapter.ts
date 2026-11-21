@@ -455,6 +455,7 @@ export function createSecrethitlerRoomShellModel(
               label: getSecrethitlerNightStepLabel(state.phase.step),
             }
           : null,
+      group: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       actions: [
         ...(actionButton === null ? [] : [actionButton]),

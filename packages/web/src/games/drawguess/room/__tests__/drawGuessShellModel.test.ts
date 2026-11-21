@@ -140,7 +140,8 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
@@ -233,7 +234,8 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.playerActions).toEqual({
       message: '等待房主开始游戏',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -326,7 +328,8 @@ describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
     expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
   });
 });

@@ -38,7 +38,8 @@ const deniedCapabilities: RoomCapabilities = {
 const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
-  layout: { primary: [], secondary: [], ghost: [] },
+  actions: [],
+  group: null,
 };
 
 const EMPTY_DIRECTORY: RoomHandDirectory = {

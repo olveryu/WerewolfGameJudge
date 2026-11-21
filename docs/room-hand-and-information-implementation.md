@@ -85,7 +85,9 @@
 
 ### 3.4 共享手牌模型与渲染路径
 
-以下是**拟新增接口**，不是当前代码。迁移首提交应按这个边界接线，不新建另一套动作定义；若最新主线已提供等价结构，则复用原名。
+实现已采用统一的 `RoomAction`、`RoomPlayerActionModel`、`RoomHostManagementModel` 和纯函数
+`buildRoomHand`。玩家动作显式声明类别、观众和 `ready`／`busy`／`blocked` 状态；多行动阶段
+通过 `group` 声明一个带步骤作用域 key 的子手牌。非分组阶段必须显式返回 `group: null`。
 
 ```text
 房间快照 → 游戏动作／权限／角色模型

@@ -268,48 +268,22 @@ private results stay behind explicitly authorized actions and overlays.
 
 ### Room Action Hierarchy
 
-- Seat rooms that have not migrated to action hands use the shared bottom panel for status, progress, one focused player action and
-  an entry to the shared actions surface. That surface groups remaining player tools with
-  the host task and management sections. Hosting is an additional capability, not a
-  replacement for the user's player or spectator actions. `stage` content is the one
-  exception: its status lives in the information bar and its actions in the game's dock.
-- Werewolf presents all model-supplied player actions directly in its hand, in model order.
-  The host entry replaces the hand in place, keeping the task and management actions sourced
-  from the existing host model. Returning restores the player hand. Only a ready task or an
-  enabled choice that is not loading gets the task marker on the host entry.
-  The manual also replaces the hand in place; reading dialogs return to that sub-hand.
-  The encyclopedia route and the room dialog share the same guide segments and controls.
-  The manual offers the notepad during the day and after the game; both the room dialog and
-  the legacy page use the same editor and room/user/round storage scope.
-  The suggestion list opens from the main hand only before dealing and only when suggestions
-  exist. If roles are dealt while it is open, it stays open with mutations disabled.
-  The suggestion editor shares the old route's role fields, preset picker and submit logic.
-  Dealing disables submission in the room dialog without clearing the draft.
-  Incoming Werewolf night prompts do not cover the open information dialogs. Optional prompts
-  for those steps are skipped; a mandatory night reveal is offered after closing only if the
-  latest room state still requires it.
-  During night seat selection the existing focused controls take over.
-- A seat room may supply a public configuration entry in the bottom row. This opens a read-only
-  dialog and is not a player or host command. The game controls its availability; Werewolf
-  keeps the inline board before gameplay and leaves the selection controls alone during seat selection.
-- Waiting and narration are status messages, never inert primary buttons. A dock may have
-  no primary action. Real unavailable commands retain their disabled state and reason.
-- Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
-  alternatives and repeated viewing are secondary. Equal game choices keep equal emphasis.
-- Identity viewing stays primary during the viewing step and secondary afterward. It remains
-  a labelled button, not a borderless action. Review tools use labelled icons. Games retain
-  their existing visibility and information permissions, including spectator permissions.
-- If exactly one player primary action is available, it occupies the focus slot. Multiple equal
-  player primaries move together to the shared actions surface instead of being reordered. When
-  no player focus action exists, the shared-surface entry fills the slot. The entry may summarize
-  the current host task, but host commands execute only from that opened surface. Dangerous
-  commands retain explicit danger semantics.
-- Room buttons share the existing capsule geometry and md sizing. Tool hit targets are at
-  least 44 logical pixels; secondary and tool rows wrap on narrow screens. Management sheets
-  use the same secondary fill as the bottom panel. Do not override geometry or color by role.
-- Server hint applicability is resolved once for the actor's effective role. Restricted-action
-  reasons render as status text; their confirmation buttons keep short action labels and the
-  original submission intent. Narration status preserves the authoritative progress row.
+Every action uses the shared `RoomAction` shape: a stable key, label, semantic category, explicit
+state (`ready`, `busy` or `blocked`) and optional icon/test ID. Player actions add an audience
+and pending marker. A player model has one ordered `actions` list, a nullable `group` for a
+multi-action sub-hand, status text and progress; non-group games set `group: null`.
+
+`buildRoomHand` projects the current model into cards. The main hand contains player actions,
+the group entry when present, then the stable-keyed directory entries for configuration, manual,
+game-specific tools, sharing and host management. The host hand and manual are in-place
+sub-hands with a leading return card. A group sub-hand contains its return card and its actions.
+The stage menu is a separate `actionSurface: 'menu'` projection of the same directory and
+authorized stage actions. Cards are ordered by category and state while preserving ties.
+
+`RoomActionStatus` is separate from the hand container. Seat content can place status and game
+summary above the seat board; other hand surfaces place them in the bottom panel. Stage content
+keeps its status in the HUD and requires the menu action surface. Dialog and game-workspace
+controls remain game-owned and are not moved into the hand.
 
 ### Action Ownership
 
@@ -372,23 +346,12 @@ steps above the host hand. Pending actions are ordered first and marked individu
 alternative decision marks the host entry without marking every choice. Host commands stay in
 the host hand, never in the player's actions.
 
-- **A task has no `onPress`.** It references sheet actions by `key`; the renderer resolves the
-  action's handler, enabled state and disabled reason from the sheet. One command, one
-  execution path — guaranteed by the type shape, not by review.
-- `action`: do this one thing. If the referenced action is disabled, the task shows its label
-  and `disabledReason`, with the optional remedy button. The disabled command remains in its
-  management section, without repeating the reason.
-- `choice`: two or more equal options (再来一局 / 返回大厅). Rendered side by side with each
-  action's own variant. Never model equal choices as one primary and one buried option.
-- `message`: the host is waiting on others or following a board instruction
-  (正在等待 3 位玩家查看身份 / 点座位盘选择出局玩家). The optional `actionKey` is the
-  secondary escape (标记机器人已查看 / 取消选择).
-- `task === null`: nothing awaits the host; the shared surface shows the remaining management
-  sections.
-- Actions no longer carry `isPrimary`, `remedy` or `consoleBlockedReason`; the model no longer
-  carries `hasPendingAction`. All of that is the task.
-- `resolveHostTaskView` validates at assembly and throws on: an `actionKey` missing from the
-  sections, a `choice` with fewer than two keys, more than one `current` step.
+The `roomMoreActionsButton` opens host management in place. Host card IDs use the action's
+declared test ID, with task-specific fallbacks for escape, next-step and choice actions. The
+manual and grouped player actions use the same navigation model; entering a sub-hand focuses
+its return card, returning restores focus to its entry, and seat selection temporarily projects
+selection actions without changing the remembered hand. A group key is scoped to the game step;
+when that group disappears, the main hand is shown without discarding its key.
 
 `stage` content has no bottom panel. It requires the public stage menu; the host task is null
 and every host action in the menu declares `stageMenuRole`. The stage HUD renders status, while

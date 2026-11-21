@@ -270,11 +270,8 @@ export function createStoryRelayRoomShellModel(
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       // The relay steps report their progress in the stage information bar.
       progress: null,
-      layout: {
-        primary: [],
-        secondary: createStoryRelayReviewButtons(state, input.review, input.viewer),
-        ghost: [],
-      },
+      group: null,
+      actions: createStoryRelayReviewButtons(state, input.review, input.viewer),
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,
