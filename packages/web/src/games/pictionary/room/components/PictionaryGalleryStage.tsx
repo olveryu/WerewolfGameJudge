@@ -30,6 +30,8 @@ import IconShareOutline from '~icons/ion/share-outline';
 
 import { PictionaryGalleryEntryView } from './PictionaryGalleryEntryView';
 
+const EMPTY_ALBUM_CONTENT = <p className="pictionary-gallery-viewer-notice">这本画册还没有内容</p>;
+
 /** Host-driven synchronized reveal of one album at a time. */
 export function PictionaryGalleryStage({
   state,
@@ -171,11 +173,12 @@ export function PictionaryGalleryStage({
       controls={controls}
       testId={TESTIDS.pictionaryStageFrame}
       listTestId={TESTIDS.pictionaryGalleryAlbum}
+      emptyContent={EMPTY_ALBUM_CONTENT}
     />
   );
 }
 
-/** Completed round: each player pages through albums locally and can share one. */
+/** Completed or aborted round: each player pages through albums locally and can share one. */
 export function PictionaryEndedStage({
   state,
   openReview,
@@ -185,7 +188,7 @@ export function PictionaryEndedStage({
   readonly openReview: (pageKey: string) => void;
 }) {
   const [chainIndex, setChainIndex] = useState(0);
-  if (state.phase !== 'ended') {
+  if (state.phase !== 'ended' && state.phase !== 'aborted') {
     throw new Error('[FAIL-FAST] Ended stage requires completed Pictionary state');
   }
   const chain = state.chains[chainIndex];
@@ -223,7 +226,11 @@ export function PictionaryEndedStage({
         <GalleryAlbumHeading
           eyebrow={`第 ${chainIndex + 1} / ${state.chains.length} 本画册`}
           title={`${getPictionarySeatDisplayName(state, chain.originSeat)} 的接龙`}
-          description={`第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`}
+          description={
+            state.phase === 'aborted'
+              ? `第 ${state.roundNumber} 轮未完成，房主已中止。`
+              : `第 ${state.roundNumber} 轮完成，现在可以按自己的节奏回看。`
+          }
           remainingSeconds={null}
         />
       }
@@ -231,6 +238,7 @@ export function PictionaryEndedStage({
       controls={controls}
       testId={TESTIDS.pictionaryStageFrame}
       listTestId={TESTIDS.pictionaryGalleryAlbum}
+      emptyContent={EMPTY_ALBUM_CONTENT}
     />
   );
 }

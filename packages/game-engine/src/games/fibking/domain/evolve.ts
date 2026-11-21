@@ -143,16 +143,11 @@ export function evolveFibState(state: FibState, event: FibEvent): FibState {
     case 'fibking.game.returnedToLobby':
       return {
         ...state,
-        reviewCompletedUserIds: [],
         phase: 'lobby',
         pendingRound: null,
         preparationFailure: null,
         round: null,
       };
-    case 'fibking.review.completed':
-      return state.reviewCompletedUserIds.includes(event.userId)
-        ? state
-        : { ...state, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
   }
   const exhaustive: never = event;
   return exhaustive;

@@ -14,6 +14,7 @@ import {
   type __GAME_PASCAL__HumanSeat,
   type __GAME_PASCAL__State,
 } from './types';
+import { __GAME_UPPER___STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('__GAME_PASCAL__');
 
@@ -21,7 +22,7 @@ const invariant: StateInvariant = createStateInvariant('__GAME_PASCAL__');
 export function normalize__GAME_PASCAL__State(
   state: __GAME_PASCAL__State,
 ): __GAME_PASCAL__State {
-  assertStateIdentity(state, '__GAME_ID__', '__GAME_PASCAL__');
+  assertStateIdentity(state, __GAME_UPPER___STATE_IDENTITY, '__GAME_PASCAL__');
   invariant(isValid__GAME_PASCAL__Config(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;

@@ -128,7 +128,7 @@ function createGameConfigScreen<
         else dialog.onClose();
       };
       return (
-        <RoomDialog title="房间设置" onClose={requestClose} dismissOnEscape footer={submit}>
+        <RoomDialog title="房间设置" onClose={requestClose} allowEscape footer={submit}>
           <IconButton
             label="重置配置"
             icon={<IconTrashOutline aria-hidden />}

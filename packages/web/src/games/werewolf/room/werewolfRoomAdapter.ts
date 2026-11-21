@@ -225,7 +225,15 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
         seat,
         player,
         isSelf: seat === viewModel.mySeat,
-        highlight: controlledSeat === seat ? 'controlled' : isWolfPeer ? 'danger' : 'none',
+        highlight: isSelected
+          ? 'selected'
+          : isEligible
+            ? 'info'
+            : controlledSeat === seat
+              ? 'controlled'
+              : isWolfPeer
+                ? 'danger'
+                : 'none',
         secondaryLabel:
           seatView !== null && seatView.isBot && seatView.visibleRole !== null
             ? getRoleDisplayName(seatView.visibleRole)
@@ -247,8 +255,8 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
                 markers: [],
                 progressLabel: null,
                 selection: isSelected
-                  ? { kind: 'selected', label: null }
-                  : { kind: 'available', label: null },
+                  ? { kind: 'selected', label: '已选' }
+                  : { kind: 'preselected', label: '可选' },
               }
             : null,
         isStatusEmphasized: false,
@@ -329,29 +337,8 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
     case 'blocked':
     case 'ackReveal':
       return [];
-    case 'skipOnly': {
-      const original = night.lockedAction;
-      const locked =
-        original === undefined
-          ? []
-          : buildNightButtons(original)
-              .filter((button) => button.action.kind !== 'skip')
-              .map((button) => ({ ...button, disabledReason: night.prompt.text }));
-      const seatAction = original === undefined ? null : nightSeatAction(original);
-      if (seatAction !== null) {
-        locked.push({
-          key: 'startSeatSelection',
-          label: seatAction.label,
-          tier: 'primary',
-          action: { kind: 'startSeatSelection' },
-          disabledReason: night.prompt.text,
-        });
-      }
-      return [
-        ...locked,
-        { key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } },
-      ];
-    }
+    case 'skipOnly':
+      return [{ key: 'skip', label: night.skipLabel, tier: 'secondary', action: { kind: 'skip' } }];
     case 'pickSeat':
     case 'pickTwoSeats':
     case 'multiSelect':
@@ -378,15 +365,12 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
     }
     case 'witch': {
       const buttons: NightButtonSpec[] = [];
-      if (night.canSave || night.saveUnavailableReason !== null) {
+      if (night.canSave) {
         buttons.push({
           key: 'save',
           label: night.saveLabel,
           tier: 'primary',
           action: { kind: 'save' },
-          ...(night.saveUnavailableReason === null
-            ? {}
-            : { disabledReason: night.saveUnavailableReason }),
         });
       }
       buttons.push({
@@ -404,18 +388,7 @@ export function buildNightButtons(night: NightInteractionModel): readonly NightB
           label: night.buttonLabel,
           tier: 'primary',
           action: { kind: 'openStatus' },
-          ...(night.isUnavailable ? { disabledReason: night.dialog.text } : {}),
         },
-        ...(night.skipLabel === null
-          ? []
-          : [
-              {
-                key: 'skip',
-                label: night.skipLabel,
-                tier: 'secondary' as const,
-                action: { kind: 'skip' as const },
-              },
-            ]),
       ];
     case 'ackGroupReveal':
       return [
@@ -501,40 +474,10 @@ function isPendingSingleNightAction(
 }
 
 function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): RoomBottomButton {
-  const icon = ((): RoomBottomButton['icon'] => {
-    switch (spec.action.kind) {
-      case 'submitSeatSelection':
-        return 'checkmark-outline';
-      case 'cancelSeatSelection':
-      case 'closeActionGroup':
-        return 'arrow-back';
-      case 'startSeatSelection':
-        return 'locate-outline';
-      case 'skip':
-        return 'play-forward-outline';
-      case 'emptyVote':
-        return 'close-circle-outline';
-      case 'withdrawVote':
-        return 'arrow-undo-outline';
-      case 'save':
-        return 'flask-outline';
-      case 'openStatus':
-        return 'information-circle-outline';
-      case 'openGroupReveal':
-        return 'people-outline';
-      case 'openHunterStatus':
-        return 'shield-outline';
-      case 'openChooseCard':
-        return 'albums-outline';
-      case 'openActionGroup':
-        return 'sparkles-outline';
-    }
-  })();
   const base = {
     key: spec.key,
     label: spec.label,
     audience: 'participant' as const,
-    icon,
     variant: spec.tier,
     size: 'md' as const,
     testID: TESTIDS.werewolfNightButton(spec.key),
@@ -546,6 +489,11 @@ function nightButton(spec: NightButtonSpec, input: WerewolfBottomLayoutInput): R
     ...(spec.containedActionTestIDs === undefined
       ? {}
       : { containedActionTestIDs: spec.containedActionTestIDs }),
+    ...(spec.action.kind === 'submitSeatSelection'
+      ? { icon: 'checkmark-outline' as const }
+      : spec.action.kind === 'cancelSeatSelection' || spec.action.kind === 'closeActionGroup'
+        ? { icon: 'arrow-back' as const }
+        : {}),
   };
   if (input.isActionSubmitting) {
     return { ...base, isEnabled: false, disabledReason: ACTION_SUBMITTING_REASON };
@@ -613,21 +561,17 @@ export function createWerewolfBottomActionLayout(
         specs.splice(
           0,
           specs.length,
-          ...(action !== null && action.min !== action.max
-            ? [
-                {
-                  key: 'submitSeatSelection',
-                  label: selection.confirm?.label ?? '确认选择',
-                  tier: 'primary' as const,
-                  action: { kind: 'submitSeatSelection' as const },
-                  ...(selection.confirm === null ? { disabledReason: '请选择所需目标' } : {}),
-                },
-              ]
-            : []),
+          {
+            key: 'submitSeatSelection',
+            label: selection.confirm?.label ?? '确认选择',
+            tier: 'primary',
+            action: { kind: 'submitSeatSelection' },
+            ...(selection.confirm === null ? { disabledReason: '请选择所需目标' } : {}),
+          },
           {
             key: 'cancelSeatSelection',
             label: '取消选座',
-            tier: action !== null && action.min !== action.max ? 'secondary' : 'primary',
+            tier: 'secondary',
             action: { kind: 'cancelSeatSelection' },
           },
         );
@@ -708,6 +652,7 @@ interface WerewolfBottomActionsInput {
   readonly nightStatusLine: string | null;
   readonly guideMessage: string | null;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
+  readonly isSheriffInspectorVisible: boolean;
   readonly openSheriffDetails: () => void;
 }
 
@@ -720,6 +665,7 @@ export function createWerewolfBottomActions(
       election: input.sheriffElectionPanel,
       roomTools: layout,
       isHost: input.isHost,
+      isInspectorVisible: input.isSheriffInspectorVisible,
       isAudioPlaying: input.isAudioPlaying,
       openDetails: input.openSheriffDetails,
     });

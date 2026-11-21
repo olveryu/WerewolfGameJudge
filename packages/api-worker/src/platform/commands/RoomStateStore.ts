@@ -1,6 +1,13 @@
-/** Authoritative `room_state` row: initialization, game state and revision. */
+/**
+ * Authoritative `room_state` row: initialization, versioned game state and revision.
+ *
+ * Game state version migration is delegated to the owning game module; the platform storage
+ * schema itself has exactly one version (see storageSchema.ts).
+ */
 
 import type { CreateGameContext } from '@game-judge/game-engine/platform/engine';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { REASON_ROOM_INITIALIZATION_CONFLICT } from '@game-judge/game-engine/platform/protocol/reasons';
 import {
@@ -9,9 +16,13 @@ import {
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import type { WorkerGameModuleResolver } from '../gameModules/runtimeGameModule';
+import type {
+  RuntimeWorkerGameModule,
+  WorkerGameModuleResolver,
+} from '../gameModules/runtimeGameModule';
 import type { InitializeRoomCommand, InitializeRoomResult, StoredRoomRow } from '../room/types';
 import {
+  isRecord,
   parseJsonObject,
   parseNonEmptyString,
   parseNonNegativeInteger,
@@ -22,6 +33,7 @@ interface RawRoomRow extends Record<string, SqlStorageValue> {
   readonly creation_id: SqlStorageValue;
   readonly initialization_json: SqlStorageValue;
   readonly game_type: SqlStorageValue;
+  readonly state_version: SqlStorageValue;
   readonly game_state: SqlStorageValue;
   readonly revision: SqlStorageValue;
   readonly created_at: SqlStorageValue;
@@ -66,6 +78,11 @@ function parseRoomInitialization(value: unknown): StoredRoomInitialization {
 function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolver): StoredRoomRow {
   const gameType = parseGameType(raw.game_type);
   const module = resolveGameModule(gameType);
+  const stateVersion = parsePositiveInteger(raw.state_version, 'room_state.state_version');
+  if (stateVersion !== module.stateVersion) {
+    throw new Error(`Unsupported ${gameType} state version: ${stateVersion}`);
+  }
+
   const stateJson = parseNonEmptyString(raw.game_state, 'room_state.game_state');
   const state = module.parseState(JSON.parse(stateJson));
   const creationId = parseNonEmptyString(raw.creation_id, 'room_state.creation_id');
@@ -85,6 +102,7 @@ function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolv
     hostUserId: state.hostUserId,
     creationId,
     initializationJson: initialization.initializationJson,
+    stateVersion,
     state,
     stateJson,
     revision: parsePositiveInteger(raw.revision, 'room_state.revision'),
@@ -93,16 +111,42 @@ function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolv
   };
 }
 
+function migrateReceiptResult(
+  value: unknown,
+  stateVersion: number,
+  module: RuntimeWorkerGameModule,
+  migrateState: (value: unknown) => BaseGameState<GameType>,
+): RoomCommandResult<BaseGameState<GameType>> {
+  if (!isRecord(value) || value.kind !== 'committed') return module.parseCommandResult(value);
+  const snapshot = value.snapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.gameType !== module.gameType ||
+    snapshot.stateVersion !== stateVersion ||
+    !isRecord(snapshot.state) ||
+    snapshot.state.stateVersion !== stateVersion
+  ) {
+    throw new Error('Stored command receipt version does not match its snapshot');
+  }
+  const state = migrateState(snapshot.state);
+  return module.parseCommandResult({
+    ...value,
+    snapshot: { ...snapshot, stateVersion: state.stateVersion, state },
+  });
+}
+
 export class RoomStateStore {
+  readonly #storage: DurableObjectStorage;
   readonly #sql: SqlStorage;
   readonly #resolveGameModule: WorkerGameModuleResolver;
 
   constructor(storage: DurableObjectStorage, resolveGameModule: WorkerGameModuleResolver) {
+    this.#storage = storage;
     this.#sql = storage.sql;
     this.#resolveGameModule = resolveGameModule;
   }
 
-  /** Read stable platform metadata without decoding game state. */
+  /** Read stable platform metadata without decoding versioned game state. */
   readInitialization(): StoredRoomInitialization | null {
     const rows = this.#sql
       .exec<RawRoomInitializationRow>(
@@ -123,11 +167,11 @@ export class RoomStateStore {
     return initialization;
   }
 
-  /** Read and validate the authoritative room state. */
+  /** Read the room, migrating a previous game state version in place when the module allows it. */
   read(): StoredRoomRow | null {
     const rows = this.#sql
       .exec<RawRoomRow>(
-        `SELECT creation_id, initialization_json, game_type, game_state,
+        `SELECT creation_id, initialization_json, game_type, state_version, game_state,
           revision, created_at, updated_at
         FROM room_state WHERE id = 1`,
       )
@@ -137,7 +181,51 @@ export class RoomStateStore {
       throw new Error(`room_state must contain at most one row, received ${rows.length}`);
     }
     const raw = rows[0];
-    return parseRoomRow(raw, this.#resolveGameModule);
+    const gameType = parseGameType(raw.game_type);
+    const module = this.#resolveGameModule(gameType);
+    const stateVersion = parsePositiveInteger(raw.state_version, 'room_state.state_version');
+    if (stateVersion === module.stateVersion) return parseRoomRow(raw, this.#resolveGameModule);
+    const migrateState = module.migratePersistedState;
+    if (stateVersion > module.stateVersion || migrateState === null) {
+      throw new Error(`Unsupported ${gameType} state version: ${stateVersion}`);
+    }
+    return this.#storage.transactionSync(() => {
+      const persistedState = parseJsonObject(raw.game_state, 'room_state.game_state');
+      if (persistedState.stateVersion !== stateVersion) {
+        throw new Error('Stored room version does not match its state');
+      }
+      const state = migrateState(persistedState);
+      const migrated = parseRoomRow(
+        { ...raw, state_version: state.stateVersion, game_state: canonicalJson(state) },
+        this.#resolveGameModule,
+      );
+      const receipts = this.#sql
+        .exec('SELECT command_id, game_type, state_version, result_json FROM command_receipts')
+        .toArray();
+      for (const receipt of receipts) {
+        if (parseGameType(receipt.game_type) !== gameType) {
+          throw new Error('Stored command receipt game type does not match its room');
+        }
+        const result = migrateReceiptResult(
+          JSON.parse(parseNonEmptyString(receipt.result_json, 'command_receipts.result_json')),
+          parsePositiveInteger(receipt.state_version, 'command_receipts.state_version'),
+          module,
+          migrateState,
+        );
+        this.#sql.exec(
+          'UPDATE command_receipts SET state_version = ?, result_json = ? WHERE command_id = ?',
+          state.stateVersion,
+          canonicalJson(result),
+          parseNonEmptyString(receipt.command_id, 'command_receipts.command_id'),
+        );
+      }
+      this.#sql.exec(
+        'UPDATE room_state SET state_version = ?, game_state = ? WHERE id = 1',
+        state.stateVersion,
+        migrated.stateJson,
+      );
+      return migrated;
+    });
   }
 
   readSnapshot(): RoomSnapshot<BaseGameState<GameType>> | null {
@@ -189,12 +277,13 @@ export class RoomStateStore {
 
     this.#sql.exec(
       `INSERT INTO room_state (
-        id, creation_id, initialization_json, game_type, game_state,
+        id, creation_id, initialization_json, game_type, state_version, game_state,
         revision, created_at, updated_at
-      ) VALUES (1, ?, ?, ?, ?, 1, ?, ?)`,
+      ) VALUES (1, ?, ?, ?, ?, ?, 1, ?, ?)`,
       command.creationId,
       initializationJson,
       gameType,
+      created.state.stateVersion,
       JSON.stringify(created.state),
       nowMs,
       nowMs,

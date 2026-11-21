@@ -6,7 +6,6 @@
  */
 
 import type { AvalonViewModel } from '@game-judge/game-engine/games/avalon/public';
-import { useState } from 'react';
 
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 
@@ -28,29 +27,14 @@ export function AvalonNightConfirmModal({
   readonly onConfirm: () => void;
   readonly onClose: () => void;
 }) {
-  const [revealed, setRevealed] = useState(false);
   const instruction = resolveNightInstruction(viewModel);
   const dialog = toConfirmDialog(instruction, viewModel);
   if (dialog === null) return null;
-  if (!revealed) {
-    return (
-      <AvalonAlertDialog
-        title="查看信息？"
-        message="确定现在查看你的夜间信息吗？"
-        onClose={onClose}
-        buttons={[
-          { text: '取消', style: 'cancel', onPress: onClose },
-          { text: '查看', onPress: () => setRevealed(true) },
-        ]}
-      />
-    );
-  }
   return (
     <AvalonAlertDialog
       title={dialog.title}
       message={dialog.message}
       onClose={onClose}
-      requireConfirmation
       buttons={[
         {
           text: '确认信息',

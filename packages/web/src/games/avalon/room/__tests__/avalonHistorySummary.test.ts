@@ -58,13 +58,7 @@ function session() {
   /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   const settlePhase = () => {
     const phase = state.phase;
-    if (
-      (phase.kind !== 'vote' &&
-        phase.kind !== 'quest' &&
-        phase.kind !== 'voteResult' &&
-        phase.kind !== 'questResult') ||
-      phase.deadlineAt === null
-    ) {
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
       throw new Error('expected an armed vote or quest countdown');
     }
     nowMs = phase.deadlineAt;
@@ -101,7 +95,9 @@ function session() {
         send({ type: 'avalon.team.vote', vote: ballot }, userOf(seat));
       }
       settlePhase();
-      settlePhase();
+      for (let seat = 0; seat < 5; seat += 1) {
+        send({ type: 'avalon.voteResult.confirm' }, userOf(seat));
+      }
       return team;
     },
     /** Settles the in-flight quest; the first evil team member (if any) fails it. */
@@ -168,15 +164,11 @@ describe('createAvalonHistorySummary', () => {
     expect(createAvalonHistorySummary(room.state)).toBe(expected);
   });
 
-  it('shows automatic approval without vote counts', () => {
+  it('shows the end conclusion after the veto limit ends the game', () => {
     const room = session();
     room.toNominate();
-    for (let attempt = 0; attempt < 4; attempt += 1) room.settleVote('reject');
-    const leader = room.state.leaderSeat;
-    const team = [leader, (leader + 1) % 5];
-    room.send({ type: 'avalon.team.preselect', seats: team }, room.userOf(leader));
-    room.send({ type: 'avalon.team.propose', seats: team }, room.userOf(leader));
-    expect(room.state.phase.kind).toBe('voteResult');
-    expect(createAvalonHistorySummary(room.state)).toBe('任务一 · 队伍自动通过');
+    for (let attempt = 0; attempt < 5; attempt += 1) room.settleVote('reject');
+    expect(room.state.phase.kind).toBe('ended');
+    expect(createAvalonHistorySummary(room.state)).toBe('本局结束 · 坏人获胜');
   });
 });

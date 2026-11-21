@@ -1,10 +1,11 @@
 /**
  * Board Dialog Coverage Definitions
  *
- * Dynamically generates required inline status and dialog coverage by board composition.
+ * Dynamically generates required dialog types based on board composition.
+ * This is the single source of truth for what dialogs each board MUST cover.
  *
  * Coverage is split into TWO layers:
- * 1. UI-TRIGGERABLE: Inline prompts and dialogs that UI tests MUST cover
+ * 1. UI-TRIGGERABLE: Dialogs that UI tests MUST cover (prompts, confirms, skips, gates)
  * 2. SERVER-DATA-REQUIRED: Reveal dialogs requiring server broadcast data (covered by integration tests)
  */
 
@@ -56,7 +57,7 @@ export function getBoardByName(name: string): BoardConfig | undefined {
 // =============================================================================
 
 /**
- * Base UI coverage types that ALL boards must cover.
+ * Base dialog types that ALL boards must cover (UI-triggerable)
  */
 const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVoteEmpty'];
 

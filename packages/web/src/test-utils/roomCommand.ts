@@ -10,6 +10,7 @@ export function testRoomState<TGameType extends string>(
 ): BaseGameState<TGameType> {
   return {
     gameType,
+    stateVersion: 1,
     roomCode: 'test-room',
     hostUserId: 'test-host',
   };

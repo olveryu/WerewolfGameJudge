@@ -12,6 +12,7 @@ type TestProfile = { readonly displayName: string };
 
 const state: TestState = {
   gameType: 'werewolf',
+  stateVersion: 1,
   roomCode: '1234',
   hostUserId: 'user-1',
 };
@@ -28,7 +29,7 @@ function createReadySnapshot(userId = 'user-1'): LinkSnapshot<TestState> {
       },
       userId,
     },
-    { gameType: 'werewolf', revision: 1, state },
+    { gameType: 'werewolf', stateVersion: 1, revision: 1, state },
   );
 }
 

@@ -48,11 +48,7 @@ function createBaseContext(
     players,
     currentNightResults: {},
     witchState: { canSave: true, canPoison: true },
-    gameState: {
-      isNight1: true,
-      isWolfVoteUnanimityRequired: false,
-      resolvedWolfKillTarget: 0,
-    },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
     rng: overrides?.rng ?? (() => 0.75),
   };

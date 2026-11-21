@@ -238,7 +238,7 @@ export interface SetWitchContextAction {
  * the no-kill comes from a wolf-kill override (no vote verdict); in
  * every other settled case it is the verdict twin of the target.
  * Emitted by the first handler that settles the votes (advance past
- * wolfKill, witch entry, or END_NIGHT when no wolf-kill step ran); later
+ * wolfKill, witch entry, or END_NIGHT legacy settlement); later
  * handlers reuse GameState.resolvedWolfKillTarget and
  * GameState.resolvedWolfKillVerdict and never emit it again for the
  * same night.
@@ -435,11 +435,6 @@ export interface ConfirmLastNightInfoAction {
   type: 'CONFIRM_LAST_NIGHT_INFO';
 }
 
-export interface CompleteReviewAction {
-  type: 'COMPLETE_REVIEW';
-  userId: string;
-}
-
 // =============================================================================
 // Piper groupConfirm ACK
 // =============================================================================
@@ -551,7 +546,6 @@ export interface UpdateRosterLevelsAction {
 
 export type StateAction =
   | { readonly type: 'SELECT_MVP'; readonly mvpUserId: string }
-  | CompleteReviewAction
   // Lifecycle
   | InitializeGameAction
   | RestartGameAction

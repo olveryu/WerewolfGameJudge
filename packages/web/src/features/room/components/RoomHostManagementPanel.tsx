@@ -1,11 +1,14 @@
 /** Host management surface: game-owned action sections, as a bottom sheet or a side inspector. */
 import './RoomHostManagementPanel.css';
 
+import { useId } from 'react';
+
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { IonIcon } from '@/components/icons/IonIcon';
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
+import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
 import {
   resolveHostTaskView,
   type RoomHostTaskBody,
@@ -17,18 +20,18 @@ import {
   type RoomHostManagementModel,
 } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
+import { showAlert } from '@/utils/alert';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconArrowForward from '~icons/ion/arrow-forward';
 import IconCheckmarkCircle from '~icons/ion/checkmark-circle';
 import IconClose from '~icons/ion/close';
 
-import { RoomActionHand, type RoomHandCard } from './RoomActionHand';
+import { RoomActionHand } from './RoomActionHand';
 import {
   resolveRoomBottomActionPresentation,
   type RoomPanelPlayerAction,
 } from './RoomBottomActionPresentation';
 import { DisabledReasonCaption } from './RoomControls';
-import { RoomHandButton } from './RoomHandButton';
 
 function focusBackButton(button: HTMLButtonElement | null) {
   button?.focus({ preventScroll: true });
@@ -62,7 +65,12 @@ function ManagementAction({
         onClick={
           action.isEnabled
             ? () => {
-                if (action.closeManagementOnPress !== false) onClose();
+                if (
+                  action.key !== HOST_ACTION_KEYS.musicSettings &&
+                  action.key !== HOST_ACTION_KEYS.configureGame
+                ) {
+                  onClose();
+                }
                 action.onPress();
               }
             : undefined
@@ -328,7 +336,9 @@ function HostTaskSection({
   if (view === null) return null;
   const coveredActionKeys = taskBodyActionKeys(view.body);
   const body =
-    view.body.kind === 'blocked' && view.body.remedy?.placement === 'room-entry'
+    view.body.kind === 'blocked' &&
+    model.task?.kind === 'action' &&
+    model.task.remedyActionKey === HOST_ACTION_KEYS.shareRoom
       ? { ...view.body, remedy: null }
       : view.body;
   return (
@@ -434,7 +444,7 @@ function ManagementContent({
             <HostTaskSection model={model} onClose={onClose} hideAudioLockReason={isAudioPlaying} />
             {model.sections.map((section) => {
               const actions = section.actions.filter(
-                (action) => !taskKeys.has(action.key) && action.placement !== 'room-entry',
+                (action) => !taskKeys.has(action.key) && action.key !== HOST_ACTION_KEYS.shareRoom,
               );
               if (actions.length === 0) return null;
               return (
@@ -473,10 +483,11 @@ function HostManagementHand({
   readonly onClose: () => void;
   readonly onBack: () => void;
 }) {
+  const reasonIdPrefix = useId();
   const task = model === null ? null : resolveHostTaskView(model);
   const actions =
     model?.sections.flatMap((section) =>
-      section.actions.filter((action) => action.placement !== 'room-entry'),
+      section.actions.filter((action) => action.key !== HOST_ACTION_KEYS.shareRoom),
     ) ?? [];
   const taskActions =
     task?.body.kind === 'ready'
@@ -498,72 +509,6 @@ function HostManagementHand({
             (action) => !pendingKeys.includes(action.key) && !taskKeys.has(action.key),
           ),
         ];
-  const cards: RoomHandCard[] = [
-    {
-      id: 'host-management:back',
-      category: 'back',
-      content: (
-        <RoomHandButton
-          ref={focusBackButton}
-          model={{
-            label: '返回',
-            category: 'back',
-            variant: 'secondary',
-            isEnabled: true,
-            onPress: onBack,
-            icon: <IconArrowBack aria-hidden />,
-            testId: TESTIDS.roomHostManagementCloseButton,
-          }}
-        />
-      ),
-    },
-    ...orderedActions.map((action): RoomHandCard => {
-      const reason =
-        action.isEnabled || action.isLoading === true
-          ? null
-          : action.disabledReason || '当前暂不可用';
-      const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
-      const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
-      const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
-      const isActionableTask = model?.pendingActionKeys?.includes(action.key) === true;
-      const isRemedy =
-        task?.body.kind === 'blocked' &&
-        model?.task?.kind === 'action' &&
-        model.task.remedyActionKey === action.key &&
-        task.body.remedy !== null;
-      const testId = isEscape
-        ? TESTIDS.roomHostTaskEscapeButton
-        : (action.testID ??
-          (isReadyTask
-            ? TESTIDS.roomNextStepButton
-            : isChoice
-              ? `${TESTIDS.roomHostTaskCard}-${action.key}`
-              : isRemedy
-                ? TESTIDS.roomNextStepRemedyButton
-                : undefined));
-      return {
-        id: `host-management:${action.key}`,
-        category: action.variant === 'danger' ? 'danger' : (action.category ?? 'host'),
-        unavailable: !action.isEnabled || action.isLoading === true,
-        content: (
-          <RoomHandButton
-            model={{
-              label: action.label,
-              category: action.category ?? 'host',
-              variant: action.variant,
-              isEnabled: action.isEnabled,
-              onPress: action.isEnabled ? action.onPress : undefined,
-              disabledReason: reason,
-              isLoading: action.isLoading === true,
-              isPending: isActionableTask,
-              icon: <IonIcon name={action.icon} />,
-              testId,
-            }}
-          />
-        ),
-      };
-    }),
-  ];
   return (
     <section
       className="host-management-hand"
@@ -584,7 +529,81 @@ function HostManagementHand({
         {task?.note !== null && task?.note !== undefined && (
           <p className="host-task-note">{task.note}</p>
         )}
-        <RoomActionHand label={HOST_MANAGEMENT_LABEL} cards={cards} />
+        <RoomActionHand label={HOST_MANAGEMENT_LABEL}>
+          <Button
+            ref={focusBackButton}
+            variant="secondary"
+            onClick={onBack}
+            data-testid={TESTIDS.roomHostManagementCloseButton}
+          >
+            <IconArrowBack aria-hidden />
+            <span>返回</span>
+          </Button>
+          {orderedActions.map((action, index) => {
+            const reason = action.isEnabled ? null : action.disabledReason;
+            const reasonId = `${reasonIdPrefix}-${index}`;
+            const isReadyTask = task?.body.kind === 'ready' && task.body.action.key === action.key;
+            const isEscape = task?.body.kind === 'message' && task.body.escape?.key === action.key;
+            const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
+            const isActionableTask =
+              model?.pendingActionKeys !== undefined
+                ? model.pendingActionKeys.includes(action.key)
+                : (isReadyTask || isChoice) &&
+                  action.isEnabled &&
+                  action.isLoading !== true &&
+                  action.variant !== 'danger';
+            const isRemedy =
+              task?.body.kind === 'blocked' &&
+              model?.task?.kind === 'action' &&
+              model.task.remedyActionKey === action.key &&
+              task.body.remedy !== null;
+            const testId = isEscape
+              ? TESTIDS.roomHostTaskEscapeButton
+              : (action.testID ??
+                (isReadyTask
+                  ? TESTIDS.roomNextStepButton
+                  : isChoice
+                    ? `${TESTIDS.roomHostTaskCard}-${action.key}`
+                    : isRemedy
+                      ? TESTIDS.roomNextStepRemedyButton
+                      : undefined));
+            return (
+              <Button
+                key={action.key}
+                variant={action.variant}
+                data-card-category={action.category ?? 'host'}
+                loading={action.isLoading === true}
+                disabled={!action.isEnabled && reason === null}
+                aria-disabled={!action.isEnabled && reason !== null ? true : undefined}
+                aria-label={isActionableTask || reason !== null ? action.label : undefined}
+                aria-describedby={reason !== null || isActionableTask ? reasonId : undefined}
+                data-testid={testId}
+                onClick={
+                  action.isEnabled
+                    ? action.onPress
+                    : reason !== null
+                      ? () => showAlert('暂不可用', reason)
+                      : undefined
+                }
+              >
+                <IonIcon name={action.icon} />
+                <span>{action.label}</span>
+                {isActionableTask && (
+                  <span className="bottom-action-pending" aria-hidden>
+                    待办
+                  </span>
+                )}
+                {(reason !== null || isActionableTask) && (
+                  <span id={reasonId} className="visually-hidden">
+                    {isActionableTask ? '有待处理操作' : ''}
+                    {isActionableTask && reason !== null ? '；' : ''}
+                    {reason}
+                  </span>
+                )}
+              </Button>
+            );
+          })}
+        </RoomActionHand>
       </div>
     </section>
   );

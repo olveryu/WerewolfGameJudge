@@ -14,7 +14,9 @@ import {
   mountWerewolfRoom,
   recordAlerts,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
   type SubmitActionMock,
+  submitSeatSelection,
   type WerewolfDispatchOutcome,
 } from '@/games/werewolf/room/__tests__/harness';
 import { rejectedRoomCommand, undeliveredRoomCommand } from '@/test-utils/roomCommand';
@@ -95,16 +97,20 @@ describe('night dialog retry on transport failure', () => {
     );
     harness.clear();
     await draftSeatSelection(view, 1);
+    const draftLabel = seatSelectionSubmitButton(view).textContent;
     const eventsBefore = harness.events().length;
-    await expect(harness.pressAndSettle('actionConfirm')).rejects.toMatchObject({
-      name: 'RoomCommandUndeliveredError',
-    });
-    expect(harness.events()).toHaveLength(eventsBefore);
-    expect(toast.error).toHaveBeenCalledOnce();
-    expect(harness.getLastEvent()?.message).toContain('2号');
 
-    await harness.pressAndSettle('actionConfirm');
+    await submitSeatSelection(view);
     await waitFor(() => expect(harness.events()).toHaveLength(eventsBefore + 1));
+    const deliveryAlert = harness.getLastEvent();
+    expect(deliveryAlert?.title).toBe('操作失败');
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(seatSelectionSubmitButton(view)).toHaveTextContent(draftLabel);
+    expect(seatSelectionSubmitButton(view)).toBeEnabled();
+    await harness.pressButton(deliveryAlert!.buttons[0]!);
+
+    await submitSeatSelection(view);
+    await waitFor(() => expect(harness.events()).toHaveLength(eventsBefore + 2));
     expect(harness.events().at(-1)?.title).toBe('操作失败');
     expect(submitAction).toHaveBeenCalledTimes(2);
     expect(submitAction).toHaveBeenNthCalledWith(1, { kind: 'target', target: 1 });
@@ -131,15 +137,14 @@ describe('night dialog retry on transport failure', () => {
     );
     harness.clear();
     await draftSeatSelection(view, 1);
-    const pending = harness.pressAndSettle('actionConfirm');
+    await submitSeatSelection(view);
     await waitFor(() => expect(submitAction).toHaveBeenCalledOnce());
     await act(async () => {
       if (releaseSubmission === undefined) throw new Error('[TEST] submission was not initialized');
       releaseSubmission();
       await submission;
     });
-    await expect(pending).rejects.toMatchObject({ name: 'RoomCommandUndeliveredError' });
-    await harness.pressButton('取消');
+    await waitFor(() => expect(harness.getLastEvent()?.title).toBe('操作失败'));
     await cancelSeatSelection(view);
     expect(view.getByRole('button', { name: '返回' })).toBeVisible();
     expect(view.getByRole('button', { name: '不用技能' })).toBeVisible();

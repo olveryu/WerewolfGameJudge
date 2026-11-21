@@ -13,6 +13,11 @@ import {
 } from '../../../platform/room/seating';
 
 export const DRAWGUESS_GAME_TYPE = 'drawguess' as const;
+/** v2 replaces realSeats plus the implicit-bot derivation inputs (the fill
+ * flag lived inside the config) with the unified roster. v3 adds
+ * drawerZeroed to roundEnd phases. v4 adds turnHistory and roundEnd
+ * guessedSeats. v1, v2 and v3 payloads migrate through
+ * migratePersistedDrawGuessState. */
 
 export const DRAWGUESS_MIN_PLAYERS = 4;
 export const DRAWGUESS_MAX_PLAYERS = 20;
@@ -287,9 +292,10 @@ export type DrawGuessPhase =
       /** 全员猜中导致画手本轮收入清零时为 true；其余结算为 false。 */
       readonly drawerZeroed: boolean;
       readonly reactionsBySeat: Readonly<Record<number, DrawGuessReaction>>;
-      readonly guessAttemptsBySeat: Readonly<Record<number, number>>;
+      /** Absent only for round-end states migrated from v4, whose attempt data was not retained. */
+      readonly guessAttemptsBySeat?: Readonly<Record<number, number>>;
       /** Seat -> elapsed milliseconds to the first accepted correct guess. */
-      readonly guessTimeMsBySeat: Readonly<Record<number, number>>;
+      readonly guessTimeMsBySeat?: Readonly<Record<number, number>>;
       readonly pngEntry: DrawGuessMedia | null;
       readonly reservation: DrawGuessDrawingReservation | null;
       readonly deadlineAt: number;
@@ -310,9 +316,10 @@ export interface DrawGuessTurnRecord {
   /** 猜中座位按猜中先后；未猜中者不在列。 */
   readonly guessedSeats: readonly number[];
   readonly reactionsBySeat: Readonly<Record<number, DrawGuessReaction>>;
-  readonly guessAttemptsBySeat: Readonly<Record<number, number>>;
+  /** Absent on migrated pre-v5 turns where accepted-attempt data was not retained. */
+  readonly guessAttemptsBySeat?: Readonly<Record<number, number>>;
   /** Seat -> elapsed milliseconds to the first accepted correct guess. */
-  readonly guessTimeMsBySeat: Readonly<Record<number, number>>;
+  readonly guessTimeMsBySeat?: Readonly<Record<number, number>>;
   /** seat -> 本轮得分（猜中者与画手；画手被清零时为 0）。 */
   readonly roundScores: Readonly<Record<number, number>>;
   /** 全员猜中导致画手本轮收入清零时为 true。 */

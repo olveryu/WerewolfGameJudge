@@ -32,7 +32,7 @@ import type {
 import type { SetConfirmStatusAction } from '../reducer/types';
 import { getRoleAfterSwap } from '../resolvers/types';
 import { calculateNightDeaths } from './deathResolution';
-import { requireStoredWolfKillTarget } from './wolfKillResolution';
+import { getLegacyWolfKillTarget } from './wolfKillResolution';
 
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf' | 'seedWolf';
 
@@ -76,16 +76,8 @@ const CONFIRM_STEP_ROLE = deriveConfirmStepRoleMap();
  * Abnormal night deaths (poison / lover suicide / dreamcatcher chain / charm chain) cannot shoot.
  * Shared by confirmContext (Hunter / DarkWolfKing) and actionHandler (wolfRobot learning Hunter).
  */
-export function computeCanShootForSeat(
-  seat: number,
-  state: GameState,
-  resolvedWolfKillTarget?: number | null,
-): boolean {
-  const target =
-    resolvedWolfKillTarget === undefined
-      ? requireStoredWolfKillTarget(state)
-      : resolvedWolfKillTarget;
-  const { deathSources } = calculateNightDeaths(state, target);
+export function computeCanShootForSeat(seat: number, state: GameState): boolean {
+  const { deathSources } = calculateNightDeaths(state, getLegacyWolfKillTarget(state) ?? null);
   const sources = deathSources[seat];
   return (
     sources === undefined ||
@@ -104,7 +96,7 @@ export function computeCanShootForSeat(
 function computeConfirmStatus(
   role: ConfirmRole,
   state: GameState,
-  wolfKillTarget?: number | null,
+  wolfKillTarget?: number,
 ): ConfirmStatus {
   if (role === 'avenger') {
     return computeAvengerConfirmStatus(state);
@@ -113,10 +105,7 @@ function computeConfirmStatus(
     return computeHiddenWolfConfirmStatus(state);
   }
   if (role === 'seedWolf') {
-    return computeSeedWolfConfirmStatus(
-      state,
-      wolfKillTarget === null ? undefined : wolfKillTarget,
-    );
+    return computeSeedWolfConfirmStatus(state, wolfKillTarget);
   }
 
   // Hunter / DarkWolfKing
@@ -126,10 +115,7 @@ function computeConfirmStatus(
     throw new Error(`[FAIL-FAST] ${role} confirm step has no assigned role seat`);
   }
 
-  return {
-    role,
-    canShoot: computeCanShootForSeat(roleActor.seat, state, wolfKillTarget),
-  };
+  return { role, canShoot: computeCanShootForSeat(roleActor.seat, state) };
 }
 
 function computeSeedWolfConfirmStatus(
@@ -205,7 +191,7 @@ function computeHiddenWolfConfirmStatus(state: GameState): WolfTeammatesConfirmS
 export function maybeCreateConfirmStatusAction(
   nextStepId: SchemaId,
   state: GameState,
-  wolfKillTarget?: number | null,
+  wolfKillTarget?: number,
 ): SetConfirmStatusAction | null {
   const role = CONFIRM_STEP_ROLE[nextStepId];
   if (!role) {

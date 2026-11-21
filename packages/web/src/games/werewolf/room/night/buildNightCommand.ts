@@ -90,9 +90,7 @@ function buildActionInput(
       throw illegal(model, confirmation);
     case 'confirmStatus':
       if (confirmation.kind === 'confirm' && !model.isUnavailable) return { kind: 'confirm' };
-      if (confirmation.kind === 'skip' && (model.skipLabel !== null || model.isUnavailable)) {
-        return { kind: 'skip' };
-      }
+      if (confirmation.kind === 'skip' && model.skipLabel !== null) return { kind: 'skip' };
       throw illegal(model, confirmation);
     case 'chooseCard':
       if (confirmation.kind === 'card') {

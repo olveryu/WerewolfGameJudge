@@ -1,29 +1,30 @@
 # Skeleton and wiring — verified surfaces only
 
-## Engine skeleton: 10 modules
+## Engine skeleton: 11 modules
 
 `REQUIRED_MODULES` in
 `packages/game-engine/src/platform/__tests__/engineSkeleton.contract.test.ts`
 (line 39): `engine.ts`, `public.ts`, `commands/types.ts`,
 `domain/decision.ts`, `domain/evolve.ts`, `domain/visibility.ts`,
 `state/codec.ts`, `state/parseState.ts`, `state/normalize.ts`,
-`state/types.ts`. Registered exceptions only, in
+`state/types.ts`, `state/version.ts`. Registered exceptions only, in
 `REGISTERED_EXCEPTIONS` in the same test: werewolf (`domain/evolve.ts`
 → `domain/reducer/gameReducer.ts`, `domain/visibility.ts` →
 `domain/playerHelpers.ts`, `state/normalize.ts` →
 `domain/state/normalize.ts`, `state/types.ts` →
 `domain/protocol/types.ts`) and storyrelay (`domain/visibility.ts` →
 `domain/relay.ts`). A deviation is registered as an entry in
-`REGISTERED_EXCEPTIONS`; a game with no entry must provide all 10
+`REGISTERED_EXCEPTIONS`; a game with no entry must provide all 11
 modules.
 
 Layers: engine (`packages/game-engine/src/games/<game>/`) owns pure
 logic and is the sole authority; the worker module owns routes,
 `z.strictObject` schemas, and workflows, and writes no gameplay
 logic; the client (`packages/web/src/games/<game>/`) renders and reports intent
-only. State uses the current strict parser and codec; there is no per-game
-state version or persisted-state migration path. Incompatible persisted
-state fails parsing.
+only. The state shape carries a version (`state/version.ts` template);
+a shape change writes a `migratePersisted*State` (defined in
+`state/parseState.ts`, exported via `public.ts`) and registers it in
+the worker module (`module.ts` template, `migratePersistedState`).
 
 ## Capabilities: wiring first, declaration second
 
@@ -201,7 +202,7 @@ Every formal generated game ships a truthful completed-games baseline:
 The baseline counts one terminal completion, not wins/scores or a promise
 of complete gameplay metrics. Before go-live approve and implement metric
 sources/ownership, units (including round-settled labels), denominators,
-time precision, history gaps/backfill, and payload/D1 migration policy
+time precision, history gaps/backfill, state/payload/D1 migration policy
 and immediate/delayed visibility. Default is immediate and no invented
 historical facts; delay requires explicit visible-time/cache wiring.
 Tests must cover terminal/repeated/restart/abort, threshold boundaries,

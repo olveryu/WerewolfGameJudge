@@ -6,7 +6,6 @@ import { expect, type Page, test } from '@playwright/test';
 import { FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '../../packages/web/src/config/networkRetry';
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { pressAlertButton } from '../helpers/alerts';
 import { observeCommandFrames } from '../helpers/command-frames';
 import {
   closeReviewDialog,
@@ -467,7 +466,7 @@ test.describe('Pictionary', () => {
     }
   });
 
-  test('empty inputs are collected automatically and restarting clears the unfinished round', async ({
+  test('empty inputs are collected automatically and abort preserves only submitted works', async ({
     browser,
   }) => {
     const fixture = await createPlayerContexts(browser, 2);
@@ -503,22 +502,38 @@ test.describe('Pictionary', () => {
       ]);
       await hostRoom.drawStroke(1);
       await hostPage.getByTestId(TESTIDS.roomStageMenuButton).click();
-      await hostPage.getByTestId(TESTIDS.restartButton).click();
-      await pressAlertButton(hostPage, {
-        title: '重新开始？',
-        buttonIndex: 1,
-        buttonLabel: '重新开始',
-      });
+      await hostPage.getByTestId(TESTIDS.abortGameButton).click();
+      await hostRoom.confirmHostActionDialog('中止本局？');
       for (const page of fixture.pages) {
-        await expect(page.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
+        await expect(page.getByTestId(TESTIDS.galleryAlbumDescription)).toHaveText(
+          '第 1 轮未完成，房主已中止。',
+        );
       }
-      await hostRoom.expectSeatCount(PLAYER_COUNT);
-      await hostRoom.startRound();
-      await Promise.all([
-        hostRoom.expectPromptStep(1, RELAY_STEP_COUNT),
-        guestRoom.expectPromptStep(1, RELAY_STEP_COUNT),
-      ]);
-      await expect(hostPage.getByTestId(TESTIDS.pictionaryTextInput)).toHaveValue('');
+      const endedHostPanel = await hostRoom.openHostManagement();
+      await expect(endedHostPanel.getByTestId(TESTIDS.nextRoundButton)).toHaveCount(0);
+      await hostRoom.closeHostManagement();
+      for (const page of fixture.pages.slice(1)) {
+        await new PictionaryRoomPage(page).expectRoomActionAbsent(TESTIDS.nextRoundButton);
+      }
+      await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText(/草稿|跳过/);
+      await expect(hostPage.getByTestId(TESTIDS.pictionaryDrawingCanvas)).toHaveCount(0);
+      // The aborted round keeps what was handed in: its review opens for every player, marked unfinished.
+      await new PictionaryRoomPage(guestPage).clickRoomAction(TESTIDS.roomReviewOpenButton);
+      const review = guestPage.getByTestId(TESTIDS.roomReviewDialog);
+      await expect(review).toContainText('🖼️ 第 1 轮 · 画册');
+      await expect(review).toContainText('未完成');
+      await closeReviewDialog(guestPage);
+      await expect(review).toHaveCount(0);
+      const albums: string[] = [];
+      const nextAlbumButton = hostPage.getByTestId(
+        TESTIDS.galleryPagerNextButton(TESTIDS.pictionaryStageFrame),
+      );
+      for (let index = 0; index < PLAYER_COUNT; index += 1) {
+        albums.push(await hostRoom.readLatestGalleryEntryText());
+        if (index < PLAYER_COUNT - 1) await nextAlbumButton.click();
+      }
+      expect(albums.some((text) => text.includes('保留的原始题目'))).toBe(true);
+      expect(albums.filter((text) => text.includes('这一棒交了空白'))).toHaveLength(3);
     } finally {
       await closeAll(fixture);
     }

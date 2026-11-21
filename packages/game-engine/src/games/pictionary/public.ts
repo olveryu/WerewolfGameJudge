@@ -41,7 +41,7 @@ export {
   pictionaryPublicStatsSchema,
 } from './publicStats';
 export { PICTIONARY_STATE_CODEC } from './state/codec';
-export { parsePictionaryState } from './state/parseState';
+export { migratePersistedPictionaryState, parsePictionaryState } from './state/parseState';
 export {
   getPictionaryReplayDuration,
   PICTIONARY_DRAWING_REPLAY_SCHEMA,
@@ -91,3 +91,4 @@ export {
   type PictionaryTextEntry,
   type PictionaryTransitionDuration,
 } from './state/types';
+export { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';

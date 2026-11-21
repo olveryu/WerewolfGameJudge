@@ -7,6 +7,7 @@
 
 import { vi } from 'vitest';
 
+import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
 import type { RoleId } from '../models';
 import { GameStatus } from '../models';
 import {
@@ -36,7 +37,7 @@ function mkPlayers(entries: Array<[number, RoleId | null]>): Players {
 
 function mkOngoingState(overrides: Partial<GameState> = {}): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'host',
     status: GameStatus.Ongoing,

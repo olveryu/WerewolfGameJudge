@@ -22,7 +22,6 @@ import {
   guardPhaseExpiry,
   type PhaseExpiryActorChannel,
 } from '../../platform/room/phaseDeadline';
-import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { getHumanSeatMap, isBotSeat, isRoomFull } from '../../platform/room/seating';
 import { decideSettleCountdownArm } from '../../platform/room/settleCountdown';
 import type { AvalonCommand } from './commands/types';
@@ -60,7 +59,6 @@ import {
   type AvalonQuestHistoryEntry,
   type AvalonState,
   getAvalonOccupiedSeatCount,
-  getAvalonUserSeat,
   getAvalonViewingParticipants,
   isAvalonEvilRole,
   isAvalonGoodRole,
@@ -68,11 +66,13 @@ import {
   isAvalonQuestRound,
   isValidAvalonConfig,
 } from './state/types';
+import { AVALON_STATE_VERSION } from './state/version';
 
 function createInitialState(config: AvalonConfig, context: CreateGameContext): AvalonState {
   if (!isValidAvalonConfig(config)) throw new Error(AVALON_REASONS.config);
   return normalizeAvalonState({
     gameType: AVALON_GAME_TYPE,
+    stateVersion: AVALON_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -89,10 +89,10 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
     roundHistory: [],
     ladyHolderSeat: null,
     ladyExaminedSeats: [],
+    lastLadyCheck: null,
     ladyHistory: [],
     lastVoteResult: null,
     gameSequence: 0,
-    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -109,7 +109,7 @@ function createInitialState(config: AvalonConfig, context: CreateGameContext): A
  */
 function settleDueEffect(
   state: AvalonState,
-  phase: 'vote' | 'quest' | 'voteResult' | 'questResult',
+  phase: 'vote' | 'quest',
   round: number,
   deadlineAt: number,
 ): AvalonEffect {
@@ -244,7 +244,7 @@ function confirmNight(state: AvalonState, context: CommandContext): AvalonDecisi
   return commitAvalon([{ type: 'avalon.night.confirmed', seat: resolved.value }]);
 }
 
-/** Records the host's explicit bot confirmations for a shared-information step. */
+/** Records only the current step's bot confirmations; normal night progression still applies. */
 function markAllBotsGroupConfirmed(state: AvalonState, context: CommandContext): AvalonDecision {
   const hostRejection = requireHost<AvalonEvent, AvalonEffect>(
     context,
@@ -386,11 +386,6 @@ function proposeTeam(
   if (state.phase.preselectedSeats.length === 0) return reject(AVALON_REASONS.notPreselected);
   const rejection = rejectTeam(state, state.phase.requiredSize, seats, context);
   if (rejection !== null) return rejection;
-  if (state.rejectStreak >= state.config.vetoLimit - 1) {
-    return armResultCountdown(state, context, 'voteResult', state.phase.round, [
-      { type: 'avalon.team.autoApproved', seats: [...seats] },
-    ]);
-  }
   return commitAvalon([{ type: 'avalon.team.proposed', seats: [...seats] }]);
 }
 
@@ -398,6 +393,7 @@ function proposeTeam(
 function buildVoteSettlement(
   state: AvalonState,
   ballots: Readonly<Record<number, AvalonBallot>>,
+  context: CommandContext,
 ): { readonly events: readonly AvalonEvent[]; readonly effects: readonly AvalonEffect[] } {
   const count = state.config.numberOfPlayers;
   let approveCount = 0;
@@ -410,6 +406,8 @@ function buildVoteSettlement(
   }
   const abstainCount = getAvalonOccupiedSeatCount(state) - approveCount - rejectCount;
   const approved = approveCount > rejectCount;
+  const vetoLimitReached = !approved && state.rejectStreak + 1 >= state.config.vetoLimit;
+  const allBots = Object.keys(state.roster).every((seat) => isBotSeat(state.roster, Number(seat)));
   const events: AvalonEvent[] = [
     {
       type: 'avalon.vote.settled',
@@ -420,29 +418,34 @@ function buildVoteSettlement(
       abstainCount,
     },
   ];
-  return { events, effects: [] };
+  if (allBots) events.push({ type: 'avalon.voteResult.completed' });
+  return {
+    events,
+    effects:
+      allBots && vetoLimitReached && !state.xpSettled
+        ? completionEffects(state, events, context)
+        : [],
+  };
 }
 
-function completeResult(
-  state: AvalonState,
-  context: CommandContext,
-  priorEvents: readonly AvalonEvent[] = [],
-): AvalonDecision {
-  const phase = state.phase;
-  if (phase.kind !== 'voteResult' && phase.kind !== 'questResult')
+function confirmVoteResult(state: AvalonState, context: CommandContext): AvalonDecision {
+  if (state.phase.kind !== 'voteResult' || state.lastVoteResult === null)
     return reject(AVALON_REASONS.phase);
-  const events: AvalonEvent[] = [
-    ...priorEvents,
-    phase.kind === 'voteResult'
-      ? { type: 'avalon.voteResult.completed' }
-      : { type: 'avalon.questResult.completed' },
-  ];
-  const questFailuresReached =
-    phase.kind === 'questResult' &&
-    state.questResults.filter((result) => result === 'fail').length >= AVALON_QUESTS_TO_WIN;
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (resolved.kind === 'rejected') return reject(resolved.reason);
+  if (state.phase.confirmedSeats.includes(resolved.value)) return commitAvalon([]);
+  const confirmedSeats = [...state.phase.confirmedSeats, resolved.value];
+  const allConfirmed = Object.keys(state.roster).every((seat) =>
+    confirmedSeats.includes(Number(seat)),
+  );
+  const events: AvalonEvent[] = [{ type: 'avalon.voteResult.confirmed', seat: resolved.value }];
+  if (!allConfirmed) return commitAvalon(events);
+  events.push({ type: 'avalon.voteResult.completed' });
+  const vetoLimitReached =
+    !state.lastVoteResult.approved && state.lastVoteResult.rejectStreak >= state.config.vetoLimit;
   return commitAvalon(
     events,
-    questFailuresReached && !state.xpSettled ? completionEffects(state, events, context) : [],
+    vetoLimitReached && !state.xpSettled ? completionEffects(state, events, context) : [],
   );
 }
 
@@ -514,54 +517,18 @@ function timeoutSettle(
   const phase = state.phase;
   return guardPhaseExpiry(context, {
     phaseRejection:
-      phase.kind === 'vote' ||
-      phase.kind === 'quest' ||
-      phase.kind === 'voteResult' ||
-      phase.kind === 'questResult'
-        ? null
-        : reject(AVALON_REASONS.phase),
+      phase.kind === 'vote' || phase.kind === 'quest' ? null : reject(AVALON_REASONS.phase),
     actorChannel,
-    deadlineAt:
-      phase.kind === 'vote' ||
-      phase.kind === 'quest' ||
-      phase.kind === 'voteResult' ||
-      phase.kind === 'questResult'
-        ? phase.deadlineAt
-        : null,
+    deadlineAt: phase.kind === 'vote' || phase.kind === 'quest' ? phase.deadlineAt : null,
     notExpiredReason: AVALON_REASONS.deadline,
     dispatch: () => {
-      if (phase.kind === 'voteResult' || phase.kind === 'questResult')
-        return completeResult(state, context);
-      if (phase.kind !== 'vote' && phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-      const resultPhase = phase.kind === 'vote' ? 'voteResult' : 'questResult';
       if (phase.kind === 'vote') {
-        const settlement = buildVoteSettlement(state, phase.ballots);
-        return armResultCountdown(state, context, resultPhase, phase.round, settlement.events);
+        const settlement = buildVoteSettlement(state, phase.ballots, context);
+        return commitAvalon(settlement.events, settlement.effects);
       }
-      const settlement = settleQuest(state);
-      if (settlement.kind === 'reject') return settlement;
-      return armResultCountdown(state, context, resultPhase, phase.round, settlement.events);
+      return settleQuest(state, context);
     },
   });
-}
-
-function armResultCountdown(
-  state: AvalonState,
-  context: CommandContext,
-  phase: 'voteResult' | 'questResult',
-  round: number,
-  priorEvents: readonly AvalonEvent[] = [],
-): AvalonDecision {
-  const arm = decideSettleCountdownArm({
-    complete: true,
-    armedDeadlineAt: null,
-    nowMs: context.nowMs,
-  });
-  if (arm.type !== 'set') throw new Error('Failed to arm Avalon result countdown');
-  return commitAvalon(
-    [...priorEvents, { type: 'avalon.result.countdownStarted', deadlineAt: arm.deadlineAt }],
-    [settleDueEffect(state, phase, round, arm.deadlineAt)],
-  );
 }
 
 /**
@@ -573,6 +540,7 @@ function commitQuestSettled(
   priorEvents: readonly AvalonEvent[],
   state: AvalonState,
   plays: Readonly<Record<number, AvalonPlay>>,
+  context: CommandContext,
 ): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
   const count = state.config.numberOfPlayers;
@@ -580,6 +548,8 @@ function commitQuestSettled(
   const successCount = state.phase.teamSeats.length - failCount;
   const failsNeeded = getAvalonFailsNeeded(count, state.phase.round);
   const result = failCount >= failsNeeded ? 'fail' : 'success';
+  const questResults = [...state.questResults, result];
+  const failures = questResults.filter((entry) => entry === 'fail').length;
   const historyEntry: AvalonQuestHistoryEntry = {
     round: state.phase.round,
     leaderSeat: state.leaderSeat,
@@ -588,11 +558,13 @@ function commitQuestSettled(
     approveCount: state.phase.approveCount,
     rejectCount: state.phase.rejectCount,
     abstainCount: state.phase.abstainCount,
-    automatic: state.phase.automatic,
     result,
     successCount,
     failCount,
   };
+  // 只有失败数到 3 才真正终局（threeFail）；成功数到 3 进刺杀阶段，
+  // 结算 effect 在刺杀指认后才发。
+  const gameEnded = failures >= AVALON_QUESTS_TO_WIN;
   const events: readonly AvalonEvent[] = [
     ...priorEvents,
     {
@@ -604,7 +576,10 @@ function commitQuestSettled(
       historyEntry,
     },
   ];
-  return commitAvalon(events);
+  return commitAvalon(
+    events,
+    gameEnded && !state.xpSettled ? completionEffects(state, events, context) : [],
+  );
 }
 
 /** Team member plays success/fail (good players cannot fail); overwrite allowed before settle. */
@@ -642,15 +617,14 @@ function playQuest(state: AvalonState, play: AvalonPlay, context: CommandContext
  * once every team seat has played and plays are never retracted, so
  * the play set here is always complete — there is no default fill.
  */
-function settleQuest(state: AvalonState): AvalonDecision {
+function settleQuest(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'quest') return reject(AVALON_REASONS.phase);
-  return commitQuestSettled([], state, state.phase.plays);
+  return commitQuestSettled([], state, state.phase.plays, context);
 }
 
 /** Lady holder picks a player who has never held the token (not the holder). */
 function checkLady(state: AvalonState, target: number, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'lady') return reject(AVALON_REASONS.phase);
-  if (state.phase.targetSeat !== null) return reject(AVALON_REASONS.phase);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
   if (resolved.value !== state.phase.holderSeat) return reject(AVALON_REASONS.notLadyHolder);
@@ -667,14 +641,16 @@ function checkLady(state: AvalonState, target: number, context: CommandContext):
   return commitAvalon([{ type: 'avalon.lady.checked', targetSeat: target }]);
 }
 
-/** The holder acknowledges the result; the token then moves to the checked player. */
+/** The checked player acknowledges; the holder learns the faction and the token moves on. */
 function acknowledgeLady(state: AvalonState, context: CommandContext): AvalonDecision {
   if (state.phase.kind !== 'lady') return reject(AVALON_REASONS.phase);
   const targetSeat = state.phase.targetSeat;
   if (targetSeat === null) return reject(AVALON_REASONS.phase);
   const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
   if (resolved.kind === 'rejected') return reject(resolved.reason);
-  if (resolved.value !== state.phase.holderSeat) return reject(AVALON_REASONS.notLadyHolder);
+  if (resolved.value !== targetSeat) return reject(AVALON_REASONS.notLadyTarget);
+  const role = state.roles[targetSeat];
+  if (role === undefined) return reject(AVALON_REASONS.phase);
   const count = state.config.numberOfPlayers;
   const nextRoundNumber = state.phase.afterRound + 1;
   if (!isAvalonQuestRound(nextRoundNumber)) return reject(AVALON_REASONS.phase);
@@ -682,6 +658,7 @@ function acknowledgeLady(state: AvalonState, context: CommandContext): AvalonDec
     {
       type: 'avalon.lady.acknowledged',
       targetSeat,
+      faction: isAvalonEvilRole(role) ? 'evil' : 'good',
       nextRound: nextRoundNumber,
       nextRequiredSize: getAvalonQuestSize(count, nextRoundNumber),
       nextLeaderSeat: nextAvalonLeaderSeat(state.leaderSeat, count),
@@ -835,23 +812,6 @@ function decideCommand(
       return beginGame(state, context);
     case 'avalon.game.restart':
       return restartGame(state, command, context);
-    case 'avalon.review.complete': {
-      const completion = resolveReviewCompletion({
-        context,
-        isEnded: state.phase.kind === 'ended',
-        currentIdentity: state.gameSequence,
-        expectedIdentity: command.gameSequence,
-        completedUserIds: state.reviewCompletedUserIds,
-        isEligible: (userId) =>
-          userId === state.hostUserId || getAvalonUserSeat(state, userId) !== null,
-      });
-      if (completion.kind === 'reject') return reject(completion.reason);
-      return commitAvalon(
-        completion.kind === 'complete'
-          ? [{ type: 'avalon.review.completed', userId: completion.userId }]
-          : [],
-      );
-    }
     case 'avalon.role.viewed':
       return markRoleViewed(state, context);
     case 'avalon.bots.markAllBotsViewed':
@@ -866,6 +826,8 @@ function decideCommand(
       return proposeTeam(state, command.seats, context);
     case 'avalon.team.vote':
       return castVote(state, command.vote, context);
+    case 'avalon.voteResult.confirm':
+      return confirmVoteResult(state, context);
     case 'avalon.quest.play':
       return playQuest(state, command.play, context);
     case 'avalon.phase.settleExpired':
@@ -940,6 +902,7 @@ export function getAvalonLifecycle(state: AvalonState): CommonGameLifecycle {
 
 export const avalonEngine = {
   gameType: AVALON_GAME_TYPE,
+  stateVersion: AVALON_STATE_VERSION,
   capabilities: {
     nightPhase: true,
     botsAndTakeover: true,

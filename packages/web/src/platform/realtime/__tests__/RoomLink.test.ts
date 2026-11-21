@@ -127,14 +127,15 @@ describe('RoomLink connect and sync', () => {
       requestId: sync.requestId,
       outcome: 'snapshot',
       snapshot: {
-        gameType: 'spotmatch',
+        gameType: 'werewolf',
+        stateVersion: 1,
         revision: 1,
         state: testState(0, 'impostor'),
       },
     });
 
     await expect(connected).rejects.toThrow('closed: protocol');
-    expect(harness.protocolErrors[0]?.message).toMatch(/game type/);
+    expect(harness.protocolErrors[0]?.message).toMatch(/identity/);
   });
 
   it('SYNC_RESULT current confirms the held revision after a fast resume', async () => {

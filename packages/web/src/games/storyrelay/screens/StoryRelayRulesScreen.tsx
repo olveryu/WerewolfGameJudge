@@ -48,7 +48,7 @@ export function StoryRelayRules({ embedded = false }: { readonly embedded?: bool
         <RuleItem
           icon="people-outline"
           title="机器人由房主手写"
-          description="房主可切换机器人分别写稿，输入互不覆盖。没有 AI 自动生成；房主可以不入座。重新开始会清空当前故事；未完成的对局不结算完成奖励。"
+          description="房主可切换机器人分别写稿，输入互不覆盖。没有 AI 自动生成；房主可以不入座。中止会保留已提交的片段，但不发完成奖励。"
         />
       </GameGuideSection>
       <GameNotice text="刷新或离开页面会丢失未提交的输入。" />

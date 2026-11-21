@@ -270,7 +270,7 @@ export function handleStartNight(
         resolvedWolfKillVerdict: settledAction.payload.verdict,
       }
     : state;
-  const witchContextAction = maybeCreateWitchContextAction(firstStepId, settledState);
+  const witchContextAction = maybeCreateWitchContextAction(firstStepId, settledState, wolfVoteRng);
   if (witchContextAction) {
     if (settledAction) {
       actions.push(settledAction);

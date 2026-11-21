@@ -4,6 +4,7 @@ import {
   PICTIONARY_GAME_TYPE,
   type PictionaryGameType,
 } from '../../../platform/protocol/gameTypes';
+import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
@@ -16,9 +17,10 @@ import {
   parseSeat,
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
-import { parseRoomRoster } from '../../../platform/room/roster';
+import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
 import { normalizePictionaryState } from './normalize';
 import {
+  getPictionaryRelayStepCount,
   PICTIONARY_DRAWING_DURATIONS,
   PICTIONARY_DRAWING_HEIGHT,
   PICTIONARY_DRAWING_WIDTH,
@@ -30,10 +32,12 @@ import {
   type PictionaryDrawingReservation,
   type PictionaryEntry,
   type PictionaryGalleryState,
+  type PictionaryHumanSeat,
   type PictionaryMedia,
   type PictionaryPhase,
   type PictionaryState,
 } from './types';
+import { PICTIONARY_STATE_VERSION } from './version';
 
 const PICTIONARY_PHASES = [
   'lobby',
@@ -42,11 +46,20 @@ const PICTIONARY_PHASES = [
   'transition',
   'gallery',
   'ended',
+  'aborted',
 ] as const;
 
 function parseGameType(value: unknown, path: string): PictionaryGameType {
   if (value !== PICTIONARY_GAME_TYPE) return failDecode(path, PICTIONARY_GAME_TYPE);
   return value;
+}
+
+function parseStateVersion(value: unknown, path: string): typeof PICTIONARY_STATE_VERSION {
+  const version = parseInteger(value, path);
+  if (version !== PICTIONARY_STATE_VERSION) {
+    return failDecode(path, `state version ${PICTIONARY_STATE_VERSION}`);
+  }
+  return version;
 }
 
 function parsePhase(value: unknown, path: string): PictionaryPhase {
@@ -95,6 +108,22 @@ function parseConfig(value: unknown, path: string): PictionaryConfig {
     },
     path,
   );
+}
+
+function parseLegacyRealSeats(
+  value: unknown,
+  path: string,
+): Readonly<Record<number, PictionaryHumanSeat>> {
+  const raw = parseObject(value, path);
+  const seats: Record<number, PictionaryHumanSeat> = {};
+  for (const [key, occupant] of Object.entries(raw)) {
+    if (!/^(0|[1-9]\d*)$/.test(key)) {
+      failDecode(`${path}.${key}`, 'a canonical non-negative integer key');
+    }
+    const seat = parseSeat(Number(key), `${path}.${key}`);
+    seats[seat] = parseRoomHumanSeat(occupant, `${path}.${key}`);
+  }
+  return seats;
 }
 
 function parseExactInteger<T extends number>(value: unknown, path: string, expected: T): T {
@@ -228,6 +257,7 @@ export function parsePictionaryState(value: unknown): PictionaryState {
       raw,
       {
         gameType: parseGameType(raw.gameType, 'PictionaryState.gameType'),
+        stateVersion: parseStateVersion(raw.stateVersion, 'PictionaryState.stateVersion'),
         roomCode: parseNonEmptyString(raw.roomCode, 'PictionaryState.roomCode'),
         hostUserId: parseNonEmptyString(raw.hostUserId, 'PictionaryState.hostUserId'),
         phase: parsePhase(raw.phase, 'PictionaryState.phase'),
@@ -272,4 +302,70 @@ export function parsePictionaryState(value: unknown): PictionaryState {
       'PictionaryState',
     ),
   );
+}
+
+/**
+ * Upgrades stored v8 rooms: v8 stored the roster as realSeats plus the
+ * implicit-bot derivation inputs; the v9 roster materializes exactly the
+ * seats the old derivation would have called bots.
+ * @throws When the stored state is malformed or invalid after migration.
+ */
+export function migratePersistedPictionaryState(value: unknown): PictionaryState {
+  const raw = parseObject(value, 'PictionaryState');
+  if (raw.stateVersion === 10) return upgradePictionaryV10(raw);
+  if (raw.stateVersion === 9) return upgradePictionaryV9(raw);
+  if (raw.stateVersion !== 8) return parsePictionaryState(raw);
+  const config = parseConfig(raw.config, 'PictionaryState.config');
+  const humans = parseLegacyRealSeats(raw.realSeats, 'PictionaryState.realSeats');
+  const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'PictionaryState.fillEmptySeatsWithBots');
+  const excluded = parseArray(raw.excludedBotSeats, 'PictionaryState.excludedBotSeats', parseSeat);
+  const roster = materializeLegacyRoster({
+    humans,
+    fillEmptySeatsWithBots: fill,
+    excludedBotSeats: excluded,
+    numberOfPlayers: config.numberOfPlayers,
+  });
+  const {
+    realSeats: _legacyRealSeats,
+    fillEmptySeatsWithBots: _legacyFill,
+    excludedBotSeats: _legacyExcluded,
+    ...rest
+  } = raw;
+  return upgradePictionaryV9({ ...rest, stateVersion: 9, roster });
+}
+
+function upgradePictionaryV9(raw: Record<string, unknown>): PictionaryState {
+  const chains = parseArray(raw.chains, 'PictionaryState.chains', (value, path) => {
+    const chain = parseObject(value, path);
+    const entries = parseArray(chain.entries, `${path}.entries`, (entryValue, entryPath) => {
+      const entry = parseObject(entryValue, entryPath);
+      return entry.kind === 'drawing'
+        ? { ...entry, media: { ...parseObject(entry.media, `${entryPath}.media`), replay: null } }
+        : entry;
+    });
+    return { ...chain, entries };
+  });
+  const gallery =
+    raw.gallery === null
+      ? null
+      : {
+          ...parseObject(raw.gallery, 'PictionaryState.gallery'),
+          revealStartedAt: null,
+          revealDurationMs: 0,
+        };
+  return upgradePictionaryV10({ ...raw, stateVersion: 10, chains, gallery });
+}
+
+function upgradePictionaryV10(raw: Record<string, unknown>): PictionaryState {
+  const config = parseConfig(raw.config, 'PictionaryState.config');
+  const alreadyCompleted =
+    raw.phase === 'transition' &&
+    raw.stepIndex === getPictionaryRelayStepCount(config.numberOfPlayers) - 1;
+  return parsePictionaryState({
+    ...raw,
+    stateVersion: PICTIONARY_STATE_VERSION,
+    revealSettlementPending:
+      (raw.phase === 'answering' || raw.phase === 'settling' || raw.phase === 'transition') &&
+      !alreadyCompleted,
+  });
 }

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
-import { dismissAlert, viewLastNightInfo, waitForHostAudioAck } from '../helpers/night-driver';
+import { waitForHostAudioAck } from '../helpers/night-driver';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 import { SheriffElectionPage } from '../pages/SheriffElectionPage';
@@ -35,7 +35,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     expect(nightResult.phase).toBe('Day');
     await Promise.all(elections.map((election) => election.waitForPhase('报名上警')));
 
-    await hostElection.expectDetailsClosed();
+    await hostElection.expectWideInspector();
     // The phase flip queued the night-end announcement in the same
     // state write, so it is still playing now — and while audio plays
     // the host's main action is in its blocked form (no
@@ -44,11 +44,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     // server-side gate lifting) before asserting, like a host who
     // waits out the announcement.
     await waitForHostAudioAck(setup.hostCommands);
-    await viewLastNightInfo(setup.hostPage);
-    await dismissAlert(setup.hostPage);
-    await hostRoom.closeHostManagement();
     await hostElection.expectHostRegistrationActions('register');
-    await hostRoom.screenshot(testInfo, 'sheriff-election-host-registration-desktop.png');
     const desktopViewport = setup.hostPage.viewportSize();
     if (desktopViewport === null) throw new Error('Sheriff E2E requires a viewport');
     await setup.hostPage.setViewportSize({ width: 320, height: 640 });
@@ -59,13 +55,13 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await setup.hostPage.reload();
     await hostElection.expectHostRegistrationActions('register');
     await hostRoom.screenshot(testInfo, 'sheriff-election-host-registration-dock.png');
-    await hostElection.openDetails();
+    await hostElection.openCompactDetails();
     await hostRoom.screenshot(testInfo, 'sheriff-election-compact.png');
-    await hostElection.closeDetails();
+    await hostElection.closeCompactDetails();
     await setup.hostPage.setViewportSize(desktopViewport);
     await setup.hostPage.reload();
     await hostElection.waitForPhase('报名上警');
-    await hostElection.expectDetailsClosed();
+    await hostElection.expectWideInspector();
 
     await thirdElection.register();
     await hostElection.register();
@@ -96,12 +92,11 @@ test('first-day sheriff election resolves a tie with public authoritative histor
 
     await fourthElection.voteFor(1);
     await hostElection.expectVoteProgress('1/2 已提交');
-    // 详情中只剩 5 号没投（0-based 座位 4）。
+    // HUD 第二行只剩 5 号没投（0-based 座位 4）。
     await hostElection.expectPendingSeatVisible(4);
     await fourthElection.voteFor(0);
     await hostElection.expectVoteProgress('1/2 已提交');
     await hostElection.expectOpenBallotsHidden();
-    await thirdElection.openNoteDraft('未提交的投票笔记');
 
     await fifthElection.voteFor(1);
     await hostElection.expectVoteProgress('2/2 已提交');
@@ -110,9 +105,9 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.expectSettleCountdown(/2\/2 人已投票，[1-5]秒后自动公布结果/);
     await hostElection.expectOpenBallotsHidden();
 
-    // The result has a separate server-driven display window.
-    await Promise.all(elections.map((election) => election.expectAutomaticResult('first')));
-    await thirdElection.expectNoteDraftAndClose('未提交的投票笔记');
+    // No manual publication exists any more: the last ballot arms
+    // the 5s settle countdown and the round publishes itself on
+    // expiry (the Host client drives progression at the deadline).
     await Promise.all(elections.map((election) => election.waitForPhase('平票发言')));
     await Promise.all(
       elections.map(async (election) => {
@@ -144,7 +139,8 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.expectPendingSeatsHidden();
     await hostElection.expectSettleCountdown(/3\/3 人已投票，[1-5]秒后自动公布结果/);
 
-    await Promise.all(elections.map((election) => election.expectAutomaticResult('runoff')));
+    // Same automatic publication as the first round: wait for the
+    // armed countdown to expire instead of clicking a close button.
     await Promise.all(elections.map((election) => election.waitForPhase('竞选结束')));
     await Promise.all(
       elections.map(async (election) => {
@@ -162,7 +158,6 @@ test('first-day sheriff election resolves a tie with public authoritative histor
       }),
     );
 
-    await hostElection.closeDetails();
     expect(await hostRoom.isLastNightInfoVisible()).toBe(true);
     await hostRoom.screenshot(testInfo, 'sheriff-election-completed.png');
   } finally {

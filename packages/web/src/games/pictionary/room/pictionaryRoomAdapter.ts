@@ -135,7 +135,7 @@ function createPictionaryReviewButtons(
   review: RoomReviewEntry | null,
   viewer: RoomViewer,
 ): readonly RoomBottomButton[] {
-  if (state.phase !== 'ended') return [];
+  if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Pictionary ${state.phase} has no review entry`);
   }
@@ -167,7 +167,7 @@ interface PictionaryHostManagementInput {
     RoomCapabilities,
     'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
   >;
-  /** The shared review entry; present once the round ended. */
+  /** The shared review entry; present once the round ended or was aborted. */
   readonly review: RoomReviewEntry | null;
   readonly startRound: () => void;
   readonly restartRound: () => void;
@@ -194,7 +194,7 @@ export function createPictionaryHostManagement(
     isEnabled: !input.isCommandSubmitting,
     isLoading: input.isCommandSubmitting || undefined,
   });
-  if (input.state.phase === 'ended') {
+  if (input.state.phase === 'ended' || input.state.phase === 'aborted') {
     if (input.review === null) {
       throw new Error(`[FAIL-FAST] Pictionary ${input.state.phase} host has no review entry`);
     }
@@ -274,7 +274,7 @@ export interface PictionaryRoomShellModelInput extends Omit<
   'phase' | 'step' | 'isAudioPlaying' | 'bottomActions'
 > {
   readonly state: PictionaryState;
-  /** The shared review entry; present once the round ended. */
+  /** The shared review entry; present once the round ended or was aborted. */
   readonly review: RoomReviewEntry | null;
 }
 

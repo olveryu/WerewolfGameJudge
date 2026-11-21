@@ -265,7 +265,7 @@ interface PictionaryChain {
 
 `PictionaryState` 还保存：
 
-- `roomCode`、`hostUserId` 和共享座位状态。
+- `stateVersion`、`roomCode`、`hostUserId` 和共享座位状态。
 - `config`、`roundId` 和当前轮次编号。
 - 长度恰好为 $N$ 的 `seatOrder`。
 - 长度恰好为 $N$ 的 `stepOffsets`，与 `seatOrder` 共同确定每棒任务。
@@ -294,12 +294,14 @@ interface PictionaryChain {
 - `pictionary.text.submit`
 - `pictionary.task.empty.submit`
 - `pictionary.drawing.reserve`
+- `pictionary.game.abort`
 - `pictionary.gallery.pause`
 - `pictionary.gallery.resume`
 - `pictionary.gallery.advance`
 - `pictionary.gallery.rewind`
 - `pictionary.gallery.finish`
-- `pictionary.game.restart`
+- `pictionary.game.next`
+- `pictionary.game.returnToLobby`
 
 共享入座、离座、踢人和房间操作继续使用平台命令，不复制 Pictionary 版本。
 

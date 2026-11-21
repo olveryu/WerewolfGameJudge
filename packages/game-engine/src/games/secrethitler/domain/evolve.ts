@@ -3,11 +3,7 @@
 import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
-import type {
-  SecrethitlerGameplayPatch,
-  SecrethitlerLastPublicResult,
-  SecrethitlerState,
-} from '../state/types';
+import type { SecrethitlerState } from '../state/types';
 import type { SecrethitlerEvent } from './decision';
 
 /** Resets mutable game data while preserving room configuration and seats. */
@@ -18,7 +14,6 @@ function resetSecrethitlerGame(state: SecrethitlerState): SecrethitlerState {
     phaseRevision: state.phaseRevision + 1,
     identities: {},
     roleViewedSeats: [],
-    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -34,45 +29,7 @@ function resetSecrethitlerGame(state: SecrethitlerState): SecrethitlerState {
     investigatedSeats: [],
     lastInvestigation: null,
     history: { governments: [], policies: [], actions: [] },
-    lastPublicResult: null,
   };
-}
-
-function latestPublicResult(
-  state: SecrethitlerState,
-  patch: Partial<SecrethitlerGameplayPatch>,
-): SecrethitlerLastPublicResult | null {
-  const history = patch.history;
-  if (history !== undefined) {
-    if (history.policies.length > state.history.policies.length) {
-      const policy = history.policies.at(-1);
-      if (policy === undefined) throw new Error('Missing latest Secret Hitler policy');
-      return { kind: 'policy', ...policy };
-    }
-    if (history.actions.length > state.history.actions.length) {
-      const action = history.actions.at(-1);
-      if (action === undefined) throw new Error('Missing latest Secret Hitler action');
-      return { kind: 'action', action: action.action, targetSeat: action.targetSeat };
-    }
-    const previousGovernment = state.history.governments.at(-1);
-    const government = history.governments.at(-1);
-    if (
-      government !== undefined &&
-      government.outcome !== 'pending' &&
-      previousGovernment?.outcome === 'pending'
-    ) {
-      return { kind: 'government', approved: government.outcome === 'passed' };
-    }
-  }
-  if (
-    state.phase.kind === 'publicResult' &&
-    state.phase.previous.kind === 'vetoResponse' &&
-    state.phase.vetoApproved !== null &&
-    patch.phase?.kind !== 'publicResult'
-  ) {
-    return { kind: 'veto', approved: state.phase.vetoApproved };
-  }
-  return state.lastPublicResult;
 }
 
 /** Evolves a committed domain event without persistence or broadcasts. */
@@ -110,19 +67,11 @@ export function evolveSecrethitlerState(
         history: { governments: [], policies: [], actions: [] },
       };
     case 'secrethitler.gameplay.updated':
-      return {
-        ...bumped,
-        ...event.patch,
-        lastPublicResult: latestPublicResult(state, event.patch),
-      };
+      return { ...bumped, ...event.patch };
     case 'secrethitler.role.viewed': {
       if (state.roleViewedSeats.includes(event.seat)) return state;
       return { ...bumped, roleViewedSeats: markSeatViewed(state.roleViewedSeats, event.seat) };
     }
-    case 'secrethitler.review.completed':
-      return state.reviewCompletedUserIds.includes(event.userId)
-        ? state
-        : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
     case 'secrethitler.audio.queued': {
       // The shared machine owns the transition (replace + gate close + next batch id);
       // an empty batch cannot reach here — queueing fail-fasts in decide.

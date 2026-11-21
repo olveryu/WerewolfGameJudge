@@ -295,9 +295,7 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         await dismissAlert(pages[hiddenWolfIdx]!);
 
         // Click "查看同伴" bottom button
-        await clickNightButton(pages[hiddenWolfIdx]!, 'confirm', '查看同伴', {
-          revealPrivateStatus: true,
-        });
+        await clickNightButton(pages[hiddenWolfIdx]!, 'confirm', '查看同伴');
 
         // Read the reveal — should show wolf teammate seat numbers (1-indexed display)
         const hwReveal = await readAlertText(pages[hiddenWolfIdx]!);

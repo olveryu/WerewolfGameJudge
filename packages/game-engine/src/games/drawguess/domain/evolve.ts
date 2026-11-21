@@ -59,8 +59,12 @@ function closeRoundEnd(
       roundScores: phase.roundScores,
       drawerZeroed: phase.drawerZeroed,
       reactionsBySeat: phase.reactionsBySeat,
-      guessAttemptsBySeat: phase.guessAttemptsBySeat,
-      guessTimeMsBySeat: phase.guessTimeMsBySeat,
+      ...(phase.guessAttemptsBySeat === undefined
+        ? {}
+        : { guessAttemptsBySeat: phase.guessAttemptsBySeat }),
+      ...(phase.guessTimeMsBySeat === undefined
+        ? {}
+        : { guessTimeMsBySeat: phase.guessTimeMsBySeat }),
       ...filedDrawing(phase),
     },
   ];
@@ -124,9 +128,7 @@ function endRound(state: DrawGuessState, event: RoundEndedEvent): DrawGuessState
   // 全员猜中 = 画得太简单：画手本轮收入清零，猜中者得分不动。
   // 口径与“全员猜中压到 3 秒”一致（猜题者数 = 席位数 − 画手）。
   const drawerSeat = event.drawerSeat;
-  const guessStats = fromDrawing
-    ? getGuessStatsBySeat(state.phase)
-    : { guessAttemptsBySeat: {}, guessTimeMsBySeat: {} };
+  const guessStats = fromDrawing ? getGuessStatsBySeat(state.phase) : null;
   const allGuessed =
     fromDrawing && state.phase.guessedSeats.length >= state.config.numberOfPlayers - 1;
   const drawerZeroed = allGuessed && (roundScores[drawerSeat] ?? 0) > 0;
@@ -145,7 +147,7 @@ function endRound(state: DrawGuessState, event: RoundEndedEvent): DrawGuessState
       roundScores,
       drawerZeroed,
       reactionsBySeat: fromDrawing ? { ...state.phase.reactionsBySeat } : {},
-      ...guessStats,
+      ...(guessStats === null ? {} : guessStats),
       pngEntry: null,
       reservation: null,
       deadlineAt: event.deadlineAt,

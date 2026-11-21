@@ -59,5 +59,4 @@ export type FibEvent =
       readonly revelation: HostRevelation<FibRole>;
     })
   | (GameEvent & { readonly type: 'fibking.round.ended' })
-  | (GameEvent & { readonly type: 'fibking.review.completed'; readonly userId: string })
   | (GameEvent & { readonly type: 'fibking.game.returnedToLobby' });

@@ -232,8 +232,8 @@ export async function clickSeatAndReadNotice(
 }
 
 /**
- * Enter selection mode and confirm the chosen target(s). Fixed-size
- * selections open confirmation immediately; variable-size selections use a button.
+ * Enter the night selection mode, draft the target(s), then press the
+ * focused submit button. Never replay a toggle or a submission.
  */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<void> {
   await selectAndSubmitSeats(page, [seatIdx]);
@@ -261,25 +261,11 @@ async function selectAndSubmitSeats(
       await tile.click({ timeout: CLICK_TIMEOUT_MS });
       await expect(tile).toHaveAttribute('aria-pressed', 'true');
     }
-    const selectionButton = nightButton(page, 'submitSeatSelection');
-    const confirmationDialog = alertModal(page);
-    await expect
-      .poll(
-        async () => (await selectionButton.isVisible()) || (await confirmationDialog.isVisible()),
-        { timeout: CONFIRM_TIMEOUT_MS },
-      )
-      .toBe(true);
-    if (await selectionButton.isVisible()) {
-      if (expectedAction !== undefined) await expect(selectionButton).toContainText(expectedAction);
-      await expect(selectionButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
-      await selectionButton.click({ timeout: CLICK_TIMEOUT_MS });
-    }
-    await expect(confirmationDialog).toBeVisible({ timeout: CONFIRM_TIMEOUT_MS });
+    const confirmButton = nightButton(page, 'submitSeatSelection');
+    if (expectedAction !== undefined) await expect(confirmButton).toContainText(expectedAction);
+    await expect(confirmButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
-    await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
-      seats.map((seat) => `${seat + 1}号`).join('、'),
-    );
-    await pressConfirm(page);
+    await confirmButton.click({ timeout: CLICK_TIMEOUT_MS });
     log(`seat selection submitted — step=${stepBefore} seats=${seats.join(',')}`);
   } catch (error) {
     return failNightAction(`Seat selection [${seats}] failed in ${stepBefore}`, [page], error);
@@ -779,7 +765,7 @@ async function tryDismissAlert(page: Page): Promise<boolean> {
 
 /**
  * Wait until a groupConfirm reveal step is active, detected by its
- * status button becoming visible on any page; its accessible name must
+ * status button becoming visible on any page; the button's label must
  * be `statusButtonText` (e.g. '情侣状态', '表白状态').
  *
  * While polling, only dismiss blocking alert modals. Never click
@@ -797,8 +783,7 @@ export async function waitForGroupConfirmStep(
     for (const page of pages) {
       const statusButton = nightButton(page, 'groupConfirmAck');
       if (await statusButton.isVisible().catch(() => false)) {
-        await dismissAlert(page);
-        await expect(statusButton).toHaveAccessibleName(statusButtonText);
+        await expect(statusButton).toHaveText(statusButtonText);
         return;
       }
     }
@@ -816,7 +801,7 @@ export async function waitForGroupConfirmStep(
  * message, acknowledge it. Returns the personal message text.
  *
  * The ack button text is the reveal step's own confirmButtonText
- * (e.g. '知道了' for the cupid reveal, piper and
+ * (e.g. '我知道了' for the cupid reveal, '知道了' for piper and
  * wolf-girl reveals). The ack click is unconditional: a missing ack
  * button must fail the test, not pass silently. This is the single
  * implementation for groupConfirm reveal acks; the cupid, piper,
@@ -828,7 +813,6 @@ export async function driveGroupConfirmAck(
   ackButtonText: string,
 ): Promise<string> {
   await clickNightButton(page, 'groupConfirmAck', statusButtonText);
-  await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
   const message = await readAlertText(page, 5000);
   const ackButton = page.getByTestId(TESTIDS.alertButton(0));
   await expect(ackButton).toHaveText(ackButtonText);
@@ -842,14 +826,9 @@ export async function driveGroupConfirmAck(
 
 /**
  * Dismiss the step prompt, then press a night button after asserting its
- * label after dismissing its step prompt.
+ * label. Resolve the visible action before dismissing its step prompt.
  */
-export async function clickNightButton(
-  page: Page,
-  key: string,
-  label: string,
-  options?: { readonly revealPrivateStatus?: boolean },
-): Promise<void> {
+export async function clickNightButton(page: Page, key: string, label: string): Promise<void> {
   let button = nightButton(page, key);
   let panel: Locator | null = null;
   if (!(await button.isVisible())) {
@@ -864,13 +843,10 @@ export async function clickNightButton(
       : await new RoomPage(page).openHostManagement();
     button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
   }
-  await dismissAlert(page);
   await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
+  await dismissAlert(page);
   await button.click({ timeout: CLICK_TIMEOUT_MS });
-  if (options?.revealPrivateStatus === true) {
-    await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
-  }
   if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`clickNightButton — ${key} "${label}" clicked`);
 }

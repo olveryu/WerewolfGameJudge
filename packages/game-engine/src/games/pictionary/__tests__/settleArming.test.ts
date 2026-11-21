@@ -369,7 +369,7 @@ describe('Pictionary settle arming invariant', () => {
     expect(session.state.phase).toBe('ended');
   });
 
-  it('arms nothing on restart, and rejects an early internal settle', () => {
+  it('arms nothing on abort, and rejects an early internal settle', () => {
     const { session, send } = game();
     send({ type: 'pictionary.game.begin' });
     const deadline = session.state.deadlineAt;
@@ -387,10 +387,10 @@ describe('Pictionary settle arming invariant', () => {
 
     expectNoSettle(
       effectsOf(session, () => {
-        send({ type: 'pictionary.game.restart' });
+        send({ type: 'pictionary.game.abort' });
       }),
     );
-    expect(session.state.phase).toBe('lobby');
+    expect(session.state.phase).toBe('aborted');
   });
 
   it('dispatches the internal settle at the deadline through the system channel', () => {

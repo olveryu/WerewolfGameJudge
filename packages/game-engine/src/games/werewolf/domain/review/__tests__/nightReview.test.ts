@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { WEREWOLF_STATE_IDENTITY } from '../../../state/version';
 import type { DeathReason } from '../../DeathCalculator';
 import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
 import { NIGHT_STEPS, type RoleSpec } from '../../models/roles/spec';
@@ -115,7 +116,7 @@ function makeGameState(
 ): GameState {
   const players: Players = overrides.players ?? new Map<number, Player | null>();
   const state: GameState = {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'REVIEW',
     hostUserId: 'host',
     status: GameStatus.Day,
@@ -143,7 +144,6 @@ function makeGameState(
         : {}),
       ...(overrides.thiefChosenCard ? { thiefChosenCard: overrides.thiefChosenCard } : {}),
     },
-    resolvedWolfKillTarget: null,
     lastNightDeaths: overrides.lastNightDeaths ?? [],
   };
   const optional: Partial<GameState> = {};
@@ -731,7 +731,6 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           loverSeats: [0, 1],
-          resolvedWolfKillTarget: 1,
           witchContext: { killedSeat: 1, canSave: true, canPoison: true },
         }),
       );
@@ -1203,7 +1202,6 @@ describe('NightReview.helpers', () => {
           wolfVotesBySeat: { '0': 8 },
           blockedSeat: 3,
           guardedSeat: 4,
-          charmedSeat: 2,
           silencedSeat: 19,
           votebannedSeat: 20,
           savedSeat: 5,
@@ -1828,7 +1826,6 @@ describe('NightReview.helpers', () => {
         name: 'charm',
         state: makeGameState({
           players: roster([6, 'wolfQueen']),
-          currentNightResults: { charmedSeat: 2 },
           actions: new Map([['wolfQueen', makeActionTarget(2)]]),
         }),
         kind: 'charm',
@@ -2031,26 +2028,6 @@ describe('NightReview.helpers', () => {
         }),
       );
       expect(section).toEqual({ kind: 'registration' });
-    });
-
-    it('retains the revealed round and final outcome while the timed result is open', () => {
-      const section = deriveSheriffSection(
-        makeGameState({
-          sheriffElection: {
-            phase: 'result',
-            registeredSeats: [2, 5],
-            withdrawnSeats: [],
-            completedRounds: [FIRST_ROUND],
-            deadline: 6000,
-            next: { kind: 'final', result: { kind: 'elected', sheriffSeat: 2 } },
-          },
-        }),
-      );
-      expect(section).toMatchObject({
-        kind: 'completed',
-        rounds: [FIRST_ROUND_DERIVED],
-        result: { kind: 'elected', sheriffSeat: 2 },
-      });
     });
 
     it('candidate speech exposes active candidates and withdrawals, no tallies', () => {

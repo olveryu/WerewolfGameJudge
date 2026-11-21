@@ -12,12 +12,13 @@ import {
   type StoryRelayHumanSeat,
   type StoryRelayState,
 } from './types';
+import { STORY_RELAY_STATE_IDENTITY } from './version';
 
 const invariant: StateInvariant = createStateInvariant('Story Relay');
 
 /** Validates authoritative state without repairing or dropping submitted stories. */
 export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayState {
-  assertStateIdentity(state, 'storyrelay', 'Story Relay');
+  assertStateIdentity(state, STORY_RELAY_STATE_IDENTITY, 'Story Relay');
   invariant(isValidStoryRelayConfig(state.config), 'configuration');
   const count = state.config.numberOfPlayers;
   const isSeat = (seat: number) => Number.isSafeInteger(seat) && seat >= 0 && seat < count;
@@ -74,6 +75,7 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
       state.deadlineAt === null &&
         state.gallery === null &&
         state.completedAt === null &&
+        state.abortedAt === null &&
         state.readySeats.length === 0,
       'lobby progress',
     );
@@ -154,11 +156,16 @@ export function normalizeStoryRelayState(state: StoryRelayState): StoryRelayStat
   });
   if (state.phase !== 'answering')
     invariant(state.readySeats.length === 0, 'readiness outside answering');
-  if (state.phase === 'settling' || state.phase === 'ended')
+  if (state.phase === 'settling' || state.phase === 'aborted' || state.phase === 'ended')
     invariant(state.deadlineAt === null, 'untimed phase');
   const isComplete =
     state.stepIndex === count - 1 && state.chains.every((chain) => chain.entries.length === count);
   invariant((state.completedAt !== null) === isComplete, 'completion');
+  invariant(
+    (state.abortedAt !== null) === (state.phase === 'aborted') &&
+      !(state.abortedAt !== null && isComplete),
+    'abort',
+  );
   if (state.phase === 'gallery' || state.phase === 'ended') {
     invariant(isComplete && state.gallery !== null, 'gallery requires completed round');
     invariant(

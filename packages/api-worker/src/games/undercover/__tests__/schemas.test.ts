@@ -22,17 +22,17 @@ describe('Undercover schemas', () => {
     }
   });
 
-  it('rejects obsolete resets and requires a round identity to allow repeated words', () => {
-    for (const command of [
-      { type: 'undercover.game.redeal', roundId: 'round' },
-      { type: 'undercover.game.abort', roundId: 'round' },
-      { type: 'undercover.game.returnToLobby' },
-      { type: 'undercover.round.allowRepeated' },
-    ]) {
-      expect(undercoverPublicCommandSchema.safeParse(command).success).toBe(false);
-    }
-    const command = { type: 'undercover.round.allowRepeated', roundId: 'round' };
+  it('requires an explicit round identity for restart and rejects caller-owned random choices', () => {
+    const command = { type: 'undercover.game.redeal', roundId: 'round' };
     expect(undercoverPublicCommandSchema.parse(command)).toEqual(command);
+    expect(undercoverPublicCommandSchema.parse({ ...command, roundId: null })).toEqual({
+      ...command,
+      roundId: null,
+    });
+    expect(undercoverPublicCommandSchema.safeParse({ type: command.type }).success).toBe(false);
+    expect(
+      undercoverPublicCommandSchema.safeParse({ ...command, speakingStartSeat: 0 }).success,
+    ).toBe(false);
   });
 
   it('accepts configuration and rejects invalid blank mode', () => {

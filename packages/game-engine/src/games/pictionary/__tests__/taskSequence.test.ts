@@ -180,7 +180,7 @@ describe('Pictionary task sequence', () => {
     expect(decideBoundPictionaryCommand(state, delayed, userContext('user-0')).kind).toBe('reject');
   });
 
-  it('restarts incomplete rounds without rewards and clears accepted works', () => {
+  it('aborts incomplete rounds without rewards and keeps accepted works and author names', () => {
     let state = dispatch(
       createFullLobby(),
       { type: 'pictionary.game.begin' },
@@ -199,16 +199,22 @@ describe('Pictionary task sequence', () => {
     );
     const decision = decidePictionaryCommand(
       state,
-      { type: 'pictionary.game.restart' },
+      { type: 'pictionary.game.abort' },
       userContext('user-0'),
     );
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') throw new Error(decision.reason);
     expect(decision.effects).toEqual([]);
     state = applyDecision(state, decision);
-    expect(state.phase).toBe('lobby');
-    expect(state.chains).toEqual([]);
+    expect(state.phase).toBe('aborted');
+    expect(state.participants.find((participant) => participant.seat === 0)?.displayName).toBe(
+      '玩家 1',
+    );
+    expect(state.chains.flatMap((chain) => chain.entries)).toContainEqual(
+      expect.objectContaining({ text: 'retained' }),
+    );
     expect(parsePictionaryState(state)).toEqual(state);
+    state = dispatch(state, { type: 'pictionary.game.returnToLobby' }, userContext('user-0'));
     expect(state.participants).toEqual([]);
   });
 

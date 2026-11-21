@@ -15,7 +15,6 @@ import {
   decideMarkBotsViewed,
   haveAllViewed,
 } from '../../platform/room/identityViewing';
-import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { isBotSeat, isRoomFull } from '../../platform/room/seating';
 import type { SecrethitlerCommand } from './commands/types';
 import {
@@ -40,13 +39,13 @@ import {
 import { decideSecrethitlerRoom } from './domain/seating';
 import { normalizeSecrethitlerState } from './state/normalize';
 import {
-  getSecrethitlerUserSeat,
   getSecrethitlerViewingParticipants,
   isValidSecrethitlerConfig,
   SECRETHITLER_GAME_TYPE,
   type SecrethitlerConfig,
   type SecrethitlerState,
 } from './state/types';
+import { SECRETHITLER_STATE_VERSION } from './state/version';
 
 function createInitialState(
   config: SecrethitlerConfig,
@@ -55,6 +54,7 @@ function createInitialState(
   if (!isValidSecrethitlerConfig(config)) throw new Error(SECRETHITLER_REASONS.config);
   return normalizeSecrethitlerState({
     gameType: SECRETHITLER_GAME_TYPE,
+    stateVersion: SECRETHITLER_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -64,7 +64,6 @@ function createInitialState(
     identities: {},
     roleViewedSeats: [],
     gameSequence: 0,
-    reviewCompletedUserIds: [],
     xpSettled: false,
     pendingAudioEffects: [],
     isAudioPlaying: false,
@@ -81,7 +80,6 @@ function createInitialState(
     investigatedSeats: [],
     lastInvestigation: null,
     history: { governments: [], policies: [], actions: [] },
-    lastPublicResult: null,
   });
 }
 
@@ -263,23 +261,6 @@ function decideCommand(
       return beginGame(state, context);
     case 'secrethitler.game.restart':
       return restartGame(state, command, context);
-    case 'secrethitler.review.complete': {
-      const completion = resolveReviewCompletion({
-        context,
-        isEnded: state.phase.kind === 'ended',
-        currentIdentity: state.gameSequence,
-        expectedIdentity: command.gameSequence,
-        completedUserIds: state.reviewCompletedUserIds,
-        isEligible: (userId) =>
-          userId === state.hostUserId || getSecrethitlerUserSeat(state, userId) !== null,
-      });
-      if (completion.kind === 'reject') return reject(completion.reason);
-      return commitSecrethitler(
-        completion.kind === 'complete'
-          ? [{ type: 'secrethitler.review.completed', userId: completion.userId }]
-          : [],
-      );
-    }
     case 'secrethitler.bots.markAllBotsViewed':
       return markAllBotsViewed(state, context);
     case 'secrethitler.bots.markAllBotsGroupConfirmed':
@@ -324,12 +305,13 @@ export function getSecrethitlerLifecycle(state: SecrethitlerState): CommonGameLi
 
 export const secrethitlerEngine = {
   gameType: SECRETHITLER_GAME_TYPE,
+  stateVersion: SECRETHITLER_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,
     identityViewing: true,
     revealAnimation: true,
-    stageDeadline: true,
+    stageDeadline: false,
     audioOrchestration: true,
     wordLibrary: false,
     gallery: false,

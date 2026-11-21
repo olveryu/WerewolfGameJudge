@@ -1,6 +1,6 @@
 /**
- * 阿瓦隆任务出牌弹窗：队员未出牌前不能关闭，出牌须确认。
- * 全员出完后显示揭晓倒计时（引擎武装的 deadlineAt）。
+ * 阿瓦隆任务出牌弹窗：队员在任务阶段自动弹出一次，可关（去看座位盘），
+ * 阶段条有重开入口。全员出完后显示揭晓倒计时（引擎武装的 deadlineAt）。
  * 出牌内容秘密：弹窗只显示自己的选择。
  */
 import './AvalonStageModal.css';
@@ -13,7 +13,6 @@ import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
@@ -46,15 +45,12 @@ export function AvalonQuestModal({
 }) {
   const instruction = resolveQuestInstruction(viewModel);
   const teamSeats = viewModel.teamSeats ?? [];
-  const confirmPlay = (play: AvalonPlay) =>
-    showConfirmAlert('确认出牌？', `确定打出「${PLAY_COPY[play]}」吗？`, () => onPlay(play));
   return (
     <CenterDialog
       open
       onClose={onClose}
       title={`${formatAvalonRoundLabel(viewModel.questResults.length + 1)} · 任务执行`}
       testId={TESTIDS.avalonQuestModal}
-      requireConfirmation={instruction.isTeamMember && instruction.myPlay === null}
     >
       <div className="avalon-stage-team">
         <span className="avalon-stage-team-title">本轮队员</span>
@@ -93,7 +89,7 @@ export function AvalonQuestModal({
               isSelected={instruction.myPlay === 'success'}
               isDisabled={isSubmitting}
               testId={TESTIDS.avalonQuestSuccess}
-              onClick={() => confirmPlay('success')}
+              onClick={() => onPlay('success')}
             />
           )}
           {instruction.availableCards.includes('fail') && (
@@ -103,7 +99,7 @@ export function AvalonQuestModal({
               isSelected={instruction.myPlay === 'fail'}
               isDisabled={isSubmitting}
               testId={TESTIDS.avalonQuestFail}
-              onClick={() => confirmPlay('fail')}
+              onClick={() => onPlay('fail')}
             />
           )}
         </div>
@@ -115,16 +111,14 @@ export function AvalonQuestModal({
             ? '秘密出牌：点选一张卡，出了什么牌不公开。'
             : '等待队员出牌…'}
       </p>
-      {instruction.myPlay !== null && (
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={onClose}
-          data-testid={TESTIDS.avalonQuestClose}
-        >
-          关闭
-        </Button>
-      )}
+      <Button
+        variant="secondary"
+        size="lg"
+        onClick={onClose}
+        data-testid={TESTIDS.avalonQuestClose}
+      >
+        关闭
+      </Button>
     </CenterDialog>
   );
 }

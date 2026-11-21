@@ -102,9 +102,11 @@ export interface WorkerModuleRuntime<
   TEffect extends GameEffect,
   TPublicUserStats,
 > {
+  readonly stateVersion: number;
   parseCreateConfig(config: unknown): WorkerModuleConfigResult<TConfig>;
   createInitialState(config: unknown, context: CreateGameContext): WorkerModuleCreateResult<TState>;
   parseState(value: unknown): TState;
+  readonly migratePersistedState: ((value: unknown) => TState) | null;
   parseCommandResult(value: unknown): RoomCommandResult<TState>;
   decidePublic(
     state: unknown,
@@ -146,6 +148,7 @@ export interface WorkerGameModuleDefinition<
   readonly engine: TEngine;
   readonly stateCodec: GameStateCodec<TState>;
   readonly projectStateForUser?: (state: TState, userId: string) => TState;
+  readonly migratePersistedState?: ((value: unknown) => TState) | null;
   readonly createConfigSchema: ZodType<TConfig>;
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
@@ -252,6 +255,7 @@ export type WorkerGameModule<
     TPublicUserStats
   >,
   | 'getPublicUserStats'
+  | 'migratePersistedState'
   | 'getEffectBusinessKey'
   | 'getEffectDeliveryAt'
   | 'getEffectFailureCommand'
@@ -515,6 +519,7 @@ function buildWorkerGameModule<
     TEffect
   > = definition.engine;
 
+  const migratePersistedState = definition.migratePersistedState;
   const routePrefix = `/api/games/${definition.gameType}/`;
   for (const route of definition.httpRoutes) {
     if (!route.path.startsWith(routePrefix) || route.path.length === routePrefix.length) {
@@ -528,6 +533,11 @@ function buildWorkerGameModule<
     if (state.gameType !== definition.gameType) {
       throw new Error(
         `Game module ${definition.gameType} produced state for ${String(state.gameType)}`,
+      );
+    }
+    if (state.stateVersion !== engine.stateVersion) {
+      throw new Error(
+        `Game module ${definition.gameType} produced unsupported state version ${state.stateVersion}`,
       );
     }
   };
@@ -589,6 +599,7 @@ function buildWorkerGameModule<
 
   return {
     ...definition,
+    stateVersion: engine.stateVersion,
     parseCreateConfig,
     createInitialState: (rawConfig, context) => {
       const parsedConfig = parseCreateConfig(rawConfig);
@@ -604,6 +615,10 @@ function buildWorkerGameModule<
       };
     },
     parseState,
+    migratePersistedState:
+      typeof migratePersistedState === 'function'
+        ? (value) => parseState(migratePersistedState(value))
+        : null,
     parseCommandResult: (value) => parseRoomCommandResult(value, definition.stateCodec),
     decidePublic: (rawState, rawCommand, context) => {
       const state = parseState(rawState);
@@ -693,9 +708,11 @@ export function registerWorkerGameModule<
 ) {
   const runtimeModule: RuntimeWorkerGameModule = {
     gameType: module.gameType,
+    stateVersion: module.stateVersion,
     parseCreateConfig: (config) => module.parseCreateConfig(config),
     createInitialState: (config, context) => module.createInitialState(config, context),
     parseState: (value) => module.parseState(value),
+    migratePersistedState: module.migratePersistedState,
     parseCommandResult: (value) => module.parseCommandResult(value),
     projectStateForUser:
       module.projectStateForUser === undefined

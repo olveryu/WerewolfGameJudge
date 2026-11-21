@@ -19,10 +19,7 @@ export interface RoomSeatMarker {
 /** Opt-in layered presentation; null retains the game's existing seat presentation. */
 export interface RoomSeatIndicators {
   readonly markers: readonly RoomSeatMarker[];
-  readonly selection: {
-    readonly kind: 'available' | 'preselected' | 'selected';
-    readonly label: string | null;
-  } | null;
+  readonly selection: { readonly kind: 'preselected' | 'selected'; readonly label: string } | null;
   readonly progressLabel: string | null;
 }
 

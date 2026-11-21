@@ -85,7 +85,7 @@
 - 战绩事实必须从**应用终局事件之后**的状态计算。现在的完成 effect 是用事件应用前的状态构造的（例如 [drawguess/engine.ts](../packages/game-engine/src/games/drawguess/engine.ts) 里 `completionEffect(state, context)` 与终局事件同时产出），而你画我猜最后一个回合的记录、阿瓦隆的胜方都是终局事件才写入的。狼人杀的做法是先把事件归约成新状态再建 effect（[werewolf/engine.ts](../packages/game-engine/src/games/werewolf/engine.ts) 的 `finalizeWerewolfDecision`），六款游戏照此处理。
 - 你画我猜逐次累计引擎接受的猜词提交，并以引擎保存的作画起点计算首次猜中用时。计数和用时随回合结算状态保留，再冻结进 `turnHistory`，不靠可能被截断的聊天记录反推，也不为统计额外保留猜词正文。
 - 你画我猜新增命令 `drawguess.reaction.send`，沿用现有回合命令的 `phaseRevision` 加 `turnIndex` 绑定。作画和回合结算两个阶段各带一个「送出座位 → 种类」的记录，回合结算关闭时冻结进回合记录。一个字段同时承担一人一次的判定和署名展示，数量由它派生，不另存计数。互动不推进 `phaseRevision`。
-- 历史实现记录（当前已废弃）：当时通过 `migratePersistedDrawGuessState` 升级 DrawGuess 状态并补齐互动字段；后续架构已移除所有游戏状态版本和持久化迁移，见[多游戏平台架构](multigame-platform-design.md)。
+- 你画我猜状态版本 4 → 5，`migratePersistedDrawGuessState` 增加 v4 升级：已有阶段和回合记录补空的互动记录；作画阶段已有猜词数据继续正常提取，旧的回合结算状态及历史记录缺少的猜词统计标为未采集，不伪造为零，也不计入平均猜中用时的分母。
 - 六款新增统计游戏的 `publicStats.ts` 从实施前仅带 `gameType` 的空壳扩展为各游戏响应类型和严格解析器；狼人杀保留现有统计字段并增加缓存到期信息。
 
 ### 5.2 Worker

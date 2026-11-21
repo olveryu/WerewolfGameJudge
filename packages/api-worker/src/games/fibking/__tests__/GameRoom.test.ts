@@ -1,5 +1,6 @@
 import {
   FIB_STATE_CODEC,
+  FIB_STATE_VERSION,
   type FibPublicCommand,
   isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
@@ -131,6 +132,7 @@ describe('FibKing generic GameRoom integration', () => {
 
     expect(state).toMatchObject({
       gameType: 'fibking',
+      stateVersion: FIB_STATE_VERSION,
       phase: 'lobby',
       numberOfPlayers: 8,
       roster: {},

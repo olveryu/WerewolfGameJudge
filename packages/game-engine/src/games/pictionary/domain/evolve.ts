@@ -73,6 +73,17 @@ export function evolvePictionaryState(
       };
     case 'pictionary.drawing.reserved':
       return { ...state, reservations: [...state.reservations, event.reservation] };
+    case 'pictionary.round.aborted':
+      return {
+        ...state,
+        phase: 'aborted',
+        phaseRevision: state.phaseRevision + 1,
+        deadlineAt: null,
+        readySeats: [],
+        reservations: [],
+        gallery: null,
+        revealSettlementPending: false,
+      };
     case 'pictionary.phase.changed':
       return {
         ...state,

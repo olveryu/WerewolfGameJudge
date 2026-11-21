@@ -718,28 +718,6 @@ export function deriveSheriffSection(state: GameState): NightReviewSheriffSectio
         voteProgress: null,
         speakingOrder: deriveSpeakingOrder(state, election),
       };
-    case 'result':
-      if (election.next.kind === 'final') {
-        return {
-          kind: 'completed',
-          registeredSeats: [...records.registeredSeats],
-          withdrawnSeats: [...records.withdrawnSeats],
-          activeCandidateSeats: [...records.activeCandidateSeats],
-          rounds: election.completedRounds.map(deriveSheriffRoundRecord),
-          result: election.next.result,
-        };
-      }
-      return {
-        kind: 'inProgress',
-        phase: election.phase,
-        registeredSeats: [...records.registeredSeats],
-        candidateSeats: [...records.activeCandidateSeats],
-        withdrawnSeats: [...records.withdrawnSeats],
-        closedRounds: election.completedRounds.map(deriveSheriffRoundRecord),
-        activeRound: null,
-        voteProgress: null,
-        speakingOrder: null,
-      };
     case 'completed': {
       if (result === undefined) {
         throw new Error(

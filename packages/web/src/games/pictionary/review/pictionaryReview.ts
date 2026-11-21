@@ -1,7 +1,7 @@
 /**
  * The Pictionary review contribution. A round's albums are public to the
- * whole room once the round ends, so every viewer reads and shares them,
- * with nothing to confirm.
+ * whole room once the round ends — or is aborted, keeping what was handed
+ * in — so every viewer reads and shares them, with nothing to confirm.
  *
  * Drawings load through the game's media route
  * (`packages/api-worker/src/games/pictionary/mediaRoutes.ts`). Its
@@ -66,7 +66,7 @@ async function loadReviewDrawing(
 /** The Pictionary 本局复盘, declared once in the client module. */
 export const pictionaryReview: RoomReviewContribution<PictionaryState> = {
   resolve: ({ state, roomCode }) => {
-    if (state.phase !== 'ended') return { kind: 'notEnded' };
+    if (state.phase !== 'ended' && state.phase !== 'aborted') return { kind: 'notEnded' };
     return {
       kind: 'available',
       document: toPictionaryReviewDocument({

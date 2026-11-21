@@ -23,6 +23,7 @@ import { getWerewolfViewingParticipants } from '../domain/playerHelpers';
 import type { GameState } from '../domain/protocol/types';
 import { handlePlayerViewedRole } from '../domain/reducer/lifecycleReducers';
 import { werewolfEngine } from '../engine';
+import { WEREWOLF_STATE_IDENTITY } from '../state/version';
 
 function hostContext(): CommandContext {
   return {
@@ -58,7 +59,7 @@ function markAllBotsViewed(state: GameState): GameState {
 
 function createAssignedState(): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Assigned,

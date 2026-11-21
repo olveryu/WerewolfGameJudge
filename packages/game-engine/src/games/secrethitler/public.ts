@@ -13,11 +13,7 @@ export {
   type SecrethitlerEffect,
   type SecrethitlerEvent,
 } from './domain/decision';
-export {
-  getSecrethitlerNightParticipants,
-  getSecrethitlerPolicyPower,
-  getSecrethitlerRoleCounts,
-} from './domain/rules';
+export { getSecrethitlerNightParticipants, getSecrethitlerRoleCounts } from './domain/rules';
 export {
   getSecrethitlerViewModel,
   type SecrethitlerGovernmentView,
@@ -33,7 +29,11 @@ export {
   type SecrethitlerPublicStats,
 } from './publicStats';
 export { SECRETHITLER_STATE_CODEC } from './state/codec';
-export { parseSecrethitlerConfig, parseSecrethitlerState } from './state/parseState';
+export {
+  migratePersistedSecrethitlerState,
+  parseSecrethitlerConfig,
+  parseSecrethitlerState,
+} from './state/parseState';
 export {
   DEFAULT_SECRETHITLER_CONFIG,
   getSecrethitlerOccupiedSeatCount,
@@ -62,3 +62,4 @@ export {
   type SecrethitlerVoteMode,
   type SecrethitlerWinner,
 } from './state/types';
+export { SECRETHITLER_STATE_IDENTITY, SECRETHITLER_STATE_VERSION } from './state/version';

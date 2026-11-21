@@ -52,13 +52,16 @@ const publicCommandOptions = definePublicCommandOptions<PictionaryPublicCommand>
     text: z.string().refine(isValidPictionaryText),
   }),
   z.strictObject({ type: z.literal('pictionary.drawing.reserve'), ...taskIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.abort'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.phase.retrySettle'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.pause'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.resume'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.advance'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.rewind'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.gallery.finish'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.next'), ...phaseIdentityShape }),
   z.strictObject({ type: z.literal('pictionary.game.restart'), ...phaseIdentityShape }),
+  z.strictObject({ type: z.literal('pictionary.game.returnToLobby'), ...phaseIdentityShape }),
 ]);
 
 export const pictionaryPublicCommandSchema: z.ZodType<PictionaryPublicCommand> =

@@ -5,7 +5,11 @@
  * (actors read the schema action sentence instead — same cell).
  */
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus, getWerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  GameStatus,
+  getWerewolfViewModel,
+  WEREWOLF_STATE_IDENTITY,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
@@ -34,7 +38,7 @@ const STATUSES: readonly GameStatus[] = [
 
 function createGameState(overrides: Partial<GameState> = {}): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,
@@ -161,6 +165,7 @@ function bottomFor(
       viewModel,
     }),
     sheriffElectionPanel,
+    isSheriffInspectorVisible: false,
     openSheriffDetails: vi.fn(),
   });
   const model = createWerewolfRoomShellModel({

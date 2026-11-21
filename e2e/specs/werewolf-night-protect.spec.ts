@@ -10,6 +10,7 @@ import {
   driveWolfVote,
   findAllRolePageIndices,
   findRolePageIndex,
+  nightButton,
   viewLastNightInfo,
   waitForNightEnd,
   waitForRoleTurn,
@@ -255,9 +256,14 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         // Wait for witch's turn — she was targeted, should see self-save rejection
         await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
 
-        // The self-save restriction is visible without an interrupting prompt.
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('无法自救');
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
+        // Read the prompt — should mention "无法自救"
+        const alertText = await readAlertText(
+          pages[witchIdx]!,
+          10_000,
+          '女巫请行动（可救人、用毒或点「不用技能」跳过）',
+        );
+        expect(alertText).toContain('无法自救');
+        await dismissAlert(pages[witchIdx]!);
 
         // Witch skips (no save, no poison)
         await clickNightButton(pages[witchIdx]!, 'skip', '不用技能');
@@ -311,11 +317,11 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         await dismissAlert(wolfPage);
 
         // A rejected vote leaves the draft open so the wolf can replace its target.
+        const submitVote = nightButton(wolfPage, 'submitSeatSelection');
+        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(skSeat)}`);
         await wolfPage.getByTestId(TESTIDS.seatTilePressable(validTarget)).click();
-        await expect(wolfPage.getByTestId(TESTIDS.alertMessage)).toContainText(
-          formatSeat(validTarget),
-        );
-        await wolfPage.getByTestId(TESTIDS.alertButton(1)).click();
+        await expect(submitVote).toHaveText(`确认袭击 ${formatSeat(validTarget)}`);
+        await submitVote.click();
         await driveWolfVote(pages, [skIdx], validTarget);
 
         // Night should complete normally

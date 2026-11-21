@@ -8,7 +8,6 @@ export const BUBBLE_PULSE_OVERHANG = (BUBBLE_WIDTH * (BUBBLE_PULSE_MAX_SCALE - 1
 export const BUBBLE_HORIZONTAL_MARGIN = Math.ceil(Math.max(BUBBLE_MARGIN, BUBBLE_PULSE_OVERHANG));
 /** Keeps the bubble clear of the page header. */
 const BUBBLE_TOP_INSET = BUBBLE_MARGIN + 50;
-const DEFAULT_BOTTOM_INSET = 140;
 
 export interface BubblePosition {
   readonly x: number;
@@ -24,7 +23,7 @@ export interface BubbleViewport {
 export function getDefaultPosition(screenWidth: number, screenHeight: number): BubblePosition {
   return {
     x: screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN,
-    y: screenHeight - BUBBLE_HEIGHT - DEFAULT_BOTTOM_INSET,
+    y: screenHeight - BUBBLE_HEIGHT - 60,
   };
 }
 

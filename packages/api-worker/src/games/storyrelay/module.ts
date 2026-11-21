@@ -1,6 +1,7 @@
 /** Story Relay Worker registration; uses shared command processing and durable product rewards. */
 
 import {
+  migratePersistedStoryRelayState,
   parseStoryRelayPublicStats,
   STORY_RELAY_STATE_CODEC,
   storyRelayEngine,
@@ -21,6 +22,7 @@ export const storyRelayWorkerModule = defineWorkerGameModule({
   gameType: 'storyrelay',
   engine: storyRelayEngine,
   stateCodec: STORY_RELAY_STATE_CODEC,
+  migratePersistedState: migratePersistedStoryRelayState,
   createConfigSchema: storyRelayCreateConfigSchema,
   publicCommandSchema: storyRelayPublicCommandSchema,
   internalCommandSchema: storyRelayInternalCommandSchema,

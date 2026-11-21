@@ -2,29 +2,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
-import { alertStore, dismissAlert, showAlert } from '@/utils/alert';
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { showAlert } from '@/utils/alert';
 
 import { AlertHost } from '../AlertHost';
 
 describe('AlertHost', () => {
-  it('exposes the active alert generation for scoped dismissal', () => {
-    let shownGeneration: number | null = null;
-    act(() =>
-      showConfirmAlert('确认操作', '继续吗？', vi.fn(), {
-        onShown: (generation) => {
-          shownGeneration = generation;
-        },
-      }),
-    );
-
-    expect(shownGeneration).toBe(alertStore.getSnapshot()?.generation);
-    const generation = shownGeneration;
-    if (generation === null) throw new Error('Expected an active confirmation');
-    act(() => dismissAlert(generation));
-    expect(alertStore.getSnapshot()).toBeNull();
-  });
-
   it('keeps the dialog content node when a newer alert replaces an open one', async () => {
     render(<AlertHost />);
     act(() => showAlert('确认查验', '查验 1号？', [{ text: '确定' }]));

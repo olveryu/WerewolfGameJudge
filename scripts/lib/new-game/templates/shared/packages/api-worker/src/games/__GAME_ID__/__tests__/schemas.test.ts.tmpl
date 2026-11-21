@@ -61,8 +61,7 @@ describe('__GAME_PASCAL__ public command schema', () => {
       { type: '__GAME_ID__.roles.assign' },
 //#end
       { type: '__GAME_ID__.game.begin' },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1, wasEnded: false },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1, wasEnded: true },
+      { type: '__GAME_ID__.game.abort' },
 //#cap identityViewing
       { type: '__GAME_ID__.role.viewed' },
 //#end
@@ -72,25 +71,11 @@ describe('__GAME_PASCAL__ public command schema', () => {
 //#cap stageDeadline
       { type: '__GAME_ID__.phase.retrySettle' },
 //#end
+      { type: '__GAME_ID__.game.returnToLobby' },
       { type: '__GAME_ID__.gameplay.example' },
     ];
     for (const command of accepted) {
       expect(__GAME_CAMEL__PublicCommandSchema.safeParse(command).success).toBe(true);
-    }
-  });
-
-  it('rejects stale restart command forms and invalid restart payloads', () => {
-    for (const command of [
-      { type: '__GAME_ID__.game.abort' },
-      { type: '__GAME_ID__.game.returnToLobby' },
-      { type: '__GAME_ID__.game.restart' },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1 },
-      { type: '__GAME_ID__.game.restart', gameSequence: -1, wasEnded: false },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1.5, wasEnded: false },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1, wasEnded: 'false' },
-      { type: '__GAME_ID__.game.restart', gameSequence: 1, wasEnded: false, extra: true },
-    ]) {
-      expect(__GAME_CAMEL__PublicCommandSchema.safeParse(command).success).toBe(false);
     }
   });
 

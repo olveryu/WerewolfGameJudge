@@ -22,11 +22,7 @@ import { werewolfSettleDueEffect } from '../effects/settleDue';
 import type { WerewolfEffect } from '../effects/types';
 import { createAudioQueueAction, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
-import {
-  closeSheriffVotingRound,
-  finishSheriffResult,
-  startSheriffResult,
-} from './handlers/sheriffElectionHandler';
+import { closeSheriffVotingRound } from './handlers/sheriffElectionHandler';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
@@ -79,14 +75,14 @@ function isStepComplete(state: GameState): boolean {
   if (schema.kind === 'groupConfirm') {
     const acks =
       stepId === 'awakenedGargoyleConvertReveal'
-        ? state.conversionRevealAcks
+        ? (state.conversionRevealAcks ?? [])
         : stepId === 'seedWolfInfectReveal'
           ? state.seedWolfInfectionRevealAcks
           : stepId === 'cupidLoversReveal'
-            ? state.cupidLoversRevealAcks
+            ? (state.cupidLoversRevealAcks ?? [])
             : stepId === 'wolfGirlConfessReveal'
               ? state.wolfGirlConfessionRevealAcks
-              : state.piperRevealAcks;
+              : (state.piperRevealAcks ?? []);
     // All seated (non-null) players must ack
     const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
     return acks.length >= seatedCount;
@@ -151,26 +147,13 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
  * reached. Mirrors evaluateProgression's audio gate — while audio is
  * playing the evaluation does not advance the election.
  */
-function evaluateSheriffElectionExpiry(
-  state: GameState,
-  nowMs: number,
-): {
-  readonly action: StateAction;
-  readonly effects: WerewolfEffect[];
-} | null {
+function evaluateSheriffElectionExpiry(state: GameState, nowMs: number): StateAction | null {
+  if (state.isAudioPlaying) return null;
   const election = state.sheriffElection;
   if (election === undefined) return null;
-  if (
-    election.phase !== 'firstVote' &&
-    election.phase !== 'runoffVote' &&
-    election.phase !== 'result'
-  )
-    return null;
-  if (state.isAudioPlaying && election.phase !== 'result') return null;
+  if (election.phase !== 'firstVote' && election.phase !== 'runoffVote') return null;
   if (election.deadline === undefined || nowMs < election.deadline) return null;
-  if (election.phase === 'result') return { action: finishSheriffResult(election), effects: [] };
-  const result = startSheriffResult(state, closeSheriffVotingRound(state, election), nowMs);
-  return { action: result.action, effects: [result.effect] };
+  return closeSheriffVotingRound(state, election);
 }
 
 interface ProgressionActionBatch {
@@ -222,9 +205,9 @@ export function runInlineProgression(
       return { actions: [], effects: [], finalState: state, stepsAdvanced: 0 };
     }
     return {
-      actions: [expiryAction.action],
-      effects: expiryAction.effects,
-      finalState: gameReducer(state, expiryAction.action),
+      actions: [expiryAction],
+      effects: [],
+      finalState: gameReducer(state, expiryAction),
       stepsAdvanced: 1,
     };
   }

@@ -1,7 +1,7 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { NightConfirmation } from './buildNightCommand';
-import type { NightInteractionModel, NightPrompt } from './NightInteractionModel';
+import type { NightInteractionModel } from './NightInteractionModel';
 
 export function nightSeatAction(model: NightInteractionModel) {
   switch (model.kind) {
@@ -49,40 +49,6 @@ export interface NightSeatSelection {
   readonly seats: readonly number[];
   readonly confirm: { readonly label: string; readonly input: NightConfirmation } | null;
   readonly message: string;
-}
-
-/** Confirmation for the exact draft; the card itself does not submit the action. */
-export function describeNightSeatConfirmation(
-  model: NightInteractionModel,
-  selection: NightSeatSelection,
-): NightPrompt {
-  if (selection.confirm === null) {
-    throw new Error('[FAIL-FAST] Cannot confirm an incomplete night seat selection');
-  }
-  const targets = selection.seats.map(formatSeat).join('、');
-  switch (model.kind) {
-    case 'pickSeat':
-    case 'pickTwoSeats':
-      return { title: model.confirmTitle, text: `${model.confirmText}\n已选择：${targets}` };
-    case 'multiSelect':
-      return { title: model.confirmText, text: `已选择：${targets}` };
-    case 'witch':
-      return {
-        title: model.poisonConfirmTitle,
-        text: `${model.poisonConfirmText}\n已选择：${targets}`,
-      };
-    case 'wolfVote': {
-      const seat = selection.seats[0];
-      if (seat === undefined) throw new Error('[FAIL-FAST] Wolf vote has no selected seat');
-      const text = model.voteConfirmTemplate.replace('{seat}', formatSeat(seat));
-      return {
-        title: model.confirmTitle,
-        text: model.immuneSeats.includes(seat) ? `${text}\n（该角色免疫狼人袭击）` : text,
-      };
-    }
-    default:
-      throw new Error(`[FAIL-FAST] Cannot confirm night seat selection for ${model.kind}`);
-  }
 }
 
 export function describeNightSeatSelection(

@@ -1,8 +1,74 @@
-/* Sheriff-election panel. */
+/* Sheriff-election panel and its sheet / inspector containers. */
+
+.sheriff-title-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-small);
+  min-width: 0;
+  color: var(--color-primary);
+}
+
+.sheriff-phase-badge {
+  flex-shrink: 1;
+  padding: var(--space-micro) var(--space-small);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-sheet-close {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-medium);
+}
+
+.sheriff-sheet-scroll {
+  flex-shrink: 1;
+  min-height: 0;
+  padding-bottom: var(--space-xlarge);
+  overflow-y: auto;
+}
+
+.sheriff-inspector {
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--size-modal-min-width) + var(--space-xxlarge));
+  min-height: 0;
+  padding-bottom: var(--space-xlarge);
+  overflow-y: auto;
+  border-left: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
 
 .sheriff-panel {
   padding: var(--space-large);
   background: var(--color-surface);
+}
+
+.sheriff-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-small);
+}
+
+.sheriff-panel-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-subtitle);
+  line-height: var(--line-subtitle);
+  font-weight: var(--weight-semibold);
+}
+
+.sheriff-description {
+  margin: var(--space-small) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
 }
 
 .sheriff-records {

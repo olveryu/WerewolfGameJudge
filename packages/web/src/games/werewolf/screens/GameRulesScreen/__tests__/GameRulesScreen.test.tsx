@@ -31,14 +31,13 @@ import {
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
-import { showAlert, showAlertWithGeneration } from '@/utils/alert';
+import { showAlert } from '@/utils/alert';
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuthContext: vi.fn() }));
 vi.mock('@/contexts/ServiceContext', () => ({ useServices: vi.fn() }));
 vi.mock('@/utils/alert', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/utils/alert')>()),
   showAlert: vi.fn(),
-  showAlertWithGeneration: vi.fn(),
 }));
 
 const ROLES: readonly RoleId[] = ['wolf', 'seer', 'villager'];
@@ -115,7 +114,7 @@ describe('GameRulesScreen', () => {
     });
 
     fireEvent.click(ruleSwitch('isPlagueMode'));
-    const buttons = vi.mocked(showAlertWithGeneration).mock.lastCall?.[2];
+    const buttons = vi.mocked(showAlert).mock.lastCall?.[2];
     const confirm = buttons?.find((button) => button.text === '确认开启');
     if (confirm?.onPress === undefined) throw new Error('Missing plague confirm button');
     void confirm.onPress();

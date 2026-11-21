@@ -10,6 +10,7 @@ import type {
   ApplyResolverResultAction,
   RecordActionAction,
 } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 import { vi } from 'vitest';
 
 import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
@@ -18,7 +19,7 @@ const baseContext: HandlerContext = {
   myUserId: 'HOST',
   mySeat: 0,
   state: {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,

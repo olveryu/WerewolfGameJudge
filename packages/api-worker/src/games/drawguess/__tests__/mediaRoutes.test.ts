@@ -226,7 +226,6 @@ async function playToRoundEnd(
 ): Promise<{ readonly state: DrawGuessState; readonly controlledSeat: number | null }> {
   const dealt = await sendInternal(game.room, {
     type: 'drawguess.words.dealt',
-    gameSequence: game.state.gameSequence,
     turnIndex,
     choices: CHOICES,
   });

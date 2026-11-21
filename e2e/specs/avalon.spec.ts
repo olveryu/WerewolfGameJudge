@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { confirmAlert, pressAlertButton } from '../helpers/alerts';
+import { pressAlertButton } from '../helpers/alerts';
 import { anySeatTestId } from '../helpers/ui';
 import { HomePage } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
@@ -86,7 +86,6 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     const markBotsViewed = panel.getByTestId(TESTIDS.roomMarkBotsViewedButton);
     await expect(markBotsViewed).toHaveText('标记机器人已查看');
     await markBotsViewed.click();
-    await confirmAlert(hostPage, '标记机器人已查看？');
     await expect(panel).toBeVisible();
     await hostRoom.startGame();
 
@@ -137,7 +136,6 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
         });
       }
       await markBots.click();
-      await confirmAlert(hostPage, '标记机器人已确认？');
       await expect(panel).toBeVisible();
       await hostRoom.closeHostManagement();
       await expect(hostPage.getByTestId(TESTIDS.roomProgressIndicator)).toContainText(/第2步/);
@@ -278,9 +276,6 @@ async function confirmNightInfo(
   await infoButton.click();
   const modal = page.getByTestId(TESTIDS.alertModal);
   await expect(modal).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看信息？');
-  await expect(page.getByTestId(TESTIDS.alertButton(1))).toHaveText('查看');
-  await page.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText(expectedTitle);
   const message = await page.getByTestId(TESTIDS.alertMessage).innerText();
   expect(parseSeatNumbers(message)).toEqual([...expectedSeats].sort((a, b) => a - b));
@@ -464,7 +459,10 @@ interface VoteResultExpectation {
   readonly rows?: ReadonlyMap<number, '赞成' | '反对'>;
 }
 
-async function expectVoteResult(page: Page, expectation: VoteResultExpectation): Promise<void> {
+async function expectAndDismissVoteResult(
+  page: Page,
+  expectation: VoteResultExpectation,
+): Promise<void> {
   const panel = page.getByTestId(TESTIDS.avalonResultPanel('vote'));
   await expect(panel).toBeVisible({ timeout: 30_000 });
   const banner = expectation.approved
@@ -491,7 +489,6 @@ async function playQuestCard(page: Page, play: Play, role: RoleName): Promise<vo
   await page
     .getByTestId(play === 'success' ? TESTIDS.avalonQuestSuccess : TESTIDS.avalonQuestFail)
     .click();
-  await confirmAlert(page, '确认出牌？');
   await expect(modal).toContainText('已出牌', { timeout: 10_000 });
   await page.getByTestId(TESTIDS.avalonQuestClose).click();
   await expect(modal).toBeHidden({ timeout: 10_000 });
@@ -504,7 +501,10 @@ interface QuestResultExpectation {
   readonly failCount: number;
 }
 
-async function expectQuestResult(page: Page, expectation: QuestResultExpectation): Promise<void> {
+async function expectAndDismissQuestResult(
+  page: Page,
+  expectation: QuestResultExpectation,
+): Promise<void> {
   const panel = page.getByTestId(TESTIDS.avalonResultPanel('quest'));
   await expect(panel).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId(TESTIDS.avalonResultBanner('quest'))).toHaveText(
@@ -513,6 +513,8 @@ async function expectQuestResult(page: Page, expectation: QuestResultExpectation
   await expect(page.getByTestId(TESTIDS.avalonQuestResultCounts)).toHaveText(
     `成功牌 ${expectation.successCount} · 失败牌 ${expectation.failCount}`,
   );
+  await page.getByTestId(TESTIDS.avalonResultClose('quest')).click();
+  await expect(panel).toBeHidden({ timeout: 10_000 });
 }
 
 // ---------------------------------------------------------------------------
@@ -572,28 +574,53 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
     for (let seat = 0; seat < pages.length; seat += 1) {
       await castVote(pages[seat]!, script.ballots.get(seat)!);
       if (seat === 0) {
-        // 已投人数和未投票名单分别展示，名单也可在投票弹窗中查看。
-        const pending = Array.from({ length: PLAYER_COUNT - 1 }, (_, index) => `${index + 2}`).join(
-          '',
-        );
+        // 未投票名单全房公开：底部消息报已投计数 + 未投票座位，不再只给
+        // 已投票者看个人票；同一名单也出现在投票弹窗与顶部摘要条第二行。
+        const pending = Array.from(
+          { length: PLAYER_COUNT - 1 },
+          (_, index) => `${index + 2}号`,
+        ).join(' ');
         await waitForBottomActionMessage(pages[0]!);
         await expect(pages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
-          `已投 1/${PLAYER_COUNT}`,
+          `已投 1/${PLAYER_COUNT} · 未投票：${pending}`,
           { timeout: 10_000 },
         );
         await expect(pages[0]!.getByTestId(TESTIDS.avalonVotePendingSeats)).toBeVisible({
           timeout: 10_000,
         });
-        await expect(pages[0]!.getByTestId(TESTIDS.avalonHistorySummaryPendingSeats)).toHaveText(
-          `未投票：${pending}`,
-          { timeout: 10_000 },
-        );
+        await expect(pages[0]!.getByTestId(TESTIDS.avalonHistorySummaryPendingSeats)).toBeVisible({
+          timeout: 10_000,
+        });
       }
     }
   });
 
-  await test.step(`任务${script.round}：展示投票结果后自动推进`, async () => {
-    await Promise.all(pages.map((page) => expectVoteResult(page, script.voteResult)));
+  await test.step(`任务${script.round}：全员确认投票结果`, async () => {
+    await expectAndDismissVoteResult(pages[0]!, script.voteResult);
+    for (let seat = 0; seat < pages.length; seat += 1) {
+      const page = pages[seat]!;
+      await expect(page.getByTestId(TESTIDS.avalonResultPanel('vote'))).toBeVisible();
+      await page.getByTestId(TESTIDS.avalonResultClose('vote')).click();
+      if (seat < pages.length - 1) {
+        await expect(page.getByTestId(TESTIDS.avalonResultClose('vote'))).toHaveText(
+          '已确认，等待其他玩家',
+          { timeout: 10_000 },
+        );
+        await waitForPhase(page, 'voteResult');
+        await expect(page.getByTestId(TESTIDS.avalonQuestModal)).toHaveCount(0);
+        if (seat === 0) {
+          await expect(pages[1]!.getByTestId(TESTIDS.avalonVoteResultConfirmation)).toContainText(
+            `已确认 1 / ${PLAYER_COUNT}`,
+            {
+              timeout: 10_000,
+            },
+          );
+          await expect(pages[1]!.getByTestId(TESTIDS.avalonVoteResultConfirmation)).toContainText(
+            '等待：2号、3号、4号、5号、6号、7号、8号、9号、10号',
+          );
+        }
+      }
+    }
     await waitForResultPanelsClosed(pages, 'vote');
   });
 
@@ -604,8 +631,9 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
         await playQuestCard(pages[seat]!, play, roles[seat]!);
       }
     });
-    const questResult = script.questResult;
-    await Promise.all(pages.map((page) => expectQuestResult(page, questResult)));
+    // 结算面板 6 秒自动关闭：最后一张牌落地后先直奔房主页断言任务结果，
+    // 再等每个页面都已离开结算阶段、面板自动关闭。
+    await expectAndDismissQuestResult(pages[0]!, script.questResult);
     await waitForResultPanelsClosed(pages, 'quest');
   }
   return leaderSeat;
@@ -672,16 +700,20 @@ async function runLadyCheck(
   await expect(confirmModal).toBeHidden({ timeout: 10_000 });
   await waitForBottomActionMessage(bystanderPage);
   await expect(bystanderPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
-    new RegExp(
-      `^${holderSeat + 1} 号 · .+ 已选择查验 ${targetSeat + 1} 号 · .+，等待持有人确认结果$`,
-    ),
+    new RegExp(`^${holderSeat + 1} 号 · .+ 已选择查验 ${targetSeat + 1} 号 · .+，等待对方确认$`),
     { timeout: 10_000 },
   );
 
-  // 持有人确认结果前，湖仙尚未转交；被查验者看不到结果。
+  // 被查验者先在自己界面确认展示，持有人随后才看到结果。
+  const ackModal = targetPage.getByTestId(TESTIDS.avalonLadyAcknowledgeModal);
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toBeVisible();
   await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toHaveCount(0);
-  await expect(targetPage.getByTestId(TESTIDS.avalonLadyResultModal)).toHaveCount(0);
+  await expect(ackModal).toBeVisible({ timeout: 15_000 });
+  await expect(ackModal).toContainText(`${holderSeat + 1} 号`);
+  await targetPage.getByTestId(TESTIDS.avalonLadyAcknowledge).click();
+  await expect(ackModal).toBeHidden({ timeout: 10_000 });
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toBeVisible();
+  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toHaveCount(0);
 
   const resultModal = holderPage.getByTestId(TESTIDS.avalonLadyResultModal);
   await expect(resultModal).toBeVisible({ timeout: 15_000 });
@@ -690,8 +722,6 @@ async function runLadyCheck(
   );
   await holderPage.getByTestId(TESTIDS.avalonLadyResultClose).click();
   await expect(resultModal).toBeHidden({ timeout: 10_000 });
-  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(targetSeat, 'lady'))).toBeVisible();
-  await expect(bystanderPage.getByTestId(TESTIDS.seatMarker(holderSeat, 'lady'))).toHaveCount(0);
   return { holderSeat, targetSeat };
 }
 
@@ -927,7 +957,7 @@ test.describe('Avalon full game', () => {
         ));
 
       await test.step('对局记录：按任务分 tab 回看已结算轮次', async () => {
-        await hostPage.getByTestId(TESTIDS.avalonHistoryButton).click();
+        await hostPage.getByTestId(TESTIDS.avalonHistorySummary).click();
         await expect(hostPage.getByTestId(TESTIDS.avalonHistoryTab(1))).toBeVisible({
           timeout: 10_000,
         });
@@ -1048,8 +1078,9 @@ test.describe('Avalon full game', () => {
         await expect(hostReview).not.toContainText('查验结果只给当时持有人看');
         await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
         await expect(hostReview).toBeHidden();
-        await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).toContainText('本局结束');
-        await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText('坏人获胜');
+        await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText(
+          '本局结束 · 坏人获胜',
+        );
         // PR-B G-6: the ended wait lives only in the bottom panel of
         // seated non-host players (shared constant, no full stop);
         // the settlement section no longer repeats it for anyone and

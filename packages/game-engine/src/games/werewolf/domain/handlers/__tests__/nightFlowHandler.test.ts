@@ -36,10 +36,10 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type { EndNightAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 import { createSeededRng } from '@game-judge/game-engine/platform/random';
 
 import { maybeCreateWitchContextAction } from '../witchContext';
-import { settleWolfKillFromVotes } from '../wolfKillResolution';
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
 function handleAdvanceNight(intent: AdvanceNightIntent, context: HandlerContext) {
@@ -66,7 +66,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
  */
 function createOngoingState(overrides?: Partial<GameState>): GameState {
   const state: GameState = {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
@@ -380,7 +380,7 @@ describe('nightFlowHandler', () => {
         myUserId: null,
         mySeat: null,
         state: {
-          gameType: 'werewolf',
+          ...WEREWOLF_STATE_IDENTITY,
           roomCode: 'ROOM',
           hostUserId: 'HOST',
           status: GameStatus.Ongoing,
@@ -569,19 +569,20 @@ describe('nightFlowHandler', () => {
           nightStep: { kind: 'exhausted' },
           currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
         });
-        const settled = settleWolfKillFromVotes(
+        const witchContextAction = maybeCreateWitchContextAction(
+          'witchAction',
           baseState,
           createSeededRng('witch-command-seed:wolf-vote'),
         );
-        const settledState = {
-          ...baseState,
-          resolvedWolfKillTarget: settled.target,
-          resolvedWolfKillVerdict: settled.verdict,
-        };
-        const witchContextAction = maybeCreateWitchContextAction('witchAction', settledState);
         expect(witchContextAction).not.toBeNull();
+        // The advance step persists the witch context's target; the
+        // settlement command carries a different seed and must reuse it.
+        const state = {
+          ...baseState,
+          resolvedWolfKillTarget: witchContextAction!.payload.killedSeat,
+        };
         const context: HandlerContext = {
-          state: settledState,
+          state,
           myUserId: 'host-uid',
           mySeat: null,
         };
@@ -748,6 +749,35 @@ describe('nightFlowHandler', () => {
           type: 'tiePicked',
           targetSeat: contextTarget,
         });
+      });
+
+      it('reuses the witch context target for a pre-field room at settlement', () => {
+        const state = createOngoingState({
+          nightStep: { kind: 'exhausted' },
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+          witchContext: { killedSeat: 5, canSave: true, canPoison: true },
+        });
+        const context: HandlerContext = {
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = executeEndNight({ type: 'END_NIGHT' }, context, {
+          ...TEST_HANDLER_EXECUTION,
+          randomSeed: 'legacy-settlement-seed',
+        });
+        const success = expectSuccess(result);
+        const endNightAction = success.actions.find((a) => a.type === 'END_NIGHT');
+
+        expect(success.actions[0]).toEqual({
+          type: 'SET_RESOLVED_WOLF_KILL_TARGET',
+          payload: { target: 5, verdict: { type: 'tiePicked', targetSeat: 5 } },
+        });
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        if (endNightAction?.type === 'END_NIGHT') {
+          expect(endNightAction.payload.deaths).toContain(5);
+        }
       });
 
       it('persists the freshly settled tied target through the reducer', () => {

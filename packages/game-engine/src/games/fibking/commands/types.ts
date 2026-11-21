@@ -19,7 +19,6 @@ export type FibPublicCommand =
   | FibRoomCommand
   | { readonly type: 'fibking.config.update'; readonly numberOfPlayers: number }
   | { readonly type: 'fibking.game.restart'; readonly roundId: string; readonly wasEnded: boolean }
-  | { readonly type: 'fibking.review.complete'; readonly roundId: string }
   | { readonly type: 'fibking.roles.assign' }
   | { readonly type: 'fibking.role.viewed' }
   | { readonly type: 'fibking.bots.markAllBotsViewed' }

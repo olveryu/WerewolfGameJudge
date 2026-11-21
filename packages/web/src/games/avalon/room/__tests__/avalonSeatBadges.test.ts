@@ -119,11 +119,9 @@ function questPhaseSession() {
   }
   nowMs = armedVote.deadlineAt;
   sendSystem({ type: 'avalon.phase.settleExpired' });
-  const result = state.phase;
-  if (result.kind !== 'voteResult' || result.deadlineAt === null)
-    throw new Error('expected result');
-  nowMs = result.deadlineAt;
-  sendSystem({ type: 'avalon.phase.settleExpired' });
+  for (let seat = 0; seat < 5; seat += 1) {
+    send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
+  }
   if (state.phase.kind !== 'quest') throw new Error('expected quest phase');
   return {
     get state() {
@@ -632,14 +630,11 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) return;
       nowMs = phase.deadlineAt;
       sendSystem({ type: 'avalon.phase.settleExpired' });
-      const result = state.phase;
-      if (
-        (result.kind !== 'voteResult' && result.kind !== 'questResult') ||
-        result.deadlineAt === null
-      )
-        throw new Error('expected result countdown');
-      nowMs = result.deadlineAt;
-      sendSystem({ type: 'avalon.phase.settleExpired' });
+      if (phase.kind === 'vote') {
+        for (let seat = 0; seat < numberOfPlayers; seat += 1) {
+          send({ type: 'avalon.voteResult.confirm' }, seatUser(seat));
+        }
+      }
     };
     const seatUser = (seat: number) => (seat === 0 ? 'host' : `u${seat}`);
     for (let seat = 0; seat < numberOfPlayers; seat += 1) {
@@ -809,7 +804,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
       const target = (session.state.leaderSeat + 1) % numberOfPlayers;
       session.send({ type: 'avalon.lady.check', seat: target }, session.seatUser(holder));
       expect(ladySeats()).toEqual([holder]);
-      session.send({ type: 'avalon.lady.acknowledge' }, session.seatUser(holder));
+      session.send({ type: 'avalon.lady.acknowledge' }, session.seatUser(target));
       expect(ladySeats()).toEqual([target]);
       proposeTeam(session);
       expect(source().getSeat(target).indicators).toMatchObject({

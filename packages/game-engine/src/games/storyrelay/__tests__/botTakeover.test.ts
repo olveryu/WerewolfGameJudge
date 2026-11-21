@@ -150,7 +150,7 @@ describe('Story Relay bot takeover', () => {
     expect(decision.reason).toBe(REASON_CONTROLLED_SEAT_NOT_BOT);
   });
 
-  it('clears submitted fragments when the host restarts the round', () => {
+  it('preserves submitted fragments when the host aborts the round', () => {
     const session = botGame(false);
     for (let seat = 0; seat < 4; seat += 1) {
       session.send(
@@ -164,10 +164,17 @@ describe('Story Relay bot takeover', () => {
       );
     }
 
-    session.send({ type: 'storyrelay.game.restart', phaseRevision: session.state.phaseRevision });
+    session.send({ type: 'storyrelay.game.abort', phaseRevision: session.state.phaseRevision });
 
-    expect(session.state.phase).toBe('lobby');
-    expect(session.state.chains).toEqual([]);
+    expect(session.state.phase).toBe('aborted');
+    expect(session.state.chains).toHaveLength(4);
+    for (const chain of session.state.chains) {
+      expect(chain.entries).toHaveLength(1);
+      const entry = chain.entries[0]!;
+      expect(entry.kind).toBe('text');
+      if (entry.kind !== 'text') throw new Error('Expected a text entry');
+      expect(entry.text).toBe(`机器人${chain.originSeat}的独立稿件`);
+    }
   });
 });
 

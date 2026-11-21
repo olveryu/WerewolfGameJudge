@@ -22,7 +22,7 @@ export function RoomDialog({
   titleTestId,
   testId,
   isContentFlush = false,
-  dismissOnEscape = false,
+  allowEscape = false,
   onClose,
   children,
   footer,
@@ -33,7 +33,7 @@ export function RoomDialog({
   readonly testId?: string;
   /** Children print edge to edge (a full-bleed page) instead of inside the padded column. */
   readonly isContentFlush?: boolean;
-  readonly dismissOnEscape?: boolean;
+  readonly allowEscape?: boolean;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly footer: ReactNode;
@@ -45,13 +45,11 @@ export function RoomDialog({
       onOpenChange={(details) => {
         if (!details.open) onClose();
       }}
-      closeOnEscape={dismissOnEscape}
-      closeOnInteractOutside={false}
-      // These dialogs can outlive the confirmation alert that opened them. Escape is explicit;
-      // an outside interaction must not dismiss the nested room dialog.
-      onRequestDismiss={(event) => {
-        if (!dismissOnEscape) event.preventDefault();
-      }}
+      // Room dialogs open from a confirmation alert's action (the review's spoiler gate), so the
+      // layer stack records them as nested in that alert and would dismiss them when it closes.
+      // Mounted means open: only the dialog's own close paths may close it.
+      onRequestDismiss={(event) => event.preventDefault()}
+      {...(allowEscape ? { closeOnEscape: true, closeOnInteractOutside: false } : {})}
     >
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
@@ -78,7 +76,7 @@ export function RoomDialog({
             <div className="room-dialog-body" data-flush={isContentFlush}>
               {children}
             </div>
-            {footer !== null && <footer className="room-dialog-footer">{footer}</footer>}
+            <footer className="room-dialog-footer">{footer}</footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

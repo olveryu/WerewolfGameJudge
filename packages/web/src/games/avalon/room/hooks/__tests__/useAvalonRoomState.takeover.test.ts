@@ -26,7 +26,6 @@ import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
-import { alertStore, dismissAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 
 import { useAvalonRoomState } from '../useAvalonRoomState';
@@ -211,11 +210,6 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
     const markAction = findHostAction(result.current.shellModel.hostManagement, '标记机器人已查看');
     await act(async () => {
       markAction.onPress();
-      expect(dispatch).not.toHaveBeenCalled();
-      const confirmation = alertStore.getSnapshot();
-      if (confirmation === null) throw new Error('expected bot confirmation');
-      await confirmation.buttons.find((button) => button.text === '确定')?.onPress?.();
-      dismissAlert(confirmation.generation);
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.bots.markAllBotsViewed' },
@@ -233,16 +227,6 @@ describe('useAvalonRoomState takeover dispatch discipline', () => {
       throw new Error('view-role action missing or disabled');
     await act(async () => {
       viewRole.onPress();
-    });
-    const confirmation = alertStore.getSnapshot();
-    if (confirmation === null) throw new Error('expected role viewing confirmation');
-    await act(async () => {
-      await confirmation.buttons.find((button) => button.text === '查看')?.onPress?.();
-      dismissAlert(confirmation.generation);
-    });
-    expect(dispatch).not.toHaveBeenCalled();
-    await act(async () => {
-      result.current.roleViewing.close();
     });
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'avalon.role.viewed' },

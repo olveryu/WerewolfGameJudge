@@ -6,12 +6,8 @@
  * The shared core recovers complete authoritative batches in every phase.
  */
 
-import {
-  type AudioEffect,
-  type GameState,
-  GameStatus,
-  type WerewolfPublicCommand,
-} from '@game-judge/game-engine/games/werewolf/public';
+import type { AudioEffect } from '@game-judge/game-engine/games/werewolf/public';
+import type { WerewolfPublicCommand } from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
 import type { RoomAudioPlayerPort } from '@/features/room/audio/RoomAudioOrchestrator';
@@ -24,7 +20,6 @@ import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSes
 import { log } from '@/utils/logger';
 
 const werewolfRuntimeLog = log.extend('WerewolfRuntime');
-const requiresEntryGesture = (state: GameState): boolean => state.status === GameStatus.Ongoing;
 
 interface UseWerewolfAudioOrchestrationDeps {
   readonly session: WerewolfRoomSession;
@@ -69,6 +64,5 @@ export function useWerewolfAudioOrchestration({
     ackCommand,
     ackLabel: '播报确认',
     logger: werewolfRuntimeLog,
-    requiresEntryGesture,
   });
 }

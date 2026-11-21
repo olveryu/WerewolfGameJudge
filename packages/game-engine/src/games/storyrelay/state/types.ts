@@ -25,6 +25,7 @@ export const STORY_RELAY_PHASES = [
   'transition',
   'gallery',
   'ended',
+  'aborted',
 ] as const;
 
 export interface StoryRelayConfig {
@@ -118,6 +119,7 @@ export interface StoryRelayState extends BaseGameState<typeof STORY_RELAY_GAME_T
   readonly gallery: StoryRelayGallery | null;
   readonly revealSettlementPending: boolean;
   readonly completedAt: number | null;
+  readonly abortedAt: number | null;
 }
 
 export interface StoryRelayTask {

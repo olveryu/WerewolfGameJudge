@@ -1,9 +1,7 @@
-/** 任务结算面板：结论横幅、成功/失败牌数及确认。 */
+/** 任务结算面板：结论横幅 + 成功/失败牌数 + 6 秒自动关闭 + 手动关闭。 */
 
 import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalon/public';
-import { fireEvent, render } from '@testing-library/react';
-
-import { TESTIDS } from '@/testids';
+import { act, fireEvent, render } from '@testing-library/react';
 
 import { AvalonQuestResultPanel } from '../AvalonQuestResultPanel';
 
@@ -15,33 +13,15 @@ const ENTRY: AvalonQuestHistoryView = {
   approveCount: 5,
   rejectCount: 0,
   abstainCount: 0,
-  automatic: false,
   result: 'fail',
   successCount: 2,
   failCount: 1,
 };
 
-function renderPanel(
-  entry: AvalonQuestHistoryView = ENTRY,
-  rescue = {
-    remainingSeconds: 3 as number | null,
-    isOverdue: false,
-    isHost: false,
-    isSubmitting: false,
-    onRetry: vi.fn(),
-  },
-) {
-  const utils = render(
-    <AvalonQuestResultPanel
-      entry={entry}
-      remainingSeconds={rescue.remainingSeconds}
-      isOverdue={rescue.isOverdue}
-      isHost={rescue.isHost}
-      isSubmitting={rescue.isSubmitting}
-      onRetry={rescue.onRetry}
-    />,
-  );
-  return utils;
+function renderPanel(entry: AvalonQuestHistoryView = ENTRY) {
+  const onClose = vi.fn();
+  const utils = render(<AvalonQuestResultPanel entry={entry} onClose={onClose} />);
+  return { ...utils, onClose };
 }
 
 describe('AvalonQuestResultPanel', () => {
@@ -87,23 +67,19 @@ describe('AvalonQuestResultPanel', () => {
     expect(getByTestId('avalon-quest-result-banner')).toHaveTextContent('第 2 轮 · 任务成功');
   });
 
-  it('shows the remaining time without a dismiss action', () => {
-    const panel = renderPanel();
-    expect(panel.getByText('3 秒后继续')).toBeVisible();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(panel.getByTestId('avalon-quest-result-panel')).toBeVisible();
-    expect(panel.queryByRole('button', { name: '知道了' })).toBeNull();
-  });
-
-  it('shows a waiting-for-host hint to non-hosts when result settlement is overdue', () => {
-    const { getByTestId, queryByTestId } = renderPanel(ENTRY, {
-      remainingSeconds: 0,
-      isOverdue: true,
-      isHost: false,
-      isSubmitting: false,
-      onRetry: vi.fn(),
-    });
-    expect(getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent('等待房主处理');
-    expect(queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
+  it('closes from the button and automatically after 6 seconds', () => {
+    vi.useFakeTimers();
+    try {
+      const first = renderPanel();
+      fireEvent.click(first.getByTestId('avalon-quest-result-close'));
+      expect(first.onClose).toHaveBeenCalledTimes(1);
+      const second = renderPanel();
+      act(() => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(second.onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

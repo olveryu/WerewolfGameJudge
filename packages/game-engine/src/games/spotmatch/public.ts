@@ -32,7 +32,11 @@ export {
   type SpotmatchPublicStats,
 } from './publicStats';
 export { SPOTMATCH_STATE_CODEC } from './state/codec';
-export { parseSpotmatchConfig, parseSpotmatchState } from './state/parseState';
+export {
+  migratePersistedSpotmatchState,
+  parseSpotmatchConfig,
+  parseSpotmatchState,
+} from './state/parseState';
 export {
   DEFAULT_SPOTMATCH_CONFIG,
   getSpotmatchOccupiedSeatCount,
@@ -53,3 +57,4 @@ export {
   type SpotmatchPhaseKind,
   type SpotmatchState,
 } from './state/types';
+export { SPOTMATCH_STATE_IDENTITY, SPOTMATCH_STATE_VERSION } from './state/version';

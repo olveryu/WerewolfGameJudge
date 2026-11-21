@@ -64,7 +64,6 @@ function playTo(
   if (target === 'dealing') return state;
   asSystem({
     type: 'drawguess.words.dealt',
-    gameSequence: state.gameSequence,
     turnIndex: 0,
     choices: [
       { word: '大熊猫', pinyinInitials: 'd x m' },

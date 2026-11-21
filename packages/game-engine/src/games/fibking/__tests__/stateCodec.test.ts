@@ -2,6 +2,7 @@ import { assignFibRoles } from '../domain/roles';
 import { fibEngine } from '../engine';
 import { parseFibState } from '../state/parseState';
 import { FIB_MAX_PLAYERS, FIB_PREPARATION_STAGES } from '../state/types';
+import { FIB_STATE_VERSION } from '../state/version';
 
 const CREATE_CONTEXT = {
   roomCode: '2468',
@@ -97,6 +98,9 @@ describe('FibKing compact state and codec', () => {
     ).toThrow('a canonical non-negative integer key');
     expect(() => parseFibState({ ...state, gameType: 'werewolf' })).toThrow(
       'FibState.gameType must be fibking',
+    );
+    expect(() => parseFibState({ ...state, stateVersion: FIB_STATE_VERSION - 1 })).toThrow(
+      `FibState.stateVersion must be state version ${FIB_STATE_VERSION}`,
     );
   });
 

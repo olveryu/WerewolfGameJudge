@@ -164,7 +164,7 @@ const EXPECTED_CAPABILITIES: Readonly<Record<GameType, GameEngineCapabilities>> 
     botsAndTakeover: true,
     identityViewing: true,
     revealAnimation: true,
-    stageDeadline: true,
+    stageDeadline: false,
     audioOrchestration: true,
     wordLibrary: false,
     gallery: false,

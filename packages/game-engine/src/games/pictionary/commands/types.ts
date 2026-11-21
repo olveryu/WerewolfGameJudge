@@ -24,13 +24,16 @@ export type PictionaryCommandInput =
   | { readonly type: 'pictionary.task.empty.submit' }
   | { readonly type: 'pictionary.text.submit'; readonly text: string }
   | { readonly type: 'pictionary.drawing.reserve' }
+  | { readonly type: 'pictionary.game.abort' }
   | { readonly type: 'pictionary.phase.retrySettle' }
   | { readonly type: 'pictionary.gallery.pause' }
   | { readonly type: 'pictionary.gallery.resume' }
   | { readonly type: 'pictionary.gallery.advance' }
   | { readonly type: 'pictionary.gallery.rewind' }
   | { readonly type: 'pictionary.gallery.finish' }
-  | { readonly type: 'pictionary.game.restart' };
+  | { readonly type: 'pictionary.game.next' }
+  | { readonly type: 'pictionary.game.restart' }
+  | { readonly type: 'pictionary.game.returnToLobby' };
 
 export interface PictionaryTaskIdentity {
   readonly roundId: string;
@@ -53,13 +56,16 @@ type PhaseCommand = Extract<
   PictionaryCommandInput,
   {
     readonly type:
+      | 'pictionary.game.abort'
       | 'pictionary.phase.retrySettle'
       | 'pictionary.gallery.pause'
       | 'pictionary.gallery.resume'
       | 'pictionary.gallery.advance'
       | 'pictionary.gallery.rewind'
       | 'pictionary.gallery.finish'
-      | 'pictionary.game.restart';
+      | 'pictionary.game.next'
+      | 'pictionary.game.restart'
+      | 'pictionary.game.returnToLobby';
   }
 >;
 
@@ -88,13 +94,16 @@ export function createPictionaryCommand(
         chainId: task.chain.id,
       };
     }
+    case 'pictionary.game.abort':
     case 'pictionary.phase.retrySettle':
     case 'pictionary.gallery.pause':
     case 'pictionary.gallery.resume':
     case 'pictionary.gallery.advance':
     case 'pictionary.gallery.rewind':
     case 'pictionary.gallery.finish':
+    case 'pictionary.game.next':
     case 'pictionary.game.restart':
+    case 'pictionary.game.returnToLobby':
       return { ...command, roundId: state.roundId, phaseRevision: state.phaseRevision };
     default:
       return command;

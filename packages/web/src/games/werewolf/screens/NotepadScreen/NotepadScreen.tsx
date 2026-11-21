@@ -21,7 +21,6 @@ import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSes
 import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { requestAIChatMessage, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
-import { TESTIDS } from '@/testids';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import IconClipboardOutline from '~icons/ion/clipboard-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
@@ -140,7 +139,6 @@ export function WerewolfNotepad({
             onChange={(event) => notepad.setPublicNoteRight(event.target.value)}
             placeholder="投票记录"
             aria-label="投票记录"
-            data-testid={TESTIDS.werewolfNotepadVoteNotes}
           />
         </div>
       </section>
@@ -163,7 +161,7 @@ export function WerewolfNotepad({
       {editor}
     </div>
   ) : (
-    <RoomDialog title="笔记" onClose={surface.onClose} dismissOnEscape footer={actions}>
+    <RoomDialog title="笔记" onClose={surface.onClose} allowEscape footer={actions}>
       {editor}
     </RoomDialog>
   );

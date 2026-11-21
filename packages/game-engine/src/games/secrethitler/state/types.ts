@@ -73,32 +73,6 @@ export type SecrethitlerPublicAction = SecrethitlerPower;
 export type SecrethitlerEndReason =
   'liberalPolicies' | 'hitlerExecuted' | 'fascistPolicies' | 'hitlerElected';
 
-export interface SecrethitlerVotingPhase {
-  readonly kind: 'voting';
-  readonly presidentSeat: number;
-  readonly chancellorSeat: number;
-  readonly returnToSeat: number | null;
-  readonly votes: Readonly<Record<number, SecrethitlerVote>>;
-  readonly deadlineAt: number | null;
-}
-
-export interface SecrethitlerChancellorPhase {
-  readonly kind: 'legislativeChancellor';
-  readonly vetoRejected: boolean;
-  readonly presidentSeat: number;
-  readonly chancellorSeat: number;
-  readonly returnToSeat: number | null;
-  readonly hand: readonly SecrethitlerPolicy[];
-}
-
-export interface SecrethitlerVetoPhase {
-  readonly kind: 'vetoResponse';
-  readonly presidentSeat: number;
-  readonly chancellorSeat: number;
-  readonly returnToSeat: number | null;
-  readonly hand: readonly SecrethitlerPolicy[];
-}
-
 export type SecrethitlerPhase =
   | { readonly kind: 'lobby' }
   | { readonly kind: 'viewing' }
@@ -107,9 +81,14 @@ export type SecrethitlerPhase =
       readonly kind: 'election';
       readonly presidentSeat: number;
       readonly returnToSeat: number | null;
-      readonly preselectedChancellorSeat: number | null;
     }
-  | SecrethitlerVotingPhase
+  | {
+      readonly kind: 'voting';
+      readonly presidentSeat: number;
+      readonly chancellorSeat: number;
+      readonly returnToSeat: number | null;
+      readonly votes: Readonly<Record<number, SecrethitlerVote>>;
+    }
   | {
       readonly kind: 'legislativePresident';
       readonly presidentSeat: number;
@@ -117,17 +96,20 @@ export type SecrethitlerPhase =
       readonly returnToSeat: number | null;
       readonly hand: readonly SecrethitlerPolicy[];
     }
-  | SecrethitlerChancellorPhase
-  | SecrethitlerVetoPhase
   | {
-      readonly kind: 'publicResult';
-      readonly previous:
-        SecrethitlerVotingPhase | SecrethitlerChancellorPhase | SecrethitlerVetoPhase;
-      readonly policy: SecrethitlerPolicy | null;
-      readonly vetoApproved: boolean | null;
-      readonly chaosPolicy: SecrethitlerPolicy | null;
-      readonly chaosPolicyDeck: readonly SecrethitlerPolicy[] | null;
-      readonly deadlineAt: number;
+      readonly kind: 'legislativeChancellor';
+      readonly vetoRejected: boolean;
+      readonly presidentSeat: number;
+      readonly chancellorSeat: number;
+      readonly returnToSeat: number | null;
+      readonly hand: readonly SecrethitlerPolicy[];
+    }
+  | {
+      readonly kind: 'vetoResponse';
+      readonly presidentSeat: number;
+      readonly chancellorSeat: number;
+      readonly returnToSeat: number | null;
+      readonly hand: readonly SecrethitlerPolicy[];
     }
   | {
       readonly kind: 'executive';
@@ -135,11 +117,6 @@ export type SecrethitlerPhase =
       readonly returnToSeat: number | null;
       readonly power: SecrethitlerPower;
       readonly preview: readonly SecrethitlerPolicy[];
-    }
-  | {
-      readonly kind: 'investigationResult';
-      readonly presidentSeat: number;
-      readonly returnToSeat: number | null;
     }
   | {
       readonly kind: 'ended';
@@ -171,20 +148,6 @@ export interface SecrethitlerPublicHistory {
   readonly actions: readonly SecrethitlerActionRecord[];
 }
 
-export type SecrethitlerLastPublicResult =
-  | { readonly kind: 'government'; readonly approved: boolean }
-  | {
-      readonly kind: 'policy';
-      readonly policy: SecrethitlerPolicy;
-      readonly source: 'government' | 'chaos';
-    }
-  | { readonly kind: 'veto'; readonly approved: boolean }
-  | {
-      readonly kind: 'action';
-      readonly action: SecrethitlerPower;
-      readonly targetSeat: number | null;
-    };
-
 export const SECRETHITLER_PHASES = [
   'lobby',
   'viewing',
@@ -194,9 +157,7 @@ export const SECRETHITLER_PHASES = [
   'legislativePresident',
   'legislativeChancellor',
   'vetoResponse',
-  'publicResult',
   'executive',
-  'investigationResult',
   'ended',
 ] as const;
 export type SecrethitlerPhaseKind = (typeof SECRETHITLER_PHASES)[number];
@@ -216,7 +177,6 @@ export interface SecrethitlerState extends BaseGameState<typeof SECRETHITLER_GAM
   readonly roleViewedSeats: readonly number[];
   /** 已完成的对局序号（从 0 开始）；每次开局递增，用于结算幂等。 */
   readonly gameSequence: number;
-  readonly reviewCompletedUserIds: readonly string[];
   /** 终局结算 effect 恰好发出一次的标记。 */
   readonly xpSettled: boolean;
   /** 待播放的播报队列（共享 AudioEffect，音频 key 见各入队点）；房主播完提交 ack 后清空。 */
@@ -241,7 +201,6 @@ export interface SecrethitlerState extends BaseGameState<typeof SECRETHITLER_GAM
     readonly faction: SecrethitlerFaction;
   } | null;
   readonly history: SecrethitlerPublicHistory;
-  readonly lastPublicResult: SecrethitlerLastPublicResult | null;
 }
 
 export type SecrethitlerGameplayPatch = Pick<
@@ -259,7 +218,6 @@ export type SecrethitlerGameplayPatch = Pick<
   | 'investigatedSeats'
   | 'lastInvestigation'
   | 'history'
-  | 'lastPublicResult'
 >;
 
 /** Returns the seat held by a user, or null when they hold no seat. */

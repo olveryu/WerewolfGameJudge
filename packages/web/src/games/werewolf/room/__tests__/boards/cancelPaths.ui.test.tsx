@@ -21,6 +21,7 @@ import {
   requireBottomActionText,
   requireEmptyVoteText,
   RoomScreenTestHarness,
+  seatSelectionSubmitButton,
   startSeatSelection,
   type SubmitActionMock,
   successfulWerewolfCommand,
@@ -152,14 +153,15 @@ describe('Cancel Paths (cross-board)', () => {
       await startSeatSelection(view);
       await tapSeat(view, 1);
       await tapSeat(view, 2);
-      expect(harness.hasSeen('actionConfirm')).toBe(true);
-      await harness.pressButtonOnType('actionConfirm', '取消');
+      expect(seatSelectionSubmitButton(view)).toBeEnabled();
+      await cancelSeatSelection(view);
       expect(submitAction).not.toHaveBeenCalled();
 
+      await startSeatSelection(view);
       expect(view.getByText('已选 0 / 2 人')).toBeInTheDocument();
       await tapSeat(view, 5);
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(harness.eventsOfType('actionConfirm')).toHaveLength(1);
+      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
       expect(submitAction).not.toHaveBeenCalled();
     });
   });
@@ -175,7 +177,7 @@ describe('Cancel Paths (cross-board)', () => {
       await startSeatSelection(view);
       await tapSeat(view, 1);
       expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(harness.hasSeen('actionConfirm')).toBe(false);
+      expect(seatSelectionSubmitButton(view)).toHaveAttribute('aria-disabled', 'true');
       expect(submitAction).not.toHaveBeenCalled();
     });
   });

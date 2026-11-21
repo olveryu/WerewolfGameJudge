@@ -116,12 +116,7 @@ function lobbySession(): Session {
 function wordSelectSession(): Session {
   const session = lobbySession();
   session.send({ type: 'drawguess.game.begin' });
-  session.sendSystem({
-    type: 'drawguess.words.dealt',
-    gameSequence: session.state.gameSequence,
-    turnIndex: 0,
-    choices: CHOICES,
-  });
+  session.sendSystem({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
   if (session.state.phase.kind !== 'wordSelect') throw new Error('expected wordSelect');
   return session;
 }
@@ -170,7 +165,6 @@ function stateFor(phase: DrawGuessPhase['kind']): DrawGuessState {
         if (current.kind === 'wordSelect' && current.choices.length === 0) {
           session.sendSystem({
             type: 'drawguess.words.dealt',
-            gameSequence: session.state.gameSequence,
             turnIndex: session.state.turnIndex,
             choices: CHOICES,
           });

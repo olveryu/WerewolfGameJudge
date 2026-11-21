@@ -94,11 +94,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleEndNight(state, action);
     case 'CONFIRM_LAST_NIGHT_INFO':
       return { ...state, lastNightInfoConfirmed: true };
-    case 'COMPLETE_REVIEW':
-      return {
-        ...state,
-        reviewCompletedUserIds: [...(state.reviewCompletedUserIds ?? []), action.userId],
-      };
 
     // ── First-day sheriff election ──────────────────────
     case 'REGISTER_SHERIFF_CANDIDATE':
@@ -204,7 +199,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, nightReviewAllowedSeats: action.allowedSeats };
 
     case 'ADD_PIPER_REVEAL_ACK': {
-      const acks = state.piperRevealAcks;
+      const acks = state.piperRevealAcks ?? [];
       const seat = action.payload.seat;
       // Idempotent: ignore duplicate ack
       if (acks.includes(seat)) return state;
@@ -212,7 +207,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     }
 
     case 'ADD_CONVERSION_REVEAL_ACK': {
-      const acks = state.conversionRevealAcks;
+      const acks = state.conversionRevealAcks ?? [];
       const seat = action.payload.seat;
       // Idempotent: ignore duplicate ack
       if (acks.includes(seat)) return state;
@@ -227,7 +222,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     }
 
     case 'ADD_CUPID_LOVERS_REVEAL_ACK': {
-      const acks = state.cupidLoversRevealAcks;
+      const acks = state.cupidLoversRevealAcks ?? [];
       const seat = action.payload.seat;
       // Idempotent: ignore duplicate ack
       if (acks.includes(seat)) return state;
@@ -235,7 +230,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     }
 
     case 'ADD_WOLF_GIRL_CONFESSION_REVEAL_ACK': {
-      const acks = state.wolfGirlConfessionRevealAcks;
+      const acks = state.wolfGirlConfessionRevealAcks ?? [];
       const seat = action.payload.seat;
       // Idempotent: ignore duplicate ack
       if (acks.includes(seat)) return state;

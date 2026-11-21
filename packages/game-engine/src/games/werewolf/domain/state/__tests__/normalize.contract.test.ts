@@ -8,6 +8,7 @@
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 /**
  * List of all top-level fields of GameState (single source of truth)
@@ -20,6 +21,7 @@ import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/st
 const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Core required fields
   'gameType',
+  'stateVersion',
   'roomCode',
   'hostUserId',
   'status',
@@ -47,7 +49,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'pendingRevealAcks',
   'lastNightDeaths',
   'lastNightInfoConfirmed',
-  'reviewCompletedUserIds',
   'deathReasons',
 
   // First-day sheriff election
@@ -129,7 +130,7 @@ describe('normalizeState contract', () => {
   const createFullState = (): GameState => {
     return {
       // Core required fields
-      gameType: 'werewolf',
+      ...WEREWOLF_STATE_IDENTITY,
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Ongoing,
@@ -236,13 +237,11 @@ describe('normalizeState contract', () => {
     };
   };
 
-  it('should reject a missing pendingAudioEffects field', () => {
-    const incomplete = { ...createFullState() } as Record<string, unknown>;
-    delete incomplete['pendingAudioEffects'];
+  it('should default a missing pendingAudioEffects to an empty queue (legacy state)', () => {
+    const legacy = { ...createFullState() } as Record<string, unknown>;
+    delete legacy['pendingAudioEffects'];
 
-    expect(() => normalizeState(incomplete as unknown as GameState)).toThrow(
-      'missing required field: pendingAudioEffects',
-    );
+    expect(normalizeState(legacy as unknown as GameState).pendingAudioEffects).toEqual([]);
   });
 
   it('should preserve all GameState fields after normalization', () => {
@@ -281,7 +280,7 @@ describe('normalizeState contract', () => {
 
   it('should preserve undefined optional fields as undefined', () => {
     const minimalState: GameState = {
-      gameType: 'werewolf',
+      ...WEREWOLF_STATE_IDENTITY,
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Unseated,

@@ -95,6 +95,7 @@ describe('toPictionaryReviewDocument', () => {
       kicker: '🖼️ 第 1 轮 · 画册',
       fileStem: 'pictionary-ABCD-1',
       footer: '本局复盘由对局记录自动生成',
+      isAborted: false,
     });
   });
 
@@ -159,6 +160,27 @@ describe('toPictionaryReviewDocument', () => {
       text: MISSED_LEG_TEXT,
       isMissing: true,
     });
+  });
+
+  it('marks an aborted round and keeps only the legs handed in', () => {
+    const state = playPictionaryTestRound({ abortAtStep: 2 });
+    const document = build(state);
+    expect(document.isAborted).toBe(true);
+    const { pages } = serializeReviewDocument(document);
+    state.chains.forEach((chain, chainIndex) => {
+      expect(chain.entries).toHaveLength(2);
+      expect(pages[chainIndex]?.blocks).toEqual(chain.entries.map(expectedLeg));
+    });
+  });
+
+  it('prints an album that received nothing as one missing paragraph', () => {
+    const document = build(playPictionaryTestRound({ abortAtStep: 0 }));
+    expect(() => assertReviewDocument(document)).not.toThrow();
+    for (const page of document.pages) {
+      expect(page.blocks).toEqual([
+        { kind: 'paragraph', caption: null, text: '本册尚无已提交作品', isMissing: true },
+      ]);
+    }
   });
 
   it('continues a full-size album on numbered parts, opening on the first, never splitting a leg', () => {

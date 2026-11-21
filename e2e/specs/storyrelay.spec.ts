@@ -4,7 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
 import { closeAll, createColdRoomContext, createPlayerContexts } from '../fixtures/app.fixture';
-import { confirmAlert, pressAlertButton } from '../helpers/alerts';
+import { confirmAlert } from '../helpers/alerts';
 import { observeCommandFrames } from '../helpers/command-frames';
 import {
   closeReviewDialog,
@@ -293,9 +293,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
             );
           }
           await Promise.all(
-            fixture.pages.map(async (page) => {
-              await page.getByTestId(TESTIDS.storyRelayReady).click();
-            }),
+            fixture.pages.map((page) => page.getByTestId(TESTIDS.storyRelayReady).click()),
           );
           if (stepIndex < 3)
             await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toContainText(
@@ -351,13 +349,7 @@ test('four humans write four turns without restoring unsubmitted input and revea
           4,
         );
       });
-      await room.clickHostManagementAction(TESTIDS.restartButton);
-      await pressAlertButton(hostPage, {
-        title: '重新开始？',
-        buttonIndex: 1,
-        buttonLabel: '重新开始',
-      });
-      await room.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
+      await room.clickHostManagementActionAndConfirm(TESTIDS.nextRoundButton, '再来一局');
       await expect(hostPage.getByTestId(TESTIDS.storyRelayEditor)).toHaveValue('');
       await expect(hostPage.getByTestId(TESTIDS.storyRelayPreviousEntry)).toHaveCount(0);
     } finally {

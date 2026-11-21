@@ -106,6 +106,7 @@ function __GAME_PASCAL__RoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
+      showPlayerHand
 //#cap identityViewing
       configurationEntry={isPreGame ? null : { onOpen: openConfiguration }}
 //#end
@@ -181,12 +182,12 @@ function __GAME_PASCAL__RoomContent(
       gameOverlays={
         <>
           {information === 'guide' && (
-            <RoomDialog title="__GAME_DISPLAY_NAME__玩法" onClose={() => setInformation(null)} footer={null}>
+            <RoomDialog title="__GAME_DISPLAY_NAME__玩法" onClose={() => setInformation(null)} allowEscape footer={null}>
               <__GAME_PASCAL__Rules embedded />
             </RoomDialog>
           )}
           {information === 'configuration' && (
-            <RoomDialog title="本局配置" onClose={() => setInformation(null)} footer={null}>
+            <RoomDialog title="本局配置" onClose={() => setInformation(null)} allowEscape footer={null}>
               <p>{`__GAME_DISPLAY_NAME__（${config.numberOfPlayers}人）`}</p>
 //#cap identityViewing
               {board}

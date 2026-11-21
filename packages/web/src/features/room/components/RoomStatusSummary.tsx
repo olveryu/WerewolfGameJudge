@@ -1,6 +1,6 @@
 import './RoomStatusSummary.css';
 
-import { useId } from 'react';
+import { type ReactNode, useId } from 'react';
 
 import IconChevronForward from '~icons/ion/chevron-forward';
 
@@ -16,13 +16,12 @@ export function RoomStatusSummary({
   action,
   testId,
   pendingTestId,
-  className,
 }: {
   readonly summary: string;
   readonly detail?: string;
   readonly header?: {
     readonly title: string;
-    readonly prefix?: string;
+    readonly icon: ReactNode;
     readonly phase: string;
     readonly phaseTestId?: string;
   };
@@ -36,45 +35,34 @@ export function RoomStatusSummary({
   } | null;
   readonly testId?: string;
   readonly pendingTestId?: string;
-  readonly className?: string;
 }) {
   const summaryId = useId();
   const content = (
     <>
       {header !== undefined && (
-        <>
-          <span className="room-status-summary-context">
-            {header.prefix !== undefined && (
-              <>
-                <span>{header.prefix}</span> ·{' '}
-              </>
-            )}
-            <span>{header.title}</span>
+        <span className="room-status-summary-header">
+          <span className="room-status-summary-title-group">
+            <span className="room-status-summary-icon" aria-hidden>
+              {header.icon}
+            </span>
+            <span className="room-status-summary-title">{header.title}</span>
           </span>
-          <span
-            className="room-status-summary-phase"
-            aria-live="polite"
-            data-testid={header.phaseTestId}
-          >
+          <span className="room-status-summary-phase" data-testid={header.phaseTestId}>
             {header.phase}
           </span>
-        </>
-      )}
-      {(summary.length > 0 || action !== null) && (
-        <span className="room-status-summary-row">
-          {summary.length > 0 && (
-            <span className="room-status-summary-text" id={summaryId}>
-              {summary}
-            </span>
-          )}
-          {action !== null && (
-            <span className="room-status-summary-entry" data-testid={action.testId}>
-              {action.label}
-              <IconChevronForward aria-hidden />
-            </span>
-          )}
         </span>
       )}
+      <span className="room-status-summary-row">
+        <span className="room-status-summary-text" id={summaryId}>
+          {summary}
+        </span>
+        {action !== null && (
+          <span className="room-status-summary-entry" data-testid={action.testId}>
+            {action.label}
+            <IconChevronForward aria-hidden />
+          </span>
+        )}
+      </span>
       {detail !== undefined && <span className="room-status-summary-detail">{detail}</span>}
       {pendingSeats !== null && (
         <PendingSeatsRow label={pendingLabel} seats={pendingSeats} testId={pendingTestId} />
@@ -84,7 +72,7 @@ export function RoomStatusSummary({
   if (action === null) {
     return (
       <div
-        className={['room-status-summary', className].filter(Boolean).join(' ')}
+        className="room-status-summary"
         data-has-header={header !== undefined}
         data-testid={testId}
       >
@@ -95,10 +83,10 @@ export function RoomStatusSummary({
   return (
     <button
       type="button"
-      className={['room-status-summary', className].filter(Boolean).join(' ')}
+      className="room-status-summary"
       data-has-header={header !== undefined}
       aria-label={action.accessibleLabel}
-      aria-describedby={summary.length > 0 ? summaryId : undefined}
+      aria-describedby={summaryId}
       aria-haspopup="dialog"
       data-testid={testId}
       onClick={action.onOpen}

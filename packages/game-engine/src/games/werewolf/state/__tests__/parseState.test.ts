@@ -3,10 +3,11 @@ import { Team } from '../../domain/models/roles/spec/types';
 import type { GameState } from '../../domain/protocol/types';
 import { normalizeState } from '../../domain/state/normalize';
 import { parseWerewolfState } from '../parseState';
+import { WEREWOLF_STATE_IDENTITY } from '../version';
 
 function createFullState(): GameState {
   return {
-    gameType: 'werewolf',
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'host',
     status: GameStatus.Ended,
@@ -174,12 +175,12 @@ function createFullState(): GameState {
 }
 
 describe('parseWerewolfState', () => {
-  it('rejects a state missing pendingAudioEffects', () => {
+  it('defaults a missing pendingAudioEffects to an empty queue (legacy persisted state)', () => {
     const state = createFullState();
     const encoded = JSON.parse(JSON.stringify(state)) as Record<string, unknown>;
     delete encoded['pendingAudioEffects'];
 
-    expect(() => parseWerewolfState(encoded)).toThrow('pendingAudioEffects');
+    expect(parseWerewolfState(encoded).pendingAudioEffects).toEqual([]);
   });
 
   it('decodes every current GameState field from JSON', () => {
@@ -245,7 +246,7 @@ describe('parseWerewolfState', () => {
     });
   });
 
-  it('rejects an empty reveal effect', () => {
+  it('migrates the legacy empty reveal effect to the canonical room value', () => {
     const state = createFullState();
     const hostOccupant = state.roster[0];
     if (hostOccupant == null || !('profile' in hostOccupant)) {
@@ -259,10 +260,12 @@ describe('parseWerewolfState', () => {
       },
     };
 
-    expect(() => parseWerewolfState(encoded)).toThrow('revealEffect');
+    expect(parseWerewolfState(encoded).roster[0]).toMatchObject({
+      profile: { revealEffect: 'none' },
+    });
   });
 
-  it('rejects a payload carrying the legacy stepDeadline field', () => {
+  it('rejects a current-version payload carrying the legacy stepDeadline field', () => {
     const encoded = { ...createFullState(), stepDeadline: 2 };
 
     expect(() => parseWerewolfState(encoded)).toThrow(
@@ -270,7 +273,7 @@ describe('parseWerewolfState', () => {
     );
   });
 
-  it('rejects a payload carrying the legacy currentStepIndex field', () => {
+  it('rejects a current-version payload carrying the legacy currentStepIndex field', () => {
     const encoded = { ...createFullState(), currentStepIndex: -1 };
 
     expect(() => parseWerewolfState(encoded)).toThrow(
@@ -278,7 +281,7 @@ describe('parseWerewolfState', () => {
     );
   });
 
-  it('rejects a Day payload carrying the legacy currentStepId field', () => {
+  it('rejects a current-version Day payload carrying the legacy currentStepId field', () => {
     const encoded = {
       ...createFullState(),
       status: GameStatus.Day,
@@ -388,6 +391,17 @@ describe('parseWerewolfState', () => {
 
     expect(() => parseWerewolfState(encoded)).toThrow(
       'GameState.audioBatchId must be a non-negative integer',
+    );
+  });
+
+  it('rejects a different state version', () => {
+    const encoded = {
+      ...createFullState(),
+      stateVersion: WEREWOLF_STATE_IDENTITY.stateVersion - 1,
+    };
+
+    expect(() => parseWerewolfState(encoded)).toThrow(
+      `GameState.stateVersion must be ${WEREWOLF_STATE_IDENTITY.stateVersion}`,
     );
   });
 

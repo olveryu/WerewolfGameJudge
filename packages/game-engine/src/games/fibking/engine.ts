@@ -29,8 +29,7 @@ import {
   type PreparationStateSlice,
   resolvePreparationRetryPending,
 } from '../../platform/room/preparation';
-import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
-import { findRosterSeatByUserId, getHumanSeatMap } from '../../platform/room/seating';
+import { getHumanSeatMap } from '../../platform/room/seating';
 import type { FibCommand } from './commands/types';
 import { commitFib, type FibDecision } from './domain/decision';
 import type { FibEvent } from './domain/events';
@@ -70,6 +69,7 @@ import {
   isValidFibWord,
   type PendingFibRound,
 } from './state/types';
+import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
 
 function createRoundId(commandId: string): string {
   if (commandId.length === 0) {
@@ -404,13 +404,12 @@ function createInitialFibState(config: FibConfig, context: CreateGameContext): F
     );
   }
   return normalizeFibState({
-    gameType: FIBKING_GAME_TYPE,
+    ...FIB_STATE_IDENTITY,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     numberOfPlayers: config.numberOfPlayers,
     roster: {},
     usedWords: [],
-    reviewCompletedUserIds: [],
     phase: 'lobby',
     pendingRound: null,
     preparationFailure: null,
@@ -450,24 +449,6 @@ export function decideFibCommand(
       return decideFibRoom(state, command, context);
     case 'fibking.game.restart':
       return decideRestartFibGame(state, command, context);
-    case 'fibking.review.complete': {
-      const completion = resolveReviewCompletion({
-        context,
-        isEnded: state.phase === 'ended',
-        currentIdentity: state.round?.roundId ?? '',
-        expectedIdentity: command.roundId,
-        completedUserIds: state.reviewCompletedUserIds,
-        isEligible: (userId) =>
-          userId === state.hostUserId ||
-          findRosterSeatByUserId(state.roster, state.numberOfPlayers, userId) !== null,
-      });
-      if (completion.kind === 'reject') return reject(completion.reason);
-      return commitFib(
-        completion.kind === 'complete'
-          ? [{ type: 'fibking.review.completed', userId: completion.userId }]
-          : [],
-      );
-    }
     case 'fibking.roles.assign':
       return decideStartFibRound(state, context);
     case 'fibking.round.reveal':
@@ -493,6 +474,7 @@ export function decideFibCommand(
 
 export const fibEngine = {
   gameType: FIBKING_GAME_TYPE,
+  stateVersion: FIB_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

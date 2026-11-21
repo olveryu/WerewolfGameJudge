@@ -124,7 +124,7 @@ export function GameRulesScreen({ session, params, onRulesChange, dialog }: Game
         onClose={() => {
           if (!isSubmitting) dialog.onBack();
         }}
-        dismissOnEscape
+        allowEscape
         footer={submitControl}
       >
         {fields}

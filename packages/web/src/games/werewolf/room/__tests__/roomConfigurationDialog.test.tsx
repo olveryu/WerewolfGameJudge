@@ -184,7 +184,10 @@ describe('Werewolf room configuration', () => {
     expect(hand.getByRole('button', { name: '本局配置' })).toBeVisible();
     await startSeatSelection(view);
     const selectionHand = within(view.getByRole('group', { name: '行动手牌' }));
-    expect(selectionHand.queryByRole('button', { name: '确认选择' })).not.toBeInTheDocument();
+    expect(selectionHand.getByRole('button', { name: '确认选择' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     expect(selectionHand.getByRole('button', { name: '取消选座' })).toBeVisible();
     expect(selectionHand.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
@@ -196,7 +199,6 @@ describe('Werewolf room configuration', () => {
 
   it('switches the host and player hands in the same bottom panel', async () => {
     const view = await mountRoomFor({ ...actorStep('seerCheck', 'seer', 0), isHost: true });
-    await click(view.getByRole('button', { name: '继续游戏' }));
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
     await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
 

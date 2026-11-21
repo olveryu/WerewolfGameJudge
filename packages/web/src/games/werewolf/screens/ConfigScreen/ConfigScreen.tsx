@@ -220,7 +220,7 @@ export function ConfigScreen({
       <RoomDialog
         title={nominationDialog?.title ?? '房间设置'}
         onClose={requestClose}
-        dismissOnEscape
+        allowEscape
         footer={submit}
       >
         <div className="config-dialog-tools">
@@ -232,7 +232,7 @@ export function ConfigScreen({
           <RoomDialog
             title="选择板子"
             onClose={() => setIsPickerOpen(false)}
-            dismissOnEscape
+            allowEscape
             footer={null}
           >
             <BoardPickerScreen

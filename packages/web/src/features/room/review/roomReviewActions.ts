@@ -19,10 +19,9 @@ const REVIEW_ICON = 'document-text-outline';
  * availability: enabled with its press, or disabled with the reason the
  * viewer may not read it.
  */
-export type RoomReviewEntry = { readonly isPending?: boolean } & (
+export type RoomReviewEntry =
   | { readonly isEnabled: true; readonly onPress: () => void }
-  | { readonly isEnabled: false; readonly disabledReason: string }
-);
+  | { readonly isEnabled: false; readonly disabledReason: string };
 
 /** The review as a bottom button. A review is public to its readers, so the audience is `anyone`. */
 export function buildReviewBottomButton(

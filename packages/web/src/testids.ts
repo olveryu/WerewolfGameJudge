@@ -127,7 +127,6 @@ export const TESTIDS = {
   roomUserSettingsCard: 'room-user-settings-card',
   roomHostManagementButton: 'room-host-management-button',
   roomMoreActionsButton: 'room-more-actions-button',
-  roomHandUnavailableReason: 'room-hand-unavailable-reason',
   roomHostTaskCard: 'room-host-task-card',
   roomHostTaskEscapeButton: 'room-host-task-card-escape',
   roomHostManagementPanel: 'room-host-management-panel',
@@ -154,6 +153,7 @@ export const TESTIDS = {
   roomMarkBotsConfirmedButton: 'room-mark-bots-confirmed-button',
   roomSettingsOverlay: 'room-settings-overlay',
   assignRolesButton: 'assign-roles-button',
+  abortGameButton: 'abort-game-button',
   startGameButton: 'start-game-button',
   nextRoundButton: 'next-round-button',
   returnLobbyButton: 'return-lobby-button',
@@ -210,6 +210,7 @@ export const TESTIDS = {
   avalonResultPanel: (kind: 'vote' | 'quest') => `avalon-${kind}-result-panel`,
   avalonResultBanner: (kind: 'vote' | 'quest') => `avalon-${kind}-result-banner`,
   avalonResultBannerImage: (kind: 'vote' | 'quest') => `avalon-${kind}-result-banner-image`,
+  avalonResultClose: (kind: 'vote' | 'quest') => `avalon-${kind}-result-close`,
   avalonVoteResultCounts: 'avalon-vote-result-counts',
   avalonVoteResultSummary: 'avalon-vote-result-summary',
   avalonVoteResultConfirmation: 'avalon-vote-result-confirmation',
@@ -225,7 +226,6 @@ export const TESTIDS = {
 
   // Avalon history
   avalonHistorySummary: 'avalon-history-summary',
-  avalonHistoryButton: 'avalon-history-button',
   avalonHistorySummaryPendingSeats: 'avalon-history-summary-pending-seats',
   avalonHistoryOverlay: 'avalon-history-overlay',
   avalonHistoryTab: (round: number) => `avalon-history-tab-${round}`,
@@ -243,11 +243,6 @@ export const TESTIDS = {
 
   // Secret Hitler vote / policy cards
   secrethitlerVoteYes: 'secrethitler-vote-yes',
-  secrethitlerNominationModal: 'secrethitler-nomination-modal',
-  secrethitlerNominationCount: 'secrethitler-nomination-count',
-  secrethitlerNominationRow: (seat: number) => `secrethitler-nomination-row-${seat}`,
-  secrethitlerNominationCancel: 'secrethitler-nomination-cancel',
-  secrethitlerNominationConfirm: 'secrethitler-nomination-confirm',
   secrethitlerVoteNo: 'secrethitler-vote-no',
   secrethitlerPolicyCard: (
     action: 'discard' | 'enact',
@@ -261,7 +256,10 @@ export const TESTIDS = {
   sheriffElectionHud: 'sheriff-election-hud',
   sheriffElectionHudPhase: 'sheriff-election-hud-phase',
   sheriffDetailsButton: 'sheriff-details-button',
-  sheriffElectionDialog: 'sheriff-election-dialog',
+  sheriffDetailsCloseButton: 'sheriff-details-close-button',
+  sheriffElectionSheet: 'sheriff-election-sheet',
+  sheriffElectionInspector: 'sheriff-election-inspector',
+  sheriffElectionPhase: 'sheriff-election-phase',
   sheriffRegisteredSeats: 'sheriff-registered-seats',
   sheriffWithdrawnSeats: 'sheriff-withdrawn-seats',
   sheriffActiveCandidateSeats: 'sheriff-active-candidate-seats',
@@ -287,9 +285,6 @@ export const TESTIDS = {
   sheriffAbstainChip: (round: string, voterSeat: number) =>
     `sheriff-abstain-chip-${round}-${voterSeat}`,
   sheriffElectionResult: 'sheriff-election-result',
-  sheriffResultDialog: 'sheriff-result-dialog',
-  werewolfNotepadButton: 'werewolf-notepad-button',
-  werewolfNotepadVoteNotes: 'werewolf-notepad-vote-notes',
 
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',
@@ -451,8 +446,6 @@ export const TESTIDS = {
   // ShareReviewModal (werewolf: grant seats access to the review)
   shareReviewButton: 'share-review-button',
   shareReviewModal: 'share-review-modal',
-  shareReviewSeat: (seat: number) => `share-review-seat-${seat}`,
-  shareReviewConfirmButton: 'share-review-confirm-button',
 
   // QRCodeModal
   qrCodeModal: 'qr-code-modal',

@@ -43,6 +43,7 @@ import type {
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
+import { WEREWOLF_STATE_VERSION } from './version';
 
 function parseSeatOrNoTarget(value: unknown, path: string): number {
   const parsed = parseInteger(value, path);
@@ -156,7 +157,8 @@ function parsePlayer(value: unknown, path: string): Player {
 }
 
 function parseRevealEffect(value: unknown, path: string): string {
-  return parseNonEmptyString(value, path);
+  const revealEffect = parseString(value, path);
+  return revealEffect === '' ? 'none' : revealEffect;
 }
 
 function parseSeatKey(key: string, path: string): number {
@@ -868,51 +870,6 @@ function parseSheriffElection(value: unknown, path: string): SheriffElectionStat
         path,
       );
     }
-    case 'result': {
-      const next = parseObject(raw.next, `${path}.next`);
-      const parsedNext =
-        next.kind === 'final'
-          ? finishObject(
-              next,
-              {
-                kind: 'final' as const,
-                result: parseSheriffElectionResult(next.result, `${path}.next.result`),
-              },
-              `${path}.next`,
-            )
-          : next.kind === 'runoff'
-            ? finishObject(
-                next,
-                {
-                  kind: 'runoff' as const,
-                  candidateSeats: parseArray(
-                    next.candidateSeats,
-                    `${path}.next.candidateSeats`,
-                    parseSeat,
-                  ),
-                  speakingStartSeat: parseSeat(
-                    next.speakingStartSeat,
-                    `${path}.next.speakingStartSeat`,
-                  ),
-                  speakingDirection: parseSheriffSpeakingDirection(
-                    next.speakingDirection,
-                    `${path}.next.speakingDirection`,
-                  ),
-                },
-                `${path}.next`,
-              )
-            : fail(`${path}.next.kind`, 'final or runoff');
-      return finishObject(
-        raw,
-        {
-          ...common,
-          phase: 'result' as const,
-          deadline: parseInteger(raw.deadline, `${path}.deadline`),
-          next: parsedNext,
-        },
-        path,
-      );
-    }
     default:
       return fail(`${path}.phase`, 'a valid sheriff election phase');
   }
@@ -944,7 +901,7 @@ function parseSheriffElectionResult(value: unknown, path: string): SheriffElecti
   return fail(`${path}.kind`, 'elected or noSheriff');
 }
 
-/** Decode unknown JSON and reject state that does not match the current Werewolf state shape. */
+/** Decode unknown JSON and reject state that does not match the current Werewolf state version. */
 function parseNightStep(value: unknown, path: string): WerewolfNightStep | null {
   if (value === null) return null;
   const raw = parseObject(value, path);
@@ -973,6 +930,12 @@ export function parseWerewolfState(value: unknown): GameState {
         return fail('GameState.gameType', WEREWOLF_GAME_TYPE);
       }
       return WEREWOLF_GAME_TYPE;
+    })(),
+    stateVersion: (() => {
+      if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
+        return fail('GameState.stateVersion', String(WEREWOLF_STATE_VERSION));
+      }
+      return WEREWOLF_STATE_VERSION;
     })(),
     roomCode: parseNonEmptyString(raw.roomCode, 'GameState.roomCode'),
     hostUserId: parseNonEmptyString(raw.hostUserId, 'GameState.hostUserId'),
@@ -1041,11 +1004,6 @@ export function parseWerewolfState(value: unknown): GameState {
       raw.lastNightInfoConfirmed,
       'GameState.lastNightInfoConfirmed',
       parseBoolean,
-    ),
-    reviewCompletedUserIds: parseOptional(
-      raw.reviewCompletedUserIds,
-      'GameState.reviewCompletedUserIds',
-      (items, path) => parseArray(items, path, parseNonEmptyString),
     ),
     deathReasons: parseOptional(raw.deathReasons, 'GameState.deathReasons', parseDeathReasons),
     sheriffElection: parseOptional(
@@ -1121,11 +1079,12 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.actionRejected',
       parseActionRejected,
     ),
-    pendingAudioEffects: parseArray(
-      raw.pendingAudioEffects,
-      'GameState.pendingAudioEffects',
-      parseAudioEffect,
-    ),
+    // Legacy persisted states predate the queue field; a missing field
+    // decodes to an empty queue instead of failing the whole state.
+    pendingAudioEffects:
+      raw.pendingAudioEffects === undefined
+        ? []
+        : parseArray(raw.pendingAudioEffects, 'GameState.pendingAudioEffects', parseAudioEffect),
     ui: parseOptional(raw.ui, 'GameState.ui', parseUi),
     seerLabelMap: parseOptional(
       raw.seerLabelMap,
@@ -1193,4 +1152,97 @@ export function parseWerewolfState(value: unknown): GameState {
 
   finishObject(raw, parsed, 'GameState');
   return normalizeState(parsed);
+}
+
+/**
+ * Entry point for persisted state.
+ * v12–v18 payloads migrate to v19: v13 adds nothing the parser cannot
+ * default (resolvedWolfKillTarget / Verdict absent = unresolved); v14
+ * adds audioBatchId, which starts at 0 for a room whose queue was
+ * written before batches had ids; v15 re-addresses `actionRejected` to
+ * a seat, and the old user-id form is transient feedback that is simply
+ * dropped; v16 adds gameSequence, which starts at 0 for a room written
+ * before games were numbered; v17 adds the Wolf Girl confession record,
+ * whose ack list starts empty for every older payload. v18 replaces the
+ * old withdrawal-confirmation phase with candidate speech. v19 adds an
+ * optional acknowledgement, absent in older rooms. Payloads at v11 or
+ * older are still rejected, not migrated.
+ * @throws When the stored state carries any other version, or when the
+ * current-version payload is malformed.
+ */
+export function migratePersistedWerewolfState(value: unknown): GameState {
+  const raw = parseObject(value, 'GameState');
+  const migrateElection = (candidate: Record<string, unknown>): Record<string, unknown> => {
+    if (candidate.sheriffElection === undefined) return candidate;
+    const election = parseObject(candidate.sheriffElection, 'GameState.sheriffElection');
+    if (election.phase !== 'withdrawal') return candidate;
+    const registeredSeats = parseArray(
+      election.registeredSeats,
+      'GameState.sheriffElection.registeredSeats',
+      parseSeat,
+    );
+    const firstSeat = registeredSeats[0];
+    return {
+      ...candidate,
+      sheriffElection:
+        firstSeat === undefined
+          ? { ...election, phase: 'registration' }
+          : {
+              ...election,
+              phase: 'candidateSpeech',
+              speakingStartSeat: firstSeat,
+              speakingDirection: 'clockwise',
+            },
+    };
+  };
+  if (raw.stateVersion === 12 || raw.stateVersion === 13) {
+    const { actionRejected: _dropped, ...rest } = raw;
+    return parseWerewolfState(
+      migrateElection({
+        ...rest,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        audioBatchId: 0,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
+  }
+  if (raw.stateVersion === 14) {
+    const { actionRejected: _dropped, ...rest } = raw;
+    return parseWerewolfState(
+      migrateElection({
+        ...rest,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
+  }
+  if (raw.stateVersion === 15) {
+    return parseWerewolfState(
+      migrateElection({
+        ...raw,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        gameSequence: 0,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
+  }
+  if (raw.stateVersion === 16) {
+    return parseWerewolfState(
+      migrateElection({
+        ...raw,
+        stateVersion: WEREWOLF_STATE_VERSION,
+        wolfGirlConfessionRevealAcks: [],
+      }),
+    );
+  }
+  if (raw.stateVersion === 17)
+    return parseWerewolfState(migrateElection({ ...raw, stateVersion: WEREWOLF_STATE_VERSION }));
+  if (raw.stateVersion === 18)
+    return parseWerewolfState({ ...raw, stateVersion: WEREWOLF_STATE_VERSION });
+  if (raw.stateVersion !== WEREWOLF_STATE_VERSION) {
+    throw new Error(`Unsupported werewolf state version: ${String(raw.stateVersion)}`);
+  }
+  return parseWerewolfState(raw);
 }

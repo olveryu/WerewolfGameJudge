@@ -116,7 +116,7 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
     expect(audio.playEffect).not.toHaveBeenCalled();
   });
 
-  it.each([GameStatus.Seated, GameStatus.Day])(
+  it.each([GameStatus.Seated, GameStatus.Ongoing, GameStatus.Day])(
     'does not require recovery in %s without pending narration',
     async (status) => {
       const audio = createAudio();
@@ -128,34 +128,6 @@ describe('useWerewolfAudioOrchestration (werewolf ports)', () => {
       expect(result.current.isResumeRequired).toBe(false);
     },
   );
-
-  it('requires a gesture when the host re-enters a quiet night', async () => {
-    const audio = createAudio();
-    const { link } = createLink(buildWerewolfTestState({ status: GameStatus.Ongoing }));
-    const { result } = renderHook(() =>
-      useWerewolfAudioOrchestration({ session: link, isHost: true, audio }),
-    );
-    await flush();
-    expect(result.current.isResumeRequired).toBe(true);
-    expect(audio.playEffect).not.toHaveBeenCalled();
-    await act(async () => result.current.resumeAfterRejoin());
-    expect(result.current.isResumeRequired).toBe(false);
-    expect(link.dispatch).not.toHaveBeenCalled();
-  });
-
-  it('does not prompt when a host already in the room starts a quiet night', async () => {
-    const audio = createAudio();
-    const { link } = createLink(buildWerewolfTestState({ status: GameStatus.Seated }));
-    const { result } = renderHook(() =>
-      useWerewolfAudioOrchestration({ session: link, isHost: true, audio }),
-    );
-    act(() => {
-      link.publishRoom(
-        createRoomSnapshot(buildWerewolfTestState({ status: GameStatus.Ongoing }), 2),
-      );
-    });
-    expect(result.current.isResumeRequired).toBe(false);
-  });
 
   it('resumes the full engine queue, preserving closing cues and the queued seer label variant', async () => {
     const audio = createAudio();

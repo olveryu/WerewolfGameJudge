@@ -2,7 +2,7 @@
  * 返回房间不重弹结算揭晓（回归钉）：房间屏以含既存结算的中局快照挂载时，
  * 投票 / 任务 / 湖仙三面板都不得出现——那些结算在进房前就已存在，只作
  * 水位基线。只有挂载之后新发生的结算才弹一次；关闭后同一快照重渲染不
- * 再弹。未确认的湖仙结果在重连后仍须展示。
+ * 再弹。湖仙结果可用底部「查验结果」按钮主动重看（设计内行为，不误伤）。
  *
  * 状态一律经真实引擎命令驱动（createInitialState + 公开命令），快照经
  * 可变 fake session 推送，与生产订阅路径同形。
@@ -24,7 +24,6 @@ import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
-import { alertStore, dismissAlert } from '@/utils/alert';
 
 import type { AvalonRoomSession } from '../../model/AvalonRoomSession';
 import {
@@ -105,13 +104,7 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
   const send = (command: AvalonPublicCommand, userId = 'host') => apply(command, userId, null);
   const settle = () => {
     const phase = state.phase;
-    if (
-      (phase.kind !== 'vote' &&
-        phase.kind !== 'quest' &&
-        phase.kind !== 'voteResult' &&
-        phase.kind !== 'questResult') ||
-      phase.deadlineAt === null
-    ) {
+    if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
       throw new Error('expected an armed vote or quest countdown');
     }
     nowMs = phase.deadlineAt;
@@ -157,14 +150,18 @@ function drivenGame(numberOfPlayers: AvalonPlayerCount, botSeats: readonly numbe
 }
 
 /** Current leader proposes the first requiredSize seats; everyone casts `ballot`; countdown settles. */
-function settleVoteResult(game: DrivenGame): void {
-  game.settle();
+function confirmVoteResult(game: DrivenGame): void {
+  for (let seat = 0; seat < game.state.config.numberOfPlayers; seat += 1) {
+    if (!isBotSeat(game.state.roster, seat)) {
+      game.actAs(seat, { type: 'avalon.voteResult.confirm' });
+    }
+  }
 }
 
 function proposeAndSettleVote(
   game: DrivenGame,
   ballot: 'approve' | 'reject',
-  settleResult = true,
+  confirm = true,
 ): void {
   const phase = game.state.phase;
   if (phase.kind !== 'nominate') throw new Error(`expected nominate, got ${phase.kind}`);
@@ -176,18 +173,17 @@ function proposeAndSettleVote(
     game.actAs(seat, { type: 'avalon.team.vote', vote: ballot });
   }
   game.settle();
-  if (settleResult) settleVoteResult(game);
+  if (confirm) confirmVoteResult(game);
 }
 
 /** Every team member plays success; the countdown settles the quest. */
-function playQuestAndSettle(game: DrivenGame, settleResult = true): void {
+function playQuestAndSettle(game: DrivenGame): void {
   const phase = game.state.phase;
   if (phase.kind !== 'quest') throw new Error(`expected quest, got ${phase.kind}`);
   for (const seat of phase.teamSeats) {
     game.actAs(seat, { type: 'avalon.quest.play', play: 'success' });
   }
   game.settle();
-  if (settleResult) game.settle();
 }
 
 /** 5-player game after round 1: quest settled, back at nominate with the approval still projected. */
@@ -239,7 +235,7 @@ async function pushState(push: (nextState: AvalonState) => void, nextState: Aval
   });
 }
 
-describe('AvalonRoomScreen interactions and reveal replay', () => {
+describe('AvalonRoomScreen reveal replay guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
@@ -264,57 +260,6 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 
-  it('reveals an identity card only after confirmation and records the view after acknowledgement', async () => {
-    const game = drivenGame(5, []);
-    const { session } = createMutableSession(game.viewingState, 'host');
-    session.dispatch.mockResolvedValueOnce(
-      successfulRoomCommand(game.viewingState, 'role-viewed', 2),
-    );
-    const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
-
-    expect(view.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
-    fireEvent.click(view.getByRole('button', { name: '查看身份' }));
-
-    const prompt = alertStore.getSnapshot();
-    const revealButton = prompt?.buttons.find((button) => button.text === '查看');
-    expect(prompt?.title).toBe('查看身份？');
-    expect(view.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
-    if (prompt === null || revealButton?.onPress === undefined) {
-      throw new Error('Missing identity reveal confirmation');
-    }
-
-    await act(async () => revealButton.onPress?.());
-    act(() => dismissAlert(prompt.generation));
-    expect(view.getByTestId(TESTIDS.roleCardModal)).toBeVisible();
-    expect(session.dispatch).not.toHaveBeenCalled();
-
-    fireEvent.click(view.getByTestId(TESTIDS.roleCardConfirmButton));
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(session.dispatch).toHaveBeenCalledWith(
-      { type: 'avalon.role.viewed' },
-      expect.anything(),
-    );
-    expect(view.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
-  });
-
-  it('opens the public match record from a green hand card only after it becomes available', async () => {
-    const game = drivenGame(5, []);
-    const { session, push } = createMutableSession(game.viewingState, 'host');
-    const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
-    expect(view.queryByRole('button', { name: '对局记录' })).not.toBeInTheDocument();
-
-    await pushState(push, game.state);
-    const record = view.getByRole('button', { name: '对局记录' });
-    expect(record).toHaveAttribute('data-card-category', 'resource');
-    expect(view.getByTestId(TESTIDS.avalonHistorySummary).tagName).not.toBe('BUTTON');
-    fireEvent.click(record);
-    expect(view.getByRole('dialog', { name: '对局记录' })).toBeVisible();
-    fireEvent.click(view.getByTestId(TESTIDS.avalonHistoryClose));
-    expect(view.queryByRole('dialog', { name: '对局记录' })).not.toBeInTheDocument();
-  });
-
   it('does not replay the vote or quest result when entering mid-game', () => {
     const game = midGameAfterFirstQuest();
     const { session } = createMutableSession(game.state, 'host');
@@ -326,7 +271,7 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     unmount();
   });
 
-  it('keeps the vote result until the authoritative result deadline', async () => {
+  it('keeps the vote result visible until every player confirms', async () => {
     const game = midGameAfterFirstQuest();
     const { session, push } = createMutableSession(game.state, 'host');
     const { queryByTestId, getByTestId, rerender } = render(screenElement(session), {
@@ -339,7 +284,14 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     await pushState(push, game.state);
     expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
 
-    game.settle();
+    game.actAs(0, { type: 'avalon.voteResult.confirm' });
+    await pushState(push, game.state);
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
+
+    for (let seat = 1; seat < 5; seat += 1) {
+      game.actAs(seat, { type: 'avalon.voteResult.confirm' });
+    }
     await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
 
@@ -347,7 +299,7 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
   });
 
-  it('shows a live vote result over the guide and restores the guide afterwards', async () => {
+  it('lets the reader close the guide before showing a live vote result', async () => {
     const game = midGameAfterFirstQuest();
     const { session, push } = createMutableSession(game.state, 'host');
     const { queryByTestId, getByTestId, getByRole } = render(screenElement(session), {
@@ -359,11 +311,11 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
 
     proposeAndSettleVote(game, 'reject', false);
     await pushState(push, game.state);
-    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
-    game.settle();
-    await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
     expect(getByRole('dialog', { name: '阿瓦隆玩法' })).toBeVisible();
+
+    fireEvent.click(getByTestId(TESTIDS.roomDialogCloseButton));
+    expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
   });
 
   it('reveals vote and quest settlements after entry in snapshot order, each exactly once', async () => {
@@ -379,19 +331,17 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     await pushState(push, game.state);
     expect(getByTestId('avalon-vote-result-panel')).toBeTruthy();
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
-    settleVoteResult(game);
+    confirmVoteResult(game);
     await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
     expect(getByTestId('avalon-quest-modal')).toBeVisible();
 
-    playQuestAndSettle(game, false);
+    playQuestAndSettle(game);
     await pushState(push, game.state);
     expect(getByTestId('avalon-quest-result-panel')).toBeTruthy();
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
-    game.settle();
-    await pushState(push, game.state);
+    fireEvent.click(getByTestId('avalon-quest-result-close'));
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
-    expect(game.state.phase.kind).toBe('nominate');
 
     await pushState(push, game.state);
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
@@ -401,12 +351,14 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
   it('shows an outstanding vote result on reconnect', () => {
     const game = midGameAfterFirstQuest();
     proposeAndSettleVote(game, 'approve', false);
+    game.actAs(0, { type: 'avalon.voteResult.confirm' });
     const { session } = createMutableSession(game.state, 'host');
-    const { getByTestId, queryByTestId } = render(screenElement(session), {
+    const { getByTestId, getByText } = render(screenElement(session), {
       wrapper: AvalonRoomTestProviders,
     });
     expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
-    expect(queryByTestId('avalon-vote-result-close')).toBeNull();
+    expect(getByTestId('avalon-vote-result-close')).toBeDisabled();
+    expect(getByText('等待：2号、3号、4号、5号')).toBeVisible();
   });
 
   it('replaces an open voting dialog with the result without closing the new dialog', async () => {
@@ -443,23 +395,25 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     const holderSeat = game.state.phase.holderSeat;
     const targetSeat = (holderSeat + 1) % 9;
     game.actAs(holderSeat, { type: 'avalon.lady.check', seat: targetSeat });
-    game.actAs(holderSeat, { type: 'avalon.lady.acknowledge' });
-    if (game.state.ladyHistory.at(-1)?.targetSeat !== targetSeat) {
-      throw new Error('expected the lady check in public history');
-    }
+    game.actAs(targetSeat, { type: 'avalon.lady.acknowledge' });
+    if (game.state.lastLadyCheck === null) throw new Error('expected a lady check result');
     if (game.state.lastVoteResult === null) throw new Error('expected a projected vote result');
     if (game.state.questHistory.length !== 2) throw new Error('expected two settled quests');
 
     mockAuthUserId = seatUser(holderSeat);
     const { session, push } = createMutableSession(game.state, mockAuthUserId);
-    const { queryByTestId } = render(screenElement(session), {
+    const { queryByTestId, getByTestId } = render(screenElement(session), {
       wrapper: AvalonRoomTestProviders,
     });
     expect(queryByTestId('avalon-vote-result-panel')).toBeNull();
     expect(queryByTestId('avalon-quest-result-panel')).toBeNull();
     expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
 
-    expect(queryByTestId('avalon-lady-result-open')).toBeNull();
+    // 设计内主动重看：底部「查验结果」按钮强制重弹，关闭后不再出现。
+    fireEvent.click(getByTestId('avalon-lady-result-open'));
+    expect(getByTestId('avalon-lady-result-modal')).toBeTruthy();
+    fireEvent.click(getByTestId('avalon-lady-result-close'));
+    expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
     await pushState(push, game.state);
     expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
   });
@@ -476,22 +430,16 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
 
     mockAuthUserId = seatUser(holderSeat);
     const { session, push } = createMutableSession(game.state, mockAuthUserId);
-    const { queryByTestId, getByTestId, unmount } = render(screenElement(session), {
+    const { queryByTestId, getByTestId } = render(screenElement(session), {
       wrapper: AvalonRoomTestProviders,
     });
     expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
 
     game.actAs(holderSeat, { type: 'avalon.lady.check', seat: targetSeat });
+    game.actAs(targetSeat, { type: 'avalon.lady.acknowledge' });
     await pushState(push, game.state);
     expect(getByTestId('avalon-lady-result-modal')).toBeTruthy();
-    unmount();
-    const reconnected = createMutableSession(game.state, mockAuthUserId);
-    const resumed = render(screenElement(reconnected.session), {
-      wrapper: AvalonRoomTestProviders,
-    });
-    expect(resumed.getByTestId('avalon-lady-result-modal')).toBeVisible();
-    game.actAs(holderSeat, { type: 'avalon.lady.acknowledge' });
-    await pushState(reconnected.push, game.state);
-    expect(resumed.queryByTestId('avalon-lady-result-modal')).toBeNull();
+    fireEvent.click(getByTestId('avalon-lady-result-close'));
+    expect(queryByTestId('avalon-lady-result-modal')).toBeNull();
   });
 });

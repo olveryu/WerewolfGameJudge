@@ -44,24 +44,6 @@ describe('notepadRepository', () => {
     expect(readWerewolfNotepad(OWNER, nextRound, SEAT_COUNT)).toEqual({ kind: 'missing' });
   });
 
-  it('discards a prior board before validating its old seat range', () => {
-    storage.set(
-      getWerewolfNotepadStorageKey(OWNER),
-      JSON.stringify({
-        version: 1,
-        roundId: ROUND_ID,
-        state: {
-          ...createEmptyWerewolfNotepadState(),
-          playerNotes: { 12: 'old board seat' },
-        },
-      }),
-    );
-
-    expect(readWerewolfNotepad(OWNER, getWerewolfNotepadRoundId('round-b'), 9)).toEqual({
-      kind: 'stale',
-    });
-  });
-
   it('isolates the same room instance between users', () => {
     writeWerewolfNotepad(OWNER, ROUND_ID, SEAT_COUNT, {
       ...createEmptyWerewolfNotepadState(),

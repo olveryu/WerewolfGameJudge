@@ -7,6 +7,7 @@ interface TestState extends BaseGameState<'werewolf'> {
 
 const STATE: TestState = {
   gameType: 'werewolf',
+  stateVersion: 1,
   roomCode: '1234',
   hostUserId: 'host-1',
   value: 7,
@@ -14,6 +15,7 @@ const STATE: TestState = {
 
 const CODEC: GameStateCodec<TestState> = {
   gameType: 'werewolf',
+  stateVersion: 1,
   parse(value: unknown): TestState {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       throw new Error('TestState must be an object');
@@ -21,6 +23,7 @@ const CODEC: GameStateCodec<TestState> = {
     const raw = value as Record<string, unknown>;
     if (
       raw.gameType !== 'werewolf' ||
+      raw.stateVersion !== 1 ||
       typeof raw.roomCode !== 'string' ||
       typeof raw.hostUserId !== 'string' ||
       typeof raw.value !== 'number'
@@ -29,6 +32,7 @@ const CODEC: GameStateCodec<TestState> = {
     }
     return {
       gameType: raw.gameType,
+      stateVersion: raw.stateVersion,
       roomCode: raw.roomCode,
       hostUserId: raw.hostUserId,
       value: raw.value,
@@ -52,6 +56,7 @@ describe('RoomCommandResult protocol', () => {
       commandId: 'command-1',
       snapshot: {
         gameType: 'werewolf',
+        stateVersion: 1,
         revision: 3,
         state: STATE,
       },

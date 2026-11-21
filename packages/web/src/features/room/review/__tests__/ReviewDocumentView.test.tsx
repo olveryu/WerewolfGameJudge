@@ -59,6 +59,7 @@ describe('ReviewDocumentView page chrome', () => {
     expect(screen.getByText('🌙 第一夜 · 夜报')).toBeTruthy();
     expect(screen.getByText('本局复盘由对局记录自动生成')).toBeTruthy();
     expect(screen.queryByText(SHARE_TITLE)).toBeNull();
+    expect(screen.queryByText('未完成')).toBeNull();
   });
 
   it('adds the share title in export mode', () => {
@@ -74,6 +75,11 @@ describe('ReviewDocumentView page chrome', () => {
 
     renderPage(twoPageDocument(), { pageIndex: 1, mode: 'screen' });
     expect(screen.queryByText('第 2 篇 · 小红的画册 · 2/2')).toBeNull();
+  });
+
+  it('stamps an aborted round 未完成 on every surface', () => {
+    renderPage(reviewDocument({ isAborted: true }));
+    expect(screen.getByText('未完成')).toBeTruthy();
   });
 
   it('fails fast on a page the document does not have', () => {

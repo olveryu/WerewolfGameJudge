@@ -103,10 +103,6 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     gameSequence: z.number().int().nonnegative(),
   }),
   z.strictObject({
-    type: z.literal('werewolf.review.complete'),
-    gameSequence: z.number().int().nonnegative(),
-  }),
-  z.strictObject({
     type: z.literal('werewolf.board.nominate'),
     displayName: z.string().min(1),
     roles: z.array(roleIdSchema).readonly(),

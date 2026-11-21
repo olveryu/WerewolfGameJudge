@@ -1,6 +1,6 @@
 /**
  * The shared gallery album shell renders the heading, the entries through the caller's
- * renderEntry and the controls dock, and tail-follows in bottom mode.
+ * renderEntry, the controls dock, and the empty state, and tail-follows in bottom mode.
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -23,6 +23,7 @@ const shell = (follow: 'bottom' | 'none', list = entries) => (
     controls={<p>album controls</p>}
     testId="gallery-shell"
     listTestId="gallery-shell-list"
+    emptyContent={<p>empty album</p>}
   />
 );
 
@@ -39,6 +40,12 @@ describe('GalleryAlbumStage', () => {
       expect(screen.getByText('album controls')).toBeInTheDocument();
     },
   );
+
+  it('shows the empty content when there are no entries', () => {
+    render(shell('bottom', []));
+    expect(screen.getByText('empty album')).toBeInTheDocument();
+    expect(screen.queryByText('first entry')).toBeNull();
+  });
 });
 
 describe('GalleryAlbumStage follow behaviour', () => {

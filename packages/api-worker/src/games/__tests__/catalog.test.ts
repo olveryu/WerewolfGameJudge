@@ -14,7 +14,6 @@ import {
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
-import { avalonPublicCommandSchema } from '../avalon/schemas';
 import {
   type RegisteredWorkerGameHttpRoute,
   WORKER_GAME_CATALOG,
@@ -28,9 +27,7 @@ import {
   fibPublicCommandSchema,
 } from '../fibking/schemas';
 import { pictionaryMediaRoutes } from '../pictionary/mediaRoutes';
-import { secrethitlerPublicCommandSchema } from '../secrethitler/schemas';
 import { undercoverInventoryRoutes } from '../undercover/routes';
-import { undercoverPublicCommandSchema } from '../undercover/schemas';
 import { werewolfAiChatRoutes } from '../werewolf/aiChat/routes';
 import { werewolfEffectSchema } from '../werewolf/effects';
 import {
@@ -63,7 +60,6 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     templateRoles: ['villager'],
   },
   'werewolf.review.share': { type: 'werewolf.review.share', allowedSeats: [0] },
-  'werewolf.review.complete': { type: 'werewolf.review.complete', gameSequence: 0 },
   'werewolf.lastNightInfo.confirm': { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0 },
   'werewolf.board.nominate': {
     type: 'werewolf.board.nominate',
@@ -119,7 +115,6 @@ const VALID_FIB_PUBLIC_COMMAND_BY_TYPE = {
   },
   'fibking.config.update': { type: 'fibking.config.update', numberOfPlayers: 8 },
   'fibking.game.restart': { type: 'fibking.game.restart', roundId: 'round-1', wasEnded: false },
-  'fibking.review.complete': { type: 'fibking.review.complete', roundId: 'round-1' },
   'fibking.roles.assign': { type: 'fibking.roles.assign' },
   'fibking.role.viewed': { type: 'fibking.role.viewed' },
   'fibking.bots.markAllBotsViewed': { type: 'fibking.bots.markAllBotsViewed' },
@@ -251,32 +246,6 @@ describe('Worker game catalog', () => {
       { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0, extra: true },
     ]) {
       expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
-    }
-  });
-
-  it('accepts review completion only with a valid game identity and no supplied user', () => {
-    const cases = [
-      { schema: werewolfPublicCommandSchema, type: 'werewolf.review.complete', gameSequence: 1 },
-      { schema: avalonPublicCommandSchema, type: 'avalon.review.complete', gameSequence: 1 },
-      {
-        schema: secrethitlerPublicCommandSchema,
-        type: 'secrethitler.review.complete',
-        gameSequence: 1,
-      },
-    ];
-    for (const { schema, type, gameSequence } of cases) {
-      expect(schema.safeParse({ type, gameSequence }).success).toBe(true);
-      expect(schema.safeParse({ type }).success).toBe(false);
-      expect(schema.safeParse({ type, gameSequence: -1 }).success).toBe(false);
-      expect(schema.safeParse({ type, gameSequence, userId: 'other' }).success).toBe(false);
-    }
-    for (const [schema, type] of [
-      [fibPublicCommandSchema, 'fibking.review.complete'],
-      [undercoverPublicCommandSchema, 'undercover.review.complete'],
-    ] as const) {
-      expect(schema.safeParse({ type, roundId: 'round' }).success).toBe(true);
-      expect(schema.safeParse({ type, roundId: '' }).success).toBe(false);
-      expect(schema.safeParse({ type, roundId: 'round', userId: 'other' }).success).toBe(false);
     }
   });
 
