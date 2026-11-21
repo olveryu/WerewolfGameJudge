@@ -185,9 +185,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const room = new RoomPage(this.page);
     await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束发言？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await room.expectHostManagementClosed();
   }
 
   /** Close registration; the advance action asks the Host to confirm first. */
@@ -195,9 +193,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const room = new RoomPage(this.page);
     await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束报名？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await room.expectHostManagementClosed();
   }
 
   async voteFor(candidateSeat: number): Promise<void> {
@@ -351,7 +347,7 @@ export class SheriffElectionPage {
   async expectNoteDraftAndClose(text: string): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes)).toHaveValue(text);
     await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
-    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
+    await expect(this.page.getByTestId(TESTIDS.roomManualButton)).toBeFocused();
   }
 
   async expectCanVote(canVote: boolean): Promise<void> {

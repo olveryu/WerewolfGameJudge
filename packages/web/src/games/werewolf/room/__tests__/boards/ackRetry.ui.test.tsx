@@ -111,7 +111,7 @@ describe('night dialog retry on transport failure', () => {
     expect(submitAction).toHaveBeenNthCalledWith(2, { kind: 'target', target: 1 });
   });
 
-  it('returns to the action group after a pending seat submission fails', async () => {
+  it('returns to the main hand after a pending seat submission fails', async () => {
     let releaseSubmission: (() => void) | undefined;
     const submission = new Promise<void>((resolve) => {
       releaseSubmission = resolve;
@@ -141,7 +141,8 @@ describe('night dialog retry on transport failure', () => {
     await expect(pending).rejects.toMatchObject({ name: 'RoomCommandUndeliveredError' });
     await harness.pressButton('取消');
     await cancelSeatSelection(view);
-    expect(view.getByRole('button', { name: '返回' })).toBeVisible();
-    expect(view.getByRole('button', { name: '不用技能' })).toBeVisible();
+    expect(view.getByRole('group', { name: '行动手牌' })).toBeVisible();
+    expect(view.getByRole('button', { name: '预言家行动' })).toBeVisible();
+    expect(view.queryByRole('button', { name: '不用技能' })).not.toBeInTheDocument();
   });
 });

@@ -285,6 +285,8 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
             createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
           ),
         );
+        // Every host action returns to the main hand, so the host reopens management.
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
         const hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
         await click(hostHand.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
@@ -301,8 +303,9 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         await waitFor(() =>
           expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
         );
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
         if (election.phase === 'candidateSpeech') {
-          expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+          await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
           expect(
             within(screen.getByTestId(TESTIDS.roomHostManagementPanel)).getByTestId(
               TESTIDS.sheriffSelfDestructButton,
@@ -330,6 +333,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
       await harness.pressButton('确定查看');
       await harness.pressButton('知道了');
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       expect(screen.getByTestId(TESTIDS.shareReviewButton)).toHaveAttribute(
         'aria-disabled',
         'true',
@@ -386,7 +390,8 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           }),
         );
 
-        expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
         hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
         expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
         const choiceTestIds = new Set<string>([
@@ -417,7 +422,8 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         await click(hostHand.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
         await click(within(picker).getByRole('button', { name: '取消' }));
-        expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
         hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
         expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
 
@@ -481,6 +487,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
         ),
       );
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       await click(screen.getByTestId(TESTIDS.shareReviewButton));
       const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
       const playerSeats = within(picker).getAllByRole('checkbox');

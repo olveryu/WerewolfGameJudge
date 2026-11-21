@@ -60,7 +60,7 @@ describe('Witch Compound Sequence', () => {
   });
   afterEach(() => detachAlerts());
 
-  it('groups the choices under one pending entry and restores focus when returning', async () => {
+  it('groups the choices under one pending entry and returns to it after a choice', async () => {
     const view = await mount(
       witchWith(
         { killedSeat: 1, canSave: true, canPoison: true },
@@ -81,9 +81,8 @@ describe('Witch Compound Sequence', () => {
     await startSeatSelection(view);
     expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('2号被狼人袭击');
     await cancelSeatSelection(view);
-    expect(view.getByRole('button', { name: '返回' })).toHaveFocus();
-    await click(view.getByRole('button', { name: '返回' }));
-    expect(view.getByRole('button', { name: '女巫行动' })).toHaveFocus();
+    expect(view.queryByRole('button', { name: '返回' })).not.toBeInTheDocument();
+    expect(view.getByRole('button', { name: '女巫行动' })).toBeVisible();
   });
 
   it('keeps self-save locked with a reason while poison remains available', async () => {

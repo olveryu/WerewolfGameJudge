@@ -162,7 +162,7 @@ test.describe('Pictionary', () => {
         await expect(guide).toContainText('接龙流程');
         await hostPage.screenshot({ path: test.info().outputPath('pictionary-guide.png') });
         await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
-        await hostPage.getByTestId(TESTIDS.roomManualBackButton).click();
+        await expect(hostPage.getByTestId(TESTIDS.roomManualButton)).toBeFocused();
         await hostRoom.waitForReady('host');
 
         const roomCode = await hostRoom.getRoomCode();

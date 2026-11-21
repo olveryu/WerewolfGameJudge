@@ -26,7 +26,13 @@ function input(): RoomHandInput {
     directory: { main: [], manual: [], openConfiguration: null },
     share: { isAllowed: false, reason: null },
     selectionMode: undefined,
-    navigation: { openManual: press, openHost: press, openGroup: press, back: press },
+    navigation: {
+      openManual: press,
+      openHost: press,
+      openGroup: press,
+      back: press,
+      returnToMain: press,
+    },
   };
 }
 

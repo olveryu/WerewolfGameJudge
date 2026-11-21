@@ -538,14 +538,18 @@ describe('RoomShell stage content', () => {
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
     await user.click(within(hand).getByTestId(TESTIDS.roomManualButton));
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
-    await user.click(screen.getByTestId(TESTIDS.roomGuideButton('drawguess')));
-    expect(onOpenGuide).toHaveBeenCalledOnce();
     await user.keyboard('{Escape}');
     expect(screen.getByTestId(TESTIDS.roomManualButton)).toHaveFocus();
+    await user.click(screen.getByTestId(TESTIDS.roomManualButton));
+    // A dialog action closes the menu at once.
+    await user.click(screen.getByTestId(TESTIDS.roomGuideButton('drawguess')));
+    expect(onOpenGuide).toHaveBeenCalledOnce();
+    expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
+    expect(entry).toHaveFocus();
+    await user.click(entry);
     await user.click(screen.getByTestId(TESTIDS.roomConfigurationButton));
     expect(onOpenConfiguration).toHaveBeenCalledOnce();
     view.rerender(stage);
-    await user.click(screen.getByTestId(TESTIDS.roomStageMenuBackButton));
 
     expect(entry).toHaveFocus();
     expect(screen.getByRole('textbox', { name: '舞台输入' })).toBe(input);
@@ -586,7 +590,7 @@ describe('RoomShell stage content', () => {
     await user.click(screen.getByTestId(TESTIDS.roomStageMenuButton));
     await user.click(screen.getByTestId(TESTIDS.restartButton));
     expect(onAbort).toHaveBeenCalledOnce();
-    expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
+    expect(screen.queryByTestId(TESTIDS.roomStageMenuPanel)).not.toBeInTheDocument();
   });
 
   it('does not reopen the host-management hand when actions become available again', async () => {

@@ -55,6 +55,7 @@ interface RoomHandNavigation {
   readonly openHost: () => void;
   readonly openGroup: (key: string) => void;
   readonly back: () => void;
+  readonly returnToMain: () => void;
 }
 
 export interface RoomHandInput {
@@ -124,6 +125,22 @@ function navigationCard(
     opensDialog: false,
     testID,
     containedActionTestIDs: [],
+  };
+}
+
+/** Every sub-hand action returns to the main hand. */
+function returningToMain(card: RoomHandCard, navigation: RoomHandNavigation): RoomHandCard {
+  if (card.state.kind !== 'ready') return card;
+  const { onPress } = card.state;
+  return {
+    ...card,
+    state: {
+      kind: 'ready',
+      onPress: () => {
+        navigation.returnToMain();
+        onPress();
+      },
+    },
   };
 }
 
@@ -237,7 +254,7 @@ function buildGroupCards(input: RoomHandInput, group: RoomPlayerActionGroup): Ro
       input.navigation.back,
       group.backTestID,
     ),
-    ...group.actions.map(playerCard),
+    ...group.actions.map((action) => returningToMain(playerCard(action), input.navigation)),
   ];
 }
 
@@ -278,7 +295,7 @@ function buildHostCards(input: RoomHandInput): RoomHandCard[] {
         task.body.action.key === action.key &&
         action.state.kind === 'ready';
       const isChoice = task?.body.kind === 'choice' && taskKeys.has(action.key);
-      return actionCard(`host-management:${action.key}`, action, {
+      const card = actionCard(`host-management:${action.key}`, action, {
         isPending: pendingKeys.includes(action.key),
         testID: isEscape
           ? TESTIDS.roomHostTaskEscapeButton
@@ -289,6 +306,7 @@ function buildHostCards(input: RoomHandInput): RoomHandCard[] {
                 ? `${TESTIDS.roomHostTaskCard}-${action.key}`
                 : undefined)),
       });
+      return returningToMain(card, input.navigation);
     }),
   ];
 }
@@ -304,7 +322,10 @@ function buildManualCards(input: RoomHandInput, menu: boolean): RoomHandCard[] {
       menu ? TESTIDS.roomStageMenuBackButton : TESTIDS.roomManualBackButton,
     ),
     ...input.directory.manual.map((action) =>
-      actionCard(`manual:${action.key}`, action, { fallbackIcon: 'book-outline' }),
+      returningToMain(
+        actionCard(`manual:${action.key}`, action, { fallbackIcon: 'book-outline' }),
+        input.navigation,
+      ),
     ),
   ];
 }
@@ -333,11 +354,13 @@ function buildMenuCards(input: RoomHandInput): RoomHandCard[] {
     );
   }
   if (input.directory.openConfiguration !== null) {
-    cards.push(configurationCard(input.directory.openConfiguration));
+    cards.push(
+      returningToMain(configurationCard(input.directory.openConfiguration), input.navigation),
+    );
   }
   for (const action of input.hostManagement?.actions ?? []) {
     if (action.stageMenuRole !== undefined)
-      cards.push(actionCard(`stage-menu:${action.key}`, action));
+      cards.push(returningToMain(actionCard(`stage-menu:${action.key}`, action), input.navigation));
   }
   return cards;
 }

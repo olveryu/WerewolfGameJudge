@@ -164,6 +164,11 @@ export class RoomPage {
     const close = this.page.getByTestId(TESTIDS.roomHostManagementCloseButton);
     await expect(close).toHaveAccessibleName('返回');
     await close.click();
+    await this.expectHostManagementClosed();
+  }
+
+  /** Assert every host action has already returned the hand to the main hand. */
+  async expectHostManagementClosed(): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }
 
@@ -214,10 +219,6 @@ export class RoomPage {
 
   /** Click a viewer action whether it is focused at the bottom or expanded in the shared surface. */
   async clickRoomAction(actionTestID: string): Promise<void> {
-    // A host-started seat selection returns to host management, which hides the main hand.
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await this.closeHostManagement();
-    }
     const bottomAction = this.page.getByTestId(actionTestID);
     if ((await bottomAction.count()) > 0) {
       await bottomAction.click();
@@ -341,9 +342,7 @@ export class RoomPage {
     if (previousPhase === null) throw new Error('Room header has no current phase');
     await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
     await expect(header).not.toHaveAttribute('data-phase', previousPhase, { timeout: 15_000 });
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await this.closeHostManagement();
-    }
+    await this.expectHostManagementClosed();
   }
 
   /** Confirm restart and wait for the role-assignment action. */

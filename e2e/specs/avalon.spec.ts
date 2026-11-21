@@ -87,7 +87,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
     await expect(markBotsViewed).toHaveText('标记机器人已查看');
     await markBotsViewed.click();
     await confirmAlert(hostPage, '标记机器人已查看？');
-    await expect(panel).toBeVisible();
+    await hostRoom.expectHostManagementClosed();
     await hostRoom.startGame();
 
     await test.step('Auto-play actual music, then preserve a manual pause across a night step', async () => {
@@ -138,8 +138,7 @@ test('Avalon host tools, real BGM playback and abort preserve the room', async (
       }
       await markBots.click();
       await confirmAlert(hostPage, '标记机器人已确认？');
-      await expect(panel).toBeVisible();
-      await hostRoom.closeHostManagement();
+      await hostRoom.expectHostManagementClosed();
       await expect(hostPage.getByTestId(TESTIDS.roomProgressIndicator)).toContainText(/第2步/);
       await expect(hostPage.getByTestId(TESTIDS.bgmToggleButton)).toHaveAccessibleName('播放音乐');
       await hostPage.getByTestId(TESTIDS.bgmToggleButton).click();
