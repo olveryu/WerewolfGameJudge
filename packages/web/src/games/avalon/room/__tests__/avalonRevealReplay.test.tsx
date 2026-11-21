@@ -315,6 +315,68 @@ describe('AvalonRoomScreen interactions and reveal replay', () => {
     expect(view.queryByRole('dialog', { name: '对局记录' })).not.toBeInTheDocument();
   });
 
+  it.each(['lady', 'assassin'] as const)(
+    'keeps the information hand available while the %s chooses a player',
+    (selection) => {
+      const game = drivenGame(selection === 'lady' ? 9 : 5, []);
+      const rounds = selection === 'lady' ? 2 : 3;
+      for (let round = 0; round < rounds; round += 1) {
+        proposeAndSettleVote(game, 'approve');
+        playQuestAndSettle(game);
+      }
+
+      let activeSeat: number | undefined;
+      if (selection === 'lady') {
+        if (game.state.phase.kind !== 'lady') throw new Error('expected the lady phase');
+        activeSeat = game.state.phase.holderSeat;
+      } else {
+        if (game.state.phase.kind !== 'assassin') throw new Error('expected the assassin phase');
+        activeSeat = Array.from({ length: 5 }, (_, seat) => seat).find(
+          (seat) => game.state.roles[seat] === 'assassin',
+        );
+      }
+      if (activeSeat === undefined) throw new Error('expected the active player');
+
+      mockAuthUserId = seatUser(activeSeat);
+      const { session } = createMutableSession(game.state, mockAuthUserId);
+      const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
+
+      expect(view.getByRole('button', { name: '对局记录' })).toBeVisible();
+      expect(view.getByTestId(TESTIDS.roomManualButton)).toBeVisible();
+      fireEvent.click(view.getByRole('button', { name: '本局配置' }));
+      expect(view.getByRole('dialog', { name: '本局配置' })).toBeVisible();
+    },
+  );
+
+  it('keeps host management available while the host acts as the assassin', async () => {
+    const game = drivenGame(5, [1, 2, 3, 4]);
+    for (let round = 0; round < 3; round += 1) {
+      proposeAndSettleVote(game, 'approve');
+      playQuestAndSettle(game);
+    }
+    if (game.state.phase.kind !== 'assassin') throw new Error('expected the assassin phase');
+    const assassinSeat = Array.from({ length: 5 }, (_, seat) => seat).find(
+      (seat) => game.state.roles[seat] === 'assassin',
+    );
+    if (assassinSeat === undefined) throw new Error('expected the assassin');
+
+    const { session } = createMutableSession(game.state, 'host');
+    const view = render(screenElement(session), { wrapper: AvalonRoomTestProviders });
+    if (assassinSeat !== 0) {
+      const botSeat = view.getByTestId(TESTIDS.seatTilePressable(assassinSeat));
+      fireEvent.pointerDown(botSeat);
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      fireEvent.pointerUp(botSeat);
+      expect(view.getByTestId(TESTIDS.controlledSeatBanner)).toBeVisible();
+    }
+
+    expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
+    fireEvent.click(view.getByTestId(TESTIDS.roomMoreActionsButton));
+    expect(view.getByTestId(TESTIDS.restartButton)).toBeVisible();
+  });
+
   it('does not replay the vote or quest result when entering mid-game', () => {
     const game = midGameAfterFirstQuest();
     const { session } = createMutableSession(game.state, 'host');
