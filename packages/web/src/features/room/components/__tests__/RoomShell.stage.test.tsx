@@ -321,7 +321,7 @@ describe('RoomShell stage content', () => {
           beforeSeatBoard: <></>,
           afterSeatBoard: null,
         }}
-        selectionMode="host-task"
+        selectionMode={{ kind: 'host-task' }}
         actionSurface={isAudioPlaying ? 'hidden' : 'hand'}
         leadingExtraActions={null}
         trailingExtraActions={null}
@@ -406,7 +406,9 @@ describe('RoomShell stage content', () => {
                 }
           }
           actionSurface={afterTransition && transition === 'stage' ? 'menu' : 'hand'}
-          selectionMode={afterTransition && transition === 'seat selection' ? 'player' : undefined}
+          selectionMode={
+            afterTransition && transition === 'seat selection' ? { kind: 'host-task' } : undefined
+          }
           leadingExtraActions={null}
           trailingExtraActions={null}
           gameOverlays={null}

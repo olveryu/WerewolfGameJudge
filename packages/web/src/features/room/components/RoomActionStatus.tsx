@@ -45,7 +45,7 @@ function resolveStatusMessage(
   selectionBody: NonNullable<ReturnType<typeof resolveHostTaskView>>['body'] | null,
 ): string | null {
   if (isAudioPlaying) return AUDIO_WAITING_LABEL;
-  return selectionMode === 'host-task' && selectionBody?.kind === 'message'
+  return selectionMode?.kind === 'host-task' && selectionBody?.kind === 'message'
     ? selectionBody.text
     : model.message;
 }
@@ -72,7 +72,7 @@ export function RoomActionStatus({
   };
 }) {
   const taskBody =
-    selectionMode === 'host-task' && hostManagement !== null
+    selectionMode?.kind === 'host-task' && hostManagement !== null
       ? resolveHostTaskView(hostManagement)?.body
       : null;
   const message = resolveStatusMessage(model, isAudioPlaying, selectionMode, taskBody ?? null);

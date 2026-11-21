@@ -18,13 +18,14 @@ type CardStyle = CSSProperties & {
 export function RoomActionHand({
   hand,
   focusCardId,
-  onFocusRestored,
+  onFocusTargetSettled,
   onBack,
   testId,
 }: {
   readonly hand: RoomHand;
   readonly focusCardId: string | null;
-  readonly onFocusRestored: () => void;
+  /** Clears the one-shot focus target once it is focused or absent from this hand. */
+  readonly onFocusTargetSettled: () => void;
   readonly onBack: () => void;
   readonly testId?: string;
 }) {
@@ -42,10 +43,16 @@ export function RoomActionHand({
       const isNavigationTarget = cardId === focusCardId;
       if (!isNavigationTarget) return;
       button.focus({ preventScroll: true });
-      onFocusRestored();
+      onFocusTargetSettled();
     },
-    [focusCardId, onFocusRestored],
+    [focusCardId, onFocusTargetSettled],
   );
+  // An entry that left with the phase gets no focus later, when a card with its id returns.
+  const isFocusTargetAbsent =
+    focusCardId !== null && !hand.cards.some((card) => card.id === focusCardId);
+  useEffect(() => {
+    if (isFocusTargetAbsent) onFocusTargetSettled();
+  }, [isFocusTargetAbsent, onFocusTargetSettled]);
   const style: HandStyle = { '--hand-card-count': hand.cards.length };
   return (
     <div

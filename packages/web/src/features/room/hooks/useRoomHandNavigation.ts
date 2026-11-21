@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { RoomHandFace, RoomSelectionMode } from '../model/RoomHand';
+import type { RoomHandFace } from '../model/RoomHand';
 
 type HandFace = 'main' | 'manual' | 'host' | { readonly kind: 'group'; readonly key: string };
 type MenuFace = 'closed' | 'menu' | 'menu-manual';
@@ -9,16 +9,22 @@ interface NavigationState {
   readonly hand: HandFace;
   readonly menu: MenuFace;
   readonly focus: string | null;
+  /** The main-hand card the latest action was launched from. */
+  readonly launchedFrom: string | null;
+  /** While seat selection replaces the hand: the entry that takes focus when it ends. */
+  readonly selection: { readonly returnFocus: string | null } | null;
+}
+
+/** Seat selection currently projected over the main hand. */
+export interface RoomHandSelection {
+  /** The card that leaves selection; null when the selection offers none. */
+  readonly escapeCardId: string | null;
 }
 
 /** The main-hand state with focus on the entry card that opened the current face. */
 function mainHandState(current: NavigationState): NavigationState {
   if (current.menu !== 'closed') {
-    return {
-      hand: current.hand,
-      menu: 'closed',
-      focus: 'stage-menu:trigger',
-    };
+    return { ...current, menu: 'closed', focus: 'stage-menu:trigger' };
   }
   const focus =
     current.hand === 'manual'
@@ -28,17 +34,18 @@ function mainHandState(current: NavigationState): NavigationState {
         : typeof current.hand === 'object'
           ? `group:${current.hand.key}`
           : null;
-  return { hand: 'main', menu: 'closed', focus };
+  return { ...current, hand: 'main', menu: 'closed', focus };
 }
 
 /**
  * Keeps hand and menu navigation in one place. Every action pressed on a
  * sub-hand or the stage menu returns to the main hand at once. Seat selection
- * projects the main hand without changing the remembered hand.
+ * projects the main hand without changing the remembered hand; it takes focus
+ * on its escape card and hands it back to the entry it was launched from.
  */
 export function useRoomHandNavigation(input: {
   readonly surface: 'hand' | 'menu' | 'hidden';
-  readonly selectionMode: RoomSelectionMode | undefined;
+  readonly selection: RoomHandSelection | null;
   readonly hasManual: boolean;
   readonly hasHost: boolean;
   readonly groupKey: string | null;
@@ -47,6 +54,8 @@ export function useRoomHandNavigation(input: {
     hand: 'main',
     menu: 'closed',
     focus: null,
+    launchedFrom: null,
+    selection: null,
   });
   let hand = state.hand;
   let menu = state.menu;
@@ -54,20 +63,32 @@ export function useRoomHandNavigation(input: {
     hand = 'main';
   }
   if (
-    input.selectionMode === undefined &&
+    input.selection === null &&
     ((hand === 'manual' && !input.hasManual) || (hand === 'host' && !input.hasHost))
   ) {
     hand = 'main';
   }
   if (input.surface !== 'menu') menu = 'closed';
+  let next = state;
   if (hand !== state.hand || menu !== state.menu) {
-    setState({ hand, menu, focus: null });
+    next = { ...next, hand, menu, focus: null };
   }
+  if (input.selection !== null && next.selection === null) {
+    next = {
+      ...next,
+      focus: input.selection.escapeCardId,
+      launchedFrom: null,
+      selection: { returnFocus: next.launchedFrom },
+    };
+  } else if (input.selection === null && next.selection !== null) {
+    next = { ...next, focus: next.selection.returnFocus, selection: null };
+  }
+  if (next !== state) setState(next);
 
   const face: RoomHandFace =
     input.surface === 'menu' && menu !== 'closed'
       ? { kind: menu }
-      : input.selectionMode !== undefined
+      : input.selection !== null
         ? { kind: 'main' }
         : typeof hand === 'object' && hand.key !== input.groupKey
           ? { kind: 'main' }
@@ -115,7 +136,16 @@ export function useRoomHandNavigation(input: {
     });
   };
   /** Called when an action on a sub-hand or the stage menu is pressed. */
-  const returnToMain = () => setState(mainHandState);
+  const returnToMain = () =>
+    setState((current) => {
+      const next = mainHandState(current);
+      return { ...next, launchedFrom: next.focus };
+    });
+  /** Called when a main-hand card is pressed, so a selection it starts can return here. */
+  const launchFrom = (cardId: string) =>
+    setState((current) =>
+      current.launchedFrom === cardId ? current : { ...current, launchedFrom: cardId },
+    );
   const clearFocus = () =>
     setState((current) => (current.focus === null ? current : { ...current, focus: null }));
 
@@ -129,6 +159,7 @@ export function useRoomHandNavigation(input: {
     openMenu,
     back,
     returnToMain,
+    launchFrom,
     clearFocus,
   };
 }

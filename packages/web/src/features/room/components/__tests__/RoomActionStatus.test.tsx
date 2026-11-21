@@ -29,7 +29,9 @@ it('suppresses only a redundant message while keeping selection and audio instru
   expect(screen.queryByText('报名进行中')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: '警长竞选详情' })).toBeInTheDocument();
 
-  rerender(<RoomActionStatus {...props} selectionMode="player" />);
+  rerender(
+    <RoomActionStatus {...props} selectionMode={{ kind: 'player', escapeActionKey: 'cancel' }} />,
+  );
   expect(screen.getByText('报名进行中')).toBeInTheDocument();
   rerender(<RoomActionStatus {...props} isAudioPlaying />);
   expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');

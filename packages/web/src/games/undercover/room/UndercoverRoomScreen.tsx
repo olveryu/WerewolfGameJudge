@@ -114,7 +114,7 @@ function UndercoverRoomContent(
           ? { label: '分配角色', occupiedSeats: getUndercoverOccupiedSeatCount(state) }
           : null
       }
-      selectionMode={controls.isSelecting ? 'host-task' : undefined}
+      selectionMode={controls.isSelecting ? { kind: 'host-task' } : undefined}
       directory={{
         main: [],
         manual: [

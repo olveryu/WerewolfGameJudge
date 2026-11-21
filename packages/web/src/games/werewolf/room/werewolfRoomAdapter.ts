@@ -297,6 +297,9 @@ export function deriveWerewolfBottomProgress(state: GameState): NightStepProgres
 // Bottom actions
 // =============================================================================
 
+/** The player action that leaves night seat selection. */
+export const WEREWOLF_SEAT_SELECTION_ESCAPE_KEY = 'cancelSeatSelection';
+
 /** What a night button does when pressed; the hook maps each to a dialog or a submit. */
 export type NightButtonAction =
   | { readonly kind: 'startSeatSelection' }
@@ -614,7 +617,7 @@ export function createWerewolfPlayerActionList(
               ]
             : []),
           {
-            key: 'cancelSeatSelection',
+            key: WEREWOLF_SEAT_SELECTION_ESCAPE_KEY,
             label: '取消选座',
             tier: action !== null && action.min !== action.max ? 'secondary' : 'primary',
             action: { kind: 'cancelSeatSelection' },

@@ -31,7 +31,7 @@ it('focuses a group return card and returns on Escape', async () => {
     <RoomActionHand
       hand={hand}
       focusCardId="group:night-step:back"
-      onFocusRestored={vi.fn()}
+      onFocusTargetSettled={vi.fn()}
       onBack={onBack}
     />,
   );
@@ -39,4 +39,18 @@ it('focuses a group return card and returns on Escape', async () => {
   expect(back).toHaveFocus();
   await user.keyboard('{Escape}');
   expect(onBack).toHaveBeenCalledOnce();
+});
+
+it('settles a focus target whose card is absent so a later card with that id stays unfocused', () => {
+  const onFocusTargetSettled = vi.fn();
+  const hand: RoomHand = { face: { kind: 'main' }, label: '行动', cards: [] };
+  render(
+    <RoomActionHand
+      hand={hand}
+      focusCardId="action:startSeatSelection"
+      onFocusTargetSettled={onFocusTargetSettled}
+      onBack={vi.fn()}
+    />,
+  );
+  expect(onFocusTargetSettled).toHaveBeenCalledOnce();
 });

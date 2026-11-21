@@ -34,6 +34,7 @@ function input(): RoomHandInput {
       openGroup: press,
       back: press,
       returnToMain: press,
+      launchFrom: vi.fn(),
     },
   };
 }
@@ -111,7 +112,7 @@ describe('buildRoomHand', () => {
     const hand = buildRoomHand({
       ...base,
       face: { kind: 'host' },
-      selectionMode: 'host-task',
+      selectionMode: { kind: 'host-task' },
       hostManagement: {
         task: { kind: 'message', text: '选择座位', escapeActionKey: 'cancel' },
         actions: [host('cancel', { kind: 'ready', onPress: press })],
@@ -120,6 +121,22 @@ describe('buildRoomHand', () => {
     });
     expect(hand.face).toEqual({ kind: 'main' });
     expect(hand.cards.map((card) => card.id)).toEqual(['selection:cancel']);
+  });
+
+  it('rejects player seat selection whose escape card is missing', () => {
+    const base = input();
+    expect(() =>
+      buildRoomHand({
+        ...base,
+        selectionMode: { kind: 'player', escapeActionKey: 'cancelSeatSelection' },
+        playerActions: {
+          ...base.playerActions,
+          actions: [player('confirm', { kind: 'ready', onPress: press })],
+        },
+      }),
+    ).toThrow(
+      'Room phase "playing" selects seats without its escape card "action:cancelSeatSelection"',
+    );
   });
 
   it('projects a player group as one entry and exposes its actions only on that group face', () => {

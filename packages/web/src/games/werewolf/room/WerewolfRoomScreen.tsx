@@ -55,7 +55,11 @@ import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
 import { getSheriffWaitingMessage } from './day/sheriffElectionPlayerActions';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
-import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
+import {
+  createWerewolfBoardInfoSections,
+  isWerewolfSetup,
+  WEREWOLF_SEAT_SELECTION_ESCAPE_KEY,
+} from './werewolfRoomAdapter';
 
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 const STRATEGY_MATCH_THRESHOLD = 0.1;
@@ -182,7 +186,11 @@ function WerewolfRoomContent(
                   : '本局结束'
       }
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
-      selectionMode={night.seatSelection !== null ? 'player' : undefined}
+      selectionMode={
+        night.seatSelection !== null
+          ? { kind: 'player', escapeActionKey: WEREWOLF_SEAT_SELECTION_ESCAPE_KEY }
+          : undefined
+      }
       directory={{
         main: isSetup
           ? [

@@ -1,13 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 
-import type { RoomSelectionMode } from '../../model/RoomHand';
 import { useRoomHandNavigation } from '../useRoomHandNavigation';
 
 type Input = Parameters<typeof useRoomHandNavigation>[0];
 
 const initial: Input = {
   surface: 'hand',
-  selectionMode: undefined,
+  selection: null,
   hasManual: true,
   hasHost: true,
   groupKey: null,
@@ -31,7 +30,7 @@ describe('useRoomHandNavigation', () => {
       'group:night-step',
     ],
   ] as const)(
-    'returns from the %s hand to the main hand when an action is pressed',
+    'returns from the %s hand to the main hand and hands seat selection focus back to its entry',
     (_, open, focus) => {
       const groupInput = { ...initial, groupKey: 'night-step' };
       const { result, rerender } = renderHook((props: Input) => useRoomHandNavigation(props), {
@@ -41,11 +40,30 @@ describe('useRoomHandNavigation', () => {
       act(() => result.current.returnToMain());
       expect(result.current.face).toEqual({ kind: 'main' });
       expect(result.current.focus).toBe(focus);
-      rerender({ ...groupInput, selectionMode: 'host-task' satisfies RoomSelectionMode });
+      rerender({ ...groupInput, selection: { escapeCardId: 'selection:cancel' } });
+      expect(result.current.focus).toBe('selection:cancel');
+      act(() => result.current.clearFocus());
       rerender(groupInput);
       expect(result.current.face).toEqual({ kind: 'main' });
+      expect(result.current.focus).toBe(focus);
     },
   );
+
+  it('focuses the escape card of a selection launched from the main hand and returns to its card', () => {
+    const { result, rerender } = renderHook((props: Input) => useRoomHandNavigation(props), {
+      initialProps: initial,
+    });
+    act(() => result.current.launchFrom('action:startSeatSelection'));
+    rerender({ ...initial, selection: { escapeCardId: 'action:cancelSeatSelection' } });
+    expect(result.current.focus).toBe('action:cancelSeatSelection');
+    act(() => result.current.clearFocus());
+    rerender(initial);
+    expect(result.current.focus).toBe('action:startSeatSelection');
+    act(() => result.current.clearFocus());
+    rerender({ ...initial, selection: { escapeCardId: null } });
+    rerender(initial);
+    expect(result.current.focus).toBeNull();
+  });
 
   it('closes the stage menu when a menu action is pressed', () => {
     const { result } = renderHook(() => useRoomHandNavigation({ ...initial, surface: 'menu' }));

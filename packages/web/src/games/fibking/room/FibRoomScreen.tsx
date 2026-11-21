@@ -82,7 +82,7 @@ function FibRoomContent(
           ? { label: '分配角色', occupiedSeats: screen.occupiedSeatCount }
           : null
       }
-      selectionMode={screen.isGuessing ? 'host-task' : undefined}
+      selectionMode={screen.isGuessing ? { kind: 'host-task' } : undefined}
       directory={{
         main: [],
         manual: [

@@ -13,6 +13,7 @@ import {
   buildRoomHand,
   isSubmissionOwnedBy,
   type RoomHandDirectory,
+  selectionEscapeCardId,
 } from '@/features/room/model/RoomHand';
 import { isRoomPlayerActionModelEmpty } from '@/features/room/model/RoomPlayerActions';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -200,7 +201,10 @@ export function RoomShell({
   const share = model.capabilities.canShareRoom;
   const navigation = useRoomHandNavigation({
     surface: resolvedActionSurface,
-    selectionMode,
+    selection:
+      selectionMode === undefined
+        ? null
+        : { escapeCardId: selectionEscapeCardId(selectionMode, hostManagement) },
     hasManual: directory.manual.length > 0,
     hasHost: hostManagement !== null,
     groupKey: model.playerActions.group?.key ?? null,
@@ -359,7 +363,7 @@ export function RoomShell({
           <RoomActionHand
             hand={hand}
             focusCardId={navigation.focus}
-            onFocusRestored={navigation.clearFocus}
+            onFocusTargetSettled={navigation.clearFocus}
             onBack={navigation.back}
             testId={
               hand.face.kind === 'menu'

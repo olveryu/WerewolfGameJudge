@@ -35,7 +35,11 @@ import IconPause from '~icons/ion/pause';
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { AvalonGuide } from '../screens/AvalonGuideScreen';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
-import { createAvalonCurrentStatus, createAvalonHistorySummary } from './avalonRoomAdapter';
+import {
+  AVALON_EARLY_STRIKE_ACTION_KEY,
+  createAvalonCurrentStatus,
+  createAvalonHistorySummary,
+} from './avalonRoomAdapter';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -239,7 +243,11 @@ function AvalonRoomContent(
           ? { label: '分配角色', occupiedSeats: getAvalonOccupiedSeatCount(screen.state) }
           : null
       }
-      selectionMode={screen.strikePickMode ? 'player' : undefined}
+      selectionMode={
+        screen.strikePickMode
+          ? { kind: 'player', escapeActionKey: AVALON_EARLY_STRIKE_ACTION_KEY }
+          : undefined
+      }
       directory={{
         main:
           historySummary !== null && viewModel !== null

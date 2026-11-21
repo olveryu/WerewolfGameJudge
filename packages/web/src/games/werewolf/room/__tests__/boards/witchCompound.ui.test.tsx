@@ -80,9 +80,10 @@ describe('Witch Compound Sequence', () => {
     expect(view.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     await startSeatSelection(view);
     expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('2号被狼人袭击');
+    expect(view.getByRole('button', { name: '取消选座' })).toHaveFocus();
     await cancelSeatSelection(view);
     expect(view.queryByRole('button', { name: '返回' })).not.toBeInTheDocument();
-    expect(view.getByRole('button', { name: '女巫行动' })).toBeVisible();
+    expect(view.getByRole('button', { name: '女巫行动' })).toHaveFocus();
   });
 
   it('keeps self-save locked with a reason while poison remains available', async () => {

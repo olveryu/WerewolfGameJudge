@@ -56,6 +56,7 @@ import {
   SECRETHITLER_POWER_COPY,
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
+import { SECRETHITLER_GAME_ACTION_KEY } from './secrethitlerRoomAdapter';
 import { SecrethitlerRoomTracks } from './SecrethitlerRoomTracks';
 
 type SecrethitlerRoomScreenProps = GameRoomScreenProps<'secrethitler'> & {
@@ -103,7 +104,11 @@ function SecrethitlerRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
-      selectionMode={screen.isSelecting ? 'player' : undefined}
+      selectionMode={
+        screen.isSelecting
+          ? { kind: 'player', escapeActionKey: SECRETHITLER_GAME_ACTION_KEY }
+          : undefined
+      }
       phaseLabel={
         isLobby
           ? '待开局'

@@ -99,6 +99,9 @@ function avalonSeatLabel(state: AvalonState, seat: number): string {
   return `${seat + 1} 号 · ${name}`;
 }
 
+/** The assassin's early-strike action, which also leaves its seat selection. */
+export const AVALON_EARLY_STRIKE_ACTION_KEY = 'earlyStrike';
+
 /** 为共享资料卡控件返回公开的席位身份。 */
 const getAvalonProfileTarget = (state: AvalonState, seat: number): RoomProfileTarget | null =>
   getRoomProfileTarget(state.roster, seat);
@@ -490,7 +493,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       // 入口与座位盘点选提示；点选由 Screen 的 seatPickHandler 消费，选中
       // 后开刺杀二次确认。查看身份是局内常驻个人动作，已在上方入列。
       secondary.push({
-        key: 'earlyStrike',
+        key: AVALON_EARLY_STRIKE_ACTION_KEY,
         label: '取消刺杀',
         audience: 'participant',
         category: 'player',
@@ -507,7 +510,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       };
     }
     secondary.push({
-      key: 'earlyStrike',
+      key: AVALON_EARLY_STRIKE_ACTION_KEY,
       label: '刺杀',
       audience: 'participant',
       category: 'player',

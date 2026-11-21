@@ -14,7 +14,12 @@ import type { RoomCapability } from './RoomCapabilities';
 import { HOST_MANAGEMENT_LABEL, type RoomHostManagementModel } from './RoomHostManagement';
 import type { RoomPlayerActionModel } from './RoomPlayerActions';
 
-export type RoomSelectionMode = 'player' | 'host-task';
+/**
+ * Seat selection projected over the main hand. A player selection names the
+ * player action that leaves it; a host task's escape comes from its body.
+ */
+export type RoomSelectionMode =
+  { readonly kind: 'player'; readonly escapeActionKey: string } | { readonly kind: 'host-task' };
 
 export type RoomHandFace =
   | { readonly kind: 'main' }
@@ -56,6 +61,7 @@ interface RoomHandNavigation {
   readonly openGroup: (key: string) => void;
   readonly back: () => void;
   readonly returnToMain: () => void;
+  readonly launchFrom: (cardId: string) => void;
 }
 
 export interface RoomHandInput {
@@ -158,8 +164,44 @@ function returningToMain(card: RoomHandCard, navigation: RoomHandNavigation): Ro
   };
 }
 
+/** A main-hand press records its card as the entry that seat selection returns focus to. */
+function launchingFrom(card: RoomHandCard, navigation: RoomHandNavigation): RoomHandCard {
+  if (card.state.kind !== 'ready') return card;
+  const { onPress } = card.state;
+  return {
+    ...card,
+    state: {
+      kind: 'ready',
+      onPress: () => {
+        navigation.launchFrom(card.id);
+        onPress();
+      },
+    },
+  };
+}
+
+function playerCardId(actionKey: string): string {
+  return `action:${actionKey}`;
+}
+
+function hostTaskEscapeCardId(actionKey: string): string {
+  return `selection:${actionKey}`;
+}
+
+/** The card that leaves seat selection, which takes focus when selection starts. */
+export function selectionEscapeCardId(
+  selectionMode: RoomSelectionMode,
+  hostManagement: RoomHostManagementModel | null,
+): string | null {
+  if (selectionMode.kind === 'player') return playerCardId(selectionMode.escapeActionKey);
+  const hostTask = hostManagement === null ? null : resolveHostTaskView(hostManagement);
+  return hostTask?.body.kind === 'message' && hostTask.body.escape !== null
+    ? hostTaskEscapeCardId(hostTask.body.escape.key)
+    : null;
+}
+
 function playerCard(action: RoomPlayerAction): RoomHandCard {
-  return actionCard(`action:${action.key}`, action, { isPending: action.isPending });
+  return actionCard(playerCardId(action.key), action, { isPending: action.isPending });
 }
 
 function groupCard(group: RoomPlayerActionGroup, input: RoomHandInput): RoomHandCard {
@@ -203,9 +245,9 @@ function buildMainCards(input: RoomHandInput): RoomHandCard[] {
     cards.push(groupCard(input.playerActions.group, input));
   }
   const hostTask = input.hostManagement === null ? null : resolveHostTaskView(input.hostManagement);
-  if (input.selectionMode === 'host-task' && hostTask?.body.kind === 'message') {
+  if (input.selectionMode?.kind === 'host-task' && hostTask?.body.kind === 'message') {
     if (hostTask.body.escape !== null) {
-      cards.push(actionCard(`selection:${hostTask.body.escape.key}`, hostTask.body.escape));
+      cards.push(actionCard(hostTaskEscapeCardId(hostTask.body.escape.key), hostTask.body.escape));
     }
   }
   if (input.selectionMode !== undefined) return cards;
@@ -391,8 +433,8 @@ function buildMenuCards(input: RoomHandInput): RoomHandCard[] {
 export function buildRoomHand(input: RoomHandInput): RoomHand {
   const group = input.playerActions.group;
   const actionCards = [
-    ...input.playerActions.actions.map((action) => ({ id: `action:${action.key}`, action })),
-    ...(group?.actions.map((action) => ({ id: `action:${action.key}`, action })) ?? []),
+    ...input.playerActions.actions.map((action) => ({ id: playerCardId(action.key), action })),
+    ...(group?.actions.map((action) => ({ id: playerCardId(action.key), action })) ?? []),
     ...(input.hostManagement?.actions.map((action) => ({
       id: `host-management:${action.key}`,
       action,
@@ -423,7 +465,7 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
     }
   }
   const face = input.selectionMode === undefined ? input.face : ({ kind: 'main' } as const);
-  const cards =
+  const faceCards =
     face.kind === 'main'
       ? buildMainCards(input)
       : face.kind === 'host'
@@ -435,6 +477,10 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
               ? buildGroupCards(input, group)
               : buildMainCards(input)
             : buildManualCards(input, face.kind === 'menu-manual');
+  const cards =
+    face.kind === 'main' && input.selectionMode === undefined
+      ? faceCards.map((card) => launchingFrom(card, input.navigation))
+      : faceCards;
   const resolvedCards = cards.map((card) =>
     card.actionKey === null
       ? card
@@ -462,6 +508,14 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
       );
     }
     ids.add(card.id);
+  }
+  if (input.selectionMode?.kind === 'player') {
+    const escapeCardId = playerCardId(input.selectionMode.escapeActionKey);
+    if (!ids.has(escapeCardId)) {
+      throw new Error(
+        `Room phase "${input.phase}" selects seats without its escape card "${escapeCardId}"`,
+      );
+    }
   }
   return {
     face,

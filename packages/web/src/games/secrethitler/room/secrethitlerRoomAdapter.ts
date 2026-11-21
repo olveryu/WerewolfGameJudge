@@ -67,6 +67,9 @@ import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardA
 import { getSecrethitlerNightStepLabel, secrethitlerInstruction } from './secrethitlerPresentation';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
+/** The phase action, which also leaves the president's seat selection. */
+export const SECRETHITLER_GAME_ACTION_KEY = 'game-action';
+
 const getSecrethitlerProfileTarget = (
   state: SecrethitlerState,
   seat: number,
@@ -395,7 +398,7 @@ export function createSecrethitlerRoomShellModel(
     instruction.action === null
       ? null
       : {
-          key: 'game-action',
+          key: SECRETHITLER_GAME_ACTION_KEY,
           label: input.isSelecting ? '取消选座' : instruction.action,
           audience: 'participant',
           category: 'player',
