@@ -461,7 +461,7 @@ describe('admin workspace', () => {
     await screen.findByRole('heading', { name: 'D1 用量' });
     await userEvent.click(screen.getByRole('tab', { name: '用量分析' }));
 
-    await userEvent.click(screen.getByRole('button', { name: '24 小时' }));
+    await userEvent.click(await screen.findByRole('button', { name: '24 小时' }));
     await waitFor(() => expect(view.router.state.location.search).toContain('range=24h'));
     await userEvent.click(screen.getByRole('button', { name: '7 天' }));
     await waitFor(() => expect(view.router.state.location.search).toContain('range=7d'));
