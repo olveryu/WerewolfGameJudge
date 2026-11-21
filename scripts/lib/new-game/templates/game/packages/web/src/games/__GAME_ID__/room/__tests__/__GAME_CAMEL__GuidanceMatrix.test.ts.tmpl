@@ -261,7 +261,7 @@ describe('__GAME_PASCAL__ host controls', () => {
       );
     }
 //#cap audioOrchestration
-    if (phase !== 'playing') expectedKeys.push('music-settings');
+    if (phase !== 'playing' && phase !== 'ended') expectedKeys.push('music-settings');
 //#end
     expect(actualKeys).toEqual(expectedKeys.sort());
   });

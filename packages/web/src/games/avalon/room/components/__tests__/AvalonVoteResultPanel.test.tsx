@@ -6,6 +6,8 @@ import type {
 } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react';
 
+import { TESTIDS } from '@/testids';
+
 import { AvalonVoteResultPanel } from '../AvalonVoteResultPanel';
 
 const SEATS = [
@@ -28,9 +30,24 @@ const REJECTED_RESULT: AvalonLastVoteResultView = {
 function renderPanel(
   result: AvalonLastVoteResultView = REJECTED_RESULT,
   seats: readonly AvalonSeatView[] = SEATS,
+  rescue = {
+    remainingSeconds: 4 as number | null,
+    isOverdue: false,
+    isHost: false,
+    isSubmitting: false,
+    onRetry: vi.fn(),
+  },
 ) {
   const utils = render(
-    <AvalonVoteResultPanel result={result} seats={seats} remainingSeconds={4} />,
+    <AvalonVoteResultPanel
+      result={result}
+      seats={seats}
+      remainingSeconds={rescue.remainingSeconds}
+      isOverdue={rescue.isOverdue}
+      isHost={rescue.isHost}
+      isSubmitting={rescue.isSubmitting}
+      onRetry={rescue.onRetry}
+    />,
   );
   return utils;
 }
@@ -89,5 +106,18 @@ describe('AvalonVoteResultPanel', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(getByTestId('avalon-vote-result-panel')).toBeVisible();
     expect(queryByRole('button', { name: '知道了' })).toBeNull();
+  });
+
+  it('lets the overdue host retry result settlement', () => {
+    const onRetry = vi.fn();
+    const { getByTestId } = renderPanel(REJECTED_RESULT, SEATS, {
+      remainingSeconds: 0,
+      isOverdue: true,
+      isHost: true,
+      isSubmitting: false,
+      onRetry,
+    });
+    fireEvent.click(getByTestId(TESTIDS.stageSettleRescueRetryButton));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

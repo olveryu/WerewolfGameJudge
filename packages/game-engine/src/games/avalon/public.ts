@@ -47,11 +47,7 @@ export {
   parseAvalonPublicStats,
 } from './publicStats';
 export { AVALON_STATE_CODEC } from './state/codec';
-export {
-  migratePersistedAvalonState,
-  parseAvalonConfig,
-  parseAvalonState,
-} from './state/parseState';
+export { parseAvalonConfig, parseAvalonState } from './state/parseState';
 export {
   AVALON_BOARDS,
   AVALON_CONFIG_SCHEMA,
@@ -82,7 +78,6 @@ export {
   type AvalonEndReason,
   type AvalonHumanSeat,
   type AvalonLadyCheckRecord,
-  type AvalonLadyCheckResult,
   type AvalonLastVoteResult,
   type AvalonNightInfo,
   type AvalonNightStep,
@@ -111,4 +106,3 @@ export {
   isAvalonVetoLimit,
   isValidAvalonConfig,
 } from './state/types';
-export { AVALON_STATE_IDENTITY, AVALON_STATE_VERSION } from './state/version';

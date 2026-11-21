@@ -33,11 +33,7 @@ export {
   type SecrethitlerPublicStats,
 } from './publicStats';
 export { SECRETHITLER_STATE_CODEC } from './state/codec';
-export {
-  migratePersistedSecrethitlerState,
-  parseSecrethitlerConfig,
-  parseSecrethitlerState,
-} from './state/parseState';
+export { parseSecrethitlerConfig, parseSecrethitlerState } from './state/parseState';
 export {
   DEFAULT_SECRETHITLER_CONFIG,
   getSecrethitlerOccupiedSeatCount,
@@ -66,4 +62,3 @@ export {
   type SecrethitlerVoteMode,
   type SecrethitlerWinner,
 } from './state/types';
-export { SECRETHITLER_STATE_IDENTITY, SECRETHITLER_STATE_VERSION } from './state/version';

@@ -70,6 +70,7 @@ describe('Secrethitler public command schema', () => {
       },
       { type: 'secrethitler.roles.assign' },
       { type: 'secrethitler.game.begin' },
+      { type: 'secrethitler.phase.retrySettle' },
       { type: 'secrethitler.game.restart', gameSequence: 1, wasEnded: false },
       { type: 'secrethitler.bots.markAllBotsViewed' },
       { type: 'secrethitler.bots.markAllBotsGroupConfirmed' },

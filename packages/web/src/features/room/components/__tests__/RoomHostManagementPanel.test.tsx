@@ -280,6 +280,42 @@ it('groups player actions and the host task in one panel without duplicating its
   expect(onHostAction).toHaveBeenCalledOnce();
 });
 
+it('keeps the management panel open when an action declares it', () => {
+  const onClose = vi.fn();
+  const onPress = vi.fn();
+  render(
+    <RoomHostManagementPanel
+      model={{
+        task: null,
+        sections: [
+          {
+            key: 'settings',
+            title: '设置',
+            actions: [
+              {
+                key: 'settings',
+                label: '音乐设置',
+                icon: 'musical-notes-outline',
+                variant: 'secondary',
+                closeManagementOnPress: false,
+                isEnabled: true,
+                onPress,
+              },
+            ],
+          },
+        ],
+      }}
+      bottomActions={null}
+      presentation="sheet"
+      onClose={onClose}
+      isAudioPlaying={false}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: '音乐设置' }));
+  expect(onPress).toHaveBeenCalledOnce();
+  expect(onClose).not.toHaveBeenCalled();
+});
+
 it('keeps a blocked task command disabled in the inventory and shows its reason once', () => {
   render(
     <RoomHostManagementPanel

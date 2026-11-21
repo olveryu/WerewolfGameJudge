@@ -210,6 +210,7 @@ export function use__GAME_PASCAL__RoomState(
       (effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: get__GAME_PASCAL__OccupiedSeatCount(state),
     viewedSeatCount: state.roleViewedSeats.length,
+    isSubmitting,
     submitViewed: () =>
       submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat }),
   });

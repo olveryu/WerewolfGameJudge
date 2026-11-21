@@ -46,12 +46,26 @@ describe('RoomDialog', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(
-      <RoomDialog title="设置" onClose={onClose} allowEscape footer={null}>
+      <RoomDialog title="设置" onClose={onClose} dismissOnEscape footer={null}>
         内容
       </RoomDialog>,
     );
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('does not close when the backdrop is pressed', () => {
+    const onClose = vi.fn();
+    render(
+      <RoomDialog title="设置" onClose={onClose} footer={null}>
+        内容
+      </RoomDialog>,
+    );
+    const backdrop = document.querySelector('.center-dialog-backdrop');
+    if (!(backdrop instanceof HTMLElement)) throw new Error('Missing room-dialog backdrop');
+
+    fireEvent.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('stays open after the confirmation alert that opened it closes', async () => {

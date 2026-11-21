@@ -329,7 +329,6 @@ export function toAvalonReviewDocument(input: {
     kicker: `🏰 第 ${gameSequence} 局 · 终局`,
     fileStem: `avalon-${roomCode}-${gameSequence}`,
     footer: REVIEW_GENERATED_FOOTER,
-    isAborted: false,
     pages: [{ key: 'ended', label: null, blocks }],
   };
 }

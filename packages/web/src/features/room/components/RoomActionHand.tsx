@@ -1,9 +1,7 @@
 import './RoomActionHand.css';
 
 import {
-  Children,
   type CSSProperties,
-  isValidElement,
   type KeyboardEventHandler,
   type ReactNode,
   useEffect,
@@ -25,10 +23,11 @@ type CardStyle = CSSProperties & {
 
 export type RoomHandCardCategory = 'back' | 'player' | 'neutral' | 'host' | 'resource' | 'danger';
 
-interface RoomHandCardProps {
+export interface RoomHandCard {
+  readonly id: string;
   readonly category: RoomHandCardCategory;
   readonly unavailable?: boolean;
-  readonly children: ReactNode;
+  readonly content: ReactNode;
 }
 
 const CARD_CATEGORY_ORDER: Readonly<Record<RoomHandCardCategory, number>> = {
@@ -40,60 +39,15 @@ const CARD_CATEGORY_ORDER: Readonly<Record<RoomHandCardCategory, number>> = {
   danger: 5,
 };
 
-/** Carries the action's semantic category independently of its disabled appearance. */
-export function RoomHandCard({ children }: RoomHandCardProps) {
-  return children;
-}
-
-/** Marks a card whose action still needs attention. */
-export function PendingActionMarker() {
-  return (
-    <span className="bottom-action-pending" aria-hidden>
-      待行动
-    </span>
-  );
-}
-
-function cardCategory(card: ReactNode): RoomHandCardCategory | null {
-  if (!isValidElement(card) || typeof card.props !== 'object' || card.props === null) return null;
-  if (!('category' in card.props)) return null;
-  switch (card.props.category) {
-    case 'back':
-    case 'player':
-    case 'neutral':
-    case 'host':
-    case 'resource':
-    case 'danger':
-      return card.props.category;
-    default:
-      return null;
-  }
-}
-
-function cardOrder(card: ReactNode): number {
-  return CARD_CATEGORY_ORDER[cardCategory(card) ?? 'neutral'];
-}
-
-function cardUnavailable(card: ReactNode): boolean {
-  return (
-    cardCategory(card) !== null &&
-    isValidElement(card) &&
-    typeof card.props === 'object' &&
-    card.props !== null &&
-    'unavailable' in card.props &&
-    card.props.unavailable === true
-  );
-}
-
 /** Arranges independent action targets over the overlapping card faces. */
 export function RoomActionHand({
-  children,
+  cards,
   label,
   className,
   onKeyDown,
   testId,
 }: {
-  readonly children: ReactNode;
+  readonly cards: readonly RoomHandCard[];
   readonly label: string;
   readonly className?: string;
   readonly onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
@@ -107,12 +61,12 @@ export function RoomActionHand({
     },
     [],
   );
-  const cards = Children.toArray(children).toSorted(
+  const orderedCards = [...cards].toSorted(
     (left, right) =>
-      cardOrder(left) - cardOrder(right) ||
-      Number(cardUnavailable(left)) - Number(cardUnavailable(right)),
+      CARD_CATEGORY_ORDER[left.category] - CARD_CATEGORY_ORDER[right.category] ||
+      Number(left.unavailable === true) - Number(right.unavailable === true),
   );
-  const style: HandStyle = { '--hand-card-count': cards.length };
+  const style: HandStyle = { '--hand-card-count': orderedCards.length };
   return (
     <div
       className={['room-action-hand', className].filter(Boolean).join(' ')}
@@ -139,20 +93,16 @@ export function RoomActionHand({
       >
         {reason}
       </div>
-      {cards.map((card, index) => {
-        const distance = index - (cards.length - 1) / 2;
+      {orderedCards.map((card, index) => {
+        const distance = index - (orderedCards.length - 1) / 2;
         const cardStyle: CardStyle = {
           '--hand-card-angle': `${distance * 1.5}deg`,
           '--hand-card-drop': `${Math.abs(distance) * 4}px`,
           '--hand-card-order': index + 1,
         };
         return (
-          <div
-            className="room-action-card-cell"
-            style={cardStyle}
-            key={isValidElement(card) ? card.key : index}
-          >
-            {card}
+          <div className="room-action-card-cell" style={cardStyle} key={card.id}>
+            {card.content}
           </div>
         );
       })}

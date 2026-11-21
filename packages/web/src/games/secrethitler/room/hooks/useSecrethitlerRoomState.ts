@@ -32,6 +32,7 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
+import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
@@ -132,6 +133,7 @@ export function useSecrethitlerRoomState(
     submit,
     effectiveSeat,
     controlledSeat,
+    isSubmitting,
   );
   const { share, titleActions, gachaStatus } = useRoomPresentationController({
     roomCode: room.roomCode,
@@ -288,6 +290,7 @@ function useSecrethitlerPrivateActions(
   submit: SecrethitlerRoomScreenState['submit'],
   effectiveSeat: number | null,
   controlledSeat: number | null,
+  isSubmitting: boolean,
 ) {
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [dismissedVoteKey, setDismissedVoteKey] = useState<string | null>(null);
@@ -303,6 +306,7 @@ function useSecrethitlerPrivateActions(
     phase.kind === 'executive' &&
     phase.presidentSeat === effectiveSeat &&
     actionKey === currentActionKey;
+  const trackConfirmationAlert = useScopedAlert(JSON.stringify([currentActionKey, isSelecting]));
   const selectionContext = useRef({ currentActionKey, isSelecting });
   useEffect(() => {
     selectionContext.current = { currentActionKey, isSelecting };
@@ -346,6 +350,7 @@ function useSecrethitlerPrivateActions(
           if (await submit('总统行动', command, { controlledSeat }))
             setActionKey((previous) => (previous === currentActionKey ? null : previous));
         },
+        { onShown: trackConfirmationAlert },
       );
     },
   });
@@ -357,6 +362,7 @@ function useSecrethitlerPrivateActions(
       (effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: getSecrethitlerOccupiedSeatCount(state),
     viewedSeatCount: state.roleViewedSeats.length,
+    isSubmitting,
     submitViewed: () =>
       submit('查看身份', { type: 'secrethitler.role.viewed' }, { controlledSeat }),
   });
@@ -388,6 +394,7 @@ function useSecrethitlerPrivateActions(
           () => setActionKey(currentActionKey),
           {
             confirmText: '查看',
+            onShown: trackConfirmationAlert,
           },
         );
         return;

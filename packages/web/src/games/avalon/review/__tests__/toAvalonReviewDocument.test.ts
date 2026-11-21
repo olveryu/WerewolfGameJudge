@@ -186,7 +186,6 @@ describe('toAvalonReviewDocument', () => {
       kicker: '🏰 第 2 局 · 终局',
       fileStem: 'avalon-1234-2',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
     });
     expect(document.pages).toHaveLength(1);
     expect(document.pages[0]).toMatchObject({ key: 'ended', label: null });

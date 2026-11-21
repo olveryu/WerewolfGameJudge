@@ -21,7 +21,7 @@ export function SheriffElectionDialog({
       onClose={onClose}
       testId={TESTIDS.sheriffElectionDialog}
       isContentFlush
-      allowEscape
+      dismissOnEscape
       footer={null}
     >
       <SheriffElectionPanel model={model} />

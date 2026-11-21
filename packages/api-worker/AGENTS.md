@@ -17,13 +17,13 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 ## Room authority: Durable Object and its SQLite storage
 
 - Composition root: `packages/api-worker/src/app/GameRoom.ts` resolves game modules and is exported as the `GameRoom` Durable Object class. `GameRoomRuntime` owns the state store, effect outbox, command pipeline, and gateway.
-- Room authority state lives in the Durable Object's own SQLite storage, accessed via the storage SQL API, never via Drizzle. Schema version is 3 (`ROOM_STORAGE_SCHEMA_VERSION`); tables are `room_schema`, `room_state`, `command_receipts`, `effect_outbox`, `effect_replays`.
-- There is no storage migration chain. On any stored version other than the current one, storage is discarded and recreated (rooms are short-lived sessions). Game-state version evolution inside `room_state.game_state` is the game module's own concern. The D1 `rooms` table is only the room directory (metadata and saga state), not authoritative game state.
+- Room authority state lives in the Durable Object's own SQLite storage, accessed via the storage SQL API, never via Drizzle. Schema version is 4 (`ROOM_STORAGE_SCHEMA_VERSION`); tables are `room_schema`, `room_state`, `command_receipts`, `effect_outbox`, `effect_replays`.
+- There is no storage migration chain. On any stored version other than the current one, storage is discarded and recreated (rooms are short-lived sessions). Game state is parsed directly using the current game codec; there is no per-game state version or read-time migration. The D1 `rooms` table is only the room directory (metadata and saga state), not authoritative game state.
 
-## Effect outbox, recovery, and read-time migration
+## Effect outbox, recovery, and state reads
 
 - Effects are inserted in the same transaction as the committed command. The single Durable Object alarm drains due effects and sweeps stale sockets. Dedupe is on `(scope, game_type, effect_type, business_key)`. Retry policy: at most 7 attempts, 2-second base doubling to a 5-minute cap, 2-minute delivery watchdog. Failed effects can be replayed through the admin recovery surface (`features/admin/effectRecovery.ts`).
-- `RoomStateStore.read()` compares the stored `state_version` with the module's current version. Equal: parse directly. Older with a migrate function: migrate in place, rewriting the state row and every command-receipt row in one transaction. Newer, or no migrate function: throw `Unsupported <game> state version`. The per-version upgrade functions live in the engine (see the engine file's version table); the worker owns only the read-time wiring.
+- `RoomStateStore.read()` selects the current game module from `game_type` and parses the stored JSON through its codec. Invalid shape or game identity throws immediately; the worker does not rewrite state or command receipts to migrate game data.
 
 ## D1 and Drizzle
 
@@ -38,7 +38,7 @@ Scope: `packages/api-worker/**` only. Engine rules live in `packages/game-engine
 
 ## Worker game catalog and modules
 
-- `WORKER_GAME_CATALOG` is exhaustive: exactly one worker module per entry in `GAME_TYPES`, in the same order, pinned by `registers exactly one Worker module for every canonical game type` in `packages/api-worker/src/games/__tests__/catalog.test.ts`. Each module binds the engine, state codec, public/internal command schemas, effect schema, migrate function, and HTTP routes.
+- `WORKER_GAME_CATALOG` is exhaustive: exactly one worker module per entry in `GAME_TYPES`, in the same order, pinned by `registers exactly one Worker module for every canonical game type` in `packages/api-worker/src/games/__tests__/catalog.test.ts`. Each module binds the engine, state codec, public/internal command schemas, effect schema, and HTTP routes.
 - HTTP routes are projected from the same catalog, pinned by `projects game-owned HTTP routes from the same catalog` in `packages/api-worker/src/games/__tests__/catalog.test.ts`. A game declaring a workflow must also re-export it from the entrypoint and declare the workflow binding in `wrangler.toml`.
 
 ## HTTP patterns

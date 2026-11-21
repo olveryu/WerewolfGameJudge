@@ -96,7 +96,7 @@
 - 新增游戏时不修改 Durable Object action pipeline。
 - 新增游戏时不修改 `HomeScreen`、`RoomShell` 或共享房间 controller。
 - 漏注册游戏应尽量在编译期失败。
-- 持久化损坏、未知游戏 ID、schema 不一致、state version 不一致必须 fail fast。
+- 持久化损坏、未知游戏 ID、schema 不一致、game state shape 不一致必须 fail fast。
 - `unknown` 只允许存在于外部输入解析边界，不得穿过 engine 或 UI API。
 - 相同基础行为只实现一次，不同游戏规则保持独立。
 - 目录按所有权划分，不按历史形成过程划分。
@@ -471,7 +471,6 @@ export type GameType = (typeof GAME_TYPES)[number];
 ```ts
 interface BaseGameState<TGameType extends string> {
   readonly gameType: TGameType;
-  readonly stateVersion: number;
   readonly roomCode: string;
   readonly hostUserId: string;
 }
@@ -516,7 +515,6 @@ interface GameEngineDefinition<
   TEffect,
 > {
   readonly gameType: TGameType;
-  readonly stateVersion: number;
   createInitialState(config: TConfig, context: CreateGameContext): TState;
   decide(state: TState, command: TCommand, context: CommandContext): Decision<TEvent, TEffect>;
   evolve(state: TState, event: TEvent): TState;
@@ -547,17 +545,16 @@ interface GameEngineDefinition<
   绑定 actor/request 的 terminal rejection receipt，保证 retry 不会在新 state 上重新解释同一命令。
 - 不允许用 `reject` 表示已经修改状态的命令，也不允许 Worker 在 engine 返回后补写 rejection state。
 - 所有 event evolve 完成后统一执行 `normalize`，发现损坏直接抛错。
-- State version 显式存在；不支持的版本直接失败或走正式 migration，不猜默认值。
+- State shape 由当前游戏的严格 parser 唯一确定；不兼容的 persisted state 直接失败，不提供迁移或默认值。
 
 ### 9.3 Runtime state codec
 
 网络 JSON 和 SQLite JSON 都是 `unknown`，不能通过类型断言直接变成游戏 state。每个游戏必须提供
-一个版本化 codec：
+一个严格 codec：
 
 ```ts
 interface GameStateCodec<TState extends BaseGameState<string>> {
   readonly gameType: TState['gameType'];
-  readonly stateVersion: number;
   parse(value: unknown): TState;
 }
 ```
@@ -567,7 +564,7 @@ interface GameStateCodec<TState extends BaseGameState<string>> {
 - codec 属于对应游戏模块，狼人杀和瞎掰王各自理解自己的 state shape。
 - HTTP snapshot、WebSocket update 和 DO SQLite 读取调用同一个 codec；不能各写一套浅校验。
 - shared protocol parser 只校验 envelope、revision 和 discriminator，然后调用 codec。
-- codec 拒绝未知字段、缺失 required field、非法 enum、错误 game type 和不支持的 state version。
+- codec 拒绝未知字段、缺失 required field、非法 enum 和错误 game type。
 - codec 可以调用该游戏的 normalize，但 normalize 只接收已经解码的 typed state；不能用
   `as GameState` 把 `unknown` 塞进去。
 - `GameEngineDefinition.decide/evolve/normalize` 仍不接收 `unknown`。codec 是进入纯 engine 前的
@@ -721,7 +718,6 @@ CREATE TABLE room_state (
   creation_id TEXT NOT NULL UNIQUE,
   initialization_json TEXT NOT NULL,
   game_type TEXT NOT NULL,
-  state_version INTEGER NOT NULL,
   game_state TEXT NOT NULL,
   revision INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
@@ -729,7 +725,7 @@ CREATE TABLE room_state (
 );
 ```
 
-不再使用 `storage.put('game_type', ...)`。engine selection、state、state version 和 revision 来自同一次读取、同一个 transaction。
+不再使用 `storage.put('game_type', ...)`。engine selection、state 和 revision 来自同一次读取、同一个 transaction。
 `initialization_json` 保存经过 game module schema 解析后的 canonical initialization command，用于
 `creationId` replay 校验；它不是第二份 game state。`roomCode` 和 `hostUserId` 只以 typed state 为权威，
 不在同一 row 再复制一份可能漂移的列。
@@ -771,8 +767,8 @@ interface InitializeRoomCommand {
 
 - SQL row shape。
 - `game_type` 是合法 `GameType`。
-- `state_version` 等于 engine 当前版本，或者存在显式 migration。
 - JSON state 内的 `gameType` 和 SQL column 一致。
+- JSON state 必须符合当前游戏 codec；不兼容状态直接 fail fast，不做读时迁移。
 - engine `normalize` 接受该 state。
 
 这些检查位于权威边界，发现损坏就报错，不用 optional field 或默认值掩盖。
@@ -830,7 +826,6 @@ HTTP retry 和连接恢复可能重复发送 command。`commandId` 是结构性�
 CREATE TABLE command_receipts (
   command_id TEXT PRIMARY KEY,
   game_type TEXT NOT NULL,
-  state_version INTEGER NOT NULL,
   actor_kind TEXT NOT NULL,
   actor_id TEXT NOT NULL,
   controlled_seat INTEGER,
@@ -903,7 +898,7 @@ type RoomCommandResult<TState> =
 Reason code 全仓使用 lower snake case；Worker、engine、client translation 和测试引用同一常量，不允许同一含义
 再出现 `ROOM_NOT_FOUND`、点分名或游戏自造别名。
 
-持久化损坏、未注册 module、非法 persisted JSON、unsupported state version 直接抛错并上报 Sentry，不在 domain 层转换成笼统的“请稍后重试”。
+持久化损坏、未注册 module、非法 persisted JSON 直接抛错并上报 Sentry，不在 domain 层转换成笼统的“请稍后重试”。
 
 狼人杀 action input 也必须只有一种 canonical 表示：跳过统一为 `{ kind: 'skip' }`，确认执行统一为
 `{ kind: 'confirm' }`。`target: null` 只保留给 `wolfVote` 的合法空刀；空多选、全空 witch input 或
@@ -981,7 +976,6 @@ WebSocket state message 必须带 game discriminator：
 interface StateUpdateMessage<TState> {
   readonly type: 'STATE_UPDATE';
   readonly gameType: TState['gameType'];
-  readonly stateVersion: number;
   readonly revision: number;
   readonly state: TState;
   readonly lastCommandType: string | null;
@@ -992,7 +986,7 @@ interface StateUpdateMessage<TState> {
 
 - Game session 只接受预期 game type。
 - Revision 只能单调增加。
-- Game type 不同、revision 倒退、state version 不支持都属于明确 connection failure。
+- Game type 不同、revision 倒退或 state shape 非法都属于明确 connection failure。
 - Reconnect 获取的 snapshot envelope 与 WebSocket update 使用同一 contract。
 - 不创建每个游戏独立的 realtime transport。
 
@@ -1716,7 +1710,7 @@ games/<game>/
 | Create 输入的 game type 未知     | 400                                               |
 | Persisted game type 未知         | Throw + log + Sentry + room integrity response    |
 | State game type 不一致           | Throw + log + Sentry                              |
-| State version 不支持             | Throw 或正式 migration                            |
+| State shape 不匹配               | Throw + log + Sentry                              |
 | Effect provider 不可用           | 保存 outbox retry；必要时 UI 显示 preparing/retry |
 | Realtime game type 不一致        | 断开 session 并显示完整性错误                     |
 

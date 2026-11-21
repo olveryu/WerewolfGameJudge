@@ -19,11 +19,7 @@ export {
   storyRelayPublicStatsSchema,
 } from './publicStats';
 export { STORY_RELAY_STATE_CODEC } from './state/codec';
-export {
-  migratePersistedStoryRelayState,
-  parseStoryRelayConfig,
-  parseStoryRelayState,
-} from './state/parseState';
+export { parseStoryRelayConfig, parseStoryRelayState } from './state/parseState';
 export {
   DEFAULT_STORY_RELAY_CONFIG,
   getStoryRelayOccupiedSeatCount,
@@ -45,4 +41,3 @@ export {
   type StoryRelayState,
   type StoryRelayTask,
 } from './state/types';
-export { STORY_RELAY_STATE_IDENTITY, STORY_RELAY_STATE_VERSION } from './state/version';

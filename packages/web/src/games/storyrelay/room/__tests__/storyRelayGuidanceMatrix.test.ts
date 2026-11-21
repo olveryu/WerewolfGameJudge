@@ -36,7 +36,6 @@ const PHASES: readonly Phase[] = [
   'transition',
   'gallery',
   'ended',
-  'aborted',
 ];
 
 type CommandContext = Parameters<typeof storyRelayEngine.decide>[2];
@@ -178,10 +177,6 @@ function stateFor(phase: Phase): StoryRelayState {
       });
       if (phaseOf(session) !== 'ended') throw new Error('expected ended');
       return session.state;
-    case 'aborted':
-      return storyRelayEngine.normalize(
-        storyRelayEngine.evolve(session.state, { type: 'storyrelay.round.aborted', abortedAt: 1 }),
-      );
     default:
       throw new Error(`unhandled phase ${phase}`);
   }

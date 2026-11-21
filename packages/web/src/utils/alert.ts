@@ -69,9 +69,19 @@ export function dismissAlert(expectedGeneration: number): void {
 
 /** Shows an alert; defaults to a single "确定" button. Dropped while alerts are blocked. */
 export function showAlert(title: string, message?: string, buttons?: AlertButton[]): void {
-  if (blocked) return;
+  showAlertWithGeneration(title, message, buttons);
+}
+
+/** Shows an alert and returns its identity for state-scoped dismissal. */
+export function showAlertWithGeneration(
+  title: string,
+  message?: string,
+  buttons?: AlertButton[],
+): number | null {
+  if (blocked) return null;
   generation += 1;
   publish({ generation, title, message, buttons: buttons ?? [{ text: '确定' }] });
+  return generation;
 }
 
 /** Shows a prompt with a text input; `onConfirm` receives the trimmed value. */

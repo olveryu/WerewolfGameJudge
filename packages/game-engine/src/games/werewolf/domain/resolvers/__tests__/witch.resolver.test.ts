@@ -31,7 +31,11 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     players: defaultPlayers,
     currentNightResults: { wolfVotesBySeat: { '2': 0 } },
     witchState: { canSave: true, canPoison: true },
-    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
+    gameState: {
+      isNight1: true,
+      isWolfVoteUnanimityRequired: false,
+      resolvedWolfKillTarget: 0,
+    },
     ...overrides,
     rng: overrides?.rng ?? (() => 0.75),
   };
@@ -92,6 +96,7 @@ describe('witchActionResolver', () => {
           isNight1: true,
           isWolfVoteUnanimityRequired: false,
           witchCanSelfHeal: true,
+          resolvedWolfKillTarget: 5,
         },
       });
       const input = createInput({ save: 5, poison: null });
@@ -141,7 +146,11 @@ describe('witchActionResolver', () => {
     it('Cupid board rejects a save when wolf votes are not unanimous', () => {
       const ctx = createContext({
         currentNightResults: { wolfVotesBySeat: { '2': 0, '3': 1 } },
-        gameState: { isNight1: true, isWolfVoteUnanimityRequired: true },
+        gameState: {
+          isNight1: true,
+          isWolfVoteUnanimityRequired: true,
+          resolvedWolfKillTarget: null,
+        },
       });
 
       const result = witchActionResolver(ctx, createInput({ save: 0, poison: null }));

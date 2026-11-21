@@ -70,7 +70,6 @@ import {
   isValidFibWord,
   type PendingFibRound,
 } from './state/types';
-import { FIB_STATE_IDENTITY, FIB_STATE_VERSION } from './state/version';
 
 function createRoundId(commandId: string): string {
   if (commandId.length === 0) {
@@ -405,7 +404,7 @@ function createInitialFibState(config: FibConfig, context: CreateGameContext): F
     );
   }
   return normalizeFibState({
-    ...FIB_STATE_IDENTITY,
+    gameType: FIBKING_GAME_TYPE,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     numberOfPlayers: config.numberOfPlayers,
@@ -462,7 +461,7 @@ export function decideFibCommand(
           userId === state.hostUserId ||
           findRosterSeatByUserId(state.roster, state.numberOfPlayers, userId) !== null,
       });
-      if (completion.kind === 'reject') return reject(REASON_FIB_ROUND_MISMATCH);
+      if (completion.kind === 'reject') return reject(completion.reason);
       return commitFib(
         completion.kind === 'complete'
           ? [{ type: 'fibking.review.completed', userId: completion.userId }]
@@ -494,7 +493,6 @@ export function decideFibCommand(
 
 export const fibEngine = {
   gameType: FIBKING_GAME_TYPE,
-  stateVersion: FIB_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

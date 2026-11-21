@@ -45,7 +45,6 @@ interface AuditEffect {
 
 const counterEngine = {
   gameType: WEREWOLF_GAME_TYPE,
-  stateVersion: 1,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: false,
@@ -61,7 +60,6 @@ const counterEngine = {
   createInitialState(config, context) {
     return {
       gameType: WEREWOLF_GAME_TYPE,
-      stateVersion: 1,
       roomCode: context.roomCode,
       hostUserId: context.hostUserId,
       count: config.initialCount,
@@ -215,7 +213,7 @@ describe('typed game engine contract', () => {
     });
     defineGameEngineCatalog({
       // @ts-expect-error a game identity without engine behavior is not a module
-      werewolf: { gameType: WEREWOLF_GAME_TYPE, stateVersion: 1 },
+      werewolf: { gameType: WEREWOLF_GAME_TYPE },
       fibking: fibEngine,
       pictionary: pictionaryEngine,
       undercover: undercoverEngine,

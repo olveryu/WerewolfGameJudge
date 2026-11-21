@@ -16,7 +16,6 @@ import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeSecrethitlerState } from './normalize';
 import {
   isValidSecrethitlerConfig,
-  SECRETHITLER_DEFAULT_VOTE_MODE,
   SECRETHITLER_GAME_TYPE,
   SECRETHITLER_PHASES,
   SECRETHITLER_VOTE_MODES,
@@ -27,7 +26,6 @@ import {
   type SecrethitlerState,
   type SecrethitlerVote,
 } from './types';
-import { SECRETHITLER_STATE_VERSION } from './version';
 
 /** Parses only the supported lobby settings. */
 export function parseSecrethitlerConfig(
@@ -311,6 +309,10 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
             raw.chaosPolicy === null
               ? null
               : parseChoice(raw.chaosPolicy, `${path}.chaosPolicy`, FACTIONS),
+          chaosPolicyDeck:
+            raw.chaosPolicyDeck === null
+              ? null
+              : policies(raw.chaosPolicyDeck, `${path}.chaosPolicyDeck`),
           deadlineAt: parseInteger(raw.deadlineAt, `${path}.deadlineAt`),
         },
         path,
@@ -348,9 +350,6 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [SECRETHITLER_GAME_TYPE]),
-        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
-          SECRETHITLER_STATE_VERSION,
-        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -417,82 +416,4 @@ export function parseSecrethitlerState(value: unknown): SecrethitlerState {
       path,
     ),
   );
-}
-
-/** Upgrades legacy vote-mode and narration data into the current strict state. */
-export function migratePersistedSecrethitlerState(value: unknown): SecrethitlerState {
-  const parsed = parseObject(value, 'SecrethitlerState');
-  if (parsed.stateVersion === SECRETHITLER_STATE_VERSION) return parseSecrethitlerState(parsed);
-  const raw: Readonly<Record<string, unknown>> = { ...parsed, lastPublicResult: null };
-  if (raw.stateVersion === 7)
-    return parseSecrethitlerState({ ...raw, stateVersion: SECRETHITLER_STATE_VERSION });
-  const rawPhase = parseObject(raw.phase, 'SecrethitlerState.phase');
-  const upgradedPhase =
-    rawPhase.kind === 'election'
-      ? { ...rawPhase, preselectedChancellorSeat: null }
-      : rawPhase.kind === 'voting' && raw.stateVersion !== 6
-        ? { ...rawPhase, deadlineAt: null }
-        : rawPhase;
-  if (raw.stateVersion === 4 || raw.stateVersion === 5 || raw.stateVersion === 6)
-    return parseSecrethitlerState({
-      ...raw,
-      phase: upgradedPhase,
-      stateVersion: SECRETHITLER_STATE_VERSION,
-    });
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
-    return parseSecrethitlerState(raw);
-  if (raw.stateVersion === 3)
-    return parseSecrethitlerState({
-      ...raw,
-      phase: upgradedPhase,
-      stateVersion: SECRETHITLER_STATE_VERSION,
-      reviewCompletedUserIds: [],
-    });
-  const rawConfig = parseObject(raw.config, 'SecrethitlerState.config');
-  const upgraded = {
-    ...raw,
-    phase: upgradedPhase,
-    stateVersion: SECRETHITLER_STATE_VERSION,
-    reviewCompletedUserIds: [],
-    config: {
-      ...rawConfig,
-      voteMode:
-        rawConfig.voteMode === undefined ? SECRETHITLER_DEFAULT_VOTE_MODE : rawConfig.voteMode,
-    },
-  };
-  if (raw.stateVersion === 2) return parseSecrethitlerState(upgraded);
-  const previousPhase = phase(upgradedPhase, 'SecrethitlerState.phase');
-  if (previousPhase.kind !== 'night' || previousPhase.step === 1)
-    return parseSecrethitlerState(upgraded);
-  if (![0, 2, 3].includes(previousPhase.step) || previousPhase.confirmedSeats.length !== 0)
-    failDecode('SecrethitlerState.phase', 'a valid v1 night step');
-  const pending = audioEffects(raw.pendingAudioEffects, 'SecrethitlerState.pendingAudioEffects');
-  const wasAudioPlaying = parseBoolean(raw.isAudioPlaying, 'SecrethitlerState.isAudioPlaying');
-  const appendAudioKey =
-    previousPhase.step === 0
-      ? parseSecrethitlerConfig(upgraded.config).numberOfPlayers <= 6
-        ? 'evil_reveal_5_6'
-        : 'fascist_reveal_7_10'
-      : previousPhase.step === 2
-        ? 'night_end'
-        : null;
-  return parseSecrethitlerState({
-    ...upgraded,
-    phase:
-      previousPhase.step === 0
-        ? { kind: 'night', step: 1, confirmedSeats: [] }
-        : {
-            kind: 'election',
-            presidentSeat: parseSeat(raw.nextPresidentSeat, 'SecrethitlerState.nextPresidentSeat'),
-            returnToSeat: null,
-            preselectedChancellorSeat: null,
-          },
-    phaseRevision: parseInteger(raw.phaseRevision, 'SecrethitlerState.phaseRevision') + 1,
-    pendingAudioEffects:
-      appendAudioKey === null ? pending : [...pending, { audioKey: appendAudioKey }],
-    isAudioPlaying: appendAudioKey === null ? wasAudioPlaying : true,
-    audioBatchId:
-      parseAudioBatchId(raw.audioBatchId, 'SecrethitlerState.audioBatchId') +
-      (appendAudioKey === null ? 0 : 1),
-  });
 }

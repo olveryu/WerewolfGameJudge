@@ -1,11 +1,10 @@
 import {
-  buildAbortGameAction,
   buildAssignRolesAction,
   buildEnabledHostAction,
-  buildNextRoundAction,
+  buildMusicSettingsAction,
   buildPendingAwareHostAction,
-  buildRestartGameAction,
-  buildReturnLobbyAction,
+  buildResetToLobbyAction,
+  buildRoomConfigAction,
   buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
@@ -16,7 +15,6 @@ import {
   hostStartTask,
   projectViewingProgress,
   type RoomHostActionDescriptor,
-  TERMINAL_ACTION_VARIANT,
 } from '../hostManagementActions';
 
 describe('host management action builders', () => {
@@ -44,18 +42,11 @@ describe('host management action builders', () => {
     });
   });
 
-  it('builds the chassis abort and restart actions with the fixed vocabulary', () => {
-    expect(buildAbortGameAction({ onPress: () => undefined })).toMatchObject({
-      key: 'abort-game',
-      label: '中止本局',
-      variant: 'danger',
-      testID: 'abort-game-button',
-    });
-    expect(buildRestartGameAction({ onPress: () => undefined })).toMatchObject({
+  it('marks reset-to-lobby as the explicit stage-menu abort action', () => {
+    expect(buildResetToLobbyAction({ onPress: () => undefined })).toMatchObject({
       key: 'restart',
-      label: '重新开始',
-      variant: 'secondary',
-      testID: 'restart-button',
+      variant: 'danger',
+      stageMenuRole: 'abort',
     });
   });
 
@@ -87,6 +78,7 @@ describe('host management action builders', () => {
       label: '分享房间',
       isEnabled: true,
       onPress: execute,
+      placement: 'room-entry',
     });
     expect(
       buildShareRoomAction({ isAllowed: false, reason: '当前阶段不能分享房间' }),
@@ -94,6 +86,16 @@ describe('host management action builders', () => {
       key: 'share-room',
       isEnabled: false,
       disabledReason: '当前阶段不能分享房间',
+      placement: 'room-entry',
+    });
+  });
+
+  it('keeps settings actions open through explicit panel behavior', () => {
+    expect(buildRoomConfigAction({ onPress: vi.fn() })).toMatchObject({
+      closeManagementOnPress: false,
+    });
+    expect(buildMusicSettingsAction({ onPress: vi.fn() })).toMatchObject({
+      closeManagementOnPress: false,
     });
   });
 
@@ -117,35 +119,6 @@ describe('host management action builders', () => {
       actionKey: 'x',
       note: 'n',
     });
-  });
-
-  it('builds the terminal pair with unified keys and testIDs', () => {
-    expect(buildNextRoundAction({ onPress: () => undefined })).toMatchObject({
-      key: 'next-round',
-      label: '再来一局',
-      icon: 'play-forward-outline',
-      variant: 'danger',
-      testID: 'next-round-button',
-      isEnabled: true,
-    });
-    expect(buildReturnLobbyAction({ onPress: () => undefined })).toMatchObject({
-      key: 'return-lobby',
-      label: '返回大厅',
-      icon: 'return-down-back-outline',
-      variant: 'danger',
-      testID: 'return-lobby-button',
-      isEnabled: true,
-    });
-  });
-
-  it('takes both terminal variants from the single TERMINAL_ACTION_VARIANT source', () => {
-    expect(TERMINAL_ACTION_VARIANT).toBe('danger');
-    expect(buildNextRoundAction({ onPress: () => undefined }).variant).toBe(
-      TERMINAL_ACTION_VARIANT,
-    );
-    expect(buildReturnLobbyAction({ onPress: () => undefined }).variant).toBe(
-      TERMINAL_ACTION_VARIANT,
-    );
   });
 });
 

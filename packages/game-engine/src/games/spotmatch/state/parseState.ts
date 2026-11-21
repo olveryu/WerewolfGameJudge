@@ -21,7 +21,6 @@ import {
   type SpotmatchPhase,
   type SpotmatchState,
 } from './types';
-import { SPOTMATCH_STATE_VERSION } from './version';
 
 const cardSchema = z.strictObject({
   instanceId: z.string().min(1),
@@ -109,9 +108,6 @@ export function parseSpotmatchState(value: unknown): SpotmatchState {
       raw,
       {
         gameType: parseChoice(raw.gameType, `${path}.gameType`, [SPOTMATCH_GAME_TYPE]),
-        stateVersion: parseChoice(raw.stateVersion, `${path}.stateVersion`, [
-          SPOTMATCH_STATE_VERSION,
-        ]),
         roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
         hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
         phase: phase(raw.phase, `${path}.phase`),
@@ -125,27 +121,4 @@ export function parseSpotmatchState(value: unknown): SpotmatchState {
       path,
     ),
   );
-}
-
-/** Upgrades v1 rooms without inventing retrospective feedback or resetting gameplay. */
-export function migratePersistedSpotmatchState(value: unknown): SpotmatchState {
-  const raw = parseObject(value, 'SpotmatchState');
-  if (raw.stateVersion === 1) {
-    const round = raw.round === null ? null : parseObject(raw.round, 'SpotmatchState.round');
-    const players =
-      round === null ? [] : z.array(z.record(z.string(), z.unknown())).parse(round.players);
-    return parseSpotmatchState({
-      ...raw,
-      stateVersion: SPOTMATCH_STATE_VERSION,
-      round:
-        round === null
-          ? null
-          : {
-              ...round,
-              success: null,
-              players: players.map((player) => ({ ...player, lastMistake: null })),
-            },
-    });
-  }
-  return parseSpotmatchState(value);
 }

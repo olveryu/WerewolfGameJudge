@@ -37,11 +37,6 @@ export const UNDERCOVER_GUIDANCE_MATRIX: RoomGuidanceMatrix<UndercoverState['pha
     seated: GUIDANCE_MESSAGE,
     spectator: GUIDANCE_MESSAGE,
   },
-  aborted: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
-    spectator: GUIDANCE_MESSAGE,
-  },
   ended: {
     host: guidanceExempt('房主由房主面板承载本局复盘 / 再来一局 / 返回大厅'),
     seated: guidanceExempt('胜负与身份揭晓归本局复盘，房主后续动作归房主面板'),

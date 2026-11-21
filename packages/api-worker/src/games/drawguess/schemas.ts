@@ -135,7 +135,7 @@ const drawGuessWordChoiceSchema = z.strictObject({
 const internalCommandOptions = definePublicCommandOptions<DrawGuessInternalCommand>()([
   z.strictObject({
     type: z.literal('drawguess.words.dealt'),
-    gameSequence: z.int().nonnegative().optional(),
+    gameSequence: z.int().nonnegative(),
     turnIndex: z.int().nonnegative(),
     choices: z.array(drawGuessWordChoiceSchema).min(1).readonly(),
   }),

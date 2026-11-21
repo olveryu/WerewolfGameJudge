@@ -7,38 +7,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import type { Rng } from '../../../../platform/random';
-import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { ResolverFn, ResolverResult } from './types';
-
-function resolveWolfKillSeatFromVotes(
-  wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
-  isWolfVoteUnanimityRequired: boolean,
-  rng: Rng,
-  resolvedWolfKillTarget?: number | null,
-): number | undefined {
-  // The settled target wins: validating a save against a fresh
-  // tie-break here is how a witch could be told one target and then
-  // have her save rejected, or saved, against another. The fresh
-  // resolution below is only a fallback for direct resolver calls
-  // without a stored settlement; production state always carries one
-  // by the witch step.
-  if (resolvedWolfKillTarget !== undefined) {
-    return resolvedWolfKillTarget === null ? undefined : resolvedWolfKillTarget;
-  }
-  if (!wolfVotesBySeat) return undefined;
-  const votes = new Map<number, number>();
-  for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
-    const seat = Number.parseInt(seatStr, 10);
-    if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
-    votes.set(seat, targetSeat);
-  }
-  const resolved = resolveWolfVotes(votes, {
-    requireUnanimity: isWolfVoteUnanimityRequired,
-    rng,
-  });
-  return typeof resolved === 'number' ? resolved : undefined;
-}
 
 function validateSaveAction(
   saveTarget: number,
@@ -77,7 +46,7 @@ function validatePoisonAction(canPoison: boolean, hasSaveTarget: boolean): strin
 }
 
 export const witchActionResolver: ResolverFn = (context, input): ResolverResult => {
-  const { actorSeat, witchState, currentNightResults } = context;
+  const { actorSeat, witchState } = context;
 
   // FAIL-FAST: witch resolver requires witchState sub-context
   if (!witchState) {
@@ -100,12 +69,11 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   // Validate save action
   if (saveTarget !== null) {
-    const wolfKillSeat = resolveWolfKillSeatFromVotes(
-      currentNightResults.wolfVotesBySeat,
-      context.gameState.isWolfVoteUnanimityRequired,
-      context.rng,
-      context.gameState.resolvedWolfKillTarget,
-    );
+    const resolvedTarget = context.gameState.resolvedWolfKillTarget;
+    if (resolvedTarget === undefined) {
+      throw new Error('[FAIL-FAST] witch action requires a settled wolf-kill target');
+    }
+    const wolfKillSeat = resolvedTarget === null ? undefined : resolvedTarget;
     const witchCanSelfHeal = context.gameState.witchCanSelfHeal ?? false;
     const error = validateSaveAction(
       saveTarget,

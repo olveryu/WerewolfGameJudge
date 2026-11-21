@@ -81,8 +81,9 @@ describe('host flow vocabulary — one chassis vocabulary', () => {
     expect(source).not.toMatch(/input\.label/);
     expect(source).not.toMatch(/readonly label\?:/);
     expect(source).toMatch(/export function buildAssignRolesAction/);
-    expect(source).toMatch(/export function buildAbortGameAction/);
-    expect(source).toMatch(/export function buildRestartGameAction/);
+    expect(source).not.toMatch(
+      /export function build(?:AbortGame|RestartGame|NextRound|ReturnLobby)Action/,
+    );
     expect(source).toMatch(/export const HOST_FLOW_CONFIRM/);
   });
 

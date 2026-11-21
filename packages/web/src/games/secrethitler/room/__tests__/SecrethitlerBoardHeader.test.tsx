@@ -56,6 +56,7 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
     viewModel: getSecrethitlerViewModel(state, 0),
     effectiveSeat: 0,
     controlledSeat: null,
+    isHost: false,
     isSubmitting: false,
     submit,
   };
@@ -65,6 +66,61 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();
   expect(submit).not.toHaveBeenCalled();
+});
+
+it('projects aggregate vote results while hiding secret ballots', () => {
+  const state = buildSecrethitlerPhaseStates().get('publicResult');
+  if (
+    state === undefined ||
+    state.phase.kind !== 'publicResult' ||
+    state.phase.previous.kind !== 'voting'
+  )
+    throw new Error('Missing vote result fixture');
+  const publicView = getSecrethitlerViewModel(
+    { ...state, config: { ...state.config, voteMode: 'public' } } satisfies SecrethitlerState,
+    null,
+  );
+  const publicVoteResult = publicView.publicVoteResult;
+  if (publicVoteResult === null) throw new Error('Missing public vote result projection');
+  expect(publicVoteResult.votes).toHaveLength(state.livingSeats.length);
+
+  const secretView = getSecrethitlerViewModel(
+    { ...state, config: { ...state.config, voteMode: 'secret' } } satisfies SecrethitlerState,
+    null,
+  );
+  expect(secretView.publicVoteResult).toEqual({
+    yesCount: publicVoteResult.yesCount,
+    noCount: publicVoteResult.noCount,
+    votes: null,
+  });
+});
+
+it('lets the overdue Secret Hitler host retry public-result settlement', () => {
+  const state = buildSecrethitlerPhaseStates().get('publicResult');
+  if (state === undefined || state.phase.kind !== 'publicResult')
+    throw new Error('Missing public result fixture');
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(state.phase.deadlineAt + 5_000));
+  const submit = vi.fn(async () => false);
+  const props = {
+    state,
+    viewModel: getSecrethitlerViewModel(state, 0),
+    effectiveSeat: 0,
+    controlledSeat: null,
+    isHost: true,
+    isSubmitting: false,
+    submit,
+  };
+  const rendered = render(<SecrethitlerPublicResult screen={props} />);
+  try {
+    fireEvent.click(screen.getByTestId(TESTIDS.stageSettleRescueRetryButton));
+    expect(submit).toHaveBeenCalledWith('重新推进', {
+      type: 'secrethitler.phase.retrySettle',
+    });
+  } finally {
+    rendered.unmount();
+    vi.useRealTimers();
+  }
 });
 
 it('shows a pending private investigation only to its president until explicit acknowledgement', () => {
@@ -407,11 +463,11 @@ it.each([
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(0)));
     expect(confirmation).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(1)));
-    expect(confirmation).toHaveBeenCalledWith(
-      '确认选择？',
-      expect.stringContaining('2 号'),
-      expect.any(Function),
-    );
+    const confirmationCall = confirmation.mock.calls[0];
+    expect(confirmationCall?.[0]).toBe('确认选择？');
+    expect(confirmationCall?.[1]).toContain('2 号');
+    expect(confirmationCall?.[2]).toEqual(expect.any(Function));
+    expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
     expect(session.dispatch).not.toHaveBeenCalled();
     session.dispatch.mockResolvedValueOnce({
       kind: 'undelivered',
@@ -473,12 +529,12 @@ it('asks before showing private night recognition information', () => {
     </QueryClientProvider>,
   );
   fireEvent.click(screen.getByRole('button', { name: '确认信息' }));
-  expect(confirmation).toHaveBeenCalledWith(
-    '查看信息？',
-    expect.any(String),
-    expect.any(Function),
-    { confirmText: '查看' },
-  );
+  const confirmationCall = confirmation.mock.calls[0];
+  expect(confirmationCall?.[0]).toBe('查看信息？');
+  expect(confirmationCall?.[1]).toEqual(expect.any(String));
+  expect(confirmationCall?.[2]).toEqual(expect.any(Function));
+  expect(confirmationCall?.[3]?.confirmText).toBe('查看');
+  expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
   expect(screen.queryByRole('dialog', { name: '确认信息' })).not.toBeInTheDocument();
   act(() => {
     void confirmation.mock.calls[0]?.[2]();

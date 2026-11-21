@@ -9,6 +9,7 @@ interface Props {
   identityKey: string | number | null;
   hasViewed: boolean;
   viewedSeatCount: number;
+  isSubmitting: boolean;
   submitViewed: () => Promise<boolean>;
 }
 
@@ -40,6 +41,7 @@ describe('useRoleViewing', () => {
       identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 2,
+      isSubmitting: false,
       submitViewed,
     });
     act(() => result.current.open());
@@ -70,6 +72,7 @@ describe('useRoleViewing', () => {
       identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 0,
+      isSubmitting: false,
       submitViewed,
     });
     act(() => result.current.open());
@@ -86,6 +89,7 @@ describe('useRoleViewing', () => {
       identityKey: 1,
       hasViewed: true,
       viewedSeatCount: 5,
+      isSubmitting: false,
       submitViewed,
     });
     act(() => result.current.open());
@@ -105,6 +109,7 @@ describe('useRoleViewing', () => {
       identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 0,
+      isSubmitting: false,
       submitViewed,
     };
     const { result, rerender } = renderViewing(props);
@@ -121,11 +126,42 @@ describe('useRoleViewing', () => {
       identityKey: 1,
       hasViewed: false,
       viewedSeatCount: 0,
+      isSubmitting: false,
       submitViewed: vi.fn(async () => true),
     };
     const { result, rerender } = renderViewing(props);
     expect(() => result.current.open()).toThrow('without an effective seat');
     rerender({ ...props, effectiveSeat: 1, identityKey: null });
     expect(() => result.current.open()).toThrow('without a viewable identity');
+  });
+
+  it('disables acknowledgement while another command is in flight and recovers from a lock race', async () => {
+    const submitViewed = vi.fn(async () => {
+      throw new Error('Room operation is already in progress');
+    });
+    const props = {
+      effectiveSeat: 2,
+      identityKey: 1,
+      hasViewed: false,
+      viewedSeatCount: 0,
+      isSubmitting: false,
+      submitViewed,
+    };
+    const { result, rerender } = renderViewing(props);
+
+    act(() => result.current.open());
+    await chooseView();
+    expect(result.current.isConfirmationDisabled).toBe(false);
+
+    rerender({ ...props, isSubmitting: true });
+    expect(result.current.isConfirmationDisabled).toBe(true);
+    act(() => result.current.close());
+    expect(submitViewed).not.toHaveBeenCalled();
+
+    rerender(props);
+    await act(async () => result.current.close());
+    expect(result.current.isPending).toBe(false);
+    expect(result.current.isOpen).toBe(true);
+    expect(submitViewed).toHaveBeenCalledOnce();
   });
 });

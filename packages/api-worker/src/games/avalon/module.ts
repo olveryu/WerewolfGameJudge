@@ -3,7 +3,6 @@
 import {
   AVALON_STATE_CODEC,
   avalonEngine,
-  migratePersistedAvalonState,
   parseAvalonPublicStats,
 } from '@game-judge/game-engine/games/avalon/public';
 
@@ -21,12 +20,6 @@ export const avalonWorkerModule = defineWorkerGameModule({
   gameType: 'avalon',
   engine: avalonEngine,
   stateCodec: AVALON_STATE_CODEC,
-  migratePersistedState: migratePersistedAvalonState,
-  getRecoveryCommand: (state) =>
-    (state.phase.kind === 'voteResult' || state.phase.kind === 'questResult') &&
-    state.phase.deadlineAt === null
-      ? { type: 'avalon.phase.recoverLegacyResult' }
-      : null,
   createConfigSchema: avalonCreateConfigSchema,
   publicCommandSchema: avalonPublicCommandSchema,
   internalCommandSchema: avalonInternalCommandSchema,

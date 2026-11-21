@@ -1,15 +1,13 @@
-import { useCallback, useId, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
-import { Button } from '@/components/Button';
 import { IonIcon } from '@/components/icons/IonIcon';
-import { Spinner } from '@/components/Spinner';
 import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
 import { TESTIDS } from '@/testids';
 import IconArrowBack from '~icons/ion/arrow-back';
 import IconBookOutline from '~icons/ion/book-outline';
-import IconLockClosedOutline from '~icons/ion/lock-closed-outline';
 
-import { RoomActionHand, RoomHandCard } from './RoomActionHand';
+import { RoomActionHand, type RoomHandCard } from './RoomActionHand';
+import { RoomHandButton } from './RoomHandButton';
 
 export interface RoomStageMenuModel {
   readonly onOpenGuide: () => void;
@@ -26,7 +24,6 @@ export function RoomStageMenu({
   readonly abortAction: RoomHostManagementAction | undefined;
   readonly onClose: () => void;
 }) {
-  const reasonId = useId();
   const [isManual, setIsManual] = useState(false);
   const restoreManualFocus = useRef(false);
   const backButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -51,8 +48,113 @@ export function RoomStageMenu({
     abortAction !== undefined && !abortAction.isEnabled && abortAction.isLoading !== true
       ? abortAction.disabledReason || '当前暂不可用'
       : null;
+  const cards: RoomHandCard[] = [
+    {
+      id: 'stage-menu:back',
+      category: 'back',
+      content: (
+        <RoomHandButton
+          ref={focusBack}
+          model={{
+            label: '返回',
+            category: 'back',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: back,
+            icon: <IconArrowBack aria-hidden />,
+            testId: TESTIDS.roomStageMenuBackButton,
+          }}
+        />
+      ),
+    },
+  ];
+  if (isManual) {
+    cards.push({
+      id: 'stage-menu:guide',
+      category: 'resource',
+      content: (
+        <RoomHandButton
+          model={{
+            label: '玩法',
+            category: 'resource',
+            variant: 'secondary',
+            isEnabled: true,
+            onPress: model.onOpenGuide,
+            icon: <IconBookOutline aria-hidden />,
+            testId: TESTIDS.roomStageGuideButton,
+            ariaHasPopup: 'dialog',
+          }}
+        />
+      ),
+    });
+  } else {
+    cards.push(
+      {
+        id: 'stage-menu:manual',
+        category: 'resource',
+        content: (
+          <RoomHandButton
+            ref={focusManual}
+            model={{
+              label: '手册',
+              category: 'resource',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: () => {
+                setIsManual(true);
+                backButtonRef.current?.focus({ preventScroll: true });
+              },
+              icon: <IconBookOutline aria-hidden />,
+              testId: TESTIDS.roomManualButton,
+            }}
+          />
+        ),
+      },
+      {
+        id: 'stage-menu:configuration',
+        category: 'resource',
+        content: (
+          <RoomHandButton
+            model={{
+              label: '本局配置',
+              category: 'resource',
+              variant: 'secondary',
+              isEnabled: true,
+              onPress: model.onOpenConfiguration,
+              icon: <IconBookOutline aria-hidden />,
+              testId: TESTIDS.roomStageConfigurationButton,
+              ariaHasPopup: 'dialog',
+            }}
+          />
+        ),
+      },
+    );
+    if (abortAction !== undefined) {
+      cards.push({
+        id: 'stage-menu:abort',
+        category: abortAction.variant === 'danger' ? 'danger' : 'host',
+        unavailable: !abortAction.isEnabled || abortAction.isLoading === true,
+        content: (
+          <RoomHandButton
+            model={{
+              label: abortAction.label,
+              category: abortAction.category ?? 'host',
+              variant: abortAction.variant,
+              isEnabled: abortAction.isEnabled,
+              onPress: abortAction.isEnabled ? abortAction.onPress : undefined,
+              disabledReason: abortReason,
+              isLoading: abortAction.isLoading === true,
+              icon: <IonIcon name={abortAction.icon} />,
+              testId: abortAction.testID,
+            }}
+          />
+        ),
+      });
+    }
+  }
   return (
     <RoomActionHand
+      cards={cards}
       className="room-stage-menu"
       label={isManual ? '手册' : '菜单'}
       testId={TESTIDS.roomStageMenuPanel}
@@ -62,101 +164,6 @@ export function RoomStageMenu({
           back();
         }
       }}
-    >
-      <RoomHandCard category="back">
-        <Button
-          ref={focusBack}
-          variant="secondary"
-          onClick={back}
-          data-testid={TESTIDS.roomStageMenuBackButton}
-        >
-          <IconArrowBack aria-hidden />
-          <span>返回</span>
-        </Button>
-      </RoomHandCard>
-      {isManual ? (
-        <RoomHandCard category="resource">
-          <Button
-            key="guide"
-            variant="secondary"
-            data-card-category="resource"
-            aria-haspopup="dialog"
-            onClick={model.onOpenGuide}
-            data-testid={TESTIDS.roomStageGuideButton}
-          >
-            <IconBookOutline aria-hidden />
-            <span>玩法</span>
-          </Button>
-        </RoomHandCard>
-      ) : (
-        [
-          <RoomHandCard key="manual" category="resource">
-            <Button
-              key="manual"
-              ref={focusManual}
-              variant="secondary"
-              data-card-category="resource"
-              onClick={() => {
-                setIsManual(true);
-                backButtonRef.current?.focus({ preventScroll: true });
-              }}
-              data-testid={TESTIDS.roomManualButton}
-            >
-              <IconBookOutline aria-hidden />
-              <span>手册</span>
-            </Button>
-          </RoomHandCard>,
-          <RoomHandCard key="configuration" category="resource">
-            <Button
-              key="configuration"
-              variant="secondary"
-              data-card-category="resource"
-              aria-haspopup="dialog"
-              onClick={model.onOpenConfiguration}
-              data-testid={TESTIDS.roomStageConfigurationButton}
-            >
-              <IconBookOutline aria-hidden />
-              <span>本局配置</span>
-            </Button>
-          </RoomHandCard>,
-          abortAction !== undefined && (
-            <RoomHandCard
-              key="abort"
-              category={abortAction.variant === 'danger' ? 'danger' : 'host'}
-              unavailable={!abortAction.isEnabled || abortAction.isLoading === true}
-            >
-              <Button
-                key="abort"
-                variant={abortAction.variant}
-                loading={abortAction.isLoading === true}
-                data-disabled-reason={abortReason ?? undefined}
-                aria-disabled={abortReason !== null ? true : undefined}
-                aria-label={!abortAction.isEnabled ? abortAction.label : undefined}
-                aria-describedby={abortReason !== null ? reasonId : undefined}
-                data-testid={abortAction.testID}
-                onClick={() => {
-                  if (!abortAction.isEnabled) return;
-                  abortAction.onPress();
-                }}
-              >
-                {abortAction.isLoading === true ? (
-                  <Spinner label="提交中" />
-                ) : abortReason !== null ? (
-                  <IconLockClosedOutline aria-hidden />
-                ) : (
-                  <IonIcon name={abortAction.icon} />
-                )}
-                <span>{abortAction.label}</span>
-                {abortReason !== null && (
-                  <span id={reasonId} className="visually-hidden">
-                    {abortReason}
-                  </span>
-                )}
-              </Button>
-            </RoomHandCard>
-          ),
-        ]
-      )}
-    </RoomActionHand>
+    />
   );
 }

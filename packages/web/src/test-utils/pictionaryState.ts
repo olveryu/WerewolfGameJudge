@@ -27,8 +27,6 @@ export const PICTIONARY_TEST_PLAYER_NAMES = ['阿杰', '小雨', '大熊', '米�
 export interface PictionaryTestRound {
   /** Per relay step, the seats that hand nothing in; steps past the list miss nobody. */
   readonly missedSeats?: readonly (readonly number[])[];
-  /** The host aborts as this step opens (0: before anything was handed in); omitted plays to the end. */
-  readonly abortAtStep?: number;
   /**
    * Returns the state as this step's phase opens (settling: nothing handed in yet; gallery: the
    * last step, before the host finishes it).
@@ -65,8 +63,8 @@ export function pictionaryTestText(stepIndex: number, seat: number): string {
  * Plays a four-seat round through the real engine: every step settles at
  * its deadline through the system channel, then each seat hands in its
  * text (`pictionaryTestText`), its uploaded drawing, or nothing as the
- * script says. The round ends with the host finishing the gallery, aborts
- * as `abortAtStep` opens, or stops where `stopAt` says.
+ * script says. The round ends with the host finishing the gallery or
+ * stops where `stopAt` says.
  */
 export function playPictionaryTestRound(round: PictionaryTestRound = {}): PictionaryState {
   const numberOfPlayers = PICTIONARY_TEST_PLAYER_NAMES.length;
@@ -155,12 +153,6 @@ export function playPictionaryTestRound(round: PictionaryTestRound = {}): Pictio
     return true;
   };
   for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
-    if (round.abortAtStep === stepIndex) {
-      state = pictionaryEngine.normalize(
-        pictionaryEngine.evolve(state, { type: 'pictionary.round.aborted' }),
-      );
-      return read();
-    }
     if (isStopAt(stepIndex, 'answering')) return read();
     settle();
     if (isStopAt(stepIndex, 'settling')) return read();

@@ -265,7 +265,7 @@ interface PictionaryChain {
 
 `PictionaryState` 还保存：
 
-- `stateVersion`、`roomCode`、`hostUserId` 和共享座位状态。
+- `roomCode`、`hostUserId` 和共享座位状态。
 - `config`、`roundId` 和当前轮次编号。
 - 长度恰好为 $N$ 的 `seatOrder`。
 - 长度恰好为 $N$ 的 `stepOffsets`，与 `seatOrder` 共同确定每棒任务。

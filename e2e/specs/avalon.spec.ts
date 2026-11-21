@@ -513,7 +513,6 @@ async function expectQuestResult(page: Page, expectation: QuestResultExpectation
   await expect(page.getByTestId(TESTIDS.avalonQuestResultCounts)).toHaveText(
     `成功牌 ${expectation.successCount} · 失败牌 ${expectation.failCount}`,
   );
-  await expect(page.getByTestId(TESTIDS.avalonResultClose('quest'))).toHaveCount(0);
 }
 
 // ---------------------------------------------------------------------------
@@ -595,7 +594,6 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
 
   await test.step(`任务${script.round}：展示投票结果后自动推进`, async () => {
     await Promise.all(pages.map((page) => expectVoteResult(page, script.voteResult)));
-    await expect(pages[0]!.getByTestId(TESTIDS.avalonResultClose('vote'))).toHaveCount(0);
     await waitForResultPanelsClosed(pages, 'vote');
   });
 

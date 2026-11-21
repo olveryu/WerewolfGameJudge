@@ -1,7 +1,6 @@
 /** Worker runtime module for Spotmatch (一眼成对). */
 
 import {
-  migratePersistedSpotmatchState,
   parseSpotmatchPublicStats,
   projectSpotmatchStateForUser,
   SPOTMATCH_STATE_CODEC,
@@ -22,7 +21,6 @@ export const spotmatchWorkerModule = defineWorkerGameModule({
   engine: spotmatchEngine,
   stateCodec: SPOTMATCH_STATE_CODEC,
   projectStateForUser: projectSpotmatchStateForUser,
-  migratePersistedState: migratePersistedSpotmatchState,
   createConfigSchema: spotmatchCreateConfigSchema,
   publicCommandSchema: spotmatchPublicCommandSchema,
   internalCommandSchema: spotmatchInternalCommandSchema,

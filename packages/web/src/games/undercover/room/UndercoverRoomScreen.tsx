@@ -95,7 +95,6 @@ function UndercoverRoomContent(
   return (
     <RoomShell
       model={shellModel}
-      showPlayerHand
       phaseLabel={
         state.phase === 'lobby'
           ? '待开局'
@@ -105,17 +104,14 @@ function UndercoverRoomContent(
               ? '准备词语'
               : state.phase === 'ended'
                 ? '本局结束'
-                : state.phase === 'aborted'
-                  ? '本局中止'
-                  : '游戏进行中'
+                : '游戏进行中'
       }
       lobbyAction={
         state.phase === 'lobby'
           ? { label: '分配角色', occupiedSeats: getUndercoverOccupiedSeatCount(state) }
           : null
       }
-      isSelecting={controls.isSelecting}
-      selectionUsesHostTask
+      selectionMode={controls.isSelecting ? 'host-task' : undefined}
       configurationEntry={
         !isPreGame && !controls.isSelecting
           ? { onOpen: () => setInformation('configuration') }
@@ -167,7 +163,7 @@ function UndercoverRoomContent(
             <RoomDialog
               title="谁是卧底玩法"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <UndercoverRules embedded />
@@ -177,7 +173,7 @@ function UndercoverRoomContent(
             <RoomDialog
               title="本局配置"
               onClose={() => setInformation(null)}
-              allowEscape
+              dismissOnEscape
               footer={null}
             >
               <p>{`谁是卧底（${state.config.numberOfPlayers}人）`}</p>

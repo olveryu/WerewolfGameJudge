@@ -22,8 +22,6 @@ export const STORY_RELAY_TEST_PLAYER_NAMES = ['阿杰', '小雨', '大熊', '米
 export interface StoryRelayTestRound {
   /** Per relay step, the seats that hand in a blank; steps past the list blank nobody. */
   readonly blankSeats?: readonly (readonly number[])[];
-  /** The host aborts as this step opens (0: before anything was handed in); omitted plays to the end. */
-  readonly abortAtStep?: number;
   /**
    * Returns the state as this step's phase opens (answering: nobody ready yet; settling: everyone
    * ready, nothing handed in; gallery: the last step, before the host finishes the playback).
@@ -61,7 +59,7 @@ export function storyRelayTestText(stepIndex: number, seat: number): string {
  * step ready, then hands in its passage (`storyRelayTestText`) or a blank
  * as the script says, and the transition settles at its deadline through
  * the system channel. The round ends with the host finishing the
- * playback, aborts as `abortAtStep` opens, or stops at `stopAt`.
+ * playback or stops at `stopAt`.
  */
 export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryRelayState {
   const numberOfPlayers = STORY_RELAY_TEST_PLAYER_NAMES.length;
@@ -118,12 +116,6 @@ export function playStoryRelayTestRound(round: StoryRelayTestRound = {}): StoryR
     return true;
   };
   for (let stepIndex = 0; stepIndex < numberOfPlayers; stepIndex += 1) {
-    if (round.abortAtStep === stepIndex) {
-      state = storyRelayEngine.normalize(
-        storyRelayEngine.evolve(state, { type: 'storyrelay.round.aborted', abortedAt: nowMs }),
-      );
-      return read();
-    }
     if (isStopAt(stepIndex, 'answering')) return read();
     for (let seat = 0; seat < numberOfPlayers; seat += 1) {
       asSeat({ type: 'storyrelay.task.ready.set', ...taskOf(seat), isReady: true }, seat);

@@ -122,7 +122,7 @@ function createStoryRelayReviewButtons(
   review: RoomReviewEntry | null,
   viewer: RoomViewer,
 ): readonly RoomBottomButton[] {
-  if (state.phase !== 'ended' && state.phase !== 'aborted') return [];
+  if (state.phase !== 'ended') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Story Relay ${state.phase} has no review entry`);
   }
@@ -150,7 +150,7 @@ export interface StoryRelayRoomShellModelInput extends Omit<
   readonly onProfileLeaveSeat: () => void;
   readonly isLobby: boolean;
   readonly releaseBot: () => void;
-  /** The shared review entry; present once the round ended or was aborted. */
+  /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;
 }
 
@@ -162,7 +162,7 @@ export interface StoryRelayHostManagementInput {
   >;
   readonly isSubmitting: boolean;
   readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
-  /** The shared review entry; present once the round ended or was aborted. */
+  /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;
 }
 
@@ -213,7 +213,7 @@ export function createStoryRelayHostManagement(
       ],
     };
   }
-  const isTerminal = state.phase === 'ended' || state.phase === 'aborted';
+  const isTerminal = state.phase === 'ended';
   const restart = buildResetToLobbyAction({
     onPress: () =>
       showDestructiveAlert(

@@ -14,7 +14,6 @@ import {
   type PictionaryEntry,
   type PictionaryState,
 } from './types';
-import { PICTIONARY_STATE_VERSION } from './version';
 
 function assertNonEmpty(value: string, label: string): void {
   if (value.length === 0) throw new Error(`${label} must be non-empty`);
@@ -177,9 +176,6 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   if (state.gameType !== PICTIONARY_GAME_TYPE) {
     throw new Error(`Pictionary gameType must be ${PICTIONARY_GAME_TYPE}`);
   }
-  if (state.stateVersion !== PICTIONARY_STATE_VERSION) {
-    throw new Error(`Unsupported Pictionary state version ${state.stateVersion}`);
-  }
   assertNonEmpty(state.roomCode, 'Pictionary roomCode');
   assertNonEmpty(state.hostUserId, 'Pictionary hostUserId');
   if (!isValidPictionaryConfig(state.config)) throw new Error('Pictionary config is invalid');
@@ -252,8 +248,6 @@ export function normalizePictionaryState(state: PictionaryState): PictionaryStat
   if (state.phase === 'settling' && state.deadlineAt !== null) {
     throw new Error('Pictionary collection must wait for explicit submissions');
   }
-  if (state.phase === 'aborted' && state.deadlineAt !== null)
-    throw new Error('Pictionary aborted round cannot have a deadline');
   if (state.phase !== 'settling' && state.reservations.length > 0) {
     throw new Error('Pictionary reservations are only valid while collecting final drawings');
   }

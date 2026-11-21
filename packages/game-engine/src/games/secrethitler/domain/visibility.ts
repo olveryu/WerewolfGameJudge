@@ -74,6 +74,11 @@ export interface SecrethitlerViewModel {
   readonly lastPresidentSeat: number | null;
   readonly lastChancellorSeat: number | null;
   readonly voteMode: SecrethitlerVoteMode;
+  readonly publicVoteResult: {
+    readonly yesCount: number;
+    readonly noCount: number;
+    readonly votes: readonly { readonly seat: number; readonly vote: SecrethitlerVote }[] | null;
+  } | null;
   readonly history: SecrethitlerHistoryView;
   readonly winner: 'liberal' | 'fascist' | null;
   readonly endReason:
@@ -153,6 +158,22 @@ function publicHistory(state: SecrethitlerState): SecrethitlerHistoryView {
     })),
     policies: state.history.policies,
     actions: state.history.actions,
+  };
+}
+
+function getPublicVoteResult(state: SecrethitlerState): SecrethitlerViewModel['publicVoteResult'] {
+  if (state.phase.kind !== 'publicResult') return null;
+  const previous = state.phase.previous;
+  if (previous.kind !== 'voting') return null;
+  const votes = state.livingSeats.map((seat) => ({
+    seat,
+    vote: previous.votes[seat] ?? 'nein',
+  }));
+  const yesCount = votes.filter(({ vote }) => vote === 'ja').length;
+  return {
+    yesCount,
+    noCount: votes.length - yesCount,
+    votes: state.config.voteMode === 'public' ? votes : null,
   };
 }
 
@@ -243,6 +264,7 @@ export function getSecrethitlerViewModel(
     lastPresidentSeat: state.lastPresidentSeat,
     lastChancellorSeat: state.lastChancellorSeat,
     voteMode: state.config.voteMode,
+    publicVoteResult: getPublicVoteResult(state),
     history: publicHistory(state),
     winner: state.phase.kind === 'ended' ? state.phase.winner : null,
     endReason: state.phase.kind === 'ended' ? state.phase.reason : null,

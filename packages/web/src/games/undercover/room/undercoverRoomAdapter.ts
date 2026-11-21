@@ -415,8 +415,7 @@ export function createUndercoverHostManagement(
         task = hostActionTask('select-player');
       }
       break;
-    case 'ended':
-    case 'aborted': {
+    case 'ended': {
       pendingActionKeys =
         state.phase === 'ended' && input.review?.isPending ? [HOST_ACTION_KEYS.review] : [];
       if (input.review === null && state.phase === 'ended')

@@ -20,26 +20,10 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 - Games expose `./games/<id>/public` plus `./games/catalog` and `./games/registry`; the exact export list is pinned by `EXPECTED_PACKAGE_EXPORTS` in `packages/game-engine/src/platform/__tests__/architecture.contract.test.ts`.
 - The engine catalog is exhaustive over `GAME_TYPES`, pinned by `game registry completeness` in `packages/game-engine/src/platform/__tests__/gameRegistry.contract.test.ts`. A registry entry carries the engine export path, client module path, production flag, rewards, declared workflows, and HTTP routes. For the full new-game wiring list, see the root file's pointer to the generator.
 
-## State identity, codec, and versions
+## State shape and codec
 
-- Every game owns `state/version.ts` (`*_STATE_IDENTITY`: game type plus state version), `state/parseState.ts` (strict parser, current version only), `state/normalize.ts` (invariant checker), and `state/codec.ts` (identity plus parser, satisfying `GameStateCodec`).
+- Every game owns `state/parseState.ts` (strict parser), `state/normalize.ts` (invariant checker), and `state/codec.ts` (game identity plus parser, satisfying `GameStateCodec`). Game state has no version field or persisted-state migration path; a shape change applies to the current state contract, and incompatible persisted data fails parsing.
 - Werewolf is the exception to the normalize path: its checker lives at `domain/state/normalize.ts`, and its strict parser imports it from there.
-- Current versions and accepted older versions (each in its game's `state/version.ts` and `state/migratePersisted*State`):
-
-  | Game         | Current | `migratePersisted*State` accepts |
-  | ------------ | ------- | -------------------------------- |
-  | werewolf     | 21      | 12–20                            |
-  | avalon       | 14      | 1–13                             |
-  | fibking      | 9       | 5, 6, 7, 8                       |
-  | pictionary   | 11      | 8, 9, 10                         |
-  | undercover   | 7       | 1, 2, 3, 4, 5, 6                 |
-  | storyrelay   | 4       | 1, 2, 3                          |
-  | drawguess    | 5       | 1, 2, 3, 4                       |
-  | spotmatch    | 2       | 1                                |
-  | secrethitler | 8       | 1–7                              |
-
-- A strict parser rejects every other version. A migration function upgrades field by field, then runs the strict parser.
-- Persisted state is migrated at read time by the worker (see the worker file). The engine owns the per-version upgrade functions only.
 
 ## Reducers and handlers
 
@@ -51,7 +35,7 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 ## Command and snapshot envelopes
 
 - The command receipt is `RoomCommandResult` (`committed` with snapshot and `CommittedCommandOutcome`, or `rejected` with a reason), created and parsed only through the shared helpers in `platform/protocol/commandResult.ts`.
-- Snapshots use `RoomSnapshot` with a `GameStateCodec`: exact keys, matching game type and state version, then the game's parser.
+- Snapshots use `RoomSnapshot` with a `GameStateCodec`: exact keys, matching game type, then the game's parser.
 - Shared seat commands and reason codes live in `platform/protocol/` (`commands.ts`, `reasons.ts`), pinned by `commandVocabulary.contract.test.ts` and `reasonCodes.contract.test.ts`.
 - The realtime wire protocol is v2: client sends `SYNC` only; server sends `SYNC_RESULT`, `STATE_UPDATE`, `INBOX_HINT` (online/offline presence was removed 2026-11-07; no `PRESENCE` frame exists). Parsers are fail-fast strict schemas; violations are protocol errors. Close codes are defined in `platform/realtime/closeCodes.ts`.
 

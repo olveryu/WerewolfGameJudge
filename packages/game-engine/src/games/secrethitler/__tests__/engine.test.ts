@@ -8,7 +8,7 @@ import { SECRETHITLER_REASONS } from '../domain/decision';
 import { getSecrethitlerNightParticipants } from '../domain/rules';
 import { getSecrethitlerViewModel } from '../domain/visibility';
 import { secrethitlerEngine } from '../engine';
-import { migratePersistedSecrethitlerState, parseSecrethitlerState } from '../state/parseState';
+import { parseSecrethitlerState } from '../state/parseState';
 import {
   DEFAULT_SECRETHITLER_CONFIG,
   type SecrethitlerConfig,
@@ -673,45 +673,6 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     );
     expect(current.session.state.phase).toMatchObject({ kind: 'voting', chancellorSeat: second });
   });
-  it.each([1, 2, 3, 4, 5])(
-    'migrates a partially cast v%i vote without losing ballots',
-    (version) => {
-      const current = game(5);
-      enterElection(current);
-      const election = currentPhase(current);
-      if (election.kind !== 'election') throw new Error('Expected election');
-      const candidate = eligibleChancellors(current.session.state, election.presidentSeat)[0];
-      if (candidate === undefined) throw new Error('Expected candidate');
-      const president = current.actorForSeat(election.presidentSeat);
-      current.send(
-        { type: 'secrethitler.government.preselect', chancellorSeatId: candidate },
-        president.userId,
-        president.controlledSeat,
-      );
-      current.send(
-        { type: 'secrethitler.government.nominate', chancellorSeatId: candidate },
-        president.userId,
-        president.controlledSeat,
-      );
-      current.send({ type: 'secrethitler.government.castVote', vote: 'ja' }, current.seatUser(1));
-      const voting = currentPhase(current);
-      if (voting.kind !== 'voting') throw new Error('Expected voting');
-      const legacy = {
-        ...current.session.state,
-        stateVersion: version,
-        phase: {
-          kind: voting.kind,
-          presidentSeat: voting.presidentSeat,
-          chancellorSeat: voting.chancellorSeat,
-          returnToSeat: voting.returnToSeat,
-          votes: voting.votes,
-        },
-      };
-      const migrated = migratePersistedSecrethitlerState(legacy);
-      expect(migrated.phase).toEqual({ ...legacy.phase, deadlineAt: null });
-    },
-  );
-
   it('allows vote changes until reveal and shows the result for five seconds', () => {
     const current = game(5, 2);
     enterElection(current);
@@ -919,12 +880,6 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       kind: 'policy',
       ...current.session.state.history.policies[0],
     });
-    const migrated = migratePersistedSecrethitlerState({
-      ...current.session.state,
-      stateVersion: 7,
-    });
-    expect(migrated.lastPublicResult).toBeNull();
-    expect(migrated.history).toEqual(current.session.state.history);
     expect(current.session.state.phase.kind).toBe('election');
     expect(
       current.session.state.history.governments.every((government) => government.votes !== null),
@@ -979,8 +934,14 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       { ...current.session.systemContext('vote-settle'), randomSeed: 'reveal-seed' },
     );
     const result = parseSecrethitlerState(JSON.parse(JSON.stringify(current.session.state))).phase;
-    if (result.kind !== 'publicResult' || result.chaosPolicy === null)
+    if (
+      result.kind !== 'publicResult' ||
+      result.chaosPolicy === null ||
+      result.chaosPolicyDeck === null
+    )
       throw new Error('Expected chaos result');
+    const previewDeck = result.chaosPolicyDeck;
+    expect(previewDeck[0]).toBe(result.chaosPolicy);
     expect(result).not.toHaveProperty('randomSeed');
     current.session.setNow(result.deadlineAt);
     current.session.sendAs(
@@ -991,6 +952,7 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
       policy: result.chaosPolicy,
       source: 'chaos',
     });
+    expect(current.session.state.policyDeck).toEqual(previewDeck.slice(1));
   });
 
   it('clears earlier election failures only after the policy result timer', () => {

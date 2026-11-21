@@ -3,7 +3,6 @@
 import {
   FIB_STATE_CODEC,
   fibEngine,
-  migratePersistedFibState,
   parseFibPublicStats,
 } from '@game-judge/game-engine/games/fibking/public';
 
@@ -16,7 +15,6 @@ export const fibWorkerModule = defineWorkerGameModule({
   gameType: 'fibking',
   engine: fibEngine,
   stateCodec: FIB_STATE_CODEC,
-  migratePersistedState: migratePersistedFibState,
   createConfigSchema: fibCreateConfigSchema,
   publicCommandSchema: fibPublicCommandSchema,
   internalCommandSchema: fibInternalCommandSchema,

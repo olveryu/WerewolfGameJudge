@@ -3,9 +3,8 @@
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
 import { parseAvalonState } from './parseState';
 import type { AvalonState } from './types';
-import { AVALON_STATE_IDENTITY } from './version';
 
 export const AVALON_STATE_CODEC = {
-  ...AVALON_STATE_IDENTITY,
+  gameType: 'avalon',
   parse: parseAvalonState,
 } satisfies GameStateCodec<AvalonState>;

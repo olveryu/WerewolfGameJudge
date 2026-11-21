@@ -98,7 +98,12 @@ function game(numberOfPlayers = 4, humanCount = 4) {
     startGame() {
       send({ type: 'drawguess.game.begin' });
       // Worker deals 3 word choices (simulated here via internal command).
-      sendInternal({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
+      sendInternal({
+        type: 'drawguess.words.dealt',
+        gameSequence: session.state.gameSequence,
+        turnIndex: 0,
+        choices: CHOICES,
+      });
     },
     chooseFirstWord(drawerSeat: number) {
       const userId = drawerSeat === 0 ? 'host' : `u${drawerSeat}`;
@@ -240,7 +245,12 @@ describe('DrawGuess engine', () => {
       payload: { turnIndex: 0 },
     });
     expect(session.state.drawerQueue).toEqual([0, 1, 2, 3, 4, 5]);
-    session.sendInternal({ type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES });
+    session.sendInternal({
+      type: 'drawguess.words.dealt',
+      gameSequence: session.state.gameSequence,
+      turnIndex: 0,
+      choices: CHOICES,
+    });
     if (session.state.phase.kind !== 'wordSelect') throw new Error('phase');
     expect(session.state.phase.choices).toHaveLength(DRAWGUESS_WORD_CHOICE_COUNT);
     expect(session.state.phase.deadlineAt).not.toBeNull();
@@ -1026,6 +1036,7 @@ describe('DrawGuess abort', () => {
     session.send({ type: 'room.seat.leave' });
     session.send({ type: 'room.seat.fillBots' });
     session.send({ type: 'drawguess.game.begin' });
+    const staleGameSequence = session.state.gameSequence;
     expect(session.state.phase).toMatchObject({
       kind: 'wordSelect',
       choices: [],
@@ -1040,7 +1051,12 @@ describe('DrawGuess abort', () => {
     expect(isBotSeat(session.state.roster, 0)).toBe(true);
     expect(
       session.decideAs(
-        { type: 'drawguess.words.dealt', turnIndex: 0, choices: CHOICES },
+        {
+          type: 'drawguess.words.dealt',
+          gameSequence: staleGameSequence,
+          turnIndex: 0,
+          choices: CHOICES,
+        },
         session.systemContext('delayed-words'),
       ),
     ).toEqual({ kind: 'reject', reason: DRAWGUESS_REASONS.stale });
@@ -1150,6 +1166,7 @@ describe('DrawGuess abort', () => {
       if (session.state.phase.kind === 'wordSelect')
         session.sendInternal({
           type: 'drawguess.words.dealt',
+          gameSequence: session.state.gameSequence,
           turnIndex: session.state.turnIndex,
           choices: CHOICES,
         });
@@ -1218,6 +1235,7 @@ describe('DrawGuess turn history', () => {
     if (session.state.phase.kind === 'wordSelect') {
       session.sendInternal({
         type: 'drawguess.words.dealt',
+        gameSequence: session.state.gameSequence,
         turnIndex: session.state.turnIndex,
         choices: CHOICES,
       });
@@ -1428,6 +1446,34 @@ describe('DrawGuess turn history', () => {
       '1',
       '2',
     ]);
+  });
+
+  it('rejects missing guess metrics and gaps in completed-turn history', () => {
+    const session = game();
+    session.startGame();
+    session.chooseFirstWord(0);
+    session.settleExpired();
+
+    const missingPhaseMetrics = JSON.parse(JSON.stringify(session.state)) as {
+      phase: Record<string, unknown>;
+    };
+    delete missingPhaseMetrics.phase['guessAttemptsBySeat'];
+    expect(() => parseDrawGuessState(missingPhaseMetrics)).toThrow('guessAttemptsBySeat');
+
+    closeRoundEnd(session);
+    const missingHistoryMetrics = JSON.parse(JSON.stringify(session.state)) as {
+      turnHistory: Record<string, unknown>[];
+    };
+    const firstTurn = missingHistoryMetrics.turnHistory[0];
+    if (firstTurn === undefined) throw new Error('expected a completed turn');
+    delete firstTurn['guessTimeMsBySeat'];
+    expect(() => parseDrawGuessState(missingHistoryMetrics)).toThrow('guessTimeMsBySeat');
+
+    const historyGap = JSON.parse(JSON.stringify(session.state)) as {
+      turnHistory: Record<string, unknown>[];
+    };
+    historyGap.turnHistory.splice(0, 1);
+    expect(() => parseDrawGuessState(historyGap)).toThrow('turn history');
   });
 
   it('keeps the running turn out of the history every viewer sees', () => {

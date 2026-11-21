@@ -1,7 +1,6 @@
 /** Worker runtime module for Pictionary. */
 
 import {
-  migratePersistedPictionaryState,
   parsePictionaryPublicStats,
   PICTIONARY_STATE_CODEC,
   pictionaryEngine,
@@ -23,7 +22,6 @@ export const pictionaryWorkerModule = defineWorkerGameModule({
   gameType: 'pictionary',
   engine: pictionaryEngine,
   stateCodec: PICTIONARY_STATE_CODEC,
-  migratePersistedState: migratePersistedPictionaryState,
   createConfigSchema: pictionaryCreateConfigSchema,
   publicCommandSchema: pictionaryPublicCommandSchema,
   internalCommandSchema: pictionaryInternalCommandSchema,

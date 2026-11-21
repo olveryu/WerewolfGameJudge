@@ -138,6 +138,7 @@ export function RoleCardDialog({
   descriptionTitle = '技能介绍',
   requireConfirmation = false,
   confirmLoading = false,
+  confirmDisabled = false,
 }: {
   readonly role: RevealRoleData;
   readonly onClose: () => void;
@@ -150,6 +151,7 @@ export function RoleCardDialog({
   readonly descriptionTitle?: string;
   readonly requireConfirmation?: boolean;
   readonly confirmLoading?: boolean;
+  readonly confirmDisabled?: boolean;
 }) {
   return (
     <Dialog.Root
@@ -177,6 +179,7 @@ export function RoleCardDialog({
               data-alignment={role.alignment}
               onClick={onClose}
               loading={confirmLoading}
+              disabled={confirmDisabled}
               data-testid={TESTIDS.roleCardConfirmButton}
             >
               {confirmText}

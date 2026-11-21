@@ -221,6 +221,7 @@ export function useAvalonRoomState(
       (effectiveSeat !== null && state.roleViewedSeats.includes(effectiveSeat)),
     occupiedSeatCount: getAvalonOccupiedSeatCount(state),
     viewedSeatCount: state.roleViewedSeats.length,
+    isSubmitting,
     submitViewed: () => submit('查看身份', { type: 'avalon.role.viewed' }, { controlledSeat }),
   });
   // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick）。

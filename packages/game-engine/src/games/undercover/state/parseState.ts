@@ -8,26 +8,21 @@ import {
   parseBoolean,
   parseInteger,
   parseNonEmptyString,
-  parseNullable,
   parseObject,
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
-import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import { parseRoomRoster } from '../../../platform/room/roster';
-import type { BotSeatOccupant } from '../../../platform/room/seating';
 import type { UndercoverRole } from '../domain/rules';
 import { normalizeUndercoverState } from './normalize';
 import {
   UNDERCOVER_CATEGORIES,
   type UndercoverCategory,
   type UndercoverConfig,
-  type UndercoverHumanSeat,
   type UndercoverPendingRound,
   type UndercoverRound,
   type UndercoverState,
   type UndercoverWordPair,
 } from './types';
-import { UNDERCOVER_STATE_VERSION } from './version';
 
 function parseRole(value: unknown, path: string): UndercoverRole {
   if (value !== 'civilian' && value !== 'undercover' && value !== 'blank')
@@ -109,17 +104,14 @@ function parseRound(value: unknown, path: string): UndercoverRound {
   );
 }
 
-/** Decodes only current Undercover state; migrations belong at the persistence boundary. */
+/** Decodes the complete Undercover state at persistence and transport boundaries. */
 export function parseUndercoverState(value: unknown): UndercoverState {
   const path = 'UndercoverState';
   const raw = parseObject(value, path);
   if (raw.gameType !== UNDERCOVER_GAME_TYPE)
     return failDecode(`${path}.gameType`, UNDERCOVER_GAME_TYPE);
-  if (raw.stateVersion !== UNDERCOVER_STATE_VERSION)
-    return failDecode(`${path}.stateVersion`, `version ${UNDERCOVER_STATE_VERSION}`);
   const base = {
     gameType: raw.gameType,
-    stateVersion: raw.stateVersion,
     roomCode: parseNonEmptyString(raw.roomCode, `${path}.roomCode`),
     hostUserId: parseNonEmptyString(raw.hostUserId, `${path}.hostUserId`),
     config: parseConfig(raw.config, `${path}.config`),
@@ -176,85 +168,8 @@ export function parseUndercoverState(value: unknown): UndercoverState {
         winner: parseRole(raw.winner, `${path}.winner`),
       };
       break;
-    case 'aborted':
-      state = {
-        ...base,
-        phase: 'aborted',
-        round: parseNullable(raw.round, `${path}.round`, parseRound),
-        abortedRoundId: parseNonEmptyString(raw.abortedRoundId, `${path}.abortedRoundId`),
-      };
-      break;
     default:
       return failDecode(`${path}.phase`, 'an Undercover phase');
   }
   return normalizeUndercoverState(finishObject(raw, state, path));
-}
-
-/** Upgrade stored rooms without changing roster, words, confirmations or results.
- * @throws When the stored configuration or migrated state is invalid.
- */
-export function migratePersistedUndercoverState(value: unknown): UndercoverState {
-  const raw = parseObject(value, 'UndercoverState');
-  const abortedRoundIdentity =
-    raw.phase === 'aborted'
-      ? {
-          abortedRoundId:
-            raw.round === null
-              ? 'legacy-aborted-preparation'
-              : parseNonEmptyString(
-                  parseObject(raw.round, 'UndercoverState.round').roundId,
-                  'UndercoverState.round.roundId',
-                ),
-        }
-      : {};
-  if (raw.stateVersion === 4 || raw.stateVersion === 5 || raw.stateVersion === 6) {
-    // v4 renamed reading to viewing; v6 retains an identity for aborted rounds.
-    return parseUndercoverState({
-      ...raw,
-      stateVersion: UNDERCOVER_STATE_VERSION,
-      reviewCompletedUserIds: [],
-      phase: raw.stateVersion === 4 && raw.phase === 'reading' ? 'viewing' : raw.phase,
-      ...abortedRoundIdentity,
-    });
-  }
-  if (raw.stateVersion !== 1 && raw.stateVersion !== 2 && raw.stateVersion !== 3)
-    return parseUndercoverState(raw);
-  const config = parseObject(raw.config, 'UndercoverState.config');
-  const currentConfig = { ...config };
-  if (raw.stateVersion === 1) {
-    parseBoolean(config.isTestMode, 'UndercoverState.config.isTestMode');
-    delete currentConfig.isTestMode;
-  }
-  const parsedConfig = parseConfig(currentConfig, 'UndercoverState.config');
-  const round = parseNullable(raw.round, 'UndercoverState.round', parseObject);
-  const migratedRound =
-    round === null || raw.stateVersion === 3
-      ? round
-      : {
-          ...round,
-          speakingStartSeat: randomIntInclusive(
-            0,
-            parsedConfig.numberOfPlayers - 1,
-            createSeededRng(parseNonEmptyString(round.roundId, 'UndercoverState.round.roundId')),
-          ),
-        };
-  // v1-v3 stored humans and bots separately; merge both into the unified roster.
-  const roster: Record<number, UndercoverHumanSeat | BotSeatOccupant> = {
-    ...parseRoomRoster(raw.realSeats, 'UndercoverState.realSeats'),
-  };
-  for (const seat of parseArray(raw.botSeats, 'UndercoverState.botSeats', parseSeat)) {
-    if (roster[seat] !== undefined)
-      return failDecode('UndercoverState.botSeats', 'seats disjoint from realSeats');
-    roster[seat] = { seat, kind: 'bot' };
-  }
-  const { realSeats: _legacyRealSeats, botSeats: _legacyBotSeats, ...rest } = raw;
-  return parseUndercoverState({
-    ...rest,
-    stateVersion: UNDERCOVER_STATE_VERSION,
-    reviewCompletedUserIds: [],
-    config: parsedConfig,
-    round: migratedRound,
-    roster,
-    ...abortedRoundIdentity,
-  });
 }

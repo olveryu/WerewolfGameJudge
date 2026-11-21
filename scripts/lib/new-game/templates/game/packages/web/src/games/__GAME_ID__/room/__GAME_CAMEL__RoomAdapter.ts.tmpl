@@ -50,7 +50,6 @@ import {
 //#cap identityViewing
   hostActionTask,
 //#end
-  hostReviewClosingTask,
 //#cap identityViewing
 //#end
   hostStartTask,
@@ -187,7 +186,7 @@ function create__GAME_PASCAL__HostTools(input: __GAME_PASCAL__HostManagementInpu
   const { state } = input;
   const sections: RoomHostManagementSection[] = [];
 //#cap audioOrchestration
-  if (state.phase.kind !== 'playing')
+  if (state.phase.kind !== 'playing' && state.phase.kind !== 'ended')
     sections.push({ key: 'tools', title: '辅助工具', actions: [
       buildMusicSettingsAction({ onPress: input.onMusicSettings }),
     ] });
@@ -375,7 +374,8 @@ export function create__GAME_PASCAL__HostManagement(
   if (state.phase.kind === 'ended') {
     if (input.review === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ ended without a review entry');
     return {
-      task: hostReviewClosingTask(),
+      task: null,
+      pendingActionKeys: [],
       sections: [
         {
           key: 'current-flow',

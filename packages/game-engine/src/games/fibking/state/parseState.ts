@@ -1,21 +1,18 @@
 /** Runtime decoder for persisted and transported FibKing state. */
 
 import { FIBKING_GAME_TYPE, type FibKingGameType } from '../../../platform/protocol/gameTypes';
-import { materializeLegacyRoster } from '../../../platform/protocol/legacyRoster';
 import {
   failDecode,
   finishObject,
   parseArray,
-  parseBoolean,
   parseInteger,
   parseNonEmptyString,
   parseObject,
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
-import { parseRoomHumanSeat, parseRoomRoster } from '../../../platform/room/roster';
+import { parseRoomRoster } from '../../../platform/room/roster';
 import { normalizeFibState } from './normalize';
 import type {
-  FibHumanSeat,
   FibPreparationFailure,
   FibRole,
   FibRoleAssignment,
@@ -30,40 +27,15 @@ import {
   isFibPreparationStage,
   isFibWordSource,
 } from './types';
-import { FIB_STATE_VERSION } from './version';
 
 function parseGameType(value: unknown, path: string): FibKingGameType {
   if (value !== FIBKING_GAME_TYPE) return failDecode(path, FIBKING_GAME_TYPE);
   return value;
 }
 
-function parseStateVersion(value: unknown, path: string): typeof FIB_STATE_VERSION {
-  const version = parseInteger(value, path);
-  if (version !== FIB_STATE_VERSION) {
-    return failDecode(path, `state version ${FIB_STATE_VERSION}`);
-  }
-  return version;
-}
-
 function parseNull(value: unknown, path: string): null {
   if (value !== null) return failDecode(path, 'null');
   return null;
-}
-
-function parseLegacyRealSeats(
-  value: unknown,
-  path: string,
-): Readonly<Record<number, FibHumanSeat>> {
-  const raw = parseObject(value, path);
-  const seats: Record<number, FibHumanSeat> = {};
-  for (const [key, occupant] of Object.entries(raw)) {
-    if (!/^(0|[1-9]\d*)$/.test(key)) {
-      failDecode(`${path}.${key}`, 'a canonical non-negative integer key');
-    }
-    const seat = parseSeat(Number(key), `${path}.${key}`);
-    seats[seat] = parseRoomHumanSeat(occupant, `${path}.${key}`);
-  }
-  return seats;
 }
 
 function parsePendingRound(value: unknown, path: string): PendingFibRound {
@@ -167,7 +139,6 @@ export function parseFibState(value: unknown): FibState {
   const raw = parseObject(value, 'FibState');
   const base = {
     gameType: parseGameType(raw.gameType, 'FibState.gameType'),
-    stateVersion: parseStateVersion(raw.stateVersion, 'FibState.stateVersion'),
     roomCode: parseNonEmptyString(raw.roomCode, 'FibState.roomCode'),
     hostUserId: parseNonEmptyString(raw.hostUserId, 'FibState.hostUserId'),
     numberOfPlayers: parseInteger(raw.numberOfPlayers, 'FibState.numberOfPlayers'),
@@ -245,78 +216,4 @@ export function parseFibState(value: unknown): FibState {
     default:
       return failDecode('FibState.phase', 'a valid Fib phase');
   }
-}
-
-/**
- * Materializes the unified roster for a pre-v7 document: bot seats are
- * exactly the seats the retired implicit derivation would have named
- * (fill enabled, no human seated, not excluded).
- */
-function withMaterializedRoster(raw: Record<string, unknown>): Record<string, unknown> {
-  const playerCount = raw.numberOfPlayers;
-  if (typeof playerCount !== 'number' || !Number.isSafeInteger(playerCount)) {
-    return failDecode('FibState.numberOfPlayers', 'a safe integer');
-  }
-  const humans = parseLegacyRealSeats(raw.realSeats, 'FibState.realSeats');
-  const fill = parseBoolean(raw.fillEmptySeatsWithBots, 'FibState.fillEmptySeatsWithBots');
-  const excluded = parseArray(raw.excludedBotSeats, 'FibState.excludedBotSeats', parseSeat);
-  const roster = materializeLegacyRoster({
-    humans,
-    fillEmptySeatsWithBots: fill,
-    excludedBotSeats: excluded,
-    numberOfPlayers: playerCount,
-  });
-  const {
-    realSeats: _legacyRealSeats,
-    fillEmptySeatsWithBots: _legacyFill,
-    excludedBotSeats: _legacyExcluded,
-    ...rest
-  } = raw;
-  return { ...rest, roster };
-}
-
-/**
- * Upgrades stored v5/v6/v7 rooms. v5 predates role viewing: a round already
- * in flight keeps playing uninterrupted — every seat counts as having
- * viewed (the viewing gate only applies to rounds dealt under v6). v6
- * stored the implicit-bot derivation inputs; v7 materializes them into
- * the unified roster. v7 predates the guess record: rounds gain an
- * empty guesses list (no seat could have been guessed under v7 rules).
- * @throws When the stored state is malformed or invalid after migration.
- */
-export function migratePersistedFibState(value: unknown): FibState {
-  const raw = parseObject(value, 'FibState');
-  if (
-    raw.stateVersion !== 5 &&
-    raw.stateVersion !== 6 &&
-    raw.stateVersion !== 7 &&
-    raw.stateVersion !== 8
-  ) {
-    return parseFibState(raw);
-  }
-  let upgraded: Record<string, unknown> = {
-    ...raw,
-    stateVersion: FIB_STATE_VERSION,
-    reviewCompletedUserIds: [],
-  };
-  if (raw.stateVersion === 5 && raw.round !== null && raw.round !== undefined) {
-    const round = parseObject(raw.round, 'FibState.round');
-    if ('viewedSeats' in round) {
-      return failDecode('FibState.round.viewedSeats', 'absent from version 5 states');
-    }
-    const playerCount = raw.numberOfPlayers;
-    if (typeof playerCount !== 'number' || !Number.isSafeInteger(playerCount)) {
-      return failDecode('FibState.numberOfPlayers', 'a safe integer');
-    }
-    const viewedSeats = Array.from({ length: playerCount }, (_, seat) => seat);
-    upgraded = { ...upgraded, round: { ...round, viewedSeats } };
-  }
-  if (upgraded.round !== null && upgraded.round !== undefined) {
-    const round = parseObject(upgraded.round, 'FibState.round');
-    if (!('guesses' in round)) {
-      upgraded = { ...upgraded, round: { ...round, guesses: [] } };
-    }
-  }
-  if (raw.stateVersion === 7 || raw.stateVersion === 8) return parseFibState(upgraded);
-  return parseFibState(withMaterializedRoster(upgraded));
 }

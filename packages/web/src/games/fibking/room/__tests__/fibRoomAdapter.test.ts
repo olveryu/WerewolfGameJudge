@@ -1,8 +1,4 @@
-import {
-  FIB_MAX_PLAYERS,
-  FIB_STATE_VERSION,
-  type FibState,
-} from '@game-judge/game-engine/games/fibking/public';
+import { FIB_MAX_PLAYERS, type FibState } from '@game-judge/game-engine/games/fibking/public';
 
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
@@ -47,7 +43,6 @@ const callbacks = {
 function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }> {
   return {
     gameType: 'fibking',
-    stateVersion: FIB_STATE_VERSION,
     roomCode: '4321',
     hostUserId: 'host',
     phase: 'lobby',

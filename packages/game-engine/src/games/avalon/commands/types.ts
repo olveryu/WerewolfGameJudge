@@ -41,8 +41,6 @@ export type AvalonPublicCommand =
  * only expiry channel: there is no public expire command (D3,
  * 2026-11-05 — the client acceleration channel was deleted).
  */
-export type AvalonInternalCommand =
-  | { readonly type: 'avalon.phase.settleExpired' }
-  | { readonly type: 'avalon.phase.recoverLegacyResult' };
+export type AvalonInternalCommand = { readonly type: 'avalon.phase.settleExpired' };
 
 export type AvalonCommand = AvalonPublicCommand | AvalonInternalCommand;

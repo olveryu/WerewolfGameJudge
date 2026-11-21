@@ -56,7 +56,7 @@ export function AvalonHistoryOverlay({
       title="对局记录"
       onClose={onClose}
       testId={TESTIDS.avalonHistoryOverlay}
-      allowEscape
+      dismissOnEscape
       footer={
         <Button
           variant="secondary"

@@ -13,7 +13,7 @@ import {
   type AvalonState,
   getAvalonNightParticipants,
 } from '@game-judge/game-engine/games/avalon/public';
-import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
+import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -240,53 +240,7 @@ async function fireAlarm(stub: DurableObjectStub<GameRoom>): Promise<void> {
   });
 }
 
-async function restoreLegacyVoteResult(stub: DurableObjectStub<GameRoom>): Promise<void> {
-  await runInDurableObject(stub, async (_instance: GameRoom, state) => {
-    const row = state.storage.sql
-      .exec<{ game_state: string }>('SELECT game_state FROM room_state WHERE id = 1')
-      .one();
-    const legacy = JSON.parse(row.game_state) as {
-      stateVersion: number;
-      phase: { deadlineAt?: number | null };
-    };
-    legacy.stateVersion = 11;
-    delete legacy.phase.deadlineAt;
-    state.storage.sql.exec(
-      'UPDATE room_state SET state_version = 11, game_state = ? WHERE id = 1',
-      JSON.stringify(legacy),
-    );
-    state.storage.sql.exec(
-      `DELETE FROM effect_outbox WHERE effect_type = 'avalon.settle.due' AND business_key LIKE ?`,
-      '%:voteResult:%',
-    );
-    await state.storage.deleteAlarm();
-  });
-  await evictDurableObject(stub);
-}
-
 describe('Avalon scheduled settle (Durable Object)', () => {
-  it('recovers a legacy result once on restart and advances without player acknowledgements', async () => {
-    const stub = getStub();
-    await armedVoteRoom(stub);
-    await fastForwardArmedCountdown(stub, 'vote', Date.now() - 1000);
-    await fireAlarm(stub);
-    await restoreLegacyVoteResult(stub);
-    const recovered = await readState(stub);
-    if (recovered.phase.kind !== 'voteResult' || recovered.phase.deadlineAt === null) {
-      throw new Error('Expected recovered vote result countdown');
-    }
-    const recoveredRevision = (await stub.getSnapshot(roomIdentity(stub)))?.revision;
-    expect((await readSettleRow(stub, 'voteResult'))?.available_at).toBe(
-      recovered.phase.deadlineAt,
-    );
-    expect(await readAlarm(stub)).toBe(recovered.phase.deadlineAt);
-    await evictDurableObject(stub);
-    expect((await stub.getSnapshot(roomIdentity(stub)))?.revision).toBe(recoveredRevision);
-    await fastForwardArmedCountdown(stub, 'voteResult', Date.now() - 1000);
-    await fireAlarm(stub);
-    expect((await readState(stub)).phase.kind).toBe('quest');
-  });
-
   it('parks the settle effect at the deadline and settles the vote on alarm', async () => {
     const stub = getStub();
     const armed = await armedVoteRoom(stub);

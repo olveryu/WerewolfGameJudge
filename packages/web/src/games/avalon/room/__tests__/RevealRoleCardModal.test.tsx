@@ -66,4 +66,18 @@ describe('RevealRoleCardModal', () => {
     expect(view.queryByTestId('role-reveal-animator')).toBeNull();
     expect(view.queryByText('知道了')).toBeNull();
   });
+
+  it('disables acknowledgement while another room command is in flight', () => {
+    const view = render(
+      <RevealRoleCardModal
+        {...baseProps}
+        effectType={null}
+        shouldPlay={false}
+        requireConfirmation
+        confirmDisabled
+      />,
+    );
+
+    expect(view.getByText('知道了')).toBeDisabled();
+  });
 });

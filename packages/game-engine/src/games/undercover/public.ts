@@ -36,7 +36,6 @@ export {
 } from './publicStats';
 export { UNDERCOVER_STATE_CODEC } from './state/codec';
 export { isValidUndercoverWordPair } from './state/normalize';
-export { migratePersistedUndercoverState } from './state/parseState';
 export {
   DEFAULT_UNDERCOVER_CONFIG,
   getUndercoverOccupiedSeatCount,
@@ -57,4 +56,3 @@ export {
   type UndercoverState,
   type UndercoverWordPair,
 } from './state/types';
-export { UNDERCOVER_STATE_IDENTITY, UNDERCOVER_STATE_VERSION } from './state/version';

@@ -19,6 +19,7 @@ export function RevealRoleCardModal<TKey>({
   allRoles,
   remainingCards,
   requireConfirmation = false,
+  confirmDisabled = false,
 }: {
   readonly visible: boolean;
   readonly roleKey: TKey | null;
@@ -34,6 +35,7 @@ export function RevealRoleCardModal<TKey>({
   /** Cards the card-pick effect lays out. */
   readonly remainingCards?: number;
   readonly requireConfirmation?: boolean;
+  readonly confirmDisabled?: boolean;
 }) {
   if (!visible || roleKey === null) return null;
   const role = toRoleData(roleKey);
@@ -46,7 +48,12 @@ export function RevealRoleCardModal<TKey>({
       allRoles={allRoles}
       remainingCards={remainingCards}
     >
-      <RoleCardDialog role={role} onClose={onClose} requireConfirmation={requireConfirmation} />
+      <RoleCardDialog
+        role={role}
+        onClose={onClose}
+        requireConfirmation={requireConfirmation}
+        confirmDisabled={confirmDisabled}
+      />
     </RevealAnimationGate>
   );
 }

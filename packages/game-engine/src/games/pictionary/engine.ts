@@ -53,7 +53,6 @@ import {
   type PictionaryMedia,
   type PictionaryState,
 } from './state/types';
-import { PICTIONARY_STATE_IDENTITY, PICTIONARY_STATE_VERSION } from './state/version';
 
 function createRound(
   state: PictionaryState,
@@ -244,7 +243,7 @@ function createInitialPictionaryState(
 ): PictionaryState {
   if (!isValidPictionaryConfig(config)) throw new Error('Invalid Pictionary config');
   return normalizePictionaryState({
-    ...PICTIONARY_STATE_IDENTITY,
+    gameType: 'pictionary',
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: 'lobby',
@@ -268,7 +267,7 @@ function createInitialPictionaryState(
 
 export function getPictionaryLifecycle(state: PictionaryState): CommonGameLifecycle {
   if (state.phase === 'lobby') return 'setup';
-  if (state.phase === 'ended' || state.phase === 'aborted') return 'ended';
+  if (state.phase === 'ended') return 'ended';
   return 'ongoing';
 }
 
@@ -362,7 +361,6 @@ export function decidePictionaryCommand(
 
 export const pictionaryEngine = {
   gameType: PICTIONARY_GAME_TYPE,
-  stateVersion: PICTIONARY_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

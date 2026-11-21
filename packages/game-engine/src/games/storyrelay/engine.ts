@@ -37,13 +37,11 @@ import {
   type StoryRelayEntry,
   type StoryRelayState,
 } from './state/types';
-import { STORY_RELAY_STATE_VERSION } from './state/version';
 
 function createInitialState(config: StoryRelayConfig, context: CreateGameContext): StoryRelayState {
   if (!isValidStoryRelayConfig(config)) throw new Error(STORY_RELAY_REASONS.config);
   return normalizeStoryRelayState({
     gameType: STORY_RELAY_GAME_TYPE,
-    stateVersion: STORY_RELAY_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     config: { ...config },
@@ -63,7 +61,6 @@ function createInitialState(config: StoryRelayConfig, context: CreateGameContext
     gallery: null,
     revealSettlementPending: false,
     completedAt: null,
-    abortedAt: null,
   });
 }
 
@@ -191,16 +188,11 @@ export function decideStoryRelayCommand(
 
 /** Projects domain phases into the shared room lifecycle. */
 export function getStoryRelayLifecycle(state: StoryRelayState): CommonGameLifecycle {
-  return state.phase === 'lobby'
-    ? 'setup'
-    : state.phase === 'ended' || state.phase === 'aborted'
-      ? 'ended'
-      : 'ongoing';
+  return state.phase === 'lobby' ? 'setup' : state.phase === 'ended' ? 'ended' : 'ongoing';
 }
 
 export const storyRelayEngine = {
   gameType: STORY_RELAY_GAME_TYPE,
-  stateVersion: STORY_RELAY_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

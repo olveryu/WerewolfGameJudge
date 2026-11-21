@@ -18,12 +18,6 @@ import {
 } from '../../../platform/room/seating';
 
 export const AVALON_GAME_TYPE = 'avalon' as const;
-/** v3: unified roster replaces realSeats + the implicit-bot derivation inputs.
- * v2 added roleViewedSeats (Identity Viewing Protocol); v1 payloads migrate
- * with an empty viewing record. */
-/** v4 adds deadlineAt to the vote and quest phases (settle countdown); v3 rooms migrate with null deadlines. */
-/** v5 splits dealing from starting play (independent viewing stage); v6 adds roundHistory,
- * the immutable per-round record of settled proposals and quest outcomes. */
 
 export const AVALON_MIN_PLAYERS = 5;
 export const AVALON_MAX_PLAYERS = 10;
@@ -266,8 +260,7 @@ export type AvalonPhase =
       readonly ballots: Readonly<Record<number, AvalonBallot>>;
       /**
        * Settle moment (epoch ms) for the reveal countdown, armed only once
-       * every seat has voted; null while ballots are still open (and on
-       * phases migrated from v3, which settle by full cast or host finish).
+       * every seat has voted; null while ballots are still open.
        */
       readonly deadlineAt: number | null;
     }
@@ -275,7 +268,6 @@ export type AvalonPhase =
       readonly kind: 'voteResult';
       readonly round: AvalonQuestRound;
       readonly proposedSeats: readonly number[];
-      readonly confirmedSeats: readonly number[];
       readonly deadlineAt: number | null;
     }
   | {
@@ -286,8 +278,7 @@ export type AvalonPhase =
       readonly plays: Readonly<Record<number, AvalonPlay>>;
       /**
        * Settle moment (epoch ms) for the reveal countdown, armed only once
-       * every team seat has played; null while plays are still open (and on
-       * phases migrated from v3, which settle by full plays or host finish).
+       * every team seat has played; null while plays are still open.
        */
       readonly deadlineAt: number | null;
       /** 通过的组队投票结果，随任务结算写入历史记录。 */
@@ -300,7 +291,6 @@ export type AvalonPhase =
   | {
       readonly kind: 'questResult';
       readonly round: AvalonQuestRound;
-      readonly confirmedSeats: readonly number[];
       readonly deadlineAt: number | null;
     }
   | {
@@ -395,13 +385,6 @@ export interface AvalonQuestHistoryEntry {
   readonly failCount: number;
 }
 
-/** 最近一次湖仙查验结果；只对查验时的持有人可见（view model 裁剪）。 */
-export interface AvalonLadyCheckResult {
-  readonly holderSeat: number;
-  readonly targetSeat: number;
-  readonly faction: 'good' | 'evil';
-}
-
 /**
  * 一次已完成湖仙查验的公开历史记录：只记第几轮后、持有人是谁、查验了谁。
  * 查验结果（好 / 坏）是持有人私密信息，刻意不进这个类型，类型上就不许
@@ -458,7 +441,6 @@ export interface AvalonState extends BaseGameState<typeof AVALON_GAME_TYPE> {
   /** 9/10 人局的湖仙 token 持有人；其余为 null。 */
   readonly ladyHolderSeat: number | null;
   readonly ladyExaminedSeats: readonly number[];
-  readonly lastLadyCheck: AvalonLadyCheckResult | null;
   /** 已完成湖仙查验的公开历史（按查验顺序）；查验结果不在此列。 */
   readonly ladyHistory: readonly AvalonLadyCheckRecord[];
   /** 最近一次组队投票结算（投票结算面板用）；新一轮提案后清零。 */

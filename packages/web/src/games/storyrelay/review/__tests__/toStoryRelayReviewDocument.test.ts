@@ -57,7 +57,6 @@ describe('toStoryRelayReviewDocument', () => {
       kicker: '📖 第 1 轮 · 故事',
       fileStem: 'storyrelay-ABCD-1',
       footer: '本局复盘由对局记录自动生成',
-      isAborted: false,
     });
   });
 
@@ -97,26 +96,6 @@ describe('toStoryRelayReviewDocument', () => {
     state.chains.forEach((chain, storyIndex) => {
       expect(document.pages[storyIndex]?.blocks).toEqual(expectedStory(chain));
     });
-  });
-
-  it('marks an aborted round and keeps only the passages handed in', () => {
-    const state = playStoryRelayTestRound({ abortAtStep: 2 });
-    const document = build(state);
-    expect(document.isAborted).toBe(true);
-    state.chains.forEach((chain, storyIndex) => {
-      expect(chain.entries).toHaveLength(2);
-      expect(document.pages[storyIndex]?.blocks).toEqual(expectedStory(chain));
-    });
-  });
-
-  it('prints a story that received nothing as one missing paragraph', () => {
-    const document = build(playStoryRelayTestRound({ abortAtStep: 0 }));
-    expect(() => assertReviewDocument(document)).not.toThrow();
-    for (const page of document.pages) {
-      expect(page.blocks).toEqual([
-        { kind: 'paragraph', caption: null, text: '这篇故事尚未收录稿件', isMissing: true },
-      ]);
-    }
   });
 
   it('continues a story too long for one image on numbered parts, opening on the first', () => {

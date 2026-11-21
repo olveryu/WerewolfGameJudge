@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/Button';
@@ -34,6 +34,7 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
   const endsAt = status.data?.enabled ? status.data.endsAt : null;
   const { refetch } = status;
   const hasBackgroundError = status.isError && status.data?.enabled === false;
+  const lastReportedError = useRef<string | null>(null);
 
   useEffect(() => {
     if (endsAt === null) return;
@@ -54,7 +55,16 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
   }, [endsAt, refetch]);
 
   useEffect(() => {
-    if (status.error === null) return;
+    if (status.error === null) {
+      lastReportedError.current = null;
+      return;
+    }
+    const errorKey =
+      status.error instanceof Error
+        ? `${status.error.name}:${status.error.message}`
+        : String(status.error);
+    if (lastReportedError.current === errorKey) return;
+    lastReportedError.current = errorKey;
     handleError(status.error, {
       label: '读取维护状态',
       logger: maintenanceLog,

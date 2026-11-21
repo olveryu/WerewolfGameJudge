@@ -3,6 +3,8 @@
 import type { AvalonQuestHistoryView } from '@game-judge/game-engine/games/avalon/public';
 import { fireEvent, render } from '@testing-library/react';
 
+import { TESTIDS } from '@/testids';
+
 import { AvalonQuestResultPanel } from '../AvalonQuestResultPanel';
 
 const ENTRY: AvalonQuestHistoryView = {
@@ -19,8 +21,26 @@ const ENTRY: AvalonQuestHistoryView = {
   failCount: 1,
 };
 
-function renderPanel(entry: AvalonQuestHistoryView = ENTRY) {
-  const utils = render(<AvalonQuestResultPanel entry={entry} remainingSeconds={3} />);
+function renderPanel(
+  entry: AvalonQuestHistoryView = ENTRY,
+  rescue = {
+    remainingSeconds: 3 as number | null,
+    isOverdue: false,
+    isHost: false,
+    isSubmitting: false,
+    onRetry: vi.fn(),
+  },
+) {
+  const utils = render(
+    <AvalonQuestResultPanel
+      entry={entry}
+      remainingSeconds={rescue.remainingSeconds}
+      isOverdue={rescue.isOverdue}
+      isHost={rescue.isHost}
+      isSubmitting={rescue.isSubmitting}
+      onRetry={rescue.onRetry}
+    />,
+  );
   return utils;
 }
 
@@ -73,5 +93,17 @@ describe('AvalonQuestResultPanel', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(panel.getByTestId('avalon-quest-result-panel')).toBeVisible();
     expect(panel.queryByRole('button', { name: '知道了' })).toBeNull();
+  });
+
+  it('shows a waiting-for-host hint to non-hosts when result settlement is overdue', () => {
+    const { getByTestId, queryByTestId } = renderPanel(ENTRY, {
+      remainingSeconds: 0,
+      isOverdue: true,
+      isHost: false,
+      isSubmitting: false,
+      onRetry: vi.fn(),
+    });
+    expect(getByTestId(TESTIDS.stageSettleRescue)).toHaveTextContent('等待房主处理');
+    expect(queryByTestId(TESTIDS.stageSettleRescueRetryButton)).toBeNull();
   });
 });

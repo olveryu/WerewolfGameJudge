@@ -47,7 +47,6 @@ import {
   type SecrethitlerConfig,
   type SecrethitlerState,
 } from './state/types';
-import { SECRETHITLER_STATE_VERSION } from './state/version';
 
 function createInitialState(
   config: SecrethitlerConfig,
@@ -56,7 +55,6 @@ function createInitialState(
   if (!isValidSecrethitlerConfig(config)) throw new Error(SECRETHITLER_REASONS.config);
   return normalizeSecrethitlerState({
     gameType: SECRETHITLER_GAME_TYPE,
-    stateVersion: SECRETHITLER_STATE_VERSION,
     roomCode: context.roomCode,
     hostUserId: context.hostUserId,
     phase: { kind: 'lobby' },
@@ -275,7 +273,7 @@ function decideCommand(
         isEligible: (userId) =>
           userId === state.hostUserId || getSecrethitlerUserSeat(state, userId) !== null,
       });
-      if (completion.kind === 'reject') return reject(SECRETHITLER_REASONS.phase);
+      if (completion.kind === 'reject') return reject(completion.reason);
       return commitSecrethitler(
         completion.kind === 'complete'
           ? [{ type: 'secrethitler.review.completed', userId: completion.userId }]
@@ -326,7 +324,6 @@ export function getSecrethitlerLifecycle(state: SecrethitlerState): CommonGameLi
 
 export const secrethitlerEngine = {
   gameType: SECRETHITLER_GAME_TYPE,
-  stateVersion: SECRETHITLER_STATE_VERSION,
   capabilities: {
     nightPhase: false,
     botsAndTakeover: true,

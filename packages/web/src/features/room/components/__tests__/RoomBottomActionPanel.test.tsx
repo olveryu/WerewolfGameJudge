@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
 
-import { RoomActionHand, RoomHandCard } from '../RoomActionHand';
+import { RoomActionHand } from '../RoomActionHand';
 import { RoomActionStatus, RoomBottomActionPanel } from '../RoomBottomActionPanel';
+import { RoomHandButton } from '../RoomHandButton';
 
 const EMPTY_STACK = {
   kind: 'stacked',
@@ -46,7 +47,6 @@ it('announces an explicitly pending player action without inferring it from prim
           ghost: [],
         },
       }}
-      showPlayerHand
       summary={null}
       isAudioPlaying={false}
       hostManagement={null}
@@ -85,7 +85,6 @@ it('explains a blocked player card without executing an action', () => {
           ghost: [],
         },
       }}
-      showPlayerHand
       summary={null}
       isAudioPlaying={false}
       hostManagement={null}
@@ -125,7 +124,6 @@ it('keeps a submitting card disabled with a spinner instead of a lock', () => {
           ghost: [],
         },
       }}
-      showPlayerHand
       summary={null}
       isAudioPlaying={false}
       hostManagement={null}
@@ -142,9 +140,7 @@ it('shows the host selection escape as a card without exposing unrelated actions
   render(
     <RoomBottomActionPanel
       model={EMPTY_STACK}
-      showPlayerHand
-      isSelecting
-      selectionUsesHostTask
+      selectionMode="host-task"
       summary={null}
       isAudioPlaying={false}
       hostManagement={{
@@ -180,18 +176,22 @@ it('shows the host selection escape as a card without exposing unrelated actions
 
 it('preserves the focused card when an earlier card disappears', () => {
   const { rerender } = render(
-    <RoomActionHand label="操作">
-      <button key="first">先前操作</button>
-      <button key="second">当前操作</button>
-    </RoomActionHand>,
+    <RoomActionHand
+      label="操作"
+      cards={[
+        { id: 'first', category: 'player', content: <button>先前操作</button> },
+        { id: 'second', category: 'player', content: <button>当前操作</button> },
+      ]}
+    />,
   );
   const focusedCard = screen.getByRole('button', { name: '当前操作' });
   focusedCard.focus();
 
   rerender(
-    <RoomActionHand label="操作">
-      <button key="second">当前操作</button>
-    </RoomActionHand>,
+    <RoomActionHand
+      label="操作"
+      cards={[{ id: 'second', category: 'player', content: <button>当前操作</button> }]}
+    />,
   );
 
   expect(screen.getByRole('button', { name: '当前操作' })).toBe(focusedCard);
@@ -199,52 +199,32 @@ it('preserves the focused card when an earlier card disappears', () => {
 });
 
 it('groups cards by semantic color without moving disabled cards out of their group', () => {
-  const { rerender } = render(
-    <RoomActionHand label="操作">
-      <RoomHandCard category="resource">
-        <button>查询</button>
-      </RoomHandCard>
-      <RoomHandCard category="host" unavailable>
-        <button disabled>授权</button>
-      </RoomHandCard>
-      <RoomHandCard category="danger">
-        <button>重开</button>
-      </RoomHandCard>
-      <RoomHandCard category="player">
-        <button>行动</button>
-      </RoomHandCard>
-      <RoomHandCard category="host">
-        <button>昨夜信息</button>
-      </RoomHandCard>
-      <RoomHandCard category="back">
-        <button>返回</button>
-      </RoomHandCard>
-    </RoomActionHand>,
-  );
+  const cards = [
+    { id: 'resource', category: 'resource' as const, content: <button>查询</button> },
+    {
+      id: 'host-disabled',
+      category: 'host' as const,
+      unavailable: true,
+      content: <button disabled>授权</button>,
+    },
+    { id: 'danger', category: 'danger' as const, content: <button>重开</button> },
+    { id: 'player', category: 'player' as const, content: <button>行动</button> },
+    { id: 'host', category: 'host' as const, content: <button>昨夜信息</button> },
+    { id: 'back', category: 'back' as const, content: <button>返回</button> },
+  ];
+  const { rerender } = render(<RoomActionHand label="操作" cards={cards} />);
   const labels = () => screen.getAllByRole('button').map((button) => button.textContent);
   expect(labels()).toEqual(['返回', '行动', '查询', '昨夜信息', '授权', '重开']);
   const authorization = screen.getByRole('button', { name: '授权' });
   rerender(
-    <RoomActionHand label="操作">
-      <RoomHandCard category="resource">
-        <button>查询</button>
-      </RoomHandCard>
-      <RoomHandCard category="host">
-        <button>授权</button>
-      </RoomHandCard>
-      <RoomHandCard category="danger">
-        <button>重开</button>
-      </RoomHandCard>
-      <RoomHandCard category="player">
-        <button>行动</button>
-      </RoomHandCard>
-      <RoomHandCard category="host">
-        <button>昨夜信息</button>
-      </RoomHandCard>
-      <RoomHandCard category="back">
-        <button>返回</button>
-      </RoomHandCard>
-    </RoomActionHand>,
+    <RoomActionHand
+      label="操作"
+      cards={cards.map((card) =>
+        card.id === 'host-disabled'
+          ? { ...card, unavailable: false, content: <button>授权</button> }
+          : card,
+      )}
+    />,
   );
   expect(labels()).toEqual(['返回', '行动', '查询', '授权', '昨夜信息', '重开']);
   expect(screen.getByRole('button', { name: '授权' })).toBe(authorization);
@@ -292,7 +272,6 @@ it('orders actual player, host, query and dangerous cards by their displayed cat
           ghost: [],
         },
       }}
-      showPlayerHand
       summary={null}
       isAudioPlaying={false}
       hostManagement={{ task: null, sections: [] }}
@@ -320,13 +299,28 @@ it('reopens the unavailable reason for five seconds without performing the actio
   try {
     const onPress = vi.fn();
     render(
-      <RoomActionHand label="操作">
-        <RoomHandCard category="player" unavailable>
-          <button aria-disabled="true" data-disabled-reason="等待其他玩家" onClick={onPress}>
-            行动
-          </button>
-        </RoomHandCard>
-      </RoomActionHand>,
+      <RoomActionHand
+        label="操作"
+        cards={[
+          {
+            id: 'action',
+            category: 'player',
+            unavailable: true,
+            content: (
+              <RoomHandButton
+                model={{
+                  label: '行动',
+                  category: 'player',
+                  variant: 'primary',
+                  isEnabled: false,
+                  disabledReason: '等待其他玩家',
+                  onPress,
+                }}
+              />
+            ),
+          },
+        ]}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: '行动' }));
     expect(screen.getByRole('status')).toHaveTextContent('等待其他玩家');
@@ -352,22 +346,26 @@ it('suppresses only a redundant message while keeping selection and audio instru
     summary: <button>警长竞选详情</button>,
     isAudioPlaying: false,
     hostManagement: null,
-    isSelecting: false,
-    selectionUsesHostTask: false,
-    boardStatus: { phaseLabel: '白天', title: null, detail: null, summaryReplacesMessage: true },
+    selectionMode: undefined,
+    boardStatus: {
+      phaseLabel: '白天',
+      title: null,
+      detail: null,
+      summaryPresentation: 'replaces-message' as const,
+    },
   };
   const { rerender } = render(<RoomActionStatus {...props} />);
   expect(screen.queryByText('报名进行中')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: '警长竞选详情' })).toBeInTheDocument();
 
-  rerender(<RoomActionStatus {...props} isSelecting />);
+  rerender(<RoomActionStatus {...props} selectionMode="player" />);
   expect(screen.getByText('报名进行中')).toBeInTheDocument();
   rerender(<RoomActionStatus {...props} isAudioPlaying />);
   expect(screen.getByText('语音播报中…')).toBeInTheDocument();
   rerender(
     <RoomActionStatus
       {...props}
-      boardStatus={{ ...props.boardStatus, summaryReplacesMessage: false }}
+      boardStatus={{ ...props.boardStatus, summaryPresentation: undefined }}
     />,
   );
   expect(screen.getByText('报名进行中')).toBeInTheDocument();
@@ -415,7 +413,7 @@ it('places the summary before existing progress messages and actions', () => {
   expect(summaryWrapper?.nextElementSibling).toBe(message);
 });
 
-it('keeps one personal primary action in the card and opens the action panel for secondary actions', () => {
+it('renders every player action as an independent hand card', () => {
   const onOpenMoreActions = vi.fn();
   render(
     <RoomBottomActionPanel
@@ -469,16 +467,13 @@ it('keeps one personal primary action in the card and opens the action panel for
   );
 
   expect(screen.getByTestId('vote-action')).toBeInTheDocument();
-  expect(screen.queryByTestId('identity-action')).not.toBeInTheDocument();
-  expect(screen.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveAttribute(
-    'data-player-action-ids',
-    'identity-action',
-  );
-  fireEvent.click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
-  expect(onOpenMoreActions).toHaveBeenCalledOnce();
+  expect(screen.getByTestId('identity-action')).toBeInTheDocument();
+  expect(screen.getByTestId('unavailable-action')).toHaveAttribute('aria-disabled', 'true');
+  expect(screen.queryByTestId(TESTIDS.roomMoreActionsButton)).not.toBeInTheDocument();
+  expect(onOpenMoreActions).not.toHaveBeenCalled();
 });
 
-it('does not choose between multiple equally ranked primary actions', () => {
+it('keeps equally ranked primary actions independently available', () => {
   render(
     <RoomBottomActionPanel
       model={{
@@ -519,13 +514,9 @@ it('does not choose between multiple equally ranked primary actions', () => {
     />,
   );
 
-  expect(screen.getByRole('button', { name: '选择操作' })).toBeInTheDocument();
-  expect(screen.queryByTestId('approve-action')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('reject-action')).not.toBeInTheDocument();
-  expect(screen.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveAttribute(
-    'data-player-action-ids',
-    'approve-action reject-action',
-  );
+  expect(screen.getByTestId('approve-action')).toBeInTheDocument();
+  expect(screen.getByTestId('reject-action')).toBeInTheDocument();
+  expect(screen.queryByTestId(TESTIDS.roomMoreActionsButton)).not.toBeInTheDocument();
 });
 
 it('announces audio playback instead of a lower-priority action message', () => {
@@ -544,7 +535,7 @@ it('announces audio playback instead of a lower-priority action message', () => 
   expect(screen.queryByText('等待玩家确认')).not.toBeInTheDocument();
 });
 
-it('uses the declared host task label as the management hint', () => {
+it('shows the host-management entry when the host declares a task', () => {
   render(
     <RoomBottomActionPanel
       model={EMPTY_STACK}
@@ -573,7 +564,7 @@ it('uses the declared host task label as the management hint', () => {
     />,
   );
 
-  expect(screen.getByText('当前待办 · 开始游戏')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '主持管理' })).toBeInTheDocument();
 });
 
 it('marks a host hand only when the game declares a pending task', () => {
@@ -604,7 +595,6 @@ it('marks a host hand only when the game declares a pending task', () => {
         sections: [{ key: 'lobby', title: '房间', actions: [taskAction] }],
       }}
       onOpenMoreActions={() => undefined}
-      showPlayerHand
     />
   );
   const { rerender } = render(panel(action));
@@ -654,7 +644,6 @@ it('keeps the host entry available and marked when a declared task is blocked', 
         ],
       }}
       onOpenMoreActions={open}
-      showPlayerHand
     />,
   );
   const entry = screen.getByRole('button', { name: '主持管理，有待处理操作' });
@@ -684,7 +673,6 @@ it('marks a required decision without marking individual alternatives', () => {
         sections: [{ key: 'room', title: '房间', actions: [action] }],
       }}
       onOpenMoreActions={vi.fn()}
-      showPlayerHand
     />,
   );
   expect(screen.getByRole('button', { name: '主持管理，有待处理操作' })).toBeEnabled();
@@ -699,7 +687,6 @@ it('replaces the action hand with manual cards and restores focus on return', ()
       isAudioPlaying={false}
       hostManagement={null}
       onOpenMoreActions={() => undefined}
-      showPlayerHand
       manualEntries={[{ label: '玩法', onOpen: openRules }]}
     />,
   );

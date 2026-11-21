@@ -22,7 +22,6 @@ import {
 import { TESTIDS } from '@/testids';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
-import { UNDERCOVER_ABORTED_TEXT } from './undercoverCopy';
 
 type Controls = UndercoverRoundControls;
 
@@ -68,8 +67,6 @@ function resolveUndercoverBottomMessage(
       // 状态派生，重载一致）。房主选人期间非操作者同样看这一句——
       // 选人窗口不是引擎状态，阶段句即如实表达。
       return `本轮从 ${state.round.speakingStartSeat + 1} 号起按座位顺序发言`;
-    case 'aborted':
-      return viewer.isHost ? UNDERCOVER_ABORTED_TEXT : `${UNDERCOVER_ABORTED_TEXT}，等待房主处理`;
     case 'viewing':
     case 'ended':
       return null;

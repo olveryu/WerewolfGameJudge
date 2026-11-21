@@ -38,6 +38,7 @@ export const getSecrethitlerRoomCommandFailureMessage =
     [SECRETHITLER_REASONS.target]: '该目标不符合行动条件，请重新选择',
     [SECRETHITLER_REASONS.notHostBegin]: '只有房主可以开始游戏',
     [SECRETHITLER_REASONS.notHostAbort]: '只有房主可以中止本局',
+    [SECRETHITLER_REASONS.notHostRetrySettle]: '只有房主可以重新推进阶段',
     [SECRETHITLER_REASONS.notHostMarkBots]: '只有房主可以标记机器人',
     [SECRETHITLER_REASONS.noBotSeats]: '当前没有符合条件的机器人座位',
     [SECRETHITLER_REASONS.notAllViewed]: '还有玩家未查看身份',
