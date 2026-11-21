@@ -1,37 +1,30 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
 
-import {
-  type ComponentProps,
-  type ReactElement,
-  type ReactNode,
-  useCallback,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { IconButton } from '@/components/IconButton';
 import { useLongPress } from '@/features/room/hooks/useLongPress';
-import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
+import { useRoomHandNavigation } from '@/features/room/hooks/useRoomHandNavigation';
 import { resolveHostTaskView } from '@/features/room/model/resolveHostTaskView';
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
-import { usesRoomSideInspector } from '@/features/room/model/roomShellLayout';
+import { buildRoomHand, type RoomHandDirectory } from '@/features/room/model/RoomHand';
+import { isRoomPlayerActionModelEmpty } from '@/features/room/model/RoomPlayerActions';
 import type { RoomHeaderUserAction, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import { assertRoomStageShellModel, type RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
-import IconShareOutline from '~icons/ion/share-outline';
 
+import type { RoomSelectionMode } from '../model/RoomHand';
 import { PlayerProfileCard } from './PlayerProfileCard';
-import { RoomActionStatus, RoomBottomActionPanel } from './RoomBottomActionPanel';
-import type { RoomSelectionMode, RoomSummaryPresentation } from './RoomBottomActionPresentation';
-import { RoomHostManagementPanel } from './RoomHostManagementPanel';
+import { RoomActionHand } from './RoomActionHand';
+import { RoomActionStatus, type RoomSummaryPresentation } from './RoomActionStatus';
+import { RoomBottomActionPanel } from './RoomBottomActionPanel';
+import { RoomHostTaskHeader } from './RoomHostTaskHeader';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
 import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
-import { RoomStageMenu, type RoomStageMenuModel } from './RoomStageMenu';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -50,7 +43,7 @@ type RoomShellContent =
   | { readonly kind: 'workspace'; readonly element: ReactElement }
   /**
    * An in-play stage (docs/room-stage-layout-design.md): the information bar over the game's
-   * element, host management in the header, and no bottom panel.
+   * element, a stage menu in the header, and no bottom panel.
    */
   | {
       readonly kind: 'stage';
@@ -155,11 +148,8 @@ export function RoomShell({
   content,
   leadingExtraActions,
   trailingExtraActions,
-  configurationEntry,
-  manualEntries,
-  mainEntries,
-  stageMenu = null,
-  actionHandVisibility = 'visible',
+  actionSurface,
+  directory,
   selectionMode,
   phaseLabel = null,
   lobbyAction = null,
@@ -170,11 +160,8 @@ export function RoomShell({
   readonly content: RoomShellContent;
   readonly leadingExtraActions: ReactNode;
   readonly trailingExtraActions: ReactNode;
-  readonly configurationEntry?: { readonly onOpen: () => void } | null;
-  readonly manualEntries?: ComponentProps<typeof RoomBottomActionPanel>['manualEntries'];
-  readonly mainEntries?: ComponentProps<typeof RoomBottomActionPanel>['mainEntries'];
-  readonly stageMenu?: RoomStageMenuModel | null;
-  readonly actionHandVisibility?: 'visible' | 'hidden';
+  readonly actionSurface?: 'hand' | 'menu' | 'hidden';
+  readonly directory: RoomHandDirectory;
   readonly selectionMode?: RoomSelectionMode;
   readonly phaseLabel?: string | null;
   readonly lobbyAction?: { readonly label: string; readonly occupiedSeats: number } | null;
@@ -186,22 +173,10 @@ export function RoomShell({
   ) => ReactNode;
 }) {
   const stageMenuEntryRef = useRef<HTMLButtonElement>(null);
-  const restoreHostEntryFocus = useRef(false);
-  const hostEntryRef = useCallback((button: HTMLButtonElement | null) => {
-    if (button === null || !restoreHostEntryFocus.current) return;
-    restoreHostEntryFocus.current = false;
-    button.focus({ preventScroll: true });
-  }, []);
   const hostManagement = model.hostManagement;
   const isStage = content.kind === 'stage';
-  const isSelecting = selectionMode !== undefined;
-  const isHandContext = !isStage && !isSelecting;
-  const [previousHandContext, setPreviousHandContext] = useState(isHandContext);
-  if (previousHandContext !== isHandContext) {
-    setPreviousHandContext(isHandContext);
-    if (previousHandContext && isActionsPanelOpen) setIsActionsPanelOpen(false);
-  }
-  const hasBottomPanel = !isStage && stageMenu === null;
+  const resolvedActionSurface = actionSurface ?? 'hand';
+  const hasBottomPanel = !isStage && resolvedActionSurface === 'hand';
   const statusInBoard = content.kind === 'seats' && hasBottomPanel;
   const seatsMissing =
     lobbyAction === null ? 0 : model.seats.source.count - lobbyAction.occupiedSeats;
@@ -213,8 +188,8 @@ export function RoomShell({
       : seatsMissing > 0
         ? '等待玩家入座'
         : model.viewer.isHost &&
-            lobbyTask?.body.kind === 'ready' &&
-            lobbyTask.body.action.isLoading !== true
+            lobbyTask?.body.kind === 'action' &&
+            lobbyTask.body.action.state.kind === 'ready'
           ? `座位已满，可以${lobbyAction.label}`
           : `座位已满，等待房主${lobbyAction.label}`;
   const share = model.capabilities.canShareRoom;
@@ -235,27 +210,28 @@ export function RoomShell({
   if (isActionsPanelOpen && !canOpenActionsPanel) {
     setIsActionsPanelOpen(false);
   }
-  if (isStage) assertRoomStageShellModel(model);
-  const openActionsPanel = () => {
-    if (!canOpenActionsPanel) throw new Error('Cannot open unavailable room actions panel');
-    setIsActionsPanelOpen(true);
-  };
-  const closeActionsPanel = () => setIsActionsPanelOpen(false);
-  const isActionsPanelShown = isActionsPanelOpen && canOpenActionsPanel;
-  const isHostHandShown = isActionsPanelShown && !isStage;
-
-  const sideInspector =
-    isActionsPanelShown && !isHostHandShown ? (
-      <RoomHostManagementPanel
-        model={hostManagement}
-        bottomActions={null}
-        presentation="inspector"
-        onClose={closeActionsPanel}
-        isAudioPlaying={model.isAudioPlaying}
-      />
-    ) : content.kind === 'seats' ? (
-      content.sideInspector
-    ) : null;
+  if (resolvedActionSurface === 'menu') {
+    if (!isRoomPlayerActionModelEmpty(model.playerActions)) {
+      throw new Error(`Room phase "${model.phase}" exposes player actions under the stage menu`);
+    }
+    if (hostManagement?.task !== null && hostManagement?.task !== undefined) {
+      throw new Error(`Room phase "${model.phase}" exposes a host task under the stage menu`);
+    }
+    const invalidAction = hostManagement?.actions.find(
+      (action) => action.stageMenuRole === undefined,
+    );
+    if (invalidAction !== undefined) {
+      throw new Error(
+        `Room phase "${model.phase}" has host action "${invalidAction.key}" outside the stage menu`,
+      );
+    }
+  }
+  useEffect(() => {
+    if (navigation.focus === 'stage-menu:trigger') {
+      stageMenuEntryRef.current?.focus({ preventScroll: true });
+      navigation.clearFocus();
+    }
+  }, [navigation]);
 
   return (
     <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
@@ -277,13 +253,13 @@ export function RoomShell({
         <RoomTitle model={model} />
         <div className="room-header-side" data-side="trailing">
           {trailingExtraActions}
-          {stageMenu !== null ? (
+          {resolvedActionSurface === 'menu' && (
             <button
               ref={stageMenuEntryRef}
               type="button"
               className="room-header-host-button"
-              aria-expanded={isStageMenuOpen}
-              onClick={() => setIsStageMenuOpen(true)}
+              aria-expanded={navigation.isMenuOpen}
+              onClick={navigation.openMenu}
               data-testid={TESTIDS.roomStageMenuButton}
             >
               菜单
@@ -315,7 +291,7 @@ export function RoomShell({
               <div className="room-board-information">
                 <div className="room-board-status">
                   <RoomActionStatus
-                    model={model.bottomActions}
+                    model={model.playerActions}
                     summary={content.bottomSummary}
                     isAudioPlaying={model.isAudioPlaying}
                     hostManagement={hostManagement}
@@ -346,44 +322,32 @@ export function RoomShell({
           <div className="room-workspace">{content.element}</div>
         )}
       </div>
-      {hasBottomPanel && actionHandVisibility === 'visible' && (
-        <RoomBottomActionPanel
-          model={model.bottomActions}
-          summary={content.kind === 'seats' ? content.bottomSummary : null}
-          isAudioPlaying={model.isAudioPlaying}
-          hostManagement={hostManagement}
-          onOpenMoreActions={openActionsPanel}
-          configurationEntry={configurationEntry}
-          manualEntries={manualEntries}
-          mainEntries={playerMainEntries}
-          selectionMode={selectionMode}
-          statusInBoard={statusInBoard}
-          hostEntryRef={hostEntryRef}
-          hostHand={
-            isHostHandShown ? (
-              <RoomHostManagementPanel
-                model={hostManagement}
-                bottomActions={null}
-                presentation="hand"
-                onClose={closeActionsPanel}
-                onBack={() => {
-                  restoreHostEntryFocus.current = true;
-                  closeActionsPanel();
-                }}
-                isAudioPlaying={model.isAudioPlaying}
-              />
-            ) : null
-          }
-        />
-      )}
-      {isActionsPanelShown && !isHostHandShown && !isWideLayout && (
-        <RoomHostManagementPanel
-          model={hostManagement}
-          bottomActions={null}
-          presentation="sheet"
-          onClose={closeActionsPanel}
-          isAudioPlaying={model.isAudioPlaying}
-        />
+      {hand !== null && (
+        <RoomBottomActionPanel>
+          {!statusInBoard && (
+            <RoomActionStatus
+              model={model.playerActions}
+              summary={content.kind === 'seats' ? content.bottomSummary : null}
+              isAudioPlaying={model.isAudioPlaying}
+              hostManagement={hostManagement}
+              selectionMode={selectionMode}
+            />
+          )}
+          {hand.face.kind === 'host' && <RoomHostTaskHeader model={hostManagement} />}
+          <RoomActionHand
+            hand={hand}
+            focusCardId={navigation.focus}
+            onFocusRestored={navigation.clearFocus}
+            onBack={navigation.back}
+            testId={
+              hand.face.kind === 'menu'
+                ? TESTIDS.roomStageMenuPanel
+                : hand.face.kind === 'host'
+                  ? TESTIDS.roomHostManagementPanel
+                  : undefined
+            }
+          />
+        </RoomBottomActionPanel>
       )}
       {model.seatConfirmation !== null && <RoomSeatConfirmModal model={model.seatConfirmation} />}
       {model.profile !== null && (
@@ -394,18 +358,6 @@ export function RoomShell({
         />
       )}
       <RoomShareDialog model={model.share} />
-      {stageMenu !== null && isStageMenuOpen && (
-        <RoomStageMenu
-          model={stageMenu}
-          abortAction={hostManagement?.sections
-            .flatMap((section) => section.actions)
-            .find((action) => action.stageMenuRole === 'abort')}
-          onClose={() => {
-            setIsStageMenuOpen(false);
-            stageMenuEntryRef.current?.focus({ preventScroll: true });
-          }}
-        />
-      )}
       {gameOverlays}
     </div>
   );

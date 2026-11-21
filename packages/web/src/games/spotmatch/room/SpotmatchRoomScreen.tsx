@@ -107,13 +107,22 @@ function SpotmatchRoomContent(
           ? { label: '开始游戏', occupiedSeats: getSpotmatchOccupiedSeatCount(screen.state) }
           : null
       }
-      stageMenu={
-        isPlaying ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
-      }
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
-      manualEntries={[
-        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('spotmatch') },
-      ]}
+      actionSurface={isPlaying ? 'menu' : 'hand'}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('spotmatch'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: openGuide },
+          },
+        ],
+        openConfiguration: isLobby ? null : openConfiguration,
+      }}
       content={
         isLobby
           ? {

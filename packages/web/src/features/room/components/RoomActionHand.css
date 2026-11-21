@@ -7,7 +7,7 @@
     max(var(--space-small), env(safe-area-inset-bottom));
 }
 
-.room-action-hand:not(.room-stage-menu) {
+.room-action-hand {
   position: relative;
 }
 
@@ -36,11 +36,11 @@
   min-width: 0;
 }
 
-.room-action-card-cell:has(.button:focus-visible) {
+.room-action-card-cell:has(.room-hand-card:focus-visible) {
   z-index: 100;
 }
 
-.room-action-card-cell .button {
+.room-action-card-cell .room-hand-card {
   --hand-ink: var(--color-text-secondary);
   --hand-paper: var(--color-background);
   position: relative;
@@ -62,24 +62,21 @@
   line-height: var(--line-secondary);
   text-align: center;
   overflow-wrap: anywhere;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
   rotate: var(--hand-card-angle);
   translate: 0 var(--hand-card-drop);
   transform-origin: center bottom;
 }
 
-.room-action-card-cell .button[data-variant] {
-  background: transparent;
-  color: var(--hand-ink);
-}
-
-.room-action-card-cell .button::before,
-.room-action-card-cell .button::after {
+.room-action-card-cell .room-hand-card::before,
+.room-action-card-cell .room-hand-card::after {
   content: '';
   position: absolute;
   pointer-events: none;
 }
 
-.room-action-card-cell .button::before {
+.room-action-card-cell .room-hand-card::before {
   z-index: -2;
   inset: 0 calc(-1 * var(--space-tight)) calc(-1 * var(--size-hand-card-extension));
   border: var(--border-width) solid var(--hand-ink);
@@ -88,7 +85,7 @@
   box-shadow: var(--shadow-md);
 }
 
-.room-action-card-cell .button::after {
+.room-action-card-cell .room-hand-card::after {
   z-index: -1;
   inset: var(--space-tight) 0 calc(-1 * var(--size-hand-card-extension) + var(--space-tight));
   border: var(--border-width) solid currentColor;
@@ -96,33 +93,33 @@
   opacity: 0.2;
 }
 
-.room-action-card-cell .button[data-card-category='player'] {
+.room-action-card-cell .room-hand-card[data-card-category='player'] {
   --hand-ink: var(--color-primary-dark);
   --hand-paper: var(--color-surface-hover);
 }
 
-.room-action-card-cell .button[data-variant='danger'] {
+.room-action-card-cell .room-hand-card[data-card-category='danger'] {
   --hand-ink: var(--color-hand-danger-ink);
   --hand-paper: var(--color-hand-danger-paper);
 }
 
-.room-action-card-cell .button[data-card-category='resource']:not([data-variant='danger']) {
+.room-action-card-cell .room-hand-card[data-card-category='resource'] {
   --hand-ink: var(--color-hand-resource-ink);
   --hand-paper: var(--color-hand-resource-paper);
 }
 
-.room-action-card-cell .button[data-card-category='host']:not([data-variant='danger']) {
+.room-action-card-cell .room-hand-card[data-card-category='host'] {
   --hand-ink: var(--color-hand-host-ink);
   --hand-paper: var(--color-hand-host-paper);
 }
 
-.room-action-card-cell .button > svg {
+.room-action-card-cell .room-hand-card > svg {
   flex-shrink: 0;
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
 }
 
-.room-action-card-cell .button > .bottom-action-pending {
+.room-action-card-cell .room-hand-card > .bottom-action-pending {
   position: absolute;
   top: calc(-1 * var(--line-caption));
   left: 50%;
@@ -137,11 +134,11 @@
   transform: translateX(-50%);
 }
 
-.room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
+.room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true']) {
   opacity: 1;
 }
 
-.room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true'])::before {
+.room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true'])::before {
   border-color: var(--hand-ink);
   border-style: dashed;
   background:
@@ -149,7 +146,7 @@
     var(--hand-paper);
 }
 
-.room-action-card-cell .button:focus-visible {
+.room-action-card-cell .room-hand-card:focus-visible {
   rotate: 0deg;
   translate: 0 calc(-1 * var(--space-medium));
 }
@@ -159,14 +156,14 @@
     z-index: 100;
   }
 
-  .room-action-card-cell .button:not(:disabled):hover {
+  .room-action-card-cell .room-hand-card:not(:disabled):hover {
     rotate: 0deg;
     translate: 0 calc(-1 * var(--space-medium));
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .room-action-card-cell .button {
+  .room-action-card-cell .room-hand-card {
     transition:
       rotate 160ms ease-out,
       translate 160ms ease-out;
@@ -174,16 +171,16 @@
 }
 
 @media (forced-colors: active) {
-  .room-action-card-cell .button[data-variant] {
+  .room-action-card-cell .room-hand-card {
     --hand-ink: ButtonText !important;
     --hand-paper: ButtonFace !important;
   }
 
-  .room-action-card-cell .button[data-variant]:is(:disabled, [aria-disabled='true']) {
+  .room-action-card-cell .room-hand-card:is(:disabled, [aria-disabled='true']) {
     --hand-ink: GrayText !important;
   }
 
-  .room-action-card-cell .button > .bottom-action-pending {
+  .room-action-card-cell .room-hand-card > .bottom-action-pending {
     background: Highlight;
     color: HighlightText;
   }

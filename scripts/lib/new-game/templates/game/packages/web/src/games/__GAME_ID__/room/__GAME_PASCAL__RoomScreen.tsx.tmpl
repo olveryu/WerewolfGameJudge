@@ -133,14 +133,27 @@ function __GAME_PASCAL__RoomContent(
             }
           : null
       }
+//#cap !identityViewing
+      actionSurface={screen.state.phase.kind === 'playing' ? 'menu' : 'hand'}
+//#end
+      directory={{
+        main: [],
+        manual: [{
+          key: 'guide',
+          label: '玩法',
+          category: 'resource',
+          icon: 'book-outline',
+          testID: TESTIDS.roomGuideButton('__GAME_ID__'),
+          opensDialog: true,
+          state: { kind: 'ready', onPress: openGuide },
+        }],
 //#cap identityViewing
-      configurationEntry={isPreGame ? null : { onOpen: openConfiguration }}
+        openConfiguration: isPreGame ? null : openConfiguration,
 //#end
 //#cap !identityViewing
-      stageMenu={screen.state.phase.kind === 'playing' ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null}
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+        openConfiguration: isLobby ? null : openConfiguration,
 //#end
-      manualEntries={[{ label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('__GAME_ID__') }]}
+      }}
       content={
 //#cap identityViewing
         {

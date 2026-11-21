@@ -29,7 +29,6 @@ import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer'
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
@@ -237,28 +236,35 @@ function AvalonRoomContent(
           : null
       }
       selectionMode={screen.strikePickMode ? 'player' : undefined}
-      mainEntries={
-        historySummary !== null && viewModel !== null
-          ? [
-              {
-                label: '对局记录',
-                testId: TESTIDS.avalonHistoryButton,
-                icon: <IconDocumentTextOutline aria-hidden />,
-                onOpen: () => setHistoryVisible(true),
-              },
-            ]
-          : []
-      }
-      configurationEntry={
-        !isPreGame && viewModel !== null ? { onOpen: () => setInformation('configuration') } : null
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('avalon'),
-        },
-      ]}
+      directory={{
+        main:
+          historySummary !== null && viewModel !== null
+            ? [
+                {
+                  key: 'history',
+                  label: '对局记录',
+                  category: 'resource',
+                  icon: 'document-text-outline',
+                  testID: TESTIDS.avalonHistoryButton,
+                  opensDialog: true,
+                  state: { kind: 'ready', onPress: () => setHistoryVisible(true) },
+                },
+              ]
+            : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('avalon'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration:
+          !isPreGame && viewModel !== null ? () => setInformation('configuration') : null,
+      }}
       content={
         isLobby || viewModel === null
           ? {

@@ -83,12 +83,22 @@ function FibRoomContent(
           : null
       }
       selectionMode={screen.isGuessing ? 'host-task' : undefined}
-      configurationEntry={
-        hasStarted && !screen.isGuessing ? { onOpen: () => setInformation('configuration') } : null
-      }
-      manualEntries={[
-        { label: '玩法', onOpen: () => setInformation('guide'), testId: TESTIDS.fibRulesButton },
-      ]}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.fibRulesButton,
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration:
+          hasStarted && !screen.isGuessing ? () => setInformation('configuration') : null,
+      }}
       leadingExtraActions={null}
       trailingExtraActions={null}
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (

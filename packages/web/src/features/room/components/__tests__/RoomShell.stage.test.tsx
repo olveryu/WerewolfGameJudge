@@ -1,72 +1,25 @@
 /**
- * RoomShell stage content (docs/room-stage-layout-design.md): host management opens from the
- * header, no bottom panel or takeover banner renders, and a stage shell model carrying bottom
- * content fails fast.
+ * Stage content requires a menu, renders no bottom panel or takeover banner, and rejects models
+ * carrying bottom content.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 
 import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
-import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import type { RoomHandDirectory } from '@/features/room/model/RoomHand';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import type { RoomStageHudModel } from '@/features/room/model/RoomStage';
 import { seatSource, seatViewModel } from '@/test-utils/roomSeat';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { TESTIDS } from '@/testids';
 
 import { RoomShell } from '../RoomShell';
-import { RoomStageMenu } from '../RoomStageMenu';
-
-it('explains an unavailable stage-menu action without closing the menu', () => {
-  const onClose = vi.fn();
-  render(
-    <RoomStageMenu
-      model={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
-      abortAction={{
-        key: 'abort-game',
-        label: '中止本局',
-        icon: 'close',
-        variant: 'danger',
-        isEnabled: false,
-        disabledReason: '语音播报中，请稍候',
-      }}
-      onClose={onClose}
-    />,
-  );
-  const action = screen.getByRole('button', { name: '中止本局' });
-  expect(action).toHaveAttribute('aria-disabled', 'true');
-  expect(action).toHaveAccessibleDescription('语音播报中，请稍候');
-  fireEvent.click(action);
-  expect(screen.getByRole('status')).toHaveTextContent('语音播报中，请稍候');
-  expect(onClose).not.toHaveBeenCalled();
-});
-
-it('keeps the stage menu open when an abort action requests confirmation', () => {
-  const onClose = vi.fn();
-  const onPress = vi.fn();
-  render(
-    <RoomStageMenu
-      model={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
-      abortAction={{
-        key: 'abort-game',
-        label: '中止本局',
-        icon: 'close',
-        variant: 'danger',
-        isEnabled: true,
-        onPress,
-      }}
-      onClose={onClose}
-    />,
-  );
-  fireEvent.click(screen.getByRole('button', { name: '中止本局' }));
-  expect(onPress).toHaveBeenCalledOnce();
-  expect(onClose).not.toHaveBeenCalled();
-});
 
 const deniedCapabilities: RoomCapabilities = {
   canTakeSeat: { isAllowed: false, reason: null },
@@ -82,12 +35,25 @@ const deniedCapabilities: RoomCapabilities = {
   shouldConfirmExit: false,
 };
 
-const EMPTY_STACK: RoomBottomStackModel = {
-  kind: 'stacked',
+const EMPTY_STACK: RoomPlayerActionModel = {
   message: null,
   progress: null,
   layout: { primary: [], secondary: [], ghost: [] },
 };
+
+const EMPTY_DIRECTORY: RoomHandDirectory = {
+  main: [],
+  manual: [],
+  openConfiguration: null,
+};
+
+type TestRoomShellProps = Omit<ComponentProps<typeof RoomShell>, 'directory'> & {
+  readonly directory?: RoomHandDirectory;
+};
+
+function TestRoomShell({ directory = EMPTY_DIRECTORY, ...props }: TestRoomShellProps) {
+  return <RoomShell {...props} directory={directory} />;
+}
 
 const HUD: RoomStageHudModel = {
   chips: [{ key: 'step', label: '第 2/5 棒', detail: null, tone: 'neutral' }],
@@ -127,23 +93,17 @@ function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellMode
       copyLink: vi.fn(async () => undefined),
       shareImage: vi.fn(async () => undefined),
     },
-    bottomActions: EMPTY_STACK,
+    playerActions: EMPTY_STACK,
     buildHostManagement: () => ({
       task: null,
-      sections: [
+      actions: [
         {
-          key: 'danger',
-          title: '危险操作',
-          actions: [
-            {
-              key: 'abort',
-              label: '结束本局',
-              icon: 'stop-circle-outline',
-              variant: 'danger',
-              isEnabled: true,
-              onPress: vi.fn(),
-            },
-          ],
+          key: 'abort',
+          label: '结束本局',
+          icon: 'stop-circle-outline',
+          category: 'danger',
+          stageMenuRole: 'abort',
+          state: { kind: 'ready', onPress: vi.fn() },
         },
       ],
     }),
@@ -154,7 +114,7 @@ function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellMode
 
 function renderStage(overrides: Partial<RoomShellModelInput> = {}, hudAction?: ReactElement) {
   return render(
-    <RoomShell
+    <TestRoomShell
       model={createRoomShellModel(shellInput(overrides))}
       content={{
         kind: 'stage',
@@ -164,6 +124,8 @@ function renderStage(overrides: Partial<RoomShellModelInput> = {}, hudAction?: R
       }}
       leadingExtraActions={null}
       trailingExtraActions={null}
+      actionSurface="menu"
+      directory={EMPTY_DIRECTORY}
       gameOverlays={null}
     />,
   );
@@ -180,10 +142,10 @@ describe('RoomShell stage content', () => {
 
   it('places hand-room status, progress and summary above the seats rather than in the hand', () => {
     const { container } = render(
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(
           shellInput({
-            bottomActions: {
+            playerActions: {
               ...EMPTY_STACK,
               message: '等待下一阶段',
               progress: { current: 2, total: 5, label: '行动中' },
@@ -229,7 +191,7 @@ describe('RoomShell stage content', () => {
   it('keeps settings in the header without adding a settings card to the hand', () => {
     const onUserActionPress = vi.fn();
     render(
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(shellInput({ onUserActionPress }))}
         content={{
           kind: 'seats',
@@ -251,10 +213,10 @@ describe('RoomShell stage content', () => {
   it('keeps settings in the header and out of the stage menu', () => {
     const onUserActionPress = vi.fn();
     render(
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(shellInput({ onUserActionPress }))}
         content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
-        stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+        actionSurface="menu"
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -268,27 +230,21 @@ describe('RoomShell stage content', () => {
 
   it('updates the lobby status for empty seats, the host and other players', () => {
     const makeRoom = (occupiedSeats: number, isHost: boolean, isEnabled = true) => (
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(
           shellInput({
             viewer: viewerFor(isHost ? 'host' : 'seated'),
             buildHostManagement: () => ({
               task: { kind: 'action', actionKey: 'assign' },
-              sections: [
+              actions: [
                 {
-                  key: 'start',
-                  title: '开始',
-                  actions: [
-                    {
-                      key: 'assign',
-                      label: '分配角色',
-                      icon: 'person-outline',
-                      variant: 'primary',
-                      isEnabled,
-                      disabledReason: isEnabled ? null : '请稍候',
-                      onPress: vi.fn(),
-                    },
-                  ],
+                  key: 'assign',
+                  label: '分配角色',
+                  icon: 'person-outline',
+                  category: 'host',
+                  state: isEnabled
+                    ? { kind: 'ready', onPress: vi.fn() }
+                    : { kind: 'blocked', reason: '请稍候' },
                 },
               ],
             }),
@@ -337,30 +293,23 @@ describe('RoomShell stage content', () => {
       createRoomShellModel(
         shellInput({
           isAudioPlaying,
-          bottomActions: { ...EMPTY_STACK, message: '等待下一阶段' },
+          playerActions: { ...EMPTY_STACK, message: '等待下一阶段' },
           buildHostManagement: () => ({
-            task: { kind: 'message', text: '请选择座位', actionKey: 'cancel-selection' },
-            sections: [
+            task: { kind: 'message', text: '请选择座位', escapeActionKey: 'cancel-selection' },
+            actions: [
               {
-                key: 'selection',
-                title: '选择',
-                actions: [
-                  {
-                    key: 'cancel-selection',
-                    label: '取消选择',
-                    icon: 'close-circle-outline',
-                    variant: 'secondary',
-                    isEnabled: true,
-                    onPress: vi.fn(),
-                  },
-                ],
+                key: 'cancel-selection',
+                label: '取消选择',
+                icon: 'close-circle-outline',
+                category: 'host',
+                state: { kind: 'ready', onPress: vi.fn() },
               },
             ],
           }),
         }),
       );
     const room = (isAudioPlaying: boolean) => (
-      <RoomShell
+      <TestRoomShell
         model={model(isAudioPlaying)}
         content={{
           kind: 'seats',
@@ -393,7 +342,7 @@ describe('RoomShell stage content', () => {
     (viewerRole) => {
       const shareRoom = vi.fn();
       render(
-        <RoomShell
+        <TestRoomShell
           model={createRoomShellModel(
             shellInput({
               viewer: viewerFor(viewerRole),
@@ -403,23 +352,7 @@ describe('RoomShell stage content', () => {
               },
               buildHostManagement: () => ({
                 task: null,
-                sections: [
-                  {
-                    key: 'room',
-                    title: '房间',
-                    actions: [
-                      {
-                        key: HOST_ACTION_KEYS.shareRoom,
-                        label: '分享房间',
-                        icon: 'share-social-outline',
-                        variant: 'secondary',
-                        placement: 'room-entry',
-                        isEnabled: true,
-                        onPress: shareRoom,
-                      },
-                    ],
-                  },
-                ],
+                actions: [],
               }),
             }),
           )}
@@ -454,7 +387,7 @@ describe('RoomShell stage content', () => {
     (transition) => {
       const model = createRoomShellModel(shellInput());
       const room = (afterTransition: boolean) => (
-        <RoomShell
+        <TestRoomShell
           model={model}
           content={
             afterTransition && transition === 'stage'
@@ -467,6 +400,7 @@ describe('RoomShell stage content', () => {
                   afterSeatBoard: null,
                 }
           }
+          actionSurface={afterTransition && transition === 'stage' ? 'menu' : 'hand'}
           selectionMode={afterTransition && transition === 'seat selection' ? 'player' : undefined}
           leadingExtraActions={null}
           trailingExtraActions={null}
@@ -499,7 +433,7 @@ describe('RoomShell stage content', () => {
     const user = userEvent.setup();
     const onRelease = vi.fn();
     render(
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(
           shellInput({
             controlledSeat: { seat: 1, displayName: '机器人2', onRelease },
@@ -525,6 +459,7 @@ describe('RoomShell stage content', () => {
         }}
         leadingExtraActions={null}
         trailingExtraActions={null}
+        actionSurface="menu"
         gameOverlays={null}
       />,
     );
@@ -561,7 +496,7 @@ describe('RoomShell stage content', () => {
     const onOpenGuide = vi.fn();
     const onOpenConfiguration = vi.fn();
     const stage = (
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(shellInput({ viewer: viewerFor('seated') }))}
         content={{
           kind: 'stage',
@@ -570,7 +505,22 @@ describe('RoomShell stage content', () => {
         }}
         leadingExtraActions={null}
         trailingExtraActions={null}
-        stageMenu={{ onOpenGuide, onOpenConfiguration }}
+        actionSurface="menu"
+        directory={{
+          main: [],
+          manual: [
+            {
+              key: 'guide',
+              label: '玩法',
+              category: 'resource',
+              icon: 'book-outline',
+              testID: TESTIDS.roomGuideButton('drawguess'),
+              opensDialog: true,
+              state: { kind: 'ready', onPress: onOpenGuide },
+            },
+          ],
+          openConfiguration: onOpenConfiguration,
+        }}
         gameOverlays={null}
       />
     );
@@ -585,11 +535,11 @@ describe('RoomShell stage content', () => {
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
     await user.click(within(hand).getByTestId(TESTIDS.roomManualButton));
     expect(screen.getByTestId(TESTIDS.roomStageMenuBackButton)).toHaveFocus();
-    await user.click(screen.getByTestId(TESTIDS.roomStageGuideButton));
+    await user.click(screen.getByTestId(TESTIDS.roomGuideButton('drawguess')));
     expect(onOpenGuide).toHaveBeenCalledOnce();
     await user.keyboard('{Escape}');
     expect(screen.getByTestId(TESTIDS.roomManualButton)).toHaveFocus();
-    await user.click(screen.getByTestId(TESTIDS.roomStageConfigurationButton));
+    await user.click(screen.getByTestId(TESTIDS.roomConfigurationButton));
     expect(onOpenConfiguration).toHaveBeenCalledOnce();
     view.rerender(stage);
     await user.click(screen.getByTestId(TESTIDS.roomStageMenuBackButton));
@@ -604,27 +554,20 @@ describe('RoomShell stage content', () => {
     const user = userEvent.setup();
     const onAbort = vi.fn();
     render(
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(
           shellInput({
             buildHostManagement: () => ({
               task: null,
-              sections: [
+              actions: [
                 {
-                  key: 'danger',
-                  title: '危险操作',
-                  actions: [
-                    {
-                      key: HOST_ACTION_KEYS.restart,
-                      label: '重新开始',
-                      icon: 'stop-circle-outline',
-                      variant: 'danger',
-                      stageMenuRole: 'abort',
-                      isEnabled: true,
-                      onPress: onAbort,
-                      testID: TESTIDS.restartButton,
-                    },
-                  ],
+                  key: HOST_ACTION_KEYS.restart,
+                  label: '重新开始',
+                  icon: 'stop-circle-outline',
+                  category: 'danger',
+                  stageMenuRole: 'abort',
+                  state: { kind: 'ready', onPress: onAbort },
+                  testID: TESTIDS.restartButton,
                 },
               ],
             }),
@@ -633,7 +576,7 @@ describe('RoomShell stage content', () => {
         content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
         leadingExtraActions={null}
         trailingExtraActions={null}
-        stageMenu={{ onOpenGuide: vi.fn(), onOpenConfiguration: vi.fn() }}
+        actionSurface="menu"
         gameOverlays={null}
       />,
     );
@@ -643,14 +586,20 @@ describe('RoomShell stage content', () => {
     expect(screen.getByTestId(TESTIDS.roomStageMenuPanel)).toBeInTheDocument();
   });
 
-  it('does not reopen an obsolete panel when actions become available again', async () => {
+  it('does not reopen the host-management hand when actions become available again', async () => {
     const user = userEvent.setup();
     const shell = (hasActions: boolean) => (
-      <RoomShell
+      <TestRoomShell
         model={createRoomShellModel(
           shellInput(hasActions ? {} : { buildHostManagement: () => null }),
         )}
-        content={{ kind: 'stage', hud: HUD, element: <p>舞台内容</p> }}
+        content={{
+          kind: 'seats',
+          contextHeader: null,
+          bottomSummary: null,
+          beforeSeatBoard: <p>座位说明</p>,
+          afterSeatBoard: null,
+        }}
         leadingExtraActions={null}
         trailingExtraActions={null}
         gameOverlays={null}
@@ -679,7 +628,7 @@ describe('RoomShell stage content', () => {
   it('fails fast when the stage shell model still carries bottom content', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     expect(() =>
-      renderStage({ bottomActions: { ...EMPTY_STACK, message: '等待本轮结算' } }),
+      renderStage({ playerActions: { ...EMPTY_STACK, message: '等待本轮结算' } }),
     ).toThrow('Stage content cannot carry bottom actions');
   });
 });
