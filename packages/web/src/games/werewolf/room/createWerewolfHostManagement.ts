@@ -14,22 +14,19 @@ import {
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   hostActionTask,
   hostMessageTask,
-  hostStartTask,
   type RoomHostActionDescriptor,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
+import type { RoomHostAction } from '@/features/room/model/RoomAction';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type {
-  RoomHostManagementAction,
   RoomHostManagementModel,
-  RoomHostManagementSection,
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import {
@@ -66,7 +63,7 @@ interface WerewolfHostManagementInput {
   readonly canMarkAllBotsGroupConfirmed: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
   >;
   readonly sheriffElection: SheriffElectionPanelModel | null;
   readonly onHostControl: (action: WerewolfHostControlAction) => void;
@@ -80,17 +77,14 @@ interface WerewolfHostManagementInput {
   readonly onLastNightInfo: () => void;
 }
 
-function createSheriffAdvanceAction(
-  election: SheriffElectionPanelModel,
-): RoomHostManagementAction | null {
+function createSheriffAdvanceAction(election: SheriffElectionPanelModel): RoomHostAction | null {
   if (!election.view.canAdvance || election.view.advanceLabel === null) return null;
   const descriptor: RoomHostActionDescriptor = {
     key: 'sheriff-advance',
     label: election.view.advanceLabel,
     icon: 'arrow-forward-outline',
-    variant: 'primary',
+    category: 'host',
     testID: TESTIDS.sheriffAdvanceButton,
-    isLoading: election.pendingAction?.kind === 'advance',
   };
   return buildPendingAwareHostAction(descriptor, election.pendingAction !== null, () =>
     election.requestAdvance(),
@@ -99,7 +93,7 @@ function createSheriffAdvanceAction(
 
 function createSheriffSelfDestructAction(
   election: SheriffElectionPanelModel,
-): RoomHostManagementAction | null {
+): RoomHostAction | null {
   const canEndBySelfDestruct =
     election.view.phase === 'candidateSpeech' ||
     election.view.phase === 'runoffSpeech' ||
@@ -110,9 +104,8 @@ function createSheriffSelfDestructAction(
     key: 'sheriff-self-destruct',
     label: '自爆结束竞选',
     icon: 'warning-outline',
-    variant: 'danger',
+    category: 'danger',
     testID: TESTIDS.sheriffSelfDestructButton,
-    isLoading: election.pendingAction?.kind === 'endBySelfDestruct',
   };
   return buildPendingAwareHostAction(
     descriptor,
@@ -121,7 +114,7 @@ function createSheriffSelfDestructAction(
   );
 }
 
-function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
+function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostAction[] {
   switch (input.roomStatus) {
     case GameStatus.Unseated:
     case GameStatus.Seated: {
@@ -155,7 +148,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
           ];
     case GameStatus.Day: {
       if (input.sheriffElection === null) return [];
-      const actions: RoomHostManagementAction[] = [];
+      const actions: RoomHostAction[] = [];
       const advanceAction = createSheriffAdvanceAction(input.sheriffElection);
       const selfDestructAction = createSheriffSelfDestructAction(input.sheriffElection);
       if (advanceAction !== null) actions.push(advanceAction);
@@ -169,7 +162,7 @@ function createCurrentFlowActions(input: WerewolfHostManagementInput): RoomHostM
             key: 'select-mvp',
             label: input.mvpSeat === null ? '评选 MVP' : `本局 MVP：${formatSeat(input.mvpSeat)}`,
             icon: 'trophy-outline',
-            variant: 'secondary',
+            category: 'host',
           },
           input.isHostActionSubmitting || input.mvpSeat !== null,
           input.onSelectMvp,
@@ -216,16 +209,12 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
   switch (input.roomStatus) {
     case GameStatus.Unseated:
     case GameStatus.Seated:
-      return hostStartTask(HOST_ACTION_KEYS.assignRoles);
+      return hostActionTask(HOST_ACTION_KEYS.assignRoles);
     case GameStatus.Assigned:
       if (input.isPlagueMode)
         return hostMessageTask(viewedProgressReason(input.viewedCount, input.totalSeats, '角色'));
-      // The task is the start; until every seat viewed it is blocked by the
-      // sheet action's reason, with the bot scaffold as the remedy.
-      return hostActionTask(
-        HOST_ACTION_KEYS.startGame,
-        input.canMarkAllBotsViewed ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
-      );
+      // The task is the start; its action carries the viewing gate reason.
+      return hostActionTask(HOST_ACTION_KEYS.startGame);
     case GameStatus.Ready:
       return input.isPlagueMode
         ? hostMessageTask('黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程')
@@ -233,7 +222,9 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
     case GameStatus.Ongoing:
       // The night runs on player actions; the host only scaffolds bots.
       return input.canMarkAllBotsGroupConfirmed
-        ? hostMessageTask('有机器人尚未确认本步信息', { actionKey: 'mark-bots-confirmed' })
+        ? hostMessageTask('有机器人尚未确认本步信息', {
+            escapeActionKey: 'mark-bots-confirmed',
+          })
         : null;
     case GameStatus.Day: {
       // Dawn: announcing the night result and running the election are
@@ -304,10 +295,8 @@ function createHostTask(input: WerewolfHostManagementInput): RoomHostTask | null
   }
 }
 
-function createRoomManagementActions(
-  input: WerewolfHostManagementInput,
-): RoomHostManagementAction[] {
-  const actions: RoomHostManagementAction[] = [];
+function createRoomManagementActions(input: WerewolfHostManagementInput): RoomHostAction[] {
+  const actions: RoomHostAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     actions.push(
       buildRoomConfigAction({
@@ -329,15 +318,11 @@ function createRoomManagementActions(
       }),
     );
   }
-  // 分享房间常驻入座期房间区，是座位不满时任务卡的补救。
-  if (input.roomStatus === GameStatus.Unseated || input.roomStatus === GameStatus.Seated) {
-    actions.push(buildShareRoomAction(input.capabilities.canShareRoom));
-  }
   return actions;
 }
 
-function createToolActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
-  const actions: RoomHostManagementAction[] = [];
+function createToolActions(input: WerewolfHostManagementInput): RoomHostAction[] {
+  const actions: RoomHostAction[] = [];
   const canOpenMusicSettings =
     !input.isHostActionSubmitting &&
     !input.isAudioPlaying &&
@@ -358,7 +343,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
           key: 'mark-bots-confirmed',
           label: '标记机器人已确认',
           icon: 'checkmark-done-outline',
-          variant: 'secondary',
+          category: 'host',
           testID: TESTIDS.roomMarkBotsConfirmedButton,
         },
         input.onMarkAllBotsGroupConfirmed,
@@ -368,7 +353,7 @@ function createToolActions(input: WerewolfHostManagementInput): RoomHostManageme
   return actions;
 }
 
-function createPostGameActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
+function createPostGameActions(input: WerewolfHostManagementInput): RoomHostAction[] {
   if (input.roomStatus !== GameStatus.Day && input.roomStatus !== GameStatus.Ended) return [];
   if (input.review === null) {
     throw new Error(`[FAIL-FAST] Werewolf ${input.roomStatus} host has no review entry`);
@@ -382,7 +367,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
     key: PANEL_FLOW_ACTION_KEYS.grantReview,
     label: '授权玩家查看',
     icon: 'people-outline',
-    variant: 'secondary',
+    category: 'host',
     testID: TESTIDS.shareReviewButton,
   } as const;
   return [
@@ -392,18 +377,18 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostMana
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
         label: '昨夜信息',
         icon: 'moon-outline',
-        variant: 'secondary',
+        category: 'resource',
         testID: TESTIDS.lastNightInfoButton,
       },
       input.onLastNightInfo,
     ),
     input.panelFlow.lastNightInfoConfirmed
       ? buildEnabledHostAction(grantDescriptor, input.onGrantReviewAccess)
-      : { ...grantDescriptor, isEnabled: false, disabledReason: '请先查看昨夜信息' },
+      : { ...grantDescriptor, state: { kind: 'blocked', reason: '请先查看昨夜信息' } },
   ];
 }
 
-function createDangerActions(input: WerewolfHostManagementInput): RoomHostManagementAction[] {
+function createDangerActions(input: WerewolfHostManagementInput): RoomHostAction[] {
   const canRestart =
     input.roomStatus === GameStatus.Assigned ||
     input.roomStatus === GameStatus.Ready ||
@@ -417,14 +402,6 @@ function createDangerActions(input: WerewolfHostManagementInput): RoomHostManage
       isLoading: input.isHostActionSubmitting,
     }),
   ];
-}
-
-function createSection(
-  key: string,
-  title: string,
-  actions: readonly RoomHostManagementAction[],
-): RoomHostManagementSection | null {
-  return actions.length === 0 ? null : { key, title, actions };
 }
 
 /**
@@ -441,15 +418,15 @@ const AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
 export function createWerewolfHostManagement(
   input: WerewolfHostManagementInput,
 ): RoomHostManagementModel {
-  const sections = [
-    createSection('current-flow', '当前流程', createCurrentFlowActions(input)),
-    createSection('room', '房间管理', createRoomManagementActions(input)),
-    createSection('post-game', '赛后管理', createPostGameActions(input)),
-    createSection('tools', '辅助工具', createToolActions(input)),
-    createSection('danger', '危险操作', createDangerActions(input)),
-  ].filter((section): section is RoomHostManagementSection => section !== null);
+  const actions = [
+    ...createCurrentFlowActions(input),
+    ...createRoomManagementActions(input),
+    ...createPostGameActions(input),
+    ...createToolActions(input),
+    ...createDangerActions(input),
+  ];
 
-  if (sections.length === 0) {
+  if (actions.length === 0) {
     throw new Error('Werewolf Host management must expose at least one action');
   }
   const election = input.sheriffElection?.view;
@@ -474,7 +451,7 @@ export function createWerewolfHostManagement(
   return applyAudioPlaybackLock(
     {
       task: createHostTask(input),
-      sections,
+      actions,
       ...(input.roomStatus === GameStatus.Unseated || input.roomStatus === GameStatus.Seated
         ? { pendingActionKeys: [HOST_ACTION_KEYS.assignRoles] }
         : input.roomStatus === GameStatus.Assigned

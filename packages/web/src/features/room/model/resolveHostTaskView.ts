@@ -8,40 +8,22 @@
  * model construction errors and fail fast.
  */
 
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostTaskStep,
-} from './RoomHostManagement';
-
-export interface RoomHostTaskRemedy {
-  readonly label: string;
-  readonly testID?: string;
-  readonly placement?: 'room-entry';
-  readonly onPress: () => void;
-}
+import type { RoomHostAction } from './RoomAction';
+import type { RoomHostManagementModel, RoomHostTaskStep } from './RoomHostManagement';
 
 export type RoomHostTaskBody =
   | {
-      /** The action is enabled: the card's button runs the sheet action's own onPress. */
-      readonly kind: 'ready';
-      readonly action: RoomHostManagementAction & { readonly isEnabled: true };
-    }
-  | {
-      /** The action is disabled: the card shows its label, reason and the optional remedy. */
-      readonly kind: 'blocked';
-      readonly action: RoomHostManagementAction & { readonly isEnabled: false };
-      readonly reason: string | null;
-      readonly remedy: RoomHostTaskRemedy | null;
+      readonly kind: 'action';
+      readonly action: RoomHostAction;
     }
   | {
       readonly kind: 'choice';
-      readonly actions: readonly RoomHostManagementAction[];
+      readonly actions: readonly RoomHostAction[];
     }
   | {
       readonly kind: 'message';
       readonly text: string;
-      readonly escape: RoomHostManagementAction | null;
+      readonly escape: RoomHostAction | null;
     };
 
 export interface RoomHostTaskView {
@@ -55,24 +37,22 @@ export interface RoomHostTaskView {
   readonly note: string | null;
 }
 
-function indexActions(model: RoomHostManagementModel): Map<string, RoomHostManagementAction> {
-  const index = new Map<string, RoomHostManagementAction>();
-  for (const section of model.sections) {
-    for (const action of section.actions) {
-      if (index.has(action.key)) {
-        throw new Error(`Host management model declares action "${action.key}" twice`);
-      }
-      index.set(action.key, action);
+function indexActions(model: RoomHostManagementModel): Map<string, RoomHostAction> {
+  const index = new Map<string, RoomHostAction>();
+  for (const action of model.actions) {
+    if (index.has(action.key)) {
+      throw new Error(`Host management model declares action "${action.key}" twice`);
     }
+    index.set(action.key, action);
   }
   return index;
 }
 
 function requireAction(
-  index: ReadonlyMap<string, RoomHostManagementAction>,
+  index: ReadonlyMap<string, RoomHostAction>,
   key: string,
   role: string,
-): RoomHostManagementAction {
+): RoomHostAction {
   const action = index.get(key);
   if (action === undefined) {
     throw new Error(`Host task ${role} references action "${key}" missing from the sheet`);
@@ -104,10 +84,10 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
       : task.steps.map((step) => {
           if (step.actionKey === undefined) return step;
           const action = requireAction(actionIndex, step.actionKey, `step "${step.key}"`);
-          return action.isEnabled && step.state !== 'upcoming'
+          return action.state.kind === 'ready' && step.state !== 'upcoming'
             ? {
                 ...step,
-                onPress: action.onPress,
+                onPress: action.state.onPress,
                 ...(action.testID === undefined ? {} : { testID: action.testID }),
               }
             : step;
@@ -121,29 +101,7 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
   switch (task.kind) {
     case 'action': {
       const action = requireAction(actionIndex, task.actionKey, 'action');
-      if (action.isEnabled) {
-        return { steps, note, body: { kind: 'ready', action } };
-      }
-      const remedyAction =
-        task.remedyActionKey === undefined
-          ? null
-          : requireAction(actionIndex, task.remedyActionKey, 'remedy');
-      const remedy: RoomHostTaskRemedy | null =
-        remedyAction !== null && remedyAction.isEnabled
-          ? {
-              label: remedyAction.label,
-              testID: remedyAction.testID,
-              ...(remedyAction.placement === undefined
-                ? {}
-                : { placement: remedyAction.placement }),
-              onPress: remedyAction.onPress,
-            }
-          : null;
-      return {
-        steps,
-        note,
-        body: { kind: 'blocked', action, reason: action.disabledReason, remedy },
-      };
+      return { steps, note, body: { kind: 'action', action } };
     }
     case 'choice': {
       if (task.actionKeys.length < 2) {
@@ -166,9 +124,9 @@ export function resolveHostTaskView(model: RoomHostManagementModel): RoomHostTas
           kind: 'message',
           text: task.text,
           escape:
-            task.actionKey === undefined
+            task.escapeActionKey === undefined
               ? null
-              : requireAction(actionIndex, task.actionKey, 'escape'),
+              : requireAction(actionIndex, task.escapeActionKey, 'escape'),
         },
       };
   }

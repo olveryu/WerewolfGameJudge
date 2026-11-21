@@ -4,11 +4,11 @@
  *
  * The top status ribbon, the next-step strip model and the disabled-press
  * popup channel were removed as mechanisms: host guidance is one declared
- * task (room-shell-contract "Host Task") rendered on the host task card
- * and referencing the sheet's actions by key; a disabled action's reason
+ * task (room-shell-contract "Host Task") rendered in the shared host task
+ * header and referencing the hand's actions by key; a disabled action's reason
  * renders as a caption where the action sits. The flat info bottom model
- * was likewise removed: the stacked three-tier layout (plus the sheriff
- * dock) is the only bottom-actions model, and it carries no host flow.
+ * was likewise removed: player actions can declare one scoped child hand,
+ * while the host task references actions by key.
  * These identifiers must not reappear in room production code or in the
  * new-game generator templates that distribute the same parts.
  */
@@ -34,7 +34,20 @@ const FORBIDDEN_PATTERNS: readonly { readonly pattern: RegExp; readonly label: s
   { pattern: /HostGuideBanner/, label: 'host guide banner' },
   { pattern: /onDisabledPress/, label: 'disabled-press popup channel' },
   { pattern: /长按座位可接管机器人/, label: 'takeover hint copy' },
-  { pattern: /RoomBottomInfoModel/, label: 'flat info bottom model (stacked/dock only)' },
+  { pattern: /RoomBottomInfoModel/, label: 'obsolete bottom info model' },
+  {
+    pattern: /RoomBottomStackModel|RoomBottomDockModel|RoomBottomActionLayout|RoomBottomToolButton/,
+    label: 'obsolete tiered player-action models',
+  },
+  { pattern: /RoomBottomActionPresentation/, label: 'obsolete bottom-action projection' },
+  { pattern: /RoomStageMenu/, label: 'obsolete stage-menu component' },
+  { pattern: /RoomHostManagementPanel/, label: 'obsolete host-management panel' },
+  { pattern: /RoomHandButton/, label: 'obsolete single-hand button component' },
+  { pattern: /roomHostManagementButton/, label: 'obsolete host-management header entry' },
+  { pattern: /bottomActions/, label: 'obsolete shell bottom-actions field' },
+  { pattern: /sideInspector/, label: 'obsolete seat-content inspector slot' },
+  { pattern: /RoomHostManagementSection/, label: 'obsolete host-action sections' },
+  { pattern: /remedyActionKey/, label: 'obsolete host-task remedy reference' },
   {
     pattern: /resolveHostConsolePrimary|RoomHostConsolePrimary/,
     label: 'console primary derivation (host task replaces it)',
@@ -114,6 +127,6 @@ describe('room guidance surfaces contract', () => {
       'utf-8',
     );
     expect(shellModel).not.toMatch(/statusRibbon/);
-    expect(shellModel).toMatch(/readonly bottomActions: RoomBottomActionModel;/);
+    expect(shellModel).toMatch(/readonly playerActions: RoomPlayerActionModel;/);
   });
 });

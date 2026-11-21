@@ -5,8 +5,8 @@ import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { fibReview } from '@/games/fibking/review/fibReview';
 import {
   createFibBoardInfoSections,
-  createFibBottomActions,
   createFibHostManagement,
+  createFibPlayerActions,
   createFibRoomCapabilities,
   createFibRoomShellModel,
   createFibSeatDataSource,
@@ -138,7 +138,9 @@ describe('FibKing room adapter', () => {
         review: reviewEntryFor(state),
       });
     const flowActions = (state: FibState) =>
-      build(state)?.sections.find((section) => section.key === 'current-flow')?.actions ?? [];
+      build(state)?.actions.filter((action) =>
+        ['start-game', 'mark-bots-viewed'].includes(action.key),
+      ) ?? [];
 
     const pending = flowActions(createViewing([0]));
     expect(build(createViewing([])).pendingActionKeys).toEqual([]);
@@ -147,28 +149,27 @@ describe('FibKing room adapter', () => {
     expect(pending[0]).toEqual(
       expect.objectContaining({
         label: '开始游戏',
-        isEnabled: false,
-        disabledReason: '1/4 位玩家已查看身份，等待剩余玩家',
+        state: { kind: 'blocked', reason: '1/4 位玩家已查看身份，等待剩余玩家' },
       }),
     );
     expect(pending[1]).toEqual(expect.objectContaining({ label: '标记机器人已查看' }));
 
     const ready = flowActions(createViewing([0, 1, 2, 3]));
     expect(ready.map((action) => action.key)).toEqual(['start-game']);
-    expect(ready[0]).toEqual(expect.objectContaining({ label: '开始游戏', isEnabled: true }));
+    expect(ready[0]).toMatchObject({ label: '开始游戏', state: { kind: 'ready' } });
   });
 
   it('tracks identity pending for the controlled seat, not the host or spectator', () => {
     const state = createViewing([0, 2]);
     const make = (viewerSeat: number | null) =>
-      createFibBottomActions({
+      createFibPlayerActions({
         state,
         isHost: true,
         viewerSeat,
         isSubmitting: false,
         openIdentity: vi.fn(),
         review: null,
-      }).layout.primary[0];
+      }).actions[0];
     expect(make(1)?.isPending).toBe(true);
     expect(make(2)?.isPending).toBe(false);
     expect(make(null)?.isPending).toBe(false);
@@ -200,29 +201,27 @@ describe('FibKing room adapter', () => {
     // Full lobby: the start action is lock-disabled with no reason and
     // a loading state (the room IS full — the lock blocks it, not seats).
     const fullLobby = withBotSeats(createLobby(4), [1, 2, 3]);
-    const lobbyStart = build(fullLobby)?.sections.find((section) => section.key === 'current-flow')
-      ?.actions[0];
+    const lobbyStart = build(fullLobby)?.actions.find((action) => action.key === 'assign-roles');
     expect(lobbyStart).toMatchObject({
       label: '分配角色',
-      isEnabled: false,
-      disabledReason: null,
-      isLoading: true,
+      state: { kind: 'busy' },
     });
-    expect(lobbyStart).not.toHaveProperty('onPress');
+    expect(lobbyStart?.state).not.toHaveProperty('onPress');
 
     // Ongoing: every pending-aware flow/danger action drops its handler.
-    const ongoingActions =
-      build(createOngoing())?.sections.flatMap((section) => section.actions) ?? [];
+    const ongoingActions = build(createOngoing())?.actions ?? [];
     expect(ongoingActions.map((action) => action.key)).toEqual([
       'guess-seat',
       'reveal-round',
       'redraw-round',
       'restart',
     ]);
-    for (const action of ongoingActions) {
-      expect(action).toMatchObject({ isEnabled: false, disabledReason: null });
-      expect(action).not.toHaveProperty('onPress');
-    }
+    expect(ongoingActions.map((action) => action.state.kind)).toEqual([
+      'blocked',
+      'blocked',
+      'blocked',
+      'busy',
+    ]);
   });
 
   it('derives shared lobby operations without a Fib-specific header implementation', () => {
@@ -408,35 +407,36 @@ describe('FibKing room adapter', () => {
   it('keeps the public result beside the review once the answer is out; the host review is on the task card', () => {
     const ended = { ...createOngoing(), phase: 'ended' as const };
     const review = reviewEntryFor(ended);
-    const viewResult = { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true };
+    const viewResult = {
+      label: '查看结果',
+      testID: TESTIDS.fibViewResultButton,
+      category: 'resource',
+      state: { kind: 'ready' },
+    };
     for (const viewer of [
       { isHost: false, viewerSeat: 1 },
       { isHost: false, viewerSeat: null },
     ]) {
-      const actions = createFibBottomActions({
+      const actions = createFibPlayerActions({
         state: ended,
         ...viewer,
         openIdentity: vi.fn(),
         isSubmitting: false,
         review,
       });
-      expect(actions.layout).toMatchObject({
-        primary: [],
-        secondary: [
-          viewResult,
-          {
-            key: 'review',
-            label: '本局复盘',
-            audience: 'anyone',
-            variant: 'secondary',
-            testID: TESTIDS.roomReviewOpenButton,
-            isEnabled: true,
-          },
-        ],
-        ghost: [],
-      });
+      expect(actions.actions).toMatchObject([
+        { ...viewResult },
+        {
+          key: 'review',
+          label: '本局复盘',
+          audience: 'anyone',
+          category: 'resource',
+          testID: TESTIDS.roomReviewOpenButton,
+          state: { kind: 'ready' },
+        },
+      ]);
     }
-    const hostActions = createFibBottomActions({
+    const hostActions = createFibPlayerActions({
       state: ended,
       isHost: true,
       viewerSeat: 0,
@@ -444,10 +444,10 @@ describe('FibKing room adapter', () => {
       isSubmitting: false,
       review,
     });
-    expect(hostActions.layout.secondary).toHaveLength(1);
-    expect(hostActions.layout.secondary[0]).toMatchObject(viewResult);
+    expect(hostActions.actions).toHaveLength(1);
+    expect(hostActions.actions[0]).toMatchObject(viewResult);
     expect(() =>
-      createFibBottomActions({
+      createFibPlayerActions({
         state: ended,
         isHost: false,
         viewerSeat: 1,
@@ -486,20 +486,20 @@ describe('FibKing room adapter', () => {
       restartGame,
     });
 
-    expect(lobbyManagement?.sections.flatMap((section) => section.actions)).toMatchObject([
-      { label: '分配角色', isEnabled: false, disabledReason: '座位尚未坐满（还差 7 人）' },
-      { label: '房间设置', isEnabled: true },
-      { label: '填充机器人', isEnabled: true },
-      { label: '清空座位', isEnabled: true },
-      { label: '分享房间', key: 'share-room' },
+    expect(lobbyManagement?.actions).toMatchObject([
+      {
+        label: '分配角色',
+        state: { kind: 'blocked', reason: '座位尚未坐满（还差 7 人）' },
+      },
+      { label: '房间设置', state: { kind: 'ready' } },
+      { label: '填充机器人', state: { kind: 'ready' } },
+      { label: '清空座位', state: { kind: 'ready' } },
     ]);
-    const startAction = lobbyManagement?.sections[0]?.actions[0];
-    if (startAction?.isEnabled !== false) throw new Error('Expected a disabled Fib start');
-    expect(startAction).not.toHaveProperty('onPress');
+    const startAction = lobbyManagement?.actions[0];
+    if (startAction?.state.kind !== 'blocked') throw new Error('Expected a disabled Fib start');
     expect(lobbyManagement.task).toMatchObject({
       kind: 'action',
       actionKey: 'assign-roles',
-      remedyActionKey: 'share-room',
     });
 
     const ongoing = createOngoing();
@@ -524,30 +524,26 @@ describe('FibKing room adapter', () => {
 
       restartGame,
     });
-    expect(ongoingManagement?.sections.map((section) => section.title)).toEqual([
-      '当前流程',
-      '危险操作',
-    ]);
-    const ongoingActions = ongoingManagement?.sections.flatMap((section) => section.actions);
+    const ongoingActions = ongoingManagement?.actions;
     expect(ongoingActions).toMatchObject([
-      { label: '大聪明选人', isEnabled: true },
-      { label: '公布答案', isEnabled: true },
-      { label: '重新抽词', isEnabled: true },
-      { label: '重新开始', variant: 'danger', isEnabled: true },
+      { label: '大聪明选人', state: { kind: 'ready' } },
+      { label: '公布答案', state: { kind: 'ready' } },
+      { label: '重新抽词', state: { kind: 'ready' } },
+      { label: '重新开始', category: 'danger', state: { kind: 'ready' } },
     ]);
     const revealAction = ongoingActions?.[1];
     const redrawAction = ongoingActions?.[2];
     const abandonAction = ongoingActions?.[3];
     if (
-      revealAction?.isEnabled !== true ||
-      redrawAction?.isEnabled !== true ||
-      abandonAction?.isEnabled !== true
+      revealAction?.state.kind !== 'ready' ||
+      redrawAction?.state.kind !== 'ready' ||
+      abandonAction?.state.kind !== 'ready'
     ) {
       throw new Error('Expected enabled ongoing Fib Host actions');
     }
-    revealAction.onPress();
-    redrawAction.onPress();
-    abandonAction.onPress();
+    revealAction.state.onPress();
+    redrawAction.state.onPress();
+    abandonAction.state.onPress();
     expect(revealRound).toHaveBeenCalledTimes(1);
     expect(redrawRound).toHaveBeenCalledTimes(1);
     expect(restartGame).not.toHaveBeenCalled();
@@ -585,17 +581,11 @@ describe('FibKing room adapter', () => {
 
       restartGame,
     });
-    expect(endedManagement?.sections.map((section) => section.title)).toEqual(['当前流程']);
-    expect(endedManagement.sections[0]?.actions.map((action) => action.key)).toEqual([
-      'review',
-      'restart',
-    ]);
+    expect(endedManagement.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(endedManagement.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
-    const endAction = endedManagement?.sections[0]?.actions.find(
-      (action) => action.key === 'restart',
-    );
-    if (endAction?.isEnabled !== true) throw new Error('Expected enabled restart action');
-    endAction.onPress();
+    const endAction = endedManagement?.actions.find((action) => action.key === 'restart');
+    if (endAction?.state.kind !== 'ready') throw new Error('Expected enabled restart action');
+    endAction.state.onPress();
     expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
     expect(alertStore.getSnapshot()?.message).toContain('可能无法查看复盘');
     await alertStore
@@ -605,7 +595,7 @@ describe('FibKing room adapter', () => {
     expect(restartGame).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps Fib bottom actions limited to the current player', () => {
+  it('keeps Fib player actions limited to the current player', () => {
     const openIdentity = vi.fn();
     const common = {
       isHost: true,
@@ -615,25 +605,22 @@ describe('FibKing room adapter', () => {
       review: null,
     };
 
-    const lobby = createFibBottomActions({ state: createLobby(), ...common });
-    expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+    const lobby = createFibPlayerActions({ state: createLobby(), ...common });
+    expect(lobby.actions).toEqual([]);
 
     const ongoing = createOngoing();
-    const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
-    expect(ongoingActions.layout.primary).toEqual([]);
-    // 2026 规则：进行中查看只是回看工具，进 secondary，永不进 ghost。
-    expect(ongoingActions.layout.secondary).toMatchObject([
+    const ongoingActions = createFibPlayerActions({ state: ongoing, ...common });
+    expect(ongoingActions.actions).toMatchObject([
       {
         label: '查看身份',
-        variant: 'secondary',
+        category: 'resource',
         testID: TESTIDS.roomViewIdentityButton,
-        isEnabled: true,
+        state: { kind: 'ready' },
       },
     ]);
-    expect(ongoingActions.layout.ghost).toEqual([]);
-    const identityAction = ongoingActions.layout.secondary[0];
-    if (identityAction?.isEnabled !== true) throw new Error('Expected enabled identity action');
-    identityAction.onPress();
+    const identityAction = ongoingActions.actions[0];
+    if (identityAction?.state.kind !== 'ready') throw new Error('Expected enabled identity action');
+    identityAction.state.onPress();
     expect(openIdentity).toHaveBeenCalledTimes(1);
   });
 
@@ -679,17 +666,17 @@ describe('FibKing room adapter', () => {
       redrawRound: vi.fn(),
       review: null,
     });
-    expect(hostManagement?.sections[0]?.actions).toMatchObject([
-      { label: '重新准备', isEnabled: true },
-      { label: '重新开始', variant: 'danger', isEnabled: true },
+    expect(hostManagement?.actions).toMatchObject([
+      { label: '重新准备', state: { kind: 'ready' } },
+      { label: '重新开始', category: 'danger', state: { kind: 'ready' } },
     ]);
-    const retryAction = hostManagement?.sections[0]?.actions[0];
-    const returnLobbyAction = hostManagement?.sections[0]?.actions[1];
-    if (retryAction?.isEnabled !== true || returnLobbyAction?.isEnabled !== true) {
+    const retryAction = hostManagement?.actions[0];
+    const returnLobbyAction = hostManagement?.actions[1];
+    if (retryAction?.state.kind !== 'ready' || returnLobbyAction?.state.kind !== 'ready') {
       throw new Error('Expected enabled Fib preparation recovery actions');
     }
-    retryAction.onPress();
-    returnLobbyAction.onPress();
+    retryAction.state.onPress();
+    returnLobbyAction.state.onPress();
     expect(startRound).toHaveBeenCalledTimes(1);
     expect(restartGame).not.toHaveBeenCalled();
     await alertStore
@@ -698,15 +685,15 @@ describe('FibKing room adapter', () => {
       ?.onPress?.();
     expect(restartGame).toHaveBeenCalledTimes(1);
 
-    const playerActions = createFibBottomActions({ state: failed, isHost: false, ...common });
-    expect(playerActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+    const playerActions = createFibPlayerActions({ state: failed, isHost: false, ...common });
+    expect(playerActions.actions).toEqual([]);
     expect(playerActions.message).toBe('词语准备失败，等待房主重新准备');
   });
 
   it('does not expose host progression actions to a non-host', () => {
     const openIdentity = vi.fn();
 
-    const lobby = createFibBottomActions({
+    const lobby = createFibPlayerActions({
       state: createLobby(),
       isHost: false,
       viewerSeat: null,
@@ -714,10 +701,10 @@ describe('FibKing room adapter', () => {
       isSubmitting: false,
       review: null,
     });
-    expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+    expect(lobby.actions).toEqual([]);
     expect(lobby.message).toBeNull();
 
-    const ongoingPlayer = createFibBottomActions({
+    const ongoingPlayer = createFibPlayerActions({
       state: createOngoing(),
       isHost: false,
       viewerSeat: 0,
@@ -725,18 +712,16 @@ describe('FibKing room adapter', () => {
       isSubmitting: false,
       review: null,
     });
-    expect(ongoingPlayer.layout.primary).toEqual([]);
-    expect(ongoingPlayer.layout.secondary).toMatchObject([
+    expect(ongoingPlayer.actions).toMatchObject([
       {
         label: '查看身份',
-        variant: 'secondary',
+        category: 'resource',
         testID: TESTIDS.roomViewIdentityButton,
-        isEnabled: true,
+        state: { kind: 'ready' },
       },
     ]);
-    expect(ongoingPlayer.layout.ghost).toEqual([]);
 
-    const ongoingSpectator = createFibBottomActions({
+    const ongoingSpectator = createFibPlayerActions({
       state: createOngoing(),
       isHost: false,
       viewerSeat: null,
@@ -744,15 +729,14 @@ describe('FibKing room adapter', () => {
       isSubmitting: false,
       review: null,
     });
-    expect(ongoingSpectator.layout.secondary).toMatchObject([
+    expect(ongoingSpectator.actions).toMatchObject([
       {
         label: '查看题目',
-        variant: 'secondary',
+        category: 'resource',
         testID: TESTIDS.roomViewIdentityButton,
-        isEnabled: true,
+        state: { kind: 'ready' },
       },
     ]);
-    expect(ongoingSpectator.layout.ghost).toEqual([]);
   });
 });
 
@@ -776,32 +760,35 @@ describe('createFibHostManagement task body', () => {
       review,
     });
 
-  it('blocks the round start in a non-full lobby and offers room sharing as the remedy', () => {
+  it('blocks the round start in a non-full lobby', () => {
     const step = hostTaskBody(build(createLobby(4)));
     expect(step).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
-    if (step?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(step.reason).toBe('座位尚未坐满（还差 3 人）');
-    expect(step.remedy?.label).toBe('分享房间');
-    step.remedy?.onPress();
-    expect(callbacks.shareRoom).toHaveBeenCalledTimes(1);
+    if (step?.kind !== 'action') throw new Error('expected an action task body');
+    expect(step.action.state).toEqual({
+      kind: 'blocked',
+      reason: '座位尚未坐满（还差 3 人）',
+    });
   });
 
   it('offers the round start once every seat is taken', () => {
     const step = hostTaskBody(build(withBotSeats(createLobby(4), [1, 2, 3])));
     expect(step).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
-    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (step?.kind !== 'action' || step.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it('blocks game start until every seat has viewed, then offers it', () => {
     const blocked = hostTaskBody(build(createViewing([0])));
     expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(blocked.reason).toBe('1/4 位玩家已查看身份，等待剩余玩家');
-    // The bot scaffold is the remedy while a bot seat is unviewed.
-    expect(blocked.remedy?.label).toBe('标记机器人已查看');
+    if (blocked?.kind !== 'action') throw new Error('expected an action task body');
+    expect(blocked.action.state).toEqual({
+      kind: 'blocked',
+      reason: '1/4 位玩家已查看身份，等待剩余玩家',
+    });
 
     const ready = hostTaskBody(build(createViewing([0, 1, 2, 3])));
-    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it('offers re-preparation directly after a failed preparation', () => {
@@ -822,7 +809,8 @@ describe('createFibHostManagement task body', () => {
     expect(model.hasPendingDecision).toBe(true);
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'retry-preparation', label: '重新准备' } });
-    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (step?.kind !== 'action' || step.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it('marks guessing as the ongoing task, without marking the selection or optional reveal', () => {
@@ -830,7 +818,7 @@ describe('createFibHostManagement task body', () => {
     const model = build(ongoing);
     expect(model.pendingActionKeys).toEqual(['guess-seat']);
     expect(hostTaskBody(model)).toMatchObject({
-      kind: 'ready',
+      kind: 'action',
       action: { key: 'guess-seat', label: '大聪明选人' },
     });
     const selecting = build(ongoing, null, true);
@@ -887,11 +875,11 @@ describe('createFibRoomShellModel', () => {
       copyLink: vi.fn(async () => undefined),
       shareImage: vi.fn(async () => undefined),
     };
-    const bottomActions = {
-      kind: 'stacked' as const,
+    const playerActions = {
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     };
     const connection = {
       status: { kind: 'live' as const },
@@ -919,7 +907,7 @@ describe('createFibRoomShellModel', () => {
       seatConfirmation: null,
       profile: null,
       share,
-      bottomActions,
+      playerActions,
       buildHostManagement: () => null,
       controlledSeat: null,
     });
@@ -935,7 +923,7 @@ describe('createFibRoomShellModel', () => {
       onBotSeatLongPress: null,
     });
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toBe(bottomActions);
+    expect(model.playerActions).toBe(playerActions);
     expect(model.hostManagement).toBeNull();
     expect(model.controlledSeat).toBeNull();
     // The shell phase anchor carries the FibState phase verbatim.
@@ -980,11 +968,11 @@ describe('createFibRoomShellModel', () => {
         copyLink: vi.fn(async () => undefined),
         shareImage: vi.fn(async () => undefined),
       },
-      bottomActions: {
-        kind: 'stacked' as const,
+      playerActions: {
         message: null,
         progress: null,
-        layout: { primary: [], secondary: [], ghost: [] },
+        actions: [],
+        group: null,
       },
       buildHostManagement: () => null,
       controlledSeat: null,

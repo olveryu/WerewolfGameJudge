@@ -176,14 +176,16 @@ describe('createPictionaryRoomShellModel', () => {
       controlledSeat: null,
     });
     expect(Object.keys(model).sort()).toEqual([
-      'bottomActions',
       'capabilities',
       'connection',
       'controlledSeat',
       'header',
       'hostManagement',
       'isAudioPlaying',
+      'isSubmitting',
+      'pendingActionKey',
       'phase',
+      'playerActions',
       'profile',
       'roomCode',
       'seatConfirmation',
@@ -203,11 +205,11 @@ describe('createPictionaryRoomShellModel', () => {
       onSeatPress,
       onBotSeatLongPress: null,
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.share).toBe(share);
     // The shell phase anchor carries the PictionaryState phase verbatim.
@@ -243,28 +245,23 @@ describe('createPictionaryRoomShellModel', () => {
     const state = playPictionaryTestRound();
     for (const audience of ['seated', 'spectator'] as const) {
       const model = shellFor(state, viewerFor(audience, { hostUserId: 'host-1' }), ENABLED_REVIEW);
-      expect(model.bottomActions).toMatchObject({
-        kind: 'stacked',
+      expect(model.playerActions).toMatchObject({
         message: null,
-        layout: {
-          primary: [],
-          secondary: [
-            {
-              key: 'review',
-              label: '本局复盘',
-              audience: 'anyone',
-              variant: 'secondary',
-              testID: 'room-review-open',
-              isEnabled: true,
-            },
-          ],
-          ghost: [],
-        },
+        actions: [
+          {
+            key: 'review',
+            label: '本局复盘',
+            audience: 'anyone',
+            category: 'resource',
+            testID: 'room-review-open',
+            state: { kind: 'ready' },
+          },
+        ],
       });
     }
     const hostModel = shellFor(state, viewerFor('host', { hostUserId: 'host-1' }), ENABLED_REVIEW);
-    expect(hostModel.bottomActions).toMatchObject({
-      layout: { primary: [], secondary: [], ghost: [] },
+    expect(hostModel.playerActions).toMatchObject({
+      actions: [],
     });
   });
 

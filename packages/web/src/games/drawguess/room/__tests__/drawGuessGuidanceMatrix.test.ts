@@ -259,7 +259,7 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
     // The review exists exactly once the game has ended.
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
-  return model.bottomActions.message;
+  return model.playerActions.message;
 }
 
 describe('DRAWGUESS_GUIDANCE_MATRIX', () => {

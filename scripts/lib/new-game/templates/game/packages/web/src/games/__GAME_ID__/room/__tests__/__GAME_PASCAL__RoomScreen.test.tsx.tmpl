@@ -54,9 +54,8 @@ vi.mock('@/features/room/components/RoomShell', () => ({
   RoomShell: ({
     content,
     gameOverlays,
-    manualEntries,
-    configurationEntry,
-    stageMenu,
+    directory,
+    actionSurface,
     phaseLabel,
     lobbyAction,
   }: {
@@ -67,9 +66,11 @@ vi.mock('@/features/room/components/RoomShell', () => ({
       element?: ReactNode;
     };
     gameOverlays: ReactNode;
-    manualEntries: readonly { label: string; onOpen: () => void }[];
-    configurationEntry: { onOpen: () => void } | null;
-    stageMenu?: { onOpenGuide: () => void; onOpenConfiguration: () => void } | null;
+    directory: {
+      manual: readonly { label: string; state: { kind: 'ready'; onPress: () => void } }[];
+      openConfiguration: (() => void) | null;
+    };
+    actionSurface?: 'hand' | 'menu' | 'hidden';
     phaseLabel: string | null;
     lobbyAction: { label: string; occupiedSeats: number } | null;
   }) => (
@@ -79,10 +80,10 @@ vi.mock('@/features/room/components/RoomShell', () => ({
       {content.beforeSeatBoard}
       {content.bottomSummary}
       {content.element}
-      {manualEntries.map((entry) => <button key={entry.label} onClick={entry.onOpen}>{entry.label}</button>)}
-      {configurationEntry && <button onClick={configurationEntry.onOpen}>本局配置</button>}
-      {stageMenu && <button onClick={stageMenu.onOpenGuide}>舞台玩法</button>}
-      {stageMenu && <button onClick={stageMenu.onOpenConfiguration}>舞台配置</button>}
+      {directory.manual.map((entry) => <button key={entry.label} onClick={entry.state.onPress}>{entry.label}</button>)}
+      {directory.openConfiguration && <button onClick={directory.openConfiguration}>本局配置</button>}
+      {actionSurface === 'menu' && <button onClick={directory.manual[0]?.state.onPress}>舞台玩法</button>}
+      {actionSurface === 'menu' && directory.openConfiguration && <button onClick={directory.openConfiguration}>舞台配置</button>}
       {gameOverlays}
     </section>
   ),

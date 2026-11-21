@@ -48,79 +48,82 @@ function stateFor(phase: SecrethitlerState['phase']['kind']) {
 
 it.each(SECRETHITLER_PHASES)('preserves the host action inventory in %s', (phase) => {
   const panel = model(stateFor(phase));
-  const keys = panel.sections.flatMap((section) => section.actions.map((action) => action.key));
+  const keys = panel.actions.map((action) => action.key);
   expect(keys.includes('restart')).toBe(phase !== 'lobby');
   expect(keys.includes('music-settings')).toBe(['lobby', 'viewing'].includes(phase));
-  expect(panel.sections.every((section) => section.actions.length > 0)).toBe(true);
+  expect(panel.actions.length).toBeGreaterThan(0);
 });
 
 it('dispatches restart only after confirmation', async () => {
   submit.mockClear();
   const state = stateFor('election');
-  const restart = model(state)
-    .sections.flatMap((section) => section.actions)
-    .find((action) => action.key === 'restart');
-  if (!restart?.isEnabled) throw new Error('Missing restart');
-  restart.onPress();
+  const restart = model(state).actions.find((action) => action.key === 'restart');
+  if (restart?.state.kind !== 'ready') throw new Error('Missing restart');
+  restart.state.onPress();
   expect(submit).not.toHaveBeenCalled();
   const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[1]).toContain('不结算完成奖励');
   await confirmation[3]();
-  expect(submit).toHaveBeenCalledWith('重新开始', {
-    type: 'secrethitler.game.restart',
-    gameSequence: state.gameSequence,
-    wasEnded: false,
-  });
+  expect(submit).toHaveBeenCalledWith(
+    '重新开始',
+    {
+      type: 'secrethitler.game.restart',
+      gameSequence: state.gameSequence,
+      wasEnded: false,
+    },
+    { actionKey: 'restart' },
+  );
 });
 
 it('warns about the settled round and review before restarting an ended game', async () => {
   submit.mockClear();
   const state = stateFor('ended');
-  const restart = model(state)
-    .sections.flatMap((section) => section.actions)
-    .find((action) => action.key === 'restart');
-  if (!restart?.isEnabled) throw new Error('Missing restart');
-  restart.onPress();
+  const restart = model(state).actions.find((action) => action.key === 'restart');
+  if (restart?.state.kind !== 'ready') throw new Error('Missing restart');
+  restart.state.onPress();
   expect(submit).not.toHaveBeenCalled();
   const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[1]).toContain('本局已结算');
   expect(confirmation[1]).toContain('复盘');
   await confirmation[3]();
-  expect(submit).toHaveBeenCalledWith('重新开始', {
-    type: 'secrethitler.game.restart',
-    gameSequence: state.gameSequence,
-    wasEnded: true,
-  });
+  expect(submit).toHaveBeenCalledWith(
+    '重新开始',
+    {
+      type: 'secrethitler.game.restart',
+      gameSequence: state.gameSequence,
+      wasEnded: true,
+    },
+    { actionKey: 'restart' },
+  );
 });
 
-it('exposes bulk viewing as the blocked-start remedy and removes it once complete', () => {
+it('keeps the blocked start task separate from bulk viewing and removes viewing when complete', () => {
   submit.mockClear();
   const state = stateFor('viewing');
   const panel = model(state);
-  const action = panel.sections
-    .flatMap((section) => section.actions)
-    .find((entry) => entry.key === 'mark-bots-viewed');
-  if (!action?.isEnabled) throw new Error('Missing bulk viewing');
-  action.onPress();
+  const action = panel.actions.find((entry) => entry.key === 'mark-bots-viewed');
+  if (action?.state.kind !== 'ready') throw new Error('Missing bulk viewing');
+  action.state.onPress();
   expect(submit).not.toHaveBeenCalled();
   const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[0]).toBe('标记机器人已查看？');
   void confirmation[2]();
-  expect(submit).toHaveBeenCalledWith('标记机器人已查看', {
-    type: 'secrethitler.bots.markAllBotsViewed',
-  });
-  expect(panel.task).toMatchObject({ remedyActionKey: 'mark-bots-viewed' });
+  expect(submit).toHaveBeenCalledWith(
+    '标记机器人已查看',
+    {
+      type: 'secrethitler.bots.markAllBotsViewed',
+    },
+    { actionKey: 'mark-bots-viewed' },
+  );
+  expect(panel.task).toMatchObject({ kind: 'action', actionKey: 'start-game' });
+  expect(panel.actions.find((entry) => entry.key === 'start-game')?.state.kind).toBe('blocked');
   const viewed = sendSecrethitlerSeatCommand(state, 0, {
     type: 'secrethitler.bots.markAllBotsViewed',
   });
-  expect(
-    model(viewed)
-      .sections.flatMap((section) => section.actions)
-      .some((entry) => entry.key === 'mark-bots-viewed'),
-  ).toBe(false);
+  expect(model(viewed).actions.some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);
 });
 
 it('marks start only after the seated host views their identity', () => {
@@ -144,11 +147,11 @@ it('locks all host commands during opening and closing narration without droppin
       isAudioPlaying: true,
       exemptActionKeys: new Set<string>(),
     });
-    const actions = locked.sections.flatMap((section) => section.actions);
+    const actions = locked.actions;
     expect(actions.some((action) => action.key === 'restart')).toBe(true);
     for (const action of actions) {
-      expect(action.isEnabled).toBe(false);
-      expect(action).not.toHaveProperty('onPress');
+      expect(action.state.kind).toBe('blocked');
+      expect(action.state).not.toHaveProperty('onPress');
     }
   }
 });
@@ -156,27 +159,27 @@ it('locks all host commands during opening and closing narration without droppin
 it('dispatches night bot confirmation and disables mutating tools while submitting', () => {
   submit.mockClear();
   const state = stateFor('night');
-  const action = model(state)
-    .sections.flatMap((section) => section.actions)
-    .find((entry) => entry.key === 'mark-bots-confirmed');
-  if (!action?.isEnabled) throw new Error('Missing bot confirmation');
-  action.onPress();
+  const action = model(state).actions.find((entry) => entry.key === 'mark-bots-confirmed');
+  if (action?.state.kind !== 'ready') throw new Error('Missing bot confirmation');
+  action.state.onPress();
   expect(submit).not.toHaveBeenCalled();
   const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
   if (confirmation === undefined) throw new Error('Missing confirmation');
   expect(confirmation[0]).toBe('标记机器人已确认？');
   void confirmation[2]();
-  expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
-    type: 'secrethitler.bots.markAllBotsGroupConfirmed',
-  });
-  for (const entry of model(state, true).sections.flatMap((section) => section.actions)) {
-    expect(entry.isEnabled).toBe(false);
-    expect(entry).not.toHaveProperty('onPress');
+  expect(submit).toHaveBeenCalledWith(
+    '标记机器人已确认',
+    {
+      type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+    },
+    { actionKey: 'mark-bots-confirmed' },
+  );
+  for (const entry of model(state, true).actions) {
+    expect(['busy', 'blocked']).toContain(entry.state.kind);
+    expect(entry.state).not.toHaveProperty('onPress');
   }
-  const settings = model(stateFor('lobby'))
-    .sections.flatMap((section) => section.actions)
-    .find((entry) => entry.key === 'music-settings');
-  if (!settings?.isEnabled) throw new Error('Missing music settings');
-  settings.onPress();
+  const settings = model(stateFor('lobby')).actions.find((entry) => entry.key === 'music-settings');
+  if (settings?.state.kind !== 'ready') throw new Error('Missing music settings');
+  settings.state.onPress();
   expect(music).toHaveBeenCalled();
 });

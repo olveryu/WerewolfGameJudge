@@ -7,8 +7,7 @@
 import { TESTIDS } from '@/testids';
 
 import { HOST_ACTION_KEYS } from '../model/hostManagementActions';
-import type { RoomBottomButton } from '../model/RoomBottomActions';
-import type { RoomHostManagementAction } from '../model/RoomHostManagement';
+import type { RoomHostAction, RoomPlayerAction } from '../model/RoomAction';
 import type { RoomViewer } from '../model/RoomViewer';
 import { REVIEW_TITLE } from './reviewCopy';
 
@@ -25,20 +24,19 @@ export type RoomReviewEntry = { readonly isPending?: boolean } & (
 );
 
 /** The review as a bottom button. A review is public to its readers, so the audience is `anyone`. */
-export function buildReviewBottomButton(
-  entry: RoomReviewEntry,
-  variant: RoomBottomButton['variant'],
-): RoomBottomButton {
+export function buildReviewBottomButton(entry: RoomReviewEntry): RoomPlayerAction {
   return {
     key: HOST_ACTION_KEYS.review,
     label: REVIEW_TITLE,
     audience: 'anyone',
     icon: REVIEW_ICON,
     category: 'resource',
-    variant,
-    size: 'md',
     testID: TESTIDS.roomReviewOpenButton,
-    ...entry,
+    opensDialog: true,
+    state: entry.isEnabled
+      ? { kind: 'ready', onPress: entry.onPress }
+      : { kind: 'blocked', reason: entry.disabledReason },
+    ...(entry.isPending === undefined ? {} : { isPending: entry.isPending }),
   };
 }
 
@@ -49,21 +47,22 @@ export function buildReviewBottomButton(
  */
 export function buildViewerReviewBottomButtons(
   entry: RoomReviewEntry,
-  variant: RoomBottomButton['variant'],
   viewer: Pick<RoomViewer, 'isHost'>,
-): readonly RoomBottomButton[] {
-  return viewer.isHost ? [] : [buildReviewBottomButton(entry, variant)];
+): readonly RoomPlayerAction[] {
+  return viewer.isHost ? [] : [buildReviewBottomButton(entry)];
 }
 
 /** The review as a host sheet action, referenced by host tasks through `HOST_ACTION_KEYS.review`. */
-export function buildReviewHostAction(entry: RoomReviewEntry): RoomHostManagementAction {
+export function buildReviewHostAction(entry: RoomReviewEntry): RoomHostAction {
   return {
     key: HOST_ACTION_KEYS.review,
     label: REVIEW_TITLE,
     icon: REVIEW_ICON,
     category: 'resource',
-    variant: 'secondary',
     testID: TESTIDS.roomReviewHostAction,
-    ...entry,
+    opensDialog: true,
+    state: entry.isEnabled
+      ? { kind: 'ready', onPress: entry.onPress }
+      : { kind: 'blocked', reason: entry.disabledReason },
   };
 }

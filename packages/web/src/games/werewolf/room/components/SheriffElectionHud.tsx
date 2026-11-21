@@ -6,7 +6,7 @@ import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary'
 import {
   getSheriffVoteButtonLabel,
   getSheriffWaitingMessage,
-} from '@/games/werewolf/room/day/sheriffElectionDockModel';
+} from '@/games/werewolf/room/day/sheriffElectionPlayerActions';
 import { getSettleCountdownSuffix } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';

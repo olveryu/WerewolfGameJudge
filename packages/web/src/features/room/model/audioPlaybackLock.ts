@@ -19,7 +19,8 @@
  * task body and its steps as well.
  */
 
-import type { RoomHostManagementAction, RoomHostManagementModel } from './RoomHostManagement';
+import type { RoomHostAction } from './RoomAction';
+import type { RoomHostManagementModel } from './RoomHostManagement';
 
 /** The one disabled reason shown on actions held by the audio playback lock. */
 export const AUDIO_PLAYBACK_LOCK_REASON = '语音播报中，请稍候';
@@ -35,13 +36,9 @@ export interface AudioPlaybackLockInput {
   readonly exemptActionKeys: ReadonlySet<string>;
 }
 
-function lockAction(
-  action: RoomHostManagementAction,
-  exemptActionKeys: ReadonlySet<string>,
-): RoomHostManagementAction {
-  if (!action.isEnabled || exemptActionKeys.has(action.key)) return action;
-  const { onPress: _onPress, ...rest } = action;
-  return { ...rest, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
+function lockAction(action: RoomHostAction, exemptActionKeys: ReadonlySet<string>): RoomHostAction {
+  if (action.state.kind !== 'ready' || exemptActionKeys.has(action.key)) return action;
+  return { ...action, state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON } };
 }
 
 /**
@@ -73,9 +70,6 @@ export function applyAudioPlaybackLock(
   if (model === null || !isAudioPlaybackLocked(input.isAudioPlaying)) return model;
   return {
     ...model,
-    sections: model.sections.map((section) => ({
-      ...section,
-      actions: section.actions.map((action) => lockAction(action, input.exemptActionKeys)),
-    })),
+    actions: model.actions.map((action) => lockAction(action, input.exemptActionKeys)),
   };
 }

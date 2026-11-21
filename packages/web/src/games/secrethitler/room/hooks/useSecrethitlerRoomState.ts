@@ -112,10 +112,8 @@ export function useSecrethitlerRoomState(
   },
 ): SecrethitlerRoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getSecrethitlerRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getSecrethitlerRoomCommandFailureMessage);
   useRoomImagePreload(SECRETHITLER_ROOM_IMAGES);
   const isHost = state.hostUserId === user.id;
   const mySeat = getSecrethitlerUserSeat(state, user.id);
@@ -148,6 +146,7 @@ export function useSecrethitlerRoomState(
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -229,6 +228,7 @@ export function useSecrethitlerRoomState(
     );
 
   const shellModel: RoomShellModel = createSecrethitlerRoomShellModel({
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

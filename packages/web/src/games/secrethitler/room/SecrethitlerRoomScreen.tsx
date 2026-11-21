@@ -35,7 +35,6 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { TESTIDS } from '@/testids';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 
 import {
   secrethitlerVoteFailImage,
@@ -121,25 +120,32 @@ function SecrethitlerRoomContent(
           ? { label: '分配角色', occupiedSeats: getSecrethitlerOccupiedSeatCount(screen.state) }
           : null
       }
-      configurationEntry={isPreGame ? null : { onOpen: () => setInformation('configuration') }}
-      mainEntries={
-        showHistory
+      directory={{
+        main: showHistory
           ? [
               {
+                key: 'history',
                 label: '对局记录',
-                icon: <IconDocumentTextOutline aria-hidden />,
-                onOpen: () => setHistoryVisible(true),
+                category: 'resource',
+                icon: 'document-text-outline',
+                opensDialog: true,
+                state: { kind: 'ready', onPress: () => setHistoryVisible(true) },
               },
             ]
-          : []
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('secrethitler'),
-        },
-      ]}
+          : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('secrethitler'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration: isPreGame ? null : () => setInformation('configuration'),
+      }}
       content={{
         kind: 'seats',
         contextHeader: null,
@@ -148,7 +154,6 @@ function SecrethitlerRoomContent(
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
-        sideInspector: null,
       }}
       leadingExtraActions={
         screen.isHost && screen.state.phase.kind === 'night' ? (

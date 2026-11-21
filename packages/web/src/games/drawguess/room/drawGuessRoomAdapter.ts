@@ -24,20 +24,16 @@ import {
   buildFillBotsAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostStartTask,
+  hostActionTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
-import {
-  buildLobbyHostStartMessage,
-  type RoomBottomActionLayout,
-} from '@/features/room/model/RoomBottomActions';
+import type { RoomHostAction, RoomPlayerAction } from '@/features/room/model/RoomAction';
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomPlayerActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
@@ -113,7 +109,7 @@ export interface DrawGuessRoomShellModelInput extends Omit<
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
-  | 'bottomActions'
+  | 'playerActions'
   | 'controlledSeat'
 > {
   readonly state: DrawGuessState;
@@ -134,10 +130,14 @@ export interface DrawGuessHostManagementInput {
   readonly state: DrawGuessState;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: DrawGuessCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: DrawGuessCommand,
+    options?: { readonly actionKey?: string },
+  ) => Promise<boolean>;
   /** The shared review entry; present exactly once the game has ended. */
   readonly review: RoomReviewEntry | null;
 }
@@ -153,7 +153,7 @@ export function createDrawGuessHostManagement(
   input: DrawGuessHostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities } = input;
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
@@ -166,7 +166,12 @@ export function createDrawGuessHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: 'drawguess.game.begin' });
+    const submitStart = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'drawguess.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画猜词', submitStart),
@@ -175,20 +180,9 @@ export function createDrawGuessHostManagement(
       isLoading: input.isSubmitting,
     });
     return {
-      task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      task: hostActionTask(HOST_ACTION_KEYS.startGame),
       pendingActionKeys: [HOST_ACTION_KEYS.startGame],
-      sections: [
-        {
-          key: 'game',
-          title: '游戏',
-          actions: [startAction],
-        },
-        {
-          key: 'room',
-          title: '房间管理',
-          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
-      ],
+      actions: [startAction, ...roomActions],
     };
   }
   const expectedPhase = state.phase.kind === 'ended' ? 'ended' : 'playing';
@@ -201,11 +195,15 @@ export function createDrawGuessHostManagement(
           : '保留座位和配置，清除本局画作、猜词记录和比分并回到准备。本局中止，不结算战绩与奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'drawguess.game.restart',
-            gameSequence: state.gameSequence,
-            expectedPhase,
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'drawguess.game.restart',
+              gameSequence: state.gameSequence,
+              expectedPhase,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,
@@ -215,42 +213,25 @@ export function createDrawGuessHostManagement(
     return {
       task: null,
       pendingActionKeys: [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [buildReviewHostAction(requireEndedReview(input.review)), restart],
-        },
-      ],
+      actions: [buildReviewHostAction(requireEndedReview(input.review)), restart],
     };
   }
   return {
     task: null,
     pendingActionKeys: [],
-    sections: [
-      { key: 'room', title: '房间管理', actions: roomActions },
-      {
-        key: 'danger',
-        title: '危险操作',
-        actions: [restart],
-      },
-    ],
+    actions: [...roomActions, restart],
   };
 }
 
 /** Ended: seats and spectators open the review from the bottom panel; the host from the task card. */
-function createDrawGuessBottomLayout(
+function createDrawGuessPlayerActions(
   state: DrawGuessState,
   review: RoomReviewEntry | null,
   viewer: RoomViewer,
-): RoomBottomActionLayout {
+): readonly RoomPlayerAction[] {
   return state.phase.kind === 'ended'
-    ? {
-        primary: [],
-        secondary: buildViewerReviewBottomButtons(requireEndedReview(review), 'secondary', viewer),
-        ghost: [],
-      }
-    : { primary: [], secondary: [], ghost: [] };
+    ? buildViewerReviewBottomButtons(requireEndedReview(review), viewer)
+    : [];
 }
 
 /** Assembles the DrawGuess RoomShellModel from the hook's projections. */
@@ -276,12 +257,12 @@ export function createDrawGuessRoomShellModel(input: DrawGuessRoomShellModelInpu
       onLeaveSeat: input.onProfileLeaveSeat,
       gameDetails: input.gameDetails,
     }),
-    bottomActions: {
-      kind: 'stacked',
+    playerActions: {
       // 进行中阶段是舞台内容：底部为空，结算等待由信息条的「结算」倒计时承载。
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
-      layout: createDrawGuessBottomLayout(state, input.review, input.viewer),
+      actions: createDrawGuessPlayerActions(state, input.review, input.viewer),
+      group: null,
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

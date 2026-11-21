@@ -189,10 +189,8 @@ it('allows assigning roles when every occupied seat is a bot', () => {
       canShareRoom: denied,
     },
   });
-  const assignAction = panel.sections
-    .flatMap((section) => section.actions)
-    .find((action) => action.label === '分配角色');
-  expect(assignAction?.isEnabled).toBe(true);
+  const assignAction = panel.actions.find((action) => action.label === '分配角色');
+  expect(assignAction?.state.kind).toBe('ready');
 });
 
 it.each(['lobby', 'viewing'] as const)('hides the match summary during %s', (phase) => {
@@ -286,7 +284,7 @@ it('uses electronic first-night guidance without a reading script or manual prog
     },
   });
   expect(panel.task).toBeNull();
-  const actions = panel.sections.flatMap((section) => section.actions);
+  const actions = panel.actions;
   expect(actions.map((action) => action.label)).toEqual([
     '重播当前语音',
     '标记机器人已确认',

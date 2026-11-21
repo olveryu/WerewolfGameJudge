@@ -73,10 +73,8 @@ export function useStoryRelayRoomState(
   },
 ): StoryRelayRoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getStoryRelayRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getStoryRelayRoomCommandFailureMessage);
   const isHost = state.hostUserId === user.id;
   const mySeat = getStoryRelayUserSeat(state, user.id);
   const viewer: RoomViewer = { userId: user.id, isHost, seat: mySeat };
@@ -101,6 +99,7 @@ export function useStoryRelayRoomState(
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -144,6 +143,8 @@ export function useStoryRelayRoomState(
     });
 
   const shellModel: RoomShellModel = createStoryRelayRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

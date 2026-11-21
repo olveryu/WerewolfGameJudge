@@ -33,7 +33,7 @@ import { StageSettleRescue } from '@/features/room/components/StageSettleRescue'
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useViewportWidth } from '@/features/room/hooks/useViewportWidth';
 import { isSuccessfulRoomCommand } from '@/features/room/link/roomCommandResult';
-import { buildEndedWaitingMessage } from '@/features/room/model/RoomBottomActions';
+import { buildEndedWaitingMessage } from '@/features/room/model/RoomPlayerActions';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -131,15 +131,22 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
           ? { label: '开始游戏', occupiedSeats: getDrawGuessOccupiedSeatCount(screen.state) }
           : null
       }
-      stageMenu={
-        screen.stageHud === null
-          ? null
-          : { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration }
-      }
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
-      manualEntries={[
-        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('drawguess') },
-      ]}
+      actionSurface={screen.stageHud === null ? 'hand' : 'menu'}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('drawguess'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: openGuide },
+          },
+        ],
+        openConfiguration: isLobby ? null : openConfiguration,
+      }}
       content={
         isLobby
           ? {
@@ -147,7 +154,6 @@ function DrawGuessRoomContent({ entryController, ...props }: DrawGuessRoomConten
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="你画我猜"

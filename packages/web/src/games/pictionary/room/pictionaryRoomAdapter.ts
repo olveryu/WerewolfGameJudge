@@ -18,28 +18,20 @@ import {
   buildFillBotsAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostStartTask,
+  hostActionTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
-import type { NightStepProgress } from '@/features/room/model/nightProgress';
-import type {
-  RoomBottomButton,
-  RoomBottomStackModel,
-} from '@/features/room/model/RoomBottomActions';
-import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
+import type { RoomHostAction, RoomPlayerAction } from '@/features/room/model/RoomAction';
 import {
   type RoomCapabilities,
   type RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
-} from '@/features/room/model/RoomHostManagement';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomPlayerActions';
 import type {
   RoomSeatDataSource,
   RoomSeatViewModel,
@@ -113,50 +105,30 @@ export const getPictionarySeatTapIntent = createRoomSeatTapIntentResolver(
   getPictionaryProfileTarget,
 );
 
-/**
- * The gallery feeds the bottom panel's slim progress row; the relay steps report their progress
- * in the stage information bar, and every other phase has no step progress.
- */
-export function derivePictionaryBottomProgress(state: PictionaryState): NightStepProgress | null {
-  if (state.phase !== 'gallery') return null;
-  if (state.gallery === null) {
-    throw new Error('[FAIL-FAST] Pictionary gallery phase requires gallery state');
-  }
-  return {
-    current: state.gallery.chainIndex * (state.stepIndex + 1) + state.gallery.entryIndex + 1,
-    total: state.config.numberOfPlayers * (state.stepIndex + 1),
-    label: '接龙揭晓中',
-  };
-}
-
 /** The review entry of a finished round for seats and spectators; the host uses the task card. */
 function createPictionaryReviewButtons(
   state: PictionaryState,
   review: RoomReviewEntry | null,
   viewer: RoomViewer,
-): readonly RoomBottomButton[] {
+): readonly RoomPlayerAction[] {
   if (state.phase !== 'ended') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Pictionary ${state.phase} has no review entry`);
   }
-  return buildViewerReviewBottomButtons(review, 'secondary', viewer);
+  return buildViewerReviewBottomButtons(review, viewer);
 }
 
-function createPictionaryBottomActions(
+function createPictionaryPlayerActions(
   state: PictionaryState,
   viewer: RoomViewer,
   review: RoomReviewEntry | null,
-): RoomBottomStackModel {
+): RoomPlayerActionModel {
   const message = buildLobbyHostStartMessage({ isLobby: state.phase === 'lobby', viewer });
   return {
-    kind: 'stacked',
     message,
-    progress: derivePictionaryBottomProgress(state),
-    layout: {
-      primary: [],
-      secondary: createPictionaryReviewButtons(state, review, viewer),
-      ghost: [],
-    },
+    progress: null,
+    actions: createPictionaryReviewButtons(state, review, viewer),
+    group: null,
   };
 }
 
@@ -165,7 +137,7 @@ interface PictionaryHostManagementInput {
   readonly isCommandSubmitting: boolean;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canClearSeats' | 'canFillBots' | 'canShareRoom'
+    'canConfigureGame' | 'canClearSeats' | 'canFillBots'
   >;
   /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;
@@ -201,29 +173,17 @@ export function createPictionaryHostManagement(
     return {
       task: null,
       pendingActionKeys: [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [buildReviewHostAction(input.review), restart],
-        },
-      ],
+      actions: [buildReviewHostAction(input.review), restart],
     };
   }
   if (input.state.phase !== 'lobby') {
     return {
       task: null,
       pendingActionKeys: [],
-      sections: [
-        {
-          key: 'danger',
-          title: '危险操作',
-          actions: [restart],
-        },
-      ],
+      actions: [restart],
     };
   }
-  const startAction: RoomHostManagementAction = buildStartGameAction({
+  const startAction: RoomHostAction = buildStartGameAction({
     onPress: () =>
       showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画接龙', input.startRound),
     isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
@@ -235,7 +195,7 @@ export function createPictionaryHostManagement(
           getPictionaryOccupiedSeatCount(input.state),
         ),
   });
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (input.capabilities.canConfigureGame.isAllowed) {
     roomActions.push(
       buildRoomConfigAction({
@@ -257,21 +217,16 @@ export function createPictionaryHostManagement(
       }),
     );
   }
-  roomActions.push(buildShareRoomAction(input.capabilities.canShareRoom));
-  const sections: RoomHostManagementSection[] = [
-    { key: 'current-flow', title: '当前流程', actions: [startAction] },
-    { key: 'room', title: '房间管理', actions: roomActions },
-  ];
   return {
-    task: hostStartTask(HOST_ACTION_KEYS.startGame),
+    task: hostActionTask(HOST_ACTION_KEYS.startGame),
     pendingActionKeys: [HOST_ACTION_KEYS.startGame],
-    sections,
+    actions: [startAction, ...roomActions],
   };
 }
 
 export interface PictionaryRoomShellModelInput extends Omit<
   RoomShellModelInput,
-  'phase' | 'step' | 'isAudioPlaying' | 'bottomActions'
+  'phase' | 'step' | 'isAudioPlaying' | 'playerActions'
 > {
   readonly state: PictionaryState;
   /** The shared review entry; present once the round ended. */
@@ -288,6 +243,6 @@ export function createPictionaryRoomShellModel(
     isAudioPlaying: false,
     phase: state.phase,
     step: null,
-    bottomActions: createPictionaryBottomActions(state, input.viewer, review),
+    playerActions: createPictionaryPlayerActions(state, input.viewer, review),
   });
 }

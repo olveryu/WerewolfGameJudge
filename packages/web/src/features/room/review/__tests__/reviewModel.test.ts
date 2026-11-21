@@ -91,24 +91,21 @@ describe('reviewImageFilename', () => {
 describe('review entry builders', () => {
   it('builds the bottom button every game renders, addressed to anyone', () => {
     const onPress = vi.fn();
-    expect(buildReviewBottomButton({ isEnabled: true, onPress }, 'secondary')).toEqual({
+    expect(buildReviewBottomButton({ isEnabled: true, onPress })).toEqual({
       key: HOST_ACTION_KEYS.review,
       label: '本局复盘',
       audience: 'anyone',
       icon: 'document-text-outline',
       category: 'resource',
-      variant: 'secondary',
-      size: 'md',
       testID: TESTIDS.roomReviewOpenButton,
-      isEnabled: true,
-      onPress,
+      opensDialog: true,
+      state: { kind: 'ready', onPress },
     });
     expect(
-      buildReviewBottomButton(
-        { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
-        'ghost',
-      ),
-    ).toMatchObject({ isEnabled: false, disabledReason: '房主尚未向你开放复盘', variant: 'ghost' });
+      buildReviewBottomButton({ isEnabled: false, disabledReason: '房主尚未向你开放复盘' }),
+    ).toMatchObject({
+      state: { kind: 'blocked', reason: '房主尚未向你开放复盘' },
+    });
   });
 
   it('builds the host sheet action under the canonical review key', () => {
@@ -118,10 +115,9 @@ describe('review entry builders', () => {
       label: '本局复盘',
       icon: 'document-text-outline',
       category: 'resource',
-      variant: 'secondary',
       testID: TESTIDS.roomReviewHostAction,
-      isEnabled: true,
-      onPress,
+      opensDialog: true,
+      state: { kind: 'ready', onPress },
     });
   });
 });

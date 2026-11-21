@@ -286,7 +286,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
               canTakeOverBots: createBotTakeoverCapability(false, vi.fn()),
             },
           };
-  return createAvalonRoomShellModel({ ...base, ...overrides }).bottomActions.message;
+  return createAvalonRoomShellModel({ ...base, ...overrides }).playerActions.message;
 }
 
 function expectCell(phase: keyof typeof AVALON_GUIDANCE_MATRIX, state: AvalonState) {

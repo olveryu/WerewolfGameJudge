@@ -7,7 +7,7 @@
  */
 import { GameStatus, type WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
 
-import { VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomBottomActions';
+import { VIEW_IDENTITY_LABEL } from '@/features/room/model/RoomPlayerActions';
 
 export function buildWerewolfGuideMessage(input: {
   readonly isHost: boolean;

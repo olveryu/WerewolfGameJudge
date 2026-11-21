@@ -1,7 +1,7 @@
 /**
  * Undercover guidance matrix: every (phase × viewer) cell declared in
  * undercoverGuidanceMatrix.ts is held true against
- * createUndercoverBottomActions, with states produced by the real
+ * createUndercoverPlayerActions, with states produced by the real
  * engine (the same command flow as undercoverRoomAdapter.test.ts).
  */
 import {
@@ -15,7 +15,7 @@ import { viewerFor } from '@/test-utils/roomViewer';
 
 import { undercoverReview } from '../../review/undercoverReview';
 import type { UndercoverRoundControls } from '../hooks/useUndercoverRoundControls';
-import { createUndercoverBottomActions } from '../undercoverActionModels';
+import { createUndercoverPlayerActions } from '../undercoverActionModels';
 import { UNDERCOVER_GUIDANCE_MATRIX } from '../undercoverGuidanceMatrix';
 
 type Phase = UndercoverState['phase'];
@@ -189,7 +189,7 @@ function bottomMessage(state: UndercoverState, audience: RoomViewerAudience): st
     undercoverReview.resolve({ state, viewer, roomCode: '1234' }).kind === 'available'
       ? { isEnabled: true as const, onPress: vi.fn() }
       : null;
-  return createUndercoverBottomActions(controlsFor(state, viewer.seat), state, viewer, review)
+  return createUndercoverPlayerActions(controlsFor(state, viewer.seat), state, viewer, review)
     .message;
 }
 

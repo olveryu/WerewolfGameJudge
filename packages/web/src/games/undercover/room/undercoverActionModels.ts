@@ -4,16 +4,14 @@ import type {
   UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
-import type {
-  RoomBottomActionModel,
-  RoomBottomButton,
-} from '@/features/room/model/RoomBottomActions';
+import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import {
   buildLobbyHostStartMessage,
   buildPreparationFailureMessage,
   buildViewIdentityButton,
   resolveViewIdentityAction,
-} from '@/features/room/model/RoomBottomActions';
+} from '@/features/room/model/RoomPlayerActions';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import {
   buildViewerReviewBottomButtons,
@@ -77,31 +75,26 @@ function resolveUndercoverBottomMessage(
  * The bottom layout: the word card for participants, and the review
  * （本局复盘） for every reader of a concluded round.
  */
-export function createUndercoverBottomActions(
+export function createUndercoverPlayerActions(
   controls: Controls,
   state: UndercoverState,
   viewer: RoomViewer,
   review: RoomReviewEntry | null,
-): RoomBottomActionModel {
-  const primary: RoomBottomButton[] = [];
-  const secondary: RoomBottomButton[] = [];
-  const ghost: RoomBottomButton[] = [];
+): RoomPlayerActionModel {
+  const actions: RoomPlayerAction[] = [];
   const cardLabel =
     controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
-  // 词卡层级按 2026 规则：查看阶段是本步主行动，进 primary；其余阶段
-  // 只是回看工具，进 secondary。尺寸全游戏固定 md。词卡只属于参赛座位
+  // 词卡只属于参赛座位
   // （含被接管座位）。取消选择是房主命令，住主持管理（任务卡的退出动作）。
-  const isViewingStep = state.phase === 'viewing';
   const viewCardAction = resolveViewIdentityAction({
     isVisible: controls.canViewCard && !controls.isSelecting,
     label: cardLabel,
     onPress: controls.openCard,
   });
   if (viewCardAction !== null)
-    (isViewingStep ? primary : secondary).push(
+    actions.push(
       buildViewIdentityButton(viewCardAction, {
         key: 'card',
-        variant: isViewingStep ? 'primary' : 'secondary',
         audience: 'participant',
         testID: TESTIDS.roomViewIdentityButton,
         isSubmitting: controls.isSubmitting,
@@ -111,12 +104,11 @@ export function createUndercoverBottomActions(
   if (state.phase === 'ended' && review === null) {
     throw new Error('[FAIL-FAST] Undercover ended round has no review entry');
   }
-  if (review !== null)
-    secondary.push(...buildViewerReviewBottomButtons(review, 'secondary', viewer));
+  if (review !== null) actions.push(...buildViewerReviewBottomButtons(review, viewer));
   return {
-    kind: 'stacked',
     message: resolveUndercoverBottomMessage(controls, state, viewer, cardLabel),
     progress: null,
-    layout: { primary, secondary, ghost },
+    actions,
+    group: null,
   };
 }

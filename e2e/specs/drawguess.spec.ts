@@ -164,7 +164,6 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
 
     await test.step('start is gated until the room is full', async () => {
       const panel = await room.openHostManagement();
-      await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
       const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
       await expect(startButton).toHaveAccessibleDescription(
@@ -213,7 +212,6 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await expect(hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toBeVisible();
       for (const page of fixture.pages)
         await expect(page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('放弃本轮');
-      await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
       const joinerRoom = new RoomPage(joinerPage);
       await joinerRoom.expectRoomActionAbsent(TESTIDS.restartButton);
       await joinerRoom.expectRoomActionAbsent(TESTIDS.startGameButton);
@@ -223,7 +221,7 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await joinerPage.getByTestId(TESTIDS.roomStageMenuButton).click();
       const menu = joinerPage.getByTestId(TESTIDS.roomStageMenuPanel);
       await expect(menu.getByTestId(TESTIDS.restartButton)).toHaveCount(0);
-      await menu.getByTestId(TESTIDS.roomStageConfigurationButton).click();
+      await menu.getByTestId(TESTIDS.roomConfigurationButton).click();
       await joinerPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
       await menu.getByTestId(TESTIDS.roomStageMenuBackButton).click();
       await expect(guessInput).toHaveValue(word);

@@ -68,7 +68,7 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
         'is pending and opens the identity card for a seated player in viewing',
         'tracks the effective seat, including a bot controlled by the host',
         'hides identity in the lobby and from spectators, and locks it while submitting',
-        'wires bulk viewing and removes its remedy after all bots are marked',
+        'wires bulk viewing and removes it after all bots are marked',
         'marks terminal review pending without blocking confirmed restart',
       ]),
     }),

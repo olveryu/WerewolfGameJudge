@@ -75,10 +75,8 @@ export function useUndercoverRoomState({
   review: reviewContribution,
   entryController,
 }: UndercoverRoomScreenStateInput): UndercoverRoomScreenState {
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getUndercoverRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getUndercoverRoomCommandFailureMessage);
   useRoomImagePreload(getBoardRolePortraits(state.config.hasBlank));
   const isHost = state.hostUserId === user.id;
   const mySeat = getUndercoverUserSeat(state, user.id);
@@ -100,7 +98,12 @@ export function useUndercoverRoomState({
     entryReason,
   });
   // 座位 / 资料卡：资料卡全程可开（对齐狼人杀），故用 roster 控制器 + 本家能力表。
-  const { seatController, profile, actions } = useRoomRosterController({ session, user, mySeat });
+  const { seatController, profile, actions } = useRoomRosterController({
+    session,
+    user,
+    mySeat,
+    submitOperation,
+  });
   const gameDetails = useGameProfileDetails(profile.selection, '谁是卧底战绩', '本游戏局数');
   const capabilities = createUndercoverRoomCapabilities({
     ...actions,
@@ -171,6 +174,8 @@ export function useUndercoverRoomState({
     );
   }, [roleCounts]);
   const shellModel: RoomShellModel = createUndercoverRoomShellModel({
+    isSubmitting,
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,

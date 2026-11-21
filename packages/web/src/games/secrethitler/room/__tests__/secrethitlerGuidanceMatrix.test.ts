@@ -104,7 +104,7 @@ function roomShellModel(
       shareImage: vi.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
-    buildHostManagement: () => ({ task: null, sections: [] }),
+    buildHostManagement: () => ({ task: null, actions: [] }),
     releaseBot: vi.fn(),
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
     openIdentity: vi.fn(),
@@ -188,7 +188,7 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
       });
       const model = roomShellModel(state, 'host');
       expect(model.step).toBe('1');
-      expect(model.bottomActions.progress).toEqual({ current: 1, total: 1, label: '坏人互认' });
+      expect(model.playerActions.progress).toEqual({ current: 1, total: 1, label: '坏人互认' });
       const participants = getSecrethitlerNightParticipants(state);
       for (const seat of state.livingSeats) {
         const instruction = secrethitlerInstruction(state, getSecrethitlerViewModel(state, seat));
@@ -222,7 +222,7 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
         'evil_close',
         'night_end',
       ]);
-      expect(roomShellModel(closing, 'host').bottomActions.progress).toBeNull();
+      expect(roomShellModel(closing, 'host').playerActions.progress).toBeNull();
       const closingInstruction = secrethitlerInstruction(
         closing,
         getSecrethitlerViewModel(closing, 0),
@@ -236,9 +236,8 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
   it('marks a first vote pending but not the optional change after submission', () => {
     const voting = phases.get('voting');
     if (voting === undefined) throw new Error('Missing voting fixture');
-    const before = roomShellModel(voting, 'host').bottomActions;
-    if (before.kind !== 'stacked') throw new Error('Expected stacked room actions');
-    expect(before.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+    const before = roomShellModel(voting, 'host').playerActions;
+    expect(before.actions.find((button) => button.key === 'game-action')).toMatchObject({
       label: '秘密投票',
       isPending: true,
     });
@@ -246,9 +245,8 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
       type: 'secrethitler.government.castVote',
       vote: 'ja',
     });
-    const after = roomShellModel(voted, 'host').bottomActions;
-    if (after.kind !== 'stacked') throw new Error('Expected stacked room actions');
-    expect(after.layout.primary.find((button) => button.key === 'game-action')).toMatchObject({
+    const after = roomShellModel(voted, 'host').playerActions;
+    expect(after.actions.find((button) => button.key === 'game-action')).toMatchObject({
       label: '修改选票',
       isPending: false,
     });
@@ -270,7 +268,7 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
     if (state === undefined) throw new Error(`Real engine fixture missed ${phase}`);
     for (const viewer of ['host', 'seated', 'spectator'] as const) {
       const cell = SECRETHITLER_GUIDANCE_MATRIX[phase][viewer];
-      const message = roomShellModel(state, viewer).bottomActions.message;
+      const message = roomShellModel(state, viewer).playerActions.message;
       if (cell.kind === 'message') {
         if (typeof message !== 'string' || message === '') {
           throw new Error(
@@ -296,19 +294,15 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
       ownerSeat === 1 ? 'seated' : 'host',
       ownerSeat >= 2 ? ownerSeat : null,
     );
-    if (owner.bottomActions.kind !== 'stacked') throw new Error('Expected stacked room actions');
     expect(
-      owner.bottomActions.layout.secondary.some((button) => button.key === 'investigation-result'),
+      owner.playerActions.actions.some((button) => button.key === 'investigation-result'),
     ).toBe(false);
     expect(getSecrethitlerViewModel(state, ownerSeat).myInvestigation).toBeNull();
     for (const audience of ['host', 'seated', 'spectator'] as const) {
       if (audience === 'host' && ownerSeat === 0) continue;
       if (audience === 'seated' && ownerSeat === 1) continue;
-      const actions = roomShellModel(state, audience).bottomActions;
-      if (actions.kind !== 'stacked') throw new Error('Expected stacked room actions');
-      expect(actions.layout.secondary.some((button) => button.key === 'investigation-result')).toBe(
-        false,
-      );
+      const actions = roomShellModel(state, audience).playerActions;
+      expect(actions.actions.some((button) => button.key === 'investigation-result')).toBe(false);
     }
   });
 });

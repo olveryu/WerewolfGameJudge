@@ -1,5 +1,5 @@
 /**
- * Pure sheriff-election compact-dock projection.
+ * Pure sheriff-election player-action projection.
  *
  * Keeps room utilities separate from authoritative election commands and exposes at most one
  * prominent command. Voting opens the detailed ballot surface instead of changing seat taps.
@@ -12,102 +12,62 @@ import {
   isAudioPlaybackLocked,
 } from '@/features/room/model/audioPlaybackLock';
 import { HOST_ACTION_KEYS } from '@/features/room/model/hostManagementActions';
-import type {
-  RoomBottomActionLayout,
-  RoomBottomButton,
-  RoomBottomDockModel,
-  RoomBottomToolButton,
-} from '@/features/room/model/RoomBottomActions';
+import type { RoomActionState, RoomPlayerAction } from '@/features/room/model/RoomAction';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { SheriffElectionPanelModel, SheriffElectionPendingAction } from './useSheriffElection';
 
-interface SheriffElectionDockInput {
+interface SheriffElectionPlayerActionsInput {
   readonly election: SheriffElectionPanelModel;
-  readonly roomTools: RoomBottomActionLayout;
+  readonly roomTools: readonly RoomPlayerAction[];
   /** The host's review lives in host management; the dock's trailing review tool is for everyone else. */
   readonly isHost: boolean;
   readonly isAudioPlaying: boolean;
   readonly openDetails: () => void;
 }
 
-interface SheriffDockAction {
+interface SheriffElectionAction {
   readonly key: string;
   readonly label: string;
   readonly testID: string;
   readonly pendingKind: SheriffElectionPendingAction['kind'] | null;
-  readonly variant: 'primary' | 'secondary';
   readonly execute: () => void;
   readonly isPending?: boolean;
 }
 
-function findRoomTool(layout: RoomBottomActionLayout, key: string): RoomBottomButton | null {
-  return (
-    [...layout.primary, ...layout.secondary, ...layout.ghost].find(
-      (button) => button.key === key,
-    ) ?? null
-  );
-}
-
-function createRoomTool(
-  button: RoomBottomButton | null,
-  label: string,
-  tone: RoomBottomToolButton['tone'],
-): RoomBottomToolButton | null {
-  if (button === null) return null;
-  const base = {
-    key: button.key,
-    label,
-    audience: button.audience,
-    tone,
-    icon: button.icon,
-    testID: button.testID,
-    ...(button.category === undefined ? {} : { category: button.category }),
-  } as const;
-  if (button.isEnabled) return { ...base, isEnabled: true, onPress: button.onPress };
-  return {
-    ...base,
-    isEnabled: false,
-    disabledReason: button.disabledReason,
-  };
+function findRoomTool(actions: readonly RoomPlayerAction[], key: string): RoomPlayerAction | null {
+  return actions.find((action) => action.key === key) ?? null;
 }
 
 function createCommandButton(
-  action: SheriffDockAction,
+  action: SheriffElectionAction,
   model: SheriffElectionPanelModel,
   isAudioLocked: boolean,
-): RoomBottomButton {
-  const isLoading = model.pendingAction?.kind === action.pendingKind;
-  const base = {
+): RoomPlayerAction {
+  let state: RoomActionState;
+  if (model.pendingAction?.kind === action.pendingKind) {
+    state = { kind: 'busy' };
+  } else if (model.pendingAction !== null) {
+    state = { kind: 'blocked', reason: null };
+  } else if (isAudioLocked) {
+    state = { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON };
+  } else {
+    state = { kind: 'ready', onPress: action.execute };
+  }
+  return {
     key: action.key,
     label: action.label,
     // Election commands are the viewer's own seat actions.
     audience: 'participant' as const,
-    variant: action.variant,
-    size: 'md' as const,
+    category: 'player',
     testID: action.testID,
-    isLoading,
     ...(action.isPending === true ? { isPending: true } : {}),
+    ...(action.key === 'sheriff-open-vote' ? { opensDialog: true } : {}),
+    state,
   };
-  if (model.pendingAction !== null) {
-    return {
-      ...base,
-      isEnabled: false,
-      disabledReason: null,
-    };
-  }
-  // The election has no read-only exemption from the audio playback
-  // lock: while narration plays the command renders disabled with the
-  // one lock reason and its press drops with the enabled branch — the
-  // host-management combinator's form, applied to the dock primary
-  // (the bottom-layout collapse cannot reach this button: the dock
-  // replaces the bottom area wholesale during the election).
-  if (isAudioLocked) {
-    return { ...base, isEnabled: false, disabledReason: AUDIO_PLAYBACK_LOCK_REASON };
-  }
-  return { ...base, isEnabled: true, onPress: action.execute };
 }
 
 export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): string {
@@ -117,7 +77,7 @@ export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): str
   return `改投${formatSeat(ballot.seat)}`;
 }
 
-function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction | null {
+function getPersonalAction(input: SheriffElectionPlayerActionsInput): SheriffElectionAction | null {
   const { election } = input;
   if (election.view.canRegister) {
     return {
@@ -125,7 +85,6 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '报名上警',
       testID: TESTIDS.sheriffRegisterButton,
       pendingKind: 'register',
-      variant: 'primary',
       execute: () =>
         showConfirmAlert('报名上警？', '确认报名参加本次警长竞选。', election.register),
     };
@@ -136,7 +95,6 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '取消报名',
       testID: TESTIDS.sheriffCancelRegistrationButton,
       pendingKind: 'cancelRegistration',
-      variant: 'secondary',
       execute: () =>
         showConfirmAlert('取消报名？', '确认取消本次警长竞选报名。', election.cancelRegistration),
     };
@@ -147,7 +105,6 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: '退水',
       testID: TESTIDS.sheriffWithdrawButton,
       pendingKind: 'withdraw',
-      variant: 'secondary',
       execute: () =>
         showConfirmAlert('确认退水？', '退水后将退出本次警长竞选。', election.withdraw),
     };
@@ -158,7 +115,6 @@ function getPersonalAction(input: SheriffElectionDockInput): SheriffDockAction |
       label: getSheriffVoteButtonLabel(election),
       testID: TESTIDS.sheriffOpenVoteButton,
       pendingKind: null,
-      variant: 'primary',
       isPending: election.view.myBallot?.kind === 'notSubmitted',
       execute: input.openDetails,
     };
@@ -183,20 +139,15 @@ export function getSheriffWaitingMessage(model: SheriffElectionPanelModel): stri
   }
 }
 
-/** Build the compact Day dock from the election projection and ordinary room tools. */
-export function createSheriffElectionDockModel(
-  input: SheriffElectionDockInput,
-): RoomBottomDockModel {
-  const leading = createRoomTool(findRoomTool(input.roomTools, 'viewRole'), '查看身份', 'default');
-  // The host reaches the review from host management (its block takes
-  // the dock's tool slot); the trailing tool is the non-host entry.
-  const trailing = input.isHost
-    ? null
-    : createRoomTool(
-        findRoomTool(input.roomTools, HOST_ACTION_KEYS.review),
-        REVIEW_TITLE,
-        'default',
-      );
+/** Build the Day election actions from the election projection and ordinary room actions. */
+export function createSheriffElectionPlayerActions(
+  input: SheriffElectionPlayerActionsInput,
+): RoomPlayerActionModel {
+  const identityAction = findRoomTool(input.roomTools, 'viewRole');
+  const leading =
+    identityAction === null ? null : { ...identityAction, label: '查看身份' as const };
+  const reviewAction = input.isHost ? null : findRoomTool(input.roomTools, HOST_ACTION_KEYS.review);
+  const trailing = reviewAction === null ? null : { ...reviewAction, label: REVIEW_TITLE };
 
   const personalAction = getPersonalAction(input);
   const message = personalAction === null ? getSheriffWaitingMessage(input.election) : null;
@@ -208,5 +159,12 @@ export function createSheriffElectionDockModel(
           input.election,
           isAudioPlaybackLocked(input.isAudioPlaying),
         );
-  return { kind: 'dock', message, progress: null, leading, primary, trailing };
+  return {
+    message,
+    progress: null,
+    actions: [leading, primary, trailing].filter(
+      (action): action is RoomPlayerAction => action !== null,
+    ),
+    group: null,
+  };
 }

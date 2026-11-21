@@ -1,6 +1,6 @@
 /**
  * 瞎掰王（阶段 × 观看者）底部提示矩阵声明：逐格事实以
- * fibGuidanceMatrix.test.ts 驱动 createFibBottomActions 对账为准。
+ * fibGuidanceMatrix.test.ts 驱动 createFibPlayerActions 对账为准。
  * 本家底部 message 按构造只给非房主（房主恒走房主面板），故 host 列全豁免。
  */
 import type { FibPhase } from '@game-judge/game-engine/games/fibking/public';

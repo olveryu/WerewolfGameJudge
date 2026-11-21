@@ -12,6 +12,7 @@ import {
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
 
+import type { RoomCommandSubmission } from './useRoomCommandSubmission';
 import type { RoomProfileController } from './useRoomProfileController';
 import { useRoomRosterController } from './useRoomRosterController';
 import type { RoomSeatSession } from './useRoomSeatCommands';
@@ -30,6 +31,7 @@ interface UseRoomSetupControllerParams<TState extends BaseGameState<string>> ext
 > {
   readonly session: RoomSeatSession<TState, RoomSeatProfile>;
   readonly user: User;
+  readonly submitOperation: RoomCommandSubmission<TState>['submit'];
 }
 
 interface RoomSetupController {
