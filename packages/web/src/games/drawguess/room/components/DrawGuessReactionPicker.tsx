@@ -57,7 +57,7 @@ export function DrawGuessReactionPicker({
         turnIndex,
         reaction,
       },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     );
   };
 

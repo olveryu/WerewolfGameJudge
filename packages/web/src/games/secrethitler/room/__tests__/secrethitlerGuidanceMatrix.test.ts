@@ -70,6 +70,7 @@ function roomShellModel(
   const viewer = viewerFor(audience);
   return createSecrethitlerRoomShellModel({
     roomCode: '1234',
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),

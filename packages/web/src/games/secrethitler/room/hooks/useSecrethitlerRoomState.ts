@@ -188,10 +188,11 @@ export function useSecrethitlerRoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: 'secrethitler.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: 'secrethitler.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
   });
   const capabilities: RoomCapabilities = {
@@ -347,7 +348,7 @@ function useSecrethitlerPrivateActions(
             showErrorAlert('选择已失效', '当前行动已改变，请重新选择。');
             return;
           }
-          if (await submit('总统行动', command, { controlledSeat }))
+          if (await submit('总统行动', command, { controlledSeat, actionKey: null }))
             setActionKey((previous) => (previous === currentActionKey ? null : previous));
         },
         { onShown: trackConfirmationAlert },
@@ -364,7 +365,7 @@ function useSecrethitlerPrivateActions(
     viewedSeatCount: state.roleViewedSeats.length,
     isSubmitting,
     submitViewed: () =>
-      submit('查看身份', { type: 'secrethitler.role.viewed' }, { controlledSeat }),
+      submit('查看身份', { type: 'secrethitler.role.viewed' }, { controlledSeat, actionKey: null }),
   });
   return {
     roleViewing,

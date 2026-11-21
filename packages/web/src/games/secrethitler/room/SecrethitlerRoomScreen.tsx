@@ -262,7 +262,13 @@ export function SecrethitlerPublicResult({
         isOverdue={isOverdue}
         isHost={screen.isHost}
         isRetrying={screen.isSubmitting}
-        onRetry={() => void screen.submit('重新推进', { type: 'secrethitler.phase.retrySettle' })}
+        onRetry={() =>
+          void screen.submit(
+            '重新推进',
+            { type: 'secrethitler.phase.retrySettle' },
+            { actionKey: null },
+          )
+        }
         waitingLabel="等待进入下一阶段…"
       />
     </CenterDialog>
@@ -285,7 +291,7 @@ export function SecrethitlerInvestigationResult({
     void screen.submit(
       '确认调查结果',
       { type: 'secrethitler.action.acknowledgeInvestigation' },
-      { controlledSeat: screen.controlledSeat },
+      { controlledSeat: screen.controlledSeat, actionKey: null },
     );
   return (
     <CenterDialog open title="私密调查结果" requireConfirmation onClose={acknowledge}>

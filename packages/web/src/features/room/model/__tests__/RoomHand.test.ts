@@ -20,6 +20,8 @@ function host(key: string, state: RoomHostAction['state']): RoomHostAction {
 function input(): RoomHandInput {
   return {
     phase: 'playing',
+    isSubmitting: false,
+    pendingActionKey: null,
     face: { kind: 'main' },
     playerActions: { message: null, progress: null, actions: [], group: null },
     hostManagement: null,

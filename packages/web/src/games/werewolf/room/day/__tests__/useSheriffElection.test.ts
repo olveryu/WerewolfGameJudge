@@ -102,10 +102,14 @@ describe('useSheriffElection', () => {
       votePromise = result.current!.vote(0);
     });
     expect(result.current?.pendingAction).toEqual({ kind: 'vote', targetSeat: 0 });
-    expect(submit).toHaveBeenCalledWith('竞选投票', {
-      type: 'werewolf.sheriff.vote',
-      targetSeat: 0,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '竞选投票',
+      {
+        type: 'werewolf.sheriff.vote',
+        targetSeat: 0,
+      },
+      { actionKey: null },
+    );
 
     deferred.resolve(true);
     await act(async () => votePromise);

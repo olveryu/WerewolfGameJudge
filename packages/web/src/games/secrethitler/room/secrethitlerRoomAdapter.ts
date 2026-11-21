@@ -166,7 +166,7 @@ export interface SecrethitlerHostManagementInput {
   readonly submit: (
     label: string,
     command: SecrethitlerCommand,
-    options?: { readonly actionKey?: string },
+    options: { readonly actionKey: string | null },
   ) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;

@@ -361,7 +361,9 @@ describe('__GAME_PASCAL__ host controls', () => {
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing role assignment confirmation');
     await confirm();
-    expect(submit).toHaveBeenCalledWith('分配角色', { type: '__GAME_ID__.roles.assign' });
+    expect(submit).toHaveBeenCalledWith(
+      '分配角色', { type: '__GAME_ID__.roles.assign' }, { actionKey: HOST_ACTION_KEYS.assignRoles },
+    );
   });
 //#end
 //#cap !identityViewing
@@ -375,7 +377,9 @@ describe('__GAME_PASCAL__ host controls', () => {
     const confirm = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (confirm === undefined) throw new Error('Missing game start confirmation');
     await confirm();
-    expect(submit).toHaveBeenCalledWith('开始游戏', { type: '__GAME_ID__.game.begin' });
+    expect(submit).toHaveBeenCalledWith(
+      '开始游戏', { type: '__GAME_ID__.game.begin' }, { actionKey: HOST_ACTION_KEYS.startGame },
+    );
   });
 //#end
 
@@ -392,7 +396,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     await confirm();
     expect(submit).toHaveBeenCalledWith('重新开始', {
       type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded: true,
-    });
+    }, { actionKey: HOST_ACTION_KEYS.restart });
   });
 
 //#cap identityViewing
@@ -419,7 +423,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     await confirm();
     expect(submit).toHaveBeenCalledWith('重新开始', {
       type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded: true,
-    });
+    }, { actionKey: HOST_ACTION_KEYS.restart });
     const reviewed = drive(state, { type: '__GAME_ID__.review.complete', gameSequence: state.gameSequence });
     expect(hostModel(reviewed).pendingActionKeys).toEqual([]);
   });
@@ -450,7 +454,7 @@ describe('__GAME_PASCAL__ host controls', () => {
     await confirm();
     expect(submit).toHaveBeenCalledWith('重新开始', {
       type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded: false,
-    });
+    }, { actionKey: HOST_ACTION_KEYS.restart });
   });
 //#cap botBulkViewing
   it('wires bulk viewing and removes it after all bots are marked', () => {
@@ -460,7 +464,11 @@ describe('__GAME_PASCAL__ host controls', () => {
     const action = panel.actions.find((entry) => entry.key === 'mark-bots-viewed');
     if (action?.state.kind !== 'ready') throw new Error('Missing bot viewing action');
     action.state.onPress();
-    expect(submit).toHaveBeenCalledWith('标记机器人已查看', { type: '__GAME_ID__.bots.markAllBotsViewed' });
+    expect(submit).toHaveBeenCalledWith(
+      '标记机器人已查看',
+      { type: '__GAME_ID__.bots.markAllBotsViewed' },
+      { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+    );
     const marked = drive(state, { type: '__GAME_ID__.bots.markAllBotsViewed' });
     expect(hostModel(marked).actions.some((entry) => entry.key === 'mark-bots-viewed')).toBe(false);
   });
@@ -492,8 +500,8 @@ function shellModel(
   buildHostManagement = () => ({ task: null, actions: [] }),
   options: {
     controlledSeat?: number | null;
-//#cap identityViewing
     isSubmitting?: boolean;
+//#cap identityViewing
     onViewRolePress?: () => void;
 //#end
   } = {},
@@ -537,9 +545,10 @@ function shellModel(
       shareImage: vi.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
+    isSubmitting: options.isSubmitting ?? false,
+    pendingActionKey: null,
 //#cap identityViewing
     effectiveSeat: options.controlledSeat ?? viewer.seat,
-    isSubmitting: options.isSubmitting ?? false,
     onViewRolePress: options.onViewRolePress ?? vi.fn(),
 //#end
     buildHostManagement,

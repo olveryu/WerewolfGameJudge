@@ -85,7 +85,7 @@ describe('PictionaryStage', () => {
     expect(submit).toHaveBeenCalledWith(
       '完成编辑',
       expect.objectContaining({ type: 'pictionary.task.ready.set', isReady: true }),
-      { controlledSeat: null, durable: true },
+      { actionKey: null, controlledSeat: null, durable: true },
     );
   });
 

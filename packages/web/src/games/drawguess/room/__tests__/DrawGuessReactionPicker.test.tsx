@@ -46,7 +46,7 @@ describe('DrawGuessReactionPicker', () => {
         turnIndex: 3,
         reaction: 'flower',
       },
-      { controlledSeat: 2 },
+      { actionKey: null, controlledSeat: 2 },
     );
   });
 

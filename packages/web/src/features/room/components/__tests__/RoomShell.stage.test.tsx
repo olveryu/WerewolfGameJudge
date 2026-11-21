@@ -67,6 +67,8 @@ function shellInput(overrides: Partial<RoomShellModelInput> = {}): RoomShellMode
   const viewer = viewerFor('host');
   return {
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     phase: 'answering',
     step: null,

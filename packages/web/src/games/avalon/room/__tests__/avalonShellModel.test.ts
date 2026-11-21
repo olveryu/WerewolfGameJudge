@@ -137,6 +137,7 @@ const share = {
 function baseInput(state: AvalonState): AvalonRoomShellModelInput {
   return {
     roomCode: '1234',
+    pendingActionKey: null,
     capabilities: capabilities(),
     onBack: vi.fn(),
     onTitlePress: vi.fn(),

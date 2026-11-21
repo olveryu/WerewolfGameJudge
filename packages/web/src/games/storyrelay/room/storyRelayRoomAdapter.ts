@@ -163,7 +163,7 @@ export interface StoryRelayHostManagementInput {
   readonly submit: (
     label: string,
     command: StoryRelayCommand,
-    options?: { readonly actionKey?: string },
+    options: { readonly actionKey: string | null },
   ) => Promise<boolean>;
   /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;

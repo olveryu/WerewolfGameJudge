@@ -234,7 +234,7 @@ function DrawGuessStage({ screen }: { readonly screen: DrawGuessRoomScreenState 
 
 /** Host rescue: re-run this phase's settle; overdue detection lives in the shared hook. */
 function retryDrawGuessSettle(screen: DrawGuessRoomScreenState): void {
-  void screen.submit('重新推进', { type: 'drawguess.phase.retrySettle' });
+  void screen.submit('重新推进', { type: 'drawguess.phase.retrySettle' }, { actionKey: null });
 }
 
 /** Overdue notice and host retry; turn and countdown live in the room information bar. */
@@ -295,7 +295,7 @@ function DrawGuessWordSelectView({
         phaseRevision: state.phaseRevision,
         turnIndex: state.turnIndex,
       },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     );
   };
   return (

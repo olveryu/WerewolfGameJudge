@@ -210,6 +210,8 @@ function bottomMessage(state: PictionaryState, audience: RoomViewerAudience): st
       : { isEnabled: true, onPress: vi.fn() };
   const model = createPictionaryRoomShellModel({
     roomCode: '2468',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities,
     onBack: vi.fn(),

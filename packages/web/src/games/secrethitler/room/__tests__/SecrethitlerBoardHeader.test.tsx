@@ -117,9 +117,13 @@ it('lets the overdue Secret Hitler host retry public-result settlement', () => {
   const rendered = render(<SecrethitlerPublicResult screen={props} />);
   try {
     fireEvent.click(screen.getByTestId(TESTIDS.stageSettleRescueRetryButton));
-    expect(submit).toHaveBeenCalledWith('重新推进', {
-      type: 'secrethitler.phase.retrySettle',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新推进',
+      {
+        type: 'secrethitler.phase.retrySettle',
+      },
+      { actionKey: null },
+    );
   } finally {
     rendered.unmount();
     vi.useRealTimers();
@@ -146,7 +150,7 @@ it('shows a pending private investigation only to its president until explicit a
   expect(submit).toHaveBeenCalledWith(
     '确认调查结果',
     { type: 'secrethitler.action.acknowledgeInvestigation' },
-    { controlledSeat: seat },
+    { actionKey: null, controlledSeat: seat },
   );
   expect(screen.getByRole('dialog', { name: '私密调查结果' })).toBeVisible();
   rerender(

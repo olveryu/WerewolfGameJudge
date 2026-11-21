@@ -307,7 +307,9 @@ function __GAME_PASCAL__StageDeadlineControls({
         isOverdue={screen.isOverdue}
         isHost={screen.isHost}
         isRetrying={screen.isSubmitting}
-        onRetry={() => void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' })}
+        onRetry={() =>
+          void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' }, { actionKey: null })
+        }
         waitingLabel="等待推进…"
       />
     </>

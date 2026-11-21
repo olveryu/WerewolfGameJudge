@@ -100,6 +100,8 @@ describe('createDrawGuessRoomShellModel', () => {
     const openReview = vi.fn();
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -150,6 +152,8 @@ describe('createDrawGuessRoomShellModel', () => {
 
     const endedModel = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 1 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -202,6 +206,8 @@ describe('createDrawGuessRoomShellModel', () => {
     const state = lobbyState(false);
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -296,6 +302,8 @@ describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
     if (state.phase.kind !== 'roundEnd') throw new Error('expected roundEnd phase');
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -340,6 +348,8 @@ describe('createDrawGuessRoomShellModel — ended review entry', () => {
   function endedShell(viewer: RoomViewer, review: RoomReviewEntry | null) {
     return createDrawGuessRoomShellModel({
       roomCode: ended.roomCode,
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer,
       capabilities: capabilities(),
       onBack: vi.fn(),

@@ -737,7 +737,7 @@ export interface AvalonHostManagementInput {
   readonly submit: (
     label: string,
     command: AvalonPublicCommand,
-    options?: { readonly actionKey?: string },
+    options: { readonly actionKey: string | null },
   ) => Promise<boolean>;
 }
 

@@ -221,6 +221,8 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
   const viewer = viewerFor(audience);
   const model = createDrawGuessRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),

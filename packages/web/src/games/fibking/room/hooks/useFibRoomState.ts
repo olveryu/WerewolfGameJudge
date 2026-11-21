@@ -141,11 +141,7 @@ export function useFibRoomState({
     viewedSeatCount: state.round === null ? 0 : state.round.viewedSeats.length,
     isSubmitting,
     submitViewed: () =>
-      submit(
-        '确认查看身份',
-        { type: 'fibking.role.viewed' },
-        { controlledSeat, actionKey: 'view-identity' },
-      ),
+      submit('确认查看身份', { type: 'fibking.role.viewed' }, { controlledSeat, actionKey: null }),
   });
   // 旁观者：题目 / 公开结果是公开信息，没有查看记录也没有揭示动画。
   const [isPublicViewOpen, setIsPublicViewOpen] = useState(false);
@@ -242,7 +238,7 @@ export function useFibRoomState({
         const succeeded = await submit(
           '大聪明选人',
           { type: 'fibking.round.guess', seat },
-          { actionKey: 'guess-seat' },
+          { actionKey: null },
         );
         if (succeeded) setGuessRoundId(null);
       },
@@ -282,7 +278,12 @@ export function useFibRoomState({
     isPending: hasPendingReview,
     onClosed:
       hasPendingReview && reviewRoundId !== null
-        ? () => submit('确认复盘', { type: 'fibking.review.complete', roundId: reviewRoundId })
+        ? () =>
+            submit(
+              '确认复盘',
+              { type: 'fibking.review.complete', roundId: reviewRoundId },
+              { actionKey: null },
+            )
         : null,
   });
 

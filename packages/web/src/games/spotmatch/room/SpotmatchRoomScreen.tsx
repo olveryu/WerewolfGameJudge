@@ -274,6 +274,7 @@ export function SpotmatchStageArea({
         },
         {
           controlledSeat: screen.controlledSeat,
+          actionKey: null,
           domainRejection: 'state',
           onRejection: (reason) => {
             if (reason === SPOTMATCH_REASONS.wrong) {

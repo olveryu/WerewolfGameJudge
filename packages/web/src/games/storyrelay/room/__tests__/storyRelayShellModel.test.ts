@@ -106,6 +106,8 @@ function shellFor(
 ): RoomShellModel {
   return createStoryRelayRoomShellModel({
     roomCode: state.roomCode,
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),
@@ -145,6 +147,8 @@ describe('createStoryRelayRoomShellModel', () => {
     const onSeatPress = vi.fn();
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -196,6 +200,8 @@ describe('createStoryRelayRoomShellModel', () => {
 
     const endedModel = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -232,6 +238,8 @@ describe('createStoryRelayRoomShellModel', () => {
     const state = lobbyState(false);
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),

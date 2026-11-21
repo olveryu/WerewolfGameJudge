@@ -289,7 +289,9 @@ function WerewolfRoomContent(
               isOverdue={isOverdue}
               isHost={isHost}
               isRetrying={isHostActionSubmitting}
-              onRetry={() => void submit('重新推进', { type: 'werewolf.phase.retrySettle' })}
+              onRetry={() =>
+                void submit('重新推进', { type: 'werewolf.phase.retrySettle' }, { actionKey: null })
+              }
               waitingLabel="等待推进…"
             />
           ),

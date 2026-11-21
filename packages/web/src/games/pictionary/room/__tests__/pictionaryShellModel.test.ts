@@ -76,6 +76,8 @@ function shellFor(
 ): RoomShellModel {
   return createPictionaryRoomShellModel({
     roomCode: state.roomCode,
+    isSubmitting: false,
+    pendingActionKey: null,
     capabilities: testCapabilities({
       state,
       isHost: viewer.isHost,
@@ -154,6 +156,8 @@ describe('createPictionaryRoomShellModel', () => {
     });
     const model = createPictionaryRoomShellModel({
       roomCode: '2468',
+      isSubmitting: false,
+      pendingActionKey: null,
       capabilities,
       onBack,
       onTitlePress: vi.fn(),
@@ -217,6 +221,8 @@ describe('createPictionaryRoomShellModel', () => {
 
     const endedModel = createPictionaryRoomShellModel({
       roomCode: '2468',
+      isSubmitting: false,
+      pendingActionKey: null,
       capabilities,
       onBack,
       onTitlePress: vi.fn(),

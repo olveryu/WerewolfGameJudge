@@ -206,8 +206,8 @@ export function RoomShell({
       ? null
       : buildRoomHand({
           phase: model.phase,
-          isSubmitting: model.isSubmitting ?? false,
-          pendingActionKey: model.pendingActionKey ?? null,
+          isSubmitting: model.isSubmitting,
+          pendingActionKey: model.pendingActionKey,
           face: navigation.face,
           playerActions: model.playerActions,
           hostManagement,

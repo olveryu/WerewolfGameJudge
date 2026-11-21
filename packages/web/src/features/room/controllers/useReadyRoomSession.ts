@@ -46,7 +46,7 @@ export interface ReadyRoomSession<TState extends BaseGameState<string>, TCommand
   readonly submit: (
     label: string,
     command: TCommand,
-    options?: ReadyRoomSubmitOptions,
+    options: ReadyRoomSubmitOptions,
   ) => Promise<boolean>;
 }
 
@@ -63,7 +63,7 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
   const snapshot = useRoomLinkSnapshot(session);
   const submission = useRoomCommandSubmission(getFailureMessage);
   const submit = useCallback(
-    (label: string, command: TCommand, options: ReadyRoomSubmitOptions = {}) => {
+    (label: string, command: TCommand, options: ReadyRoomSubmitOptions) => {
       const { controlledSeat = null, durable = false, ...presentation } = options;
       return submission.submit(
         label,

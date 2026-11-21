@@ -137,7 +137,12 @@ export function useUndercoverRoomState({
     isPending: hasPendingReview,
     onClosed:
       hasPendingReview && reviewRoundId !== null
-        ? () => submit('确认复盘', { type: 'undercover.review.complete', roundId: reviewRoundId })
+        ? () =>
+            submit(
+              '确认复盘',
+              { type: 'undercover.review.complete', roundId: reviewRoundId },
+              { actionKey: null },
+            )
         : null,
   });
   // 对局中（非选人）点座位只开资料卡；空位与禁用座位按共享规则提示。

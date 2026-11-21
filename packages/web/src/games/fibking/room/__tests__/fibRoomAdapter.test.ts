@@ -890,6 +890,8 @@ describe('createFibRoomShellModel', () => {
     const onSeatPress = vi.fn();
     const model = createFibRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities,
       onBack,
@@ -934,6 +936,8 @@ describe('createFibRoomShellModel', () => {
     const state = createOngoing();
     const model = createFibRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: createFibRoomCapabilities({ state, isHost: true, mySeat: null, ...callbacks }),
       onBack: vi.fn(),

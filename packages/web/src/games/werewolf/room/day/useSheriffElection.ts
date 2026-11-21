@@ -80,14 +80,13 @@ export function useSheriffElection(
       try {
         const actionKey =
           action.kind === 'vote'
-            ? undefined
+            ? null
             : action.kind === 'cancelRegistration'
               ? 'sheriff-cancel-registration'
               : action.kind === 'endBySelfDestruct'
                 ? 'sheriff-self-destruct'
                 : `sheriff-${action.kind}`;
-        if (actionKey === undefined) await submit(label, command);
-        else await submit(label, command, { actionKey });
+        await submit(label, command, { actionKey });
       } finally {
         setPendingAction(null);
       }

@@ -126,12 +126,16 @@ function AvalonRoomContent(
     setStrikeConfirm(null);
     const controlledSeat = screen.controlledSeat;
     if (mode === 'accuse')
-      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, { controlledSeat });
+      void screen.submit(
+        '指认',
+        { type: 'avalon.assassin.accuse', seat },
+        { controlledSeat, actionKey: null },
+      );
     else
       void screen.submit(
         '提前刺杀',
         { type: 'avalon.assassin.earlyStrike', seat },
-        { controlledSeat },
+        { controlledSeat, actionKey: null },
       );
     setStrikePickMode(false);
   };
@@ -360,11 +364,16 @@ function AvalonRoomContent(
                       { type: 'avalon.team.vote', vote },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setVoteModalOpen(false)}
                 />
@@ -391,11 +400,16 @@ function AvalonRoomContent(
                       { type: 'avalon.quest.play', play },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setQuestModalOpen(false)}
                 />
@@ -410,7 +424,7 @@ function AvalonRoomContent(
                       .submit(
                         '确认信息',
                         { type: 'avalon.night.confirm' },
-                        { controlledSeat: screen.controlledSeat },
+                        { controlledSeat: screen.controlledSeat, actionKey: null },
                       )
                       .then((success) => {
                         if (success) screen.setNightModalVisible(false);
@@ -428,7 +442,7 @@ function AvalonRoomContent(
                   void screen.submit(
                     '查验',
                     { type: 'avalon.lady.check', seat },
-                    { controlledSeat: screen.controlledSeat },
+                    { controlledSeat: screen.controlledSeat, actionKey: null },
                   );
                 }}
                 onClose={() => setLadyCheckTarget(null)}
@@ -443,7 +457,7 @@ function AvalonRoomContent(
                     void screen.submit(
                       '确认查验结果',
                       { type: 'avalon.lady.acknowledge' },
-                      { controlledSeat: screen.controlledSeat },
+                      { controlledSeat: screen.controlledSeat, actionKey: null },
                     )
                   }
                 />
@@ -488,7 +502,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
           {viewModel !== null &&
@@ -501,7 +521,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
         </>

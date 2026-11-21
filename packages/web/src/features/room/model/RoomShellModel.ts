@@ -73,8 +73,10 @@ export interface RoomShellModel {
   readonly step: string | null;
   /** Authoritative narration status; presentation only, never an interaction gate. */
   readonly isAudioPlaying: boolean;
-  readonly isSubmitting?: boolean;
-  readonly pendingActionKey?: string | null;
+  /** True while the room's single-flight command channel has a submission in flight. */
+  readonly isSubmitting: boolean;
+  /** Hand action key that owns the in-flight submission; null when a dialog or stage owns its feedback. */
+  readonly pendingActionKey: string | null;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;

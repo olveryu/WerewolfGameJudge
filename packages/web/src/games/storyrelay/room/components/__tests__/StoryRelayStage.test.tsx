@@ -82,7 +82,7 @@ describe('StoryRelayStage', () => {
     expect(submit).toHaveBeenCalledWith(
       '更新准备状态',
       expect.objectContaining({ type: 'storyrelay.task.ready.set', isReady: true }),
-      { controlledSeat: null },
+      { actionKey: null, controlledSeat: null },
     );
   });
 

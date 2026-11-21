@@ -455,7 +455,7 @@ interface WerewolfPlayerActionListInput {
   readonly isAudioPlaying: boolean;
   /** The shared review entry for this viewer; null before the night review exists. */
   readonly review: RoomReviewEntry | null;
-  readonly onNightButton: (action: NightButtonAction, actionKey?: string) => void;
+  readonly onNightButton: (action: NightButtonAction, actionKey: string) => void;
   readonly onViewRole: () => void;
 }
 
@@ -917,6 +917,8 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
     phase: viewModel.status,
     step: state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : null,
     isAudioPlaying: state.isAudioPlaying,
+    isSubmitting: input.isSubmitting,
+    pendingActionKey: input.pendingActionKey,
     onBack: input.onBack,
     onTitlePress: input.onTitlePress,
     onTitleLongPress: input.onTitleLongPress,

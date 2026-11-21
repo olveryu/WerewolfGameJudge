@@ -159,10 +159,11 @@ export function useAvalonRoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: 'avalon.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: 'avalon.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
   });
   const isLobby = state.phase.kind === 'lobby';
@@ -221,7 +222,8 @@ export function useAvalonRoomState(
     occupiedSeatCount: getAvalonOccupiedSeatCount(state),
     viewedSeatCount: state.roleViewedSeats.length,
     isSubmitting,
-    submitViewed: () => submit('查看身份', { type: 'avalon.role.viewed' }, { controlledSeat }),
+    submitViewed: () =>
+      submit('查看身份', { type: 'avalon.role.viewed' }, { controlledSeat, actionKey: null }),
   });
   // 组队选人 modal 开关：选人与确认都在 modal 里做（见 confirmTeamPick）。
   const [teamPickModal, setTeamPickModal] = useState<AvalonTeamPickKind | null>(null);
@@ -285,7 +287,7 @@ export function useAvalonRoomState(
       kind === 'preselect'
         ? { type: 'avalon.team.preselect', seats }
         : { type: 'avalon.team.propose', seats },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     ).then(() => undefined);
   };
   const shellModel: RoomShellModel = createAvalonRoomShellModel({

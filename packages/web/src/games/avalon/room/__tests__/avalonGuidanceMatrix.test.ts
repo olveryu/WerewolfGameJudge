@@ -216,6 +216,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
   const isLobby = state.phase.kind === 'lobby';
   const base: AvalonRoomShellModelInput = {
     roomCode: '1234',
+    pendingActionKey: null,
     capabilities: capabilities(),
     onBack: vi.fn(),
     onTitlePress: vi.fn(),

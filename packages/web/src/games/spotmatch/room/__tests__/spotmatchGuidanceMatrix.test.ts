@@ -137,6 +137,8 @@ function bottomMessage(state: SpotmatchState, audience: RoomViewerAudience): str
   const viewer = viewerFor(audience);
   const model = createSpotmatchRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),

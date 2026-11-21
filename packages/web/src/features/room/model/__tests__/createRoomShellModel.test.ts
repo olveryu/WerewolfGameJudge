@@ -66,6 +66,8 @@ function input(
 ): RoomShellModelInput {
   return {
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     phase: 'lobby',
     step: null,

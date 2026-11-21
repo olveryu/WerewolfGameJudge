@@ -226,6 +226,8 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
       : { isEnabled: true, onPress: vi.fn() };
   const model = createStoryRelayRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),

@@ -153,7 +153,7 @@ export function useUndercoverRoundControls({
     void submit(
       '确认词卡',
       { type: 'undercover.role.viewed', roundId: state.round.roundId },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     ).then((success) => {
       if (success && latestCardKey.current === cardKey) closeCard();
     });
@@ -168,7 +168,7 @@ export function useUndercoverRoundControls({
         roundId: state.round.roundId,
         seat: selectedSeat,
       },
-      { actionKey: 'select-player' },
+      { actionKey: null },
     ).then((success) => {
       if (success) exitSelection();
     });

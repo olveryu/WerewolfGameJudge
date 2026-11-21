@@ -136,7 +136,7 @@ export interface DrawGuessHostManagementInput {
   readonly submit: (
     label: string,
     command: DrawGuessCommand,
-    options?: { readonly actionKey?: string },
+    options: { readonly actionKey: string | null },
   ) => Promise<boolean>;
   /** The shared review entry; present exactly once the game has ended. */
   readonly review: RoomReviewEntry | null;

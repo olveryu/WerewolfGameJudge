@@ -568,6 +568,8 @@ describe('createUndercoverRoomShellModel', () => {
     const onBotSeatLongPress = vi.fn();
     const model = createUndercoverRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
       capabilities,
       onBack: vi.fn(),
@@ -649,6 +651,8 @@ describe('createUndercoverRoomShellModel', () => {
     const state = createViewingState();
     const model = createUndercoverRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
       capabilities: createUndercoverRoomCapabilities({
         state,

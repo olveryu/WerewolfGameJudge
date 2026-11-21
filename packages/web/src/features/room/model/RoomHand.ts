@@ -60,8 +60,8 @@ interface RoomHandNavigation {
 
 export interface RoomHandInput {
   readonly phase: string;
-  readonly isSubmitting?: boolean;
-  readonly pendingActionKey?: string | null;
+  readonly isSubmitting: boolean;
+  readonly pendingActionKey: string | null;
   readonly face: RoomHandFace;
   readonly playerActions: RoomPlayerActionModel;
   readonly hostManagement: RoomHostManagementModel | null;
@@ -420,8 +420,8 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
           ...card,
           state: resolveCommandActionState({
             key: card.actionKey,
-            isSubmitting: input.isSubmitting ?? false,
-            pendingActionKey: input.pendingActionKey ?? null,
+            isSubmitting: input.isSubmitting,
+            pendingActionKey: input.pendingActionKey,
             whenIdle: card.state,
           }),
         },

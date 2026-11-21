@@ -48,7 +48,11 @@ export function StoryRelayGallery({
 }: {
   readonly state: StoryRelayState;
   readonly isHost: boolean;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: StoryRelayCommand,
+    options: { readonly actionKey: string | null },
+  ) => Promise<boolean>;
   readonly isSubmitting: boolean;
   /** Opens the shared review at one story's page. */
   readonly openReview: (pageKey: string) => void;
@@ -71,7 +75,7 @@ export function StoryRelayGallery({
   const chain = stories[chainIndex];
   if (chain === undefined) throw new Error('Story Relay gallery chain missing');
   const control = (type: StoryRelayGalleryCommandType) =>
-    void submit('控制故事回放', { type, phaseRevision: state.phaseRevision });
+    void submit('控制故事回放', { type, phaseRevision: state.phaseRevision }, { actionKey: null });
   // The current story is fully revealed once the last segment is showing.
   const isStoryEnd = playback !== null && playback.position % storyLength === storyLength - 1;
   // 房主自救（D3 follow-up）：画廊自动推进的结算逾期时，房主可重新推进。

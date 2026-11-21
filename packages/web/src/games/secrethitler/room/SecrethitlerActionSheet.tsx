@@ -78,7 +78,7 @@ export function SecrethitlerActionSheet({
                   : 'secrethitler.government.preselect',
                 chancellorSeatId,
               },
-              { controlledSeat: screen.controlledSeat },
+              { controlledSeat: screen.controlledSeat, actionKey: null },
             )
             .then((success) => {
               if (success) screen.closeAction();
@@ -103,7 +103,12 @@ export function SecrethitlerActionSheet({
     (screen.state.phase.kind === 'executive' && screen.state.phase.power === 'policyPeek');
   const requireConfirmation = mustResolveHand || mustAcknowledgeInformation;
   const send = async (label: string, command: SecrethitlerCommand) => {
-    if (await screen.submit(label, command, { controlledSeat: screen.controlledSeat }))
+    if (
+      await screen.submit(label, command, {
+        controlledSeat: screen.controlledSeat,
+        actionKey: null,
+      })
+    )
       screen.closeAction();
   };
   const confirm = (label: string, command: SecrethitlerCommand) =>
