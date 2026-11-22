@@ -66,10 +66,6 @@
   width: calc(100% - var(--space-tight));
   aspect-ratio: 1;
   padding: 0;
-  border: var(--border-width-thick) solid var(--color-border);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-md);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-touch-callout: none;
@@ -227,7 +223,7 @@
   inset: calc(-1 * var(--space-tight));
   z-index: 1;
   border: var(--border-width) solid var(--color-info);
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-medium);
   pointer-events: none;
 }
 

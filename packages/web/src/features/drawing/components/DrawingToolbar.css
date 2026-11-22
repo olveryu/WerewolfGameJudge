@@ -1,6 +1,7 @@
 .drawing-toolbar {
   display: flex;
   gap: var(--space-tight);
+  padding: var(--space-small);
 }
 
 .drawing-toolbar-button {

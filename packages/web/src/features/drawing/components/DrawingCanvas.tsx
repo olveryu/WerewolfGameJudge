@@ -1,6 +1,7 @@
 /** Shared interactive 4:3 Canvas 2D surface for normalized freehand, shape, and fill operations. */
 
 import './DrawingCanvas.css';
+import '@/components/CardFrame.css';
 
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -215,7 +216,7 @@ export function DrawingCanvas({
   }
 
   return (
-    <div ref={frameRef} className="drawing-canvas">
+    <div ref={frameRef} className="drawing-canvas card-frame">
       <canvas ref={baseCanvasRef} className="drawing-canvas__layer" aria-hidden />
       <canvas
         ref={overlayCanvasRef}

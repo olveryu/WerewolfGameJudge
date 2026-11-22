@@ -6,6 +6,8 @@
  * clips it to the tile's border box. A framed seat drops its border and background, and its
  * avatar fills the border box under the frame, as in the previous client.
  */
+import '@/components/CardFrame.css';
+
 import { memo, type RefObject, Suspense, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
@@ -111,7 +113,7 @@ function RoomSeatTileComponent({
       <button
         ref={tileRef}
         type="button"
-        className="seat-tile-button"
+        className="seat-tile-button card-frame"
         data-testid={TESTIDS.seatTilePressable(seat)}
         data-empty={player === null}
         data-framed={residents !== null && residents.frameId !== null}

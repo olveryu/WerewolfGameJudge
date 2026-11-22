@@ -247,6 +247,8 @@
   min-width: 0;
   min-height: 120px;
   overflow: hidden;
+  /* Room for the canvas card's 4px offset shadow; without it the shadow is clipped. */
+  padding: var(--space-tight);
   container-type: size;
 }
 
@@ -430,6 +432,7 @@
   display: flex;
   gap: var(--space-small);
   align-items: center;
+  padding: var(--space-tight);
 }
 
 .drawguess-composer-row[data-shaking] {
@@ -467,12 +470,16 @@
   min-height: var(--size-min-touch-target);
   box-sizing: border-box;
   padding: 0 var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-surface);
+  border: none;
+  background: transparent;
   color: var(--color-text);
   font-size: var(--font-body);
   line-height: var(--line-body);
+}
+
+.drawguess-composer-input:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
 }
 
 .drawguess-composer-input:disabled {
@@ -515,8 +522,6 @@
   align-items: center;
   justify-content: center;
   min-height: var(--size-min-touch-target);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
   color: var(--color-success);
   font-size: var(--font-body);
   font-weight: var(--weight-semibold);

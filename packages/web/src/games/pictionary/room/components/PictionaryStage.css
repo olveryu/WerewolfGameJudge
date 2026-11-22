@@ -42,6 +42,8 @@
   justify-content: center;
   min-height: 0;
   overflow: hidden;
+  /* Room for the canvas card's 4px offset shadow; without it the shadow is clipped. */
+  padding: var(--space-tight);
   container-type: size;
 }
 

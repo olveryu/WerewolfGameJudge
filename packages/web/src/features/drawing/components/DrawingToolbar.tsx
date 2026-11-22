@@ -7,6 +7,7 @@
  */
 
 import './DrawingToolbar.css';
+import '@/components/CardFrame.css';
 
 import { ColorPicker, parseColor } from '@ark-ui/react/color-picker';
 import { Dialog } from '@ark-ui/react/dialog';
@@ -253,7 +254,7 @@ export function DrawingToolbar(props: DrawingToolbarProps) {
   const isPanelOpen = activePanel !== null && !disabled;
 
   return (
-    <div className="drawing-toolbar">
+    <div className="drawing-toolbar card-frame">
       <ToolButton
         label={`选择工具，当前${selectedTool.label}`}
         caption={null}

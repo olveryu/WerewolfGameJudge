@@ -5,6 +5,8 @@
  * 作画视图才清空草稿。猜中锁定后本行退化为锁定条。
  */
 
+import '@/components/CardFrame.css';
+
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { TESTIDS } from '@/testids';
@@ -45,7 +47,7 @@ export function DrawGuessGuessComposer({
   if (isLocked) {
     return (
       <div
-        className="drawguess-locked-bar"
+        className="drawguess-locked-bar card-frame"
         role="status"
         aria-label="已猜中，等待本轮结束"
         data-testid={TESTIDS.drawGuessGuessLockedBar}
@@ -80,7 +82,7 @@ export function DrawGuessGuessComposer({
   return (
     <form className="drawguess-composer" onSubmit={submit}>
       <div
-        className="drawguess-composer-row"
+        className="drawguess-composer-row card-frame"
         data-shaking={isShaking ? '' : undefined}
         onAnimationEnd={() => setIsShaking(false)}
       >
@@ -98,7 +100,7 @@ export function DrawGuessGuessComposer({
         />
         <button
           type="submit"
-          className="drawguess-composer-send"
+          className="drawguess-composer-send button-press-primary"
           aria-label="发送猜词"
           data-testid={TESTIDS.drawGuessGuessSendButton}
           disabled={isInputDisabled || trimmedDraft.length === 0}
