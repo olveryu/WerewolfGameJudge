@@ -158,9 +158,6 @@
   align-items: center;
   gap: var(--space-tight);
   padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
-  background: var(--color-background);
   text-align: center;
 }
 

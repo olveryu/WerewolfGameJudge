@@ -1,9 +1,6 @@
 .room-game-summary {
   margin-bottom: var(--space-medium);
   padding: var(--space-medium);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
 }
 
 .room-game-summary-row {

@@ -1,0 +1,15 @@
+/*
+ * The one card frame (app-card-style P0): white surface, 2px primary-dark border, 8px radius,
+ * 4px offset shadow. This class is the single definition of the frame: RoomStagePanel, the
+ * room status card and the game summary card all use it instead of their own copy. It sets
+ * only the box (border, radius, background, shadow); padding and text colour stay with the
+ * using component so swapping the frame never restyles content.
+ */
+.card-frame {
+  min-width: 0;
+  box-sizing: border-box;
+  border: var(--border-width-thick) solid var(--color-primary-dark);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-frame);
+}

@@ -6,19 +6,6 @@
   margin: var(--space-small) var(--space-medium) var(--space-small);
   padding: 0 var(--space-small);
 }
-.room-stage-hud[data-embedded] {
-  margin: 0;
-}
-.room-stage-hud[data-embedded][data-expanded] {
-  padding-bottom: 0;
-}
-.room-stage-hud[data-inline-context] .room-stage-hud-row {
-  flex-wrap: nowrap;
-  flex-basis: 100%;
-}
-.room-stage-hud[data-inline-context] .room-stage-hud-context {
-  flex-wrap: nowrap;
-}
 
 .room-stage-hud-row {
   display: flex;

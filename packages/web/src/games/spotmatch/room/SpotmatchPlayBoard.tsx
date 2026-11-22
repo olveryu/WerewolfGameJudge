@@ -4,7 +4,6 @@ import {
 } from '@game-judge/game-engine/games/spotmatch/public';
 import { useMemo } from 'react';
 
-import type { RoomStageHudRenderer } from '@/features/room/components/RoomStageHud';
 import { RoomStagePanel } from '@/features/room/components/RoomStagePanel';
 import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 import { TESTIDS } from '@/testids';
@@ -20,7 +19,6 @@ interface SpotmatchBoardFeedback {
 }
 
 interface SpotmatchPlayBoardProps {
-  readonly hud?: RoomStageHudRenderer;
   readonly central: SpotmatchCard;
   readonly top: SpotmatchCard | null;
   readonly playedCard: SpotmatchCard | null;
@@ -67,7 +65,7 @@ export function SpotmatchPlayBoard(props: SpotmatchPlayBoardProps) {
       </svg>
       <div className="spotmatch-feedback-copy" role="status" aria-live="polite" aria-atomic="true">
         <strong>{feedback.title}</strong>
-        <span className={props.hud ? 'visually-hidden' : undefined}>{feedback.detail}</span>
+        <span>{feedback.detail}</span>
       </div>
       {feedback.kind === 'success' && (
         <span className="spotmatch-pause-label" aria-hidden="true">
@@ -86,12 +84,8 @@ export function SpotmatchPlayBoard(props: SpotmatchPlayBoardProps) {
       aria-label="一眼成对牌桌"
       data-feedback={feedback.kind}
     >
-      <div className="spotmatch-feedback-panel" data-inline={props.hud !== undefined || undefined}>
-        {props.hud ? (
-          props.hud(feedbackContent, tone)
-        ) : (
-          <RoomStagePanel tone={tone}>{feedbackContent}</RoomStagePanel>
-        )}
+      <div className="spotmatch-feedback-panel">
+        <RoomStagePanel tone={tone}>{feedbackContent}</RoomStagePanel>
       </div>
       <h2 className="spotmatch-card-heading">桌面公共牌</h2>
       <div className="spotmatch-card-position" ref={centralPosition}>

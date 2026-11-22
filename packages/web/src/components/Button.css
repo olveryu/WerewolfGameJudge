@@ -86,3 +86,17 @@
   background: transparent;
   color: var(--color-primary);
 }
+
+/*
+ * H press treatment (app-card-style P0): filled base + top highlight + bottom press edge.
+ * Opt-in per button: the shared Button keeps its current look until a surface adopts the
+ * treatment (room shell / HUD first, the rest follows with P1–P4). Primary presses 5px,
+ * secondary 3px; the value lives once in the shadow tokens.
+ */
+.button-press-primary {
+  box-shadow: var(--shadow-button-press-primary);
+}
+
+.button-press-secondary {
+  box-shadow: var(--shadow-button-press-secondary);
+}

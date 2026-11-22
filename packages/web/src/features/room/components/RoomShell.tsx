@@ -30,7 +30,7 @@ import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostTaskHeader } from './RoomHostTaskHeader';
 import { RoomSeatBoard } from './RoomSeatBoard';
 import { RoomShareDialog } from './RoomShareDialog';
-import { RoomStageHud, type RoomStageHudRenderer } from './RoomStageHud';
+import { RoomStageHud } from './RoomStageHud';
 import { ConnectionStatusBar, ControlledSeatBanner, RoomSeatConfirmModal } from './RoomStatusBars';
 
 const TITLE_LONG_PRESS_MS = 1000;
@@ -54,8 +54,8 @@ type RoomShellContent =
   | {
       readonly kind: 'stage';
       readonly hud: RoomStageHudModel;
-      /** A render slot may embed the shared HUD in the game's own stage panel. */
-      readonly element: ReactElement | ((renderHud: RoomStageHudRenderer) => ReactElement);
+      /** The stage element; the shell always places the shared HUD above it. */
+      readonly element: ReactElement;
       /** Optional game-owned action beside secondary HUD information. */
       readonly hudAction?: ReactElement;
     };
@@ -67,29 +67,16 @@ function RoomStageContent({
   readonly content: Extract<RoomShellContent, { readonly kind: 'stage' }>;
   readonly model: RoomShellModel;
 }) {
-  const embedded = typeof content.element === 'function';
-  const renderHud: RoomStageHudRenderer = (context = null, tone = 'neutral') => (
-    <RoomStageHud
-      hud={content.hud}
-      seats={model.seats.source}
-      canTakeOverBots={model.capabilities.canTakeOverBots}
-      controlledSeat={model.controlledSeat}
-      action={content.hudAction}
-      embedded={embedded}
-      context={context}
-      tone={tone}
-    />
-  );
   return (
     <div className="room-stage-column">
-      {typeof content.element === 'function' ? (
-        <div className="room-stage-body">{content.element(renderHud)}</div>
-      ) : (
-        <>
-          {renderHud(null)}
-          <div className="room-stage-body">{content.element}</div>
-        </>
-      )}
+      <RoomStageHud
+        hud={content.hud}
+        seats={model.seats.source}
+        canTakeOverBots={model.capabilities.canTakeOverBots}
+        controlledSeat={model.controlledSeat}
+        action={content.hudAction}
+      />
+      <div className="room-stage-body">{content.element}</div>
     </div>
   );
 }
@@ -280,7 +267,7 @@ export function RoomShell({
             <button
               ref={stageMenuEntryRef}
               type="button"
-              className="room-header-host-button"
+              className="room-header-host-button button-press-secondary"
               aria-expanded={navigation.isMenuOpen}
               aria-busy={isStageMenuBusy}
               aria-disabled={isStageMenuBusy ? true : undefined}

@@ -11,6 +11,8 @@ export const colors = {
   primary: '#285F86',
   primaryLight: '#3B6D91',
   primaryDark: '#1A405D',
+  /** One shade deeper than primary-dark: the button press edge (app-card-style P0). */
+  primaryDeep: '#0F2A3F',
 
   background: '#EDF2F7',
   surface: '#FFFFFF',

@@ -1,4 +1,5 @@
 import './RoomBottomActionPanel.css';
+import '@/components/CardFrame.css';
 
 import type { ReactNode } from 'react';
 
@@ -103,7 +104,7 @@ export function RoomActionStatus({
           (title !== null && title.length > 0) ||
           (!isAudioPlaying && selectionMode === undefined && boardStatus.detail !== null) ||
           hasSummary) && (
-          <div className="room-board-status-card">
+          <div className="room-board-status-card card-frame">
             {boardStatus.phaseLabel !== null && (
               <p className="room-board-phase">{boardStatus.phaseLabel}</p>
             )}

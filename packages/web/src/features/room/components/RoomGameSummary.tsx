@@ -1,5 +1,6 @@
 /** One collapsible public configuration card for every game's room. */
 import './RoomGameSummary.css';
+import '@/components/CardFrame.css';
 
 import { type ReactNode, useId, useState } from 'react';
 
@@ -49,7 +50,7 @@ export function RoomGameSummary({
   const gameTitle = `${title}（${playerCount}人）`;
   return (
     <>
-      <section className="room-game-summary" data-testid={testId}>
+      <section className="room-game-summary card-frame" data-testid={testId}>
         <div className="room-game-summary-row">
           <h2 className="room-game-summary-title" data-testid={TESTIDS.roomGameSummaryTitle}>
             {hasContent ? (

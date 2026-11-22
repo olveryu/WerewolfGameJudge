@@ -4,7 +4,7 @@
  */
 import './RoomStageHud.css';
 
-import { type ReactElement, type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
@@ -30,9 +30,6 @@ import IconGameControllerOutline from '~icons/ion/game-controller-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
 import { RoomStagePanel, type RoomStagePanelTone } from './RoomStagePanel';
-
-/** A game may supply inline feedback without replacing the shared HUD or its frame. */
-export type RoomStageHudRenderer = (context: ReactNode, tone?: RoomStagePanelTone) => ReactElement;
 
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
@@ -144,6 +141,7 @@ function RosterRow({
         <Button
           variant="secondary"
           size="sm"
+          className="button-press-secondary"
           onClick={takeOver}
           aria-label={`接管 ${entry.seat + 1} 号位（${entry.displayName}）`}
           data-testid={TESTIDS.roomStageTakeOverButton(entry.seat)}
@@ -218,8 +216,6 @@ export function RoomStageHud({
   canTakeOverBots,
   controlledSeat,
   action = null,
-  embedded = false,
-  context = null,
   tone = 'neutral',
 }: {
   readonly hud: RoomStageHudModel;
@@ -228,10 +224,6 @@ export function RoomStageHud({
   readonly controlledSeat: RoomControlledSeatModel | null;
   /** Game-owned action; the shared shell does not interpret its label or behavior. */
   readonly action?: ReactNode;
-  /** Omit outer margins when the stage positions the shared panel inside its own layout. */
-  readonly embedded?: boolean;
-  /** Inline task feedback between the leading context chip and roster. */
-  readonly context?: ReactNode;
   readonly tone?: RoomStagePanelTone;
 }) {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
@@ -265,8 +257,6 @@ export function RoomStageHud({
       tone={tone}
       data-expanded={hasSecondaryRow || undefined}
       data-roster-placement={hud.rosterPlacement}
-      data-embedded={embedded || undefined}
-      data-inline-context={context !== null || undefined}
       data-testid={TESTIDS.roomStageHud}
     >
       <div className="room-stage-hud-row">
@@ -274,7 +264,6 @@ export function RoomStageHud({
           <StageChip key={chip.key} chip={chip} />
         ))}
         <div className="room-stage-hud-context">
-          {context}
           {hud.chips.slice(1).map((chip) => (
             <StageChip key={chip.key} chip={chip} />
           ))}

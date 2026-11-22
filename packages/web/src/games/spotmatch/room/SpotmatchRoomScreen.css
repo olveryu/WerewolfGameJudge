@@ -132,26 +132,6 @@ button.spotmatch-symbol:disabled {
   min-height: calc(var(--line-title) + var(--line-secondary) + var(--space-small));
   padding-bottom: var(--space-tight);
 }
-.spotmatch-feedback-panel[data-inline] .spotmatch-feedback {
-  flex: 1;
-  min-width: 0;
-  min-height: var(--size-min-touch-target);
-  justify-content: center;
-  padding: 0 var(--space-tight);
-}
-.spotmatch-feedback-panel[data-inline] .spotmatch-feedback-icon {
-  display: none;
-}
-.spotmatch-feedback-panel[data-inline] .spotmatch-feedback-copy {
-  text-align: center;
-}
-.spotmatch-feedback-panel[data-inline] .spotmatch-feedback-copy strong {
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-}
-.spotmatch-feedback-panel[data-inline] .spotmatch-pause-label {
-  display: none;
-}
 .spotmatch-feedback-icon {
   width: var(--size-icon-xl);
   height: var(--size-icon-xl);

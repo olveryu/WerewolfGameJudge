@@ -436,7 +436,7 @@ describe('RoomShell stage content', () => {
     );
   });
 
-  it('embeds one shared HUD with working roster and takeover controls in a stage-owned panel', async () => {
+  it('places one shared HUD above the stage with working roster and takeover controls', async () => {
     const user = userEvent.setup();
     const onRelease = vi.fn();
     render(
@@ -460,8 +460,10 @@ describe('RoomShell stage content', () => {
               isUrgent: false,
             },
           },
-          element: (renderHud) => (
-            <section aria-label="信息与反馈">{renderHud(<p>当前操作提示</p>, 'success')}</section>
+          element: (
+            <section aria-label="信息与反馈">
+              <p>当前操作提示</p>
+            </section>
           ),
         }}
         leadingExtraActions={null}
@@ -472,14 +474,14 @@ describe('RoomShell stage content', () => {
     );
     const panel = screen.getByRole('region', { name: '信息与反馈' });
     expect(screen.getAllByTestId(TESTIDS.roomStageHud)).toHaveLength(1);
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-embedded');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveClass('room-stage-panel');
-    expect(within(panel).getByTestId(TESTIDS.roomStageHud)).toHaveAttribute('data-tone', 'success');
-    expect(panel.querySelectorAll('.room-stage-panel')).toHaveLength(1);
-    await user.click(within(panel).getByTestId(TESTIDS.roomStageRosterChip));
+    expect(within(panel).queryByTestId(TESTIDS.roomStageHud)).not.toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).not.toHaveAttribute('data-embedded');
+    expect(screen.getByTestId(TESTIDS.roomStageHud)).toHaveClass('room-stage-panel');
+    expect(panel.querySelectorAll('.room-stage-panel')).toHaveLength(0);
+    await user.click(screen.getByTestId(TESTIDS.roomStageRosterChip));
     expect(screen.getByTestId(TESTIDS.roomStageRosterSheet)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '关闭本局玩家' }));
-    await user.click(within(panel).getByTestId(TESTIDS.controlledSeatReleaseButton));
+    await user.click(screen.getByTestId(TESTIDS.controlledSeatReleaseButton));
     expect(onRelease).toHaveBeenCalledOnce();
   });
 

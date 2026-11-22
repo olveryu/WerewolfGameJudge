@@ -108,8 +108,7 @@
 悬空的焦点目标立即清除，不会在同 id 的牌之后出现时抢焦点。玩家选座必须声明逃生动作
 （`{ kind: 'player', escapeActionKey }`），手牌缺少该牌时直接抛错。提交中的牌用
 `aria-disabled` 与 `aria-busy` 保持可聚焦但不执行点击，不用原生 `disabled`，避免入口转入
-提交中时丢失焦点。（2026-11-21 用户确认）舞台内容保留
-`element(renderHud)`，必须显式使用 `actionSurface: 'menu'`，菜单与游戏舞台是兄弟区域。
+提交中时丢失焦点。（2026-11-21 用户确认）舞台内容由外壳在上方放共享 HUD，必须显式使用 `actionSurface: 'menu'`，菜单与游戏舞台是兄弟区域。
 
 提交状态归属在类型上显式声明（2026-11-21 用户确认）：外壳输入的 `isSubmitting` 与
 `pendingActionKey` 必填，不用默认值吞掉漏传；每次 `submit` 必须给出 `actionKey`——字符串表示

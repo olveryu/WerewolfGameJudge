@@ -17,7 +17,6 @@ import {
   RoomInformationDialog,
 } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import type { RoomStageHudRenderer } from '@/features/room/components/RoomStageHud';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
@@ -166,12 +165,11 @@ function SpotmatchRoomContent(
                     isUrgent: false,
                   },
                 },
-                element: (hud) => (
+                element: (
                   <SpotmatchStageArea
                     screen={screen}
                     assetsReady={assetsReady}
                     assetError={assetError}
-                    hud={hud}
                   />
                 ),
               }
@@ -216,12 +214,10 @@ export function SpotmatchStageArea({
   screen,
   assetsReady,
   assetError,
-  hud,
 }: {
   readonly screen: SpotmatchRoomScreenState;
   readonly assetsReady: boolean;
   readonly assetError: boolean;
-  readonly hud?: RoomStageHudRenderer;
 }) {
   const { viewModel, state } = screen;
   const [confirmedMistake, setConfirmedMistake] = useState<ConfirmedSpotmatchMistake | null>(null);
@@ -322,7 +318,6 @@ export function SpotmatchStageArea({
   const matchedSymbol = paused ? (success?.symbolId ?? null) : null;
   return (
     <SpotmatchPlayBoard
-      hud={hud}
       central={central}
       top={top}
       playedCard={paused ? viewModel.central : null}
