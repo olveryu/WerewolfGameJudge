@@ -73,6 +73,27 @@ function renderConfigScreen(params: WerewolfConfigParams, session = createSessio
   return { callbacks, router };
 }
 
+/** The chip wrapper carries the selection state now that the badge is gone. */
+function chipSelected(id: string): boolean {
+  const chip = screen.getByTestId(TESTIDS.configRoleChip(id));
+  return chip.closest('.config-role-chip')?.getAttribute('data-selected') === 'true';
+}
+
+/** Long-press a chip to open its role info card (a tap toggles instead). */
+function longPressChip(id: string) {
+  const chip = screen.getByTestId(TESTIDS.configRoleChip(id));
+  vi.useFakeTimers();
+  try {
+    fireEvent.pointerDown(chip);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    fireEvent.pointerUp(chip);
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 /** selectionToRoles re-derives order from the chip layout, so compare as a multiset. */
 function sortedRoles(roles: readonly RoleId[]): RoleId[] {
   return [...roles].sort();
@@ -106,6 +127,7 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configStepperDec('villager'))).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configOverflowReset)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configNextButton)).toHaveTextContent('下一步：规则');
+    expect(screen.getByText('点按选角色 · 长按看介绍 · 变体在卡里换')).toBeInTheDocument();
   });
 
   it('switches faction tabs and steps bulk roles', async () => {
@@ -120,35 +142,28 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('自定义');
   });
 
-  it('switches a variant from the role card opened by tapping the chip', () => {
+  it('switches a variant from the role card opened by long-pressing the chip', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    const witchChip = screen.getByTestId(TESTIDS.configRoleChip('witch'));
 
-    fireEvent.click(witchChip);
+    longPressChip('witch');
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
     expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(chipSelected('witch')).toBe(true);
   });
 
   it('switches a variant without adding an unselected role to the board', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    // Start from a board without the witch: deselect via the badge first.
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    // Start from a board without the witch: deselect by tapping the chip first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
     expect(screen.getByText('11人')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    longPressChip('witch');
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
     // The chip shows the chosen variant, but the role stays off the board.
     expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    expect(chipSelected('witch')).toBe(false);
     expect(screen.getByText('11人')).toBeInTheDocument();
 
     // The remembered variant applies when the role is added later.
@@ -158,41 +173,35 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
   });
 
-  it('opens the role card on a tap and adds the role from the card', () => {
+  it('opens the role card on a long-press and adds the role from the card', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    // Start from a board without the witch: deselect via the badge first.
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    // Start from a board without the witch: deselect by tapping the chip first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
     expect(screen.getByText('11人')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    longPressChip('witch');
     fireEvent.click(screen.getByRole('button', { name: '加入板子' }));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('12人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(chipSelected('witch')).toBe(true);
   });
 
   it('removes the role from the card when it is already selected', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    longPressChip('witch');
     fireEvent.click(screen.getByRole('button', { name: '移出板子' }));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('11人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    expect(chipSelected('witch')).toBe(false);
   });
 
-  it('toggles a role from the badge without opening the card', () => {
+  it('toggles a role by tapping the chip without opening the card', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('11人')).toBeInTheDocument();
@@ -271,7 +280,7 @@ describe('ConfigScreen → Rules handoff', () => {
     const state = readyRoom(session, {});
     const { callbacks } = renderConfigScreen({ existingRoomCode: state.roomCode }, session);
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('hunter')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('hunter')));
     // Another player takes a seat: the authoritative snapshot moves on.
     act(() => publishRoom(session, { ...state }, 2));
     fireEvent.click(screen.getByTestId(TESTIDS.configNextButton));
