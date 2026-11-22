@@ -4,9 +4,6 @@
   width: 90%;
   max-width: var(--size-max-content-width);
   max-height: 80vh;
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
 }
 
 .nomination-dialog-header {

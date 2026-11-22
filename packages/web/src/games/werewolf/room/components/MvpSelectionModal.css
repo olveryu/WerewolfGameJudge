@@ -6,9 +6,6 @@
   height: 85vh;
   max-height: calc(var(--size-max-content-width) + var(--space-xlarge) + var(--space-small));
   padding: var(--space-medium);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
 }
 
 .mvp-header {

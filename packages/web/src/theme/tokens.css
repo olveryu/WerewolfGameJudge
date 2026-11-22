@@ -98,9 +98,15 @@
   --shadow-md: 0 2px 8px rgb(0 0 0 / 8%);
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 10%);
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
-  --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   /* The one card frame's offset shadow (app-card-style P0): 4px down-right, same ink as its border. */
   --shadow-card-frame: var(--space-tight) var(--space-tight) 0 var(--color-primary-dark);
+  /* Bottom sheet offset shadow (app-card-style P4): the same 4px ink as the card frame, but
+     only on the top and sides — the bottom edge sits on the viewport and its shadow would be
+     clipped away. */
+  --shadow-bottom-sheet:
+    0 calc(-1 * var(--space-tight)) 0 var(--color-primary-dark),
+    calc(-1 * var(--space-tight)) 0 0 var(--color-primary-dark),
+    var(--space-tight) 0 0 var(--color-primary-dark);
   /* H button press treatment (app-card-style P0): top highlight + bottom press edge. */
   --shadow-button-press-primary:
     inset 0 1px 0 var(--color-text-inverse-a20), 0 5px 0 var(--color-primary-deep);

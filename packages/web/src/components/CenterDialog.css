@@ -31,9 +31,10 @@
   max-height: 100%;
   overflow-y: auto;
   padding: var(--space-large);
-  border-radius: var(--radius-large);
+  border: var(--border-width-thick) solid var(--color-primary-dark);
+  border-radius: var(--radius-small);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card-frame);
 }
 
 .center-dialog[data-has-close-button='true'] {

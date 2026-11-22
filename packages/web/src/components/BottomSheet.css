@@ -23,9 +23,11 @@
   max-width: var(--size-max-content-width);
   max-height: 85vh;
   overflow: hidden;
-  border-radius: var(--radius-xlarge) var(--radius-xlarge) 0 0;
+  border: var(--border-width-thick) solid var(--color-primary-dark);
+  border-bottom: none;
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg-upward);
+  box-shadow: var(--shadow-bottom-sheet);
 }
 
 .bottom-sheet[data-state='open'] {

@@ -1,4 +1,5 @@
 /** MVP selection view; reports the selection without dispatching room commands. Mounted means open. */
+import '@/components/CardFrame.css';
 import '@/components/CenterDialog.css';
 import './MvpSelectionModal.css';
 
@@ -47,7 +48,7 @@ export function MvpSelectionModal({
       <Portal>
         <Dialog.Backdrop className="center-dialog-backdrop" />
         <Dialog.Positioner className="center-dialog-positioner">
-          <Dialog.Content className="mvp-dialog" data-testid={TESTIDS.mvpSelectionModal}>
+          <Dialog.Content className="mvp-dialog card-frame" data-testid={TESTIDS.mvpSelectionModal}>
             <header className="mvp-header">
               <IconTrophyOutline className="mvp-header-icon" aria-hidden />
               <Dialog.Title className="mvp-title">本局 MVP</Dialog.Title>

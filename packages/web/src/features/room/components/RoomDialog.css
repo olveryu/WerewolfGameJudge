@@ -11,9 +11,10 @@
   flex-direction: column;
   max-height: 85vh;
   overflow: hidden;
-  border-radius: var(--radius-large);
+  border: var(--border-width-thick) solid var(--color-primary-dark);
+  border-radius: var(--radius-small);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card-frame);
 }
 
 .room-dialog[data-state='open'] {

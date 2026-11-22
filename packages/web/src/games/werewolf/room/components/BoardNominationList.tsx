@@ -5,6 +5,7 @@
  * role chips (FactionRoleList), with upvote, withdraw (own suggestion) and adopt (host) actions.
  * Pressing a role chip opens its skill card. Mounted means open.
  */
+import '@/components/CardFrame.css';
 import '@/components/CenterDialog.css';
 import './BoardNominationList.css';
 
@@ -180,7 +181,7 @@ export function BoardNominationModal({
         <Portal>
           <Dialog.Backdrop className="center-dialog-backdrop" />
           <Dialog.Positioner className="center-dialog-positioner">
-            <Dialog.Content className="nomination-dialog">
+            <Dialog.Content className="nomination-dialog card-frame">
               <header className="nomination-dialog-header">
                 <Dialog.Title className="nomination-dialog-title">
                   板子建议（{entries.length}）
