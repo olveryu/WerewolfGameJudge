@@ -51,7 +51,7 @@ it('preselects an eligible chancellor and explains why the president cannot be s
   expect(input.submit).toHaveBeenCalledWith(
     '预选总理',
     { type: 'secrethitler.government.preselect', chancellorSeatId: candidate },
-    { controlledSeat: state.phase.presidentSeat },
+    { actionKey: null, controlledSeat: state.phase.presidentSeat },
   );
   await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
 });
@@ -83,7 +83,7 @@ it('starts final nomination with the preselection and preserves a failed submiss
   expect(input.submit).toHaveBeenCalledWith(
     '提名总理',
     { type: 'secrethitler.government.nominate', chancellorSeatId: second },
-    { controlledSeat: president },
+    { actionKey: null, controlledSeat: president },
   );
   expect(input.closeAction).not.toHaveBeenCalled();
   expect(secondRow).toHaveAttribute('aria-checked', 'true');
@@ -112,7 +112,7 @@ it('keeps 7–10 player Hitler and spectators out of the private recognition she
   expect(input.submit).toHaveBeenCalledWith(
     '确认信息',
     { type: 'secrethitler.night.confirm', step: 1 },
-    { controlledSeat: Number(fascist[0]) },
+    { actionKey: null, controlledSeat: Number(fascist[0]) },
   );
 });
 
@@ -137,7 +137,7 @@ it('shows hands only to their authorized office and submits the actual available
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.presidentDiscard', policy },
-    { controlledSeat: state.phase.presidentSeat },
+    { actionKey: null, controlledSeat: state.phase.presidentSeat },
   );
   await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
   rendered.rerender(<SecrethitlerActionSheet screen={props(state, state.phase.chancellorSeat)} />);
@@ -162,7 +162,7 @@ it('submits a vote directly and closes after success', async () => {
   expect(input.submit).toHaveBeenCalledWith(
     '赞成',
     { type: 'secrethitler.government.castVote', vote: 'ja' },
-    { controlledSeat: 1 },
+    { actionKey: null, controlledSeat: 1 },
   );
   await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
 });
@@ -240,7 +240,7 @@ it('submits the chancellor enact command for the tapped policy card', async () =
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy },
-    { controlledSeat: state.phase.chancellorSeat },
+    { actionKey: null, controlledSeat: state.phase.chancellorSeat },
   );
   await waitFor(() => expect(input.closeAction).toHaveBeenCalled());
 });
@@ -262,7 +262,7 @@ it.each([
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.vetoRespond', approve },
-    { controlledSeat: state.phase.presidentSeat },
+    { actionKey: null, controlledSeat: state.phase.presidentSeat },
   );
 });
 
@@ -281,7 +281,7 @@ it('confirms a veto request before submitting and keeps the hand after a failed 
   expect(input.submit).toHaveBeenCalledWith(
     '请求否决',
     { type: 'secrethitler.policy.chancellorResolve', action: 'veto' },
-    { controlledSeat: state.phase.chancellorSeat },
+    { actionKey: null, controlledSeat: state.phase.chancellorSeat },
   );
   expect(input.closeAction).not.toHaveBeenCalled();
 });

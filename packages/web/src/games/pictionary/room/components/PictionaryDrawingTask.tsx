@@ -96,7 +96,7 @@ export function PictionaryDrawingTask({
         { type: 'pictionary.task.ready.set', isReady: !isReady },
         effectiveSeat,
       ),
-      { controlledSeat, durable: true },
+      { controlledSeat, durable: true, actionKey: null },
     );
   };
 

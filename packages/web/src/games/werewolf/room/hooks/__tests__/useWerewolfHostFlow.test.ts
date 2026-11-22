@@ -72,7 +72,13 @@ describe('useWerewolfHostFlow', () => {
     );
     act(() => result.current.onHostControl('startGame'));
     await act(async () => lastConfirm()());
-    expect(submit).toHaveBeenCalledWith('开始游戏', { type: 'werewolf.game.begin' });
+    expect(submit).toHaveBeenCalledWith(
+      '开始游戏',
+      { type: 'werewolf.game.begin' },
+      {
+        actionKey: 'start-game',
+      },
+    );
     expect(audio.preload).not.toHaveBeenCalled();
   });
 
@@ -88,7 +94,7 @@ describe('useWerewolfHostFlow', () => {
         type: 'werewolf.mvp.select',
         selection: { roleRevealRandomNonce: 'nonce-1', mvpUserId: 'u1' },
       },
-      { durable: true },
+      { durable: true, actionKey: 'select-mvp' },
     );
     expect(result.current.mvpSelection).toBeNull();
   });
@@ -110,11 +116,15 @@ describe('useWerewolfHostFlow', () => {
       await act(async () => lastConfirm()());
       expect(audio.stopNarration).toHaveBeenCalledTimes(1);
       expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
-      expect(submit).toHaveBeenCalledWith('重新开始', {
-        type: 'werewolf.game.restart',
-        gameSequence: 3,
-        wasEnded: status === GameStatus.Ended,
-      });
+      expect(submit).toHaveBeenCalledWith(
+        '重新开始',
+        {
+          type: 'werewolf.game.restart',
+          gameSequence: 3,
+          wasEnded: status === GameStatus.Ended,
+        },
+        { actionKey: 'restart' },
+      );
       const stopOrder = vi.mocked(audio.stopNarration).mock.invocationCallOrder[0];
       const submitOrder = submit.mock.invocationCallOrder[0];
       if (stopOrder === undefined || submitOrder === undefined) throw new Error('[TEST] order');

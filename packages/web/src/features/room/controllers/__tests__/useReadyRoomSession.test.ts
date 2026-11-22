@@ -92,7 +92,11 @@ describe('useReadyRoomSession', () => {
     const { result } = renderHook(() => useReadyRoomSession(link, failureMessage));
     let ok = false;
     await act(async () => {
-      ok = await result.current.submit('测试', { type: 'avalon.noop' }, { controlledSeat: 3 });
+      ok = await result.current.submit(
+        '测试',
+        { type: 'avalon.noop' },
+        { controlledSeat: 3, actionKey: null },
+      );
     });
     expect(ok).toBe(true);
     expect(link.dispatch).toHaveBeenCalledWith(
@@ -102,7 +106,7 @@ describe('useReadyRoomSession', () => {
 
     link.dispatch.mockImplementation(async () => rejectedRoomCommand('nope', 'c2'));
     await act(async () => {
-      ok = await result.current.submit('测试', { type: 'avalon.noop' });
+      ok = await result.current.submit('测试', { type: 'avalon.noop' }, { actionKey: null });
     });
     expect(ok).toBe(false);
     expect(link.dispatch).toHaveBeenLastCalledWith(

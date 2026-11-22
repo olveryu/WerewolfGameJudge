@@ -3,7 +3,7 @@
  *
  * Common actions (start game, fill bots, clear seats, room config) that appear
  * in every game's host management panel. Games provide callbacks; the shared
- * builders ensure consistent labels, icons, and variants.
+ * builders ensure consistent labels, icons, categories, and states.
  *
  * Game-specific actions (e.g., an election advance or a manual settle)
  * stay in the game.
@@ -11,47 +11,39 @@
 
 import { TESTIDS } from '@/testids';
 
-import type { RoomCapability } from './RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostTask,
-  RoomHostTaskStep,
-} from './RoomHostManagement';
+import type { RoomHostAction } from './RoomAction';
+import type { RoomHostTask, RoomHostTaskStep } from './RoomHostManagement';
 
 interface ActionInput {
   readonly onPress: () => void;
   readonly isEnabled?: boolean;
   readonly disabledReason?: string | null;
   readonly isLoading?: boolean;
+  readonly opensDialog?: boolean;
 }
 
 function buildAction(
   key: string,
   label: string,
-  icon: RoomHostManagementAction['icon'],
-  variant: RoomHostManagementAction['variant'],
+  icon: RoomHostAction['icon'],
+  category: RoomHostAction['category'],
   testID: string | undefined,
   input: ActionInput,
-): RoomHostManagementAction {
-  const base = {
+): RoomHostAction {
+  const state =
+    input.isLoading === true
+      ? { kind: 'busy' as const }
+      : input.isEnabled === false
+        ? { kind: 'blocked' as const, reason: input.disabledReason ?? null }
+        : { kind: 'ready' as const, onPress: input.onPress };
+  return {
     key,
     label,
     icon,
-    variant,
-    testID,
-    isLoading: input.isLoading,
-  };
-  if (input.isEnabled === false) {
-    return {
-      ...base,
-      isEnabled: false,
-      disabledReason: input.disabledReason ?? null,
-    };
-  }
-  return {
-    ...base,
-    isEnabled: true,
-    onPress: input.onPress,
+    category,
+    ...(testID === undefined ? {} : { testID }),
+    ...(input.opensDialog === true ? { opensDialog: true } : {}),
+    state,
   };
 }
 
@@ -64,18 +56,17 @@ function buildAction(
 export interface RoomHostActionDescriptor {
   readonly key: string;
   readonly label: string;
-  readonly icon: RoomHostManagementAction['icon'];
-  readonly variant: RoomHostManagementAction['variant'];
+  readonly icon: RoomHostAction['icon'];
+  readonly category: RoomHostAction['category'];
   readonly testID?: string;
-  readonly isLoading?: boolean;
 }
 
 /** Bind a descriptor to its press handler as an enabled action. */
 export function buildEnabledHostAction(
   descriptor: RoomHostActionDescriptor,
   onPress: () => void,
-): RoomHostManagementAction {
-  return { ...descriptor, isEnabled: true, onPress };
+): RoomHostAction {
+  return { ...descriptor, state: { kind: 'ready', onPress } };
 }
 
 /**
@@ -88,38 +79,38 @@ export function buildPendingAwareHostAction(
   descriptor: RoomHostActionDescriptor,
   isPending: boolean,
   onPress: () => void,
-): RoomHostManagementAction {
+): RoomHostAction {
   return isPending
-    ? { ...descriptor, isEnabled: false, disabledReason: null }
+    ? { ...descriptor, state: { kind: 'blocked', reason: null } }
     : buildEnabledHostAction(descriptor, onPress);
 }
 
-/** "开始游戏" — primary action, every game has it. The label is chassis vocabulary: no per-game override. */
-export function buildStartGameAction(input: ActionInput): RoomHostManagementAction {
+/** "开始游戏" — every game has it. The label is chassis vocabulary: no per-game override. */
+export function buildStartGameAction(input: ActionInput): RoomHostAction {
   return buildAction(
     'start-game',
     '开始游戏',
     'play-outline',
-    'primary',
+    'host',
     TESTIDS.startGameButton,
     input,
   );
 }
 
 /** "分配角色" — the deal step: seats are full, roles/words get dealt. */
-export function buildAssignRolesAction(input: ActionInput): RoomHostManagementAction {
+export function buildAssignRolesAction(input: ActionInput): RoomHostAction {
   return buildAction(
     'assign-roles',
     '分配角色',
     'layers-outline',
-    'primary',
+    'host',
     TESTIDS.assignRolesButton,
     input,
   );
 }
 
 /** Reset the current round to preparation without starting another round. */
-export function buildResetToLobbyAction(input: ActionInput): RoomHostManagementAction {
+export function buildResetToLobbyAction(input: ActionInput): RoomHostAction {
   return {
     ...buildAction(
       'restart',
@@ -217,12 +208,12 @@ export function createViewingBeginGate(input: ViewingBeginGateInput): ViewingBeg
 }
 
 /** "填充机器人" — secondary action for filling empty seats with bots. */
-export function buildFillBotsAction(input: ActionInput): RoomHostManagementAction {
+export function buildFillBotsAction(input: ActionInput): RoomHostAction {
   return buildAction(
     'fill-bots',
     '填充机器人',
     'people-outline',
-    'secondary',
+    'host',
     TESTIDS.roomFillBotsButton,
     input,
   );
@@ -234,19 +225,19 @@ export function buildFillBotsAction(input: ActionInput): RoomHostManagementActio
  * the begin checkpoint can pass. Every identity game shows it with
  * this exact descriptor; engines never mark bot seats themselves.
  */
-export function buildMarkBotsViewedAction(input: ActionInput): RoomHostManagementAction {
+export function buildMarkBotsViewedAction(input: ActionInput): RoomHostAction {
   return buildAction(
     'mark-bots-viewed',
     '标记机器人已查看',
     'eye-outline',
-    'secondary',
+    'host',
     TESTIDS.roomMarkBotsViewedButton,
     input,
   );
 }
 
 /** "清空座位" — danger action for clearing all seats. */
-export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAction {
+export function buildClearSeatsAction(input: ActionInput): RoomHostAction {
   return buildAction(
     'clear-seats',
     '清空座位',
@@ -258,33 +249,27 @@ export function buildClearSeatsAction(input: ActionInput): RoomHostManagementAct
 }
 
 /** "房间设置" — secondary action for opening room settings. */
-export function buildRoomConfigAction(input: ActionInput): RoomHostManagementAction {
-  return {
-    ...buildAction(
-      'configure-game',
-      '房间设置',
-      'options-outline',
-      'secondary',
-      TESTIDS.roomSettingsButton,
-      input,
-    ),
-    closeManagementOnPress: false,
-  };
+export function buildRoomConfigAction(input: ActionInput): RoomHostAction {
+  return buildAction(
+    'configure-game',
+    '房间设置',
+    'options-outline',
+    'resource',
+    TESTIDS.roomSettingsButton,
+    { ...input, opensDialog: true },
+  );
 }
 
 /** "音乐设置" — tools-section entry; each game decides when it is offered. */
-export function buildMusicSettingsAction(input: ActionInput): RoomHostManagementAction {
-  return {
-    ...buildAction(
-      HOST_ACTION_KEYS.musicSettings,
-      '音乐设置',
-      'musical-notes-outline',
-      'secondary',
-      TESTIDS.roomMusicSettingsButton,
-      input,
-    ),
-    closeManagementOnPress: false,
-  };
+export function buildMusicSettingsAction(input: ActionInput): RoomHostAction {
+  return buildAction(
+    HOST_ACTION_KEYS.musicSettings,
+    '音乐设置',
+    'musical-notes-outline',
+    'resource',
+    TESTIDS.roomMusicSettingsButton,
+    { ...input, opensDialog: true },
+  );
 }
 
 /** Canonical sheet keys referenced by host tasks across games. */
@@ -297,42 +282,12 @@ export const HOST_ACTION_KEYS = {
   clearSeats: 'clear-seats',
   configureGame: 'configure-game',
   musicSettings: 'music-settings',
-  shareRoom: 'share-room',
   review: 'review',
 } as const;
-
-/**
- * "分享房间" — the room section's share entry, from the room's share
- * capability. It is the remedy a seat-blocked start task references.
- */
-export function buildShareRoomAction(canShareRoom: RoomCapability): RoomHostManagementAction {
-  return canShareRoom.isAllowed
-    ? {
-        key: HOST_ACTION_KEYS.shareRoom,
-        label: '分享房间',
-        icon: 'share-social-outline',
-        variant: 'secondary',
-        testID: TESTIDS.roomShareHostActionButton,
-        placement: 'room-entry',
-        isEnabled: true,
-        onPress: canShareRoom.execute,
-      }
-    : {
-        key: HOST_ACTION_KEYS.shareRoom,
-        label: '分享房间',
-        icon: 'share-social-outline',
-        variant: 'secondary',
-        testID: TESTIDS.roomShareHostActionButton,
-        placement: 'room-entry',
-        isEnabled: false,
-        disabledReason: canShareRoom.reason,
-      };
-}
 
 interface HostTaskExtras {
   readonly steps?: readonly RoomHostTaskStep[];
   readonly note?: string;
-  readonly remedyActionKey?: string;
 }
 
 /** The one declared host task: do the referenced sheet action. */
@@ -343,18 +298,7 @@ export function hostActionTask(actionKey: string, extras: HostTaskExtras = {}): 
 /** Waiting on others or following a board instruction, with an optional escape action. */
 export function hostMessageTask(
   text: string,
-  extras: HostTaskExtras & { readonly actionKey?: string } = {},
+  extras: HostTaskExtras & { readonly escapeActionKey?: string } = {},
 ): RoomHostTask {
   return { kind: 'message', text, ...extras };
-}
-
-/**
- * The shared lobby start task: the start/assign action, with the share-room
- * remedy whenever the sheet carries one (the card renders it only while the
- * action is blocked).
- */
-export function hostStartTask(
-  actionKey: typeof HOST_ACTION_KEYS.startGame | typeof HOST_ACTION_KEYS.assignRoles,
-): RoomHostTask {
-  return hostActionTask(actionKey, { remedyActionKey: HOST_ACTION_KEYS.shareRoom });
 }

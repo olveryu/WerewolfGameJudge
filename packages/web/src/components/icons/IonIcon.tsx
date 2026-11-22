@@ -47,6 +47,7 @@ import IonCloudOfflineOutline from '~icons/ion/cloud-offline-outline';
 import IonCloudOutline from '~icons/ion/cloud-outline';
 import IonCloudUploadOutline from '~icons/ion/cloud-upload-outline';
 import IonColorFillOutline from '~icons/ion/color-fill-outline';
+import IonConstructOutline from '~icons/ion/construct-outline';
 import IonCopyOutline from '~icons/ion/copy-outline';
 import IonCreate from '~icons/ion/create';
 import IonCreateOutline from '~icons/ion/create-outline';
@@ -214,6 +215,7 @@ const ION_ICONS = {
   'cloud-outline': IonCloudOutline,
   'cloud-upload-outline': IonCloudUploadOutline,
   'color-fill-outline': IonColorFillOutline,
+  'construct-outline': IonConstructOutline,
   'copy-outline': IonCopyOutline,
   create: IonCreate,
   'create-outline': IonCreateOutline,

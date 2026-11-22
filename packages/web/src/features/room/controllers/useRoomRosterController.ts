@@ -6,6 +6,7 @@ import type { RoomSeatProfile } from '@game-judge/game-engine/platform/room/rost
 import type { User } from '@/contexts/AuthContext';
 import type { RoomSetupCapabilitiesInput } from '@/features/room/model/RoomCapabilities';
 
+import type { RoomCommandSubmission } from './useRoomCommandSubmission';
 import { useRoomHostOperations } from './useRoomHostOperations';
 import { type RoomProfileController, useRoomProfileController } from './useRoomProfileController';
 import type { RoomSeatSession } from './useRoomSeatCommands';
@@ -26,6 +27,7 @@ export function useRoomRosterController<TState extends BaseGameState<string>>(pa
   readonly session: RoomSeatSession<TState, RoomSeatProfile>;
   readonly user: User;
   readonly mySeat: number | null;
+  readonly submitOperation: RoomCommandSubmission<TState>['submit'];
 }): RoomRosterController {
   const seats = useStandardSeatCommands(params.session, params.user);
   const seatController = useRoomSeatController({
@@ -37,7 +39,11 @@ export function useRoomRosterController<TState extends BaseGameState<string>>(pa
     kickSeat: seats.kickSeat,
     leaveSeat: seats.leaveSeat,
   });
-  const host = useRoomHostOperations({ clearSeats: seats.clearSeats, fillBots: seats.fillBots });
+  const host = useRoomHostOperations({
+    clearSeats: seats.clearSeats,
+    fillBots: seats.fillBots,
+    submitOperation: params.submitOperation,
+  });
   return {
     seatController,
     profile,

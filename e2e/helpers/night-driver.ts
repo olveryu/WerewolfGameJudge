@@ -250,10 +250,6 @@ async function selectAndSubmitSeats(
     await waitForStepAndSettle(page, stepBefore);
     await dismissAlert(page);
     await openActionGroupFor(page, 'startSeatSelection');
-    const room = new RoomPage(page);
-    if (await room.hasPanelPlayerAction(TESTIDS.werewolfNightButton('startSeatSelection'))) {
-      await room.openHostManagement();
-    }
     await nightButton(page, 'startSeatSelection').click({ timeout: CLICK_TIMEOUT_MS });
     for (const seat of seats) {
       const tile = page.getByTestId(TESTIDS.seatTilePressable(seat));
@@ -334,7 +330,6 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
  * dialog, view the hunter status, or skip the step.
  */
 const ADVANCE_BUTTON_KEYS = ['confirm', 'viewHunterStatus', 'skip'] as const;
-const PANEL_NIGHT_BUTTON_KEYS = new Set(['skip', 'wolfEmpty', 'wolfCancel']);
 
 /**
  * Try to advance one page by one click: the open alert's primary button
@@ -366,11 +361,7 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
   return false;
 }
 
-/**
- * Discover expanded actions through their DOM declaration, without opening
- * the panel to probe. A declared action must succeed unless it is withdrawn
- * while acting; still-offered actions fail with room diagnostics.
- */
+/** Try to press an available night action after checking the active step. */
 export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
   const step = await readRoomStep(page);
   if (step === null || !(await isStepUnlocked(page, step))) return false;
@@ -378,37 +369,12 @@ export async function tryClickNightButton(page: Page, key: string, label = ''): 
   if (!(await bottomButton.isVisible()) && !(await alertModal(page).isVisible())) {
     await openActionGroupFor(page, key);
   }
-  const room = new RoomPage(page);
-  const actionId = TESTIDS.werewolfNightButton(key);
-  const isPanelAction =
-    PANEL_NIGHT_BUTTON_KEYS.has(key) && (await room.hasPanelPlayerAction(actionId));
-  if (isPanelAction) {
-    if (await alertModal(page).isVisible()) return false;
-    let panel = page.getByTestId(TESTIDS.roomHostManagementPanel);
-    try {
-      if (!(await panel.isVisible())) panel = await room.openHostManagement();
-      if (!(await isStepUnlocked(page, step))) {
-        if (await panel.isVisible()) await room.closeHostManagement();
-        return false;
-      }
-      await panel.getByTestId(actionId).click({ timeout: CLICK_TIMEOUT_MS });
-    } catch (error) {
-      if (await room.hasPanelPlayerAction(actionId)) {
-        return failNightAction(`Panel action ${step}/${key} failed`, [page], error);
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      log(`panel action withdrawn — ${step}/${key}: ${message}\n${await roomDiagnostics([page])}`);
-      return false;
-    }
-    await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
-  } else {
-    if (
-      !(await bottomButton.isVisible()) ||
-      !(await isStepUnlocked(page, step)) ||
-      !(await clickCapped(bottomButton, `night button ${key}`))
-    ) {
-      return false;
-    }
+  if (
+    !(await bottomButton.isVisible()) ||
+    !(await isStepUnlocked(page, step)) ||
+    !(await clickCapped(bottomButton, `night button ${key}`))
+  ) {
+    return false;
   }
   log(`tryClickNightButton${label} — night button ${key} clicked`);
   return true;
@@ -660,7 +626,7 @@ export async function viewLastNightInfo(hostPage: Page): Promise<string> {
   const action = panel.getByTestId(TESTIDS.lastNightInfoButton);
   await expect(action).toBeEnabled({ timeout: AUDIO_ACK_WAIT_MS });
   await action.click();
-  await expect(panel).toBeVisible();
+  await expect(panel).not.toBeVisible();
   await pressAlertButton(hostPage, {
     title: '提示',
     buttonIndex: 1,
@@ -703,7 +669,7 @@ export async function driveWolfVote(
 
 /**
  * Drive all wolves to vote skip attack (empty kill).
- * Clicks the "放弃袭击" button in the bottom action panel for each wolf.
+ * Clicks the "放弃袭击" button in the shared action hand for each wolf.
  */
 export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): Promise<void> {
   log(`driveWolfEmptyVote wolfIndices=[${wolfIndices}]`);
@@ -723,7 +689,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
  * Drive all wolves to confirm the kill-disabled empty vote.
  *
  * When the wolf kill is disabled (poisoner override on Night 1, or a
- * nightmare block), the bottom panel shows "确认放弃袭击" instead of
+ * nightmare block), the action hand shows "确认放弃袭击" instead of
  * the plain "放弃袭击" button that driveWolfEmptyVote clicks, and the
  * step prompt explains the kill is impossible. Callers must run
  * waitForRoleTurn for 'wolfKill' first, as with the other wolf-vote
@@ -857,19 +823,10 @@ export async function clickNightButton(
   label: string,
   options?: { readonly revealPrivateStatus?: boolean },
 ): Promise<void> {
-  let button = nightButton(page, key);
-  let panel: Locator | null = null;
+  const button = nightButton(page, key);
   if (!(await button.isVisible())) {
     await dismissAlert(page);
     await openActionGroupFor(page, key);
-  }
-  if (PANEL_NIGHT_BUTTON_KEYS.has(key) && !(await button.isVisible().catch(() => false))) {
-    await dismissAlert(page);
-    const existingPanel = page.getByTestId(TESTIDS.roomHostManagementPanel);
-    panel = (await existingPanel.isVisible())
-      ? existingPanel
-      : await new RoomPage(page).openHostManagement();
-    button = panel.getByTestId(TESTIDS.werewolfNightButton(key));
   }
   await dismissAlert(page);
   await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
@@ -878,7 +835,6 @@ export async function clickNightButton(
   if (options?.revealPrivateStatus === true) {
     await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
   }
-  if (panel !== null) await expect(panel).not.toBeVisible({ timeout: CLICK_TIMEOUT_MS });
   log(`clickNightButton — ${key} "${label}" clicked`);
 }
 

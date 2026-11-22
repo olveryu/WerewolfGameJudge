@@ -1,47 +1,13 @@
 /**
  * Render-ready host management model. Games own action availability and execution.
  *
- * Two parts (docs/room-shell-contract.md "Host Task"): `sections` is the
+ * Two parts (docs/room-shell-contract.md "Host Task"): `actions` is the
  * complete command inventory — every host command's onPress lives there and
  * only there; `task` is the one declared "what the host does now", which
  * references sheet actions by key and never carries a handler of its own.
  */
 
-import type { IoniconName } from '@/components/icons/IonIcon';
-
-type RoomHostManagementIconName = IoniconName;
-
-type RoomHostManagementActionAvailability =
-  | {
-      readonly isEnabled: true;
-      readonly onPress: () => void;
-    }
-  | {
-      readonly isEnabled: false;
-      readonly disabledReason: string | null;
-    };
-
-interface RoomHostManagementActionBase {
-  readonly key: string;
-  readonly label: string;
-  readonly icon: RoomHostManagementIconName;
-  readonly variant: 'primary' | 'secondary' | 'ghost' | 'danger';
-  readonly testID?: string;
-  readonly isLoading?: boolean;
-  readonly category?: 'host' | 'resource';
-  readonly closeManagementOnPress?: boolean;
-  readonly placement?: 'room-entry';
-  readonly stageMenuRole?: 'abort';
-}
-
-export type RoomHostManagementAction = RoomHostManagementActionBase &
-  RoomHostManagementActionAvailability;
-
-export interface RoomHostManagementSection {
-  readonly key: string;
-  readonly title: string;
-  readonly actions: readonly RoomHostManagementAction[];
-}
+import type { RoomHostAction } from './RoomAction';
 
 /** One step of a multi-step host flow rendered on the task card. */
 export interface RoomHostTaskStep {
@@ -57,8 +23,6 @@ interface RoomHostTaskBase {
   readonly steps?: readonly RoomHostTaskStep[];
   /** Reminder rendered under the task. */
   readonly note?: string;
-  /** A concrete remedy for a blocked action, referenced by sheet key. */
-  readonly remedyActionKey?: string;
 }
 
 /**
@@ -70,7 +34,7 @@ export type RoomHostTask = RoomHostTaskBase &
   (
     | { readonly kind: 'action'; readonly actionKey: string }
     | { readonly kind: 'choice'; readonly actionKeys: readonly string[] }
-    | { readonly kind: 'message'; readonly text: string; readonly actionKey?: string }
+    | { readonly kind: 'message'; readonly text: string; readonly escapeActionKey?: string }
   );
 
 export interface RoomHostManagementModel {
@@ -80,8 +44,8 @@ export interface RoomHostManagementModel {
   readonly pendingActionKeys?: readonly string[];
   /** A required decision with alternative remedies, rather than a single required action. */
   readonly hasPendingDecision?: boolean;
-  /** The complete command inventory (the sheet). */
-  readonly sections: readonly RoomHostManagementSection[];
+  /** The complete host action inventory. */
+  readonly actions: readonly RoomHostAction[];
 }
 
 /** Label for the persistent host-management entry. Referenced by hints; do not hardcode. */

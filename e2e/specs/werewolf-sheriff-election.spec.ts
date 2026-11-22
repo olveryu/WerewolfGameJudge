@@ -46,7 +46,6 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await waitForHostAudioAck(setup.hostCommands);
     await viewLastNightInfo(setup.hostPage);
     await dismissAlert(setup.hostPage);
-    await hostRoom.closeHostManagement();
     await hostElection.expectHostRegistrationActions('register');
     await hostRoom.screenshot(testInfo, 'sheriff-election-host-registration-desktop.png');
     const desktopViewport = setup.hostPage.viewportSize();

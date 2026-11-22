@@ -117,9 +117,13 @@ it('lets the overdue Secret Hitler host retry public-result settlement', () => {
   const rendered = render(<SecrethitlerPublicResult screen={props} />);
   try {
     fireEvent.click(screen.getByTestId(TESTIDS.stageSettleRescueRetryButton));
-    expect(submit).toHaveBeenCalledWith('重新推进', {
-      type: 'secrethitler.phase.retrySettle',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新推进',
+      {
+        type: 'secrethitler.phase.retrySettle',
+      },
+      { actionKey: null },
+    );
   } finally {
     rendered.unmount();
     vi.useRealTimers();
@@ -146,7 +150,7 @@ it('shows a pending private investigation only to its president until explicit a
   expect(submit).toHaveBeenCalledWith(
     '确认调查结果',
     { type: 'secrethitler.action.acknowledgeInvestigation' },
-    { controlledSeat: seat },
+    { actionKey: null, controlledSeat: seat },
   );
   expect(screen.getByRole('dialog', { name: '私密调查结果' })).toBeVisible();
   rerender(
@@ -189,10 +193,8 @@ it('allows assigning roles when every occupied seat is a bot', () => {
       canShareRoom: denied,
     },
   });
-  const assignAction = panel.sections
-    .flatMap((section) => section.actions)
-    .find((action) => action.label === '分配角色');
-  expect(assignAction?.isEnabled).toBe(true);
+  const assignAction = panel.actions.find((action) => action.label === '分配角色');
+  expect(assignAction?.state.kind).toBe('ready');
 });
 
 it.each(['lobby', 'viewing'] as const)('hides the match summary during %s', (phase) => {
@@ -286,12 +288,8 @@ it('uses electronic first-night guidance without a reading script or manual prog
     },
   });
   expect(panel.task).toBeNull();
-  const actions = panel.sections.flatMap((section) => section.actions);
-  expect(actions.map((action) => action.label)).toEqual([
-    '重播当前语音',
-    '标记机器人已确认',
-    '重新开始',
-  ]);
+  const actions = panel.actions;
+  expect(actions.map((action) => action.label)).toEqual(['标记机器人已确认', '重新开始']);
 });
 
 it('keeps terminal details behind the shared record dialog and preserves results and labels', async () => {

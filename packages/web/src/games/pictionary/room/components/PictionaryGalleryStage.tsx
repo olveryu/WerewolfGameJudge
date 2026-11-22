@@ -76,7 +76,7 @@ export function PictionaryGalleryStage({
   }
   // 画廊导航是房主命令：不带接管座位、durable（跨重连重放到服务端裁决）。
   const galleryCommand = (label: string, input: PictionaryCommandInput) =>
-    submit(label, createPictionaryCommand(state, input, null), { durable: true });
+    submit(label, createPictionaryCommand(state, input, null), { durable: true, actionKey: null });
   // 房主自救：画廊自动推进的结算逾期时，房主可重新推进。
   const rescue = (
     <StageSettleRescue

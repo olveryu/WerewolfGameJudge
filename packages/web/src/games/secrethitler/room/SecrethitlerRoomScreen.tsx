@@ -35,7 +35,6 @@ import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { TESTIDS } from '@/testids';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 
 import {
   secrethitlerVoteFailImage,
@@ -57,6 +56,7 @@ import {
   SECRETHITLER_POWER_COPY,
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
+import { SECRETHITLER_GAME_ACTION_KEY } from './secrethitlerRoomAdapter';
 import { SecrethitlerRoomTracks } from './SecrethitlerRoomTracks';
 
 type SecrethitlerRoomScreenProps = GameRoomScreenProps<'secrethitler'> & {
@@ -104,7 +104,11 @@ function SecrethitlerRoomContent(
   return (
     <RoomShell
       model={screen.shellModel}
-      selectionMode={screen.isSelecting ? 'player' : undefined}
+      selectionMode={
+        screen.isSelecting
+          ? { kind: 'player', escapeActionKey: SECRETHITLER_GAME_ACTION_KEY }
+          : undefined
+      }
       phaseLabel={
         isLobby
           ? '待开局'
@@ -121,25 +125,32 @@ function SecrethitlerRoomContent(
           ? { label: '分配角色', occupiedSeats: getSecrethitlerOccupiedSeatCount(screen.state) }
           : null
       }
-      configurationEntry={isPreGame ? null : { onOpen: () => setInformation('configuration') }}
-      mainEntries={
-        showHistory
+      directory={{
+        main: showHistory
           ? [
               {
+                key: 'history',
                 label: '对局记录',
-                icon: <IconDocumentTextOutline aria-hidden />,
-                onOpen: () => setHistoryVisible(true),
+                category: 'resource',
+                icon: 'document-text-outline',
+                opensDialog: true,
+                state: { kind: 'ready', onPress: () => setHistoryVisible(true) },
               },
             ]
-          : []
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('secrethitler'),
-        },
-      ]}
+          : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('secrethitler'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration: isPreGame ? null : () => setInformation('configuration'),
+      }}
       content={{
         kind: 'seats',
         contextHeader: null,
@@ -148,7 +159,6 @@ function SecrethitlerRoomContent(
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
-        sideInspector: null,
       }}
       leadingExtraActions={
         screen.isHost && screen.state.phase.kind === 'night' ? (
@@ -257,7 +267,13 @@ export function SecrethitlerPublicResult({
         isOverdue={isOverdue}
         isHost={screen.isHost}
         isRetrying={screen.isSubmitting}
-        onRetry={() => void screen.submit('重新推进', { type: 'secrethitler.phase.retrySettle' })}
+        onRetry={() =>
+          void screen.submit(
+            '重新推进',
+            { type: 'secrethitler.phase.retrySettle' },
+            { actionKey: null },
+          )
+        }
         waitingLabel="等待进入下一阶段…"
       />
     </CenterDialog>
@@ -280,7 +296,7 @@ export function SecrethitlerInvestigationResult({
     void screen.submit(
       '确认调查结果',
       { type: 'secrethitler.action.acknowledgeInvestigation' },
-      { controlledSeat: screen.controlledSeat },
+      { controlledSeat: screen.controlledSeat, actionKey: null },
     );
   return (
     <CenterDialog open title="私密调查结果" requireConfirmation onClose={acknowledge}>

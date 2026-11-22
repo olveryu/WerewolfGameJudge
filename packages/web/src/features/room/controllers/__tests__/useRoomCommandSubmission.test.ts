@@ -29,6 +29,7 @@ describe('useRoomCommandSubmission', () => {
     const { result } = renderHook(() => useRoomCommandSubmission(() => '请重试'));
     await act(async () => {
       await result.current.submit('操作', async () => rejectedRoomCommand('stale'), {
+        actionKey: null,
         onRejection,
       });
     });
@@ -36,7 +37,10 @@ describe('useRoomCommandSubmission', () => {
     expect(mockShowErrorAlert).not.toHaveBeenCalled();
     onRejection.mockClear();
     await act(async () => {
-      await result.current.submit('操作', async () => undeliveredRoomCommand(), { onRejection });
+      await result.current.submit('操作', async () => undeliveredRoomCommand(), {
+        actionKey: null,
+        onRejection,
+      });
     });
     expect(onRejection).not.toHaveBeenCalled();
     expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '请重试');
@@ -46,6 +50,7 @@ describe('useRoomCommandSubmission', () => {
     const { result } = renderHook(() => useRoomCommandSubmission(() => '权限不足'));
     await act(async () => {
       await result.current.submit('操作', async () => rejectedRoomCommand('forbidden'), {
+        actionKey: null,
         onRejection: () => false,
       });
     });
@@ -63,12 +68,34 @@ describe('useRoomCommandSubmission', () => {
     let succeeded: boolean | null = null;
 
     await act(async () => {
-      succeeded = await result.current.submit('清空座位', operation);
+      succeeded = await result.current.submit('清空座位', operation, { actionKey: null });
     });
 
     expect(succeeded).toBe(true);
     expect(getFailureMessage).not.toHaveBeenCalled();
     expect(mockShowErrorAlert).not.toHaveBeenCalled();
+  });
+
+  it('exposes and clears the key of the action currently being submitted', async () => {
+    let resolveOperation!: (outcome: DispatchOutcome<typeof state>) => void;
+    const operation = new Promise<DispatchOutcome<typeof state>>((resolve) => {
+      resolveOperation = resolve;
+    });
+    const { result } = renderHook(() => useRoomCommandSubmission(() => '请重试'));
+    let submission!: Promise<boolean>;
+
+    act(() => {
+      submission = result.current.submit('开始游戏', () => operation, { actionKey: 'start-game' });
+    });
+    expect(result.current.isSubmitting).toBe(true);
+    expect(result.current.pendingActionKey).toBe('start-game');
+
+    await act(async () => {
+      resolveOperation(successfulRoomCommand(state, 'start-command'));
+      await submission;
+    });
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.pendingActionKey).toBeNull();
   });
 
   it('presents an authoritative rejection through the supplied game message policy', async () => {
@@ -79,7 +106,7 @@ describe('useRoomCommandSubmission', () => {
     let succeeded: boolean | null = null;
 
     await act(async () => {
-      succeeded = await result.current.submit('清空座位', operation);
+      succeeded = await result.current.submit('清空座位', operation, { actionKey: null });
     });
 
     expect(succeeded).toBe(false);
@@ -95,7 +122,10 @@ describe('useRoomCommandSubmission', () => {
     let succeeded: boolean | null = null;
 
     await act(async () => {
-      succeeded = await result.current.submit('操作', operation, { domainRejection: 'state' });
+      succeeded = await result.current.submit('操作', operation, {
+        actionKey: null,
+        domainRejection: 'state',
+      });
     });
 
     expect(succeeded).toBe(false);
@@ -109,7 +139,7 @@ describe('useRoomCommandSubmission', () => {
     const { result } = renderHook(() => useRoomCommandSubmission(getFailureMessage));
 
     await act(async () => {
-      await result.current.submit('操作', operation, { domainRejection: 'state' });
+      await result.current.submit('操作', operation, { actionKey: null, domainRejection: 'state' });
     });
 
     expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '当前行动步骤已变化，请重新选择');
@@ -122,7 +152,7 @@ describe('useRoomCommandSubmission', () => {
     const { result } = renderHook(() => useRoomCommandSubmission(getFailureMessage));
 
     await act(async () => {
-      await result.current.submit('操作', operation, { domainRejection: 'state' });
+      await result.current.submit('操作', operation, { actionKey: null, domainRejection: 'state' });
     });
 
     expect(mockShowErrorAlert).toHaveBeenCalledWith('操作失败', '网络异常，请检查网络后重试');
@@ -136,7 +166,10 @@ describe('useRoomCommandSubmission', () => {
 
     await act(async () => {
       await expect(
-        result.current.submit('确认查验结果', operation, { transportFailure: 'toastAndRethrow' }),
+        result.current.submit('确认查验结果', operation, {
+          actionKey: null,
+          transportFailure: 'toastAndRethrow',
+        }),
       ).rejects.toMatchObject({ name: 'RoomCommandUndeliveredError' });
     });
 
@@ -154,7 +187,10 @@ describe('useRoomCommandSubmission', () => {
 
     await act(async () => {
       await expect(
-        result.current.submit('确认查验结果', operation, { transportFailure: 'toastAndRethrow' }),
+        result.current.submit('确认查验结果', operation, {
+          actionKey: null,
+          transportFailure: 'toastAndRethrow',
+        }),
       ).rejects.toBe(error);
     });
     expect(mockShowErrorAlert).not.toHaveBeenCalled();
@@ -168,6 +204,7 @@ describe('useRoomCommandSubmission', () => {
 
     await act(async () => {
       succeeded = await result.current.submit('操作', operation, {
+        actionKey: null,
         transportFailure: 'toastAndRethrow',
       });
     });

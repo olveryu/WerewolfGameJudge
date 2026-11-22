@@ -92,6 +92,10 @@ describe('useRoomSetupController', () => {
           isRoomFull: false,
           configureGame,
           shareRoom,
+          submitOperation: async (_label, operation) => {
+            await operation();
+            return true;
+          },
         }),
       {
         initialProps: { isSetup: true, mySeat: null as number | null },

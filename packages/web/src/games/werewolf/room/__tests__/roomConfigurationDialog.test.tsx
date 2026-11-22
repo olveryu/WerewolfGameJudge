@@ -135,6 +135,7 @@ describe('Werewolf room configuration', () => {
       await user.clear(notes);
       await user.type(notes, '2号投给3号');
       await click(dialog.getByRole('button', { name: '关闭详情' }));
+      await click(view.getByRole('button', { name: '手册' }));
       await click(view.getByRole('button', { name: '笔记' }));
       expect(
         within(await view.findByRole('dialog', { name: '笔记' })).getByRole('textbox', {
@@ -144,7 +145,7 @@ describe('Werewolf room configuration', () => {
     },
   );
 
-  it('reads the shared encyclopedia in the room and returns to the manual', async () => {
+  it('reads the shared encyclopedia in the room and returns to the main hand', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
     await click(view.getByRole('button', { name: '手册' }));
     expect(view.queryByRole('button', { name: '笔记' })).not.toBeInTheDocument();
@@ -153,7 +154,7 @@ describe('Werewolf room configuration', () => {
     expect(dialog.getByText('胜负目标')).toBeVisible();
     expect(dialog.getByRole('tab', { name: /角色/ })).toBeVisible();
     await click(dialog.getByRole('button', { name: '关闭详情' }));
-    expect(view.getByRole('group', { name: '手册' })).toBeVisible();
+    expect(view.getByRole('group', { name: '行动手牌' })).toBeVisible();
     expect(view.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
   });
 
@@ -189,8 +190,6 @@ describe('Werewolf room configuration', () => {
     expect(selectionHand.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     await cancelSeatSelection(view);
-    expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
-    await click(view.getByRole('button', { name: '返回' }));
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 
@@ -200,13 +199,13 @@ describe('Werewolf room configuration', () => {
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
     await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
 
-    expect(bottom.getByRole('region', { name: '主持管理' })).toBeVisible();
+    expect(bottom.getByRole('group', { name: '主持管理' })).toBeVisible();
     expect(bottom.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     const back = bottom.getByRole('button', { name: '返回' });
     expect(back).toHaveFocus();
     await click(back);
 
-    expect(bottom.queryByRole('region', { name: '主持管理' })).not.toBeInTheDocument();
+    expect(bottom.queryByRole('group', { name: '主持管理' })).not.toBeInTheDocument();
     expect(bottom.getByRole('button', { name: '本局配置' })).toBeVisible();
     expect(bottom.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveFocus();
   });

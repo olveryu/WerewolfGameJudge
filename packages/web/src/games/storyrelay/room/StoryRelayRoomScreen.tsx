@@ -81,13 +81,22 @@ function StoryRelayRoomContent(
           ? { label: '开始游戏', occupiedSeats: getStoryRelayOccupiedSeatCount(screen.state) }
           : null
       }
-      stageMenu={
-        hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
-      }
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
-      manualEntries={[
-        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('storyrelay') },
-      ]}
+      actionSurface={hasStageMenu ? 'menu' : 'hand'}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('storyrelay'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: openGuide },
+          },
+        ],
+        openConfiguration: isLobby ? null : openConfiguration,
+      }}
       content={
         isLobby
           ? {
@@ -95,7 +104,6 @@ function StoryRelayRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="轮流讲故事"

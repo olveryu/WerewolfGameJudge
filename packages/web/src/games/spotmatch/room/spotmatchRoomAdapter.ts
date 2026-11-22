@@ -24,22 +24,19 @@ import {
   buildFillBotsAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostStartTask,
+  hostActionTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
+import type { RoomHostAction } from '@/features/room/model/RoomAction';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
-} from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-} from '@/features/room/model/RoomHostManagement';
+} from '@/features/room/model/RoomPlayerActions';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -104,7 +101,7 @@ export interface SpotmatchRoomShellModelInput extends Omit<
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
-  | 'bottomActions'
+  | 'playerActions'
   | 'controlledSeat'
 > {
   readonly state: SpotmatchState;
@@ -125,11 +122,15 @@ export interface SpotmatchHostManagementInput {
   readonly state: SpotmatchState;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
   >;
   readonly isSubmitting: boolean;
   readonly isScorePause: boolean;
-  readonly submit: (label: string, command: SpotmatchCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: SpotmatchCommand,
+    options: { readonly actionKey: string | null },
+  ) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
 }
@@ -139,7 +140,7 @@ export function createSpotmatchHostManagement(
   input: SpotmatchHostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities } = input;
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
@@ -152,7 +153,12 @@ export function createSpotmatchHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitStart = () => void input.submit('开始游戏', { type: 'spotmatch.game.begin' });
+    const submitStart = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'spotmatch.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
       isEnabled: !input.isSubmitting && canStart,
@@ -161,20 +167,9 @@ export function createSpotmatchHostManagement(
     });
     // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
-      task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      task: hostActionTask(HOST_ACTION_KEYS.startGame),
       pendingActionKeys: [HOST_ACTION_KEYS.startGame],
-      sections: [
-        {
-          key: 'game',
-          title: '游戏',
-          actions: [startAction],
-        },
-        {
-          key: 'room',
-          title: '房间管理',
-          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
-      ],
+      actions: [startAction, ...roomActions],
     };
   }
   const expectedPhase = state.phase.kind;
@@ -187,11 +182,15 @@ export function createSpotmatchHostManagement(
           : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'spotmatch.game.restart',
-            gameSequence: state.gameSequence,
-            expectedPhase,
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'spotmatch.game.restart',
+              gameSequence: state.gameSequence,
+              expectedPhase,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting && !input.isScorePause,
@@ -203,26 +202,14 @@ export function createSpotmatchHostManagement(
     return {
       task: null,
       pendingActionKeys: [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [buildReviewHostAction(input.review), restart],
-        },
-      ],
+      actions: [buildReviewHostAction(input.review), restart],
     };
   }
   // 局中房主面板常驻：房间管理区始终在；此刻没有待操作。
   return {
     task: null,
     pendingActionKeys: [],
-    sections: [
-      {
-        key: 'room',
-        title: '房间管理',
-        actions: [...roomActions, restart],
-      },
-    ],
+    actions: [...roomActions, restart],
   };
 }
 
@@ -249,8 +236,7 @@ export function createSpotmatchRoomShellModel(input: SpotmatchRoomShellModelInpu
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
     }),
-    bottomActions: {
-      kind: 'stacked',
+    playerActions: {
       // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
       message:
         state.phase.kind === 'playing'
@@ -259,15 +245,10 @@ export function createSpotmatchRoomShellModel(input: SpotmatchRoomShellModelInpu
             ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
             : buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       progress: null,
+      group: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
-      layout: {
-        primary: [],
-        secondary:
-          input.review === null
-            ? []
-            : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer),
-        ghost: [],
-      },
+      actions:
+        input.review === null ? [] : buildViewerReviewBottomButtons(input.review, input.viewer),
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

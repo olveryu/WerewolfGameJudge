@@ -13,12 +13,12 @@ import {
 } from '@game-judge/game-engine/games/avalon/public';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import { TESTIDS } from '@/testids';
 
 import {
@@ -137,6 +137,7 @@ const share = {
 function baseInput(state: AvalonState): AvalonRoomShellModelInput {
   return {
     roomCode: '1234',
+    pendingActionKey: null,
     capabilities: capabilities(),
     onBack: vi.fn(),
     onTitlePress: vi.fn(),
@@ -192,11 +193,11 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -229,11 +230,11 @@ describe('createAvalonRoomShellModel', () => {
       viewer: { userId: 'u2', isHost: false, seat: 2 },
       effectiveSeat: 2,
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: '等待房主分配角色',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -249,23 +250,16 @@ describe('createAvalonRoomShellModel', () => {
       effectiveSeat: 2,
     };
     const before = createAvalonRoomShellModel(input);
-    expect(before.bottomActions.kind).toBe('stacked');
-    if (before.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    expect(before.bottomActions.message).toBe('请点击下方「查看身份」，查看你的角色');
-    expect(
-      before.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
-    ).toMatchObject({
+    expect(before.playerActions.message).toBe('请点击下方「查看身份」，查看你的角色');
+    expect(before.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: true,
       category: 'resource',
     });
 
     running.send({ type: 'avalon.role.viewed' }, 'u2');
     const after = createAvalonRoomShellModel({ ...input, state: running.state });
-    if (after.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    expect(after.bottomActions.message).toBeNull();
-    expect(
-      after.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
-    ).toMatchObject({
+    expect(after.playerActions.message).toBeNull();
+    expect(after.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: false,
     });
   });
@@ -279,20 +273,14 @@ describe('createAvalonRoomShellModel', () => {
       isLobby: false,
       onViewRolePress,
     });
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    // 2026 规则：查看阶段的查看身份是 primary，其余阶段是 secondary，永不进 ghost。
-    expect(model.bottomActions.layout.secondary).toEqual([]);
-    expect(model.bottomActions.layout.ghost).toEqual([]);
-    const viewRole = model.bottomActions.layout.primary.find((action) => action.key === 'viewRole');
+    const viewRole = model.playerActions.actions.find((action) => action.key === 'viewRole');
     expect(viewRole).toMatchObject({
       label: '查看身份',
-      variant: 'primary',
-      size: 'md',
-      isEnabled: true,
+      category: 'resource',
+      state: { kind: 'ready' },
       testID: TESTIDS.roomViewIdentityButton,
     });
-    if (viewRole && viewRole.isEnabled) viewRole.onPress();
+    if (viewRole?.state.kind === 'ready') viewRole.state.onPress();
     expect(onViewRolePress).toHaveBeenCalledTimes(1);
   });
 
@@ -325,26 +313,21 @@ describe('createAvalonRoomShellModel', () => {
     // the enabled confirm step (no disabled audio-waiting placeholder).
     expect(running.state.isAudioPlaying).toBe(true);
     const during = createAvalonRoomShellModel(nightInput);
-    if (during.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const duringInfo = during.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
-    // Tier regression pin (the reported bug): at night the stage
-    // action 确认信息 sits in the primary tier while the persistent
-    // 查看身份 sits in the secondary tier — different rows, never one row.
-    expect(during.bottomActions.layout.primary.map((action) => action.key)).toEqual(['nightInfo']);
-    expect(during.bottomActions.layout.secondary.map((action) => action.key)).toEqual(['viewRole']);
-    expect(during.bottomActions.layout.ghost).toEqual([]);
+    const duringInfo = during.playerActions.actions.find((action) => action.key === 'nightInfo');
+    expect(during.playerActions.actions.map((action) => action.key)).toEqual([
+      'nightInfo',
+      'viewRole',
+    ]);
     expect(duringInfo).toMatchObject({
       label: '确认信息',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: 'avalon-night-info',
     });
-    if (duringInfo && duringInfo.isEnabled) duringInfo.onPress();
+    if (duringInfo?.state.kind === 'ready') duringInfo.state.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(1);
     // The night step progress rides the bottom model during the night.
-    expect(during.bottomActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
-    expect(during.bottomActions.progress).not.toBeNull();
+    expect(during.playerActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
+    expect(during.playerActions.progress).not.toBeNull();
     // Drain the queued narration; the confirm action stays the same.
     let guard = 0;
     while (running.state.isAudioPlaying && guard < 10) {
@@ -353,16 +336,13 @@ describe('createAvalonRoomShellModel', () => {
     }
     expect(running.state.isAudioPlaying).toBe(false);
     const after = createAvalonRoomShellModel({ ...nightInput, state: running.state });
-    if (after.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const nightInfo = after.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
+    const nightInfo = after.playerActions.actions.find((action) => action.key === 'nightInfo');
     expect(nightInfo).toMatchObject({
       label: '确认信息',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: 'avalon-night-info',
     });
-    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
+    if (nightInfo?.state.kind === 'ready') nightInfo.state.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(2);
 
     for (const state of [nightInput.state, running.state]) {
@@ -409,16 +389,13 @@ describe('createAvalonRoomShellModel', () => {
       effectiveSeat: evilSeat,
       onNightInfoPress,
     });
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const nightInfo = model.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
+    const nightInfo = model.playerActions.actions.find((action) => action.key === 'nightInfo');
     expect(nightInfo).toMatchObject({
       label: '确认信息',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: 'avalon-night-info',
     });
-    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
+    if (nightInfo?.state.kind === 'ready') nightInfo.state.onPress();
     expect(onNightInfoPress).toHaveBeenCalledTimes(1);
     // The confirm command itself dispatches and is recorded while the
     // audio gate is still open; the step settles only once the host ack
@@ -546,20 +523,12 @@ function shellFor(
     effectiveSeat: seat,
     ...overrides,
   });
-  if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-  return model.bottomActions;
+  return model.playerActions;
 }
 
-/** Finds a stage action by key across the stage tiers (primary + secondary). */
-function findStageAction(bottom: RoomBottomStackModel, key: string) {
-  return [...bottom.layout.primary, ...bottom.layout.secondary].find(
-    (action) => action.key === key,
-  );
-}
-
-/** Finds a stage action by key in one exact tier (tier-ownership pins). */
-function findTierAction(bottom: RoomBottomStackModel, tier: 'primary' | 'secondary', key: string) {
-  return bottom.layout[tier].find((action) => action.key === key);
+/** Finds a player action by its stable key. */
+function findStageAction(bottom: RoomPlayerActionModel, key: string) {
+  return bottom.actions.find((action) => action.key === key);
 }
 
 function roleSeat(running: RunningSession, roleId: string): number {
@@ -627,14 +596,12 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const preselect = findStageAction(empty, 'preselectTeam');
     expect(preselect).toMatchObject({
       label: '预选队伍',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-nominate-preselect',
     });
-    expect(findTierAction(empty, 'primary', 'preselectTeam')).toBe(preselect);
-    expect(findTierAction(empty, 'secondary', 'preselectTeam')).toBeUndefined();
     expect(findStageAction(empty, 'proposeTeam')).toBeUndefined();
-    if (preselect && preselect.isEnabled) preselect.onPress();
+    if (preselect?.state.kind === 'ready') preselect.state.onPress();
     expect(onPreselectTeamPress).toHaveBeenCalledTimes(1);
     // 预选回声到后主按钮翻成「最终队伍」，预选按钮消失（这笔是造回声用的
     // 引擎前置，不是按钮门禁）。
@@ -648,12 +615,11 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const final = findStageAction(preselected, 'proposeTeam');
     expect(final).toMatchObject({
       label: '最终队伍',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-nominate-submit',
     });
-    expect(findTierAction(preselected, 'primary', 'proposeTeam')).toBe(final);
-    if (final && final.isEnabled) final.onPress();
+    if (final?.state.kind === 'ready') final.state.onPress();
     expect(onProposeTeamPress).toHaveBeenCalledTimes(1);
   });
 
@@ -682,10 +648,13 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onEarlyStrikePress = vi.fn();
     const assassinBottom = shellFor(running, assassin, { onEarlyStrikePress });
     const strike = findStageAction(assassinBottom, 'earlyStrike');
-    expect(strike).toMatchObject({ label: '刺杀', isEnabled: true, testID: 'avalon-early-strike' });
-    expect(findTierAction(assassinBottom, 'secondary', 'earlyStrike')).toBe(strike);
-    expect(strike).toMatchObject({ variant: 'secondary' });
-    if (strike && strike.isEnabled) strike.onPress();
+    expect(strike).toMatchObject({
+      label: '刺杀',
+      state: { kind: 'ready' },
+      testID: 'avalon-early-strike',
+    });
+    expect(strike).toMatchObject({ category: 'player', state: { kind: 'ready' } });
+    if (strike?.state.kind === 'ready') strike.state.onPress();
     expect(onEarlyStrikePress).toHaveBeenCalledTimes(1);
     const merlinBottom = shellFor(running, roleSeat(running, 'merlin'));
     expect(findStageAction(merlinBottom, 'earlyStrike')).toBeUndefined();
@@ -699,21 +668,14 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(bottom.message).toBe(
       '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
     );
-    // 独占底部区：只剩局内常驻「查看身份」与取消入口，阶段主按钮（如提交队伍）不出现。
-    // 层级归属：查看身份与取消刺杀同在 secondary 层，primary 为空。
-    expect(bottom.layout.ghost).toEqual([]);
-    expect(bottom.layout.secondary.map((action) => action.key)).toEqual([
-      'viewRole',
-      'earlyStrike',
-    ]);
-    expect(bottom.layout.primary).toEqual([]);
+    expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
     const cancel = findStageAction(bottom, 'earlyStrike');
     expect(cancel).toMatchObject({
       label: '取消刺杀',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: 'avalon-early-strike',
     });
-    if (cancel && cancel.isEnabled) cancel.onPress();
+    if (cancel?.state.kind === 'ready') cancel.state.onPress();
     expect(onCancelEarlyStrikePress).toHaveBeenCalledTimes(1);
   });
 
@@ -729,12 +691,11 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const open = findStageAction(before, 'openVote');
     expect(open).toMatchObject({
       label: '去投票',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-vote-open',
     });
-    expect(findTierAction(before, 'primary', 'openVote')).toBe(open);
-    if (open && open.isEnabled) open.onPress();
+    if (open?.state.kind === 'ready') open.state.onPress();
     expect(onOpenVotePress).toHaveBeenCalledTimes(1);
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(voter));
     const cast = shellFor(running, voter);
@@ -779,8 +740,6 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       isPending: true,
       testID: 'avalon-quest-open',
     });
-    expect(findTierAction(memberBottom, 'primary', 'openQuest')).toBeDefined();
-    expect(findTierAction(memberBottom, 'secondary', 'openQuest')).toBeUndefined();
     running.send({ type: 'avalon.quest.play', play: 'fail' }, seatUser(evil));
     const played = shellFor(running, evil);
     expect(findStageAction(played, 'openQuest')).toMatchObject({
@@ -871,7 +830,6 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     const pendingShell = shellFor(running, pending);
     expect(pendingShell.message).toBeNull();
     expect(findStageAction(pendingShell, 'nightInfo')).toMatchObject({ isPending: true });
-    expect(findTierAction(pendingShell, 'primary', 'nightInfo')).toBeDefined();
     running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
     const confirmedShell = shellFor(running, pending);
     expect(confirmedShell.message).toBe('等待本步玩家确认');
@@ -985,17 +943,17 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     const openReview = vi.fn();
     const hostBottom = shellFor(running, 0, { review: { isEnabled: true, onPress: openReview } });
-    expect(findTierAction(hostBottom, 'secondary', 'review')).toBeUndefined();
+    expect(hostBottom.actions.find((action) => action.key === 'review')).toBeUndefined();
     const bottom = shellFor(running, 2, { review: { isEnabled: true, onPress: openReview } });
-    const review = findTierAction(bottom, 'secondary', 'review');
+    const review = findStageAction(bottom, 'review');
     expect(review).toMatchObject({
       label: '本局复盘',
       audience: 'anyone',
-      variant: 'secondary',
-      isEnabled: true,
+      category: 'resource',
+      state: { kind: 'ready' },
       testID: 'room-review-open',
     });
-    if (review && review.isEnabled) review.onPress();
+    if (review?.state.kind === 'ready') review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
     expect(() => shellFor(running, 2)).toThrow('[FAIL-FAST] Avalon ended has no review entry');
   });

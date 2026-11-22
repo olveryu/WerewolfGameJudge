@@ -4,7 +4,7 @@
  * and its sheet. Pure data; the shell renders it.
  */
 
-import { isRoomBottomActionModelEmpty } from './RoomBottomActions';
+import { isRoomPlayerActionModelEmpty } from './RoomPlayerActions';
 import type { RoomSeatDataSource, RoomSeatStatusBadge } from './RoomSeatDataSource';
 import type { RoomShellModel } from './RoomShellModel';
 
@@ -135,9 +135,9 @@ export function countRoomStageRoster(groups: RoomStageRosterGroups): {
  * model that still carries bottom content, narration or a host task is an adapter bug.
  */
 export function assertRoomStageShellModel(
-  model: Pick<RoomShellModel, 'bottomActions' | 'isAudioPlaying' | 'hostManagement'>,
+  model: Pick<RoomShellModel, 'playerActions' | 'isAudioPlaying' | 'hostManagement'>,
 ): void {
-  if (!isRoomBottomActionModelEmpty(model.bottomActions)) {
+  if (!isRoomPlayerActionModelEmpty(model.playerActions)) {
     throw new Error('Stage content cannot carry bottom actions, messages or progress');
   }
   if (model.isAudioPlaying) {

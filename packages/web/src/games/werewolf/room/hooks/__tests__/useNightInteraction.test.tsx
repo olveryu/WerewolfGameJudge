@@ -116,15 +116,15 @@ describe('useNightInteraction wolfVote seat taps', () => {
       result.current.onSeatTap(4);
     });
     expect(result.current.seatSelection).toBeNull();
-    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }, 'startSeatSelection'));
     act(() => {
       result.current.onSeatTap(4);
     });
     expect(result.current.seatSelection?.confirm?.label).toBe('确认袭击 5号');
     expect(submit).not.toHaveBeenCalled();
-    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }, 'cancelSeatSelection'));
     expect(result.current.seatSelection).toBeNull();
-    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }, 'startSeatSelection'));
     expect(result.current.seatSelection?.confirm).toBeNull();
     act(() => {
       result.current.onSeatTap(4);
@@ -142,7 +142,7 @@ describe('useNightInteraction wolfVote seat taps', () => {
     expect(submit).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ input: { kind: 'target', target: 4 } }),
-      expect.anything(),
+      expect.objectContaining({ actionKey: null }),
     );
   });
 
@@ -161,7 +161,7 @@ describe('useNightInteraction wolfVote seat taps', () => {
 
   it('does not submit a confirmation after the selection has changed', async () => {
     const { result, submit } = renderWolfNight();
-    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }, 'startSeatSelection'));
     act(() => {
       result.current.onSeatTap(4);
     });
@@ -177,12 +177,12 @@ describe('useNightInteraction wolfVote seat taps', () => {
 
   it('dismisses a seat confirmation when selection mode is cancelled', () => {
     const { result } = renderWolfNight();
-    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'startSeatSelection' }, 'startSeatSelection'));
     act(() => {
       result.current.onSeatTap(4);
     });
 
-    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }));
+    act(() => result.current.onNightButton({ kind: 'cancelSeatSelection' }, 'cancelSeatSelection'));
 
     expect(dismissAlert).toHaveBeenCalledWith(42);
   });
@@ -198,11 +198,12 @@ describe('private status disclosure', () => {
       }),
       viewerSeat: 0,
       action: { kind: 'openGroupReveal' } as const,
+      actionKey: 'groupConfirmAck',
       command: 'werewolf.groupConfirm.ack',
     },
   ])(
     'asks before disclosure and submits only after acknowledgement',
-    async ({ state, viewerSeat, action, command }) => {
+    async ({ state, viewerSeat, action, actionKey, command }) => {
       const submit = vi.fn(async (): Promise<boolean> => true);
       const { result } = renderHook(() =>
         useNightInteraction({
@@ -220,7 +221,7 @@ describe('private status disclosure', () => {
         }),
       );
       vi.clearAllMocks();
-      act(() => result.current.onNightButton(action));
+      act(() => result.current.onNightButton(action, actionKey));
       expect(showDismissAlert).not.toHaveBeenCalled();
       expect(submit).not.toHaveBeenCalled();
       const confirmationCall = vi.mocked(showConfirmAlert).mock.calls.at(-1);
@@ -240,7 +241,7 @@ describe('private status disclosure', () => {
       expect(submit).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ type: command }),
-        expect.anything(),
+        expect.objectContaining({ actionKey }),
       );
     },
   );
@@ -298,7 +299,7 @@ describe('useNightInteraction nightStatusLine', () => {
       { initialProps: { currentState: state } },
     );
     vi.clearAllMocks();
-    act(() => result.current.onNightButton({ kind: 'openGroupReveal' }));
+    act(() => result.current.onNightButton({ kind: 'openGroupReveal' }, 'groupConfirmAck'));
     const view = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
     if (view === undefined) throw new Error('Missing view callback');
     rerender({ currentState: nextState });

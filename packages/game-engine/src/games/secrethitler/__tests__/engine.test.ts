@@ -498,35 +498,6 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
       true,
     );
   });
-  it('replays only the current host narration without clearing recognition confirmations', () => {
-    const current = game();
-    assignAndViewAll(current);
-    current.send({ type: 'secrethitler.game.begin' });
-    acknowledgeAudio(current);
-    acknowledgeAudio(current);
-    const participant = getSecrethitlerNightParticipants(current.session.state)[0];
-    if (participant === undefined) throw new Error('Missing night participant');
-    current.send({ type: 'secrethitler.night.confirm', step: 1 }, current.seatUser(participant));
-    const phase = current.session.state.phase;
-    const previousBatch = current.session.state.audioBatchId;
-    current.session.expectReject(
-      { type: 'secrethitler.night.replay', step: 0 },
-      SECRETHITLER_REASONS.nightStep,
-    );
-    current.session.expectReject(
-      { type: 'secrethitler.night.replay', step: 1 },
-      SECRETHITLER_REASONS.notHostNightReplay,
-      'u1',
-    );
-    current.send({ type: 'secrethitler.night.replay', step: 1 });
-    expect(current.session.state.phase).toEqual(phase);
-    expect(current.session.state.isAudioPlaying).toBe(true);
-    expect(current.session.state.pendingAudioEffects).toEqual([{ audioKey: 'evil_reveal_5_6' }]);
-    expect(current.session.state.audioBatchId).toBe(previousBatch + 1);
-    current.send({ type: 'secrethitler.audio.ack', audioBatchId: previousBatch });
-    expect(current.session.state.isAudioPlaying).toBe(true);
-    expect(current.session.state.audioBatchId).toBe(previousBatch + 1);
-  });
   it('deals the exact 5–10 player role matrix deterministically from the command seed', () => {
     for (let count = 5; count <= 10; count += 1) {
       const first = game(count, count, `roles:${count}`);
@@ -576,8 +547,6 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
       current.seatUser(1),
     );
     expect(denied).toEqual({ kind: 'reject', reason: SECRETHITLER_REASONS.notHostAckAudio });
-    const blocked = current.session.decide({ type: 'secrethitler.night.replay', step: 1 });
-    expect(blocked).toEqual({ kind: 'reject', reason: SECRETHITLER_REASONS.audioPlaying });
     acknowledgeAudio(current);
     expect(current.session.state.pendingAudioEffects).toEqual([]);
     const hitlerSeat = Number(

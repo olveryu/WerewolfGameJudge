@@ -259,7 +259,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     },
     FIRST_VOTE,
   ] satisfies readonly SheriffElectionState[])(
-    'lets the host grant review access from the task during $phase',
+    'lets the host grant review access from the host hand during $phase',
     async (election) => {
       const harness = new RoomScreenTestHarness();
       const detachAlerts = recordAlerts(harness);
@@ -285,8 +285,10 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
             createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
           ),
         );
-        const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-        await click(task.getByTestId(TESTIDS.shareReviewButton));
+        // Every host action returns to the main hand, so the host reopens management.
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        const hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
+        await click(hostHand.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
         const [firstSeat] = within(picker).getAllByRole('checkbox');
         if (firstSeat === undefined) throw new Error('Expected a player to authorize');
@@ -301,10 +303,11 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         await waitFor(() =>
           expect(screen.queryByTestId(TESTIDS.shareReviewModal)).not.toBeInTheDocument(),
         );
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
         if (election.phase === 'candidateSpeech') {
-          expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
+          await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
           expect(
-            within(screen.getByTestId(TESTIDS.roomHostTaskCard)).getByTestId(
+            within(screen.getByTestId(TESTIDS.roomHostManagementPanel)).getByTestId(
               TESTIDS.sheriffSelfDestructButton,
             ),
           ).toBeInTheDocument();
@@ -330,6 +333,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       await click(screen.getByTestId(TESTIDS.lastNightInfoButton));
       await harness.pressButton('确定查看');
       await harness.pressButton('知道了');
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       expect(screen.getByTestId(TESTIDS.shareReviewButton)).toHaveAttribute(
         'aria-disabled',
         'true',
@@ -351,9 +355,11 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     });
     const screen = await mountWerewolfRoom(mock);
     await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
-    const task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-    expect(task.getByTestId(TESTIDS.shareReviewButton)).not.toHaveAttribute('aria-disabled');
-    expect(task.getByTestId(TESTIDS.shareReviewButton)).toHaveAccessibleDescription('有待处理操作');
+    const hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
+    expect(hostHand.getByTestId(TESTIDS.shareReviewButton)).not.toHaveAttribute('aria-disabled');
+    expect(hostHand.getByTestId(TESTIDS.shareReviewButton)).toHaveAccessibleDescription(
+      '有待处理操作',
+    );
   });
 
   it.each([390, WIDE_VIEWPORT_WIDTH])(
@@ -373,9 +379,9 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
         });
         const screen = await mountWerewolfRoom(reactive.mock, { viewportWidth });
         await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
-        let task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-        expect(task.queryByRole('list')).not.toBeInTheDocument();
-        await click(task.getByTestId(TESTIDS.lastNightInfoButton));
+        let hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
+        expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
+        await click(hostHand.getByTestId(TESTIDS.lastNightInfoButton));
         await harness.pressButton('确定查看');
         await harness.pressButton('知道了');
         act(() =>
@@ -384,15 +390,16 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           }),
         );
 
-        expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
-        task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-        expect(task.queryByRole('list')).not.toBeInTheDocument();
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
+        expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
         const choiceTestIds = new Set<string>([
           TESTIDS.roomReviewHostAction,
           TESTIDS.shareReviewButton,
           TESTIDS.restartButton,
         ]);
-        const choices = task
+        const choices = hostHand
           .getAllByRole('button')
           .filter((button) => choiceTestIds.has(button.dataset.testid ?? ''));
         expect(choices.map((button) => button.dataset.testid)).toEqual([
@@ -400,22 +407,25 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           TESTIDS.shareReviewButton,
           TESTIDS.restartButton,
         ]);
-        expect(task.getByTestId(TESTIDS.shareReviewButton)).toHaveAccessibleDescription(
+        expect(hostHand.getByTestId(TESTIDS.shareReviewButton)).toHaveAccessibleDescription(
           '有待处理操作',
         );
         expect(
-          task.getByTestId(TESTIDS.roomReviewHostAction).querySelector('.bottom-action-pending'),
+          hostHand
+            .getByTestId(TESTIDS.roomReviewHostAction)
+            .querySelector('.bottom-action-pending'),
         ).toBeNull();
-        expect(task.getByTestId(TESTIDS.roomReviewHostAction)).toHaveAttribute(
+        expect(hostHand.getByTestId(TESTIDS.roomReviewHostAction)).toHaveAttribute(
           'aria-disabled',
           'true',
         );
-        await click(task.getByTestId(TESTIDS.shareReviewButton));
+        await click(hostHand.getByTestId(TESTIDS.shareReviewButton));
         const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
         await click(within(picker).getByRole('button', { name: '取消' }));
-        expect(screen.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
-        task = within(screen.getByTestId(TESTIDS.roomHostTaskCard));
-        expect(task.queryByRole('list')).not.toBeInTheDocument();
+        expect(screen.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
+        await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
+        hostHand = within(screen.getByTestId(TESTIDS.roomHostManagementPanel));
+        expect(hostHand.queryByRole('list')).not.toBeInTheDocument();
 
         act(() =>
           reactive.simulateStateUpdate({
@@ -426,8 +436,10 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
             },
           }),
         );
-        expect(task.getByTestId(TESTIDS.roomReviewHostAction)).not.toHaveAttribute('aria-disabled');
-        await click(task.getByTestId(TESTIDS.shareReviewButton));
+        expect(hostHand.getByTestId(TESTIDS.roomReviewHostAction)).not.toHaveAttribute(
+          'aria-disabled',
+        );
+        await click(hostHand.getByTestId(TESTIDS.shareReviewButton));
         expect(await screen.findByTestId(TESTIDS.shareReviewModal)).toBeInTheDocument();
       } finally {
         detachAlerts();
@@ -475,6 +487,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
           createRoomSnapshot({ ...mock.state, lastNightInfoConfirmed: true }, 2),
         ),
       );
+      await click(screen.getByTestId(TESTIDS.roomMoreActionsButton));
       await click(screen.getByTestId(TESTIDS.shareReviewButton));
       const picker = await screen.findByTestId(TESTIDS.shareReviewModal);
       const playerSeats = within(picker).getAllByRole('checkbox');

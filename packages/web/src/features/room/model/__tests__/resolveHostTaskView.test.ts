@@ -4,32 +4,34 @@
  * malformed tasks fail at assembly.
  */
 import { resolveHostTaskView } from '../resolveHostTaskView';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostTask,
-} from '../RoomHostManagement';
+import type { RoomHostAction } from '../RoomAction';
+import type { RoomHostManagementModel, RoomHostTask } from '../RoomHostManagement';
 
-function enabled(key: string, onPress: () => void = vi.fn()): RoomHostManagementAction {
-  return { key, label: key, icon: 'play-outline', variant: 'primary', isEnabled: true, onPress };
-}
-
-function disabled(key: string, disabledReason: string | null): RoomHostManagementAction {
+function enabled(key: string, onPress: () => void = vi.fn()): RoomHostAction {
   return {
     key,
     label: key,
     icon: 'play-outline',
-    variant: 'primary',
-    isEnabled: false,
-    disabledReason,
+    category: 'host',
+    state: { kind: 'ready', onPress },
+  };
+}
+
+function disabled(key: string, disabledReason: string | null): RoomHostAction {
+  return {
+    key,
+    label: key,
+    icon: 'play-outline',
+    category: 'host',
+    state: { kind: 'blocked', reason: disabledReason },
   };
 }
 
 function model(
   task: RoomHostTask | null,
-  actions: readonly RoomHostManagementAction[],
+  actions: readonly RoomHostAction[],
 ): RoomHostManagementModel {
-  return { task, sections: [{ key: 'flow', title: '流程', actions }] };
+  return { task, actions };
 }
 
 describe('resolveHostTaskView', () => {
@@ -59,34 +61,23 @@ describe('resolveHostTaskView', () => {
     const view = resolveHostTaskView(
       model({ kind: 'action', actionKey: 'start-game' }, [enabled('start-game', onPress)]),
     );
-    if (view?.body.kind !== 'ready') throw new Error('expected ready');
-    expect(view.body.action.onPress).toBe(onPress);
+    if (view?.body.kind !== 'action') throw new Error('expected action');
+    expect(view.body.action.state).toEqual({ kind: 'ready', onPress });
     expect(view.steps).toBeNull();
     expect(view.note).toBeNull();
   });
 
-  it('renders a disabled action as blocked with its reason and an enabled remedy', () => {
-    const share = vi.fn();
+  it('keeps the blocked action state on the task body', () => {
     const view = resolveHostTaskView(
-      model({ kind: 'action', actionKey: 'start-game', remedyActionKey: 'share-room' }, [
+      model({ kind: 'action', actionKey: 'start-game' }, [
         disabled('start-game', '座位尚未坐满（还差 2 人）'),
-        enabled('share-room', share),
       ]),
     );
-    if (view?.body.kind !== 'blocked') throw new Error('expected blocked');
-    expect(view.body.reason).toBe('座位尚未坐满（还差 2 人）');
-    expect(view.body.remedy?.onPress).toBe(share);
-  });
-
-  it('drops the remedy when the remedy action itself is unavailable', () => {
-    const view = resolveHostTaskView(
-      model({ kind: 'action', actionKey: 'start-game', remedyActionKey: 'share-room' }, [
-        disabled('start-game', '座位尚未坐满'),
-        disabled('share-room', '当前阶段不能分享房间'),
-      ]),
-    );
-    if (view?.body.kind !== 'blocked') throw new Error('expected blocked');
-    expect(view.body.remedy).toBeNull();
+    if (view?.body.kind !== 'action') throw new Error('expected action');
+    expect(view.body.action.state).toEqual({
+      kind: 'blocked',
+      reason: '座位尚未坐满（还差 2 人）',
+    });
   });
 
   it('resolves a choice to its actions in order', () => {
@@ -102,7 +93,7 @@ describe('resolveHostTaskView', () => {
 
   it('resolves a message with an optional escape action', () => {
     const view = resolveHostTaskView(
-      model({ kind: 'message', text: '等待玩家', actionKey: 'mark-bots-viewed' }, [
+      model({ kind: 'message', text: '等待玩家', escapeActionKey: 'mark-bots-viewed' }, [
         enabled('mark-bots-viewed'),
       ]),
     );

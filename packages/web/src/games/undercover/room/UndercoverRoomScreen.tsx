@@ -114,19 +114,23 @@ function UndercoverRoomContent(
           ? { label: '分配角色', occupiedSeats: getUndercoverOccupiedSeatCount(state) }
           : null
       }
-      selectionMode={controls.isSelecting ? 'host-task' : undefined}
-      configurationEntry={
-        !isPreGame && !controls.isSelecting
-          ? { onOpen: () => setInformation('configuration') }
-          : null
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('undercover'),
-        },
-      ]}
+      selectionMode={controls.isSelecting ? { kind: 'host-task' } : undefined}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('undercover'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration:
+          !isPreGame && !controls.isSelecting ? () => setInformation('configuration') : null,
+      }}
       leadingExtraActions={null}
       trailingExtraActions={null}
       profileDetailsRenderer={(userId, onGamesPlayedChange) => (
@@ -142,7 +146,6 @@ function UndercoverRoomContent(
               action={null}
             />
           ) : null,
-        sideInspector: null,
         afterSeatBoard: null,
         beforeSeatBoard: (
           <>

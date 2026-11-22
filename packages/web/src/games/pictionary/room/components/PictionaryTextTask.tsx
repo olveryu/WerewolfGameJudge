@@ -138,7 +138,7 @@ export function PictionaryTextTask({
         { type: 'pictionary.task.ready.set', isReady: !isReady },
         effectiveSeat,
       ),
-      { controlledSeat, durable: true },
+      { controlledSeat, durable: true, actionKey: null },
     );
   };
 

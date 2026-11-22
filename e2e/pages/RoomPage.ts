@@ -148,26 +148,11 @@ export class RoomPage {
   // Host Management
   // ---------------------------------------------------------------------------
 
-  /** Read enabled player actions without opening or waiting for the optional surface. */
-  async hasPanelPlayerAction(actionTestId: string): Promise<boolean> {
-    return this.page
-      .getByTestId(TESTIDS.roomMoreActionsButton)
-      .evaluateAll(
-        (entries, target) =>
-          entries.some((entry) =>
-            entry.getAttribute('data-player-action-ids')?.split(' ').includes(target),
-          ),
-        actionTestId,
-      );
-  }
-
   /** Open the shared actions surface and return its visible panel. */
   async openHostManagement(): Promise<Locator> {
     const panel = this.page.getByTestId(TESTIDS.roomHostManagementPanel);
     if (await panel.isVisible()) return panel;
-    const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
-    const stageHostManagementEntry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
-    const entry = moreActionsEntry.or(stageHostManagementEntry).first();
+    const entry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
     await expect(entry).toBeVisible({ timeout: 15_000 });
     await entry.click();
     await expect(panel).toBeVisible();
@@ -177,8 +162,13 @@ export class RoomPage {
   /** Close the shared actions surface. */
   async closeHostManagement(): Promise<void> {
     const close = this.page.getByTestId(TESTIDS.roomHostManagementCloseButton);
-    await expect(close).toHaveAccessibleName(/^(关闭(更多操作|主持管理)|返回)$/);
+    await expect(close).toHaveAccessibleName('返回');
     await close.click();
+    await this.expectHostManagementClosed();
+  }
+
+  /** Assert every host action has already returned the hand to the main hand. */
+  async expectHostManagementClosed(): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }
 
@@ -212,7 +202,6 @@ export class RoomPage {
     const action = panel.getByTestId(actionTestID);
     await expect(action).toHaveAttribute('aria-disabled', 'true');
     await expect(action).toHaveAccessibleDescription(reason);
-    await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
     await this.closeHostManagement();
   }
 
@@ -221,8 +210,7 @@ export class RoomPage {
     const bottomAction = this.page.getByTestId(actionTestID);
     await expect(bottomAction).toHaveCount(0);
     const moreActionsEntry = this.page.getByTestId(TESTIDS.roomMoreActionsButton);
-    const stageHostManagementEntry = this.page.getByTestId(TESTIDS.roomHostManagementButton);
-    if ((await moreActionsEntry.isVisible()) || (await stageHostManagementEntry.isVisible())) {
+    if (await moreActionsEntry.isVisible()) {
       const panel = await this.openHostManagement();
       await expect(panel.getByTestId(actionTestID)).toHaveCount(0);
       await this.closeHostManagement();
@@ -354,9 +342,7 @@ export class RoomPage {
     if (previousPhase === null) throw new Error('Room header has no current phase');
     await this.clickHostManagementActionAndConfirm(TESTIDS.startGameButton, '开始游戏？');
     await expect(header).not.toHaveAttribute('data-phase', previousPhase, { timeout: 15_000 });
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await this.closeHostManagement();
-    }
+    await this.expectHostManagementClosed();
   }
 
   /** Confirm restart and wait for the role-assignment action. */

@@ -34,30 +34,24 @@ import {
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
-  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
+import type { RoomHostAction, RoomPlayerAction } from '@/features/room/model/RoomAction';
+import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import {
   buildEndedWaitingMessage,
   buildLobbyHostStartMessage,
   buildViewIdentityButton,
   resolveViewIdentityAction,
-  type RoomBottomButton,
-} from '@/features/room/model/RoomBottomActions';
-import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomHostManagementAction,
-  RoomHostManagementModel,
-  RoomHostManagementSection,
-} from '@/features/room/model/RoomHostManagement';
+} from '@/features/room/model/RoomPlayerActions';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import { createRoomSeatTapIntentResolver } from '@/features/room/model/RoomSeatTap';
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -73,6 +67,9 @@ import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardA
 import { getSecrethitlerNightStepLabel, secrethitlerInstruction } from './secrethitlerPresentation';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
+/** The phase action, which also leaves the president's seat selection. */
+export const SECRETHITLER_GAME_ACTION_KEY = 'game-action';
+
 const getSecrethitlerProfileTarget = (
   state: SecrethitlerState,
   seat: number,
@@ -141,7 +138,7 @@ export interface SecrethitlerRoomShellModelInput extends Omit<
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
-  | 'bottomActions'
+  | 'playerActions'
   | 'controlledSeat'
 > {
   readonly state: SecrethitlerState;
@@ -169,7 +166,11 @@ export interface SecrethitlerHostManagementInput {
     'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: SecrethitlerCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: SecrethitlerCommand,
+    options: { readonly actionKey: string | null },
+  ) => Promise<boolean>;
   /** 本局复盘入口；终局时必有。 */
   readonly review: RoomReviewEntry | null;
   readonly onMusicSettings: () => void;
@@ -184,7 +185,7 @@ export function createSecrethitlerHostManagement(
     (participant) => participant.isBot && !state.roleViewedSeats.includes(participant.seat),
   );
   const tools = createSecrethitlerHostTools(input, hasUnviewedBot);
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
@@ -197,7 +198,12 @@ export function createSecrethitlerHostManagement(
     const startDisabledReason = canStart
       ? null
       : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
-    const submitAssign = () => void input.submit('分配角色', { type: 'secrethitler.roles.assign' });
+    const submitAssign = () =>
+      void input.submit(
+        '分配角色',
+        { type: 'secrethitler.roles.assign' },
+        { actionKey: HOST_ACTION_KEYS.assignRoles },
+      );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
         showConfirmAlert(
@@ -209,23 +215,10 @@ export function createSecrethitlerHostManagement(
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
     });
-    // 分享房间常驻大厅房间区（禁用时带原因），是座位不满时任务卡的补救。
     return {
-      task: hostStartTask(HOST_ACTION_KEYS.assignRoles),
+      task: hostActionTask(HOST_ACTION_KEYS.assignRoles),
       pendingActionKeys: [HOST_ACTION_KEYS.assignRoles],
-      sections: [
-        {
-          key: 'game',
-          title: '游戏',
-          actions: [assignAction],
-        },
-        {
-          key: 'room',
-          title: '房间管理',
-          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
-        ...tools,
-      ],
+      actions: [assignAction, ...roomActions, ...tools],
     };
   }
   if (state.phase.kind === 'viewing') {
@@ -238,7 +231,12 @@ export function createSecrethitlerHostManagement(
       submitting: input.isSubmitting,
       notViewedCopy: viewedProgressReason(progress.viewedCount, progress.totalSeats, '身份'),
     });
-    const submitBegin = () => void input.submit('开始游戏', { type: 'secrethitler.game.begin' });
+    const submitBegin = () =>
+      void input.submit(
+        '开始游戏',
+        { type: 'secrethitler.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const beginAction = buildStartGameAction({
       onPress: () =>
         showConfirmAlert(
@@ -250,18 +248,7 @@ export function createSecrethitlerHostManagement(
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
     });
-    const sections: RoomHostManagementSection[] = [
-      {
-        key: 'game',
-        title: '游戏',
-        actions: [beginAction],
-      },
-    ];
-    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
-    const task = hostActionTask(
-      HOST_ACTION_KEYS.startGame,
-      hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
-    );
+    const task = hostActionTask(HOST_ACTION_KEYS.startGame);
     const hostSeat = getSecrethitlerUserSeat(state, state.hostUserId);
     return {
       task,
@@ -269,7 +256,7 @@ export function createSecrethitlerHostManagement(
         hostSeat !== null && !state.roleViewedSeats.includes(hostSeat)
           ? []
           : [HOST_ACTION_KEYS.startGame],
-      sections: [...sections.filter((section) => section.actions.length > 0), ...tools],
+      actions: [beginAction, ...roomActions, ...tools],
     };
   }
   if (state.phase.kind === 'ended') {
@@ -278,33 +265,21 @@ export function createSecrethitlerHostManagement(
     return {
       task: { kind: 'choice', actionKeys: [HOST_ACTION_KEYS.review, 'restart'] },
       pendingActionKeys: input.review.isPending ? [HOST_ACTION_KEYS.review] : [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [buildReviewHostAction(input.review), buildSecrethitlerRestartAction(input)],
-        },
+      actions: [
+        buildReviewHostAction(input.review),
+        buildSecrethitlerRestartAction(input),
         ...tools,
       ],
     };
   }
-  if (state.phase.kind === 'night') {
-    const night = createNightHostManagement(input);
-    return { ...night, sections: [...night.sections, ...tools] };
-  }
   return {
     task: null,
     pendingActionKeys: [],
-    sections: [
-      ...(roomActions.length > 0 ? [{ key: 'room', title: '房间管理', actions: roomActions }] : []),
-      ...tools,
-    ],
+    actions: [...roomActions, ...tools],
   };
 }
 
-function buildSecrethitlerRestartAction(
-  input: SecrethitlerHostManagementInput,
-): RoomHostManagementAction {
+function buildSecrethitlerRestartAction(input: SecrethitlerHostManagementInput): RoomHostAction {
   const { state } = input;
   return buildResetToLobbyAction({
     onPress: () =>
@@ -317,11 +292,15 @@ function buildSecrethitlerRestartAction(
           : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
         '重新开始',
         async () => {
-          await input.submit('重新开始', {
-            type: 'secrethitler.game.restart',
-            gameSequence: state.gameSequence,
-            wasEnded: state.phase.kind === 'ended',
-          });
+          await input.submit(
+            '重新开始',
+            {
+              type: 'secrethitler.game.restart',
+              gameSequence: state.gameSequence,
+              wasEnded: state.phase.kind === 'ended',
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
       ),
     isEnabled: !input.isSubmitting,
@@ -332,21 +311,24 @@ function buildSecrethitlerRestartAction(
 function createSecrethitlerHostTools(
   input: SecrethitlerHostManagementInput,
   hasUnviewedBot: boolean,
-): RoomHostManagementSection[] {
+): RoomHostAction[] {
   const { state } = input;
-  const actions: RoomHostManagementAction[] = [];
+  const actions: RoomHostAction[] = [];
   if (state.phase.kind === 'lobby' || state.phase.kind === 'viewing')
     actions.push(buildMusicSettingsAction({ onPress: input.onMusicSettings }));
-  const sections: RoomHostManagementSection[] = [];
   if (state.phase.kind !== 'lobby' && state.phase.kind !== 'ended') {
     if (hasUnviewedBot)
       actions.push(
         buildMarkBotsViewedAction({
           onPress: () =>
             showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
-              void input.submit('标记机器人已查看', {
-                type: 'secrethitler.bots.markAllBotsViewed',
-              });
+              void input.submit(
+                '标记机器人已查看',
+                {
+                  type: 'secrethitler.bots.markAllBotsViewed',
+                },
+                { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+              );
             }),
           isEnabled: !input.isSubmitting,
           isLoading: input.isSubmitting,
@@ -365,63 +347,25 @@ function createSecrethitlerHostTools(
             key: 'mark-bots-confirmed',
             label: '标记机器人已确认',
             icon: 'checkmark-done-outline',
-            variant: 'secondary',
+            category: 'host',
             testID: TESTIDS.roomMarkBotsConfirmedButton,
-            isLoading: input.isSubmitting,
           },
           input.isSubmitting,
           () =>
             showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
-              void input.submit('标记机器人已确认', {
-                type: 'secrethitler.bots.markAllBotsGroupConfirmed',
-              });
+              void input.submit(
+                '标记机器人已确认',
+                {
+                  type: 'secrethitler.bots.markAllBotsGroupConfirmed',
+                },
+                { actionKey: 'mark-bots-confirmed' },
+              );
             }),
         ),
       );
-    sections.push({
-      key: 'danger',
-      title: '危险操作',
-      actions: [buildSecrethitlerRestartAction(input)],
-    });
+    actions.push(buildSecrethitlerRestartAction(input));
   }
-  if (actions.length > 0) sections.unshift({ key: 'tools', title: '辅助工具', actions });
-  return sections;
-}
-
-function createNightHostManagement(
-  input: SecrethitlerHostManagementInput,
-): RoomHostManagementModel {
-  const { state } = input;
-  if (state.phase.kind !== 'night') throw new Error('Night host management requires night phase');
-  const phase = state.phase;
-  return {
-    task: null,
-    pendingActionKeys: [],
-    sections: [
-      {
-        key: 'night',
-        title: '首夜语音',
-        actions: [
-          {
-            key: 'narration-replay',
-            label: '重播当前语音',
-            icon: 'play-outline',
-            variant: 'secondary',
-            ...(!input.isSubmitting
-              ? {
-                  isEnabled: true,
-                  onPress: () =>
-                    void input.submit('重播语音', {
-                      type: 'secrethitler.night.replay',
-                      step: phase.step,
-                    }),
-                }
-              : { isEnabled: false, disabledReason: '正在提交' }),
-          },
-        ],
-      },
-    ],
-  };
+  return actions;
 }
 
 /** Assembles the Secrethitler RoomShellModel from the hook's projections. */
@@ -443,7 +387,6 @@ export function createSecrethitlerRoomShellModel(
       ? null
       : buildViewIdentityButton(identityAction, {
           key: 'view-identity',
-          variant: state.phase.kind === 'viewing' ? 'primary' : 'secondary',
           audience: 'participant',
           isSubmitting: input.isSubmitting,
           isPending:
@@ -451,19 +394,18 @@ export function createSecrethitlerRoomShellModel(
             effectiveSeat !== null &&
             !state.roleViewedSeats.includes(effectiveSeat),
         });
-  const actionButton: RoomBottomButton | null =
+  const actionButton: RoomPlayerAction | null =
     instruction.action === null
       ? null
       : {
-          key: 'game-action',
+          key: SECRETHITLER_GAME_ACTION_KEY,
           label: input.isSelecting ? '取消选座' : instruction.action,
           audience: 'participant',
-          variant: 'primary',
-          size: 'md',
+          category: 'player',
           isPending: state.phase.kind !== 'voting' || view.myVote === null,
-          ...(input.isSubmitting
-            ? { isEnabled: false, disabledReason: '正在提交' }
-            : { isEnabled: true, onPress: input.openAction }),
+          state: input.isSubmitting
+            ? { kind: 'blocked', reason: '正在提交' }
+            : { kind: 'ready', onPress: input.openAction },
         };
   const seatSource = createSecrethitlerSeatDataSource({
     state,
@@ -485,8 +427,7 @@ export function createSecrethitlerRoomShellModel(
       onClose: input.onProfileClose,
       onLeaveSeat: input.onProfileLeaveSeat,
     }),
-    bottomActions: {
-      kind: 'stacked',
+    playerActions: {
       // 底部按钮必须声明 audience（participant / host / anyone），壳工厂按 viewer 校验。
       message: input.isSelecting
         ? '请选择座位，点击后确认'
@@ -503,22 +444,15 @@ export function createSecrethitlerRoomShellModel(
               label: getSecrethitlerNightStepLabel(state.phase.step),
             }
           : null,
+      group: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
-      layout: {
-        primary:
-          actionButton !== null
-            ? [actionButton]
-            : identityButton?.variant === 'primary'
-              ? [identityButton]
-              : [],
-        secondary: [
-          ...(identityButton?.variant === 'secondary' ? [identityButton] : []),
-          ...(input.review === null
-            ? []
-            : buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)),
-        ],
-        ghost: [],
-      },
+      actions: [
+        ...(actionButton === null ? [] : [actionButton]),
+        ...(identityButton === null ? [] : [identityButton]),
+        ...(input.review === null
+          ? []
+          : buildViewerReviewBottomButtons(input.review, input.viewer)),
+      ],
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

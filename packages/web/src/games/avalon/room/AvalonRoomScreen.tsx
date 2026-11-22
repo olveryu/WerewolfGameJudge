@@ -29,14 +29,17 @@ import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer'
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { AvalonGuide } from '../screens/AvalonGuideScreen';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
-import { createAvalonCurrentStatus, createAvalonHistorySummary } from './avalonRoomAdapter';
+import {
+  AVALON_EARLY_STRIKE_ACTION_KEY,
+  createAvalonCurrentStatus,
+  createAvalonHistorySummary,
+} from './avalonRoomAdapter';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -127,12 +130,16 @@ function AvalonRoomContent(
     setStrikeConfirm(null);
     const controlledSeat = screen.controlledSeat;
     if (mode === 'accuse')
-      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, { controlledSeat });
+      void screen.submit(
+        '指认',
+        { type: 'avalon.assassin.accuse', seat },
+        { controlledSeat, actionKey: null },
+      );
     else
       void screen.submit(
         '提前刺杀',
         { type: 'avalon.assassin.earlyStrike', seat },
-        { controlledSeat },
+        { controlledSeat, actionKey: null },
       );
     setStrikePickMode(false);
   };
@@ -236,29 +243,40 @@ function AvalonRoomContent(
           ? { label: '分配角色', occupiedSeats: getAvalonOccupiedSeatCount(screen.state) }
           : null
       }
-      selectionMode={screen.strikePickMode ? 'player' : undefined}
-      mainEntries={
-        historySummary !== null && viewModel !== null
-          ? [
-              {
-                label: '对局记录',
-                testId: TESTIDS.avalonHistoryButton,
-                icon: <IconDocumentTextOutline aria-hidden />,
-                onOpen: () => setHistoryVisible(true),
-              },
-            ]
-          : []
+      selectionMode={
+        screen.strikePickMode
+          ? { kind: 'player', escapeActionKey: AVALON_EARLY_STRIKE_ACTION_KEY }
+          : undefined
       }
-      configurationEntry={
-        !isPreGame && viewModel !== null ? { onOpen: () => setInformation('configuration') } : null
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('avalon'),
-        },
-      ]}
+      directory={{
+        main:
+          historySummary !== null && viewModel !== null
+            ? [
+                {
+                  key: 'history',
+                  label: '对局记录',
+                  category: 'resource',
+                  icon: 'document-text-outline',
+                  testID: TESTIDS.avalonHistoryButton,
+                  opensDialog: true,
+                  state: { kind: 'ready', onPress: () => setHistoryVisible(true) },
+                },
+              ]
+            : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('avalon'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration:
+          !isPreGame && viewModel !== null ? () => setInformation('configuration') : null,
+      }}
       content={
         isLobby || viewModel === null
           ? {
@@ -266,7 +284,6 @@ function AvalonRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: gameConfiguration,
             }
           : {
@@ -291,7 +308,6 @@ function AvalonRoomContent(
                     pendingLabel={historyPendingLabel}
                   />
                 ),
-              sideInspector: null,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }
@@ -356,11 +372,16 @@ function AvalonRoomContent(
                       { type: 'avalon.team.vote', vote },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setVoteModalOpen(false)}
                 />
@@ -387,11 +408,16 @@ function AvalonRoomContent(
                       { type: 'avalon.quest.play', play },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setQuestModalOpen(false)}
                 />
@@ -406,7 +432,7 @@ function AvalonRoomContent(
                       .submit(
                         '确认信息',
                         { type: 'avalon.night.confirm' },
-                        { controlledSeat: screen.controlledSeat },
+                        { controlledSeat: screen.controlledSeat, actionKey: null },
                       )
                       .then((success) => {
                         if (success) screen.setNightModalVisible(false);
@@ -424,7 +450,7 @@ function AvalonRoomContent(
                   void screen.submit(
                     '查验',
                     { type: 'avalon.lady.check', seat },
-                    { controlledSeat: screen.controlledSeat },
+                    { controlledSeat: screen.controlledSeat, actionKey: null },
                   );
                 }}
                 onClose={() => setLadyCheckTarget(null)}
@@ -439,7 +465,7 @@ function AvalonRoomContent(
                     void screen.submit(
                       '确认查验结果',
                       { type: 'avalon.lady.acknowledge' },
-                      { controlledSeat: screen.controlledSeat },
+                      { controlledSeat: screen.controlledSeat, actionKey: null },
                     )
                   }
                 />
@@ -484,7 +510,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
           {viewModel !== null &&
@@ -497,7 +529,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
         </>

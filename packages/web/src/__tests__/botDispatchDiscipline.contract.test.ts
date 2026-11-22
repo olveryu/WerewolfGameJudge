@@ -182,7 +182,7 @@ describe('bot dispatch discipline — drawguess seat actions pass the seat expli
 
   it('word choosing (a drawer seat action) passes controlledSeat explicitly', () => {
     expect(screen()).toMatch(
-      /submit\(\s*'选择题目',\s*\{[^}]*\},\s*\{\s*controlledSeat\s*\},?\s*\)/,
+      /submit\(\s*'选择题目',\s*\{[^}]*\},\s*\{[^}]*\bcontrolledSeat\b[^}]*\},?\s*\)/,
     );
   });
 

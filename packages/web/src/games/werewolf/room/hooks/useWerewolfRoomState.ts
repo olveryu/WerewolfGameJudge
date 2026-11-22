@@ -61,8 +61,8 @@ import type {
 import { type SheriffElectionPanelModel, useSheriffElection } from '../day/useSheriffElection';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
-  createWerewolfBottomActionLayout,
-  createWerewolfBottomActions,
+  createWerewolfPlayerActionList,
+  createWerewolfPlayerActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
   isWerewolfSetup,
@@ -220,6 +220,7 @@ export function useWerewolfRoomState(
     session,
     user,
     mySeat,
+    submitOperation: ready.submitOperation,
   });
   const gameDetails = useGameProfileDetails(profile.selection, '狼人杀战绩', '本游戏局数');
   const capabilities = createWerewolfRoomCapabilities({
@@ -266,7 +267,8 @@ export function useWerewolfRoomState(
     occupiedSeatCount: viewModel.seats.length,
     viewedSeatCount: viewModel.viewedSeats.length,
     isSubmitting: ready.isSubmitting,
-    submitViewed: () => submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat }),
+    submitViewed: () =>
+      submit('查看身份', { type: 'werewolf.role.viewed' }, { controlledSeat, actionKey: null }),
   });
   const ownOccupant = mySeat === null ? null : state.roster[mySeat];
   // A bot card opened through takeover never animates (no equipped effect).
@@ -284,7 +286,7 @@ export function useWerewolfRoomState(
     effectiveSeat,
     isHost,
     remainingSeconds,
-    submit: (label, command) => submit(label, command, { controlledSeat }),
+    submit: (label, command, options) => submit(label, command, { ...options, controlledSeat }),
   });
   const [isSheriffDetailsVisible, setIsSheriffDetailsVisible] = useState(false);
   if (isSheriffDetailsVisible && sheriffElectionPanel === null) {
@@ -310,10 +312,11 @@ export function useWerewolfRoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: 'werewolf.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: 'werewolf.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
   });
   const modals = useRoomModals({
@@ -321,15 +324,16 @@ export function useWerewolfRoomState(
     getLastNightInfo: () => buildLastNightInfo(state),
     getCurseInfo: () => buildCurseInfo(state),
     grantReviewAccess: (allowedSeats) =>
-      submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }),
+      submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }, { actionKey: null }),
     isGameEnded: status === GameStatus.Ended,
     onLastNightInfoConfirmed: () =>
       state.lastNightInfoConfirmed === true
         ? Promise.resolve(true)
-        : submit('确认昨夜信息', {
-            type: 'werewolf.lastNightInfo.confirm',
-            gameSequence: state.gameSequence,
-          }),
+        : submit(
+            '确认昨夜信息',
+            { type: 'werewolf.lastNightInfo.confirm', gameSequence: state.gameSequence },
+            { actionKey: null },
+          ),
   });
 
   // ── Host flow ──
@@ -342,14 +346,19 @@ export function useWerewolfRoomState(
   // ── Board nominations (lobby) ──
   const boardNominations: WerewolfBoardNominations = {
     upvote: (targetUserId) =>
-      void submit('投票板子', { type: 'werewolf.board.upvote', targetUserId }),
-    withdraw: () => void submit('撤回建议', { type: 'werewolf.board.withdraw' }),
+      void submit('投票板子', { type: 'werewolf.board.upvote', targetUserId }, { actionKey: null }),
+    withdraw: () =>
+      void submit('撤回建议', { type: 'werewolf.board.withdraw' }, { actionKey: null }),
     adopt: async (roles) => {
       if (getPlayerCount(roles) !== getPlayerCount(state.templateRoles)) {
-        const cleared = await submit('清空座位', { type: 'room.seat.clear' });
+        const cleared = await submit('清空座位', { type: 'room.seat.clear' }, { actionKey: null });
         if (!cleared) return;
       }
-      await submit('采纳板子', { type: 'werewolf.config.update', templateRoles: roles });
+      await submit(
+        '采纳板子',
+        { type: 'werewolf.config.update', templateRoles: roles },
+        { actionKey: null },
+      );
     },
   };
 
@@ -374,26 +383,24 @@ export function useWerewolfRoomState(
   // ── Bottom actions, guide, shell ──
   const isActionSubmitting = ready.isSubmitting;
   const openSheriffDetails = () => setIsSheriffDetailsVisible(true);
-  const layout = createWerewolfBottomActionLayout({
+  const playerActionList = createWerewolfPlayerActionList({
     viewModel,
     night: night.model,
+    actionGroupKey: night.actionGroupKey,
     seatSelection: night.seatSelection,
-    isActionGroupOpen: night.isActionGroupOpen,
-    restoreActionGroupFocus: night.restoreActionGroupFocus,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
-    isActionSubmitting,
     review: review.entry,
     onNightButton: night.onNightButton,
     onViewRole: roleViewing.open,
   });
-  const bottomActions = createWerewolfBottomActions({
+  const playerActions = createWerewolfPlayerActions({
     state,
     viewModel,
     isHost,
     isAudioPlaying: state.isAudioPlaying,
-    layout,
+    actions: playerActionList,
     actionMessage: night.actionMessage,
     nightStatusLine: night.nightStatusLine,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
@@ -402,6 +409,8 @@ export function useWerewolfRoomState(
   });
 
   const shellModel = createWerewolfRoomShellModel({
+    isSubmitting: ready.isSubmitting,
+    pendingActionKey: ready.pendingActionKey,
     state,
     viewModel,
     seatSelection: night.seatSelection,
@@ -431,7 +440,7 @@ export function useWerewolfRoomState(
     onBotSeatLongPress: bots.capability.isAllowed ? bots.onBotSeatLongPress : null,
     isActionSubmitting,
     isHostActionSubmitting: isActionSubmitting,
-    bottomActions,
+    playerActions,
     sheriffElectionPanel,
     panelFlow,
     onHostControl: hostFlow.onHostControl,

@@ -92,7 +92,8 @@ for (const viewport of [
         path: testInfo.outputPath(`undercover-guide-${viewport.width}.png`),
       });
       await hostPage.keyboard.press('Escape');
-      await expect(guideButton).toBeFocused();
+      // The guide is a manual action, so the hand is already back on the main hand.
+      await expect(manualButton).toBeFocused();
       await hostPage.reload();
       await hostRoom.waitForReady('host');
 
@@ -128,7 +129,7 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
       await hostRoom.confirmHostActionDialog('分配角色？');
-      await hostRoom.closeHostManagement();
+      await hostRoom.expectHostManagementClosed();
       await hostRoom.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看我的词');
       await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
       // Every real player views their own word card on their own page.
@@ -293,7 +294,7 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
       await hostRoom.confirmHostActionDialog('分配角色？');
-      await hostRoom.closeHostManagement();
+      await hostRoom.expectHostManagementClosed();
       for (const page of allPages) {
         await openWordCard(page);
         await hideWordCard(page);
@@ -301,6 +302,7 @@ for (const viewport of [
       await hostRoom.openHostManagement();
       await hostPage.getByTestId(TESTIDS.startGameButton).click();
       await hostRoom.confirmHostActionDialog('开始游戏？');
+      await hostRoom.expectHostManagementClosed();
       await expect(
         (await hostRoom.openHostManagement()).getByTestId(TESTIDS.undercoverSelectPlayer),
       ).toBeVisible();

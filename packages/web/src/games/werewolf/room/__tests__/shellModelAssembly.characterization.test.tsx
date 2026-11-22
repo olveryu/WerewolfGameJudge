@@ -61,31 +61,24 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
     expect(model.header.userAction?.ticketCount).toBeNull();
     expect(model.seats.visuallyDisabled).toBe(false);
     expect(model.seats.onBotSeatLongPress).toBeNull();
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      // A non-actor reads the step's waiting line.
-      expect(model.bottomActions.message).toBe('正在等待 预言家 行动');
-    }
+    expect(model.playerActions.message).toBe('正在等待 预言家 行动');
     expect(model.hostManagement).toBeNull();
     expect(model.controlledSeat).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.seatConfirmation).toBeNull();
   });
 
-  it('surfaces the action message on the stacked dock when it is my action', async () => {
+  it('surfaces the action message when it is my action', async () => {
     const model = await captureModel(seerStepRoom({ myRole: 'seer', mySeat: 0 }));
 
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
-      expect(model.bottomActions.layout.primary).toEqual([
-        expect.objectContaining({ key: 'openActionGroup', label: '预言家行动', isPending: true }),
-      ]);
-      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['viewRole', '查看身份', 'secondary'],
-      ]);
-      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);
-    }
+    expect(model.playerActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+    expect(model.playerActions.actions).toEqual([
+      expect.objectContaining({ key: 'viewRole', label: '查看身份' }),
+    ]);
+    expect(model.playerActions.group).toMatchObject({
+      label: '预言家行动',
+      isPending: true,
+    });
   });
 
   it.each(['host', 'player', 'spectator'] as const)(
@@ -103,11 +96,8 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
 
       expect(model.isAudioPlaying).toBe(true);
       expect(model.seats.visuallyDisabled).toBe(true);
-      expect(model.bottomActions.kind).toBe('stacked');
-      if (model.bottomActions.kind === 'stacked') {
-        expect(model.bottomActions.message).toBeNull();
-        expect(model.bottomActions.layout).toEqual({ primary: [], secondary: [], ghost: [] });
-      }
+      expect(model.playerActions.message).toBeNull();
+      expect(model.playerActions.actions).toEqual([]);
     },
   );
 
@@ -126,16 +116,9 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       }),
     );
 
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      // The host's Ended bottom is their own participant surface (view
-      // identity as a secondary tool); the dawn flow is the host task.
-      expect(model.bottomActions.layout.primary).toEqual([]);
-      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['viewRole', '查看身份', 'secondary'],
-      ]);
-      expect(model.bottomActions.layout.ghost.map((a) => [a.key, a.label, a.variant])).toEqual([]);
-    }
+    expect(model.playerActions.actions.map((action) => [action.key, action.label])).toEqual([
+      ['viewRole', '查看身份'],
+    ]);
     expect(model.hostManagement?.task).toMatchObject({
       kind: 'action',
       actionKey: 'last-night-info',
@@ -150,31 +133,19 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       }),
     );
 
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      // The flow is the host's alone: a player gets no host management
-      // and no host buttons at Ended — only their own secondary tool and
-      // the disabled review entry until the host grants access; no guide
-      // line (the night step is cleared when the night ends).
-      expect(model.hostManagement).toBeNull();
-      expect(model.bottomActions.message).toBeNull();
-      expect(model.bottomActions.layout.primary).toEqual([]);
-      expect(model.bottomActions.layout.secondary.map((a) => [a.key, a.label, a.variant])).toEqual([
-        ['viewRole', '查看身份', 'secondary'],
-      ]);
-      expect(model.bottomActions.layout.ghost).toMatchObject([
-        {
-          key: 'review',
-          label: '本局复盘',
-          variant: 'ghost',
-          isEnabled: false,
-          disabledReason: '房主尚未向你开放复盘',
-        },
-      ]);
-    }
+    expect(model.hostManagement).toBeNull();
+    expect(model.playerActions.message).toBeNull();
+    expect(model.playerActions.actions).toMatchObject([
+      { key: 'viewRole', label: '查看身份' },
+      {
+        key: 'review',
+        label: '本局复盘',
+        state: { kind: 'blocked', reason: '房主尚未向你开放复盘' },
+      },
+    ]);
   });
 
-  it('uses the sheriff-election dock model on the first day while the election runs', async () => {
+  it('uses sheriff-election actions on the first day while the election runs', async () => {
     const model = await captureModel(
       seerStepRoom({
         gameStateOverrides: {
@@ -192,31 +163,25 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       }),
     );
 
-    expect(model.bottomActions.kind).toBe('dock');
-    if (model.bottomActions.kind === 'dock') {
-      expect(model.bottomActions.message).toBeNull();
-      expect(model.bottomActions.leading).toMatchObject({
+    expect(model.playerActions.message).toBeNull();
+    expect(model.playerActions.actions).toMatchObject([
+      {
         key: 'viewRole',
         label: '查看身份',
-        tone: 'default',
-        isEnabled: true,
-      });
-      expect(model.bottomActions.primary).toMatchObject({
+        state: { kind: 'ready' },
+      },
+      {
         key: 'sheriff-register',
         label: '报名上警',
-        variant: 'primary',
-        size: 'md',
         testID: 'sheriff-register-button',
-        isEnabled: true,
-      });
-      // No seat is granted yet: the review tool is visible but disabled, with the reason.
-      expect(model.bottomActions.trailing).toMatchObject({
+        state: { kind: 'ready' },
+      },
+      {
         key: 'review',
         label: '本局复盘',
-        isEnabled: false,
-        disabledReason: '房主尚未向你开放复盘',
-      });
-    }
+        state: { kind: 'blocked', reason: '房主尚未向你开放复盘' },
+      },
+    ]);
   });
 
   it('shows the plague-mode judge message to the host in the ready state', async () => {
@@ -234,10 +199,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
       kind: 'message',
       text: '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程',
     });
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind === 'stacked') {
-      expect(model.bottomActions.message).toBeNull();
-    }
+    expect(model.playerActions.message).toBeNull();
   });
 
   it('exposes the room status verbatim as the shell phase anchor', async () => {

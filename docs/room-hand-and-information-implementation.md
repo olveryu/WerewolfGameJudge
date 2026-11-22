@@ -1,8 +1,8 @@
 # 房间手牌与信息区：设计与实施方案
 
-状态：实施中，九款游戏已接入，完整验收尚未完成。交付沿用 [Draft PR #482](https://github.com/olveryu/WerewolfGameJudge/pull/482)；早期原型仅演示交互，不是功能清单。
+状态：实施中，九款游戏已接入共享房间手牌；原型已由 [PR #482](https://github.com/olveryu/WerewolfGameJudge/pull/482) 合入，第 2–4 步在 [Draft PR #487](https://github.com/olveryu/WerewolfGameJudge/pull/487) 按步提交，完整浏览器验收尚未完成。早期原型仅演示交互，不是功能清单。
 
-本文件保留此前的迁移方案和验收背景，其中待办、颜色、用户设置手牌、终局操作和复盘等内容已被新的决定取代。最新体验规则、逐游戏清单和待确认事项以[效果说明](room-hand-and-information-design.md)为准；本文件中的旧接口及验收条目不能作为新规则的实现依据，也不是已完成的声明。
+本文件保留此前的迁移方案和验收背景，其中旧待办、颜色、手牌接口和终局规则已被新的决定取代。当前共享接口与外壳约束以[房间外壳契约](room-shell-contract.md)和现行代码为准；本文件中标为旧接口的内容不是实现依据，也不是已完成的声明。
 
 实施过渡：四款舞台游戏的准备阶段已显式声明主持开始待办，阻塞时仍提示；终局复盘不标待办。五款身份游戏的分配角色、首次查看身份与查看后的开始游戏已声明；狼人杀黑死病不显示开始游戏，警长报名结束、发言结束和未投票的玩家投票入口已声明，报名、取消报名和退水加入确认，旧的主持确认候选名单阶段已移除。谁是卧底的出局选人已声明待办；准备失败时谁是卧底和瞎掰王仅在主持入口标记互斥决策。五款身份游戏的终局复盘完成状态按本人和对局保存；狼人杀终局先标昨夜信息，再标有效授权，最后提示本人复盘。共享层不再根据任务可用性推断待办，阶段行为仍须逐项验收。
 
@@ -13,7 +13,7 @@
 ### 已确认但尚未交付的重点
 
 - **复盘与狼人杀终局**：狼人杀主持牌按「昨夜信息 → 授权 → 本局复盘」限制操作；昨夜信息确认和五款身份游戏的终局复盘完成状态保存在房间状态，刷新或重新入房后保持，重开后清除。未获授权的玩家保留阻塞待办；白天查看不替代终局查看。仍须完成浏览器验收。
-- **角色行动子手牌**：狼人杀多个夜间行动选项已归入角色子手牌，入口按行动状态标待办；单一夜间行动直接显示，选座确认和取消不重复标记。角色行动提交前保留确认，选座弹窗列出目标；取消不提交，状态失效后不能提交旧选择。其他游戏的行动待办仍需逐阶段核对，浏览器验收尚未完成。
+- **角色行动子手牌**：狼人杀多个夜间行动选项已归入共享子手牌，入口按行动状态标待办；单一夜间行动直接显示，选座确认和取消不重复标记。在任何子手牌点操作牌立即回到主手牌，选座结束后停在主手牌；角色行动提交前保留确认，选座弹窗列出目标；取消不提交，状态失效后不能提交旧选择。其他游戏的行动待办仍需逐阶段核对，浏览器验收尚未完成。
 - **身份游戏统一重开**：五款身份游戏已实现清局回准备、保留座位配置及对应确认，瞎掰王保留重新抽词；局中无需先看记录，终局只提醒房主自己的未完成事项。仍须完成浏览器验收。
 - **完整阶段待办**：其余局中和终局事项、查询类别及机器人代打需逐游戏对照真实规则验收。阿瓦隆、秘密希特勒的未完成个人行动已声明待办，修改已提交投票或出牌不重复提示；瞎掰王进行中以大聪明选人作为待办，公布答案为可选操作。
 - **验收边界**：按[效果说明的验收清单](room-hand-and-information-design.md#已确认规则的验收清单)检查九款游戏；固定信息区在极端屏幕空间不足时的处理尚未定案，需要先看实际效果。上述设计目标和旧方案中的条目均不代表已通过逐阶段验收。
@@ -55,8 +55,8 @@
 从最新 `origin/main` 建立生产清单：按各游戏真实屏幕、房间 hook、动作工厂、现有测试和路由对照。每行记录 `游戏 / 阶段 / 观众或权限 / 动作 ID / 显示与禁用条件 / 原入口 / 新入口 / 确认与提交 / 验收测试`。要同时检查共享更多操作、房主管理、阶段 HUD、配置区原按钮和独立页；每个入口标记「迁移／保留」及理由。优先记录已知的狼人杀跳过、改票撤回、非座位玩家可用动作、房主有无待办、音频锁定。未核实的动作不以示例补齐。
 
 - **游戏层决定能力。** 游戏模块继续提供阶段、权限、动作、公开数据和具体弹窗内容，使用稳定动作 ID；共享层不按游戏 ID、按钮文字或 mock 阶段分支。[createRoomShellModel](../packages/web/src/features/room/model/createRoomShellModel.ts) 维持观众和房主模型约束；继续使用现有权限、音频锁定和提交管道，不在渲染层重复判断。
-- **共享房间负责呈现。** 以 [RoomShell](../packages/web/src/features/room/components/RoomShell.tsx) 和 [RoomBottomActions](../packages/web/src/features/room/model/RoomBottomActions.ts) 为接点，保留各游戏的动作生产端；把 [RoomBottomActionPanel](../packages/web/src/features/room/components/RoomBottomActionPanel.tsx) 的焦点动作／更多入口迁移为手牌视图。先对接现有席位与管理动作，再增加只在呈现层有意义的牌组及目录入口；「返回」是 UI 行为，不是游戏命令。不要把房主命令混为玩家动作，也不要把所有管理项搬到主手牌。
-- **信息与阶段视图。** [RoomGameSummary](../packages/web/src/features/room/components/RoomGameSummary.tsx) 保留开局前配置展示，迁移完成后移除重复的旧工具入口；局中及结束用 [RoomStatusSummary](../packages/web/src/features/room/components/RoomStatusSummary.tsx) 等现有信息区。专属界面从 [RoomStageHud](../packages/web/src/features/room/components/RoomStageHud.tsx) 接菜单，只在需要时呈现手牌，替换头部重复管理入口而不重挂作品或游戏控制。保留现有 review contribution 和 `useRoomReview`，只迁入口。
+- **共享房间负责呈现。** 游戏适配器把现有能力投影为 [RoomPlayerActions](../packages/web/src/features/room/model/RoomPlayerActions.ts)、[RoomHostManagementModel](../packages/web/src/features/room/model/RoomHostManagement.ts) 和目录数据；`createRoomShellModel` 校验所有权与引用。共享 [RoomActionHand](../packages/web/src/features/room/components/RoomActionHand.tsx) 按最新模型构建主牌、子牌、主持牌和舞台菜单，「返回」仅是 UI 行为，不是游戏命令。旧焦点动作／更多面板已从动作渲染路径移除，[RoomBottomActionPanel](../packages/web/src/features/room/components/RoomBottomActionPanel.tsx) 只保留外壳容器职责；房主命令不会混为玩家动作。
+- **信息与阶段视图。** [RoomGameSummary](../packages/web/src/features/room/components/RoomGameSummary.tsx) 保留开局前配置展示；局中及结束由 [RoomActionStatus](../packages/web/src/features/room/components/RoomActionStatus.tsx) 与已有信息区呈现状态。专属舞台保留 `RoomStageHud` 和游戏控制子树，通过显式 `actionSurface: 'menu'` 提供共享菜单，切换菜单不重挂作品或游戏控制。复盘入口仍由现有 review contribution 和 `useRoomReview` 提供。
 - **避免永久双轨。** 同一场景只显示一个正式入口。迁完一组时同步更新受影响的契约和测试；旧路由不是旧房间工具栏，两者分别处理。无入口对应、缺处理器、重复动作 ID 等接线错误用类型和模型组装校验及早暴露，不做静默回退。
 
 ### 3.2 页面与弹窗只换外壳
@@ -83,59 +83,39 @@
 | 夜间选人、改票或撤回       | 保留 #481 的 [useNightInteraction](../packages/web/src/games/werewolf/room/hooks/useNightInteraction.ts) 和 [resolveNightInteraction](../packages/web/src/games/werewolf/room/night/resolveNightInteraction.ts)；按当前行动标识和合法目标维护暂存选择，不以整份快照版本或其他座位更新重置。行动失效退出，目标失效清掉无效目标并解释；提交前再次读取合法性。既有具有人数／多选语义的游戏继续用自己的选座模型和 [useSeatPicking](../packages/web/src/features/room/hooks/useSeatPicking.ts)，不并成一个狼人夜间控制器。 |
 | 提交、失败、断线           | 用既有单飞提交与错误管道；进行中防重复提交，保留还能继续编辑的输入和明确失败原因。用 `logger.ts` / `handleError` 记录动作 ID、阶段、可用的命令关联 ID 和错误类别，不记笔记正文、私人身份、词语或秘密投票。                                                                                                                                                                                                                                                                                                            |
 
-### 3.4 共享手牌接口与渲染路径
+### 3.4 共享手牌模型与渲染路径
 
-以下是**拟新增接口**，不是当前代码。迁移首提交应按这个边界接线，不新建另一套动作定义；若最新主线已提供等价结构，则复用原名。
-
-```ts
-type RoomHandFace = 'main' | 'manual' | 'host' | 'stageMenu';
-type RoomDirectoryGroup = 'main' | 'manual' | 'stageMenu';
-
-type RoomHandCard =
-  | { readonly kind: 'player'; readonly action: RoomBottomButton | RoomBottomToolButton }
-  | { readonly kind: 'host'; readonly action: RoomHostManagementAction }
-  | { readonly kind: 'navigation'; readonly destination: 'manual' | 'host' | 'back' };
-
-interface RoomHandContribution {
-  // Only game-owned tools not already represented in bottomActions/hostManagement.
-  readonly entries: Readonly<Record<RoomDirectoryGroup, readonly RoomBottomButton[]>>;
-}
-
-interface RoomHandOrigin {
-  readonly face: RoomHandFace;
-  readonly entryKey: string;
-}
-
-type RoomHandPresentation =
-  | { readonly kind: 'hidden' }
-  | {
-      readonly kind: 'hand';
-      readonly face: RoomHandFace;
-      readonly cards: readonly RoomHandCard[];
-    }
-  | {
-      readonly kind: 'seatSelection';
-      readonly actions: RoomBottomActionModel;
-    };
-```
-
-`RoomHandCard` 用可辨识联合区分三种来源：现有玩家按钮／工具按钮、现有房主管理动作、纯 UI 导航；前两种直接引用原对象，不生成第二个 `onPress`。`RoomHandContribution` 由游戏组装，随 `RoomShellModel` 传入；只放未在 `bottomActions`／`hostManagement` 里的目录项。同一公开配置可在主手牌与舞台菜单复用同一描述对象。`seatSelection` 来自游戏明确声明的模式，不用 `dock` 布局、`phase` 字符串或按钮文字猜测。
+实现已采用统一的 `RoomAction`、`RoomPlayerActionModel`、`RoomHostManagementModel` 和纯函数
+`buildRoomHand`。玩家动作显式声明类别、观众和 `ready`／`busy`／`blocked` 状态；多行动阶段
+通过 `group` 声明一个带步骤作用域 key 的子手牌。非分组阶段必须显式返回 `group: null`。
 
 ```text
-房间快照 → 游戏现有动作／权限／角色模型
-          → createRoomShellModel（校验观众、房主引用、各牌组动作键）
-          → RoomShell（持有手牌导航；投影当前牌组和选座／舞台模式）
-          → 手牌 / 选座手牌 / 舞台菜单
-          → 现有意图回调 → 现有提交和确认管道
+房间快照 → 游戏动作／权限／角色模型
+          → createRoomShellModel（检查观众、分组动作和房主任务引用）
+          → RoomShell（单一导航，按当前模型构建 RoomHand）
+          → RoomActionHand / RoomHandCardButton
+          → 现有意图回调与确认、提交管道
 ```
 
-| 改动位置                                                       | 动手顺序与具体职责                                                                                                                                                                                                                                       |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RoomShellModel.ts`、`createRoomShellModel.ts`                 | 接入目录贡献与明确的房间呈现模式；保持现有 `phase`、`step`、`viewer` 和 `data-phase`／`data-step` 契约。先加模型测试：同组重复 key、越权贡献、无效房主任务引用均失败；同一入口出现在两个不同牌组不算重复。                                               |
-| `RoomBottomActionPresentation.ts`、`RoomBottomActionPanel.tsx` | 从「取一张焦点牌＋其余进更多」改为按源顺序投影：`stacked` 为主→次→ghost，独立 `dock` 按原槽位保留；原模型仍持有消息、进度、可用性。不要把含编辑器按钮的舞台内部控制移进手牌。                                                                            |
-| `RoomShell.tsx`、手牌视图                                      | 保存 `face` 和返回来源，不存已经投影出来的牌或快照副本。每次渲染用最新模型计算牌面；`manual` 从 `main` 或 `stageMenu` 进入，返回确切父级。`stageMenu` 返回关闭菜单；选座不在牌组历史里。权限变化移除当前子手牌时回到可用父级，但不因此关闭已打开的详情。 |
-| `RoomHostManagement.ts`、`resolveHostTaskView.ts`              | 用现有 `sections` 渲染房主管理手牌；用 `task` 的引用解析待办。仅当当前任务指向至少一个可执行且未在提交中的动作时显示提示；纯消息、锁定、无任务不显示。保留任务步骤及阻塞原因，只迁展示和入口。                                                           |
-| `RoomStage.ts`、`RoomShell.tsx`                                | 保留 `kind: 'stage'` 与 `element(renderHud)` 渲染路径，在房间头部原房主管理接点提供所有玩家可见的菜单。菜单开关只切兄弟区域，不给舞台子树换 key。菜单按阶段提供返回、手册、本局配置，及已授权的中止；不能把结算／重开命令提前带进去。                    |
+`RoomHandDirectory` 声明稳定 key 的主手牌工具、手册入口和只读配置回调。主手牌、手册、
+主持管理、玩家子手牌和舞台菜单共用同一投影；主持管理由 `task` 引用 `actions` 中的操作，
+任务步骤由 `RoomHostTaskHeader` 显示。`RoomActionStatus` 与手牌分离，座位内容可在座位盘
+上方显示状态，其他手牌界面则放在底部容器中。
+
+导航只保存当前牌面和一次性焦点目标，不缓存牌面快照。进入子手牌时焦点落在返回牌，返回
+后恢复到入口；选座期间暂时显示选座动作，但记忆和恢复原牌面。进入选座时焦点落在逃生牌；
+退出选座后焦点回到发起入口（分组入口或主手牌上按下的牌）；入口已随阶段消失时不移动焦点，
+悬空的焦点目标立即清除，不会在同 id 的牌之后出现时抢焦点。玩家选座必须声明逃生动作
+（`{ kind: 'player', escapeActionKey }`），手牌缺少该牌时直接抛错。提交中的牌用
+`aria-disabled` 与 `aria-busy` 保持可聚焦但不执行点击，不用原生 `disabled`，避免入口转入
+提交中时丢失焦点。（2026-11-21 用户确认）舞台内容保留
+`element(renderHud)`，必须显式使用 `actionSurface: 'menu'`，菜单与游戏舞台是兄弟区域。
+
+提交状态归属在类型上显式声明（2026-11-21 用户确认）：外壳输入的 `isSubmitting` 与
+`pendingActionKey` 必填，不用默认值吞掉漏传；每次 `submit` 必须给出 `actionKey`——字符串表示
+由该键的手牌负责转圈，`null` 表示由弹窗或舞台自己负责（选座确认、身份弹窗等）。运行时不因
+命令键找不到牌而报错：快照可能先于提交响应到达，原牌随阶段消失是正常时序，此时其余命令牌
+照常锁住。
 
 ### 3.5 弹窗归属、关闭顺序与实时确认
 

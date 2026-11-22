@@ -112,10 +112,8 @@ export function useSecrethitlerRoomState(
   },
 ): SecrethitlerRoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    getSecrethitlerRoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, isSubmitting, pendingActionKey, submitOperation } =
+    useReadyRoomSession(session, getSecrethitlerRoomCommandFailureMessage);
   useRoomImagePreload(SECRETHITLER_ROOM_IMAGES);
   const isHost = state.hostUserId === user.id;
   const mySeat = getSecrethitlerUserSeat(state, user.id);
@@ -148,6 +146,7 @@ export function useSecrethitlerRoomState(
   } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -189,10 +188,11 @@ export function useSecrethitlerRoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: 'secrethitler.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: 'secrethitler.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
   });
   const capabilities: RoomCapabilities = {
@@ -229,6 +229,7 @@ export function useSecrethitlerRoomState(
     );
 
   const shellModel: RoomShellModel = createSecrethitlerRoomShellModel({
+    pendingActionKey,
     roomCode: room.roomCode,
     viewer,
     capabilities,
@@ -347,7 +348,7 @@ function useSecrethitlerPrivateActions(
             showErrorAlert('选择已失效', '当前行动已改变，请重新选择。');
             return;
           }
-          if (await submit('总统行动', command, { controlledSeat }))
+          if (await submit('总统行动', command, { controlledSeat, actionKey: null }))
             setActionKey((previous) => (previous === currentActionKey ? null : previous));
         },
         { onShown: trackConfirmationAlert },
@@ -364,7 +365,7 @@ function useSecrethitlerPrivateActions(
     viewedSeatCount: state.roleViewedSeats.length,
     isSubmitting,
     submitViewed: () =>
-      submit('查看身份', { type: 'secrethitler.role.viewed' }, { controlledSeat }),
+      submit('查看身份', { type: 'secrethitler.role.viewed' }, { controlledSeat, actionKey: null }),
   });
   return {
     roleViewing,

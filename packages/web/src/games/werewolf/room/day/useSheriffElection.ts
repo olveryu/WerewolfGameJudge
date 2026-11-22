@@ -11,6 +11,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useState } from 'react';
 
+import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import {
@@ -51,7 +52,7 @@ interface UseSheriffElectionInput {
    * The room's single-flight submit, bound to the effective seat by the
    * caller; failures are presented by the submission itself.
    */
-  readonly submit: (label: string, command: WerewolfPublicCommand) => Promise<boolean>;
+  readonly submit: WerewolfSubmit;
 }
 
 export function useSheriffElection(
@@ -77,7 +78,15 @@ export function useSheriffElection(
     ): Promise<void> => {
       setPendingAction(action);
       try {
-        await submit(label, command);
+        const actionKey =
+          action.kind === 'vote'
+            ? null
+            : action.kind === 'cancelRegistration'
+              ? 'sheriff-cancel-registration'
+              : action.kind === 'endBySelfDestruct'
+                ? 'sheriff-self-destruct'
+                : `sheriff-${action.kind}`;
+        await submit(label, command, { actionKey });
       } finally {
         setPendingAction(null);
       }

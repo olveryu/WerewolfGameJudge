@@ -137,10 +137,8 @@ export function use__GAME_PASCAL__RoomState(
   },
 ): __GAME_PASCAL__RoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    get__GAME_PASCAL__RoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, submitOperation, isSubmitting, pendingActionKey } =
+    useReadyRoomSession(session, get__GAME_PASCAL__RoomCommandFailureMessage);
   // 房间图片预加载：立绘 + 本游戏其他房间图片同一份清单、一次调用
   // （共享 useRoomImagePreload；只传公开板子上的图片，绝不读秘密分配）。
   useRoomImagePreload(getBoardRolePortraits());
@@ -164,6 +162,7 @@ export function use__GAME_PASCAL__RoomState(
   const { seatController, profile, capabilities: setupCapabilities } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -212,7 +211,7 @@ export function use__GAME_PASCAL__RoomState(
     viewedSeatCount: state.roleViewedSeats.length,
     isSubmitting,
     submitViewed: () =>
-      submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat }),
+      submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat, actionKey: null }),
   });
 //#end
   // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
@@ -233,10 +232,11 @@ export function use__GAME_PASCAL__RoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: '__GAME_ID__.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: '__GAME_ID__.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
 //#end
   });
@@ -314,9 +314,10 @@ export function use__GAME_PASCAL__RoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
+    isSubmitting,
+    pendingActionKey,
 //#cap identityViewing
     effectiveSeat,
-    isSubmitting,
     onViewRolePress: roleViewing.open,
 //#end
     buildHostManagement,

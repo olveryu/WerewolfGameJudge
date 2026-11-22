@@ -28,18 +28,17 @@ import {
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
   hostMessageTask,
-  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
+import type { RoomHostAction } from '@/features/room/model/RoomAction';
 import {
   createRoomSetupCapabilities,
   createShareRoomCapability,
@@ -50,9 +49,7 @@ import {
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
 import type {
-  RoomHostManagementAction,
   RoomHostManagementModel,
-  RoomHostManagementSection,
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
@@ -66,7 +63,7 @@ import { TESTIDS } from '@/testids';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
-import { createUndercoverBottomActions } from './undercoverActionModels';
+import { createUndercoverPlayerActions } from './undercoverActionModels';
 
 /** Resolve only public roster identity, never the secret role or word. */
 export const getUndercoverProfileTarget = (
@@ -198,7 +195,7 @@ export interface UndercoverRoomShellModelInput extends Omit<
   | 'step'
   | 'isAudioPlaying'
   | 'seatSource'
-  | 'bottomActions'
+  | 'playerActions'
   | 'buildHostManagement'
   | 'controlledSeat'
 > {
@@ -226,8 +223,8 @@ export function createUndercoverHostManagement(
   input: UndercoverHostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities, controls } = input;
-  const actions: RoomHostManagementAction[] = [];
-  const roomActions: RoomHostManagementAction[] = [];
+  const actions: RoomHostAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   let task: RoomHostTask | null = null;
   let pendingActionKeys: readonly string[] = [];
   if (state.phase !== 'lobby')
@@ -266,7 +263,7 @@ export function createUndercoverHostManagement(
         disabledReason: startDisabledReason,
       });
       actions.push(startAction);
-      task = hostStartTask(HOST_ACTION_KEYS.assignRoles);
+      task = hostActionTask(HOST_ACTION_KEYS.assignRoles);
       pendingActionKeys = [HOST_ACTION_KEYS.assignRoles];
       if (capabilities.canConfigureGame.isAllowed)
         roomActions.push(
@@ -286,8 +283,6 @@ export function createUndercoverHostManagement(
             onPress: capabilities.canClearSeats.execute,
           }),
         );
-      // 分享房间常驻大厅房间区，是座位不满时任务卡的补救。
-      roomActions.push(buildShareRoomAction(capabilities.canShareRoom));
       break;
     }
     case 'preparing':
@@ -335,12 +330,9 @@ export function createUndercoverHostManagement(
             isLoading: controls.isSubmitting,
           }),
         );
-      // The task is the start; until every seat viewed it is blocked by the
-      // sheet action's reason, with the bot scaffold as the remedy.
-      task = hostActionTask(
-        HOST_ACTION_KEYS.startGame,
-        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
-      );
+      // The task is the start; until every seat viewed it is blocked by
+      // the action's own state.
+      task = hostActionTask(HOST_ACTION_KEYS.startGame);
       const hostSeat = getUndercoverUserSeat(state, state.hostUserId);
       pendingActionKeys =
         hostSeat !== null && !state.round.confirmedSeats.includes(hostSeat)
@@ -356,7 +348,7 @@ export function createUndercoverHostManagement(
             key: 'retry',
             label: '重新准备',
             icon: 'refresh-outline',
-            variant: 'primary',
+            category: 'host',
             testID: TESTIDS.undercoverRetry,
           },
           controls.isSubmitting,
@@ -371,7 +363,7 @@ export function createUndercoverHostManagement(
               key: 'allow-repeated',
               label: '本次允许重复词对',
               icon: 'repeat-outline',
-              variant: 'secondary',
+              category: 'host',
               testID: TESTIDS.undercoverAllowRepeated,
             },
             controls.isSubmitting,
@@ -390,13 +382,15 @@ export function createUndercoverHostManagement(
               key: 'cancel-selection',
               label: '取消选择',
               icon: 'close-circle-outline',
-              variant: 'secondary',
+              category: 'host',
               testID: TESTIDS.undercoverCancelSelection,
             },
             controls.cancelSelection,
           ),
         );
-        task = hostMessageTask('点座位盘选择本次出局玩家', { actionKey: 'cancel-selection' });
+        task = hostMessageTask('点座位盘选择本次出局玩家', {
+          escapeActionKey: 'cancel-selection',
+        });
       } else {
         pendingActionKeys = ['select-player'];
         actions.push(
@@ -405,7 +399,7 @@ export function createUndercoverHostManagement(
               key: 'select-player',
               label: '选择出局玩家',
               icon: 'person-remove-outline',
-              variant: 'primary',
+              category: 'host',
               testID: TESTIDS.undercoverSelectPlayer,
             },
             controls.isSubmitting,
@@ -429,12 +423,9 @@ export function createUndercoverHostManagement(
       break;
     }
   }
-  const sections: RoomHostManagementSection[] = [{ key: 'game', title: '游戏', actions }];
-  if (roomActions.length > 0)
-    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
   return {
     task,
-    sections,
+    actions: [...actions, ...roomActions],
     pendingActionKeys,
     ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
   };
@@ -459,7 +450,7 @@ export function createUndercoverRoomShellModel(
     seatSource,
     phase: state.phase,
     step: null,
-    bottomActions: createUndercoverBottomActions(input.controls, state, input.viewer, input.review),
+    playerActions: createUndercoverPlayerActions(input.controls, state, input.viewer, input.review),
     buildHostManagement: () =>
       createUndercoverHostManagement({
         state,

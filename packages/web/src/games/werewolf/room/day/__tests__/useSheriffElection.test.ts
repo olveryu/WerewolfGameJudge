@@ -102,10 +102,14 @@ describe('useSheriffElection', () => {
       votePromise = result.current!.vote(0);
     });
     expect(result.current?.pendingAction).toEqual({ kind: 'vote', targetSeat: 0 });
-    expect(submit).toHaveBeenCalledWith('竞选投票', {
-      type: 'werewolf.sheriff.vote',
-      targetSeat: 0,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '竞选投票',
+      {
+        type: 'werewolf.sheriff.vote',
+        targetSeat: 0,
+      },
+      { actionKey: null },
+    );
 
     deferred.resolve(true);
     await act(async () => votePromise);
@@ -135,7 +139,13 @@ describe('useSheriffElection', () => {
     expect(submit).not.toHaveBeenCalled();
     const [, , onConfirm] = mockShowConfirmAlert.mock.calls[0]!;
     await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
+    expect(submit).toHaveBeenCalledWith(
+      '推进竞选',
+      { type: 'werewolf.sheriff.advance' },
+      {
+        actionKey: 'sheriff-advance',
+      },
+    );
   });
 
   it('asks before ending candidate speeches', async () => {
@@ -158,7 +168,13 @@ describe('useSheriffElection', () => {
     );
     const [, , onConfirm] = mockShowConfirmAlert.mock.calls[0]!;
     await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
+    expect(submit).toHaveBeenCalledWith(
+      '推进竞选',
+      { type: 'werewolf.sheriff.advance' },
+      {
+        actionKey: 'sheriff-advance',
+      },
+    );
   });
 
   it('explains table rules before ending the election by self-destruct', async () => {
@@ -181,9 +197,13 @@ describe('useSheriffElection', () => {
     );
     const [, , , onConfirm] = mockShowDestructiveAlert.mock.calls[0]!;
     await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('自爆结束竞选', {
-      type: 'werewolf.sheriff.endBySelfDestruct',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '自爆结束竞选',
+      {
+        type: 'werewolf.sheriff.endBySelfDestruct',
+      },
+      { actionKey: 'sheriff-self-destruct' },
+    );
   });
 
   it('releases the pending action even when the submit throws', async () => {

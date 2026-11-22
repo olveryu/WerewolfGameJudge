@@ -1,7 +1,7 @@
 import { AUDIO_PLAYBACK_LOCK_REASON } from '@/features/room/model/audioPlaybackLock';
-import type { RoomBottomActionLayout } from '@/features/room/model/RoomBottomActions';
+import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { buildReviewBottomButton } from '@/features/room/review/roomReviewActions';
-import { createSheriffElectionDockModel } from '@/games/werewolf/room/day/sheriffElectionDockModel';
+import { createSheriffElectionPlayerActions } from '@/games/werewolf/room/day/sheriffElectionPlayerActions';
 import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
@@ -45,40 +45,31 @@ function createElection(
   };
 }
 
-const ROOM_TOOLS: RoomBottomActionLayout = {
-  primary: [
-    {
-      key: 'viewRole',
-      label: '查看身份',
-      audience: 'participant',
-      icon: 'eye-outline',
-      variant: 'primary',
-      size: 'lg',
-      isEnabled: true,
-      onPress: vi.fn(),
-    },
-  ],
-  secondary: [],
-  ghost: [
-    {
-      key: 'restart',
-      label: '重新开始',
-      audience: 'participant',
-      variant: 'ghost',
-      size: 'md',
-      isEnabled: true,
-      onPress: vi.fn(),
-    },
-  ],
-};
+const ROOM_TOOLS: readonly RoomPlayerAction[] = [
+  {
+    key: 'viewRole',
+    label: '查看身份',
+    audience: 'participant',
+    icon: 'eye-outline',
+    category: 'resource',
+    state: { kind: 'ready', onPress: vi.fn() },
+  },
+  {
+    key: 'restart',
+    label: '重新开始',
+    audience: 'participant',
+    category: 'player',
+    state: { kind: 'ready', onPress: vi.fn() },
+  },
+];
 
-describe('createSheriffElectionDockModel', () => {
+describe('createSheriffElectionPlayerActions', () => {
   it('projects the identity action as a labelled icon tool', () => {
-    const identityAction = ROOM_TOOLS.primary[0];
-    if (identityAction === undefined || !identityAction.isEnabled) {
+    const identityAction = ROOM_TOOLS[0];
+    if (identityAction?.state.kind !== 'ready') {
       throw new Error('Expected executable source identity action');
     }
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({ canRegister: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -86,28 +77,28 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.leading).toMatchObject({
+    const identity = dock.actions.find((action) => action.key === 'viewRole');
+    expect(identity).toMatchObject({
       key: 'viewRole',
       label: '查看身份',
-      tone: 'default',
-      isEnabled: true,
+      state: { kind: 'ready' },
     });
-    expect(dock.leading).toHaveProperty('icon', 'eye-outline');
-    if (dock.leading === null || !dock.leading.isEnabled) {
+    expect(identity).toHaveProperty('icon', 'eye-outline');
+    if (identity?.state.kind !== 'ready') {
       throw new Error('Expected executable identity action');
     }
-    dock.leading.onPress();
-    expect(identityAction.onPress).toHaveBeenCalledTimes(1);
+    identity.state.onPress();
+    expect(identityAction.state.onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the Host personal action primary without projecting the advance command', async () => {
+  it('keeps the personal action without projecting the host advance command', async () => {
     const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
     const election = createElection({
       canRegister: true,
       canAdvance: true,
       advanceLabel: '结束报名',
     });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -115,15 +106,15 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    const personalAction = dock.actions.find((action) => action.key === 'sheriff-register');
+    expect(personalAction).toMatchObject({
       key: 'sheriff-register',
       label: '报名上警',
-      variant: 'primary',
     });
-    expect(dock.trailing).toBeNull();
-    if (dock.primary === null || !dock.primary.isEnabled)
+    expect(dock.actions.map((action) => action.key)).toEqual(['viewRole', 'sheriff-register']);
+    if (personalAction?.state.kind !== 'ready')
       throw new Error('Expected executable personal sheriff action');
-    dock.primary.onPress();
+    personalAction.state.onPress();
     expect(election.register).not.toHaveBeenCalled();
     const onConfirm = confirm.mock.calls[0]?.[2];
     if (onConfirm === undefined) throw new Error('Missing registration confirmation');
@@ -139,15 +130,16 @@ describe('createSheriffElectionDockModel', () => {
   ] as const)('confirms %s before dispatch', async (availability, action) => {
     const confirm = vi.spyOn(alertPresets, 'showConfirmAlert').mockImplementation(() => {});
     const election = createElection({ [availability]: true });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
-    if (dock.primary === null || !dock.primary.isEnabled) throw new Error('Missing action');
-    dock.primary.onPress();
+    const personalAction = dock.actions.find((entry) => entry.key !== 'viewRole');
+    if (personalAction?.state.kind !== 'ready') throw new Error('Missing action');
+    personalAction.state.onPress();
     expect(election[action]).not.toHaveBeenCalled();
     const onConfirm = confirm.mock.calls[0]?.[2];
     if (onConfirm === undefined) throw new Error('Missing confirmation');
@@ -162,7 +154,7 @@ describe('createSheriffElectionDockModel', () => {
       canAdvance: true,
       advanceLabel: '结束发言',
     });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -170,18 +162,17 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toBeNull();
+    expect(dock.actions.map((action) => action.key)).toEqual(['viewRole']);
     expect(dock.message).toBe('按顺序发言中');
-    expect(dock.trailing).toBeNull();
   });
 
-  it('keeps the Host cancellation action primary after registration', () => {
+  it('keeps the cancellation action after registration', () => {
     const election = createElection({
       canCancelRegistration: true,
       canAdvance: true,
       advanceLabel: '结束报名',
     });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -189,12 +180,12 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    expect(
+      dock.actions.find((action) => action.key === 'sheriff-cancel-registration'),
+    ).toMatchObject({
       key: 'sheriff-cancel-registration',
       label: '取消报名',
-      variant: 'secondary',
     });
-    expect(dock.trailing).toBeNull();
   });
 
   it('does not mix Host advancement progress into the personal dock', () => {
@@ -205,7 +196,7 @@ describe('createSheriffElectionDockModel', () => {
       },
       { pendingAction: { kind: 'advance' } },
     );
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -213,13 +204,13 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toBeNull();
+    expect(dock.actions.map((action) => action.key)).toEqual(['viewRole']);
     expect(dock.message).toBe('报名进行中');
   });
 
   it('uses the personal action as the player primary command', () => {
     const election = createElection({ canCancelRegistration: true });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -227,15 +218,17 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    expect(
+      dock.actions.find((action) => action.key === 'sheriff-cancel-registration'),
+    ).toMatchObject({
       key: 'sheriff-cancel-registration',
       label: '取消报名',
     });
   });
 
-  it('presents withdrawal as a secondary game action', () => {
+  it('presents withdrawal as a game action', () => {
     const election = createElection({ canWithdraw: true });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -243,10 +236,9 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    expect(dock.actions.find((action) => action.key === 'sheriff-withdraw')).toMatchObject({
       key: 'sheriff-withdraw',
       label: '退水',
-      variant: 'secondary',
     });
   });
 
@@ -258,7 +250,7 @@ describe('createSheriffElectionDockModel', () => {
       myBallot: { kind: 'notSubmitted' },
       voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
     });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -266,14 +258,15 @@ describe('createSheriffElectionDockModel', () => {
       openDetails,
     });
 
-    expect(dock.primary).toMatchObject({
+    const voteAction = dock.actions.find((action) => action.key === 'sheriff-open-vote');
+    expect(voteAction).toMatchObject({
       key: 'sheriff-open-vote',
       label: '选择投票',
       isPending: true,
     });
-    if (dock.primary === null || !dock.primary.isEnabled)
+    if (voteAction?.state.kind !== 'ready')
       throw new Error('Expected an enabled ballot details action');
-    dock.primary.onPress();
+    voteAction.state.onPress();
     expect(openDetails).toHaveBeenCalledTimes(1);
     expect(election.vote).not.toHaveBeenCalled();
   });
@@ -281,103 +274,96 @@ describe('createSheriffElectionDockModel', () => {
   it.each([{ kind: 'abstained' }, { kind: 'candidate', seat: 1 }] as const)(
     'does not mark an already submitted ballot as pending',
     (myBallot) => {
-      const dock = createSheriffElectionDockModel({
+      const dock = createSheriffElectionPlayerActions({
         election: createElection({ phase: 'firstVote', canVote: true, myBallot }),
         roomTools: ROOM_TOOLS,
         isHost: false,
         isAudioPlaying: false,
         openDetails: vi.fn(),
       });
-      expect(dock.primary?.isPending).not.toBe(true);
+      expect(dock.actions.find((action) => action.key === 'sheriff-open-vote')?.isPending).not.toBe(
+        true,
+      );
     },
   );
 
   it('retains an authorized player night-review action while voting', () => {
     const openNightReview = vi.fn();
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
         voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
-      roomTools: {
+      roomTools: [
         ...ROOM_TOOLS,
-        ghost: [buildReviewBottomButton({ isEnabled: true, onPress: openNightReview }, 'ghost')],
-      },
+        buildReviewBottomButton({ isEnabled: true, onPress: openNightReview }),
+      ],
       isHost: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
 
-    expect(dock.trailing).toMatchObject({
+    const review = dock.actions.find((action) => action.key === 'review');
+    expect(review).toMatchObject({
       key: 'review',
       label: '本局复盘',
-      tone: 'default',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: TESTIDS.roomReviewOpenButton,
     });
-    if (dock.trailing === null || !dock.trailing.isEnabled) {
+    if (review?.state.kind !== 'ready') {
       throw new Error('Expected executable review action');
     }
-    dock.trailing.onPress();
+    review.state.onPress();
     expect(openNightReview).toHaveBeenCalledTimes(1);
   });
 
   it('carries the disabled review of an ungranted seat, with its reason, into the trailing tool', () => {
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
         voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
-      roomTools: {
+      roomTools: [
         ...ROOM_TOOLS,
-        ghost: [
-          buildReviewBottomButton(
-            { isEnabled: false, disabledReason: '房主尚未向你开放复盘' },
-            'ghost',
-          ),
-        ],
-      },
+        buildReviewBottomButton({ isEnabled: false, disabledReason: '房主尚未向你开放复盘' }),
+      ],
       isHost: false,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
 
-    expect(dock.trailing).toEqual({
+    expect(dock.actions.find((action) => action.key === 'review')).toEqual({
       key: 'review',
       label: '本局复盘',
       audience: 'anyone',
-      tone: 'default',
       icon: 'document-text-outline',
       category: 'resource',
       testID: TESTIDS.roomReviewOpenButton,
-      isEnabled: false,
-      disabledReason: '房主尚未向你开放复盘',
+      opensDialog: true,
+      state: { kind: 'blocked', reason: '房主尚未向你开放复盘' },
     });
   });
 
   it('leaves the trailing review tool to non-hosts: the host reaches the review from host management', () => {
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({
         phase: 'firstVote',
         canVote: true,
         myBallot: { kind: 'notSubmitted' },
         voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
       }),
-      roomTools: {
-        ...ROOM_TOOLS,
-        ghost: [buildReviewBottomButton({ isEnabled: true, onPress: vi.fn() }, 'ghost')],
-      },
+      roomTools: [...ROOM_TOOLS, buildReviewBottomButton({ isEnabled: true, onPress: vi.fn() })],
       isHost: true,
       isAudioPlaying: false,
       openDetails: vi.fn(),
     });
 
-    expect(dock.trailing).toBeNull();
-    expect(dock.leading).toMatchObject({ key: 'viewRole' });
+    expect(dock.actions.find((action) => action.key === 'review')).toBeUndefined();
+    expect(dock.actions.find((action) => action.key === 'viewRole')).toBeDefined();
   });
 
   it('opens the ballot from the vote action', () => {
@@ -388,7 +374,7 @@ describe('createSheriffElectionDockModel', () => {
       voteProgress: { submittedCount: 0, eligibleCount: 2, pendingSeats: [0, 1] },
     });
     const openDetails = vi.fn();
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -396,14 +382,16 @@ describe('createSheriffElectionDockModel', () => {
       openDetails,
     });
 
-    expect(dock.primary).toMatchObject({ label: '选择投票', isEnabled: true });
-    if (dock.primary?.isEnabled) dock.primary.onPress();
+    const vote = dock.actions.find((action) => action.key === 'sheriff-open-vote');
+    expect(vote).toMatchObject({ label: '选择投票', state: { kind: 'ready' } });
+    if (vote?.state.kind !== 'ready') throw new Error('Expected ready vote action');
+    vote.state.onPress();
     expect(openDetails).toHaveBeenCalledOnce();
   });
 
   it('locks the registration command while narration audio plays', () => {
     const election = createElection({ canRegister: true });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -411,50 +399,51 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    const action = dock.actions.find((entry) => entry.key === 'sheriff-register');
+    expect(action).toMatchObject({
       key: 'sheriff-register',
       label: '报名上警',
-      isEnabled: false,
-      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+      state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON },
     });
-    expect(dock.primary).not.toHaveProperty('onPress');
+    expect(action?.state).not.toHaveProperty('onPress');
     expect(election.register).not.toHaveBeenCalled();
   });
 
   it('locks the cancellation and withdrawal commands while narration audio plays', () => {
-    const cancelDock = createSheriffElectionDockModel({
+    const cancelDock = createSheriffElectionPlayerActions({
       election: createElection({ canCancelRegistration: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
-    expect(cancelDock.primary).toMatchObject({
+    const cancel = cancelDock.actions.find(
+      (action) => action.key === 'sheriff-cancel-registration',
+    );
+    expect(cancel).toMatchObject({
       key: 'sheriff-cancel-registration',
-      isEnabled: false,
-      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+      state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON },
     });
-    expect(cancelDock.primary).not.toHaveProperty('onPress');
+    expect(cancel?.state).not.toHaveProperty('onPress');
 
-    const withdrawDock = createSheriffElectionDockModel({
+    const withdrawDock = createSheriffElectionPlayerActions({
       election: createElection({ canWithdraw: true }),
       roomTools: ROOM_TOOLS,
       isHost: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
-    expect(withdrawDock.primary).toMatchObject({
+    const withdraw = withdrawDock.actions.find((action) => action.key === 'sheriff-withdraw');
+    expect(withdraw).toMatchObject({
       key: 'sheriff-withdraw',
-      isEnabled: false,
-      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
-      variant: 'secondary',
+      state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON },
     });
-    expect(withdrawDock.primary).not.toHaveProperty('onPress');
+    expect(withdraw?.state).not.toHaveProperty('onPress');
   });
 
   it('locks the vote-details command while narration audio plays', () => {
     const openDetails = vi.fn();
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({
         phase: 'firstVote',
         canVote: true,
@@ -467,18 +456,18 @@ describe('createSheriffElectionDockModel', () => {
       openDetails,
     });
 
-    expect(dock.primary).toMatchObject({
+    const vote = dock.actions.find((action) => action.key === 'sheriff-open-vote');
+    expect(vote).toMatchObject({
       key: 'sheriff-open-vote',
-      isEnabled: false,
-      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+      state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON },
     });
-    expect(dock.primary).not.toHaveProperty('onPress');
+    expect(vote?.state).not.toHaveProperty('onPress');
     expect(openDetails).not.toHaveBeenCalled();
   });
 
   it('keeps the pending disabled form when a command is already in flight during audio', () => {
     const election = createElection({ canRegister: true }, { pendingAction: { kind: 'register' } });
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election,
       roomTools: ROOM_TOOLS,
       isHost: false,
@@ -486,44 +475,41 @@ describe('createSheriffElectionDockModel', () => {
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({
+    const action = dock.actions.find((entry) => entry.key === 'sheriff-register');
+    expect(action).toMatchObject({
       key: 'sheriff-register',
-      isEnabled: false,
-      disabledReason: null,
-      isLoading: true,
+      state: { kind: 'busy' },
     });
-    expect(dock.primary).not.toHaveProperty('onPress');
+    expect(action?.state).not.toHaveProperty('onPress');
   });
 
   it('keeps the read-only identity tool available while the command is audio-locked', () => {
     const onViewRole = vi.fn();
-    const dock = createSheriffElectionDockModel({
+    const dock = createSheriffElectionPlayerActions({
       election: createElection({ canRegister: true }),
-      roomTools: {
-        ...ROOM_TOOLS,
-        primary: [
-          {
-            key: 'viewRole',
-            label: '查看身份',
-            audience: 'participant',
-            variant: 'primary',
-            size: 'lg',
-            isEnabled: true,
-            onPress: onViewRole,
-          },
-        ],
-      },
+      roomTools: [
+        {
+          key: 'viewRole',
+          label: '查看身份',
+          audience: 'participant',
+          category: 'resource',
+          state: { kind: 'ready', onPress: onViewRole },
+        },
+      ],
       isHost: false,
       isAudioPlaying: true,
       openDetails: vi.fn(),
     });
 
-    expect(dock.primary).toMatchObject({ isEnabled: false });
-    expect(dock.leading).toMatchObject({ key: 'viewRole', isEnabled: true });
-    if (dock.leading === null || !dock.leading.isEnabled) {
+    expect(dock.actions.find((action) => action.key === 'sheriff-register')?.state.kind).toBe(
+      'blocked',
+    );
+    const identity = dock.actions.find((action) => action.key === 'viewRole');
+    expect(identity?.state.kind).toBe('ready');
+    if (identity?.state.kind !== 'ready') {
       throw new Error('Expected executable identity action');
     }
-    dock.leading.onPress();
+    identity.state.onPress();
     expect(onViewRole).toHaveBeenCalledTimes(1);
   });
 });

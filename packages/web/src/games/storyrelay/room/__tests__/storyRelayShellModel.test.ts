@@ -106,6 +106,8 @@ function shellFor(
 ): RoomShellModel {
   return createStoryRelayRoomShellModel({
     roomCode: state.roomCode,
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),
@@ -141,10 +143,12 @@ describe('createStoryRelayRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { task: null, sections: [] };
+    const hostManagement = { task: null, actions: [] };
     const onSeatPress = vi.fn();
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -183,11 +187,11 @@ describe('createStoryRelayRoomShellModel', () => {
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
@@ -196,6 +200,8 @@ describe('createStoryRelayRoomShellModel', () => {
 
     const endedModel = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -232,6 +238,8 @@ describe('createStoryRelayRoomShellModel', () => {
     const state = lobbyState(false);
     const model = createStoryRelayRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -261,11 +269,11 @@ describe('createStoryRelayRoomShellModel', () => {
       buildHostManagement: () => null,
       releaseBot: vi.fn(),
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: '等待房主开始游戏',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -274,28 +282,23 @@ describe('createStoryRelayRoomShellModel', () => {
     const state = playStoryRelayTestRound();
     for (const audience of ['seated', 'spectator'] as const) {
       const model = shellFor(state, viewerFor(audience, { hostUserId: 'host-1' }), ENABLED_REVIEW);
-      expect(model.bottomActions).toMatchObject({
-        kind: 'stacked',
+      expect(model.playerActions).toMatchObject({
         message: null,
-        layout: {
-          primary: [],
-          secondary: [
-            {
-              key: 'review',
-              label: '本局复盘',
-              audience: 'anyone',
-              variant: 'secondary',
-              testID: 'room-review-open',
-              isEnabled: true,
-            },
-          ],
-          ghost: [],
-        },
+        actions: [
+          {
+            key: 'review',
+            label: '本局复盘',
+            audience: 'anyone',
+            category: 'resource',
+            testID: 'room-review-open',
+            state: { kind: 'ready' },
+          },
+        ],
       });
     }
     const hostModel = shellFor(state, viewerFor('host', { hostUserId: 'host-1' }), ENABLED_REVIEW);
-    expect(hostModel.bottomActions).toMatchObject({
-      layout: { primary: [], secondary: [], ghost: [] },
+    expect(hostModel.playerActions).toMatchObject({
+      actions: [],
     });
   });
 

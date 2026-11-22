@@ -32,6 +32,12 @@ export type DomainRejectionPresentation = 'alert' | 'state';
 export type TransportFailurePresentation = 'alert' | 'toastAndRethrow';
 
 export interface RoomCommandSubmitOptions {
+  /**
+   * Key of the hand action that owns this submission's busy state, or null
+   * when a dialog or the stage presents its own progress (seat-selection
+   * confirmations, identity dialogs, stage tasks). Every call site declares it.
+   */
+  readonly actionKey: string | null;
   /** Return true when the caller presented this decision inline. Transport failures never enter here. */
   readonly onRejection?: (reason: string, message: string) => boolean;
   readonly domainRejection?: DomainRejectionPresentation;
@@ -48,10 +54,11 @@ class RoomCommandUndeliveredError extends Error {
 
 export interface RoomCommandSubmission<TState extends BaseGameState<string>> {
   readonly isSubmitting: boolean;
+  readonly pendingActionKey: string | null;
   readonly submit: (
     label: string,
     operation: () => Promise<DispatchOutcome<TState>>,
-    options?: RoomCommandSubmitOptions,
+    options: RoomCommandSubmitOptions,
   ) => Promise<boolean>;
 }
 
@@ -59,13 +66,13 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
   getFailureMessage: (result: DispatchOutcome<TState>) => string,
 ): RoomCommandSubmission<TState> {
   const submissionRef = useRef<Promise<DispatchOutcome<TState>> | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submission, setSubmission] = useState<{ readonly actionKey: string | null } | null>(null);
 
   const submit = useCallback(
     async (
       label: string,
       operation: () => Promise<DispatchOutcome<TState>>,
-      options: RoomCommandSubmitOptions = {},
+      options: RoomCommandSubmitOptions,
     ): Promise<boolean> => {
       if (submissionRef.current !== null) {
         throw new Error(`Room operation is already in progress while requesting ${label}`);
@@ -73,7 +80,7 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
 
       const submission = operation();
       submissionRef.current = submission;
-      setIsSubmitting(true);
+      setSubmission({ actionKey: options.actionKey });
       try {
         const settled = await submission.then(
           (result) => ({ kind: 'result', result }) as const,
@@ -114,11 +121,16 @@ export function useRoomCommandSubmission<TState extends BaseGameState<string>>(
         return false;
       } finally {
         submissionRef.current = null;
-        setIsSubmitting(false);
+        setSubmission(null);
       }
     },
     [getFailureMessage],
   );
 
-  return useMemo(() => ({ isSubmitting, submit }), [isSubmitting, submit]);
+  const isSubmitting = submission !== null;
+  const pendingActionKey = submission?.actionKey ?? null;
+  return useMemo(
+    () => ({ isSubmitting, pendingActionKey, submit }),
+    [isSubmitting, pendingActionKey, submit],
+  );
 }
