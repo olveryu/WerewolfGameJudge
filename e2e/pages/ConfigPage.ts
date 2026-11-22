@@ -8,8 +8,8 @@ import { RulesPage } from './RulesPage';
 /**
  * Variant → base role mapping.
  *
- * Variant roles share a chip with their base role in the config UI.
- * Tapping the base chip opens the role info card,
+ * Variant roles share a tile with their base role in the config UI.
+ * Long-pressing the base tile opens the role info card,
  * then clicking the variant pill. Keep in sync with configData.ts `variants` arrays.
  */
 const VARIANT_TO_BASE: Record<string, string> = {
@@ -112,22 +112,25 @@ export class ConfigPage {
   // Role Chips
   // ---------------------------------------------------------------------------
 
-  /** Toggle a role chip by its roleId (data-testid="config-role-chip-toggle-{roleId}"). */
+  /** Toggle a role tile by its roleId (data-testid="config-role-chip-{roleId}"). */
   async toggleRole(roleId: string) {
-    await this.page.getByTestId(TESTIDS.configRoleChipToggle(roleId)).click();
+    await this.page.getByTestId(TESTIDS.configRoleChip(roleId)).click();
   }
 
   /**
    * Select a variant role via the role info card's variant pills.
    *
-   * Taps the base chip to open the role info card, clicks the variant pill, and makes
-   * sure the role ends up on the board: picking a variant no longer adds the role, so
-   * when the card still offers 加入板子, tap it. That button closes the card, so the
+   * Long-presses the base tile to open the role info card, clicks the variant pill, and
+   * makes sure the role ends up on the board: picking a variant no longer adds the role,
+   * so when the card still offers 加入板子, tap it. That button closes the card, so the
    * 知道了 step only runs when the role was already on the board.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
-    // Tap to open role info card
-    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click();
+    // Long-press to open the role info card (the card appears after the ~500ms hold).
+    const chip = this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId));
+    await chip.dispatchEvent('pointerdown');
+    await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeVisible();
+    await chip.dispatchEvent('pointerup');
     const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
     await expect(option).toHaveAttribute('aria-pressed', 'true');

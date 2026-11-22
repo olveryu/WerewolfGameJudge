@@ -141,20 +141,18 @@ export const computeTotalCount = (
   variantOverrides?: VariantOverrides,
 ): number => getPlayerCount(selectionToRoles(selection, variantOverrides));
 
-/** Expand a RoleSlot into an array of {key, label} for rendering chips */
+/** Expand a RoleSlot into an array of {key, label} for rendering tiles */
 export const expandSlotToChipEntries = (
   slot: RoleSlot,
   variantOverrides?: VariantOverrides,
-): { key: string; label: string; hasVariants: boolean }[] => {
+): { key: string; label: string }[] => {
   const count = slot.count ?? 1;
   const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
   const label = ROLE_SPECS[activeRoleId].displayName;
-  const hasVariants = slot.variants !== undefined && slot.variants.length > 0;
 
   return Array.from({ length: count }, (_, i) => ({
     key: slotSelectionKey(slot.roleId, i),
     label,
-    hasVariants,
   }));
 };
 

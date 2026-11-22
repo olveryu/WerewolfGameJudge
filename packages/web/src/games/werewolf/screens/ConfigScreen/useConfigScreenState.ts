@@ -269,8 +269,8 @@ export function useConfigScreenState({
     roleInfoBaseId === null ? undefined : (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId);
 
   /** Switch variant from within the RoleCardSimple pill bar. Variant choice only: board
-   * membership is decided by the badge or the card's 加入板子 / 移出板子 button, never by
-   * picking a variant. */
+   * membership is decided by tapping the tile or the card's 加入板子 / 移出板子 button,
+   * never by picking a variant. */
   const handleRoleInfoVariantSelect = (variantId: RoleId) => {
     if (roleInfoBaseId === null) {
       throw new Error('[FAIL-FAST] Variant selected without an open role info card');

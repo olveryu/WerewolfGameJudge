@@ -151,7 +151,6 @@ export function ConfigScreen({
                             selected={state.selection[entry.key] === true}
                             onToggle={state.toggleRole}
                             faction={faction}
-                            hasVariants={entry.hasVariants}
                             onInfoPress={state.handleChipInfoPress}
                           />
                         ))}
