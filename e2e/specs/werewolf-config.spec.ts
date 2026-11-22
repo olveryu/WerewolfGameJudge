@@ -77,6 +77,72 @@ test.describe('Werewolf — Config Screen', () => {
 
     await config.clickBack();
   });
+
+  test('can toggle roles from list rows and see the tray update', async ({ app }) => {
+    const home = new HomePage(app.page);
+    await home.clickCreateRoom('werewolf');
+
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
+
+    const config = new ConfigPage(app.page);
+    await config.waitForReady();
+    await config.expectTrayCount(12);
+
+    await config.toggleRole('witch');
+    await config.expectTrayCount(11);
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    await config.toggleRole('witch');
+    await config.expectTrayCount(12);
+  });
+
+  test('can search roles and filter to unpicked only', async ({ app }) => {
+    const home = new HomePage(app.page);
+    await home.clickCreateRoom('werewolf');
+
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
+
+    const config = new ConfigPage(app.page);
+    await config.waitForReady();
+
+    await config.searchRoles('女巫');
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toBeVisible();
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('seer'))).toBeHidden();
+
+    await config.toggleUnpickedOnly();
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toBeHidden();
+    await config.toggleUnpickedOnly();
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toBeVisible();
+  });
+
+  test('warns over the target count without blocking continue', async ({ app }) => {
+    const home = new HomePage(app.page);
+    await home.clickCreateRoom('werewolf');
+
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
+
+    const config = new ConfigPage(app.page);
+    await config.waitForReady();
+
+    await config.toggleRole('nightmare');
+    await config.expectTrayCount(13);
+    await expect(app.page.getByTestId(TESTIDS.configBoardTray)).toContainText('多出 1 人');
+    await expect(app.page.getByTestId(TESTIDS.configNextButton)).toBeEnabled();
+
+    await config.clickNext();
+    await expect(
+      app.page.getByTestId(TESTIDS.gameRuleSwitch('isSheriffElectionEnabled')),
+    ).toBeVisible();
+  });
 });
 
 for (const game of [

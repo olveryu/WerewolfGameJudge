@@ -8,8 +8,8 @@ import { RulesPage } from './RulesPage';
 /**
  * Variant → base role mapping.
  *
- * Variant roles share a chip with their base role in the config UI.
- * Tapping the base chip opens the role info card,
+ * Variant roles share a row with their base role in the config UI.
+ * Tapping the row's info button opens the role info card,
  * then clicking the variant pill. Keep in sync with configData.ts `variants` arrays.
  */
 const VARIANT_TO_BASE: Record<string, string> = {
@@ -25,7 +25,7 @@ const VARIANT_TO_BASE: Record<string, string> = {
  *
  * Encapsulates all Config Screen interactions:
  * - Template selection
- * - Role chip toggling
+ * - Role row toggling
  * - Player count reading
  * - Handoff to the Rules step (which owns create / save)
  */
@@ -95,39 +95,61 @@ export class ConfigPage {
   }
 
   // ---------------------------------------------------------------------------
-  // Faction Tabs
+  // Faction Groups
   // ---------------------------------------------------------------------------
 
   /**
-   * Switch to a faction tab.
-   * @param faction - Tab key: 'Villager' (good faction), 'Wolf' (wolf faction), 'Special' (third-party faction)
+   * Reveal a faction group in the list editor.
+   *
+   * All groups render on one scrolling list now (no tabs); this scrolls the group
+   * header into view and expands the group when collapsed, so the rows below it
+   * are reachable. Kept under its old name so existing callers keep working.
+   * @param faction - Group key: 'Villager' (good faction), 'Wolf' (wolf faction), 'Special' (third-party faction)
    */
   async switchToFactionTab(faction: 'Villager' | 'Wolf' | 'Special') {
-    const tab = this.page.getByTestId(TESTIDS.configFactionTab(faction));
-    await tab.click();
-    await expect(tab).toHaveAttribute('aria-selected', 'true');
+    const header = this.page.getByTestId(TESTIDS.configGroupHeader(faction));
+    await header.scrollIntoViewIfNeeded();
+    if ((await header.getAttribute('aria-expanded')) !== 'true') {
+      await header.click();
+    }
+    await expect(header).toHaveAttribute('aria-expanded', 'true');
   }
 
   // ---------------------------------------------------------------------------
-  // Role Chips
+  // Role Rows
   // ---------------------------------------------------------------------------
 
-  /** Toggle a role chip by its roleId (data-testid="config-role-chip-toggle-{roleId}"). */
+  /** Toggle a role row by its roleId (data-testid="config-role-row-{roleId}"). */
   async toggleRole(roleId: string) {
-    await this.page.getByTestId(TESTIDS.configRoleChipToggle(roleId)).click();
+    await this.page.getByTestId(TESTIDS.configRoleRow(roleId)).click();
+  }
+
+  /** Type into the role search box. */
+  async searchRoles(query: string) {
+    await this.page.getByTestId(TESTIDS.configSearchInput).fill(query);
+  }
+
+  /** Toggle the unpicked-only filter. */
+  async toggleUnpickedOnly() {
+    await this.page.getByTestId(TESTIDS.configUnpickedOnlyToggle).click();
+  }
+
+  /** Expect the tray to show the given selected count. */
+  async expectTrayCount(count: number) {
+    await expect(this.page.getByTestId(TESTIDS.configBoardTray)).toContainText(`已选 ${count} 人`);
   }
 
   /**
    * Select a variant role via the role info card's variant pills.
    *
-   * Taps the base chip to open the role info card, clicks the variant pill, and makes
+   * Taps the base row's info button to open the role info card, clicks the variant pill, and makes
    * sure the role ends up on the board: picking a variant no longer adds the role, so
    * when the card still offers 加入板子, tap it. That button closes the card, so the
    * 知道了 step only runs when the role was already on the board.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
     // Tap to open role info card
-    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click();
+    await this.page.getByTestId(TESTIDS.configRoleRowInfo(baseRoleId)).click();
     const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
     await expect(option).toHaveAttribute('aria-pressed', 'true');
@@ -142,7 +164,7 @@ export class ConfigPage {
     await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeHidden();
   }
 
-  /** Deselect multiple role chips. */
+  /** Deselect multiple role rows. */
   async deselectRoles(roleIds: string[]) {
     for (const roleId of roleIds) {
       await this.toggleRole(roleId);
@@ -197,15 +219,15 @@ export class ConfigPage {
    * Configure a 2-player template (1 wolf + 1 villager).
    *
    * Starting from default Seer-Witch-Hunter-Villager (4w + seer + witch + hunter + idiot + 4v = 12):
-   * - Good faction tab: deselect seer/witch/hunter/idiot chips, reduce villager 4→1
-   * - Wolf faction tab: reduce wolf 4→1
+   * - Good faction group: deselect seer/witch/hunter/idiot rows, reduce villager 4→1
+   * - Wolf faction group: reduce wolf 4→1
    */
   async configure2Player() {
-    // good faction tab is active by default
+    // good faction group renders first by default
     await this.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
 
-    // Switch to wolf faction tab to adjust wolf count
+    // Reveal the wolf faction group to adjust wolf count
     await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 3); // 4 → 1
   }
@@ -214,15 +236,15 @@ export class ConfigPage {
    * Configure a 6-player template (2w + seer + witch + hunter + 1v = 6).
    *
    * Starting from default Seer-Witch-Hunter-Villager (4w + seer + witch + hunter + idiot + 4v = 12):
-   * - Good faction tab: deselect idiot chip, reduce villager 4→1
-   * - Wolf faction tab: reduce wolf 4→2
+   * - Good faction group: deselect idiot row, reduce villager 4→1
+   * - Wolf faction group: reduce wolf 4→2
    */
   async configure6Player() {
-    // good faction tab is active by default
+    // good faction group renders first by default
     await this.deselectRoles(['idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
 
-    // Switch to wolf faction tab to adjust wolf count
+    // Reveal the wolf faction group to adjust wolf count
     await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 2); // 4 → 2
   }

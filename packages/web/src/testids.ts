@@ -73,8 +73,6 @@ export const TESTIDS = {
 
   configPresetSection: 'config-preset-section',
   configOverflowReset: 'config-overflow-reset',
-  configRoleChip: (id: string) => `config-role-chip-${id}`,
-  configRoleChipToggle: (id: string) => `config-role-chip-toggle-${id}`,
   configRoleRow: (id: string) => `config-role-row-${id}`,
   configRoleRowInfo: (id: string) => `config-role-row-info-${id}`,
   configBoardTray: 'config-board-tray',
@@ -87,7 +85,6 @@ export const TESTIDS = {
   configStepperDec: (roleId: string) => `config-stepper-dec-${roleId}`,
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
   configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,
-  configFactionTab: (key: string) => `config-faction-tab-${key}`,
   gameRulesScreenRoot: 'game-rules-screen-root',
   /** Werewolf rules render through the shared config form; alias kept for existing callers. */
   gameRuleSwitch: (rule: string) => `werewolf-config-field-${rule}`,
