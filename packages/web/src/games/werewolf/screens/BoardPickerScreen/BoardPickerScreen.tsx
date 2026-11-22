@@ -8,6 +8,7 @@
  */
 import '@/games/werewolf/components/faction.css';
 import './BoardPickerScreen.css';
+import '@/components/CardFrame.css';
 
 import {
   TEMPLATE_CATEGORY_LABELS,
@@ -162,7 +163,7 @@ export function BoardPickerScreen({ exitPath, onSelect, onCustom }: BoardPickerS
 
       {onCustom !== null && (
         <footer className="board-picker-bottom">
-          <button type="button" className="board-picker-custom" onClick={onCustom}>
+          <button type="button" className="board-picker-custom card-frame" onClick={onCustom}>
             <IconCreateOutline aria-hidden />
             从零开始自定义配置
           </button>

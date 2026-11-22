@@ -1,6 +1,7 @@
 /** Werewolf random-role spotlight on Home: flips in a role, 换一个 flips to another, 详情 opens it. */
 import './faction.css';
 import './WerewolfHomeSpotlight.css';
+import '@/components/CardFrame.css';
 
 import {
   Faction,
@@ -92,13 +93,16 @@ export function WerewolfHomeSpotlight() {
   return (
     <section className="werewolf-spotlight" aria-label="今日角色">
       <div className="werewolf-spotlight-flipper" data-phase={phase}>
-        <div className="werewolf-spotlight-face werewolf-spotlight-back" aria-hidden={showsFront}>
+        <div
+          className="werewolf-spotlight-face werewolf-spotlight-back card-frame"
+          aria-hidden={showsFront}
+        >
           <IconHelpCircleOutline className="werewolf-spotlight-back-icon" aria-hidden />
           <span className="werewolf-spotlight-back-text">猜猜今天是谁？</span>
         </div>
 
         <div
-          className="werewolf-spotlight-face werewolf-spotlight-front"
+          className="werewolf-spotlight-face werewolf-spotlight-front card-frame"
           aria-hidden={!showsFront}
           inert={!showsFront}
         >

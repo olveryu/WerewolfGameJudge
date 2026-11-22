@@ -49,8 +49,6 @@
 
 .picker-family {
   overflow: hidden;
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
   background: var(--color-surface);
 }
 
@@ -77,8 +75,6 @@
 
 .picker-option-list {
   overflow: hidden;
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-large);
   background: var(--color-surface);
 }
 

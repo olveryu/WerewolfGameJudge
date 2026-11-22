@@ -1,4 +1,5 @@
 import './GamePickerPage.css';
+import '@/components/CardFrame.css';
 
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -154,7 +155,7 @@ export function GamePickerPage() {
           {blocks.map((block) =>
             block.kind === 'family' ? (
               <div
-                className="picker-family"
+                className="picker-family card-frame"
                 key={block.family.id}
                 data-testid={TESTIDS.gameModePickerFamilyGroup(block.family.id)}
               >
@@ -172,7 +173,7 @@ export function GamePickerPage() {
               </div>
             ) : (
               <div
-                className="picker-option-list"
+                className="picker-option-list card-frame"
                 key={block.options.map((option) => option.gameType).join('-')}
               >
                 {block.options.map((option) => (

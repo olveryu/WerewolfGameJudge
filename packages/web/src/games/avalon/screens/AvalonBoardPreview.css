@@ -4,9 +4,6 @@
   gap: var(--space-tight);
   width: 100%;
   padding: var(--space-small);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
 }
 
 .avalon-board-preview-title {

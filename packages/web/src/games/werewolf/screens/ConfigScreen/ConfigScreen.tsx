@@ -5,6 +5,7 @@
  * The role list is data-driven from FACTION_GROUPS + ROLE_SPECS; all state and callbacks come
  * from useConfigScreenState.
  */
+import '@/components/CardFrame.css';
 import '@/components/GameSettings.css';
 import '@/features/room/config/GameConfigPage.css';
 import '@/games/werewolf/components/faction.css';
@@ -119,7 +120,7 @@ export function ConfigScreen({
         value={state.activeTab}
         onValueChange={(details) => state.handleTabPress(parseFactionTab(details.value))}
       >
-        <div className="config-card-tabs">
+        <div className="config-card-tabs card-frame">
           <FactionTabs tabs={state.tabItems} />
         </div>
         <p className="config-hint">
@@ -129,7 +130,7 @@ export function ConfigScreen({
           点按选角色 · 长按看介绍 · 变体在卡里换
         </p>
         <Tabs.Content value={state.activeTab} className="config-scroll">
-          <div className="config-card-roles">
+          <div className="config-card-roles card-frame">
             {activeGroup.sections.map((section, index) => {
               const faction = FACTION_COLOR_MAP[section.faction ?? activeGroup.faction];
               const bulkSlot = section.roles.find((slot) => slot.isBulk === true);

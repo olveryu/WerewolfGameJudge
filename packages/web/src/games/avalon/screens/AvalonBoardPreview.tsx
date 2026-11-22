@@ -1,5 +1,6 @@
 /** Read-only board for the selected player count: roles grouped as shipped, quest sizes, Lady note. */
 import './AvalonBoardPreview.css';
+import '@/components/CardFrame.css';
 
 import {
   AVALON_BOARDS,
@@ -19,7 +20,10 @@ export function AvalonBoardPreview({ config }: { readonly config: AvalonConfig }
   const roles: readonly AvalonRoleId[] = AVALON_BOARDS[playerCount];
   const questSizes = AVALON_QUEST_SIZES[playerCount];
   return (
-    <section className="avalon-board-preview" aria-labelledby="avalon-board-preview-title">
+    <section
+      className="avalon-board-preview card-frame"
+      aria-labelledby="avalon-board-preview-title"
+    >
       <h3 id="avalon-board-preview-title" className="avalon-board-preview-title">
         本局板子（{playerCount} 人）
       </h3>

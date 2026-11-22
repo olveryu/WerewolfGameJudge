@@ -151,9 +151,7 @@
   justify-content: center;
   gap: var(--space-small);
   width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
+  padding: var(--space-medium);
   color: var(--color-primary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);

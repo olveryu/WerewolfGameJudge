@@ -42,9 +42,6 @@
   flex-shrink: 0;
   margin: var(--space-small) var(--space-screen-h) 0;
   overflow: hidden;
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
 }
 
 /* Hint pill under the faction tabs: how to select, preview, and switch variants. */
@@ -123,9 +120,6 @@
 .config-card-roles {
   margin: var(--space-medium) var(--space-screen-h) 0;
   padding-bottom: calc(var(--space-small) + var(--space-tight));
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
 }
 
 .config-card-divider {

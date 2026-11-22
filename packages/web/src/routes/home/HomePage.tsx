@@ -1,4 +1,5 @@
 import './HomePage.css';
+import '@/components/CardFrame.css';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -201,7 +202,7 @@ export function HomePage() {
           <section className="home-column">
             <button
               type="button"
-              className="home-hero"
+              className="home-hero card-frame"
               disabled={authLoading}
               data-testid={TESTIDS.homeCreateRoomButton}
               onClick={() => void requireAuth(() => void navigate('/games?purpose=create'))}
@@ -232,7 +233,7 @@ export function HomePage() {
             <div className="home-actions">
               <button
                 type="button"
-                className="home-action"
+                className="home-action card-frame"
                 disabled={authLoading}
                 data-testid={TESTIDS.homeEnterRoomButton}
                 onClick={() => void requireAuth(() => openDialog('join'))}
@@ -243,7 +244,7 @@ export function HomePage() {
               </button>
               <button
                 type="button"
-                className="home-action"
+                className="home-action card-frame"
                 disabled={authLoading || recentRooms.length === 0}
                 data-testid={TESTIDS.homeReturnLastGameButton}
                 onClick={() => void requireAuth(() => openDialog('recent'))}
@@ -258,7 +259,7 @@ export function HomePage() {
           </section>
 
           <section className="home-column">
-            <Link to="/gacha" className="home-card">
+            <Link to="/gacha" className="home-card card-frame">
               <IconGiftOutline className="home-card-icon" aria-hidden />
               <span className="home-card-text">
                 <span className="home-card-title">扭蛋抽奖</span>
@@ -275,7 +276,7 @@ export function HomePage() {
 
             <button
               type="button"
-              className="home-card"
+              className="home-card card-frame"
               data-accent="primary"
               onClick={openAnnouncement}
             >

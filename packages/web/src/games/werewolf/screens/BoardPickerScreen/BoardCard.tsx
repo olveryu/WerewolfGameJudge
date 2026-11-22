@@ -1,4 +1,5 @@
 /** BoardCard — single board card (expand/collapse + faction stats + key role chips). */
+import '@/components/CardFrame.css';
 import '@/games/werewolf/components/faction.css';
 import './BoardCard.css';
 
@@ -56,7 +57,7 @@ export function BoardCard({
   const hasStrategy = template.name in BOARD_STRATEGY;
 
   return (
-    <article className="board-card" data-expanded={isExpanded}>
+    <article className="board-card card-frame" data-expanded={isExpanded}>
       <button
         type="button"
         className="board-card-header"

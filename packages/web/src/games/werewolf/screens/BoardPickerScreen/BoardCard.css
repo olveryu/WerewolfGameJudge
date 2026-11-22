@@ -1,9 +1,6 @@
 .board-card {
   margin: 0 var(--space-screen-h) var(--space-small);
   overflow: hidden;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
 }
 
 .board-card[data-expanded='true'] {
