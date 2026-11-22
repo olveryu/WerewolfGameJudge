@@ -99,7 +99,6 @@
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 10%);
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
-  --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
   /* The one card frame's offset shadow (app-card-style P0): 4px down-right, same ink as its border. */
   --shadow-card-frame: var(--space-tight) var(--space-tight) 0 var(--color-primary-dark);
   /* H button press treatment (app-card-style P0): top highlight + bottom press edge. */
@@ -107,6 +106,16 @@
     inset 0 1px 0 var(--color-text-inverse-a20), 0 5px 0 var(--color-primary-deep);
   --shadow-button-press-secondary:
     inset 0 1px 0 var(--color-text-inverse-a20), 0 3px 0 var(--color-primary-deep);
+  /* Role card E2 relief (app-card-style P3): 6px outer offset shadow, card bevel, sunken
+     portrait frame / description panels, engraved name highlight. */
+  --shadow-role-card: 6px 6px 0 var(--color-primary-dark);
+  --shadow-role-card-bevel:
+    inset 0 2px 0 rgb(255 255 255 / 90%), inset 0 -3px 6px rgb(26 49 73 / 18%),
+    inset 0 0 0 1px rgb(26 49 73 / 6%);
+  --shadow-role-card-portrait:
+    inset 0 6px 12px rgb(26 49 73 / 35%), inset 0 -2px 4px rgb(255 255 255 / 70%);
+  --shadow-role-card-panel: inset 0 3px 6px rgb(26 49 73 / 22%);
+  --shadow-role-card-name: 0 1px 0 rgb(255 255 255 / 65%);
 }
 
 /* Admin aliases keep the console on the same light palette as the rest of the site. */

@@ -101,12 +101,14 @@ function RoleCardContent({
         <span className="role-card-faction">{role.factionName}</span>
       )}
       {role.imageUrl !== undefined ? (
-        <img
-          className="role-card-portrait"
-          src={role.imageUrl}
-          alt=""
-          data-testid={TESTIDS.roleBadge}
-        />
+        <div className="role-card-portrait-frame">
+          <img
+            className="role-card-portrait"
+            src={role.imageUrl}
+            alt=""
+            data-testid={TESTIDS.roleBadge}
+          />
+        </div>
       ) : (
         <span className="role-card-portrait role-card-placeholder" data-testid={TESTIDS.roleBadge}>
           {role.placeholderText ?? role.name.charAt(0)}
@@ -175,7 +177,7 @@ export function RoleCardDialog({
             </div>
             {footer}
             <Button
-              className="role-card-confirm"
+              className="role-card-confirm button-press-primary"
               data-alignment={role.alignment}
               onClick={onClose}
               loading={confirmLoading}

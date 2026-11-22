@@ -35,7 +35,10 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: var(--radius-xlarge);
+  /* Room for the card's 6px offset shadow on the right and bottom; without it the shadow
+     is clipped by this scroll container. Top/left need none: the shadow only goes down-right. */
+  padding: 0 var(--space-small) var(--space-small) 0;
+  border-radius: var(--radius-small);
 }
 
 .role-card-dialog[data-state='open'] {
@@ -47,14 +50,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: calc(min(82vw, 360px) * 1.5);
+  /* Width is the dialog width minus the scroll container's right shadow room; height keeps
+     the 1.5 ratio against that width. */
+  height: calc((min(82vw, 360px) - var(--space-small)) * 1.5);
   padding: var(--space-large);
   overflow: hidden;
   border: var(--border-width-highlight) solid var(--faction-color);
-  border-radius: var(--radius-xlarge);
+  border-radius: var(--radius-small);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-role-card);
   container-type: inline-size;
+}
+
+/* E2 card bevel: top white highlight + bottom inner shade + inner hairline, drawn over the
+   card face (including the faction bar) like a pressed tin edge. */
+.role-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Padding-box radius: outer radius minus the 3px border. */
+  border-radius: calc(var(--radius-small) - var(--border-width-highlight));
+  pointer-events: none;
+  box-shadow: var(--shadow-role-card-bevel);
 }
 
 .role-card-faction {
@@ -79,11 +96,32 @@
   object-fit: contain;
 }
 
+/* E2 sunken portrait frame: the image sits in an inset well; the frame carries the width and
+   margin, the image inside fills it. Portraits are transparent cut-outs, so the well's
+   background and inner shade show through around the art. */
+.role-card-portrait-frame {
+  flex-shrink: 0;
+  width: 38%;
+  aspect-ratio: 1;
+  margin: var(--space-xlarge) 0 var(--space-small);
+  overflow: hidden;
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  box-shadow: var(--shadow-role-card-portrait);
+}
+
+.role-card-portrait-frame > .role-card-portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
 .role-card-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-large);
+  border-radius: var(--radius-small);
   background: var(--faction-color);
   color: var(--color-text-inverse);
   /* 40% of the 38%-wide portrait */
@@ -93,10 +131,12 @@
 
 .role-card-name {
   margin: 0;
-  color: var(--faction-color);
+  /* Engraved: the faction color darkened, lit from above by a white under-shadow. */
+  color: color-mix(in srgb, var(--faction-color) 77%, black);
   font-size: var(--font-heading);
   line-height: var(--line-heading);
   font-weight: var(--weight-bold);
+  text-shadow: var(--shadow-role-card-name);
 }
 
 .role-card-divider {
@@ -118,6 +158,18 @@
 .role-card-description:has(> .role-card-fields) {
   padding: var(--space-tight) 0 var(--space-medium);
   mask-image: linear-gradient(to bottom, black calc(100% - var(--space-medium)), transparent);
+}
+
+/* E2 sunken description panel: the single text sits in an inset well. */
+.role-description-single {
+  padding: var(--space-small) var(--space-medium);
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  box-shadow: var(--shadow-role-card-panel);
+}
+
+.role-description-single .role-description-text {
+  padding: 0;
 }
 
 .role-description-title {
@@ -144,13 +196,18 @@
   gap: var(--space-small);
 }
 
+/* E2 sunken field panel: each structured field is an inset well; the faction/tone accent
+   stays as its left stripe. */
 .role-card-field {
   --field-accent: var(--faction-color);
   --field-label: var(--color-text-secondary);
 
-  padding-left: calc(var(--space-tight) + var(--space-micro));
+  padding: var(--space-small) var(--space-medium);
   border-left: var(--border-width-thick) solid
     color-mix(in srgb, var(--field-accent) 30%, transparent);
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  box-shadow: var(--shadow-role-card-panel);
 }
 
 .role-card-field[data-tone='warning'] {
