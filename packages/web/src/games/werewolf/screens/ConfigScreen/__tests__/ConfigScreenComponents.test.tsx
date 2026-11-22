@@ -94,7 +94,23 @@ describe('RoleChip', () => {
     expect(onInfoPress).not.toHaveBeenCalled();
   });
 
-  it('renders no badge or variant mark on the tile', () => {
+  it('renders no checkmark or plus badge on the tile', () => {
+    render(
+      <RoleChip
+        id="seer"
+        label="预言家"
+        selected
+        onToggle={vi.fn()}
+        faction="god"
+        onInfoPress={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('✓')).not.toBeInTheDocument();
+    expect(screen.queryByText('＋')).not.toBeInTheDocument();
+  });
+
+  it('shows the swap mark on a tile that has variants', () => {
     const { container } = render(
       <RoleChip
         id="witch"
@@ -102,14 +118,21 @@ describe('RoleChip', () => {
         selected={false}
         onToggle={vi.fn()}
         faction="god"
-        onInfoPress={vi.fn()}
+        hasVariants
       />,
     );
 
-    expect(container.querySelector('.config-role-chip-badge')).toBeNull();
+    const mark = container.querySelector('.config-role-chip-variant-mark');
+    expect(mark).not.toBeNull();
+    expect(mark).toHaveTextContent('⇄');
+  });
+
+  it('shows no variant mark on a tile without variants', () => {
+    const { container } = render(
+      <RoleChip id="seer" label="预言家" selected onToggle={vi.fn()} faction="god" />,
+    );
+
     expect(container.querySelector('.config-role-chip-variant-mark')).toBeNull();
-    expect(screen.queryByText('✓')).not.toBeInTheDocument();
-    expect(screen.queryByText('＋')).not.toBeInTheDocument();
   });
 });
 

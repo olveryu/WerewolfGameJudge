@@ -145,14 +145,16 @@ export const computeTotalCount = (
 export const expandSlotToChipEntries = (
   slot: RoleSlot,
   variantOverrides?: VariantOverrides,
-): { key: string; label: string }[] => {
+): { key: string; label: string; hasVariants: boolean }[] => {
   const count = slot.count ?? 1;
   const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
   const label = ROLE_SPECS[activeRoleId].displayName;
+  const hasVariants = slot.variants !== undefined && slot.variants.length > 0;
 
   return Array.from({ length: count }, (_, i) => ({
     key: slotSelectionKey(slot.roleId, i),
     label,
+    hasVariants,
   }));
 };
 

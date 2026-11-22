@@ -85,6 +85,8 @@
   --size-admin-login: 400px;
   --font-admin-table: 13px;
   --font-admin-metric: 26px;
+  --font-config-tile: 15px;
+  --font-config-hint: 13px;
 
   /* Borders and states */
   --border-width: 1px;

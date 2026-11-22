@@ -113,6 +113,7 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByText('神职')).toBeInTheDocument();
     expect(screen.getByText('女巫')).toBeInTheDocument();
     expect(screen.getByText('预言家')).toBeInTheDocument();
+    expect(screen.getByText('点按选角色 · 长按看介绍 · 变体在卡里换')).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configStepperDec('villager'))).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configOverflowReset)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configNextButton)).toHaveTextContent('下一步：规则');

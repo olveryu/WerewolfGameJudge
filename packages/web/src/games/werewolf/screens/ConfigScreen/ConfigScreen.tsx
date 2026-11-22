@@ -122,6 +122,12 @@ export function ConfigScreen({
         <div className="config-card-tabs">
           <FactionTabs tabs={state.tabItems} />
         </div>
+        <p className="config-hint">
+          <span className="config-hint-icon" aria-hidden="true">
+            i
+          </span>
+          点按选角色 · 长按看介绍 · 变体在卡里换
+        </p>
         <Tabs.Content value={state.activeTab} className="config-scroll">
           <div className="config-card-roles">
             {activeGroup.sections.map((section, index) => {
@@ -151,6 +157,7 @@ export function ConfigScreen({
                             selected={state.selection[entry.key] === true}
                             onToggle={state.toggleRole}
                             faction={faction}
+                            hasVariants={entry.hasVariants}
                             onInfoPress={state.handleChipInfoPress}
                           />
                         ))}

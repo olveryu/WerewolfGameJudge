@@ -119,17 +119,24 @@
   padding: calc(var(--space-small) + var(--space-tight)) var(--space-medium);
 }
 
+.config-role-chip {
+  position: relative;
+}
+
 .config-role-chip-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: var(--size-button-lg);
   padding: var(--space-small) var(--space-micro);
-  border: var(--border-width-thick) solid var(--color-border);
+  border: 1.5px solid var(--faction-a25);
   border-radius: var(--radius-medium);
-  background: var(--color-surface);
+  background: var(--faction-a8);
   color: var(--color-text);
-  font-size: var(--font-secondary);
+  font-size: var(--font-config-tile);
   line-height: var(--line-secondary);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   text-align: center;
   cursor: pointer;
   /* Long-press must not select the label or pop the system menu. */
@@ -140,9 +147,54 @@
 }
 
 .config-role-chip[data-selected='true'] .config-role-chip-body {
-  border-color: var(--faction-color);
+  border: var(--border-width-thick) solid var(--faction-color);
   background: var(--faction-a30);
   color: var(--faction-color);
+  font-weight: var(--weight-bold);
+}
+
+/* Variant mark: the plain ⇄ in the top-left corner. Decorative, never intercepts taps. */
+.config-role-chip-variant-mark {
+  position: absolute;
+  top: var(--space-tight);
+  left: var(--space-small);
+  z-index: 1;
+  color: var(--color-text-muted);
+  font-size: var(--font-config-hint);
+  line-height: var(--line-caption);
+  pointer-events: none;
+}
+
+/* Hint pill: prominent blue bar under the faction tabs. */
+.config-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  margin: var(--space-small) var(--space-screen-h) 0;
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a12);
+  color: var(--color-primary);
+  font-size: var(--font-config-hint);
+  line-height: var(--line-caption);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.config-hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption-small);
+  line-height: 1;
   font-weight: var(--weight-bold);
 }
 

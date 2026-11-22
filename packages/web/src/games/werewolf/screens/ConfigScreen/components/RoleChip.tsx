@@ -1,8 +1,8 @@
 /**
  * RoleChip — role selection tile (name only). Tapping the tile toggles the role on/off the
- * board; long-pressing it (~500ms) opens the role info card. The tile wears no badges or
- * marks: the selected state is the faction-colored border, the tinted fill, and the
- * faction-colored name.
+ * board; long-pressing it (~500ms) opens the role info card. The tile wears no badges: the
+ * selected state is the faction-colored border, the tinted fill, and the faction-colored
+ * name. Tiles with variant alternatives wear the swap mark in the top-left corner.
  */
 import { useEffect, useRef } from 'react';
 
@@ -19,6 +19,8 @@ interface RoleChipProps {
   readonly onToggle: (id: string) => void;
   /** Faction color of the selected state. */
   readonly faction: FactionColorKey;
+  /** Whether this tile has variant alternatives (shows the swap mark). */
+  readonly hasVariants?: boolean;
   /** Long-press handler for showing the role info card. */
   readonly onInfoPress?: (id: string) => void;
 }
@@ -30,7 +32,15 @@ interface RoleChipProps {
  * swallowed so the tile does not toggle right after the card opens. The timer is cancelled
  * on release, slide-off, or interruption, and on unmount.
  */
-export function RoleChip({ id, label, selected, onToggle, faction, onInfoPress }: RoleChipProps) {
+export function RoleChip({
+  id,
+  label,
+  selected,
+  onToggle,
+  faction,
+  hasVariants = false,
+  onInfoPress,
+}: RoleChipProps) {
   const timerRef = useRef<number | null>(null);
   const longPressedRef = useRef(false);
 
@@ -78,6 +88,11 @@ export function RoleChip({ id, label, selected, onToggle, faction, onInfoPress }
       >
         {label}
       </button>
+      {hasVariants && (
+        <span className="config-role-chip-variant-mark" aria-hidden="true">
+          ⇄
+        </span>
+      )}
     </span>
   );
 }
