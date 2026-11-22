@@ -9,7 +9,7 @@ import { RulesPage } from './RulesPage';
  * Variant → base role mapping.
  *
  * Variant roles share a chip with their base role in the config UI.
- * Tapping the base chip opens the role info card,
+ * Long-pressing the base chip opens the role info card,
  * then clicking the variant pill. Keep in sync with configData.ts `variants` arrays.
  */
 const VARIANT_TO_BASE: Record<string, string> = {
@@ -112,22 +112,40 @@ export class ConfigPage {
   // Role Chips
   // ---------------------------------------------------------------------------
 
-  /** Toggle a role chip by its roleId (data-testid="config-role-chip-toggle-{roleId}"). */
+  /** Toggle a role chip by its roleId (tapping the chip body toggles it). */
   async toggleRole(roleId: string) {
-    await this.page.getByTestId(TESTIDS.configRoleChipToggle(roleId)).click();
+    await this.page.getByTestId(TESTIDS.configRoleChip(roleId)).click();
+  }
+
+  /**
+   * Open the role info card with a long-press on the base chip.
+   *
+   * A real press-and-hold (mouse down, hold, mouse up) so the app's pointer-based
+   * long-press fires; the 600 ms hold is the long-press duration itself, not a wait.
+   * The click the browser fires after mouse-up must not toggle the role.
+   */
+  async openRoleCard(baseRoleId: string) {
+    const chip = this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId));
+    const box = await chip.boundingBox();
+    if (box === null) throw new Error(`Role chip not visible: ${baseRoleId}`);
+    await this.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await this.page.mouse.down();
+    await this.page.waitForTimeout(600);
+    await this.page.mouse.up();
+    await expect(this.page.getByTestId(TESTIDS.roleCardModal)).toBeVisible();
   }
 
   /**
    * Select a variant role via the role info card's variant pills.
    *
-   * Taps the base chip to open the role info card, clicks the variant pill, and makes
-   * sure the role ends up on the board: picking a variant no longer adds the role, so
+   * Long-presses the base chip to open the role info card, clicks the variant pill, and
+   * makes sure the role ends up on the board: picking a variant no longer adds the role, so
    * when the card still offers 加入板子, tap it. That button closes the card, so the
    * 知道了 step only runs when the role was already on the board.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
-    // Tap to open role info card
-    await this.page.getByTestId(TESTIDS.configRoleChip(baseRoleId)).click();
+    // Long-press to open role info card
+    await this.openRoleCard(baseRoleId);
     const option = this.page.getByTestId(TESTIDS.configVariantOption(variantRoleId));
     await option.click();
     await expect(option).toHaveAttribute('aria-pressed', 'true');
