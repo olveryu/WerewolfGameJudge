@@ -55,7 +55,6 @@ export function StageSettleRescue({
           <Button
             variant="secondary"
             size="sm"
-            className="button-press-secondary"
             loading={isRetrying}
             onClick={onRetry}
             data-testid={TESTIDS.stageSettleRescueRetryButton}

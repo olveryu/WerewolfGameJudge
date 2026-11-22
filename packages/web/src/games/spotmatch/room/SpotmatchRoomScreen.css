@@ -173,6 +173,59 @@ button.spotmatch-symbol:disabled {
   background: var(--color-primary);
   transform-origin: left;
 }
+/*
+ * Short stage (for example 320x568): the shared HUD already sits above the stage, so the
+ * feedback collapses to one centred status line, like the old inline strip, and the panel
+ * frame comes off. The detail stays in the DOM for screen readers; the pause progress
+ * hugs the strip's bottom edge. The stage is a size container, so this keys off its real
+ * height, not the viewport: full panel above 540px, compact strip below.
+ */
+@container (max-height: 540px) {
+  .spotmatch-stage {
+    padding-top: 0;
+  }
+  .spotmatch-feedback-panel {
+    margin-bottom: 0;
+  }
+  .spotmatch-feedback-panel .room-stage-panel,
+  .spotmatch-feedback-panel .room-stage-panel[data-tone='success'],
+  .spotmatch-feedback-panel .room-stage-panel[data-tone='danger'] {
+    padding: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+  }
+  .spotmatch-feedback {
+    min-height: 0;
+    padding: var(--space-tight) 0;
+    justify-content: center;
+  }
+  .spotmatch-feedback-icon,
+  .spotmatch-pause-label {
+    display: none;
+  }
+  .spotmatch-feedback-copy {
+    align-items: center;
+    text-align: center;
+  }
+  .spotmatch-feedback-copy strong {
+    font-size: var(--font-secondary);
+    line-height: var(--line-secondary);
+  }
+  .spotmatch-feedback-copy span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .spotmatch-pause-progress {
+    inset-inline: 0;
+    bottom: 0;
+  }
+}
 .spotmatch-played-card {
   position: absolute;
   top: 0;

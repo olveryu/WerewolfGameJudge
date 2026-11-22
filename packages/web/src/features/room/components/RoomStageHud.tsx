@@ -29,7 +29,7 @@ import IconClose from '~icons/ion/close';
 import IconGameControllerOutline from '~icons/ion/game-controller-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
-import { RoomStagePanel, type RoomStagePanelTone } from './RoomStagePanel';
+import { RoomStagePanel } from './RoomStagePanel';
 
 function StageChip({ chip }: { readonly chip: RoomStageChip }) {
   return (
@@ -216,7 +216,6 @@ export function RoomStageHud({
   canTakeOverBots,
   controlledSeat,
   action = null,
-  tone = 'neutral',
 }: {
   readonly hud: RoomStageHudModel;
   readonly seats: RoomSeatDataSource;
@@ -224,7 +223,6 @@ export function RoomStageHud({
   readonly controlledSeat: RoomControlledSeatModel | null;
   /** Game-owned action; the shared shell does not interpret its label or behavior. */
   readonly action?: ReactNode;
-  readonly tone?: RoomStagePanelTone;
 }) {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
   const roster = hud.roster;
@@ -254,7 +252,6 @@ export function RoomStageHud({
   return (
     <RoomStagePanel
       className="room-stage-hud"
-      tone={tone}
       data-expanded={hasSecondaryRow || undefined}
       data-roster-placement={hud.rosterPlacement}
       data-testid={TESTIDS.roomStageHud}
