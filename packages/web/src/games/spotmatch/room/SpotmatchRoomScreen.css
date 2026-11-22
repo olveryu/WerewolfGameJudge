@@ -181,9 +181,6 @@ button.spotmatch-symbol:disabled {
  * height, not the viewport: full panel above 540px, compact strip below.
  */
 @container (max-height: 540px) {
-  .spotmatch-stage {
-    padding-top: 0;
-  }
   .spotmatch-feedback-panel {
     margin-bottom: 0;
   }
@@ -224,6 +221,17 @@ button.spotmatch-symbol:disabled {
   .spotmatch-pause-progress {
     inset-inline: 0;
     bottom: 0;
+  }
+}
+/*
+ * The stage cannot restyle itself with its own container query (a container query
+ * never matches the container itself), so the top padding comes off with a viewport
+ * query instead. 665px is the 540px stage threshold above plus the 125px of chrome
+ * (61px header + 64px HUD) that sits above the stage.
+ */
+@media (max-height: 665px) {
+  .spotmatch-stage {
+    padding-top: 0;
   }
 }
 .spotmatch-played-card {
