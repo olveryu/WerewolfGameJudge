@@ -88,10 +88,10 @@ describe('BoardTray', () => {
     return { onRemoveToken };
   };
 
-  it('shows faction counts, selected tokens and the count against the target', () => {
+  it('shows faction counts, selected tokens and the target', () => {
     renderTray();
 
-    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('已选 12 人');
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).not.toHaveTextContent('已选');
     expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('目标 12 人');
     expect(screen.getByText('平民×4')).toBeInTheDocument();
     expect(screen.getByText('狼人×4')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('BoardTray', () => {
   it('removes one copy when a token is pressed', () => {
     const { onRemoveToken } = renderTray();
 
-    fireEvent.click(screen.getByText('女巫'));
+    fireEvent.click(screen.getByTestId(TESTIDS.configBoardTrayToken('witch')));
 
     expect(onRemoveToken).toHaveBeenCalledWith('witch');
   });
@@ -110,7 +110,8 @@ describe('BoardTray', () => {
     renderTray({ totalCount: 13, targetPlayerCount: 12 });
 
     expect(screen.getByText('多出 1 人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('已选 13 人');
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('目标 12 人');
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).not.toHaveTextContent('已选');
   });
 
   it('shows no target for a blank custom board', () => {
@@ -124,7 +125,8 @@ describe('BoardTray', () => {
       />,
     );
 
-    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('已选 0 人');
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).not.toHaveTextContent('已选');
     expect(screen.queryByText(/目标/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(TESTIDS.configBoardTrayToken('witch'))).not.toBeInTheDocument();
   });
 });

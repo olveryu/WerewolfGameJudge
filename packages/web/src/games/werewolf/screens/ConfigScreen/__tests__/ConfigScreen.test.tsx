@@ -17,6 +17,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { setRememberedGameConfigField } from '@/features/settings/rememberedGameConfigs';
 import type { WerewolfConfigParams, WerewolfRulesParams } from '@/games/werewolf/navigation/types';
+import { getRoleOneLiner } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
 import {
   createFakeRoomLink,
@@ -97,7 +98,8 @@ describe('ConfigScreen rendering', () => {
 
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('预女猎白');
     expect(screen.getByText('12人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('已选 12 人');
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('目标 12 人');
+    expect(screen.getByText('已选 12 人')).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configGroupHeader('Villager'))).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configGroupHeader('Wolf'))).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configGroupHeader('Special'))).toBeInTheDocument();
@@ -128,6 +130,8 @@ describe('ConfigScreen rendering', () => {
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
     expect(witchRow).toHaveTextContent('毒师');
+    expect(witchRow).toHaveTextContent(getRoleOneLiner('poisoner'));
+    expect(witchRow).not.toHaveTextContent('解药');
     expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'true',

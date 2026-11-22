@@ -317,7 +317,8 @@ export const filterConfigListGroups = (
       const rows: ConfigListRow[] = [];
       for (const slot of section.roles) {
         for (const entry of expandSlotToChipEntries(slot, variantOverrides)) {
-          const oneLiner = getRoleOneLiner(selectionKeyToRoleId(entry.key));
+          const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
+          const oneLiner = getRoleOneLiner(activeRoleId);
           if (!matches(entry.label, oneLiner)) continue;
           const selected = selection[entry.key] === true;
           if (showUnpickedOnly && selected) continue;

@@ -136,4 +136,36 @@ describe('filterConfigListGroups', () => {
 
     expect(groups.map((group) => group.title)).toEqual(['好人']);
   });
+
+  it('shows the variant skill, not the base skill, for a slot with a variant override', () => {
+    const groups = filterConfigListGroups(
+      buildInitialSelection(),
+      { witch: 'poisoner' },
+      '',
+      false,
+    );
+    const witchRow = groups
+      .flatMap((group) => group.sections)
+      .flatMap((section) => section.rows)
+      .find((row) => row.key === 'witch');
+
+    expect(witchRow).toMatchObject({ label: '毒师', oneLiner: getRoleOneLiner('poisoner') });
+    expect(witchRow?.oneLiner).not.toContain('解药');
+  });
+
+  it('shows the variant skill for another variant pair', () => {
+    const groups = filterConfigListGroups(
+      buildInitialSelection(),
+      { slacker: 'wildChild' },
+      '',
+      false,
+    );
+    const slackerRow = groups
+      .flatMap((group) => group.sections)
+      .flatMap((section) => section.rows)
+      .find((row) => row.key === 'slacker');
+
+    expect(slackerRow).toMatchObject({ label: '野孩子', oneLiner: getRoleOneLiner('wildChild') });
+    expect(slackerRow?.oneLiner).not.toBe(getRoleOneLiner('slacker'));
+  });
 });

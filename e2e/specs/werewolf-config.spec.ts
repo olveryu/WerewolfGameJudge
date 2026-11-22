@@ -88,17 +88,17 @@ test.describe('Werewolf — Config Screen', () => {
 
     const config = new ConfigPage(app.page);
     await config.waitForReady();
-    await config.expectTrayCount(12);
+    await config.expectSelectedCount(12);
 
     await config.toggleRole('witch');
-    await config.expectTrayCount(11);
+    await config.expectSelectedCount(11);
     await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'false',
     );
 
     await config.toggleRole('witch');
-    await config.expectTrayCount(12);
+    await config.expectSelectedCount(12);
   });
 
   test('can search roles and filter to unpicked only', async ({ app }) => {
@@ -111,6 +111,11 @@ test.describe('Werewolf — Config Screen', () => {
 
     const config = new ConfigPage(app.page);
     await config.waitForReady();
+
+    // Prove both rows exist before filtering, so the toBeHidden() below is a
+    // real transition and not a vacuous pass on a never-rendered element.
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toBeVisible();
+    await expect(app.page.getByTestId(TESTIDS.configRoleRow('seer'))).toBeVisible();
 
     await config.searchRoles('女巫');
     await expect(app.page.getByTestId(TESTIDS.configRoleRow('witch'))).toBeVisible();
@@ -134,7 +139,7 @@ test.describe('Werewolf — Config Screen', () => {
     await config.waitForReady();
 
     await config.toggleRole('nightmare');
-    await config.expectTrayCount(13);
+    await config.expectSelectedCount(13);
     await expect(app.page.getByTestId(TESTIDS.configBoardTray)).toContainText('多出 1 人');
     await expect(app.page.getByTestId(TESTIDS.configNextButton)).toBeEnabled();
 

@@ -11,6 +11,8 @@ interface FactionChipProps {
   readonly size?: ChipSize;
   /** When provided, the chip is a button. */
   readonly onPress?: () => void;
+  /** Optional test id, rendered as data-testid on the chip element. */
+  readonly testId?: string;
   /** When true, render a › affordance after the label (tappable chip). */
   readonly showChevron?: boolean;
 }
@@ -21,6 +23,7 @@ export function FactionChip({
   color,
   size = 'sm',
   onPress,
+  testId,
   showChevron = false,
 }: FactionChipProps) {
   const style = { '--chip-color': color };
@@ -31,14 +34,21 @@ export function FactionChip({
   ) : null;
   if (onPress === undefined) {
     return (
-      <span className="faction-chip" data-size={size} style={style}>
+      <span className="faction-chip" data-size={size} data-testid={testId} style={style}>
         {label}
         {chevron}
       </span>
     );
   }
   return (
-    <button type="button" className="faction-chip" data-size={size} style={style} onClick={onPress}>
+    <button
+      type="button"
+      className="faction-chip"
+      data-size={size}
+      data-testid={testId}
+      style={style}
+      onClick={onPress}
+    >
       {label}
       {chevron}
     </button>

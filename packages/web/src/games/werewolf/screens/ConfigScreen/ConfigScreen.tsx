@@ -230,7 +230,9 @@ export function ConfigScreen({
       {settingsDialog !== undefined && !state.canEdit && (
         <p role="status">房间状态或权限已变化，不能保存设置。</p>
       )}
-      <p className="game-settings-summary">已选 {state.totalCount} 人</p>
+      <p className="game-settings-summary" data-testid={TESTIDS.configSelectedCount}>
+        已选 {state.totalCount} 人
+      </p>
       <Button
         size="lg"
         className="game-config-submit"

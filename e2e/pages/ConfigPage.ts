@@ -134,9 +134,11 @@ export class ConfigPage {
     await this.page.getByTestId(TESTIDS.configUnpickedOnlyToggle).click();
   }
 
-  /** Expect the tray to show the given selected count. */
-  async expectTrayCount(count: number) {
-    await expect(this.page.getByTestId(TESTIDS.configBoardTray)).toContainText(`已选 ${count} 人`);
+  /** Expect the footer summary to show the given selected count. */
+  async expectSelectedCount(count: number) {
+    await expect(this.page.getByTestId(TESTIDS.configSelectedCount)).toContainText(
+      `已选 ${count} 人`,
+    );
   }
 
   /**

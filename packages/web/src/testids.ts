@@ -65,6 +65,7 @@ export const TESTIDS = {
   configBackButton: 'config-back-button',
   configTemplatePill: 'config-template-pill',
   configNextButton: 'config-next-button',
+  configSelectedCount: 'config-selected-count',
 
   boardPickerScreenRoot: 'board-picker-screen-root',
   boardPickerCategoryTab: (category: string) => `board-picker-category-tab-${category}`,

@@ -2,9 +2,10 @@
  * BoardTray — sticky board summary above the config editor's role list.
  *
  * Faction stat badges, one token per selected slot (tap a token to remove one copy) and the
- * selected count. When the board started from a preset, the preset's player count is shown
- * as a reference target; going over it only warns, it never blocks continuing — the engine
- * has no fixed player-count cap (`validateTemplateRoles` requires at least one player).
+ * target player count when the board started from a preset; going over the target only
+ * warns, it never blocks continuing — the engine has no fixed player-count cap
+ * (`validateTemplateRoles` requires at least one player). The selected count ("已选 N 人")
+ * lives only in the submit footer, so it is rendered exactly once on the screen.
  */
 import { FactionChip } from '@/components/FactionChip';
 import { FactionStatBadges } from '@/games/werewolf/components/FactionRoleList';
@@ -48,13 +49,14 @@ export function BoardTray({
             label={token.label}
             color={`var(--color-${token.faction})`}
             size="sm"
+            testId={TESTIDS.configBoardTrayToken(token.key)}
             onPress={() => onRemoveToken(token.key)}
           />
         ))}
       </div>
-      <p className="config-board-tray-count">
-        已选 {totalCount} 人{targetPlayerCount !== null && ` / 目标 ${targetPlayerCount} 人`}
-      </p>
+      {targetPlayerCount !== null && (
+        <p className="config-board-tray-count">目标 {targetPlayerCount} 人</p>
+      )}
       {overTarget > 0 && (
         <p role="status" className="config-board-tray-warning">
           多出 {overTarget} 人
