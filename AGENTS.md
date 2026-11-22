@@ -51,7 +51,7 @@ The application release version is authoritative in the root `package.json`; `pa
 | Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
 | E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                      |
 | Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
-| Local dev         | `pnpm run dev`                                                           | Worker plus Vite, with `VITE_CF_API_URL=http://localhost:8787`         |
+| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port      |
 | Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
 | Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account            |
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |

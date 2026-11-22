@@ -15,6 +15,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['contracts/**/*.test.ts', 'scripts/new-game.test.mjs'],
+    include: ['contracts/**/*.test.ts', 'scripts/new-game.test.mjs', 'scripts/dev.test.mjs'],
   },
 });
