@@ -17,7 +17,12 @@ import {
   TemplateCategory,
 } from '@game-judge/game-engine/games/werewolf/public';
 
-import { buildInitialSelection, FACTION_GROUPS, slotSelectionKey } from './configData';
+import {
+  buildInitialSelection,
+  FACTION_GROUPS,
+  type FactionGroup,
+  slotSelectionKey,
+} from './configData';
 
 export type VariantOverrides = Partial<Record<RoleId, RoleId>>;
 
@@ -156,6 +161,80 @@ export const expandSlotToChipEntries = (
     label,
     hasVariants,
   }));
+};
+
+/**
+ * One-line skill for a list row: the role spec's structured skill clause when it has one,
+ * otherwise the first clause of its description. No new copy is written here.
+ */
+export const getRoleOneLiner = (roleId: RoleId): string => {
+  const spec = ROLE_SPECS[roleId];
+  const skill = spec.structuredDescription?.skill;
+  if (skill !== undefined) return skill;
+  return spec.description.split('；')[0] ?? spec.description;
+};
+
+/** Number of selected copies among a faction group's slots. */
+export const getFactionGroupSelectedCount = (
+  selection: Readonly<Record<string, boolean>>,
+  group: FactionGroup,
+): number => {
+  let count = 0;
+  for (const section of group.sections) {
+    for (const slot of section.roles) {
+      const copies = slot.count ?? 1;
+      for (let i = 0; i < copies; i++) {
+        if (selection[slotSelectionKey(slot.roleId, i)] === true) count++;
+      }
+    }
+  }
+  return count;
+};
+
+/** Maximum selectable copies across a faction group's slots (bulk slots count as `count`). */
+export const getFactionGroupSlotCount = (group: FactionGroup): number => {
+  let total = 0;
+  for (const section of group.sections) {
+    for (const slot of section.roles) total += slot.count ?? 1;
+  }
+  return total;
+};
+
+/** One tray token per selected slot: label plus the key of its last selected copy. */
+export interface BoardTrayToken {
+  readonly key: string;
+  readonly label: string;
+  readonly roleId: RoleId;
+  readonly faction: FactionColorKey;
+}
+
+export const buildBoardTrayTokens = (
+  selection: Readonly<Record<string, boolean>>,
+  variantOverrides?: VariantOverrides,
+): BoardTrayToken[] => {
+  const tokens: BoardTrayToken[] = [];
+  for (const group of FACTION_GROUPS) {
+    for (const section of group.sections) {
+      const faction = FACTION_COLOR_MAP[section.faction ?? group.faction];
+      for (const slot of section.roles) {
+        const copies = slot.count ?? 1;
+        let selectedCount = 0;
+        for (let i = 0; i < copies; i++) {
+          if (selection[slotSelectionKey(slot.roleId, i)] === true) selectedCount++;
+        }
+        if (selectedCount === 0) continue;
+        const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
+        const displayName = ROLE_SPECS[activeRoleId].displayName;
+        tokens.push({
+          key: slotSelectionKey(slot.roleId, selectedCount - 1),
+          label: selectedCount > 1 ? `${displayName}×${selectedCount}` : displayName,
+          roleId: activeRoleId,
+          faction,
+        });
+      }
+    }
+  }
+  return tokens;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

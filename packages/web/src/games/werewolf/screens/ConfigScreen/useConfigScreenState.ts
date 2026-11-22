@@ -8,9 +8,11 @@
 
 import {
   Faction,
+  findMatchingPresetName,
   type GameRuleOverrides,
   type GameState,
   GameStatus,
+  getPlayerCount,
   PRESET_TEMPLATES,
   type RoleId,
   validateTemplateRoles,
@@ -37,6 +39,8 @@ import {
   FACTION_COLOR_MAP,
   findRoleSlot,
   getEmptySelection,
+  getFactionGroupSelectedCount,
+  getFactionGroupSlotCount,
   restoreFromTemplateRoles,
   selectionKeyToRoleId,
   selectionToRoles,
@@ -89,6 +93,27 @@ function readInitialBoardDraft(params: WerewolfConfigParams, session: WerewolfRo
     };
   }
   return toBoardDraft(readRoomState(roomCode, session).templateRoles);
+}
+
+/** Player count of a preset by name; null when the name is not a preset. */
+function presetPlayerCount(presetName: string): number | null {
+  const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+  return preset === undefined ? null : getPlayerCount(preset.roles);
+}
+
+/**
+ * Reference target for the tray: the player count of the preset this board started from.
+ * Kept as a reference after edits (never a cap); null for a blank custom board.
+ */
+function readInitialTargetPlayerCount(
+  params: WerewolfConfigParams,
+  session: WerewolfRoomSession,
+): number | null {
+  if (params.presetName !== undefined) return presetPlayerCount(params.presetName);
+  const roomCode = params.existingRoomCode ?? params.nominateMode?.roomCode;
+  if (roomCode === undefined) return null;
+  const matchedPreset = findMatchingPresetName(readRoomState(roomCode, session).templateRoles);
+  return matchedPreset === null ? null : presetPlayerCount(matchedPreset);
 }
 
 /** Rules handed back from the Rules step win; existing rooms edit their own; new rooms start remembered. */
@@ -163,11 +188,45 @@ export function useConfigScreenState({
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [rules, setRules] = useState<GameRuleOverrides>(() => readInitialRules(params, session));
 
+  // ── List editor: search, unpicked-only filter, per-group collapse, target count ──
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showUnpickedOnly, setShowUnpickedOnly] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<Faction>>(
+    () => new Set(FACTION_GROUPS.map((group) => group.faction)),
+  );
+  const [targetPlayerCount, setTargetPlayerCount] = useState<number | null>(() =>
+    readInitialTargetPlayerCount(params, session),
+  );
+
   const [appliedPresetName, setAppliedPresetName] = useState(presetName);
   if (presetName !== appliedPresetName) {
     setAppliedPresetName(presetName);
-    if (presetName !== undefined) setDraft(restoreFromPreset(presetName));
+    if (presetName !== undefined) {
+      setDraft(restoreFromPreset(presetName));
+      setTargetPlayerCount(presetPlayerCount(presetName));
+    }
   }
+
+  const handleToggleGroup = (faction: Faction) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(faction)) next.delete(faction);
+      else next.add(faction);
+      return next;
+    });
+  };
+
+  const selectPreset = (name: string) => {
+    setDraft(restoreFromPreset(name));
+    setTargetPlayerCount(presetPlayerCount(name));
+  };
+
+  const groupSummaries = FACTION_GROUPS.map((group) => ({
+    faction: group.faction,
+    title: group.title,
+    selected: getFactionGroupSelectedCount(selection, group),
+    total: getFactionGroupSlotCount(group),
+  }));
 
   const [appliedUpdatedRules, setAppliedUpdatedRules] = useState(updatedRules);
   if (updatedRules !== appliedUpdatedRules) {
@@ -320,7 +379,7 @@ export function useConfigScreenState({
     canEdit,
     isDirty:
       initialRolesKey !== JSON.stringify([...selectionToRoles(selection, variantOverrides)].sort()),
-    selectPreset: (name: string) => setDraft(restoreFromPreset(name)),
+    selectPreset,
     isSubmitting: isWorkflowSubmitting,
     selection,
     totalCount,
@@ -347,6 +406,15 @@ export function useConfigScreenState({
     activeTab,
     activeGroup,
     handleTabPress: setActiveTab,
+    // List editor (row layout): search, unpicked-only filter, group collapse, target count
+    searchQuery,
+    setSearchQuery,
+    showUnpickedOnly,
+    handleToggleUnpickedOnly: () => setShowUnpickedOnly((prev) => !prev),
+    expandedGroups,
+    handleToggleGroup,
+    targetPlayerCount,
+    groupSummaries,
     // Bulk stepper
     getBulkCount: (roleId: RoleId, maxCount: number) =>
       countSelectedCopies(selection, roleId, maxCount),
