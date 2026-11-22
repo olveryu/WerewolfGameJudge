@@ -7,6 +7,8 @@ import { TESTIDS } from '@/testids';
 interface RoleStepperProps {
   readonly roleId: RoleId;
   readonly label: string;
+  /** One-line skill from the role spec, rendered under the label. */
+  readonly oneLiner?: string;
   readonly count: number;
   readonly maxCount: number;
   readonly onCountChange: (roleId: RoleId, newCount: number) => void;
@@ -16,14 +18,18 @@ interface RoleStepperProps {
 export function RoleStepper({
   roleId,
   label,
+  oneLiner,
   count,
   maxCount,
   onCountChange,
   faction,
 }: RoleStepperProps) {
   return (
-    <div className="config-stepper-row" data-faction={faction}>
-      <span className="config-stepper-label">{label}</span>
+    <div className="config-stepper-row" data-faction={faction} data-active={count > 0}>
+      <span className="config-stepper-text">
+        <span className="config-stepper-label">{label}</span>
+        {oneLiner !== undefined && <span className="config-stepper-skill">{oneLiner}</span>}
+      </span>
       <span className="config-stepper-pill" data-active={count > 0}>
         <button
           type="button"

@@ -2,12 +2,13 @@
  * useConfigScreenState — ConfigScreen state & callbacks
  *
  * Owns the board draft (role toggles, picked variants, matched preset pill), the rules handed
- * to the Rules step, the role info card and the faction tabs. Nominate mode submits the board
- * directly; otherwise the Rules step owns create/save.
+ * to the Rules step, the role info card and the list editor (search, unpicked-only filter,
+ * group collapse, preset target count). Nominate mode submits the board directly; otherwise
+ * the Rules step owns create/save.
  */
 
 import {
-  Faction,
+  type Faction,
   findMatchingPresetName,
   type GameRuleOverrides,
   type GameState,
@@ -32,11 +33,10 @@ import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
-import type { FactionTabItem } from './components/FactionTabs';
-import { FACTION_GROUPS, type FactionGroup, slotSelectionKey } from './configData';
+import { FACTION_GROUPS, slotSelectionKey } from './configData';
 import {
   computeTotalCount,
-  FACTION_COLOR_MAP,
+  countSelectedCopies,
   findRoleSlot,
   getEmptySelection,
   getFactionGroupSelectedCount,
@@ -129,32 +129,6 @@ function readInitialRules(
   return readRoomState(roomCode, session).rules ?? {};
 }
 
-/** Number of selected copies among a slot's selection keys. */
-function countSelectedCopies(
-  selection: Readonly<Record<string, boolean>>,
-  roleId: RoleId,
-  copies: number,
-): number {
-  let count = 0;
-  for (let i = 0; i < copies; i++) {
-    if (selection[slotSelectionKey(roleId, i)] === true) count++;
-  }
-  return count;
-}
-
-function getFactionSelectedCount(
-  selection: Readonly<Record<string, boolean>>,
-  group: FactionGroup,
-): number {
-  let count = 0;
-  for (const section of group.sections) {
-    for (const slot of section.roles) {
-      count += countSelectedCopies(selection, slot.roleId, slot.count ?? 1);
-    }
-  }
-  return count;
-}
-
 interface UseConfigScreenStateParams {
   readonly params: WerewolfConfigParams;
   readonly session: WerewolfRoomSession;
@@ -188,7 +162,7 @@ export function useConfigScreenState({
   const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [rules, setRules] = useState<GameRuleOverrides>(() => readInitialRules(params, session));
 
-  // ── List editor: search, unpicked-only filter, per-group collapse, target count ──
+  // ── List editor: search, unpicked-only filter, group collapse, target count ──
   const [searchQuery, setSearchQuery] = useState('');
   const [showUnpickedOnly, setShowUnpickedOnly] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<Faction>>(
@@ -320,7 +294,7 @@ export function useConfigScreenState({
     void submitNomination(nominateMode.roomCode, roles);
   };
 
-  // ── Role info card (long-press any chip → RoleCardSimple with variant bar) ──
+  // ── Role info card (the info button on any row → RoleCardSimple with variant bar) ──
   const [roleInfoBaseId, setRoleInfoBaseId] = useState<RoleId | null>(null);
   const roleInfoVariants =
     roleInfoBaseId === null ? undefined : findRoleSlot(roleInfoBaseId).variants;
@@ -328,7 +302,7 @@ export function useConfigScreenState({
     roleInfoBaseId === null ? undefined : (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId);
 
   /** Switch variant from within the RoleCardSimple pill bar. Variant choice only: board
-   * membership is decided by the badge or the card's 加入板子 / 移出板子 button, never by
+   * membership is decided by the row or the card's 加入板子 / 移出板子 button, never by
    * picking a variant. */
   const handleRoleInfoVariantSelect = (variantId: RoleId) => {
     if (roleInfoBaseId === null) {
@@ -343,7 +317,7 @@ export function useConfigScreenState({
   };
 
   /**
-   * Whether the role shown in the info card is on the board. Chip slots hold one copy
+   * Whether the role shown in the info card is on the board. Single slots hold one copy
    * (wolf/villager use the stepper and never open the card), so the key is always index 0.
    */
   const roleInfoSelected =
@@ -357,19 +331,6 @@ export function useConfigScreenState({
     toggleRole(slotSelectionKey(roleInfoBaseId, 0));
     setRoleInfoBaseId(null);
   };
-
-  // ── Faction tabs ──
-  const [activeTab, setActiveTab] = useState<Faction>(Faction.Villager);
-  const activeGroup = FACTION_GROUPS.find((group) => group.faction === activeTab);
-  if (activeGroup === undefined) {
-    throw new Error(`[FAIL-FAST] No config group for faction ${activeTab}`);
-  }
-  const tabItems: FactionTabItem[] = FACTION_GROUPS.map((group) => ({
-    key: group.faction,
-    title: group.title,
-    count: getFactionSelectedCount(selection, group),
-    faction: FACTION_COLOR_MAP[group.faction],
-  }));
 
   const selectedTemplateLabel = selectedTemplate === CUSTOM_TEMPLATE ? '自定义' : selectedTemplate;
 
@@ -401,16 +362,15 @@ export function useConfigScreenState({
     handleRoleInfoVariantSelect,
     roleInfoSelected,
     handleRoleInfoToggle,
-    // Faction tabs
-    tabItems,
-    activeTab,
-    activeGroup,
-    handleTabPress: setActiveTab,
     // List editor (row layout): search, unpicked-only filter, group collapse, target count
     searchQuery,
     setSearchQuery,
     showUnpickedOnly,
     handleToggleUnpickedOnly: () => setShowUnpickedOnly((prev) => !prev),
+    handleClearListFilter: () => {
+      setSearchQuery('');
+      setShowUnpickedOnly(false);
+    },
     expandedGroups,
     handleToggleGroup,
     targetPlayerCount,

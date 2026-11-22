@@ -7,6 +7,7 @@ import {
 } from '@/games/werewolf/screens/ConfigScreen/configData';
 import {
   buildBoardTrayTokens,
+  filterConfigListGroups,
   getFactionGroupSelectedCount,
   getFactionGroupSlotCount,
   getRoleOneLiner,
@@ -82,5 +83,57 @@ describe('buildBoardTrayTokens', () => {
 
   it('emits no tokens for a blank board', () => {
     expect(buildBoardTrayTokens(buildInitialSelection([]), {})).toEqual([]);
+  });
+});
+
+describe('filterConfigListGroups', () => {
+  it('returns every group and section with no query and no filter', () => {
+    const groups = filterConfigListGroups(buildInitialSelection(), {}, '', false);
+
+    expect(groups.map((group) => group.title)).toEqual(['好人', '狼人', '第三方']);
+    expect(groups.flatMap((group) => group.sections).map((section) => section.title)).toEqual([
+      '平民',
+      '神职',
+      '特殊平民',
+      '普通狼人',
+      '技能狼',
+      '第三方',
+    ]);
+    const godSection = groups[0]?.sections.find((section) => section.title === '神职');
+    expect(godSection?.rows.map((row) => row.key)).toContain('seer');
+    expect(godSection?.rows.find((row) => row.key === 'witch')).toMatchObject({
+      label: '女巫',
+      selected: true,
+    });
+  });
+
+  it('matches by name or skill text', () => {
+    const groups = filterConfigListGroups(buildInitialSelection(), {}, '查验', false);
+
+    const keys = groups.flatMap((group) =>
+      group.sections.flatMap((section) => section.rows.map((row) => row.key)),
+    );
+    expect(keys).toContain('seer');
+    expect(keys).not.toContain('witch');
+  });
+
+  it('hides selected rows with the unpicked-only filter', () => {
+    const groups = filterConfigListGroups(buildInitialSelection(), {}, '', true);
+
+    const keys = groups.flatMap((group) =>
+      group.sections.flatMap((section) => section.rows.map((row) => row.key)),
+    );
+    expect(keys).not.toContain('witch');
+    expect(keys).toContain('nightmare');
+    // Bulk rows hide only once fully selected.
+    expect(
+      groups.flatMap((group) => group.sections).some((section) => section.bulkRoleId === 'wolf'),
+    ).toBe(true);
+  });
+
+  it('drops groups with no matching rows', () => {
+    const groups = filterConfigListGroups(buildInitialSelection(), {}, '女巫', false);
+
+    expect(groups.map((group) => group.title)).toEqual(['好人']);
   });
 });

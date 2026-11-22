@@ -2,17 +2,17 @@
  * ConfigScreen — werewolf role configuration (render-only); the Rules step that follows owns
  * create/save, except nominate mode, which submits the board here.
  *
- * The role list is data-driven from FACTION_GROUPS + ROLE_SPECS; all state and callbacks come
- * from useConfigScreenState.
+ * The role list is a row editor driven from FACTION_GROUPS + ROLE_SPECS: a sticky board tray,
+ * a search box, and one full-width toggle row per role. All state and callbacks come from
+ * useConfigScreenState.
  */
 import '@/components/GameSettings.css';
 import '@/features/room/config/GameConfigPage.css';
 import '@/games/werewolf/components/faction.css';
 import './ConfigScreen.css';
 
-import { Tabs } from '@ark-ui/react/tabs';
-import { type Faction, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
-import { Fragment, type ReactNode, useState } from 'react';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
@@ -26,25 +26,14 @@ import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/ai
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import IconChevronDown from '~icons/ion/chevron-down';
+import IconChevronUp from '~icons/ion/chevron-up';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
-import { FactionTabs } from './components/FactionTabs';
-import { RoleChip } from './components/RoleChip';
+import { BoardTray } from './components/BoardTray';
+import { RoleRow } from './components/RoleRow';
 import { RoleStepper } from './components/RoleStepper';
-import { Section } from './components/Section';
-import { FACTION_GROUPS } from './configData';
-import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
+import { filterConfigListGroups, getRoleOneLiner } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
-
-const FACTION_TABS: ReadonlyMap<string, Faction> = new Map(
-  FACTION_GROUPS.map((group) => [group.faction, group.faction]),
-);
-
-function parseFactionTab(value: string): Faction {
-  const faction = FACTION_TABS.get(value);
-  if (faction === undefined) throw new Error(`[FAIL-FAST] Unknown faction tab: ${value}`);
-  return faction;
-}
 
 interface ConfigScreenProps {
   readonly session: WerewolfRoomSession;
@@ -85,8 +74,13 @@ export function ConfigScreen({
     onReturnToRoom,
     keepNominationOpen: nominationDialog !== undefined,
   });
-  const { activeGroup } = state;
   const isAIChatAvailable = useAIChatAvailable();
+  const listGroups = filterConfigListGroups(
+    state.selection,
+    state.variantOverrides,
+    state.searchQuery,
+    state.showUnpickedOnly,
+  );
 
   const templateControl = (
     <span className="config-header-center">
@@ -114,55 +108,101 @@ export function ConfigScreen({
 
   const fields = (
     <>
-      <Tabs.Root
-        className="config-tabs-root"
-        value={state.activeTab}
-        onValueChange={(details) => state.handleTabPress(parseFactionTab(details.value))}
-      >
-        <div className="config-card-tabs">
-          <FactionTabs tabs={state.tabItems} />
-        </div>
-        <Tabs.Content value={state.activeTab} className="config-scroll">
-          <div className="config-card-roles">
-            {activeGroup.sections.map((section, index) => {
-              const faction = FACTION_COLOR_MAP[section.faction ?? activeGroup.faction];
-              const bulkSlot = section.roles.find((slot) => slot.isBulk === true);
-              return (
-                <Fragment key={section.title}>
-                  {index > 0 && <hr className="config-card-divider" />}
-                  {bulkSlot !== undefined ? (
-                    <RoleStepper
-                      roleId={bulkSlot.roleId}
-                      label={ROLE_SPECS[bulkSlot.roleId].displayName}
-                      count={state.getBulkCount(bulkSlot.roleId, bulkSlot.count ?? 1)}
-                      maxCount={bulkSlot.count ?? 1}
-                      onCountChange={state.handleBulkCountChange}
-                      faction={faction}
-                    />
-                  ) : (
-                    <Section title={section.title}>
-                      {section.roles
-                        .flatMap((slot) => expandSlotToChipEntries(slot, state.variantOverrides))
-                        .map((entry) => (
-                          <RoleChip
-                            key={entry.key}
-                            id={entry.key}
-                            label={entry.label}
-                            selected={state.selection[entry.key] === true}
-                            onToggle={state.toggleRole}
-                            faction={faction}
-                            hasVariants={entry.hasVariants}
-                            onInfoPress={state.handleChipInfoPress}
-                          />
-                        ))}
-                    </Section>
-                  )}
-                </Fragment>
-              );
-            })}
+      <div className="config-list-root">
+        <div className="config-list-tools">
+          <BoardTray
+            selection={state.selection}
+            variantOverrides={state.variantOverrides}
+            totalCount={state.totalCount}
+            targetPlayerCount={state.targetPlayerCount}
+            onRemoveToken={state.toggleRole}
+          />
+          <div className="config-search-row">
+            <input
+              type="search"
+              className="config-search"
+              data-testid={TESTIDS.configSearchInput}
+              aria-label="搜索角色"
+              placeholder="搜索角色"
+              value={state.searchQuery}
+              onChange={(event) => state.setSearchQuery(event.target.value)}
+            />
+            <button
+              type="button"
+              className="config-unpicked-toggle"
+              data-testid={TESTIDS.configUnpickedOnlyToggle}
+              aria-pressed={state.showUnpickedOnly}
+              onClick={state.handleToggleUnpickedOnly}
+            >
+              只看未选
+            </button>
           </div>
-        </Tabs.Content>
-      </Tabs.Root>
+        </div>
+        <div className="config-scroll">
+          <div className="config-card-roles">
+            {listGroups.length === 0 ? (
+              <div className="config-list-empty">
+                <p>没有匹配的角色</p>
+                <Button variant="ghost" size="sm" onClick={state.handleClearListFilter}>
+                  清除搜索
+                </Button>
+              </div>
+            ) : (
+              listGroups.map((group) => {
+                const summary = state.groupSummaries.find((item) => item.faction === group.faction);
+                const isExpanded = state.expandedGroups.has(group.faction);
+                return (
+                  <section key={group.title} className="config-group">
+                    <button
+                      type="button"
+                      className="config-group-header"
+                      data-testid={TESTIDS.configGroupHeader(group.faction)}
+                      aria-expanded={isExpanded}
+                      onClick={() => state.handleToggleGroup(group.faction)}
+                    >
+                      <span className="config-group-title">{group.title}</span>
+                      <span className="config-group-count">
+                        已选 {summary?.selected ?? 0} / 共 {summary?.total ?? 0}
+                      </span>
+                      {isExpanded ? <IconChevronUp aria-hidden /> : <IconChevronDown aria-hidden />}
+                    </button>
+                    {isExpanded &&
+                      group.sections.map((section) => (
+                        <div key={section.title} className="config-list-section">
+                          <h3 className="config-section-title">{section.title}</h3>
+                          {section.bulkRoleId !== undefined ? (
+                            <RoleStepper
+                              roleId={section.bulkRoleId}
+                              label={ROLE_SPECS[section.bulkRoleId].displayName}
+                              oneLiner={getRoleOneLiner(section.bulkRoleId)}
+                              count={state.getBulkCount(section.bulkRoleId, section.bulkCount ?? 1)}
+                              maxCount={section.bulkCount ?? 1}
+                              onCountChange={state.handleBulkCountChange}
+                              faction={section.faction}
+                            />
+                          ) : (
+                            section.rows.map((row) => (
+                              <RoleRow
+                                key={row.key}
+                                id={row.key}
+                                label={row.label}
+                                oneLiner={row.oneLiner}
+                                selected={row.selected}
+                                onToggle={state.toggleRole}
+                                faction={section.faction}
+                                onInfoPress={state.handleChipInfoPress}
+                              />
+                            ))
+                          )}
+                        </div>
+                      ))}
+                  </section>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
 
       <RoleCardSimple
         visible={state.roleInfoId !== null}

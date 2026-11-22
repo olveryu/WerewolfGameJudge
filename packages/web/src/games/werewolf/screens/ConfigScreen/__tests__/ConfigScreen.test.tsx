@@ -11,7 +11,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -92,27 +92,27 @@ beforeEach(() => {
 });
 
 describe('ConfigScreen rendering', () => {
-  it('shows the preset pill, player count, faction tabs and the good-faction roles', () => {
+  it('shows the preset pill, player count, tray and all faction groups', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('预女猎白');
     expect(screen.getByText('12人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configFactionTab('Villager'))).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configFactionTab('Wolf'))).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configFactionTab('Special'))).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configBoardTray)).toHaveTextContent('已选 12 人');
+    expect(screen.getByTestId(TESTIDS.configGroupHeader('Villager'))).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configGroupHeader('Wolf'))).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configGroupHeader('Special'))).toBeInTheDocument();
     expect(screen.getByText('神职')).toBeInTheDocument();
-    expect(screen.getByText('女巫')).toBeInTheDocument();
-    expect(screen.getByText('预言家')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveTextContent('女巫');
+    expect(screen.getByTestId(TESTIDS.configRoleRow('seer'))).toHaveTextContent('预言家');
     expect(screen.getByTestId(TESTIDS.configStepperDec('villager'))).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configOverflowReset)).toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.configNextButton)).toHaveTextContent('下一步：规则');
   });
 
-  it('switches faction tabs and steps bulk roles', async () => {
+  it('steps bulk roles without switching tabs and marks the board custom', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configFactionTab('Wolf')));
-    expect(await screen.findByTestId(TESTIDS.configStepperCount('wolf'))).toHaveTextContent('4');
+    expect(screen.getByTestId(TESTIDS.configStepperCount('wolf'))).toHaveTextContent('4');
     fireEvent.click(screen.getByTestId(TESTIDS.configStepperDec('wolf')));
 
     expect(screen.getByTestId(TESTIDS.configStepperCount('wolf'))).toHaveTextContent('3');
@@ -120,15 +120,15 @@ describe('ConfigScreen rendering', () => {
     expect(screen.getByTestId(TESTIDS.configTemplatePill)).toHaveTextContent('自定义');
   });
 
-  it('switches a variant from the role card opened by tapping the chip', () => {
+  it('switches a variant from the role card opened by tapping the row info button', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    const witchChip = screen.getByTestId(TESTIDS.configRoleChip('witch'));
+    const witchRow = screen.getByTestId(TESTIDS.configRoleRow('witch'));
 
-    fireEvent.click(witchChip);
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRowInfo('witch')));
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
-    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+    expect(witchRow).toHaveTextContent('毒师');
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -136,16 +136,16 @@ describe('ConfigScreen rendering', () => {
 
   it('switches a variant without adding an unselected role to the board', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    // Start from a board without the witch: deselect via the badge first.
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    // Start from a board without the witch: deselect via the row first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRow('witch')));
     expect(screen.getByText('11人')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRowInfo('witch')));
     fireEvent.click(screen.getByTestId(TESTIDS.configVariantOption('poisoner')));
 
-    // The chip shows the chosen variant, but the role stays off the board.
-    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+    // The row shows the chosen variant, but the role stays off the board.
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveTextContent('毒师');
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'false',
     );
@@ -155,21 +155,21 @@ describe('ConfigScreen rendering', () => {
     fireEvent.click(screen.getByRole('button', { name: '加入板子' }));
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('12人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configRoleChip('witch'))).toHaveTextContent('毒师');
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveTextContent('毒师');
   });
 
   it('opens the role card on a tap and adds the role from the card', () => {
     renderConfigScreen({ presetName: '预女猎白' });
-    // Start from a board without the witch: deselect via the badge first.
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    // Start from a board without the witch: deselect via the row first.
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRow('witch')));
     expect(screen.getByText('11人')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRowInfo('witch')));
     fireEvent.click(screen.getByRole('button', { name: '加入板子' }));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('12人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -178,24 +178,79 @@ describe('ConfigScreen rendering', () => {
   it('removes the role from the card when it is already selected', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChip('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRowInfo('witch')));
     fireEvent.click(screen.getByRole('button', { name: '移出板子' }));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('11人')).toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.configRoleChipToggle('witch'))).toHaveAttribute(
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
       'aria-pressed',
       'false',
     );
   });
 
-  it('toggles a role from the badge without opening the card', () => {
+  it('toggles a role from the row without opening the card', () => {
     renderConfigScreen({ presetName: '预女猎白' });
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('witch')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRow('witch')));
 
     expect(screen.queryByTestId(TESTIDS.roleCardModal)).not.toBeInTheDocument();
     expect(screen.getByText('11人')).toBeInTheDocument();
+  });
+
+  it('filters rows by search without changing the board', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.change(screen.getByTestId(TESTIDS.configSearchInput), {
+      target: { value: '女巫' },
+    });
+
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toBeInTheDocument();
+    expect(screen.queryByTestId(TESTIDS.configRoleRow('seer'))).not.toBeInTheDocument();
+    expect(screen.getByText('12人')).toBeInTheDocument();
+  });
+
+  it('hides selected rows with the unpicked-only filter', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configUnpickedOnlyToggle));
+
+    expect(screen.queryByTestId(TESTIDS.configRoleRow('witch'))).not.toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleRow('nightmare'))).toBeInTheDocument();
+  });
+
+  it('collapses a faction group and hides its rows', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configGroupHeader('Wolf')));
+
+    expect(screen.queryByTestId(TESTIDS.configStepperCount('wolf'))).not.toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toBeInTheDocument();
+  });
+
+  it('removes a role from a tray token', () => {
+    renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(within(screen.getByTestId(TESTIDS.configBoardTray)).getByText('女巫'));
+
+    expect(screen.getByText('11人')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configRoleRow('witch'))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('warns over the target count without blocking continue', () => {
+    const { callbacks } = renderConfigScreen({ presetName: '预女猎白' });
+
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRow('nightmare')));
+
+    expect(screen.getByText('13人')).toBeInTheDocument();
+    expect(screen.getByText('多出 1 人')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.configNextButton)).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId(TESTIDS.configNextButton));
+
+    expect(callbacks.onContinue).toHaveBeenCalledTimes(1);
   });
 
   it('opens the board picker from the template pill', () => {
@@ -271,7 +326,7 @@ describe('ConfigScreen → Rules handoff', () => {
     const state = readyRoom(session, {});
     const { callbacks } = renderConfigScreen({ existingRoomCode: state.roomCode }, session);
 
-    fireEvent.click(screen.getByTestId(TESTIDS.configRoleChipToggle('hunter')));
+    fireEvent.click(screen.getByTestId(TESTIDS.configRoleRow('hunter')));
     // Another player takes a seat: the authoritative snapshot moves on.
     act(() => publishRoom(session, { ...state }, 2));
     fireEvent.click(screen.getByTestId(TESTIDS.configNextButton));

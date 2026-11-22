@@ -146,8 +146,8 @@ export const computeTotalCount = (
   variantOverrides?: VariantOverrides,
 ): number => getPlayerCount(selectionToRoles(selection, variantOverrides));
 
-/** Expand a RoleSlot into an array of {key, label} for rendering chips */
-export const expandSlotToChipEntries = (
+/** Expand a RoleSlot into an array of {key, label} for rendering rows */
+const expandSlotToChipEntries = (
   slot: RoleSlot,
   variantOverrides?: VariantOverrides,
 ): { key: string; label: string; hasVariants: boolean }[] => {
@@ -161,6 +161,19 @@ export const expandSlotToChipEntries = (
     label,
     hasVariants,
   }));
+};
+
+/** Number of selected copies among a slot's selection keys. */
+export const countSelectedCopies = (
+  selection: Readonly<Record<string, boolean>>,
+  roleId: RoleId,
+  copies: number,
+): number => {
+  let count = 0;
+  for (let i = 0; i < copies; i++) {
+    if (selection[slotSelectionKey(roleId, i)] === true) count++;
+  }
+  return count;
 };
 
 /**
@@ -235,6 +248,87 @@ export const buildBoardTrayTokens = (
     }
   }
   return tokens;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// List editor filtering
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** One visible row in the list editor. */
+export interface ConfigListRow {
+  readonly key: string;
+  readonly label: string;
+  readonly oneLiner: string;
+  readonly selected: boolean;
+}
+
+/** One visible section: either a bulk stepper row or a list of toggle rows. */
+export interface ConfigListSection {
+  readonly title: string;
+  readonly faction: FactionColorKey;
+  /** Bulk slot (plain wolf / villager): rendered as a stepper, with no rows. */
+  readonly bulkRoleId?: RoleId;
+  readonly bulkCount?: number;
+  readonly rows: readonly ConfigListRow[];
+}
+
+/** One visible faction group in the list editor. */
+export interface ConfigListGroup {
+  readonly faction: Faction;
+  readonly title: string;
+  readonly sections: readonly ConfigListSection[];
+}
+
+/**
+ * Visible list-editor groups for a search query and the unpicked-only filter.
+ * Filtering only hides rows; it never mutates the selection. Empty groups drop out.
+ */
+export const filterConfigListGroups = (
+  selection: Readonly<Record<string, boolean>>,
+  variantOverrides: VariantOverrides | undefined,
+  query: string,
+  showUnpickedOnly: boolean,
+): ConfigListGroup[] => {
+  const q = query.trim().toLowerCase();
+  const matches = (label: string, oneLiner: string): boolean =>
+    q === '' || label.toLowerCase().includes(q) || oneLiner.toLowerCase().includes(q);
+  const groups: ConfigListGroup[] = [];
+  for (const group of FACTION_GROUPS) {
+    const sections: ConfigListSection[] = [];
+    for (const section of group.sections) {
+      const faction = FACTION_COLOR_MAP[section.faction ?? group.faction];
+      const bulkSlot = section.roles.find((slot) => slot.isBulk === true);
+      if (bulkSlot !== undefined) {
+        const label = ROLE_SPECS[bulkSlot.roleId].displayName;
+        const oneLiner = getRoleOneLiner(bulkSlot.roleId);
+        if (!matches(label, oneLiner)) continue;
+        const copies = bulkSlot.count ?? 1;
+        if (showUnpickedOnly && countSelectedCopies(selection, bulkSlot.roleId, copies) >= copies)
+          continue;
+        sections.push({
+          title: section.title,
+          faction,
+          bulkRoleId: bulkSlot.roleId,
+          bulkCount: copies,
+          rows: [],
+        });
+        continue;
+      }
+      const rows: ConfigListRow[] = [];
+      for (const slot of section.roles) {
+        for (const entry of expandSlotToChipEntries(slot, variantOverrides)) {
+          const oneLiner = getRoleOneLiner(selectionKeyToRoleId(entry.key));
+          if (!matches(entry.label, oneLiner)) continue;
+          const selected = selection[entry.key] === true;
+          if (showUnpickedOnly && selected) continue;
+          rows.push({ key: entry.key, label: entry.label, oneLiner, selected });
+        }
+      }
+      if (rows.length > 0) sections.push({ title: section.title, faction, rows });
+    }
+    if (sections.length > 0) groups.push({ faction: group.faction, title: group.title, sections });
+  }
+  return groups;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
