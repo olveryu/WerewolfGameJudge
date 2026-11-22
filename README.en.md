@@ -158,7 +158,7 @@ Tech stack: React 19 · Vite 8 · TypeScript 6 · Cloudflare Workers / D1 / R2 /
 
 ```bash
 pnpm install          # Install dependencies
-pnpm run dev          # Worker + Vite concurrently (localhost:8787 + Vite dev server)
+pnpm run dev          # Worker + Vite concurrently (Worker defaults to 127.0.0.1:8787)
 pnpm run quality      # Full gate: types, build, Knip, lint, format, tests
 pnpm run e2e          # Playwright E2E
 
@@ -166,6 +166,8 @@ pnpm run e2e          # Playwright E2E
 pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
+
+If port 8787 is occupied, the Worker uses another port and Vite connects to it. When either service exits, the other is stopped.
 
 Contributors and AI coding agents: read [AGENTS.md](AGENTS.md) first (build, test, and code conventions). New games can start from the generator scaffold with `pnpm run new-game`; see the multi-game platform design doc for the registration checklist.
 

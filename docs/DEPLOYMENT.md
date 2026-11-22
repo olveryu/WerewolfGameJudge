@@ -270,7 +270,7 @@ Do not bypass Git hooks with `--no-verify`.
 
 ```bash
 pnpm install
-pnpm run dev       # Worker on :8787 and the Vite dev server
+pnpm run dev       # Worker on 127.0.0.1:8787 (or an available port) and the Vite dev server
 pnpm run quality   # Complete non-E2E quality gate
 pnpm run e2e       # Playwright starts isolated local API and web servers
 ```

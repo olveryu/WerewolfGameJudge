@@ -158,7 +158,7 @@
 
 ```bash
 pnpm install          # 安装依赖
-pnpm run dev          # Worker + Vite 同时启动 (localhost:8787 + Vite dev server)
+pnpm run dev          # Worker + Vite 同时启动（Worker 默认 127.0.0.1:8787）
 pnpm --filter @game-judge/web run dev:admin-mock  # 仅启动管理后台 UI 模拟，不需要 Worker 或 D1
 pnpm run quality      # 完整质量门禁（类型、构建、Knip、lint、格式、测试）
 pnpm run e2e          # Playwright E2E
@@ -167,6 +167,8 @@ pnpm run e2e          # Playwright E2E
 pnpm -F @game-judge/api-worker db:migrate:local
 pnpm -F @game-judge/api-worker db:seed:local
 ```
+
+如果 8787 已被占用，Worker 会自动使用其他端口，Vite 会连接到该端口。任一服务退出时，另一个服务也会关闭。
 
 管理后台 UI 模拟模式登录密码为 `local-admin`。数据由浏览器内存中的 MSW fixtures 提供，写操作仅在当前标签页有效；普通 `pnpm run dev` 和生产构建不会启用模拟 API。
 
