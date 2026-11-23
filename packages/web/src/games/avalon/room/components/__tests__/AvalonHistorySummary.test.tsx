@@ -6,6 +6,7 @@
 import { render } from '@testing-library/react';
 
 import { AvalonHistorySummary } from '@/games/avalon/room/components/AvalonHistorySummary';
+import { TESTIDS } from '@/testids';
 
 describe('AvalonHistorySummary', () => {
   it('shows the pending seats on a second line while voting is open', () => {
@@ -19,6 +20,7 @@ describe('AvalonHistorySummary', () => {
     );
 
     expect(getByText('提案投票中')).toBeTruthy();
+    expect(getByTestId(TESTIDS.actionMessage)).toHaveTextContent('已投 3/5');
     expect(getByText('任务一 · 成功')).toBeTruthy();
     const pendingRow = getByTestId('avalon-history-summary-pending-seats');
     expect(pendingRow).toBeTruthy();
@@ -55,6 +57,34 @@ describe('AvalonHistorySummary', () => {
     );
 
     expect(queryByTestId('avalon-history-summary-pending-seats')).toBeNull();
+  });
+
+  it('exposes action instructions and the completed vote message through the action status', () => {
+    const { getByTestId, rerender } = render(
+      <AvalonHistorySummary
+        latestResult={null}
+        compact={{
+          context: '任务一 · 组队进行中',
+          message: '点「预选队伍」打开选人',
+          progress: null,
+          isVoting: false,
+        }}
+      />,
+    );
+    expect(getByTestId(TESTIDS.actionMessage)).toHaveTextContent('点「预选队伍」打开选人');
+
+    rerender(
+      <AvalonHistorySummary
+        latestResult={null}
+        compact={{
+          context: '任务一 · 提案投票',
+          message: '已全部投票，等待揭晓',
+          progress: null,
+          isVoting: false,
+        }}
+      />,
+    );
+    expect(getByTestId(TESTIDS.actionMessage)).toHaveTextContent('已全部投票，等待揭晓');
   });
 
   it('renders compact progress and the full pending list alongside the tracks and result', () => {

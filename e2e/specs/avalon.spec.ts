@@ -572,9 +572,10 @@ async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoun
       await castVote(pages[seat]!, script.ballots.get(seat)!);
       if (seat === 0) {
         // 已投人数和未投票名单分别展示，名单也可在投票弹窗中查看。
-        const pending = Array.from({ length: PLAYER_COUNT - 1 }, (_, index) => `${index + 2}`).join(
-          '',
-        );
+        const pending = Array.from(
+          { length: PLAYER_COUNT - 1 },
+          (_, index) => `${index + 2}号`,
+        ).join(' ');
         await waitForBottomActionMessage(pages[0]!);
         await expect(pages[0]!.getByTestId(TESTIDS.actionMessage)).toHaveText(
           `已投 1/${PLAYER_COUNT}`,

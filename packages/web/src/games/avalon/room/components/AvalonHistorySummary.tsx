@@ -38,6 +38,8 @@ export function AvalonHistorySummary({
         pendingSeats={pendingSeats}
         pendingLabel={pendingLabel}
         pendingTestId={TESTIDS.avalonHistorySummaryPendingSeats}
+        messageTestId={compact.progress === null ? TESTIDS.actionMessage : undefined}
+        progressTestId={compact.progress !== null ? TESTIDS.actionMessage : undefined}
         icon={
           compact.isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />
         }

@@ -15,6 +15,7 @@ export function RoomCompactStatus({
   inline = false,
   testId,
   messageTestId,
+  progressTestId,
   contextTestId,
   pendingTestId,
 }: {
@@ -27,6 +28,7 @@ export function RoomCompactStatus({
   readonly inline?: boolean;
   readonly testId?: string;
   readonly messageTestId?: string;
+  readonly progressTestId?: string;
   readonly contextTestId?: string;
   readonly pendingTestId?: string;
 }) {
@@ -45,7 +47,9 @@ export function RoomCompactStatus({
             </span>
           )}
           {progress !== null && progress !== undefined && (
-            <span className="room-compact-status-progress">{progress}</span>
+            <span className="room-compact-status-progress" data-testid={progressTestId}>
+              {progress}
+            </span>
           )}
         </div>
       )}
