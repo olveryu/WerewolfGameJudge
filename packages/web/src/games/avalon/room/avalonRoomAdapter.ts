@@ -32,6 +32,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
@@ -601,7 +602,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
         phase.deadlineAt !== null &&
         input.settleCountdownSeconds !== null &&
         input.settleCountdownSeconds > 0
-          ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
+          ? formatSettleCountdown(input.settleCountdownSeconds, '投票')
           : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
             ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
             : null;
@@ -634,7 +635,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
         phase.deadlineAt !== null &&
         input.settleCountdownSeconds !== null &&
         input.settleCountdownSeconds > 0
-          ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
+          ? formatSettleCountdown(input.settleCountdownSeconds, '出牌')
           : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
             ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length}`
             : null;

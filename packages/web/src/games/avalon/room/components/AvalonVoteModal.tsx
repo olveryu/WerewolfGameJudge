@@ -14,6 +14,7 @@ import { CenterDialog } from '@/components/CenterDialog';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 
 import { avalonVoteApproveImage, avalonVoteRejectImage } from '../../assets/avalonVoteImages';
@@ -68,7 +69,7 @@ export function AvalonVoteModal({
       </div>
       {remainingSeconds !== null && remainingSeconds > 0 && (
         <p className="avalon-stage-countdown" data-testid={TESTIDS.avalonVoteCountdown}>
-          已全部投票，{remainingSeconds} 秒后揭晓
+          {formatSettleCountdown(remainingSeconds, '投票')}
         </p>
       )}
       {viewModel.pendingVoteSeats !== null && viewModel.pendingVoteSeats.length > 0 && (

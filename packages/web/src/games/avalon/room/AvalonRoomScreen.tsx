@@ -22,6 +22,7 @@ import {
 } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -145,13 +146,9 @@ function AvalonRoomContent(
             isVoting || isQuestPending
               ? null
               : isVotePending
-                ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
-                  ? `已全部投票，${screen.phaseRemainingSeconds} 秒后揭晓`
-                  : '已全部投票，等待揭晓'
+                ? formatSettleCountdown(screen.phaseRemainingSeconds, '投票')
                 : isQuest
-                  ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
-                    ? `已全部出牌，${screen.phaseRemainingSeconds} 秒后揭晓`
-                    : '已全部出牌，等待揭晓'
+                  ? formatSettleCountdown(screen.phaseRemainingSeconds, '出牌')
                   : screen.shellModel.playerActions.message === currentStatus
                     ? null
                     : screen.shellModel.playerActions.message,

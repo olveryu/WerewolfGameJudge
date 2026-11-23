@@ -3,6 +3,7 @@ import type { SheriffElectionResult } from '@game-judge/game-engine/games/werewo
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { RoomCompactStatus } from '@/features/room/components/RoomCompactStatus';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { getSheriffWaitingMessage } from '@/games/werewolf/room/day/sheriffElectionPlayerActions';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
 import { TESTIDS } from '@/testids';
@@ -20,9 +21,7 @@ export function getHudSummary(model: SheriffElectionPanelModel, isHost = false):
   if (view.voteProgress !== null) {
     const { submittedCount, eligibleCount } = view.voteProgress;
     if (submittedCount >= eligibleCount) {
-      return model.remainingSeconds !== null && model.remainingSeconds > 0
-        ? `已全部投票，${model.remainingSeconds} 秒后揭晓`
-        : '已全部投票，等待揭晓';
+      return formatSettleCountdown(model.remainingSeconds, '投票');
     }
     return '投票中';
   }
