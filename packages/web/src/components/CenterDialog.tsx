@@ -55,7 +55,6 @@ export function CenterDialog({
           >
             {closeButtonLabel !== undefined && (
               <IconButton
-                variant="soft"
                 className="center-dialog-close"
                 label={closeButtonLabel}
                 icon={<IconClose aria-hidden />}

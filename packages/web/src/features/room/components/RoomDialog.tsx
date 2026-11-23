@@ -69,7 +69,6 @@ export function RoomDialog({
                 </Dialog.Title>
               </div>
               <IconButton
-                variant="soft"
                 label="关闭详情"
                 icon={<IconClose aria-hidden />}
                 onClick={onClose}

@@ -123,6 +123,7 @@
   --surface-button-shadow-light:
     inset 0 1px var(--color-surface), 0 1px 0 var(--color-border-light),
     0 4px 8px var(--color-text-a3);
+  --surface-button-shadow-pressed: 0 1px 0 var(--color-border);
   --surface-header-shadow: var(--surface-panel-shadow);
   --surface-drawing-shadow: var(--surface-panel-shadow);
   --shadow-tabletop-panel: var(--surface-panel-shadow);

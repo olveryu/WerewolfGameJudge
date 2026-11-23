@@ -20,6 +20,10 @@ import {
 import { TESTIDS } from '@/testids';
 import * as alertPresets from '@/utils/alertPresets';
 
+import {
+  secrethitlerVoteFailImage,
+  secrethitlerVotePassImage,
+} from '../../assets/secrethitlerVoteImages';
 import { secrethitlerReview } from '../../review/secrethitlerReview';
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 import {
@@ -103,9 +107,48 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
     isSubmitting: false,
     submit,
   };
-  render(<SecrethitlerPublicResult screen={props} />);
+  const { rerender } = render(<SecrethitlerPublicResult screen={props} />);
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.getByText(/政府通过/)).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerSettledVoteBanner)).toHaveAttribute(
+    'src',
+    secrethitlerVotePassImage,
+  );
+  const voteResult = props.viewModel.publicVoteResult;
+  if (voteResult === null) throw new Error('Missing public vote result');
+  rerender(
+    <SecrethitlerPublicResult
+      screen={{
+        ...props,
+        viewModel: {
+          ...props.viewModel,
+          publicVoteResult: { ...voteResult, passed: false },
+        },
+      }}
+    />,
+  );
+  expect(screen.getByText(/政府未通过/)).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerSettledVoteBanner)).toHaveAttribute(
+    'src',
+    secrethitlerVoteFailImage,
+  );
+  const legislative = buildSecrethitlerPhaseStates().get('legislativeChancellor');
+  if (legislative === undefined || legislative.phase.kind !== 'legislativeChancellor')
+    throw new Error('Missing legislative fixture');
+  rerender(
+    <SecrethitlerPublicResult
+      screen={{
+        ...props,
+        state: {
+          ...state,
+          phase: { ...state.phase, previous: legislative.phase, policy: 'liberal' },
+        },
+        viewModel: { ...props.viewModel, publicVoteResult: null },
+      }}
+    />,
+  );
+  expect(screen.getByText('施行自由派政策')).toBeVisible();
+  expect(screen.queryByTestId(TESTIDS.secrethitlerSettledVoteBanner)).not.toBeInTheDocument();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();

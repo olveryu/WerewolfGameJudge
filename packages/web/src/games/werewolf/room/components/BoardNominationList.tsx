@@ -185,12 +185,7 @@ export function BoardNominationModal({
                 <Dialog.Title className="nomination-dialog-title">
                   板子建议（{entries.length}）
                 </Dialog.Title>
-                <IconButton
-                  variant="soft"
-                  label="关闭"
-                  icon={<IconClose aria-hidden />}
-                  onClick={onClose}
-                />
+                <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
               </header>
               <div className="nomination-dialog-body">
                 {isReadOnly && (

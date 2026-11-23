@@ -45,7 +45,6 @@ export function ScreenHeader({
   return (
     <header className="screen-header page-header-surface">
       <IconButton
-        variant="soft"
         className="screen-header-back"
         label="返回"
         icon={<IconChevronBack aria-hidden />}

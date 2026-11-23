@@ -13,7 +13,7 @@
 .room-compact-status-heading {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-tight) var(--space-small);
   color: var(--color-text-secondary);
@@ -43,7 +43,7 @@
 .room-compact-status[data-inline='true'] {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-tight) var(--space-small);
   border-inline-start-width: var(--border-width);
 }

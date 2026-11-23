@@ -40,6 +40,10 @@ import IconCheckboxOutline from '~icons/ion/checkbox-outline';
 import IconMoonOutline from '~icons/ion/moon-outline';
 import IconTimeOutline from '~icons/ion/time-outline';
 
+import {
+  secrethitlerVoteFailImage,
+  secrethitlerVotePassImage,
+} from '../assets/secrethitlerVoteImages';
 import { toRevealRoleData } from '../components/SecrethitlerRoleCardAdapter';
 import { SecrethitlerStatsPanel } from '../components/SecrethitlerStatsPanel';
 import { SecrethitlerRules } from '../screens/SecrethitlerRulesScreen';
@@ -261,6 +265,13 @@ export function SecrethitlerPublicResult({
     <CenterDialog open title="公共结果" requireConfirmation onClose={() => undefined}>
       {previous.kind === 'voting' && voteResult !== null && (
         <>
+          <img
+            src={voteResult.passed ? secrethitlerVotePassImage : secrethitlerVoteFailImage}
+            alt=""
+            decoding="async"
+            className="secrethitler-result-banner-image"
+            data-testid={TESTIDS.secrethitlerSettledVoteBanner}
+          />
           <p>
             政府{voteResult.passed ? '通过' : '未通过'}：赞成 {voteResult.yesCount}，反对{' '}
             {voteResult.noCount}

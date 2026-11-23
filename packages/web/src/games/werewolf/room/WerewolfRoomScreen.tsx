@@ -346,7 +346,6 @@ function WerewolfRoomContent(
         isHost &&
         status === GameStatus.Ongoing && (
           <IconButton
-            variant="soft"
             className="werewolf-bgm-toggle"
             data-playing={bgm.isBgmPlaying}
             label={bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}

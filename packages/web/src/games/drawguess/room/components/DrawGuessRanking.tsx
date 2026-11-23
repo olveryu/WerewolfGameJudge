@@ -34,7 +34,6 @@ export function DrawGuessRanking({ rows }: { readonly rows: readonly DrawGuessSc
               <p>累计总分排名 · 同分并列</p>
             </div>
             <IconButton
-              variant="soft"
               label="关闭总排名"
               icon={<IconClose aria-hidden />}
               onClick={() => setIsOpen(false)}

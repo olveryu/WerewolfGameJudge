@@ -270,7 +270,6 @@ export function RoomShell({
       >
         <div className="room-header-side" data-side="leading">
           <IconButton
-            variant="soft"
             label="离开房间"
             icon={<IconChevronBack aria-hidden />}
             onClick={model.header.onBack}

@@ -102,7 +102,6 @@ export function WerewolfNotepad({
         </button>
       )}
       <IconButton
-        variant="soft"
         label="清除笔记"
         icon={<IconTrashOutline aria-hidden />}
         className="notepad-header-button"

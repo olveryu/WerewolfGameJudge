@@ -47,46 +47,31 @@
   background: var(--color-surface);
   background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-light);
+  box-shadow: var(--shadow-tabletop-key-soft);
   font-size: var(--size-icon-md);
   cursor: pointer;
   text-decoration: none;
-  transition:
-    transform 100ms ease-out,
-    box-shadow 100ms ease-out;
-}
-
-.icon-button[data-variant='soft'] {
-  border-color: var(--color-border-light);
-  background: var(--color-surface);
-  background-image: var(--surface-button-texture);
-  color: var(--color-text-secondary);
-  box-shadow: var(--shadow-tabletop-key-soft);
   transition:
     transform 100ms ease-out,
     box-shadow 100ms ease-out,
     background-color 100ms ease-out;
 }
 
-.icon-button[data-variant='soft']:focus-visible {
+.icon-button:focus-visible {
   outline: var(--border-width-thick) solid var(--color-primary);
   outline-offset: var(--space-micro);
 }
 
 .icon-button:active:not(:disabled) {
   background: var(--color-surface-hover);
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
-.icon-button[data-variant='soft']:active:not(:disabled) {
-  background: var(--color-surface-hover);
-  box-shadow: 0 1px 0 var(--color-border);
-}
-
 .icon-button:disabled {
-  border-color: var(--color-border);
-  background: var(--color-surface-hover);
+  border-color: var(--color-text-muted);
+  border-style: dashed;
+  background: var(--color-background);
   color: var(--color-text-muted);
   box-shadow: none;
   cursor: default;
@@ -97,7 +82,7 @@
     transform: translateY(calc(-1 * var(--space-micro)));
   }
 
-  .icon-button[data-variant='soft']:hover:not(:disabled) {
+  .icon-button:hover:not(:disabled) {
     background: var(--color-surface-hover);
   }
 }
@@ -112,7 +97,7 @@
 }
 
 .button[data-variant='secondary']:active:not(:disabled, [aria-disabled='true']) {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
 }
 
 /* `aria-disabled` keeps the button pressable so it can explain why it is unavailable. */
@@ -174,7 +159,7 @@
 
 .button[data-variant='ghost']:active:not(:disabled, [aria-disabled='true']),
 .button[data-variant='outline']:active:not(:disabled, [aria-disabled='true']) {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
 }
 
 @media (hover: hover) {
@@ -187,7 +172,7 @@
 
 .button[data-variant='soft']:active:not(:disabled, [aria-disabled='true']) {
   background: var(--color-surface-hover);
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
@@ -215,8 +200,9 @@
 
 .button:disabled,
 .button[aria-disabled='true'] {
-  border-color: var(--color-border);
-  background: var(--color-surface-hover);
+  border-color: var(--color-text-muted);
+  border-style: dashed;
+  background: var(--color-background);
   color: var(--color-text-secondary);
   box-shadow: none;
 }

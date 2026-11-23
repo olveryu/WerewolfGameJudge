@@ -189,7 +189,7 @@
 
 .sheriff-ballot-choice:active:not(:disabled) {
   background: var(--color-surface-hover);
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-tight));
 }
 

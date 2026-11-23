@@ -243,6 +243,7 @@ export const TESTIDS = {
   secrethitlerNominationCancel: 'secrethitler-nomination-cancel',
   secrethitlerNominationConfirm: 'secrethitler-nomination-confirm',
   secrethitlerVoteNo: 'secrethitler-vote-no',
+  secrethitlerSettledVoteBanner: 'secrethitler-settled-vote-banner',
   secrethitlerPolicyCard: (
     action: 'discard' | 'enact',
     policy: 'liberal' | 'fascist',

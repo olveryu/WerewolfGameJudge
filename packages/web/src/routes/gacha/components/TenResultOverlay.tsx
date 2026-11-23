@@ -132,7 +132,6 @@ export function TenResultOverlay({
           <Dialog.Content className="ten-result-card" data-testid="gacha-ten-result">
             <ResidentSceneLayer hostRef={sceneHostRef} />
             <IconButton
-              variant="soft"
               label="关闭"
               icon={<IconClose aria-hidden />}
               className="ten-result-close"

@@ -183,7 +183,6 @@ function RosterSheet({
       <header className="room-stage-roster-header">
         <h2 className="room-stage-roster-title">{roster.title}</h2>
         <IconButton
-          variant="soft"
           label={`关闭${roster.title}`}
           icon={<IconClose aria-hidden />}
           onClick={onClose}

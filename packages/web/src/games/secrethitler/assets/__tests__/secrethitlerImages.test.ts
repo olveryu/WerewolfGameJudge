@@ -7,16 +7,23 @@ import {
 } from '../secrethitlerPolicyImages';
 import {
   SECRETHITLER_VOTE_IMAGES,
+  secrethitlerVoteFailImage,
   secrethitlerVoteNoImage,
+  secrethitlerVotePassImage,
   secrethitlerVoteYesImage,
 } from '../secrethitlerVoteImages';
 
 describe('Secret Hitler room images', () => {
-  it('exposes and preloads both voting choices', () => {
-    const images = new Set([secrethitlerVoteYesImage, secrethitlerVoteNoImage]);
-    expect(images.size).toBe(2);
+  it('exposes and preloads the voting choices and government result images', () => {
+    const images = new Set([
+      secrethitlerVoteYesImage,
+      secrethitlerVoteNoImage,
+      secrethitlerVotePassImage,
+      secrethitlerVoteFailImage,
+    ]);
+    expect(images.size).toBe(4);
     for (const image of images) expect(image).toBeTypeOf('string');
-    expect(SECRETHITLER_VOTE_IMAGES).toHaveLength(2);
+    expect(SECRETHITLER_VOTE_IMAGES).toHaveLength(4);
   });
 
   it('exposes one image per policy and preloads both', () => {

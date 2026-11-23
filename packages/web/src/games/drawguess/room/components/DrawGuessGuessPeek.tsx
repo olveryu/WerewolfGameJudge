@@ -76,7 +76,6 @@ export function DrawGuessGuessPeek({ messages, viewerSeat }: DrawGuessGuessPeekP
               <small className="drawguess-log-sheet-count">{messages.length} 条</small>
             </h2>
             <IconButton
-              variant="soft"
               label={`关闭${LOG_SHEET_TITLE}`}
               icon={<IconClose aria-hidden />}
               onClick={() => setIsLogOpen(false)}

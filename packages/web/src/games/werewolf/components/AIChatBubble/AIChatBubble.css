@@ -27,7 +27,7 @@
 }
 
 .ai-chat-bubble:active {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
@@ -423,7 +423,7 @@
 }
 
 .ai-chat-send:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 

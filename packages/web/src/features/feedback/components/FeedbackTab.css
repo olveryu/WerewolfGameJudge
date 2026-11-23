@@ -111,7 +111,7 @@
 .feedback-submit:active:not(:disabled),
 .feedback-new-button:active:not(:disabled),
 .feedback-reply-send:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
@@ -145,7 +145,7 @@
 }
 
 .feedback-filter-pill:active {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
@@ -279,7 +279,7 @@
 }
 
 .feedback-status-chip:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
@@ -366,7 +366,7 @@
 }
 
 .feedback-resolve-prompt:active {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 

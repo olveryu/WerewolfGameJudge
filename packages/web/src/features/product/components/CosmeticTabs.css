@@ -41,13 +41,13 @@
 
 .cosmetic-tab:active,
 .rarity-filter:active {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
   transform: translateY(var(--space-micro));
 }
 
 .cosmetic-tab[aria-selected='true']:active,
 .rarity-filter[aria-pressed='true']:active {
-  box-shadow: 0 1px 0 var(--color-border);
+  box-shadow: var(--surface-button-shadow-pressed);
 }
 
 .rarity-filters {

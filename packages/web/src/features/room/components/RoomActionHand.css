@@ -1,4 +1,5 @@
 .room-action-hand {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(var(--hand-card-count), minmax(var(--size-min-touch-target), 1fr));
   width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
