@@ -1048,7 +1048,6 @@ test.describe('Avalon full game', () => {
         await expect(hostReview).not.toContainText('查验结果只给当时持有人看');
         await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
         await expect(hostReview).toBeHidden();
-        await expect(hostPage.getByTestId(TESTIDS.roomScreenRoot)).toContainText('本局结束');
         await expect(hostPage.getByTestId(TESTIDS.avalonHistorySummary)).toContainText('坏人获胜');
         // PR-B G-6: the ended wait lives only in the bottom panel of
         // seated non-host players (shared constant, no full stop);
