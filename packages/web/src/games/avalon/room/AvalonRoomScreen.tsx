@@ -22,7 +22,6 @@ import {
 } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -142,16 +141,12 @@ function AvalonRoomContent(
                 : statusContext === null
                   ? currentStatus
                   : `${statusContext} · ${currentStatus}`,
+          // 状态句唯一来源是 avalonRoomAdapter（投票/出牌进行中给不能提交者的说明、全员提交后
+          // 的结算倒计时句）；与阶段句重复时不再显示。
           message:
-            isVoting || isQuestPending
+            screen.shellModel.playerActions.message === currentStatus
               ? null
-              : isVotePending
-                ? formatSettleCountdown(screen.phaseRemainingSeconds, '投票')
-                : isQuest
-                  ? formatSettleCountdown(screen.phaseRemainingSeconds, '出牌')
-                  : screen.shellModel.playerActions.message === currentStatus
-                    ? null
-                    : screen.shellModel.playerActions.message,
+              : screen.shellModel.playerActions.message,
           progress: isVoting
             ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
             : isQuestPending && phase.kind === 'quest'

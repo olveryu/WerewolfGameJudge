@@ -679,7 +679,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     expect(onCancelEarlyStrikePress).toHaveBeenCalledTimes(1);
   });
 
-  it('vote: voters get the open button, the public count and pending seats in the message, then the armed countdown', () => {
+  it('vote: voters get the open button and no sentence until the armed countdown', () => {
     const running = daytimeSession();
     const leader = running.state.leaderSeat;
     const team = [leader, (leader + 1) % 5];
@@ -703,7 +703,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       label: '修改投票',
       isPending: false,
     });
-    expect(cast.message).toBe('已投 1/5');
+    // The cast count is the summary bar's progress, not the voter's sentence.
+    expect(cast.message).toBeNull();
     for (let seat = 0; seat < 5; seat += 1) {
       if (seat !== voter)
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -713,8 +714,10 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     }
     const armed = shellFor(running, voter, { settleCountdownSeconds: 4 });
     expect(armed.message).toBe('已全部投票，4 秒后揭晓');
-    // At 0 the countdown line is gone (the rescue takes over); the voter sees no message.
-    expect(shellFor(running, voter, { settleCountdownSeconds: 0 }).message).toBeNull();
+    // At 0 the sentence waits for the reveal.
+    expect(shellFor(running, voter, { settleCountdownSeconds: 0 }).message).toBe(
+      '已全部投票，等待揭晓',
+    );
   });
 
   it('quest: only team members get the play button, and no card content ever leaks', () => {
@@ -733,7 +736,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (outsider === undefined) throw new Error('expected a non-team seat');
     const outsiderBottom = shellFor(running, outsider);
     expect(findStageAction(outsiderBottom, 'openQuest')).toBeUndefined();
-    expect(outsiderBottom.message).toBe('已出牌 0/2');
+    expect(outsiderBottom.message).toBe('等待队员出牌…');
     const memberBottom = shellFor(running, evil);
     expect(findStageAction(memberBottom, 'openQuest')).toMatchObject({
       label: '去出牌',
@@ -746,16 +749,17 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       label: '修改出牌',
       isPending: false,
     });
-    expect(played.message).toBe('已出牌 1/2');
-    expect(played.message).not.toContain('失败');
+    expect(played.message).toBeNull();
     running.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(leader));
     if (running.state.phase.kind !== 'quest' || running.state.phase.deadlineAt === null) {
       throw new Error('expected the armed quest phase');
     }
     const armed = shellFor(running, evil, { settleCountdownSeconds: 3 });
     expect(armed.message).toBe('已全部出牌，3 秒后揭晓');
-    // At 0 the countdown line is gone (the rescue takes over).
-    expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBeNull();
+    // At 0 the sentence waits for the reveal.
+    expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBe(
+      '已全部出牌，等待揭晓',
+    );
   });
 
   it('lady: holder sees the result, target waits, and the result remains private', () => {
@@ -836,7 +840,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     expect(findStageAction(confirmedShell, 'nightInfo')).toBeUndefined();
   });
 
-  it('vote: every seat sees the cast count and pending seats, whether or not they voted', () => {
+  it('vote: seated voters get no sentence whether or not they voted', () => {
     const running = daytimeSession();
     if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = running.state.leaderSeat;
@@ -849,8 +853,8 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
     if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
-    expect(shellFor(running, 1).message).toBe('已投 1/5');
-    expect(shellFor(running, 2).message).toBe('已投 1/5');
+    expect(shellFor(running, 1).message).toBeNull();
+    expect(shellFor(running, 2).message).toBeNull();
   });
 
   it('lady: bystanders read the public process before and after the target is chosen', () => {

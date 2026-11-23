@@ -33,8 +33,8 @@ export const AVALON_GUIDANCE_MATRIX: RoomGuidanceMatrix<AvalonPhaseKind> = {
     spectator: GUIDANCE_MESSAGE,
   },
   vote: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
+    host: guidanceExempt('投票入口归主按钮；已投计数与未投票名单归对局摘要条进度行'),
+    seated: guidanceExempt('投票入口归主按钮；已投计数与未投票名单归对局摘要条进度行'),
     spectator: GUIDANCE_MESSAGE,
   },
   voteResult: {
@@ -43,8 +43,8 @@ export const AVALON_GUIDANCE_MATRIX: RoomGuidanceMatrix<AvalonPhaseKind> = {
     spectator: GUIDANCE_MESSAGE,
   },
   quest: {
-    host: GUIDANCE_MESSAGE,
-    seated: GUIDANCE_MESSAGE,
+    host: guidanceExempt('队员的出牌入口归主按钮；已出牌计数与未出牌名单归对局摘要条进度行'),
+    seated: guidanceExempt('队员的出牌入口归主按钮；已出牌计数与未出牌名单归对局摘要条进度行'),
     spectator: GUIDANCE_MESSAGE,
   },
   questResult: {
