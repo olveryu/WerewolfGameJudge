@@ -85,6 +85,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
   background: var(--color-primary-a8);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-tabletop-key-soft);
   font-size: var(--size-icon-md);
@@ -184,6 +185,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  background-image: var(--surface-panel-texture);
   box-shadow: var(--shadow-tabletop-panel);
   text-align: center;
 }
@@ -243,6 +245,7 @@
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-full);
   background: var(--color-primary-a8);
+  background-image: var(--surface-button-texture);
   color: var(--color-primary);
   font: inherit;
   font-size: var(--font-caption);

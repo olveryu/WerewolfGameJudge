@@ -122,6 +122,7 @@
 
 .encyclopedia-segment[aria-selected='true'] {
   background: var(--color-primary-a15);
+  background-image: var(--surface-button-texture);
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
   box-shadow: var(--shadow-tabletop-key-light);
@@ -199,6 +200,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);

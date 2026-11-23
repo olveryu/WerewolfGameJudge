@@ -92,6 +92,15 @@
   --opacity-pressed: 0.7;
   --opacity-disabled: 0.5;
 
+  /* Surface roles can be themed independently; the texture does not change the base color. */
+  --paper-texture: url('./paper-texture.svg');
+  --surface-panel-texture: var(--paper-texture);
+  --surface-card-texture: var(--paper-texture);
+  --surface-header-texture: var(--paper-texture);
+  --surface-button-texture: var(--paper-texture);
+  --surface-hand-texture: var(--paper-texture);
+  --surface-drawing-texture: var(--paper-texture);
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 6%);
   --shadow-md: 0 2px 8px rgb(0 0 0 / 8%);
@@ -99,19 +108,28 @@
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
-  --shadow-tabletop-panel: 0 2px 0 var(--color-border-light), 0 5px 12px var(--color-text-a3);
-  --shadow-tabletop-card: 0 3px 0 var(--color-border), 0 6px 12px var(--color-text-a3);
-  --shadow-tabletop-hand-card:
-    inset 0 0 0 var(--border-width-highlight) var(--color-text-inverse-a65),
-    0 var(--border-width-highlight) 0 var(--color-border),
+  --surface-panel-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 1px 0 var(--color-border-light),
+    0 3px 8px var(--color-text-a3);
+  --surface-card-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 2px 0 var(--color-border-light),
+    0 5px 12px var(--color-text-a3);
+  --surface-hand-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 var(--space-micro) 0 var(--color-border),
     0 var(--space-small) calc(var(--space-small) + var(--space-micro)) var(--color-text-a3);
-  --shadow-tabletop-key-soft:
-    inset 0 1px var(--color-text-inverse-a20), 0 2px 0 var(--color-border),
+  --surface-button-shadow-soft:
+    inset 0 1px var(--color-text-inverse-a65), 0 1px 0 var(--color-border-light),
     0 var(--space-tight) var(--space-small) var(--color-text-a3);
-  --shadow-tabletop-key: var(--shadow-tabletop-key-soft);
-  --shadow-tabletop-key-light:
-    inset 0 1px var(--color-surface), 0 2px 0 var(--color-border-light),
+  --surface-button-shadow-light:
+    inset 0 1px var(--color-surface), 0 1px 0 var(--color-border-light),
     0 4px 8px var(--color-text-a3);
+  --surface-header-shadow: var(--surface-panel-shadow);
+  --surface-drawing-shadow: var(--surface-panel-shadow);
+  --shadow-tabletop-panel: var(--surface-panel-shadow);
+  --shadow-tabletop-card: var(--surface-card-shadow);
+  --shadow-tabletop-key-soft: var(--surface-button-shadow-soft);
+  --shadow-tabletop-key: var(--surface-button-shadow-soft);
+  --shadow-tabletop-key-light: var(--surface-button-shadow-light);
   --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
   --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
 }

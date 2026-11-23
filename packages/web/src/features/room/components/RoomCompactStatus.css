@@ -1,0 +1,92 @@
+.room-compact-status {
+  min-width: 0;
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-inline-start: var(--border-width-highlight) solid var(--color-primary-a25);
+  border-radius: var(--radius-medium);
+  background-color: var(--color-background);
+  background-image: var(--surface-panel-texture);
+  box-shadow: var(--shadow-tabletop-panel);
+  text-align: start;
+}
+
+.room-compact-status-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-tight) var(--space-small);
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-caption);
+}
+
+.room-compact-status-context {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-tight);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.room-compact-status-context svg {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.room-compact-status-progress {
+  color: var(--color-primary);
+}
+
+.room-compact-status[data-inline='true'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-tight) var(--space-small);
+  border-inline-start-width: var(--border-width);
+}
+
+.room-compact-status[data-inline='true'] .room-compact-status-message {
+  flex: 1 1 auto;
+  order: 2;
+  margin: 0;
+}
+
+.room-compact-status[data-inline='true'] .room-compact-status-heading {
+  display: contents;
+}
+
+.room-compact-status[data-inline='true'] .room-compact-status-progress {
+  order: 3;
+}
+
+.room-compact-status-message {
+  margin: var(--space-tight) 0 0;
+  color: var(--color-text);
+  font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-secondary);
+  overflow-wrap: anywhere;
+}
+
+.room-compact-status-tracks {
+  display: grid;
+  gap: var(--space-small);
+  min-width: 0;
+  margin-top: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background-color: var(--color-background);
+  background-image: var(--surface-panel-texture);
+  box-shadow: var(--shadow-tabletop-panel);
+}
+
+.room-compact-status-result {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-caption);
+  line-height: var(--line-caption);
+}

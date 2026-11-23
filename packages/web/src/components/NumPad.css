@@ -10,6 +10,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-title);

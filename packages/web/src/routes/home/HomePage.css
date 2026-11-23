@@ -114,6 +114,7 @@
   border: var(--border-width) solid var(--color-primary-dark);
   border-radius: var(--radius-medium);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
   text-align: left;
@@ -211,6 +212,7 @@
   border: none;
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-card-texture);
   box-shadow: var(--shadow-tabletop-card);
   text-align: left;
   cursor: pointer;
@@ -250,6 +252,7 @@
   border: none;
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-card-texture);
   color: var(--color-text-muted);
   box-shadow: var(--shadow-tabletop-card);
   text-decoration: none;

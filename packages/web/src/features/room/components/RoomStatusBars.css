@@ -26,6 +26,7 @@
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-error-a20);
+  background-image: var(--surface-button-texture);
   color: var(--color-error);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);

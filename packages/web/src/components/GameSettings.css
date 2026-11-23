@@ -92,6 +92,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);

@@ -103,6 +103,50 @@ framing, and the blue-grey background stays clean and nearly untextured.
   admin console. The user approved the recommended component direction for implementation.
 - **Material finish:** clean and refined, like a new tabletop game, with subtle material
   character rather than obvious wear or aging.
+- **Paper-surface follow-up — confirmed:** keep the existing blue-grey and clean visual style.
+  Paper character should be clear but restrained, with visible edges and gentle depth and fine
+  texture that does not interfere with drawing or reading. This direction includes large drawing
+  surfaces, small cards, headers, and bottom hand cards. The user requested direct implementation
+  without a new mock; exact visual balance remains subject to implementation review.
+- **Drawing-surface follow-up — confirmed:** make the canvas look like a flat sheet of drawing
+  paper on the tabletop, with a fine paper edge, soft shadow, nearly white interior, and barely
+  visible texture. Do not add lines or decorations over the drawing area.
+- **Hand-card follow-up — confirmed:** use slightly thicker paper cards from the same material
+  family as the canvas, with clearer shadows to communicate interactivity. Preserve the existing
+  fan layout and colors; do not add a heavy button-like base.
+- **Header follow-up — confirmed:** present the header as a flat paper information strip, with a
+  lighter edge and shadow than hand cards. The whole header must not look clickable; actual
+  controls inside it remain individually identifiable.
+- **Information-card follow-up — confirmed:** use thinner paper pieces with lighter edges and
+  shadows than interactive hand cards. Actual buttons inside remain distinct without a heavy,
+  raised button treatment.
+- **Buttons follow-up — confirmed:** apply the same paper material to actual action buttons
+  throughout the app, not only to hand cards. Preserve existing button roles, colors, and
+  feedback; do not make titles, status text, or the original room seats look like buttons.
+- **Room status slips — confirmed:** Werewolf, Avalon and Secret Hitler use compact paper
+  status strips. Keep long instructions intact and allow them to wrap; voting strips show
+  submitted counts and pending seat numbers without revealing ballots. Once everyone submits,
+  show the pending reveal and any available countdown instead of an empty seat list.
+- **Secret Hitler match record:** reuse the Avalon record's paper cards and navigation styling.
+  Keep government ballots, policies and presidential actions distinct; do not infer a combined
+  chronology or reveal individual secret votes.
+- **Role-preview labels — confirmed:** retain the compact faction-colored label shape for
+  clickable role previews, with a fine paper texture and shallow edge and shadow. They should
+  remain visually thinner than the hand cards, not become chunky buttons.
+- **Paper-surface implementation:** the shared paper texture and layered edge shadows cover
+  headers, room information surfaces, drawing canvases, hand cards and action buttons, with the
+  same material applied to game, role and navigation cards. The drawing texture is visual only
+  and is not included in exported artwork.
+- **Surface roles:** `tokens.css` exposes separate texture and shadow tokens for panels, cards,
+  headers, buttons, hand cards and drawing surfaces. Use the role that matches the surface's
+  purpose, not whether its markup happens to be a button. Existing tabletop shadow tokens map
+  to the corresponding surface shadows; pressed, disabled and selected states remain owned by
+  components. Theme overrides must be applied at the document root so dependent tokens resolve
+  together. This provides a foundation, not a theme switcher: colors used directly in TypeScript,
+  special artwork and component-specific state styles also need consideration for a future theme.
+  `applyColorTokens` writes colors as inline root properties, so changing a future palette must
+  update that color publisher as well as CSS surface tokens; a stylesheet override alone is not
+  sufficient. Textures and shadows are decorative, not the sole indication of an action or state.
 - **Consistency:** keep the tactile styling similarly noticeable across the site, rather than
   making the home page and admin console more restrained than game screens.
 - **Visual intensity:** noticeable at first glance but not exaggerated; cards and buttons should

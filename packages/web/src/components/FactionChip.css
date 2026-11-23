@@ -20,6 +20,8 @@
 }
 
 button.faction-chip {
+  background-image: var(--surface-button-texture);
+  box-shadow: var(--shadow-tabletop-panel);
   cursor: pointer;
 }
 

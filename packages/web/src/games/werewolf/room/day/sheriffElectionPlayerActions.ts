@@ -70,7 +70,7 @@ function createCommandButton(
   };
 }
 
-export function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): string {
+function getSheriffVoteButtonLabel(model: SheriffElectionPanelModel): string {
   const ballot = model.view.myBallot;
   if (ballot === null || ballot.kind === 'notSubmitted') return '选择投票';
   if (ballot.kind === 'abstained') return '修改弃票';

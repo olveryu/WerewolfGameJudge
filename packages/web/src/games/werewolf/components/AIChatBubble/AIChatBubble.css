@@ -19,6 +19,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   box-shadow: var(--shadow-tabletop-key-light);
   cursor: grab;
   touch-action: none;
@@ -254,6 +255,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   box-shadow: var(--shadow-tabletop-key-light);
   color: var(--color-text);
   font-size: var(--font-subtitle);
@@ -356,6 +358,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-caption);
@@ -411,6 +414,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
   font-size: var(--font-subtitle);

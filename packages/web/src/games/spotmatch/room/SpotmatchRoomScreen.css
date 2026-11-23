@@ -26,6 +26,7 @@
   border: var(--border-width-thick) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-card-texture);
   box-shadow: var(--shadow-tabletop-card);
 }
 .spotmatch-card::after {

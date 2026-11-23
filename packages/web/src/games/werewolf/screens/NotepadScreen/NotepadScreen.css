@@ -20,6 +20,7 @@
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-medium);
   background: var(--color-primary-a8);
+  background-image: var(--surface-button-texture);
   color: var(--color-primary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);

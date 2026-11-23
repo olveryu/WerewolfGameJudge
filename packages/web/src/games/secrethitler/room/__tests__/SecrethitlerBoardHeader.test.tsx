@@ -6,7 +6,7 @@ import {
 } from '@game-judge/game-engine/games/secrethitler/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 
@@ -25,6 +25,7 @@ import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 import {
   SecrethitlerBoardHeader,
   SecrethitlerBoardInfo,
+  SecrethitlerCompactBoardHeader,
   SecrethitlerHistoryDialog,
   SecrethitlerInvestigationResult,
   SecrethitlerPublicResult,
@@ -41,6 +42,48 @@ vi.mock('@/features/gacha/queries/useGachaQuery', () => ({
   useGachaStatusQuery: () => ({ data: undefined }),
 }));
 vi.mock('@/features/room/services/recentRooms', () => ({ addRecentRoom: vi.fn() }));
+
+it('shows voting progress and keeps policy rules interactive until the result is revealed', () => {
+  const fixture = buildSecrethitlerPhaseStates().get('voting');
+  if (fixture === undefined || fixture.phase.kind !== 'voting')
+    throw new Error('Missing voting fixture');
+  const state = {
+    ...fixture,
+    phase: { ...fixture.phase, votes: { 0: 'ja', 1: 'nein' } },
+  } satisfies SecrethitlerState;
+  const { rerender } = render(
+    <SecrethitlerCompactBoardHeader
+      state={state}
+      view={getSecrethitlerViewModel(state, null)}
+      actionMessage={null}
+      remainingSeconds={null}
+    />,
+  );
+  expect(screen.getByText('政府投票中')).toBeInTheDocument();
+  expect(screen.getByText('已投 2/8')).toBeInTheDocument();
+  expect(screen.getByText('未投票：3号 4号 5号 6号 7号 8号')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /自由派政策第1张.*查看规则/ }));
+  expect(screen.getByRole('dialog', { name: '自由派政策 1' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: '关闭' }));
+
+  const complete = {
+    ...state,
+    phase: {
+      ...state.phase,
+      votes: { 0: 'ja', 1: 'nein', 2: 'ja', 3: 'ja', 4: 'ja', 5: 'ja', 6: 'ja', 7: 'ja' },
+    },
+  } satisfies SecrethitlerState;
+  rerender(
+    <SecrethitlerCompactBoardHeader
+      state={complete}
+      view={getSecrethitlerViewModel(complete, null)}
+      actionMessage={null}
+      remainingSeconds={4}
+    />,
+  );
+  expect(screen.getByText('已全部投票，4 秒后揭晓')).toBeInTheDocument();
+  expect(screen.queryByText(/未投票：/)).not.toBeInTheDocument();
+});
 
 it('shows public vote results without allowing dismissal or confirmation', () => {
   const state = buildSecrethitlerPhaseStates().get('publicResult');
@@ -309,15 +352,13 @@ it('keeps terminal details behind the shared record dialog and preserves results
   expect(screen.getByText('1 号 · 房主（你）')).toBeInTheDocument();
   expect(screen.getAllByText(/（机器人）/)).toHaveLength(6);
   expect(screen.getByText(/至少 5 名真人.*注册玩家获得 33 经验/)).toBeInTheDocument();
-  expect(screen.getByRole('progressbar', { name: '自由派政策' })).toHaveAttribute(
-    'value',
-    String(state.liberalPolicies),
-  );
-  expect(screen.getByRole('progressbar', { name: '法西斯政策' })).toHaveAttribute(
-    'value',
-    String(state.fascistPolicies),
-  );
+  expect(screen.getByRole('list', { name: '自由派政策轨道' })).toBeVisible();
+  expect(screen.getByRole('list', { name: '法西斯政策轨道' })).toBeVisible();
   expect(screen.getByText('公开对局记录')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /自由派政策第1张.*查看规则/ }));
+  const policyDialog = screen.getByRole('dialog', { name: '自由派政策 1' });
+  await user.click(within(policyDialog).getByRole('button', { name: '关闭' }));
+  expect(screen.getByRole('dialog', { name: '对局记录' })).toBeVisible();
   await user.click(screen.getByRole('button', { name: '关闭详情' }));
   expect(onClose).toHaveBeenCalledOnce();
 });

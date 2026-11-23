@@ -22,11 +22,12 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-panel-texture);
   box-shadow: var(--shadow-tabletop-panel);
 }
 
 .notepad-card[data-faction] {
-  background: var(--faction-a12);
+  background-color: var(--faction-a12);
 }
 
 .notepad-card-header {
@@ -168,6 +169,7 @@ button.notepad-hand-tag:active {
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
   font-size: var(--font-body);
   line-height: var(--line-body);

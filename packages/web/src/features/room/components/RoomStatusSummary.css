@@ -20,7 +20,7 @@ button.room-status-summary {
 }
 
 button.room-status-summary:active:not(:disabled) {
-  background: var(--color-surface-hover);
+  background-color: var(--color-surface-hover);
 }
 
 button.room-status-summary:focus-visible {
@@ -30,7 +30,7 @@ button.room-status-summary:focus-visible {
 
 @media (hover: hover) {
   button.room-status-summary:hover:not(:disabled) {
-    background: var(--color-surface-hover);
+    background-color: var(--color-surface-hover);
   }
 }
 

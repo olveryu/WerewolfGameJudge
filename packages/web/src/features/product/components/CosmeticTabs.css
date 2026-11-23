@@ -27,6 +27,7 @@
 
 .cosmetic-tab[aria-selected='true'] {
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
   box-shadow: var(--shadow-tabletop-key);
@@ -66,6 +67,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
@@ -80,6 +82,7 @@
 
 .rarity-filter[aria-pressed='true'] {
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
 }

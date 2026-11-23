@@ -145,6 +145,7 @@
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-text-secondary-a12);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);

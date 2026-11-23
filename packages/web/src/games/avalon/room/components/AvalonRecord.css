@@ -247,16 +247,6 @@
 }
 
 /* Proposals */
-.avalon-adopted-proposal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-small);
-  padding: var(--space-small);
-  border: var(--border-width-thick) solid var(--color-primary);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-}
-
 .avalon-proposer-row,
 .avalon-team-row {
   display: flex;
@@ -516,60 +506,10 @@ button.avalon-rejected-header:active {
   font-weight: var(--weight-bold);
 }
 
-.avalon-history-tabs {
-  display: flex;
-  gap: var(--space-tight);
-  padding: var(--space-tight);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-hover);
-  box-shadow: var(--shadow-tabletop-inset);
-}
-
-.avalon-history-tab {
-  flex: 1;
-  padding: var(--space-tight) var(--space-small);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-full);
-  background: none;
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  cursor: pointer;
-  transition:
-    box-shadow 100ms ease-out,
-    transform 100ms ease-out;
-}
-
-.avalon-history-tab[aria-selected='true'] {
-  border-color: var(--color-border-light);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key-light);
-}
-
-.avalon-history-tab:active {
-  box-shadow: 0 1px 0 var(--color-border);
-  transform: translateY(var(--space-micro));
-}
-
 @media (hover: hover) {
-  .avalon-history-tab:hover {
-    transform: translateY(calc(-1 * var(--space-micro)));
-  }
-
   button.avalon-rejected-header:hover {
     background: var(--color-surface-hover);
   }
-}
-
-.avalon-history-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-small);
-  min-height: 0;
 }
 
 .avalon-history-scroll {
@@ -579,12 +519,4 @@ button.avalon-rejected-header:active {
   gap: var(--space-small);
   min-height: 0;
   padding-bottom: var(--space-small);
-}
-
-.avalon-history-empty {
-  margin: 0;
-  padding: var(--space-small);
-  color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
 }

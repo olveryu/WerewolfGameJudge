@@ -41,6 +41,7 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
+  padding: var(--space-small);
   overflow: hidden;
   container-type: size;
 }
@@ -132,6 +133,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  background-image: var(--surface-panel-texture);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-tabletop-panel);
   font-size: var(--font-caption);

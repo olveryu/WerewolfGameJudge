@@ -248,7 +248,6 @@ export const TESTIDS = {
     policy: 'liberal' | 'fascist',
     index: number,
   ) => `secrethitler-policy-${action}-${policy}-${index}`,
-  secrethitlerSettledVoteBanner: 'secrethitler-settled-vote-banner',
 
   // Werewolf sheriff election
   sheriffElectionPanel: 'sheriff-election-panel',

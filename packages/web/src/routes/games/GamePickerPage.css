@@ -40,6 +40,7 @@
 .picker-tab[aria-pressed='true'] {
   border-color: var(--color-border-light);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-key-light);
 }
@@ -100,6 +101,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
+  background-image: var(--surface-card-texture);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-card);
   text-align: left;

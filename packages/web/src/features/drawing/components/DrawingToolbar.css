@@ -16,6 +16,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-small);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
@@ -28,7 +29,7 @@
 
 .drawing-toolbar-button[data-selected='true'] {
   border-color: var(--color-primary);
-  background: var(--color-primary-a15);
+  background-color: var(--color-primary-a15);
   color: var(--color-primary);
 }
 
@@ -169,13 +170,14 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
 }
 
 .drawing-width-option[aria-pressed='true'] {
   border-color: var(--color-primary);
-  background: var(--color-primary-a15);
+  background-color: var(--color-primary-a15);
 }
 
 .drawing-width-option:active {

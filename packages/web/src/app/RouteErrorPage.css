@@ -31,6 +31,7 @@
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-medium);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
   font: inherit;

@@ -74,6 +74,18 @@
     background 120ms,
     border-color 120ms;
 }
+.admin-console
+  button:not(
+    .maintenance-moon,
+    .screen-header-back,
+    .admin-section-tab,
+    .admin-sort-button,
+    .admin-stat-value,
+    .admin-page-title-switcher,
+    .admin-text-button
+  ) {
+  background-image: var(--surface-button-texture);
+}
 .admin-console button:hover:not(:disabled, .screen-header-back) {
   background: var(--admin-subtle);
   border-color: var(--admin-muted);
@@ -143,6 +155,7 @@
 }
 .admin-console .admin-primary {
   background: var(--admin-accent);
+  background-image: var(--surface-button-texture);
   border-color: var(--admin-accent);
   color: var(--admin-accent-ink);
   font-weight: var(--weight-medium);
@@ -166,6 +179,7 @@
   border-color: var(--admin-border-strong);
   border-radius: var(--radius-full);
   background: var(--admin-panel);
+  background-image: var(--surface-button-texture);
   box-shadow: var(--shadow-tabletop-key-soft);
   flex-shrink: 0;
 }
@@ -191,6 +205,7 @@
 }
 .admin-console .admin-danger-solid {
   background: var(--admin-danger);
+  background-image: var(--surface-button-texture);
   border-color: var(--admin-danger);
   color: var(--admin-accent-ink);
   font-weight: var(--weight-semibold);
@@ -286,6 +301,7 @@
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-small);
   background: var(--admin-panel);
+  background-image: var(--surface-panel-texture);
   box-shadow: var(--shadow-tabletop-panel);
   margin: 0 0 var(--space-large);
 }
@@ -592,6 +608,7 @@
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-medium);
   background: var(--admin-panel);
+  background-image: var(--surface-panel-texture);
   box-shadow: var(--shadow-tabletop-panel);
   overflow: clip;
 }

@@ -81,6 +81,7 @@
   border: var(--border-width) solid var(--color-primary-dark);
   border-radius: var(--radius-medium);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
   font-size: var(--font-body);
@@ -95,6 +96,7 @@
 .feedback-new-button {
   border: var(--border-width) solid var(--color-primary);
   background: var(--color-primary-a6);
+  background-image: var(--surface-button-texture);
   color: var(--color-primary);
   box-shadow: var(--shadow-tabletop-key-light);
 }
@@ -123,6 +125,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
@@ -136,7 +139,7 @@
 
 .feedback-filter-pill[aria-pressed='true'] {
   border-color: var(--color-primary);
-  background: var(--color-primary-a10);
+  background-color: var(--color-primary-a10);
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
 }
@@ -403,6 +406,7 @@
   border: var(--border-width) solid var(--color-primary-dark);
   border-radius: var(--radius-full);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key);
   cursor: pointer;

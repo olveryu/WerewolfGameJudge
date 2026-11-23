@@ -15,6 +15,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-card);
+  background-image: var(--surface-card-texture);
   box-shadow: var(--shadow-tabletop-card);
   cursor: pointer;
   transition:

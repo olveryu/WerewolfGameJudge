@@ -43,6 +43,9 @@ type RoomShellContent =
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
       readonly summaryPresentation?: RoomSummaryPresentation;
+      readonly compactStatus?: boolean;
+      readonly compactStatusContent?: ReactElement | null;
+      readonly compactStatusIcon?: ReactElement;
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -327,6 +330,9 @@ export function RoomShell({
                     boardStatus={{
                       phaseLabel,
                       summaryPresentation: content.summaryPresentation,
+                      compact: content.compactStatus,
+                      compactContent: content.compactStatusContent,
+                      compactIcon: content.compactStatusIcon,
                       title: lobbyTitle,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,

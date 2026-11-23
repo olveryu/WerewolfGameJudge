@@ -13,6 +13,7 @@
   border-radius: var(--radius-medium);
   --draw-edge: var(--gacha-draw-normal-edge);
   background: var(--gacha-draw-normal);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   box-shadow: var(--shadow-tabletop-key-soft);
   cursor: pointer;

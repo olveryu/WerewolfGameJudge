@@ -167,6 +167,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-body);

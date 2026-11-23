@@ -7,7 +7,10 @@ import { TESTIDS } from '@/testids';
 
 import { RoomHandCardButton } from './RoomHandCardButton';
 
-type HandStyle = CSSProperties & { '--hand-card-count': number };
+type HandStyle = CSSProperties & {
+  '--hand-card-count': number;
+  '--hand-max-drop': string;
+};
 type CardStyle = CSSProperties & {
   '--hand-card-angle': string;
   '--hand-card-drop': string;
@@ -51,10 +54,14 @@ export function RoomActionHand({
   const isFocusTargetAbsent =
     focusCardId !== null && !hand.cards.some((card) => card.id === focusCardId);
   const fanAnglePerCard = hand.cards.length > 1 ? 12 / (hand.cards.length - 1) : 0;
+  const fanDropPerDistance = 4;
   useEffect(() => {
     if (isFocusTargetAbsent) onFocusTargetSettled();
   }, [isFocusTargetAbsent, onFocusTargetSettled]);
-  const style: HandStyle = { '--hand-card-count': hand.cards.length };
+  const style: HandStyle = {
+    '--hand-card-count': hand.cards.length,
+    '--hand-max-drop': `${Math.max(0, (hand.cards.length - 1) / 2) * fanDropPerDistance}px`,
+  };
   return (
     <div
       className="room-action-hand"
@@ -82,7 +89,7 @@ export function RoomActionHand({
         const distance = index - (hand.cards.length - 1) / 2;
         const cardStyle: CardStyle = {
           '--hand-card-angle': `${distance * fanAnglePerCard}deg`,
-          '--hand-card-drop': `${Math.abs(distance) * 4}px`,
+          '--hand-card-drop': `${Math.abs(distance) * fanDropPerDistance}px`,
           '--hand-card-order': index + 1,
         };
         return (

@@ -12,6 +12,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);
@@ -173,6 +174,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
@@ -193,6 +195,7 @@
 .config-role-chip[data-selected='true'] .config-role-chip-body {
   border-color: var(--faction-color);
   background: var(--faction-a30);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
   box-shadow: var(--shadow-tabletop-key-light);
   transform: translateY(calc(-1 * var(--space-micro)));
@@ -266,6 +269,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
   box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);

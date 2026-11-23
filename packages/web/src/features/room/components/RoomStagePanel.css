@@ -4,9 +4,9 @@
   color: var(--color-primary-dark);
 }
 .room-stage-panel[data-tone='success'] {
-  background: var(--color-success-a12);
+  background-color: var(--color-success-a12);
 }
 .room-stage-panel[data-tone='danger'] {
-  background: var(--color-error-a12);
+  background-color: var(--color-error-a12);
   color: var(--color-error);
 }

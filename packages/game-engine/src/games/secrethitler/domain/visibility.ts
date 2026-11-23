@@ -2,6 +2,7 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
+import { getPendingSeats } from '../../../platform/room/pendingSeats';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
 import {
   getSecrethitlerViewingParticipants,
@@ -57,6 +58,7 @@ export interface SecrethitlerViewModel {
   readonly chancellorSeat: number | null;
   readonly eligibleChancellorSeats: readonly number[];
   readonly myVote: SecrethitlerVote | null;
+  readonly pendingVoteSeats: readonly number[] | null;
   readonly myHand: readonly SecrethitlerPolicy[] | null;
   readonly policyPreview: readonly SecrethitlerPolicy[] | null;
   readonly knownFascistSeats: readonly number[];
@@ -230,6 +232,8 @@ export function getSecrethitlerViewModel(
     chancellorSeat: currentChancellor(state),
     eligibleChancellorSeats: allowedChancellors(state),
     myVote,
+    pendingVoteSeats:
+      state.phase.kind === 'voting' ? getPendingSeats(state.livingSeats, state.phase.votes) : null,
     myHand: ownHand(state, viewerSeat),
     policyPreview:
       state.phase.kind === 'executive' &&

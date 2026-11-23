@@ -4,7 +4,7 @@
   width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
   margin-inline: auto;
   padding: var(--space-medium) var(--space-tight)
-    max(var(--space-small), env(safe-area-inset-bottom));
+    calc(max(var(--space-small), env(safe-area-inset-bottom)) + var(--hand-max-drop));
 }
 
 .room-hand-reason {
@@ -52,8 +52,9 @@
   border: var(--border-width-thick) solid var(--hand-ink);
   border-radius: var(--radius-small);
   background: var(--hand-paper);
+  background-image: var(--surface-hand-texture);
   color: var(--hand-ink);
-  box-shadow: var(--shadow-tabletop-hand-card);
+  box-shadow: var(--surface-hand-shadow);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   text-align: center;
@@ -112,7 +113,7 @@
   border-style: dashed;
   background:
     linear-gradient(var(--color-hand-disabled-veil), var(--color-hand-disabled-veil)),
-    var(--hand-paper);
+    var(--surface-hand-texture), var(--hand-paper);
   box-shadow: var(--shadow-tabletop-panel);
 }
 
