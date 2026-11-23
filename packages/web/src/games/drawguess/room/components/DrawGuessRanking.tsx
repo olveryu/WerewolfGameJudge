@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
+import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import IconChevronForward from '~icons/ion/chevron-forward';
 import IconClose from '~icons/ion/close';
@@ -13,8 +14,9 @@ export function DrawGuessRanking({ rows }: { readonly rows: readonly DrawGuessSc
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="soft"
         className="drawguess-ranking-button"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -23,7 +25,7 @@ export function DrawGuessRanking({ rows }: { readonly rows: readonly DrawGuessSc
         <IconTrophyOutline aria-hidden />
         总排名
         <IconChevronForward aria-hidden />
-      </button>
+      </Button>
       {isOpen && (
         <BottomSheet title="本局总排名" onClose={() => setIsOpen(false)}>
           <header className="drawguess-ranking-header">
@@ -32,6 +34,7 @@ export function DrawGuessRanking({ rows }: { readonly rows: readonly DrawGuessSc
               <p>累计总分排名 · 同分并列</p>
             </div>
             <IconButton
+              variant="soft"
               label="关闭总排名"
               icon={<IconClose aria-hidden />}
               onClick={() => setIsOpen(false)}

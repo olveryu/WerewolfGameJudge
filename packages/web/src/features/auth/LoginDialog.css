@@ -63,21 +63,27 @@
   border-radius: var(--radius-small);
   background: var(--color-surface);
   color: var(--color-primary);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
 }
 
 .login-method:active:not(:disabled) {
-  opacity: var(--opacity-pressed);
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .login-method:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+  cursor: default;
 }
 
-.login-method-primary {
+.login-method-primary:not(:disabled) {
   border-color: transparent;
   background: var(--color-primary);
   color: var(--color-text-inverse);
+  box-shadow: var(--shadow-tabletop-key);
 }
 
 .login-method-title {

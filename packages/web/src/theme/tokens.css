@@ -71,11 +71,10 @@
   --size-profile-card-width: 300px;
   --size-profile-equipment-preview: 28px;
   --size-appearance-cell-min: 88px;
-  --size-appearance-avatar-cell-min: 72px;
+  --size-appearance-avatar-cell-min: 88px;
   --size-min-touch-target: 44px;
   --size-hand-card-width: 100px;
   --size-hand-card-visible: 120px;
-  --size-hand-card-extension: 100px;
   --size-max-content-width: 600px;
   --size-admin-metric-min: 210px;
   --size-admin-content: 1280px;
@@ -100,6 +99,21 @@
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
+  --shadow-tabletop-panel: 0 2px 0 var(--color-border-light), 0 5px 12px var(--color-text-a3);
+  --shadow-tabletop-card: 0 3px 0 var(--color-border), 0 6px 12px var(--color-text-a3);
+  --shadow-tabletop-hand-card:
+    inset 0 0 0 var(--border-width-highlight) var(--color-text-inverse-a65),
+    0 var(--border-width-highlight) 0 var(--color-border),
+    0 var(--space-small) calc(var(--space-small) + var(--space-micro)) var(--color-text-a3);
+  --shadow-tabletop-key-soft:
+    inset 0 1px var(--color-text-inverse-a20), 0 2px 0 var(--color-border),
+    0 var(--space-tight) var(--space-small) var(--color-text-a3);
+  --shadow-tabletop-key: var(--shadow-tabletop-key-soft);
+  --shadow-tabletop-key-light:
+    inset 0 1px var(--color-surface), 0 2px 0 var(--color-border-light),
+    0 4px 8px var(--color-text-a3);
+  --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
+  --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
 }
 
 /* Admin aliases keep the console on the same light palette as the rest of the site. */

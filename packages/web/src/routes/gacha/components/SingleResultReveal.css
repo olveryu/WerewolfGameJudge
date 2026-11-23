@@ -34,7 +34,7 @@
   border-color: var(--rarity-color);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-card);
   text-align: center;
 }
 

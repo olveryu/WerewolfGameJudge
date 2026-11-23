@@ -15,18 +15,36 @@
   width: 100%;
   margin-bottom: var(--space-tight);
   padding: var(--space-small) var(--space-medium);
-  border: none;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
-  background: none;
+  background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-body);
   line-height: var(--line-body);
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .share-review-seat[aria-checked='true'] {
+  border-color: var(--color-primary-light);
   background: var(--color-primary-a12);
+  box-shadow: var(--shadow-tabletop-card);
+}
+
+.share-review-seat:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .share-review-seat:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }
 
 .share-review-checkbox {

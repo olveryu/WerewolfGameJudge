@@ -315,6 +315,7 @@ function AvalonRoomContent(
       leadingExtraActions={
         screen.isHost && isNight ? (
           <IconButton
+            variant="soft"
             className="avalon-bgm-toggle"
             data-playing={screen.bgm.isBgmPlaying}
             label={screen.bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}

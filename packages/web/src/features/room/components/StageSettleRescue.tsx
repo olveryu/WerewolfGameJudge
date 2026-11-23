@@ -53,7 +53,7 @@ export function StageSettleRescue({
       {isOverdue &&
         (isHost ? (
           <Button
-            variant="secondary"
+            variant="soft"
             size="sm"
             loading={isRetrying}
             onClick={onRetry}

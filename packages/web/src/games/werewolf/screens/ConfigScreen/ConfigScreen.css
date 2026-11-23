@@ -13,10 +13,16 @@
   border-radius: var(--radius-full);
   background: var(--color-background);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
   cursor: pointer;
+}
+
+.config-template-pill:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .config-template-pill svg {
@@ -126,6 +132,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .config-card-divider {
@@ -167,9 +174,13 @@
   border-radius: var(--radius-full);
   background: var(--color-background);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
   cursor: pointer;
   /* Long-press opens the role info card: no text selection, no callout menu, and a press
    * may still start a scroll (pointercancel abandons the long-press). */
@@ -183,7 +194,14 @@
   border-color: var(--faction-color);
   background: var(--faction-a30);
   color: var(--faction-color);
+  box-shadow: var(--shadow-tabletop-key-light);
+  transform: translateY(calc(-1 * var(--space-micro)));
   font-weight: var(--weight-semibold);
+}
+
+.config-role-chip-body:active {
+  box-shadow: 0 1px 0 var(--faction-color);
+  transform: translateY(var(--space-micro));
 }
 
 /* Variant marker (option H): a swap-icon badge in the top-left corner, mirroring the
@@ -231,6 +249,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .config-stepper-pill[data-active='true'] {
@@ -246,18 +265,25 @@
   padding: 0;
   border: none;
   border-radius: var(--radius-full);
-  background: none;
+  background: var(--color-surface);
   color: var(--faction-color);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
   cursor: pointer;
 }
 
+.config-stepper-button:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--faction-color);
+  transform: translateY(var(--space-micro));
+}
+
 .config-stepper-button:disabled {
   color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  box-shadow: none;
   cursor: default;
-  opacity: var(--opacity-disabled);
 }
 
 .config-stepper-count {

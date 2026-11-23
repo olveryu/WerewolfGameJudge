@@ -1,5 +1,6 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
+import '@/components/HeaderSurface.css';
 
 import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
@@ -259,13 +260,14 @@ export function RoomShell({
   return (
     <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
       <header
-        className="room-header"
+        className="room-header page-header-surface"
         data-testid={TESTIDS.roomHeader}
         data-phase={model.phase}
         {...(model.step === null ? {} : { 'data-step': model.step })}
       >
         <div className="room-header-side" data-side="leading">
           <IconButton
+            variant="soft"
             label="离开房间"
             icon={<IconChevronBack aria-hidden />}
             onClick={model.header.onBack}

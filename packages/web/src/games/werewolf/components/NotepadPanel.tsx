@@ -131,6 +131,7 @@ function RolePickerDialog({
           </button>
         ))}
         <IconButton
+          variant="soft"
           label="清除角色"
           icon={<IconCloseCircleOutline aria-hidden />}
           className="notepad-role-clear"

@@ -122,11 +122,17 @@ export function AIChatBubble({ session, identity, triggerPulse }: AIChatBubblePr
                 <Dialog.Title className="ai-chat-title">狼人杀助手</Dialog.Title>
                 <div className="ai-chat-header-buttons">
                   <IconButton
+                    variant="soft"
                     label="清除聊天记录"
                     icon={<IconTrashOutline aria-hidden />}
                     onClick={chat.handleClearHistory}
                   />
-                  <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={chat.close} />
+                  <IconButton
+                    variant="soft"
+                    label="关闭"
+                    icon={<IconClose aria-hidden />}
+                    onClick={chat.close}
+                  />
                 </div>
               </header>
 

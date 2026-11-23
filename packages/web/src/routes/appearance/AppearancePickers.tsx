@@ -125,9 +125,14 @@ function PickerCell({
           <IconLockClosed aria-hidden />
         </span>
       )}
-      {showCheck && (
-        <span className="appearance-cell-check">
+      {(isSelected || showCheck) && (
+        <span
+          className="appearance-cell-check"
+          data-state={isSelected ? 'selected' : 'active'}
+          aria-hidden
+        >
           <IconCheckmark aria-hidden />
+          <span>{isSelected ? '已选' : '已装备'}</span>
         </span>
       )}
     </button>

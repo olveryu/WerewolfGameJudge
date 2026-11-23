@@ -167,6 +167,7 @@
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .avalon-quest-card[data-kind='fail'] {
@@ -175,7 +176,8 @@
 
 .avalon-quest-card[data-empty='true'] {
   border-color: var(--color-border);
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  box-shadow: none;
 }
 
 .avalon-quest-card-count {
@@ -389,10 +391,18 @@
   color: inherit;
   font: inherit;
   text-align: start;
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 button.avalon-rejected-header {
   cursor: pointer;
+}
+
+button.avalon-rejected-header:active {
+  background: var(--color-surface-hover);
+  transform: translateY(var(--space-micro));
 }
 
 .avalon-rejected-summary {
@@ -510,8 +520,10 @@ button.avalon-rejected-header {
   display: flex;
   gap: var(--space-tight);
   padding: var(--space-tight);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
   background: var(--color-surface-hover);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .avalon-history-tab {
@@ -525,6 +537,9 @@ button.avalon-rejected-header {
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   cursor: pointer;
+  transition:
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .avalon-history-tab[aria-selected='true'] {
@@ -532,6 +547,22 @@ button.avalon-rejected-header {
   background: var(--color-surface);
   color: var(--color-text);
   font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-tabletop-key-light);
+}
+
+.avalon-history-tab:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .avalon-history-tab:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
+
+  button.avalon-rejected-header:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 .avalon-history-sheet {

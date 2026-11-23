@@ -193,6 +193,17 @@
   color: var(--color-primary);
   font: inherit;
   cursor: pointer;
+  transition: color 100ms ease-out;
+}
+
+.profile-stat-link:active {
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .profile-stat-link:hover {
+    text-decoration: underline;
+  }
 }
 
 .profile-section-title {

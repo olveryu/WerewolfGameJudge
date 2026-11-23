@@ -2,7 +2,7 @@
  * Stage content requires a menu, renders no bottom panel or takeover banner, and rejects models
  * carrying bottom content.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps, ReactElement } from 'react';
 
@@ -141,6 +141,30 @@ describe('RoomShell stage content', () => {
       configurable: true,
       value: 390,
     });
+  });
+
+  it('preserves the room title shortcuts and suppresses a click after a long press', () => {
+    const onTitlePress = vi.fn();
+    const onTitleLongPress = vi.fn();
+    renderStage({ onTitlePress, onTitleLongPress });
+    const title = screen.getByRole('button', { name: '房间 1234' });
+
+    fireEvent.click(title);
+    expect(onTitlePress).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.pointerDown(title);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      fireEvent.pointerUp(title);
+      fireEvent.click(title);
+      expect(onTitleLongPress).toHaveBeenCalledTimes(1);
+      expect(onTitlePress).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('places hand-room status, progress and summary above the seats rather than in the hand', () => {

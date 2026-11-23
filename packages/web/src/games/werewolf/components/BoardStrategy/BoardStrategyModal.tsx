@@ -22,7 +22,12 @@ export function BoardStrategyModal({
       <div className="board-strategy-sheet">
         <header className="board-strategy-sheet-header">
           <h2 className="board-strategy-sheet-title">{title}</h2>
-          <IconButton label="关闭" icon={<IconClose aria-hidden />} onClick={onClose} />
+          <IconButton
+            variant="soft"
+            label="关闭"
+            icon={<IconClose aria-hidden />}
+            onClick={onClose}
+          />
         </header>
         <BoardStrategyContent boardName={boardName} />
       </div>

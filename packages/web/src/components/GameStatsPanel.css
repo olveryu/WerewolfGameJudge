@@ -177,7 +177,12 @@
   align-items: center;
   justify-content: space-between;
   min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-small);
+  border-radius: var(--radius-small);
   color: var(--color-text-secondary);
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
   cursor: pointer;
   list-style: none;
 }
@@ -198,4 +203,14 @@
 
 .game-stats-identities[open] .game-stats-bars {
   padding-bottom: var(--space-small);
+}
+
+@media (hover: hover) {
+  .game-stats-identities > summary:hover {
+    background: var(--color-surface-hover);
+  }
+}
+
+.game-stats-identities > summary:active {
+  transform: translateY(var(--space-micro));
 }

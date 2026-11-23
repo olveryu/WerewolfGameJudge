@@ -5,25 +5,33 @@
   width: 100%;
   min-block-size: var(--size-button-lg);
   padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-primary-a25);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
   text-align: center;
 }
 
-button.room-status-summary {
-  cursor: pointer;
+.room-status-summary.paperboard-panel {
+  border-color: var(--color-primary-a25);
 }
 
-button.room-status-summary:active {
+button.room-status-summary {
+  cursor: pointer;
+  transition: background-color 100ms ease-out;
+}
+
+button.room-status-summary:active:not(:disabled) {
   background: var(--color-surface-hover);
 }
 
 button.room-status-summary:focus-visible {
   outline: var(--border-width-thick) solid var(--color-primary);
   outline-offset: var(--border-width-thick);
+}
+
+@media (hover: hover) {
+  button.room-status-summary:hover:not(:disabled) {
+    background: var(--color-surface-hover);
+  }
 }
 
 .room-status-summary-row {

@@ -15,7 +15,7 @@ interface DrawButtonProps {
   isAnimationActive: boolean;
 }
 
-/** A draw button: gradient fill, a sweeping shimmer while enabled, and the ticket shortfall note. */
+/** A tactile draw button with an active shimmer and ticket shortfall note. */
 export function DrawButton({
   label,
   disabled,

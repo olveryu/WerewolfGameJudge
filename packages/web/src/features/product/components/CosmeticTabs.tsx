@@ -94,7 +94,7 @@ export function CosmeticTabBar({ activeTab, onChange, idPrefix, panelId }: Cosme
   );
 }
 
-/** Rarity chips; the active chip takes its tier's colour. */
+/** Rarity chips; the active chip uses the shared selection treatment. */
 export function RarityFilterBar({
   value,
   onChange,
@@ -106,7 +106,6 @@ export function RarityFilterBar({
     <div className="rarity-filters">
       {RARITY_FILTERS.map((filter) => {
         const isActive = filter.key === value;
-        const visual = filter.key === 'all' ? null : RARITY_VISUAL[filter.key];
         return (
           <button
             key={filter.key}
@@ -114,11 +113,6 @@ export function RarityFilterBar({
             className="rarity-filter"
             aria-pressed={isActive}
             aria-label={`${filter.label}稀有度`}
-            style={
-              isActive && visual !== null
-                ? { backgroundColor: visual.color, boxShadow: visual.chipShadow }
-                : undefined
-            }
             onClick={() => onChange(filter.key)}
           >
             {filter.label}

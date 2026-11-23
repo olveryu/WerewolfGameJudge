@@ -8,13 +8,18 @@
   border-radius: var(--radius-full);
   background: var(--color-surface);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .install-menu-item:active {
-  opacity: var(--opacity-pressed);
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .install-guide-steps {

@@ -23,9 +23,10 @@
   max-width: var(--size-max-content-width);
   max-height: 85vh;
   overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-xlarge) var(--radius-xlarge) 0 0;
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg-upward);
+  box-shadow: var(--shadow-tabletop-sheet);
 }
 
 .bottom-sheet[data-state='open'] {

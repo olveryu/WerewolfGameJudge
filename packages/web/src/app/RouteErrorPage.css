@@ -1,0 +1,59 @@
+.route-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-medium);
+  width: min(calc(100% - var(--space-xlarge)), var(--size-max-content-width));
+  margin: var(--space-xxlarge) auto;
+  padding: var(--space-large);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
+}
+
+.route-error h1,
+.route-error p {
+  margin: 0;
+}
+
+.route-error p {
+  color: var(--color-text-secondary);
+}
+
+.route-error a,
+.route-error button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-min-touch-target);
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-medium);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-tabletop-key);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.route-error a:active,
+.route-error button:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
+}
+
+.route-error a:focus-visible,
+.route-error button:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-tight);
+}
+
+@media (hover: hover) {
+  .route-error a:hover,
+  .route-error button:hover {
+    background: var(--color-primary-light);
+  }
+}

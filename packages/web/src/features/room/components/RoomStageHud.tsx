@@ -142,7 +142,7 @@ function RosterRow({
       </span>
       {takeOver !== null && (
         <Button
-          variant="secondary"
+          variant="soft"
           size="sm"
           onClick={takeOver}
           aria-label={`接管 ${entry.seat + 1} 号位（${entry.displayName}）`}
@@ -183,6 +183,7 @@ function RosterSheet({
       <header className="room-stage-roster-header">
         <h2 className="room-stage-roster-title">{roster.title}</h2>
         <IconButton
+          variant="soft"
           label={`关闭${roster.title}`}
           icon={<IconClose aria-hidden />}
           onClick={onClose}

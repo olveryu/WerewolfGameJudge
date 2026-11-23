@@ -168,24 +168,35 @@
   border-radius: var(--radius-small);
   background: var(--color-background);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-body);
   line-height: var(--line-body);
   font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
 }
 
 .sheriff-ballot-choice[aria-checked='true'] {
   border: calc(var(--border-width) * 3) solid var(--color-primary);
   background: var(--color-primary-a12);
   color: var(--color-primary);
+  box-shadow: var(--shadow-tabletop-card);
+  transform: translateY(calc(-1 * var(--space-micro)));
 }
 
 .sheriff-ballot-choice:active:not(:disabled) {
   background: var(--color-surface-hover);
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-tight));
 }
 
 .sheriff-ballot-choice:disabled:not([aria-busy='true']) {
-  opacity: var(--opacity-disabled);
+  border-style: dashed;
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
 }
 
 .sheriff-ballot-indicator {

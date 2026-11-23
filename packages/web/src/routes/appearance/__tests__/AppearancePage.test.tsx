@@ -99,6 +99,7 @@ describe('AppearancePage', () => {
     await userEvent.click(
       screen.getByRole('button', { name: NAME_STYLE_NAMES[UNLOCKED_NAME_STYLE] }),
     );
+    expect(screen.getByText('已选')).toBeInTheDocument();
     expect(screen.getByText('有未保存的更改')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '确认使用' }));
 

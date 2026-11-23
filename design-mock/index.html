@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>桌游实体感 · 视觉方案</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="studio-header">
+        <div class="studio-brand">
+          <span class="brand-mark">W</span
+          ><span><b>桌游实体感</b><small>视觉设计预览 · 非正式界面</small></span>
+        </div>
+        <div class="studio-tools">
+          <label for="viewport">预览尺寸</label>
+          <select id="viewport">
+            <option value="phone">手机</option>
+            <option value="wide">桌面</option>
+          </select>
+        </div>
+      </header>
+      <div class="studio-layout">
+        <aside class="studio-sidebar" aria-label="预览目录">
+          <div class="sidebar-intro">
+            <span class="eyebrow">DESIGN EXPLORATION</span>
+            <h1>一套更有<br />实体感的界面。</h1>
+            <p>先看不同物件的设计选项，再浏览每个页面的整体效果。所有数据均为示例。</p>
+          </div>
+          <nav id="navigation" aria-label="页面目录"></nav>
+        </aside>
+        <main class="studio-main">
+          <div class="preview-top">
+            <div>
+              <span class="eyebrow" id="preview-category"></span>
+              <h2 id="preview-title"></h2>
+            </div>
+            <div class="preview-actions">
+              <button
+                type="button"
+                class="studio-button"
+                id="compare-button"
+                aria-pressed="false"
+                hidden
+              >
+                对比现状</button
+              ><button type="button" class="studio-button" id="menu-button">选择页面</button>
+            </div>
+          </div>
+          <p class="preview-description" id="preview-description"></p>
+          <div class="preview-workspace">
+            <div id="preview" class="preview-phone" aria-live="polite"></div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <dialog id="page-dialog" class="page-dialog">
+      <form method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <span class="eyebrow">PAGE INDEX</span>
+            <h2>选择预览页面</h2>
+          </div>
+          <button class="close-button" aria-label="关闭">×</button>
+        </div>
+      </form>
+      <nav id="dialog-navigation" aria-label="页面目录"></nav>
+    </dialog>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

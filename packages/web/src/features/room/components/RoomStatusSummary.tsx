@@ -1,4 +1,5 @@
 import './RoomStatusSummary.css';
+import '@/components/PaperboardPanel.css';
 
 import { useId } from 'react';
 
@@ -84,7 +85,7 @@ export function RoomStatusSummary({
   if (action === null) {
     return (
       <div
-        className={['room-status-summary', className].filter(Boolean).join(' ')}
+        className={['room-status-summary', 'paperboard-panel', className].filter(Boolean).join(' ')}
         data-has-header={header !== undefined}
         data-testid={testId}
       >
@@ -95,7 +96,7 @@ export function RoomStatusSummary({
   return (
     <button
       type="button"
-      className={['room-status-summary', className].filter(Boolean).join(' ')}
+      className={['room-status-summary', 'paperboard-panel', className].filter(Boolean).join(' ')}
       data-has-header={header !== undefined}
       aria-label={action.accessibleLabel}
       aria-describedby={summary.length > 0 ? summaryId : undefined}

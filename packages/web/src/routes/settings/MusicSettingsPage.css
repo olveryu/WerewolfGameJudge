@@ -20,10 +20,6 @@
   gap: var(--space-small);
 }
 
-.music-bgm-body[data-disabled] {
-  opacity: var(--opacity-disabled);
-}
-
 .music-track-fieldset {
   display: flex;
   flex-direction: column;
@@ -55,6 +51,7 @@
   border-radius: var(--radius-full);
   background: var(--color-primary);
   transform: scale(0);
+  transition: transform 100ms ease-out;
 }
 
 .music-radio:checked {
@@ -74,8 +71,17 @@
   align-items: center;
   gap: var(--space-small);
   min-height: var(--size-min-touch-target);
+  padding: var(--space-small);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .music-random svg {
@@ -83,8 +89,27 @@
 }
 
 .music-random[data-selected] {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-a10);
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
+}
+
+.music-track-fieldset:not(:disabled) .music-random:active,
+.music-track-fieldset:not(:disabled) .music-track-select:active {
+  transform: translateY(var(--space-micro));
+}
+
+.music-track-select {
+  border-radius: var(--radius-small);
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.music-track-fieldset:disabled .music-random,
+.music-track-fieldset:disabled .music-track-select {
+  cursor: default;
 }
 
 .music-track-list {
@@ -110,11 +135,18 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .music-track[data-selected] {
   border-color: var(--color-primary);
   background: var(--color-primary-a10);
+  box-shadow: var(--shadow-tabletop-card);
+}
+
+.music-bgm-body[data-disabled='true'] .music-random,
+.music-bgm-body[data-disabled='true'] .music-track {
+  box-shadow: none;
 }
 
 .music-track-select {
@@ -181,11 +213,16 @@
   min-width: var(--size-min-touch-target);
   min-height: var(--size-min-touch-target);
   padding: 0;
-  border: none;
-  background: none;
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--size-icon-lg);
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .music-icon-button[data-active] {
@@ -193,7 +230,15 @@
 }
 
 .music-icon-button:disabled {
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  box-shadow: none;
   cursor: default;
+}
+
+.music-icon-button:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .music-equalizer {
@@ -291,14 +336,24 @@
   align-items: center;
   gap: var(--space-small);
   min-height: var(--size-min-touch-target);
-  padding: 0;
-  border: none;
-  background: none;
+  padding: 0 var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-body);
   line-height: var(--line-body);
   text-align: left;
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
+}
+
+.music-preview-row:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .music-preview-row svg {
@@ -309,4 +364,16 @@
 
 .music-preview-row[data-active] svg {
   color: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .music-track-fieldset:not(:disabled) .music-random:hover,
+  .music-icon-button:hover:not(:disabled),
+  .music-preview-row:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
+
+  .music-track-fieldset:not(:disabled) .music-track-select:hover {
+    background: var(--color-surface-hover);
+  }
 }

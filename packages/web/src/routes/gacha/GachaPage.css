@@ -75,6 +75,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .gacha-stats-row {
@@ -137,10 +138,20 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--gacha-warning-a8);
   color: inherit;
+  box-shadow: var(--shadow-tabletop-key-light);
   text-decoration: none;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
+}
+
+.gacha-shard-row:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .gacha-shard-info,
@@ -198,4 +209,10 @@
   font-size: var(--font-caption-small);
   text-decoration: underline;
   cursor: pointer;
+}
+
+@media (hover: hover) {
+  .gacha-shard-row:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }

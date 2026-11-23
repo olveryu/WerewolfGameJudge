@@ -7,14 +7,18 @@
 
 .numpad-key {
   height: var(--size-button-lg);
-  border: none;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-title);
   line-height: var(--line-title);
   font-weight: var(--weight-semibold);
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .numpad-key[data-special='true'] {
@@ -24,9 +28,19 @@
 }
 
 .numpad-key:active:not(:disabled) {
-  opacity: var(--opacity-pressed);
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .numpad-key:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .numpad-key:hover:not(:disabled) {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }

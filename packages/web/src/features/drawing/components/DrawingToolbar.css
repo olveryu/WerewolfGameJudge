@@ -13,10 +13,11 @@
   min-width: var(--size-min-touch-target);
   height: var(--size-min-touch-target);
   padding: 0 var(--space-tight);
-  border: var(--border-width) solid transparent;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-small);
   background: var(--color-background);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
 }
 
@@ -32,12 +33,27 @@
 }
 
 .drawing-toolbar-button:active:not(:disabled) {
-  opacity: var(--opacity-pressed);
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .drawing-toolbar-button:disabled {
+  color: var(--color-text-muted);
+  box-shadow: none;
   cursor: default;
-  opacity: var(--opacity-disabled);
+}
+
+.drawing-toolbar-button:focus-visible,
+.drawing-width-option:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
+}
+
+@media (hover: hover) {
+  .drawing-toolbar-button:hover:not(:disabled):not([data-selected='true']),
+  .drawing-width-option:hover:not([aria-pressed='true']) {
+    background: var(--color-surface-hover);
+  }
 }
 
 .drawing-toolbar-icon {
@@ -117,6 +133,7 @@
   padding: var(--space-medium);
   border-radius: var(--radius-large) var(--radius-large) 0 0;
   background: var(--color-background);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 @media (min-width: 768px) {
@@ -152,11 +169,18 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
 }
 
 .drawing-width-option[aria-pressed='true'] {
   border-color: var(--color-primary);
+  background: var(--color-primary-a15);
+}
+
+.drawing-width-option:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .drawing-width-dot {
@@ -175,7 +199,7 @@
   padding: var(--space-medium);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .drawing-color-panel[data-placement='popover'] {
@@ -226,9 +250,15 @@
   padding: 0;
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
+  box-shadow: var(--shadow-tabletop-key-light);
   color: var(--color-text);
   font-size: var(--size-icon-sm);
   cursor: pointer;
+}
+
+.drawing-swatch:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-micro));
 }
 
 .drawing-swatch[data-dark='true'] {

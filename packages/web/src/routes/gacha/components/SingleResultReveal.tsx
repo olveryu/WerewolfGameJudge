@@ -110,6 +110,7 @@ export function SingleResultReveal({
           >
             <ResidentSceneLayer hostRef={sceneHostRef} />
             <IconButton
+              variant="soft"
               label="关闭"
               icon={<IconClose aria-hidden />}
               className="single-reveal-close"

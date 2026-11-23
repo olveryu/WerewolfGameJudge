@@ -8,6 +8,7 @@ import IconPause from '~icons/ion/pause';
 export function RoomBgmToggle({ bgm }: { readonly bgm: RoomBgmControlState }) {
   return (
     <IconButton
+      variant="soft"
       label={bgm.isBgmPlaying ? '暂停音乐' : '播放音乐'}
       icon={bgm.isBgmPlaying ? <IconPause aria-hidden /> : <IconMusicalNotes aria-hidden />}
       onClick={bgm.isBgmPlaying ? bgm.stopBgm : bgm.playBgm}

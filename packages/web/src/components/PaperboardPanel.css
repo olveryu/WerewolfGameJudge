@@ -1,0 +1,7 @@
+.paperboard-panel {
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--color-border-light);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
+}

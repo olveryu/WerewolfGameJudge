@@ -60,6 +60,17 @@ button.room-track-cell {
   cursor: pointer;
 }
 
+@media (hover: hover) {
+  button.room-track-cell:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}
+
+button.room-track-cell:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-primary);
+  outline-offset: var(--space-micro);
+}
+
 .room-track-cells > li {
   display: flex;
   flex: 1 1 0;

@@ -1,8 +1,10 @@
 import './ScreenHeader.css';
+import './HeaderSurface.css';
 
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
+import { IconButton } from '@/components/IconButton';
 import { TESTIDS } from '@/testids';
 import IconChevronBack from '~icons/ion/chevron-back';
 
@@ -41,16 +43,15 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const goBack = useScreenBack(parentPath);
   return (
-    <header className="screen-header">
-      <button
-        type="button"
+    <header className="screen-header page-header-surface">
+      <IconButton
+        variant="soft"
         className="screen-header-back"
-        aria-label="返回"
+        label="返回"
+        icon={<IconChevronBack aria-hidden />}
         onClick={onBack ?? goBack}
         data-testid={backTestId}
-      >
-        <IconChevronBack aria-hidden />
-      </button>
+      />
       <h1 className="screen-header-title" data-testid={TESTIDS.screenHeaderTitle}>
         {title}
       </h1>

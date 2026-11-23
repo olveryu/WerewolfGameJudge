@@ -50,6 +50,7 @@ export function RoomActionHand({
   // An entry that left with the phase gets no focus later, when a card with its id returns.
   const isFocusTargetAbsent =
     focusCardId !== null && !hand.cards.some((card) => card.id === focusCardId);
+  const fanAnglePerCard = hand.cards.length > 1 ? 12 / (hand.cards.length - 1) : 0;
   useEffect(() => {
     if (isFocusTargetAbsent) onFocusTargetSettled();
   }, [isFocusTargetAbsent, onFocusTargetSettled]);
@@ -80,7 +81,7 @@ export function RoomActionHand({
       {hand.cards.map((card, index) => {
         const distance = index - (hand.cards.length - 1) / 2;
         const cardStyle: CardStyle = {
-          '--hand-card-angle': `${distance * 1.5}deg`,
+          '--hand-card-angle': `${distance * fanAnglePerCard}deg`,
           '--hand-card-drop': `${Math.abs(distance) * 4}px`,
           '--hand-card-order': index + 1,
         };

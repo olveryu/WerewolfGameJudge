@@ -6,9 +6,10 @@
   height: 85vh;
   max-height: calc(var(--size-max-content-width) + var(--space-xlarge) + var(--space-small));
   padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .mvp-header {
@@ -88,16 +89,28 @@
   min-height: var(--size-button-lg);
   margin: var(--space-tight) 0;
   padding: var(--space-small);
-  border: none;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
-  background: none;
+  background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-panel);
   text-align: left;
   cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
 }
 
 .mvp-row[aria-checked='true'] {
+  border-color: var(--color-primary);
   background: var(--color-primary-a8);
+  box-shadow: var(--shadow-tabletop-card);
+  transform: translateY(calc(-1 * var(--space-micro)));
+}
+
+.mvp-row:active {
+  box-shadow: 0 1px 0 var(--color-border);
+  transform: translateY(var(--space-tight));
 }
 
 .mvp-seat-badge {

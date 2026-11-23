@@ -36,6 +36,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   border-radius: var(--radius-xlarge);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
 .role-card-dialog[data-state='open'] {
@@ -50,11 +51,21 @@
   height: calc(min(82vw, 360px) * 1.5);
   padding: var(--space-large);
   overflow: hidden;
-  border: var(--border-width-highlight) solid var(--faction-color);
+  border: var(--border-width-thick) solid var(--faction-color);
   border-radius: var(--radius-xlarge);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: inset 0 0 0 var(--space-tight) var(--color-background);
   container-type: inline-size;
+}
+
+.role-card::after {
+  position: absolute;
+  inset: var(--space-small);
+  border: var(--border-width) solid var(--faction-color);
+  border-radius: var(--radius-medium);
+  content: '';
+  opacity: 0.25;
+  pointer-events: none;
 }
 
 .role-card-faction {
@@ -201,6 +212,8 @@
   width: 100%;
 }
 
-.button.role-card-confirm[data-alignment] {
+.button.role-card-confirm[data-alignment]:not(:disabled, [aria-disabled='true']) {
+  --tabletop-key-edge: var(--faction-color);
+
   background: var(--faction-color);
 }

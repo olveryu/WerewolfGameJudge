@@ -52,6 +52,7 @@ export function MvpSelectionModal({
               <IconTrophyOutline className="mvp-header-icon" aria-hidden />
               <Dialog.Title className="mvp-title">本局 MVP</Dialog.Title>
               <IconButton
+                variant="soft"
                 label="关闭 MVP 评选"
                 icon={<IconClose aria-hidden />}
                 disabled={isSubmitting}
