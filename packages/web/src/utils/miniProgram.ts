@@ -55,11 +55,12 @@ export function getOrCreateClaimNonce(): string {
 }
 
 /**
- * Relaunches the mini-program with a nonce; its native side then logs in through
- * `/auth/wechat-claim` (wx.login + wx.request).
+ * Relaunches the mini-program with a nonce and the current page; its native side logs in through
+ * `/auth/wechat-claim` (wx.login + wx.request) before reopening that page.
  */
 export function wxReLaunchWithNonce(nonce: string): void {
-  reLaunchMiniProgram(`/pages/index/index?nonce=${nonce}`);
+  const url = encodeURIComponent(window.location.href);
+  reLaunchMiniProgram(`/pages/index/index?nonce=${encodeURIComponent(nonce)}&url=${url}`);
 }
 
 /** Reads the claim nonce the mini-program login flow left behind. */
