@@ -40,6 +40,7 @@ import {
   createAvalonCurrentStatus,
   createAvalonHistorySummary,
 } from './avalonRoomAdapter';
+import { createAvalonStatusContext } from './avalonStatusContext';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -54,11 +55,7 @@ import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
-import {
-  formatAvalonQuestLabel,
-  resolveQuestInstruction,
-  resolveVoteInstruction,
-} from './policy/avalonInteractionPolicy';
+import { resolveQuestInstruction, resolveVoteInstruction } from './policy/avalonInteractionPolicy';
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -94,14 +91,7 @@ function AvalonRoomContent(
   const historySummary = createAvalonHistorySummary(screen.state);
   const currentStatus = createAvalonCurrentStatus(screen.state);
   const phase = screen.state.phase;
-  const statusContext =
-    phase.kind === 'nominate' || phase.kind === 'vote'
-      ? `${formatAvalonQuestLabel(phase.round)} · 第${Math.min((screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1, config.vetoLimit)}次提案`
-      : phase.kind === 'voteResult' || phase.kind === 'quest' || phase.kind === 'questResult'
-        ? formatAvalonQuestLabel(phase.round)
-        : phase.kind === 'lady'
-          ? formatAvalonQuestLabel(phase.afterRound)
-          : null;
+  const statusContext = createAvalonStatusContext(screen.state);
   if (historyVisible && (historySummary === null || viewModel === null)) {
     setHistoryVisible(false);
   }
@@ -275,9 +265,7 @@ function AvalonRoomContent(
             ? '已发牌'
             : screen.state.phase.kind === 'night'
               ? '夜晚'
-              : screen.state.phase.kind === 'ended'
-                ? '本局结束'
-                : (statusContext ?? '游戏进行中')
+              : (statusContext ?? '游戏进行中')
       }
       lobbyAction={
         isLobby
