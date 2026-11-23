@@ -23,10 +23,11 @@
   width: 100%;
   aspect-ratio: 7 / 4;
   padding: var(--space-small);
-  border: var(--border-width-highlight) solid var(--color-primary-dark);
+  border: var(--border-width-thick) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--space-tight) var(--space-tight) 0 var(--color-primary-dark);
+  background-image: var(--surface-card-texture);
+  box-shadow: var(--shadow-tabletop-card);
 }
 .spotmatch-card::after {
   position: absolute;
@@ -203,7 +204,7 @@ button.spotmatch-symbol:disabled {
 }
 .spotmatch-played-card .spotmatch-card {
   width: 100%;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-card);
 }
 .spotmatch-play-stamp {
   position: absolute;

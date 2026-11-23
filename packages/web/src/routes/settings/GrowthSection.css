@@ -20,6 +20,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-primary-a8);
+  box-shadow: var(--shadow-tabletop-inset);
   appearance: none;
 }
 
@@ -43,6 +44,7 @@
   width: 100%;
   height: var(--space-tight);
   background: var(--color-primary-a10);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .growth-progress-mini::-webkit-progress-bar {

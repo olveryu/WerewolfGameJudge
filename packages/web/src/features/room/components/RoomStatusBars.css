@@ -8,9 +8,10 @@
   margin: var(--space-small) var(--space-medium) 0;
   padding: var(--space-tight) var(--space-medium);
   overflow: hidden;
+  border: var(--border-width) solid var(--color-error-a20);
   border-radius: var(--radius-large);
   background: var(--color-error-a13);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .connection-bar-text {
@@ -25,10 +26,23 @@
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-error-a20);
+  background-image: var(--surface-button-texture);
   color: var(--color-error);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
   cursor: pointer;
+}
+
+.connection-bar-retry:active {
+  box-shadow: 0 1px 0 var(--color-error);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .connection-bar-retry:hover:not(:disabled) {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }
 
 .connection-bar-progress {
@@ -50,6 +64,7 @@
   border: var(--border-width) solid var(--color-warning);
   border-radius: var(--radius-large);
   background: var(--color-warning-a13);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .controlled-seat-banner-text {
@@ -60,17 +75,11 @@
   font-weight: var(--weight-semibold);
 }
 
-.controlled-seat-banner-release {
-  padding: var(--space-tight) var(--space-small);
-  border: none;
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-  color: var(--color-text);
+.button.controlled-seat-banner-release {
+  padding: 0 var(--space-small);
   font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
-  cursor: pointer;
 }
-
 .seat-confirm-message {
   margin: 0;
   color: var(--color-text-secondary);

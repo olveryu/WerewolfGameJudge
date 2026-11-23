@@ -53,3 +53,38 @@ it('shows a status message and progress when the summary is not the status', () 
   expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待下一阶段');
   expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
 });
+
+it('gives audio and selection messages priority over compact game content', () => {
+  const props = {
+    model: {
+      ...EMPTY_ACTIONS,
+      message: '请选择玩家，如不使用请点击「不用技能」',
+      progress: { current: 1, total: 3, label: '夜晚' },
+    },
+    summary: null,
+    isAudioPlaying: false,
+    hostManagement: null,
+    boardStatus: {
+      phaseLabel: '夜晚',
+      title: null,
+      detail: null,
+      compact: true,
+      compactContent: <p>游戏状态</p>,
+    },
+  };
+  const { rerender } = render(<RoomActionStatus {...props} />);
+  expect(screen.getByText('游戏状态')).toBeInTheDocument();
+  expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
+
+  rerender(
+    <RoomActionStatus {...props} selectionMode={{ kind: 'player', escapeActionKey: 'cancel' }} />,
+  );
+  expect(screen.queryByText('游戏状态')).not.toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
+    '请选择玩家，如不使用请点击「不用技能」',
+  );
+
+  rerender(<RoomActionStatus {...props} isAudioPlaying />);
+  expect(screen.queryByText('游戏状态')).not.toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');
+});

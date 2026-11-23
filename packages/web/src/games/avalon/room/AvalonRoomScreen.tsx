@@ -115,6 +115,55 @@ function AvalonRoomContent(
           ? viewModel.pendingPlaySeats
           : null;
   const historyPendingLabel = viewModel?.phase === 'quest' ? '未出牌' : '未投票';
+  const isVotePending = phase.kind === 'vote' && historyPendingSeats !== null;
+  const isVoting = isVotePending && historyPendingSeats.length > 0;
+  const isQuest = phase.kind === 'quest' && historyPendingSeats !== null;
+  const isQuestPending = isQuest && historyPendingSeats.length > 0;
+  const historyContent =
+    historySummary === null || currentStatus === null || viewModel === null ? null : (
+      <AvalonHistorySummary
+        tracks={<AvalonRoomTracks view={viewModel} />}
+        latestResult={
+          phase.kind !== 'ended' &&
+          (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
+            screen.state.questHistory.length > 0)
+            ? historySummary
+            : null
+        }
+        pendingSeats={historyPendingSeats}
+        pendingLabel={historyPendingLabel}
+        compact={{
+          context:
+            isVotePending && statusContext !== null
+              ? `${statusContext}投票${isVoting ? '中' : ''}`
+              : isQuest && statusContext !== null
+                ? `${statusContext} · 任务执行中`
+                : statusContext === null
+                  ? currentStatus
+                  : `${statusContext} · ${currentStatus}`,
+          message:
+            isVoting || isQuestPending
+              ? null
+              : isVotePending
+                ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
+                  ? `已全部投票，${screen.phaseRemainingSeconds} 秒后揭晓`
+                  : '已全部投票，等待揭晓'
+                : isQuest
+                  ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
+                    ? `已全部出牌，${screen.phaseRemainingSeconds} 秒后揭晓`
+                    : '已全部出牌，等待揭晓'
+                  : screen.shellModel.playerActions.message === currentStatus
+                    ? null
+                    : screen.shellModel.playerActions.message,
+          progress: isVoting
+            ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
+            : isQuestPending && phase.kind === 'quest'
+              ? `已出牌 ${phase.teamSeats.length - historyPendingSeats.length}/${phase.teamSeats.length}`
+              : null,
+          isVoting,
+        }}
+      />
+    );
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
   const { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget } =
@@ -281,6 +330,7 @@ function AvalonRoomContent(
         isLobby || viewModel === null
           ? {
               kind: 'seats',
+              compactStatus: true,
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
@@ -288,26 +338,13 @@ function AvalonRoomContent(
             }
           : {
               kind: 'seats',
+              compactStatus: true,
+              compactStatusContent: historyContent,
               contextHeader: null,
               informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
               summaryPresentation: 'after-message',
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
-              bottomSummary:
-                historySummary === null || currentStatus === null ? null : (
-                  <AvalonHistorySummary
-                    status={currentStatus}
-                    tracks={<AvalonRoomTracks view={viewModel} />}
-                    latestResult={
-                      screen.state.phase.kind !== 'ended' &&
-                      (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
-                        screen.state.questHistory.length > 0)
-                        ? historySummary
-                        : null
-                    }
-                    pendingSeats={historyPendingSeats}
-                    pendingLabel={historyPendingLabel}
-                  />
-                ),
+              bottomSummary: historyContent,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }

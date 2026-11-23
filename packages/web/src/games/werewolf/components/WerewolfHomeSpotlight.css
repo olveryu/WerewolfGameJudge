@@ -31,8 +31,10 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-card);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -133,8 +135,21 @@
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
   cursor: pointer;
+  transition:
+    color 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .werewolf-spotlight-action[data-variant='detail'] {
   color: var(--color-text-secondary);
+}
+
+.werewolf-spotlight-action:active {
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .werewolf-spotlight-action:hover {
+    text-decoration: underline;
+  }
 }

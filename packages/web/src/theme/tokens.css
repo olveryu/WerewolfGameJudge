@@ -71,11 +71,10 @@
   --size-profile-card-width: 300px;
   --size-profile-equipment-preview: 28px;
   --size-appearance-cell-min: 88px;
-  --size-appearance-avatar-cell-min: 72px;
+  --size-appearance-avatar-cell-min: 88px;
   --size-min-touch-target: 44px;
   --size-hand-card-width: 100px;
   --size-hand-card-visible: 120px;
-  --size-hand-card-extension: 100px;
   --size-max-content-width: 600px;
   --size-admin-metric-min: 210px;
   --size-admin-content: 1280px;
@@ -93,6 +92,15 @@
   --opacity-pressed: 0.7;
   --opacity-disabled: 0.5;
 
+  /* Surface roles can be themed independently; the texture does not change the base color. */
+  --paper-texture: url('./paper-texture.svg');
+  --surface-panel-texture: var(--paper-texture);
+  --surface-card-texture: var(--paper-texture);
+  --surface-header-texture: var(--paper-texture);
+  --surface-button-texture: var(--paper-texture);
+  --surface-hand-texture: var(--paper-texture);
+  --surface-drawing-texture: var(--paper-texture);
+
   /* Shadows */
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 6%);
   --shadow-md: 0 2px 8px rgb(0 0 0 / 8%);
@@ -100,6 +108,31 @@
   --shadow-upward: 0 -1px 8px rgb(0 0 0 / 6%);
   --shadow-lg-upward: 0 -2px 12px rgb(0 0 0 / 8%);
   --shadow-card: 0 10px 40px rgb(0 0 0 / 50%);
+  --surface-panel-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 1px 0 var(--color-border-light),
+    0 3px 8px var(--color-text-a3);
+  --surface-card-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 2px 0 var(--color-border-light),
+    0 5px 12px var(--color-text-a3);
+  --surface-hand-shadow:
+    inset 0 1px var(--color-text-inverse-a65), 0 var(--space-micro) 0 var(--color-border),
+    0 var(--space-small) calc(var(--space-small) + var(--space-micro)) var(--color-text-a3);
+  --surface-button-shadow-soft:
+    inset 0 1px var(--color-text-inverse-a65), 0 1px 0 var(--color-border-light),
+    0 var(--space-tight) var(--space-small) var(--color-text-a3);
+  --surface-button-shadow-light:
+    inset 0 1px var(--color-surface), 0 1px 0 var(--color-border-light),
+    0 4px 8px var(--color-text-a3);
+  --surface-button-shadow-pressed: 0 1px 0 var(--color-border);
+  --surface-header-shadow: var(--surface-panel-shadow);
+  --surface-drawing-shadow: var(--surface-panel-shadow);
+  --shadow-tabletop-panel: var(--surface-panel-shadow);
+  --shadow-tabletop-card: var(--surface-card-shadow);
+  --shadow-tabletop-key-soft: var(--surface-button-shadow-soft);
+  --shadow-tabletop-key: var(--surface-button-shadow-soft);
+  --shadow-tabletop-key-light: var(--surface-button-shadow-light);
+  --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
+  --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
 }
 
 /* Admin aliases keep the console on the same light palette as the rest of the site. */

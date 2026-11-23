@@ -137,7 +137,8 @@ describe('RoomStageHud', () => {
   it('opens the roster grouped by status with tags for bots and the viewer', async () => {
     const user = userEvent.setup();
     renderHud();
-    await user.click(screen.getByTestId(TESTIDS.roomStageRosterChip));
+    screen.getByTestId(TESTIDS.roomStageRosterChip).focus();
+    await user.keyboard('{Enter}');
 
     const sheet = await screen.findByTestId(TESTIDS.roomStageRosterSheet);
     expect(within(sheet).getByRole('heading', { name: '作答中 · 2' })).toBeInTheDocument();

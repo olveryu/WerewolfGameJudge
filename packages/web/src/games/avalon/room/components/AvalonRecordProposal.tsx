@@ -7,6 +7,7 @@
  * 切换本身就是误导），直接给静态说明。
  */
 import './AvalonRecord.css';
+import '@/features/room/components/RoomRecord.css';
 
 import type {
   AvalonBallot,
@@ -163,7 +164,7 @@ export function AvalonRecordProposal({
 
   if (proposal.approved) {
     return (
-      <article className="avalon-adopted-proposal" data-testid={prefix}>
+      <article className="room-record-card" data-testid={prefix}>
         <div className="avalon-proposer-row">
           <LeaderDot proposal={proposal} testIdPrefix={prefix} />
           <span className="avalon-proposer-text">

@@ -14,13 +14,14 @@
   gap: var(--space-micro);
   min-width: 0;
   padding: var(--space-small) var(--space-micro);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
 }
 
 .profile-equip-slot[data-rarity='legendary'],
 .profile-equip-slot[data-rarity='mythic'] {
-  box-shadow: 0 0 var(--space-small) var(--rarity-glow);
+  border-color: color-mix(in srgb, var(--rarity-color) 25%, var(--color-border-light));
 }
 
 .profile-equip-preview {

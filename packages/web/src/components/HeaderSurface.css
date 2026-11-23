@@ -1,0 +1,6 @@
+.page-header-surface {
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  background-image: var(--surface-header-texture);
+  box-shadow: var(--surface-header-shadow);
+}

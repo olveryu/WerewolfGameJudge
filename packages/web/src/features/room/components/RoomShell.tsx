@@ -1,5 +1,6 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
+import '@/components/HeaderSurface.css';
 
 import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
@@ -42,6 +43,9 @@ type RoomShellContent =
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
       readonly summaryPresentation?: RoomSummaryPresentation;
+      readonly compactStatus?: boolean;
+      readonly compactStatusContent?: ReactElement | null;
+      readonly compactStatusIcon?: ReactElement;
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -259,7 +263,7 @@ export function RoomShell({
   return (
     <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
       <header
-        className="room-header"
+        className="room-header page-header-surface"
         data-testid={TESTIDS.roomHeader}
         data-phase={model.phase}
         {...(model.step === null ? {} : { 'data-step': model.step })}
@@ -325,6 +329,9 @@ export function RoomShell({
                     boardStatus={{
                       phaseLabel,
                       summaryPresentation: content.summaryPresentation,
+                      compact: content.compactStatus,
+                      compactContent: content.compactStatusContent,
+                      compactIcon: content.compactStatusIcon,
                       title: lobbyTitle,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,

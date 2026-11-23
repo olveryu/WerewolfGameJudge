@@ -4,8 +4,10 @@
   align-items: center;
   gap: var(--space-small);
   padding: var(--space-large) var(--space-medium);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .room-share-qr {
@@ -13,7 +15,7 @@
   padding: var(--space-small);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
 .room-share-qr-frame {

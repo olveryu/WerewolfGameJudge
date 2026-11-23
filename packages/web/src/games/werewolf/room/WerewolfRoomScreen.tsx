@@ -42,8 +42,10 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
+import IconMoonOutline from '~icons/ion/moon-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
+import IconTimeOutline from '~icons/ion/time-outline';
 
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
@@ -167,6 +169,14 @@ function WerewolfRoomContent(
       showRealIdentity
     />
   );
+  const sheriffHud =
+    sheriffElectionPanel === null ? null : (
+      <SheriffElectionHud
+        model={sheriffElectionPanel}
+        isHost={isHost}
+        isDay={status === GameStatus.Day}
+      />
+    );
 
   return (
     <RoomShell
@@ -283,6 +293,19 @@ function WerewolfRoomContent(
       }}
       content={{
         kind: 'seats',
+        compactStatus: true,
+        compactStatusContent:
+          sheriffElectionPanel !== null &&
+          (status === GameStatus.Day ||
+            shellModel.playerActions.message === getSheriffWaitingMessage(sheriffElectionPanel))
+            ? sheriffHud
+            : null,
+        compactStatusIcon:
+          status === GameStatus.Ongoing ? (
+            <IconMoonOutline aria-hidden />
+          ) : (
+            <IconTimeOutline aria-hidden />
+          ),
         summaryPresentation:
           status === GameStatus.Day
             ? 'status'
@@ -303,14 +326,7 @@ function WerewolfRoomContent(
               waitingLabel="等待推进…"
             />
           ),
-        bottomSummary:
-          sheriffElectionPanel === null ? null : (
-            <SheriffElectionHud
-              model={sheriffElectionPanel}
-              isHost={isHost}
-              isDay={status === GameStatus.Day}
-            />
-          ),
+        bottomSummary: sheriffHud,
         beforeSeatBoard: (
           <>
             {!useConfigurationDialog && (

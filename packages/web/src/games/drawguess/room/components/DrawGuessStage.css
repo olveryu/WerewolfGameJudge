@@ -56,6 +56,8 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-panel-texture);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 /* ── Drawing task ── */
@@ -93,19 +95,26 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .drawguess-reaction-button:disabled {
+  background: var(--color-surface-hover);
   cursor: default;
-  opacity: var(--opacity-disabled);
+  box-shadow: none;
 }
 
 .drawguess-reaction-button:active:not(:disabled) {
-  opacity: var(--opacity-pressed);
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
 }
 
 .drawguess-reaction-button svg {
@@ -166,7 +175,7 @@
   clip-path: inset(50%);
 }
 
-.drawguess-ranking-button {
+.button.drawguess-ranking-button {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -174,24 +183,15 @@
   gap: var(--space-tight);
   min-height: var(--size-min-touch-target);
   padding: 0 var(--space-small);
-  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-full);
-  background: var(--color-surface);
-  color: var(--color-primary);
   font: inherit;
   font-size: var(--font-caption);
   font-weight: var(--weight-semibold);
-  cursor: pointer;
 }
 
 .drawguess-ranking-button svg {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
-}
-
-.drawguess-ranking-button:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: var(--space-micro);
 }
 
 .drawguess-ranking-header {
@@ -246,6 +246,7 @@
   justify-content: center;
   min-width: 0;
   min-height: 120px;
+  padding: var(--space-small);
   overflow: hidden;
   container-type: size;
 }
@@ -264,7 +265,7 @@
   padding: var(--space-tight) var(--space-medium);
   border-radius: var(--radius-full);
   background: var(--color-success);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-tabletop-panel);
   color: var(--color-text-inverse);
   font-size: var(--font-secondary);
   font-weight: var(--weight-semibold);
@@ -471,12 +472,15 @@
   border-radius: var(--radius-full);
   background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-inset);
   font-size: var(--font-body);
   line-height: var(--line-body);
 }
 
 .drawguess-composer-input:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
 }
 
 .drawguess-composer-send {
@@ -487,19 +491,24 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
+  box-shadow: var(--shadow-tabletop-key);
   font-size: var(--font-body);
   font-weight: var(--weight-semibold);
   line-height: var(--line-body);
   cursor: pointer;
 }
 
-.drawguess-composer-send:active {
-  opacity: var(--opacity-pressed);
+.drawguess-composer-send:active:not(:disabled) {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
 }
 
 .drawguess-composer-send:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -516,7 +525,9 @@
   justify-content: center;
   min-height: var(--size-min-touch-target);
   border-radius: var(--radius-medium);
+  border: var(--border-width) solid var(--color-border-light);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
   color: var(--color-success);
   font-size: var(--font-body);
   font-weight: var(--weight-semibold);

@@ -55,7 +55,7 @@ describe('getHudSummary', () => {
       },
       5,
     );
-    expect(getHudSummary(hostModel)).toBe('4/4 人已投票，5秒后自动公布结果');
+    expect(getHudSummary(hostModel)).toBe('已全部投票，5 秒后揭晓');
     const playerModel = createModel(
       {
         voteProgress: { submittedCount: 4, eligibleCount: 4, pendingSeats: [] },
@@ -64,14 +64,14 @@ describe('getHudSummary', () => {
       },
       3,
     );
-    expect(getHudSummary(playerModel)).toBe('4/4 人已投票，3秒后自动公布结果');
+    expect(getHudSummary(playerModel)).toBe('已全部投票，3 秒后揭晓');
   });
 
   it('falls back to the static sentence when the deadline has not armed yet', () => {
     const model = createModel({
       voteProgress: { submittedCount: 4, eligibleCount: 4, pendingSeats: [] },
     });
-    expect(getHudSummary(model)).toBe('4/4 人已投票，即将自动公布结果');
+    expect(getHudSummary(model)).toBe('已全部投票，等待揭晓');
   });
 
   it('falls back to the static sentence once the deadline is reached', () => {
@@ -81,17 +81,17 @@ describe('getHudSummary', () => {
       },
       0,
     );
-    expect(getHudSummary(model)).toBe('4/4 人已投票，即将自动公布结果');
+    expect(getHudSummary(model)).toBe('已全部投票，等待揭晓');
   });
 
-  it('tells a player who has not voted where to vote', () => {
+  it('uses the shared voting label while votes are pending', () => {
     const model = createModel({
       voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },
       canVote: true,
       myBallot: { kind: 'notSubmitted' },
     });
 
-    expect(getHudSummary(model)).toBe('2/4 人已投票，点击下方「选择投票」投票');
+    expect(getHudSummary(model)).toBe('投票中');
   });
 
   it('tailors registration guidance to the viewer', () => {
@@ -111,18 +111,8 @@ describe('SheriffElectionHud pending row', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByTestId(TESTIDS.sheriffDetailsButton)).not.toBeInTheDocument();
     expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('首轮投票');
-    expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).not.toBeInTheDocument();
-    expect(screen.getByText('2/4 人已投票')).toBeInTheDocument();
-  });
-
-  it('keeps pending seats out of the compact summary', () => {
-    const model = createModel({
-      voteProgress: { submittedCount: 2, eligibleCount: 4, pendingSeats: [1, 3] },
-    });
-    render(<SheriffElectionHud model={model} isHost={false} />);
-
-    expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).not.toBeInTheDocument();
-    expect(screen.getByText('2/4 人已投票')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.sheriffHudPendingSeats)).toHaveTextContent('未投票：2号 4号');
+    expect(screen.getByText('已投 2/4')).toBeInTheDocument();
   });
 
   it('hides the pending row once every vote is in', () => {
@@ -135,5 +125,6 @@ describe('SheriffElectionHud pending row', () => {
     render(<SheriffElectionHud model={model} isHost={false} />);
 
     expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).toBeNull();
+    expect(screen.getByText('已全部投票，5 秒后揭晓')).toBeInTheDocument();
   });
 });

@@ -63,7 +63,9 @@ describe('GamePickerPage', () => {
     it('returns to Home through the header back button', async () => {
       renderPicker({ entries: ['/', '/games?purpose=create'], initialIndex: 1 });
 
-      await userEvent.click(screen.getByRole('button', { name: '返回' }));
+      const backButton = screen.getByRole('button', { name: '返回' });
+      expect(backButton).toHaveClass('icon-button');
+      await userEvent.click(backButton);
 
       expect(screen.getByTestId('location')).toHaveTextContent('/');
     });

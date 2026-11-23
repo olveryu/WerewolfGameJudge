@@ -5,6 +5,7 @@
   border-radius: var(--radius-large);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border-light);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .cosmetic-tab {
@@ -18,18 +19,35 @@
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .cosmetic-tab[aria-selected='true'] {
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-tabletop-key);
 }
 
 .cosmetic-tab:focus-visible,
 .rarity-filter:focus-visible {
   outline: var(--border-width-thick) solid var(--color-primary);
   outline-offset: var(--border-width);
+}
+
+.cosmetic-tab:active,
+.rarity-filter:active {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
+}
+
+.cosmetic-tab[aria-selected='true']:active,
+.rarity-filter[aria-pressed='true']:active {
+  box-shadow: var(--surface-button-shadow-pressed);
 }
 
 .rarity-filters {
@@ -49,15 +67,29 @@
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .rarity-filter[aria-pressed='true'] {
   background: var(--color-primary);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-tabletop-key);
+}
+
+@media (hover: hover) {
+  .cosmetic-tab:hover,
+  .rarity-filter:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }

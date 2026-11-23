@@ -18,9 +18,11 @@ type PolicyCell = { readonly kind: 'liberal' | 'fascist'; readonly number: numbe
 export function SecrethitlerRoomTracks({
   state,
   view,
+  showLatestResult = true,
 }: {
   readonly state: SecrethitlerState;
   readonly view: SecrethitlerViewModel;
+  readonly showLatestResult?: boolean;
 }) {
   const [detail, setDetail] = useState<PolicyCell | null>(null);
   const lastResult = state.lastPublicResult;
@@ -112,7 +114,9 @@ export function SecrethitlerRoomTracks({
             ))}
           </ol>
         </div>
-        {latestCopy !== null && <p className="room-track-heading">最近结果 · {latestCopy}</p>}
+        {showLatestResult && latestCopy !== null && (
+          <p className="room-track-heading">最近结果 · {latestCopy}</p>
+        )}
       </div>
       {detail !== null && (
         <RoomDialog

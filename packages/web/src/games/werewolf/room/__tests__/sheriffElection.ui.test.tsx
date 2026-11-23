@@ -124,7 +124,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       hookOverrides: { roomStatus: GameStatus.Day },
     });
     const screen = await mountWerewolfRoom(mock);
-    expect(screen.getByText('白天').closest('.room-board-status-card')).not.toBeNull();
+    expect(screen.getByText('白天').closest('.room-compact-status')).not.toBeNull();
     expect(screen.queryByTestId(TESTIDS.sheriffElectionHud)).not.toBeInTheDocument();
   });
   it('shows registration status once while retaining election details', async () => {
@@ -148,8 +148,9 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       hookOverrides: { roomStatus: GameStatus.Day },
     });
     const screen = await mountWerewolfRoom(mock);
-    expect(screen.getAllByText('报名进行中')).toHaveLength(1);
-    expect(screen.getByText('白天')).toBeInTheDocument();
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHud)).toHaveTextContent(
+      '白天 · 警长竞选 · 报名进行中',
+    );
     await click(screen.getByTestId(TESTIDS.sheriffDetailsButton));
     expect(await screen.findByTestId(TESTIDS.sheriffElectionPanel)).toBeInTheDocument();
   });
@@ -170,7 +171,8 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
     });
     const screen = await mountWerewolfRoom(mock);
     expect(screen.queryByText('等待投票完成')).not.toBeInTheDocument();
-    expect(screen.getByTestId(TESTIDS.sheriffElectionHud)).toHaveTextContent('0/2 人已投票');
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHud)).toHaveTextContent('已投 0/2');
+    expect(screen.getByTestId(TESTIDS.sheriffHudPendingSeats)).toHaveTextContent('未投票：3号 4号');
     expect(screen.getByTestId(TESTIDS.sheriffDetailsButton)).toBeInTheDocument();
   });
 
@@ -217,9 +219,7 @@ describe('WerewolfRoomScreen sheriff-election composition', () => {
       'data-card-category',
       'resource',
     );
-    expect(screen.getByTestId(TESTIDS.sheriffElectionHud)).toHaveTextContent(
-      '点击下方「选择投票」投票',
-    );
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHud)).toHaveTextContent('首轮投票中');
 
     await click(screen.getByTestId(TESTIDS.seatTilePressable(0)));
     expect(mock.dispatch).not.toHaveBeenCalled();

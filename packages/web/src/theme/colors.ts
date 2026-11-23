@@ -140,6 +140,7 @@ const ALPHA_VARIANTS: readonly (readonly [keyof typeof colors, number])[] = [
   ['background', 85],
   ['text', 3],
   ['textInverse', 20],
+  ['textInverse', 65],
   ['textMuted', 30],
   ...(
     ['info', 'success', 'error', 'warning', 'primaryLight', 'textSecondary', 'textMuted'] as const

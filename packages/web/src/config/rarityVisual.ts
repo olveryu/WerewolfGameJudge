@@ -65,12 +65,12 @@ function cell(
   };
 }
 
-/** Grid-cell tints for rare and better; common cells get no special treatment. */
+/** Restrained grid-cell tints for rare and better; common cells get no special treatment. */
 const RARITY_CELL: Readonly<Record<Exclude<Rarity, 'common'>, RarityCellConfig>> = {
-  mythic: cell('mythic', 0.08, 0.3, { blur: 12, alpha: 0.3 }),
-  rare: cell('rare', 0.03, 0.18),
-  epic: cell('epic', 0.05, 0.25),
-  legendary: cell('legendary', 0.08, 0.3, { blur: 10, alpha: 0.25 }),
+  mythic: cell('mythic', 0.02, 0.08, { blur: 6, alpha: 0.1 }),
+  rare: cell('rare', 0.01, 0.04),
+  epic: cell('epic', 0.02, 0.06),
+  legendary: cell('legendary', 0.02, 0.08, { blur: 5, alpha: 0.08 }),
 };
 
 /** The grid-cell tint of `rarity`, or `null` for common and unrated items. */
@@ -87,10 +87,10 @@ export function getRarityCellStyle(rarity: Rarity | null): CSSProperties | undef
   return glow === undefined ? undefined : { boxShadow: glow };
 }
 
-/** Selected state: border and tinted background follow the rarity colour. */
+/** A subtle rarity tint; selection emphasis belongs to the card's independent gold state. */
 export function getRaritySelectedStyle(rarity: Rarity | null): CSSProperties {
   const { color } = RARITY_VISUAL[rarity ?? 'common'];
-  return { borderColor: color, backgroundColor: withAlpha(color, 0.08) };
+  return { backgroundColor: withAlpha(color, 0.03) };
 }
 
 /** Orders rarities highest first; unrated items count as common. */

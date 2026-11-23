@@ -32,6 +32,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .game-settings-count {
@@ -91,8 +92,11 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-secondary);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
 }
 
@@ -100,7 +104,11 @@
   border-color: var(--color-primary);
   background: var(--color-primary-a15);
   color: var(--color-primary);
-  font-weight: var(--weight-semibold);
+}
+
+.game-settings-option:active {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
 }
 
 .game-settings-option:focus-visible {
