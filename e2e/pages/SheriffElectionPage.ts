@@ -18,10 +18,10 @@ export class SheriffElectionPage {
   async waitForPhase(phaseTitle: string): Promise<void> {
     const hudPhase =
       phaseTitle === '报名上警'
-        ? '报名进行中'
+        ? '白天 · 警长竞选 · 报名进行中'
         : phaseTitle === '竞选结束'
-          ? /当选警长|本局没有警长/
-          : phaseTitle;
+          ? /^白天 · 警长竞选 · (?:\d+号 当选警长|本局没有警长)$/
+          : `白天 · 警长竞选 · ${phaseTitle}${phaseTitle.endsWith('投票') ? '中' : ''}`;
     await expect(this.page.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveText(hudPhase, {
       timeout: 15_000,
     });
