@@ -4,7 +4,12 @@ import type { ReactNode } from 'react';
 
 import { formatPendingSeats } from './PendingSeatsRow';
 
-/** A read-only, compact room status with optional submission progress. */
+/**
+ * A read-only, compact room status with optional submission progress.
+ *
+ * `statusTestId` marks the one status line: the message when there is one, otherwise the
+ * progress. Callers never choose which element carries it.
+ */
 export function RoomCompactStatus({
   context,
   message,
@@ -14,8 +19,7 @@ export function RoomCompactStatus({
   icon,
   inline = false,
   testId,
-  messageTestId,
-  progressTestId,
+  statusTestId,
   contextTestId,
   pendingTestId,
 }: {
@@ -27,8 +31,7 @@ export function RoomCompactStatus({
   readonly icon?: ReactNode;
   readonly inline?: boolean;
   readonly testId?: string;
-  readonly messageTestId?: string;
-  readonly progressTestId?: string;
+  readonly statusTestId?: string;
   readonly contextTestId?: string;
   readonly pendingTestId?: string;
 }) {
@@ -36,6 +39,7 @@ export function RoomCompactStatus({
     pendingSeats === null || pendingSeats === undefined
       ? ''
       : formatPendingSeats(pendingLabel, pendingSeats);
+  const hasMessage = message !== null && message.length > 0;
   return (
     <div className="room-compact-status" data-inline={inline} data-testid={testId}>
       {(context !== null || (progress !== null && progress !== undefined)) && (
@@ -47,14 +51,17 @@ export function RoomCompactStatus({
             </span>
           )}
           {progress !== null && progress !== undefined && (
-            <span className="room-compact-status-progress" data-testid={progressTestId}>
+            <span
+              className="room-compact-status-progress"
+              data-testid={hasMessage ? undefined : statusTestId}
+            >
               {progress}
             </span>
           )}
         </div>
       )}
-      {message !== null && message.length > 0 && (
-        <p className="room-compact-status-message" aria-live="polite" data-testid={messageTestId}>
+      {hasMessage && (
+        <p className="room-compact-status-message" aria-live="polite" data-testid={statusTestId}>
           {message}
         </p>
       )}

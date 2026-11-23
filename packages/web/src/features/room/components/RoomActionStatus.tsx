@@ -116,7 +116,7 @@ export function RoomActionStatus({
               progress={!isAudioPlaying && selectionMode === undefined ? boardStatus.detail : null}
               icon={boardStatus.compactIcon}
               inline={boardStatus.title !== null && !isAudioPlaying && selectionMode === undefined}
-              messageTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
+              statusTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
             />
           )}
           {hasSummary && <div className="room-board-status-summary">{summary}</div>}

@@ -437,7 +437,7 @@ export function SecrethitlerCompactBoardHeader({
         }
         pendingSeats={isVoting ? pending : null}
         icon={isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />}
-        messageTestId={TESTIDS.actionMessage}
+        statusTestId={TESTIDS.actionMessage}
       />
       <div className="room-compact-status-tracks">
         <SecrethitlerRoomTracks state={state} view={view} />
