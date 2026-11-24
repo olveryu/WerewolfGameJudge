@@ -27,6 +27,8 @@ export const colors = {
 
   success: '#1A9A4A',
   warning: '#B87D08',
+  /** Warning-hued text on a warning tint (AA 4.5:1 on --color-warning-a12 over the background). */
+  warningText: '#7F5605',
   error: '#D13438',
   info: '#2563EB',
 
@@ -41,6 +43,12 @@ export const colors = {
   villager: '#1A9A4A',
   god: '#7B3FBF',
   third: '#B87D08',
+  /**
+   * Faction text on a faction tint where the locked faction colour misses AA (villager and third
+   * reach only ~3.2:1 on their own a12 tint): darker text variants, the locked colours untouched.
+   */
+  villagerText: '#0F6E34',
+  thirdText: '#7F5605',
 
   overlay: 'rgba(26, 49, 73, 0.6)',
   overlayLight: 'rgba(26, 49, 73, 0.25)',

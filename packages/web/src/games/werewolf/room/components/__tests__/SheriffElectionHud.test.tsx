@@ -1,13 +1,18 @@
 /** Unit tests for the sheriff-election HUD summary copy. */
 
+import { type GameState, GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render, screen } from '@testing-library/react';
 
 import {
   getHudSummary,
   SheriffElectionHud,
 } from '@/games/werewolf/room/components/SheriffElectionHud';
-import type { SheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
+import {
+  createSheriffElectionViewModel,
+  type SheriffElectionViewModel,
+} from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
+import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
 
 const BASE_VIEW: SheriffElectionViewModel = {
@@ -126,5 +131,44 @@ describe('SheriffElectionHud pending row', () => {
 
     expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).toBeNull();
     expect(screen.getByText('已全部投票，5 秒后揭晓')).toBeInTheDocument();
+  });
+});
+
+describe('SheriffElectionHud registration secrecy', () => {
+  function registrationState(): GameState {
+    const players: GameState['players'] = {};
+    for (let seat = 0; seat < 8; seat += 1) players[seat] = { seat, role: 'villager' };
+    return buildWerewolfTestState({
+      status: GameStatus.Day,
+      templateRoles: Array.from({ length: 8 }, () => 'villager' as const),
+      players,
+      rules: { isSheriffElectionEnabled: true },
+      sheriffElection: {
+        phase: 'registration',
+        registeredSeats: [1, 3, 5],
+        withdrawnSeats: [],
+        completedRounds: [],
+      },
+    });
+  }
+
+  it.each([
+    ['host', true, 0],
+    ['registered player', false, 1],
+    ['unregistered player', false, 2],
+  ])('shows the %s neither the registrant count nor the names', (_label, isHost, seat) => {
+    const view = createSheriffElectionViewModel({
+      gameState: registrationState(),
+      effectiveSeat: seat,
+      isHost,
+    });
+    if (view === null) throw new Error('expected a view model');
+    render(<SheriffElectionHud model={{ ...createModel({}), view }} isHost={isHost} />);
+
+    const hud = screen.getByTestId(TESTIDS.sheriffElectionHud);
+    expect(screen.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveTextContent('报名进行中');
+    expect(screen.queryByTestId(TESTIDS.sheriffHudPendingSeats)).toBeNull();
+    expect(hud.textContent).not.toMatch(/\d/);
+    expect(hud).not.toHaveTextContent('3 位');
   });
 });

@@ -10,7 +10,7 @@
 
 .room-hand-reason {
   position: absolute;
-  z-index: 101;
+  z-index: var(--layer-hand-reason);
   bottom: 100%;
   inset-inline: 0;
 }
@@ -34,7 +34,7 @@
 }
 
 .room-action-card-cell:has(.room-hand-card:focus-visible) {
-  z-index: 100;
+  z-index: var(--layer-hand-raised);
 }
 
 .room-action-card-cell .room-hand-card {
@@ -125,7 +125,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .room-action-card-cell:hover {
-    z-index: 100;
+    z-index: var(--layer-hand-raised);
   }
 
   .room-action-card-cell .room-hand-card:not([aria-busy='true']):hover {

@@ -40,6 +40,7 @@ import {
   createAvalonCurrentStatus,
   createAvalonHistorySummary,
 } from './avalonRoomAdapter';
+import { createAvalonStatusContext } from './avalonStatusContext';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
@@ -54,11 +55,7 @@ import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
-import {
-  formatAvalonQuestLabel,
-  resolveQuestInstruction,
-  resolveVoteInstruction,
-} from './policy/avalonInteractionPolicy';
+import { resolveQuestInstruction, resolveVoteInstruction } from './policy/avalonInteractionPolicy';
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -94,14 +91,7 @@ function AvalonRoomContent(
   const historySummary = createAvalonHistorySummary(screen.state);
   const currentStatus = createAvalonCurrentStatus(screen.state);
   const phase = screen.state.phase;
-  const statusContext =
-    phase.kind === 'nominate' || phase.kind === 'vote'
-      ? `${formatAvalonQuestLabel(phase.round)} · 第${Math.min((screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1, config.vetoLimit)}次提案`
-      : phase.kind === 'voteResult' || phase.kind === 'quest' || phase.kind === 'questResult'
-        ? formatAvalonQuestLabel(phase.round)
-        : phase.kind === 'lady'
-          ? formatAvalonQuestLabel(phase.afterRound)
-          : null;
+  const statusContext = createAvalonStatusContext(screen.state);
   if (historyVisible && (historySummary === null || viewModel === null)) {
     setHistoryVisible(false);
   }
@@ -141,20 +131,12 @@ function AvalonRoomContent(
                 : statusContext === null
                   ? currentStatus
                   : `${statusContext} · ${currentStatus}`,
+          // 状态句唯一来源是 avalonRoomAdapter（投票/出牌进行中给不能提交者的说明、全员提交后
+          // 的结算倒计时句）；与阶段句重复时不再显示。
           message:
-            isVoting || isQuestPending
+            screen.shellModel.playerActions.message === currentStatus
               ? null
-              : isVotePending
-                ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
-                  ? `已全部投票，${screen.phaseRemainingSeconds} 秒后揭晓`
-                  : '已全部投票，等待揭晓'
-                : isQuest
-                  ? screen.phaseRemainingSeconds !== null && screen.phaseRemainingSeconds > 0
-                    ? `已全部出牌，${screen.phaseRemainingSeconds} 秒后揭晓`
-                    : '已全部出牌，等待揭晓'
-                  : screen.shellModel.playerActions.message === currentStatus
-                    ? null
-                    : screen.shellModel.playerActions.message,
+              : screen.shellModel.playerActions.message,
           progress: isVoting
             ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
             : isQuestPending && phase.kind === 'quest'
@@ -283,9 +265,7 @@ function AvalonRoomContent(
             ? '已发牌'
             : screen.state.phase.kind === 'night'
               ? '夜晚'
-              : screen.state.phase.kind === 'ended'
-                ? '本局结束'
-                : (statusContext ?? '游戏进行中')
+              : (statusContext ?? '游戏进行中')
       }
       lobbyAction={
         isLobby
@@ -330,7 +310,6 @@ function AvalonRoomContent(
         isLobby || viewModel === null
           ? {
               kind: 'seats',
-              compactStatus: true,
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
@@ -338,11 +317,9 @@ function AvalonRoomContent(
             }
           : {
               kind: 'seats',
-              compactStatus: true,
               compactStatusContent: historyContent,
               contextHeader: null,
               informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
-              summaryPresentation: 'after-message',
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
               bottomSummary: historyContent,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,

@@ -93,7 +93,7 @@
 
 .button[data-variant='primary']:active:not(:disabled, [aria-disabled='true']),
 .button[data-variant='danger']:active:not(:disabled, [aria-disabled='true']) {
-  box-shadow: 0 1px 0 var(--tabletop-key-edge, var(--color-border));
+  box-shadow: var(--surface-button-pressed-offset) var(--tabletop-key-edge, var(--color-border));
 }
 
 .button[data-variant='secondary']:active:not(:disabled, [aria-disabled='true']) {

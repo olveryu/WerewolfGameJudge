@@ -29,7 +29,7 @@
 
 .draw-button:active:not(:disabled) {
   transform: translateY(var(--space-micro));
-  box-shadow: 0 1px 0 var(--draw-edge);
+  box-shadow: var(--surface-button-pressed-offset) var(--draw-edge);
 }
 
 .draw-button:disabled {

@@ -30,6 +30,7 @@ import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary'
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
@@ -167,7 +168,6 @@ function SecrethitlerRoomContent(
       }}
       content={{
         kind: 'seats',
-        compactStatus: true,
         compactStatusContent: compactHistory,
         compactStatusIcon:
           screen.state.phase.kind === 'night' ? (
@@ -177,7 +177,6 @@ function SecrethitlerRoomContent(
           ),
         contextHeader: null,
         informationLayout: showHistory ? 'scroll-with-seats' : 'fixed',
-        summaryPresentation: 'after-message',
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
@@ -422,9 +421,7 @@ export function SecrethitlerCompactBoardHeader({
     phase.kind === 'voting'
       ? isVoting
         ? null
-        : remainingSeconds !== null && remainingSeconds > 0
-          ? `已全部投票，${remainingSeconds} 秒后揭晓`
-          : '已全部投票，等待揭晓'
+        : formatSettleCountdown(remainingSeconds, '投票')
       : actionMessage;
   return (
     <>
@@ -438,7 +435,7 @@ export function SecrethitlerCompactBoardHeader({
         }
         pendingSeats={isVoting ? pending : null}
         icon={isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />}
-        messageTestId={TESTIDS.actionMessage}
+        statusTestId={TESTIDS.actionMessage}
       />
       <div className="room-compact-status-tracks">
         <SecrethitlerRoomTracks state={state} view={view} />

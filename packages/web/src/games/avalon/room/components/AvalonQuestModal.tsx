@@ -12,6 +12,7 @@ import { CenterDialog } from '@/components/CenterDialog';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -66,7 +67,7 @@ export function AvalonQuestModal({
       </div>
       {remainingSeconds !== null && remainingSeconds > 0 && (
         <p className="avalon-stage-countdown" data-testid={TESTIDS.avalonQuestCountdown}>
-          已全部出牌，{remainingSeconds} 秒后揭晓
+          {formatSettleCountdown(remainingSeconds, '出牌')}
         </p>
       )}
       {viewModel.pendingPlaySeats !== null && viewModel.pendingPlaySeats.length > 0 && (

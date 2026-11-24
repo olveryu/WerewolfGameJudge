@@ -30,7 +30,7 @@
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
-  box-shadow: var(--shadow-tabletop-key);
+  box-shadow: var(--shadow-tabletop-key-soft);
 }
 
 .cosmetic-tab:focus-visible,
@@ -84,7 +84,7 @@
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key);
+  box-shadow: var(--shadow-tabletop-key-soft);
 }
 
 @media (hover: hover) {

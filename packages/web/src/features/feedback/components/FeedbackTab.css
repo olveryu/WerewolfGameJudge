@@ -83,7 +83,7 @@
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key);
+  box-shadow: var(--shadow-tabletop-key-soft);
   font-size: var(--font-body);
   line-height: var(--line-body);
   font-weight: var(--weight-semibold);
@@ -408,7 +408,7 @@
   background: var(--color-primary);
   background-image: var(--surface-button-texture);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-tabletop-key);
+  box-shadow: var(--shadow-tabletop-key-soft);
   cursor: pointer;
   transition:
     transform 100ms ease-out,

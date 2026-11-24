@@ -77,7 +77,6 @@ function GovernmentRecord({
           {view.pendingVoteSeats.length > 0 && (
             <p>{formatPendingSeats('未投票', view.pendingVoteSeats)}</p>
           )}
-          {view.myVote !== null && <p>你投了：{view.myVote === 'ja' ? '赞成' : '反对'}</p>}
         </>
       )}
       {record.voteCounts !== null && (

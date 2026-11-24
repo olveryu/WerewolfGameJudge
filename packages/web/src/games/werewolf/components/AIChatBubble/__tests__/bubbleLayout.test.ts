@@ -7,6 +7,7 @@ import {
   BUBBLE_WIDTH,
   clampBubblePosition,
   getDefaultPosition,
+  ROOM_HAND_REACH,
 } from '../bubbleLayout';
 
 describe('AIChatBubble layout', () => {
@@ -17,6 +18,13 @@ describe('AIChatBubble layout', () => {
     expect(BUBBLE_HORIZONTAL_MARGIN).toBeGreaterThanOrEqual(BUBBLE_PULSE_OVERHANG);
     expect(position.x - BUBBLE_PULSE_OVERHANG).toBeGreaterThanOrEqual(0);
     expect(position.x + BUBBLE_WIDTH + BUBBLE_PULSE_OVERHANG).toBeLessThanOrEqual(viewportWidth);
+  });
+
+  it('places the default bubble above the room hand and its raised 「待行动」 badge', () => {
+    const viewportHeight = 844;
+    const position = getDefaultPosition(390, viewportHeight);
+
+    expect(position.y + BUBBLE_HEIGHT).toBeLessThanOrEqual(viewportHeight - ROOM_HAND_REACH);
   });
 
   it('derives pulse overhang from the same scale used by the animation', () => {

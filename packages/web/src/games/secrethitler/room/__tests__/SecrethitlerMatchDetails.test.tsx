@@ -74,7 +74,7 @@ it('shows rejected secret votes as counts without individual ballots', () => {
   expect(screen.queryByRole('list', { name: '逐人投票' })).not.toBeInTheDocument();
 });
 
-it('shows only submission progress and the viewer’s vote during an active vote', () => {
+it('shows only submission progress during an active vote, never the viewer’s own ballot', () => {
   const fixture = states.get('voting');
   if (fixture === undefined || fixture.phase.kind !== 'voting') throw new Error('Missing voting');
   const state = {
@@ -86,11 +86,14 @@ it('shows only submission progress and the viewer’s vote during an active vote
   );
   expect(screen.getByText('已投 2/8')).toBeInTheDocument();
   expect(screen.getByText('未投票：3号 4号 5号 6号 7号 8号')).toBeInTheDocument();
-  expect(screen.getByText('你投了：赞成')).toBeInTheDocument();
+  // Seat 1 voted ja: the ballot stays in the vote dialog, as in Avalon.
+  expect(screen.queryByText(/你投了/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/赞成|反对/)).not.toBeInTheDocument();
   expect(screen.queryByRole('list', { name: '逐人投票' })).not.toBeInTheDocument();
   rerender(
     <SecrethitlerMatchDetails state={state} view={getSecrethitlerViewModel(state, 2)} mySeat={2} />,
   );
+  expect(screen.getByText('已投 2/8')).toBeInTheDocument();
   expect(screen.queryByText(/你投了/)).not.toBeInTheDocument();
   const complete = {
     ...state,

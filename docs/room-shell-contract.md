@@ -280,8 +280,11 @@ sub-hands with a leading return card. A group sub-hand contains its return card 
 The stage menu is a separate `actionSurface: 'menu'` projection of the same directory and
 authorized stage actions. Cards are ordered by category and state while preserving ties.
 
-`RoomActionStatus` is separate from the hand container. Seat content can place status and game
-summary above the seat board; other hand surfaces place them in the bottom panel. Stage content
+`RoomActionStatus` is separate from the hand container. Seat content places status above the seat
+board as the shared `RoomCompactStatus` (phase context, one status line carrying
+`actionMessage`, optional progress), the only board status surface for every seats-content game;
+a game may replace it with its own `compactStatusContent` built on the same component, and
+`bottomSummary` renders beneath it. Other hand surfaces place status in the bottom panel. Stage content
 keeps its status in the HUD and requires the menu action surface. Dialog and game-workspace
 controls remain game-owned and are not moved into the hand.
 

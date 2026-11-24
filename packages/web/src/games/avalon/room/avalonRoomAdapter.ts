@@ -32,6 +32,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { getRoomProfileTarget } from '@/features/room/model/getRoomProfileTarget';
 import {
   allViewedConfirmBody,
@@ -594,20 +595,20 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
           testID: TESTIDS.avalonVoteOpen,
         });
       }
-      // 未投票名单全房公开：计数 + 未投票行，人人可见（不再只给已投票者看个人票）。
-      // 已投计数与引擎视图层 AvalonCurrentProposalView 同一派生（只数已投人数、永不归名，
-      // 与暗投口径一致）；个人票仍只在弹窗里看。
+      // 已投计数与未投票名单由对局摘要条展示（AvalonRoomScreen 的 compact progress），这里
+      // 只给本视角的状态句：投票进行中可投者无句子、不能投者说明原因；全员投完后是
+      // 结算倒计时句。个人票只在弹窗里看。
       message =
-        phase.deadlineAt !== null &&
-        input.settleCountdownSeconds !== null &&
-        input.settleCountdownSeconds > 0
-          ? `已全部投票，${input.settleCountdownSeconds} 秒后揭晓`
-          : vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length > 0
-            ? `已投 ${Object.keys(phase.ballots).length}/${getAvalonOccupiedSeatCount(state)}`
-            : null;
-      if (message === null && !instruction.canVote) {
-        message = input.canTakeOverBots ? '长按机器人座位接管后投票。' : '你不在座位上，无法投票。';
-      }
+        vm.pendingVoteSeats !== null && vm.pendingVoteSeats.length === 0
+          ? formatSettleCountdown(
+              phase.deadlineAt === null ? null : input.settleCountdownSeconds,
+              '投票',
+            )
+          : instruction.canVote
+            ? null
+            : input.canTakeOverBots
+              ? '长按机器人座位接管后投票。'
+              : '你不在座位上，无法投票。';
       break;
     }
     case 'voteResult':
@@ -629,18 +630,17 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
           testID: TESTIDS.avalonQuestOpen,
         });
       }
-      // 未出牌名单全房公开：计数 + 未出牌行，人人可见；个人牌仍只在弹窗里看。
+      // 已出牌计数与未出牌名单由对局摘要条展示；这里只给本视角的状态句：出牌进行中
+      // 队员无句子、非队员等待；全员出完后是结算倒计时句。个人牌只在弹窗里看。
       message =
-        phase.deadlineAt !== null &&
-        input.settleCountdownSeconds !== null &&
-        input.settleCountdownSeconds > 0
-          ? `已全部出牌，${input.settleCountdownSeconds} 秒后揭晓`
-          : vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length > 0
-            ? `已出牌 ${Object.keys(phase.plays).length}/${phase.teamSeats.length}`
-            : null;
-      if (message === null && !instruction.isTeamMember) {
-        message = '等待队员出牌…';
-      }
+        vm.pendingPlaySeats !== null && vm.pendingPlaySeats.length === 0
+          ? formatSettleCountdown(
+              phase.deadlineAt === null ? null : input.settleCountdownSeconds,
+              '出牌',
+            )
+          : instruction.isTeamMember
+            ? null
+            : '等待队员出牌…';
       break;
     }
     case 'lady': {

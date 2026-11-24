@@ -203,7 +203,7 @@
 }
 
 .config-role-chip-body:active {
-  box-shadow: 0 1px 0 var(--faction-color);
+  box-shadow: var(--surface-button-pressed-offset) var(--faction-color);
   transform: translateY(var(--space-micro));
 }
 
@@ -279,7 +279,7 @@
 }
 
 .config-stepper-button:active:not(:disabled) {
-  box-shadow: 0 1px 0 var(--faction-color);
+  box-shadow: var(--surface-button-pressed-offset) var(--faction-color);
   transform: translateY(var(--space-micro));
 }
 
