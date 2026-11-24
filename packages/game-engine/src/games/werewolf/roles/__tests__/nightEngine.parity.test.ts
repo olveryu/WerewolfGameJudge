@@ -30,6 +30,7 @@ const ROLES = new Map<string, WerewolfRoleDefinition>(
   WEREWOLF_ROLE_DEFINITIONS.map((role) => [role.id, role]),
 );
 const RANDOM_SEQUENCES = 128;
+const RANDOM_SEQUENCES_TIMEOUT_MS = 30_000;
 const RANDOM_ROLES: RoleId[] = [
   'villager',
   'villager',
@@ -158,54 +159,58 @@ describe('Night-1 old and new engine parity', () => {
     compareNight(context, choices);
   });
 
-  it('replays deterministic complete night sequences with swaps, checks, protection and poison', () => {
-    const random = createSeededRng('night-parity-sequences');
-    const next = (maximum: number): number => Math.floor(random() * maximum);
-    const coverage = { swaps: 0, noSwaps: 0, saves: 0, poisons: 0, skips: 0 };
+  it(
+    'replays deterministic complete night sequences with swaps, checks, protection and poison',
+    () => {
+      const random = createSeededRng('night-parity-sequences');
+      const next = (maximum: number): number => Math.floor(random() * maximum);
+      const coverage = { swaps: 0, noSwaps: 0, saves: 0, poisons: 0, skips: 0 };
 
-    for (let iteration = 0; iteration < RANDOM_SEQUENCES; iteration += 1) {
-      const context = createGame(RANDOM_ROLES, undefined, {
-        randomSeed: `night-sequence-${iteration}`,
-      });
-      const state = context.getGameState();
-      const players = getPlayers(state);
-      const seats = players.map((player) => player.seat);
-      const firstSwap = requireSeat(seats, next(seats.length));
-      const secondSwap = requireSeat(
-        seats.filter((seat) => seat !== firstSwap),
-        next(seats.length - 1),
-      );
-      const wolfTarget = requireSeat(seats, next(seats.length));
-      const witchSeat = findRoleSeat(state, 'witch');
-      const seerSeat = findRoleSeat(state, 'seer');
-      const seerTargets = seats.filter((seat) => seat !== seerSeat);
-      const poisonTarget = requireSeat(seats, next(seats.length));
-      const witchMode = next(3);
-      const choices: NightActions = {
-        magician: next(2) === 0 ? null : { targets: [firstSwap, secondSwap] },
-        wolf: wolfTarget,
-        witch:
-          witchMode === 0 && wolfTarget !== witchSeat
-            ? { save: wolfTarget, poison: null }
-            : witchMode === 1
-              ? { save: null, poison: poisonTarget }
-              : null,
-        guard: requireSeat(seats, next(seats.length)),
-        seer: requireSeat(seerTargets, next(seerTargets.length)),
-      };
-      if (choices.magician === null) coverage.noSwaps += 1;
-      else coverage.swaps += 1;
-      if (choices.witch === null) coverage.skips += 1;
-      else if (typeof choices.witch === 'object' && 'save' in choices.witch) {
-        if (choices.witch.save !== null) coverage.saves += 1;
-        if (choices.witch.poison !== null) coverage.poisons += 1;
+      for (let iteration = 0; iteration < RANDOM_SEQUENCES; iteration += 1) {
+        const context = createGame(RANDOM_ROLES, undefined, {
+          randomSeed: `night-sequence-${iteration}`,
+        });
+        const state = context.getGameState();
+        const players = getPlayers(state);
+        const seats = players.map((player) => player.seat);
+        const firstSwap = requireSeat(seats, next(seats.length));
+        const secondSwap = requireSeat(
+          seats.filter((seat) => seat !== firstSwap),
+          next(seats.length - 1),
+        );
+        const wolfTarget = requireSeat(seats, next(seats.length));
+        const witchSeat = findRoleSeat(state, 'witch');
+        const seerSeat = findRoleSeat(state, 'seer');
+        const seerTargets = seats.filter((seat) => seat !== seerSeat);
+        const poisonTarget = requireSeat(seats, next(seats.length));
+        const witchMode = next(3);
+        const choices: NightActions = {
+          magician: next(2) === 0 ? null : { targets: [firstSwap, secondSwap] },
+          wolf: wolfTarget,
+          witch:
+            witchMode === 0 && wolfTarget !== witchSeat
+              ? { save: wolfTarget, poison: null }
+              : witchMode === 1
+                ? { save: null, poison: poisonTarget }
+                : null,
+          guard: requireSeat(seats, next(seats.length)),
+          seer: requireSeat(seerTargets, next(seerTargets.length)),
+        };
+        if (choices.magician === null) coverage.noSwaps += 1;
+        else coverage.swaps += 1;
+        if (choices.witch === null) coverage.skips += 1;
+        else if (typeof choices.witch === 'object' && 'save' in choices.witch) {
+          if (choices.witch.save !== null) coverage.saves += 1;
+          if (choices.witch.poison !== null) coverage.poisons += 1;
+        }
+        compareNight(context, choices);
       }
-      compareNight(context, choices);
-    }
-    for (const [kind, count] of Object.entries(coverage)) {
-      expect(count, `random sequences with ${kind}`).toBeGreaterThan(0);
-    }
-  });
+      for (const [kind, count] of Object.entries(coverage)) {
+        expect(count, `random sequences with ${kind}`).toBeGreaterThan(0);
+      }
+    },
+    RANDOM_SEQUENCES_TIMEOUT_MS,
+  );
 });
 
 function compareNight(

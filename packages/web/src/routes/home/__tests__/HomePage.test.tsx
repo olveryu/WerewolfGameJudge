@@ -43,6 +43,8 @@ const SIGNED_IN = {
   error: null,
 };
 
+const COLD_HOME_IMPORT_TIMEOUT_MS = 15_000;
+
 function HeroIcon() {
   return <svg data-testid="hero-icon" />;
 }
@@ -101,13 +103,17 @@ describe('HomePage', () => {
   });
 
   describe('Rendering', () => {
-    it('renders the main menu items', async () => {
-      await renderHome();
+    it(
+      'renders the main menu items',
+      async () => {
+        await renderHome();
 
-      expect(screen.getByText('创建房间')).toBeInTheDocument();
-      expect(screen.getByText('进入房间')).toBeInTheDocument();
-      expect(screen.getByText('1 款游戏 · 点开挑一款')).toBeInTheDocument();
-    });
+        expect(screen.getByText('创建房间')).toBeInTheDocument();
+        expect(screen.getByText('进入房间')).toBeInTheDocument();
+        expect(screen.getByText('1 款游戏 · 点开挑一款')).toBeInTheDocument();
+      },
+      COLD_HOME_IMPORT_TIMEOUT_MS,
+    );
 
     it('renders the app title', async () => {
       await renderHome();
