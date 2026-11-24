@@ -1,0 +1,80 @@
+import { formatSeat } from '../room/formatSeat';
+import { renderCopy, STEP_COPY } from './copy';
+import { createStepContext, type StepRuntime } from './runtime';
+import type { StepDefinition } from './step';
+import { STEP_SKIP_ACTION_KEY } from './step';
+import type { SeatSubmission, StepReviewLine } from './types';
+
+export function buildStepReviewLines<TStepId extends string, TState, TContext, TFacts, TResult>(
+  runtime: StepRuntime<TStepId, TState, TContext, TFacts, TResult>,
+  state: TState,
+): readonly StepReviewLine[] {
+  const slice = runtime.getSlice(state);
+  const lines: StepReviewLine[] = [];
+  for (const stepId of slice.order) {
+    const definition = runtime.definitions[stepId];
+    const record = slice.records[stepId] ?? { bySeat: {} };
+    const context = createStepContext(runtime, state, null, record);
+    for (const seat of definition.actors(context)) {
+      const actorContext = createStepContext(runtime, state, seat, record);
+      const seatRecord = record.bySeat[seat];
+      if (seatRecord === undefined || seatRecord.submissions.length === 0) {
+        lines.push(makeNotDoneLine(definition, actorContext, stepId, seat));
+        continue;
+      }
+      for (const submission of seatRecord.submissions) {
+        const action = definition.actions.find((entry) => entry.key === submission.actionKey);
+        if (action === undefined || submission.actionKey === STEP_SKIP_ACTION_KEY) {
+          lines.push(makeNotDoneLine(definition, actorContext, stepId, seat));
+          continue;
+        }
+        const phrase = getSubmissionPhrase(action, submission, actorContext);
+        const suffix = definition.reviewSuffix?.(actorContext, submission) ?? '';
+        lines.push({
+          stepId,
+          seat,
+          text: `${definition.reviewSubject(actorContext, seat)}${phrase}${suffix}`,
+        });
+      }
+    }
+  }
+  return lines;
+}
+
+function makeNotDoneLine<TStepId extends string, TContext, TFacts, TResult>(
+  definition: StepDefinition<TStepId, TContext, TFacts, TResult>,
+  context: TContext,
+  stepId: TStepId,
+  seat: number,
+): StepReviewLine {
+  const firstAction = definition.actions[0];
+  const actionName = firstAction?.name ?? '';
+  return {
+    stepId,
+    seat,
+    text: `${definition.reviewSubject(context, seat)}${renderCopy(STEP_COPY.reviewNotDone, { name: actionName })}`,
+  };
+}
+
+function getSubmissionPhrase<TContext, TFacts, TResult>(
+  action: import('./actions').StepAction<TContext, TFacts, TResult>,
+  submission: SeatSubmission,
+  context: TContext,
+): string {
+  if (action.kind === 'pickSeats') {
+    return (
+      action.phrase?.(submission.seats) ??
+      `${action.name}${submission.seats.map(formatSeat).join(STEP_COPY.seatListSeparator)}`
+    );
+  }
+  if (action.kind === 'direct') {
+    const target = submission.seats[0];
+    return target === undefined
+      ? action.name
+      : (action.phrase?.(target) ?? `${action.name}${formatSeat(target)}`);
+  }
+  if (action.kind === 'view') return action.name;
+  const card = action.cards(context).find((option) => option.index === submission.cardIndex);
+  if (card === undefined) throw new Error('[FAIL-FAST] Review references a missing card');
+  return action.phrase(card);
+}
