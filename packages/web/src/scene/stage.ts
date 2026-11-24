@@ -13,7 +13,10 @@
  *   a ref-counted cache, so seats showing the same decoration at the same size share it.
  * - Every texture is backed by a 2D canvas (no GPU-only render textures), so when the browser
  *   drops the WebGL context PixiJS re-uploads them all on restore; the stage pauses while the
- *   context is lost and redraws once it is back (see `webglContextWatch.ts`).
+ *   context is lost and redraws once it is back (see `webglContextWatch.ts`). A context the
+ *   browser does not give back within `CONTEXT_RESTORE_DEADLINE_MS` of visible time is
+ *   abandoned: the stage builds a new application (canvas and context) and moves the whole
+ *   scene graph onto it, so every mounted decoration, entrance and overlay draws again.
  * - SVG artwork is rasterised into textures (see `svgTexture.ts`), shared the same way and
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
@@ -110,6 +113,15 @@ const DEG_TO_RAD = Math.PI / 180;
 const DEFAULT_DASH_VARIANTS = 12;
 
 const opaqueSampler: MorphSampler = () => ({ opacity: 1 });
+
+/**
+ * How long a lost context may stay lost, counted only while the page is visible, before the stage
+ * stops waiting for `webglcontextrestored` and rebuilds on a new canvas. WebKit retries a restore
+ * once a second (`secondsBetweenRestoreAttempts` in `WebGLRenderingContextBase.cpp`) on timers
+ * that are suspended while the page is hidden, and never restores a context it judged guilty of
+ * a GPU reset; three seconds of visible time is three restore attempts.
+ */
+export const CONTEXT_RESTORE_DEADLINE_MS = 3000;
 
 /** Ref-counted geometry keyed by its drawing source (art function or sampler) and a variant key. */
 class ContextCache {
@@ -788,38 +800,120 @@ class SceneStage implements EntranceHost {
   private host: HTMLElement | null = null;
   private overlay: StageOverlay | null = null;
   private resizeObserver: ResizeObserver | null = null;
-  /** True between `webglcontextlost` and `webglcontextrestored`: nothing can be drawn. */
+  /**
+   * Everything the stage draws (the seat layer, then any overlay root). It belongs to the stage,
+   * not the application, so a rebuilt application takes it over unchanged.
+   */
+  private readonly world = new Container();
+  /** True between `webglcontextlost` and its restore or rebuild: nothing can be drawn. */
   private contextLost = false;
+  /** Pending rebuild after `CONTEXT_RESTORE_DEADLINE_MS` of visible lost time. */
+  private restoreDeadline: ReturnType<typeof setTimeout> | null = null;
+  private rebuilding = false;
+  private stopWatchingContext: () => void;
 
   constructor(
-    private readonly application: Application,
+    private application: Application,
     private readonly dotTexture: Texture,
+    /** Builds the replacement application when a lost context is not restored. */
+    private readonly createApplication: () => Promise<Application>,
   ) {
-    application.stage.addChild(this.seatLayer);
-    application.ticker.add(() => {
-      const timeMs = application.ticker.lastTime;
-      for (const entrance of this.animatingEntrances) entrance.update(timeMs);
-      for (const decoration of this.decorations) decoration.update(timeMs);
-      this.overlay?.frame(timeMs);
+    this.world.addChild(this.seatLayer);
+    this.stopWatchingContext = this.bind(application);
+    document.addEventListener('visibilitychange', () => {
+      this.syncTicker();
+      this.syncRestoreDeadline();
     });
-    document.addEventListener('visibilitychange', () => this.syncTicker());
+  }
+
+  private readonly tick = () => {
+    const timeMs = this.application.ticker.lastTime;
+    for (const entrance of this.animatingEntrances) entrance.update(timeMs);
+    for (const decoration of this.decorations) decoration.update(timeMs);
+    this.overlay?.frame(timeMs);
+  };
+
+  /** Makes `application` draw the world; returns the stop for its context watch. */
+  private bind(application: Application): () => void {
+    application.stage.addChild(this.world);
+    application.ticker.add(this.tick);
     // PixiJS registered its own listeners during `init`: its loss handler prevents the default (so
     // the browser may restore the context) and its restore handler resets GPU state (textures,
     // buffers, shaders) for re-upload before this redraw runs.
-    watchWebglContext(application.canvas, {
+    return watchWebglContext(application.canvas, {
       onLost: () => {
         this.contextLost = true;
         sceneLog.warn('WebGL context lost; scene paused', this.contextReport());
         this.syncTicker();
+        this.syncRestoreDeadline();
       },
       onRestored: () => {
         this.contextLost = false;
+        this.syncRestoreDeadline();
         sceneLog.info('WebGL context restored; scene redrawn', this.contextReport());
-        this.syncTicker();
-        // A stopped ticker draws nothing by itself: put the current still frame back.
-        if (!this.application.ticker.started && !document.hidden) this.application.render();
+        this.redraw();
       },
     });
+  }
+
+  /** Resumes the ticker, or puts the current still frame back when it stays stopped. */
+  private redraw(): void {
+    this.syncTicker();
+    if (!this.application.ticker.started && !document.hidden) this.application.render();
+  }
+
+  /**
+   * Counts lost time only while the page is visible: browsers suspend restore attempts while it
+   * is hidden, so a backgrounded page is restored (or rebuilt) after it shows again.
+   */
+  private syncRestoreDeadline(): void {
+    const waiting = this.contextLost && !this.rebuilding && !document.hidden;
+    if (!waiting) {
+      if (this.restoreDeadline !== null) clearTimeout(this.restoreDeadline);
+      this.restoreDeadline = null;
+      return;
+    }
+    this.restoreDeadline ??= setTimeout(() => {
+      this.restoreDeadline = null;
+      void this.rebuild();
+    }, CONTEXT_RESTORE_DEADLINE_MS);
+  }
+
+  /**
+   * Abandons the lost application for a new one: the world, frame cap, canvas placement and
+   * every mounted decoration carry over; the old canvas, its context watch and its renderer (with
+   * its GPU copies of shared geometry and textures) are destroyed. A restore event the old canvas
+   * fires after this point is not observed.
+   */
+  private async rebuild(): Promise<void> {
+    const lost = this.application;
+    this.rebuilding = true;
+    this.stopWatchingContext();
+    sceneLog.warn(
+      `WebGL context not restored within ${CONTEXT_RESTORE_DEADLINE_MS}ms; rebuilding the scene`,
+      this.contextReport(),
+    );
+    let next: Application;
+    try {
+      next = await this.createApplication();
+    } catch (error) {
+      this.rebuilding = false;
+      // WebGL is required: without a new context nothing can be drawn until a reload.
+      sceneLog.error('Scene rebuild failed; decorations stay hidden', error);
+      return;
+    }
+    lost.ticker.remove(this.tick);
+    next.ticker.maxFPS = lost.ticker.maxFPS;
+    lost.stage.removeChild(this.world);
+    // The world is the stage's; only the old renderer, ticker and canvas go.
+    lost.destroy({ removeView: true }, { children: false });
+    this.application = next;
+    this.stopWatchingContext = this.bind(next);
+    this.contextLost = false;
+    this.rebuilding = false;
+    this.placeCanvas();
+    sceneLog.info('Scene rebuilt on a new WebGL context', this.contextReport());
+    this.redraw();
   }
 
   private contextReport(): Record<string, number> {
@@ -902,14 +996,14 @@ class SceneStage implements EntranceHost {
     const overlay: StageOverlay = { host, root, frame, animating: true };
     this.overlay = overlay;
     this.seatLayer.visible = false;
-    this.application.stage.addChild(root);
+    this.world.addChild(root);
     this.placeCanvas();
     return () => {
       if (this.overlay !== overlay) {
         throw new Error('Scene stage overlay was already released');
       }
       this.overlay = null;
-      this.application.stage.removeChild(root);
+      this.world.removeChild(root);
       this.seatLayer.visible = true;
       this.placeCanvas();
     };
@@ -1122,11 +1216,11 @@ function createDotTexture(resolution: number): Texture {
 }
 
 /**
- * Creates a stage. Call through `sharedSceneStage()`, which keeps it app-wide.
+ * Creates the PixiJS application (canvas and WebGL context) the stage draws with.
  *
- * @returns the stage; rejects when WebGL is unavailable
+ * @returns the application; rejects when WebGL is unavailable
  */
-async function createSceneStage(): Promise<SceneStage> {
+async function createSceneApplication(): Promise<Application> {
   const application = new Application();
   await application.init({
     // WebGL only: an array preference makes PixiJS throw instead of falling back to another
@@ -1141,8 +1235,16 @@ async function createSceneStage(): Promise<SceneStage> {
   const canvas = application.canvas;
   canvas.setAttribute('aria-hidden', 'true');
   canvas.classList.add('scene-canvas');
+  return application;
+}
 
+/**
+ * Creates a stage. Call through `sharedSceneStage()`, which keeps it app-wide.
+ *
+ * @returns the stage; rejects when WebGL is unavailable
+ */
+async function createSceneStage(): Promise<SceneStage> {
+  const application = await createSceneApplication();
   const dotTexture = createDotTexture(application.renderer.resolution);
-
-  return new SceneStage(application, dotTexture);
+  return new SceneStage(application, dotTexture, createSceneApplication);
 }
