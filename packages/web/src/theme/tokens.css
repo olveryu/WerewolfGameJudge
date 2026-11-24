@@ -133,7 +133,6 @@
   --shadow-tabletop-panel: var(--surface-panel-shadow);
   --shadow-tabletop-card: var(--surface-card-shadow);
   --shadow-tabletop-key-soft: var(--surface-button-shadow-soft);
-  --shadow-tabletop-key: var(--surface-button-shadow-soft);
   --shadow-tabletop-key-light: var(--surface-button-shadow-light);
   --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
   --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
