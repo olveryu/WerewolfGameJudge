@@ -3,6 +3,7 @@ import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { SeatSubmissionForReview } from '../../../platform/steps/step';
 import { STEP_SKIP_ACTION_KEY } from '../../../platform/steps/step';
 import type { SeatRecord } from '../../../platform/steps/types';
+import type { RoleId } from '../domain/models';
 import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type {
@@ -31,6 +32,8 @@ const COPY = defineCopy({
 });
 
 const LEARN_ACTION_KEY = 'wolfRobotLearn';
+
+export const WOLF_ROBOT_GATE_ROLES: readonly RoleId[] = ['hunter'];
 
 const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
   id: LEARN_ACTION_KEY,

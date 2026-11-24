@@ -11,7 +11,7 @@ import type { GameState, ResolvedWolfKillVerdict } from '../domain/protocol/type
 import { WEREWOLF_PRESENCE_DECLARATIONS } from '.';
 import { createWerewolfRoleContext } from './context';
 import { type DeathEffect, resolveDeathEffects } from './deathEffects';
-import { createWerewolfStepDefinitions, getWerewolfRoleDefinition } from './nightPlan';
+import { getWerewolfRoleDefinition, WEREWOLF_STEP_DEFINITIONS } from './nightPlan';
 import type { WerewolfNightState } from './nightState';
 import { type NightPresenceFacts, resolveNightPresenceFacts } from './presence';
 import type {
@@ -31,8 +31,6 @@ type WerewolfStepRuntime = StepRuntime<
   WerewolfNightFacts,
   WerewolfRoleStepResult
 >;
-
-const WEREWOLF_STEP_DEFINITIONS = createWerewolfStepDefinitions();
 
 export function requireWerewolfNightState(state: GameState): WerewolfNightState {
   if (state.nightState === null) throw new Error('[FAIL-FAST] Missing Werewolf night state');
@@ -91,7 +89,7 @@ export function planWerewolfGroupBotAcknowledgements(state: GameState) {
   return planBotAcknowledgements(runtime, state, getBotSeats(state.roster));
 }
 
-export interface WerewolfStepContextInput {
+interface WerewolfStepContextInput {
   readonly state: WerewolfRoleState;
   readonly facts: WerewolfNightFacts;
   readonly seat: number | null;
@@ -104,9 +102,7 @@ export interface WerewolfStepContextInput {
   readonly resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
 }
 
-export function createWerewolfStepContext(
-  input: WerewolfStepContextInput,
-): WerewolfRoleStepContext {
+function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRoleStepContext {
   const { state, facts, seat, record } = input;
   const role = createWerewolfRoleContext(state.identities, state.location, state.sight);
   const context: WerewolfRoleStepContext = {

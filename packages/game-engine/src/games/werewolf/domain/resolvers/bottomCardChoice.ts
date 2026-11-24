@@ -9,10 +9,10 @@ import { ROLE_SPECS, type RoleId } from '../models';
 import { Faction } from '../models/roles/spec/types';
 
 /** Thief must pick the wolf card when a wolf-faction card is among the deck cards. */
-export const BOTTOM_CARD_REJECT_MUST_CHOOSE_WOLF = '底牌中有狼人阵营的牌，必须选择狼人' as const;
+const BOTTOM_CARD_REJECT_MUST_CHOOSE_WOLF = '底牌中有狼人阵营的牌，必须选择狼人' as const;
 
 /** Treasure master may never pick a wolf-faction card. */
-export const BOTTOM_CARD_REJECT_WOLF_CARD = '不可选择狼人阵营底牌' as const;
+const BOTTOM_CARD_REJECT_WOLF_CARD = '不可选择狼人阵营底牌' as const;
 
 export type BottomCardChooserRole = 'thief' | 'treasureMaster';
 
@@ -29,12 +29,12 @@ export interface BottomCardChoice {
   readonly hint: string;
 }
 
-export function isWolfFactionRole(roleId: RoleId): boolean {
+function isWolfFactionRole(roleId: RoleId): boolean {
   return ROLE_SPECS[roleId].faction === Faction.Wolf;
 }
 
 /** Reason the resolver would reject `chosen` from `bottomCards`, or null when legal. */
-export function rejectBottomCardChoice(
+function rejectBottomCardChoice(
   chooser: BottomCardChooserRole,
   bottomCards: readonly RoleId[],
   chosen: RoleId,

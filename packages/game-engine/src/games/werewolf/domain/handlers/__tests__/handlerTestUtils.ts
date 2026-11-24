@@ -8,7 +8,6 @@
 import type {
   HandlerError,
   HandlerExecutionContext,
-  HandlerRejection,
   HandlerResult,
   HandlerSuccess,
 } from '../types';
@@ -29,10 +28,4 @@ export function expectSuccess(result: HandlerResult): HandlerSuccess {
 export function expectError(result: HandlerResult): HandlerError {
   expect(result.kind).toBe('error');
   return result as HandlerError;
-}
-
-/** Assert result is a rejection and narrow the type. */
-export function expectRejection(result: HandlerResult): HandlerRejection {
-  expect(result.kind).toBe('rejection');
-  return result as HandlerRejection;
 }

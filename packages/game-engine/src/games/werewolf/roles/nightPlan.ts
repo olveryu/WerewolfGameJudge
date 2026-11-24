@@ -42,7 +42,7 @@ export function getWerewolfRoleDefinition(roleId: string): WerewolfRoleDefinitio
   return role;
 }
 
-export function createWerewolfStepDefinitions(): Readonly<Record<string, WerewolfRoleStep>> {
+function createWerewolfStepDefinitions(): Readonly<Record<string, WerewolfRoleStep>> {
   const definitions: Record<string, WerewolfRoleStep> = {};
   for (const role of WEREWOLF_ROLE_DEFINITIONS) {
     for (const step of role.steps) {
@@ -59,6 +59,12 @@ export function createWerewolfStepDefinitions(): Readonly<Record<string, Werewol
     definitions[step.id] = step;
   }
   return definitions;
+}
+
+export const WEREWOLF_STEP_DEFINITIONS = createWerewolfStepDefinitions();
+
+export function isWerewolfStepId(value: unknown): value is string {
+  return typeof value === 'string' && Object.hasOwn(WEREWOLF_STEP_DEFINITIONS, value);
 }
 
 export function createWerewolfRoleState(deal: WerewolfNightDeal): WerewolfRoleState {

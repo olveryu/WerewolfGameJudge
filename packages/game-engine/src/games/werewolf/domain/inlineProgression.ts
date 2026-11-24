@@ -1,157 +1,23 @@
-/**
- * Inline Progression — server-side inline progression (pure function)
- *
- * Responsibilities:
- * - After action processing completes, evaluate and execute night progression (advance / endNight) within the same request
- * - Compose audio-queue StateActions produced during progression into one playback batch
- * - All StateActions accumulate in order, reduced uniformly by the outer caller
- *
- * Design:
- * - Pure function, no IO (DB / network / audio)
- * - Uses evaluateNightProgression (server always has permission)
- * - Recursively advances until decision=none (equivalent to client handleNightProgression)
- * - At most MAX_PROGRESSION_LOOPS iterations to prevent infinite loops
- *
- * Reads state, invokes handler pure functions and returns actions/effects;
- * contains no IO, side effects, or time dependency (Date.now is passed in by caller).
- */
-
-import type { AudioEffect } from '../../../platform/audio';
-import { createSeededRng, randomIntInclusive } from '../../../platform/random';
-import { werewolfSettleDueEffect } from '../effects/settleDue';
 import type { WerewolfEffect } from '../effects/types';
-import { createAudioQueueAction, isAudioQueueAction } from './audioQueue';
-import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import {
   closeSheriffVotingRound,
   finishSheriffResult,
   startSheriffResult,
 } from './handlers/sheriffElectionHandler';
-import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
-import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
-import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
-import { GameStatus, SCHEMAS } from './models';
+import type { HandlerExecutionContext } from './handlers/types';
+import { GameStatus } from './models';
 import { runWerewolfNightProgression } from './nightProgression';
-import { isVacantBottomCardStep } from './playerHelpers';
 import type { GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 
-/** Random delay range for a vacant bottom-card step (ms). */
-const AUTO_SKIP_DELAY_MIN_MS = 5000;
-const AUTO_SKIP_DELAY_MAX_MS = 10000;
-
-/** Max progression loop iterations (prevents infinite loops) */
-const MAX_PROGRESSION_LOOPS = 20;
-
-/**
- * Inline progression result
- */
 export interface InlineProgressionResult {
-  /** All StateActions accumulated during progression (excluding the trigger action itself) */
-  actions: StateAction[];
-  /** Effects armed during progression (the settle.due of an auto-skip deadline this pass wrote). */
-  effects: WerewolfEffect[];
-  /** Final state after applying all actions (may differ from input) */
-  finalState: GameState;
-  /** Number of steps advanced (0 = no progression); each ADVANCE_NIGHT or END_NIGHT counts as 1 */
-  stepsAdvanced: number;
+  readonly actions: StateAction[];
+  readonly effects: WerewolfEffect[];
+  readonly finalState: GameState;
+  readonly stepsAdvanced: number;
 }
 
-/**
- * Check whether the current step is complete (equivalent to progressionEvaluator.isCurrentStepComplete)
- *
- * Inlined here to avoid exporting a private function.
- */
-function isStepComplete(state: GameState): boolean {
-  if (state.nightStep?.kind !== 'inStep') return true; // Exhausted -> complete (enter endNight)
-  const stepId = state.nightStep.stepId;
-
-  // The learning action is complete, but this step remains active until the
-  // Wolf Robot has acknowledged the learned hunter-style status.
-  if (isWolfRobotHunterStatusGatePending(state)) return false;
-
-  if (stepId === 'wolfKill') {
-    return isWolfVoteAllComplete(state);
-  }
-
-  // groupConfirm steps: complete when all seated players have acked.
-  const schema = SCHEMAS[stepId];
-  if (schema.kind === 'groupConfirm') {
-    const acks =
-      stepId === 'awakenedGargoyleConvertReveal'
-        ? state.conversionRevealAcks
-        : stepId === 'seedWolfInfectReveal'
-          ? state.seedWolfInfectionRevealAcks
-          : stepId === 'cupidLoversReveal'
-            ? state.cupidLoversRevealAcks
-            : stepId === 'wolfGirlConfessReveal'
-              ? state.wolfGirlConfessionRevealAcks
-              : state.piperRevealAcks;
-    // All seated (non-null) players must ack
-    const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
-    return acks.length >= seatedCount;
-  }
-
-  const actions = state.actions;
-  return actions.some((a) => a.schemaId === stepId);
-}
-
-/**
- * Check if the current step belongs to an unchosen bottom card role.
- *
- * When treasureMaster/thief picks a card, the unchosen bottom card roles' steps
- * have no player operating them → auto-advance immediately after audio.
- */
-function isUnchosenBottomCardStep(state: GameState): boolean {
-  return state.nightStep?.kind !== 'inStep'
-    ? false
-    : isVacantBottomCardStep(state, state.nightStep.stepId);
-}
-
-/**
- * Server-side inline progression decision evaluation
- *
- * Equivalent to evaluateNightProgression, except:
- * - Does not use ProgressionTracker (server is stateless)
- * - Accepts nowMs for stepDeadline checks
- */
-function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
-  if (state.status !== GameStatus.Ongoing) return 'none';
-  if (state.isAudioPlaying) return 'none';
-  if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) return 'none';
-
-  if (state.nightStep?.kind === 'exhausted') return 'end_night';
-  if (state.nightStep?.kind !== 'inStep') return 'none';
-  const stepDeadline = state.nightStep.stepDeadline;
-
-  if (isStepComplete(state)) {
-    // Unified deadline gate: step complete but deadline not yet reached → wait
-    if (stepDeadline != null && nowMs < stepDeadline) {
-      return 'none';
-    }
-    return 'advance';
-  }
-
-  // Auto-skip: unchosen bottom card role steps advance after random delay
-  if (isUnchosenBottomCardStep(state)) {
-    // No deadline set yet → signal 'none' so runInlineProgression can set it
-    if (stepDeadline == null) return 'none';
-    // Deadline not yet reached → wait
-    if (nowMs < stepDeadline) return 'none';
-    // Deadline passed → advance
-    return 'advance';
-  }
-
-  return 'none';
-}
-
-/**
- * Sheriff settle-countdown expiry (the Day counterpart of the night
- * deadline gate): an armed voting round closes once its deadline is
- * reached. Mirrors evaluateProgression's audio gate — while audio is
- * playing the evaluation does not advance the election.
- */
 function evaluateSheriffElectionExpiry(
   state: GameState,
   nowMs: number,
@@ -165,177 +31,41 @@ function evaluateSheriffElectionExpiry(
     election.phase !== 'firstVote' &&
     election.phase !== 'runoffVote' &&
     election.phase !== 'result'
-  )
+  ) {
     return null;
+  }
   if (state.isAudioPlaying && election.phase !== 'result') return null;
   if (election.deadline === undefined || nowMs < election.deadline) return null;
-  if (election.phase === 'result') return { action: finishSheriffResult(election), effects: [] };
+  if (election.phase === 'result') {
+    return { action: finishSheriffResult(election), effects: [] };
+  }
   const result = startSheriffResult(state, closeSheriffVotingRound(state, election), nowMs);
   return { action: result.action, effects: [result.effect] };
 }
 
-interface ProgressionActionBatch {
-  readonly stateActions: StateAction[];
-  readonly audioEffects: AudioEffect[];
-}
-
-/** Delay the audio queue until all immediately available transitions have been composed. */
-function splitProgressionActions(actions: readonly StateAction[]): ProgressionActionBatch {
-  const stateActions: StateAction[] = [];
-  const audioEffects: AudioEffect[] = [];
-  for (const action of actions) {
-    if (isAudioQueueAction(action)) {
-      audioEffects.push(...action.payload.effects);
-      continue;
-    }
-    stateActions.push(action);
-  }
-  return { stateActions, audioEffects };
-}
-
-/**
- * Server-side inline progression (pure function)
- *
- * After action processing completes, evaluate and execute the progression chain within the same request:
- * action complete -> evaluate -> advance -> evaluate -> ... -> none/end_night
- *
- * @pre state.status === 'Ongoing' (night) or 'Day' (sheriff expiry only)
- * @remarks MAX_PROGRESSION_LOOPS=20 circuit-breaker protection. Recursively advances until evaluateProgression returns 'none'.
- *   auto-skip delay: vacant bottom card step sets stepDeadline = now + random(5000, 10000)ms,
- *   set only when no pending audio (avoids audio duration overlapping with deadline window).
- *
- * @param state - state after action processing
- * @param hostUserId - Host UID (used to build HandlerContext)
- * @param execution - command-scoped time and deterministic random seed
- * @returns progression result (actions + finalState)
- */
+/** Progress a Werewolf night or expire the active sheriff-election deadline. */
 export function runInlineProgression(
   state: GameState,
-  hostUserId: string,
+  _hostUserId: string,
   execution: HandlerExecutionContext,
 ): InlineProgressionResult {
-  if (state.status === GameStatus.Ongoing && state.nightState !== null) {
+  if (state.status === GameStatus.Ongoing) {
+    if (state.nightState === null) {
+      throw new Error('[FAIL-FAST] Ongoing Werewolf game has no step-driven night state');
+    }
     return runWerewolfNightProgression(state, execution);
   }
-  // Day has no night steps: its only progression is the sheriff
-  // voting round's settle-countdown expiry (one close per evaluation;
-  // a runoff round it opens collects ballots before it can arm).
-  if (state.status === GameStatus.Day) {
-    const expiryAction = evaluateSheriffElectionExpiry(state, execution.nowMs);
-    if (expiryAction === null) {
-      return { actions: [], effects: [], finalState: state, stepsAdvanced: 0 };
-    }
-    return {
-      actions: [expiryAction.action],
-      effects: expiryAction.effects,
-      finalState: gameReducer(state, expiryAction.action),
-      stepsAdvanced: 1,
-    };
+  if (state.status !== GameStatus.Day) {
+    return { actions: [], effects: [], finalState: state, stepsAdvanced: 0 };
   }
-
-  const allActions: StateAction[] = [];
-  const allEffects: WerewolfEffect[] = [];
-  const allAudioEffects: AudioEffect[] = [];
-  let currentState = state;
-  let stepsAdvanced = 0;
-  let didStopWithinLimit = false;
-
-  for (let i = 0; i < MAX_PROGRESSION_LOOPS; i++) {
-    const decision = evaluateProgression(currentState, execution.nowMs);
-
-    if (decision === 'none') {
-      didStopWithinLimit = true;
-      break;
-    }
-
-    const ctx: HandlerContext = {
-      state: currentState,
-      myUserId: hostUserId,
-      mySeat: null, // server-side doesn't need mySeat
-    };
-
-    if (decision === 'advance') {
-      const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx, execution);
-      if (result.kind === 'error') {
-        throw new Error(`[FAIL-FAST] Inline advance failed: ${result.reason}`);
-      }
-
-      const batch = splitProgressionActions(result.actions);
-      for (const action of batch.stateActions) {
-        currentState = gameReducer(currentState, action);
-      }
-      allActions.push(...batch.stateActions);
-      allAudioEffects.push(...batch.audioEffects);
-      stepsAdvanced++;
-
-      // Continue loop to evaluate next step
-      continue;
-    }
-
-    if (decision === 'end_night') {
-      const result = handleEndNight({ type: 'END_NIGHT' }, ctx, execution);
-      if (result.kind === 'error') {
-        throw new Error(`[FAIL-FAST] Inline endNight failed: ${result.reason}`);
-      }
-
-      const batch = splitProgressionActions(result.actions);
-      for (const action of batch.stateActions) {
-        currentState = gameReducer(currentState, action);
-      }
-      allActions.push(...batch.stateActions);
-      allAudioEffects.push(...batch.audioEffects);
-      stepsAdvanced++;
-
-      // end_night terminates progression
-      didStopWithinLimit = true;
-      break;
-    }
+  const expiry = evaluateSheriffElectionExpiry(state, execution.nowMs);
+  if (expiry === null) {
+    return { actions: [], effects: [], finalState: state, stepsAdvanced: 0 };
   }
-
-  if (!didStopWithinLimit && evaluateProgression(currentState, execution.nowMs) !== 'none') {
-    throw new Error(`[FAIL-FAST] Inline progression exceeded ${MAX_PROGRESSION_LOOPS} transitions`);
-  }
-
-  // Set stepDeadline if we stopped at a vacant bottom card step without one.
-  // Only when there are NO pending audio effects — if audio is about to play,
-  // defer deadline to the audio-ack's inline progression so the random delay
-  // starts AFTER audio finishes (avoids server clock race where audio duration
-  // overlaps with the deadline window).
-  if (
-    isUnchosenBottomCardStep(currentState) &&
-    currentState.nightStep?.kind === 'inStep' &&
-    currentState.nightStep.stepDeadline == null &&
-    allAudioEffects.length === 0
-  ) {
-    const deadline =
-      execution.nowMs +
-      randomIntInclusive(
-        AUTO_SKIP_DELAY_MIN_MS,
-        AUTO_SKIP_DELAY_MAX_MS,
-        createSeededRng(
-          `${execution.randomSeed}:auto-skip:${String(currentState.nightStep.stepId)}`,
-        ),
-      );
-    const setDeadlineAction: StateAction = {
-      type: 'SET_STEP_DEADLINE',
-      payload: { deadline },
-    };
-    allEffects.push(werewolfSettleDueEffect(currentState, currentState.nightStep.stepId, deadline));
-    currentState = gameReducer(currentState, setDeadlineAction);
-    allActions.push(setDeadlineAction);
-  }
-
-  // If there are audio effects, queue them as one batch (gate + batch id applied by the reducer)
-  if (allAudioEffects.length > 0) {
-    const audioQueueAction = createAudioQueueAction(allAudioEffects);
-    currentState = gameReducer(currentState, audioQueueAction);
-    allActions.push(audioQueueAction);
-  }
-
   return {
-    actions: allActions,
-    effects: allEffects,
-    finalState: currentState,
-    stepsAdvanced,
+    actions: [expiry.action],
+    effects: expiry.effects,
+    finalState: gameReducer(state, expiry.action),
+    stepsAdvanced: 1,
   };
 }

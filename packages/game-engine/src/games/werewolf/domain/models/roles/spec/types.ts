@@ -10,7 +10,7 @@
  * - Team.Good OR Team.Third → seer sees "好人"
  * - This is strictly binary. Third-party roles are treated as "好人" for seer checks.
  *
- * Exports Faction / Team enums and the getSeerCheckResultForTeam pure function. No service deps, no side effects.
+ * Exports Faction / Team enums. No service deps, no side effects.
  */
 
 export enum Faction {
@@ -33,23 +33,4 @@ export enum Team {
   Wolf = 'Wolf',
   Good = 'Good',
   Third = 'Third',
-}
-
-/**
- * Seer check result type - strictly binary
- *
- * RULE: Seer can only see binary '好人' or '狼人'.
- * - All wolf-faction roles (wolf, gargoyle, wolfQueen, etc.) → '狼人'
- * - All other roles (villager, god, third-party) → '好人'
- */
-type SeerCheckResult = '好人' | '狼人';
-
-/**
- * Get seer check result for a team.
- *
- * This is the authoritative function for computing seer results.
- * Third-party (Team.Third) is treated as '好人'.
- */
-export function getSeerCheckResultForTeam(team: Team): SeerCheckResult {
-  return team === Team.Wolf ? '狼人' : '好人';
 }

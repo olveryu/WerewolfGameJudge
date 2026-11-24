@@ -4,6 +4,7 @@ import { createAdvanceEvent, evaluateStepProgress, type StepEvent } from '../../
 import { werewolfSettleDueEffect } from '../effects/settleDue';
 import type { WerewolfEffect } from '../effects/types';
 import { WEREWOLF_PRESENCE_DECLARATIONS } from '../roles';
+import type { DeathReason } from '../roles/deathEffects';
 import { resolveDeathEffects } from '../roles/deathEffects';
 import { resolveSelectedSeat } from '../roles/location';
 import { decideWerewolfInfection, type WerewolfNightEvent } from '../roles/nightEvolution';
@@ -16,12 +17,10 @@ import {
 import { resolveNightPresenceFacts } from '../roles/presence';
 import type { WerewolfNightFacts, WerewolfRoleStepResult } from '../roles/role';
 import { createAudioQueueAction } from './audioQueue';
-import type { DeathReason } from './DeathCalculator';
 import type { HandlerExecutionContext } from './handlers/types';
-import { classifyWolfVotes } from './handlers/wolfKillResolution';
 import type { InlineProgressionResult } from './inlineProgression';
 import { isValidSchemaId } from './models/roles/spec/schemas';
-import type { GameState } from './protocol/types';
+import type { GameState, ResolvedWolfKillVerdict } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 import { resolveWolfVotes } from './resolveWolfVotes';
@@ -160,6 +159,33 @@ function settleWolfKill(
             target: resolveSelectedSeat(target, night.roles.location),
           },
   };
+}
+
+function classifyWolfVotes(
+  votes: ReadonlyMap<number, number>,
+  target: number | null,
+): ResolvedWolfKillVerdict {
+  const nonAbstainVotes = Array.from(votes.values()).filter((vote) => vote !== -1);
+  if (nonAbstainVotes.length === 0) return { type: 'allAbstain' };
+  if (target === null) return { type: 'splitTied' };
+  const counts = new Map<number, number>();
+  for (const vote of nonAbstainVotes) {
+    counts.set(vote, (counts.get(vote) ?? 0) + 1);
+  }
+  if (counts.size === 1) return { type: 'sharedTarget', targetSeat: target };
+  let maxCount = 0;
+  let tiedAtMax = false;
+  for (const count of counts.values()) {
+    if (count > maxCount) {
+      maxCount = count;
+      tiedAtMax = false;
+    } else if (count === maxCount) {
+      tiedAtMax = true;
+    }
+  }
+  return tiedAtMax
+    ? { type: 'tiePicked', targetSeat: target }
+    : { type: 'splitKilled', targetSeat: target };
 }
 
 function finishNight(state: GameState): readonly StateAction[] {

@@ -20,7 +20,6 @@ import {
 
 import type { GameContext } from './gameContext';
 import { createGame } from './gameFactory';
-import { executeStepsUntil } from './stepByStepRunner';
 
 interface Choice {
   readonly actionKey: string;
@@ -131,6 +130,31 @@ function driveNight(context: GameContext, choices: Choices): void {
     }
   }
   throw new Error('[FAIL-FAST] Spec-driven night exceeded its transition limit');
+}
+
+function executeStepsUntil(context: GameContext, targetStepId: string, choices: Choices): boolean {
+  for (let transition = 0; transition < 300; transition += 1) {
+    const state = context.getGameState();
+    if (state.isAudioPlaying) {
+      context.acknowledgePendingAudioOrThrow(`complete narration before ${targetStepId}`);
+      continue;
+    }
+    if (state.status !== GameStatus.Ongoing) return false;
+    if (currentStep(state).stepId === targetStepId) return true;
+    const deadline = state.nightState?.slice.deadlineMs;
+    if (deadline != null) {
+      context.dispatchSystemOrThrow(
+        { type: 'werewolf.phase.settleExpired' },
+        `settle night before ${targetStepId}`,
+        { nowMs: deadline },
+      );
+      continue;
+    }
+    if (!actOneSeat(context, choices)) {
+      throw new Error(`[FAIL-FAST] Night step ${currentStep(state).stepId} cannot progress`);
+    }
+  }
+  throw new Error(`[FAIL-FAST] Night did not reach ${targetStepId} within its transition limit`);
 }
 
 describe('spec-driven night through production commands', () => {
@@ -244,7 +268,11 @@ describe('spec-driven night through production commands', () => {
       'villager',
     ];
     const context = createGame(roles);
-    expect(executeStepsUntil(context, 'wolfKill', { cupid: { targets: [6, 7] } })).toBe(true);
+    expect(
+      executeStepsUntil(context, 'wolfKill', {
+        cupidChooseLovers: { actionKey: 'cupidChooseLovers', seats: [6, 7] },
+      }),
+    ).toBe(true);
     submit(context, 1, { actionKey: 'wolfKill', seats: [6] });
     submit(context, 2, { actionKey: 'wolfKill', seats: [7] });
     const deadline = context.getGameState().nightState?.slice.deadlineMs;

@@ -22,8 +22,9 @@ function assertInvalidPublicActionFields(validCommand: WerewolfCommand): void {
 describe('Werewolf command protocol', () => {
   it('keeps actor identity and controlled seat outside commands', () => {
     const command: WerewolfCommand = {
-      type: 'werewolf.action.submit',
-      input: { kind: 'target', target: 2 },
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'seerCheck', serial: 1, actionKey: 'seerCheck', seats: [2] },
     };
     const context: CommandContext = {
       actor: { kind: 'user', userId: 'player-1' },
@@ -34,8 +35,9 @@ describe('Werewolf command protocol', () => {
     };
 
     expect(command).toEqual({
-      type: 'werewolf.action.submit',
-      input: { kind: 'target', target: 2 },
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'seerCheck', serial: 1, actionKey: 'seerCheck', seats: [2] },
     });
     expect(context.actor).toEqual({ kind: 'user', userId: 'player-1' });
   });
@@ -55,11 +57,12 @@ describe('Werewolf command protocol', () => {
 
   it('does not accept client-supplied actor, seat, role, or timestamp fields', () => {
     const validCommand: WerewolfCommand = {
-      type: 'werewolf.action.submit',
-      input: { kind: 'confirm' },
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'seerCheck', serial: 1, actionKey: 'seerCheck' },
     };
 
-    expect(validCommand.type).toBe('werewolf.action.submit');
+    expect(validCommand.type).toBe('werewolf.step.submit');
     expect(assertInvalidPublicActionFields).toBeDefined();
   });
 });

@@ -27,7 +27,6 @@ export {
 export {
   type ActionSchema,
   getSchema,
-  getSchemaOfKind,
   type RevealKind,
   type SchemaId,
   // Schemas
@@ -117,13 +116,6 @@ export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   // - team/faction is for seer result / UI highlighting
   // - recognition.participatesInWolfVote is for whether this role submits WOLF_VOTE
   return spec.recognition?.participatesInWolfVote ?? false;
-}
-
-/**
- * Get all wolf role IDs
- */
-export function getWolfRoleIds(): RoleId[] {
-  return getAllRoleIds().filter((id) => ROLE_SPECS[id].team === Team.Wolf);
 }
 
 /**

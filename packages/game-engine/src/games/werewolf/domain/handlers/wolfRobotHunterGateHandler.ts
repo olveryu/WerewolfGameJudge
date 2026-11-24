@@ -12,8 +12,8 @@
  * - Broadcasting (handled by the outer command runtime)
  */
 
+import { WOLF_ROBOT_GATE_ROLES } from '../../roles/wolfRobot';
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
-import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
 

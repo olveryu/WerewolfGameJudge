@@ -2,14 +2,13 @@
  * Night Steps Registry — night steps table
  *
  * Dynamically derives the NIGHT_STEPS array and query functions from ROLE_SPECS + NIGHT_STEP_ORDER.
- * Exposes the StepSpec interface for consumption by stepTransitionHandler / actionGuards / gameControlHandler.
+ * Review and player projections use the registry to map roles to their night steps.
  * No service dependencies, no side effects; audioKey is not duplicated in the specs.
  */
 
 import type { StepSpec } from './nightSteps.types';
 import type { NightStepId } from './plan';
 import { NIGHT_STEP_ORDER } from './plan';
-import type { SchemaId } from './schemas';
 import { getAllRoleIds, getRoleSpec, type RoleId } from './specs';
 
 // =============================================================================
@@ -56,30 +55,6 @@ export const NIGHT_STEPS: readonly StepSpec[] = buildNightSteps();
 /** Get StepSpec by stepId */
 export function getStepSpec(stepId: string): StepSpec | undefined {
   return NIGHT_STEPS.find((s) => s.id === stepId);
-}
-
-/** Strict-typed version: passing a wrong stepId causes a compile-time error */
-export function getStepSpecStrict(stepId: NightStepId): StepSpec {
-  const step = getStepSpec(stepId);
-  if (!step) {
-    throw new Error(`[nightSteps] Unknown stepId: ${stepId}`);
-  }
-  return step;
-}
-
-/** Get all stepIds (in order) */
-export function getAllStepIds(): SchemaId[] {
-  return NIGHT_STEPS.map((s) => s.id);
-}
-
-/** Get steps for a given roleId */
-export function getStepsByRole(roleId: string): StepSpec[] {
-  return NIGHT_STEPS.filter((s) => s.roleId === roleId);
-}
-
-/** Strict-typed version: passing a wrong roleId causes a compile-time error */
-export function getStepsByRoleStrict(roleId: StepSpec['roleId']): StepSpec[] {
-  return getStepsByRole(roleId);
 }
 
 /**

@@ -58,12 +58,11 @@ import {
 } from './playerHelpers';
 import type { ConfirmStatus, GameState } from './protocol/types';
 import { type BottomCardChoice, evaluateBottomCardChoice } from './resolvers/bottomCardChoice';
-import {
-  CONSTRAINT_REJECT_NOT_SELF,
-  CONSTRAINT_REJECT_NOT_WOLF_FACTION,
-} from './resolvers/constraintValidator';
 import type { CurrentNightResults } from './resolvers/types';
 import { projectWerewolfStep, type WerewolfStepSeatStatus } from './stepProjection';
+
+const CONSTRAINT_REJECT_NOT_SELF = '不能选择自己';
+const CONSTRAINT_REJECT_NOT_WOLF_FACTION = '不能选择狼人阵营的玩家';
 
 // =============================================================================
 // View types

@@ -81,7 +81,7 @@ const SEAT_ACTION_SKIP_TEXT = '不用技能';
  * the structured form alongside any of the literal fields it composes
  * is an authoring error and fails fast at registry build time.
  */
-export function resolveSeatActionUi(stepUi: NightStepUi): SchemaUi {
+function resolveSeatActionUi(stepUi: NightStepUi): SchemaUi {
   const { seatAction, ...rest } = stepUi;
   if (!seatAction) return { ...stepUi };
   if (
@@ -257,7 +257,7 @@ function buildSchema(
  * Iterates all roles with nightSteps, matches each step to its active ability
  * for constraint/canSkip extraction, and produces the ActionSchema shape.
  */
-export function buildSchemas(): Record<NightStepId, ActionSchema> {
+function buildSchemas(): Record<NightStepId, ActionSchema> {
   const result: Record<string, ActionSchema> = {};
 
   for (const roleId of getAllRoleIds()) {
@@ -307,24 +307,6 @@ export type SchemaId = NightStepId;
 /** Get schema by ID */
 export function getSchema(id: SchemaId): ActionSchema {
   return SCHEMAS[id];
-}
-
-export function getSchemaOfKind<K extends ActionSchema['kind']>(
-  id: SchemaId,
-  kind: K,
-): Extract<ActionSchema, { readonly kind: K }> {
-  const schema = getSchema(id);
-  if (!isSchemaKind(schema, kind)) {
-    throw new Error(`[schemas] ${id} has kind ${schema.kind}; expected ${kind}`);
-  }
-  return schema;
-}
-
-function isSchemaKind<K extends ActionSchema['kind']>(
-  schema: ActionSchema,
-  kind: K,
-): schema is Extract<ActionSchema, { readonly kind: K }> {
-  return schema.kind === kind;
 }
 
 /** Check if a string is a valid SchemaId */

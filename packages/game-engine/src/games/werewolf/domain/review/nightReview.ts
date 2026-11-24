@@ -14,8 +14,7 @@
  * votes; the sheriff tally is the shared sheriffElectionRecord.
  */
 
-import type { DeathReason } from '../DeathCalculator';
-import { computeCanShootForSeat } from '../handlers/confirmContext';
+import type { DeathReason } from '../../roles/deathEffects';
 import { ROLE_SPECS, type RoleId, Team } from '../models';
 import { getRoleStepId } from '../models/roles/spec/nightSteps';
 import { resolveNightStepActor } from '../playerHelpers';
@@ -1112,7 +1111,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
 
   // 7. Check reveals (seer family + others). The resultFormat partition must
   // match the CheckResultRevealKey / IdentityResultRevealKey families in
-  // handlers/revealPayload.ts; the vocabulary is WerewolfPendingReveal's.
+  // The vocabulary is WerewolfPendingReveal's.
   const revealFields: readonly {
     readonly key: DamageReflectionRevealKey;
     readonly roleId: RoleId;
@@ -1162,15 +1161,14 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
     }
   }
 
-  // 9. Hunter / DarkWolfKing canShoot status — confirmStatus is cleared on
-  // step advance, so the engine's own step-entry rule is applied again here.
+  // 9. Hunter / DarkWolfKing canShoot status.
   const hunterSeat = resolveNightStepActor(state, 'hunter')?.seat;
   if (hunterSeat !== undefined) {
     entries.push({
       kind: 'shootStatus',
       actorSeat: hunterSeat,
       actorRoleId: 'hunter',
-      canShoot: computeCanShootForSeat(hunterSeat, state),
+      canShoot: isEligibleToShoot(state, hunterSeat),
     });
   }
 
@@ -1180,7 +1178,7 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
       kind: 'shootStatus',
       actorSeat: darkWolfKingSeat,
       actorRoleId: 'darkWolfKing',
-      canShoot: computeCanShootForSeat(darkWolfKingSeat, state),
+      canShoot: isEligibleToShoot(state, darkWolfKingSeat),
     });
   }
 
@@ -1275,6 +1273,11 @@ export function buildActionEntries(state: GameState): NightReviewActionEntry[] {
   }
 
   return entries;
+}
+
+function isEligibleToShoot(state: GameState, seat: number): boolean {
+  const reason = state.deathReasons?.[seat];
+  return reason === undefined || reason === 'wolfKill';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

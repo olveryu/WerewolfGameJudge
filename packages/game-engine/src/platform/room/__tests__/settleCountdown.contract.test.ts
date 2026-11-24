@@ -37,8 +37,8 @@
  *   ready seat transitions the phase immediately with a null
  *   deadline in `platform/room/relay/tasks.ts`.
  * - werewolf's empty-step AUTO_SKIP arming lives in the current
- *   `nightProgression` and retained legacy `inlineProgression`.
- *   Both are random auto-skip delays, not settle countdowns.
+ *   `nightProgression`. These random auto-skip delays are not
+ *   settle countdowns.
  *   Its expiry side is the shared phase-expiry chassis (E-2), like
  *   every werewolf deadline.
  *
@@ -59,7 +59,7 @@
  * drawguess stage-entry arming (E-2 domain), the relay
  * clock helper, gallery resume, and each game's first gallery reveal
  * (relay domain), and
- * the werewolf AUTO_SKIP writers. The switched
+ * the werewolf AUTO_SKIP writer. The switched
  * adopters contribute no local arithmetic: their call sites
  * pass `nowMs` into the skeleton, whose set branch is the one
  * registered addition. (The two avalon legacy arm fragments
@@ -346,12 +346,6 @@ const EXPECTED_DEADLINE_ARITHMETIC: readonly DeadlineArithmeticRegistration[] = 
     domain: 'relayClock',
   },
   {
-    file: 'games/werewolf/domain/inlineProgression.ts',
-    symbol: 'runInlineProgression',
-    expression: 'execution.nowMs + randomIntInclusive',
-    domain: 'werewolfInlineAutoSkip',
-  },
-  {
     file: 'games/werewolf/domain/nightProgression.ts',
     symbol: 'evaluateCurrentStep',
     expression: 'execution.nowMs + randomIntInclusive',
@@ -593,7 +587,7 @@ describe('settle countdown registry', () => {
     }
   });
 
-  it('welds the wolf vote through shared step progression and retains the legacy oracle', () => {
+  it('welds the wolf vote through shared step progression', () => {
     const wolfVote = EXPECTED_SETTLE_COUNTDOWN_ADOPTERS['werewolf:wolf-vote'];
     const progression = readGameFile(wolfVote.hostFile);
     const step = readGameFile('werewolf/roles/wolfKill.ts');
@@ -605,15 +599,9 @@ describe('settle countdown registry', () => {
     expect(step).toContain("kind: 'armCountdown'");
     expect(progression).toContain('evaluateStepProgress(');
     expect(countOccurrences(sharedProgression, 'decideSettleCountdownArm(')).toBe(1);
-    expect(
-      countOccurrences(
-        readGameFile('werewolf/domain/handlers/actionHandler.ts'),
-        'decideSettleCountdownArm(',
-      ),
-    ).toBe(1);
   });
 
-  it('welds game-source skeleton calls to direct points and the retained legacy oracle', () => {
+  it('welds game-source skeleton calls to direct points', () => {
     const switchedCount = ACCESS_POINT_IDS.filter(
       (id) => EXPECTED_SETTLE_COUNTDOWN_ADOPTERS[id].adoption === 'switched',
     ).length;
@@ -625,7 +613,7 @@ describe('settle countdown registry', () => {
         'decideSettleCountdownArm(',
       );
     }
-    expect(totalCalls).toBe(switchedCount + 1);
+    expect(totalCalls).toBe(switchedCount);
   });
 
   it('welds pending legacy arm fragments to their registered count per host file', () => {
@@ -696,11 +684,8 @@ describe('settle countdown registry', () => {
     expect(relayTasks).not.toContain('SETTLE_COUNTDOWN');
   });
 
-  it('welds both werewolf AUTO_SKIP writers outside the settle countdown', () => {
-    const inlineProgression = readGameFile('werewolf/domain/inlineProgression.ts');
+  it('welds werewolf AUTO_SKIP outside the settle countdown', () => {
     const nightProgression = readGameFile('werewolf/domain/nightProgression.ts');
-    expect(inlineProgression).toContain('AUTO_SKIP_DELAY_MIN_MS');
-    expect(inlineProgression).not.toContain('decideSettleCountdownArm');
     expect(nightProgression).toContain('randomIntInclusive');
     expect(nightProgression).not.toContain('decideSettleCountdownArm');
   });

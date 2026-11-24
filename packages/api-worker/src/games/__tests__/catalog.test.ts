@@ -67,7 +67,6 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     stepId: 'cupidLoversReveal',
     serial: 1,
   },
-  'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
   'werewolf.role.viewed': { type: 'werewolf.role.viewed' },
   'werewolf.config.update': {
     type: 'werewolf.config.update',
@@ -363,34 +362,7 @@ describe('Worker game catalog', () => {
     expect(() =>
       werewolfPublicCommandSchema.parse({
         type: 'werewolf.action.submit',
-        input: { kind: 'confirm', confirmed: false },
-      }),
-    ).toThrow();
-    expect(
-      werewolfPublicCommandSchema.parse({
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 2 },
-        expectedStep: {
-          currentStepId: 'seerCheck',
-          roleRevealRandomNonce: null,
-        },
-      }),
-    ).toEqual({
-      type: 'werewolf.action.submit',
-      input: { kind: 'target', target: 2 },
-      expectedStep: {
-        currentStepId: 'seerCheck',
-        roleRevealRandomNonce: null,
-      },
-    });
-    expect(() =>
-      werewolfPublicCommandSchema.parse({
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 2 },
-        expectedStep: {
-          currentStepId: 'unknown-step',
-          roleRevealRandomNonce: null,
-        },
+        input: { kind: 'skip' },
       }),
     ).toThrow();
     expect(() =>

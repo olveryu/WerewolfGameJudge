@@ -1040,6 +1040,8 @@ describe('toWerewolfReviewDocument', () => {
             [4, makeReviewPlayer(4, 'villager')],
           ]),
           currentNightResults: { wolfVotesBySeat: { '0': 4 }, poisonedSeat: 2 },
+          lastNightDeaths: [2],
+          deathReasons: { 2: 'poison' },
           resolvedWolfKillTarget: 4,
         }),
       );

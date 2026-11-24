@@ -20,6 +20,7 @@ import {
 import type { WerewolfDeadlinePhase, WerewolfEffect } from '../effects/types';
 import { runInlineProgression } from './inlineProgression';
 import { GameStatus } from './models/GameStatus';
+import { isNightStepId } from './models/roles/spec/nightStepIds';
 import type { GameState } from './protocol/types';
 import type { StateAction } from './reducer/types';
 
@@ -36,7 +37,9 @@ export interface ArmedDeadline {
 
 /** Whether the state is in a phase that can carry a deadline at all. */
 function isExpirablePhase(state: GameState): boolean {
-  if (state.status === GameStatus.Ongoing) return state.nightStep?.kind === 'inStep';
+  if (state.status === GameStatus.Ongoing) {
+    return state.nightState !== null && state.nightState.slice.current !== null;
+  }
   if (state.status === GameStatus.Day) {
     const phase = state.sheriffElection?.phase;
     return phase === 'firstVote' || phase === 'runoffVote' || phase === 'result';
@@ -46,9 +49,14 @@ function isExpirablePhase(state: GameState): boolean {
 
 /** Reads the armed deadline from the state's current carrier; null while none is armed. */
 export function readArmedDeadline(state: GameState): ArmedDeadline | null {
-  if (state.status === GameStatus.Ongoing && state.nightStep?.kind === 'inStep') {
-    const deadlineAt = state.nightStep.stepDeadline;
-    return deadlineAt === undefined ? null : { phase: state.nightStep.stepId, deadlineAt };
+  if (state.status === GameStatus.Ongoing && state.nightState !== null) {
+    const current = state.nightState.slice.current;
+    const deadlineAt = state.nightState.slice.deadlineMs;
+    if (current === null || deadlineAt === null) return null;
+    if (!isNightStepId(current.stepId)) {
+      throw new Error(`[FAIL-FAST] Invalid active Werewolf step deadline ${current.stepId}`);
+    }
+    return { phase: current.stepId, deadlineAt };
   }
   if (state.status === GameStatus.Day) {
     const election = state.sheriffElection;

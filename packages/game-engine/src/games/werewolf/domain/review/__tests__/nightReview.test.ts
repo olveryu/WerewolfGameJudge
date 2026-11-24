@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { DeathReason } from '../../DeathCalculator';
+import type { DeathReason } from '../../../roles/deathEffects';
 import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
 import { NIGHT_STEPS, type RoleSpec } from '../../models/roles/spec';
 import { getRoleStepId } from '../../models/roles/spec/nightSteps';
@@ -454,7 +454,7 @@ describe('NightReview.helpers', () => {
       const entries = buildActionEntries(
         makeGameState({
           lastNightDeaths: [0, 1, 2],
-          deathReasons: { 0: 'wolfKill', 1: 'coupleLink', 2: 'magicianSwap' },
+          deathReasons: { 0: 'wolfKill', 1: 'coupleLink', 2: 'reflection' },
         }),
       );
       expect(entries).toContainEqual(
@@ -463,7 +463,7 @@ describe('NightReview.helpers', () => {
           deaths: [
             { seat: 0, reason: 'wolfKill' },
             { seat: 1, reason: 'coupleLink' },
-            { seat: 2, reason: 'magicianSwap' },
+            { seat: 2, reason: 'reflection' },
           ],
         }),
       );
@@ -614,7 +614,12 @@ describe('NightReview.helpers', () => {
         [2, makePlayer(2, 'witch')],
       ]);
       const entries = buildActionEntries(
-        makeGameState({ players, currentNightResults: { poisonedSeat: 0 } }),
+        makeGameState({
+          players,
+          currentNightResults: { poisonedSeat: 0 },
+          lastNightDeaths: [0],
+          deathReasons: { 0: 'poison' },
+        }),
       );
       expect(entries).toContainEqual(
         expect.objectContaining({
@@ -645,7 +650,12 @@ describe('NightReview.helpers', () => {
         [2, makePlayer(2, 'darkWolfKing')],
       ]);
       const entries = buildActionEntries(
-        makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
+        makeGameState({
+          players,
+          currentNightResults: { poisonedSeat: 2 },
+          lastNightDeaths: [2],
+          deathReasons: { 2: 'poison' },
+        }),
       );
       expect(entries).toContainEqual(
         expect.objectContaining({
@@ -667,6 +677,8 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           currentNightResults: { dreamingSeat: 0, poisonedSeat: 1 },
+          lastNightDeaths: [0, 1],
+          deathReasons: { 0: 'dreamcatcherLink', 1: 'poison' },
         }),
       );
       expect(entries).toContainEqual(
@@ -710,6 +722,8 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           currentNightResults: { charmedSeat: 0, poisonedSeat: 1 },
+          lastNightDeaths: [0, 1],
+          deathReasons: { 0: 'wolfQueenLink', 1: 'poison' },
         }),
       );
       expect(entries).toContainEqual(
@@ -734,6 +748,8 @@ describe('NightReview.helpers', () => {
           loverSeats: [0, 1],
           resolvedWolfKillTarget: 1,
           witchContext: { killedSeat: 1, canSave: true, canPoison: true },
+          lastNightDeaths: [0, 1],
+          deathReasons: { 0: 'coupleLink', 1: 'wolfKill' },
         }),
       );
       expect(entries).toContainEqual(

@@ -4,11 +4,10 @@
  * This module exports the declarative role specification system:
  * - Types: Faction, Team, RoleSpec, ActionSchema, NightPlan, StepSpec
  * - Registries: ROLE_SPECS, SCHEMAS, NIGHT_STEPS
- * - Builders: buildNightPlan, buildSchemas
- * - Utils: isValidRoleId, isValidSchemaId, getSeerCheckResultForTeam
+ * - Builders: buildNightPlan
+ * - Utils: isValidRoleId
  *
- * IMPORTANT: This module does NOT export resolvers.
- * Resolvers are SERVER-ONLY and located in src/resolvers/.
+ * Gameplay resolution is owned by the role runtime modules.
  */
 
 // Base types (standalone, no cross-module dependencies)
@@ -77,18 +76,10 @@ export {
 } from './specs';
 
 // Night plan builder
-export { buildNightPlan, NIGHT_STEP_ORDER, type NightStepId } from './plan';
+export { buildNightPlan, type NightStepId } from './plan';
 
 // Schemas builder + registry + helpers
-export {
-  buildSchemas,
-  getAllSchemaIds,
-  getSchema,
-  getSchemaOfKind,
-  isValidSchemaId,
-  type SchemaId,
-  SCHEMAS,
-} from './schemas';
+export { getSchema, type SchemaId, SCHEMAS } from './schemas';
 
 // Night steps registry + helpers
 export { getStepSpec, NIGHT_STEPS } from './nightSteps';

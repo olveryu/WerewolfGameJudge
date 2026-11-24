@@ -17,6 +17,7 @@ import {
 } from '../../roles/nightRuntime';
 import type { WerewolfNightFacts } from '../../roles/role';
 import { isValidRoleId, type RoleId } from '../models';
+import { findSeatByRole } from '../playerHelpers';
 import type { GameState, ResolvedWolfKillVerdict } from '../protocol/types';
 import type {
   NightReviewActionEntry,
@@ -45,6 +46,17 @@ export function buildSpecNightReview(state: GameState): {
   const runtime = createWerewolfStepRuntime(null);
   const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
   const resolution = resolveDeathEffects(collectWerewolfDeathEffects(context));
+  for (const roleId of ['hunter', 'darkWolfKing'] as const) {
+    const seat = findSeatByRole(state.players, roleId);
+    if (seat === null) continue;
+    const causes = resolution.causes[seat];
+    actions.push({
+      kind: 'shootStatus',
+      actorSeat: seat,
+      actorRoleId: roleId,
+      canShoot: causes === undefined || causes.every((cause) => cause === 'wolfKill'),
+    });
+  }
   const explanationLines = new Set<string>();
   for (const trace of resolution.trace) {
     if (trace.kind === 'protectionConflict') {

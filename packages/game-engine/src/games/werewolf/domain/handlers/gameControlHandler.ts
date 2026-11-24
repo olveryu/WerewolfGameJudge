@@ -11,10 +11,8 @@
  * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
-import { type AudioEffect, guardAudioPlayback } from '../../../../platform/audio';
+import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
-import { resolveSeerAudioKey } from '../audioKeyOverride';
-import { createAudioQueueAction } from '../audioQueue';
 import type {
   AbortGameIntent,
   AssignRolesIntent,
@@ -23,7 +21,6 @@ import type {
   BoardWithdrawIntent,
   ReturnToLobbyIntent,
   ShareNightReviewIntent,
-  StartNightIntent,
 } from '../intents/types';
 import {
   type BottomCardRoleId,
@@ -34,27 +31,18 @@ import {
   getValidBottomCardDeals,
   type RoleId,
 } from '../models';
-import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
+import { getRoleSpec } from '../models/roles/spec';
 import type { GameState } from '../protocol/types';
 import type {
   AssignRolesAction,
-  EndNightAction,
   RestartGameAction,
   SetBoardNominationAction,
   SetNightReviewAllowedSeatsAction,
-  SetWolfKillOverrideAction,
-  StartNightAction,
-  StateAction,
   UpvoteBoardNominationAction,
   WithdrawBoardNominationAction,
 } from '../reducer/types';
-import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
-import { maybeCreateUiHintAction } from './uiHint';
-import { maybeCreateWitchContextAction } from './witchContext';
-import { maybeCreateResolvedWolfKillTargetAction } from './wolfKillResolution';
 
 /**
  * Handle assign roles (only seated -> assigned)
@@ -197,135 +185,6 @@ function createBottomCardDeal(
     seatedRoles: shuffleArray([...deal.seatedRoles], rng),
     bottomCards: shuffleArray([...deal.bottomCards], rng),
   };
-}
-
-/**
- * Handle start night (ready -> ongoing)
- *
- * - Precondition: status === GameStatus.Ready
- * - Initialize Night-1 fields
- * - status -> GameStatus.Ongoing
- * - Broadcast STATE_UPDATE
- *
- * Initializes state only; audio and progression are handled separately.
- */
-export function handleStartNight(
-  _intent: StartNightIntent,
-  context: HandlerContext,
-  execution: HandlerExecutionContext,
-): HandlerResult {
-  const { state } = context;
-
-  // Gate: status must be GameStatus.Ready
-  if (state.status !== GameStatus.Ready) {
-    return handlerError('invalid_status');
-  }
-
-  // First step comes from buildNightPlan table-driven single source (filtered by current template roles)
-  const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-
-  // Empty plans still initialize the night result aggregate before ending.
-  if (nightPlan.steps.length === 0) {
-    const startNightAction: StartNightAction = {
-      type: 'START_NIGHT',
-      payload: { nightStep: { kind: 'exhausted' } },
-    };
-    const endNightAction: EndNightAction = {
-      type: 'END_NIGHT',
-      payload: { deaths: [] },
-    };
-    return handlerSuccess([startNightAction, endNightAction]);
-  }
-
-  const firstStepId = nightPlan.steps[0]!.stepId;
-  const firstStepSpec = getStepSpec(firstStepId);
-
-  // Collect actions to return
-  const actions: StateAction[] = [];
-
-  // Night-1 only: the night opens on the first plan step.
-  const startNightAction: StartNightAction = {
-    type: 'START_NIGHT',
-    payload: { nightStep: { kind: 'inStep', stepId: firstStepId } },
-  };
-  actions.push(startNightAction);
-
-  // Use unified function to check if witchContext needs to be set (no-wolf board where first step is witchAction).
-  // Settle first, then build the context from the settled state, so
-  // the context target, the persisted target and the persisted
-  // verdict are one settlement, not three computations. The SET is
-  // only emitted together with the context, exactly as before: if
-  // no context is needed, nothing is settled early here. On a
-  // no-wolf board this is a settled no-kill; a wolf board never
-  // opens on witchAction, so no live votes are settled early here.
-  const wolfVoteRng = createSeededRng(`${execution.randomSeed}:wolf-vote`);
-  const settledAction =
-    firstStepId === 'witchAction'
-      ? maybeCreateResolvedWolfKillTargetAction(state, wolfVoteRng)
-      : null;
-  const settledState = settledAction
-    ? {
-        ...state,
-        resolvedWolfKillTarget: settledAction.payload.target,
-        resolvedWolfKillVerdict: settledAction.payload.verdict,
-      }
-    : state;
-  const witchContextAction = maybeCreateWitchContextAction(firstStepId, settledState);
-  if (witchContextAction) {
-    if (settledAction) {
-      actions.push(settledAction);
-    }
-    actions.push(witchContextAction);
-  }
-
-  // Use unified function to check if confirmStatus needs to be set (edge case: first step is hunterConfirm)
-  const confirmStatusAction = maybeCreateConfirmStatusAction(firstStepId, state);
-  if (confirmStatusAction) {
-    actions.push(confirmStatusAction);
-  }
-
-  // Witch present: wolves cannot attack on first night (board-level rule)
-  if (state.templateRoles.includes('poisoner')) {
-    const wolfKillOverrideAction: SetWolfKillOverrideAction = {
-      type: 'SET_WOLF_KILL_OVERRIDE',
-      payload: {
-        override: {
-          source: 'poisoner',
-          ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner,
-        },
-      },
-    };
-    actions.push(wolfKillOverrideAction);
-  }
-
-  // UI Hint: the first step enters through START_NIGHT, not
-  // ADVANCE_NIGHT, so the hint must be set here too, with the same
-  // single computation the advance path uses. Compute it against the
-  // state as it will be once the override action above lands: the
-  // override is written by this same command, so the pre-command state
-  // would clear the hint on exactly the boards that need it (a night
-  // opening on wolfKill). Unconditional, like the advance path: a
-  // clear also drops a stale hint from the previous night.
-  const hintState: GameState = state.templateRoles.includes('poisoner')
-    ? {
-        ...state,
-        wolfKillOverride: { source: 'poisoner', ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner },
-      }
-    : state;
-  actions.push(maybeCreateUiHintAction(nightPlan.steps[0]!, hintState));
-
-  const audioEffects: AudioEffect[] = [{ audioKey: 'night', isEndAudio: false }];
-
-  // Add first step (usually wolf) start audio
-  if (firstStepSpec) {
-    audioEffects.push({
-      audioKey: resolveSeerAudioKey(firstStepSpec.audioKey, state.seerLabelMap),
-      isEndAudio: false,
-    });
-  }
-
-  actions.push(createAudioQueueAction(audioEffects));
-  return handlerSuccess(actions);
 }
 
 /** The restart outcome both terminal-flow commands share (RESTART_GAME). */

@@ -3,18 +3,14 @@
 export type { AudioEffect } from '../../platform/audio';
 export { getBotSeats, isBotOccupant, isBotSeat } from '../../platform/room/seating';
 export type {
-  WerewolfActionInput,
   WerewolfCommand,
-  WerewolfExpectedStep,
   WerewolfInternalCommand,
   WerewolfMvpSelection,
   WerewolfProfileUpdate,
   WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from './commands/types';
-export { REASON_ACTION_INPUT_MISMATCH, REASON_ACTION_STEP_CHANGED } from './domain/actionInput';
 export { resolveSeerAudioKey } from './domain/audioKeyOverride';
-export type { DeathReason } from './domain/DeathCalculator';
 export {
   makeActionMagicianSwap,
   makeActionTarget,
@@ -64,6 +60,7 @@ export {
   NIGHT_STEPS,
   TargetConstraint,
 } from './domain/models/roles/spec';
+export { isNightStepId } from './domain/models/roles/spec/nightStepIds';
 export { getStepSpec } from './domain/models/roles/spec/nightSteps';
 export type { RoleDescription, RoleSpec } from './domain/models/roles/spec/roleSpec.types';
 export {
@@ -117,9 +114,6 @@ export type {
   ShootConfirmStatus,
   WerewolfNightStep,
 } from './domain/protocol/types';
-export { RESOLVERS } from './domain/resolvers';
-export type { BottomCardChoice, BottomCardOption } from './domain/resolvers/bottomCardChoice';
-export type { ActionInput, CurrentNightResults, ResolverContext } from './domain/resolvers/types';
 export {
   buildActionEntries,
   buildIdentityEntries,
@@ -190,5 +184,7 @@ export {
   getWerewolfDaytimeAnnouncements,
   type WerewolfDaytimeAnnouncement,
 } from './roles/daytimeAnnouncements';
+export type { DeathReason } from './roles/deathEffects';
+export { isWerewolfStepId } from './roles/nightPlan';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
 export { parseWerewolfState } from './state/parseState';

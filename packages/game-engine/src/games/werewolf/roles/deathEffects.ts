@@ -3,6 +3,8 @@ export type AttackCause = 'wolfKill' | 'poison' | 'checkDeath';
 export type DeathCause =
   AttackCause | 'wolfQueenLink' | 'bondedLink' | 'coupleLink' | 'dreamcatcherLink' | 'reflection';
 
+export type DeathReason = DeathCause;
+
 export type DeathEffect =
   | {
       readonly kind: 'attack';

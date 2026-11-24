@@ -170,7 +170,7 @@ export interface NightStepDef {
 /**
  * Death calculation role — declares what role-specific death rules apply.
  *
- * Used by DeathCalculator to replace hardcoded RoleSeatMap field checks.
+ * Used by legacy death-calculation metadata.
  */
 export type DeathCalcRole =
   | 'wolfQueenLink'

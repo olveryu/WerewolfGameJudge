@@ -16,7 +16,6 @@ export const DEATH_REASON_LABELS: Record<DeathReason, string> = {
   coupleLink: '殉情',
   dreamcatcherLink: '摄梦连锁',
   reflection: '反伤',
-  magicianSwap: '魔术师交换',
 };
 
 /**

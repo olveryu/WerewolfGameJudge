@@ -17,7 +17,6 @@ import { findRosterSeatByUserId } from '../../platform/room/seating';
 import { REASON_STEP_STALE } from '../../platform/steps';
 import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
-import { resolveSubmitActionIntent } from './domain/actionInput';
 import {
   resolveEffectiveSeatActor,
   resolveHostActor,
@@ -25,7 +24,6 @@ import {
   resolveUserActor,
 } from './domain/actor';
 import { commitActions, handlerResultToDecision } from './domain/decision';
-import { handleSubmitAction } from './domain/handlers/actionHandler';
 import {
   handleApplyRosterLevels,
   handleAudioAck,
@@ -84,7 +82,6 @@ type WerewolfDecision = Decision<StateAction, WerewolfEffect>;
 
 function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
   switch (command.type) {
-    case 'werewolf.action.submit':
     case 'werewolf.step.submit':
     case 'werewolf.role.viewed':
     case 'werewolf.reveal.ack':
@@ -278,24 +275,6 @@ function decideWerewolfCommandRules(
         buildViewedEvent: (seat) => ({ type: 'PLAYER_VIEWED_ROLE', payload: { seat } }),
         commit: commitActions,
       });
-    }
-    case 'werewolf.action.submit': {
-      if (state.nightState !== null) return reject(REASON_STEP_STALE);
-      const actor = resolveEffectiveSeatActor(state, context);
-      if (actor.kind === 'rejected') return reject(actor.reason);
-      const intent = resolveSubmitActionIntent(
-        state,
-        actor.value.seat,
-        command.input,
-        command.expectedStep,
-      );
-      if (intent.kind === 'rejected') return reject(intent.reason);
-      return decideHandler(
-        state,
-        handleSubmitAction(intent.intent, actor.value.handlerContext, context),
-        context,
-        true,
-      );
     }
     case 'werewolf.step.submit': {
       const actor = resolveEffectiveSeatActor(state, context);

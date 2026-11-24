@@ -7,9 +7,8 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   isValidRoleId,
-  isValidSchemaId,
+  isWerewolfStepId,
   type RoleId,
-  type SchemaId,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { validateTemplateRoles } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
@@ -21,16 +20,7 @@ const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),
 );
 
-const schemaIdSchema = z.custom<SchemaId>(
-  (value): value is SchemaId => typeof value === 'string' && isValidSchemaId(value),
-);
-
-const stepIdSchema = z.string().refine((value): boolean => isValidSchemaId(value));
-
-const expectedStepSchema = z.strictObject({
-  currentStepId: schemaIdSchema,
-  roleRevealRandomNonce: z.string().min(1).max(128).nullable(),
-});
+const stepIdSchema = z.string().refine(isWerewolfStepId);
 
 const ruleOverridesSchema = z.strictObject({
   isPlagueMode: z.boolean().optional(),
@@ -84,28 +74,6 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     gameSequence: z.number().int().nonnegative(),
     stepId: stepIdSchema,
     serial: z.number().int().nonnegative(),
-  }),
-  z.strictObject({
-    type: z.literal('werewolf.action.submit'),
-    input: z.discriminatedUnion('kind', [
-      z.strictObject({
-        kind: z.literal('target'),
-        target: z.number().int().nonnegative().nullable(),
-      }),
-      z.strictObject({
-        kind: z.literal('multiTarget'),
-        targets: z.array(z.number().int().nonnegative()).readonly(),
-      }),
-      z.strictObject({ kind: z.literal('confirm') }),
-      z.strictObject({
-        kind: z.literal('witch'),
-        saveTarget: z.number().int().nonnegative().nullable(),
-        poisonTarget: z.number().int().nonnegative().nullable(),
-      }),
-      z.strictObject({ kind: z.literal('card'), cardIndex: z.number().int().nonnegative() }),
-      z.strictObject({ kind: z.literal('skip') }),
-    ]),
-    expectedStep: expectedStepSchema.optional(),
   }),
   z.strictObject({ type: z.literal('werewolf.role.viewed') }),
   z.strictObject({

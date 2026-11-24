@@ -441,9 +441,14 @@ describe('Werewolf settle effect', () => {
       expect(box.current).toBe(state);
     }
     // A deadline that was cleared (vote retracted) is stale too.
+    const nightState = state.nightState;
+    if (nightState === null) throw new Error('Expected the active night state');
     const cleared: GameState = {
       ...state,
-      nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+      nightState: {
+        ...nightState,
+        slice: { ...nightState.slice, deadlineMs: null },
+      },
     };
     const { context, box } = settleContext(cleared);
     await handleWerewolfEffect(settleEffectFor(state), context);

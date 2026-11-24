@@ -6,7 +6,7 @@
 
 import type { AudioEffect } from '../../../../platform/audio';
 import type { RosterChange } from '../../../../platform/room/seating';
-import type { DeathReason } from '../DeathCalculator';
+import type { DeathReason } from '../../roles/deathEffects';
 import type { GameRuleOverrides, RoleId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type {

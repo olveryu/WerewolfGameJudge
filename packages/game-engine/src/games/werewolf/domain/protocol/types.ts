@@ -13,8 +13,8 @@ import type { WerewolfGameType } from '../../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../../platform/room/roster';
 import type { RosterMap, SeatOccupant } from '../../../../platform/room/seating';
+import type { DeathReason } from '../../roles/deathEffects';
 import type { WerewolfNightState } from '../../roles/nightState';
-import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
@@ -402,11 +402,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   // --- Wolf Robot disguise context ---
   /**
-   * Wolf Robot disguise context (for identity resolution in "check-type" resolvers)
+   * Wolf Robot disguise context for identity-check results.
    *
-   * Purpose: computation context for server-only resolvers/engine, used by unified
-   * `resolveRoleForChecks()`: when a seat's effective identity is wolfRobot, interprets it
-   * as `disguisedRole`, affecting seer/psychic/gargoyle check results.
+   * When a seat's effective identity is wolfRobot, interprets it as `disguisedRole`,
+   * affecting seer/psychic/gargoyle check results.
    *
    * Notes:
    * - Part of GameStatePayload (publicly broadcast), but UI generally doesn't depend on it;

@@ -10,7 +10,6 @@
  * `TEST_USER_ID`.
  */
 
-import { maybeCreateUiHintAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/uiHint';
 import type {
   GameState,
   RoleId,
@@ -203,14 +202,12 @@ function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState
     ...gameStateOverrides,
   });
   if (base.status !== GameStatus.Ongoing) return base;
-  // The engine sets the step's UI hint on transition; reproduce it for the armed step.
   const plan = buildNightPlan(base.templateRoles, base.seerLabelMap);
   const step = plan.steps.find((candidate) => candidate.stepId === schemaId);
   if (step === undefined) {
     throw new Error(`[TEST] Step ${schemaId} is not in the night plan for ${roles.join(',')}`);
   }
-  const hint = maybeCreateUiHintAction(step, base).payload.currentActorHint;
-  return hint === null ? base : { ...base, ui: { currentActorHint: hint } };
+  return base;
 }
 
 function createRoomMockForState(
@@ -225,9 +222,6 @@ function createRoomMockForState(
   const session = createFakeRoomLink<GameState, WerewolfPublicCommand>(
     readyLinkSnapshot({ room, userId: TEST_USER_ID }, createRoomSnapshot(state, 1)),
     async (command) => {
-      if (command.type === 'werewolf.action.submit') {
-        throw new Error('[TEST] Night interactions must use shared-step commands');
-      }
       return options.hookOverrides?.dispatchCommand?.(command) ?? successfulWerewolfCommand();
     },
   );

@@ -17,7 +17,6 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import { buildRoomSeatProfile, type RosterEntry } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
-import type { DeathReason } from '../domain/DeathCalculator';
 import { GameStatus } from '../domain/models/GameStatus';
 import { isValidRoleId, type RoleId } from '../domain/models/roles';
 import type { WolfKillOverride } from '../domain/models/roles/spec/schema.types';
@@ -43,6 +42,7 @@ import type {
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
+import type { DeathReason } from '../roles/deathEffects';
 import { parseWerewolfNightState } from '../roles/nightState';
 
 function parseSeatOrNoTarget(value: unknown, path: string): number {
@@ -327,7 +327,6 @@ function parseDeathReason(value: unknown, path: string): DeathReason {
     case 'coupleLink':
     case 'dreamcatcherLink':
     case 'reflection':
-    case 'magicianSwap':
       return value;
     default:
       return fail(path, 'a valid death reason');
