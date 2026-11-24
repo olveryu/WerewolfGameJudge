@@ -149,10 +149,6 @@
   padding-inline: var(--space-small);
 }
 
-.room-board-column[data-scroll-information='true'] .room-board-status-card {
-  padding-inline: var(--space-tight);
-}
-
 .room-context-header {
   padding: var(--space-small) var(--space-medium) 0;
 }
@@ -174,45 +170,6 @@
 
 .room-board-information > .room-game-summary {
   margin-bottom: 0;
-}
-
-.room-board-status-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-tight);
-  padding: var(--space-small) var(--space-medium);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
-  background: var(--color-background);
-  background-image: var(--surface-panel-texture);
-  box-shadow: var(--shadow-tabletop-panel);
-  text-align: center;
-}
-
-.room-board-phase {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-caption);
-  line-height: var(--line-caption);
-}
-
-.room-board-status-title {
-  min-width: 0;
-  margin: 0;
-  color: var(--color-text);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-bold);
-}
-
-.room-board-status-detail {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  font-weight: var(--weight-normal);
-  overflow-wrap: anywhere;
 }
 
 .room-board-status-summary {

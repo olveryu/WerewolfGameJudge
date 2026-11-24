@@ -12,27 +12,33 @@ const EMPTY_ACTIONS: RoomPlayerActionModel = {
   group: null,
 };
 
-it('suppresses only a redundant message while keeping selection and audio instructions', () => {
+it('renders every board status as the compact status, the summary below it', () => {
   const props = {
-    model: { ...EMPTY_ACTIONS, message: '报名进行中' },
-    summary: <button type="button">警长竞选详情</button>,
+    model: { ...EMPTY_ACTIONS, message: '轮到你描述' },
+    summary: <p>卧底获胜</p>,
     isAudioPlaying: false,
     hostManagement: null,
-    boardStatus: {
-      phaseLabel: '白天',
-      title: null,
-      detail: null,
-      summaryPresentation: 'replaces-message' as const,
-    },
+    boardStatus: { phaseLabel: '第1轮', title: null, detail: null },
   };
-  const { rerender } = render(<RoomActionStatus {...props} />);
-  expect(screen.queryByText('报名进行中')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: '警长竞选详情' })).toBeInTheDocument();
+  const { container, rerender } = render(<RoomActionStatus {...props} />);
+  const status = container.querySelector('.room-compact-status');
+  expect(status).toHaveTextContent('第1轮');
+  expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('轮到你描述');
+  expect(container.querySelector('.room-board-status-card')).toBeNull();
+  expect(container.querySelector('.room-board-status-summary')).toHaveTextContent('卧底获胜');
 
+  // A lobby title takes over the message line, with the seat shortfall as progress.
   rerender(
-    <RoomActionStatus {...props} selectionMode={{ kind: 'player', escapeActionKey: 'cancel' }} />,
+    <RoomActionStatus
+      {...props}
+      summary={null}
+      boardStatus={{ phaseLabel: '待开局', title: '等待玩家入座', detail: '还差 2 人' }}
+    />,
   );
-  expect(screen.getByText('报名进行中')).toBeInTheDocument();
+  expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待玩家入座');
+  expect(screen.getByText('还差 2 人')).toBeInTheDocument();
+  expect(screen.queryByText('轮到你描述')).not.toBeInTheDocument();
+
   rerender(<RoomActionStatus {...props} isAudioPlaying />);
   expect(screen.getByTestId(TESTIDS.audioWaitingMessage)).toHaveTextContent('语音播报中…');
 });
@@ -68,7 +74,6 @@ it('gives audio and selection messages priority over compact game content', () =
       phaseLabel: '夜晚',
       title: null,
       detail: null,
-      compact: true,
       compactContent: <p>游戏状态</p>,
     },
   };

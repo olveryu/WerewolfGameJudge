@@ -295,7 +295,7 @@ describe('RoomShell stage content', () => {
     expect(screen.getByText('待开局')).toBeVisible();
     expect(screen.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('等待玩家入座');
     expect(screen.getByText('还差 1 人')).toBeVisible();
-    const statusCard = screen.getByTestId(TESTIDS.actionMessage).closest('.room-board-status-card');
+    const statusCard = screen.getByTestId(TESTIDS.actionMessage).closest('.room-compact-status');
     expect(statusCard).toContainElement(screen.getByText('待开局'));
     expect(statusCard).toContainElement(screen.getByText('还差 1 人'));
     expect(statusCard).not.toContainElement(screen.getByText('角色配置'));

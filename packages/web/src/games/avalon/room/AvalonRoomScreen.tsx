@@ -310,7 +310,6 @@ function AvalonRoomContent(
         isLobby || viewModel === null
           ? {
               kind: 'seats',
-              compactStatus: true,
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
@@ -318,11 +317,9 @@ function AvalonRoomContent(
             }
           : {
               kind: 'seats',
-              compactStatus: true,
               compactStatusContent: historyContent,
               contextHeader: null,
               informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
-              summaryPresentation: 'after-message',
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
               bottomSummary: historyContent,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,

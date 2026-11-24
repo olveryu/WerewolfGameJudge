@@ -292,7 +292,6 @@ function WerewolfRoomContent(
       }}
       content={{
         kind: 'seats',
-        compactStatus: true,
         // 竞选面板只在白天接管底部行动（createWerewolfPlayerActions），HUD 进状态条的条件同源：
         // 白天且有竞选；夜里开的报名只走 bottomSummary。
         compactStatusContent: status === GameStatus.Day ? sheriffHud : null,
@@ -302,7 +301,6 @@ function WerewolfRoomContent(
           ) : (
             <IconTimeOutline aria-hidden />
           ),
-        summaryPresentation: status === GameStatus.Day ? 'status' : undefined,
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue

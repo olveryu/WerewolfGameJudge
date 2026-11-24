@@ -26,7 +26,7 @@ import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import type { RoomSelectionMode } from '../model/RoomHand';
 import { PlayerProfileCard } from './PlayerProfileCard';
 import { RoomActionHand } from './RoomActionHand';
-import { RoomActionStatus, type RoomSummaryPresentation } from './RoomActionStatus';
+import { RoomActionStatus } from './RoomActionStatus';
 import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostTaskHeader } from './RoomHostTaskHeader';
 import { RoomSeatBoard } from './RoomSeatBoard';
@@ -42,8 +42,6 @@ type RoomShellContent =
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
-      readonly summaryPresentation?: RoomSummaryPresentation;
-      readonly compactStatus?: boolean;
       readonly compactStatusContent?: ReactElement | null;
       readonly compactStatusIcon?: ReactElement;
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
@@ -328,8 +326,6 @@ export function RoomShell({
                     selectionMode={selectionMode}
                     boardStatus={{
                       phaseLabel,
-                      summaryPresentation: content.summaryPresentation,
-                      compact: content.compactStatus,
                       compactContent: content.compactStatusContent,
                       compactIcon: content.compactStatusIcon,
                       title: lobbyTitle,

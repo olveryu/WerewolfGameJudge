@@ -168,7 +168,6 @@ function SecrethitlerRoomContent(
       }}
       content={{
         kind: 'seats',
-        compactStatus: true,
         compactStatusContent: compactHistory,
         compactStatusIcon:
           screen.state.phase.kind === 'night' ? (
@@ -178,7 +177,6 @@ function SecrethitlerRoomContent(
           ),
         contextHeader: null,
         informationLayout: showHistory ? 'scroll-with-seats' : 'fixed',
-        summaryPresentation: 'after-message',
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
