@@ -1,3 +1,4 @@
+import type { RoleId } from '../domain/models';
 import { awakenedGargoyle } from './awakenedGargoyle';
 import { crow } from './crow';
 import { cupid, cupidPresence } from './cupid';
@@ -91,6 +92,7 @@ export type {
   WerewolfRoleResource,
   WerewolfRoleState,
   WerewolfRoleStepContext,
+  WerewolfRoleStepDefinition,
   WerewolfRoleStepResult,
   WerewolfRoleTeam,
 } from './role';
@@ -149,6 +151,30 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
 ] as const;
 
 export const WEREWOLF_SHARED_STEPS = [wolfKillStep] as const;
+
+/** Static narration keys emitted by a role or shared Werewolf step. */
+export interface WerewolfStepAudioDeclaration {
+  readonly roleId: RoleId;
+  readonly stepId: string;
+  readonly begin: string | null;
+  readonly end: string | null;
+}
+
+/** Audio declarations for every role step and the shared wolf-kill step. */
+export const WEREWOLF_STEP_AUDIO_DECLARATIONS = [
+  ...WEREWOLF_ROLE_DEFINITIONS.flatMap((role) =>
+    role.steps.map((step) => ({
+      roleId: role.id,
+      stepId: step.id,
+      ...step.audio.keys,
+    })),
+  ),
+  ...WEREWOLF_SHARED_STEPS.map((step) => ({
+    roleId: 'wolf' as const,
+    stepId: step.id,
+    ...step.audio.keys,
+  })),
+] as const satisfies readonly WerewolfStepAudioDeclaration[];
 
 export const WEREWOLF_PRESENCE_DECLARATIONS = [
   ...poisonerPresence,

@@ -185,5 +185,6 @@ export {
   type WerewolfCampStats,
   type WerewolfPublicStats,
 } from './publicStats';
+export { WEREWOLF_STEP_AUDIO_DECLARATIONS, type WerewolfStepAudioDeclaration } from './roles';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
 export { parseWerewolfState } from './state/parseState';

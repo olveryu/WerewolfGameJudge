@@ -1,11 +1,12 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection, type TargetSelection } from './location';
 import type {
   WerewolfBottomCard,
   WerewolfNightFacts,
   WerewolfRoleStepContext,
+  WerewolfRoleStepDefinition,
   WerewolfRoleStepResult,
 } from './role';
 
@@ -206,14 +207,11 @@ export function renderIdentityCheckResult(
 
 export function createSingleTargetStep(
   options: SingleTargetStepOptions,
-): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+): WerewolfRoleStepDefinition {
   return {
     id: options.id,
     title: options.actionName,
-    audio: () => ({
-      begin: options.audioKey ?? options.roleId,
-      end: options.audioKey ?? options.roleId,
-    }),
+    audio: defineWerewolfStepAudio(options.audioKey ?? options.roleId),
     actors: (context) =>
       context.state.seatedSeats.filter((seat) => {
         const hasRole = context.role.activeRoleIdsOf(seat).includes(options.roleId);
@@ -311,11 +309,11 @@ export interface GroupConfirmStepOptions {
 
 export function createGroupConfirmStep(
   options: GroupConfirmStepOptions,
-): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+): WerewolfRoleStepDefinition {
   return {
     id: options.id,
     title: options.title,
-    audio: () => ({ begin: options.id, end: options.id }),
+    audio: defineWerewolfStepAudio(options.id),
     actors: (context) => context.state.seatedSeats,
     audience: 'allSeats',
     actions: [
@@ -346,11 +344,11 @@ export interface CardSelectionStepOptions {
 
 export function createCardSelectionStep(
   options: CardSelectionStepOptions,
-): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+): WerewolfRoleStepDefinition {
   return {
     id: options.id,
     title: options.actionName,
-    audio: () => ({ begin: options.roleId, end: options.roleId }),
+    audio: defineWerewolfStepAudio(options.roleId),
     actors: (context) =>
       context.state.seatedSeats.filter(
         (seat) =>

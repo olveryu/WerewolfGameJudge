@@ -1,4 +1,7 @@
-import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  NIGHT_STEPS,
+  WEREWOLF_STEP_AUDIO_DECLARATIONS,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import {
   getWerewolfPreloadAudio,
@@ -15,12 +18,34 @@ describe('Werewolf audio registry', () => {
     }
   });
 
+  it('resolves every audio key declared by a role or shared step', () => {
+    for (const declaration of WEREWOLF_STEP_AUDIO_DECLARATIONS) {
+      const { begin, end } = declaration;
+      if (begin !== null) {
+        expect(() => resolveWerewolfBeginningAudio(begin)).not.toThrow();
+      }
+      if (end !== null) {
+        expect(() => resolveWerewolfEndingAudio(end)).not.toThrow();
+      }
+    }
+  });
+
   it('resolves role, seer-label, and step-specific narration keys', () => {
     expect(resolveWerewolfBeginningAudio('wolf').key).toBe('role_begin_wolf');
     expect(resolveWerewolfEndingAudio('seer_1').key).toBe('role_end_seer_1');
     expect(resolveWerewolfBeginningAudio('piperHypnotizedReveal').key).toBe(
       'role_begin_piperHypnotizedReveal',
     );
+  });
+
+  it('uses the seer narration declared by both seer variants when preloading', () => {
+    const seerAudio = resolveWerewolfBeginningAudio('seer');
+    const seerEndAudio = resolveWerewolfEndingAudio('seer');
+    for (const role of ['mirrorSeer', 'drunkSeer'] as const) {
+      const clips = getWerewolfPreloadAudio([role]);
+      expect(clips.find((clip) => clip.key === `role_begin_${role}`)?.url).toBe(seerAudio.url);
+      expect(clips.find((clip) => clip.key === `role_end_${role}`)?.url).toBe(seerEndAudio.url);
+    }
   });
 
   it('fails fast when the engine emits an unregistered narration key', () => {

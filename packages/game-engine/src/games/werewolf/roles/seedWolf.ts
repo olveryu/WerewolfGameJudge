@@ -1,8 +1,12 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import { type DeathEffect, resolveDeathEffects } from './deathEffects';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type {
+  WerewolfNightFacts,
+  WerewolfRoleStepContext,
+  WerewolfRoleStepDefinition,
+} from './role';
 import { defineRole } from './role';
 import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
 
@@ -22,15 +26,10 @@ const COPY = defineCopy({
   notInfected: '你未被感染',
 });
 
-const infectStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const infectStep: WerewolfRoleStepDefinition = {
   id: 'seedWolfInfect',
   title: COPY.action,
-  audio: () => ({ begin: 'seedWolf', end: 'seedWolf' }),
+  audio: defineWerewolfStepAudio('seedWolf'),
   actors: (context) =>
     context.state.nightNumber === 1
       ? context.state.seatedSeats.filter((seat) =>

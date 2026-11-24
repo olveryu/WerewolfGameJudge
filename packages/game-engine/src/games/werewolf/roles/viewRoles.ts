@@ -1,7 +1,7 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import { defineWerewolfStepAudio } from './audio';
+import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { getRoleAbilityLockReason } from './roleSteps';
 
@@ -85,13 +85,11 @@ interface ViewStepOptions {
   readonly reviewPhrase: (context: WerewolfRoleStepContext) => string;
 }
 
-function createViewStep(
-  options: ViewStepOptions,
-): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+function createViewStep(options: ViewStepOptions): WerewolfRoleStepDefinition {
   return {
     id: options.id,
     title: options.stepTitle,
-    audio: () => ({ begin: options.roleId, end: options.roleId }),
+    audio: defineWerewolfStepAudio(options.roleId),
     actors: (context) =>
       context.state.seatedSeats.filter((seat) =>
         context.role.activeRoleIdsOf(seat).includes(options.roleId),

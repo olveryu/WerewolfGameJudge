@@ -1,5 +1,6 @@
 import type { StepContextBase, StepDefinition } from '../../../platform/steps';
 import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
+import type { WerewolfStepAudio } from './audio';
 import type { WerewolfRoleContext } from './context';
 import type { AttackCause, DeathEffect } from './deathEffects';
 import type { IdentityLayer } from './identity';
@@ -143,6 +144,13 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
 }
 
+export type WerewolfRoleStepDefinition = Omit<
+  StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult>,
+  'audio'
+> & {
+  readonly audio: WerewolfStepAudio<WerewolfRoleStepContext>;
+};
+
 export interface WerewolfRoleResource {
   readonly kind: string;
   readonly uses: number;
@@ -165,12 +173,7 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
     readonly checkReaction?: WerewolfCheckReaction;
     readonly immunities?: readonly AttackCause[];
   };
-  readonly steps: readonly StepDefinition<
-    string,
-    WerewolfRoleStepContext,
-    WerewolfNightFacts,
-    WerewolfRoleStepResult
-  >[];
+  readonly steps: readonly WerewolfRoleStepDefinition[];
   readonly nightSchedule?: 'firstNight' | 'everyNight';
   readonly oneUseOnSuccess?: boolean;
   readonly resources?: readonly WerewolfRoleResource[];

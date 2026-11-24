@@ -1,8 +1,8 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type { WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
 
@@ -23,15 +23,10 @@ const COPY = defineCopy({
   notHypnotized: '你未被催眠',
 });
 
-const hypnotizeStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const hypnotizeStep: WerewolfRoleStepDefinition = {
   id: 'piperHypnotize',
   title: COPY.action,
-  audio: () => ({ begin: 'piper', end: 'piper' }),
+  audio: defineWerewolfStepAudio('piper'),
   actors: (context) =>
     context.state.seatedSeats.filter((seat) =>
       context.role.activeRoleIdsOf(seat).includes('piper'),

@@ -1,5 +1,6 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type { WerewolfNightFacts } from './role';
 import { defineRole } from './role';
@@ -29,7 +30,7 @@ export const magician = defineRole({
     {
       id: 'magicianSwap',
       title: COPY.stepTitle,
-      audio: () => ({ begin: 'magician', end: 'magician' }),
+      audio: defineWerewolfStepAudio('magician'),
       actors: (context) =>
         context.state.seatedSeats.filter((seat) =>
           context.role.activeRoleIdsOf(seat).includes('magician'),

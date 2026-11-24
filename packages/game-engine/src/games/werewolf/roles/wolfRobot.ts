@@ -1,10 +1,15 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { SeatSubmissionForReview, StepDefinition } from '../../../platform/steps/step';
+import type { SeatSubmissionForReview } from '../../../platform/steps/step';
 import { STEP_SKIP_ACTION_KEY } from '../../../platform/steps/step';
 import type { SeatRecord } from '../../../platform/steps/types';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type {
+  WerewolfRoleStepContext,
+  WerewolfRoleStepDefinition,
+  WerewolfRoleStepResult,
+} from './role';
 import { defineRole } from './role';
 import { getActingSeat, getRoleAbilityLockReason, renderIdentityCheckResult } from './roleSteps';
 
@@ -27,15 +32,10 @@ const COPY = defineCopy({
 
 const LEARN_ACTION_KEY = 'wolfRobotLearn';
 
-const wolfRobotLearnStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
   id: LEARN_ACTION_KEY,
   title: COPY.stepTitle,
-  audio: () => ({ begin: 'wolfRobot', end: 'wolfRobot' }),
+  audio: defineWerewolfStepAudio('wolfRobot'),
   actors: (context) =>
     context.state.nightNumber === 1
       ? context.state.seatedSeats.filter((seat) =>

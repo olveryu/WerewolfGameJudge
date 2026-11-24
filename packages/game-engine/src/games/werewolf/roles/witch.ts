@@ -1,8 +1,9 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { SeatSubmissionForReview, StepDefinition } from '../../../platform/steps/step';
+import type { SeatSubmissionForReview } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import type { DeathEffect } from './deathEffects';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { getActingSeat, getRoleAbilityLockReason, resolveRoleTarget } from './roleSteps';
 
@@ -26,15 +27,10 @@ const COPY = defineCopy({
   actualLanding: '（实际为{seat}）',
 });
 
-const witchActionStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const witchActionStep: WerewolfRoleStepDefinition = {
   id: 'witchAction',
   title: COPY.stepTitle,
-  audio: () => ({ begin: 'witch', end: 'witch' }),
+  audio: defineWerewolfStepAudio('witch'),
   actors: (context) =>
     context.state.seatedSeats.filter((seat) =>
       context.role.activeRoleIdsOf(seat).includes('witch'),

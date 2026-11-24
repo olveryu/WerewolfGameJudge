@@ -1,9 +1,9 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type { PresenceDeclaration } from './presence';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type { WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
 
@@ -25,15 +25,10 @@ const COPY = defineCopy({
   notLover: '你不是情侣',
 });
 
-const chooseLoversStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const chooseLoversStep: WerewolfRoleStepDefinition = {
   id: 'cupidChooseLovers',
   title: COPY.action,
-  audio: () => ({ begin: 'cupid', end: 'cupid' }),
+  audio: defineWerewolfStepAudio('cupid'),
   actors: (context) =>
     context.state.nightNumber === 1
       ? context.state.seatedSeats.filter((seat) =>

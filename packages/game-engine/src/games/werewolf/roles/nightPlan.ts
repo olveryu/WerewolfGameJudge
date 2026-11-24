@@ -1,4 +1,3 @@
-import type { StepDefinition } from '../../../platform/steps';
 import type { RoleId } from '../domain/models';
 import { NIGHT_STEP_ORDER } from '../domain/models/roles/spec/nightStepIds';
 import {
@@ -7,17 +6,11 @@ import {
   type WerewolfNightFacts,
   type WerewolfRoleDefinition,
   type WerewolfRoleState,
-  type WerewolfRoleStepContext,
-  type WerewolfRoleStepResult,
+  type WerewolfRoleStepDefinition,
 } from '.';
 import { grantBorrowedAbility, replaceCurrentRole } from './identity';
 
-export type WerewolfRoleStep = StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
->;
+export type WerewolfRoleStep = WerewolfRoleStepDefinition;
 
 export interface WerewolfNightDeal {
   readonly seats: readonly { readonly seat: number; readonly role: RoleId }[];

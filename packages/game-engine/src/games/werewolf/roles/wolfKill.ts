@@ -1,7 +1,7 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import { defineWerewolfStepAudio } from './audio';
+import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { getActingSeat } from './roleSteps';
 
 const COPY = defineCopy({
@@ -29,15 +29,10 @@ const COPY = defineCopy({
   reviewNightmare: '狼队放弃袭击，被噩梦之影封锁',
 });
 
-export const wolfKillStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+export const wolfKillStep: WerewolfRoleStepDefinition = {
   id: 'wolfKill',
   title: COPY.title,
-  audio: () => ({ begin: 'wolf', end: 'wolf' }),
+  audio: defineWerewolfStepAudio('wolf'),
   actors: getWolfVoters,
   progressActors: getRequiredWolfVoters,
   actions: [

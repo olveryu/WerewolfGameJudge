@@ -1,8 +1,8 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import type { StepDefinition } from '../../../platform/steps/step';
+import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
 
@@ -24,15 +24,10 @@ const COPY = defineCopy({
   notConverted: '你未被转化',
 });
 
-const convertStep: StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
-> = {
+const convertStep: WerewolfRoleStepDefinition = {
   id: 'awakenedGargoyleConvert',
   title: COPY.action,
-  audio: () => ({ begin: 'awakenedGargoyle', end: 'awakenedGargoyle' }),
+  audio: defineWerewolfStepAudio('awakenedGargoyle'),
   actors: (context) =>
     context.state.nightNumber === 1
       ? context.state.seatedSeats.filter((seat) =>
