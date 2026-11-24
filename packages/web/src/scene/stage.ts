@@ -135,10 +135,11 @@ const opaqueSampler: MorphSampler = () => ({ opacity: 1 });
 export const CONTEXT_RESTORE_DEADLINE_MS = 3000;
 
 /**
- * A failed rebuild (no new WebGL context could be created) is retried after the previous wait
- * times this factor of visible time: 3 s, then 6, 12, 24 and 48 s. Context creation fails while
- * the GPU is still out of memory or the context limit is still reached; both clear on their own
- * once other contexts are released, which takes seconds to tens of seconds, not milliseconds.
+ * A failed rebuild (no new WebGL context could be created, or PixiJS's `init` rejected on it) is
+ * retried after the previous wait times this factor of visible time: 3 s, then 6, 12, 24 and 48 s.
+ * Context creation fails while the GPU is still out of memory or the context limit is still
+ * reached; both clear on their own once other contexts are released, which takes seconds to tens
+ * of seconds, not milliseconds.
  */
 const REBUILD_BACKOFF_FACTOR = 2;
 
@@ -1395,11 +1396,13 @@ function releaseUnfinishedRenderer(
  * only be passed with a type assertion; passing it for WebGL 2 alone would split the handover into
  * two paths.
  *
- * If `init` rejects anyway (for example because the context was lost during it and a call on the
- * lost context throws), `releaseUnfinishedRenderer` frees it. A loss during `init` does not always
- * reject: in Chromium a context lost before PixiJS's limits check makes its
- * `checkMaxIfStatementsInShader` loop without end, since every call on a lost context returns
- * null. That is PixiJS's own defect and is outside what this function can catch.
+ * If `init` rejects anyway, `releaseUnfinishedRenderer` frees it. A context lost before or during
+ * PixiJS's limits check makes `init` reject: calls on a lost context return null, and the check
+ * (`checkMaxIfStatementsInShader`, run by `GlLimitsSystem` at `init` and on every restore) then
+ * throws. Upstream 8.23 loops without end there instead, freezing the page; the repository
+ * patches it (`patches/pixi.js@8.23.0.patch`, pinned by `pixiShaderLimitPatch.test.ts`). A loss
+ * after the check is not turned into a rejection here; it reaches the stage as a
+ * `webglcontextlost` event on the adopted canvas.
  *
  * @returns the renderer; rejects when WebGL is unavailable
  */
