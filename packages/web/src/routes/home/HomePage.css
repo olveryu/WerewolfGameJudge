@@ -36,19 +36,13 @@
 
 .home-account {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-min-touch-target);
+  min-height: var(--size-min-touch-target);
   color: var(--color-primary);
-}
-
-/* The account entry is the avatar itself, not a key: it keeps the shared icon link's size and
- * focus ring but none of its border, paper face, shadow or press motion. */
-.home-account.icon-button,
-.home-account.icon-button:active:not(:disabled),
-.home-account.icon-button:hover:not(:disabled) {
-  border: none;
-  background: none;
-  color: var(--color-primary);
-  box-shadow: none;
-  transform: none;
+  text-decoration: none;
 }
 
 .home-account-placeholder {

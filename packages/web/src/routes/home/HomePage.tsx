@@ -7,7 +7,6 @@ import { Link, useNavigate } from 'react-router';
 import { Avatar } from '@/components/avatar/Avatar';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
-import { IconLink } from '@/components/IconLink';
 import { ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
@@ -158,26 +157,23 @@ export function HomePage() {
             data-testid={TESTIDS.homeGuideButton}
             onClick={openGuide}
           />
-          <IconLink
+          <Link
             to="/settings"
-            label="设置"
             className="home-account"
-            icon={
-              <>
-                {user ? (
-                  <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
-                ) : (
-                  <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
-                )}
-                {user && (
-                  <Suspense fallback={null}>
-                    <TicketBadge />
-                  </Suspense>
-                )}
-              </>
-            }
+            aria-label="设置"
             data-testid={TESTIDS.homeSettingsButton}
-          />
+          >
+            {user ? (
+              <Avatar userId={user.id} avatarUrl={user.avatarUrl} size={36} />
+            ) : (
+              <IconPersonCircleOutline className="home-account-placeholder" aria-hidden />
+            )}
+            {user && (
+              <Suspense fallback={null}>
+                <TicketBadge />
+              </Suspense>
+            )}
+          </Link>
         </div>
       </header>
 
