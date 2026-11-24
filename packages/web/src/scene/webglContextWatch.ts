@@ -1,9 +1,10 @@
 /**
  * WebGL context loss on the scene canvas. Browsers (iOS WebKit in particular, under GPU memory
- * pressure or after the page was backgrounded) may drop the canvas's context; it comes back only
- * when the `webglcontextlost` event's default is prevented, and then arrives as
- * `webglcontextrestored`. PixiJS listens too and re-creates its GPU state on restore; the stage
- * uses this to pause while the context is gone and redraw once it is back.
+ * pressure or after the page was backgrounded) may drop the canvas's context and later restore it
+ * as `webglcontextrestored`. PixiJS (8.x `GlContextSystem`) already prevents the loss event's
+ * default, which is what lets the browser restore it, and re-creates its GPU state on restore;
+ * this watcher only observes both events so the stage can pause while the context is gone and
+ * redraw once it is back.
  */
 
 export interface WebglContextHandlers {
@@ -16,11 +17,7 @@ export function watchWebglContext(
   canvas: HTMLCanvasElement,
   handlers: WebglContextHandlers,
 ): () => void {
-  const lost = (event: Event) => {
-    // Without this the browser never restores the context and the canvas stays blank.
-    event.preventDefault();
-    handlers.onLost();
-  };
+  const lost = () => handlers.onLost();
   const restored = () => handlers.onRestored();
   canvas.addEventListener('webglcontextlost', lost);
   canvas.addEventListener('webglcontextrestored', restored);

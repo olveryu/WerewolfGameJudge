@@ -803,8 +803,9 @@ class SceneStage implements EntranceHost {
       this.overlay?.frame(timeMs);
     });
     document.addEventListener('visibilitychange', () => this.syncTicker());
-    // PixiJS registered its own listeners during `init`, so on restore its GPU state (textures,
-    // buffers, shaders) is already reset for re-upload when this redraw runs.
+    // PixiJS registered its own listeners during `init`: its loss handler prevents the default (so
+    // the browser may restore the context) and its restore handler resets GPU state (textures,
+    // buffers, shaders) for re-upload before this redraw runs.
     watchWebglContext(application.canvas, {
       onLost: () => {
         this.contextLost = true;
@@ -927,7 +928,8 @@ class SceneStage implements EntranceHost {
     this.syncTicker();
     if (!animating) {
       overlay.frame(this.application.ticker.lastTime);
-      this.application.render();
+      // A lost context draws nothing; the restore handler puts this still frame back.
+      if (!this.contextLost) this.application.render();
     }
   }
 
@@ -943,8 +945,9 @@ class SceneStage implements EntranceHost {
       this.application.resizeTo = target;
       this.resizeObserver = new ResizeObserver(() => {
         this.application.resize();
-        // A stopped ticker renders nothing on its own; redraw the still frame at the new size.
-        if (!this.application.ticker.started) this.application.render();
+        // A stopped ticker renders nothing on its own; redraw the still frame at the new size
+        // (unless the context is lost: the restore handler redraws at whatever size it is then).
+        if (!this.application.ticker.started && !this.contextLost) this.application.render();
       });
       this.resizeObserver.observe(target);
     } else {
@@ -1090,11 +1093,6 @@ export function sharedSceneStage(): Promise<SceneStage> {
 }
 
 /**
- * Creates a stage. Call through `sharedSceneStage()`, which keeps it app-wide.
- *
- * @returns the stage; rejects when WebGL is unavailable
- */
-/**
  * The white disc every dot sprite draws, painted on a 2D canvas rather than rendered on the GPU:
  * a canvas-backed source survives WebGL context loss (PixiJS re-uploads it), a render texture
  * would come back empty.
@@ -1123,6 +1121,11 @@ function createDotTexture(resolution: number): Texture {
   });
 }
 
+/**
+ * Creates a stage. Call through `sharedSceneStage()`, which keeps it app-wide.
+ *
+ * @returns the stage; rejects when WebGL is unavailable
+ */
 async function createSceneStage(): Promise<SceneStage> {
   const application = new Application();
   await application.init({

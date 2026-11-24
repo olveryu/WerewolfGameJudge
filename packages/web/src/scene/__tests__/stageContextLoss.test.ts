@@ -14,7 +14,13 @@ const app = vi.hoisted(() => {
       ticker.started = false;
     }),
   };
-  return { ticker, render: vi.fn(), canvas: null as HTMLCanvasElement | null };
+  return {
+    ticker,
+    render: vi.fn(),
+    resize: vi.fn(),
+    canvas: null as HTMLCanvasElement | null,
+    resizeCallbacks: [] as Array<() => void>,
+  };
 });
 
 vi.mock('pixi.js/browser', () => ({}));
@@ -26,6 +32,8 @@ vi.mock('pixi.js', async (importOriginal) => {
     readonly renderer = { resolution: 1 };
     readonly canvas = document.createElement('canvas');
     readonly render = app.render;
+    readonly resize = app.resize;
+    resizeTo: HTMLElement | null = null;
     async init(): Promise<void> {
       app.canvas = this.canvas;
     }
@@ -47,8 +55,16 @@ describe('scene stage WebGL context loss', () => {
     vi.stubGlobal(
       'ResizeObserver',
       class {
-        observe() {}
-        disconnect() {}
+        private readonly callback: () => void;
+        constructor(callback: () => void) {
+          this.callback = callback;
+        }
+        observe() {
+          app.resizeCallbacks.push(this.callback);
+        }
+        disconnect() {
+          app.resizeCallbacks = app.resizeCallbacks.filter((c) => c !== this.callback);
+        }
       },
     );
     // jsdom has no 2D canvas: the dot texture only needs the drawing calls to exist.
@@ -74,10 +90,7 @@ describe('scene stage WebGL context loss', () => {
     const release = stage.mountOverlay(host, root, () => {});
     expect(app.ticker.started).toBe(true);
 
-    const lost = contextEvent('webglcontextlost');
-    expect(() => sceneCanvas().dispatchEvent(lost)).not.toThrow();
-    // Without preventDefault the browser never gives the context back.
-    expect(lost.defaultPrevented).toBe(true);
+    expect(() => sceneCanvas().dispatchEvent(contextEvent('webglcontextlost'))).not.toThrow();
     expect(app.ticker.started).toBe(false);
     expect(app.render).not.toHaveBeenCalled();
 
@@ -101,6 +114,52 @@ describe('scene stage WebGL context loss', () => {
     sceneCanvas().dispatchEvent(contextEvent('webglcontextrestored'));
     expect(app.ticker.started).toBe(false);
     expect(app.render).toHaveBeenCalledTimes(1);
+    release();
+  });
+
+  it('draws nothing when an overlay pauses while the context is lost, and redraws on restore', async () => {
+    const { sharedSceneStage } = await import('@/scene/stage');
+    const stage = await sharedSceneStage();
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = new Container();
+    const release = stage.mountOverlay(host, root, () => {});
+    expect(app.ticker.started).toBe(true);
+
+    sceneCanvas().dispatchEvent(contextEvent('webglcontextlost'));
+    app.render.mockClear();
+    stage.setOverlayAnimating(root, false);
+    expect(app.render).not.toHaveBeenCalled();
+
+    sceneCanvas().dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(app.ticker.started).toBe(false);
+    expect(app.render).toHaveBeenCalledTimes(1);
+    release();
+  });
+
+  it('draws nothing on resize while the context is lost, and redraws on restore and later resizes', async () => {
+    const { sharedSceneStage } = await import('@/scene/stage');
+    const stage = await sharedSceneStage();
+    const host = document.createElement('div');
+    document.body.append(host);
+    const root = new Container();
+    const release = stage.mountOverlay(host, root, () => {});
+    stage.setOverlayAnimating(root, false);
+    const fireResize = () => {
+      for (const callback of app.resizeCallbacks) callback();
+    };
+    expect(app.resizeCallbacks.length).toBeGreaterThan(0);
+
+    sceneCanvas().dispatchEvent(contextEvent('webglcontextlost'));
+    app.render.mockClear();
+    fireResize();
+    expect(app.resize).toHaveBeenCalled();
+    expect(app.render).not.toHaveBeenCalled();
+
+    sceneCanvas().dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(app.render).toHaveBeenCalledTimes(1);
+    fireResize();
+    expect(app.render).toHaveBeenCalledTimes(2);
     release();
   });
 });
