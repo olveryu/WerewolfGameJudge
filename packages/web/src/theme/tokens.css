@@ -136,6 +136,11 @@
   --shadow-tabletop-key-light: var(--surface-button-shadow-light);
   --shadow-tabletop-sheet: 0 -2px 0 var(--color-border-light), 0 -5px 12px var(--color-text-a3);
   --shadow-tabletop-inset: inset 0 2px 4px var(--color-text-a3);
+  /* Stacking layers: the room hand's raised card and its blocked-reason bubble, then floating
+   * controls (the werewolf assistant bubble) that must stay above the hand when dragged over it. */
+  --layer-hand-raised: 100;
+  --layer-hand-reason: 101;
+  --layer-floating-control: 110;
 }
 
 /* Admin aliases keep the console on the same light palette as the rest of the site. */

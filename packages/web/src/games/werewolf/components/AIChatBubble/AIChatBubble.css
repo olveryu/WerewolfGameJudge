@@ -1,7 +1,7 @@
 /* Floating bubble */
 .ai-chat-bubble-anchor {
   position: fixed;
-  z-index: 10;
+  z-index: var(--layer-floating-control);
   width: var(--size-button-lg);
   height: var(--size-button-lg);
 }

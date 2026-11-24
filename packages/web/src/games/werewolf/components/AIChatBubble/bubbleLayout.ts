@@ -8,7 +8,15 @@ export const BUBBLE_PULSE_OVERHANG = (BUBBLE_WIDTH * (BUBBLE_PULSE_MAX_SCALE - 1
 export const BUBBLE_HORIZONTAL_MARGIN = Math.ceil(Math.max(BUBBLE_MARGIN, BUBBLE_PULSE_OVERHANG));
 /** Keeps the bubble clear of the page header. */
 const BUBBLE_TOP_INSET = BUBBLE_MARGIN + 50;
-const DEFAULT_BOTTOM_INSET = 140;
+/**
+ * Height the room hand can reach above the viewport bottom, mirrored from tokens.css and
+ * RoomActionHand.css: top padding (--space-medium) + visible card (--size-hand-card-visible)
+ * + bottom padding (--space-small plus the fan drop), then a hovered or focused card's raise
+ * (--space-medium) and the 「待行动」 badge above it (--line-caption).
+ */
+export const ROOM_HAND_REACH = 16 + 120 + 16 + 16 + 16;
+/** The default spot sits a margin above the hand so the bubble never covers or hides behind it. */
+const DEFAULT_BOTTOM_INSET = ROOM_HAND_REACH + BUBBLE_MARGIN;
 
 export interface BubblePosition {
   readonly x: number;
