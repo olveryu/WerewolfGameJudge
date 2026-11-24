@@ -7,6 +7,13 @@ interface FakeRenderer {
   readonly scheduler: { readonly destroy: () => void };
   readonly events: { readonly destroy: () => void };
   readonly view: { readonly destroy: () => void };
+  readonly accessibility: { readonly destroy: () => void };
+  readonly filter: { readonly destroy: () => void };
+  /** A system whose `init` runs after the context system's, so a failed `init` never reaches it. */
+  readonly limits: { readonly destroy: () => void };
+  /** A render pipe whose `destroy` throws without a context, like `GlSmoothGraphicsAdaptor`'s. */
+  readonly renderPipes: { readonly smoothGraphics: { readonly destroy: ReturnType<typeof vi.fn> } };
+  readonly runners: { readonly destroy: { readonly items: readonly object[] } };
   readonly render: ReturnType<typeof vi.fn>;
   readonly resize: ReturnType<typeof vi.fn>;
   readonly destroy: ReturnType<typeof vi.fn>;
@@ -45,6 +52,10 @@ const pixiFake = vi.hoisted(() => ({
   /** The global events ticker's own listener on `Ticker.system`. */
   eventsTickerListener: {},
   poolScreens: new Set<number>(),
+  /** The accessibility systems listening for `keydown` on `globalThis` (`activateOnTab`). */
+  windowKeydownListeners: new Set<object>(),
+  /** The filter systems listening for the global `TexturePool`'s `evict`. */
+  texturePoolEvictListeners: new Set<object>(),
   /** How many of the next context creations get no WebGL context at all (either version). */
   contextFailures: 0,
   /** When true, `getContext('webgl2')` returns null, as on a WebGL 1 only device. */
@@ -96,10 +107,49 @@ vi.mock('pixi.js', async (importOriginal) => {
         pixiFake.poolScreens.delete(this.screenKey);
       },
     };
+    readonly accessibility = {
+      destroy: () => {
+        pixiFake.windowKeydownListeners.delete(this.accessibility);
+      },
+    };
+    readonly filter = {
+      destroy: () => {
+        pixiFake.texturePoolEvictListeners.delete(this.filter);
+      },
+    };
+    private limitsInitialised = false;
+    readonly limits = {
+      destroy: () => {
+        if (!this.limitsInitialised) throw new TypeError('limits destroyed before its init ran');
+      },
+    };
+    readonly renderPipes = {
+      smoothGraphics: {
+        destroy: vi.fn(() => {
+          throw new TypeError("Cannot read properties of null (reading 'destroy')");
+        }),
+      },
+    };
+    // PixiJS adds the systems in attach order, then the pipes, to the `destroy` runner.
+    readonly runners = {
+      destroy: {
+        items: [
+          this.view,
+          this.scheduler,
+          this.accessibility,
+          this.events,
+          this.filter,
+          this.limits,
+          this.renderPipes.smoothGraphics,
+        ],
+      },
+    };
     readonly destroy = vi.fn((options?: { removeView?: boolean }) => {
       if (options?.removeView) this.canvas.remove();
       this.scheduler.destroy();
+      this.accessibility.destroy();
       this.events.destroy();
+      this.filter.destroy();
       this.view.destroy();
       pixiFake.renderers = pixiFake.renderers.filter((renderer) => renderer !== this);
     });
@@ -111,18 +161,23 @@ vi.mock('pixi.js', async (importOriginal) => {
       pixiFake.initOptions.push(options);
       if (options.canvas) this.canvas = options.canvas;
       if (pixiFake.initGate) await pixiFake.initGate;
-      // What PixiJS 8 has done before a lost context can make `init` throw (inside the context
-      // system): the event system's constructor claimed the global events ticker, the scheduler
-      // joined `Ticker.system`, and the view cached the canvas texture and registered its screen.
+      // What PixiJS 8 has done before a lost context can make `init` throw (at the context or
+      // limits system): the event system's constructor claimed the global events ticker, the
+      // scheduler joined `Ticker.system`, the view cached the canvas texture and registered its
+      // screen, the accessibility system listens for `keydown` on `globalThis`, and the filter
+      // system for the global `TexturePool`'s `evict`.
       pixiFake.eventsTickerOwner = this.events;
       pixiFake.systemTickerListeners.add(pixiFake.eventsTickerListener);
       pixiFake.systemTickerListeners.add(this.scheduler);
       pixi.getCanvasTexture(this.canvas);
       pixiFake.poolScreens.add(this.screenKey);
+      pixiFake.windowKeydownListeners.add(this.accessibility);
+      pixiFake.texturePoolEvictListeners.add(this.filter);
       if (pixiFake.initFailures > 0) {
         pixiFake.initFailures -= 1;
         throw new Error('WebGL context lost during init');
       }
+      this.limitsInitialised = true;
       pixiFake.renderers.push(this);
     }
   }
@@ -448,7 +503,9 @@ describe('scene stage WebGL context loss', () => {
     release();
   });
 
-  it('redraws a still scene once after rebuilding', async () => {
+  // Placing the new canvas draws the moved scene. In a browser the ResizeObserver then reports the
+  // initial size and draws it again; the stub observer here does not report on `observe`.
+  it('redraws a still scene when the rebuild places the new canvas', async () => {
     const { stage, root, release } = await mountedStage();
     stage.setOverlayAnimating(root, false);
     const lost = current();
@@ -643,9 +700,15 @@ describe('scene stage WebGL context loss', () => {
     expect(pixiFake.eventsTickerOwner).not.toBe(failed.events);
     expect(pixiFake.poolScreens.has(failed.screenKey)).toBe(false);
     expect(hasCachedCanvasTexture(failed.canvas)).toBe(false);
+    expect(pixiFake.windowKeydownListeners.has(failed.accessibility)).toBe(false);
+    expect(pixiFake.texturePoolEvictListeners.has(failed.filter)).toBe(false);
     expect(pixiFake.releasedContexts).toContain(failed.canvas);
-    // The full renderer destroy is not what does this (see `releaseUnfinishedRenderer`).
+    // Every system is destroyed, even after one that throws (`limits`, whose init never ran), and
+    // no render pipe is: the full renderer destroy would stop at the first pipe that throws.
+    expect(failed.renderPipes.smoothGraphics.destroy).not.toHaveBeenCalled();
     expect(failed.destroy).not.toHaveBeenCalled();
+    expect(pixiFake.windowKeydownListeners.has(lost.accessibility)).toBe(true);
+    expect(pixiFake.texturePoolEvictListeners.has(lost.filter)).toBe(true);
     // The live renderer's own registrations are untouched.
     expect(pixiFake.poolScreens).toEqual(screens);
     for (const listener of listeners) {

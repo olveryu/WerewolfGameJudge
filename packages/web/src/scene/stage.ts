@@ -33,7 +33,6 @@ import {
   Container,
   Graphics,
   GraphicsContext,
-  hasCachedCanvasTexture,
   ImageSource,
   Sprite,
   Texture,
@@ -1358,29 +1357,68 @@ function webgl1ContextOf(canvas: HTMLCanvasElement): CreatedWebglContext | null 
 }
 
 /**
- * Releases what a renderer whose `init` rejected holds outside itself, so that nothing global
- * references it any more. What exists by then (PixiJS 8.23 source; checked in Chromium with a
- * renderer made to fail inside its context system): every system is attached, since
- * `AbstractRenderer.init` adds them all before running any system's `init` and, with
- * `skipExtensionImports`, nothing before that can reject; the event system's constructor has
- * claimed the global `EventsTicker`, which listens on the global `Ticker.system`; the scheduler has
- * joined `Ticker.system`, carrying the garbage collectors' repeating tasks; and the view, if its
- * `init` ran (it caches the canvas texture), has registered the screen size with the global texture
- * and canvas pools. The scheduler's and the event system's `destroy` work whether or not their
- * `init` ran; the view's needs its `init`, hence the check. The renderer's own `destroy` is not
- * used: its runner destroys the render pipes before the systems, with nothing catching a throw,
- * and a pipe whose adaptor never got a context throws (`GlSmoothGraphicsAdaptor.destroy`), so the
- * scheduler would never be reached.
+ * Releases a renderer whose `init` rejected: destroys each of its systems, last attached first,
+ * then lets go of its GPU context unless it is already lost.
+ *
+ * Several systems register with module-level PixiJS state in their `init` or constructor, which
+ * keeps the whole renderer reachable and, for some, keeps it reacting to the page. Read in the
+ * PixiJS 8.23 source: the scheduler joins the global `Ticker.system` (carrying the garbage
+ * collectors' repeating tasks), the event system claims the global `EventsTicker`, the
+ * accessibility system listens for `keydown` on `globalThis`, the filter system listens for the
+ * global `TexturePool`'s `evict`, and the view registers its screen with the texture and canvas
+ * pools. Each system's own `destroy` undoes its registration, so every system is destroyed
+ * rather than a list of the ones known today. Every system is attached before any system's
+ * `init` runs, so the list is complete whichever `init` failed. In Chromium, with the context
+ * lost just before PixiJS's limits check, every system's `destroy` ran without throwing and the
+ * `keydown` listener, the `evict` listener and the `Ticker.system` listeners were all gone
+ * afterwards. A `destroy` that does throw (as one whose `init` never ran might) is logged and the
+ * rest still run.
+ *
+ * Render pipes are not destroyed: a pipe whose adaptor never got a context throws in its
+ * `destroy` (`GlSmoothGraphicsAdaptor.destroy`), and in 8.23 no pipe registers module-level state
+ * before `init` completes (the DOM pipe creates its canvas observer in its own `init`, which runs
+ * after every system's). The renderer's own `destroy` is not used for the same reason: its runner
+ * destroys the pipes first, with nothing catching a throw, so the systems would never be reached.
  */
 function releaseUnfinishedRenderer(
   renderer: WebGLRenderer,
-  canvas: HTMLCanvasElement,
   context: CreatedWebglContext['context'],
 ): void {
-  renderer.scheduler.destroy();
-  renderer.events.destroy();
-  if (hasCachedCanvasTexture(canvas)) renderer.view.destroy();
-  context.getExtension('WEBGL_lose_context')?.loseContext();
+  const pipes = new Set<unknown>(Object.values(renderer.renderPipes));
+  const destroyable: readonly unknown[] = renderer.runners.destroy.items;
+  const systems = destroyable
+    .filter((item) => !pipes.has(item))
+    .filter(isDestroyable)
+    .reverse();
+  for (const system of systems) {
+    try {
+      system.destroy();
+    } catch (error) {
+      sceneLog.warn(
+        'A system of a failed renderer threw while being destroyed',
+        {
+          system: systemNameOf(renderer, system),
+        },
+        error,
+      );
+    }
+  }
+  // A context already lost (the usual reason `init` failed) has nothing left to release.
+  if (!context.isContextLost()) context.getExtension('WEBGL_lose_context')?.loseContext();
+}
+
+function isDestroyable(item: unknown): item is { destroy(): void } {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'destroy' in item &&
+    typeof item.destroy === 'function'
+  );
+}
+
+/** The renderer property a system is attached under, for logs (class names are minified). */
+function systemNameOf(renderer: WebGLRenderer, system: object): string {
+  return Object.entries(renderer).find(([, value]) => value === system)?.[0] ?? 'unknown';
 }
 
 /**
@@ -1422,7 +1460,7 @@ async function createSceneRenderer(): Promise<WebGLRenderer> {
       autoDensity: true,
     });
   } catch (error) {
-    releaseUnfinishedRenderer(renderer, canvas, context);
+    releaseUnfinishedRenderer(renderer, context);
     throw error;
   }
   canvas.setAttribute('aria-hidden', 'true');
