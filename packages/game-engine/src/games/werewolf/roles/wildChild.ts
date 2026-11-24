@@ -1,0 +1,33 @@
+import { defineCopy } from '../../../platform/steps';
+import { defineRole } from './role';
+import { createSingleTargetStep } from './roleSteps';
+
+const COPY = defineCopy({
+  name: '野孩子',
+  shortName: '野',
+  description:
+    '首夜选择一名玩家作为榜样；榜样被投票放逐时自身变为狼人；若先于榜样出局则始终为好人阵营；未变身时随好人阵营胜利；变为狼人后随狼人阵营胜利',
+  action: '选择榜样',
+});
+
+export const wildChild = defineRole({
+  id: 'wildChild',
+  card: {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '👶',
+    description: COPY.description,
+  },
+  traits: { faction: 'special', team: 'third' },
+  nightSchedule: 'firstNight',
+  steps: [
+    createSingleTargetStep({
+      id: 'wildChildChooseIdol',
+      roleId: 'wildChild',
+      roleName: COPY.name,
+      actionName: COPY.action,
+      skippable: false,
+      canTargetSelf: false,
+    }),
+  ],
+});

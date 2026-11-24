@@ -376,25 +376,30 @@ describe('platform step runtime', () => {
 
 describe('step copy contract', () => {
   it('keeps every Chinese string literal inside a defineCopy table', () => {
-    const sourceDirectory = path.resolve(__dirname, '..');
-    const sourceFiles = collectProductionFiles(sourceDirectory);
     const violations: string[] = [];
-    for (const filePath of sourceFiles) {
-      const sourceFile = ts.createSourceFile(
-        filePath,
-        fs.readFileSync(filePath, 'utf8'),
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS,
-      );
-      const visit = (node: ts.Node): void => {
-        if (hasChineseText(node) && !isInsideDefineCopy(node)) {
-          const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-          violations.push(`${path.relative(sourceDirectory, filePath)}:${line}`);
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(sourceFile);
+    const sourceDirectories = [
+      path.resolve(__dirname, '..'),
+      path.resolve(__dirname, '../../../games/werewolf/roles'),
+    ];
+    for (const sourceDirectory of sourceDirectories) {
+      for (const filePath of collectProductionFiles(sourceDirectory)) {
+        const sourceFile = ts.createSourceFile(
+          filePath,
+          fs.readFileSync(filePath, 'utf8'),
+          ts.ScriptTarget.Latest,
+          true,
+          ts.ScriptKind.TS,
+        );
+        const visit = (node: ts.Node): void => {
+          if (hasChineseText(node) && !isInsideDefineCopy(node)) {
+            const line =
+              sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+            violations.push(`${path.relative(sourceDirectory, filePath)}:${line}`);
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile);
+      }
     }
     expect(violations).toEqual([]);
   });

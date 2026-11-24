@@ -1,9 +1,10 @@
-import { getSeatIdentity, type IdentityLayer } from './identity';
+import { getActiveRoleIds, getSeatIdentity, type IdentityLayer } from './identity';
 import { type LocationLayer, resolveSelectedSeat } from './location';
 import { getSeenRole, type SightLayer } from './sight';
 
 export interface WerewolfRoleContext<TRole extends string> {
   readonly roleOf: (seat: number) => TRole;
+  readonly activeRoleIdsOf: (seat: number) => readonly TRole[];
   readonly landing: (chosenSeat: number) => number;
   readonly seenRole: (seat: number) => TRole;
 }
@@ -15,6 +16,7 @@ export function createWerewolfRoleContext<TRole extends string>(
 ): WerewolfRoleContext<TRole> {
   return {
     roleOf: (seat) => getSeatIdentity(identities, seat).currentRole,
+    activeRoleIdsOf: (seat) => getActiveRoleIds(getSeatIdentity(identities, seat)),
     landing: (chosenSeat) => resolveSelectedSeat(chosenSeat, location),
     seenRole: (seat) => getSeenRole(identities, sight, seat),
   };

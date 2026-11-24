@@ -1,11 +1,28 @@
+import { crow } from './crow';
 import { cupidPresence } from './cupid';
-import { drunkSeerPresence } from './drunkSeer';
-import { mirrorSeerPresence } from './mirrorSeer';
+import { dreamcatcher } from './dreamcatcher';
+import { drunkSeer, drunkSeerPresence } from './drunkSeer';
+import { eclipseWolfQueen } from './eclipseWolfQueen';
+import { gargoyle } from './gargoyle';
+import { guard } from './guard';
+import { mirrorSeer, mirrorSeerPresence } from './mirrorSeer';
+import { nightmare } from './nightmare';
 import { poisonerPresence } from './poisoner';
+import { poisoner } from './poisoner';
 import type { PresenceDeclaration } from './presence';
+import { psychic } from './psychic';
+import { pureWhite } from './pureWhite';
 import { seerPresence } from './seer';
+import { seer } from './seer';
+import { shadow } from './shadow';
+import { silenceElder } from './silenceElder';
+import { slacker } from './slacker';
 import { thiefPresence } from './thief';
 import { treasureMasterPresence } from './treasureMaster';
+import { votebanElder } from './votebanElder';
+import { wildChild } from './wildChild';
+import { wolfQueen } from './wolfQueen';
+import { wolfWitch } from './wolfWitch';
 
 export { createWerewolfRoleContext, type WerewolfRoleContext } from './context';
 export {
@@ -38,7 +55,40 @@ export {
   type PresenceEffect,
   resolveNightPresenceFacts,
 } from './presence';
+export type {
+  RoleSelection,
+  WerewolfNightFacts,
+  WerewolfRoleFaction,
+  WerewolfRoleResource,
+  WerewolfRoleState,
+  WerewolfRoleStepContext,
+  WerewolfRoleStepResult,
+  WerewolfRoleTeam,
+} from './role';
+export { defineRole, type WerewolfRoleDefinition } from './role';
 export { getSeenRole, type SightLayer } from './sight';
+
+export const WEREWOLF_ROLE_DEFINITIONS = [
+  seer,
+  mirrorSeer,
+  drunkSeer,
+  psychic,
+  gargoyle,
+  pureWhite,
+  wolfWitch,
+  guard,
+  dreamcatcher,
+  silenceElder,
+  votebanElder,
+  crow,
+  wolfQueen,
+  nightmare,
+  eclipseWolfQueen,
+  poisoner,
+  slacker,
+  wildChild,
+  shadow,
+] as const;
 
 export const WEREWOLF_PRESENCE_DECLARATIONS = [
   ...poisonerPresence,
