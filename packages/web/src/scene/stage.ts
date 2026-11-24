@@ -1364,15 +1364,23 @@ function webgl1ContextOf(canvas: HTMLCanvasElement): CreatedWebglContext | null 
  * keeps the whole renderer reachable and, for some, keeps it reacting to the page. Read in the
  * PixiJS 8.23 source: the scheduler joins the global `Ticker.system` (carrying the garbage
  * collectors' repeating tasks), the event system claims the global `EventsTicker`, the
- * accessibility system listens for `keydown` on `globalThis`, the filter system listens for the
- * global `TexturePool`'s `evict`, and the view registers its screen with the texture and canvas
- * pools. Each system's own `destroy` undoes its registration, so every system is destroyed
- * rather than a list of the ones known today. Every system is attached before any system's
- * `init` runs, so the list is complete whichever `init` failed. In Chromium, with the context
- * lost just before PixiJS's limits check, every system's `destroy` ran without throwing and the
- * `keydown` listener, the `evict` listener and the `Ticker.system` listeners were all gone
- * afterwards. A `destroy` that does throw (as one whose `init` never ran might) is logged and the
- * rest still run.
+ * accessibility system listens for `keydown` on `globalThis` and, on phones and tablets (the
+ * iPhone WeChat case), its constructor appends a touch-hook `<button>` to `document.body`, the
+ * filter system listens for the global `TexturePool`'s `evict`, and the view registers its
+ * screen with the texture and canvas pools. Each system's own `destroy` undoes its registration,
+ * so every system is destroyed rather than a list of the ones known today. Every system is
+ * attached before any system's `init` runs, so the list is complete whichever `init` failed. In
+ * Chromium, with the context lost just before PixiJS's limits check, every system's `destroy`
+ * ran without throwing and the `keydown` listener, the `evict` listener and the `Ticker.system`
+ * listeners were all gone afterwards (desktop Chromium creates no touch hook, so its removal is
+ * pinned by the unit test only). A `destroy` that does throw (as one whose `init` never ran
+ * might) is logged and the rest still run.
+ *
+ * The order, last attached first, is the order PixiJS's own `AbstractRenderer.destroy` uses (it
+ * reverses the destroy runner before emitting), so each system is torn down before the systems
+ * attached ahead of it, as in a normal teardown. On a half-built 8.23 renderer no system's
+ * `destroy` depends on that order (read in the source: the only cross-system read is the context
+ * system's `destroy` taking the view's canvas, which the view's `destroy` leaves in place), so no test pins it.
  *
  * Render pipes are not destroyed: a pipe whose adaptor never got a context throws in its
  * `destroy` (`GlSmoothGraphicsAdaptor.destroy`), and in 8.23 no pipe registers module-level state

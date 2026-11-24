@@ -8,6 +8,8 @@ interface FakeRenderer {
   readonly events: { readonly destroy: () => void };
   readonly view: { readonly destroy: () => void };
   readonly accessibility: { readonly destroy: () => void };
+  /** The accessibility system's touch-hook button, appended to `document.body` on phones and tablets. */
+  touchHook: HTMLButtonElement | null;
   readonly filter: { readonly destroy: () => void };
   /** A system whose `init` runs after the context system's, so a failed `init` never reaches it. */
   readonly limits: { readonly destroy: () => void };
@@ -56,6 +58,11 @@ const pixiFake = vi.hoisted(() => ({
   windowKeydownListeners: new Set<object>(),
   /** The filter systems listening for the global `TexturePool`'s `evict`. */
   texturePoolEvictListeners: new Set<object>(),
+  /**
+   * When true, PixiJS's own restore handler throws, as the patched limits check does when the
+   * context is lost again while PixiJS resets its GPU state.
+   */
+  pixiRestoreThrows: false,
   /** How many of the next context creations get no WebGL context at all (either version). */
   contextFailures: 0,
   /** When true, `getContext('webgl2')` returns null, as on a WebGL 1 only device. */
@@ -87,6 +94,7 @@ vi.mock('pixi.js', async (importOriginal) => {
     readonly resolution = 1;
     readonly render = vi.fn();
     readonly resize = vi.fn();
+    touchHook: HTMLButtonElement | null = null;
     readonly scheduler = {
       destroy: () => {
         pixiFake.systemTickerListeners.delete(this.scheduler);
@@ -108,8 +116,11 @@ vi.mock('pixi.js', async (importOriginal) => {
       },
     };
     readonly accessibility = {
+      // AccessibilitySystem.destroy also removes the touch hook (`_destroyTouchHook`).
       destroy: () => {
         pixiFake.windowKeydownListeners.delete(this.accessibility);
+        this.touchHook?.remove();
+        this.touchHook = null;
       },
     };
     readonly filter = {
@@ -164,8 +175,13 @@ vi.mock('pixi.js', async (importOriginal) => {
       // What PixiJS 8 has done before a lost context can make `init` throw (at the context or
       // limits system): the event system's constructor claimed the global events ticker, the
       // scheduler joined `Ticker.system`, the view cached the canvas texture and registered its
-      // screen, the accessibility system listens for `keydown` on `globalThis`, and the filter
+      // screen, the accessibility system listens for `keydown` on `globalThis` (and, on phones and
+      // tablets, its constructor appended a touch-hook button to `document.body`), and the filter
       // system for the global `TexturePool`'s `evict`.
+      const touchHook = document.createElement('button');
+      touchHook.dataset.pixiTouchHook = String(this.screenKey);
+      document.body.append(touchHook);
+      this.touchHook = touchHook;
       pixiFake.eventsTickerOwner = this.events;
       pixiFake.systemTickerListeners.add(pixiFake.eventsTickerListener);
       pixiFake.systemTickerListeners.add(this.scheduler);
@@ -178,6 +194,12 @@ vi.mock('pixi.js', async (importOriginal) => {
         throw new Error('WebGL context lost during init');
       }
       this.limitsInitialised = true;
+      // GlContextSystem's restore handler, registered before the stage's own watch.
+      this.canvas.addEventListener('webglcontextrestored', () => {
+        if (pixiFake.pixiRestoreThrows) {
+          throw new Error('WebGL context lost during `checkMaxIfStatementsInShader`');
+        }
+      });
       pixiFake.renderers.push(this);
     }
   }
@@ -305,6 +327,7 @@ describe('scene stage WebGL context loss', () => {
     pixiFake.webgl2Unavailable = false;
     pixiFake.lostOnCreate = false;
     pixiFake.initGate = null;
+    pixiFake.pixiRestoreThrows = false;
     for (const renderer of pixiFake.created) {
       renderer.render.mockClear();
       renderer.resize.mockClear();
@@ -702,6 +725,8 @@ describe('scene stage WebGL context loss', () => {
     expect(hasCachedCanvasTexture(failed.canvas)).toBe(false);
     expect(pixiFake.windowKeydownListeners.has(failed.accessibility)).toBe(false);
     expect(pixiFake.texturePoolEvictListeners.has(failed.filter)).toBe(false);
+    expect(failed.touchHook).toBeNull();
+    expect(document.body.querySelector(`[data-pixi-touch-hook="${failed.screenKey}"]`)).toBeNull();
     expect(pixiFake.releasedContexts).toContain(failed.canvas);
     // Every system is destroyed, even after one that throws (`limits`, whose init never ran), and
     // no render pipe is: the full renderer destroy would stop at the first pipe that throws.
@@ -709,6 +734,7 @@ describe('scene stage WebGL context loss', () => {
     expect(failed.destroy).not.toHaveBeenCalled();
     expect(pixiFake.windowKeydownListeners.has(lost.accessibility)).toBe(true);
     expect(pixiFake.texturePoolEvictListeners.has(lost.filter)).toBe(true);
+    expect(lost.touchHook?.isConnected).toBe(true);
     // The live renderer's own registrations are untouched.
     expect(pixiFake.poolScreens).toEqual(screens);
     for (const listener of listeners) {
@@ -750,6 +776,60 @@ describe('scene stage WebGL context loss', () => {
     expect(host.contains(next.canvas)).toBe(true);
     expect(ticker().started).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
+    release();
+  });
+
+  it('recovers when PixiJS throws in its own restore handler because the context is lost again', async () => {
+    const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
+    const { host, release } = await mountedStage();
+    const lost = current();
+    const reported: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      reported.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener('error', onError);
+    pixiFake.pixiRestoreThrows = true;
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    // PixiJS's handler throws; the browser reports it and still runs the stage's watch.
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(reported).toHaveLength(1);
+    expect(ticker().started).toBe(true);
+    // The context the restore handed back is lost again, which pauses the scene once more.
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    expect(ticker().started).toBe(false);
+
+    // With no further restore, the rebuild takes over.
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS);
+    await flush();
+    const next = current();
+    expect(next).not.toBe(lost);
+    expect(host.contains(next.canvas)).toBe(true);
+    expect(ticker().started).toBe(true);
+    window.removeEventListener('error', onError);
+    release();
+  });
+
+  it('resumes on the next full restore after PixiJS threw in its restore handler', async () => {
+    const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
+    const { release } = await mountedStage();
+    const lost = current();
+    const onError = (event: ErrorEvent) => event.preventDefault();
+    window.addEventListener('error', onError);
+    pixiFake.pixiRestoreThrows = true;
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    pixiFake.pixiRestoreThrows = false;
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS - 1);
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+
+    expect(ticker().started).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(current()).toBe(lost);
+    window.removeEventListener('error', onError);
     release();
   });
 });

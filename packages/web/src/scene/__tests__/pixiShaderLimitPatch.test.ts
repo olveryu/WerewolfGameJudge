@@ -16,6 +16,8 @@ interface FakeGlOptions {
   readonly lostFromCompile?: number;
   /** The largest `if` count that compiles; `null` for none. */
   readonly maxCompilingIfs: number | null;
+  /** When true, `createShader` returns null, which WebGL allows on a lost context. */
+  readonly noShader?: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ function fakeGl(options: FakeGlOptions) {
     FRAGMENT_SHADER: 0x8b30,
     COMPILE_STATUS: 0x8b81,
     isContextLost,
-    createShader: () => ({}),
+    createShader: () => (options.noShader ? null : {}),
     shaderSource: (_shader: object, next: string) => {
       source = next;
     },
@@ -84,6 +86,14 @@ describe('patched PixiJS checkMaxIfStatementsInShader', () => {
     expect(() => check(16, gl)).toThrow(/WebGL context lost/);
     expect(gl.state.compiles).toBe(1);
     expect(gl.state.deleted).toBe(1);
+  });
+
+  it('throws when no fragment shader can be created', () => {
+    const gl = fakeGl({ maxCompilingIfs: 16, noShader: true });
+
+    expect(() => check(16, gl)).toThrow(/could not create a fragment shader/);
+    expect(gl.state.compiles).toBe(0);
+    expect(gl.state.deleted).toBe(0);
   });
 
   it('throws when no shader compiles on a live context', () => {
