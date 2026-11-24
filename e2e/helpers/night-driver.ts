@@ -630,7 +630,7 @@ export async function waitForNightEnd(
 
 /**
  * After night ends, open 昨夜信息 through host management, confirm the
- * 提示 dialog with 确定查看, assert the 昨夜信息 title, and return the
+ * 查看昨夜信息？ dialog with 查看, assert the 昨夜信息 title, and return the
  * night-result message. The alert stays open.
  *
  * The action is disabled while the night-end narration plays (audio
@@ -646,9 +646,9 @@ export async function viewLastNightInfo(hostPage: Page): Promise<string> {
   await action.click();
   await expect(panel).not.toBeVisible();
   await pressAlertButton(hostPage, {
-    title: '提示',
+    title: '查看昨夜信息？',
     buttonIndex: 1,
-    buttonLabel: '确定查看',
+    buttonLabel: '查看',
     timeout: CONFIRM_TIMEOUT_MS,
   });
   await expect(hostPage.getByTestId(TESTIDS.alertTitle)).toHaveText('昨夜信息');

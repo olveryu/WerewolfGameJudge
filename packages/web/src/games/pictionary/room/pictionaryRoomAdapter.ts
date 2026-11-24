@@ -7,6 +7,7 @@ import {
   type PictionaryState,
 } from '@game-judge/game-engine/games/pictionary/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
 import {
   createRoomShellModel,
@@ -44,7 +45,6 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 export const PICTIONARY_DISPLAY_NAME = '你画我猜接龙';
 
@@ -155,14 +155,15 @@ export function createPictionaryHostManagement(
     (input.state.phase === 'transition' && !input.state.revealSettlementPending);
   const restart = buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        isComplete
+      confirmAction({
+        label: '重新开始？',
+        body: isComplete
           ? '保留座位和配置，清除本局作品并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
           : '保留座位和配置，清除本局作品并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        input.restartRound,
-      ),
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: input.restartRound,
+      }),
     isEnabled: !input.isCommandSubmitting,
     isLoading: input.isCommandSubmitting || undefined,
   });
@@ -185,7 +186,11 @@ export function createPictionaryHostManagement(
   }
   const startAction: RoomHostAction = buildStartGameAction({
     onPress: () =>
-      showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局绘画接龙', input.startRound),
+      confirmAction({
+        label: HOST_FLOW_CONFIRM.startTitle,
+        body: '将开始本局绘画接龙',
+        onConfirm: input.startRound,
+      }),
     isEnabled: !input.isCommandSubmitting && isPictionaryRoomFull(input.state),
     isLoading: input.isCommandSubmitting || undefined,
     disabledReason: input.isCommandSubmitting

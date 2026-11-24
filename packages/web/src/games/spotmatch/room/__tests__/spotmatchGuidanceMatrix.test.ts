@@ -22,7 +22,7 @@ import {
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { endSpotmatchTestGame } from '@/test-utils/spotmatchState';
-import * as alertPresets from '@/utils/alertPresets';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { SPOTMATCH_GUIDANCE_MATRIX } from '../spotmatchGuidanceMatrix';
 import {
@@ -200,7 +200,6 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
     async (phase) => {
       const state = stateFor(phase);
       const submit = vi.fn(async () => true);
-      const confirm = vi.spyOn(alertPresets, 'showDestructiveAlert').mockImplementation(() => {});
       const host = createSpotmatchHostManagement({
         state,
         capabilities: capabilities(),
@@ -219,8 +218,19 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       if (restart?.state.kind !== 'ready') throw new Error('Restart is not enabled');
       restart.state.onPress();
       expect(submit).not.toHaveBeenCalled();
-      const handler = confirm.mock.calls[0]?.[3];
-      if (handler === undefined) throw new Error('Missing restart confirmation');
+      const confirmation = alertStore.getSnapshot();
+      expect(confirmation).toMatchObject({
+        title: '重新开始？',
+        message:
+          phase === 'ended'
+            ? '保留座位和配置，清除本局结果并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+            : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
+        buttons: [{ text: '取消' }, { text: '重新开始', style: 'destructive' }],
+      });
+      const handler = confirmation?.buttons[1]?.onPress;
+      if (confirmation === null || handler === undefined)
+        throw new Error('Missing restart confirmation');
+      dismissAlert(confirmation.generation);
       await handler();
       expect(submit).toHaveBeenCalledWith(
         '重新开始',
@@ -231,7 +241,6 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
         },
         { actionKey: 'restart' },
       );
-      confirm.mockRestore();
     },
   );
 

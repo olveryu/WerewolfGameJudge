@@ -17,10 +17,11 @@ import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/ros
 import { getMvpGoldenDraws } from '@game-judge/game-engine/product/rewards';
 import { useCallback, useState } from 'react';
 
+import { confirmAction } from '@/features/room/confirm';
 import { HOST_ACTION_KEYS, HOST_FLOW_CONFIRM } from '@/features/room/model/hostManagementActions';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
-import { showConfirmAlert, showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showDismissAlert } from '@/utils/alertPresets';
 
 import type { WerewolfHostControlAction } from '../createWerewolfHostManagement';
 
@@ -80,39 +81,49 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
     (action: WerewolfHostControlAction) => {
       switch (action) {
         case 'prepareToFlip':
-          showConfirmAlert(HOST_FLOW_CONFIRM.assignTitle, ASSIGN_CONFIRM_TEXT, async () => {
-            await submit(
-              '分配角色',
-              { type: 'werewolf.roles.assign' },
-              { actionKey: HOST_ACTION_KEYS.assignRoles },
-            );
+          confirmAction({
+            label: HOST_FLOW_CONFIRM.assignTitle,
+            body: ASSIGN_CONFIRM_TEXT,
+            onConfirm: async () => {
+              await submit(
+                '分配角色',
+                { type: 'werewolf.roles.assign' },
+                { actionKey: HOST_ACTION_KEYS.assignRoles },
+              );
+            },
           });
           return;
         case 'startGame':
-          showConfirmAlert(START_CONFIRM_TITLE, START_CONFIRM_TEXT, async () => {
-            await submit(
-              '开始游戏',
-              { type: 'werewolf.game.begin' },
-              { actionKey: HOST_ACTION_KEYS.startGame },
-            );
+          confirmAction({
+            label: START_CONFIRM_TITLE,
+            body: START_CONFIRM_TEXT,
+            onConfirm: async () => {
+              await submit(
+                '开始游戏',
+                { type: 'werewolf.game.begin' },
+                { actionKey: HOST_ACTION_KEYS.startGame },
+              );
+            },
           });
           return;
         case 'restart':
-          showDestructiveAlert(
-            '重新开始？',
-            state.status === GameStatus.Ended
-              ? state.lastNightInfoConfirmed !== true
-                ? '你尚未确认昨夜信息。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-                : !(state.nightReviewAllowedSeats ?? []).some(
-                      (seat) => state.roster[seat] !== undefined,
-                    )
-                  ? '你尚未授权玩家查看复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-                  : !(state.reviewCompletedUserIds ?? []).includes(state.hostUserId)
-                    ? '你尚未查看本局复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-                    : '保留座位和板子，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-              : '保留座位和板子，清除本局并回到准备。本局中止，不结算完成奖励。',
-            '重新开始',
-            () =>
+          confirmAction({
+            label: '重新开始？',
+            body:
+              state.status === GameStatus.Ended
+                ? state.lastNightInfoConfirmed !== true
+                  ? '你尚未确认昨夜信息。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                  : !(state.nightReviewAllowedSeats ?? []).some(
+                        (seat) => state.roster[seat] !== undefined,
+                      )
+                    ? '你尚未授权玩家查看复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                    : !(state.reviewCompletedUserIds ?? []).includes(state.hostUserId)
+                      ? '你尚未查看本局复盘。重新开始将清除本局并保留座位和板子，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                      : '保留座位和板子，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                : '保留座位和板子，清除本局并回到准备。本局中止，不结算完成奖励。',
+            tone: 'danger',
+            confirmText: '重新开始',
+            onConfirm: () =>
               resetAudioThenSubmit(
                 '重新开始',
                 {
@@ -122,7 +133,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
                 },
                 HOST_ACTION_KEYS.restart,
               ),
-          );
+          });
           return;
       }
     },
@@ -130,12 +141,16 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
   );
 
   const markAllBotsViewed = useCallback(() => {
-    showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', async () => {
-      await submit(
-        '机器人查看身份',
-        { type: 'werewolf.bots.markAllBotsViewed' },
-        { actionKey: HOST_ACTION_KEYS.markBotsViewed },
-      );
+    confirmAction({
+      label: '标记机器人已查看？',
+      body: '将标记所有未查看身份的机器人。',
+      onConfirm: async () => {
+        await submit(
+          '机器人查看身份',
+          { type: 'werewolf.bots.markAllBotsViewed' },
+          { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+        );
+      },
     });
   }, [submit]);
 
@@ -202,19 +217,23 @@ function useMarkAllBotsGroupConfirmed(state: GameState, submit: WerewolfSubmit):
     if (currentStep === null || currentStep === undefined) {
       throw new Error('[FAIL-FAST] Bot acknowledgement without a current step');
     }
-    showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', async () => {
-      await submit(
-        '机器人确认',
-        {
-          type: 'werewolf.step.ackBots',
-          gameSequence,
-          stepId: currentStep.stepId,
-          serial: currentStep.serial,
-        },
-        {
-          actionKey: 'mark-bots-confirmed',
-        },
-      );
+    confirmAction({
+      label: '标记机器人已确认？',
+      body: '将为本阶段的机器人确认信息。',
+      onConfirm: async () => {
+        await submit(
+          '机器人确认',
+          {
+            type: 'werewolf.step.ackBots',
+            gameSequence,
+            stepId: currentStep.stepId,
+            serial: currentStep.serial,
+          },
+          {
+            actionKey: 'mark-bots-confirmed',
+          },
+        );
+      },
     });
   }, [currentStep, gameSequence, submit]);
 }

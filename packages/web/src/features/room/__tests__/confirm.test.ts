@@ -55,6 +55,21 @@ describe('shared room confirmation entry points', () => {
     expect(onView).toHaveBeenCalledOnce();
   });
 
+  it('shows the viewing consequence and reports cancellation', async () => {
+    const onCancel = vi.fn();
+    const onView = vi.fn();
+
+    confirmView({ label: '查看昨夜信息', body: '昨夜信息可能影响警长竞选。', onCancel, onView });
+
+    expect(alertStore.getSnapshot()).toMatchObject({
+      title: '查看昨夜信息？',
+      message: '昨夜信息可能影响警长竞选。',
+    });
+    await pressButton(0);
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onView).not.toHaveBeenCalled();
+  });
+
   it('does not append a second question mark to an already phrased title', () => {
     confirmAction({ label: '确认袭击1号？', onConfirm: vi.fn() });
 

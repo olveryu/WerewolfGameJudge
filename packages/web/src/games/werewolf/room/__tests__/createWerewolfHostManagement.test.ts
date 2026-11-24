@@ -276,7 +276,7 @@ describe('createWerewolfHostManagement', () => {
     expect(actionLabels(model)).toEqual([
       '结束报名',
       '本局复盘',
-      '昨夜信息',
+      '查看昨夜信息',
       '授权玩家查看',
       '重新开始',
     ]);
@@ -647,7 +647,7 @@ describe('createWerewolfHostManagement', () => {
       '评选 MVP',
       '重新开始',
       '本局复盘',
-      '昨夜信息',
+      '查看昨夜信息',
       '授权玩家查看',
     ]);
     const actions = model.actions;

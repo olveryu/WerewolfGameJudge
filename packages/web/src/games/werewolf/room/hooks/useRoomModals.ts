@@ -10,8 +10,9 @@
 
 import { useCallback, useState } from 'react';
 
+import { confirmView } from '@/features/room/confirm';
 import { type AlertButton, DISMISS_BUTTON, showAlert } from '@/utils/alert';
-import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showDismissAlert } from '@/utils/alertPresets';
 
 interface UseRoomModalsDeps {
   /** The game the dialogs belong to; a new game closes the grant picker. */
@@ -72,12 +73,10 @@ export function useRoomModals({
   );
 
   const showLastNightInfo = useCallback(() => {
-    showConfirmAlert(
-      '提示',
-      isGameEnded
-        ? '请确认是否现在查看昨夜信息。'
-        : '昨夜信息可能影响警长竞选，请确认是否现在查看。',
-      () => {
+    confirmView({
+      label: '查看昨夜信息',
+      body: isGameEnded ? undefined : '昨夜信息可能影响警长竞选。',
+      onView: () => {
         const info = getLastNightInfo();
         const curseInfo = getCurseInfo();
         const buttons: AlertButton[] = [
@@ -91,10 +90,10 @@ export function useRoomModals({
             },
           });
         }
+        // Two-button content dialog (查看诅咒 / 知道了): allowlisted in roomDialogEntry.contract (BQ5).
         showAlert('昨夜信息', info, buttons);
       },
-      { confirmText: '确定查看' },
-    );
+    });
   }, [getLastNightInfo, getCurseInfo, isGameEnded, onLastNightInfoConfirmed]);
 
   return { isGrantVisible, openGrant, closeGrant, grantSeatsAccess, showLastNightInfo };

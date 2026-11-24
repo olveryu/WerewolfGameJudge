@@ -11,9 +11,11 @@ import {
   getFibUserSeat,
   isBotSeat,
 } from '@game-judge/game-engine/games/fibking/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import type { RevealEffectType } from '@/features/room/components/RoleRevealEffects/types';
+import { confirmAction } from '@/features/room/confirm';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import { useReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
@@ -36,7 +38,6 @@ import { useRoomReview } from '@/features/room/review/useRoomReview';
 import { FIBKING_ROLE_PORTRAITS } from '@/games/fibking/assets/roleAvatars';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { getFibRevealRolePool } from '../components/FibRoleCardAdapter';
 import {
@@ -187,18 +188,22 @@ export function useFibRoomState({
     );
   };
   const revealRound = () => {
-    showConfirmAlert('公布答案？', '公布后本轮结束，所有玩家都能看到真实释义和身份。', async () => {
-      await submit('公布答案', { type: 'fibking.round.reveal' }, { actionKey: 'reveal-round' });
+    confirmAction({
+      label: '公布答案？',
+      body: '公布后本轮结束，所有玩家都能看到真实释义和身份。',
+      onConfirm: async () => {
+        await submit('公布答案', { type: 'fibking.round.reveal' }, { actionKey: 'reveal-round' });
+      },
     });
   };
   const redrawRound = () => {
-    showConfirmAlert(
-      '重新抽词？',
-      '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
-      async () => {
+    confirmAction({
+      label: '重新抽词？',
+      body: '当前词语和身份将作废，并重新抽取词语、分配身份。已出现的词语不会再次抽到。',
+      onConfirm: async () => {
         await submit('重新抽词', { type: 'fibking.roles.assign' }, { actionKey: 'redraw-round' });
       },
-    );
+    });
   };
   const restartGame = async () => {
     if (state.phase === 'lobby') throw new Error('Cannot restart FibKing from the lobby');
@@ -231,10 +236,10 @@ export function useFibRoomState({
     setGuessRoundId((current) => (current === state.round.roundId ? null : state.round.roundId));
   }, [state.phase, state.round]);
   const guessSeat = (seat: number) => {
-    showConfirmAlert(
-      `确定选择 ${seat + 1} 号座位是老实人？`,
-      '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
-      async () => {
+    confirmAction({
+      label: `指认${formatSeat(seat)}为老实人`,
+      body: '选择后将公开该座位的身份；选中老实人将直接结束本轮。',
+      onConfirm: async () => {
         const succeeded = await submit(
           '大聪明选人',
           { type: 'fibking.round.guess', seat },
@@ -242,7 +247,7 @@ export function useFibRoomState({
         );
         if (succeeded) setGuessRoundId(null);
       },
-    );
+    });
   };
   // 资格 = 已入座且尚未被猜过的座位；选人模式内不合资格的点按静默吞掉。
   const guessPicking = useSeatPicking({

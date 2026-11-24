@@ -494,7 +494,7 @@ async function playQuestCard(page: Page, play: Play, role: RoleName): Promise<vo
   await page
     .getByTestId(play === 'success' ? TESTIDS.avalonQuestSuccess : TESTIDS.avalonQuestFail)
     .click();
-  await confirmAlert(page, '确认出牌？');
+  await confirmAlert(page, play === 'success' ? '打出成功？' : '打出失败？');
   await expect(modal).toContainText('已出牌', { timeout: 10_000 });
   await page.getByTestId(TESTIDS.avalonQuestClose).click();
   await expect(modal).toBeHidden({ timeout: 10_000 });
@@ -534,8 +534,8 @@ interface QuestRoundScript {
   readonly questResult?: QuestResultExpectation;
 }
 
-const LEADER_PICK_PATTERN = /点「预选队伍」打开选人/;
-const LADY_PICK_PATTERN = /点座位盘点选一名没当过湖仙的玩家/;
+const LEADER_PICK_PATTERN = /请点击「预选队伍」/;
+const LADY_PICK_PATTERN = /请选择要查验的玩家/;
 
 async function runQuestRound(pages: Page[], roles: RoleName[], script: QuestRoundScript) {
   let team: readonly number[] = [];
@@ -671,7 +671,7 @@ async function runLadyCheck(
   await new RoomPage(holderPage).getSeatTile(targetSeat).click();
   const confirmModal = holderPage.getByTestId(TESTIDS.alertModal);
   await expect(confirmModal).toBeVisible({ timeout: 10_000 });
-  await expect(holderPage.getByTestId(TESTIDS.alertTitle)).toHaveText('湖中仙女查验');
+  await expect(holderPage.getByTestId(TESTIDS.alertTitle)).toHaveText(`查验${targetSeat + 1}号？`);
   await holderPage.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(confirmModal).toBeHidden({ timeout: 10_000 });
   await waitForBottomActionMessage(bystanderPage);
@@ -991,7 +991,7 @@ test.describe('Avalon full game', () => {
         const assassinPage = pages[assassinSeat]!;
         await waitForBottomActionMessage(assassinPage);
         await expect(assassinPage.getByTestId(TESTIDS.actionMessage)).toContainText(
-          '点座位盘点选一名玩家指认其为梅林',
+          '请选择要指认为梅林的玩家',
           { timeout: 20_000 },
         );
         const otherEvilSeat = evilSeats.find(
@@ -1006,11 +1006,8 @@ test.describe('Avalon full game', () => {
           '坏人正在商量刺杀目标',
         );
         await new RoomPage(assassinPage).getSeatTile(merlinSeat).click();
-        await expect(assassinPage.getByTestId(TESTIDS.alertTitle)).toHaveText('指认梅林');
-        // 确认文案只带被指认者名字（不含座号）；指认的座位对不对，由终局
-        // 「刺客指认出了梅林 + 坏人获胜」反证——只有真梅林才会命中翻盘。
-        await expect(assassinPage.getByTestId(TESTIDS.alertMessage)).toHaveText(
-          /确定指认【.+】为梅林？/,
+        await expect(assassinPage.getByTestId(TESTIDS.alertTitle)).toHaveText(
+          `指认${merlinSeat + 1}号为梅林？`,
         );
         await assassinPage.getByTestId(TESTIDS.alertButton(1)).click();
       });

@@ -155,7 +155,7 @@ test.describe('Werewolf Night — Flow Verification', () => {
         await pressAlertButton(hostPage, {
           title: '查看本局复盘？',
           buttonIndex: 1,
-          buttonLabel: '确定查看',
+          buttonLabel: '查看',
         });
         const review = hostPage.getByTestId(TESTIDS.roomReviewDialog);
         await expect(review).toContainText('🌙 第一夜 · 夜报');

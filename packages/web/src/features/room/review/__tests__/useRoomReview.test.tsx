@@ -8,11 +8,11 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { toast } from 'sonner';
 
+import { confirmView } from '@/features/room/confirm';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import { captureElementPngBase64 } from '@/features/room/services/captureElementPng';
 import { shareImagesBase64 } from '@/features/room/services/shareImage';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 
 import type { RoomReviewAvailability, RoomReviewContribution, RoomReviewDocument } from '../types';
@@ -30,12 +30,12 @@ vi.mock('@/features/room/services/shareImage', () => ({
   previewUploadedImages: vi.fn(),
 }));
 vi.mock('@/utils/miniProgram', () => ({ isMiniProgram: () => false }));
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: vi.fn() }));
+vi.mock('@/features/room/confirm', () => ({ confirmView: vi.fn() }));
 vi.mock('@/utils/errorPipeline', () => ({ handleError: vi.fn() }));
 
 const mockCapture = vi.mocked(captureElementPngBase64);
 const mockShare = vi.mocked(shareImagesBase64);
-const mockConfirm = vi.mocked(showConfirmAlert);
+const mockConfirm = vi.mocked(confirmView);
 
 const VIEWER: RoomViewer = { userId: 'user-1', isHost: false, seat: 2 };
 
@@ -158,27 +158,23 @@ describe('useRoomReview dialog', () => {
         state={available(reviewDocument(), {
           sharing: { isAllowed: false, reason: '仅房主可分享' },
           confirmation: {
-            title: '查看本局复盘？',
-            message: '包含全员身份',
-            confirmText: '确定查看',
+            label: '查看本局复盘',
+            body: '包含全员身份',
           },
         })}
         onOpened={onOpened}
       />,
     );
     act(() => current().open(null));
-    expect(mockConfirm).toHaveBeenCalledWith(
-      '查看本局复盘？',
-      '包含全员身份',
-      expect.any(Function),
-      {
-        confirmText: '确定查看',
-      },
-    );
+    expect(mockConfirm).toHaveBeenCalledWith({
+      label: '查看本局复盘',
+      body: '包含全员身份',
+      onView: expect.any(Function) as unknown,
+    });
     expect(screen.queryByTestId(TESTIDS.roomReviewDialog)).toBeNull();
     expect(onOpened).not.toHaveBeenCalled();
 
-    const confirm = mockConfirm.mock.calls[0]?.[2];
+    const confirm = mockConfirm.mock.calls[0]?.[0].onView;
     act(() => {
       void confirm?.();
     });

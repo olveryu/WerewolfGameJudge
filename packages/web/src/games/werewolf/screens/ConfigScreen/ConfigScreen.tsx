@@ -18,13 +18,13 @@ import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { confirmAction } from '@/features/room/confirm';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfRoomSession } from '@/games/werewolf/model/WerewolfRoomSession';
 import type { WerewolfConfigParams, WerewolfRulesParams } from '@/games/werewolf/navigation/types';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { askAIAboutRole, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconChevronDown from '~icons/ion/chevron-down';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
@@ -217,7 +217,11 @@ export function ConfigScreen({
     const requestClose = () => {
       if (state.isSubmitting) return;
       if (state.isDirty || settingsDialog?.rulesDirty === true) {
-        showConfirmAlert('放弃修改？', '还没有保存此次修改。', dialog.onClose);
+        confirmAction({
+          label: '放弃修改？',
+          body: '还没有保存此次修改。',
+          onConfirm: dialog.onClose,
+        });
       } else {
         dialog.onClose();
       }

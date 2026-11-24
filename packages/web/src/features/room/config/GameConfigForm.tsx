@@ -18,8 +18,8 @@ import {
   GameSettingsStepper,
   GameSettingsSwitch,
 } from '@/components/GameSettings';
+import { confirmAction } from '@/features/room/confirm';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { type CountDrafts, readFieldValue } from './gameConfigFormModel';
 import type { ConfigFieldRenderer } from './GameConfigScreenDefinition';
@@ -116,8 +116,11 @@ function FieldView({
       const apply = (next: boolean) => {
         const confirm = spec.confirmOnEnable;
         if (next && confirm !== undefined) {
-          showConfirmAlert(confirm.title, confirm.message, () => onChange(true), {
+          confirmAction({
+            label: confirm.title,
+            body: confirm.message,
             confirmText: confirm.confirmText,
+            onConfirm: () => onChange(true),
           });
           return;
         }

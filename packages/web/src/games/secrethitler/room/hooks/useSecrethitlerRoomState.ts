@@ -11,12 +11,14 @@ import {
   type SecrethitlerState,
   type SecrethitlerViewModel,
 } from '@game-judge/game-engine/games/secrethitler/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   type RoomBgmControlState,
   useRoomBgmControl,
 } from '@/features/room/audio/useRoomBgmControl';
+import { confirmAction, confirmView } from '@/features/room/confirm';
 import { createRoomSeatPressHandler } from '@/features/room/controllers/createRoomSeatPressHandler';
 import { useBotTakeover } from '@/features/room/controllers/useBotTakeover';
 import {
@@ -52,9 +54,8 @@ import { SECRETHITLER_VOTE_IMAGES } from '@/games/secrethitler/assets/secrethitl
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import { toRevealRoleData } from '@/games/secrethitler/components/SecrethitlerRoleCardAdapter';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 
-import { secrethitlerSeatLabel } from '../secrethitlerPresentation';
 import {
   createSecrethitlerHostManagement,
   createSecrethitlerRoomShellModel,
@@ -343,17 +344,23 @@ function useSecrethitlerPrivateActions(
     storage: { kind: 'local' },
     onPick: (seat) => {
       if (targetAction === null) return;
-      const label = secrethitlerSeatLabel(view, seat);
+      const target = formatSeat(seat);
       const command: SecrethitlerCommand =
         targetAction === 'investigate'
           ? { type: 'secrethitler.action.investigate', targetSeatId: seat }
           : targetAction === 'specialElection'
             ? { type: 'secrethitler.action.specialElection', targetSeatId: seat }
             : { type: 'secrethitler.action.execute', targetSeatId: seat };
-      showConfirmAlert(
-        '确认选择？',
-        `确定选择 ${label}？${targetAction === 'execute' ? '处决不可撤销。' : ''}`,
-        async () => {
+      confirmAction({
+        label:
+          targetAction === 'investigate'
+            ? `调查${target}`
+            : targetAction === 'specialElection'
+              ? `指定${target}为下任总统`
+              : `处决${target}`,
+        ...(targetAction === 'execute' ? { body: '处决不可撤销。' } : {}),
+        onShown: trackConfirmationAlert,
+        onConfirm: async () => {
           if (
             !selectionContext.current.isSelecting ||
             selectionContext.current.currentActionKey !== currentActionKey
@@ -364,8 +371,7 @@ function useSecrethitlerPrivateActions(
           if (await submit('总统行动', command, { controlledSeat, actionKey: null }))
             setActionKey((previous) => (previous === currentActionKey ? null : previous));
         },
-        { onShown: trackConfirmationAlert },
-      );
+      });
     },
   });
   const roleViewing = useRoleViewing({
@@ -399,15 +405,11 @@ function useSecrethitlerPrivateActions(
         return;
       }
       if (state.phase.kind === 'executive' && state.phase.power === 'policyPeek') {
-        showConfirmAlert(
-          '查看信息？',
-          '确定私下查看信息吗？',
-          () => setActionKey(currentActionKey),
-          {
-            confirmText: '查看',
-            onShown: trackConfirmationAlert,
-          },
-        );
+        confirmView({
+          label: '查看政策预览',
+          onShown: trackConfirmationAlert,
+          onView: () => setActionKey(currentActionKey),
+        });
         return;
       }
       setActionKey(currentActionKey);

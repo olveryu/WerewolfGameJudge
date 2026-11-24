@@ -30,9 +30,9 @@ export const SECRETHITLER_END_COPY: Readonly<Record<SecrethitlerEndReason, strin
 };
 
 export const SECRETHITLER_POWER_COPY = {
-  investigate: '调查阵营',
+  investigate: '调查',
   specialElection: '特别选举',
-  execute: '处决玩家',
+  execute: '处决',
   policyPeek: '政策预览',
 } as const;
 

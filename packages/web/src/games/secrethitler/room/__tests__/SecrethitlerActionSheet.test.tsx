@@ -9,7 +9,6 @@ import {
   sendSecrethitlerSeatCommand,
 } from '@/test-utils/secrethitlerState';
 import { alertStore, dismissAlert } from '@/utils/alert';
-import * as alertPresets from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -25,6 +24,14 @@ async function pressAlertButton(index: number): Promise<void> {
   await act(async () => {
     await button.onPress?.();
   });
+}
+
+async function confirmLabeled(label: string): Promise<void> {
+  expect(alertStore.getSnapshot()).toMatchObject({
+    title: `${label}？`,
+    buttons: [{ text: '取消' }, { text: '确定' }],
+  });
+  await pressAlertButton(1);
 }
 
 afterEach(() => {
@@ -146,9 +153,6 @@ it('views first-night information through the shared confirmation and acknowledg
 });
 
 it('shows hands only to their authorized office and submits the actual available policy', async () => {
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const state = fixture('legislativePresident');
   if (state.phase.kind !== 'legislativePresident') throw new Error('Expected hand');
   const input = props(state, state.phase.presidentSeat);
@@ -162,7 +166,7 @@ it('shows hands only to their authorized office and submits the actual available
   // Duplicate policies share the label, so address the first card by its indexed testid.
   fireEvent.click(screen.getByTestId(`secrethitler-policy-discard-${policy}-0`));
   expect(input.submit).not.toHaveBeenCalled();
-  await confirmation.mock.calls[0]?.[2]();
+  await confirmLabeled(label);
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.presidentDiscard', policy },
@@ -253,9 +257,6 @@ it('maps each policy in a mixed hand to its own art', () => {
 });
 
 it('submits the chancellor enact command for the tapped policy card', async () => {
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const state = fixture('legislativeChancellor');
   if (state.phase.kind !== 'legislativeChancellor') throw new Error('Expected hand');
   const input = props(state, state.phase.chancellorSeat);
@@ -265,7 +266,7 @@ it('submits the chancellor enact command for the tapped policy card', async () =
   const label = `施行${policy === 'liberal' ? '自由派' : '法西斯'}政策`;
   fireEvent.click(screen.getByTestId(`secrethitler-policy-enact-${policy}-0`));
   expect(input.submit).not.toHaveBeenCalled();
-  await confirmation.mock.calls[0]?.[2]();
+  await confirmLabeled(label);
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.chancellorResolve', action: 'enact', policy },
@@ -278,16 +279,13 @@ it.each([
   ['同意否决', true],
   ['拒绝否决', false],
 ] as const)('confirms %s before submitting', async (label, approve) => {
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const state = fixture('vetoResponse');
   if (state.phase.kind !== 'vetoResponse') throw new Error('Expected veto response');
   const input = props(state, state.phase.presidentSeat);
   render(<SecrethitlerActionSheet screen={input} />);
   fireEvent.click(screen.getByRole('button', { name: label }));
   expect(input.submit).not.toHaveBeenCalled();
-  await confirmation.mock.calls[0]?.[2]();
+  await confirmLabeled(label);
   expect(input.submit).toHaveBeenCalledWith(
     label,
     { type: 'secrethitler.policy.vetoRespond', approve },
@@ -296,9 +294,6 @@ it.each([
 });
 
 it('confirms a veto request before submitting and keeps the hand after a failed submission', async () => {
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const state = fixture('legislativeChancellor');
   if (state.phase.kind !== 'legislativeChancellor') throw new Error('Expected chancellor hand');
   const input = props({ ...state, fascistPolicies: 5 }, state.phase.chancellorSeat);
@@ -306,7 +301,7 @@ it('confirms a veto request before submitting and keeps the hand after a failed 
   render(<SecrethitlerActionSheet screen={input} />);
   fireEvent.click(screen.getByRole('button', { name: '请求否决' }));
   expect(input.submit).not.toHaveBeenCalled();
-  await confirmation.mock.calls[0]?.[2]();
+  await confirmLabeled('请求否决');
   expect(input.submit).toHaveBeenCalledWith(
     '请求否决',
     { type: 'secrethitler.policy.chancellorResolve', action: 'veto' },

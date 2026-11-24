@@ -30,12 +30,15 @@ export function confirmAction(input: {
  */
 export function confirmView(input: {
   readonly label: string;
+  /** Only an extra consequence of viewing now; omitted when there is none. */
+  readonly body?: string;
+  readonly onCancel?: () => void;
   readonly onView: () => void | Promise<void>;
   readonly onShown?: (generation: number | null) => void;
 }): void {
   const question = input.label.endsWith('？') ? input.label : `${input.label}？`;
-  const generation = showAlertWithGeneration(question, '', [
-    { ...CANCEL_BUTTON },
+  const generation = showAlertWithGeneration(question, input.body ?? '', [
+    { ...CANCEL_BUTTON, onPress: input.onCancel },
     {
       text: '查看',
       onPress: input.onView,

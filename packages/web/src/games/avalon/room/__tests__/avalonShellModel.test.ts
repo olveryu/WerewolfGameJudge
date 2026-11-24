@@ -258,7 +258,7 @@ describe('createAvalonRoomShellModel', () => {
       effectiveSeat: 2,
     };
     const before = createAvalonRoomShellModel(input);
-    expect(before.playerActions.message).toBe('请点击下方「查看身份」，查看你的角色');
+    expect(before.playerActions.message).toBe('请点击「查看身份」');
     expect(before.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: true,
       category: 'resource',
@@ -605,7 +605,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onPreselectTeamPress = vi.fn();
     const onProposeTeamPress = vi.fn();
     const empty = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(empty.message).toContain('点「预选队伍」打开选人');
+    expect(empty.message).toBe('请点击「预选队伍」。需要 2 名队员，确认后全房可见');
     // 未预选时主按钮是「预选队伍」，只负责打开 modal（满员门在 modal
     // 确认按钮上），草稿为空也不禁用；最终队伍按钮在预选回声到之前不存在。
     const preselect = findStageAction(empty, 'preselectTeam');
@@ -625,7 +625,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       seatUser(leader),
     );
     const preselected = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(preselected.message).toContain('预选已确认');
+    expect(preselected.message).toBe('请点击「最终队伍」。可调整预选的队伍');
     expect(findStageAction(preselected, 'preselectTeam')).toBeUndefined();
     const final = findStageAction(preselected, 'proposeTeam');
     expect(final).toMatchObject({
@@ -680,9 +680,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const assassin = roleSeat(running, 'assassin');
     const onCancelEarlyStrikePress = vi.fn();
     const bottom = shellFor(running, assassin, { strikePickMode: true, onCancelEarlyStrikePress });
-    expect(bottom.message).toBe(
-      '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
-    );
+    expect(bottom.message).toBe('请选择要提前刺杀的玩家。刺中梅林坏人直接获胜，刺错好人直接获胜');
     expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
     const cancel = findStageAction(bottom, 'earlyStrike');
     expect(cancel).toMatchObject({
@@ -784,8 +782,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (running.state.phase.kind !== 'lady') throw new Error('expected the lady phase');
     const { holderSeat, examinedSeats } = running.state.phase;
     const holderBottom = shellFor(running, holderSeat);
-    expect(holderBottom.message).toContain('点座位盘点选');
-    expect(holderBottom.message).toContain('查验');
+    expect(holderBottom.message).toBe('请选择要查验的玩家。只能看到阵营：好人或坏人');
     const seats = Array.from({ length: 9 }, (_, seat) => seat);
     const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
     if (target === undefined) throw new Error('no eligible lady target');
@@ -810,7 +807,9 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     completeLadyIfPresent(running);
     if (running.state.phase.kind !== 'assassin') throw new Error('expected the assassin phase');
     const assassin = roleSeat(running, 'assassin');
-    expect(shellFor(running, assassin).message).toContain('指认其为梅林');
+    expect(shellFor(running, assassin).message).toBe(
+      '请选择要指认为梅林的玩家。指认正确坏人获胜，指认错误好人直接获胜',
+    );
     const otherEvil = evilSeats(running).find((seat) => seat !== assassin);
     if (otherEvil === undefined) throw new Error('expected a second evil seat');
     expect(shellFor(running, otherEvil).message).toBe('坏人商量时间（线下口头），等待刺客指认。');

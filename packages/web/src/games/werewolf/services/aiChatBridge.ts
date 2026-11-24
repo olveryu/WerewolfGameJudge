@@ -9,8 +9,8 @@
 import { getRoleSpec, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useSyncExternalStore } from 'react';
 
+import { confirmAction } from '@/features/room/confirm';
 import { buildRolePlayGuidePrompt } from '@/games/werewolf/components/AIChatBubble/rolePlayGuide';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 interface AIChatBridgePayload {
   /** Full text sent to AI (notes content + prompt) */
@@ -63,12 +63,15 @@ export function requestAIChatMessage(payload: AIChatBridgePayload): void {
 export function askAIAboutRole(roleId: RoleId, onClose: () => void): void {
   const prompt = buildRolePlayGuidePrompt(roleId);
   const roleName = getRoleSpec(roleId).displayName;
-  showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
-    onClose();
-    requestAIChatMessage({
-      fullText: prompt,
-      displayText: `${roleName} 攻略`,
-      maxTokens: 1024,
-    });
+  confirmAction({
+    label: `让 AI 分析「${roleName}」的玩法`,
+    onConfirm: () => {
+      onClose();
+      requestAIChatMessage({
+        fullText: prompt,
+        displayText: `${roleName} 攻略`,
+        maxTokens: 1024,
+      });
+    },
   });
 }

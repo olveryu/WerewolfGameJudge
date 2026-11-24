@@ -375,7 +375,7 @@ function createPostGameActions(input: WerewolfHostManagementInput): RoomHostActi
     buildEnabledHostAction(
       {
         key: PANEL_FLOW_ACTION_KEYS.lastNightInfo,
-        label: '昨夜信息',
+        label: '查看昨夜信息',
         icon: 'moon-outline',
         category: 'resource',
         testID: TESTIDS.lastNightInfoButton,

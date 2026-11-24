@@ -15,6 +15,7 @@ import {
   parseAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
@@ -22,14 +23,10 @@ import {
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createAvalonHostManagement } from '../avalonRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDestructiveAlert: vi.fn(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -444,11 +441,15 @@ describe('createAvalonHostManagement', () => {
     if (action?.state.kind !== 'ready') throw new Error('expected enabled restart');
     action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+    const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
     if (confirmation === undefined) throw new Error('expected restart confirmation');
-    expect(confirmation[1]).toContain('不结算完成奖励');
-    const confirm = confirmation[3];
-    await confirm();
+    expect(confirmation).toMatchObject({
+      label: '重新开始？',
+      tone: 'danger',
+      confirmText: '重新开始',
+    });
+    expect(confirmation.body).toContain('不结算完成奖励');
+    await confirmation.onConfirm();
     expect(submit).toHaveBeenCalledWith(
       '重新开始',
       {
@@ -474,10 +475,13 @@ describe('createAvalonHostManagement', () => {
     if (action?.state.kind !== 'ready') throw new Error('expected enabled bot confirmation');
     action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+    const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
     if (confirmation === undefined) throw new Error('expected bot confirmation dialog');
-    expect(confirmation[0]).toBe('标记机器人已确认？');
-    void confirmation[2]();
+    expect(confirmation).toMatchObject({
+      label: '标记机器人已确认？',
+      body: '将为本阶段的机器人确认信息。',
+    });
+    void confirmation.onConfirm();
     expect(submit).toHaveBeenCalledWith(
       '标记机器人已确认',
       {
@@ -531,12 +535,13 @@ describe('createAvalonHostManagement', () => {
     if (restart === undefined || restart.state.kind !== 'ready')
       throw new Error('expected enabled restart');
     restart.state.onPress();
-    expect(showDestructiveAlert).toHaveBeenCalledWith(
-      '重新开始？',
-      expect.stringContaining('本局已结算'),
-      '重新开始',
-      expect.any(Function),
-    );
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '重新开始？',
+      body: expect.stringContaining('本局已结算') as unknown,
+      tone: 'danger',
+      confirmText: '重新开始',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('routes the host review action through the shared review entry', () => {

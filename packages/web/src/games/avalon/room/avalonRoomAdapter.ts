@@ -22,6 +22,7 @@ import {
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -82,7 +83,6 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
@@ -453,7 +453,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
   if (phase.kind === 'viewing') {
     // 查看阶段本人未看时提示去看（展示契约 self-hint 态，只走这一处出口）。
     if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
-      message = '请点击下方「查看身份」，查看你的角色';
+      message = '请点击「查看身份」';
     }
     return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
@@ -492,8 +492,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
         state: { kind: 'ready', onPress: input.onCancelEarlyStrikePress },
         testID: TESTIDS.avalonEarlyStrike,
       });
-      message =
-        '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
+      message = '请选择要提前刺杀的玩家。刺中梅林坏人直接获胜，刺错好人直接获胜';
       return {
         message,
         progress: null,
@@ -520,7 +519,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const preselected = vm.preselectedSeats !== null && vm.preselectedSeats.length > 0;
       if (instruction.isLeader) {
         if (!preselected) {
-          message = `点「预选队伍」打开选人，在里面选 ${instruction.requiredSize} 名队员，确认后全房可见。`;
+          message = `请点击「预选队伍」。需要 ${instruction.requiredSize} 名队员，确认后全房可见`;
           if (!input.isSubmitting) {
             primary.push({
               key: 'preselectTeam',
@@ -543,7 +542,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
             });
           }
         } else {
-          message = '预选已确认，点「最终队伍」打开选人调整最终队伍。';
+          message = '请点击「最终队伍」。可调整预选的队伍';
           if (!input.isSubmitting) {
             primary.push({
               key: 'proposeTeam',
@@ -638,8 +637,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const instruction = resolveLadyInstruction(vm);
       switch (instruction.kind) {
         case 'holderPick':
-          message =
-            '点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。';
+          message = '请选择要查验的玩家。只能看到阵营：好人或坏人';
           break;
         case 'watching':
           // 旁观者看公开进程：谁在查验谁（或还在选对象）。查验结果是
@@ -659,7 +657,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const instruction = resolveAssassinInstruction(vm);
       message =
         instruction.kind === 'assassinPick'
-          ? '点座位盘点选一名玩家指认其为梅林（除自己外任意座位），点选后会再次确认。指认正确坏人获胜，指认错误好人直接获胜。'
+          ? '请选择要指认为梅林的玩家。指认正确坏人获胜，指认错误好人直接获胜'
           : instruction.kind === 'evilWait'
             ? '坏人商量时间（线下口头），等待刺客指认。'
             : '坏人正在商量刺杀目标…';
@@ -743,15 +741,17 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAct
   const { state } = input;
   return buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        state.phase.kind === 'ended'
-          ? input.review?.isPending
-            ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-            : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-          : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        async () => {
+      confirmAction({
+        label: '重新开始？',
+        body:
+          state.phase.kind === 'ended'
+            ? input.review?.isPending
+              ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+              : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
           await input.submit(
             '重新开始',
             {
@@ -762,7 +762,7 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAct
             { actionKey: HOST_ACTION_KEYS.restart },
           );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });
@@ -782,12 +782,16 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
     actions.push(
       buildMarkBotsViewedAction({
         onPress: () =>
-          showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
-            void input.submit(
-              '标记机器人已查看',
-              { type: 'avalon.bots.markAllBotsViewed' },
-              { actionKey: HOST_ACTION_KEYS.markBotsViewed },
-            );
+          confirmAction({
+            label: '标记机器人已查看？',
+            body: '将标记所有未查看身份的机器人。',
+            onConfirm: () => {
+              void input.submit(
+                '标记机器人已查看',
+                { type: 'avalon.bots.markAllBotsViewed' },
+                { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+              );
+            },
           }),
         isEnabled: !input.isSubmitting,
         isLoading: input.isSubmitting,
@@ -811,14 +815,18 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
         },
         input.isSubmitting,
         () =>
-          showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
-            void input.submit(
-              '标记机器人已确认',
-              {
-                type: 'avalon.bots.markAllBotsGroupConfirmed',
-              },
-              { actionKey: 'mark-bots-confirmed' },
-            );
+          confirmAction({
+            label: '标记机器人已确认？',
+            body: '将为本阶段的机器人确认信息。',
+            onConfirm: () => {
+              void input.submit(
+                '标记机器人已确认',
+                {
+                  type: 'avalon.bots.markAllBotsGroupConfirmed',
+                },
+                { actionKey: 'mark-bots-confirmed' },
+              );
+            },
           }),
       ),
     );
@@ -872,11 +880,11 @@ export function createAvalonHostManagement(
       );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.assignTitle,
-          '所有座位已满，将洗牌并分配角色',
-          submitAssign,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.assignTitle,
+          body: '所有座位已满，将洗牌并分配角色',
+          onConfirm: submitAssign,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -905,11 +913,11 @@ export function createAvalonHostManagement(
       );
     const beginAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.startTitle,
-          allViewedConfirmBody('身份', '开始后将进入夜晚阶段'),
-          submitBegin,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: allViewedConfirmBody('身份', '开始后将进入夜晚阶段'),
+          onConfirm: submitBegin,
+        }),
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,

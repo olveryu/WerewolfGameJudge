@@ -173,11 +173,6 @@ function AvalonRoomContent(
       );
     setStrikePickMode(false);
   };
-  const strikeName =
-    strikeConfirm === null || viewModel === null
-      ? ''
-      : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
-        `座位${strikeConfirm.seat + 1}`);
   // 结果确认是权威阶段，重连也必须显示，直到全员确认。
   const voteResult = viewModel?.lastVoteResult ?? null;
   // 投票/出牌弹窗：每轮自动弹一次（按轮次键去重），关后不重弹，底部按钮可重开。
@@ -368,7 +363,6 @@ function AvalonRoomContent(
               )}
               <AvalonStrikeConfirmModal
                 confirmation={strikeConfirm}
-                seatName={strikeName}
                 onConfirm={confirmStrike}
                 onClose={closeStrike}
               />
@@ -436,7 +430,7 @@ function AvalonRoomContent(
                 />
               ) : null}
               <AvalonLadyCheckConfirmModal
-                targetName={ladyCheckTarget === null ? null : seatDisplayName(ladyCheckTarget)}
+                targetSeat={ladyCheckTarget}
                 onConfirm={() => {
                   if (ladyCheckTarget === null) return;
                   const seat = ladyCheckTarget;

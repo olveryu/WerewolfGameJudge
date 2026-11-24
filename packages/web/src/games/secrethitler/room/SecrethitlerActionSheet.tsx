@@ -5,10 +5,10 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { RoomPlayerPickModal } from '@/features/room/components/RoomPlayerPickModal';
+import { confirmAction } from '@/features/room/confirm';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -109,7 +109,7 @@ export function SecrethitlerActionSheet({
       screen.closeAction();
   };
   const confirm = (label: string, command: SecrethitlerCommand) =>
-    showConfirmAlert(`${label}？`, `确定${label}吗？`, () => send(label, command));
+    confirmAction({ label, onConfirm: () => send(label, command) });
   const button = (label: string, command: SecrethitlerCommand, key = label) => (
     <Button
       key={key}

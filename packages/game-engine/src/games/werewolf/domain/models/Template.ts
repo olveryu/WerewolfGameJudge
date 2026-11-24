@@ -147,10 +147,10 @@ export const WEREWOLF_RULES_SCHEMA: GameConfigSchema<WerewolfRules> = {
       hint: '所有狼人牌暗中替换为平民，玩家看到的板子仍显示有狼。此项每局单独选择，不会记住。',
       tone: 'warning',
       confirmOnEnable: {
-        title: '💀 黑死病模式',
+        title: '开启黑死病模式',
         message:
           '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好"演员"',
-        confirmText: '确认开启',
+        confirmText: '开启',
       },
     },
   },

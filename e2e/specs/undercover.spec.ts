@@ -130,7 +130,7 @@ for (const viewport of [
       await hostPage.getByTestId(TESTIDS.assignRolesButton).click();
       await hostRoom.confirmHostActionDialog('分配角色？');
       await hostRoom.expectHostManagementClosed();
-      await hostRoom.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看我的词');
+      await hostRoom.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看词卡');
       await expect(hostPage.getByTestId(TESTIDS.undercoverWord)).toHaveCount(0);
       // Every real player views their own word card on their own page.
       const cards: string[] = [];
