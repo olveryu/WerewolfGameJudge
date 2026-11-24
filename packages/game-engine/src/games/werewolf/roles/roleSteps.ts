@@ -20,8 +20,22 @@ const ROLE_STEP_COPY = defineCopy({
   wolf: '狼人',
   factionCheckResult: '{seat}是{faction}',
   identityCheckResult: '{seat}是{role}',
-  wolfCardRequired: '底牌中有狼人时必须选择狼人',
+  wolfCardRequired: '底牌中有狼人阵营的牌，必须选择狼人',
+  chooseCard: '选择{role}为身份',
 });
+
+export const IDOL_ACTION_COPY = defineCopy({
+  action: '选择榜样',
+  prompt: '请选择你的榜样',
+  chosen: '选{seat}为榜样',
+});
+
+export function formatIdolSelection(seats: readonly number[]): string {
+  const seat = seats[0];
+  return seat === undefined
+    ? IDOL_ACTION_COPY.action
+    : renderCopy(IDOL_ACTION_COPY.chosen, { seat: formatSeat(seat) });
+}
 
 export interface SingleTargetStepOptions {
   readonly id: string;
@@ -29,6 +43,7 @@ export interface SingleTargetStepOptions {
   readonly roleName: string;
   readonly audioKey?: string;
   readonly actionName: string;
+  readonly prompt?: string;
   readonly phrase?: (seats: readonly number[]) => string;
   readonly skippable: boolean;
   readonly canTargetSelf: boolean;
@@ -213,6 +228,7 @@ export function createSingleTargetStep(
         key: options.id,
         name: options.actionName,
         count: { min: 1, max: 1 },
+        ...(options.prompt === undefined ? {} : { prompt: options.prompt }),
         ...(options.phrase === undefined ? {} : { phrase: options.phrase }),
         seats: (context) =>
           context.state.seatedSeats.map((seat) => ({
@@ -276,13 +292,12 @@ export function createSingleTargetStep(
       const chosenSeat = submission.seats[0];
       if (chosenSeat === undefined) return null;
       const landingSeat = context.role.landing(chosenSeat);
-      if (landingSeat !== chosenSeat) {
-        return (
-          options.reviewSuffix?.(context, chosenSeat) ??
-          ROLE_STEP_COPY.actualLanding.replace('{seat}', formatSeat(landingSeat))
-        );
-      }
-      return options.reviewSuffix?.(context, chosenSeat) ?? null;
+      const landing =
+        landingSeat === chosenSeat
+          ? ''
+          : renderCopy(ROLE_STEP_COPY.actualLanding, { seat: formatSeat(landingSeat) });
+      const detail = options.reviewSuffix?.(context, chosenSeat) ?? '';
+      return landing + detail || null;
     },
   };
 }
@@ -302,6 +317,7 @@ export function createGroupConfirmStep(
     title: options.title,
     audio: () => ({ begin: options.id, end: options.id }),
     actors: (context) => context.state.seatedSeats,
+    audience: 'allSeats',
     actions: [
       {
         kind: 'view',
@@ -321,7 +337,7 @@ export interface CardSelectionStepOptions {
   readonly roleId: string;
   readonly roleName: string;
   readonly actionName: string;
-  readonly prompt: string;
+  readonly hint: (cards: readonly WerewolfBottomCard[]) => string;
   readonly resultTitle: string;
   readonly identityChange: 'replaceCurrentRole' | 'grantBorrowedAbility';
   readonly mustChooseWolfWhenAvailable?: boolean;
@@ -356,8 +372,9 @@ export function createCardSelectionStep(
             unavailableReason: getCardUnavailableReason(context, options, card, cards),
           }));
         },
-        hint: () => options.prompt,
-        phrase: (card) => card.label,
+        hint: (context) =>
+          options.hint(context.bottomCardsOf(getActingSeat(context), options.roleId)),
+        phrase: (card) => renderCopy(ROLE_STEP_COPY.chooseCard, { role: card.label }),
         resolve: (context, cardIndex) => {
           const seat = getActingSeat(context);
           const cards = context.bottomCardsOf(seat, options.roleId);

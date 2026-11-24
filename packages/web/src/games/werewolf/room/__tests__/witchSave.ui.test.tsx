@@ -1,140 +1,105 @@
-/**
- * Witch Save UI Test (Night-1)
- *
- * Locks the contract:
- * - save step is confirmTarget (no seat tapping to select target)
- * - save action uses killedSeat from witchContext
- * - when canSave=false, save should not submit
- * - protocol: submitAction({ kind: 'witch', saveTarget, poisonTarget })
- */
-
-import type {
-  CompoundSchema,
-  WerewolfActionInput,
-} from '@game-judge/game-engine/games/werewolf/public';
-import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import { waitFor } from '@testing-library/react';
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import {
-  actorStep,
-  mountRoomFor,
-  pressText,
+  getDispatchOutcome,
   recordAlerts,
   RoomScreenTestHarness,
-  type SubmitActionMock,
-  successfulWerewolfCommand,
   tapSeat,
 } from '@/games/werewolf/room/__tests__/harness';
+import {
+  createBoardNightState,
+  mountBoardNightState,
+  pressStepAction,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
-let submitAction: SubmitActionMock;
-let harness: RoomScreenTestHarness;
-let detachAlerts: () => void;
+const roles: readonly RoleId[] = [
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'wolf',
+  'wolf',
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'hunter',
+  'idiot',
+];
+const roleAssignment = new Map(roles.map((role, seat) => [seat, role]));
 
-/** The witch on seat 0; `gameState.witchContext` is the server fact the night model reads. */
-const mountWitch = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
-  mountRoomFor({
-    ...actorStep('witchAction', 'witch', 0),
-    witchContext: {
-      killedSeat: overrides?.killedSeat ?? 2,
-      canSave: overrides?.canSave ?? true,
-      canPoison: true,
-    },
-    hookOverrides: { submitAction },
-  });
+function witchState(wolfTarget: number, witchCanSelfHeal = false): GameState {
+  return createBoardNightState(
+    '预女猎白',
+    (candidate) => candidate.nightState?.slice.current?.stepId === 'witchAction',
+    { wolfKill: { actionKey: 'wolfKill', seats: [wolfTarget] } },
+    roleAssignment,
+    { witchCanSelfHeal },
+  );
+}
 
-describe('WerewolfRoomScreen witch save UI (contract)', () => {
+describe('Werewolf witch antidote', () => {
+  let harness: RoomScreenTestHarness;
+  let detach: () => void;
+
   beforeEach(() => {
-    submitAction = vi.fn(async (_input: WerewolfActionInput) => successfulWerewolfCommand());
     harness = new RoomScreenTestHarness();
-    detachAlerts = recordAlerts(harness);
+    detach = recordAlerts(harness);
   });
-  afterEach(() => detachAlerts());
+  afterEach(() => detach());
 
-  it('seat tapping does NOT submit save (save is confirmTarget, target comes from witchContext)', async () => {
-    const view = await mountWitch();
-
-    // Even if user taps some seat, save step should NOT be driven by seat taps.
+  it('uses the authoritative attack target rather than a tapped seat', async () => {
+    const state = witchState(2);
+    const { mock, view } = await mountBoardNightState(state, 9);
+    expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('3号被狼人袭击');
     await tapSeat(view, 5);
-
-    expect(submitAction).not.toHaveBeenCalled();
-  });
-
-  it('canSave=false should not submit save (guardrail contract)', async () => {
-    const view = await mountWitch({ canSave: false, killedSeat: 2 });
-
-    // There is no seat-driven save; ensure we still didn't submit mistakenly.
-    await tapSeat(view, 2);
-    expect(submitAction).not.toHaveBeenCalled();
-  });
-
-  it('save button -> confirm -> submits canonical witch input', async () => {
-    // killedSeat = 2, mySeat = 0
-    const killedSeat = 2;
-    const view = await mountWitch({ canSave: true, killedSeat });
-    harness.clear();
-
-    // Click the save button (bottom action button)
-    await pressText(view, `对${formatSeat(killedSeat)}用解药`);
-
-    // Confirm dialog should appear with a 确定 button
-    await waitFor(() => {
-      const confirm = harness
-        .events()
-        .find((event) => event.title === '确认行动' || event.buttons.includes('确定'));
-      expect(confirm).toBeDefined();
+    expect(mock.dispatch).not.toHaveBeenCalled();
+    await pressStepAction(view, 'antidote');
+    expect(harness.getLastEvent()?.title).toBe('对3号用解药？');
+    await harness.pressLastPrimary();
+    expect(mock.dispatch.mock.calls[0]?.[0]).toEqual({
+      type: 'werewolf.step.submit',
+      gameSequence: state.gameSequence,
+      submission: {
+        stepId: 'witchAction',
+        serial: state.nightState?.slice.current?.serial,
+        actionKey: 'antidote',
+      },
     });
-    const confirm = harness
-      .events()
-      .find((event) => event.title === '确认行动' || event.buttons.includes('确定'))!;
-    await harness.pressButtonOnType(confirm.type, '确定');
-
-    expect(submitAction).toHaveBeenCalledWith({
-      kind: 'witch',
-      saveTarget: killedSeat,
-      poisonTarget: null,
-    });
+    const result = await getDispatchOutcome(mock, 0);
+    expect(result.kind).toBe('committed');
+    if (result.kind === 'committed') {
+      expect(result.outcome.kind).toBe('success');
+      expect(result.snapshot.state.nightState?.facts.deathEffects).toContainEqual(
+        expect.objectContaining({ kind: 'protect', target: 2 }),
+      );
+    }
   });
 
-  it('canSave=true with killedSeat>=0 shows promptTemplate from schema', async () => {
-    const killedSeat = 2;
-    const view = await mountWitch({ canSave: true, killedSeat });
-
-    const saveStep = (SCHEMAS.witchAction as CompoundSchema).steps[0]!;
-    const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', formatSeat(killedSeat));
-
-    await waitFor(() => {
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(expectedPrompt!);
+  it.each([false, true])(
+    'shows the self-attack and applies the self-save rule when enabled=%s',
+    async (witchCanSelfHeal) => {
+      const { mock, view } = await mountBoardNightState(witchState(9, witchCanSelfHeal), 9);
       expect(harness.events()).toEqual([]);
-    });
-  });
-
-  it('canSave=false with killedSeat>=0 shows cannotSavePrompt from schema (witch self-kill)', async () => {
-    // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
-    const view = await mountWitch({ canSave: false, killedSeat: 0 });
-
-    const saveStep = (SCHEMAS.witchAction as CompoundSchema).steps[0]!;
-    const expectedPrompt = saveStep.ui?.cannotSavePrompt;
-
-    await waitFor(() => {
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(expectedPrompt!);
-      expect(harness.events()).toEqual([]);
-    });
-  });
-
-  it.each([
-    [false, '你被狼人袭击，本局规则不允许自救。'],
-    [true, '你被狼人袭击，可以使用解药自救。'],
-  ])(
-    'shows the self-attack message without a dialog when canSave is %s',
-    async (canSave, message) => {
-      const view = await mountWitch({ canSave, killedSeat: 0 });
-      expect(harness.events()).toEqual([]);
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(message);
-      expect(view.getByTestId(TESTIDS.actionMessage)).toBeVisible();
+      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('你被狼人袭击');
+      await pressStepAction(view, 'antidote');
+      if (!witchCanSelfHeal) {
+        const save = view.getByTestId(TESTIDS.stepInteractionButton('antidote'));
+        expect(save).toHaveAttribute('aria-disabled', 'true');
+        expect(view.getByTestId(TESTIDS.roomHandUnavailableReason)).toHaveTextContent(
+          '本局规则不允许自救',
+        );
+        expect(mock.dispatch).not.toHaveBeenCalled();
+      } else {
+        expect(harness.getLastEvent()?.title).toBe('对10号用解药？');
+        await harness.pressLastPrimary();
+        const result = await getDispatchOutcome(mock, 0);
+        expect(result.kind).toBe('committed');
+        if (result.kind === 'committed') expect(result.outcome.kind).toBe('success');
+      }
     },
   );
 });

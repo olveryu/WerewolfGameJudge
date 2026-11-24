@@ -14,6 +14,7 @@ import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reas
 import { decideConfirmViewed, decideMarkBotsViewed } from '../../platform/room/identityViewing';
 import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { findRosterSeatByUserId } from '../../platform/room/seating';
+import { REASON_STEP_STALE } from '../../platform/steps';
 import { getMvpGoldenDraws } from '../../product/rewards/earnings';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
@@ -40,7 +41,6 @@ import {
   handleBoardWithdraw,
   handleReturnToLobbyGame,
   handleShareNightReview,
-  handleStartNight,
 } from './domain/handlers/gameControlHandler';
 import {
   handleAdvanceSheriffElection,
@@ -50,6 +50,11 @@ import {
   handleRegisterSheriffCandidate,
   handleWithdrawSheriffCandidate,
 } from './domain/handlers/sheriffElectionHandler';
+import {
+  handleBeginSpecNight,
+  handleSpecNightBotAcknowledgements,
+  handleSpecNightSubmission,
+} from './domain/handlers/specNightHandler';
 import type { HandlerResult } from './domain/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobotHunterGateHandler';
 import {
@@ -80,6 +85,7 @@ type WerewolfDecision = Decision<StateAction, WerewolfEffect>;
 function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
   switch (command.type) {
     case 'werewolf.action.submit':
+    case 'werewolf.step.submit':
     case 'werewolf.role.viewed':
     case 'werewolf.reveal.ack':
     case 'werewolf.wolfRobot.ackHunterStatus':
@@ -113,6 +119,7 @@ function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
     case 'werewolf.phase.retrySettle':
     case 'werewolf.phase.settleExpired':
     case 'werewolf.groupConfirm.ackBots':
+    case 'werewolf.step.ackBots':
     case 'werewolf.growth.applyRosterLevels':
       return false;
   }
@@ -273,6 +280,7 @@ function decideWerewolfCommandRules(
       });
     }
     case 'werewolf.action.submit': {
+      if (state.nightState !== null) return reject(REASON_STEP_STALE);
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       const intent = resolveSubmitActionIntent(
@@ -285,6 +293,32 @@ function decideWerewolfCommandRules(
       return decideHandler(
         state,
         handleSubmitAction(intent.intent, actor.value.handlerContext, context),
+        context,
+        true,
+      );
+    }
+    case 'werewolf.step.submit': {
+      const actor = resolveEffectiveSeatActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleSpecNightSubmission(
+          state,
+          actor.value.seat,
+          command.gameSequence,
+          command.submission,
+          context.randomSeed,
+        ),
+        context,
+        true,
+      );
+    }
+    case 'werewolf.step.ackBots': {
+      const actor = resolveHostActor(state, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      return decideHandler(
+        state,
+        handleSpecNightBotAcknowledgements(state, command),
         context,
         true,
       );
@@ -407,8 +441,9 @@ function decideWerewolfCommandRules(
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(
         state,
-        handleStartNight({ type: 'START_NIGHT' }, actor.value.handlerContext, context),
+        handleBeginSpecNight(actor.value.handlerContext.state),
         context,
+        true,
       );
     }
     case 'werewolf.sheriff.register': {
@@ -511,6 +546,7 @@ function decideWerewolfCommandRules(
       return decidePhaseExpiry(state, context, 'uncontrolledUser');
     }
     case 'werewolf.reveal.ack': {
+      if (state.nightState !== null) return reject(REASON_STEP_STALE);
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       const ownershipRejection = validateRevealAckActor(state, actor.value.seat);
@@ -518,6 +554,7 @@ function decideWerewolfCommandRules(
       return decideHandler(state, handleRevealAck(actor.value.handlerContext), context, true);
     }
     case 'werewolf.wolfRobot.ackHunterStatus': {
+      if (state.nightState !== null) return reject(REASON_STEP_STALE);
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(
@@ -531,6 +568,7 @@ function decideWerewolfCommandRules(
       );
     }
     case 'werewolf.groupConfirm.ack': {
+      if (state.nightState !== null) return reject(REASON_STEP_STALE);
       const actor = resolveEffectiveSeatActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(
@@ -541,6 +579,7 @@ function decideWerewolfCommandRules(
       );
     }
     case 'werewolf.groupConfirm.ackBots': {
+      if (state.nightState !== null) return reject(REASON_STEP_STALE);
       const actor = resolveHostActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
       return decideHandler(

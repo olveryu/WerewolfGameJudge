@@ -563,6 +563,32 @@ describe('toWerewolfReviewDocument', () => {
       expect(toneOf(document, '守卫')).toBe('special');
     });
 
+    it('renders bottom cards alongside spec-driven step lines', () => {
+      const review: WerewolfNightReview = {
+        actions: [
+          { kind: 'bottomCards', roleIds: ['villager', 'seer', 'guard'] },
+          { kind: 'peacefulNight' },
+        ],
+        identities: [reviewIdentity(0, 'treasureMaster')],
+        stepLines: [
+          {
+            kind: 'action',
+            seat: 0,
+            roleId: 'treasureMaster',
+            subject: '盗宝大师',
+            phrase: '选择预言家为身份',
+            result: null,
+          },
+        ],
+      };
+      const document = toWerewolfReviewDocument({ review, roomCode: ROOM_CODE, gameSequence: 0 });
+      expect(nightSentences(document)).toEqual([
+        '底牌：平民、预言家、守卫。',
+        '1号盗宝大师选择预言家为身份。',
+        '本夜无人出局。',
+      ]);
+    });
+
     it('renders a peaceful night and placeholder identities', () => {
       const players = new Map<number, Player | null>([
         [0, null],

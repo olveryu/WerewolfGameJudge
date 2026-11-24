@@ -37,6 +37,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
       6: { seat: 6, role: 'hunter' },
     },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: { kind: 'inStep', stepId: 'hunterConfirm' },
     isAudioPlaying: false,
     audioBatchId: 0,

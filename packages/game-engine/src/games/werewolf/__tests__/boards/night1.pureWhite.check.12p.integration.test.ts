@@ -78,9 +78,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.pureWhiteReveal).toBeDefined();
-      expect(state.pureWhiteReveal!.targetSeat).toBe(0);
-      expect(state.pureWhiteReveal!.result).toBe('villager');
+      expect(state.nightState?.slice.records.pureWhiteCheck?.bySeat[11]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        roleId: 'villager',
+      });
     });
 
     it('pureWhite 查验 wolf(4)，返回 wolf', () => {
@@ -97,9 +100,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.pureWhiteReveal).toBeDefined();
-      expect(state.pureWhiteReveal!.targetSeat).toBe(4);
-      expect(state.pureWhiteReveal!.result).toBe('wolf');
+      expect(state.nightState?.slice.records.pureWhiteCheck?.bySeat[11]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        roleId: 'wolf',
+      });
     });
 
     it('pureWhite 查验 wolfWitch(7)，返回 wolfWitch', () => {
@@ -116,9 +122,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.pureWhiteReveal).toBeDefined();
-      expect(state.pureWhiteReveal!.targetSeat).toBe(7);
-      expect(state.pureWhiteReveal!.result).toBe('wolfWitch');
+      expect(state.nightState?.slice.records.pureWhiteCheck?.bySeat[11]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 7,
+        landingSeat: 7,
+        roleId: 'wolfWitch',
+      });
     });
 
     it('pureWhite 查验 witch(9)，返回 witch', () => {
@@ -135,9 +144,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.pureWhiteReveal).toBeDefined();
-      expect(state.pureWhiteReveal!.targetSeat).toBe(9);
-      expect(state.pureWhiteReveal!.result).toBe('witch');
+      expect(state.nightState?.slice.records.pureWhiteCheck?.bySeat[11]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 9,
+        landingSeat: 9,
+        roleId: 'witch',
+      });
     });
   });
 
@@ -159,7 +171,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.pureWhiteReveal).toBeUndefined();
+      expect(state.nightState?.slice.records.pureWhiteCheck?.bySeat[11]?.result).toBeNull();
     });
   });
 
@@ -185,9 +197,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.wolfWitchReveal).toBeDefined();
-      expect(state.wolfWitchReveal!.targetSeat).toBe(0);
-      expect(state.wolfWitchReveal!.result).toBe('villager');
+      expect(state.nightState?.slice.records.wolfWitchCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        roleId: 'villager',
+      });
     });
 
     it('wolfWitch 查验 pureWhite(11)，返回 pureWhite', () => {
@@ -204,9 +219,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.wolfWitchReveal).toBeDefined();
-      expect(state.wolfWitchReveal!.targetSeat).toBe(11);
-      expect(state.wolfWitchReveal!.result).toBe('pureWhite');
+      expect(state.nightState?.slice.records.wolfWitchCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 11,
+        landingSeat: 11,
+        roleId: 'pureWhite',
+      });
     });
 
     it('wolfWitch 查验 guard(8)，返回 guard', () => {
@@ -223,9 +241,12 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.wolfWitchReveal).toBeDefined();
-      expect(state.wolfWitchReveal!.targetSeat).toBe(8);
-      expect(state.wolfWitchReveal!.result).toBe('guard');
+      expect(state.nightState?.slice.records.wolfWitchCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 8,
+        landingSeat: 8,
+        roleId: 'guard',
+      });
     });
   });
 
@@ -247,7 +268,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.wolfWitchReveal).toBeUndefined();
+      expect(state.nightState?.slice.records.wolfWitchCheck?.bySeat[7]?.result).toBeNull();
     });
   });
 });

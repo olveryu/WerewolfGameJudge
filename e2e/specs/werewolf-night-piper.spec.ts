@@ -72,13 +72,19 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
         await test.step('piper hypnotizes wolf', async () => {
           await test.step('Piper turn should be detected', () =>
             waitForRoleTurn(pages[piperIdx]!, 'piperHypnotize', pages));
-          await driveMultiSelect(pages[piperIdx]!, [wolfSeat], '确认催眠', '催眠选中的玩家？');
+          await driveMultiSelect(
+            pages[piperIdx]!,
+            [wolfSeat],
+            '确认催眠',
+            `催眠${formatSeat(wolfSeat)}？`,
+            true,
+          );
         });
 
         // === GroupConfirm: all players ack ===
         await test.step('all players ack groupConfirm', async () => {
           await test.step('GroupConfirm step should become active', () =>
-            waitForGroupConfirmStep(pages, '催眠状态', 60));
+            waitForGroupConfirmStep(pages, 'piperHypnotizedReveal', '查看催眠信息', 60));
 
           // Each player acks — check personal messages
           for (let i = 0; i < pages.length; i++) {
@@ -86,7 +92,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(page, '催眠状态', '知道了');
+            const msg = await driveGroupConfirmAck(page, '查看催眠信息', '知道了');
             const seat = role.seat;
 
             if (seat === wolfSeat) {
@@ -155,13 +161,13 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
             pages[piperIdx]!,
             [target1Seat, target2Seat],
             '确认催眠',
-            '催眠选中的玩家？',
+            `催眠${formatSeat(target1Seat)}、${formatSeat(target2Seat)}？`,
           );
         });
 
         // === GroupConfirm: verify messages ===
         await test.step('groupConfirm reveals correct messages', async () => {
-          await waitForGroupConfirmStep(pages, '催眠状态', 60);
+          await waitForGroupConfirmStep(pages, 'piperHypnotizedReveal', '查看催眠信息', 60);
 
           const hypnotizedSeats = [target1Seat, target2Seat];
 
@@ -169,7 +175,7 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]!, '催眠状态', '知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '查看催眠信息', '知道了');
 
             if (hypnotizedSeats.includes(role.seat)) {
               // Hypnotized player sees seat list
@@ -238,10 +244,10 @@ test.describe('Werewolf Night — Piper (吹笛者)', () => {
 
         // === GroupConfirm: even when skipped, all ack (0 hypnotized) ===
         await test.step('all players ack groupConfirm (no one hypnotized)', async () => {
-          await waitForGroupConfirmStep(pages, '催眠状态', 60);
+          await waitForGroupConfirmStep(pages, 'piperHypnotizedReveal', '查看催眠信息', 60);
 
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveGroupConfirmAck(pages[i]!, '催眠状态', '知道了');
+            const msg = await driveGroupConfirmAck(pages[i]!, '查看催眠信息', '知道了');
             // Everyone should see "未被催眠" since piper skipped
             expect(msg).toContain('未被催眠');
           }

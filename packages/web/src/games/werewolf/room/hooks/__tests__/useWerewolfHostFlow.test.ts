@@ -10,6 +10,7 @@ import { act, renderHook } from '@testing-library/react';
 
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
+import { createBoardNightState } from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
@@ -80,6 +81,30 @@ describe('useWerewolfHostFlow', () => {
       },
     );
     expect(audio.preload).not.toHaveBeenCalled();
+  });
+
+  it('confirms bot acknowledgements for the current night step and game', async () => {
+    const state = createBoardNightState(
+      ['cupid', 'villager'],
+      (candidate) => candidate.nightState?.slice.current?.stepId === 'cupidLoversReveal',
+    );
+    const current = state.nightState?.slice.current;
+    if (current == null) throw new Error('[TEST] expected a group reveal step');
+    const { result, submit } = renderFlow({ ...state, gameSequence: 4 });
+
+    act(() => result.current.markAllBotsGroupConfirmed());
+    expect(submit).not.toHaveBeenCalled();
+    await act(async () => lastConfirm()());
+    expect(submit).toHaveBeenCalledWith(
+      '机器人确认',
+      {
+        type: 'werewolf.step.ackBots',
+        gameSequence: 4,
+        stepId: current.stepId,
+        serial: current.serial,
+      },
+      { actionKey: 'mark-bots-confirmed' },
+    );
   });
 
   it('submits the MVP pick durable, pinned to the deal nonce, and closes the picker on success', async () => {

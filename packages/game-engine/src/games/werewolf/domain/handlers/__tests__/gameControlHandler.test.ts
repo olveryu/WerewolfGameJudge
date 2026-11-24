@@ -22,7 +22,6 @@ import { WOLF_KILL_OVERRIDE_TEXTS } from '@game-judge/game-engine/games/werewolf
 import { resolveCurrentNightStep } from '@game-judge/game-engine/games/werewolf/domain/nightStep';
 import type { WerewolfHumanSeat } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
-import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
@@ -36,6 +35,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
@@ -511,7 +511,7 @@ describe('handleStartNight', () => {
       { type: 'END_NIGHT', payload: { deaths: [] } },
     ]);
     const finalState = success.actions.reduce(gameReducer, allVillagerState);
-    expect(normalizeState(finalState)).toMatchObject({
+    expect(finalState).toMatchObject({
       status: GameStatus.Ended,
       currentNightResults: {},
       lastNightDeaths: [],

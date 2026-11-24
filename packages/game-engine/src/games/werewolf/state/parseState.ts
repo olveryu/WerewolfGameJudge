@@ -43,6 +43,7 @@ import type {
 } from '../domain/protocol/types';
 import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
+import { parseWerewolfNightState } from '../roles/nightState';
 
 function parseSeatOrNoTarget(value: unknown, path: string): number {
   const parsed = parseInteger(value, path);
@@ -1000,6 +1001,7 @@ export function parseWerewolfState(value: unknown): GameState {
     ),
     roster: parseSeatRoster(raw.roster, 'GameState.roster'),
     nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
+    nightState: parseNullable(raw.nightState, 'GameState.nightState', parseWerewolfNightState),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     audioBatchId: parseAudioBatchId(raw.audioBatchId, 'GameState.audioBatchId'),
     gameSequence: parseGameSequence(raw.gameSequence, 'GameState.gameSequence'),

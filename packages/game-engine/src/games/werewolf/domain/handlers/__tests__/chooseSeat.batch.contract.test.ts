@@ -151,6 +151,7 @@ function createMinimalState(
       1: { seat: 1, userId: 'p2', profile: { displayName: 'p2' } },
       2: { seat: 2, userId: 'p3', profile: { displayName: 'p3' } },
     },
+    nightState: null,
     nightStep: { kind: 'inStep', stepId: schemaId },
     isAudioPlaying: false,
     audioBatchId: 0,

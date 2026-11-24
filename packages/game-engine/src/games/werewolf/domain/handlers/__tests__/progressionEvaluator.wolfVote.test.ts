@@ -35,6 +35,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
       4: { seat: 4, role: 'seer' },
     },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     isAudioPlaying: false,
     audioBatchId: 0,

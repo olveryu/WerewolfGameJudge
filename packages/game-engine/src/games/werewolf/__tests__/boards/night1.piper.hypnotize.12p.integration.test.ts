@@ -8,10 +8,15 @@
  * Board: custom 12-player (includes piper)
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
+import {
+  executeFullNight,
+  executeStepsUntil,
+  submitActionOrThrow,
+  submitStep,
+} from './stepByStepRunner';
 
 const _TEMPLATE_NAME = '预女猎白'; // coverage contract marker
 
@@ -38,9 +43,6 @@ describe('Night-1: piper hypnotize + hypnotized reveal (12p)', () => {
   it('should reach piperHypnotize step and execute hypnotize action', () => {
     const ctx = createGame(CUSTOM_ROLES);
 
-    // Theme assertion for coverage contract
-    expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
-
     // Execute to piperHypnotize step
     const reached = executeStepsUntil(ctx, 'piperHypnotize');
     expect(reached).toBe(true);
@@ -61,22 +63,28 @@ describe('Night-1: piper hypnotize + hypnotized reveal (12p)', () => {
 
     // piperHypnotizedReveal remains active until every player acknowledges
     const state = ctx.getGameState();
-    expect(state.currentNightResults?.hypnotizedSeats).toEqual([3, 5]);
+    expect(
+      state.nightState?.facts.selections
+        .filter((selection) => selection.roleId === 'piper')
+        .map((selection) => selection.landingSeat),
+    ).toEqual([3, 5]);
+    const hypnotizedView = getWerewolfViewModel(state, { seat: 3, isHost: false }).step;
+    const reveal = hypnotizedView?.actions.find((action) => action.kind === 'view');
+    expect(reveal?.kind === 'view' && reveal.content.text).toContain('4号、6号');
 
     for (const player of Object.values(state.players)) {
       if (player === null) continue;
-      ctx.dispatchAsSeatOrThrow(
-        player.seat,
-        { type: 'werewolf.groupConfirm.ack' },
-        `acknowledge hypnotized-player reveal at seat ${player.seat}`,
-      );
+      submitStep(ctx, player.seat, { actionKey: 'piperHypnotizedReveal' }, 'acknowledge reveal');
     }
 
     // Complete the night
     executeFullNight(ctx);
 
-    // Verify hypnotizedSeats persisted in final state
     const finalState = ctx.getGameState();
-    expect(finalState.hypnotizedSeats).toEqual([3, 5]);
+    expect(
+      finalState.nightState?.facts.selections
+        .filter((selection) => selection.roleId === 'piper')
+        .map((selection) => selection.landingSeat),
+    ).toEqual([3, 5]);
   });
 });

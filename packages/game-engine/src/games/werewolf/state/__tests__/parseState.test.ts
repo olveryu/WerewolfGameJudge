@@ -1,3 +1,4 @@
+import { withTestNightState } from '../../__tests__/nightStateFixture';
 import { GameStatus } from '../../domain/models/GameStatus';
 import { Team } from '../../domain/models/roles/spec/types';
 import type { GameState } from '../../domain/protocol/types';
@@ -5,7 +6,7 @@ import { normalizeState } from '../../domain/state/normalize';
 import { parseWerewolfState } from '../parseState';
 
 function createFullState(): GameState {
-  return {
+  return withTestNightState({
     gameType: 'werewolf',
     roomCode: 'ROOM',
     hostUserId: 'host',
@@ -42,6 +43,7 @@ function createFullState(): GameState {
       2: { seat: 2, userId: 'seer', profile: { displayName: 'Seer' } },
       3: { seat: 3, userId: 'villager', profile: { displayName: 'Villager' } },
     },
+    nightState: null,
     nightStep: null,
     isAudioPlaying: true,
     audioBatchId: 1,
@@ -170,7 +172,7 @@ function createFullState(): GameState {
         upvoters: ['player'],
       },
     },
-  };
+  });
 }
 
 describe('parseWerewolfState', () => {

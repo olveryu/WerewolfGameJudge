@@ -22,6 +22,9 @@ export interface StepDefinition<TStepId extends string, TContext, TFacts, TResul
     readonly end: string | null;
   };
   readonly actors: (context: TContext) => readonly number[];
+  /** Marks a shared view that explicitly requires every seated player. */
+  readonly audience?: 'allSeats';
+  readonly progressActors?: (context: TContext) => readonly number[];
   readonly actions: readonly AnyStepAction<TContext, TFacts, TResult>[];
   readonly skippable: (context: TContext) => boolean;
   readonly lock?: (context: TContext) => string | null;
@@ -33,6 +36,8 @@ export interface StepDefinition<TStepId extends string, TContext, TFacts, TResul
   ) => { readonly title: string; readonly text: string };
   readonly reviewSubject: (context: TContext, seat: number) => string;
   readonly reviewSuffix?: (context: TContext, entry: SeatSubmissionForReview) => string | null;
+  /** Replace the individual action lines with the step's own summary. */
+  readonly reviewSummary?: (context: TContext) => readonly string[];
   readonly isSeatSettled?: (context: TContext, record: SeatRecord<TResult>) => boolean;
   readonly completion?: (context: TContext) => StepCompletion;
 }

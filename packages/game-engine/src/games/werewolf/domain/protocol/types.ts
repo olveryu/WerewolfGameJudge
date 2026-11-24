@@ -13,6 +13,7 @@ import type { WerewolfGameType } from '../../../../platform/protocol/gameTypes';
 import type { BaseGameState } from '../../../../platform/protocol/roomSnapshot';
 import type { RoomSeatProfile } from '../../../../platform/room/roster';
 import type { RosterMap, SeatOccupant } from '../../../../platform/room/seating';
+import type { WerewolfNightState } from '../../roles/nightState';
 import type { DeathReason } from '../DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
@@ -305,6 +306,8 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 
   /** Night step position; null outside the night (status !== Ongoing). */
   nightStep: WerewolfNightStep | null;
+  /** Spec-driven night state, retained after settlement for the report. */
+  nightState: WerewolfNightState | null;
   isAudioPlaying: boolean;
   /** Id of the most recently queued audio batch (shared slice in `platform/audio`); 0 before the first. */
   audioBatchId: number;

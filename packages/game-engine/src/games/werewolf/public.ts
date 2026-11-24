@@ -151,6 +151,7 @@ export {
   type SheriffRoundRecord,
   type SheriffVoteProgress,
 } from './domain/review/sheriffElectionRecord';
+export { describeWerewolfStepConfirmation } from './domain/stepProjection';
 export {
   getWerewolfViewModel,
   type WerewolfNightView,

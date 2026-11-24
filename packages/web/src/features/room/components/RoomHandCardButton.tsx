@@ -54,7 +54,14 @@ export function RoomHandCardButton({
         </span>
       )}
       {description.length > 0 && (
-        <span id={descriptionId} className="visually-hidden">
+        <span
+          id={descriptionId}
+          className={
+            card.showBlockedReason === true && reason !== null
+              ? 'room-hand-blocked-reason'
+              : 'visually-hidden'
+          }
+        >
           {description}
         </span>
       )}

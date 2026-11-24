@@ -60,6 +60,8 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     expect(initState.thiefSeat).toBe(ctx.findSeatByRole('thief'));
     const idiotCardIndex = initState.bottomCards!.indexOf('idiot');
     const seerSeat = ctx.findSeatByRole('seer');
+    const thiefSeat = ctx.findSeatByRole('thief');
+    const cupidSeat = ctx.findSeatByRole('cupid');
     const villagerSeats = Object.values(initState.players)
       .filter((player) => player?.role === 'villager')
       .map((player) => player!.seat);
@@ -97,15 +99,25 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
 
     const state = ctx.getGameState();
 
-    // Core assertion: Thief card selection result
-    expect(state.currentNightResults?.thiefChosenCard).toBe('idiot');
-
-    // Core assertion: Cupid lover linking result
-    expect(state.loverSeats).toEqual(loverSeats);
-
-    // Seer normal check
-    expect(state.seerReveal).toBeDefined();
-    expect(state.seerReveal!.targetSeat).toBe(firstVillagerSeat);
+    expect(state.nightState?.roles.identities[thiefSeat]?.currentRole).toBe('idiot');
+    expect(state.nightState?.slice.records.thiefChoose?.bySeat[thiefSeat]?.result).toEqual({
+      kind: 'cardSelection',
+      roleId: 'idiot',
+    });
+    expect(
+      state.nightState?.facts.selections.filter((selection) => selection.roleId === 'cupid'),
+    ).toEqual(
+      loverSeats.map((seat) => ({
+        roleId: 'cupid',
+        actorSeat: cupidSeat,
+        chosenSeat: seat,
+        landingSeat: seat,
+      })),
+    );
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[seerSeat]?.result).toMatchObject({
+      kind: 'factionCheck',
+      chosenSeat: firstVillagerSeat,
+    });
 
     // wolf -> seer saved by witch -> peaceful night
     expect(result.deaths).toEqual([]);
@@ -119,6 +131,7 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     const thiefSeat = ctx.findSeatByRole('thief');
     const wolfSeat = ctx.findSeatByRole('wolf');
     const villagerSeat = ctx.findSeatByRole('villager');
+    const cupidSeat = ctx.findSeatByRole('cupid');
     const loverSeats = [seerSeat, thiefSeat];
 
     const result = executeFullNight(ctx, {
@@ -134,11 +147,21 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
 
     const state = ctx.getGameState();
 
-    // Thief picked villager
-    expect(state.currentNightResults?.thiefChosenCard).toBe('villager');
-
-    // Cupid links seer and thief
-    expect(state.loverSeats).toEqual(loverSeats);
+    expect(state.nightState?.roles.identities[thiefSeat]?.currentRole).toBe('villager');
+    expect(state.nightState?.slice.records.thiefChoose?.bySeat[thiefSeat]?.result).toEqual({
+      kind: 'cardSelection',
+      roleId: 'villager',
+    });
+    expect(
+      state.nightState?.facts.selections.filter((selection) => selection.roleId === 'cupid'),
+    ).toEqual(
+      loverSeats.map((seat) => ({
+        roleId: 'cupid',
+        actorSeat: cupidSeat,
+        chosenSeat: seat,
+        landingSeat: seat,
+      })),
+    );
 
     // cupidLoversReveal should have passed
     // wolf attacks seat 0 -> dies

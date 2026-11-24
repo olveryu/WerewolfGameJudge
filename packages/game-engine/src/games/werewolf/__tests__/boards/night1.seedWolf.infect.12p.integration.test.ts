@@ -59,21 +59,22 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
 
     const revealState = context.getGameState();
     expect(revealState.seedWolfInfectionResult).toEqual({ outcome: 'converted', targetSeat: 8 });
-    expect(revealState.currentNightResults?.wolfVotesBySeat).toEqual({
-      '4': 8,
-      '5': 8,
-      '6': 8,
-      '7': 8,
-    });
+    for (const actorSeat of [4, 5, 6, 7]) {
+      expect(revealState.nightState?.facts.wolfVotes).toContainEqual({
+        actorSeat,
+        chosenSeat: 8,
+        landingSeat: 8,
+      });
+    }
     expect(revealState.players[8]?.role).toBe('wolf');
-    expect(revealState.seerReveal).toBeUndefined();
-    expect(revealState.actions.some((action) => action.actorSeat === 8)).toBe(false);
+    expect(revealState.nightState?.slice.records.seerCheck?.bySeat[8]).toBeUndefined();
 
     for (const player of Object.values(revealState.players)) {
       if (player === null) continue;
-      context.dispatchAsSeatOrThrow(
+      submitActionOrThrow(
+        context,
         player.seat,
-        { type: 'werewolf.groupConfirm.ack' },
+        { kind: 'confirm' },
         `acknowledge Seed Wolf infection reveal at seat ${player.seat}`,
       );
     }
@@ -97,9 +98,14 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     const state = context.getGameState();
     expect(result.completed).toBe(true);
     expect(state.seedWolfInfectionResult).toEqual({ outcome: 'failed', targetSeat: 8 });
-    expect(state.currentNightResults?.guardedSeat).toBe(8);
+    expect(state.nightState?.facts.selections).toContainEqual(
+      expect.objectContaining({ roleId: 'guard', landingSeat: 8 }),
+    );
     expect(state.players[8]?.role).toBe('seer');
-    expect(state.seerReveal).toEqual({ targetSeat: 4, result: '狼人' });
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      chosenSeat: 4,
+      faction: 'wolf',
+    });
     expect(result.deaths).not.toContain(8);
   });
 
@@ -118,7 +124,10 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     expect(result.completed).toBe(true);
     expect(state.seedWolfInfectionResult).toEqual({ outcome: 'converted', targetSeat: 0 });
     expect(state.players[0]?.role).toBe('wolf');
-    expect(state.seerReveal).toEqual({ targetSeat: 0, result: '狼人' });
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      chosenSeat: 0,
+      faction: 'wolf',
+    });
   });
 
   it('shows the original faction when Guard makes infection fail', () => {
@@ -136,7 +145,10 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     expect(result.completed).toBe(true);
     expect(state.seedWolfInfectionResult).toEqual({ outcome: 'failed', targetSeat: 0 });
     expect(state.players[0]?.role).toBe('villager');
-    expect(state.seerReveal).toEqual({ targetSeat: 0, result: '好人' });
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      chosenSeat: 0,
+      faction: 'good',
+    });
   });
 
   it('removes wolf-kill damage but preserves poison on a converted target', () => {
@@ -153,7 +165,9 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     const state = context.getGameState();
     expect(result.completed).toBe(true);
     expect(state.seedWolfInfectionResult).toEqual({ outcome: 'converted', targetSeat: 8 });
-    expect(state.currentNightResults?.poisonedSeat).toBe(8);
+    expect(state.nightState?.facts.deathEffects).toContainEqual(
+      expect.objectContaining({ kind: 'attack', cause: 'poison', target: 8 }),
+    );
     expect(state.players[8]?.role).toBe('wolf');
     expect(result.deaths).toContain(8);
     expect(state.deathReasons?.[8]).toBe('poison');
@@ -173,7 +187,7 @@ describe('Night-1: Seed Wolf infection (12p)', () => {
     const state = context.getGameState();
     expect(result.completed).toBe(true);
     expect(state.seedWolfInfectionResult).toEqual({ outcome: 'notUsed' });
-    expect(state.currentNightResults?.seedWolfInfectionTarget).toBeUndefined();
+    expect(state.nightState?.facts.wolfInfections ?? []).toEqual([]);
     expect(state.players[0]?.role).toBe('villager');
     expect(result.deaths).toContain(0);
     expect(state.deathReasons?.[0]).toBe('wolfKill');

@@ -39,6 +39,7 @@ import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
 import { isBotOccupant } from '../public';
 import { parseWerewolfState } from '../state/parseState';
+import { withTestNightState } from './nightStateFixture';
 
 const TEMPLATE: GameTemplate = {
   name: 'test',
@@ -123,25 +124,27 @@ function evolveCommittedCommand(
 
 describe('Werewolf authoritative actor resolution', () => {
   it('records terminal reviews only for eligible users and clears them on restart', () => {
-    const state = createState({
-      status: GameStatus.Ended,
-      gameSequence: 4,
-      lastNightInfoConfirmed: true,
-      nightReviewAllowedSeats: [1],
-      currentNightResults: {},
-      players: {
-        0: { seat: 0, role: 'wolf' },
-        1: { seat: 1, role: 'seer' },
-        2: { seat: 2, role: 'hunter' },
-        3: { seat: 3, role: 'villager' },
-      },
-      roster: {
-        0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
-        1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
-        2: { seat: 2, kind: 'bot' },
-        3: { seat: 3, kind: 'bot' },
-      },
-    });
+    const state = withTestNightState(
+      createState({
+        status: GameStatus.Ended,
+        gameSequence: 4,
+        lastNightInfoConfirmed: true,
+        nightReviewAllowedSeats: [1],
+        currentNightResults: {},
+        players: {
+          0: { seat: 0, role: 'wolf' },
+          1: { seat: 1, role: 'seer' },
+          2: { seat: 2, role: 'hunter' },
+          3: { seat: 3, role: 'villager' },
+        },
+        roster: {
+          0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+          1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+          2: { seat: 2, kind: 'bot' },
+          3: { seat: 3, kind: 'bot' },
+        },
+      }),
+    );
     const command: WerewolfCommand = { type: 'werewolf.review.complete', gameSequence: 4 };
     expect(werewolfEngine.decide(state, command, userContext('spectator'))).toEqual({
       kind: 'reject',
@@ -247,34 +250,36 @@ describe('Werewolf authoritative actor resolution', () => {
   it.each([GameStatus.Day, GameStatus.Ended])(
     'persists last-night acknowledgement during %s and clears it on restart',
     (status) => {
-      const state = createState({
-        status,
-        gameSequence: 4,
-        currentNightResults: {},
-        players: {
-          0: { seat: 0, role: 'wolf' },
-          1: { seat: 1, role: 'seer' },
-          2: { seat: 2, role: 'hunter' },
-          3: { seat: 3, role: 'villager' },
-        },
-        roster: {
-          0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
-          1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
-          2: { seat: 2, kind: 'bot' },
-          3: { seat: 3, kind: 'bot' },
-        },
-        ...(status === GameStatus.Day
-          ? {
-              rules: { isSheriffElectionEnabled: true },
-              sheriffElection: {
-                phase: 'registration',
-                registeredSeats: [],
-                withdrawnSeats: [],
-                completedRounds: [],
-              },
-            }
-          : {}),
-      });
+      const state = withTestNightState(
+        createState({
+          status,
+          gameSequence: 4,
+          currentNightResults: {},
+          players: {
+            0: { seat: 0, role: 'wolf' },
+            1: { seat: 1, role: 'seer' },
+            2: { seat: 2, role: 'hunter' },
+            3: { seat: 3, role: 'villager' },
+          },
+          roster: {
+            0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+            1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+            2: { seat: 2, kind: 'bot' },
+            3: { seat: 3, kind: 'bot' },
+          },
+          ...(status === GameStatus.Day
+            ? {
+                rules: { isSheriffElectionEnabled: true },
+                sheriffElection: {
+                  phase: 'registration',
+                  registeredSeats: [],
+                  withdrawnSeats: [],
+                  completedRounds: [],
+                },
+              }
+            : {}),
+        }),
+      );
       const command: WerewolfCommand = { type: 'werewolf.lastNightInfo.confirm', gameSequence: 4 };
       const confirmed = werewolfEngine.normalize(
         evolveCommittedCommand(state, command, userContext('host')),
@@ -717,6 +722,17 @@ describe('Werewolf engine definition and catalog', () => {
       selection: { roleRevealRandomNonce: null, mvpUserId: 'user-1' },
     },
     'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
+    'werewolf.step.submit': {
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [1] },
+    },
+    'werewolf.step.ackBots': {
+      type: 'werewolf.step.ackBots',
+      gameSequence: 0,
+      stepId: 'wolfKill',
+      serial: 1,
+    },
     'werewolf.action.submit': {
       type: 'werewolf.action.submit',
       input: { kind: 'skip' },
@@ -857,6 +873,7 @@ describe('Werewolf engine definition and catalog', () => {
 
   it('allows controlledSeat only for seat-owned commands', () => {
     const allowedTypes = new Set<WerewolfCommand['type']>([
+      'werewolf.step.submit',
       'werewolf.action.submit',
       'werewolf.role.viewed',
       'werewolf.reveal.ack',
@@ -1502,25 +1519,27 @@ describe('Werewolf engine definition and catalog', () => {
   }[])(
     'displays a timed outcome for a no-ballot election',
     ({ election, expected, roundCount }) => {
-      const initial = createState({
-        status: GameStatus.Day,
-        rules: { isSheriffElectionEnabled: true },
-        isAudioPlaying: false,
-        currentNightResults: {},
-        players: {
-          0: { seat: 0, role: 'wolf' },
-          1: { seat: 1, role: 'seer' },
-          2: { seat: 2, role: 'hunter' },
-          3: { seat: 3, role: 'villager' },
-        },
-        roster: {
-          0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
-          1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
-          2: { seat: 2, kind: 'bot' },
-          3: { seat: 3, kind: 'bot' },
-        },
-        sheriffElection: election,
-      });
+      const initial = withTestNightState(
+        createState({
+          status: GameStatus.Day,
+          rules: { isSheriffElectionEnabled: true },
+          isAudioPlaying: false,
+          currentNightResults: {},
+          players: {
+            0: { seat: 0, role: 'wolf' },
+            1: { seat: 1, role: 'seer' },
+            2: { seat: 2, role: 'hunter' },
+            3: { seat: 3, role: 'villager' },
+          },
+          roster: {
+            0: { seat: 0, userId: 'host', profile: { displayName: 'Host' } },
+            1: { seat: 1, userId: 'user-1', profile: { displayName: 'User 1' } },
+            2: { seat: 2, kind: 'bot' },
+            3: { seat: 3, kind: 'bot' },
+          },
+          sheriffElection: election,
+        }),
+      );
       const decision = werewolfEngine.decide(
         initial,
         { type: 'werewolf.sheriff.advance' },

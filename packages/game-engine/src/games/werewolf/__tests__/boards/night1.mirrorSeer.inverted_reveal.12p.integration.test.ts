@@ -22,10 +22,16 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { STEP_RESULT_ACK_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext, TestCommandExecution } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeRemainingSteps, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
+import {
+  executeRemainingSteps,
+  executeStepsUntil,
+  submitActionOrThrow,
+  submitStep,
+} from './stepByStepRunner';
 
 const TEMPLATE_NAME = '灯影预言家';
 
@@ -126,9 +132,12 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       );
 
       const state = ctx.getGameState();
-      expect(state.drunkSeerReveal).toBeDefined();
-      expect(state.drunkSeerReveal!.targetSeat).toBe(0);
-      expect(state.drunkSeerReveal!.result).toBe('好人');
+      expect(state.nightState?.slice.records.drunkSeerCheck?.bySeat[11]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        faction: 'good',
+      });
     });
 
     it('drunkSeer 查验 villager(0)，server seed 对应值 <0.5 时 result 为 "狼人"', () => {
@@ -150,10 +159,12 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       );
 
       const state = ctx.getGameState();
-      expect(state.drunkSeerReveal).toBeDefined();
-      expect(state.drunkSeerReveal!.targetSeat).toBe(0);
-      // Check good faction, inverted returns "狼人"
-      expect(state.drunkSeerReveal!.result).toBe('狼人');
+      expect(state.nightState?.slice.records.drunkSeerCheck?.bySeat[11]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        faction: 'wolf',
+      });
     });
   });
 
@@ -199,10 +210,12 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       submitActionOrThrow(ctx, 8, { kind: 'target', target: 0 }, 'mirrorSeerCheck');
 
       const state = ctx.getGameState();
-      expect(state.mirrorSeerReveal).toBeDefined();
-      expect(state.mirrorSeerReveal!.targetSeat).toBe(0);
-      // MirrorSeer checking good faction should return "狼人" (inverted)
-      expect(state.mirrorSeerReveal!.result).toBe('狼人');
+      expect(state.nightState?.slice.records.mirrorSeerCheck?.bySeat[8]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        faction: 'wolf',
+      });
     });
 
     it('mirrorSeer 查验 wolf(3)，mirrorSeerReveal.result 为 "好人"（反转）', () => {
@@ -218,10 +231,12 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       submitActionOrThrow(ctx, 8, { kind: 'target', target: 3 }, 'mirrorSeerCheck');
 
       const state = ctx.getGameState();
-      expect(state.mirrorSeerReveal).toBeDefined();
-      expect(state.mirrorSeerReveal!.targetSeat).toBe(3);
-      // Checking wolf should return "好人" (inverted)
-      expect(state.mirrorSeerReveal!.result).toBe('好人');
+      expect(state.nightState?.slice.records.mirrorSeerCheck?.bySeat[8]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 3,
+        landingSeat: 3,
+        faction: 'good',
+      });
     });
   });
 
@@ -239,50 +254,38 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       submitActionOrThrow(ctx, 8, { kind: 'target', target: 3 }, 'mirrorSeerCheck');
 
       const stateAfterMirror = ctx.getGameState();
-      expect(stateAfterMirror.mirrorSeerReveal).toBeDefined();
-      expect(stateAfterMirror.mirrorSeerReveal!.result).toBe('好人');
-
-      // The public reveal ACK advances to seerCheck inline
-      const revealAckResult = ctx.dispatchAsSeat(8, { type: 'werewolf.reveal.ack' });
-      expect(revealAckResult).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'success' },
-      });
-      expect(ctx.getGameState().nightStep).toEqual({ kind: 'inStep', stepId: 'seerCheck' });
-
-      const audioAckResult = ctx.dispatch({
-        type: 'werewolf.audio.ack',
-        audioBatchId: ctx.getGameState().audioBatchId,
-      });
-      expect(audioAckResult).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'success' },
-      });
+      expect(stateAfterMirror.nightState?.slice.records.mirrorSeerCheck?.bySeat[8]?.result).toEqual(
+        {
+          kind: 'factionCheck',
+          chosenSeat: 3,
+          landingSeat: 3,
+          faction: 'good',
+        },
+      );
+      submitStep(
+        ctx,
+        8,
+        { actionKey: STEP_RESULT_ACK_ACTION_KEY },
+        'acknowledge mirror seer result',
+      );
+      expect(executeStepsUntil(ctx, 'seerCheck')).toBe(true);
 
       // seer checks seat 3 (wolf)
       submitActionOrThrow(ctx, 7, { kind: 'target', target: 3 }, 'seerCheck');
 
       const stateAfterSeer = ctx.getGameState();
-      expect(stateAfterSeer.seerReveal).toBeDefined();
-      expect(stateAfterSeer.seerReveal!.result).toBe('狼人');
-      expect(stateAfterSeer.mirrorSeerReveal).toBeDefined();
-      expect(stateAfterSeer.mirrorSeerReveal!.result).toBe('好人');
-    });
-  });
-
-  describe('seerLabelMap 生成', () => {
-    it('板子同时包含 seer + mirrorSeer 时 gameControlHandler 会生成 seerLabelMap', () => {
-      // seerLabelMap is injected by handleAssignRoles (gameControlHandler) into the
-      // ASSIGN_ROLES action payload; gameFactory uses it directly.
-      // gameReducer does not go through the handler layer, so manually inject here to verify reducer behavior.
-      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
-
-      // gameFactory calls gameReducer(ASSIGN_ROLES) directly;
-      // seerLabelMap is injected by handler layer -> here we verify reducer stores it correctly
-      // (handler layer tests are in gameControlHandler.test.ts)
-      // This integration test focuses on mirrorSeerReveal inversion logic; seerLabelMap generation
-      // is a handler layer responsibility, covered in gameControlHandler unit tests.
-      expect(true).toBe(true); // placeholder -- covered by handler layer tests
+      expect(stateAfterSeer.nightState?.slice.records.seerCheck?.bySeat[7]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 3,
+        landingSeat: 3,
+        faction: 'wolf',
+      });
+      expect(stateAfterSeer.nightState?.slice.records.mirrorSeerCheck?.bySeat[8]?.result).toEqual({
+        kind: 'factionCheck',
+        chosenSeat: 3,
+        landingSeat: 3,
+        faction: 'good',
+      });
     });
   });
 

@@ -72,8 +72,12 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       // Core assertion: seat 0 is protected by Guard and not in the death list
       expect(result.deaths).toEqual([]);
 
-      // guardedSeat is written to currentNightResults
-      expect(ctx.getGameState().currentNightResults?.guardedSeat).toBe(0);
+      expect(ctx.getGameState().nightState?.facts.selections).toContainEqual({
+        roleId: 'guard',
+        actorSeat: 11,
+        chosenSeat: 0,
+        landingSeat: 0,
+      });
     });
 
     it('守卫守护非袭击目标，袭击目标死亡', () => {

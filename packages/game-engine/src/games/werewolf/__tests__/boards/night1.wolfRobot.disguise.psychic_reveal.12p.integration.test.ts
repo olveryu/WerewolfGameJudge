@@ -69,17 +69,18 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext written
-    expect(state.wolfRobotContext).toBeDefined();
-    expect(state.wolfRobotContext!.learnedSeat).toBe(0);
-    expect(state.wolfRobotContext!.disguisedRole).toBe('villager');
-
-    // psychicReveal shows disguised role villager
-    expect(state.psychicReveal!.targetSeat).toBe(7);
-    expect(state.psychicReveal!.result).toBe('villager');
-
-    // wolfRobotReveal also written
-    expect(state.wolfRobotReveal!.result).toBe('villager');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 0,
+      landingSeat: 0,
+      roleId: 'villager',
+    });
+    expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 7,
+      landingSeat: 7,
+      roleId: 'villager',
+    });
   });
 
   it('wolfRobot 学习 wolf，psychic 查验 wolfRobot 显示 wolf', () => {
@@ -96,8 +97,16 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
-    expect(state.psychicReveal!.result).toBe('wolf');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 4,
+      roleId: 'wolf',
+    });
+    expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 7,
+      roleId: 'wolf',
+    });
   });
 
   it('wolfRobot 空选，psychic 查验 wolfRobot 显示 wolfRobot（本体）', () => {
@@ -114,9 +123,11 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext not written
-    expect(state.wolfRobotContext).toBeUndefined();
-    // psychicReveal shows real role wolfRobot
-    expect(state.psychicReveal!.result).toBe('wolfRobot');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toBeNull();
+    expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 7,
+      roleId: 'wolfRobot',
+    });
   });
 });

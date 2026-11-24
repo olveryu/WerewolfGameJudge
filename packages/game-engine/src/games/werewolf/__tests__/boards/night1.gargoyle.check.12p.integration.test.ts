@@ -21,11 +21,17 @@
  * Architecture: intents -> handlers -> reducer -> GameState
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { REASON_STEP_STALE } from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
+import {
+  dispatchStep,
+  executeFullNight,
+  executeRemainingSteps,
+  executeStepsUntil,
+} from './stepByStepRunner';
 
 const TEMPLATE_NAME = '石像鬼守墓人';
 
@@ -74,11 +80,13 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: gargoyleReveal returns specific role
       const state = ctx.getGameState();
-      expect(state.gargoyleReveal).toBeDefined();
-      expect(state.gargoyleReveal!.targetSeat).toBe(0);
-      expect(state.gargoyleReveal!.result).toBe('villager');
+      expect(state.nightState?.slice.records.gargoyleCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        roleId: 'villager',
+      });
     });
 
     it('gargoyle 查验 wolf(4)，返回 wolf', () => {
@@ -94,9 +102,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.gargoyleReveal).toBeDefined();
-      expect(state.gargoyleReveal!.targetSeat).toBe(4);
-      expect(state.gargoyleReveal!.result).toBe('wolf');
+      expect(state.nightState?.slice.records.gargoyleCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        roleId: 'wolf',
+      });
     });
 
     it('gargoyle 查验 seer(8)，返回 seer', () => {
@@ -112,9 +123,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.gargoyleReveal).toBeDefined();
-      expect(state.gargoyleReveal!.targetSeat).toBe(8);
-      expect(state.gargoyleReveal!.result).toBe('seer');
+      expect(state.nightState?.slice.records.gargoyleCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 8,
+        landingSeat: 8,
+        roleId: 'seer',
+      });
     });
 
     it('gargoyle 查验 hunter(10)，返回 hunter', () => {
@@ -130,9 +144,12 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.gargoyleReveal).toBeDefined();
-      expect(state.gargoyleReveal!.targetSeat).toBe(10);
-      expect(state.gargoyleReveal!.result).toBe('hunter');
+      expect(state.nightState?.slice.records.gargoyleCheck?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 10,
+        landingSeat: 10,
+        roleId: 'hunter',
+      });
     });
   });
 
@@ -154,9 +171,8 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // gargoyleReveal should be undefined
       const state = ctx.getGameState();
-      expect(state.gargoyleReveal).toBeUndefined();
+      expect(state.nightState?.slice.records.gargoyleCheck?.bySeat[7]?.result).toBeNull();
     });
   });
 
@@ -168,20 +184,16 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
       ctx.assertStep('gargoyleCheck');
 
-      // Gargoyle checking self should be rejected
-      const result = ctx.dispatchAsSeat(7, {
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 7 },
+      const step = getWerewolfViewModel(ctx.getGameState(), { seat: 7, isHost: false }).step;
+      const action = step?.actions.find((entry) => entry.kind === 'pickSeats');
+      expect(action?.kind === 'pickSeats' && action.seats.find((seat) => seat.seat === 7)).toEqual({
+        seat: 7,
+        unavailableReason: '不能选择自己',
       });
-
-      expect(result).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'domainRejected' },
+      expect(dispatchStep(ctx, 7, { actionKey: 'gargoyleCheck', seats: [7] })).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_STEP_STALE,
       });
-      if (result.kind !== 'committed' || result.outcome.kind !== 'domainRejected') {
-        throw new Error('Expected Gargoyle self-check to be rejected by the domain');
-      }
-      expect(result.outcome.reason).toContain('自己');
     });
   });
 });

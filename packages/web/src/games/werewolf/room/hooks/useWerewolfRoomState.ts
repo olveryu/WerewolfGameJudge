@@ -50,6 +50,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { RoomViewer } from '@/features/room/model/RoomViewer';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import { useRoomReview } from '@/features/room/review/useRoomReview';
+import type { StepInteraction } from '@/features/room/steps/useStepInteraction';
 import { useGameProfileDetails } from '@/games/model/useGameProfileDetails';
 import { getBoardRolePortraits } from '@/games/werewolf/assets/roleAvatars';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -61,19 +62,19 @@ import type {
 import { type SheriffElectionPanelModel, useSheriffElection } from '../day/useSheriffElection';
 import { buildWerewolfGuideMessage } from '../werewolfGuideMessage';
 import {
-  createWerewolfPlayerActionList,
   createWerewolfPlayerActions,
   createWerewolfRoomCapabilities,
   createWerewolfRoomShellModel,
+  createWerewolfStepActionList,
   isWerewolfSetup,
   WEREWOLF_DISPLAY_NAME,
 } from '../werewolfRoomAdapter';
 import { getWerewolfRoomCommandFailureMessage } from '../werewolfRoomCommandFailureMessage';
-import { type NightInteraction, useNightInteraction } from './useNightInteraction';
 import { useRoomModals } from './useRoomModals';
 import { useWerewolfAudioOrchestration } from './useWerewolfAudioOrchestration';
 import { useWerewolfBgmControl, type WerewolfBgmControlState } from './useWerewolfBgmControl';
 import { type MvpSelection, useWerewolfHostFlow } from './useWerewolfHostFlow';
+import { useWerewolfNightInteraction } from './useWerewolfNightInteraction';
 
 /** Passive toasts for non-hosts, keyed by the host command that produced the revision. */
 const LAST_ACTION_TOASTS = {
@@ -125,7 +126,7 @@ export interface WerewolfRoomScreenState {
   readonly bgm: WerewolfBgmControlState;
   readonly roleCard: WerewolfRoleCard;
   readonly audioResume: RoomAudioResume;
-  readonly night: NightInteraction;
+  readonly night: StepInteraction;
   readonly sheriffElectionPanel: SheriffElectionPanelModel | null;
   readonly isSheriffDetailsVisible: boolean;
   readonly openSheriffDetails: () => void;
@@ -150,14 +151,23 @@ function buildLastNightInfo(state: GameState): string {
       : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`,
   );
   const results = state.currentNightResults ?? {};
-  if (results.silencedSeat != null) parts.push(`${formatSeat(results.silencedSeat)}被禁言`);
-  if (results.votebannedSeat != null) parts.push(`${formatSeat(results.votebannedSeat)}被禁票`);
+  const selections = state.nightState?.facts.selections;
+  const silencedSeat =
+    selections?.find((selection) => selection.roleId === 'silenceElder')?.landingSeat ??
+    results.silencedSeat;
+  const votebannedSeat =
+    selections?.find((selection) => selection.roleId === 'votebanElder')?.landingSeat ??
+    results.votebannedSeat;
+  if (silencedSeat != null) parts.push(`${formatSeat(silencedSeat)}被禁言`);
+  if (votebannedSeat != null) parts.push(`${formatSeat(votebannedSeat)}被禁票`);
   return parts.join('\n');
 }
 
 function buildCurseInfo(state: GameState): string | null {
   if (!state.templateRoles.includes('crow')) return null;
-  const cursedSeat = state.currentNightResults?.cursedSeat;
+  const cursedSeat =
+    state.nightState?.facts.selections.find((selection) => selection.roleId === 'crow')
+      ?.landingSeat ?? state.currentNightResults?.cursedSeat;
   if (cursedSeat == null) return '乌鸦未诅咒任何人';
   return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;
 }
@@ -244,19 +254,19 @@ export function useWerewolfRoomState(
   });
 
   // ── Night ──
-  const night = useNightInteraction({
+  const nightState = useWerewolfNightInteraction({
     state,
     viewModel,
     userId: user.id,
     roomId: room.roomId,
-    controlledSeat,
     effectiveSeat,
-    isAudioResumeDue: audioResume.isDue,
-    isReadingRoomInformation,
-    hasPendingCommand: entryController.connection.pendingDurableCount > 0,
-    nowMs,
+    controlledSeat,
     submit,
+    isSuspended: state.isAudioPlaying || audioResume.isDue || isReadingRoomInformation,
+    hasPendingCommand: ready.isSubmitting || entryController.connection.pendingDurableCount > 0,
+    nowMs,
   });
+  const night = nightState.interaction;
 
   // ── Identity viewing ──
   const myRole = viewModel.myRole;
@@ -383,16 +393,13 @@ export function useWerewolfRoomState(
   // ── Bottom actions, guide, shell ──
   const isActionSubmitting = ready.isSubmitting;
   const openSheriffDetails = () => setIsSheriffDetailsVisible(true);
-  const playerActionList = createWerewolfPlayerActionList({
+  const playerActionList = createWerewolfStepActionList({
     viewModel,
-    night: night.model,
-    actionGroupKey: night.actionGroupKey,
-    seatSelection: night.seatSelection,
+    step: night,
     isHost,
     effectiveSeat,
     isAudioPlaying: state.isAudioPlaying,
     review: review.entry,
-    onNightButton: night.onNightButton,
     onViewRole: roleViewing.open,
   });
   const playerActions = createWerewolfPlayerActions({
@@ -401,8 +408,9 @@ export function useWerewolfRoomState(
     isHost,
     isAudioPlaying: state.isAudioPlaying,
     actions: playerActionList,
-    actionMessage: night.actionMessage,
-    nightStatusLine: night.nightStatusLine,
+    actionMessage: nightState.actionMessage,
+    nightStatusLine: nightState.nightStatusLine,
+    isStepActor: nightState.isStepActor,
     guideMessage: buildWerewolfGuideMessage({ isHost, roomStatus: status, mySeat, viewModel }),
     sheriffElectionPanel,
     openSheriffDetails,

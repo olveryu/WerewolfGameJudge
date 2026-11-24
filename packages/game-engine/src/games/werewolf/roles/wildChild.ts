@@ -1,13 +1,13 @@
 import { defineCopy } from '../../../platform/steps';
 import { defineRole } from './role';
-import { createSingleTargetStep } from './roleSteps';
+import { createSingleTargetStep, formatIdolSelection, IDOL_ACTION_COPY } from './roleSteps';
 
 const COPY = defineCopy({
   name: '野孩子',
   shortName: '野',
   description:
     '首夜选择一名玩家作为榜样；榜样被投票放逐时自身变为狼人；若先于榜样出局则始终为好人阵营；未变身时随好人阵营胜利；变为狼人后随狼人阵营胜利',
-  action: '选择榜样',
+  ruleHint: '榜样被投票出局时你将变为狼人',
 });
 
 export const wildChild = defineRole({
@@ -25,7 +25,10 @@ export const wildChild = defineRole({
       id: 'wildChildChooseIdol',
       roleId: 'wildChild',
       roleName: COPY.name,
-      actionName: COPY.action,
+      actionName: IDOL_ACTION_COPY.action,
+      prompt: IDOL_ACTION_COPY.prompt,
+      phrase: formatIdolSelection,
+      ruleHints: () => [COPY.ruleHint],
       skippable: false,
       canTargetSelf: false,
     }),

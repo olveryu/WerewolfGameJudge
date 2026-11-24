@@ -93,6 +93,7 @@ export interface StepPresentation {
   readonly stepId: string;
   readonly serial: number;
   readonly title: string;
+  readonly isActor: boolean;
   readonly message: string | null;
   readonly actions: readonly PresentedAction[];
   readonly pendingResult: { readonly title: string; readonly text: string } | null;

@@ -1,9 +1,9 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { createSeededRng } from '../../../../platform/random';
-import { cleanupGame, createGame } from '../../__tests__/boards/gameFactory';
+import { cleanupGame, createGame as createBoardGame } from '../../__tests__/boards/gameFactory';
+import { executeFullNight, executeStepsUntil } from '../../__tests__/boards/legacyNightRunner';
 import type { NightAction, NightActions, NightDeal } from '../../__tests__/boards/nightScript';
-import { executeFullNight, executeStepsUntil } from '../../__tests__/boards/stepByStepRunner';
 import { getWerewolfViewModel } from '../../domain/visibility';
 import {
   createWerewolfRoleContext,
@@ -51,6 +51,11 @@ const EMPTY_FACTS: WerewolfNightFacts = {
   disabledAbilities: [],
   deathEffects: [],
 };
+
+function createGame(...args: Parameters<typeof createBoardGame>) {
+  const [template, assignment, options] = args;
+  return createBoardGame(template, assignment, { ...options, legacyNight: true });
+}
 
 describe('Night-1 target landing parity for magician swaps', () => {
   afterEach(() => {

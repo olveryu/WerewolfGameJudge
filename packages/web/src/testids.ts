@@ -28,6 +28,7 @@ export const TESTIDS = {
   seatNumberBadge: (seat: number) => `seat-number-badge-${seat}`,
   seatNameRow: (seat: number) => `seat-name-row-${seat}`,
   seatSecondaryLabel: (seat: number) => `seat-secondary-label-${seat}`,
+  seatSelectionReason: (seat: number) => `seat-selection-reason-${seat}`,
   mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)

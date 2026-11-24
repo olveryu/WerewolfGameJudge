@@ -9,6 +9,8 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models
 import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
 
+import { withTestNightState } from '../../../__tests__/nightStateFixture';
+
 /**
  * List of all top-level fields of GameState (single source of truth)
  *
@@ -30,6 +32,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'startingParticipants',
   'mvpUserId',
   'roster',
+  'nightState',
   'nightStep',
   'isAudioPlaying',
   'audioBatchId',
@@ -127,7 +130,7 @@ describe('normalizeState contract', () => {
    * Create a full GameState containing all fields
    */
   const createFullState = (): GameState => {
-    return {
+    return withTestNightState({
       // Core required fields
       gameType: 'werewolf',
       roomCode: 'TEST',
@@ -152,6 +155,7 @@ describe('normalizeState contract', () => {
       roleRevealRandomNonce: 'nonce-123',
 
       // Night flow state (step deadline rides inside the live step)
+      nightState: null,
       nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: Date.now() + 5000 },
 
       // Execution state
@@ -233,7 +237,7 @@ describe('normalizeState contract', () => {
           upvoters: ['user-2'],
         },
       },
-    };
+    });
   };
 
   it('should reject a missing pendingAudioEffects field', () => {
@@ -288,6 +292,7 @@ describe('normalizeState contract', () => {
       templateRoles: ['villager'],
       players: {},
       roleViewedSeats: [],
+      nightState: null,
       nightStep: null,
       isAudioPlaying: false,
       audioBatchId: 0,

@@ -2,7 +2,7 @@ import { createGame } from '../../../__tests__/boards/gameFactory';
 import { executeFullNight } from '../../../__tests__/boards/stepByStepRunner';
 import type { RoleId } from '../../models/roles';
 import type { GameState } from '../../protocol/types';
-import { buildActionEntries } from '../../review/nightReview';
+import { buildActionEntries, getWerewolfNightReview } from '../../review/nightReview';
 import { computeCanShootForSeat, maybeCreateConfirmStatusAction } from '../confirmContext';
 import { calculateNightDeaths } from '../deathResolution';
 
@@ -210,29 +210,19 @@ describe('bottom-card roles use the same death and shooting rules', () => {
     expect(initial.bottomCards).toEqual(['villager', 'wolfQueen']);
     const thiefSeat = ctx.findSeatByRole('thief');
     const hunterSeat = ctx.findSeatByRole('hunter');
-    ctx.dispatchAsSeatOrThrow(
-      thiefSeat,
-      {
-        type: 'werewolf.action.submit',
-        input: { kind: 'card', cardIndex: 1 },
-      },
-      'select the wolf queen card',
+    const result = executeFullNight(ctx, {
+      thief: { cardIndex: 1 },
+      wolf: null,
+      wolfQueen: hunterSeat,
+      witch: { save: null, poison: thiefSeat },
+      hunter: { confirmed: true },
+    });
+    const state = ctx.getGameState();
+    expect(state.nightState?.roles.identities[thiefSeat]?.currentRole).toBe('wolfQueen');
+    expect(result.deaths).toEqual([hunterSeat, thiefSeat].sort((a, b) => a - b));
+    expect(getWerewolfNightReview(state).stepLines).toContainEqual(
+      expect.objectContaining({ kind: 'action', seat: hunterSeat, phrase: '不能发动' }),
     );
-    const selected = ctx.getGameState();
-    expect(selected.currentNightResults?.thiefChosenCard).toBe('wolfQueen');
-    const state: GameState = {
-      ...selected,
-      resolvedWolfKillTarget: null,
-      currentNightResults: {
-        ...selected.currentNightResults,
-        charmedSeat: hunterSeat,
-        poisonedSeat: thiefSeat,
-      },
-    };
-    expect(calculateNightDeaths(state, null).deaths).toEqual(
-      [hunterSeat, thiefSeat].sort((a, b) => a - b),
-    );
-    expectEligibility(state, hunterSeat, false);
   });
 
   it('settles a treasure master acting as dreamcatcher and disallows the linked hunter', () => {
@@ -270,6 +260,8 @@ describe('bottom-card roles use the same death and shooting rules', () => {
 
     expect(result.completed).toBe(true);
     expect(result.deaths).toEqual([masterSeat, hunterSeat].sort((a, b) => a - b));
-    expectEligibility(ctx.getGameState(), hunterSeat, false);
+    expect(getWerewolfNightReview(ctx.getGameState()).stepLines).toContainEqual(
+      expect.objectContaining({ kind: 'action', seat: hunterSeat, phrase: '不能发动' }),
+    );
   });
 });

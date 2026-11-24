@@ -62,11 +62,13 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written to GameState
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        faction: 'good',
+      });
 
       expect(result.deaths).toEqual([1]);
     });
@@ -82,11 +84,13 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(4);
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        faction: 'wolf',
+      });
     });
   });
 
@@ -102,8 +106,7 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal has no result
-      expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
+      expect(ctx.getGameState().nightState?.slice.records.seerCheck?.bySeat[8]?.result).toBeNull();
     });
   });
 
@@ -119,11 +122,13 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: witch is good faction
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(9);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 9,
+        landingSeat: 9,
+        faction: 'good',
+      });
     });
 
     it('seer 查验 idiot(11，好人阵营)，seerReveal.result 为 "好人"', () => {
@@ -137,11 +142,13 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: idiot is good faction
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(11);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 11,
+        landingSeat: 11,
+        faction: 'good',
+      });
     });
   });
 });

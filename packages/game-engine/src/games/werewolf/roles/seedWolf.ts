@@ -1,5 +1,5 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
-import { defineCopy } from '../../../platform/steps';
+import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { StepDefinition } from '../../../platform/steps/step';
 import { type DeathEffect, resolveDeathEffects } from './deathEffects';
 import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
@@ -14,7 +14,9 @@ const COPY = defineCopy({
     '首夜在狼人袭击后可感染袭击目标；不能感染狼人目标；若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人；被转化者当夜原技能失效',
   action: '感染',
   infection: '感染{seat}',
+  attacked: '{seat}被狼人袭击',
   noTarget: '本夜没有可感染的狼人袭击目标',
+  actualLanding: '（实际为{seat}）',
   revealTitle: '感染信息',
   infected: '你已被种狼感染并转化为普通狼人',
   notInfected: '你未被感染',
@@ -35,7 +37,12 @@ const infectStep: StepDefinition<
           context.role.activeRoleIdsOf(seat).includes('seedWolf'),
         )
       : [],
-  situationHints: (context) => (getInfectionTarget(context) === null ? [COPY.noTarget] : []),
+  situationHints: (context) => {
+    const target = getInfectionTarget(context);
+    return target === null
+      ? [COPY.noTarget]
+      : [renderCopy(COPY.attacked, { seat: formatSeat(target) })];
+  },
   actions: [
     {
       kind: 'direct',
@@ -65,6 +72,14 @@ const infectStep: StepDefinition<
   skippable: () => true,
   lock: (context) => getRoleAbilityLockReason(context, 'seedWolf'),
   reviewSubject: () => COPY.name,
+  reviewSuffix: (context, submission) => {
+    const chosenSeat = submission.seats[0];
+    if (chosenSeat === undefined) return null;
+    const landingSeat = context.role.landing(chosenSeat);
+    return landingSeat === chosenSeat
+      ? null
+      : renderCopy(COPY.actualLanding, { seat: formatSeat(landingSeat) });
+  },
 };
 
 const infectRevealStep = createGroupConfirmStep({

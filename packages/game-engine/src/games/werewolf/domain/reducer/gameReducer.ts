@@ -13,6 +13,8 @@
 import { queueAudioBatch } from '../../../../platform/audio';
 import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
+import { evolveWerewolfNight } from '../../roles/nightEvolution';
+import { isValidSchemaId } from '../models/roles/spec/schemas';
 import type { GameState } from '../protocol/types';
 import {
   handleAssignRoles,
@@ -68,6 +70,43 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleRestartGame(state, action);
     case 'SELECT_MVP':
       return { ...state, mvpUserId: action.mvpUserId };
+    case 'WEREWOLF_NIGHT_EVENT': {
+      const nightState = evolveWerewolfNight(state, action.event);
+      const { current, deadlineMs } = nightState.slice;
+      const outcome = action.event.type === 'infectionSettled' ? action.event.outcome : undefined;
+      const infectedPlayer =
+        outcome?.outcome === 'converted' ? state.players[outcome.targetSeat] : undefined;
+      if (outcome?.outcome === 'converted' && infectedPlayer == null) {
+        throw new Error('[FAIL-FAST] Seed Wolf infection target has no player');
+      }
+      const players =
+        outcome?.outcome === 'converted' && infectedPlayer != null
+          ? {
+              ...state.players,
+              [outcome.targetSeat]: { ...infectedPlayer, role: 'wolf' as const },
+            }
+          : state.players;
+      const common = {
+        ...state,
+        nightState,
+        players,
+        ...(outcome === undefined ? {} : { seedWolfInfectionResult: outcome }),
+      };
+      if (current === null) {
+        return { ...common, nightStep: { kind: 'exhausted' } };
+      }
+      if (!isValidSchemaId(current.stepId)) {
+        throw new Error(`[FAIL-FAST] Invalid night step ${current.stepId}`);
+      }
+      return {
+        ...common,
+        nightStep: {
+          kind: 'inStep',
+          stepId: current.stepId,
+          ...(deadlineMs === null ? {} : { stepDeadline: deadlineMs }),
+        },
+      };
+    }
     case 'UPDATE_TEMPLATE':
       return handleUpdateTemplate(state, action);
     case 'PLAYER_JOIN':

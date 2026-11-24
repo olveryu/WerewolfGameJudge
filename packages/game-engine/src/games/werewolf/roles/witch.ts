@@ -50,6 +50,7 @@ const witchActionStep: StepDefinition<
       kind: 'direct',
       key: 'antidote',
       name: COPY.antidote,
+      reviewWhenUnused: true,
       target: (context) => context.resolvedWolfKillTarget,
       phrase: (seat) => renderCopy(COPY.antidoteOn, { seat: formatSeat(seat) }),
       availability: (context) => {
@@ -85,6 +86,7 @@ const witchActionStep: StepDefinition<
       kind: 'pickSeats',
       key: 'poison',
       name: COPY.poison,
+      reviewWhenUnused: true,
       count: { min: 1, max: 1 },
       phrase: (seats) =>
         seats[0] === undefined
@@ -122,7 +124,7 @@ const witchActionStep: StepDefinition<
   lock: (context) => getRoleAbilityLockReason(context, 'witch'),
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {
-    if (submission.actionKey !== 'poison') return null;
+    if (submission.actionKey !== 'poison' && submission.actionKey !== 'antidote') return null;
     const chosenSeat = submission.seats[0];
     if (chosenSeat === undefined) return null;
     const landingSeat = context.role.landing(chosenSeat);

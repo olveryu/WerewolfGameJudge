@@ -88,14 +88,18 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext written
-    expect(state.wolfRobotContext).toBeDefined();
-    expect(state.wolfRobotContext!.learnedSeat).toBe(0);
-    expect(state.wolfRobotContext!.disguisedRole).toBe('villager');
-
-    // seerReveal shows "好人" (disguised as villager = good faction)
-    expect(state.seerReveal!.targetSeat).toBe(7);
-    expect(state.seerReveal!.result).toBe('好人');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 0,
+      landingSeat: 0,
+      roleId: 'villager',
+    });
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'factionCheck',
+      chosenSeat: 7,
+      landingSeat: 7,
+      faction: 'good',
+    });
   });
 
   it('wolfRobot 学习 wolf，seer 查验 wolfRobot 显示 "狼人"', () => {
@@ -113,8 +117,16 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
-    expect(state.seerReveal!.result).toBe('狼人');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toMatchObject({
+      kind: 'identityCheck',
+      chosenSeat: 4,
+      roleId: 'wolf',
+    });
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'factionCheck',
+      chosenSeat: 7,
+      faction: 'wolf',
+    });
   });
 
   it('wolfRobot 空选，seer 查验 wolfRobot 显示 "狼人"（本体）', () => {
@@ -132,10 +144,12 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext not written
-    expect(state.wolfRobotContext).toBeUndefined();
-    // seerReveal shows "狼人" (wolfRobot itself is wolf faction)
-    expect(state.seerReveal!.result).toBe('狼人');
+    expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toBeNull();
+    expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+      kind: 'factionCheck',
+      chosenSeat: 7,
+      faction: 'wolf',
+    });
   });
 
   describe('swap + disguise 边界', () => {
@@ -158,12 +172,18 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      // wolfRobotContext written (learned witch)
-      expect(state.wolfRobotContext!.disguisedRole).toBe('witch');
-
-      // Seer checks seat 0 (wolfRobot after swap), shows "好人"
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      expect(state.seerReveal!.result).toBe('好人');
+      expect(state.nightState?.slice.records.wolfRobotLearn?.bySeat[7]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 9,
+        landingSeat: 9,
+        roleId: 'witch',
+      });
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 7,
+        faction: 'good',
+      });
     });
 
     it('magician swap wolfRobot<->wolf，seer 查验 wolfRobot 原 seat 显示 "狼人"（swap 后是 wolf）', () => {
@@ -185,9 +205,12 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      // Seer checks seat 7 (wolf after swap), shows "狼人"
-      expect(state.seerReveal!.targetSeat).toBe(7);
-      expect(state.seerReveal!.result).toBe('狼人');
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 7,
+        landingSeat: 4,
+        faction: 'wolf',
+      });
     });
   });
 });

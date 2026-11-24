@@ -31,6 +31,7 @@ export interface RoomAction {
   readonly icon?: IoniconName;
   readonly testID?: string;
   readonly opensDialog?: boolean;
+  readonly showBlockedReason?: boolean;
   readonly state: RoomActionState;
 }
 

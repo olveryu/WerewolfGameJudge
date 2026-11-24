@@ -6,7 +6,7 @@ import type { SeatRecord } from '../../../platform/steps/types';
 import { resolveTargetSelection } from './location';
 import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
 import { defineRole } from './role';
-import { getActingSeat, renderIdentityCheckResult } from './roleSteps';
+import { getActingSeat, getRoleAbilityLockReason, renderIdentityCheckResult } from './roleSteps';
 
 const COPY = defineCopy({
   name: '机械狼人',
@@ -93,9 +93,11 @@ const wolfRobotLearnStep: StepDefinition<
         context.canShootAtNight(getActingSeat(context), 'hunter')
           ? COPY.canShoot
           : COPY.cannotShoot,
+      reviewPhrase: () => null,
     },
   ],
   skippable: () => true,
+  lock: (context) => getRoleAbilityLockReason(context, 'wolfRobot'),
   renderResult: (context, result) => renderIdentityCheckResult(context, result, COPY.resultTitle),
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {

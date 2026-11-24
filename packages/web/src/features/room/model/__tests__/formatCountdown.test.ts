@@ -31,4 +31,9 @@ describe('formatSettleCountdown', () => {
     expect(formatSettleCountdown(0, '投票')).toBe('已全部投票，等待揭晓');
     expect(formatSettleCountdown(null, '出牌')).toBe('已全部出牌，等待揭晓');
   });
+
+  it('uses the settlement wording without changing the existing reveal wording', () => {
+    expect(formatSettleCountdown(5, '投票', '结算')).toBe('已全部投票，5 秒后结算');
+    expect(formatSettleCountdown(0, '投票', '结算')).toBe('已全部投票，等待结算');
+  });
 });

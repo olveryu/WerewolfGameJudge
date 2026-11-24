@@ -25,6 +25,8 @@ const schemaIdSchema = z.custom<SchemaId>(
   (value): value is SchemaId => typeof value === 'string' && isValidSchemaId(value),
 );
 
+const stepIdSchema = z.string().refine((value): boolean => isValidSchemaId(value));
+
 const expectedStepSchema = z.strictObject({
   currentStepId: schemaIdSchema,
   roleRevealRandomNonce: z.string().min(1).max(128).nullable(),
@@ -66,6 +68,23 @@ const publicCommandOptions = definePublicCommandOptions<WerewolfPublicCommand>()
     }),
   }),
   z.strictObject({ type: z.literal('werewolf.bots.markAllBotsViewed') }),
+  z.strictObject({
+    type: z.literal('werewolf.step.submit'),
+    gameSequence: z.number().int().nonnegative(),
+    submission: z.strictObject({
+      stepId: stepIdSchema,
+      serial: z.number().int().nonnegative(),
+      actionKey: z.string().min(1).max(128),
+      seats: z.array(z.number().int().nonnegative()).readonly().optional(),
+      cardIndex: z.number().int().nonnegative().optional(),
+    }),
+  }),
+  z.strictObject({
+    type: z.literal('werewolf.step.ackBots'),
+    gameSequence: z.number().int().nonnegative(),
+    stepId: stepIdSchema,
+    serial: z.number().int().nonnegative(),
+  }),
   z.strictObject({
     type: z.literal('werewolf.action.submit'),
     input: z.discriminatedUnion('kind', [

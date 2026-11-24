@@ -69,11 +69,13 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion 1: seerReveal written (theme field)
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(7);
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 7,
+        landingSeat: 7,
+        faction: 'wolf',
+      });
 
       // Core assertion 2: seer(8) dies by reflection
       expect(result.deaths).toContain(8);
@@ -100,10 +102,13 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written, but target is not spiritKnight
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(4);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        faction: 'wolf',
+      });
 
       // seer(8) does not die by reflection
       expect(result.deaths).not.toContain(8);
@@ -126,9 +131,13 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion 1: witch action records poisonedSeat (theme field)
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.poisonedSeat).toBe(7);
+      expect(state.nightState?.facts.deathEffects).toContainEqual({
+        kind: 'attack',
+        cause: 'poison',
+        source: 9,
+        target: 7,
+      });
 
       // Core assertion 2: witch(9) dies by reflection
       expect(result.deaths).toContain(9);
@@ -152,9 +161,13 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: poisonedSeat written
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.poisonedSeat).toBe(0);
+      expect(state.nightState?.facts.deathEffects).toContainEqual({
+        kind: 'attack',
+        cause: 'poison',
+        source: 9,
+        target: 0,
+      });
 
       // witch(9) does not die by reflection
       expect(result.deaths).not.toContain(9);

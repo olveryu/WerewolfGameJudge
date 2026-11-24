@@ -64,19 +64,7 @@ const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
 // Theme field assertion keywords (must contain at least one)
 // =============================================================================
 
-const REQUIRED_ASSERTION_PATTERNS = [
-  /\.currentNightResults\??\./,
-  /\.seerReveal/,
-  /\.mirrorSeerReveal/,
-  /\.psychicReveal/,
-  /\.gargoyleReveal/,
-  /\.wolfRobotReveal/,
-  /\.pureWhiteReveal/,
-  /\.wolfWitchReveal/,
-  /\.convertedSeat/,
-  /\.actions\??\./,
-  /\.actions\?\.\w+/,
-];
+const REQUIRED_ASSERTION_PATTERNS = [/\.nightState\??\.(?:facts|roles|slice|infection|wolfKill)/];
 
 // =============================================================================
 // Test directory path
@@ -116,6 +104,7 @@ function fileMentionsStepId(content: string, stepId: string): boolean {
     new RegExp(String.raw`schemaId\s*===\s*['"]${s}['"]`),
     new RegExp(String.raw`stepId\s*===\s*['"]${s}['"]`),
     new RegExp(String.raw`findActionMessage\([^)]*['"]${s}['"]`),
+    new RegExp(String.raw`\.nightState\??\.slice\.records\.${s}\b`),
   ];
 
   return patterns.some((p) => p.test(content));

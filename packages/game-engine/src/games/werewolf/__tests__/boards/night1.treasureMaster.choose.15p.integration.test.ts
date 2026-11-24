@@ -59,8 +59,10 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
     expect(initState.bottomCards).toEqual(['crow', 'villager', 'wolf']);
     expect(initState.treasureMasterSeat).toBe(ctx.findSeatByRole('treasureMaster'));
     const crowCardIndex = initState.bottomCards!.indexOf('crow');
+    const treasureSeat = ctx.findSeatByRole('treasureMaster');
     const villagerSeat = ctx.findSeatByRole('villager');
     const wolfSeat = ctx.findSeatByRole('wolf');
+    const psychicSeat = ctx.findSeatByRole('psychic');
 
     // First step = treasureMasterChoose
     ctx.assertStep('treasureMasterChoose');
@@ -80,28 +82,43 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
 
     const state = ctx.getGameState();
 
-    // Core assertion: TreasureMaster card selection result
-    expect(state.currentNightResults?.treasureMasterChosenCard).toBe('crow');
+    expect(state.nightState?.roles.identities[treasureSeat]?.borrowedAbilityRole).toBe('crow');
+    expect(
+      state.nightState?.slice.records.treasureMasterChoose?.bySeat[treasureSeat]?.result,
+    ).toEqual({
+      kind: 'cardSelection',
+      roleId: 'crow',
+    });
 
     // wolfKill runs normally (deck has wolf but players still have wolf×2, should not auto-skip)
     // Poisoner present, no kill on night 1 → no kill deaths
     expect(result.deaths).toEqual([]);
 
-    // crowCurse proxied by TreasureMaster → cursedSeat is written
-    expect(state.currentNightResults?.cursedSeat).toBe(villagerSeat);
-
-    // dreamcatcher acts normally
-    expect(state.currentNightResults?.dreamingSeat).toBe(villagerSeat);
-
-    // psychic checks normally
-    expect(state.psychicReveal).toBeDefined();
-    expect(state.psychicReveal!.targetSeat).toBe(wolfSeat);
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'crow',
+      actorSeat: treasureSeat,
+      chosenSeat: villagerSeat,
+      landingSeat: villagerSeat,
+    });
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'dreamcatcher',
+      actorSeat: ctx.findSeatByRole('dreamcatcher'),
+      chosenSeat: villagerSeat,
+      landingSeat: villagerSeat,
+    });
+    expect(state.nightState?.slice.records.psychicCheck?.bySeat[psychicSeat]?.result).toMatchObject(
+      {
+        kind: 'identityCheck',
+        chosenSeat: wolfSeat,
+      },
+    );
   });
 
   it('TreasureMaster picks villager (cardIndex=2), no step proxy, full night completes', () => {
     ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
     const stateBeforeNight = ctx.getGameState();
     const villagerCardIndex = stateBeforeNight.bottomCards!.indexOf('villager');
+    const treasureSeat = ctx.findSeatByRole('treasureMaster');
     const villagerSeat = ctx.findSeatByRole('villager');
     const wolfSeat = ctx.findSeatByRole('wolf');
 
@@ -120,11 +137,10 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
 
     const state = ctx.getGameState();
 
-    // TreasureMaster picked villager
-    expect(state.currentNightResults?.treasureMasterChosenCard).toBe('villager');
-
-    // crowCurse auto-skipped (crow in deck and not picked)
-    expect(state.currentNightResults?.cursedSeat).toBeUndefined();
+    expect(state.nightState?.roles.identities[treasureSeat]?.borrowedAbilityRole).toBe('villager');
+    expect(
+      state.nightState?.facts.selections.some((selection) => selection.roleId === 'crow'),
+    ).toBe(false);
 
     // wolfKill still runs normally (wolf×2 still players)
     // Poisoner present, no kill on night 1 → no deaths
@@ -152,6 +168,7 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
     const initState = ctx.getGameState();
     expect(initState.bottomCards).toEqual(['wolf', 'dreamcatcher', 'villager']);
     const dreamcatcherCardIndex = initState.bottomCards!.indexOf('dreamcatcher');
+    const treasureSeat = ctx.findSeatByRole('treasureMaster');
     const villagerSeat = ctx.findSeatByRole('villager');
     const wolfSeat = ctx.findSeatByRole('wolf');
     ctx.assertStep('treasureMasterChoose');
@@ -171,23 +188,32 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
 
     const state = ctx.getGameState();
 
-    // Core assertion: TreasureMaster card selection
-    expect(state.currentNightResults?.treasureMasterChosenCard).toBe('dreamcatcher');
-
-    // dreamcatcherDream proxied by TreasureMaster
-    expect(state.currentNightResults?.dreamingSeat).toBe(villagerSeat);
+    expect(state.nightState?.roles.identities[treasureSeat]?.borrowedAbilityRole).toBe(
+      'dreamcatcher',
+    );
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'dreamcatcher',
+      actorSeat: treasureSeat,
+      chosenSeat: villagerSeat,
+      landingSeat: villagerSeat,
+    });
 
     // The seated poisoner skips, so no one dies.
     expect(result.deaths).toEqual([]);
 
-    // crowCurse normal (crow is a player)
-    expect(state.currentNightResults?.cursedSeat).toBe(villagerSeat);
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'crow',
+      actorSeat: ctx.findSeatByRole('crow'),
+      chosenSeat: villagerSeat,
+      landingSeat: villagerSeat,
+    });
   });
 
   it('TreasureMaster picks villager (cardIndex=2), dreamcatcher auto-skips', () => {
     ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
     const stateBeforeNight = ctx.getGameState();
     const villagerCardIndex = stateBeforeNight.bottomCards!.indexOf('villager');
+    const treasureSeat = ctx.findSeatByRole('treasureMaster');
     const villagerSeat = ctx.findSeatByRole('villager');
     const wolfSeat = ctx.findSeatByRole('wolf');
 
@@ -206,10 +232,10 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
 
     const state = ctx.getGameState();
 
-    expect(state.currentNightResults?.treasureMasterChosenCard).toBe('villager');
-
-    // dreamcatcherDream auto-skipped
-    expect(state.currentNightResults?.dreamingSeat).toBeUndefined();
+    expect(state.nightState?.roles.identities[treasureSeat]?.borrowedAbilityRole).toBe('villager');
+    expect(
+      state.nightState?.facts.selections.some((selection) => selection.roleId === 'dreamcatcher'),
+    ).toBe(false);
 
     // The seated poisoner poisons seat 2 while wolf kill is disabled.
     expect(result.deaths).toEqual([villagerSeat]);

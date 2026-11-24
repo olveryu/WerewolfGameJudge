@@ -86,7 +86,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     expect(normalized.hostUserId).toBe(state.hostUserId);
   });
 
-  it('wolfKill 后 → normalizeState 保留 wolfVotesBySeat', () => {
+  it('wolfKill 后 → normalizeState 保留投票记录', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
@@ -102,16 +102,13 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
-    // wolfVotesBySeat keys should be string-canonicalized
-    const origVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
-    const normVotes = normalized.currentNightResults?.wolfVotesBySeat ?? {};
-    expect(Object.keys(normVotes).length).toBe(Object.keys(origVotes).length);
-    for (const [key, val] of Object.entries(origVotes)) {
-      expect(normVotes[String(key)]).toBe(val);
-    }
+    expect(normalized.nightState?.facts.wolfVotes).toEqual(state.nightState?.facts.wolfVotes);
+    expect(normalized.nightState?.slice.records.wolfKill).toEqual(
+      state.nightState?.slice.records.wolfKill,
+    );
   });
 
-  it('seerReveal 后 → normalizeState 保留 seerReveal + pendingRevealAcks', () => {
+  it('seer 查验后 → normalizeState 保留待确认的结果', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // Walk to seerCheck: wolfKill → witchAction → hunterConfirm → seerCheck
@@ -144,8 +141,12 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
-    expect(normalized.seerReveal).toEqual(state.seerReveal);
-    expect(normalized.pendingRevealAcks).toEqual(state.pendingRevealAcks);
+    expect(normalized.nightState?.slice.records.seerCheck).toEqual(
+      state.nightState?.slice.records.seerCheck,
+    );
+    expect(normalized.nightState?.slice.records.seerCheck?.bySeat[8]?.isResultAcknowledged).toBe(
+      false,
+    );
   });
 
   it('全流程 executeFullNight 后 → normalizeState 幂等', () => {
@@ -157,7 +158,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
 
     assertNoKeysLost(state, normalized);
     expect(normalized.status).toBe(state.status);
-    expect(normalized.actions).toEqual(state.actions);
+    expect(normalized.nightState).toEqual(state.nightState);
   });
 
   it('normalizeState 二次应用 → 结果不变（严格幂等）', () => {

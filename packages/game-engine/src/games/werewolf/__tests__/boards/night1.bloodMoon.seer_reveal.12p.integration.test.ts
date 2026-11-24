@@ -63,11 +63,13 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written to GameState
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        faction: 'good',
+      });
 
       expect(result.deaths).toEqual([1]);
     });
@@ -83,11 +85,13 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: bloodMoon is in the wolf faction
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(7);
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 7,
+        landingSeat: 7,
+        faction: 'wolf',
+      });
     });
   });
 
@@ -103,8 +107,7 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal has no result
-      expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
+      expect(ctx.getGameState().nightState?.slice.records.seerCheck?.bySeat[8]?.result).toBeNull();
     });
   });
 
@@ -120,11 +123,13 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // core assertion: witcher is good faction
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(11);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 11,
+        landingSeat: 11,
+        faction: 'good',
+      });
     });
   });
 });

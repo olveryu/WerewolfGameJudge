@@ -1,3 +1,4 @@
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 import { errors, expect, type Locator, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
@@ -182,20 +183,37 @@ export async function isNightEnded(page: Page): Promise<boolean> {
 }
 
 /**
- * A werewolf night step button, by its button spec key (see buildNightButtons):
- * skip, wolfEmpty, wolfCancel, save, confirm, groupConfirmAck, viewHunterStatus,
- * chooseCard.
+ * A shared step action, addressed by the engine's action key.
  */
 export function nightButton(page: Page, key: string): Locator {
-  return page.getByTestId(TESTIDS.werewolfNightButton(key));
+  return page.getByTestId(TESTIDS.stepInteractionButton(key));
 }
 
 async function openActionGroupFor(page: Page, key: string): Promise<void> {
-  const entry = nightButton(page, 'openActionGroup');
+  const entry = page.getByTestId(TESTIDS.werewolfNightButton('openActionGroup'));
   if (!(await entry.isVisible())) return;
   const actionIds = (await entry.getAttribute('data-player-action-ids'))?.split(' ') ?? [];
-  if (!actionIds.includes(TESTIDS.werewolfNightButton(key))) return;
+  if (!actionIds.includes(TESTIDS.stepInteractionButton(key))) return;
   await entry.click({ timeout: CLICK_TIMEOUT_MS });
+}
+
+async function actionKeyFor(page: Page, key: string): Promise<string> {
+  if (key === 'skip') return STEP_SKIP_ACTION_KEY;
+  if (key === 'wolfEmpty') return 'wolfKillAbstain';
+  if (key === 'wolfCancel') return 'wolfKillWithdraw';
+  if (key === 'save') return 'antidote';
+  if (key === 'viewHunterStatus') return 'wolfRobotHunterStatus';
+  if (
+    key !== 'confirm' &&
+    key !== 'groupConfirmAck' &&
+    key !== 'startSeatSelection' &&
+    key !== 'chooseCard'
+  ) {
+    return key;
+  }
+  const step = await readRoomStep(page);
+  if (step === null) throw new Error(`No active step for night action ${key}`);
+  return key === 'startSeatSelection' && step === 'witchAction' ? 'poison' : step;
 }
 
 /** The open alert dialog. */
@@ -214,23 +232,6 @@ async function pressConfirm(page: Page): Promise<void> {
 // Seat interaction
 // ---------------------------------------------------------------------------
 
-/** Tap an enabled seat that produces a notice rather than a submission dialog. */
-export async function clickSeatAndReadNotice(
-  page: Page,
-  seat: number,
-  title: string,
-): Promise<string> {
-  try {
-    await dismissAlert(page);
-    const tile = page.getByTestId(TESTIDS.seatTilePressable(seat));
-    await expect(tile).toHaveAttribute('data-inert', 'false');
-    await tile.click({ timeout: CLICK_TIMEOUT_MS });
-    return await readAlertText(page, CONFIRM_TIMEOUT_MS, title);
-  } catch (error) {
-    return failNightAction(`Seat ${seat} notice "${title}" failed`, [page], error);
-  }
-}
-
 /**
  * Enter selection mode and confirm the chosen target(s). Fixed-size
  * selections open confirmation immediately; variable-size selections use a button.
@@ -242,33 +243,30 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 async function selectAndSubmitSeats(
   page: Page,
   seats: readonly number[],
-  expectation?: { readonly actionLabel: string; readonly confirmationTitle: string },
+  expectation?: {
+    readonly actionLabel: string;
+    readonly confirmationTitle: string;
+    readonly requiresManualConfirmation?: boolean;
+  },
 ): Promise<void> {
   const stepBefore = await readRoomStep(page);
   try {
     if (stepBefore === null) throw new Error('No active step before seat selection');
     await waitForStepAndSettle(page, stepBefore);
     await dismissAlert(page);
-    await openActionGroupFor(page, 'startSeatSelection');
-    await nightButton(page, 'startSeatSelection').click({ timeout: CLICK_TIMEOUT_MS });
+    const actionKey = await actionKeyFor(page, 'startSeatSelection');
+    await openActionGroupFor(page, actionKey);
+    await nightButton(page, actionKey).click({ timeout: CLICK_TIMEOUT_MS });
     for (const seat of seats) {
       const tile = page.getByTestId(TESTIDS.seatTilePressable(seat));
       await expect(tile).toHaveAttribute('data-inert', 'false');
       await tile.click({ timeout: CLICK_TIMEOUT_MS });
       await expect(tile).toHaveAttribute('aria-pressed', 'true');
     }
-    const selectionButton = nightButton(page, 'submitSeatSelection');
     const confirmationDialog = alertModal(page);
-    await expect
-      .poll(
-        async () => (await selectionButton.isVisible()) || (await confirmationDialog.isVisible()),
-        { timeout: CONFIRM_TIMEOUT_MS },
-      )
-      .toBe(true);
-    if (await selectionButton.isVisible()) {
-      if (expectation !== undefined)
-        await expect(selectionButton).toContainText(expectation.actionLabel);
-      await expect(selectionButton).toContainText(seats.map((seat) => `${seat + 1}号`).join('、'));
+    if (expectation?.requiresManualConfirmation === true) {
+      const selectionButton = nightButton(page, actionKey);
+      await expect(selectionButton).toContainText(expectation.actionLabel);
       await selectionButton.click({ timeout: CLICK_TIMEOUT_MS });
     }
     await expect(confirmationDialog).toBeVisible({ timeout: CONFIRM_TIMEOUT_MS });
@@ -278,9 +276,9 @@ async function selectAndSubmitSeats(
       );
     }
     await expect(page.getByTestId(TESTIDS.roomHeader)).toHaveAttribute('data-step', stepBefore);
-    await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(
-      seats.map((seat) => `${seat + 1}号`).join('、'),
-    );
+    for (const seat of seats) {
+      await expect(page.getByTestId(TESTIDS.alertTitle)).toContainText(`${seat + 1}号`);
+    }
     await pressConfirm(page);
     log(`seat selection submitted — step=${stepBefore} seats=${seats.join(',')}`);
   } catch (error) {
@@ -294,19 +292,24 @@ export async function driveMultiSelect(
   targetSeats: readonly number[],
   actionLabel: string,
   confirmationTitle: string,
+  requiresManualConfirmation = false,
 ): Promise<void> {
-  await selectAndSubmitSeats(page, targetSeats, { actionLabel, confirmationTitle });
+  await selectAndSubmitSeats(page, targetSeats, {
+    actionLabel,
+    confirmationTitle,
+    requiresManualConfirmation,
+  });
 }
 
 /** Select and confirm the first enabled card inside the bottom-card modal. */
 export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> {
-  const modal = page.getByTestId(TESTIDS.chooseBottomCardModal);
+  const modal = page.getByTestId(TESTIDS.stepCardPicker);
   await modal.waitFor({ state: 'visible', timeout: 5000 });
 
   for (let cardIndex = 0; ; cardIndex++) {
-    const option = modal.getByTestId(TESTIDS.chooseBottomCardOption(cardIndex));
+    const option = modal.getByTestId(TESTIDS.stepCardOption(cardIndex));
     if ((await option.count()) === 0) break;
-    if (!(await option.isEnabled())) continue;
+    if ((await option.getAttribute('aria-disabled')) === 'true') continue;
 
     const selectedText = await option.textContent();
     if (selectedText === null || selectedText.trim().length === 0) {
@@ -329,7 +332,17 @@ export async function chooseFirstEnabledBottomCard(page: Page): Promise<string> 
  * Night buttons a sweep may press to move a step along: open a status
  * dialog, view the hunter status, or skip the step.
  */
-const ADVANCE_BUTTON_KEYS = ['confirm', 'viewHunterStatus', 'skip'] as const;
+const VIEW_STEP_IDS: ReadonlySet<string> = new Set([
+  'avengerConfirm',
+  'hunterConfirm',
+  'darkWolfKingConfirm',
+  'hiddenWolfReveal',
+  'cupidLoversReveal',
+  'piperHypnotizedReveal',
+  'awakenedGargoyleConvertReveal',
+  'seedWolfInfectReveal',
+  'wolfGirlConfessReveal',
+]);
 
 /**
  * Try to advance one page by one click: the open alert's primary button
@@ -350,27 +363,32 @@ export async function tryClickAdvanceButton(page: Page, label?: string): Promise
     return false;
   }
 
-  for (const key of ADVANCE_BUTTON_KEYS) {
-    const button = nightButton(page, key);
-    if (await button.isVisible().catch(() => false)) {
-      return tryClickNightButton(page, key, tag);
-    }
-    if (key === 'skip' && (await tryClickNightButton(page, key, tag))) return true;
+  const step = await readRoomStep(page);
+  if (
+    step !== null &&
+    VIEW_STEP_IDS.has(step) &&
+    (await tryClickNightButton(page, 'confirm', tag))
+  ) {
+    return true;
   }
-
-  return false;
+  if (step === 'wolfRobotLearn' && (await tryClickNightButton(page, 'viewHunterStatus', tag))) {
+    return true;
+  }
+  return tryClickNightButton(page, 'skip', tag);
 }
 
 /** Try to press an available night action after checking the active step. */
 export async function tryClickNightButton(page: Page, key: string, label = ''): Promise<boolean> {
   const step = await readRoomStep(page);
   if (step === null || !(await isStepUnlocked(page, step))) return false;
-  const bottomButton = nightButton(page, key);
+  const actionKey = await actionKeyFor(page, key);
+  const bottomButton = nightButton(page, actionKey);
   if (!(await bottomButton.isVisible()) && !(await alertModal(page).isVisible())) {
-    await openActionGroupFor(page, key);
+    await openActionGroupFor(page, actionKey);
   }
   if (
     !(await bottomButton.isVisible()) ||
+    (await bottomButton.getAttribute('aria-disabled')) === 'true' ||
     !(await isStepUnlocked(page, step)) ||
     !(await clickCapped(bottomButton, `night button ${key}`))
   ) {
@@ -689,9 +707,8 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
  * Drive all wolves to confirm the kill-disabled empty vote.
  *
  * When the wolf kill is disabled (poisoner override on Night 1, or a
- * nightmare block), the action hand shows "确认放弃袭击" instead of
- * the plain "放弃袭击" button that driveWolfEmptyVote clicks, and the
- * step prompt explains the kill is impossible. Callers must run
+ * nightmare block), the attack card shows the reason and the wolves
+ * can still confirm "放弃袭击". Callers must run
  * waitForRoleTurn for 'wolfKill' first, as with the other wolf-vote
  * drivers: this helper assumes the step is active on every page.
  */
@@ -702,9 +719,9 @@ export async function driveWolfDisabledEmptyVote(
   log(`driveWolfDisabledEmptyVote wolfIndices=[${wolfIndices}]`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    await clickNightButton(wPage, 'wolfEmpty', '确认放弃袭击');
+    await clickNightButton(wPage, 'wolfEmpty', '放弃袭击');
     await pressConfirm(wPage);
-    log(`driveWolfDisabledEmptyVote — P${wIdx} confirmed 确认放弃袭击`);
+    log(`driveWolfDisabledEmptyVote — P${wIdx} confirmed 放弃袭击`);
   }
 }
 
@@ -753,7 +770,7 @@ async function tryDismissAlert(page: Page): Promise<boolean> {
 /**
  * Wait until a groupConfirm reveal step is active, detected by its
  * status button becoming visible on any page; its accessible name must
- * be `statusButtonText` (e.g. '情侣状态', '表白状态').
+ * be `statusButtonText` (e.g. '查看情侣信息', '查看表白信息').
  *
  * While polling, only dismiss blocking alert modals. Never click
  * bottom-panel action buttons: a click (e.g. '不用技能') would submit
@@ -763,13 +780,15 @@ async function tryDismissAlert(page: Page): Promise<boolean> {
  */
 export async function waitForGroupConfirmStep(
   pages: Page[],
+  stepId: string,
   statusButtonText: string,
   maxIterations = 60,
 ): Promise<void> {
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     for (const page of pages) {
-      const statusButton = nightButton(page, 'groupConfirmAck');
-      if (await statusButton.isVisible().catch(() => false)) {
+      if (!(await isStepUnlocked(page, stepId))) continue;
+      const statusButton = nightButton(page, stepId);
+      if (await statusButton.isVisible()) {
         await dismissAlert(page);
         await expect(statusButton).toHaveAccessibleName(statusButtonText);
         return;
@@ -801,7 +820,11 @@ export async function driveGroupConfirmAck(
   ackButtonText: string,
 ): Promise<string> {
   await clickNightButton(page, 'groupConfirmAck', statusButtonText);
-  await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
+  await pressAlertButton(page, {
+    title: `${statusButtonText}？`,
+    buttonIndex: 1,
+    buttonLabel: '查看',
+  });
   const message = await readAlertText(page, 5000);
   const ackButton = page.getByTestId(TESTIDS.alertButton(0));
   await expect(ackButton).toHaveText(ackButtonText);
@@ -823,19 +846,33 @@ export async function clickNightButton(
   label: string,
   options?: { readonly revealPrivateStatus?: boolean },
 ): Promise<void> {
-  const button = nightButton(page, key);
+  const actionKey = await actionKeyFor(page, key);
+  const button = nightButton(page, actionKey);
   if (!(await button.isVisible())) {
     await dismissAlert(page);
-    await openActionGroupFor(page, key);
+    await openActionGroupFor(page, actionKey);
   }
   await dismissAlert(page);
   await expect(button).toHaveAccessibleName(label, { timeout: 10_000 });
   await expect(button).toBeEnabled({ timeout: 10_000 });
   await button.click({ timeout: CLICK_TIMEOUT_MS });
   if (options?.revealPrivateStatus === true) {
-    await pressAlertButton(page, { title: '查看状态？', buttonIndex: 1, buttonLabel: '查看' });
+    await pressAlertButton(page, { title: `${label}？`, buttonIndex: 1, buttonLabel: '查看' });
   }
   log(`clickNightButton — ${key} "${label}" clicked`);
+}
+
+/** Assert the reason on a blocked step action without attempting to submit it. */
+export async function expectUnavailableNightAction(
+  page: Page,
+  actionKey: string,
+  reason: string,
+): Promise<void> {
+  await openActionGroupFor(page, actionKey);
+  const action = nightButton(page, actionKey);
+  await expect(action).toHaveAttribute('aria-disabled', 'true');
+  await expect(action).toHaveAccessibleDescription(reason);
+  await expect(action).toContainText(reason);
 }
 
 // ---------------------------------------------------------------------------
@@ -848,6 +885,6 @@ export async function clickNightButton(
 export async function driveMagicianSwap(page: Page, seat1: number, seat2: number): Promise<void> {
   await selectAndSubmitSeats(page, [seat1, seat2], {
     actionLabel: '确认交换',
-    confirmationTitle: '确认交换',
+    confirmationTitle: `交换${seat1 + 1}号和${seat2 + 1}号？`,
   });
 }

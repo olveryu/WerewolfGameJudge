@@ -30,6 +30,7 @@ export function buildInitialGameState(
     roleViewedSeats: [],
     roster: {},
     nightStep: null,
+    nightState: null,
     isAudioPlaying: false,
     audioBatchId: 0,
     gameSequence: 0,

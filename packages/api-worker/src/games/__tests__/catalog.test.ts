@@ -56,6 +56,17 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },
   },
   'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
+  'werewolf.step.submit': {
+    type: 'werewolf.step.submit',
+    gameSequence: 0,
+    submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [1] },
+  },
+  'werewolf.step.ackBots': {
+    type: 'werewolf.step.ackBots',
+    gameSequence: 0,
+    stepId: 'cupidLoversReveal',
+    serial: 1,
+  },
   'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
   'werewolf.role.viewed': { type: 'werewolf.role.viewed' },
   'werewolf.config.update': {
@@ -249,6 +260,23 @@ describe('Worker game catalog', () => {
       { type: 'werewolf.lastNightInfo.confirm', gameSequence: -1 },
       { type: 'werewolf.lastNightInfo.confirm', gameSequence: 1.5 },
       { type: 'werewolf.lastNightInfo.confirm', gameSequence: 0, extra: true },
+    ]) {
+      expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
+  });
+
+  it('rejects malformed or unknown Werewolf step identities', () => {
+    const submission = {
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [1] },
+    };
+    for (const command of [
+      { ...submission, submission: { ...submission.submission, stepId: 'unknown' } },
+      { ...submission, submission: { ...submission.submission, serial: -1 } },
+      { ...submission, submission: { ...submission.submission, seats: [-1] } },
+      { ...submission, submission: { ...submission.submission, extra: true } },
+      { type: 'werewolf.step.ackBots', gameSequence: 0, stepId: 'unknown', serial: 1 },
     ]) {
       expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
     }

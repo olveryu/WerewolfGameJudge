@@ -6,6 +6,7 @@
  */
 
 import { isBotOccupant } from '../../../../platform/room/seating';
+import { createWerewolfNightPlan } from '../../roles/nightPlan';
 import {
   Faction,
   GameStatus,
@@ -14,6 +15,7 @@ import {
   getRoleDealPool,
   getRoleSpec,
   isValidBottomCardSet,
+  isValidRoleId,
   type RoleId,
   validateTemplateRoles,
 } from '../models';
@@ -51,7 +53,8 @@ function assertBottomCardActor(
   const actor = state.players[actorSeat];
   if (actor === undefined || actor === null)
     fail(`${actorRoleId} actor seat ${actorSeat} is empty`);
-  if (actor.role !== actorRoleId) {
+  const dealtRole = state.nightState?.roles.identities[actorSeat]?.dealtRole ?? actor.role;
+  if (dealtRole !== actorRoleId) {
     fail(`${actorRoleId} actor seat ${actorSeat} contains ${actor.role ?? 'no role'}`);
   }
   return actorSeat;
@@ -463,6 +466,15 @@ function assertRosterAlignment(state: GameState): void {
  * proceed). A deadline only ever exists inside the live step variant.
  */
 function assertWerewolfStepWindow(state: GameState): void {
+  const night = state.nightState;
+  const hasNight =
+    state.status === GameStatus.Ongoing ||
+    state.status === GameStatus.Day ||
+    state.status === GameStatus.Ended;
+  if (hasNight !== (night !== null)) {
+    fail(hasNight ? `${state.status} state has no nightState` : 'nightState exists before night');
+  }
+  if (night !== null) assertSpecNightState(state, night);
   if (state.status === GameStatus.Ongoing) {
     const nightStep = state.nightStep;
     if (nightStep === null) fail('Ongoing state has no nightStep');
@@ -475,6 +487,65 @@ function assertWerewolfStepWindow(state: GameState): void {
     return;
   }
   if (state.nightStep !== null) fail(`nightStep exists during ${state.status}`);
+}
+
+function assertSpecNightState(state: GameState, night: NonNullable<GameState['nightState']>): void {
+  const seatedSeats = Object.keys(state.players)
+    .map(Number)
+    .filter((seat) => state.players[seat] != null)
+    .sort((first, second) => first - second);
+  if (
+    seatedSeats.length !== night.roles.seatedSeats.length ||
+    seatedSeats.some((seat, index) => seat !== night.roles.seatedSeats[index])
+  ) {
+    fail('night roles do not match the seated players');
+  }
+  const deal = seatedSeats.map((seat) => {
+    const identity = night.roles.identities[seat];
+    if (identity === undefined || !isValidRoleId(identity.dealtRole)) {
+      fail(`night seat ${seat} has no valid dealt identity`);
+    }
+    const playerRole = state.players[seat]?.role;
+    const isInfected =
+      night.infection?.outcome === 'converted' && night.infection.targetSeat === seat;
+    if (playerRole !== (isInfected ? 'wolf' : identity.dealtRole)) {
+      fail(`night seat ${seat} disagrees with its dealt identity`);
+    }
+    return { seat, role: identity.dealtRole };
+  });
+  const order = createWerewolfNightPlan({
+    seats: deal,
+    templateRoles: state.templateRoles,
+    seerLabelMap: state.seerLabelMap ?? {},
+    witchCanSelfHeal: night.roles.rules.witchCanSelfHeal,
+  }).map((step) => step.stepId);
+  if (
+    order.length !== night.slice.order.length ||
+    order.some((step, index) => step !== night.slice.order[index])
+  ) {
+    fail('night step order does not match the deal');
+  }
+  const current = night.slice.current;
+  if (current !== null && current.serial !== order.indexOf(current.stepId) + 1) {
+    fail('night step serial does not match its position');
+  }
+  if (state.status !== GameStatus.Ongoing) {
+    if (current !== null || night.slice.deadlineMs !== null)
+      fail('completed night is still active');
+    return;
+  }
+  const mirror = state.nightStep;
+  if (current === null) {
+    if (mirror?.kind !== 'exhausted' || night.slice.deadlineMs !== null) {
+      fail('exhausted night does not match its step');
+    }
+  } else if (
+    mirror?.kind !== 'inStep' ||
+    mirror.stepId !== current.stepId ||
+    (mirror.stepDeadline ?? null) !== night.slice.deadlineMs
+  ) {
+    fail('night step and deadline do not match the shared step');
+  }
 }
 
 /** Reject semantic state combinations that the command pipeline cannot produce. */

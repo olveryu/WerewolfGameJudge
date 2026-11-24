@@ -12,9 +12,9 @@ import {
 
 import { createSeededRng } from '../../../../platform/random';
 import { formatSeat } from '../../../../platform/room/formatSeat';
-import { cleanupGame, createGame } from '../../__tests__/boards/gameFactory';
+import { cleanupGame, createGame as createBoardGame } from '../../__tests__/boards/gameFactory';
+import { executeFullNight } from '../../__tests__/boards/legacyNightRunner';
 import type { NightActions, NightDeal } from '../../__tests__/boards/nightScript';
-import { executeFullNight } from '../../__tests__/boards/stepByStepRunner';
 import { calculateNightDeaths } from '../../domain/handlers/deathResolution';
 import { getWerewolfViewModel, type WerewolfRevealView } from '../../domain/visibility';
 import {
@@ -56,6 +56,11 @@ const RANDOM_NIGHT_ROLLS = Array.from({ length: RANDOM_SEQUENCES }, (_, iteratio
   guard: random(),
   seer: random(),
 }));
+
+function createGame(...args: Parameters<typeof createBoardGame>) {
+  const [template, assignment, options] = args;
+  return createBoardGame(template, assignment, { ...options, legacyNight: true });
+}
 
 describe('Night-1 old and new engine parity', () => {
   afterEach(() => {
@@ -320,10 +325,7 @@ function comparePrivateViews(state: GameState, stepId: SchemaId, driver: NewNigh
     const status = nightView.confirmStatus;
     if (status === null || status.role === 'seedWolf') continue;
     if (status.role === 'hunter' || status.role === 'darkWolfKing') {
-      const role = status.role === 'hunter' ? '猎人' : '狼王';
-      expect(driver.getView(stepId, seat)).toBe(
-        `${role}${status.canShoot ? '可以' : '不能'}发动技能`,
-      );
+      expect(driver.getView(stepId, seat)).toBe(status.canShoot ? '可以发动技能' : '不能发动技能');
     } else if (status.role === 'avenger') {
       const expected =
         status.faction === Team.Third

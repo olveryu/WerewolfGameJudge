@@ -35,9 +35,6 @@ describe('Night-1: silenceElder + votebanElder steps (12p)', () => {
   it('should reach silenceElderSilence and votebanElderBan steps', () => {
     const ctx = createGame(CUSTOM_ROLES);
 
-    // Theme assertion for contract gate
-    expect(ctx.getGameState().currentNightResults?.silencedSeat).toBeUndefined();
-
     expect(
       executeStepsUntil(ctx, 'silenceElderSilence', {
         silenceElder: 3,
@@ -52,9 +49,14 @@ describe('Night-1: silenceElder + votebanElder steps (12p)', () => {
       }),
     ).toBe(true);
     ctx.assertStep('votebanElderBan');
+    expect(ctx.getGameState().nightState?.facts.selections).toContainEqual(
+      expect.objectContaining({ roleId: 'silenceElder', chosenSeat: 3, landingSeat: 3 }),
+    );
 
-    // Wrap-up: run the entire night
-    executeFullNight(ctx);
+    executeFullNight(ctx, { votebanElder: 4 });
+    expect(ctx.getGameState().nightState?.facts.selections).toContainEqual(
+      expect.objectContaining({ roleId: 'votebanElder', chosenSeat: 4, landingSeat: 4 }),
+    );
 
     // contract gate pattern
     expect(TEMPLATE_NAME).toBe('预女猎白');

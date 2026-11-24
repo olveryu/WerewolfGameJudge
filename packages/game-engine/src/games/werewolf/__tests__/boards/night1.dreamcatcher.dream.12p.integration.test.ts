@@ -21,6 +21,7 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
@@ -56,7 +57,7 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
   });
 
   describe('Dreamcatcher 守护目标', () => {
-    it('dreamcatcher 守护 villager(0)，action 写入 state.actions', () => {
+    it('dreamcatcher 守护 villager(0)，步骤记录和效果均正确', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -68,12 +69,16 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: dreamcatcherDream action written to state.actions
       const state = ctx.getGameState();
-      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
-      expect(dreamAction).toBeDefined();
-      expect(dreamAction!.actorSeat).toBe(11); // dreamcatcher 在 seat 11
-      expect(dreamAction!.targetSeat).toBe(0); // 守护 seat 0
+      expect(
+        state.nightState?.slice.records.dreamcatcherDream?.bySeat[11]?.submissions,
+      ).toContainEqual({ actionKey: 'dreamcatcherDream', seats: [0], cardIndex: null });
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'dreamcatcher',
+        actorSeat: 11,
+        chosenSeat: 0,
+        landingSeat: 0,
+      });
 
       // attacked seat 1 dies
       expect(result.deaths).toEqual([1]);
@@ -91,11 +96,13 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: action recorded
       const state = ctx.getGameState();
-      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
-      expect(dreamAction).toBeDefined();
-      expect(dreamAction!.targetSeat).toBe(1);
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'dreamcatcher',
+        actorSeat: 11,
+        chosenSeat: 1,
+        landingSeat: 1,
+      });
 
       // protected target is immune to the attack; no deaths
       expect(result.deaths).toEqual([]);
@@ -103,7 +110,7 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
   });
 
   describe('Dreamcatcher 空选', () => {
-    it('dreamcatcher 不守护时，action 中 targetSeat 为 undefined', () => {
+    it('dreamcatcher 不守护时，记录空选且不产生目标', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -115,10 +122,13 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: when no target selected, action's targetSeat is undefined or the action is absent
       const state = ctx.getGameState();
-      const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
-      expect(dreamAction?.targetSeat).toBeUndefined();
+      expect(
+        state.nightState?.slice.records.dreamcatcherDream?.bySeat[11]?.submissions,
+      ).toContainEqual({ actionKey: STEP_SKIP_ACTION_KEY, seats: [], cardIndex: null });
+      expect(
+        state.nightState?.facts.selections.find((selection) => selection.roleId === 'dreamcatcher'),
+      ).toBeUndefined();
 
       expect(result.deaths).toEqual([0]);
     });

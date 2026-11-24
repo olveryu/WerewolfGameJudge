@@ -47,6 +47,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
         profile: { displayName: 'Player' },
       },
     },
+    nightState: null,
     nightStep: { kind: 'exhausted' },
     isAudioPlaying: false,
     audioBatchId: 0,

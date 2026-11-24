@@ -1,9 +1,10 @@
+import { withTestNightState } from '../../../__tests__/nightStateFixture';
 import { GameStatus } from '../../models';
 import type { GameState } from '../../protocol/types';
 import { assertWerewolfStateInvariants } from '../assertStateInvariants';
 
 function createTreasureMasterState(overrides: Partial<GameState> = {}): GameState {
-  return {
+  const state: GameState = {
     gameType: 'werewolf',
     roomCode: 'ROOM',
     hostUserId: 'host',
@@ -17,6 +18,7 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     },
     roleViewedSeats: [],
     roster: { 0: { seat: 0, userId: 'host', profile: { displayName: 'host' } } },
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
@@ -34,10 +36,11 @@ function createTreasureMasterState(overrides: Partial<GameState> = {}): GameStat
     seedWolfInfectionRevealAcks: [],
     ...overrides,
   };
+  return state.status === GameStatus.Ongoing ? withTestNightState(state) : state;
 }
 
 function createThiefState(overrides: Partial<GameState> = {}): GameState {
-  return {
+  const state: GameState = {
     ...createTreasureMasterState(),
     templateRoles: ['thief', 'wolf', 'seer'],
     players: {
@@ -48,10 +51,11 @@ function createThiefState(overrides: Partial<GameState> = {}): GameState {
     thiefSeat: 0,
     ...overrides,
   };
+  return state.status === GameStatus.Ongoing ? withTestNightState(state) : state;
 }
 
 function createSheriffElectionState(overrides: Partial<GameState> = {}): GameState {
-  return {
+  const state: GameState = {
     gameType: 'werewolf',
     roomCode: 'ROOM',
     hostUserId: 'host',
@@ -71,6 +75,7 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
       2: { seat: 2, userId: 'p2', profile: { displayName: 'p2' } },
       3: { seat: 3, userId: 'p3', profile: { displayName: 'p3' } },
     },
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,
@@ -96,6 +101,9 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
     },
     ...overrides,
   };
+  return state.status === GameStatus.Day || state.status === GameStatus.Ended
+    ? withTestNightState(state)
+    : state;
 }
 
 /**
@@ -103,7 +111,7 @@ function createSheriffElectionState(overrides: Partial<GameState> = {}): GameSta
  * (plan: wolfKill, hunterConfirm, seerCheck — length 3).
  */
 function createOngoingState(overrides: Partial<GameState> = {}): GameState {
-  return {
+  const state: GameState = {
     ...createSheriffElectionState(),
     status: GameStatus.Ongoing,
     sheriffElection: undefined,
@@ -111,6 +119,10 @@ function createOngoingState(overrides: Partial<GameState> = {}): GameState {
     nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     ...overrides,
   };
+  if (state.status === GameStatus.Ongoing) return withTestNightState(state);
+  return state.status === GameStatus.Day || state.status === GameStatus.Ended
+    ? state
+    : { ...state, nightState: null };
 }
 
 describe('assertWerewolfStateInvariants', () => {
@@ -608,7 +620,7 @@ describe('assertWerewolfStateInvariants', () => {
 
     it('rejects an Ongoing state without a nightStep', () => {
       expect(() => assertWerewolfStateInvariants(createOngoingState({ nightStep: null }))).toThrow(
-        'Ongoing state has no nightStep',
+        'exhausted night does not match its step',
       );
     });
 

@@ -42,6 +42,7 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
       getHumanSeatMap(state.roster, Object.keys(state.players).length),
     ).map((occupant) => ({ userId: occupant.userId, seat: occupant.seat })),
     nightStep,
+    nightState: null,
     // Audio queue events own isAudioPlaying; step transitions never infer it.
     actions: [],
     currentNightResults: {},

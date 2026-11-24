@@ -17,17 +17,24 @@
  * Core rules:
  * - awakenedGargoyleConvert: chooseSeat (AdjacentToWolfFaction constraint)
  * - target must be adjacent to a wolf faction seat (swap-aware)
- * - conversion result written to GameState.convertedSeat
+ * - conversion is recorded in the shared night facts
  * - awakenedGargoyleConvertReveal: groupConfirm (requires every player to acknowledge)
  *
  * Architecture: intents → handlers → reducer → GameState
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { REASON_STEP_STALE, STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
+import {
+  dispatchStep,
+  executeFullNight,
+  executeRemainingSteps,
+  executeStepsUntil,
+  submitStep,
+} from './stepByStepRunner';
 
 const TEMPLATE_NAME = '唯邻是从';
 
@@ -77,9 +84,8 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // core assertion: convertedSeat written
       const state = ctx.getGameState();
-      expect(state.convertedSeat).toBe(3);
+      expect(state.nightState?.facts.factionChanges).toContainEqual({ seat: 3, faction: 'wolf' });
     });
 
     it('转化 seat 0（与 wolf seat 11→0 wrap-around 相邻时需 swap 场景），正常流程', () => {
@@ -96,7 +102,7 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
 
       expect(result.completed).toBe(true);
       const state = ctx.getGameState();
-      expect(state.convertedSeat).toBe(3);
+      expect(state.nightState?.facts.factionChanges).toContainEqual({ seat: 3, faction: 'wolf' });
     });
   });
 
@@ -107,14 +113,9 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
       ctx.assertStep('awakenedGargoyleConvert');
 
-      const result = ctx.dispatchAsSeat(6, {
-        type: 'werewolf.action.submit',
-        input: { kind: 'skip' },
-      });
-
-      expect(result).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'domainRejected' },
+      expect(dispatchStep(ctx, 6, { actionKey: STEP_SKIP_ACTION_KEY })).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_STEP_STALE,
       });
     });
   });
@@ -129,14 +130,19 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       // seat 10 (guard) is not adjacent to any wolf faction seat
       // wolves at 4,5; awakenedGargoyle at 6; adjacent non-wolf-faction: 3,7
       // seat 10 neighbors: 9,11 — both are non-wolf
-      const result = ctx.dispatchAsSeat(6, {
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 10 },
-      });
-
-      expect(result).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'domainRejected' },
+      const step = getWerewolfViewModel(ctx.getGameState(), { seat: 6, isHost: false }).step;
+      const action = step?.actions.find((entry) => entry.kind === 'pickSeats');
+      expect(action?.kind === 'pickSeats' && action.seats.find((seat) => seat.seat === 10)).toEqual(
+        {
+          seat: 10,
+          unavailableReason: '只能选择与狼人阵营相邻的玩家',
+        },
+      );
+      expect(
+        dispatchStep(ctx, 6, { actionKey: 'awakenedGargoyleConvert', seats: [10] }),
+      ).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_STEP_STALE,
       });
     });
 
@@ -146,19 +152,18 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
       ctx.assertStep('awakenedGargoyleConvert');
 
-      const result = ctx.dispatchAsSeat(6, {
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 6 },
+      const step = getWerewolfViewModel(ctx.getGameState(), { seat: 6, isHost: false }).step;
+      const action = step?.actions.find((entry) => entry.kind === 'pickSeats');
+      expect(action?.kind === 'pickSeats' && action.seats.find((seat) => seat.seat === 6)).toEqual({
+        seat: 6,
+        unavailableReason: '不能选择自己',
       });
-
-      expect(result).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'domainRejected' },
+      expect(
+        dispatchStep(ctx, 6, { actionKey: 'awakenedGargoyleConvert', seats: [6] }),
+      ).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_STEP_STALE,
       });
-      if (result.kind !== 'committed' || result.outcome.kind !== 'domainRejected') {
-        throw new Error('Expected self-conversion to be rejected by the domain');
-      }
-      expect(result.outcome.reason).toContain('自己');
     });
 
     it('转化狼人阵营玩家应被拒绝 (NotWolfFaction constraint)', () => {
@@ -168,14 +173,17 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       ctx.assertStep('awakenedGargoyleConvert');
 
       // seat 4 is wolf (wolf faction) — cannot convert wolf faction
-      const result = ctx.dispatchAsSeat(6, {
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 4 },
+      const step = getWerewolfViewModel(ctx.getGameState(), { seat: 6, isHost: false }).step;
+      const action = step?.actions.find((entry) => entry.kind === 'pickSeats');
+      expect(action?.kind === 'pickSeats' && action.seats.find((seat) => seat.seat === 4)).toEqual({
+        seat: 4,
+        unavailableReason: '不能选择狼人阵营的玩家',
       });
-
-      expect(result).toMatchObject({
-        kind: 'committed',
-        outcome: { kind: 'domainRejected' },
+      expect(
+        dispatchStep(ctx, 6, { actionKey: 'awakenedGargoyleConvert', seats: [4] }),
+      ).toMatchObject({
+        kind: 'rejected',
+        reason: REASON_STEP_STALE,
       });
     });
   });
@@ -198,9 +206,10 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
 
       for (const player of Object.values(ctx.getGameState().players)) {
         if (player === null) continue;
-        ctx.dispatchAsSeatOrThrow(
+        submitStep(
+          ctx,
           player.seat,
-          { type: 'werewolf.groupConfirm.ack' },
+          { actionKey: 'awakenedGargoyleConvertReveal' },
           `acknowledge converted-player reveal at seat ${player.seat}`,
         );
       }

@@ -1,10 +1,12 @@
 import {
+  defineCopy,
   type PresentedAction,
+  renderCopy,
   STEP_RESULT_ACK_ACTION_KEY,
   type StepPresentation,
   type StepSubmission,
 } from '@game-judge/game-engine/platform/steps';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { confirmAction, confirmView } from '@/features/room/confirm';
 import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
@@ -15,9 +17,20 @@ import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { COMMAND_IN_FLIGHT_REASON } from '@/features/room/model/RoomAction';
 import { AUDIO_WAITING_LABEL } from '@/features/room/model/RoomPlayerActions';
 import { TESTIDS } from '@/testids';
+import { alertStore } from '@/utils/alert';
 import { showDismissAlert } from '@/utils/alertPresets';
 
 export type StepSelection = Pick<StepSubmission, 'actionKey' | 'seats' | 'cardIndex'>;
+
+export const STEP_CANCEL_SELECTION_ACTION_KEY = 'cancelSeatSelection';
+const COPY = defineCopy({
+  staleStep: '当前行动步骤已变化，请重新选择',
+  notice: '提示',
+  cancelSelection: '取消选座',
+  actionUnavailable: '暂不可操作',
+  seatUnavailable: '暂不可选',
+  confirmAction: '确认{action}',
+});
 
 export interface StepConfirmation {
   readonly title: string;
@@ -106,7 +119,8 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
   } = input;
   const contextKey =
     presentation === null ? 'inactive' : `${presentation.stepId}:${presentation.serial}`;
-  const trackAlert = useScopedAlert(contextKey);
+  const { trackAlert, trackConfirmation, clearConfirmation } =
+    useStepConfirmationAlerts(contextKey);
   const cardPickerState = useStepCardPickerState(contextKey);
   const selectionDraft = useStepSelectionDraft(presentation, draftIdentity);
   const activeAction = findActiveSeatAction(presentation, selectionDraft.draft.actionKey);
@@ -132,32 +146,16 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
     closeCardPicker: cardPickerState.close,
   });
 
-  const requestConfirmation = useCallback(
-    (action: PresentedAction, selection: Omit<StepSelection, 'actionKey'> = {}) => {
-      if (isSuspended || hasPendingCommand || presentation === null) return;
-      const described = describeConfirmation({ actionKey: action.key, ...selection });
-      confirmAction({
-        label: described.title,
-        body: described.body ?? undefined,
-        tone: described.tone,
-        confirmText: action.kind === 'direct' ? action.label : undefined,
-        onCancel: () => {
-          if (action.kind === 'pickSeats' && action.max > 1) resetSeatSelection();
-        },
-        onConfirm: () => submitSelection(action.key, selection).then(() => undefined),
-        onShown: trackAlert,
-      });
-    },
-    [
-      describeConfirmation,
-      hasPendingCommand,
-      isSuspended,
-      presentation,
-      resetSeatSelection,
-      submitSelection,
-      trackAlert,
-    ],
-  );
+  const requestConfirmation = useStepConfirmation({
+    presentation,
+    isSuspended,
+    hasPendingCommand,
+    describeConfirmation,
+    resetSeatSelection,
+    submitSelection,
+    trackConfirmation,
+    clearConfirmation,
+  });
 
   const handleActionPress = useCallback(
     (action: PresentedAction) => {
@@ -171,9 +169,11 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
           : () => submitSelection(action.key).then(() => undefined);
         confirmView({
           label: action.label,
-          onView: () =>
-            showDismissAlert(action.content.title, action.content.text, acknowledge, trackAlert),
-          onShown: trackAlert,
+          onView: () => {
+            clearConfirmation();
+            showDismissAlert(action.content.title, action.content.text, acknowledge, trackAlert);
+          },
+          onShown: trackConfirmation,
         });
         return;
       }
@@ -194,6 +194,7 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
     },
     [
       activeAction,
+      clearConfirmation,
       presentation,
       requestConfirmation,
       openCardPicker,
@@ -201,16 +202,18 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
       setSelectionDraft,
       submitSelection,
       trackAlert,
+      trackConfirmation,
     ],
   );
 
-  const actions = projectActions({
-    actions: presentation?.pendingResult === null ? (presentation?.actions ?? []) : [],
+  const actions = buildStepActions({
+    presentation,
     activeAction,
     selectedSeats,
     isSuspended,
     hasPendingCommand,
-    onPress: handleActionPress,
+    handleActionPress,
+    clearSelection: selectionDraft.clear,
   });
   useStepInteractionEffects({
     activeAction,
@@ -241,6 +244,118 @@ export function useStepInteraction(input: UseStepInteractionInput): StepInteract
     onSeatTap: seatPicking.onSeatTap,
     cardPicker,
   };
+}
+
+function useStepConfirmationAlerts(contextKey: string) {
+  const confirmationGeneration = useRef<number | null>(null);
+  const onStale = useCallback((generation: number) => {
+    if (confirmationGeneration.current !== generation) return;
+    confirmationGeneration.current = null;
+    showDismissAlert(COPY.notice, COPY.staleStep);
+  }, []);
+  const trackAlert = useScopedAlert(contextKey, onStale);
+  const trackConfirmation = useCallback(
+    (generation: number | null) => {
+      confirmationGeneration.current = generation;
+      trackAlert(generation);
+    },
+    [trackAlert],
+  );
+  const clearConfirmation = useCallback(() => {
+    confirmationGeneration.current = null;
+  }, []);
+  return { trackAlert, trackConfirmation, clearConfirmation };
+}
+
+function useStepConfirmation(input: {
+  readonly presentation: StepPresentation | null;
+  readonly isSuspended: boolean;
+  readonly hasPendingCommand: boolean;
+  readonly describeConfirmation: UseStepInteractionInput['describeConfirmation'];
+  readonly resetSeatSelection: () => void;
+  readonly submitSelection: (
+    actionKey: string,
+    selection?: Omit<StepSelection, 'actionKey'>,
+  ) => Promise<boolean>;
+  readonly trackConfirmation: (generation: number | null) => void;
+  readonly clearConfirmation: () => void;
+}) {
+  const {
+    presentation,
+    isSuspended,
+    hasPendingCommand,
+    describeConfirmation,
+    resetSeatSelection,
+    submitSelection,
+    trackConfirmation,
+    clearConfirmation,
+  } = input;
+  return useCallback(
+    (action: PresentedAction, selection: Omit<StepSelection, 'actionKey'> = {}) => {
+      if (isSuspended || hasPendingCommand || presentation === null) return;
+      const described = describeConfirmation({ actionKey: action.key, ...selection });
+      confirmAction({
+        label: described.title,
+        body: described.body ?? undefined,
+        tone: described.tone,
+        confirmText: described.tone === 'danger' ? action.label : undefined,
+        onCancel: () => {
+          if (action.kind === 'pickSeats') resetSeatSelection();
+        },
+        onConfirm: async () => {
+          clearConfirmation();
+          const accepted = await submitSelection(action.key, selection);
+          if (!accepted && action.kind === 'pickSeats') resetSeatSelection();
+        },
+        onShown: trackConfirmation,
+      });
+    },
+    [
+      clearConfirmation,
+      describeConfirmation,
+      hasPendingCommand,
+      isSuspended,
+      presentation,
+      resetSeatSelection,
+      submitSelection,
+      trackConfirmation,
+    ],
+  );
+}
+
+function buildStepActions(input: {
+  readonly presentation: StepPresentation | null;
+  readonly activeAction: Extract<PresentedAction, { readonly kind: 'pickSeats' }> | null;
+  readonly selectedSeats: readonly number[];
+  readonly isSuspended: boolean;
+  readonly hasPendingCommand: boolean;
+  readonly handleActionPress: (action: PresentedAction) => void;
+  readonly clearSelection: () => void;
+}): readonly RoomPlayerAction[] {
+  const { presentation, activeAction, selectedSeats, isSuspended, hasPendingCommand } = input;
+  const actions = projectActions({
+    actions: presentation?.pendingResult === null ? (presentation?.actions ?? []) : [],
+    activeAction,
+    selectedSeats,
+    isSuspended,
+    hasPendingCommand,
+    onPress: input.handleActionPress,
+  });
+  if (activeAction === null) return actions;
+  return [
+    ...(activeAction.min === activeAction.max
+      ? []
+      : actions.filter((action) => action.key === activeAction.key)),
+    {
+      key: STEP_CANCEL_SELECTION_ACTION_KEY,
+      label: COPY.cancelSelection,
+      audience: 'participant',
+      category: 'player',
+      icon: 'arrow-back',
+      testID: TESTIDS.stepInteractionButton(STEP_CANCEL_SELECTION_ACTION_KEY),
+      state: { kind: 'ready', onPress: input.clearSelection },
+    },
+  ];
 }
 
 function buildCardPickerModel(
@@ -290,7 +405,14 @@ function useStepInteractionEffects(input: {
     submitSelection,
     trackAlert,
   } = input;
-  useAutoConfirmSeatPick(activeAction, selectedSeats, requestConfirmation);
+  const alert = useSyncExternalStore(alertStore.subscribe, alertStore.getSnapshot);
+  useAutoConfirmSeatPick(
+    activeAction,
+    selectedSeats,
+    requestConfirmation,
+    contextKey,
+    isSuspended || hasPendingCommand || alert !== null,
+  );
   usePendingResultAcknowledgement({
     presentation,
     contextKey,
@@ -298,6 +420,7 @@ function useStepInteractionEffects(input: {
     hasPendingCommand,
     submitSelection,
     trackAlert,
+    hasOpenAlert: alert !== null,
   });
 }
 
@@ -464,7 +587,7 @@ function useStepSeatSelection(input: {
       if (model === null || activeAction === null) return false;
       if (isSuspended || hasPendingCommand) {
         showDismissAlert(
-          '暂不可操作',
+          COPY.actionUnavailable,
           isSuspended ? AUDIO_WAITING_LABEL : COMMAND_IN_FLIGHT_REASON,
           undefined,
           trackAlert,
@@ -473,7 +596,7 @@ function useStepSeatSelection(input: {
       }
       const reason = model.unavailableReasons[seat];
       if (reason !== undefined) {
-        showDismissAlert('暂不可选', reason, undefined, trackAlert);
+        showDismissAlert(COPY.seatUnavailable, reason, undefined, trackAlert);
         return true;
       }
       return handlePickingSeatTap(seat);
@@ -516,11 +639,14 @@ function projectActions(input: {
       input.selectedSeats.length >= action.min;
     return {
       key: action.key,
-      label: isReadyToConfirm ? `确认${action.label}` : action.label,
+      label: isReadyToConfirm
+        ? renderCopy(COPY.confirmAction, { action: action.label })
+        : action.label,
       audience: 'participant',
       category: 'player',
       icon: getActionIcon(action),
       opensDialog: action.kind !== 'pickSeats',
+      ...(unavailableReason === null ? {} : { showBlockedReason: true }),
       testID: TESTIDS.stepInteractionButton(action.key),
       state,
     };
@@ -554,21 +680,23 @@ function useAutoConfirmSeatPick(
     action: PresentedAction,
     selection?: Omit<StepSelection, 'actionKey'>,
   ) => void,
+  contextKey: string,
+  isBlocked: boolean,
 ): void {
   const previousKey = useRef<string | null>(null);
   const confirmationKey =
     activeAction !== null && activeAction.max > 0 && selectedSeats.length === activeAction.max
-      ? `${activeAction.key}:${selectedSeats.join(',')}`
+      ? `${contextKey}:${activeAction.key}:${selectedSeats.join(',')}`
       : null;
   useEffect(() => {
     if (confirmationKey === null) {
       previousKey.current = null;
       return;
     }
-    if (confirmationKey === previousKey.current || activeAction === null) return;
+    if (isBlocked || confirmationKey === previousKey.current || activeAction === null) return;
     previousKey.current = confirmationKey;
     requestConfirmation(activeAction, { seats: selectedSeats });
-  }, [activeAction, confirmationKey, requestConfirmation, selectedSeats]);
+  }, [activeAction, confirmationKey, isBlocked, requestConfirmation, selectedSeats]);
 }
 
 function usePendingResultAcknowledgement(input: {
@@ -578,28 +706,40 @@ function usePendingResultAcknowledgement(input: {
   readonly hasPendingCommand: boolean;
   readonly submitSelection: (actionKey: string) => Promise<boolean>;
   readonly trackAlert: (generation: number | null) => void;
+  readonly hasOpenAlert: boolean;
 }): void {
-  const { presentation, contextKey, isSuspended, hasPendingCommand, submitSelection, trackAlert } =
-    input;
-  const lastResultKey = useRef<string | null>(null);
+  const {
+    presentation,
+    contextKey,
+    isSuspended,
+    hasPendingCommand,
+    submitSelection,
+    trackAlert,
+    hasOpenAlert,
+  } = input;
+  const acknowledgedResultKey = useRef<string | null>(null);
   useEffect(() => {
     const result = presentation?.pendingResult ?? null;
     if (result === null) {
-      lastResultKey.current = null;
+      acknowledgedResultKey.current = null;
       return;
     }
-    if (isSuspended || hasPendingCommand) return;
+    if (isSuspended || hasPendingCommand || hasOpenAlert) return;
     const resultKey = `${contextKey}:${result.title}:${result.text}`;
-    if (lastResultKey.current === resultKey) return;
-    lastResultKey.current = resultKey;
+    if (acknowledgedResultKey.current === resultKey) return;
     showDismissAlert(
       result.title,
       result.text,
-      () => submitSelection(STEP_RESULT_ACK_ACTION_KEY).then(() => undefined),
+      async () => {
+        if (await submitSelection(STEP_RESULT_ACK_ACTION_KEY)) {
+          acknowledgedResultKey.current = resultKey;
+        }
+      },
       trackAlert,
     );
   }, [
     contextKey,
+    hasOpenAlert,
     hasPendingCommand,
     isSuspended,
     presentation?.pendingResult,

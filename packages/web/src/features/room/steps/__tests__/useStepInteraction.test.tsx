@@ -7,7 +7,7 @@ import { STEP_RESULT_ACK_ACTION_KEY } from '@game-judge/game-engine/platform/ste
 import { act, renderHook } from '@testing-library/react';
 
 import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
-import { alertStore, dismissAlert } from '@/utils/alert';
+import { alertStore, dismissAlert, showAlert } from '@/utils/alert';
 
 import { useStepInteraction } from '../useStepInteraction';
 
@@ -15,6 +15,7 @@ const EMPTY_PRESENTATION: StepPresentation = {
   stepId: 'first',
   serial: 1,
   title: '行动',
+  isActor: true,
   message: '请选择',
   actions: [],
   pendingResult: null,
@@ -95,6 +96,7 @@ describe('useStepInteraction', () => {
     const { result, submit } = renderStepInteraction(action);
     pressRoomAction(result.current.actions[0]);
     expect(alertStore.getSnapshot()?.title).toBe('确认行动？');
+    expect(alertStore.getSnapshot()?.buttons[1]?.text).toBe('确定');
     await pressButton(1);
 
     expect(submit).toHaveBeenCalledWith({
@@ -134,6 +136,35 @@ describe('useStepInteraction', () => {
       seats: [2],
     });
     expect(result.current.seatSelection).toBeNull();
+  });
+
+  it('does not consume seat taps before a selection has started', () => {
+    const action: PresentedAction = {
+      kind: 'pickSeats',
+      key: 'choose',
+      label: '选择座位',
+      availability: { kind: 'available' },
+      min: 1,
+      max: 1,
+      seats: [{ seat: 2, unavailableReason: null }],
+      committed: null,
+    };
+    const { result, submit } = renderStepInteraction(action);
+    expect(result.current.onSeatTap(2)).toBe(false);
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('presents the engine-provided reason when an action is unavailable', () => {
+    const action: PresentedAction = {
+      kind: 'direct',
+      key: 'action',
+      label: '执行',
+      availability: { kind: 'unavailable', reason: '本夜无法行动' },
+    };
+    const { result, submit } = renderStepInteraction(action);
+    expect(result.current.actions[0]?.state).toEqual({ kind: 'blocked', reason: '本夜无法行动' });
+    expect(result.current.actions[0]?.showBlockedReason).toBe(true);
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it('clears a multi-seat draft when its confirmation is cancelled', async () => {
@@ -336,7 +367,53 @@ describe('useStepInteraction', () => {
     expect(alertStore.getSnapshot()).toBeNull();
   });
 
-  it('dismisses confirmations when the active step changes', () => {
+  it('shows a pending private result after an unrelated alert closes', () => {
+    showAlert('其他提示');
+    const presentation: StepPresentation = {
+      ...EMPTY_PRESENTATION,
+      pendingResult: { title: '结果', text: '私密信息' },
+    };
+    renderHook(() =>
+      useStepInteraction({
+        presentation,
+        draftIdentity: { userId: 'user-1', roomId: 'room-1' },
+        describeConfirmation: () => ({ title: '', body: null, tone: 'default' }),
+        submit: vi.fn().mockResolvedValue(true),
+        isSuspended: false,
+        hasPendingCommand: false,
+      }),
+    );
+    expect(alertStore.getSnapshot()?.title).toBe('其他提示');
+
+    act(clearAlert);
+    expect(alertStore.getSnapshot()?.title).toBe('结果');
+  });
+
+  it('reopens a private result after its acknowledgement is rejected', async () => {
+    const presentation: StepPresentation = {
+      ...EMPTY_PRESENTATION,
+      pendingResult: { title: '结果', text: '私密信息' },
+    };
+    const submit = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    renderHook(() =>
+      useStepInteraction({
+        presentation,
+        draftIdentity: { userId: 'user-1', roomId: 'room-1' },
+        describeConfirmation: () => ({ title: '', body: null, tone: 'default' }),
+        submit,
+        isSuspended: false,
+        hasPendingCommand: false,
+      }),
+    );
+    await pressButton(0);
+    act(clearAlert);
+
+    expect(alertStore.getSnapshot()?.title).toBe('结果');
+    await pressButton(0);
+    expect(submit).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports a stale confirmation when the active step changes', () => {
     const action: PresentedAction = {
       kind: 'direct',
       key: 'confirm',
@@ -355,6 +432,30 @@ describe('useStepInteraction', () => {
         actions: [action],
       },
     });
+    expect(alertStore.getSnapshot()?.message).toBe('当前行动步骤已变化，请重新选择');
+  });
+
+  it('does not report a stale confirmation after its action was submitted', async () => {
+    const action: PresentedAction = {
+      kind: 'direct',
+      key: 'confirm',
+      label: '执行',
+      availability: { kind: 'available' },
+    };
+    const { result, rerender, submit } = renderStepInteraction(action);
+    pressRoomAction(result.current.actions[0]);
+    await pressButton(1);
+
+    rerender({
+      currentPresentation: {
+        ...EMPTY_PRESENTATION,
+        stepId: 'second',
+        serial: 2,
+        actions: [action],
+      },
+    });
+
+    expect(submit).toHaveBeenCalledOnce();
     expect(alertStore.getSnapshot()).toBeNull();
   });
 });

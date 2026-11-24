@@ -9,12 +9,10 @@
  * - No bypassing the handler
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
-
-const TEMPLATE_NAME = '预女猎白';
 
 /**
  * Chooses a 12p config containing: slacker/gargoyle/psychic.
@@ -59,9 +57,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   it('should reach slackerChooseIdol / wildChildChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
     const ctx = createGame(CUSTOM_ROLES);
 
-    // Theme assertion (not just deaths): include a real GameState field assertion.
-    // Contract gate looks for patterns like `.actions??.` so we assert with optional chaining.
-    expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
+    expect(ctx.getGameState().nightState?.slice.current?.stepId).toBe('magicianSwap');
 
     expect(
       executeStepsUntil(ctx, 'slackerChooseIdol', {
@@ -113,24 +109,24 @@ describe('Night-1: step-level coverage (12p)', () => {
 
     // Wrap-up: run the full night to avoid endNight fail-fast on incompletion
     executeFullNight(ctx);
-
-    // For coverage contract only: ensures the file contains the TEMPLATE_NAME constant (matches the old contract's pattern mechanism)
-    expect(TEMPLATE_NAME).toBe('预女猎白');
   });
 
-  it('should reach crowCurse / poisonerPoison steps and wolfKillOverride by poisoner', () => {
+  it('should reach crowCurse / poisonerPoison steps with wolf attacks disabled by poisoner', () => {
     const ctx = createGame(CUSTOM_ROLES_CROW_POISONER);
-
-    // Poisoner present -> night-1 wolfKillOverride set (board-level rule)
-    expect(ctx.getGameState().wolfKillOverride).toBeDefined();
-    expect(ctx.getGameState().wolfKillOverride?.source).toBe('poisoner');
-    expect(ctx.getGameState().currentNightResults?.wolfKillOverride).toBeDefined();
-    expect(ctx.getGameState().currentNightResults?.wolfKillOverride?.source).toBe('poisoner');
-
-    expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
 
     expect(executeStepsUntil(ctx, 'crowCurse', {})).toBe(true);
     ctx.assertStep('crowCurse');
+
+    expect(executeStepsUntil(ctx, 'wolfKill', { crow: 1 })).toBe(true);
+    const wolfSeat = ctx.findSeatByRole('wolf');
+    const wolfStep = getWerewolfViewModel(ctx.getGameState(), {
+      seat: wolfSeat,
+      isHost: false,
+    }).step;
+    expect(wolfStep?.actions.find((action) => action.key === 'wolfKill')?.availability).toEqual({
+      kind: 'unavailable',
+      reason: '本局有毒师在场，首夜无法袭击',
+    });
 
     expect(
       executeStepsUntil(ctx, 'poisonerPoison', {

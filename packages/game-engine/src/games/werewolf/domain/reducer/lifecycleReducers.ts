@@ -58,6 +58,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
     roster: {},
     status: GameStatus.Unseated,
     nightStep: null,
+    nightState: null,
     isAudioPlaying: false,
   };
 }
@@ -100,6 +101,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     mvpUserId: undefined,
     status: GameStatus.Seated,
     nightStep: null, // consistent with buildInitialGameState
+    nightState: null,
     isAudioPlaying: false,
     // Batch ids stay monotonic across restarts so a late ack for the previous game can never clear.
     audioBatchId: state.audioBatchId,

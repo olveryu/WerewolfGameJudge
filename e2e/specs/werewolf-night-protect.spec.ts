@@ -1,13 +1,12 @@
-import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
-import { readAlertText } from '../helpers/alerts';
 import {
   clickNightButton,
   clickSeatAndConfirm,
   dismissAlert,
   driveWolfVote,
+  expectUnavailableNightAction,
   findAllRolePageIndices,
   findRolePageIndex,
   viewLastNightInfo,
@@ -23,7 +22,7 @@ import { withSetup } from '../helpers/night-setup';
  * - Guard protect -> peaceful night
  * - Witch save -> peaceful night, Witch self-save rejection
  * - Dreamcatcher hit/miss/link death
- * - SpiritKnight wolf-kill immunity, poison reflection
+ * - SpiritKnight direct-target restriction, poison reflection
  *
  * Covers UI assertions on death/survival text.
  * Does not modify game state directly or import services/models.
@@ -117,7 +116,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         // Dismiss the witch info alert (shows kill info)
         await dismissAlert(pages[witchIdx]!);
 
-        await clickNightButton(pages[witchIdx]!, 'save', `对${formatSeat(killTarget)}用解药`);
+        await clickNightButton(pages[witchIdx]!, 'save', `对${killTarget + 1}号用解药`);
 
         // Confirm the save
         await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).toBeVisible({
@@ -255,8 +254,11 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
         // Wait for witch's turn — she was targeted, should see self-save rejection
         await waitForRoleTurn(pages[witchIdx]!, 'witchAction', pages);
 
-        // The self-save restriction is visible without an interrupting prompt.
-        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText('无法自救');
+        // The attack and the unavailable antidote are visible without an interrupting prompt.
+        await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText(
+          '你被狼人袭击',
+        );
+        await expectUnavailableNightAction(pages[witchIdx]!, 'antidote', '本局规则不允许自救');
         await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
         // Witch skips (no save, no poison)
@@ -270,9 +272,11 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // SpiritKnight — wolf cannot self-knife (immuneToWolfKill rejection)
+  // SpiritKnight — wolves cannot directly target this seat
   // --------------------------------------------------------------------------
-  test('spiritKnight is immune to wolf kill → rejection → re-vote', async ({ browser }) => {
+  test('wolves cannot directly target spiritKnight, but can vote for another seat', async ({
+    browser,
+  }) => {
     await withSetup(
       browser,
       {
@@ -287,36 +291,33 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
       async ({ pages, roleMap }) => {
         const skIdx = findRolePageIndex(roleMap, '恶灵骑士');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(skIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
+        expect(villagerIdx).not.toBe(-1);
 
         const skSeat = roleMap.get(skIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
-        const validTarget = villagers[0]?.[1].seat ?? 0;
+        const validTarget = roleMap.get(villagerIdx)!.seat;
+        const wolfIndices = [wolfIdx, skIdx];
 
-        // Both spiritKnight and wolf are wolf faction
-        const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), skIdx].filter(
-          (v, i, a) => a.indexOf(v) === i,
-        );
+        await test.step('Each wolf sees the direct-target restriction', async () => {
+          for (const wolfIndex of wolfIndices) {
+            const wolfPage = pages[wolfIndex]!;
+            await waitForRoleTurn(wolfPage, 'wolfKill', pages);
+            await clickNightButton(wolfPage, 'wolfKill', '袭击');
+            const restrictedSeat = wolfPage.getByTestId(TESTIDS.seatTilePressable(skSeat));
+            const reason = '该角色不能被狼人直接袭击';
+            await expect(restrictedSeat).toHaveAttribute('aria-disabled', 'true');
+            await expect(restrictedSeat).toHaveAccessibleDescription(reason);
+            await expect(wolfPage.getByTestId(TESTIDS.seatSelectionReason(skSeat))).toHaveText(
+              reason,
+            );
+            await clickNightButton(wolfPage, 'cancelSeatSelection', '取消选座');
+          }
+        });
 
-        // Wait for wolf kill step
-        await waitForRoleTurn(pages[allWolfIndices[0]!]!, 'wolfKill', pages);
-
-        const wolfPage = pages[wolfIdx]!;
-        await clickSeatAndConfirm(wolfPage, skSeat);
-
-        // Should see rejection alert (server rejects -> actionRejected shows '操作失败')
-        const rejectionText = await readAlertText(wolfPage);
-        expect(rejectionText).toContain('操作失败');
-        await dismissAlert(wolfPage);
-
-        // A rejected vote leaves the draft open so the wolf can replace its target.
-        await wolfPage.getByTestId(TESTIDS.seatTilePressable(validTarget)).click();
-        await expect(wolfPage.getByTestId(TESTIDS.alertMessage)).toContainText(
-          formatSeat(validTarget),
-        );
-        await wolfPage.getByTestId(TESTIDS.alertButton(1)).click();
-        await driveWolfVote(pages, [skIdx], validTarget);
+        await test.step('Both wolves vote for an eligible target', () =>
+          driveWolfVote(pages, wolfIndices, validTarget));
 
         // Night should complete normally
         await waitForNightEnd(pages);

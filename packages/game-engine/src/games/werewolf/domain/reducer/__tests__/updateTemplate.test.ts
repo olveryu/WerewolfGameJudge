@@ -54,6 +54,7 @@ function createStateWithPlayers(
     players: playersMap,
     roleViewedSeats: [],
     roster,
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,

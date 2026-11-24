@@ -93,6 +93,12 @@
   height: var(--size-icon-lg);
 }
 
+.room-action-card-cell .room-hand-blocked-reason {
+  font-size: var(--font-caption);
+  font-weight: var(--weight-normal);
+  line-height: var(--line-caption);
+}
+
 .room-action-card-cell .room-hand-card > .bottom-action-pending {
   position: absolute;
   top: calc(-1 * var(--line-caption));

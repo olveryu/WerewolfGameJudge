@@ -552,6 +552,27 @@ function nightSentences(
   review: WerewolfNightReview,
   identities: IdentityIndex,
 ): readonly (readonly TextInline[])[] {
+  if (review.stepLines !== undefined) {
+    const outcome = review.actions.find(
+      (entry) => entry.kind === 'deaths' || entry.kind === 'peacefulNight',
+    );
+    if (outcome === undefined) throw new Error('[FAIL-FAST] Night review has no outcome');
+    return [
+      ...review.actions
+        .filter((entry) => entry.kind === 'bottomCards')
+        .map((entry) => actionSentence(entry, identities)),
+      ...review.stepLines.map((line) =>
+        line.kind === 'explanation'
+          ? [plain(`${line.text}。`)]
+          : [
+              plain(`${formatSeat(line.seat)}${line.subject}`),
+              toned(line.phrase, factionTone(line.roleId)),
+              plain(`${line.result ?? ''}。`),
+            ],
+      ),
+      actionSentence(outcome, identities),
+    ];
+  }
   const familyActed = new Map<PotionOwner, boolean>();
   for (const entry of review.actions) {
     const owner = potionOwnerOf(entry);

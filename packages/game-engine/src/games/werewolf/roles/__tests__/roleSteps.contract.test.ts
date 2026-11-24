@@ -205,7 +205,7 @@ describe('werewolf role definitions', () => {
     expect(action.seats.find((option) => option.seat === 4)?.unavailableReason).toBeNull();
   });
 
-  it('revises wolf votes until the majority countdown is ready', () => {
+  it('starts the countdown after all wolves vote, including a disagreement', () => {
     const step = wolfKillStep;
     const completion = step.completion;
     if (completion === undefined) throw new Error('[FAIL-FAST] Wolf vote completion is missing');
@@ -261,7 +261,7 @@ describe('werewolf role definitions', () => {
       seat: 2,
       unavailableReason: '该角色不能被狼人直接袭击',
     });
-    expect(completion(disagreeing)).toEqual({ kind: 'pending' });
+    expect(completion(disagreeing)).toEqual({ kind: 'armCountdown' });
     expect(completion(aligned)).toEqual({ kind: 'armCountdown' });
     expect(step.actions[0]?.commit).toBe('revisable');
   });
@@ -376,7 +376,11 @@ describe('werewolf role definitions', () => {
         for (const event of abstention.events) slice = evolveStepSlice(slice, event);
         if (seat === 2) expect(evaluateStepProgress(runtime, state, 100)).toEqual([]);
       }
-      expect(evaluateStepProgress(runtime, state, 100)).toMatchObject([
+      const countdown = evaluateStepProgress(runtime, state, 100);
+      expect(countdown).toEqual([{ type: 'deadlineArmed', deadlineMs: 5100 }]);
+      for (const event of countdown) slice = evolveStepSlice(slice, event);
+      expect(evaluateStepProgress(runtime, state, 5099)).toEqual([]);
+      expect(evaluateStepProgress(runtime, state, 5100)).toMatchObject([
         { type: 'advanced', next: null },
       ]);
     },
@@ -430,6 +434,8 @@ describe('werewolf role definitions', () => {
       reason: '被噩梦之影恐惧，本夜无法袭击',
     });
     expect(wolfKillStep.completion?.(voteContext)).toEqual({ kind: 'armCountdown' });
+    const runtime = createRuntimeForStep(wolfKillStep, state, voteContext.record, facts);
+    expect(presentStep(runtime, state, 1)?.progress).toEqual({ done: 1, total: 1 });
   });
 
   it('applies witch resources, self-save rules, and wolf-attack protection', () => {
@@ -733,6 +739,14 @@ describe('werewolf role definitions', () => {
     if (facts === undefined) throw new Error('[FAIL-FAST] Seed wolf facts are missing');
 
     expect(action.availability?.(context)).toEqual({ kind: 'available' });
+    expect(step?.situationHints?.(context)).toEqual(['3号被狼人袭击']);
+    expect(
+      step?.reviewSuffix?.(context, {
+        actionKey: 'seedWolfInfect',
+        seats: [2],
+        cardIndex: null,
+      }),
+    ).toBe('（实际为5号）');
     expect(facts.wolfInfections).toEqual([{ actorSeat: 1, targetSeat: 4 }]);
     expect(reveal.content(createRoleContext(state, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
       '你未被感染',
@@ -1104,7 +1118,7 @@ function createState(
 }
 
 function createRuntime(
-  role: (typeof WEREWOLF_ROLE_DEFINITIONS)[number],
+  role: WerewolfRoleDefinition,
   state: WerewolfRoleState,
   record: StepRecord<WerewolfRoleStepResult> = { bySeat: {} },
   facts: WerewolfNightFacts = EMPTY_FACTS,
@@ -1270,8 +1284,8 @@ function getCheckResult(roleId: string): WerewolfRoleStepResult | null {
   return null;
 }
 
-function requireRole(roleId: string): (typeof WEREWOLF_ROLE_DEFINITIONS)[number] {
-  const role = WEREWOLF_ROLE_DEFINITIONS.find((entry) => entry.id === roleId);
+function requireRole(roleId: string): WerewolfRoleDefinition {
+  const role = ROLE_DEFINITIONS.find((entry) => entry.id === roleId);
   if (role === undefined) throw new Error(`[FAIL-FAST] Missing role ${roleId}`);
   return role;
 }

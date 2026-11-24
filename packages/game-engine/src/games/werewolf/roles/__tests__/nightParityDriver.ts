@@ -1,6 +1,5 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
-import { createSeededRng } from '../../../../platform/random';
 import {
   decideStepSubmission,
   evaluateStepProgress,
@@ -8,40 +7,37 @@ import {
   presentStep,
   STEP_RESULT_ACK_ACTION_KEY,
   STEP_SKIP_ACTION_KEY,
-  type StepDefinition,
   type StepRecord,
   type StepRuntime,
   type StepSlice,
   type StepSubmission,
 } from '../../../../platform/steps';
 import type { NightAction, NightActions, NightDeal } from '../../__tests__/boards/nightScript';
-import { NIGHT_STEP_ORDER } from '../../domain/models/roles/spec/nightStepIds';
 import {
-  createWerewolfRoleContext,
   type DeathEffect,
   type DeathResolution,
-  grantBorrowedAbility,
   replaceCurrentRole,
   resolveDeathEffects,
   resolveNightPresenceFacts,
   WEREWOLF_PRESENCE_DECLARATIONS,
-  WEREWOLF_ROLE_DEFINITIONS,
-  WEREWOLF_SHARED_STEPS,
-  type WerewolfBottomCard,
   type WerewolfNightFacts,
-  type WerewolfRoleDefinition,
   type WerewolfRoleState,
   type WerewolfRoleStepContext,
   type WerewolfRoleStepResult,
 } from '..';
+import {
+  applyWerewolfRoleFacts,
+  createWerewolfNightPlan as createPlan,
+  createWerewolfRoleState as createInitialState,
+  createWerewolfStepDefinitions as createDefinitions,
+  EMPTY_WEREWOLF_NIGHT_FACTS as EMPTY_FACTS,
+  mergeWerewolfNightFacts as mergeFacts,
+  type PlannedWerewolfStep as PlannedStep,
+  type WerewolfRoleStep as RoleStep,
+} from '../nightPlan';
+import { collectWerewolfDeathEffects, createWerewolfStepContext } from '../nightRuntime';
 import { resolveSeedWolfInfection } from '../seedWolf';
 
-type RoleStep = StepDefinition<
-  string,
-  WerewolfRoleStepContext,
-  WerewolfNightFacts,
-  WerewolfRoleStepResult
->;
 type RoleStepRuntime = StepRuntime<
   string,
   WerewolfRoleState,
@@ -50,129 +46,11 @@ type RoleStepRuntime = StepRuntime<
   WerewolfRoleStepResult
 >;
 
-interface PlannedStep {
-  readonly roleId: RoleId;
-  readonly stepId: string;
-}
-
 export interface NightTargetOptions {
   readonly minimum: number;
   readonly selectableSeats: readonly number[];
   readonly unavailableReason: string | null;
   readonly canSkip: boolean;
-}
-
-const EMPTY_FACTS: WerewolfNightFacts = {
-  selections: [],
-  identityChanges: [],
-  cardSelections: [],
-  disabledAbilities: [],
-  deathEffects: [],
-};
-
-const ROLE_BY_ID = new Map<string, WerewolfRoleDefinition>(
-  WEREWOLF_ROLE_DEFINITIONS.map((role) => [role.id, role]),
-);
-
-function getRole(roleId: string): WerewolfRoleDefinition {
-  const role = ROLE_BY_ID.get(roleId);
-  if (role === undefined) throw new Error(`[FAIL-FAST] Missing new role ${roleId}`);
-  return role;
-}
-
-function createDefinitions(): Readonly<Record<string, RoleStep>> {
-  const definitions: Record<string, RoleStep> = {};
-  for (const role of WEREWOLF_ROLE_DEFINITIONS) {
-    for (const step of role.steps) {
-      if (definitions[step.id] !== undefined) {
-        throw new Error(`[FAIL-FAST] Duplicate new step ${step.id}`);
-      }
-      definitions[step.id] = step;
-    }
-  }
-  for (const step of WEREWOLF_SHARED_STEPS) definitions[step.id] = step;
-  return definitions;
-}
-
-function createInitialState(deal: NightDeal): WerewolfRoleState {
-  const identities = Object.fromEntries(
-    deal.seats.map(({ seat, role }) => [
-      seat,
-      { dealtRole: role, currentRole: role, borrowedAbilityRole: null },
-    ]),
-  );
-  return {
-    identities,
-    location: { swap: null },
-    sight: { roleOverridesBySeat: {} },
-    seatedSeats: deal.seats.map((player) => player.seat).sort((a, b) => a - b),
-    nightNumber: 1,
-    rules: { witchCanSelfHeal: deal.witchCanSelfHeal },
-    usedAbilities: [],
-    disabledAbilities: [],
-    previousTargets: [],
-    previousCards: [],
-    woundedSeats: [],
-    usedResources: [],
-  };
-}
-
-function createPlan(deal: NightDeal): readonly PlannedStep[] {
-  const stepsById = new Map<string, PlannedStep>();
-  for (const roleId of new Set(deal.templateRoles)) {
-    for (const step of getRole(roleId).steps) {
-      if (stepsById.has(step.id)) throw new Error(`[FAIL-FAST] Duplicate new step ${step.id}`);
-      stepsById.set(step.id, { roleId, stepId: step.id });
-    }
-  }
-  if (
-    deal.templateRoles.some(
-      (roleId) => getRole(roleId).traits.recognition?.participatesInWolfVote === true,
-    )
-  ) {
-    stepsById.set('wolfKill', { roleId: 'wolf', stepId: 'wolfKill' });
-  }
-  const ordered = NIGHT_STEP_ORDER.flatMap((stepId) => {
-    const step = stepsById.get(stepId);
-    return step === undefined ? [] : [step];
-  });
-  if (ordered.length !== stepsById.size) {
-    throw new Error('[FAIL-FAST] A new role step is missing from the canonical night order');
-  }
-  const labeled = ordered
-    .map((step, index) => ({ step, index, label: deal.seerLabelMap[step.roleId] }))
-    .filter((entry) => entry.label !== undefined);
-  const indices = labeled.map((entry) => entry.index);
-  labeled.sort((first, second) => (first.label ?? 0) - (second.label ?? 0));
-  for (const [index, target] of indices.entries()) {
-    const entry = labeled[index];
-    if (entry === undefined) throw new Error('[FAIL-FAST] Missing ordered seer step');
-    ordered[target] = entry.step;
-  }
-  return ordered;
-}
-
-function mergeFacts(
-  previous: WerewolfNightFacts,
-  emitted: Partial<WerewolfNightFacts>,
-): WerewolfNightFacts {
-  return {
-    selections: [...previous.selections, ...(emitted.selections ?? [])],
-    identityChanges: [...previous.identityChanges, ...(emitted.identityChanges ?? [])],
-    cardSelections: [...previous.cardSelections, ...(emitted.cardSelections ?? [])],
-    disabledAbilities: [...previous.disabledAbilities, ...(emitted.disabledAbilities ?? [])],
-    deathEffects: [...previous.deathEffects, ...(emitted.deathEffects ?? [])],
-    wolfVotes: [...(previous.wolfVotes ?? []), ...(emitted.wolfVotes ?? [])],
-    locationSwaps: [...(previous.locationSwaps ?? []), ...(emitted.locationSwaps ?? [])],
-    resourceUses: [...(previous.resourceUses ?? []), ...(emitted.resourceUses ?? [])],
-    factionChanges: [...(previous.factionChanges ?? []), ...(emitted.factionChanges ?? [])],
-    wolfInfections: [...(previous.wolfInfections ?? []), ...(emitted.wolfInfections ?? [])],
-    wolfGirlConfessions: [
-      ...(previous.wolfGirlConfessions ?? []),
-      ...(emitted.wolfGirlConfessions ?? []),
-    ],
-    sightOverrides: [...(previous.sightOverrides ?? []), ...(emitted.sightOverrides ?? [])],
-  };
 }
 
 export class NewNightDriver {
@@ -276,16 +154,8 @@ export class NewNightDriver {
   }
 
   private collectDeathEffects(): readonly DeathEffect[] {
-    const effects: DeathEffect[] = [...this.facts.deathEffects];
     const roleContext = this.createContext(this.state, this.facts, null, { bySeat: {} });
-    for (const seat of this.state.seatedSeats) {
-      const role = getRole(roleContext.role.roleOf(seat));
-      if (role.traits.immunities !== undefined) {
-        effects.push({ kind: 'immune', seat, against: role.traits.immunities });
-      }
-      effects.push(...(role.passiveDeathEffects?.(roleContext, seat) ?? []));
-    }
-    return effects;
+    return collectWerewolfDeathEffects(roleContext);
   }
 
   getPrivateResults(): Readonly<Record<string, WerewolfRoleStepResult>> {
@@ -318,67 +188,17 @@ export class NewNightDriver {
     seat: number | null,
     record: StepRecord<WerewolfRoleStepResult>,
   ): WerewolfRoleStepContext {
-    const role = createWerewolfRoleContext(state.identities, state.location, state.sight);
-    return {
+    return createWerewolfStepContext({
       state,
       facts,
       seat,
       record,
-      role,
-      teamOfRole: (roleId) => getRole(roleId).traits.team,
-      factionOfRole: (roleId) => getRole(roleId).traits.faction,
-      checkReactionOfRole: (roleId) => getRole(roleId).traits.checkReaction,
-      doesRoleVoteWithWolves: (roleId) =>
-        getRole(roleId).traits.recognition?.participatesInWolfVote === true,
-      isWolfKillTargetForbidden: (targetSeat) =>
-        getRole(role.roleOf(targetSeat)).traits.wolfKillTargetForbidden === true,
-      isAdjacentToWolfFaction: (targetSeat) =>
-        state.seatedSeats.some((wolfSeat) => {
-          if (getRole(role.roleOf(wolfSeat)).traits.faction !== 'wolf') return false;
-          const distance = Math.abs(targetSeat - wolfSeat);
-          return distance === 1 || distance === state.seatedSeats.length - 1;
-        }),
-      roleNameOf: (roleId) => getRole(roleId).card.name,
-      randomBoolean: () => {
-        if (seat === null || this.slice.current?.stepId !== 'drunkSeerCheck') {
-          throw new Error('[FAIL-FAST] Random check requested outside the drunk seer step');
-        }
-        return createSeededRng(`${this.randomSeed}:resolver:drunkSeerCheck:${seat}`)() >= 0.5;
-      },
+      stepId: this.slice.current?.stepId ?? null,
+      randomSeed: this.randomSeed,
+      bottomCards: this.bottomCards,
       nightPresence: this.presence,
       resolvedWolfKillTarget: this.wolfKillTarget,
-      canShootAtNight: (targetSeat) => {
-        const causes = resolveDeathEffects(this.collectDeathEffects()).causes[targetSeat];
-        return causes === undefined || causes.every((cause) => cause === 'wolfKill');
-      },
-      avengerFactionOf: (targetSeat) => this.avengerFactionOf(targetSeat),
-      bottomCardsOf: (_targetSeat, roleId) => this.getBottomCards(roleId),
-    };
-  }
-
-  private getBottomCards(actorRoleId: string): readonly WerewolfBottomCard[] {
-    return this.bottomCards.map((roleId, index) => {
-      const role = getRole(roleId);
-      return {
-        index,
-        label: role.card.name,
-        roleId,
-        faction: role.traits.faction,
-        unavailableReason:
-          actorRoleId === 'treasureMaster' && role.traits.faction === 'wolf'
-            ? '狼人底牌不能选择'
-            : null,
-      };
     });
-  }
-
-  private avengerFactionOf(avengerSeat: number): 'good' | 'wolf' | 'bonded' {
-    const shadow = this.facts.selections.find((selection) => selection.roleId === 'shadow');
-    if (shadow === undefined) return 'good';
-    if (shadow.landingSeat === avengerSeat) return 'bonded';
-    const target = this.state.identities[shadow.landingSeat];
-    if (target === undefined) throw new Error('[FAIL-FAST] Shadow target has no identity');
-    return getRole(target.currentRole).traits.team === 'wolf' ? 'good' : 'wolf';
   }
 
   private runStep(definition: RoleStep, choice: NightAction | undefined): void {
@@ -522,26 +342,7 @@ export class NewNightDriver {
 
   private applyFacts(emitted: Partial<WerewolfNightFacts>): void {
     this.facts = mergeFacts(this.facts, emitted);
-    let identities = this.state.identities;
-    for (const change of emitted.identityChanges ?? []) {
-      identities =
-        change.kind === 'replaceCurrentRole'
-          ? replaceCurrentRole(identities, change.seat, change.roleId)
-          : grantBorrowedAbility(identities, change.seat, change.roleId);
-    }
-    const swaps = emitted.locationSwaps ?? [];
-    if (swaps.length > 1) throw new Error('[FAIL-FAST] One step emitted multiple seat swaps');
-    const roleOverridesBySeat = { ...this.state.sight.roleOverridesBySeat };
-    for (const override of emitted.sightOverrides ?? []) {
-      roleOverridesBySeat[override.seat] = override.roleId;
-    }
-    this.state = {
-      ...this.state,
-      identities,
-      location: swaps[0] === undefined ? this.state.location : { swap: swaps[0] },
-      sight: { roleOverridesBySeat },
-      usedResources: [...this.state.usedResources, ...(emitted.resourceUses ?? [])],
-    };
+    this.state = applyWerewolfRoleFacts(this.state, emitted);
   }
 
   private settleWolfVote(): void {

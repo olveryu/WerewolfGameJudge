@@ -240,18 +240,18 @@ describe('Schema notSelf constraint - single source of truth', () => {
 describe('UI reads seat eligibility from the projection (no hardcode)', () => {
   /**
    * Seat eligibility is decided by the engine projection
-   * (`WerewolfSeatView.disabledReason`); the room adapter only renders it
-   * and the night model only lists the seats the projection left enabled.
+   * (`PresentedAction.seats`); the shared step controls only render the
+   * options the projection left enabled.
    */
   it('the adapter and the night model never evaluate constraints themselves', () => {
     const adapter = readFileSync(join(__dirname, '..', 'werewolfRoomAdapter.ts'), 'utf8');
     const night = readFileSync(
-      join(__dirname, '..', 'night', 'resolveNightInteraction.ts'),
+      join(__dirname, '../../../../features/room/steps/useStepInteraction.ts'),
       'utf8',
     );
-    expect(adapter).toContain('seatView?.disabledReason ?? undefined');
+    expect(adapter).toContain('selection?.eligible.includes(seat)');
     expect(adapter).not.toMatch(/constraints|notSelf/);
-    expect(night).toContain('seat.disabledReason === null');
+    expect(night).toContain('option.unavailableReason === null');
     expect(night).not.toMatch(/constraints|notSelf/);
   });
 });

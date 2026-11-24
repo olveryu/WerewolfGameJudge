@@ -31,6 +31,7 @@ import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGua
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
 import { GameStatus, SCHEMAS } from './models';
+import { runWerewolfNightProgression } from './nightProgression';
 import { isVacantBottomCardStep } from './playerHelpers';
 import type { GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
@@ -213,6 +214,9 @@ export function runInlineProgression(
   hostUserId: string,
   execution: HandlerExecutionContext,
 ): InlineProgressionResult {
+  if (state.status === GameStatus.Ongoing && state.nightState !== null) {
+    return runWerewolfNightProgression(state, execution);
+  }
   // Day has no night steps: its only progression is the sheriff
   // voting round's settle-countdown expiry (one close per evaluation;
   // a runoff round it opens collects ballots before it can arm).

@@ -41,6 +41,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     templateRoles: new Array<RoleId>(totalSeats).fill('villager'),
     players: defaultPlayers,
     roleViewedSeats: [],
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,

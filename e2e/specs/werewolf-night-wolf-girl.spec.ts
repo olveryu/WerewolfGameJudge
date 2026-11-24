@@ -47,18 +47,21 @@ import { withSetup } from '../helpers/night-setup';
 test.setTimeout(300_000);
 
 async function confirmConfession(page: Page, wolfSeat: number, targetSeat: number): Promise<void> {
-  await clickNightButton(page, 'startSeatSelection', '选择表白目标');
+  await clickNightButton(page, 'startSeatSelection', '表白');
   const wolfTile = page.getByTestId(TESTIDS.seatTilePressable(wolfSeat));
   const targetTile = page.getByTestId(TESTIDS.seatTilePressable(targetSeat));
 
   await expect(targetTile).toHaveAttribute('aria-pressed', 'false');
   await expect(wolfTile).toBeDisabled();
+  await expect(page.getByTestId(TESTIDS.seatSelectionReason(wolfSeat))).toHaveText(
+    '不能选择狼人阵营的玩家',
+  );
   await wolfTile.press('Enter');
   await expect(page.getByTestId(TESTIDS.alertModal)).not.toBeVisible();
 
   await targetTile.click();
   await expect(targetTile).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId(TESTIDS.alertMessage)).toContainText(formatSeat(targetSeat));
+  await expect(page.getByTestId(TESTIDS.alertTitle)).toContainText(formatSeat(targetSeat));
   await page.getByTestId(TESTIDS.alertButton(1)).click();
 }
 
@@ -104,11 +107,11 @@ async function drivePostConfessNight(
     await test.step('Hunter turn should become active', () =>
       waitForRoleTurn(pages[hunterPageIndex]!, 'hunterConfirm', pages));
     await dismissAlert(pages[hunterPageIndex]!);
-    await clickNightButton(pages[hunterPageIndex]!, 'confirm', '发动状态', {
+    await clickNightButton(pages[hunterPageIndex]!, 'confirm', '查看技能状态', {
       revealPrivateStatus: true,
     });
     const alertText = await readAlertText(pages[hunterPageIndex]!);
-    expect(alertText).toContain('猎人');
+    expect(alertText).toContain('技能状态');
     expect(alertText).toMatch(/可以发动技能|不能发动技能/);
     await dismissAlert(pages[hunterPageIndex]!);
   });
@@ -168,9 +171,9 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
             waitForRoleTurn(pages[wolfGirlPageIndex]!, 'wolfGirlConfess', pages));
 
           await expect(
-            nightButton(pages[wolfGirlPageIndex]!, 'startSeatSelection'),
+            nightButton(pages[wolfGirlPageIndex]!, 'wolfGirlConfess'),
             'Confess step prompt should show the 表白 verb',
-          ).toContainText('选择表白目标');
+          ).toContainText('表白');
 
           await test.step('Wolf Girl cannot select a wolf but can confirm a civilian', () =>
             confirmConfession(pages[wolfGirlPageIndex]!, wolfSeats[0]!, confessTargetSeat));
@@ -187,14 +190,14 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
 
         await test.step('every player acknowledges the confession reveal', async () => {
           await test.step('Confession reveal should become active last', () =>
-            waitForGroupConfirmStep(pages, '表白状态', 120));
+            waitForGroupConfirmStep(pages, 'wolfGirlConfessReveal', '查看表白信息', 120));
 
           let disclosedSeatCount = 0;
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await driveGroupConfirmAck(pages[pageIndex]!, '表白状态', '知道了');
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '查看表白信息', '知道了');
             if (player.seat === confessTargetSeat) {
               expect(message).toContain(`狼女孩是：${formatSeat(wolfGirlSeat)}`);
               disclosedSeatCount++;
@@ -271,13 +274,13 @@ test.describe('Werewolf Night — Wolf Girl (狼女孩)', () => {
 
         await test.step('every player acknowledges the confession reveal', async () => {
           await test.step('Confession reveal should become active last', () =>
-            waitForGroupConfirmStep(pages, '表白状态', 120));
+            waitForGroupConfirmStep(pages, 'wolfGirlConfessReveal', '查看表白信息', 120));
 
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await driveGroupConfirmAck(pages[pageIndex]!, '表白状态', '知道了');
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '查看表白信息', '知道了');
             expect(message).not.toContain('狼女孩是：');
             if (player.seat === seerSeat) {
               expect(message).toContain('你被表白了');

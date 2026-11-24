@@ -62,6 +62,7 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
     stepId: definition.id,
     serial: slice.current.serial,
     title: definition.title,
+    isActor,
     message,
     actions,
     pendingResult,
@@ -178,7 +179,7 @@ function buildActionPrompt<TStepId extends string, TContext, TFacts, TResult>(
   const presentedAction = actions.find((action) => action.availability.kind === 'available');
   if (presentedAction === undefined) return null;
   const prompt = definition.actions.find((action) => action.key === presentedAction.key);
-  if (prompt?.kind === 'view') {
+  if (prompt?.kind === 'view' || prompt?.kind === 'pickCard') {
     return renderCopy(STEP_COPY.clickAction, { action: presentedAction.label });
   }
   return null;
@@ -213,6 +214,20 @@ export function describeStepConfirmation<TStepId extends string, TState, TContex
   const definition = runtime.definitions[slice.current.stepId];
   const record = slice.records[slice.current.stepId] ?? { bySeat: {} };
   const context = createStepContext(runtime, state, viewerSeat, record);
+  if (selection.actionKey === STEP_SKIP_ACTION_KEY) {
+    if (
+      selection.seats !== undefined ||
+      selection.cardIndex !== undefined ||
+      (!definition.skippable(context) && definition.lock?.(context) == null)
+    ) {
+      throw new Error(`[FAIL-FAST] ${REASON_STEP_STALE}`);
+    }
+    return {
+      title: renderCopy(STEP_COPY.confirmationTitle, { phrase: STEP_COPY.skip }),
+      body: null,
+      tone: 'default',
+    };
+  }
   const action = definition.actions.find((entry) => entry.key === selection.actionKey);
   if (action === undefined) throw new Error(`[FAIL-FAST] ${REASON_STEP_STALE}`);
   const phrase = getConfirmationPhrase(action, selection, context);
@@ -283,7 +298,7 @@ export function createAdvanceEvent<TStepId extends string, TState, TContext, TFa
   const audio: AudioEffect[] = [];
   const currentEnd = currentDefinition.audio(currentContext).end;
   if (currentEnd !== null) audio.push({ audioKey: currentEnd, isEndAudio: true });
-  if (next === null) audio.push({ audioKey: NIGHT_END_AUDIO_KEY, isEndAudio: true });
+  if (next === null) audio.push({ audioKey: NIGHT_END_AUDIO_KEY });
   else {
     const nextBegin = runtime.definitions[next.stepId].audio(nextContext).begin;
     if (nextBegin !== null) audio.push({ audioKey: nextBegin, isEndAudio: false });
@@ -302,7 +317,7 @@ function getStepProgress<TStepId extends string, TState, TContext, TFacts, TResu
   record: StepRecord<TResult>,
 ): { readonly done: number; readonly total: number } {
   const context = createStepContext(runtime, state, null, record);
-  const actors = definition.actors(context);
+  const actors = definition.progressActors?.(context) ?? definition.actors(context);
   const done = actors.filter((seat) => {
     const seatRecord = record.bySeat[seat];
     if (seatRecord === undefined) return false;

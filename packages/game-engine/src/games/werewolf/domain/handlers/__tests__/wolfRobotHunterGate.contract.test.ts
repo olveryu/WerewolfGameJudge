@@ -48,6 +48,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
       2: { seat: 2, role: 'villager' },
     },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: { kind: 'inStep', stepId: 'wolfRobotLearn' },
     isAudioPlaying: false,
     audioBatchId: 0,

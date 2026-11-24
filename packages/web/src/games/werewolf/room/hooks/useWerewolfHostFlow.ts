@@ -56,6 +56,8 @@ interface UseWerewolfHostFlowInput {
 const ASSIGN_CONFIRM_TEXT = '所有座位已满，将洗牌并分配角色';
 const START_CONFIRM_TITLE = '开始游戏？';
 const START_CONFIRM_TEXT = '请将手机音量调到最大';
+
+/** Manage the host's game commands and MVP selection. */
 export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHostFlow {
   const { state, submit, audio } = input;
   const roleRevealRandomNonce = state.roleRevealRandomNonce ?? null;
@@ -137,17 +139,7 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
     });
   }, [submit]);
 
-  const markAllBotsGroupConfirmed = useCallback(() => {
-    showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', async () => {
-      await submit(
-        '机器人确认',
-        { type: 'werewolf.groupConfirm.ackBots' },
-        {
-          actionKey: 'mark-bots-confirmed',
-        },
-      );
-    });
-  }, [submit]);
+  const markAllBotsGroupConfirmed = useMarkAllBotsGroupConfirmed(state, submit);
 
   const canSelectMvp = state.status === GameStatus.Ended && state.mvpUserId === undefined;
 
@@ -201,4 +193,28 @@ export function useWerewolfHostFlow(input: UseWerewolfHostFlowInput): WerewolfHo
     openMvpSelection,
     closeMvpSelection,
   };
+}
+
+function useMarkAllBotsGroupConfirmed(state: GameState, submit: WerewolfSubmit): () => void {
+  const gameSequence = state.gameSequence;
+  const currentStep = state.nightState?.slice.current;
+  return useCallback(() => {
+    if (currentStep === null || currentStep === undefined) {
+      throw new Error('[FAIL-FAST] Bot acknowledgement without a current step');
+    }
+    showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', async () => {
+      await submit(
+        '机器人确认',
+        {
+          type: 'werewolf.step.ackBots',
+          gameSequence,
+          stepId: currentStep.stepId,
+          serial: currentStep.serial,
+        },
+        {
+          actionKey: 'mark-bots-confirmed',
+        },
+      );
+    });
+  }, [currentStep, gameSequence, submit]);
 }

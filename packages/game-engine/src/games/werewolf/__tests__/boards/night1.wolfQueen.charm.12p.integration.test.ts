@@ -21,6 +21,7 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
@@ -56,7 +57,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
   });
 
   describe('WolfQueen 魅惑正常执行', () => {
-    it('wolfQueen 魅惑 villager(0)，action 记录正确，流程完成', () => {
+    it('wolfQueen 魅惑 villager(0)，步骤记录和效果均正确', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -69,18 +70,26 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: wolfQueenCharm action written to state.actions
       const state = ctx.getGameState();
-      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
-      expect(charmAction).toBeDefined();
-      expect(charmAction!.actorSeat).toBe(7); // wolfQueen at seat 7
-      expect(charmAction!.targetSeat).toBe(0); // charm seat 0
+      expect(state.nightState?.slice.records.wolfQueenCharm?.bySeat[7]?.submissions).toContainEqual(
+        {
+          actionKey: 'wolfQueenCharm',
+          seats: [0],
+          cardIndex: null,
+        },
+      );
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'wolfQueen',
+        actorSeat: 7,
+        chosenSeat: 0,
+        landingSeat: 0,
+      });
 
       // Only attacked seat 1 dies, seat 0 and wolfQueen survive
       expect(result.deaths).toEqual([1]);
     });
 
-    it('wolfQueen 魅惑 seer(8)，action 写入 targetSeat=8', () => {
+    it('wolfQueen 魅惑 seer(8)，记录选择目标', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -93,18 +102,20 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: action records charm target
       const state = ctx.getGameState();
-      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
-      expect(charmAction).toBeDefined();
-      expect(charmAction!.targetSeat).toBe(8);
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'wolfQueen',
+        actorSeat: 7,
+        chosenSeat: 8,
+        landingSeat: 8,
+      });
 
       expect(result.deaths).toEqual([0]);
     });
   });
 
   describe('WolfQueen 不魅惑', () => {
-    it('wolfQueen 空选，action 中 targetSeat 为 undefined（或无该 action）', () => {
+    it('wolfQueen 空选，记录空选且不产生目标', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -115,11 +126,17 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
         seer: 4,
       });
 
-      // Core assertion: when empty, action exists with targetSeat undefined, or no action
       const state = ctx.getGameState();
-      const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
-      // Empty selection: either no action, or targetSeat is undefined
-      expect(charmAction?.targetSeat).toBeUndefined();
+      expect(state.nightState?.slice.records.wolfQueenCharm?.bySeat[7]?.submissions).toContainEqual(
+        {
+          actionKey: STEP_SKIP_ACTION_KEY,
+          seats: [],
+          cardIndex: null,
+        },
+      );
+      expect(
+        state.nightState?.facts.selections.find((selection) => selection.roleId === 'wolfQueen'),
+      ).toBeUndefined();
 
       expect(result.completed).toBe(true);
       expect(result.deaths).toEqual([0]);

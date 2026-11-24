@@ -10,16 +10,17 @@ exports[`werewolf role definitions > snapshots generated output for 'avenger' 'a
         },
         "content": {
           "text": "你属于好人阵营",
-          "title": "阵营信息",
+          "title": "阵营",
         },
         "isAcknowledged": false,
         "key": "avengerConfirm",
         "kind": "view",
-        "label": "查看阵营信息",
+        "label": "查看阵营",
       },
     ],
     "deadlineMs": null,
-    "message": "请点击「查看阵营信息」",
+    "isActor": true,
+    "message": "请点击「查看阵营」",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -33,64 +34,13 @@ exports[`werewolf role definitions > snapshots generated output for 'avenger' 'a
     {
       "seat": 1,
       "stepId": "avengerConfirm",
-      "text": "复仇者阵营信息",
+      "text": "复仇者已确认阵营",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "avengerConfirm",
-    "title": "阵营确认",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'avenger' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "content": {
-          "text": "你属于好人阵营",
-          "title": "阵营信息",
-        },
-        "isAcknowledged": false,
-        "key": "avengerConfirm",
-        "kind": "view",
-        "label": "查看阵营信息",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请点击「查看阵营信息」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "avengerConfirm",
-    "title": "阵营确认",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "avengerConfirm",
-      "text": "复仇者阵营信息",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -109,6 +59,7 @@ exports[`werewolf role definitions > snapshots generated output for 'awakenedGar
   "initial": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -123,6 +74,7 @@ exports[`werewolf role definitions > snapshots generated output for 'awakenedGar
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -155,6 +107,7 @@ exports[`werewolf role definitions > snapshots generated output for 'awakenedGar
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看转化信息」",
     "pendingResult": null,
     "progress": {
@@ -171,25 +124,11 @@ exports[`werewolf role definitions > snapshots generated output for 'awakenedGar
       "stepId": "awakenedGargoyleConvertReveal",
       "text": "觉醒石像鬼转化信息",
     },
-    {
-      "seat": 2,
-      "stepId": "awakenedGargoyleConvertReveal",
-      "text": "觉醒石像鬼未转化信息",
-    },
-    {
-      "seat": 3,
-      "stepId": "awakenedGargoyleConvertReveal",
-      "text": "觉醒石像鬼未转化信息",
-    },
-    {
-      "seat": 4,
-      "stepId": "awakenedGargoyleConvertReveal",
-      "text": "觉醒石像鬼未转化信息",
-    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -246,6 +185,7 @@ exports[`werewolf role definitions > snapshots generated output for 'crow' 'crow
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要诅咒的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -266,82 +206,7 @@ exports[`werewolf role definitions > snapshots generated output for 'crow' 'crow
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "crowCurse",
-    "title": "诅咒",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'crow' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "crowCurse",
-        "kind": "pickSeats",
-        "label": "诅咒",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要诅咒的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "crowCurse",
-    "title": "诅咒",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "crowCurse",
-      "text": "乌鸦诅咒3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -360,6 +225,7 @@ exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cup
   "initial": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -374,6 +240,7 @@ exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cup
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -406,6 +273,7 @@ exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cup
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看情侣信息」",
     "pendingResult": null,
     "progress": {
@@ -422,25 +290,11 @@ exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cup
       "stepId": "cupidLoversReveal",
       "text": "丘比特情侣信息",
     },
-    {
-      "seat": 2,
-      "stepId": "cupidLoversReveal",
-      "text": "丘比特未情侣信息",
-    },
-    {
-      "seat": 3,
-      "stepId": "cupidLoversReveal",
-      "text": "丘比特未情侣信息",
-    },
-    {
-      "seat": 4,
-      "stepId": "cupidLoversReveal",
-      "text": "丘比特未情侣信息",
-    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -463,7 +317,7 @@ exports[`werewolf role definitions > snapshots generated output for 'darkWolfKin
           "kind": "available",
         },
         "content": {
-          "text": "狼王可以发动技能",
+          "text": "可以发动技能",
           "title": "技能状态",
         },
         "isAcknowledged": false,
@@ -473,6 +327,7 @@ exports[`werewolf role definitions > snapshots generated output for 'darkWolfKin
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看技能状态」",
     "pendingResult": null,
     "progress": {
@@ -487,64 +342,13 @@ exports[`werewolf role definitions > snapshots generated output for 'darkWolfKin
     {
       "seat": 1,
       "stepId": "darkWolfKingConfirm",
-      "text": "狼王技能状态",
+      "text": "狼王可以发动",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "darkWolfKingConfirm",
-    "title": "技能发动确认",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'darkWolfKing' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "content": {
-          "text": "狼王可以发动技能",
-          "title": "技能状态",
-        },
-        "isAcknowledged": false,
-        "key": "darkWolfKingConfirm",
-        "kind": "view",
-        "label": "查看技能状态",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请点击「查看技能状态」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "darkWolfKingConfirm",
-    "title": "技能发动确认",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "darkWolfKingConfirm",
-      "text": "狼王技能状态",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -601,6 +405,7 @@ exports[`werewolf role definitions > snapshots generated output for 'dreamcatche
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要摄梦的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -626,87 +431,7 @@ exports[`werewolf role definitions > snapshots generated output for 'dreamcatche
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "dreamcatcherDream",
-    "title": "摄梦",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'dreamcatcher' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "dreamcatcherDream",
-        "kind": "pickSeats",
-        "label": "摄梦",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要摄梦的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "dreamcatcherDream",
-    "title": "摄梦",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "dreamcatcherDream",
-      "text": "摄梦人摄梦3号（实际为5号）",
-    },
-    {
-      "seat": 4,
-      "stepId": "dreamcatcherDream",
-      "text": "摄梦人未摄梦",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -763,6 +488,7 @@ exports[`werewolf role definitions > snapshots generated output for 'drunkSeer' 
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -783,85 +509,7 @@ exports[`werewolf role definitions > snapshots generated output for 'drunkSeer' 
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是好人",
-      "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "drunkSeerCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'drunkSeer' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "drunkSeerCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "drunkSeerCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "drunkSeerCheck",
-      "text": "酒鬼预言家查验3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是好人",
@@ -921,6 +569,7 @@ exports[`werewolf role definitions > snapshots generated output for 'eclipseWolf
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要放逐的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -935,88 +584,13 @@ exports[`werewolf role definitions > snapshots generated output for 'eclipseWolf
     {
       "seat": 1,
       "stepId": "eclipseWolfQueenShelter",
-      "text": "蚀时狼妃放逐3号（实际为5号）",
+      "text": "蚀时狼妃放逐3号到时间裂隙（实际为5号）",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "eclipseWolfQueenShelter",
-    "title": "放逐",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'eclipseWolfQueen' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "eclipseWolfQueenShelter",
-        "kind": "pickSeats",
-        "label": "放逐",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要放逐的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "eclipseWolfQueenShelter",
-    "title": "放逐",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "eclipseWolfQueenShelter",
-      "text": "蚀时狼妃放逐3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1073,6 +647,7 @@ exports[`werewolf role definitions > snapshots generated output for 'gargoyle' '
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1093,89 +668,11 @@ exports[`werewolf role definitions > snapshots generated output for 'gargoyle' '
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
       "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "gargoyleCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'gargoyle' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "gargoyleCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "gargoyleCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "gargoyleCheck",
-      "text": "石像鬼查验3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是摄梦人",
-      "title": "石像鬼探查结果",
     },
     "progress": {
       "done": 0,
@@ -1231,6 +728,7 @@ exports[`werewolf role definitions > snapshots generated output for 'guard' 'gua
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要守护的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1251,82 +749,7 @@ exports[`werewolf role definitions > snapshots generated output for 'guard' 'gua
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "guardProtect",
-    "title": "守护",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'guard' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "guardProtect",
-        "kind": "pickSeats",
-        "label": "守护",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要守护的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "guardProtect",
-    "title": "守护",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "guardProtect",
-      "text": "守卫守护3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1350,16 +773,17 @@ exports[`werewolf role definitions > snapshots generated output for 'hiddenWolf'
         },
         "content": {
           "text": "你的狼同伴为：4号",
-          "title": "狼同伴信息",
+          "title": "狼同伴",
         },
         "isAcknowledged": false,
         "key": "hiddenWolfReveal",
         "kind": "view",
-        "label": "查看狼同伴信息",
+        "label": "查看狼同伴",
       },
     ],
     "deadlineMs": null,
-    "message": "请点击「查看狼同伴信息」",
+    "isActor": true,
+    "message": "请点击「查看狼同伴」",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -1373,64 +797,13 @@ exports[`werewolf role definitions > snapshots generated output for 'hiddenWolf'
     {
       "seat": 1,
       "stepId": "hiddenWolfReveal",
-      "text": "隐狼狼同伴信息",
+      "text": "隐狼已确认狼同伴",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "hiddenWolfReveal",
-    "title": "狼同伴确认",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'hiddenWolf' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "content": {
-          "text": "你的狼同伴为：4号",
-          "title": "狼同伴信息",
-        },
-        "isAcknowledged": false,
-        "key": "hiddenWolfReveal",
-        "kind": "view",
-        "label": "查看狼同伴信息",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请点击「查看狼同伴信息」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "hiddenWolfReveal",
-    "title": "狼同伴确认",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "hiddenWolfReveal",
-      "text": "隐狼狼同伴信息",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1453,7 +826,7 @@ exports[`werewolf role definitions > snapshots generated output for 'hunter' 'hu
           "kind": "available",
         },
         "content": {
-          "text": "猎人可以发动技能",
+          "text": "可以发动技能",
           "title": "技能状态",
         },
         "isAcknowledged": false,
@@ -1463,6 +836,7 @@ exports[`werewolf role definitions > snapshots generated output for 'hunter' 'hu
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看技能状态」",
     "pendingResult": null,
     "progress": {
@@ -1477,64 +851,13 @@ exports[`werewolf role definitions > snapshots generated output for 'hunter' 'hu
     {
       "seat": 1,
       "stepId": "hunterConfirm",
-      "text": "猎人技能状态",
+      "text": "猎人可以发动",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "hunterConfirm",
-    "title": "技能发动确认",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'hunter' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "content": {
-          "text": "猎人可以发动技能",
-          "title": "技能状态",
-        },
-        "isAcknowledged": false,
-        "key": "hunterConfirm",
-        "kind": "view",
-        "label": "查看技能状态",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请点击「查看技能状态」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "hunterConfirm",
-    "title": "技能发动确认",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "hunterConfirm",
-      "text": "猎人技能状态",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1591,6 +914,7 @@ exports[`werewolf role definitions > snapshots generated output for 'magician' '
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要交换的两名玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1611,6 +935,7 @@ exports[`werewolf role definitions > snapshots generated output for 'magician' '
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1667,6 +992,7 @@ exports[`werewolf role definitions > snapshots generated output for 'mirrorSeer'
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1687,85 +1013,7 @@ exports[`werewolf role definitions > snapshots generated output for 'mirrorSeer'
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是好人",
-      "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "mirrorSeerCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'mirrorSeer' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "mirrorSeerCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "mirrorSeerCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "mirrorSeerCheck",
-      "text": "灯影预言家查验3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是好人",
@@ -1825,6 +1073,7 @@ exports[`werewolf role definitions > snapshots generated output for 'nightmare' 
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要恐惧的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1839,88 +1088,13 @@ exports[`werewolf role definitions > snapshots generated output for 'nightmare' 
     {
       "seat": 1,
       "stepId": "nightmareBlock",
-      "text": "噩梦之影恐惧3号（实际为5号）",
+      "text": "噩梦之影恐惧3号（实际为5号）（摄梦人，技能无效）",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "nightmareBlock",
-    "title": "恐惧",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'nightmare' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "nightmareBlock",
-        "kind": "pickSeats",
-        "label": "恐惧",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要恐惧的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "nightmareBlock",
-    "title": "恐惧",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "nightmareBlock",
-      "text": "噩梦之影恐惧3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -1977,6 +1151,7 @@ exports[`werewolf role definitions > snapshots generated output for 'piper' 'pip
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择 1-2 名要催眠的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -1997,6 +1172,7 @@ exports[`werewolf role definitions > snapshots generated output for 'piper' 'pip
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2029,6 +1205,7 @@ exports[`werewolf role definitions > snapshots generated output for 'piper' 'pip
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看催眠信息」",
     "pendingResult": null,
     "progress": {
@@ -2045,25 +1222,11 @@ exports[`werewolf role definitions > snapshots generated output for 'piper' 'pip
       "stepId": "piperHypnotizedReveal",
       "text": "吹笛者催眠信息",
     },
-    {
-      "seat": 2,
-      "stepId": "piperHypnotizedReveal",
-      "text": "吹笛者未催眠信息",
-    },
-    {
-      "seat": 3,
-      "stepId": "piperHypnotizedReveal",
-      "text": "吹笛者未催眠信息",
-    },
-    {
-      "seat": 4,
-      "stepId": "piperHypnotizedReveal",
-      "text": "吹笛者未催眠信息",
-    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2120,6 +1283,7 @@ exports[`werewolf role definitions > snapshots generated output for 'poisoner' '
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要毒杀的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -2140,82 +1304,7 @@ exports[`werewolf role definitions > snapshots generated output for 'poisoner' '
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "poisonerPoison",
-    "title": "毒杀",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'poisoner' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "poisonerPoison",
-        "kind": "pickSeats",
-        "label": "毒杀",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要毒杀的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "poisonerPoison",
-    "title": "毒杀",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "poisonerPoison",
-      "text": "毒师毒杀3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2272,6 +1361,7 @@ exports[`werewolf role definitions > snapshots generated output for 'psychic' 'p
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要通灵的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -2292,85 +1382,7 @@ exports[`werewolf role definitions > snapshots generated output for 'psychic' 'p
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是摄梦人",
-      "title": "通灵结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "psychicCheck",
-    "title": "通灵",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'psychic' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "psychicCheck",
-        "kind": "pickSeats",
-        "label": "通灵",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要通灵的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "psychicCheck",
-    "title": "通灵",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "psychicCheck",
-      "text": "通灵师通灵3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
@@ -2430,6 +1442,7 @@ exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -2450,89 +1463,11 @@ exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
       "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "pureWhiteCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "pureWhiteCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "pureWhiteCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "pureWhiteCheck",
-      "text": "纯白之女查验3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是摄梦人",
-      "title": "纯白查验结果",
     },
     "progress": {
       "done": 0,
@@ -2550,6 +1485,7 @@ exports[`werewolf role definitions > snapshots generated output for 'seedWolf' '
   "initial": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2564,6 +1500,7 @@ exports[`werewolf role definitions > snapshots generated output for 'seedWolf' '
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2596,6 +1533,7 @@ exports[`werewolf role definitions > snapshots generated output for 'seedWolf' '
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看感染信息」",
     "pendingResult": null,
     "progress": {
@@ -2612,25 +1550,11 @@ exports[`werewolf role definitions > snapshots generated output for 'seedWolf' '
       "stepId": "seedWolfInfectReveal",
       "text": "种狼感染信息",
     },
-    {
-      "seat": 2,
-      "stepId": "seedWolfInfectReveal",
-      "text": "种狼未感染信息",
-    },
-    {
-      "seat": 3,
-      "stepId": "seedWolfInfectReveal",
-      "text": "种狼未感染信息",
-    },
-    {
-      "seat": 4,
-      "stepId": "seedWolfInfectReveal",
-      "text": "种狼未感染信息",
-    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -2687,6 +1611,7 @@ exports[`werewolf role definitions > snapshots generated output for 'seer' 'seer
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -2712,90 +1637,7 @@ exports[`werewolf role definitions > snapshots generated output for 'seer' 'seer
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是好人",
-      "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "seerCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'seer' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "seerCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "seerCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "seerCheck",
-      "text": "预言家查验3号（实际为5号）",
-    },
-    {
-      "seat": 2,
-      "stepId": "seerCheck",
-      "text": "预言家未查验",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是好人",
@@ -2823,7 +1665,7 @@ exports[`werewolf role definitions > snapshots generated output for 'shadow' 'sh
         "committed": null,
         "key": "shadowChooseMimic",
         "kind": "pickSeats",
-        "label": "选择模仿对象",
+        "label": "模仿",
         "max": 1,
         "min": 1,
         "seats": [
@@ -2847,7 +1689,8 @@ exports[`werewolf role definitions > snapshots generated output for 'shadow' 'sh
       },
     ],
     "deadlineMs": null,
-    "message": "请选择要选择模仿对象的玩家",
+    "isActor": true,
+    "message": "请选择要模仿的玩家。其出局后你将继承其身份",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -2855,19 +1698,20 @@ exports[`werewolf role definitions > snapshots generated output for 'shadow' 'sh
     },
     "serial": 1,
     "stepId": "shadowChooseMimic",
-    "title": "选择模仿对象",
+    "title": "模仿",
   },
   "review": [
     {
       "seat": 1,
       "stepId": "shadowChooseMimic",
-      "text": "影子选择模仿对象3号（实际为5号）",
+      "text": "影子模仿3号（实际为5号）",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
+    "isActor": true,
+    "message": "其出局后你将继承其身份",
     "pendingResult": null,
     "progress": {
       "done": 1,
@@ -2875,75 +1719,7 @@ exports[`werewolf role definitions > snapshots generated output for 'shadow' 'sh
     },
     "serial": 1,
     "stepId": "shadowChooseMimic",
-    "title": "选择模仿对象",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'shadow' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "shadowChooseMimic",
-        "kind": "pickSeats",
-        "label": "选择模仿对象",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要选择模仿对象的玩家",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "shadowChooseMimic",
-    "title": "选择模仿对象",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "shadowChooseMimic",
-      "text": "影子选择模仿对象3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "shadowChooseMimic",
-    "title": "选择模仿对象",
+    "title": "模仿",
   },
 }
 `;
@@ -2991,6 +1767,7 @@ exports[`werewolf role definitions > snapshots generated output for 'silenceElde
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要禁言的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -3011,82 +1788,7 @@ exports[`werewolf role definitions > snapshots generated output for 'silenceElde
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "silenceElderSilence",
-    "title": "禁言",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'silenceElder' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "silenceElderSilence",
-        "kind": "pickSeats",
-        "label": "禁言",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要禁言的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "silenceElderSilence",
-    "title": "禁言",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "silenceElderSilence",
-      "text": "禁言长老禁言3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -3135,7 +1837,8 @@ exports[`werewolf role definitions > snapshots generated output for 'slacker' 's
       },
     ],
     "deadlineMs": null,
-    "message": "请选择要选择榜样的玩家",
+    "isActor": true,
+    "message": "请选择你的榜样。你将与榜样同阵营",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -3149,81 +1852,14 @@ exports[`werewolf role definitions > snapshots generated output for 'slacker' 's
     {
       "seat": 1,
       "stepId": "slackerChooseIdol",
-      "text": "混血儿选择榜样3号（实际为5号）",
+      "text": "混血儿选3号为榜样（实际为5号）",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "slackerChooseIdol",
-    "title": "选择榜样",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'slacker' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "slackerChooseIdol",
-        "kind": "pickSeats",
-        "label": "选择榜样",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要选择榜样的玩家",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "slackerChooseIdol",
-    "title": "选择榜样",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "slackerChooseIdol",
-      "text": "混血儿选择榜样3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
+    "isActor": true,
+    "message": "你将与榜样同阵营",
     "pendingResult": null,
     "progress": {
       "done": 1,
@@ -3248,7 +1884,7 @@ exports[`werewolf role definitions > snapshots generated output for 'thief' 'thi
           {
             "index": 0,
             "label": "Seer",
-            "unavailableReason": "底牌中有狼人时必须选择狼人",
+            "unavailableReason": "底牌中有狼人阵营的牌，必须选择狼人",
           },
           {
             "index": 1,
@@ -3256,14 +1892,15 @@ exports[`werewolf role definitions > snapshots generated output for 'thief' 'thi
             "unavailableReason": null,
           },
         ],
-        "hint": "请选择一张底牌作为你的身份",
+        "hint": "底牌含狼人阵营",
         "key": "thiefChoose",
         "kind": "pickCard",
-        "label": "盗取",
+        "label": "选择底牌",
       },
     ],
     "deadlineMs": null,
-    "message": null,
+    "isActor": true,
+    "message": "请点击「选择底牌」",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -3271,18 +1908,19 @@ exports[`werewolf role definitions > snapshots generated output for 'thief' 'thi
     },
     "serial": 1,
     "stepId": "thiefChoose",
-    "title": "盗取",
+    "title": "选择底牌",
   },
   "review": [
     {
       "seat": 1,
       "stepId": "thiefChoose",
-      "text": "盗贼Seer",
+      "text": "盗贼选择Seer为身份",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "隐狼",
@@ -3294,70 +1932,7 @@ exports[`werewolf role definitions > snapshots generated output for 'thief' 'thi
     },
     "serial": 1,
     "stepId": "thiefChoose",
-    "title": "盗取",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'thief' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "cards": [
-          {
-            "index": 0,
-            "label": "Seer",
-            "unavailableReason": "底牌中有狼人时必须选择狼人",
-          },
-          {
-            "index": 1,
-            "label": "Hidden Wolf",
-            "unavailableReason": null,
-          },
-        ],
-        "hint": "请选择一张底牌作为你的身份",
-        "key": "thiefChoose",
-        "kind": "pickCard",
-        "label": "盗取",
-      },
-    ],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "thiefChoose",
-    "title": "盗取",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "thiefChoose",
-      "text": "盗贼Seer",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "隐狼",
-      "title": "选择的身份",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "thiefChoose",
-    "title": "盗取",
+    "title": "选择底牌",
   },
 }
 `;
@@ -3382,14 +1957,15 @@ exports[`werewolf role definitions > snapshots generated output for 'treasureMas
             "unavailableReason": null,
           },
         ],
-        "hint": "请选择一张底牌获得该角色的技能",
+        "hint": "你的阵营：狼人阵营",
         "key": "treasureMasterChoose",
         "kind": "pickCard",
-        "label": "盗宝",
+        "label": "选择底牌",
       },
     ],
     "deadlineMs": null,
-    "message": null,
+    "isActor": true,
+    "message": "请点击「选择底牌」",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -3397,18 +1973,19 @@ exports[`werewolf role definitions > snapshots generated output for 'treasureMas
     },
     "serial": 1,
     "stepId": "treasureMasterChoose",
-    "title": "盗宝",
+    "title": "选择底牌",
   },
   "review": [
     {
       "seat": 1,
       "stepId": "treasureMasterChoose",
-      "text": "盗宝大师Seer",
+      "text": "盗宝大师选择Seer为身份",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "预言家",
@@ -3420,70 +1997,7 @@ exports[`werewolf role definitions > snapshots generated output for 'treasureMas
     },
     "serial": 1,
     "stepId": "treasureMasterChoose",
-    "title": "盗宝",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'treasureMaster' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "cards": [
-          {
-            "index": 0,
-            "label": "Seer",
-            "unavailableReason": null,
-          },
-          {
-            "index": 1,
-            "label": "Villager",
-            "unavailableReason": null,
-          },
-        ],
-        "hint": "请选择一张底牌获得该角色的技能",
-        "key": "treasureMasterChoose",
-        "kind": "pickCard",
-        "label": "盗宝",
-      },
-    ],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "treasureMasterChoose",
-    "title": "盗宝",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "treasureMasterChoose",
-      "text": "盗宝大师Seer",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "预言家",
-      "title": "获得的技能",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "treasureMasterChoose",
-    "title": "盗宝",
+    "title": "选择底牌",
   },
 }
 `;
@@ -3531,6 +2045,7 @@ exports[`werewolf role definitions > snapshots generated output for 'votebanElde
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要禁票的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -3551,82 +2066,7 @@ exports[`werewolf role definitions > snapshots generated output for 'votebanElde
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "votebanElderBan",
-    "title": "禁票",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'votebanElder' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "votebanElderBan",
-        "kind": "pickSeats",
-        "label": "禁票",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要禁票的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "votebanElderBan",
-    "title": "禁票",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "votebanElderBan",
-      "text": "禁票长老禁票3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -3675,7 +2115,8 @@ exports[`werewolf role definitions > snapshots generated output for 'wildChild' 
       },
     ],
     "deadlineMs": null,
-    "message": "请选择要选择榜样的玩家",
+    "isActor": true,
+    "message": "请选择你的榜样。榜样被投票出局时你将变为狼人",
     "pendingResult": null,
     "progress": {
       "done": 0,
@@ -3689,81 +2130,14 @@ exports[`werewolf role definitions > snapshots generated output for 'wildChild' 
     {
       "seat": 1,
       "stepId": "wildChildChooseIdol",
-      "text": "野孩子选择榜样3号（实际为5号）",
+      "text": "野孩子选3号为榜样（实际为5号）",
     },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "wildChildChooseIdol",
-    "title": "选择榜样",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'wildChild' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "wildChildChooseIdol",
-        "kind": "pickSeats",
-        "label": "选择榜样",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要选择榜样的玩家",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "wildChildChooseIdol",
-    "title": "选择榜样",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "wildChildChooseIdol",
-      "text": "野孩子选择榜样3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
+    "isActor": true,
+    "message": "榜样被投票出局时你将变为狼人",
     "pendingResult": null,
     "progress": {
       "done": 1,
@@ -3819,6 +2193,7 @@ exports[`werewolf role definitions > snapshots generated output for 'witch' 'wit
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "昨夜平安夜。请选择要毒杀的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -3835,10 +2210,16 @@ exports[`werewolf role definitions > snapshots generated output for 'witch' 'wit
       "stepId": "witchAction",
       "text": "女巫用解药",
     },
+    {
+      "seat": 1,
+      "stepId": "witchAction",
+      "text": "女巫未毒杀",
+    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": "昨夜平安夜",
     "pendingResult": null,
     "progress": {
@@ -3857,6 +2238,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' '
   "initial": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -3871,6 +2253,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' '
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -3903,6 +2286,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' '
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请点击「查看表白信息」",
     "pendingResult": null,
     "progress": {
@@ -3919,25 +2303,11 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' '
       "stepId": "wolfGirlConfessReveal",
       "text": "狼女孩表白信息",
     },
-    {
-      "seat": 2,
-      "stepId": "wolfGirlConfessReveal",
-      "text": "狼女孩未表白信息",
-    },
-    {
-      "seat": 3,
-      "stepId": "wolfGirlConfessReveal",
-      "text": "狼女孩未表白信息",
-    },
-    {
-      "seat": 4,
-      "stepId": "wolfGirlConfessReveal",
-      "text": "狼女孩未表白信息",
-    },
   ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -3994,6 +2364,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfQueen' 
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要魅惑的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -4019,87 +2390,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfQueen' 
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "message": null,
-    "pendingResult": null,
-    "progress": {
-      "done": 1,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "wolfQueenCharm",
-    "title": "魅惑",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'wolfQueen' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "wolfQueenCharm",
-        "kind": "pickSeats",
-        "label": "魅惑",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要魅惑的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 2,
-    },
-    "serial": 1,
-    "stepId": "wolfQueenCharm",
-    "title": "魅惑",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "wolfQueenCharm",
-      "text": "狼美人魅惑3号（实际为5号）",
-    },
-    {
-      "seat": 3,
-      "stepId": "wolfQueenCharm",
-      "text": "狼美人未魅惑",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -4118,6 +2409,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfRobot' 
   "initial": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": null,
     "progress": {
@@ -4132,6 +2424,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfRobot' 
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": false,
     "message": null,
     "pendingResult": {
       "text": "3号是猎人",
@@ -4191,6 +2484,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
@@ -4211,89 +2505,11 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 
   "submitted": {
     "actions": [],
     "deadlineMs": null,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
       "title": "查验结果",
-    },
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "wolfWitchCheck",
-    "title": "查验",
-  },
-}
-`;
-
-exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 1`] = `
-{
-  "initial": {
-    "actions": [
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "committed": null,
-        "key": "wolfWitchCheck",
-        "kind": "pickSeats",
-        "label": "查验",
-        "max": 1,
-        "min": 1,
-        "seats": [
-          {
-            "seat": 1,
-            "unavailableReason": "不能选择自己",
-          },
-          {
-            "seat": 2,
-            "unavailableReason": null,
-          },
-          {
-            "seat": 3,
-            "unavailableReason": "不能选择狼人阵营玩家",
-          },
-          {
-            "seat": 4,
-            "unavailableReason": null,
-          },
-        ],
-      },
-      {
-        "availability": {
-          "kind": "available",
-        },
-        "key": "$skip",
-        "kind": "direct",
-        "label": "不用技能",
-      },
-    ],
-    "deadlineMs": null,
-    "message": "请选择要查验的玩家，如不使用请点击「不用技能」",
-    "pendingResult": null,
-    "progress": {
-      "done": 0,
-      "total": 1,
-    },
-    "serial": 1,
-    "stepId": "wolfWitchCheck",
-    "title": "查验",
-  },
-  "review": [
-    {
-      "seat": 1,
-      "stepId": "wolfWitchCheck",
-      "text": "狼巫查验3号（实际为5号）",
-    },
-  ],
-  "submitted": {
-    "actions": [],
-    "deadlineMs": null,
-    "message": null,
-    "pendingResult": {
-      "text": "3号是摄梦人",
-      "title": "狼巫查验结果",
     },
     "progress": {
       "done": 0,
@@ -4349,6 +2565,7 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择今晚的袭击目标。平票将随机刀人",
     "pendingResult": null,
     "progress": {
@@ -4422,6 +2639,7 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
       },
     ],
     "deadlineMs": null,
+    "isActor": true,
     "message": "请选择今晚的袭击目标。平票将随机刀人",
     "pendingResult": null,
     "progress": {

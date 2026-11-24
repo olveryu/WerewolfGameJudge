@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import ts from 'typescript';
 
+import { ROLE_SPECS } from '../../../games/werewolf/domain/models/roles/spec';
+import { NIGHT_END_AUDIO_KEY } from '../../audio';
 import {
   buildStepReviewLines,
   decideStepSubmission,
@@ -16,6 +18,7 @@ import {
   STEP_COPY,
   STEP_OVERRIDE_ALLOWLIST,
   STEP_RESULT_ACK_ACTION_KEY,
+  STEP_SKIP_ACTION_KEY,
   type StepContextBase,
   type StepDefinition,
   type StepRuntime,
@@ -159,8 +162,12 @@ describe('platform step runtime', () => {
       ...submittedState,
       step: evolveStepSlice(submittedState.step, acknowledgementEvent),
     };
-    expect(evaluateStepProgress(runtime, acknowledgedState, 100)).toMatchObject([
-      { type: 'advanced', next: null },
+    expect(evaluateStepProgress(runtime, acknowledgedState, 100)).toEqual([
+      {
+        type: 'advanced',
+        next: null,
+        audio: [{ audioKey: 'seer', isEndAudio: true }, { audioKey: NIGHT_END_AUDIO_KEY }],
+      },
     ]);
   });
 
@@ -182,6 +189,44 @@ describe('platform step runtime', () => {
         seats: [],
       }),
     ).toEqual({ kind: 'reject', reason: 'REASON_STEP_STALE' });
+  });
+
+  it('describes an available skip and rejects skip payloads with targets', () => {
+    const state = createState();
+    expect(
+      describeStepConfirmation(runtime, state, 0, { actionKey: STEP_SKIP_ACTION_KEY }),
+    ).toEqual({ title: '不用技能？', body: null, tone: 'default' });
+    expect(
+      decideStepSubmission(runtime, state, 0, {
+        stepId: 'pick',
+        serial: 4,
+        actionKey: STEP_SKIP_ACTION_KEY,
+      }).kind,
+    ).toBe('accept');
+    expect(
+      decideStepSubmission(runtime, state, 0, {
+        stepId: 'pick',
+        serial: 4,
+        actionKey: STEP_SKIP_ACTION_KEY,
+        seats: [1],
+      }),
+    ).toEqual({ kind: 'reject', reason: 'REASON_STEP_STALE' });
+  });
+
+  it('describes skipping a locked step but rejects an unavailable skip', () => {
+    const state = createState();
+    const required = runtimeWithDefinition({ ...definition, skippable: () => false });
+    const locked = runtimeWithDefinition({
+      ...definition,
+      skippable: () => false,
+      lock: () => 'locked',
+    });
+    expect(() =>
+      describeStepConfirmation(required, state, 0, { actionKey: STEP_SKIP_ACTION_KEY }),
+    ).toThrow('REASON_STEP_STALE');
+    expect(describeStepConfirmation(locked, state, 0, { actionKey: STEP_SKIP_ACTION_KEY })).toEqual(
+      { title: '不用技能？', body: null, tone: 'default' },
+    );
   });
 
   it('replaces grouped revisable choices and keeps withdrawn choices withdrawn', () => {
@@ -457,41 +502,78 @@ describe('step copy contract', () => {
       path.resolve(__dirname, '..'),
       path.resolve(__dirname, '../../../games/werewolf/roles'),
     ];
-    for (const sourceDirectory of sourceDirectories) {
-      for (const filePath of collectProductionFiles(sourceDirectory)) {
-        const sourceFile = ts.createSourceFile(
-          filePath,
-          fs.readFileSync(filePath, 'utf8'),
-          ts.ScriptTarget.Latest,
-          true,
-          ts.ScriptKind.TS,
-        );
-        const visit = (node: ts.Node): void => {
-          if (hasChineseText(node) && !isInsideDefineCopy(node)) {
-            const line =
-              sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-            violations.push(`${path.relative(sourceDirectory, filePath)}:${line}`);
-          }
-          ts.forEachChild(node, visit);
-        };
-        visit(sourceFile);
-      }
+    const files = [...sourceDirectories.flatMap(collectProductionFiles), ...clientNightFiles()];
+    for (const filePath of files) {
+      const sourceFile = readTypeScriptSource(filePath);
+      const visit = (node: ts.Node): void => {
+        if (hasChineseText(node) && !isInsideDefineCopy(node)) {
+          const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+          violations.push(`${filePath}:${line}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sourceFile);
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('keeps Werewolf role identifiers out of the night rendering code', () => {
+    const roleIds = new Set(Object.keys(ROLE_SPECS));
+    const violations: string[] = [];
+    for (const filePath of clientNightFiles()) {
+      const sourceFile = readTypeScriptSource(filePath);
+      const visit = (node: ts.Node): void => {
+        if (ts.isStringLiteralLike(node) && roleIds.has(node.text)) {
+          const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+          violations.push(`${filePath}:${line}: ${node.text}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sourceFile);
     }
     expect(violations).toEqual([]);
   });
 });
+
+function clientNightFiles(): string[] {
+  const stepDirectory = path.resolve(__dirname, '../../../../../web/src/features/room/steps');
+  const werewolfNightDirectory = path.resolve(
+    __dirname,
+    '../../../../../web/src/games/werewolf/room/night',
+  );
+  return [
+    ...collectProductionFiles(stepDirectory),
+    ...(fs.existsSync(werewolfNightDirectory)
+      ? collectProductionFiles(werewolfNightDirectory)
+      : []),
+    path.resolve(
+      __dirname,
+      '../../../../../web/src/games/werewolf/room/hooks/useWerewolfNightInteraction.ts',
+    ),
+  ];
+}
+
+function readTypeScriptSource(filePath: string): ts.SourceFile {
+  return ts.createSourceFile(
+    filePath,
+    fs.readFileSync(filePath, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+}
 
 function collectProductionFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     if (entry.name === '__tests__') return [];
     const filePath = path.join(directory, entry.name);
     if (entry.isDirectory()) return collectProductionFiles(filePath);
-    return entry.name.endsWith('.ts') ? [filePath] : [];
+    return entry.name.endsWith('.ts') || entry.name.endsWith('.tsx') ? [filePath] : [];
   });
 }
 
 function hasChineseText(node: ts.Node): boolean {
-  if (ts.isStringLiteralLike(node)) return /\p{Script=Han}/u.test(node.text);
+  if (ts.isStringLiteralLike(node) || ts.isJsxText(node)) return /\p{Script=Han}/u.test(node.text);
   if (ts.isTemplateExpression(node)) {
     return (
       /\p{Script=Han}/u.test(node.head.text) ||

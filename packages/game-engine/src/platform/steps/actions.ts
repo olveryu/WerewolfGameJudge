@@ -8,6 +8,8 @@ interface ActionBase<TContext> {
   readonly commit?: 'final' | 'revisable';
   /** Revisable actions in the same group replace one another. */
   readonly revisionGroup?: string;
+  /** Include an unused action separately in the step's review. */
+  readonly reviewWhenUnused?: boolean;
 }
 
 export interface PickSeatsAction<TContext, TFacts, TResult> extends ActionBase<TContext> {
@@ -33,6 +35,7 @@ export interface ViewAction<TContext> extends ActionBase<TContext> {
   readonly kind: 'view';
   readonly title: string;
   readonly content: (context: TContext) => string;
+  readonly reviewPhrase?: (context: TContext) => string | null;
 }
 
 export interface PickCardAction<TContext, TFacts, TResult> extends ActionBase<TContext> {

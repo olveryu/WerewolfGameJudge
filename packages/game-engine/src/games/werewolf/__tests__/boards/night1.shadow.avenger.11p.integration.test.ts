@@ -8,8 +8,7 @@
  * Board: Shadow Avenger 12p
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { Team } from '@game-judge/game-engine/games/werewolf/public';
+import { getWerewolfViewModel, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
@@ -56,9 +55,13 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
     expect(executeStepsUntil(ctx, 'avengerConfirm')).toBe(true);
     ctx.assertStep('avengerConfirm');
 
-    // Verify shadowMimicTarget recorded
     const state = ctx.getGameState();
-    expect(state.currentNightResults?.shadowMimicTarget).toBe(5);
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'shadow',
+      actorSeat: shadowSeat,
+      chosenSeat: 5,
+      landingSeat: 5,
+    });
 
     // Submit avenger confirm
     const avengerSeat = ctx.findSeatByRole('avenger');
@@ -68,7 +71,7 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
     executeFullNight(ctx);
   });
 
-  it('shadow mimics avenger → sets avengerFaction = Team.Third in currentNightResults', () => {
+  it('shadow mimics avenger → avenger sees the bonded third-party faction', () => {
     const ctx = createGame(CUSTOM_ROLES);
 
     const avengerSeat = ctx.findSeatByRole('avenger');
@@ -89,14 +92,23 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
       'shadow mimics avenger',
     );
 
-    // Should have avengerFaction set since target is avenger
     const state = ctx.getGameState();
-    expect(state.currentNightResults?.avengerFaction).toBe(Team.Third);
-    expect(state.currentNightResults?.shadowMimicTarget).toBe(avengerSeat);
+    expect(state.nightState?.facts.selections).toContainEqual({
+      roleId: 'shadow',
+      actorSeat: shadowSeat,
+      chosenSeat: avengerSeat,
+      landingSeat: avengerSeat,
+    });
 
     // Advance to avengerConfirm
     expect(executeStepsUntil(ctx, 'avengerConfirm')).toBe(true);
     ctx.assertStep('avengerConfirm');
+    const view = getWerewolfViewModel(ctx.getGameState(), {
+      seat: avengerSeat,
+      isHost: false,
+    }).step;
+    const action = view?.actions.find((entry) => entry.kind === 'view');
+    expect(action?.kind === 'view' && action.content.text).toBe('你与影子绑定，同属第三方阵营');
 
     // Complete the night
     const avengerSeatForConfirm = ctx.findSeatByRole('avenger');

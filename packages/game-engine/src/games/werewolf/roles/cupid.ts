@@ -19,7 +19,7 @@ const COPY = defineCopy({
     '首夜选择两名玩家成为情侣（可含自身）；情侣互认但不知对方身份；任一情侣出局则另一人殉情；双好人时属好人阵营；双狼时属狼人阵营；一好一狼时与情侣组成第三方阵营；情侣杀死其他所有玩家则第三方阵营获胜',
   action: '连接情侣',
   prompt: '请选择两名玩家成为情侣，可以选择自己',
-  confirmation: '让{first}和{second}成为情侣',
+  confirmation: '连接{first}和{second}为情侣',
   revealTitle: '情侣信息',
   isLover: '你是情侣之一，你的另一半是：{seat}',
   notLover: '你不是情侣',

@@ -69,15 +69,22 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: the seer action's targetSeat is redirected to the seer's own seat
       const state = ctx.getGameState();
-      const shelterAction = state.actions?.find((a) => a.schemaId === 'eclipseWolfQueenShelter');
-      expect(shelterAction).toBeDefined();
-      expect(shelterAction!.targetSeat).toBe(4);
-
-      const seerAction = state.actions?.find((a) => a.schemaId === 'seerCheck');
-      expect(seerAction).toBeDefined();
-      expect(seerAction!.targetSeat).toBe(8); // Redirected to seer self
+      expect(
+        state.nightState?.slice.records.eclipseWolfQueenShelter?.bySeat[7]?.submissions,
+      ).toContainEqual({ actionKey: 'eclipseWolfQueenShelter', seats: [4], cardIndex: null });
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'eclipseWolfQueen',
+        actorSeat: 7,
+        chosenSeat: 4,
+        landingSeat: 4,
+      });
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'seer',
+        actorSeat: 8,
+        chosenSeat: 4,
+        landingSeat: 8,
+      });
     });
 
     it('预言家查验未被放逐者 → 正常查验', () => {
@@ -96,9 +103,12 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      const seerAction = state.actions?.find((a) => a.schemaId === 'seerCheck');
-      expect(seerAction).toBeDefined();
-      expect(seerAction!.targetSeat).toBe(4); // Not redirected
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'seer',
+        actorSeat: 8,
+        chosenSeat: 4,
+        landingSeat: 4,
+      });
     });
   });
 
@@ -118,11 +128,13 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // The guard action's targetSeat is redirected to the guard itself
       const state = ctx.getGameState();
-      const guardAction = state.actions?.find((a) => a.schemaId === 'guardProtect');
-      expect(guardAction).toBeDefined();
-      expect(guardAction!.targetSeat).toBe(10); // Redirected to guard self
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'guard',
+        actorSeat: 10,
+        chosenSeat: 0,
+        landingSeat: 10,
+      });
 
       // seat 0 is attacked by wolves with no effective protection -> dies
       expect(result.deaths).toContain(0);
@@ -166,10 +178,13 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // guard protects seat 0 normally
       const state = ctx.getGameState();
-      const guardAction = state.actions?.find((a) => a.schemaId === 'guardProtect');
-      expect(guardAction!.targetSeat).toBe(0); // Not redirected
+      expect(state.nightState?.facts.selections).toContainEqual({
+        roleId: 'guard',
+        actorSeat: 10,
+        chosenSeat: 0,
+        landingSeat: 0,
+      });
 
       // seat 0 is protected -> survives
       expect(result.deaths).not.toContain(0);

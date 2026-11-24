@@ -31,6 +31,7 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+import type { StepPresentation } from '../../../platform/steps';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import {
   type ActionSchema,
@@ -46,6 +47,7 @@ import {
   type RoleId,
   type SchemaId,
 } from './models';
+import { isValidRoleId } from './models/roles';
 import { TargetConstraint } from './models/roles/spec';
 import { resolveCurrentNightStep } from './nightStep';
 import {
@@ -61,6 +63,7 @@ import {
   CONSTRAINT_REJECT_NOT_WOLF_FACTION,
 } from './resolvers/constraintValidator';
 import type { CurrentNightResults } from './resolvers/types';
+import { projectWerewolfStep, type WerewolfStepSeatStatus } from './stepProjection';
 
 // =============================================================================
 // View types
@@ -201,6 +204,10 @@ export interface WerewolfViewModel {
   readonly wolfPackSeats: readonly number[] | null;
   /** Seats with a completed identity viewing (public, AU-19 basis). */
   readonly viewedSeats: readonly number[];
+  readonly step: StepPresentation | null;
+  readonly stepSeatStatuses: Readonly<Record<number, WerewolfStepSeatStatus>>;
+  readonly canAcknowledgeStepBots: boolean;
+  readonly stepProgressKind: 'vote' | 'confirmation' | null;
   readonly night: WerewolfNightView;
   readonly day: {
     /** Elected sheriff seat from the final election result; null until elected. */
@@ -669,8 +676,14 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
   const viewerSeat = viewer.seat;
   const myPlayer = viewerSeat === null ? null : (state.players[viewerSeat] ?? null);
   const myRole = myPlayer?.role ?? null;
+  const nightRole =
+    viewerSeat === null ? undefined : state.nightState?.roles.identities[viewerSeat]?.currentRole;
+  if (nightRole !== undefined && !isValidRoleId(nightRole)) {
+    throw new Error(`[FAIL-FAST] Invalid current role ${nightRole}`);
+  }
   const myEffectiveRole =
-    myRole === null ? null : getBottomCardEffectiveRole(myRole, state.currentNightResults);
+    nightRole ??
+    (myRole === null ? null : getBottomCardEffectiveRole(myRole, state.currentNightResults));
 
   const step = resolveCurrentStep(state);
   const showWolves = deriveShowWolves({
@@ -682,7 +695,11 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
   const isActioner = deriveIsActioner({ state, step, viewerSeat, myRole, myEffectiveRole });
 
   const occupiedSeats = listOccupiedSeats(state);
-  const wolfPackSeats = deriveWolfPackSeats(state, occupiedSeats, showWolves);
+  const specStep = projectWerewolfStep(state, viewerSeat, viewer.isHost);
+  const wolfPackSeats =
+    state.nightState === null
+      ? deriveWolfPackSeats(state, occupiedSeats, showWolves)
+      : specStep.wolfPackSeats;
   const reveal = buildRevealView(state, step, viewerSeat);
 
   return {
@@ -691,9 +708,20 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
     myRole,
     myEffectiveRole,
     template: createTemplateFromRoles([...state.templateRoles]),
-    seats: buildSeatViews({ state, occupiedSeats, viewer, wolfPackSeats, step, isActioner }),
+    seats: buildSeatViews({
+      state,
+      occupiedSeats,
+      viewer,
+      wolfPackSeats,
+      step: state.nightState === null ? step : null,
+      isActioner: state.nightState === null && isActioner,
+    }),
     wolfPackSeats,
     viewedSeats: state.roleViewedSeats,
+    step: specStep.step,
+    stepSeatStatuses: specStep.seatStatuses,
+    canAcknowledgeStepBots: specStep.canAcknowledgeBots,
+    stepProgressKind: specStep.progressKind,
     night: {
       actionSchema: step?.schema ?? null,
       currentActionRole: step?.roleId ?? null,

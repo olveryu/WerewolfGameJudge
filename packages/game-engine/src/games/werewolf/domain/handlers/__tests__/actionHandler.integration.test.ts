@@ -40,6 +40,7 @@ const baseContext: HandlerContext = {
     wolfGirlConfessionRevealAcks: [],
     cupidLoversRevealAcks: [],
     seedWolfInfectionRevealAcks: [],
+    nightState: null,
     nightStep: { kind: 'inStep', stepId: 'seerCheck' },
     isAudioPlaying: false,
     audioBatchId: 0,

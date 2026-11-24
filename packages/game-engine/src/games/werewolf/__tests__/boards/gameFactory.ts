@@ -4,6 +4,7 @@ import {
   buildNightPlan,
   createTemplateFromRoles,
   type GameState,
+  GameStatus,
   getBottomCardCount,
   getPlayerCount,
   isBotOccupant,
@@ -22,9 +23,11 @@ import {
 } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createSeededRng, shuffleArray } from '@game-judge/game-engine/platform/random';
 
+import { handlerResultToDecision } from '../../domain/decision';
+import { handleStartNight } from '../../domain/handlers/gameControlHandler';
 import type { GameContext, TestCommandActor, TestCommandExecution } from './gameContext';
 
-const ROOM_CODE = 'TEST01';
+const ROOM_CODE = '1234';
 const HOST_USER_ID = 'host-uid';
 const INITIAL_NOW_MS = 1_000_000;
 const DEFAULT_RANDOM_SEED = 'board-test-seed';
@@ -41,6 +44,8 @@ interface InternalState {
 interface CreateGameOptions {
   /** Base seed used to derive deterministic, command-scoped random seeds. */
   readonly randomSeed?: string;
+  /** Run the historical handler only for the old/new parity oracle. */
+  readonly legacyNight?: boolean;
 }
 
 function assertSameRoleMultiset(actual: readonly RoleId[], expected: readonly RoleId[]): void {
@@ -176,7 +181,19 @@ export function createGame(
     command: WerewolfCommand,
     context: CommandContext,
   ): RoomCommandResult<GameState> => {
-    const decision = werewolfEngine.decide(internal.state, command, context);
+    const decision =
+      options?.legacyNight === true && command.type === 'werewolf.game.begin'
+        ? handlerResultToDecision(
+            internal.state,
+            handleStartNight(
+              { type: 'START_NIGHT' },
+              { state: internal.state, myUserId: HOST_USER_ID, mySeat: 0 },
+              context,
+            ),
+            context,
+            { progressAfterSuccess: true },
+          )
+        : werewolfEngine.decide(internal.state, command, context);
     if (decision.kind === 'reject') {
       return createRoomCommandResult({
         kind: 'rejected',
@@ -188,7 +205,7 @@ export function createGame(
     for (const event of decision.events) {
       internal.state = werewolfEngine.evolve(internal.state, event);
     }
-    internal.state = werewolfEngine.normalize(internal.state);
+    if (options?.legacyNight !== true) internal.state = werewolfEngine.normalize(internal.state);
     if (decision.events.length > 0) internal.revision += 1;
     return createRoomCommandResult({
       kind: 'committed',
@@ -364,6 +381,12 @@ export function createGame(
     );
   }
   context.dispatchOrThrow({ type: 'werewolf.game.begin' }, 'start night');
+  if (
+    internal.state.status === GameStatus.Ended &&
+    internal.state.nightState?.slice.order.length === 0
+  ) {
+    return context;
+  }
   context.acknowledgePendingAudioOrThrow('complete initial night audio');
 
   return context;

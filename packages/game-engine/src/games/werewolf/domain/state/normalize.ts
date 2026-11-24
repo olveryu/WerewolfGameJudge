@@ -165,6 +165,7 @@ export function normalizeState(raw: GameState): GameState {
     // Seat occupancy roster (seat -> human occupant or bot marker)
     roster: requireField(raw.roster, 'roster'),
     nightStep: requireField(raw.nightStep, 'nightStep'),
+    nightState: requireField(raw.nightState, 'nightState'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
     audioBatchId: requireField(raw.audioBatchId, 'audioBatchId'),
     gameSequence: requireField(raw.gameSequence, 'gameSequence'),

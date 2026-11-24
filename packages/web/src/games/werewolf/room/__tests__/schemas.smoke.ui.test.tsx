@@ -1,88 +1,96 @@
-import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { getAllSchemaIds, getSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { getAllSchemaIds, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
-import { actorStep, mountRoomFor } from '@/games/werewolf/room/__tests__/harness';
+import { openNightActionGroup } from '@/games/werewolf/room/__tests__/harness';
+import {
+  collectBoardNightScenarios,
+  mountBoardNightState,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
 
-// Keep this list in sync with `schemas.smoke.contract.test.ts`.
-const schemaToRole: Record<string, RoleId> = {
-  // god
-  seerCheck: 'seer',
-  mirrorSeerCheck: 'mirrorSeer',
-  drunkSeerCheck: 'drunkSeer',
-  guardProtect: 'guard',
-  psychicCheck: 'psychic',
-  pureWhiteCheck: 'pureWhite',
-  dreamcatcherDream: 'dreamcatcher',
-  magicianSwap: 'magician',
-  hunterConfirm: 'hunter',
-  witchAction: 'witch',
-  silenceElderSilence: 'silenceElder',
-  votebanElderBan: 'votebanElder',
-  crowCurse: 'crow',
-  poisonerPoison: 'poisoner',
+const boards: readonly (readonly RoleId[])[] = [
+  [
+    'wolf',
+    'seer',
+    'mirrorSeer',
+    'drunkSeer',
+    'witch',
+    'hunter',
+    'guard',
+    'dreamcatcher',
+    'psychic',
+    'pureWhite',
+    'villager',
+    'villager',
+  ],
+  [
+    'nightmare',
+    'wolfWitch',
+    'wolfQueen',
+    'darkWolfKing',
+    'gargoyle',
+    'awakenedGargoyle',
+    'wolfRobot',
+    'eclipseWolfQueen',
+    'villager',
+    'villager',
+    'seer',
+    'witch',
+  ],
+  [
+    'wolf',
+    'seedWolf',
+    'wolfGirl',
+    'poisoner',
+    'hiddenWolf',
+    'piper',
+    'cupid',
+    'magician',
+    'silenceElder',
+    'votebanElder',
+    'crow',
+    'villager',
+  ],
+  [
+    'wolf',
+    'wildChild',
+    'slacker',
+    'shadow',
+    'avenger',
+    'gargoyle',
+    'villager',
+    'villager',
+    'villager',
+    'witch',
+    'seer',
+    'hunter',
+  ],
+];
 
-  // wolf
-  wolfKill: 'wolf',
-  wolfQueenCharm: 'wolfQueen',
-  nightmareBlock: 'nightmare',
-  gargoyleCheck: 'gargoyle',
-  awakenedGargoyleConvert: 'awakenedGargoyle',
-  awakenedGargoyleConvertReveal: 'awakenedGargoyle',
-  wolfWitchCheck: 'wolfWitch',
-  wolfRobotLearn: 'wolfRobot',
-  darkWolfKingConfirm: 'darkWolfKing',
-  eclipseWolfQueenShelter: 'eclipseWolfQueen',
-  hiddenWolfReveal: 'hiddenWolf',
-  seedWolfInfect: 'seedWolf',
-  seedWolfInfectReveal: 'seedWolf',
-  wolfGirlConfess: 'wolfGirl',
-  wolfGirlConfessReveal: 'wolfGirl',
+const scenarios = [
+  ...boards.flatMap((roles) =>
+    collectBoardNightScenarios(roles, new Map(roles.map((role, seat) => [seat, role]))),
+  ),
+  ...collectBoardNightScenarios('盗贼丘比特'),
+  ...collectBoardNightScenarios('盗宝大师'),
+];
 
-  // third party
-  slackerChooseIdol: 'slacker',
-  wildChildChooseIdol: 'wildChild',
-  shadowChooseMimic: 'shadow',
-  avengerConfirm: 'avenger',
-  piperHypnotize: 'piper',
-  piperHypnotizedReveal: 'piper',
-  treasureMasterChoose: 'treasureMaster',
-  thiefChoose: 'thief',
-  cupidChooseLovers: 'cupid',
-  cupidLoversReveal: 'cupid',
-};
-
-function roleForSchemaId(schemaId: string): RoleId {
-  const role = schemaToRole[schemaId];
-  if (!role) {
-    throw new Error(`[schemas.smoke.ui] Missing role mapping for schemaId: ${schemaId}`);
-  }
-  return role;
-}
-
-describe('WerewolfRoomScreen schema smoke (one-per-schema)', () => {
-  it.each(getAllSchemaIds())('renders schema: %s', async (schemaId) => {
-    const schema = getSchema(schemaId);
-    const role = roleForSchemaId(schemaId);
-
-    // Server facts the step needs on the wire before the actor can act.
-    const gameStateOverrides: Partial<GameState> = {};
-    if (schemaId === 'witchAction') {
-      gameStateOverrides.witchContext = { killedSeat: 2, canSave: true, canPoison: true };
+describe('WerewolfRoomScreen shared-step smoke (one per night step)', () => {
+  it.each(getAllSchemaIds())('renders the engine presentation for %s', async (stepId) => {
+    const scenario = scenarios.find(
+      (candidate) => candidate.presentation.stepId === stepId && candidate.action !== null,
+    );
+    if (scenario?.action == null) throw new Error(`[TEST] No real UI scenario for ${stepId}`);
+    const { view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    if (scenario.presentation.message !== null) {
+      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent(
+        scenario.presentation.message,
+      );
     }
-    if (schema.kind === 'chooseCard') {
-      gameStateOverrides.bottomCards = ['wolf', 'villager', 'seer'];
-    }
-
-    const view = await mountRoomFor({ ...actorStep(schemaId, role, 0), gameStateOverrides });
-
-    // Key-copy assertion: the actor's bottom message carries the schema prompt
-    // (the wolf vote appends its status line after it).
-    const prompt = schema.ui?.prompt;
-    if (typeof prompt !== 'string' || !prompt) {
-      throw new Error(`[schemas.smoke.ui] Missing rendered text for schema: ${schemaId}`);
-    }
-    expect(await view.findByText(prompt, { exact: false })).toBeInTheDocument();
+    const actionId = TESTIDS.stepInteractionButton(scenario.action.key);
+    if (view.queryByTestId(actionId) === null) await openNightActionGroup(view);
+    expect(view.getByTestId(actionId)).toHaveTextContent(scenario.action.label);
+    view.unmount();
   });
 });

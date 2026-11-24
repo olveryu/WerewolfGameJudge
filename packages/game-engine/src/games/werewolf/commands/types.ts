@@ -5,6 +5,7 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { StepSubmission } from '../../../platform/steps';
 import type { GameRuleOverrides, RoleId, SchemaId } from '../domain/models';
 
 export type WerewolfSeatProfile = RoomSeatProfile;
@@ -47,6 +48,17 @@ type WerewolfGameCommand =
     }
   | { readonly type: 'werewolf.mvp.select'; readonly selection: WerewolfMvpSelection }
   | { readonly type: 'werewolf.bots.markAllBotsViewed' }
+  | {
+      readonly type: 'werewolf.step.submit';
+      readonly gameSequence: number;
+      readonly submission: StepSubmission;
+    }
+  | {
+      readonly type: 'werewolf.step.ackBots';
+      readonly gameSequence: number;
+      readonly stepId: string;
+      readonly serial: number;
+    }
   | {
       readonly type: 'werewolf.action.submit';
       readonly input: WerewolfActionInput;

@@ -1,4 +1,5 @@
 import type { StepContextBase, StepDefinition } from '../../../platform/steps';
+import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
 import type { WerewolfRoleContext } from './context';
 import type { AttackCause, DeathEffect } from './deathEffects';
 import type { IdentityLayer } from './identity';
@@ -136,6 +137,7 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly randomBoolean: () => boolean;
   readonly nightPresence: NightPresenceFacts<string>;
   readonly resolvedWolfKillTarget: number | null;
+  readonly resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
   readonly canShootAtNight: (seat: number, roleId: string) => boolean;
   readonly avengerFactionOf: (seat: number) => 'good' | 'wolf' | 'bonded';
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];

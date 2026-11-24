@@ -10,11 +10,18 @@
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  doesRoleParticipateInWolfVote,
+  GameStatus,
+  getWerewolfViewModel,
+} from '@game-judge/game-engine/games/werewolf/public';
+import {
+  STEP_RESULT_ACK_ACTION_KEY,
+  STEP_SKIP_ACTION_KEY,
+} from '@game-judge/game-engine/platform/steps';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { submitActionOrThrow } from './stepByStepRunner';
+import { submitActionOrThrow, submitStep } from './stepByStepRunner';
 
 // =============================================================================
 // Constants
@@ -59,8 +66,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     expect(s0.status).toBe(GameStatus.Ongoing);
     expect(s0.nightStep).toEqual({ kind: 'inStep', stepId: 'wolfKill' });
     expect(s0.isAudioPlaying).toBe(false);
-    expect(s0.actions).toEqual([]);
-    expect(s0.pendingRevealAcks).toEqual([]);
+    expect(s0.nightState?.slice.records).toEqual({});
     expect(s0.lastNightDeaths).toBeUndefined();
 
     // --- Step 1: wolfKill ---
@@ -76,18 +82,9 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
 
     // Verify wolf votes recorded
     const afterWolfVotes = ctx.getGameState();
-    const wolfVotes = afterWolfVotes.currentNightResults?.wolfVotesBySeat ?? {};
-    expect(Object.keys(wolfVotes).length).toBe(4);
-    // All wolves voted for seat 0
-    for (const target of Object.values(wolfVotes)) {
-      expect(target).toBe(0);
-    }
-
-    // Wolf action should be recorded in actions array
-    expect(afterWolfVotes.actions.length).toBeGreaterThanOrEqual(1);
-    const wolfAction = afterWolfVotes.actions.find((a) => a.schemaId === 'wolfKill');
-    expect(wolfAction).toBeDefined();
-    expect(wolfAction?.targetSeat).toBe(0);
+    expect(afterWolfVotes.nightState?.facts.wolfVotes).toEqual(
+      [4, 5, 6, 7].map((actorSeat) => ({ actorSeat, chosenSeat: 0, landingSeat: 0 })),
+    );
 
     const wolfVoteDeadline =
       afterWolfVotes.nightStep?.kind === 'inStep'
@@ -105,33 +102,43 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
 
     const beforeWitch = ctx.getGameState();
     expect(beforeWitch.isAudioPlaying).toBe(true);
-    // Witch should see who was killed
-    expect(beforeWitch.witchContext).toBeDefined();
-    expect(beforeWitch.witchContext?.killedSeat).toBe(0);
+    expect(getWerewolfViewModel(beforeWitch, { seat: 9, isHost: false }).step?.message).toContain(
+      '1号被狼人袭击',
+    );
     ctx.acknowledgePendingAudioOrThrow('complete wolfKill to witchAction audio');
 
     // Witch skips (no save, no poison)
     submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
 
     const afterWitch = ctx.getGameState();
-    const witchAction = afterWitch.actions.find((a) => a.schemaId === 'witchAction');
-    expect(witchAction).toBeDefined();
+    expect(afterWitch.nightState?.slice.records.witchAction?.bySeat[9]?.submissions).toContainEqual(
+      {
+        actionKey: STEP_SKIP_ACTION_KEY,
+        seats: [],
+        cardIndex: null,
+      },
+    );
 
     // --- Step 3: hunterConfirm ---
     ctx.assertStep('hunterConfirm');
 
     const beforeHunter = ctx.getGameState();
     expect(beforeHunter.isAudioPlaying).toBe(true);
-    // confirmStatus should be set for hunter
-    expect(beforeHunter.confirmStatus).toBeDefined();
-    expect(beforeHunter.confirmStatus?.role).toBe('hunter');
+    const hunterStep = getWerewolfViewModel(beforeHunter, { seat: 10, isHost: false }).step;
+    const hunterView = hunterStep?.actions.find((action) => action.kind === 'view');
+    expect(hunterView?.kind === 'view' && hunterView.content.text).toBe('可以发动技能');
     ctx.acknowledgePendingAudioOrThrow('complete witchAction to hunterConfirm audio');
 
     submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
 
     const afterHunter = ctx.getGameState();
-    const hunterAction = afterHunter.actions.find((a) => a.schemaId === 'hunterConfirm');
-    expect(hunterAction).toBeDefined();
+    expect(
+      afterHunter.nightState?.slice.records.hunterConfirm?.bySeat[10]?.submissions,
+    ).toContainEqual({
+      actionKey: 'hunterConfirm',
+      seats: [],
+      cardIndex: null,
+    });
 
     // --- Step 4: seerCheck ---
     ctx.assertStep('seerCheck');
@@ -142,22 +149,25 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
 
     const afterSeer = ctx.getGameState();
-    const seerAction = afterSeer.actions.find((a) => a.schemaId === 'seerCheck');
-    expect(seerAction).toBeDefined();
-
-    // seerReveal should be populated
-    expect(afterSeer.seerReveal).toBeDefined();
-    expect(afterSeer.seerReveal?.targetSeat).toBe(1);
-    expect(afterSeer.seerReveal?.result).toBe('好人');
-
-    // pendingRevealAcks should have seerCheck
-    expect(afterSeer.pendingRevealAcks.length).toBeGreaterThan(0);
+    expect(afterSeer.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toEqual({
+      kind: 'factionCheck',
+      chosenSeat: 1,
+      landingSeat: 1,
+      faction: 'good',
+    });
+    expect(
+      getWerewolfViewModel(afterSeer, { seat: 8, isHost: false }).step?.pendingResult,
+    ).toMatchObject({
+      text: '2号是好人',
+    });
 
     // Ack the reveal
-    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
+    submitStep(ctx, 8, { actionKey: STEP_RESULT_ACK_ACTION_KEY }, 'seer ack');
 
     const afterAck = ctx.getGameState();
-    expect(afterAck.pendingRevealAcks).toEqual([]);
+    expect(afterAck.nightState?.slice.records.seerCheck?.bySeat[8]?.isResultAcknowledged).toBe(
+      true,
+    );
 
     // --- Night should end ---
     expect(afterAck.nightStep).toBeNull();
@@ -206,7 +216,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // seerCheck
     ctx.assertStep('seerCheck');
     submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
-    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
+    submitStep(ctx, 8, { actionKey: STEP_RESULT_ACK_ACTION_KEY }, 'seer ack');
 
     const finalState = ctx.getGameState();
     expect(finalState.status).toBe(GameStatus.Ended);
@@ -254,7 +264,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     // seerCheck
     ctx.assertStep('seerCheck');
     submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
-    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
+    submitStep(ctx, 8, { actionKey: STEP_RESULT_ACK_ACTION_KEY }, 'seer ack');
 
     const finalState = ctx.getGameState();
     expect(finalState.status).toBe(GameStatus.Ended);

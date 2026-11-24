@@ -73,8 +73,13 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       // Core assertion: seat 0 saved, not in death list
       expect(result.deaths).toEqual([]);
 
-      // savedSeat written to currentNightResults
-      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().nightState?.facts.deathEffects).toContainEqual({
+        kind: 'protect',
+        source: 9,
+        target: 0,
+        against: ['wolfKill'],
+        conflictGroup: 'wolfSave',
+      });
     });
 
     it('女巫不救人时，被袭击的玩家死亡', () => {
@@ -109,8 +114,12 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       // Core assertion: seat 2 poisoned to death
       expect(result.deaths).toEqual([2]);
 
-      // poisonedSeat written to currentNightResults
-      expect(ctx.getGameState().currentNightResults?.poisonedSeat).toBe(2);
+      expect(ctx.getGameState().nightState?.facts.deathEffects).toContainEqual({
+        kind: 'attack',
+        cause: 'poison',
+        source: 9,
+        target: 2,
+      });
     });
 
     it('女巫可以毒狼人', () => {
@@ -166,8 +175,13 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: savedSeat records the witch's save target
-      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().nightState?.facts.deathEffects).toContainEqual({
+        kind: 'protect',
+        source: 9,
+        target: 0,
+        against: ['wolfKill'],
+        conflictGroup: 'wolfSave',
+      });
 
       // seat 0 saved, alive
       expect(result.deaths).toEqual([]);
@@ -196,7 +210,13 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
       // Core assertion: seat 0 saved, alive
       expect(result.deaths).not.toContain(0);
-      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().nightState?.facts.deathEffects).toContainEqual({
+        kind: 'protect',
+        source: 9,
+        target: 0,
+        against: ['wolfKill'],
+        conflictGroup: 'wolfSave',
+      });
     });
 
     it('女巫不救人时，被袭击者死亡', () => {

@@ -81,11 +81,13 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: psychicReveal written to GameState
       const state = ctx.getGameState();
-      expect(state.psychicReveal).toBeDefined();
-      expect(state.psychicReveal!.targetSeat).toBe(0);
-      expect(state.psychicReveal!.result).toBe('villager');
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 0,
+        landingSeat: 0,
+        roleId: 'villager',
+      });
     });
 
     it('psychic 查验 wolf(4)，应返回 roleId "wolf"', () => {
@@ -103,9 +105,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.psychicReveal).toBeDefined();
-      expect(state.psychicReveal!.targetSeat).toBe(4);
-      expect(state.psychicReveal!.result).toBe('wolf');
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        roleId: 'wolf',
+      });
     });
 
     it('psychic 查验 wolfRobot(7，狼阵营)，应返回 roleId "wolfRobot"', () => {
@@ -123,10 +128,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.psychicReveal).toBeDefined();
-      expect(state.psychicReveal!.targetSeat).toBe(7);
-      // wolfRobot is wolf faction; returns exact roleId
-      expect(state.psychicReveal!.result).toBe('wolfRobot');
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 7,
+        landingSeat: 7,
+        roleId: 'wolfRobot',
+      });
     });
   });
 
@@ -150,9 +157,8 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // psychicReveal should be undefined or contain no result
       const state = ctx.getGameState();
-      expect(state.psychicReveal?.result).toBeUndefined();
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toBeNull();
     });
   });
 
@@ -177,10 +183,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.psychicReveal).toBeDefined();
-      expect(state.psychicReveal!.targetSeat).toBe(11);
-      // psychic returns exact roleId
-      expect(state.psychicReveal!.result).toBe('guard');
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 11,
+        landingSeat: 11,
+        roleId: 'guard',
+      });
     });
 
     it('psychic 查验 witch(9，好人阵营)，应返回 roleId "witch"', () => {
@@ -198,9 +206,12 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.psychicReveal).toBeDefined();
-      expect(state.psychicReveal!.targetSeat).toBe(9);
-      expect(state.psychicReveal!.result).toBe('witch');
+      expect(state.nightState?.slice.records.psychicCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'identityCheck',
+        chosenSeat: 9,
+        landingSeat: 9,
+        roleId: 'witch',
+      });
     });
   });
 });

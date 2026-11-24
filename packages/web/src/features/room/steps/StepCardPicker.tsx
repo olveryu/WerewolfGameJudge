@@ -1,11 +1,13 @@
 import './StepCardPicker.css';
 
-import type { CardOption } from '@game-judge/game-engine/platform/steps';
+import { type CardOption, defineCopy } from '@game-judge/game-engine/platform/steps';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import { showDismissAlert } from '@/utils/alertPresets';
+
+const COPY = defineCopy({ unavailable: '暂不可选', cancel: '取消' });
 
 /**
  * Displays generic step card options without depending on a particular game or role.
@@ -44,7 +46,12 @@ export function StepCardPicker({
                 data-testid={TESTIDS.stepCardOption(card.index)}
                 onClick={() => {
                   if (card.unavailableReason !== null) {
-                    showDismissAlert('暂不可选', card.unavailableReason, undefined, onAlertShown);
+                    showDismissAlert(
+                      COPY.unavailable,
+                      card.unavailableReason,
+                      undefined,
+                      onAlertShown,
+                    );
                     return;
                   }
                   onPick(card.index);
@@ -61,7 +68,7 @@ export function StepCardPicker({
           })}
         </div>
         <Button variant="ghost" onClick={onClose}>
-          取消
+          {COPY.cancel}
         </Button>
       </div>
     </BottomSheet>

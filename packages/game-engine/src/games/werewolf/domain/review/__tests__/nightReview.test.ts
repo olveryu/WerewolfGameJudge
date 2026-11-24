@@ -123,6 +123,7 @@ function makeGameState(
     players: toPlayersRecord(players),
     roleViewedSeats: [],
     roster: toRoster(players),
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,

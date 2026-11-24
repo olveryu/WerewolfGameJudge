@@ -35,6 +35,7 @@ import {
   type SheriffRoundRecord,
   type SheriffVoteProgress,
 } from './sheriffElectionRecord';
+import { buildSpecNightReview } from './specNightReview';
 
 type DamageReflectionRevealKey =
   | 'seerReveal'
@@ -343,6 +344,8 @@ export interface WerewolfNightReview {
   actions: NightReviewActionEntry[];
   /** Per-seat identity entries sorted by seat */
   identities: NightReviewIdentityEntry[];
+  /** Generated role-step actions and settlement explanations, when using the step engine. */
+  stepLines?: readonly NightReviewStepLine[];
   /**
    * Sheriff-election section. Absent when the game never held an election.
    * The election belongs to the game archive, not to one night: the section
@@ -350,6 +353,17 @@ export interface WerewolfNightReview {
    */
   sheriff?: NightReviewSheriffSection;
 }
+
+export type NightReviewStepLine =
+  | {
+      readonly kind: 'action';
+      readonly seat: number;
+      readonly roleId: RoleId;
+      readonly subject: string;
+      readonly phrase: string;
+      readonly result: string | null;
+    }
+  | { readonly kind: 'explanation'; readonly text: string };
 
 /** Headline tallies for the report's stats strip, derived from the entries. */
 export interface NightReportStats {
@@ -588,17 +602,17 @@ export function deriveDeathNotes(
   const notes = new Map<number, NightReviewDeathNote>();
   if (outcome.type !== 'deaths') return notes;
   const wolfEntry = data.actions.find((entry) => entry.kind === 'wolfAttack');
-  const poisonEntry = data.actions.find((entry) => entry.kind === 'poison');
   for (const death of outcome.deaths) {
     if (death.reason === 'wolfKill' && wolfEntry?.kind === 'wolfAttack') {
       const votes = wolfEntry.votes.filter((vote) => vote.targetSeat === death.seat).length;
       if (votes > 0) notes.set(death.seat, { kind: 'wolfVotes', votes });
-    } else if (
-      death.reason === 'poison' &&
-      poisonEntry?.kind === 'poison' &&
-      poisonEntry.targetSeat === death.seat
-    ) {
-      notes.set(death.seat, { kind: 'poisonedBy', actorRoleId: poisonEntry.actorRoleId });
+    } else if (death.reason === 'poison') {
+      const poisonEntry = data.actions.find(
+        (entry) => entry.kind === 'poison' && entry.targetSeat === death.seat,
+      );
+      if (poisonEntry?.kind === 'poison') {
+        notes.set(death.seat, { kind: 'poisonedBy', actorRoleId: poisonEntry.actorRoleId });
+      }
     }
   }
   return notes;
@@ -1303,6 +1317,12 @@ export function buildIdentityEntries(
  */
 export function getWerewolfNightReview(state: GameState): WerewolfNightReview {
   const sheriff = deriveSheriffSection(state);
+  if (state.nightState !== null) {
+    return {
+      ...buildSpecNightReview(state),
+      ...(sheriff !== undefined ? { sheriff } : {}),
+    };
+  }
   return {
     actions: buildActionEntries(state),
     identities: buildIdentityEntries(state.players, new Set(state.lastNightDeaths ?? [])),

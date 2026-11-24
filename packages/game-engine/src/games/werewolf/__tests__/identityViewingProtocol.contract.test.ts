@@ -69,6 +69,7 @@ function createAssignedState(): GameState {
       2: { seat: 2, role: 'villager' },
     },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,

@@ -295,7 +295,7 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
         await dismissAlert(pages[hiddenWolfIdx]!);
 
         // Click "查看同伴" bottom button
-        await clickNightButton(pages[hiddenWolfIdx]!, 'confirm', '查看同伴', {
+        await clickNightButton(pages[hiddenWolfIdx]!, 'confirm', '查看狼同伴', {
           revealPrivateStatus: true,
         });
 

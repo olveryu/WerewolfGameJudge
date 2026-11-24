@@ -65,10 +65,12 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       submitActionOrThrow(ctx, 2, { kind: 'target', target: 0 }, 'seer checks swapped seat 0');
 
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      // Key assertion: should return wolf identity (post-swap identity)
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[2]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 1,
+        faction: 'wolf',
+      });
     });
 
     it('seer checks swapped seat 1 → should see good (original magician was swapped to seat 1)', () => {
@@ -91,10 +93,12 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks swapped seat 1');
 
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(1);
-      // Key assertion: should return good identity (magician is in good faction)
-      expect(['好人', 'good']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[2]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 1,
+        landingSeat: 0,
+        faction: 'good',
+      });
     });
 
     it('no swap (skip) → seer should use original identity', () => {
@@ -111,10 +115,12 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks original wolf');
 
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(1);
-      // No swap; seat 1 should still be wolf
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[2]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 1,
+        landingSeat: 1,
+        faction: 'wolf',
+      });
     });
   });
 });

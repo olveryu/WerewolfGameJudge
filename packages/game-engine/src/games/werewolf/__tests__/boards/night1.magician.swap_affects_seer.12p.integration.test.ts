@@ -66,14 +66,14 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal should show seat 0 as "狼人" (wolf identity after swap)
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
-
-      // swappedSeats recorded in currentNightResults
-      expect(state.currentNightResults?.swappedSeats).toEqual([0, 4]);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 0,
+        landingSeat: 4,
+        faction: 'wolf',
+      });
+      expect(state.nightState?.roles.location.swap).toEqual({ first: 0, second: 4 });
     });
 
     it('魔术师交换 villager(0) 与 wolf(4)，seer 查 seat 4 应返回"好人"', () => {
@@ -89,11 +89,13 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal should show seat 4 as "好人"
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(4);
-      expect(['good', '好人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 4,
+        landingSeat: 0,
+        faction: 'good',
+      });
     });
 
     it('魔术师不交换时，seer 查 wolf seat 应返回"狼人"', () => {
@@ -110,12 +112,13 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       const state = ctx.getGameState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(4);
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
-
-      // No swap
-      expect(state.currentNightResults?.swappedSeats).toBeUndefined();
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 4,
+        landingSeat: 4,
+        faction: 'wolf',
+      });
+      expect(state.nightState?.roles.location.swap).toBeNull();
     });
   });
 
@@ -187,13 +190,14 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // swappedSeats written to currentNightResults
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.swappedSeats).toEqual([2, 7]);
-
-      // seer checking seat 2 should return "狼人" (darkWolfKing is wolf faction)
-      expect(state.seerReveal).toBeDefined();
-      expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
+      expect(state.nightState?.roles.location.swap).toEqual({ first: 2, second: 7 });
+      expect(state.nightState?.slice.records.seerCheck?.bySeat[8]?.result).toMatchObject({
+        kind: 'factionCheck',
+        chosenSeat: 2,
+        landingSeat: 7,
+        faction: 'wolf',
+      });
     });
   });
 });

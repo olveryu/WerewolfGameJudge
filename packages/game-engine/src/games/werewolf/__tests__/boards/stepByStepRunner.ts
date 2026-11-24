@@ -1,410 +1,339 @@
-/** Production-command Night-1 scenario runner for Werewolf board tests. */
+/** Drive Night-1 board scenarios through the production shared-step command. */
 
 import {
-  doesRoleParticipateInWolfVote,
   type GameState,
   GameStatus,
-  getSchema,
-  type RoleId,
+  getWerewolfViewModel,
   type SchemaId,
   type WerewolfActionInput,
 } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type PresentedAction,
+  STEP_RESULT_ACK_ACTION_KEY,
+  STEP_SKIP_ACTION_KEY,
+  type StepPresentation,
+  type StepSubmission,
+} from '@game-judge/game-engine/platform/steps';
 
 import type { GameContext, TestCommandExecution } from './gameContext';
 import type { NightAction, NightActions } from './nightScript';
 
-const MAX_NIGHT_TRANSITIONS = 64;
+const MAX_NIGHT_TRANSITIONS = 300;
 
-type ActionValue = NightAction;
-type CustomActions = NightActions;
-
-export type NightStepObserver = (ctx: GameContext, stepId: SchemaId) => void;
+export type NightStepObserver = (context: GameContext, stepId: SchemaId) => void;
 
 interface StepByStepResult {
   readonly deaths: number[];
   readonly completed: boolean;
 }
 
-export function submitActionOrThrow(
-  ctx: GameContext,
-  actorSeat: number,
-  input: WerewolfActionInput,
-  context: string | { readonly stepId?: SchemaId },
+function currentStepId(state: GameState): SchemaId | undefined {
+  return state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined;
+}
+
+function currentPresentation(state: GameState, seat: number): StepPresentation | null {
+  return getWerewolfViewModel(state, { seat, isHost: seat === 0 }).step;
+}
+
+/** Submit the current shared-step command and return its actual command receipt. */
+export function dispatchStep(
+  context: GameContext,
+  seat: number,
+  selection: Pick<StepSubmission, 'actionKey' | 'seats' | 'cardIndex'>,
   execution?: TestCommandExecution,
-): void {
-  const contextText =
-    typeof context === 'string' ? context : `step "${context.stepId ?? 'unknown'}"`;
-  ctx.dispatchAsSeatOrThrow(
-    actorSeat,
-    { type: 'werewolf.action.submit', input },
-    contextText,
+) {
+  const state = context.getGameState();
+  const current = state.nightState?.slice.current;
+  if (current == null) throw new Error('[FAIL-FAST] No active spec-driven step');
+  return context.dispatchAsSeat(
+    seat,
+    {
+      type: 'werewolf.step.submit',
+      gameSequence: state.gameSequence,
+      submission: { ...current, ...selection },
+    },
     execution,
   );
 }
 
-function acknowledgeAudio(ctx: GameContext, context: string): boolean {
-  if (!ctx.getGameState().isAudioPlaying) return false;
-  ctx.acknowledgePendingAudioOrThrow(context);
-  return true;
+/** Submit the current shared-step command and require it to commit. */
+export function submitStep(
+  context: GameContext,
+  seat: number,
+  selection: Pick<StepSubmission, 'actionKey' | 'seats' | 'cardIndex'>,
+  description: string,
+  execution?: TestCommandExecution,
+): void {
+  const state = context.getGameState();
+  const current = state.nightState?.slice.current;
+  if (current == null) throw new Error('[FAIL-FAST] No active spec-driven step');
+  context.dispatchAsSeatOrThrow(
+    seat,
+    {
+      type: 'werewolf.step.submit',
+      gameSequence: state.gameSequence,
+      submission: { ...current, ...selection },
+    },
+    description,
+    execution,
+  );
 }
 
-function currentStepIdOf(state: GameState): SchemaId | undefined {
-  return state.nightStep?.kind === 'inStep' ? state.nightStep.stepId : undefined;
-}
-
-function acknowledgeReveal(ctx: GameContext): boolean {
-  const state = ctx.getGameState();
-  if (state.pendingRevealAcks.length === 0) return false;
-  const stepId = currentStepIdOf(state);
-  if (stepId === undefined) {
-    throw new Error('[FAIL-FAST] Reveal acknowledgement exists without a current step');
-  }
-  const reversedActions = [...state.actions].reverse();
-  const action =
-    reversedActions.find((candidate) => candidate.schemaId === stepId) ??
-    reversedActions.find((candidate) => state.pendingRevealAcks.includes(candidate.schemaId));
+function requireAction(
+  presentation: StepPresentation,
+  predicate: (action: PresentedAction) => boolean,
+): PresentedAction {
+  const action = presentation.actions.find(
+    (candidate) => candidate.availability.kind === 'available' && predicate(candidate),
+  );
   if (action === undefined) {
-    throw new Error(`[FAIL-FAST] Reveal acknowledgement has no action for ${stepId}`);
+    throw new Error(`[FAIL-FAST] No matching action in ${presentation.stepId}`);
   }
-  ctx.dispatchAsSeatOrThrow(
-    action.actorSeat,
-    { type: 'werewolf.reveal.ack' },
-    `acknowledge reveal for ${stepId}`,
-  );
-  return true;
+  return action;
 }
 
-function acknowledgeWolfRobotHunterStatus(ctx: GameContext): boolean {
-  const state = ctx.getGameState();
-  if (
-    currentStepIdOf(state) !== 'wolfRobotLearn' ||
-    state.wolfRobotHunterStatusViewed !== false ||
-    state.wolfRobotReveal?.learnedRoleId === undefined
-  ) {
-    return false;
-  }
-  const actorSeat = ctx.findSeatByRole('wolfRobot');
-  if (actorSeat === -1) {
-    throw new Error('[FAIL-FAST] Wolf Robot gate exists without a seated Wolf Robot');
-  }
-  ctx.dispatchAsSeatOrThrow(
+/** Translate a scenario choice to a real shared-step submission for the current actor. */
+export function submitActionOrThrow(
+  context: GameContext,
+  actorSeat: number,
+  input: WerewolfActionInput,
+  description: string | { readonly stepId?: SchemaId },
+  execution?: TestCommandExecution,
+): void {
+  const state = context.getGameState();
+  const view = currentPresentation(state, actorSeat);
+  if (view?.isActor !== true) throw new Error('[FAIL-FAST] Scenario seat is not a step actor');
+  const selection = submissionForInput(state, view, input);
+  submitStep(
+    context,
     actorSeat,
-    { type: 'werewolf.wolfRobot.ackHunterStatus' },
-    'acknowledge Wolf Robot hunter status',
+    selection,
+    typeof description === 'string' ? description : `step ${description.stepId ?? view.stepId}`,
+    execution,
   );
-  return true;
 }
 
-function acknowledgeGroupConfirmation(ctx: GameContext): boolean {
-  const state = ctx.getGameState();
-  const stepId = currentStepIdOf(state);
-  if (stepId === undefined || getSchema(stepId).kind !== 'groupConfirm') return false;
-
-  for (const player of Object.values(state.players)) {
-    if (player === null) continue;
-    ctx.dispatchAsSeatOrThrow(
-      player.seat,
-      { type: 'werewolf.groupConfirm.ack' },
-      `acknowledge group confirmation for ${stepId} at seat ${player.seat}`,
-    );
+function submissionForInput(
+  state: GameState,
+  view: StepPresentation,
+  input: WerewolfActionInput,
+): Pick<StepSubmission, 'actionKey' | 'seats' | 'cardIndex'> {
+  if (input.kind === 'skip' || (input.kind === 'target' && input.target === null)) {
+    const key = view.stepId === 'wolfKill' ? 'wolfKillAbstain' : STEP_SKIP_ACTION_KEY;
+    return { actionKey: requireAction(view, (action) => action.key === key).key };
   }
-  return true;
+  if (input.kind === 'target' || input.kind === 'multiTarget') {
+    const action = requireAction(view, (candidate) => candidate.kind === 'pickSeats');
+    const seats = input.kind === 'target' ? [input.target] : input.targets;
+    if (seats.some((seat) => seat === null)) throw new Error('[FAIL-FAST] Null target');
+    return { actionKey: action.key, seats: seats.filter((seat) => seat !== null) };
+  }
+  if (input.kind === 'card') {
+    const action = requireAction(view, (candidate) => candidate.kind === 'pickCard');
+    return { actionKey: action.key, cardIndex: input.cardIndex };
+  }
+  if (input.kind === 'witch') {
+    if (input.saveTarget !== null && input.poisonTarget !== null) {
+      throw new Error('[FAIL-FAST] Witch cannot use both potions in one night');
+    }
+    if (input.saveTarget !== null) {
+      if (state.nightState?.wolfKill?.target !== input.saveTarget) {
+        throw new Error('[FAIL-FAST] Witch save target is not the wolf attack target');
+      }
+      return { actionKey: requireAction(view, (action) => action.key === 'antidote').key };
+    }
+    if (input.poisonTarget !== null) {
+      return {
+        actionKey: requireAction(view, (action) => action.key === 'poison').key,
+        seats: [input.poisonTarget],
+      };
+    }
+    return { actionKey: requireAction(view, (action) => action.key === STEP_SKIP_ACTION_KEY).key };
+  }
+  const action = requireAction(
+    view,
+    (candidate) => candidate.kind === 'view' || candidate.kind === 'direct',
+  );
+  return { actionKey: action.key };
 }
 
-function releaseStepDeadline(ctx: GameContext): boolean {
-  const deadlineState = ctx.getGameState();
-  const deadline =
-    deadlineState.nightStep?.kind === 'inStep' ? deadlineState.nightStep.stepDeadline : undefined;
-  if (deadline === undefined) return false;
-  ctx.dispatchSystemOrThrow(
+function completeAudioOrDeadline(context: GameContext): boolean {
+  const state = context.getGameState();
+  if (state.isAudioPlaying) {
+    context.acknowledgePendingAudioOrThrow('complete authoritative narration');
+    return true;
+  }
+  const deadline = state.nightState?.slice.deadlineMs;
+  if (deadline == null) return false;
+  context.dispatchSystemOrThrow(
     { type: 'werewolf.phase.settleExpired' },
-    `release step deadline at ${deadline}`,
+    'settle active night step',
     { nowMs: deadline },
   );
   return true;
 }
 
-function settleCompletedStep(ctx: GameContext): boolean {
+function isRecordedWolfVote(state: GameState, seat: number): boolean {
   return (
-    acknowledgeAudio(ctx, 'complete authoritative playback') ||
-    acknowledgeReveal(ctx) ||
-    acknowledgeWolfRobotHunterStatus(ctx) ||
-    acknowledgeGroupConfirmation(ctx) ||
-    releaseStepDeadline(ctx)
+    currentStepId(state) === 'wolfKill' &&
+    (state.nightState?.slice.records.wolfKill?.bySeat[seat]?.submissions.length ?? 0) > 0
   );
 }
 
+function configuredInput(
+  view: StepPresentation,
+  value: NightAction | undefined,
+): WerewolfActionInput {
+  if (view.stepId === 'wolfKill') {
+    return typeof value === 'number' ? { kind: 'target', target: value } : { kind: 'skip' };
+  }
+  const available = view.actions.filter((action) => action.availability.kind === 'available');
+  if (
+    available.some((action) => action.kind === 'view') &&
+    !available.some((action) => action.kind === 'pickSeats' || action.kind === 'pickCard')
+  ) {
+    return { kind: 'confirm' };
+  }
+  if (
+    view.stepId === 'seedWolfInfect' &&
+    value === undefined &&
+    available.some((action) => action.key === 'seedWolfInfect')
+  ) {
+    return { kind: 'confirm' };
+  }
+  if (typeof value === 'number') {
+    return view.stepId === 'witchAction'
+      ? { kind: 'witch', saveTarget: value, poisonTarget: null }
+      : { kind: 'target', target: value };
+  }
+  if (value !== null && typeof value === 'object') {
+    if ('cardIndex' in value) return { kind: 'card', cardIndex: value.cardIndex };
+    if ('targets' in value) {
+      return value.targets.length === 0
+        ? { kind: 'skip' }
+        : { kind: 'multiTarget', targets: value.targets };
+    }
+    if ('save' in value) {
+      return { kind: 'witch', saveTarget: value.save, poisonTarget: value.poison };
+    }
+    return value.confirmed ? { kind: 'confirm' } : { kind: 'skip' };
+  }
+  const skip = view.actions.find(
+    (action) => action.key === STEP_SKIP_ACTION_KEY && action.availability.kind === 'available',
+  );
+  if (skip !== undefined) return { kind: 'skip' };
+  const card = view.actions.find(
+    (action) => action.kind === 'pickCard' && action.availability.kind === 'available',
+  );
+  if (card?.kind === 'pickCard') {
+    const available = card.cards.find((option) => option.unavailableReason === null);
+    if (available === undefined) throw new Error('[FAIL-FAST] No selectable bottom card');
+    return { kind: 'card', cardIndex: available.index };
+  }
+  const pick = view.actions.find(
+    (action) => action.kind === 'pickSeats' && action.availability.kind === 'available',
+  );
+  if (pick?.kind === 'pickSeats') {
+    const targets = pick.seats
+      .filter((option) => option.unavailableReason === null)
+      .slice(0, pick.min)
+      .map((option) => option.seat);
+    if (targets.length < pick.min) throw new Error('[FAIL-FAST] No eligible mandatory targets');
+    return { kind: 'multiTarget', targets };
+  }
+  return { kind: 'confirm' };
+}
+
+function executeCurrentStep(
+  context: GameContext,
+  choices: NightActions,
+  executions: Partial<Record<SchemaId, TestCommandExecution>>,
+): void {
+  const state = context.getGameState();
+  const stepId = currentStepId(state);
+  if (stepId === undefined) throw new Error('[FAIL-FAST] No current night step');
+  const planStep = context.getNightPlan().steps.find((step) => step.stepId === stepId);
+  if (planStep === undefined) throw new Error(`[FAIL-FAST] No planned step ${stepId}`);
+  for (const seat of state.nightState?.roles.seatedSeats ?? []) {
+    const view = currentPresentation(state, seat);
+    if (view?.isActor !== true) continue;
+    if (view.pendingResult !== null) {
+      submitStep(context, seat, { actionKey: STEP_RESULT_ACK_ACTION_KEY }, `acknowledge ${stepId}`);
+      return;
+    }
+    if (view.actions.length === 0 || isRecordedWolfVote(state, seat)) continue;
+    let input = configuredInput(view, choices[planStep.roleId]);
+    if (
+      stepId === 'wolfKill' &&
+      view.actions.find((action) => action.key === 'wolfKill')?.availability.kind !== 'available'
+    ) {
+      input = { kind: 'skip' };
+    }
+    submitActionOrThrow(context, seat, input, { stepId }, executions[stepId]);
+    return;
+  }
+  throw new Error(`[FAIL-FAST] Night step ${stepId} has no actionable actor or deadline`);
+}
+
+/** Run until a named step is ready, without completing that step. */
 export function executeStepsUntil(
-  ctx: GameContext,
+  context: GameContext,
   targetStepId: SchemaId,
-  customActions: CustomActions = {},
+  choices: NightActions = {},
 ): boolean {
   for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
-    acknowledgeAudio(ctx, `complete playback before ${targetStepId}`);
-    const state = ctx.getGameState();
-    if (currentStepIdOf(state) === targetStepId) return true;
-    if (state.status === GameStatus.Ended || currentStepIdOf(state) === undefined) return false;
-    if (settleCompletedStep(ctx)) continue;
-    executeCurrentStep(ctx, customActions);
+    const state = context.getGameState();
+    if (state.isAudioPlaying) {
+      context.acknowledgePendingAudioOrThrow(`complete narration before ${targetStepId}`);
+      continue;
+    }
+    if (currentStepId(state) === targetStepId) return true;
+    if (state.status === GameStatus.Day || state.status === GameStatus.Ended) return false;
+    if (state.status !== GameStatus.Ongoing) {
+      throw new Error(`[FAIL-FAST] Night runner received lifecycle ${state.status}`);
+    }
+    if (!completeAudioOrDeadline(context)) executeCurrentStep(context, choices, {});
   }
-  throw new Error(
-    `[FAIL-FAST] executeStepsUntil exceeded ${MAX_NIGHT_TRANSITIONS} transitions before ${targetStepId}`,
-  );
+  throw new Error(`[FAIL-FAST] Night exceeded ${MAX_NIGHT_TRANSITIONS} transitions`);
 }
 
+/** Finish the current night using the supplied role choices. */
 export function executeRemainingSteps(
-  ctx: GameContext,
-  customActions: CustomActions = {},
+  context: GameContext,
+  choices: NightActions = {},
   observeStep?: NightStepObserver,
-  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
+  executions: Partial<Record<SchemaId, TestCommandExecution>> = {},
 ): StepByStepResult {
-  const observedSteps = new Set<SchemaId>();
+  const observed = new Set<SchemaId>();
   for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
-    if (acknowledgeAudio(ctx, 'complete authoritative playback')) continue;
-    const enteredStep = currentStepIdOf(ctx.getGameState());
-    if (enteredStep !== undefined && !observedSteps.has(enteredStep)) {
-      observeStep?.(ctx, enteredStep);
-      observedSteps.add(enteredStep);
+    const state = context.getGameState();
+    if (state.isAudioPlaying) {
+      context.acknowledgePendingAudioOrThrow('complete authoritative narration');
+      continue;
     }
-    if (settleCompletedStep(ctx)) continue;
-
-    const state = ctx.getGameState();
-    if (state.status === GameStatus.Ended) {
+    if (state.status === GameStatus.Day || state.status === GameStatus.Ended) {
       return { deaths: state.lastNightDeaths ?? [], completed: true };
     }
     if (state.status !== GameStatus.Ongoing) {
       throw new Error(`[FAIL-FAST] Night runner received lifecycle ${state.status}`);
     }
-    if (currentStepIdOf(state) === undefined) {
-      // The inline pass ends the night in the request that exhausts it; an
-      // exhausted step at rest can only be waiting on an audio / reveal ack,
-      // which settleCompletedStep above already drained.
-      throw new Error('[FAIL-FAST] Night runner found an exhausted night with nothing pending');
+    const stepId = currentStepId(state);
+    if (stepId === undefined) throw new Error('[FAIL-FAST] Missing live night step');
+    if (!observed.has(stepId)) {
+      observeStep?.(context, stepId);
+      observed.add(stepId);
     }
-    executeCurrentStep(ctx, customActions, stepExecutions);
+    if (!completeAudioOrDeadline(context)) executeCurrentStep(context, choices, executions);
   }
-  throw new Error(`[FAIL-FAST] Night runner exceeded ${MAX_NIGHT_TRANSITIONS} transitions`);
+  throw new Error(`[FAIL-FAST] Night exceeded ${MAX_NIGHT_TRANSITIONS} transitions`);
 }
 
+/** Finish a full night using the supplied role choices. */
 export function executeFullNight(
-  ctx: GameContext,
-  customActions: CustomActions = {},
+  context: GameContext,
+  choices: NightActions = {},
   observeStep?: NightStepObserver,
-  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
+  executions: Partial<Record<SchemaId, TestCommandExecution>> = {},
 ): StepByStepResult {
-  return executeRemainingSteps(ctx, customActions, observeStep, stepExecutions);
-}
-
-function executeCurrentStep(
-  ctx: GameContext,
-  customActions: CustomActions,
-  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
-): void {
-  const state = ctx.getGameState();
-  const currentStepId = currentStepIdOf(state);
-  if (currentStepId === undefined) {
-    throw new Error('[FAIL-FAST] Cannot execute an action without a current step');
-  }
-  const step = ctx.getNightPlan().steps.find((candidate) => candidate.stepId === currentStepId);
-  if (step === undefined) {
-    throw new Error(`[FAIL-FAST] Night plan does not contain current step ${currentStepId}`);
-  }
-
-  let actorSeat = ctx.findSeatByRole(step.roleId);
-  if (actorSeat === -1) {
-    if (
-      state.currentNightResults?.treasureMasterChosenCard === step.roleId &&
-      state.treasureMasterSeat !== undefined
-    ) {
-      actorSeat = state.treasureMasterSeat;
-    } else if (
-      state.currentNightResults?.thiefChosenCard === step.roleId &&
-      state.thiefSeat !== undefined
-    ) {
-      actorSeat = state.thiefSeat;
-    } else if (state.nightStep?.kind === 'inStep' && state.nightStep.stepDeadline !== undefined) {
-      releaseStepDeadline(ctx);
-      return;
-    } else {
-      throw new Error(`[FAIL-FAST] Current step ${currentStepId} has no effective actor`);
-    }
-  }
-
-  submitActionForStep(
-    ctx,
-    currentStepId,
-    step.roleId,
-    actorSeat,
-    state.nightmareBlockedSeat === actorSeat
-      ? getSchema(currentStepId).kind === 'confirm'
-        ? { confirmed: false }
-        : null
-      : customActions[step.roleId],
-    stepExecutions[currentStepId],
-  );
-}
-
-function submitActionForStep(
-  ctx: GameContext,
-  stepId: SchemaId,
-  roleId: RoleId,
-  actorSeat: number,
-  value: ActionValue | undefined,
-  execution?: TestCommandExecution,
-): void {
-  if (stepId === 'wolfKill') {
-    submitWolfVotes(ctx, stepId, value);
-    return;
-  }
-  if (stepId === 'witchAction') {
-    submitWitchAction(ctx, stepId, actorSeat, value);
-    return;
-  }
-  if (stepId === 'magicianSwap') {
-    submitMultiTargetAction(ctx, stepId, actorSeat, value);
-    return;
-  }
-  if (stepId === 'piperHypnotize') {
-    submitPiperAction(ctx, stepId, actorSeat, value);
-    return;
-  }
-  if (stepId === 'cupidChooseLovers') {
-    submitCupidAction(ctx, stepId, actorSeat, value);
-    return;
-  }
-  if (stepId === 'treasureMasterChoose' || stepId === 'thiefChoose') {
-    if (value === null || typeof value !== 'object' || !('cardIndex' in value)) {
-      throw new Error(`[FAIL-FAST] ${stepId} fixture must provide cardIndex`);
-    }
-    submitActionOrThrow(ctx, actorSeat, { kind: 'card', cardIndex: value.cardIndex }, { stepId });
-    return;
-  }
-  if (
-    stepId === 'hunterConfirm' ||
-    stepId === 'darkWolfKingConfirm' ||
-    stepId === 'avengerConfirm' ||
-    stepId === 'seedWolfInfect' ||
-    stepId === 'hiddenWolfReveal'
-  ) {
-    const shouldConfirm =
-      value === null || typeof value !== 'object' || !('confirmed' in value) || value.confirmed;
-    submitActionOrThrow(ctx, actorSeat, shouldConfirm ? { kind: 'confirm' } : { kind: 'skip' }, {
-      stepId,
-    });
-    return;
-  }
-
-  const target = typeof value === 'number' ? value : null;
-  submitActionOrThrow(
-    ctx,
-    actorSeat,
-    target === null ? { kind: 'skip' } : { kind: 'target', target },
-    `${stepId} (${roleId})`,
-    execution,
-  );
-}
-
-function submitWolfVotes(ctx: GameContext, stepId: SchemaId, value: ActionValue | undefined): void {
-  const target = typeof value === 'number' ? value : null;
-  const state = ctx.getGameState();
-  const wolfSeats = Object.values(state.players)
-    .filter((player) => player?.role && doesRoleParticipateInWolfVote(player.role))
-    .map((player) => player!.seat);
-  if (wolfSeats.length === 0) {
-    throw new Error('[FAIL-FAST] wolfKill step has no participating wolf');
-  }
-  for (const seat of wolfSeats) {
-    submitActionOrThrow(
-      ctx,
-      seat,
-      target === null || state.nightmareBlockedSeat === seat
-        ? { kind: 'skip' }
-        : { kind: 'target', target },
-      { stepId },
-    );
-  }
-}
-
-function submitWitchAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  actorSeat: number,
-  value: ActionValue | undefined,
-): void {
-  if (typeof value === 'number') {
-    submitActionOrThrow(
-      ctx,
-      actorSeat,
-      { kind: 'witch', saveTarget: value, poisonTarget: null },
-      { stepId },
-    );
-    return;
-  }
-  if (value !== null && typeof value === 'object' && 'save' in value) {
-    const input: WerewolfActionInput =
-      value.save === null && value.poison === null
-        ? { kind: 'skip' }
-        : { kind: 'witch', saveTarget: value.save, poisonTarget: value.poison };
-    submitActionOrThrow(ctx, actorSeat, input, { stepId });
-    return;
-  }
-  submitActionOrThrow(ctx, actorSeat, { kind: 'skip' }, { stepId });
-}
-
-function submitMultiTargetAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  actorSeat: number,
-  value: ActionValue | undefined,
-): void {
-  const targets =
-    value !== null && typeof value === 'object' && 'targets' in value ? value.targets : [];
-  submitActionOrThrow(
-    ctx,
-    actorSeat,
-    targets.length === 0 ? { kind: 'skip' } : { kind: 'multiTarget', targets },
-    { stepId },
-  );
-}
-
-function submitPiperAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  actorSeat: number,
-  value: ActionValue | undefined,
-): void {
-  const configuredTargets =
-    value !== null && typeof value === 'object' && 'targets' in value
-      ? value.targets
-      : typeof value === 'number'
-        ? [value]
-        : undefined;
-  const targets =
-    configuredTargets ??
-    Object.values(ctx.getGameState().players)
-      .filter((player) => player !== null && player.seat !== actorSeat)
-      .slice(0, 1)
-      .map((player) => player!.seat);
-  submitActionOrThrow(
-    ctx,
-    actorSeat,
-    targets.length === 0 ? { kind: 'skip' } : { kind: 'multiTarget', targets },
-    { stepId },
-  );
-}
-
-function submitCupidAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  actorSeat: number,
-  value: ActionValue | undefined,
-): void {
-  const targets =
-    value !== null && typeof value === 'object' && 'targets' in value
-      ? value.targets
-      : Object.values(ctx.getGameState().players)
-          .filter((player) => player !== null)
-          .slice(0, 2)
-          .map((player) => player.seat);
-  submitActionOrThrow(ctx, actorSeat, { kind: 'multiTarget', targets }, { stepId });
+  return executeRemainingSteps(context, choices, observeStep, executions);
 }

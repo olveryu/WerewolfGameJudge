@@ -1,253 +1,47 @@
-/**
- * WildChild 12P Board UI Test
- *
- * Board: Seer-Witch-Hunter-Villager-Wild
- * Roles: 4x villager, 3x wolf, wildChild, seer, witch, hunter, idiot
- *
- * Required UI coverage:
- * - actionPrompt: seer, witch, hunter, wildChild actions
- * - wolfVote: draft and submit a target
- * - witchSavePrompt: witch save flow
- * - witch poison target selection
- * - confirmTrigger: hunter confirm trigger
- *
- * Note: wildChild has chooseSeat (canSkip=false), contributes seat selection (already from seer).
- *
- * Server-data required (covered by integration):
- * - seerReveal
- */
-
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
-
 import {
-  actorStep,
-  cancelSeatSelection,
-  chainConfirmTrigger,
-  chainWolfVote,
-  confirmStep,
-  coverageChainActionPrompt,
-  coverageChainConfirmTrigger,
-  coverageChainSeatSelection,
-  coverageChainSkipConfirm,
-  coverageChainWitchPoisonSelection,
-  coverageChainWitchSavePrompt,
-  coverageChainWolfVote,
-  coverageChainWolfVoteEmpty,
-  draftSeatSelection,
-  getBoardByName,
-  mountRoomFor as mount,
-  pressText,
-  recordAlerts,
-  requireBottomActionText,
-  requireEmptyVoteText,
-  RoomScreenTestHarness,
-  startSeatSelection,
-  witchStep,
-  wolfKillStep,
-} from '@/games/werewolf/room/__tests__/harness';
+  assertBoardNightScenario,
+  collectBoardNightScenarios,
+  mountBoardNightState,
+  pressStepAction,
+  requireBoardNightScenario,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
-const BOARD_NAME = '预女猎白野';
-const _board = getBoardByName(BOARD_NAME)!;
-const WOLVES = new Map<number, RoleId>([
-  [5, 'wolf'],
-  [6, 'wolf'],
-  [7, 'wolf'],
-]);
-const SEER_STEP = actorStep('seerCheck', 'seer', 9);
-const WOLF_STEP = wolfKillStep('wolf', 5, WOLVES);
+const scenarios = collectBoardNightScenarios('预女猎白野');
 
-let harness: RoomScreenTestHarness;
-let detachAlerts: () => void;
-
-describe(`WerewolfRoomScreen UI: ${BOARD_NAME}`, () => {
-  beforeEach(() => {
-    harness = new RoomScreenTestHarness();
-    detachAlerts = recordAlerts(harness);
-  });
-  afterEach(() => detachAlerts());
-
-  describe('actionPrompt coverage', () => {
-    it('seer action: shows action prompt', async () => {
-      await mount(SEER_STEP);
-      await waitFor(() => harness.expectInlineStatus('actionPrompt'));
-    });
-  });
-
-  describe('wolf vote selection coverage', () => {
-    it('wolf vote: drafting a target enables vote submission', async () => {
-      const view = await mount(WOLF_STEP);
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  describe('witchSavePrompt coverage', () => {
-    it('witch action: shows save prompt when someone died', async () => {
-      await mount(witchStep(10, 1));
-      await waitFor(() => harness.expectInlineStatus('witchSavePrompt'));
-    });
-  });
-
-  describe('witch poison selection coverage', () => {
-    it('witch action: drafting a poison target enables submission', async () => {
-      const view = await mount(witchStep(10, -1));
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  describe('confirmTrigger coverage', () => {
-    const bottomActionText = requireBottomActionText('hunterConfirm');
-
-    it('hunter confirm: pressing bottom button shows confirmTrigger dialog', async () => {
-      const view = await mount(
-        confirmStep('hunterConfirm', 'hunter', 11, { role: 'hunter', canShoot: true }),
-      );
-      await pressText(view, bottomActionText);
-      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-    });
-
-    it('hunter poisoned: confirmTrigger shows cannotShoot message', async () => {
-      const view = await mount(
-        confirmStep('hunterConfirm', 'hunter', 11, { role: 'hunter', canShoot: false }),
-      );
-      await pressText(view, bottomActionText);
-      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
-
-      const event = harness.getLastEventOfType('confirmTrigger');
-      expect(event).not.toBeNull();
-      expect(event!.message).toContain('不能发动');
-    });
-  });
-
-  describe('seer seat selection coverage', () => {
-    it('seer: drafting a target enables submission', async () => {
-      const view = await mount(SEER_STEP);
-      await draftSeatSelection(view, 1);
-    });
-  });
-
-  it('shows the required wild child action as pending until entering seat selection', async () => {
-    const view = await mount(actorStep('wildChildChooseIdol', 'wildChild', 8));
-    const action = view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection'));
-    expect(action).toHaveAccessibleDescription('有待处理操作');
-
-    await startSeatSelection(view);
-    expect(view.queryByTestId(TESTIDS.werewolfNightButton('submitSeatSelection'))).toBeNull();
-    expect(
-      view
-        .getByTestId(TESTIDS.werewolfNightButton('cancelSeatSelection'))
-        .querySelector('.bottom-action-pending'),
-    ).toBeNull();
-
-    await cancelSeatSelection(view);
-    expect(
-      view.getByTestId(TESTIDS.werewolfNightButton('startSeatSelection')),
-    ).toHaveAccessibleDescription('有待处理操作');
-  });
-
-  describe('seer skipConfirm coverage', () => {
-    it('seer: skip button shows skipConfirm dialog', async () => {
-      const view = await mount(SEER_STEP);
-      harness.clear();
-      await pressText(view, requireBottomActionText('seerCheck'));
-      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-    });
-  });
-
-  describe('witchNoKill coverage', () => {
-    it('witch: shows witchNoKill when killedSeat=-1', async () => {
-      await mount(witchStep(10, -1));
-      await waitFor(() => harness.expectInlineStatus('witchNoKill'));
-    });
-  });
-
-  describe('wolfVoteEmpty coverage', () => {
-    it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
-      const view = await mount(WOLF_STEP);
-      harness.clear();
-      await pressText(view, requireEmptyVoteText());
-      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
-    });
-  });
-
-  // ===========================================================================
-  // Chain Interaction (press button -> assert callback)
-  // ===========================================================================
-
-  describe('chain interaction', () => {
-    it('wolf target submission → submitAction called', async () => {
-      await chainWolfVote('wolf', 5, WOLVES, 1);
-    });
-
-    it('confirmTrigger (hunter) → dialog dismissed', async () => {
-      await chainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 11);
-    });
-  });
-
-  // ===========================================================================
-  // Coverage Assertion (MUST PASS)
-  // ===========================================================================
-
-  describe('Coverage Assertion (MUST PASS)', () => {
-    it('all required UI flows covered with chain interactions and effect assertions', async () => {
-      // Step 1: actionPrompt (seer)
-      await coverageChainActionPrompt(harness, 'seerCheck', 'seer', 'seer', 9);
-
-      // Step 2: wolfVote -> press confirm -> submitAction(1) called
-      const { submitAction: wolfVoteAction } = await coverageChainWolfVote('wolf', 5, WOLVES, 1);
-      expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
-
-      // Step 3: witchSavePrompt
-      await coverageChainWitchSavePrompt(harness, 10);
-
-      // Step 4: witch poison selection
-      await coverageChainWitchPoisonSelection(harness, 10);
-
-      // Step 5: confirmTrigger (hunter) -> press primary + assertNoLoop
-      await coverageChainConfirmTrigger(harness, 'hunterConfirm', 'hunter', 'hunter', 11);
-
-      // Step 6: seat selection (seer target) → submit → submitAction called
-      const { submitAction: seerSubmit } = await coverageChainSeatSelection(
+describe('WerewolfRoomScreen UI: 预女猎白野', () => {
+  it('covers the board’s night steps with engine-produced states', () => {
+    expect(scenarios.map((scenario) => scenario.presentation.stepId)).toEqual(
+      expect.arrayContaining([
+        'wolfKill',
+        'wildChildChooseIdol',
         'seerCheck',
-        'seer',
-        'seer',
-        9,
-        1,
-      );
-      expect(seerSubmit).toHaveBeenCalled();
+        'witchAction',
+        'hunterConfirm',
+      ]),
+    );
+  });
 
-      // Step 7: skipConfirm (seer) -> press primary -> submitAction called
-      const { submitAction: seerSkip } = await coverageChainSkipConfirm(
-        harness,
-        'seerCheck',
-        'seer',
-        'seer',
-        9,
-      );
-      expect(seerSkip).toHaveBeenCalled();
+  it.each(scenarios)('$label submits through the real room screen', async (scenario) => {
+    await assertBoardNightScenario(scenario);
+  });
 
-      // Step 8: wolfVoteEmpty -> press confirm -> submitAction(null) called
-      const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
-        harness,
-        'wolf',
-        5,
-        WOLVES,
-      );
-      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
-
-      // Final: literal coverage requirements
-      harness.assertCoverage([
-        'actionPrompt',
-        'wolfVoteEmpty',
-        'witchSavePrompt',
-        'witchNoKill',
-
-        'skipConfirm',
-        'confirmTrigger',
-      ]);
-    });
+  it('marks the required idol choice pending until seat selection begins', async () => {
+    const scenario = requireBoardNightScenario(
+      scenarios,
+      'wildChildChooseIdol',
+      'wildChildChooseIdol',
+    );
+    const { view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    const actionId = TESTIDS.stepInteractionButton('wildChildChooseIdol');
+    expect(view.getByTestId(actionId)).toHaveAccessibleDescription('有待处理操作');
+    await pressStepAction(view, 'wildChildChooseIdol');
+    expect(
+      view.getByTestId(TESTIDS.stepInteractionButton('cancelSeatSelection')),
+    ).not.toHaveAccessibleDescription('有待处理操作');
+    await pressStepAction(view, 'cancelSeatSelection');
+    expect(view.getByTestId(actionId)).toHaveAccessibleDescription('有待处理操作');
   });
 });

@@ -72,7 +72,14 @@ export function classifyWolfKillVerdict(
   target: number | null,
 ): ResolvedWolfKillVerdict | null {
   if (state.wolfKillOverride) return null;
-  const votes = buildWolfVotesMap(state);
+  return classifyWolfVotes(buildWolfVotesMap(state), target);
+}
+
+/** Classify final votes without choosing a target a second time. */
+export function classifyWolfVotes(
+  votes: ReadonlyMap<number, number>,
+  target: number | null,
+): ResolvedWolfKillVerdict {
   const nonAbstainVotes = Array.from(votes.values()).filter((vote) => vote !== -1);
   if (nonAbstainVotes.length === 0) return { type: 'allAbstain' };
   if (target === null) return { type: 'splitTied' };

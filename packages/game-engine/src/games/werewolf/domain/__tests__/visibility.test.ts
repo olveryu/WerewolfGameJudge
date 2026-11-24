@@ -100,6 +100,7 @@ function createState(spec: StateSpec): GameState {
     players,
     roleViewedSeats,
     roster,
+    nightState: null,
     nightStep: spec.stepId ? { kind: 'inStep', stepId: spec.stepId } : null,
     isAudioPlaying: false,
     audioBatchId: 0,
@@ -202,6 +203,10 @@ function expectedWolfMeetingVm(
     seats: WOLF_MEETING_ROLES.map((role, seat) => expectedSeat(seat, role, viewerSeat, pack)),
     wolfPackSeats: pack,
     viewedSeats: [0, 1, 2, 3, 4, 5, 7],
+    step: null,
+    stepSeatStatuses: {},
+    canAcknowledgeStepBots: false,
+    stepProgressKind: null,
     night: {
       actionSchema: SCHEMAS.wolfKill,
       currentActionRole: 'wolf',

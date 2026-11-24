@@ -28,6 +28,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     roleViewedSeats: [],
+    nightState: null,
     nightStep: null,
     isAudioPlaying: false,
     audioBatchId: 0,

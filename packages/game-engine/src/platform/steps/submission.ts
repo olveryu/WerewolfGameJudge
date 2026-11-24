@@ -59,6 +59,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
     return rejectStale();
   }
   if (submission.actionKey === STEP_SKIP_ACTION_KEY) {
+    if (submission.seats !== undefined || submission.cardIndex !== undefined) return rejectStale();
     return decideSkip(
       definition.skippable(context),
       definition.lock?.(context) ?? null,

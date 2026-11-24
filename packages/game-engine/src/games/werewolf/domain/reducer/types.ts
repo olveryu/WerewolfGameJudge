@@ -551,6 +551,10 @@ export interface UpdateRosterLevelsAction {
 
 export type StateAction =
   | { readonly type: 'SELECT_MVP'; readonly mvpUserId: string }
+  | {
+      readonly type: 'WEREWOLF_NIGHT_EVENT';
+      readonly event: import('../../roles/nightEvolution').WerewolfNightEvent;
+    }
   | CompleteReviewAction
   // Lifecycle
   | InitializeGameAction

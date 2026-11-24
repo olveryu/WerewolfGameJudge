@@ -182,6 +182,8 @@ export interface StepDefinition<TStepId extends string, TContext, TFacts, TResul
   };
   /** 本步需要行动的座位。空数组表示空步骤（见下）。 */
   readonly actors: (context: TContext) => readonly number[];
+  /** 全员查看步骤显式声明范围，不能根据行动者数量推断。 */
+  readonly audience?: 'allSeats';
   readonly actions: readonly StepAction<TContext, TFacts, TResult>[];
   /** 是否可以不用技能。必须行动的步骤返回 false。 */
   readonly skippable: (context: TContext) => boolean;

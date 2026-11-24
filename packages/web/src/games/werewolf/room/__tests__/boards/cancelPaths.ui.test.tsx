@@ -1,182 +1,108 @@
-/**
- * Cancel Paths UI Test
- *
- * Tests cancellation for seat drafts and night dialogs.
- * Verifies that pressing cancel does NOT call submitAction.
- *
- * This is a cross-board test - not tied to a specific board configuration.
- * It covers a gap where nearly all board tests only test the confirm path.
- */
-
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { waitFor } from '@testing-library/react';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 
 import {
-  actorStep,
-  cancelSeatSelection,
-  draftSeatSelection,
-  mountRoomFor as mount,
-  pressText,
+  click,
   recordAlerts,
-  requireBottomActionText,
-  requireEmptyVoteText,
   RoomScreenTestHarness,
-  startSeatSelection,
-  type SubmitActionMock,
-  successfulWerewolfCommand,
   tapSeat,
-  type WerewolfRoomMockOptions,
-  witchStep,
-  wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import {
+  collectBoardNightScenarios,
+  mountBoardNightState,
+  pressStepAction,
+  requireBoardNightScenario,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
+import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
-const WOLVES = new Map<number, RoleId>([
-  [4, 'wolf'],
-  [5, 'wolf'],
-  [6, 'wolf'],
-  [7, 'wolf'],
-]);
+const standard = collectBoardNightScenarios('预女猎白');
+const magician = collectBoardNightScenarios('狼王魔术师');
+const thief = collectBoardNightScenarios('盗贼丘比特');
 
-/** `step` with a fresh recorded submit; every cancel path asserts it stays uncalled. */
-function withSubmitSpy(step: WerewolfRoomMockOptions): {
-  options: WerewolfRoomMockOptions;
-  submitAction: SubmitActionMock;
-} {
-  const submitAction: SubmitActionMock = vi.fn(async () => successfulWerewolfCommand());
-  return { options: { ...step, hookOverrides: { submitAction } }, submitAction };
-}
+describe('Werewolf shared-step cancellation', () => {
+  let harness: RoomScreenTestHarness;
+  let detach: () => void;
 
-let harness: RoomScreenTestHarness;
-let detachAlerts: () => void;
-
-describe('Cancel Paths (cross-board)', () => {
   beforeEach(() => {
     harness = new RoomScreenTestHarness();
-    detachAlerts = recordAlerts(harness);
+    detach = recordAlerts(harness);
   });
-  afterEach(() => detachAlerts());
+  afterEach(() => detach());
 
-  // ===========================================================================
-  // wolfVote cancel -> submitAction NOT called
-  // ===========================================================================
-
-  describe('wolfVote cancel', () => {
-    it('cancelling a wolf target draft does not submit', async () => {
-      const { options, submitAction } = withSubmitSpy(wolfKillStep('wolf', 4, WOLVES));
-      const view = await mount(options);
-      await draftSeatSelection(view, 1);
-      await cancelSeatSelection(view);
-
-      expect(submitAction).not.toHaveBeenCalled();
-    });
-  });
-
-  // ===========================================================================
-  // wolfVoteEmpty cancel -> submitAction NOT called
-  // ===========================================================================
-
-  describe('wolfVoteEmpty cancel', () => {
-    it('pressing cancel on wolfVoteEmpty dialog does NOT call submitAction', async () => {
-      const { options, submitAction } = withSubmitSpy(wolfKillStep('wolf', 4, WOLVES));
-      const view = await mount(options);
-      harness.clear();
-
-      await pressText(view, requireEmptyVoteText());
-      await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
-
-      await harness.pressButtonOnType('wolfVoteEmpty', '取消');
-
-      expect(submitAction).not.toHaveBeenCalled();
-    });
+  it.each([
+    { stepId: 'wolfKill', actionKey: 'wolfKill' },
+    { stepId: 'seerCheck', actionKey: 'seerCheck' },
+    { stepId: 'witchAction', actionKey: 'poison' },
+  ])('cancels the $stepId seat confirmation without submitting', async ({ stepId, actionKey }) => {
+    const scenario = requireBoardNightScenario(standard, stepId, actionKey);
+    const { mock, view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    await pressStepAction(view, actionKey);
+    const seat = scenario.submission.seats?.[0];
+    if (seat === undefined) throw new Error('[TEST] Missing seat choice');
+    await tapSeat(view, seat);
+    await harness.pressButton('取消');
+    expect(view.getByTestId(TESTIDS.seatTilePressable(seat))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(mock.dispatch).not.toHaveBeenCalled();
   });
 
-  // ===========================================================================
-  // Seer selection cancel -> submitAction NOT called
-  // ===========================================================================
+  it.each([
+    { stepId: 'wolfKill', actionKey: 'wolfKillAbstain' },
+    { stepId: 'seerCheck', actionKey: STEP_SKIP_ACTION_KEY },
+  ])(
+    'cancels the $stepId direct confirmation without submitting',
+    async ({ stepId, actionKey }) => {
+      const scenario = requireBoardNightScenario(standard, stepId, actionKey);
+      const { mock, view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+      await pressStepAction(view, actionKey);
+      await harness.pressButton('取消');
+      expect(mock.dispatch).not.toHaveBeenCalled();
+    },
+  );
 
-  describe('seer selection cancel', () => {
-    it('cancelling a seer target draft does not submit', async () => {
-      const { options, submitAction } = withSubmitSpy(actorStep('seerCheck', 'seer', 8));
-      const view = await mount(options);
-      await draftSeatSelection(view, 1);
-      await cancelSeatSelection(view);
-
-      expect(submitAction).not.toHaveBeenCalled();
-    });
+  it('clears both magician picks on cancel and keeps a single new pick unsubmitted', async () => {
+    const scenario = requireBoardNightScenario(magician, 'magicianSwap', 'magicianSwap');
+    const { mock, view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    await pressStepAction(view, 'magicianSwap');
+    const [first, second] = scenario.submission.seats ?? [];
+    if (first === undefined || second === undefined) throw new Error('[TEST] Missing swap seats');
+    await tapSeat(view, first);
+    expect(harness.getLastEvent()).toBeNull();
+    expect(mock.dispatch).not.toHaveBeenCalled();
+    await tapSeat(view, second);
+    await harness.pressButton('取消');
+    expect(view.getByTestId(TESTIDS.seatTilePressable(first))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(view.getByTestId(TESTIDS.seatTilePressable(second))).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await tapSeat(view, first);
+    expect(harness.events()).toHaveLength(1);
+    expect(mock.dispatch).not.toHaveBeenCalled();
   });
 
-  // ===========================================================================
-  // skipConfirm cancel -> submitAction NOT called
-  // ===========================================================================
-
-  describe('skipConfirm cancel', () => {
-    it('pressing cancel on skipConfirm does NOT call submitAction', async () => {
-      const { options, submitAction } = withSubmitSpy(actorStep('seerCheck', 'seer', 8));
-      const view = await mount(options);
-      harness.clear();
-
-      await pressText(view, requireBottomActionText('seerCheck'));
-      await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-
-      await harness.pressButtonOnType('skipConfirm', '取消');
-
-      expect(submitAction).not.toHaveBeenCalled();
-    });
+  it('cancels a private status prompt without acknowledging it', async () => {
+    const scenario = requireBoardNightScenario(standard, 'hunterConfirm', 'hunterConfirm');
+    const { mock, view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    await pressStepAction(view, 'hunterConfirm');
+    expect(harness.getLastEvent()?.buttons).toEqual(['取消', '查看']);
+    await harness.pressButton('取消');
+    expect(mock.dispatch).not.toHaveBeenCalled();
   });
 
-  // ===========================================================================
-  // Witch poison selection cancel -> submitAction NOT called
-  // ===========================================================================
-
-  describe('witch poison selection cancel', () => {
-    it('cancelling a witch poison draft does not submit', async () => {
-      const { options, submitAction } = withSubmitSpy(witchStep(9, -1));
-      const view = await mount(options);
-      await draftSeatSelection(view, 1);
-      await cancelSeatSelection(view);
-
-      expect(submitAction).not.toHaveBeenCalled();
-    });
-  });
-
-  // ===========================================================================
-  // swap confirm cancel -> both picks cleared (§6.9 取消清两座)
-  // ===========================================================================
-
-  describe('swap selection cancel', () => {
-    it('cancelling a magician swap clears both picks', async () => {
-      const { options, submitAction } = withSubmitSpy(actorStep('magicianSwap', 'magician', 3));
-      const view = await mount(options);
-      await startSeatSelection(view);
-      await tapSeat(view, 1);
-      await tapSeat(view, 2);
-      expect(harness.hasSeen('actionConfirm')).toBe(true);
-      await harness.pressButtonOnType('actionConfirm', '取消');
-      expect(submitAction).not.toHaveBeenCalled();
-
-      expect(view.getByText('已选 0 / 2 人')).toBeInTheDocument();
-      await tapSeat(view, 5);
-      expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(harness.eventsOfType('actionConfirm')).toHaveLength(1);
-      expect(submitAction).not.toHaveBeenCalled();
-    });
-  });
-
-  // ===========================================================================
-  // Drafting the first swap target does NOT call submitAction
-  // ===========================================================================
-
-  describe('magician first pick', () => {
-    it('drafting only one target does not submit a swap', async () => {
-      const { options, submitAction } = withSubmitSpy(actorStep('magicianSwap', 'magician', 3));
-      const view = await mount(options);
-      await startSeatSelection(view);
-      await tapSeat(view, 1);
-      expect(view.getByText('已选 1 / 2 人')).toBeInTheDocument();
-      expect(harness.hasSeen('actionConfirm')).toBe(false);
-      expect(submitAction).not.toHaveBeenCalled();
-    });
+  it('closes the bottom-card picker without submitting a choice', async () => {
+    const scenario = requireBoardNightScenario(thief, 'thiefChoose', 'thiefChoose');
+    const { mock, view } = await mountBoardNightState(scenario.state, scenario.viewerSeat);
+    await pressStepAction(view, 'thiefChoose');
+    expect(view.getByTestId(TESTIDS.stepCardPicker)).toBeVisible();
+    await click(view.getByRole('button', { name: '取消' }));
+    expect(view.queryByTestId(TESTIDS.stepCardPicker)).not.toBeInTheDocument();
+    expect(mock.dispatch).not.toHaveBeenCalled();
   });
 });

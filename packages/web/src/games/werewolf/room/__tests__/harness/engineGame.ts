@@ -6,6 +6,7 @@
 
 import {
   createTemplateFromRoles,
+  type GameRuleOverrides,
   type GameState,
   getBottomCardCount,
   getPlayerCount,
@@ -13,15 +14,15 @@ import {
   PRESET_TEMPLATES,
   type RoleId,
   type SchemaId,
-  type WerewolfActionInput,
   type WerewolfCommand,
   werewolfEngine,
   type WerewolfInternalCommand,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createSeededRng, shuffleArray } from '@game-judge/game-engine/platform/random';
+import type { StepSubmission } from '@game-judge/game-engine/platform/steps';
 
-const ROOM_CODE = 'TEST01';
+const ROOM_CODE = '1234';
 const HOST_USER_ID = 'host-uid';
 const INITIAL_NOW_MS = 1_000_000;
 const RANDOM_SEED = 'board-test-seed';
@@ -49,8 +50,8 @@ type CommandIdentity =
 
 export interface EngineGame {
   getGameState(): GameState;
-  /** `werewolf.action.submit` from the seat's occupant; throws unless committed. */
-  submitActionOrThrow(seat: number, input: WerewolfActionInput, context: string): void;
+  /** Submit the active shared step from the seat's occupant. */
+  submitStepOrThrow(seat: number, submission: StepSubmission, context: string): void;
   dispatchSystemOrThrow(
     command: WerewolfInternalCommand,
     context: string,
@@ -95,19 +96,25 @@ function desiredSeatRolesOf(
   return desired;
 }
 
-/** Seats, deals and starts `templateName` with `roleAssignment`, then clears the opening audio. */
+/** Seats, deals and starts a preset or role list, optionally fixing the roles at their seats. */
 export function createEngineGame(
-  templateName: string,
-  roleAssignment: ReadonlyMap<number, RoleId>,
+  templateName: string | readonly RoleId[],
+  roleAssignment?: ReadonlyMap<number, RoleId>,
+  rules?: GameRuleOverrides,
 ): EngineGame {
-  const templateRoles = PRESET_TEMPLATES.find((preset) => preset.name === templateName)?.roles;
+  const templateRoles =
+    typeof templateName === 'string'
+      ? PRESET_TEMPLATES.find((preset) => preset.name === templateName)?.roles
+      : templateName;
   if (templateRoles === undefined) throw new Error(`Unknown template: ${templateName}`);
-  const desiredSeatRoles = desiredSeatRolesOf(templateRoles, roleAssignment);
-  const configuredRoles = rolesForDesiredSeats(desiredSeatRoles);
+  const desiredSeatRoles =
+    roleAssignment === undefined ? null : desiredSeatRolesOf(templateRoles, roleAssignment);
+  const configuredRoles =
+    desiredSeatRoles === null ? [...templateRoles] : rolesForDesiredSeats(desiredSeatRoles);
   const template = createTemplateFromRoles(configuredRoles);
 
   let state = werewolfEngine.createInitialState(
-    { templateRoles: configuredRoles, rules: { isSheriffElectionEnabled: false } },
+    { templateRoles: configuredRoles, rules: { isSheriffElectionEnabled: false, ...rules } },
     { roomCode: ROOM_CODE, hostUserId: HOST_USER_ID, nowMs: INITIAL_NOW_MS, commandId: 'create' },
   );
   let commandSequence = 0;
@@ -163,8 +170,12 @@ export function createEngineGame(
 
   const game: EngineGame = {
     getGameState: () => state,
-    submitActionOrThrow: (seat, input, context) =>
-      dispatchAsSeatOrThrow(seat, { type: 'werewolf.action.submit', input }, context),
+    submitStepOrThrow: (seat, submission, context) =>
+      dispatchAsSeatOrThrow(
+        seat,
+        { type: 'werewolf.step.submit', gameSequence: state.gameSequence, submission },
+        context,
+      ),
     dispatchSystemOrThrow: (command, context, execution) =>
       runOrThrow(
         command,
@@ -196,7 +207,7 @@ export function createEngineGame(
   dispatchOrThrow({ type: 'werewolf.roles.assign' }, 'assign roles', undefined, {
     randomSeed: ROLE_ASSIGNMENT_SEED,
   });
-  desiredSeatRoles.forEach((role, seat) => {
+  desiredSeatRoles?.forEach((role, seat) => {
     if (state.players[seat]?.role !== role) {
       throw new Error(`[FAIL-FAST] Production role assignment did not satisfy seat ${seat}`);
     }
