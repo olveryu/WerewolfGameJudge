@@ -1,6 +1,6 @@
 # 步骤机制接口设计
 
-状态：**已与用户逐条确认 I1–I14（见“确认记录”）；未开始实现。** 助手最初未经询问就写出并推送了本文，用户指出应先逐条询问，之后补问。正文中凡是落实“确认记录”的部分以确认记录为准；“助手自定”一节是用户同意由助手决定的内部结构；类型草图只表达形状，是助手的草稿。本文是 [step-action-redesign.md](step-action-redesign.md) §7“平台层步骤机制的具体接口”的展开。
+状态：**已与用户逐条确认 I1–I15（见“确认记录”）；未开始实现。** 助手最初未经询问就写出并推送了本文，用户指出应先逐条询问，之后补问。正文中凡是落实“确认记录”的部分以确认记录为准；“助手自定”一节是用户同意由助手决定的内部结构；类型草图只表达形状，是助手的草稿。本文是 [step-action-redesign.md](step-action-redesign.md) §7“平台层步骤机制的具体接口”的展开。
 
 类型草图只表达形状，名字和字段可以在实现时调整；调整了决定所约束的行为则需要先回到设计文档。
 
@@ -22,6 +22,7 @@
 | I12  | “某个座位今晚算什么”分三层，每层只定义一次：**身份**（这个人今晚实际是什么角色：发到的牌；盗贼选牌后永久变成那张；盗宝大师当晚获得所选牌的技能；种狼感染后变成普通狼人）、**落点**（技能点的号码实际落在谁身上：魔术师交换，I5）、**所见**（查验类技能看到什么：身份加机械狼的伪装）。谁在哪一步行动、有什么被动效果看身份；技能选座位后先过落点再生效；查验结果看落点上那个人的所见。“预言家查到交换后的身份”不再是单独的规则，由落点层自然得出。未选“不分层、每个角色自己处理”。                                                                                                                                                                                                                                                                                                   | 2026-11-23 |
 | I13  | “角色在场就改变整局规则”的规则搬进各自的角色文件，只能从固定的几个点里声明，行为不变。现有四条：毒师在场首夜狼人不能袭击（开夜时写入一条事实）、丘比特在场狼人投票须全票一致（狼人投票规则）、盗贼和盗宝大师的底牌发牌规则、多个预言家系角色的播报编号。流程代码不再点名角色；新增声明点要改平台并登记白名单（同 I2）。未选“留在流程代码里”。                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-23 |
 | I14  | 语音素材按文件名约定自动收集（与仓库里头像、徽章的现有做法一致），去掉客户端手写的登记表；加一条检查，角色文件声明的每个播报都必须能找到文件。播出的声音不变。未选“保留手写登记表”。助手未验证的一点：灯影预言家、酒鬼预言家现在共用预言家的语音文件，改为在角色文件里声明“使用预言家的播报”，可行性未试。                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 2026-11-23 |
+| I15  | 合并 main 后确认：状态栏只有一行状态文字，引导句各部分合成一段显示（情况在前、操作说明在中、规则提示在后）；狼人投票状态句与共享句式对齐。详见设计文档 D38、停点 1 的 A21。因此步骤声明里把提示分成“情况提示”和“规则提示”两种，界面数据里的引导句是一段文字而不是多行。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 2026-11-23 |
 
 ## 1. 位置和依赖方向
 
@@ -80,7 +81,7 @@ export interface PickSeatsAction<TContext, TFacts, TResult> extends ActionBase<T
   readonly seats: (context: TContext) => readonly SeatOption[];
   /** “动作 + 对象”那句话，弹窗标题和复盘共用。省略时用默认的“{name}{seats}”。 */
   readonly phrase?: (seats: readonly number[]) => string;
-  /** 引导句第一行。省略时按人数从 name 生成。 */
+  /** 引导句里的操作说明。省略时按人数从 name 生成。 */
   readonly prompt?: string;
   /** 弹窗正文：只写额外后果，没有就返回 null。 */
   readonly consequence?: (context: TContext, seats: readonly number[]) => string | null;
@@ -133,7 +134,7 @@ export interface Resolution<TFacts, TResult> {
 要点：
 
 - `seats`、`availability`、`cards` 既用来生成界面，也用来校验提交（§6）。没有单独的校验函数，也没有单独的拒绝文案。
-- “不用技能”不由角色声明。步骤声明 `skippable`，平台自动加这张手牌和引导句第二行。
+- “不用技能”不由角色声明。步骤声明 `skippable`，平台自动加这张手牌，并在操作说明后接上“如不使用请点击「不用技能」”。
 - 查看信息的“取消／查看”先问弹窗只在客户端，不提交、不登记；点“知道了”才是一次提交。这与既有规则“取消不亮内容、不登记”一致。
 
 出处：D14、D15、D17、D18、D19、D20、D32，停点 1 的 A11、A12。
@@ -158,8 +159,10 @@ export interface StepDefinition<TStepId extends string, TContext, TFacts, TResul
   readonly skippable: (context: TContext) => boolean;
   /** 步骤被锁住的原因（被恐惧、当夜无法袭击）。非 null 时除 staysWhenLocked 的动作外都不可用，并强制提供“不用技能”。 */
   readonly lock?: (context: TContext) => string | null;
-  /** 规则或情况提示，各占一行，排在生成的引导句之后。 */
-  readonly hints?: (context: TContext) => readonly string[];
+  /** 情况提示（谁被袭击、平安夜）：排在生成的操作说明之前。 */
+  readonly situationHints?: (context: TContext) => readonly string[];
+  /** 规则提示（榜样的后果、可以选择自己）：排在操作说明之后。 */
+  readonly ruleHints?: (context: TContext) => readonly string[];
   /** 私密结果的显示（查验结果等）。 */
   readonly renderResult?: (
     context: TContext,
@@ -338,8 +341,8 @@ export interface StepPresentation {
   readonly stepId: string;
   readonly serial: number;
   readonly title: string;
-  /** 引导句：生成的第一行、可跳过时的第二行、角色的提示行。非行动者为空。 */
-  readonly lines: readonly string[];
+  /** 引导句，一段文字：情况提示、生成的操作说明（可跳过时接上“如不使用…”）、规则提示。非行动者为 null。 */
+  readonly message: string | null;
   readonly actions: readonly PresentedAction[];
   /** 提交后自动出现、需要点“知道了”的私密结果。 */
   readonly pendingResult: { readonly title: string; readonly text: string } | null;
@@ -420,7 +423,7 @@ export const witch = defineRole({
       audio: () => ({ begin: 'witch', end: 'witch' }),
       actors: (context) => seatsOfRole(context, 'witch'),
       skippable: () => true,
-      hints: (context) =>
+      situationHints: (context) =>
         context.facts.wolfKillTarget === null
           ? [COPY.peacefulNight]
           : context.facts.wolfKillTarget === context.seat
@@ -472,7 +475,7 @@ export interface UseStepInteractionInput {
 }
 
 export interface StepInteraction {
-  /** 交给现有手牌模型：引导句、进度、手牌。 */
+  /** 交给现有手牌模型：引导句、进度、手牌。引导句显示在合并后的 `RoomCompactStatus` 那一行状态文字里；步骤标题进现有的夜间进度标签。 */
   readonly message: string | null;
   readonly progress: NightStepProgress | null;
   readonly actions: readonly RoomPlayerAction[];
