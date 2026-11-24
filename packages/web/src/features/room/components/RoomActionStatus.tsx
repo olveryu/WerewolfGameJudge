@@ -12,7 +12,7 @@ import {
 } from '@/features/room/model/RoomPlayerActions';
 import { TESTIDS } from '@/testids';
 
-export type RoomSummaryPresentation = 'status' | 'after-message' | 'replaces-message';
+import { RoomCompactStatus } from './RoomCompactStatus';
 
 /** Progress of the active step sequence: "第n步 / 共m步", an optional label, and a bar. */
 function RoomProgressIndicator({ progress }: { readonly progress: NightStepProgress }) {
@@ -68,7 +68,8 @@ export function RoomActionStatus({
     readonly phaseLabel: string | null;
     readonly title: string | null;
     readonly detail: string | null;
-    readonly summaryPresentation?: RoomSummaryPresentation;
+    readonly compactContent?: ReactNode;
+    readonly compactIcon?: ReactNode;
   };
 }) {
   const taskBody =
@@ -78,55 +79,39 @@ export function RoomActionStatus({
   const message = resolveStatusMessage(model, isAudioPlaying, selectionMode, taskBody ?? null);
   const hasSummary = summary !== null && summary !== undefined && summary !== false;
   const title =
-    isAudioPlaying || selectionMode !== undefined
-      ? message
-      : boardStatus?.summaryPresentation === 'replaces-message' && hasSummary
-        ? boardStatus.title
-        : (boardStatus?.title ?? message);
+    isAudioPlaying || selectionMode !== undefined ? message : (boardStatus?.title ?? message);
   if (boardStatus !== undefined) {
     if (
-      boardStatus.summaryPresentation === 'status' &&
-      hasSummary &&
+      boardStatus.compactContent !== null &&
+      boardStatus.compactContent !== undefined &&
       !isAudioPlaying &&
       selectionMode === undefined
     ) {
       return (
         <>
-          {summary}
+          {boardStatus.compactContent}
           {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
         </>
       );
     }
+    // The compact status is the board's only status surface (every seats-content game).
+    const hasStatus =
+      boardStatus.phaseLabel !== null ||
+      (title !== null && title.length > 0) ||
+      boardStatus.detail !== null;
     return (
       <>
-        {(boardStatus.phaseLabel !== null ||
-          (title !== null && title.length > 0) ||
-          (!isAudioPlaying && selectionMode === undefined && boardStatus.detail !== null) ||
-          hasSummary) && (
-          <div className="room-board-status-card">
-            {boardStatus.phaseLabel !== null && (
-              <p className="room-board-phase">{boardStatus.phaseLabel}</p>
-            )}
-            {hasSummary && boardStatus.summaryPresentation !== 'after-message' && (
-              <div className="room-board-status-summary">{summary}</div>
-            )}
-            {title !== null && title.length > 0 && (
-              <h2
-                className={hasSummary ? 'room-board-status-detail' : 'room-board-status-title'}
-                aria-live="polite"
-                data-testid={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
-              >
-                {title}
-              </h2>
-            )}
-            {!isAudioPlaying && selectionMode === undefined && boardStatus.detail !== null && (
-              <p className="room-board-status-detail">{boardStatus.detail}</p>
-            )}
-            {hasSummary && boardStatus.summaryPresentation === 'after-message' && (
-              <div className="room-board-status-summary">{summary}</div>
-            )}
-          </div>
+        {hasStatus && (
+          <RoomCompactStatus
+            context={boardStatus.phaseLabel}
+            message={title}
+            progress={!isAudioPlaying && selectionMode === undefined ? boardStatus.detail : null}
+            icon={boardStatus.compactIcon}
+            inline={boardStatus.title !== null && !isAudioPlaying && selectionMode === undefined}
+            statusTestId={isAudioPlaying ? TESTIDS.audioWaitingMessage : TESTIDS.actionMessage}
+          />
         )}
+        {hasSummary && <div className="room-board-status-summary">{summary}</div>}
         {model.progress !== null && <RoomProgressIndicator progress={model.progress} />}
       </>
     );

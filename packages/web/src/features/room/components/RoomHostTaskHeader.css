@@ -53,6 +53,12 @@
   font-weight: var(--weight-bold);
 }
 
+@media (hover: hover) {
+  .host-task-step:not(:disabled):hover {
+    text-decoration: underline;
+  }
+}
+
 .host-task-note {
   margin: 0;
   padding: 0 var(--space-small);

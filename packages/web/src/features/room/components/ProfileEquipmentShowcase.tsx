@@ -23,7 +23,6 @@ import {
   SEAT_ANIMATION_NAMES,
 } from '@/features/product/model/cosmeticNames';
 import { TESTIDS } from '@/testids';
-import { withAlpha } from '@/theme/colorUtils';
 
 const SLOT_PREVIEW_SIZE = 28;
 
@@ -101,11 +100,7 @@ function EquipmentSlot({ slot }: { readonly slot: EquipmentSlotInfo }) {
     <li
       className="profile-equip-slot"
       data-rarity={slot.rarity ?? undefined}
-      style={
-        visual === null
-          ? undefined
-          : { '--rarity-color': visual.color, '--rarity-glow': withAlpha(visual.color, 0.2) }
-      }
+      style={visual === null ? undefined : { '--rarity-color': visual.color }}
     >
       <span className="profile-equip-preview" data-empty={slot.name === null} aria-hidden>
         {slot.preview}

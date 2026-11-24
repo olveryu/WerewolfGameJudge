@@ -17,6 +17,7 @@ import { RevealRoleCardModal } from '@/features/room/components/RevealRoleCardMo
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
+import { RoomCompactStatus } from '@/features/room/components/RoomCompactStatus';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomGameSettings, RoomGameSummary } from '@/features/room/components/RoomGameSummary';
@@ -29,19 +30,22 @@ import { RoomStatusSummary } from '@/features/room/components/RoomStatusSummary'
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
 import type { SecrethitlerAudioRuntime } from '@/games/secrethitler/audio/secrethitlerAudioRuntime';
 import type { SecrethitlerRoomSession } from '@/games/secrethitler/model/SecrethitlerRoomSession';
 import { TESTIDS } from '@/testids';
+import IconCheckboxOutline from '~icons/ion/checkbox-outline';
+import IconMoonOutline from '~icons/ion/moon-outline';
+import IconTimeOutline from '~icons/ion/time-outline';
 
 import {
   secrethitlerVoteFailImage,
   secrethitlerVotePassImage,
 } from '../assets/secrethitlerVoteImages';
 import { toRevealRoleData } from '../components/SecrethitlerRoleCardAdapter';
-import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import { SecrethitlerStatsPanel } from '../components/SecrethitlerStatsPanel';
 import { SecrethitlerRules } from '../screens/SecrethitlerRulesScreen';
 import {
@@ -49,11 +53,10 @@ import {
   useSecrethitlerRoomState,
 } from './hooks/useSecrethitlerRoomState';
 import { SecrethitlerActionSheet } from './SecrethitlerActionSheet';
+import { SecrethitlerMatchDetails } from './SecrethitlerHistory';
 import {
   formatSecrethitlerVoteMode,
-  SECRETHITLER_END_COPY,
   SECRETHITLER_PHASE_LABELS,
-  SECRETHITLER_POWER_COPY,
   secrethitlerSeatLabel,
 } from './secrethitlerPresentation';
 import { SECRETHITLER_GAME_ACTION_KEY } from './secrethitlerRoomAdapter';
@@ -100,6 +103,18 @@ function SecrethitlerRoomContent(
   const isLobby = screen.state.phase.kind === 'lobby';
   const isPreGame = isLobby || screen.state.phase.kind === 'viewing';
   const showHistory = screen.viewModel !== null && shouldShowMatchSummary(screen.state);
+  const { remainingSeconds: voteRemainingSeconds } = useStageDeadline({
+    deadlineAt: screen.state.phase.kind === 'voting' ? screen.state.phase.deadlineAt : null,
+  });
+  const compactHistory =
+    showHistory && screen.viewModel !== null ? (
+      <SecrethitlerCompactBoardHeader
+        state={screen.state}
+        view={screen.viewModel}
+        actionMessage={screen.shellModel.playerActions.message}
+        remainingSeconds={voteRemainingSeconds}
+      />
+    ) : null;
   if (historyVisible && !showHistory) setHistoryVisible(false);
   return (
     <RoomShell
@@ -153,9 +168,15 @@ function SecrethitlerRoomContent(
       }}
       content={{
         kind: 'seats',
+        compactStatusContent: compactHistory,
+        compactStatusIcon:
+          screen.state.phase.kind === 'night' ? (
+            <IconMoonOutline aria-hidden />
+          ) : (
+            <IconTimeOutline aria-hidden />
+          ),
         contextHeader: null,
         informationLayout: showHistory ? 'scroll-with-seats' : 'fixed',
-        summaryPresentation: 'after-message',
         bottomSummary: showHistory ? <SecrethitlerBoardHeader screen={screen} /> : null,
         beforeSeatBoard: <>{isPreGame && <SecrethitlerBoardInfo state={screen.state} />}</>,
         afterSeatBoard: null,
@@ -243,6 +264,13 @@ export function SecrethitlerPublicResult({
     <CenterDialog open title="公共结果" requireConfirmation onClose={() => undefined}>
       {previous.kind === 'voting' && voteResult !== null && (
         <>
+          <img
+            src={voteResult.passed ? secrethitlerVotePassImage : secrethitlerVoteFailImage}
+            alt=""
+            decoding="async"
+            className="secrethitler-result-banner-image"
+            data-testid={TESTIDS.secrethitlerSettledVoteBanner}
+          />
           <p>
             政府{voteResult.passed ? '通过' : '未通过'}：赞成 {voteResult.yesCount}，反对{' '}
             {voteResult.noCount}
@@ -370,6 +398,52 @@ export function SecrethitlerBoardInfo({
   );
 }
 
+/** Public submission status and interactive policy tracks. */
+export function SecrethitlerCompactBoardHeader({
+  state,
+  view,
+  actionMessage,
+  remainingSeconds,
+}: {
+  readonly state: SecrethitlerState;
+  readonly view: SecrethitlerViewModel;
+  readonly actionMessage: string | null;
+  readonly remainingSeconds: number | null;
+}) {
+  const phase = state.phase;
+  const pending = view.pendingVoteSeats;
+  if (phase.kind === 'voting' && pending === null)
+    throw new Error('Secret Hitler voting view is missing submission progress');
+  const isVoting = phase.kind === 'voting' && pending !== null && pending.length > 0;
+  const context =
+    phase.kind === 'voting' ? (isVoting ? '政府投票中' : '政府投票') : getMatchSummary(state);
+  const message =
+    phase.kind === 'voting'
+      ? isVoting
+        ? null
+        : formatSettleCountdown(remainingSeconds, '投票')
+      : actionMessage;
+  return (
+    <>
+      <RoomCompactStatus
+        context={context}
+        message={message}
+        progress={
+          isVoting && pending !== null
+            ? `已投 ${view.livingSeats.length - pending.length}/${view.livingSeats.length}`
+            : null
+        }
+        pendingSeats={isVoting ? pending : null}
+        icon={isVoting ? <IconCheckboxOutline aria-hidden /> : <IconTimeOutline aria-hidden />}
+        statusTestId={TESTIDS.actionMessage}
+      />
+      <div className="room-compact-status-tracks">
+        <SecrethitlerRoomTracks state={state} view={view} />
+      </div>
+    </>
+  );
+}
+
 /** Compact public status; match details are opened from the room hand. */
 export function SecrethitlerBoardHeader({
   screen,
@@ -419,162 +493,5 @@ export function SecrethitlerHistoryDialog({
     >
       <SecrethitlerMatchDetails state={state} view={view} mySeat={mySeat} />
     </RoomDialog>
-  );
-}
-
-export function SecrethitlerMatchDetails({
-  state,
-  view,
-  mySeat,
-}: {
-  readonly state: SecrethitlerState;
-  readonly view: SecrethitlerViewModel;
-  readonly mySeat: number | null;
-}) {
-  const phase = state.phase;
-  const lastGovernment = view.history.governments
-    .filter((record) => record.outcome !== 'pending')
-    .at(-1);
-  const lastGovernmentVoteCounts = lastGovernment?.voteCounts;
-  if (lastGovernment !== undefined && lastGovernmentVoteCounts === null) {
-    throw new Error('[FAIL-FAST] Settled Secret Hitler government has no vote counts');
-  }
-  return (
-    <div className="secrethitler-match-details">
-      {phase.kind === 'ended' && (
-        <>
-          <p>{SECRETHITLER_END_COPY[phase.reason]}</p>
-          <p>
-            {' '}
-            至少 5 名真人开局并正常结束时，注册玩家获得 33 经验和 3 次普通抽奖；游客和机器人不领取。
-          </p>
-          <ul className="secrethitler-result-list">
-            {view.seats.map((player) => {
-              if (player.identity === null)
-                throw new Error('Ended Secret Hitler seat has no identity');
-              const won = (player.identity === 'liberal' ? 'liberal' : 'fascist') === phase.winner;
-              return (
-                <li key={player.seat}>
-                  <span>
-                    {secrethitlerSeatLabel(view, player.seat)}
-                    {player.seat === mySeat ? '（你）' : ''}
-                    {player.isBot ? '（机器人）' : ''}
-                  </span>
-                  <strong>
-                    {getSecrethitlerIdentityName(player.identity)} · {won ? '获胜' : '落败'}
-                  </strong>
-                </li>
-              );
-            })}
-          </ul>
-        </>
-      )}
-      <div className="secrethitler-tracks">
-        <div>
-          <span>自由派政策</span>
-          <strong>{view.liberalPolicies} / 5</strong>
-          <progress aria-label="自由派政策" max={5} value={view.liberalPolicies} />
-        </div>
-        <div>
-          <span>法西斯政策</span>
-          <strong>{view.fascistPolicies} / 6</strong>
-          <progress aria-label="法西斯政策" max={6} value={view.fascistPolicies} />
-        </div>
-      </div>
-      <p>
-        选举失败 {view.electionTracker} / 3 · 存活 {view.livingSeats.length} 人
-        {view.vetoUnlocked ? ' · 否决权已解锁' : ''}
-      </p>
-      {view.presidentSeat !== null && (
-        <p>
-          总统：{secrethitlerSeatLabel(view, view.presidentSeat)}
-          {view.chancellorSeat === null
-            ? ''
-            : ` · 总理：${secrethitlerSeatLabel(view, view.chancellorSeat)}`}
-        </p>
-      )}
-      {phase.kind === 'executive' && <p>本次权力：{SECRETHITLER_POWER_COPY[phase.power]}</p>}
-      {lastGovernment !== undefined &&
-        lastGovernmentVoteCounts !== null &&
-        lastGovernmentVoteCounts !== undefined && (
-          <>
-            <img
-              src={
-                lastGovernment.outcome === 'passed'
-                  ? secrethitlerVotePassImage
-                  : secrethitlerVoteFailImage
-              }
-              alt=""
-              decoding="async"
-              className="secrethitler-settled-vote-banner"
-              data-testid={TESTIDS.secrethitlerSettledVoteBanner}
-            />
-            <p role="status">
-              上次政府{lastGovernment.outcome === 'passed' ? '通过' : '未通过'} · 赞成{' '}
-              {lastGovernmentVoteCounts.ja} 票
-            </p>
-          </>
-        )}
-      <SecrethitlerPublicHistory view={view} />
-    </div>
-  );
-}
-
-function SecrethitlerPublicHistory({ view }: { readonly view: SecrethitlerViewModel }) {
-  return (
-    <section className="secrethitler-history">
-      <h2>公开对局记录</h2>
-      {view.history.governments.length === 0 ? (
-        <p>暂无已记录的政府投票</p>
-      ) : (
-        <>
-          <h3>政府投票</h3>
-          <ol>
-            {view.history.governments.map((record, index) => (
-              <li key={index}>
-                <p>
-                  总统 {record.presidentSeat + 1} 号 / 总理 {record.chancellorSeat + 1} 号 ·{' '}
-                  {record.outcome === 'pending'
-                    ? '投票中'
-                    : record.outcome === 'passed'
-                      ? '通过'
-                      : '未通过'}
-                </p>
-                {record.votes !== null && (
-                  <p>
-                    {record.votes
-                      .map(({ seat, vote }) => `${seat + 1}号${vote === 'ja' ? '赞成' : '反对'}`)
-                      .join('、')}
-                  </p>
-                )}
-                {record.votes === null && record.voteCounts !== null && (
-                  <p>
-                    暗投：赞成 {record.voteCounts.ja} 票，反对 {record.voteCounts.nein} 票
-                  </p>
-                )}
-              </li>
-            ))}
-          </ol>
-          <h3>政策记录</h3>
-          <ol>
-            {view.history.policies.map((record, index) => (
-              <li key={index}>
-                {record.policy === 'liberal' ? '自由派' : '法西斯'}政策 ·{' '}
-                {record.source === 'chaos' ? '三次失败自动施行' : '政府施行'}
-              </li>
-            ))}
-          </ol>
-          <h3>总统行动</h3>
-          <ol>
-            {view.history.actions.map((record, index) => (
-              <li key={index}>
-                {record.presidentSeat + 1} 号{SECRETHITLER_POWER_COPY[record.action]}
-                {record.targetSeat === null ? '' : `：${record.targetSeat + 1} 号`}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-    </section>
   );
 }

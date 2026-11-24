@@ -1,4 +1,5 @@
 import './RoomStagePanel.css';
+import '@/components/PaperboardPanel.css';
 
 import type { ComponentProps } from 'react';
 
@@ -11,5 +12,7 @@ export function RoomStagePanel({
   tone = 'neutral',
   ...props
 }: ComponentProps<'div'> & { readonly tone?: RoomStagePanelTone }) {
-  return <div {...props} className={`room-stage-panel ${className}`} data-tone={tone} />;
+  return (
+    <div {...props} className={`room-stage-panel paperboard-panel ${className}`} data-tone={tone} />
+  );
 }

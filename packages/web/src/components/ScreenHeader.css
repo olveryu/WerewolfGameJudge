@@ -9,21 +9,10 @@
   align-items: center;
   min-height: var(--size-header);
   padding: env(safe-area-inset-top) var(--space-small) 0;
-  border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-surface);
 }
 
 .screen-header-back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-min-touch-target);
-  height: var(--size-min-touch-target);
-  border: none;
-  background: none;
-  color: var(--color-text);
   font-size: var(--size-icon-lg);
-  cursor: pointer;
 }
 
 .screen-header-title {
@@ -36,5 +25,7 @@
 
 .screen-header-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-small);
 }

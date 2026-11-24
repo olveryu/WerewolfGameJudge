@@ -9,7 +9,7 @@
   padding: var(--space-xlarge) var(--space-medium) var(--space-large);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
 .ten-result-close {
@@ -95,6 +95,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
   text-align: center;
   --cell-from: 0.7;
   --cell-peak: 1;

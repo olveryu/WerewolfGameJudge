@@ -20,12 +20,28 @@
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-medium);
   background: var(--color-primary-a8);
+  background-image: var(--surface-button-texture);
   color: var(--color-primary);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
   white-space: nowrap;
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
+  transition:
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.notepad-ai-button:active {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .notepad-ai-button:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }
 
 .notepad-public {

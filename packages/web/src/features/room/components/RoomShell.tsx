@@ -1,5 +1,6 @@
 /** Shared visual frame for every game room. Game adapters provide models and explicit slots. */
 import './RoomShell.css';
+import '@/components/HeaderSurface.css';
 
 import { type ReactElement, type ReactNode, useEffect, useRef } from 'react';
 
@@ -25,7 +26,7 @@ import IconPersonCircleOutline from '~icons/ion/person-circle-outline';
 import type { RoomSelectionMode } from '../model/RoomHand';
 import { PlayerProfileCard } from './PlayerProfileCard';
 import { RoomActionHand } from './RoomActionHand';
-import { RoomActionStatus, type RoomSummaryPresentation } from './RoomActionStatus';
+import { RoomActionStatus } from './RoomActionStatus';
 import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHostTaskHeader } from './RoomHostTaskHeader';
 import { RoomSeatBoard } from './RoomSeatBoard';
@@ -41,7 +42,8 @@ type RoomShellContent =
       readonly kind: 'seats';
       readonly contextHeader: ReactElement | null;
       readonly bottomSummary: ReactElement | null;
-      readonly summaryPresentation?: RoomSummaryPresentation;
+      readonly compactStatusContent?: ReactElement | null;
+      readonly compactStatusIcon?: ReactElement;
       readonly informationLayout?: 'fixed' | 'scroll-with-seats';
       readonly beforeSeatBoard: ReactElement;
       readonly afterSeatBoard: ReactElement | null;
@@ -259,7 +261,7 @@ export function RoomShell({
   return (
     <div className="room-shell" data-testid={TESTIDS.roomScreenRoot}>
       <header
-        className="room-header"
+        className="room-header page-header-surface"
         data-testid={TESTIDS.roomHeader}
         data-phase={model.phase}
         {...(model.step === null ? {} : { 'data-step': model.step })}
@@ -324,7 +326,8 @@ export function RoomShell({
                     selectionMode={selectionMode}
                     boardStatus={{
                       phaseLabel,
-                      summaryPresentation: content.summaryPresentation,
+                      compactContent: content.compactStatusContent,
+                      compactIcon: content.compactStatusIcon,
                       title: lobbyTitle,
                       detail:
                         lobbyAction !== null && seatsMissing > 0 ? `还差 ${seatsMissing} 人` : null,

@@ -9,6 +9,7 @@ import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { RoomPlayerPickModal } from '@/features/room/components/RoomPlayerPickModal';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
@@ -141,9 +142,7 @@ export function SecrethitlerActionSheet({
             当前选择：{view.myVote === null ? '尚未投票' : view.myVote === 'ja' ? '赞成' : '反对'}
             。揭晓前可修改。
           </p>
-          {remainingSeconds !== null && (
-            <p>{remainingSeconds > 0 ? `已全部投票，${remainingSeconds} 秒后揭晓` : '等待揭晓…'}</p>
-          )}
+          {remainingSeconds !== null && <p>{formatSettleCountdown(remainingSeconds, '投票')}</p>}
           <div className="choice-row">
             <ChoiceCard
               label="赞成"

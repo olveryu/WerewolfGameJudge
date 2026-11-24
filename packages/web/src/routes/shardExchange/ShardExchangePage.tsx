@@ -1,6 +1,6 @@
 /**
  * Shard exchange: browse every exchangeable item by category and rarity, and trade shards for a
- * specific item. Owned items are dimmed with 已拥有; an unaffordable item shows the shortfall.
+ * specific item. Owned items are marked 已拥有; an unaffordable item shows the shortfall.
  */
 import './ShardExchangePage.css';
 
@@ -34,8 +34,6 @@ import {
 import { ResidentSceneLayer } from '@/features/product/components/ResidentPreview';
 import { loadClientProductUi } from '@/features/product/loadClientProductUi';
 import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
-import { colors } from '@/theme/colors';
-import { withAlpha } from '@/theme/colorUtils';
 import { showAlert } from '@/utils/alert';
 import { getUserFacingMessage, isExpectedError } from '@/utils/errorUtils';
 import { gachaLog } from '@/utils/logger';
@@ -47,9 +45,6 @@ import { getRewardDisplayName, RewardPreview } from '../gacha/components/RewardP
 const TAB_ID_PREFIX = 'shard-exchange';
 const PANEL_ID = 'shard-exchange-panel';
 const PREVIEW_SIZE = 56;
-/** The previous client dimmed an owned cell to 0.5 and its preview to 0.4 within it. */
-const OWNED_PREVIEW_OPACITY = 0.2;
-
 const REWARD_TYPE_OF_TAB: Readonly<Record<CosmeticTab, RewardType>> = {
   avatar: 'avatar',
   frame: 'frame',
@@ -118,11 +113,7 @@ function ExchangeCell({
   const displayName = getRewardDisplayName(productUi, item.type, item.id);
   const canAfford = shards >= item.cost;
   return (
-    <li
-      className="shard-cell"
-      data-owned={item.isOwned}
-      style={{ borderColor: item.isOwned ? colors.border : withAlpha(visual.color, 0.4) }}
-    >
+    <li className="shard-cell" data-owned={item.isOwned}>
       <span
         className="shard-cell-dot"
         style={{ backgroundColor: visual.color }}
@@ -136,7 +127,7 @@ function ExchangeCell({
         productUi={productUi}
         sceneHostRef={sceneHostRef}
         scrollRootRef={scrollRootRef}
-        opacity={item.isOwned ? OWNED_PREVIEW_OPACITY : 1}
+        opacity={1}
       />
       <span className="shard-cell-name">{displayName}</span>
       {item.isOwned ? (
@@ -145,15 +136,19 @@ function ExchangeCell({
           已拥有
         </span>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="secondary"
           className="shard-cell-exchange"
           aria-label={`用 ${item.cost} 碎片兑换「${displayName}」`}
           disabled={!canAfford || isExchanging}
           onClick={() => onExchange(item, displayName)}
         >
-          ✦ {item.cost}
-        </button>
+          <span className="shard-cell-exchange-icon" aria-hidden>
+            ✦
+          </span>{' '}
+          {item.cost}
+        </Button>
       )}
       {!item.isOwned && !canAfford && (
         <span className="shard-cell-deficit">差 {item.cost - shards}</span>

@@ -1,3 +1,5 @@
+import './RouteErrorPage.css';
+
 import { captureException } from '@sentry/react';
 import { useEffect } from 'react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';

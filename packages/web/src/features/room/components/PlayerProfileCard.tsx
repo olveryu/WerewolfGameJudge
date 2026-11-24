@@ -50,7 +50,7 @@ function SeatActions({ model }: { readonly model: RoomProfileCardModel }) {
     <>
       {model.isSelf && model.onLeaveSeat !== null && (
         <Button
-          variant="secondary"
+          variant="soft"
           onClick={model.onLeaveSeat}
           data-testid={TESTIDS.playerProfileLeaveSeatButton}
         >

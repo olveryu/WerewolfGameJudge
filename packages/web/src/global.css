@@ -65,6 +65,7 @@ button {
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .text-input:focus {

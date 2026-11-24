@@ -160,17 +160,8 @@
   font-family: inherit;
   font-size: var(--font-caption);
   line-height: var(--line-caption);
+  font-weight: var(--weight-medium);
   cursor: pointer;
-}
-
-.room-stage-roster-chip:hover {
-  color: var(--color-primary-dark);
-}
-
-.room-stage-roster-chip:focus-visible {
-  outline: var(--border-width-thick) solid var(--color-primary);
-  outline-offset: var(--space-tight);
-  border-radius: var(--radius-small);
 }
 
 .room-stage-roster-chip svg {
@@ -221,6 +212,19 @@
   font: inherit;
   font-weight: var(--weight-bold);
   cursor: pointer;
+}
+
+@media (hover: hover) {
+  .room-stage-roster-chip:hover:not([data-urgent]),
+  .room-stage-controlled-release:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+  }
+
+  .room-stage-roster-chip[data-urgent]:hover {
+    color: var(--color-error);
+    text-decoration: underline;
+  }
 }
 
 .room-stage-timer-bar {

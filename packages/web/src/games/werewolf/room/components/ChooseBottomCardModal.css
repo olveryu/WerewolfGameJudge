@@ -19,13 +19,29 @@
   border-radius: var(--radius-medium);
   background: var(--color-card);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-card);
   text-align: left;
   cursor: pointer;
+  transition:
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .choose-card-option:disabled {
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  box-shadow: none;
   cursor: not-allowed;
+}
+
+.choose-card-option:active:not(:disabled) {
+  box-shadow: var(--shadow-tabletop-panel);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .choose-card-option:hover:not(:disabled) {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }
 
 .choose-card-badge {

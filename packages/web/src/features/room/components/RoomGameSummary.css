@@ -1,9 +1,6 @@
 .room-game-summary {
   margin-bottom: var(--space-medium);
   padding: var(--space-medium);
-  border: var(--border-width) solid var(--color-border-light);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
 }
 
 .room-game-summary-row {
@@ -34,6 +31,14 @@
   text-align: start;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.room-game-summary-toggle:active {
+  background: var(--color-surface-hover);
+  transform: translateY(var(--space-micro));
 }
 
 .room-game-summary-actions {
@@ -52,10 +57,15 @@
 }
 
 .room-game-summary-actions > button:active {
-  opacity: var(--opacity-pressed);
+  background: var(--color-surface-hover);
+  transform: translateY(var(--space-micro));
 }
 
 @media (hover: hover) {
+  .room-game-summary-toggle:hover {
+    background: var(--color-surface-hover);
+  }
+
   .room-game-summary-actions > button:hover {
     color: var(--color-text);
   }

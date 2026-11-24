@@ -352,7 +352,7 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     expectCell('nominate', s.state);
   });
 
-  it('vote: everyone sees the public cast count and pending seats', () => {
+  it('vote: voters get no sentence while voting, outsiders are told why they cannot vote', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -364,12 +364,13 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     }
     proposeTeam(s, team);
     expectCell('vote', s.state);
-    // Post-ballot the seated cell keeps the public sentence with the new count.
+    // The cast count lives in the summary bar's progress; the sentence is per viewer.
     s.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(2));
-    expect(bottomMessage(s.state, 'seated')).toContain('已投 1/5');
+    expect(bottomMessage(s.state, 'seated')).toBeNull();
+    expect(bottomMessage(s.state, 'spectator')).toBe('你不在座位上，无法投票。');
   });
 
-  it('quest: everyone sees the public played count and pending seats', () => {
+  it('quest: members get no sentence while playing, non-members wait for the team', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -377,8 +378,9 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     proposeTeam(s, [0, 2]);
     approveTeam(s);
     expectCell('quest', s.state);
-    // A non-member seated viewer sees the same public sentence.
-    expect(bottomMessage(s.state, 'seated', 3)).toContain('已出牌 0/2');
+    // The played count lives in the summary bar's progress; non-members are told to wait.
+    expect(bottomMessage(s.state, 'seated')).toBeNull();
+    expect(bottomMessage(s.state, 'seated', 3)).toBe('等待队员出牌…');
   });
 
   it('lady: holder, target and bystanders all read the public progress', () => {

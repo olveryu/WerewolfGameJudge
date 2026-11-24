@@ -760,6 +760,53 @@ describe('Secret Hitler elections, privacy, legislation, and chaos', () => {
     expect(current.session.state.history.governments.at(-1)?.outcome).toBe('rejected');
   });
 
+  it.each(['public', 'secret'] as const)(
+    'exposes submission progress without exposing ballots in %s voting',
+    (voteMode) => {
+      const current = game(5, 5, `submission-progress-${voteMode}`, true, voteMode);
+      enterElection(current);
+      const election = current.session.state.phase;
+      if (election.kind !== 'election') throw new Error('Expected election');
+      const chancellorSeat = eligibleChancellors(current.session.state, election.presidentSeat)[0];
+      if (chancellorSeat === undefined) throw new Error('No candidate');
+      const president = current.actorForSeat(election.presidentSeat);
+      current.send(
+        { type: 'secrethitler.government.preselect', chancellorSeatId: chancellorSeat },
+        president.userId,
+        president.controlledSeat,
+      );
+      current.send(
+        { type: 'secrethitler.government.nominate', chancellorSeatId: chancellorSeat },
+        president.userId,
+        president.controlledSeat,
+      );
+      const voter = current.actorForSeat(0);
+      current.send(
+        { type: 'secrethitler.government.castVote', vote: 'nein' },
+        voter.userId,
+        voter.controlledSeat,
+      );
+      for (const viewer of [0, 1, null]) {
+        const view = getSecrethitlerViewModel(current.session.state, viewer);
+        expect(view.pendingVoteSeats).toEqual([1, 2, 3, 4]);
+        expect(view.myVote).toBe(viewer === 0 ? 'nein' : null);
+        expect(view.publicVoteResult).toBeNull();
+        expect(view.history.governments.at(-1)?.votes).toBeNull();
+      }
+      for (const seat of [1, 2, 3, 4]) {
+        const actor = current.actorForSeat(seat);
+        current.send(
+          { type: 'secrethitler.government.castVote', vote: 'ja' },
+          actor.userId,
+          actor.controlledSeat,
+        );
+      }
+      expect(getSecrethitlerViewModel(current.session.state, null).pendingVoteSeats).toEqual([]);
+      settleVoting(current);
+      expect(getSecrethitlerViewModel(current.session.state, null).pendingVoteSeats).toBeNull();
+    },
+  );
+
   it('keeps votes private until everyone votes and reveals the completed public ballot', () => {
     const current = game(5);
     enterElection(current);

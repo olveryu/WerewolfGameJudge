@@ -30,7 +30,9 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
@@ -38,7 +40,9 @@
 }
 
 .role-variant-pill[aria-pressed='true'] {
-  border: var(--border-width-thick) solid var(--faction-color);
+  border-color: var(--faction-color);
   color: var(--faction-color);
-  font-weight: var(--weight-semibold);
+  box-shadow:
+    0 0 0 var(--border-width) var(--faction-color),
+    var(--shadow-tabletop-key-light);
 }

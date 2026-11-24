@@ -106,7 +106,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await hostElection.expectVoteProgress('2/2 已提交');
     await hostElection.expectPendingSeatsHidden();
     // HUD 倒计时：全员投完武装 5 秒，秒数递减，匹配范围不断言固定值。
-    await hostElection.expectSettleCountdown(/2\/2 人已投票，[1-5]秒后自动公布结果/);
+    await hostElection.expectSettleCountdown(/已全部投票，[1-5] 秒后揭晓/);
     await hostElection.expectOpenBallotsHidden();
 
     // The result has a separate server-driven display window.
@@ -141,7 +141,7 @@ test('first-day sheriff election resolves a tie with public authoritative histor
     await fifthElection.voteFor(0);
     await hostElection.expectVoteProgress('3/3 已提交');
     await hostElection.expectPendingSeatsHidden();
-    await hostElection.expectSettleCountdown(/3\/3 人已投票，[1-5]秒后自动公布结果/);
+    await hostElection.expectSettleCountdown(/已全部投票，[1-5] 秒后揭晓/);
 
     await Promise.all(elections.map((election) => election.expectAutomaticResult('runoff')));
     await Promise.all(elections.map((election) => election.waitForPhase('竞选结束')));

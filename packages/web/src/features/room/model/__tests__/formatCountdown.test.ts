@@ -1,4 +1,4 @@
-import { formatCountdownSeconds } from '../formatCountdown';
+import { formatCountdownSeconds, formatSettleCountdown } from '../formatCountdown';
 
 describe('formatCountdownSeconds', () => {
   it('formats seconds under a minute', () => {
@@ -18,5 +18,17 @@ describe('formatCountdownSeconds', () => {
 
   it('formats zero', () => {
     expect(formatCountdownSeconds(0)).toBe('0:00');
+  });
+});
+
+describe('formatSettleCountdown', () => {
+  it('shows the remaining seconds while the settle countdown runs', () => {
+    expect(formatSettleCountdown(5, '投票')).toBe('已全部投票，5 秒后揭晓');
+    expect(formatSettleCountdown(1, '出牌')).toBe('已全部出牌，1 秒后揭晓');
+  });
+
+  it('waits for the reveal when no countdown is left', () => {
+    expect(formatSettleCountdown(0, '投票')).toBe('已全部投票，等待揭晓');
+    expect(formatSettleCountdown(null, '出牌')).toBe('已全部出牌，等待揭晓');
   });
 });

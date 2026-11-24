@@ -115,10 +115,11 @@ describe('HomePage', () => {
       expect(screen.getByText('狼人面杀电子裁判助手')).toBeInTheDocument();
     });
 
-    it('renders the settings entry in the top bar', async () => {
+    it('renders shared tactile icon controls in the top bar', async () => {
       await renderHome();
 
-      expect(screen.getByTestId(TESTIDS.homeSettingsButton)).toBeInTheDocument();
+      expect(screen.getByTestId(TESTIDS.homeGuideButton)).toHaveClass('icon-button');
+      expect(screen.getByTestId(TESTIDS.homeSettingsButton)).toHaveClass('icon-button');
     });
   });
 

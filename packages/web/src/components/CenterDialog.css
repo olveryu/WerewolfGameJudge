@@ -31,9 +31,10 @@
   max-height: 100%;
   overflow-y: auto;
   padding: var(--space-large);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-panel), var(--shadow-md);
 }
 
 .center-dialog[data-has-close-button='true'] {

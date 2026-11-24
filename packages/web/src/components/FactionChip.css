@@ -20,11 +20,19 @@
 }
 
 button.faction-chip {
+  background-image: var(--surface-button-texture);
+  box-shadow: var(--shadow-tabletop-panel);
   cursor: pointer;
 }
 
-button.faction-chip:active {
+button.faction-chip:active:not(:disabled) {
   opacity: var(--opacity-pressed);
+}
+
+@media (hover: hover) {
+  button.faction-chip:hover {
+    text-decoration: underline;
+  }
 }
 
 .faction-chip-chevron {

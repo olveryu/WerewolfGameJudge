@@ -7,6 +7,7 @@
   margin: 0;
   border-radius: var(--radius-full);
   background: var(--color-border);
+  box-shadow: var(--shadow-tabletop-inset);
   cursor: pointer;
   transition: background-color 150ms ease-out;
 }
@@ -34,7 +35,17 @@
 
 .switch:disabled {
   cursor: default;
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  box-shadow: none;
+}
+
+.switch:checked:disabled {
+  background: var(--color-primary-a25);
+}
+
+.switch:disabled::after {
+  background: var(--color-background);
+  box-shadow: none;
 }
 
 .switch:checked::after {
