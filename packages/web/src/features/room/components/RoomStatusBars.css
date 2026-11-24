@@ -35,7 +35,7 @@
 }
 
 .connection-bar-retry:active {
-  box-shadow: 0 1px 0 var(--color-error);
+  box-shadow: var(--surface-button-pressed-offset) var(--color-error);
   transform: translateY(var(--space-micro));
 }
 

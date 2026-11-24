@@ -123,7 +123,11 @@
   --surface-button-shadow-light:
     inset 0 1px var(--color-surface), 0 1px 0 var(--color-border-light),
     0 4px 8px var(--color-text-a3);
-  --surface-button-shadow-pressed: 0 1px 0 var(--color-border);
+  /* The pressed-key edge geometry; a surface with its own edge colour writes
+   * `box-shadow: var(--surface-button-pressed-offset) <edge colour>` (a custom property set on
+   * the element cannot reach inside this :root token, so the colour stays at the use site). */
+  --surface-button-pressed-offset: 0 1px 0;
+  --surface-button-shadow-pressed: var(--surface-button-pressed-offset) var(--color-border);
   --surface-header-shadow: var(--surface-panel-shadow);
   --surface-drawing-shadow: var(--surface-panel-shadow);
   --shadow-tabletop-panel: var(--surface-panel-shadow);

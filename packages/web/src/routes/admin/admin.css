@@ -107,7 +107,7 @@
     .admin-page-title-switcher,
     .admin-text-button
   ):active {
-  box-shadow: 0 1px 0 var(--admin-border-strong);
+  box-shadow: var(--surface-button-pressed-offset) var(--admin-border-strong);
   transform: translateY(var(--space-micro));
 }
 .admin-console
@@ -162,7 +162,7 @@
   box-shadow: var(--shadow-tabletop-key);
 }
 .admin-console .admin-primary:active {
-  box-shadow: 0 1px 0 var(--admin-border-strong);
+  box-shadow: var(--surface-button-pressed-offset) var(--admin-border-strong);
 }
 .admin-console .admin-primary:hover:not(:disabled) {
   background: var(--admin-accent);
@@ -212,7 +212,7 @@
   box-shadow: var(--shadow-tabletop-key-soft);
 }
 .admin-console .admin-danger-solid:active {
-  box-shadow: 0 1px 0 var(--admin-border-strong);
+  box-shadow: var(--surface-button-pressed-offset) var(--admin-border-strong);
 }
 .admin-console .admin-danger-solid:hover:not(:disabled) {
   background: var(--admin-danger);
