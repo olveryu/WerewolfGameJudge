@@ -7,9 +7,24 @@ import { createMemoryRouter, RouterProvider, useLocation } from 'react-router';
 import type { ClientGameModeOption } from '@/games/catalog';
 import { TESTIDS } from '@/testids';
 
+import { HomePage } from '../HomePage';
+
 const mocks = vi.hoisted(() => ({
-  modeOptions: [] as ClientGameModeOption[],
-  appVersion: 'v2.9.0',
+  catalog: {
+    GAME_MODE_OPTIONS: [
+      {
+        gameType: 'werewolf',
+        displayName: '游戏1',
+        subtitle: '副标题',
+        Icon: () => null,
+        tier: 'main',
+        gradient: ['#818CF8', '#4F46E5'],
+      },
+    ] as ClientGameModeOption[],
+    GAME_HOME_SPOTLIGHTS: [],
+    GAME_ANNOUNCEMENT_TABS: [],
+  },
+  version: { APP_VERSION: 'v2.9.0' },
   useAuthContext: vi.fn(),
   useUnreadFeedback: vi.fn(),
   useGachaStatusQuery: vi.fn(),
@@ -30,6 +45,8 @@ vi.mock('@/features/home/services/announcementReceiptStore', () => ({
   hasSeenAnnouncement: mocks.hasSeenAnnouncement,
   markAnnouncementSeen: mocks.markAnnouncementSeen,
 }));
+vi.mock('@/games/catalog', () => mocks.catalog);
+vi.mock('@/config/version', () => mocks.version);
 
 const SIGNED_IN = {
   user: {
@@ -42,8 +59,6 @@ const SIGNED_IN = {
   loading: false,
   error: null,
 };
-
-const COLD_HOME_IMPORT_TIMEOUT_MS = 15_000;
 
 function HeroIcon() {
   return <svg data-testid="hero-icon" />;
@@ -62,7 +77,7 @@ function modeOption(index: number): ClientGameModeOption {
 }
 
 function setModeOptionCount(count: number) {
-  mocks.modeOptions = Array.from({ length: count }, (_, index) => modeOption(index));
+  mocks.catalog.GAME_MODE_OPTIONS = Array.from({ length: count }, (_, index) => modeOption(index));
 }
 
 function LocationProbe() {
@@ -70,28 +85,26 @@ function LocationProbe() {
   return <p data-testid="location">{`${location.pathname}${location.search}`}</p>;
 }
 
-/** Imports Home fresh so its module-level hero folding sees the current mode options and version. */
-async function renderHome() {
-  vi.resetModules();
-  vi.doMock('@/games/catalog', () => ({
-    GAME_MODE_OPTIONS: mocks.modeOptions,
-    GAME_HOME_SPOTLIGHTS: [],
-    GAME_ANNOUNCEMENT_TABS: [],
-  }));
-  vi.doMock('@/config/version', () => ({ APP_VERSION: mocks.appVersion }));
-  const { HomePage } = await import('../HomePage');
+function renderHome(component = HomePage) {
   const router = createMemoryRouter([
-    { path: '/', Component: HomePage },
+    { path: '/', Component: component },
     { path: '*', Component: LocationProbe },
   ]);
   render(<RouterProvider router={router} />);
+}
+
+/** Reloads the module only when testing its module-level hero folding. */
+async function renderHomeWithFreshCatalog() {
+  vi.resetModules();
+  const { HomePage: FreshHomePage } = await import('../HomePage');
+  renderHome(FreshHomePage);
 }
 
 describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setModeOptionCount(1);
-    mocks.appVersion = 'v2.9.0';
+    mocks.version.APP_VERSION = 'v2.9.0';
     mocks.useAuthContext.mockReturnValue({ user: null, loading: false, error: null });
     mocks.useUnreadFeedback.mockReturnValue({
       data: undefined,
@@ -103,26 +116,22 @@ describe('HomePage', () => {
   });
 
   describe('Rendering', () => {
-    it(
-      'renders the main menu items',
-      async () => {
-        await renderHome();
+    it('renders the main menu items', () => {
+      renderHome();
 
-        expect(screen.getByText('创建房间')).toBeInTheDocument();
-        expect(screen.getByText('进入房间')).toBeInTheDocument();
-        expect(screen.getByText('1 款游戏 · 点开挑一款')).toBeInTheDocument();
-      },
-      COLD_HOME_IMPORT_TIMEOUT_MS,
-    );
+      expect(screen.getByText('创建房间')).toBeInTheDocument();
+      expect(screen.getByText('进入房间')).toBeInTheDocument();
+      expect(screen.getByText('1 款游戏 · 点开挑一款')).toBeInTheDocument();
+    });
 
-    it('renders the app title', async () => {
-      await renderHome();
+    it('renders the app title', () => {
+      renderHome();
 
       expect(screen.getByText('狼人面杀电子裁判助手')).toBeInTheDocument();
     });
 
-    it('renders shared tactile icon controls in the top bar', async () => {
-      await renderHome();
+    it('renders shared tactile icon controls in the top bar', () => {
+      renderHome();
 
       expect(screen.getByTestId(TESTIDS.homeGuideButton)).toHaveClass('icon-button');
       expect(screen.getByTestId(TESTIDS.homeSettingsButton)).toHaveClass('icon-button');
@@ -132,7 +141,7 @@ describe('HomePage', () => {
   describe('Navigation', () => {
     it('opens the game picker in create purpose when creating a room', async () => {
       mocks.useAuthContext.mockReturnValue(SIGNED_IN);
-      await renderHome();
+      renderHome();
 
       await userEvent.click(screen.getByText('创建房间'));
 
@@ -140,7 +149,7 @@ describe('HomePage', () => {
     });
 
     it('navigates to settings when the settings entry is pressed', async () => {
-      await renderHome();
+      renderHome();
 
       await userEvent.click(screen.getByTestId(TESTIDS.homeSettingsButton));
 
@@ -148,8 +157,8 @@ describe('HomePage', () => {
     });
 
     it('opens the sole game guide directly', async () => {
-      mocks.modeOptions = [{ ...modeOption(0), gameType: 'werewolf' }];
-      await renderHome();
+      mocks.catalog.GAME_MODE_OPTIONS = [{ ...modeOption(0), gameType: 'werewolf' }];
+      renderHome();
 
       await userEvent.click(screen.getByRole('button', { name: '游戏图鉴' }));
 
@@ -158,7 +167,7 @@ describe('HomePage', () => {
 
     it('opens the game picker in guide purpose when several games exist', async () => {
       setModeOptionCount(2);
-      await renderHome();
+      renderHome();
 
       await userEvent.click(screen.getByTestId(TESTIDS.homeGuideButton));
 
@@ -174,7 +183,7 @@ describe('HomePage', () => {
 
     it('renders every game as a dot at the limit of 8, with no overflow chip', async () => {
       setModeOptionCount(8);
-      await renderHome();
+      await renderHomeWithFreshCatalog();
 
       expect(heroDotCount()).toBe(8);
       expect(screen.queryByText(/^\+\d+$/)).toBeNull();
@@ -183,7 +192,7 @@ describe('HomePage', () => {
 
     it('folds the tail into a +N chip past 8: 7 dots and +2 at 9 games', async () => {
       setModeOptionCount(9);
-      await renderHome();
+      await renderHomeWithFreshCatalog();
 
       expect(heroDotCount()).toBe(7);
       expect(screen.getByText('+2')).toBeInTheDocument();
@@ -191,7 +200,7 @@ describe('HomePage', () => {
 
     it('keeps 7 dots and counts all folded games in the chip at 10 games', async () => {
       setModeOptionCount(10);
-      await renderHome();
+      await renderHomeWithFreshCatalog();
 
       expect(heroDotCount()).toBe(7);
       expect(screen.getByText('+3')).toBeInTheDocument();
@@ -202,7 +211,7 @@ describe('HomePage', () => {
   describe('Join Room dialog', () => {
     it('shows the join room dialog when "进入房间" is pressed', async () => {
       mocks.useAuthContext.mockReturnValue(SIGNED_IN);
-      await renderHome();
+      renderHome();
 
       await userEvent.click(screen.getByText('进入房间'));
 
@@ -213,7 +222,7 @@ describe('HomePage', () => {
   describe('Announcements', () => {
     it("auto-shows this version's announcement once and marks it seen on close", async () => {
       mocks.hasSeenAnnouncement.mockReturnValue(false);
-      await renderHome();
+      renderHome();
 
       expect(await screen.findByText('v2.9.0 更新内容')).toBeInTheDocument();
       expect(mocks.markAnnouncementSeen).not.toHaveBeenCalled();
@@ -224,26 +233,26 @@ describe('HomePage', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     });
 
-    it('waits for auth to settle before showing the announcement', async () => {
+    it('waits for auth to settle before showing the announcement', () => {
       mocks.hasSeenAnnouncement.mockReturnValue(false);
       mocks.useAuthContext.mockReturnValue({ user: null, loading: true, error: null });
-      await renderHome();
+      renderHome();
 
       expect(mocks.hasSeenAnnouncement).not.toHaveBeenCalled();
       expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     it('silently marks a version without an announcement as seen', async () => {
-      mocks.appVersion = 'v0.0.1';
+      mocks.version.APP_VERSION = 'v0.0.1';
       mocks.hasSeenAnnouncement.mockReturnValue(false);
-      await renderHome();
+      renderHome();
 
       await waitFor(() => expect(mocks.markAnnouncementSeen).toHaveBeenCalledWith('v0.0.1'));
       expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     it('opens the announcement modal from the card', async () => {
-      await renderHome();
+      renderHome();
 
       await userEvent.click(screen.getByRole('button', { name: /公告与反馈/ }));
 
@@ -256,7 +265,7 @@ describe('HomePage', () => {
         isError: false,
         setUnreadFeedbackCount: vi.fn(),
       });
-      await renderHome();
+      renderHome();
 
       expect(await screen.findByText('3 条新回复')).toBeInTheDocument();
     });
@@ -267,7 +276,7 @@ describe('HomePage', () => {
         isError: true,
         setUnreadFeedbackCount: vi.fn(),
       });
-      await renderHome();
+      renderHome();
 
       expect(await screen.findByText('回复状态读取失败')).toBeInTheDocument();
     });
@@ -277,15 +286,15 @@ describe('HomePage', () => {
     it('caps the ticket count at 99+', async () => {
       mocks.useAuthContext.mockReturnValue(SIGNED_IN);
       mocks.useGachaStatusQuery.mockReturnValue({ data: { normalDraws: 80, goldenDraws: 40 } });
-      await renderHome();
+      renderHome();
 
       expect(await screen.findByText('99+')).toBeInTheDocument();
     });
 
-    it('hides the badge without tickets', async () => {
+    it('hides the badge without tickets', () => {
       mocks.useAuthContext.mockReturnValue(SIGNED_IN);
       mocks.useGachaStatusQuery.mockReturnValue({ data: { normalDraws: 0, goldenDraws: 0 } });
-      await renderHome();
+      renderHome();
 
       expect(screen.queryByRole('img', { name: /张抽奖券/ })).toBeNull();
     });
