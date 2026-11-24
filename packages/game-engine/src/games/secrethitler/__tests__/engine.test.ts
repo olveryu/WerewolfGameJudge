@@ -53,7 +53,9 @@ function game(
   return { session, send, seatUser, actorForSeat };
 }
 
-function nightViewCommand(state: SecrethitlerState): SecrethitlerCommand {
+function nightViewCommand(
+  state: SecrethitlerState,
+): Extract<SecrethitlerCommand, { readonly type: 'secrethitler.step.submit' }> {
   if (state.phase.kind !== 'night' || state.phase.steps.current === null)
     throw new Error('Expected the current first-night step');
   return {
