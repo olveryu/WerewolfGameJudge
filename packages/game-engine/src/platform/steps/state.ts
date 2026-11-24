@@ -10,6 +10,7 @@ export type StepEvent<TStepId extends string, TFacts, TResult> =
       readonly facts: Partial<TFacts>;
       readonly result: TResult | null;
       readonly revisable: boolean;
+      readonly replacesActionKeys?: readonly string[];
     }
   | {
       readonly type: 'withdrawn';
@@ -65,9 +66,10 @@ function evolveSubmission<TStepId extends string, TResult, TFacts>(
     result: null,
     isResultAcknowledged: true,
   };
+  const replacedActionKeys = event.replacesActionKeys ?? [event.submission.actionKey];
   const submissions = event.revisable
     ? [
-        ...seatRecord.submissions.filter((entry) => entry.actionKey !== event.submission.actionKey),
+        ...seatRecord.submissions.filter((entry) => !replacedActionKeys.includes(entry.actionKey)),
         event.submission,
       ]
     : [...seatRecord.submissions, event.submission];

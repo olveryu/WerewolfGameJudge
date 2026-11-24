@@ -2,6 +2,7 @@ import { defineCopy } from '../../../platform/steps';
 import type { PresenceDeclaration } from './presence';
 import { defineRole } from './role';
 import {
+  createCheckEffects,
   createFactionCheckResult,
   createSingleTargetStep,
   renderFactionCheckResult,
@@ -38,6 +39,7 @@ export const seer = defineRole({
       actionName: COPY.action,
       skippable: true,
       canTargetSelf: false,
+      selectionEffects: createCheckEffects,
       result: (context, selection) => createFactionCheckResult(context, selection, 'identity'),
       renderResult: (_context, result) => renderFactionCheckResult(result, COPY.resultTitle),
     }),

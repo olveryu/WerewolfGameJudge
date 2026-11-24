@@ -1096,7 +1096,7 @@ exports[`werewolf role definitions > snapshots generated output for 'gargoyle' '
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
-      "title": "石像鬼探查结果",
+      "title": "查验结果",
     },
     "progress": {
       "done": 0,
@@ -2453,7 +2453,7 @@ exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
-      "title": "纯白查验结果",
+      "title": "查验结果",
     },
     "progress": {
       "done": 0,
@@ -4214,7 +4214,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 
     "message": null,
     "pendingResult": {
       "text": "3号是摄梦人",
-      "title": "狼巫查验结果",
+      "title": "查验结果",
     },
     "progress": {
       "done": 0,
@@ -4319,7 +4319,7 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
         "kind": "pickSeats",
         "label": "袭击",
         "max": 1,
-        "min": 0,
+        "min": 1,
         "seats": [
           {
             "seat": 1,
@@ -4331,13 +4331,21 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
           },
           {
             "seat": 3,
-            "unavailableReason": "该角色免疫狼人袭击",
+            "unavailableReason": "该角色不能被狼人直接袭击",
           },
           {
             "seat": 4,
             "unavailableReason": null,
           },
         ],
+      },
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "key": "wolfKillAbstain",
+        "kind": "direct",
+        "label": "放弃袭击",
       },
     ],
     "deadlineMs": null,
@@ -4376,7 +4384,7 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
         "kind": "pickSeats",
         "label": "袭击",
         "max": 1,
-        "min": 0,
+        "min": 1,
         "seats": [
           {
             "seat": 1,
@@ -4388,7 +4396,7 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
           },
           {
             "seat": 3,
-            "unavailableReason": "该角色免疫狼人袭击",
+            "unavailableReason": "该角色不能被狼人直接袭击",
           },
           {
             "seat": 4,
@@ -4396,12 +4404,28 @@ exports[`werewolf role definitions > snapshots generated output for the shared w
           },
         ],
       },
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "key": "wolfKillAbstain",
+        "kind": "direct",
+        "label": "放弃袭击",
+      },
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "key": "wolfKillWithdraw",
+        "kind": "direct",
+        "label": "撤回袭击投票",
+      },
     ],
     "deadlineMs": null,
     "message": "请选择今晚的袭击目标。平票将随机刀人",
     "pendingResult": null,
     "progress": {
-      "done": 0,
+      "done": 1,
       "total": 2,
     },
     "serial": 1,

@@ -184,6 +184,82 @@ describe('platform step runtime', () => {
     ).toEqual({ kind: 'reject', reason: 'REASON_STEP_STALE' });
   });
 
+  it('replaces grouped revisable choices and keeps withdrawn choices withdrawn', () => {
+    const pick = definition.actions[0];
+    if (pick?.kind !== 'pickSeats') throw new Error('[FAIL-FAST] Test pick action is missing');
+    const voteDefinition: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
+      ...definition,
+      actions: [
+        {
+          ...pick,
+          commit: 'revisable',
+          revisionGroup: 'vote',
+          resolve: (_context: TestContext, seats: readonly number[]) => ({
+            facts: { selectedSeat: seats[0] ?? null },
+          }),
+        },
+        {
+          kind: 'direct',
+          key: 'abstain',
+          name: 'abstain',
+          commit: 'revisable',
+          revisionGroup: 'vote',
+          resolve: () => ({ facts: { selectedSeat: null } }),
+        },
+        {
+          kind: 'direct',
+          key: 'withdraw',
+          name: 'withdraw',
+          availability: (context) =>
+            context.record.bySeat[0]?.submissions.length
+              ? { kind: 'available' }
+              : { kind: 'hidden' },
+          resolve: (context) => {
+            const actionKey = context.record.bySeat[0]?.submissions[0]?.actionKey;
+            if (actionKey === undefined) throw new Error('[FAIL-FAST] No vote to withdraw');
+            return { withdrawActionKey: actionKey };
+          },
+        },
+      ],
+    };
+    const voteRuntime = runtimeWithDefinition(voteDefinition);
+    let state = createState();
+    const vote = decideStepSubmission(voteRuntime, state, 0, {
+      stepId: 'pick',
+      serial: 4,
+      actionKey: 'inspect',
+      seats: [1],
+    });
+    if (vote.kind === 'reject') throw new Error('[FAIL-FAST] Vote was rejected');
+    for (const event of vote.events) state = { ...state, step: evolveStepSlice(state.step, event) };
+    expect(presentStep(voteRuntime, state, 0)?.progress).toEqual({ done: 1, total: 1 });
+    expect(presentStep(voteRuntime, state, 0)?.actions).toHaveLength(4);
+
+    const abstention = decideStepSubmission(voteRuntime, state, 0, {
+      stepId: 'pick',
+      serial: 4,
+      actionKey: 'abstain',
+    });
+    if (abstention.kind === 'reject') throw new Error('[FAIL-FAST] Abstention was rejected');
+    for (const event of abstention.events) {
+      state = { ...state, step: evolveStepSlice(state.step, event) };
+    }
+    expect(state.step.records.pick?.bySeat[0]?.submissions).toEqual([
+      { actionKey: 'abstain', seats: [], cardIndex: null },
+    ]);
+    const withdrawal = decideStepSubmission(voteRuntime, state, 0, {
+      stepId: 'pick',
+      serial: 4,
+      actionKey: 'withdraw',
+    });
+    if (withdrawal.kind === 'reject') throw new Error('[FAIL-FAST] Withdrawal was rejected');
+    for (const event of withdrawal.events) {
+      state = { ...state, step: evolveStepSlice(state.step, event) };
+    }
+    expect(state.step.records.pick?.bySeat[0]?.submissions).toEqual([]);
+    expect(presentStep(voteRuntime, state, 0)?.progress).toEqual({ done: 0, total: 1 });
+  });
+
   it('keeps countdown progression gated while narration is playing', () => {
     const state = {
       ...createState(),

@@ -6,6 +6,8 @@ interface ActionBase<TContext> {
   readonly availability?: (context: TContext) => Availability;
   readonly staysWhenLocked?: boolean;
   readonly commit?: 'final' | 'revisable';
+  /** Revisable actions in the same group replace one another. */
+  readonly revisionGroup?: string;
 }
 
 export interface PickSeatsAction<TContext, TFacts, TResult> extends ActionBase<TContext> {

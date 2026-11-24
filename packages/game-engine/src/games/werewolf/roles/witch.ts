@@ -2,10 +2,9 @@ import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { SeatSubmissionForReview, StepDefinition } from '../../../platform/steps/step';
 import type { DeathEffect } from './deathEffects';
-import { resolveTargetSelection } from './location';
 import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
 import { defineRole } from './role';
-import { getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+import { getActingSeat, getRoleAbilityLockReason, resolveRoleTarget } from './roleSteps';
 
 const COPY = defineCopy({
   name: '女巫',
@@ -18,7 +17,6 @@ const COPY = defineCopy({
   antidoteOn: '对{seat}用解药',
   poison: '毒杀',
   poisoned: '毒杀{seat}',
-  locked: '被噩梦之影恐惧，本夜无法使用技能',
   selfAttacked: '你被狼人袭击',
   attacked: '{seat}被狼人袭击',
   peacefulNight: '昨夜平安夜',
@@ -71,7 +69,7 @@ const witchActionStep: StepDefinition<
         const deathEffect: DeathEffect = {
           kind: 'protect',
           source: seat,
-          target,
+          target: resolveRoleTarget(context, target).landingSeat,
           against: ['wolfKill'],
           conflictGroup: 'wolfSave',
         };
@@ -101,7 +99,7 @@ const witchActionStep: StepDefinition<
       resolve: (context, [chosenSeat]) => {
         if (chosenSeat === undefined) throw new Error('[FAIL-FAST] Witch poison has no target');
         const seat = getActingSeat(context);
-        const selection = resolveTargetSelection(chosenSeat, context.state.location);
+        const selection = resolveRoleTarget(context, chosenSeat);
         return {
           facts: {
             selections: [
@@ -121,7 +119,7 @@ const witchActionStep: StepDefinition<
     },
   ],
   skippable: () => true,
-  lock: (context) => getRoleAbilityLockReason(context, 'witch', COPY.locked),
+  lock: (context) => getRoleAbilityLockReason(context, 'witch'),
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {
     if (submission.actionKey !== 'poison') return null;

@@ -31,13 +31,16 @@ const confessStep = createSingleTargetStep({
   canTargetSelf: false,
   actorAvailable: (context) => context.state.nightNumber === 1,
   targetUnavailableReason: (context, chosenSeat) => {
-    const targetRole = context.role.roleOf(context.role.landing(chosenSeat));
+    const targetRole = context.role.roleOf(chosenSeat);
     return context.factionOfRole(targetRole) === 'wolf' ? COPY.wolfTargetDisallowed : null;
   },
   selectionEffects: (context, selection) => ({
     disabledAbilities: [],
     deathEffects: [],
-    wolfGirlConfessions: [{ actorSeat: getActingSeat(context), targetSeat: selection.landingSeat }],
+    wolfGirlConfessions:
+      context.factionOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
+        ? []
+        : [{ actorSeat: getActingSeat(context), targetSeat: selection.landingSeat }],
   }),
 });
 

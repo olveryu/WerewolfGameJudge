@@ -18,6 +18,7 @@ export interface CardOption {
 export interface Resolution<TFacts, TResult> {
   readonly facts?: Partial<TFacts>;
   readonly result?: TResult;
+  readonly withdrawActionKey?: string;
 }
 
 export interface SeatSubmission {

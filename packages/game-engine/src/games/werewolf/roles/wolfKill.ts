@@ -1,6 +1,6 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
-import { STEP_SKIP_ACTION_KEY, type StepDefinition } from '../../../platform/steps/step';
+import type { StepDefinition } from '../../../platform/steps/step';
 import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
 import { getActingSeat } from './roleSteps';
 
@@ -10,8 +10,10 @@ const COPY = defineCopy({
   prompt: '请选择今晚的袭击目标',
   attack: '袭击{seat}',
   abstain: '放弃袭击',
-  blockedTarget: '该角色免疫狼人袭击',
+  withdraw: '撤回袭击投票',
+  blockedTarget: '该角色不能被狼人直接袭击',
   nightmareLocked: '被噩梦之影恐惧，本夜无法袭击',
+  poisonerLocked: '本局有毒师在场，首夜无法袭击',
   actualLanding: '（实际为{seat}）',
   unanimousHint: '投票不一致将视为放弃袭击',
   majorityHint: '平票将随机刀人',
@@ -26,22 +28,24 @@ export const wolfKillStep: StepDefinition<
   id: 'wolfKill',
   title: COPY.title,
   audio: () => ({ begin: 'wolf', end: 'wolf' }),
-  actors: (context) =>
-    context.state.nightNumber === 1 && context.nightPresence.isFirstNightWolfAttackDisabled
-      ? []
-      : getWolfVoters(context),
+  actors: getWolfVoters,
   actions: [
     {
       kind: 'pickSeats',
       key: 'wolfKill',
       name: COPY.title,
-      count: { min: 0, max: 1 },
+      count: { min: 1, max: 1 },
       prompt: COPY.prompt,
       commit: 'revisable',
+      revisionGroup: 'wolfVote',
+      availability: (context) => {
+        const reason = getWolfVoteLockReason(context, getActingSeat(context));
+        return reason === null ? { kind: 'available' } : { kind: 'unavailable', reason };
+      },
       seats: (context) =>
         context.state.seatedSeats.map((seat) => ({
           seat,
-          unavailableReason: context.isImmuneToAttack(seat, 'wolfKill') ? COPY.blockedTarget : null,
+          unavailableReason: context.isWolfKillTargetForbidden(seat) ? COPY.blockedTarget : null,
         })),
       phrase: (seats) =>
         seats[0] === undefined
@@ -58,12 +62,32 @@ export const wolfKillStep: StepDefinition<
         };
       },
     },
+    {
+      kind: 'direct',
+      key: 'wolfKillAbstain',
+      name: COPY.abstain,
+      commit: 'revisable',
+      revisionGroup: 'wolfVote',
+      resolve: (context) => ({
+        facts: {
+          wolfVotes: [{ actorSeat: getActingSeat(context), chosenSeat: null, landingSeat: null }],
+        },
+      }),
+    },
+    {
+      kind: 'direct',
+      key: 'wolfKillWithdraw',
+      name: COPY.withdraw,
+      availability: (context) =>
+        getRecordedWolfVote(context) === undefined ? { kind: 'hidden' } : { kind: 'available' },
+      resolve: (context) => {
+        const vote = getRecordedWolfVote(context);
+        if (vote === undefined) throw new Error('[FAIL-FAST] No wolf vote to withdraw');
+        return { withdrawActionKey: vote.actionKey };
+      },
+    },
   ],
   skippable: () => false,
-  lock: (context) => {
-    if (context.seat === null) return null;
-    return isWolfVoteDisabled(context, context.seat) ? COPY.nightmareLocked : null;
-  },
   ruleHints: (context) => [
     context.nightPresence.doesWolfVoteRequireUnanimity ? COPY.unanimousHint : COPY.majorityHint,
   ],
@@ -77,26 +101,19 @@ export const wolfKillStep: StepDefinition<
       : renderCopy(COPY.actualLanding, { seat: formatSeat(landingSeat) });
   },
   completion: (context) => {
-    if (context.state.nightNumber === 1 && context.nightPresence.isFirstNightWolfAttackDisabled) {
-      return { kind: 'complete' };
-    }
-    const activeVoters = getWolfVoters(context).filter(
-      (seat) => !isWolfVoteDisabled(context, seat),
-    );
-    if (activeVoters.length === 0) return { kind: 'complete' };
-    const votes = activeVoters.map((seat) =>
+    const voters = getWolfVoters(context);
+    const activeVoters = voters.filter((seat) => getWolfVoteLockReason(context, seat) === null);
+    const requiredVoters = activeVoters.length === 0 ? voters : activeVoters;
+    const votes = requiredVoters.map((seat) =>
       context.record.bySeat[seat]?.submissions.find(
         (submission) =>
-          submission.actionKey === 'wolfKill' || submission.actionKey === STEP_SKIP_ACTION_KEY,
+          submission.actionKey === 'wolfKill' || submission.actionKey === 'wolfKillAbstain',
       ),
     );
     if (votes.some((vote) => vote === undefined)) return { kind: 'pending' };
+    if (activeVoters.length === 0) return { kind: 'complete' };
     if (context.nightPresence.doesWolfVoteRequireUnanimity) {
-      const targets = new Set(
-        votes.map((vote) =>
-          vote?.actionKey === STEP_SKIP_ACTION_KEY ? null : (vote?.seats[0] ?? null),
-        ),
-      );
+      const targets = new Set(votes.map((vote) => vote?.seats[0] ?? null));
       if (targets.size > 1) return { kind: 'pending' };
     }
     return { kind: 'armCountdown' };
@@ -109,6 +126,14 @@ function getWolfVoters(context: WerewolfRoleStepContext): readonly number[] {
   );
 }
 
+function getRecordedWolfVote(context: WerewolfRoleStepContext) {
+  const seat = getActingSeat(context);
+  return context.record.bySeat[seat]?.submissions.find(
+    (submission) =>
+      submission.actionKey === 'wolfKill' || submission.actionKey === 'wolfKillAbstain',
+  );
+}
+
 function isWolfVoteDisabled(context: WerewolfRoleStepContext, seat: number): boolean {
   const roleId = context.role.roleOf(seat);
   return context.facts.disabledAbilities.some(
@@ -116,4 +141,11 @@ function isWolfVoteDisabled(context: WerewolfRoleStepContext, seat: number): boo
       ability.seat === seat &&
       (ability.roleId === '*' || ability.roleId === 'wolfKill' || ability.roleId === roleId),
   );
+}
+
+function getWolfVoteLockReason(context: WerewolfRoleStepContext, seat: number): string | null {
+  if (isWolfVoteDisabled(context, seat)) return COPY.nightmareLocked;
+  return context.state.nightNumber === 1 && context.nightPresence.isFirstNightWolfAttackDisabled
+    ? COPY.poisonerLocked
+    : null;
 }

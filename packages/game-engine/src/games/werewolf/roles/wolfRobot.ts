@@ -69,6 +69,7 @@ const wolfRobotLearnStep: StepDefinition<
             identityChanges: [
               { kind: 'grantBorrowedAbility', seat: actorSeat, roleId: result.roleId },
             ],
+            sightOverrides: [{ seat: actorSeat, roleId: result.roleId }],
             disabledAbilities: [{ roleId: result.roleId, seat: actorSeat }],
             cardSelections: [],
             deathEffects: [],

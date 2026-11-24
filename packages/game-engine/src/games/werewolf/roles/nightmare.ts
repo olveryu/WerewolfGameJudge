@@ -32,10 +32,21 @@ export const nightmare = defineRole({
       skippable: true,
       canTargetSelf: true,
       cannotRepeatTarget: true,
-      selectionEffects: (_context, selection) => ({
-        disabledAbilities: [{ roleId: '*', seat: selection.landingSeat }],
-        deathEffects: [],
-      }),
+      selectionEffects: (context, selection) => {
+        const targetRole = context.role.roleOf(selection.landingSeat);
+        const wolfVoteDisabled = context.factionOfRole(targetRole) === 'wolf';
+        return {
+          disabledAbilities: [
+            { roleId: '*', seat: selection.landingSeat },
+            ...(wolfVoteDisabled
+              ? context.state.seatedSeats
+                  .filter((seat) => context.doesRoleVoteWithWolves(context.role.roleOf(seat)))
+                  .map((seat) => ({ roleId: 'wolfKill', seat }))
+              : []),
+          ],
+          deathEffects: [],
+        };
+      },
     }),
   ],
 });

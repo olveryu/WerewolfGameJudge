@@ -1,6 +1,7 @@
 import { defineCopy } from '../../../platform/steps';
 import { defineRole } from './role';
 import {
+  createCheckEffects,
   createIdentityCheckResult,
   createSingleTargetStep,
   getActingSeat,
@@ -12,7 +13,7 @@ const COPY = defineCopy({
   shortName: '纯',
   description: '每晚可查验一名玩家的身份，获知其具体角色名称；从第二夜起，查验到狼人则该狼人出局',
   action: '查验',
-  resultTitle: '纯白查验结果',
+  resultTitle: '查验结果',
 });
 
 export const pureWhite = defineRole({
@@ -38,18 +39,22 @@ export const pureWhite = defineRole({
       selectionEffects: (context, selection) => {
         const roleId = context.role.seenRole(selection.landingSeat);
         const isNightKill = context.state.nightNumber > 1 && context.teamOfRole(roleId) === 'wolf';
+        const checkEffects = createCheckEffects(context, selection);
         return {
           disabledAbilities: [],
-          deathEffects: isNightKill
-            ? [
-                {
-                  kind: 'attack',
-                  cause: 'checkDeath',
-                  source: getActingSeat(context),
-                  target: selection.landingSeat,
-                },
-              ]
-            : [],
+          deathEffects: [
+            ...checkEffects.deathEffects,
+            ...(isNightKill && checkEffects.deathEffects.length === 0
+              ? [
+                  {
+                    kind: 'attack' as const,
+                    cause: 'checkDeath' as const,
+                    source: getActingSeat(context),
+                    target: selection.landingSeat,
+                  },
+                ]
+              : []),
+          ],
         };
       },
     }),

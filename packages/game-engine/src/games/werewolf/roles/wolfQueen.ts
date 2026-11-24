@@ -22,7 +22,7 @@ export const wolfQueen = defineRole({
     faction: 'wolf',
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
-    immunities: ['wolfKill'],
+    wolfKillTargetForbidden: true,
   },
   steps: [
     createSingleTargetStep({

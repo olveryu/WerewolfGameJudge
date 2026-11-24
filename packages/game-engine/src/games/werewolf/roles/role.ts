@@ -8,6 +8,7 @@ import type { SightLayer } from './sight';
 
 export type WerewolfRoleFaction = 'god' | 'villager' | 'wolf' | 'special';
 export type WerewolfRoleTeam = 'good' | 'wolf' | 'third';
+export type WerewolfCheckReaction = 'targetDeath' | 'reflect';
 
 export interface WerewolfRoleCard {
   readonly name: string;
@@ -78,6 +79,7 @@ export interface WerewolfNightFacts {
     readonly actorSeat: number;
     readonly targetSeat: number;
   }[];
+  readonly sightOverrides?: readonly { readonly seat: number; readonly roleId: string }[];
 }
 
 export type WerewolfRoleStepResult =
@@ -126,8 +128,9 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly role: WerewolfRoleContext<string>;
   readonly teamOfRole: (roleId: string) => WerewolfRoleTeam;
   readonly factionOfRole: (roleId: string) => WerewolfRoleFaction;
+  readonly checkReactionOfRole: (roleId: string) => WerewolfCheckReaction | undefined;
   readonly doesRoleVoteWithWolves: (roleId: string) => boolean;
-  readonly isImmuneToAttack: (seat: number, cause: AttackCause) => boolean;
+  readonly isWolfKillTargetForbidden: (seat: number) => boolean;
   readonly isAdjacentToWolfFaction: (seat: number) => boolean;
   readonly roleNameOf: (roleId: string) => string;
   readonly randomBoolean: () => boolean;
@@ -156,6 +159,8 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
       readonly participatesInWolfVote: boolean;
       readonly actsSolo?: boolean;
     };
+    readonly wolfKillTargetForbidden?: boolean;
+    readonly checkReaction?: WerewolfCheckReaction;
     readonly immunities?: readonly AttackCause[];
   };
   readonly steps: readonly StepDefinition<

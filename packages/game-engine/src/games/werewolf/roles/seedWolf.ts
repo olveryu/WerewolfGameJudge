@@ -1,6 +1,7 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy } from '../../../platform/steps';
 import type { StepDefinition } from '../../../platform/steps/step';
+import { type DeathEffect, resolveDeathEffects } from './deathEffects';
 import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
 import { defineRole } from './role';
 import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
@@ -47,13 +48,15 @@ const infectStep: StepDefinition<
           ? { kind: 'unavailable', reason: COPY.noTarget }
           : { kind: 'available' },
       resolve: (context) => {
-        const targetSeat = getInfectionTarget(context);
-        if (targetSeat === null) {
+        const chosenSeat = getInfectionTarget(context);
+        if (chosenSeat === null) {
           throw new Error('[FAIL-FAST] Seed wolf infected without an eligible wolf target');
         }
         return {
           facts: {
-            wolfInfections: [{ actorSeat: getActingSeat(context), targetSeat }],
+            wolfInfections: [
+              { actorSeat: getActingSeat(context), targetSeat: context.role.landing(chosenSeat) },
+            ],
           },
         };
       },
@@ -96,5 +99,19 @@ export const seedWolf = defineRole({
 function getInfectionTarget(context: WerewolfRoleStepContext): number | null {
   const targetSeat = context.resolvedWolfKillTarget;
   if (targetSeat === null) return null;
-  return context.factionOfRole(context.role.roleOf(targetSeat)) === 'wolf' ? null : targetSeat;
+  const landingSeat = context.role.landing(targetSeat);
+  return context.factionOfRole(context.role.roleOf(landingSeat)) === 'wolf' ? null : targetSeat;
+}
+
+export function resolveSeedWolfInfection(
+  facts: WerewolfNightFacts,
+  effects: readonly DeathEffect[],
+): { readonly outcome: 'converted' | 'failed'; readonly targetSeat: number } | null {
+  const infection = facts.wolfInfections?.[0];
+  if (infection === undefined) return null;
+  const causes = resolveDeathEffects(effects).causes[infection.targetSeat] ?? [];
+  return {
+    outcome: causes.includes('wolfKill') ? 'converted' : 'failed',
+    targetSeat: infection.targetSeat,
+  };
 }

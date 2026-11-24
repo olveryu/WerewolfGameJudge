@@ -84,6 +84,7 @@ export {
 export type {
   RoleSelection,
   WerewolfBottomCard,
+  WerewolfCheckReaction,
   WerewolfNightFacts,
   WerewolfRoleFaction,
   WerewolfRoleIdentityChange,

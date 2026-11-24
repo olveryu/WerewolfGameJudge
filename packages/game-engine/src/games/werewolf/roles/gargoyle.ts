@@ -12,7 +12,7 @@ const COPY = defineCopy({
   description:
     '每晚可查验一名玩家的身份，获知其具体角色名称；与其他狼人互不相认；其他狼人全部出局后可主导袭击',
   action: '查验',
-  resultTitle: '石像鬼探查结果',
+  resultTitle: '查验结果',
 });
 
 export const gargoyle = defineRole({

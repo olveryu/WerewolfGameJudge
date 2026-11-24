@@ -1,3 +1,4 @@
+import type { AnyStepAction } from './actions';
 import { getAvailability } from './availability';
 import { createStepContext, type StepRuntime } from './runtime';
 import { getSeatSettled } from './settled';
@@ -53,6 +54,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
       ],
     };
   }
+  if (actorRecord?.result != null && !actorRecord.isResultAcknowledged) return rejectStale();
   if (actorRecord !== undefined && getSeatSettled(definition, context, actorRecord)) {
     return rejectStale();
   }
@@ -72,6 +74,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
   ) {
     return rejectStale();
   }
+  const replacesActionKeys = getReplacedActionKeys(definition.actions, action);
   const availability = getAvailability(action, context, definition.lock?.(context) ?? null);
   if (availability.kind !== 'available') return rejectStale();
 
@@ -113,17 +116,45 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
       submission,
       action.resolve(context, seats),
       action.commit === 'revisable',
+      replacesActionKeys,
     );
   }
   if (action.kind === 'direct') {
     if (submission.seats !== undefined || submission.cardIndex !== undefined) return rejectStale();
+    const resolution = action.resolve(context);
+    if (resolution.withdrawActionKey !== undefined) {
+      if (resolution.facts !== undefined || resolution.result !== undefined) {
+        throw new Error('[FAIL-FAST] A withdrawal cannot also emit facts or a result');
+      }
+      const previousAction = definition.actions.find(
+        (entry) => entry.key === resolution.withdrawActionKey,
+      );
+      if (
+        previousAction?.commit !== 'revisable' ||
+        actorRecord?.submissions.some((entry) => entry.actionKey === previousAction.key) !== true
+      ) {
+        return rejectStale();
+      }
+      return {
+        kind: 'accept',
+        events: [
+          {
+            type: 'withdrawn',
+            stepId: slice.current.stepId,
+            seat: actorSeat,
+            actionKey: previousAction.key,
+          },
+        ],
+      };
+    }
     const target = action.target?.(context) ?? null;
     return acceptResolution(
       slice.current.stepId,
       actorSeat,
       { ...submission, seats: target === null ? [] : [target] },
-      action.resolve(context),
+      resolution,
       action.commit === 'revisable',
+      replacesActionKeys,
     );
   }
   if (submission.seats !== undefined || submission.cardIndex === undefined) return rejectStale();
@@ -135,7 +166,20 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
     submission,
     action.resolve(context, card.index),
     action.commit === 'revisable',
+    replacesActionKeys,
   );
+}
+
+function getReplacedActionKeys<TContext, TFacts, TResult>(
+  actions: readonly AnyStepAction<TContext, TFacts, TResult>[],
+  action: AnyStepAction<TContext, TFacts, TResult>,
+): readonly string[] | undefined {
+  if (action.revisionGroup === undefined) return undefined;
+  const group = actions.filter((candidate) => candidate.revisionGroup === action.revisionGroup);
+  if (group.some((candidate) => candidate.commit !== 'revisable')) {
+    throw new Error(`[FAIL-FAST] Revision group ${action.revisionGroup} contains a final action`);
+  }
+  return group.map((candidate) => candidate.key);
 }
 
 function decideSkip<TStepId extends string, TFacts, TResult>(
@@ -167,7 +211,11 @@ function acceptResolution<TStepId extends string, TFacts, TResult>(
   submission: StepSubmission,
   resolution: Resolution<TFacts, TResult>,
   revisable: boolean,
+  replacesActionKeys: readonly string[] | undefined,
 ): StepSubmissionDecision<TStepId, TFacts, TResult> {
+  if (resolution.withdrawActionKey !== undefined) {
+    throw new Error('[FAIL-FAST] Only a direct action can withdraw a submission');
+  }
   return {
     kind: 'accept',
     events: [
@@ -183,6 +231,7 @@ function acceptResolution<TStepId extends string, TFacts, TResult>(
         facts: resolution.facts ?? {},
         result: resolution.result ?? null,
         revisable,
+        ...(replacesActionKeys === undefined ? {} : { replacesActionKeys }),
       },
     ],
   };

@@ -305,8 +305,17 @@ function getStepProgress<TStepId extends string, TState, TContext, TFacts, TResu
   const actors = definition.actors(context);
   const done = actors.filter((seat) => {
     const seatRecord = record.bySeat[seat];
+    if (seatRecord === undefined) return false;
     const seatContext = createStepContext(runtime, state, seat, record);
-    return seatRecord !== undefined && getSeatSettled(definition, seatContext, seatRecord);
+    if (getSeatSettled(definition, seatContext, seatRecord)) return true;
+    return (
+      (seatRecord.result === null || seatRecord.isResultAcknowledged) &&
+      seatRecord.submissions.some((submission) =>
+        definition.actions.some(
+          (action) => action.key === submission.actionKey && action.commit === 'revisable',
+        ),
+      )
+    );
   }).length;
   return { done, total: actors.length };
 }

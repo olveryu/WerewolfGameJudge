@@ -11,18 +11,14 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext, TestCommandExecution } from './gameContext';
+import type { NightAction, NightActions } from './nightScript';
 
 const MAX_NIGHT_TRANSITIONS = 64;
 
-type ActionValue =
-  | number
-  | null
-  | { readonly save: number | null; readonly poison: number | null }
-  | { readonly targets: readonly number[] }
-  | { readonly confirmed: boolean }
-  | { readonly cardIndex: number };
+type ActionValue = NightAction;
+type CustomActions = NightActions;
 
-type CustomActions = Partial<Record<RoleId, ActionValue>>;
+export type NightStepObserver = (ctx: GameContext, stepId: SchemaId) => void;
 
 interface StepByStepResult {
   readonly deaths: number[];
@@ -159,8 +155,17 @@ export function executeStepsUntil(
 export function executeRemainingSteps(
   ctx: GameContext,
   customActions: CustomActions = {},
+  observeStep?: NightStepObserver,
+  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
 ): StepByStepResult {
+  const observedSteps = new Set<SchemaId>();
   for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
+    if (acknowledgeAudio(ctx, 'complete authoritative playback')) continue;
+    const enteredStep = currentStepIdOf(ctx.getGameState());
+    if (enteredStep !== undefined && !observedSteps.has(enteredStep)) {
+      observeStep?.(ctx, enteredStep);
+      observedSteps.add(enteredStep);
+    }
     if (settleCompletedStep(ctx)) continue;
 
     const state = ctx.getGameState();
@@ -176,7 +181,7 @@ export function executeRemainingSteps(
       // which settleCompletedStep above already drained.
       throw new Error('[FAIL-FAST] Night runner found an exhausted night with nothing pending');
     }
-    executeCurrentStep(ctx, customActions);
+    executeCurrentStep(ctx, customActions, stepExecutions);
   }
   throw new Error(`[FAIL-FAST] Night runner exceeded ${MAX_NIGHT_TRANSITIONS} transitions`);
 }
@@ -184,11 +189,17 @@ export function executeRemainingSteps(
 export function executeFullNight(
   ctx: GameContext,
   customActions: CustomActions = {},
+  observeStep?: NightStepObserver,
+  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
 ): StepByStepResult {
-  return executeRemainingSteps(ctx, customActions);
+  return executeRemainingSteps(ctx, customActions, observeStep, stepExecutions);
 }
 
-function executeCurrentStep(ctx: GameContext, customActions: CustomActions): void {
+function executeCurrentStep(
+  ctx: GameContext,
+  customActions: CustomActions,
+  stepExecutions: Partial<Record<SchemaId, TestCommandExecution>> = {},
+): void {
   const state = ctx.getGameState();
   const currentStepId = currentStepIdOf(state);
   if (currentStepId === undefined) {
@@ -219,7 +230,18 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
     }
   }
 
-  submitActionForStep(ctx, currentStepId, step.roleId, actorSeat, customActions[step.roleId]);
+  submitActionForStep(
+    ctx,
+    currentStepId,
+    step.roleId,
+    actorSeat,
+    state.nightmareBlockedSeat === actorSeat
+      ? getSchema(currentStepId).kind === 'confirm'
+        ? { confirmed: false }
+        : null
+      : customActions[step.roleId],
+    stepExecutions[currentStepId],
+  );
 }
 
 function submitActionForStep(
@@ -228,6 +250,7 @@ function submitActionForStep(
   roleId: RoleId,
   actorSeat: number,
   value: ActionValue | undefined,
+  execution?: TestCommandExecution,
 ): void {
   if (stepId === 'wolfKill') {
     submitWolfVotes(ctx, stepId, value);
@@ -277,12 +300,14 @@ function submitActionForStep(
     actorSeat,
     target === null ? { kind: 'skip' } : { kind: 'target', target },
     `${stepId} (${roleId})`,
+    execution,
   );
 }
 
 function submitWolfVotes(ctx: GameContext, stepId: SchemaId, value: ActionValue | undefined): void {
   const target = typeof value === 'number' ? value : null;
-  const wolfSeats = Object.values(ctx.getGameState().players)
+  const state = ctx.getGameState();
+  const wolfSeats = Object.values(state.players)
     .filter((player) => player?.role && doesRoleParticipateInWolfVote(player.role))
     .map((player) => player!.seat);
   if (wolfSeats.length === 0) {
@@ -292,7 +317,9 @@ function submitWolfVotes(ctx: GameContext, stepId: SchemaId, value: ActionValue 
     submitActionOrThrow(
       ctx,
       seat,
-      target === null ? { kind: 'skip' } : { kind: 'target', target },
+      target === null || state.nightmareBlockedSeat === seat
+        ? { kind: 'skip' }
+        : { kind: 'target', target },
       { stepId },
     );
   }

@@ -211,9 +211,13 @@ export const spiritKnight = createPassiveRole(
     faction: 'wolf',
     team: 'wolf',
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
-    immunities: ['wolfKill'],
+    wolfKillTargetForbidden: true,
+    checkReaction: 'reflect',
+    immunities: ['wolfKill', 'poison', 'checkDeath'],
   },
-  (_context: WerewolfRoleStepContext, seat) => [{ kind: 'reflect', seat, against: ['poison'] }],
+  (_context: WerewolfRoleStepContext, seat) => [
+    { kind: 'reflect', seat, against: ['poison', 'checkDeath'] },
+  ],
 );
 export const masquerade = createPassiveRole(
   'masquerade',
@@ -250,6 +254,7 @@ export const cursedFox = createPassiveRole(
   {
     faction: 'special',
     team: 'third',
+    checkReaction: 'targetDeath',
     immunities: ['wolfKill'],
   },
 );

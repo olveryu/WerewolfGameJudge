@@ -45,6 +45,7 @@ export const dreamcatcher = defineRole({
               to: selection.landingSeat,
               cause: 'dreamcatcherLink',
               isMutual: false,
+              bypassShelter: true,
             },
             ...(targetWasDreamedLastNight
               ? [

@@ -73,7 +73,10 @@ const convertStep: StepDefinition<
             cardSelections: [],
             disabledAbilities: [],
             deathEffects: [],
-            factionChanges: [{ seat: selection.landingSeat, faction: 'wolf' }],
+            factionChanges:
+              context.factionOfRole(context.role.roleOf(selection.landingSeat)) === 'wolf'
+                ? []
+                : [{ seat: selection.landingSeat, faction: 'wolf' }],
           },
         };
       },
@@ -126,9 +129,8 @@ function getTargetUnavailableReason(
   chosenSeat: number,
 ): string | null {
   if (chosenSeat === context.seat) return COPY.selfDisallowed;
-  const landingSeat = context.role.landing(chosenSeat);
-  if (context.factionOfRole(context.role.roleOf(landingSeat)) === 'wolf') {
+  if (context.factionOfRole(context.role.roleOf(chosenSeat)) === 'wolf') {
     return COPY.wolfDisallowed;
   }
-  return context.isAdjacentToWolfFaction(landingSeat) ? null : COPY.adjacencyDisallowed;
+  return context.isAdjacentToWolfFaction(chosenSeat) ? null : COPY.adjacencyDisallowed;
 }

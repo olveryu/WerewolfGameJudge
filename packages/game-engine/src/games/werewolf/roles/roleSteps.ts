@@ -1,7 +1,7 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { StepDefinition } from '../../../platform/steps/step';
-import { resolveTargetSelection } from './location';
+import { resolveTargetSelection, type TargetSelection } from './location';
 import type {
   WerewolfBottomCard,
   WerewolfNightFacts,
@@ -11,6 +11,7 @@ import type {
 
 const ROLE_STEP_COPY = defineCopy({
   locked: '你今晚无法使用技能',
+  nightmareLocked: '被噩梦之影恐惧，本夜无法使用技能',
   selfTargetDisallowed: '不能选择自己',
   repeatedTargetDisallowed: '不能连续两晚选择同一名玩家',
   repeatedCardDisallowed: '不能连续两晚选择同一张底牌',
@@ -78,12 +79,27 @@ export function getRoleAbilityLockReason(
   lockedReason: string = ROLE_STEP_COPY.locked,
 ): string | null {
   if (context.seat === null) return null;
-  return context.facts.disabledAbilities.some(
-    (ability) =>
-      ability.seat === context.seat && (ability.roleId === roleId || ability.roleId === '*'),
-  )
-    ? lockedReason
-    : null;
+  const disabled = context.facts.disabledAbilities.filter(
+    (ability) => ability.seat === context.seat,
+  );
+  if (disabled.some((ability) => ability.roleId === '*')) return ROLE_STEP_COPY.nightmareLocked;
+  return disabled.some((ability) => ability.roleId === roleId) ? lockedReason : null;
+}
+
+export function resolveRoleTarget(
+  context: WerewolfRoleStepContext,
+  chosenSeat: number,
+): TargetSelection {
+  const selection = resolveTargetSelection(chosenSeat, context.state.location);
+  const shelter = context.facts.selections.find((entry) => entry.roleId === 'eclipseWolfQueen');
+  if (
+    context.seat !== null &&
+    context.teamOfRole(context.role.roleOf(context.seat)) === 'good' &&
+    shelter?.landingSeat === selection.landingSeat
+  ) {
+    return { ...selection, landingSeat: context.seat };
+  }
+  return selection;
 }
 
 export function createFactionCheckResult(
@@ -105,6 +121,27 @@ export function createFactionCheckResult(
     kind: 'factionCheck',
     ...selection,
     faction: resultIsWolf ? 'wolf' : 'good',
+  };
+}
+
+export function createCheckEffects(
+  context: WerewolfRoleStepContext,
+  selection: { readonly chosenSeat: number; readonly landingSeat: number },
+): Pick<WerewolfNightFacts, 'disabledAbilities' | 'deathEffects'> {
+  const reaction = context.checkReactionOfRole(context.role.roleOf(selection.landingSeat));
+  return {
+    disabledAbilities: [],
+    deathEffects:
+      reaction === undefined
+        ? []
+        : [
+            {
+              kind: 'attack',
+              cause: 'checkDeath',
+              source: getActingSeat(context),
+              target: selection.landingSeat,
+            },
+          ],
   };
 }
 
@@ -186,7 +223,7 @@ export function createSingleTargetStep(
           if (chosenSeat === undefined || context.seat === null) {
             throw new Error(`[FAIL-FAST] ${options.id} resolved without one actor and target`);
           }
-          const selection = resolveTargetSelection(chosenSeat, context.state.location);
+          const selection = resolveRoleTarget(context, chosenSeat);
           const selectionEffects = options.selectionEffects?.(context, selection);
           const facts: WerewolfNightFacts = {
             selections: [
@@ -216,7 +253,12 @@ export function createSingleTargetStep(
               ? {}
               : { wolfGirlConfessions: selectionEffects.wolfGirlConfessions }),
           };
-          const result = options.result?.(context, selection);
+          const wasRedirected =
+            selection.landingSeat !== context.role.landing(selection.chosenSeat);
+          const resultSelection = wasRedirected
+            ? { ...selection, chosenSeat: selection.landingSeat }
+            : selection;
+          const result = options.result?.(context, resultSelection);
           return {
             facts,
             ...(result === undefined ? {} : { result }),
@@ -294,8 +336,12 @@ export function createCardSelectionStep(
     title: options.actionName,
     audio: () => ({ begin: options.roleId, end: options.roleId }),
     actors: (context) =>
-      context.state.seatedSeats.filter((seat) =>
-        context.role.activeRoleIdsOf(seat).includes(options.roleId),
+      context.state.seatedSeats.filter(
+        (seat) =>
+          context.role.activeRoleIdsOf(seat).includes(options.roleId) ||
+          context.record.bySeat[seat]?.submissions.some(
+            (submission) => submission.actionKey === options.id,
+          ) === true,
       ),
     actions: [
       {
@@ -333,6 +379,9 @@ export function createCardSelectionStep(
               cardSelections: [{ roleId: options.roleId, actorSeat: seat, cardIndex }],
               disabledAbilities: [],
               deathEffects: [],
+              ...(options.identityChange === 'grantBorrowedAbility'
+                ? { sightOverrides: [{ seat, roleId: card.roleId }] }
+                : {}),
             },
             result: { kind: 'cardSelection', roleId: card.roleId },
           };

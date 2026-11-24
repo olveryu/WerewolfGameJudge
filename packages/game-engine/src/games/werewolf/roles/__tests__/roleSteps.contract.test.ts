@@ -1,12 +1,18 @@
 import type { StepDefinition, StepRecord, StepRuntime } from '../../../../platform/steps';
 import {
   buildStepReviewLines,
+  decideStepSubmission,
+  describeStepConfirmation,
+  evaluateStepProgress,
+  evolveStepSlice,
   getStepOverrideViolations,
   presentStep,
   STEP_OVERRIDE_ALLOWLIST,
+  STEP_RESULT_ACK_ACTION_KEY,
 } from '../../../../platform/steps';
 import {
   createWerewolfRoleContext,
+  resolveDeathEffects,
   resolveNightPresenceFacts,
   WEREWOLF_PRESENCE_DECLARATIONS,
   WEREWOLF_ROLE_DEFINITIONS,
@@ -253,31 +259,128 @@ describe('werewolf role definitions', () => {
       voteAction.seats(createRoleContext(state, 1)).find((option) => option.seat === 2),
     ).toEqual({
       seat: 2,
-      unavailableReason: '该角色免疫狼人袭击',
+      unavailableReason: '该角色不能被狼人直接袭击',
     });
     expect(completion(disagreeing)).toEqual({ kind: 'pending' });
     expect(completion(aligned)).toEqual({ kind: 'armCountdown' });
     expect(step.actions[0]?.commit).toBe('revisable');
   });
 
-  it('skips the wolf vote on night one when a poisoner is present', () => {
-    const step = wolfKillStep;
-    const completion = step.completion;
-    if (completion === undefined) throw new Error('[FAIL-FAST] Wolf vote completion is missing');
-    const state = createState('poisoner', {
-      nightNumber: 1,
+  it('lets wolves change and withdraw votes without restoring a previous vote', () => {
+    const state = createState('wolf', {
       identities: {
-        1: { dealtRole: 'poisoner', currentRole: 'poisoner', borrowedAbilityRole: null },
-        2: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
-        3: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
-        4: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        1: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
+        2: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        3: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        4: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
       },
     });
-    const context = createRoleContext(state, null);
+    const initialRuntime = createRuntimeForStep(wolfKillStep, state);
+    let slice = initialRuntime.getSlice(state);
+    const runtime = { ...initialRuntime, getSlice: () => slice };
+    const submit = (seat: number, actionKey: string, seats?: readonly number[]) => {
+      const decision = decideStepSubmission(runtime, state, seat, {
+        stepId: 'wolfKill',
+        serial: 1,
+        actionKey,
+        ...(seats === undefined ? {} : { seats }),
+      });
+      if (decision.kind === 'reject') throw new Error(`[FAIL-FAST] ${actionKey} was rejected`);
+      for (const event of decision.events) slice = evolveStepSlice(slice, event);
+    };
 
-    expect(step.actors(context)).toEqual([]);
-    expect(completion(context)).toEqual({ kind: 'complete' });
+    submit(1, 'wolfKill', [3]);
+    submit(2, 'wolfKill', [3]);
+    expect(presentStep(runtime, state, 1)?.progress).toEqual({ done: 2, total: 2 });
+    const countdown = evaluateStepProgress(runtime, state, 100)[0];
+    if (countdown?.type !== 'deadlineArmed') throw new Error('[FAIL-FAST] No wolf countdown');
+    slice = evolveStepSlice(slice, countdown);
+
+    submit(1, 'wolfKillAbstain');
+    expect(slice.records.wolfKill?.bySeat[1]?.submissions).toEqual([
+      { actionKey: 'wolfKillAbstain', seats: [], cardIndex: null },
+    ]);
+    expect(presentStep(runtime, state, 1)?.actions).toContainEqual(
+      expect.objectContaining({ key: 'wolfKillWithdraw', label: '撤回袭击投票' }),
+    );
+    submit(1, 'wolfKillWithdraw');
+    expect(slice.records.wolfKill?.bySeat[1]?.submissions).toEqual([]);
+    expect(presentStep(runtime, state, 1)?.progress).toEqual({ done: 1, total: 2 });
+    expect(evaluateStepProgress(runtime, state, 200)).toEqual([{ type: 'deadlineCleared' }]);
   });
+
+  it.each([
+    {
+      cause: 'poisoner',
+      role: 'poisoner',
+      facts: EMPTY_FACTS,
+      reason: '本局有毒师在场，首夜无法袭击',
+    },
+    {
+      cause: 'nightmare',
+      role: 'villager',
+      facts: {
+        ...EMPTY_FACTS,
+        disabledAbilities: [
+          { roleId: '*', seat: 2 },
+          { roleId: 'wolfKill', seat: 3 },
+        ],
+      },
+      reason: '被噩梦之影恐惧，本夜无法袭击',
+    },
+  ])(
+    'lets every wolf see and acknowledge the $cause attack restriction',
+    ({ role, facts, reason }) => {
+      const state = createState(role, {
+        nightNumber: 1,
+        identities: {
+          1: { dealtRole: role, currentRole: role, borrowedAbilityRole: null },
+          2: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
+          3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+          4: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        },
+      });
+      const initialRuntime = createRuntimeForStep(wolfKillStep, state, { bySeat: {} }, facts);
+      let slice = initialRuntime.getSlice(state);
+      const runtime = { ...initialRuntime, getSlice: () => slice };
+
+      expect(wolfKillStep.actors(createRoleContext(state, null, facts))).toEqual([2, 3]);
+      expect(evaluateStepProgress(runtime, state, 100)).toEqual([]);
+      for (const seat of [2, 3]) {
+        const presentation = presentStep(runtime, state, seat);
+        expect(presentation?.actions).toMatchObject([
+          { key: 'wolfKill', availability: { kind: 'unavailable', reason } },
+          { key: 'wolfKillAbstain', label: '放弃袭击', availability: { kind: 'available' } },
+        ]);
+        expect(
+          describeStepConfirmation(runtime, state, seat, { actionKey: 'wolfKillAbstain' }),
+        ).toEqual({
+          title: '放弃袭击？',
+          body: null,
+          tone: 'default',
+        });
+        expect(
+          decideStepSubmission(runtime, state, seat, {
+            stepId: 'wolfKill',
+            serial: 1,
+            actionKey: 'wolfKill',
+            seats: [4],
+          }),
+        ).toEqual({ kind: 'reject', reason: 'REASON_STEP_STALE' });
+        const abstention = decideStepSubmission(runtime, state, seat, {
+          stepId: 'wolfKill',
+          serial: 1,
+          actionKey: 'wolfKillAbstain',
+        });
+        if (abstention.kind === 'reject') throw new Error('[FAIL-FAST] Abstention was rejected');
+        for (const event of abstention.events) slice = evolveStepSlice(slice, event);
+        if (seat === 2) expect(evaluateStepProgress(runtime, state, 100)).toEqual([]);
+      }
+      expect(evaluateStepProgress(runtime, state, 100)).toMatchObject([
+        { type: 'advanced', next: null },
+      ]);
+    },
+  );
 
   it('does not make a mechanical wolf a voter through a borrowed wolf ability', () => {
     const step = wolfKillStep;
@@ -321,7 +424,11 @@ describe('werewolf role definitions', () => {
     };
 
     expect(wolfKillStep.actors(context)).toEqual([1, 2]);
-    expect(wolfKillStep.lock?.({ ...context, seat: 2 })).toBe('被噩梦之影恐惧，本夜无法袭击');
+    const attack = wolfKillStep.actions[0];
+    expect(attack?.availability?.({ ...context, seat: 2 })).toEqual({
+      kind: 'unavailable',
+      reason: '被噩梦之影恐惧，本夜无法袭击',
+    });
     expect(wolfKillStep.completion?.(voteContext)).toEqual({ kind: 'armCountdown' });
   });
 
@@ -359,7 +466,7 @@ describe('werewolf role definitions', () => {
         {
           kind: 'protect',
           source: 1,
-          target: 2,
+          target: 4,
           against: ['wolfKill'],
           conflictGroup: 'wolfSave',
         },
@@ -402,7 +509,7 @@ describe('werewolf role definitions', () => {
     }
     const view = step.actions.find((action) => action.kind === 'view');
     if (view?.kind !== 'view') throw new Error('[FAIL-FAST] Hunter status view is missing');
-    const state = createState('wolfRobot');
+    const state = createState('wolfRobot', { nightNumber: 1 });
     const learningState = createState('wolfRobot', {
       identities: {
         1: { dealtRole: 'wolfRobot', currentRole: 'wolfRobot', borrowedAbilityRole: null },
@@ -477,6 +584,7 @@ describe('werewolf role definitions', () => {
     expect(learningResult.facts?.identityChanges).toEqual([
       { kind: 'grantBorrowedAbility', seat: 1, roleId: 'hunter' },
     ]);
+    expect(learningResult.facts?.sightOverrides).toEqual([{ seat: 1, roleId: 'hunter' }]);
     expect(learningResult.facts?.disabledAbilities).toEqual([{ roleId: 'hunter', seat: 1 }]);
     expect(view.availability?.(context)).toEqual({ kind: 'available' });
     expect(isSeatSettled(context, learnedHunter)).toBe(false);
@@ -489,6 +597,32 @@ describe('werewolf role definitions', () => {
         ],
       }),
     ).toBe(true);
+
+    const pendingRuntime = createRuntime(role, state, {
+      bySeat: { 1: { ...learnedHunter, isResultAcknowledged: false } },
+    });
+    expect(
+      decideStepSubmission(pendingRuntime, state, 1, {
+        stepId: 'wolfRobotLearn',
+        serial: 1,
+        actionKey: 'wolfRobotHunterStatus',
+      }),
+    ).toEqual({ kind: 'reject', reason: 'REASON_STEP_STALE' });
+    expect(
+      decideStepSubmission(pendingRuntime, state, 1, {
+        stepId: 'wolfRobotLearn',
+        serial: 1,
+        actionKey: STEP_RESULT_ACK_ACTION_KEY,
+      }).kind,
+    ).toBe('accept');
+    const acknowledgedRuntime = createRuntime(role, state, { bySeat: { 1: learnedHunter } });
+    expect(
+      decideStepSubmission(acknowledgedRuntime, state, 1, {
+        stepId: 'wolfRobotLearn',
+        serial: 1,
+        actionKey: 'wolfRobotHunterStatus',
+      }).kind,
+    ).toBe('accept');
   });
 
   it('locks borrowed role actions on the night they are learned', () => {
@@ -505,9 +639,7 @@ describe('werewolf role definitions', () => {
         disabledAbilities: [{ roleId, seat: 1 }],
       });
 
-      expect(step.lock(context)).toBe(
-        roleId === 'witch' ? '被噩梦之影恐惧，本夜无法使用技能' : '你今晚无法使用技能',
-      );
+      expect(step.lock(context)).toBe('你今晚无法使用技能');
     }
   });
 
@@ -572,11 +704,14 @@ describe('werewolf role definitions', () => {
     const state = createState('awakenedGargoyle');
     const context = {
       ...createRoleContext(state, 1),
-      isAdjacentToWolfFaction: (seat: number) => seat === 4,
+      isAdjacentToWolfFaction: (seat: number) => seat === 2,
     };
     const result = action.resolve(context, [2]);
 
     expect(action.seats(context).find((option) => option.seat === 2)?.unavailableReason).toBeNull();
+    expect(
+      action.seats(context).find((option) => option.seat === 4)?.unavailableReason,
+    ).not.toBeNull();
     expect(result.facts?.factionChanges).toEqual([{ seat: 4, faction: 'wolf' }]);
   });
 
@@ -598,19 +733,19 @@ describe('werewolf role definitions', () => {
     if (facts === undefined) throw new Error('[FAIL-FAST] Seed wolf facts are missing');
 
     expect(action.availability?.(context)).toEqual({ kind: 'available' });
-    expect(facts.wolfInfections).toEqual([{ actorSeat: 1, targetSeat: 2 }]);
+    expect(facts.wolfInfections).toEqual([{ actorSeat: 1, targetSeat: 4 }]);
     expect(reveal.content(createRoleContext(state, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
       '你未被感染',
     );
     const infectedState = createState('seedWolf', {
       identities: {
         1: { dealtRole: 'seedWolf', currentRole: 'seedWolf', borrowedAbilityRole: null },
-        2: { dealtRole: 'seer', currentRole: 'wolf', borrowedAbilityRole: null },
+        2: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
         3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
-        4: { dealtRole: 'dreamcatcher', currentRole: 'dreamcatcher', borrowedAbilityRole: null },
+        4: { dealtRole: 'dreamcatcher', currentRole: 'wolf', borrowedAbilityRole: null },
       },
     });
-    expect(reveal.content(createRoleContext(infectedState, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
+    expect(reveal.content(createRoleContext(infectedState, 4, { ...EMPTY_FACTS, ...facts }))).toBe(
       '你已被种狼感染并转化为普通狼人',
     );
     expect(action.availability?.({ ...context, resolvedWolfKillTarget: 3 })).toMatchObject({
@@ -670,7 +805,10 @@ describe('werewolf role definitions', () => {
     const presentation = presentStep(createRuntime(role, state, { bySeat: {} }, facts), state, 1);
 
     expect(presentation?.actions.map((action) => action.key)).toEqual(['seerCheck', '$skip']);
-    expect(presentation?.actions[0]?.availability.kind).toBe('unavailable');
+    expect(presentation?.actions[0]?.availability).toEqual({
+      kind: 'unavailable',
+      reason: '被噩梦之影恐惧，本夜无法使用技能',
+    });
   });
 
   it('resolves death effects at the swapped landing seat', () => {
@@ -697,6 +835,33 @@ describe('werewolf role definitions', () => {
 
     expect(result.facts?.deathEffects).toEqual([
       { kind: 'attack', cause: 'checkDeath', source: 1, target: 3 },
+    ]);
+  });
+
+  it('reflects a later-night pure-white check on the spirit knight once', () => {
+    const state = createState('pureWhite', {
+      identities: {
+        1: { dealtRole: 'pureWhite', currentRole: 'pureWhite', borrowedAbilityRole: null },
+        2: { dealtRole: 'spiritKnight', currentRole: 'spiritKnight', borrowedAbilityRole: null },
+      },
+      location: { swap: null },
+      seatedSeats: [1, 2],
+    });
+    const result = resolveRoleTarget('pureWhite', state, 2);
+    const spiritKnight: WerewolfRoleDefinition = requireRole('spiritKnight');
+    const immunities = spiritKnight.traits.immunities;
+    if (result.facts?.deathEffects === undefined || immunities === undefined) {
+      throw new Error('[FAIL-FAST] Missing pure-white check effects or spirit knight immunities');
+    }
+    const deaths = resolveDeathEffects([
+      ...result.facts.deathEffects,
+      { kind: 'immune', seat: 2, against: immunities },
+      ...(spiritKnight.passiveDeathEffects?.(createRoleContext(state, 2), 2) ?? []),
+    ]);
+
+    expect(deaths.deaths).toEqual([1]);
+    expect(deaths.trace.filter((entry) => entry.kind === 'reflection')).toEqual([
+      { kind: 'reflection', source: 1, target: 2 },
     ]);
   });
 
@@ -817,6 +982,42 @@ describe('werewolf role definitions', () => {
     expect(action.resolve(noWolfContext, 0).facts?.identityChanges).toEqual([
       { kind: 'replaceCurrentRole', seat: 1, roleId: 'seer' },
     ]);
+  });
+
+  it('lets the thief acknowledge the chosen card after its identity changes', () => {
+    const role = requireRole('thief');
+    const state = createState('thief', {
+      identities: {
+        1: { dealtRole: 'thief', currentRole: 'seer', borrowedAbilityRole: null },
+        2: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        4: { dealtRole: 'dreamcatcher', currentRole: 'dreamcatcher', borrowedAbilityRole: null },
+      },
+    });
+    const seatRecord = {
+      submissions: [{ actionKey: 'thiefChoose', seats: [], cardIndex: 0 }],
+      result: { kind: 'cardSelection' as const, roleId: 'seer' },
+      isResultAcknowledged: false,
+    };
+    const record = { bySeat: { 1: seatRecord } };
+    const runtime = createRuntime(role, state, record);
+
+    expect(presentStep(runtime, state, 1)?.pendingResult).toEqual({
+      title: '选择的身份',
+      text: '预言家',
+    });
+    expect(evaluateStepProgress(runtime, state, 100)).toEqual([]);
+    expect(
+      decideStepSubmission(runtime, state, 1, {
+        stepId: 'thiefChoose',
+        serial: 1,
+        actionKey: STEP_RESULT_ACK_ACTION_KEY,
+      }),
+    ).toMatchObject({ kind: 'accept' });
+    const acknowledged = { bySeat: { 1: { ...seatRecord, isResultAcknowledged: true } } };
+    expect(
+      evaluateStepProgress(createRuntime(role, state, acknowledged), state, 100),
+    ).toMatchObject([{ type: 'advanced', next: null }]);
   });
 
   it('grants the treasure master the selected card as a borrowed ability', () => {
@@ -978,12 +1179,17 @@ function createRoleContext(
       if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
       return found.traits.faction;
     },
+    checkReactionOfRole: (roleId) => {
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.traits.checkReaction;
+    },
     doesRoleVoteWithWolves: (roleId) => {
       const found = roleById.get(roleId);
       if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
       return found.traits.recognition?.participatesInWolfVote === true;
     },
-    isImmuneToAttack: (seat, cause) => {
+    isWolfKillTargetForbidden: (seat) => {
       const roleId = createWerewolfRoleContext(
         state.identities,
         state.location,
@@ -991,7 +1197,7 @@ function createRoleContext(
       ).roleOf(seat);
       const found = roleById.get(roleId);
       if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
-      return found.traits.immunities?.includes(cause) === true;
+      return found.traits.wolfKillTargetForbidden === true;
     },
     isAdjacentToWolfFaction: () => false,
     roleNameOf: (roleId) => {

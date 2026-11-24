@@ -1,6 +1,7 @@
 import { defineCopy } from '../../../platform/steps';
 import { defineRole } from './role';
 import {
+  createCheckEffects,
   createIdentityCheckResult,
   createSingleTargetStep,
   renderIdentityCheckResult,
@@ -31,6 +32,7 @@ export const psychic = defineRole({
       actionName: COPY.action,
       skippable: true,
       canTargetSelf: false,
+      selectionEffects: createCheckEffects,
       result: createIdentityCheckResult,
       renderResult: (context, result) =>
         renderIdentityCheckResult(context, result, COPY.resultTitle),
