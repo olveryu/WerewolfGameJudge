@@ -779,6 +779,12 @@ describe('scene stage WebGL context loss', () => {
     release();
   });
 
+  // The fake throws at the start of PixiJS's restore handler. Real PixiJS throws partway through
+  // its context-change runner (at the limits system), so the systems ahead of it already hold the
+  // new context, and in a browser the second loss event arrives asynchronously, so the restarted
+  // ticker may draw a few frames first; drawing on a lost context is a no-op. What these tests pin
+  // is the stage's side: it keeps watching, pauses on the next loss, and recovers by a full restore
+  // (which re-sends the context to every system) or by a rebuild.
   it('recovers when PixiJS throws in its own restore handler because the context is lost again', async () => {
     const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
     const { host, release } = await mountedStage();
