@@ -29,8 +29,10 @@ import {
   Application,
   Color,
   Container,
+  getCanvasTexture,
   Graphics,
   GraphicsContext,
+  hasCachedCanvasTexture,
   ImageSource,
   Sprite,
   Texture,
@@ -118,12 +120,14 @@ const opaqueSampler: MorphSampler = () => ({ opacity: 1 });
 
 /**
  * How long a lost context may stay lost before the stage stops waiting for
- * `webglcontextrestored` and rebuilds on a new canvas. WebKit retries a restore once a second
- * (`secondsBetweenRestoreAttempts` in `WebGLRenderingContextBase.cpp`), so three seconds is three
- * restore attempts. Some losses are never restored: when a page holds too many contexts WebKit
- * drops the oldest with a simulated loss that is not restorable (WebKit changeset 291477). The
- * stage itself counts only visible time (`document.hidden`), so a backgrounded page gets its
- * full wait once it shows again.
+ * `webglcontextrestored` and rebuilds on a new canvas. In WebKit's `WebGLRenderingContextBase.cpp`
+ * (checked on WebKit main at 9fad5025a9d6, 2026-11-13) a restorable loss is retried right after
+ * the `webglcontextlost` event and then every `secondsBetweenRestoreAttempts` (1 s) while creating
+ * the new context fails, so three seconds covers the first attempt and about three retries. Some
+ * losses are never restored: past `maxActiveContexts` (16) WebKit drops the oldest context with a
+ * synthetic loss that cannot be restored (`recycleContext`; see also changeset 291477). The stage
+ * itself counts only visible time (`document.hidden`), so a backgrounded page gets its full wait
+ * once it shows again.
  */
 export const CONTEXT_RESTORE_DEADLINE_MS = 3000;
 
@@ -829,7 +833,10 @@ class SceneStage implements EntranceHost {
   /** Pending rebuild after `CONTEXT_RESTORE_DEADLINE_MS` (or a retry's backoff) of visible lost time. */
   private restoreDeadline: ReturnType<typeof setTimeout> | null = null;
   private rebuilding = false;
-  /** Failed rebuilds since the context was lost; reset when it is restored or rebuilt. */
+  /**
+   * Failed rebuilds during the current loss. Only a loss starts a wait, so the loss handler is the
+   * one place that resets it; while the context is drawable it is never read.
+   */
   private failedRebuilds = 0;
   private stopWatchingContext: () => void;
 
@@ -871,7 +878,6 @@ class SceneStage implements EntranceHost {
       },
       onRestored: () => {
         this.contextLost = false;
-        this.failedRebuilds = 0;
         this.syncRestoreDeadline();
         sceneLog.info('WebGL context restored; scene redrawn', this.contextReport());
         this.redraw();
@@ -916,8 +922,7 @@ class SceneStage implements EntranceHost {
    * its GPU copies of shared geometry and textures) are destroyed. The old canvas stays watched
    * until the new application exists: if its context comes back meanwhile the new application is
    * discarded, and if creating it fails a retry is armed and a later restore still resumes it.
-   * A failed `init` leaves nothing to destroy: PixiJS assigns `renderer` (and so the canvas and
-   * context) only after it succeeds.
+   * `createSceneApplication` cleans up after its own failures (see there).
    */
   private async rebuild(): Promise<void> {
     const lost = this.application;
@@ -960,7 +965,6 @@ class SceneStage implements EntranceHost {
     this.application = next;
     this.stopWatchingContext = this.bind(next);
     this.contextLost = false;
-    this.failedRebuilds = 0;
     this.placeCanvas();
     sceneLog.info('Scene rebuilt on a new WebGL context', this.contextReport());
     this.redraw();
@@ -1265,24 +1269,82 @@ function createDotTexture(resolution: number): Texture {
   });
 }
 
+/** The scene is drawn transparent over the page. */
+const BACKGROUND_ALPHA = 0;
+const ANTIALIAS = true;
+
 /**
- * Creates the PixiJS application (canvas and WebGL context) the stage draws with.
+ * The attributes PixiJS 8 (`GlContextSystem.init`) creates its context with for the options
+ * `createSceneApplication` passes: `alpha` because the background alpha is below 1,
+ * `premultipliedAlpha` and `preserveDrawingBuffer` at their defaults, `antialias` as passed (no
+ * back buffer is used), a stencil buffer always, and the default power preference.
+ */
+const WEBGL_CONTEXT_ATTRIBUTES: WebGLContextAttributes = {
+  alpha: BACKGROUND_ALPHA < 1,
+  premultipliedAlpha: true,
+  antialias: ANTIALIAS,
+  stencil: true,
+  preserveDrawingBuffer: false,
+  powerPreference: 'default',
+};
+
+/**
+ * Creates `canvas`'s WebGL context the way PixiJS would: WebGL 2, else WebGL 1.
+ *
+ * @returns the context, which PixiJS then picks up from the canvas
+ * @throws when no context can be created or it is created already lost
+ */
+function createWebglContext(
+  canvas: HTMLCanvasElement,
+): WebGL2RenderingContext | WebGLRenderingContext {
+  const context =
+    canvas.getContext('webgl2', WEBGL_CONTEXT_ATTRIBUTES) ??
+    canvas.getContext('webgl', WEBGL_CONTEXT_ATTRIBUTES);
+  if (!context) throw new Error('No WebGL context could be created');
+  if (context.isContextLost()) throw new Error('The new WebGL context was created lost');
+  return context;
+}
+
+/**
+ * Creates the PixiJS application (canvas and WebGL context) the stage draws with, at startup and
+ * for every rebuild.
+ *
+ * The context is created before PixiJS is touched. PixiJS's renderer `init` runs its systems in
+ * order and creates the context midway: by then the scheduler has joined the global
+ * `Ticker.system` and the view has cached a texture for the canvas, and `Application` assigns its
+ * `renderer` only after `init` resolves, so a renderer whose context creation fails could never be
+ * destroyed. Creating the context first means the usual failure (none can be created, as while
+ * the GPU is out of memory) leaves no PixiJS object behind. PixiJS then reads the same context
+ * back from the canvas: `getContext` returns a canvas's existing context for its own type (and
+ * null for the other WebGL version, which PixiJS falls through).
+ *
+ * If `init` still fails with a live context (it was lost during `init`), the GPU context and the
+ * canvas texture cached for our canvas are released; the half-built renderer itself is out of
+ * reach.
  *
  * @returns the application; rejects when WebGL is unavailable
  */
 async function createSceneApplication(): Promise<Application> {
+  const canvas = document.createElement('canvas');
+  const context = createWebglContext(canvas);
   const application = new Application();
-  await application.init({
-    // WebGL only: an array preference makes PixiJS throw instead of falling back to another
-    // renderer when WebGL is unavailable.
-    preference: ['webgl'],
-    backgroundAlpha: 0,
-    antialias: true,
-    resolution: Math.min(window.devicePixelRatio, MAX_RESOLUTION),
-    autoDensity: true,
-    autoStart: false,
-  });
-  const canvas = application.canvas;
+  try {
+    await application.init({
+      canvas,
+      // WebGL only: an array preference makes PixiJS throw instead of falling back to another
+      // renderer when WebGL is unavailable.
+      preference: ['webgl'],
+      backgroundAlpha: BACKGROUND_ALPHA,
+      antialias: ANTIALIAS,
+      resolution: Math.min(window.devicePixelRatio, MAX_RESOLUTION),
+      autoDensity: true,
+      autoStart: false,
+    });
+  } catch (error) {
+    context.getExtension('WEBGL_lose_context')?.loseContext();
+    if (hasCachedCanvasTexture(canvas)) getCanvasTexture(canvas).destroy(true);
+    throw error;
+  }
   canvas.setAttribute('aria-hidden', 'true');
   canvas.classList.add('scene-canvas');
   return application;
