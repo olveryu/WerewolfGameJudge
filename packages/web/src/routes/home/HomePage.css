@@ -225,7 +225,8 @@
   box-shadow: none;
 }
 
-.home-action:disabled .home-action-icon {
+.home-action:disabled .home-action-icon,
+.home-action:disabled .home-action-title {
   color: var(--color-text-secondary);
 }
 
