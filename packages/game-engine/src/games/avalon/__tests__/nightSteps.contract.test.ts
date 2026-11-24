@@ -4,16 +4,14 @@
  * each other — the Record type already forces exhaustiveness at
  * compile time; this test pins the runtime key sets equal so an
  * assertion-cast extra key cannot drift the two apart, and pins each
- * definition's narration and participant derivation basics.
+ * step's narration and participant derivation basics.
  */
 
 import {
-  AVALON_NIGHT_STEP_DEFS,
-  getAvalonNightStepBeginAudioKey,
-  getAvalonNightStepDef,
-  getAvalonNightStepEndAudioKey,
+  AVALON_NIGHT_STEP_DEFINITIONS,
+  getAvalonNightParticipants,
+  getAvalonNightStepAudio,
 } from '../domain/nightSteps';
-import { getAvalonNightParticipants } from '../domain/rules';
 import {
   AVALON_BOARDS,
   AVALON_NIGHT_STEPS,
@@ -33,9 +31,11 @@ function rolesForBoard(count: AvalonPlayerCount): Record<number, AvalonRoleId> {
 
 describe('Avalon night step definitions', () => {
   it('covers exactly the ordered step list, no more and no less', () => {
-    expect(Object.keys(AVALON_NIGHT_STEP_DEFS).sort()).toEqual([...AVALON_NIGHT_STEPS].sort());
+    expect(Object.keys(AVALON_NIGHT_STEP_DEFINITIONS).sort()).toEqual(
+      [...AVALON_NIGHT_STEPS].sort(),
+    );
     for (const step of AVALON_NIGHT_STEPS) {
-      expect(getAvalonNightStepDef(step).step).toBe(step);
+      expect(AVALON_NIGHT_STEP_DEFINITIONS[step].id).toBe(step);
     }
   });
 
@@ -63,13 +63,15 @@ describe('Avalon night step definitions', () => {
       const roles = rolesForBoard(count);
       for (const step of AVALON_NIGHT_STEPS) {
         const beginKey = step === 'evilReveal' ? evilRevealBegin[count] : expected[step].beginKey;
-        expect(getAvalonNightStepBeginAudioKey(step, roles)).toBe(beginKey);
-        expect(getAvalonNightStepEndAudioKey(step, roles)).toBe(expected[step].endKey);
+        expect(getAvalonNightStepAudio(step, roles)).toEqual({
+          begin: beginKey,
+          end: expected[step].endKey,
+        });
       }
     }
   });
 
-  it('derives participants through the facade identically to the table', () => {
+  it('derives each step participant set from the dealt roles', () => {
     // 7-player board layout: evil = morgana + assassin + oberon.
     const roles: Record<number, AvalonRoleId> = {
       0: 'merlin',
@@ -80,11 +82,6 @@ describe('Avalon night step definitions', () => {
       5: 'assassin',
       6: 'oberon',
     };
-    for (const step of AVALON_NIGHT_STEPS) {
-      expect(getAvalonNightParticipants(roles, step)).toEqual(
-        getAvalonNightStepDef(step).participants(roles),
-      );
-    }
     // Oberon never participates in evilReveal (closed eyes all night).
     expect(getAvalonNightParticipants(roles, 'evilReveal')).toEqual([4, 5]);
     expect(getAvalonNightParticipants(roles, 'merlinReveal')).toEqual([0]);

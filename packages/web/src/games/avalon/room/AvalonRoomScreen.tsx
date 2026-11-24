@@ -46,7 +46,6 @@ import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
-import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
 import { AvalonRoomTracks } from './components/AvalonRoomTracks';
@@ -434,25 +433,6 @@ function AvalonRoomContent(
                     )
                   }
                   onClose={() => setQuestModalOpen(false)}
-                />
-              ) : null}
-              {isNight && screen.nightModalVisible ? (
-                <AvalonNightConfirmModal
-                  key={`${screen.state.gameSequence}:${viewModel.nightStep}:${screen.effectiveSeat}`}
-                  viewModel={viewModel}
-                  isSubmitting={screen.isSubmitting}
-                  onConfirm={() => {
-                    void screen
-                      .submit(
-                        '确认信息',
-                        { type: 'avalon.night.confirm' },
-                        { controlledSeat: screen.controlledSeat, actionKey: null },
-                      )
-                      .then((success) => {
-                        if (success) screen.setNightModalVisible(false);
-                      });
-                  }}
-                  onClose={() => screen.setNightModalVisible(false)}
                 />
               ) : null}
               <AvalonLadyCheckConfirmModal

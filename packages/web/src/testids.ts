@@ -178,7 +178,6 @@ export const TESTIDS = {
   werewolfNightButton: (key: string) => `werewolf-night-button-${key}`,
 
   // Avalon night step button
-  avalonNightInfo: 'avalon-night-info',
 
   // Avalon bottom actions
   avalonEarlyStrike: 'avalon-early-strike',

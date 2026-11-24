@@ -13,6 +13,8 @@ import {
   isAvalonEvilRole,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
+
 import { createAvalonHistorySummary } from '../avalonRoomAdapter';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
@@ -83,8 +85,11 @@ function session() {
       send({ type: 'avalon.game.begin' });
       ackAudio();
       while (state.phase.kind === 'night') {
-        const participants = getAvalonNightParticipants(state.roles, state.phase.step);
-        for (const seat of participants) send({ type: 'avalon.night.confirm' }, userOf(seat));
+        const participants = getAvalonNightParticipants(
+          state.roles,
+          state.phase.steps.current!.stepId,
+        );
+        for (const seat of participants) send(avalonViewNightCommand(state), userOf(seat));
         ackAudio();
       }
       if (state.phase.kind !== 'nominate') throw new Error('expected nominate phase');

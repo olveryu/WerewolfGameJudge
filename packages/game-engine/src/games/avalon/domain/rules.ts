@@ -7,13 +7,11 @@ import {
   AVALON_FOURTH_QUEST_DOUBLE_FAIL_MIN_PLAYERS,
   AVALON_QUEST_SIZES,
   type AvalonNightInfo,
-  type AvalonNightStep,
   type AvalonPlayerCount,
   type AvalonQuestRound,
   type AvalonRoleId,
   isAvalonEvilRole,
 } from '../state/types';
-import { AVALON_NIGHT_STEP_DEFS } from './nightSteps';
 
 /** 第 R 轮需要的队员数（官方任务人数表）。 */
 export function getAvalonQuestSize(
@@ -52,17 +50,6 @@ export function getAvalonLadyInitialHolderSeat(
   numberOfPlayers: AvalonPlayerCount,
 ): number {
   return (leaderSeat - 1 + numberOfPlayers) % numberOfPlayers;
-}
-
-/**
- * night 各步骤的参与者集合（§4.1）。构成规则只有步定义表一份
- * （domain/nightSteps），本函数退化为查表门面，签名与导出不变。
- */
-export function getAvalonNightParticipants(
-  roles: Readonly<Record<number, AvalonRoleId>>,
-  step: AvalonNightStep,
-): readonly number[] {
-  return AVALON_NIGHT_STEP_DEFS[step].participants(roles);
 }
 
 /** 发牌时服务端算好的可见集合（§4.3）。 */

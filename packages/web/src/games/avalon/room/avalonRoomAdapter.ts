@@ -4,6 +4,7 @@
 
 import {
   AVALON_BOARDS,
+  AVALON_NIGHT_STEP_DEFINITIONS,
   AVALON_NIGHT_STEPS,
   type AvalonNightStep,
   type AvalonPhaseKind,
@@ -16,6 +17,7 @@ import {
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
+  hasViewedNightStep,
   isAvalonPlayerCount,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
@@ -88,7 +90,6 @@ import {
   formatAvalonQuestLabel,
   resolveAssassinInstruction,
   resolveLadyInstruction,
-  resolveNightInstruction,
   resolveNominateInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
@@ -192,8 +193,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
   const viewerSeat = controlledSeat ?? ownSeat;
+  const nightStep = nightPhase?.steps.current?.stepId ?? null;
   const stepParticipants =
-    nightPhase === null ? [] : getAvalonNightParticipants(state.roles, nightPhase.step);
+    nightStep === null ? [] : getAvalonNightParticipants(state.roles, nightStep);
   const viewerIsStepParticipant = viewerSeat !== undefined && stepParticipants.includes(viewerSeat);
   const nightView =
     nightPhase !== null && viewerSeat !== undefined ? getAvalonViewModel(state, viewerSeat) : null;
@@ -223,7 +225,7 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
         : undefined,
     resolveIndicators: (seat) => {
       const nightConfirmed =
-        nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
+        nightStep !== null && viewerIsStepParticipant && hasViewedNightStep(state, nightStep, seat);
       const progressLabel = nightConfirmed ? '已确认' : null;
       return avalonSeatIndicators(state, seat, progressLabel);
     },
@@ -231,9 +233,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
 }
 
 const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
-  evilReveal: '坏人互认',
-  merlinReveal: '梅林的视野',
-  percivalReveal: '派西维尔的视野',
+  evilReveal: AVALON_NIGHT_STEP_DEFINITIONS.evilReveal.title,
+  merlinReveal: AVALON_NIGHT_STEP_DEFINITIONS.merlinReveal.title,
+  percivalReveal: AVALON_NIGHT_STEP_DEFINITIONS.percivalReveal.title,
 };
 
 /**
@@ -242,8 +244,9 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
  * 可见），进度行不计数。非夜晚阶段为 null。
  */
 export function deriveAvalonBottomProgress(state: AvalonState): NightStepProgress | null {
-  if (state.phase.kind !== 'night') return null;
-  return resolveStepProgress(AVALON_NIGHT_STEPS, state.phase.step, AVALON_NIGHT_STEP_LABELS);
+  const step = state.phase.kind === 'night' ? state.phase.steps.current?.stepId : undefined;
+  if (step === undefined) return null;
+  return resolveStepProgress(AVALON_NIGHT_STEPS, step, AVALON_NIGHT_STEP_LABELS);
 }
 
 /** 最新一次任务结算的结论句；尚无任务结算时为 null。 */
@@ -391,7 +394,10 @@ export interface AvalonBottomActionsInput {
   /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
   readonly settleCountdownSeconds: number | null;
   readonly onViewRolePress: () => void;
-  readonly onNightInfoPress: () => void;
+  /** 夜间查看手牌（共享步骤机制产出）；非本步执行者或已查看时为空。 */
+  readonly nightActions: readonly RoomPlayerAction[];
+  /** 本步执行者的步骤引导句；非执行者为 null。 */
+  readonly nightMessage: string | null;
   readonly onOpenVotePress: () => void;
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
@@ -406,7 +412,7 @@ export interface AvalonBottomActionsInput {
 
 /**
  * 阿瓦隆底部动作区：全游戏个人动作与个人指令的唯一落点（落点总规则）——
- * 查看身份局内常驻；夜晚信息步两步确认（按钮 → 弹窗）；白天各阶段的主按钮
+ * 查看身份局内常驻；夜晚信息步走共享步骤手牌（先问 → 内容 → 知道了）；白天各阶段的主按钮
  * （预选队伍 / 最终队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
  * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
  * 一次性信息归弹窗。
@@ -452,31 +458,16 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
   if (phase.kind === 'night') {
-    // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
+    // 晚上：共享步骤机制的「查看夜间信息」手牌（先问 → 内容 → 知道了）。
+    // 查看与播报并行：音频播放中也保持可用（引擎完成评估与查看、ack 的
+    // 到达顺序无关，见 E3 §5b）。
     if (input.effectiveSeat !== null) {
-      const vm = getAvalonViewModel(state, input.effectiveSeat);
-      const instruction = resolveNightInstruction(vm);
-      if (instruction.kind === 'waiting' || instruction.kind === 'confirmed') {
-        // 非本步参与者与已确认者：等本步其余参与者确认（步名归进度行，
-        // 此处只给等待对象，不复述步名）。
+      if (input.nightActions.length > 0) {
+        primary.push(...input.nightActions);
+        message = input.nightMessage;
+      } else {
+        // 非本步执行者与已查看者：等本步其余执行者（步名归进度行，此处不复述）。
         message = '等待本步玩家确认';
-      }
-      if (
-        instruction.kind === 'evilPeers' ||
-        instruction.kind === 'merlin' ||
-        instruction.kind === 'percival'
-      ) {
-        // 确认与播报并行：音频播放中也保持可用（引擎完成评估与确认、
-        // ack 的到达顺序无关，见 E3 §5b）；不再换成禁用占位等播报结束。
-        primary.push({
-          key: 'nightInfo',
-          label: '确认信息',
-          audience: 'participant',
-          category: 'player',
-          isPending: true,
-          state: { kind: 'ready', onPress: input.onNightInfoPress },
-          testID: TESTIDS.avalonNightInfo,
-        });
       }
     }
     return {
@@ -711,7 +702,8 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly isLobby: boolean;
   readonly effectiveSeat: number | null;
   readonly onViewRolePress: () => void;
-  readonly onNightInfoPress: () => void;
+  readonly nightActions: readonly RoomPlayerAction[];
+  readonly nightMessage: string | null;
   readonly isSubmitting: boolean;
   readonly settleCountdownSeconds: number | null;
   readonly onOpenVotePress: () => void;
@@ -801,11 +793,11 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
         isLoading: input.isSubmitting,
       }),
     );
-  const phase = state.phase;
+  const nightStep = state.phase.kind === 'night' ? state.phase.steps.current?.stepId : undefined;
   if (
-    phase.kind === 'night' &&
-    getAvalonNightParticipants(state.roles, phase.step).some(
-      (seat) => isBotSeat(state.roster, seat) && !phase.confirmedSeats.includes(seat),
+    nightStep !== undefined &&
+    getAvalonNightParticipants(state.roles, nightStep).some(
+      (seat) => isBotSeat(state.roster, seat) && !hasViewedNightStep(state, nightStep, seat),
     )
   )
     actions.push(
@@ -966,7 +958,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     // The step anchor: only the night phase carries a step (its three
     // confirmation steps, verbatim from the phase). Every other phase
     // kind is already the finest-grained state, so no step there.
-    step: state.phase.kind === 'night' ? state.phase.step : null,
+    step: state.phase.kind === 'night' ? (state.phase.steps.current?.stepId ?? null) : null,
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -984,7 +976,8 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       canTakeOverBots: input.capabilities.canTakeOverBots.isAllowed,
       settleCountdownSeconds: input.settleCountdownSeconds,
       onViewRolePress: input.onViewRolePress,
-      onNightInfoPress: input.onNightInfoPress,
+      nightActions: input.nightActions,
+      nightMessage: input.nightMessage,
       onOpenVotePress: input.onOpenVotePress,
       onOpenQuestPress: input.onOpenQuestPress,
       onPreselectTeamPress: input.onPreselectTeamPress,

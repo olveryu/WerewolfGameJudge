@@ -1,3 +1,4 @@
+import { AVALON_NIGHT_VIEW_ACTION_KEY } from '@game-judge/game-engine/games/avalon/public';
 import { expect, test } from '@playwright/test';
 
 import { AUDIO_WAITING_LABEL } from '../../packages/web/src/features/room/model/RoomPlayerActions';
@@ -106,7 +107,9 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
       if (gameId === 'avalon') {
         await test.step('播报期间仍能确认夜晚信息', async () => {
           const counts = await Promise.all(
-            playerPages.map((page) => page.getByTestId(TESTIDS.avalonNightInfo).count()),
+            playerPages.map((page) =>
+              page.getByTestId(TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY)).count(),
+            ),
           );
           const participantIndex = counts.findIndex((count) => count === 1);
           expect(participantIndex).toBeGreaterThanOrEqual(0);
@@ -114,8 +117,10 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
           await expect(page.getByTestId(TESTIDS.audioWaitingMessage)).toHaveText(
             AUDIO_WAITING_LABEL,
           );
-          await page.getByTestId(TESTIDS.avalonNightInfo).click();
-          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看信息？');
+          await page
+            .getByTestId(TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY))
+            .click();
+          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看夜间信息？');
           await page.getByTestId(TESTIDS.alertButton(1)).click();
           await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
           await page.getByTestId(TESTIDS.alertButton(0)).click();

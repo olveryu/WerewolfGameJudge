@@ -123,7 +123,7 @@ function presentActions<TContext, TFacts, TResult>(
           key: action.key,
           label: renderCopy(STEP_COPY.viewAction, { title: action.title }),
           availability,
-          content: { title: action.title, text: action.content(context) },
+          content: { title: action.contentTitle ?? action.title, text: action.content(context) },
           isAcknowledged: prior,
         },
       ];

@@ -5,7 +5,10 @@ import type {
   AvalonInternalCommand,
   AvalonPublicCommand,
 } from '@game-judge/game-engine/games/avalon/public';
-import { AVALON_CONFIG_SCHEMA } from '@game-judge/game-engine/games/avalon/public';
+import {
+  AVALON_CONFIG_SCHEMA,
+  AVALON_NIGHT_STEPS,
+} from '@game-judge/game-engine/games/avalon/public';
 import { z } from 'zod';
 
 import { definePublicCommandOptions } from '../../platform/room/commandOptions';
@@ -31,7 +34,19 @@ const avalonPublicCommandOptions = definePublicCommandOptions<AvalonPublicComman
     gameSequence: z.number().int().nonnegative(),
     wasEnded: z.boolean(),
   }),
-  z.strictObject({ type: z.literal('avalon.night.confirm') }),
+  z.strictObject({
+    type: z.literal('avalon.step.submit'),
+    gameSequence: z.number().int().nonnegative(),
+    submission: z.strictObject({
+      stepId: z
+        .string()
+        .refine((value): boolean => AVALON_NIGHT_STEPS.some((step) => step === value)),
+      serial: z.number().int().nonnegative(),
+      actionKey: z.string().min(1).max(128),
+      seats: z.array(z.number().int().nonnegative()).readonly().optional(),
+      cardIndex: z.number().int().nonnegative().optional(),
+    }),
+  }),
   z.strictObject({ type: z.literal('avalon.role.viewed') }),
   z.strictObject({ type: z.literal('avalon.bots.markAllBotsViewed') }),
   z.strictObject({ type: z.literal('avalon.bots.markAllBotsGroupConfirmed') }),

@@ -20,6 +20,7 @@ import {
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
@@ -172,8 +173,11 @@ function session() {
       send({ type: 'avalon.game.begin' });
       ackAudio();
       while (state.phase.kind === 'night') {
-        const participants = getAvalonNightParticipants(state.roles, state.phase.step);
-        for (const seat of participants) sendAsSeat({ type: 'avalon.night.confirm' }, seat);
+        const participants = getAvalonNightParticipants(
+          state.roles,
+          state.phase.steps.current!.stepId,
+        );
+        for (const seat of participants) sendAsSeat(avalonViewNightCommand(state), seat);
         ackAudio();
       }
     },

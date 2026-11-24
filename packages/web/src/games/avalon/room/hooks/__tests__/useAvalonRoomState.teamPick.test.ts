@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router';
 
 import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import { avalonReview } from '@/games/avalon/review/avalonReview';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { rejectedRoomCommand, successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -88,7 +89,7 @@ function nominateState(): AvalonState {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
-      send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      send(avalonViewNightCommand(state), seatUser(seat));
     }
     if (state.isAudioPlaying)
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');

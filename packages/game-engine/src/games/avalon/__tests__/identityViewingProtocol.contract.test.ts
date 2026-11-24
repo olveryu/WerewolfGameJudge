@@ -17,7 +17,7 @@ import { haveAllViewed, listUnviewedSeats } from '../../../platform/room/identit
 import { isBotSeat } from '../../../platform/room/seating';
 import type { AvalonCommand } from '../commands/types';
 import { AVALON_REASONS, type AvalonEffect } from '../domain/decision';
-import { getAvalonNightParticipants } from '../domain/rules';
+import { getAvalonNightParticipants } from '../domain/nightSteps';
 import { getAvalonViewModel } from '../domain/visibility';
 import { avalonEngine } from '../engine';
 import { parseAvalonState } from '../state/parseState';
@@ -28,6 +28,7 @@ import {
   DEFAULT_AVALON_CONFIG,
   getAvalonViewingParticipants,
 } from '../state/types';
+import { viewNight } from './avalonNightDriver';
 
 function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) {
   const nowMs = 1000;
@@ -113,9 +114,9 @@ function game(configOverrides: Partial<AvalonConfig> = {}, humanCount?: number) 
         const participants = getAvalonNightParticipants(state.roles, step);
         for (const seat of participants) {
           if (isBotSeat(state.roster, seat)) {
-            send({ type: 'avalon.night.confirm' }, 'host', seat);
+            send(viewNight(state), 'host', seat);
           } else {
-            send({ type: 'avalon.night.confirm' }, seatUser(seat));
+            send(viewNight(state), seatUser(seat));
           }
         }
       }

@@ -1,3 +1,4 @@
+import { AVALON_NIGHT_VIEW_ACTION_KEY } from '@game-judge/game-engine/games/avalon/public';
 import { expect, type Page, test } from '@playwright/test';
 
 import { TESTIDS } from '../../packages/web/src/testids';
@@ -260,9 +261,11 @@ function parseSeatNumbers(message: string): number[] {
   return [...seats].sort((a, b) => a - b);
 }
 
+const NIGHT_INFO_BUTTON = TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY);
+
 /**
- * Drive one night participant: bottom 确认信息 → modal → assert what they
- * see → confirm. The button is available while the host narration plays
+ * Drive one night participant: bottom 查看夜间信息 → confirm → assert what
+ * they see → 知道了. The button is available while the host narration plays
  * (confirmation and narration run in parallel; the step settles once
  * every participant has confirmed and the host ack has landed, in
  * either order), so no waiting out an audio gate here.
@@ -272,17 +275,18 @@ async function confirmNightInfo(
   expectedTitle: string,
   expectedSeats: readonly number[],
 ): Promise<void> {
-  const infoButton = page.getByTestId(TESTIDS.avalonNightInfo);
+  const infoButton = page.getByTestId(NIGHT_INFO_BUTTON);
   await expect(infoButton).toBeVisible({ timeout: 30_000 });
   await infoButton.click();
   const modal = page.getByTestId(TESTIDS.alertModal);
   await expect(modal).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看信息？');
+  await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看夜间信息？');
   await expect(page.getByTestId(TESTIDS.alertButton(1))).toHaveText('查看');
   await page.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText(expectedTitle);
   const message = await page.getByTestId(TESTIDS.alertMessage).innerText();
   expect(parseSeatNumbers(message)).toEqual([...expectedSeats].sort((a, b) => a - b));
+  await expect(page.getByTestId(TESTIDS.alertButton(0))).toHaveText('知道了');
   await page.getByTestId(TESTIDS.alertButton(0)).click();
   await expect(modal).toBeHidden({ timeout: 10_000 });
 }
@@ -806,7 +810,7 @@ test.describe('Avalon full game', () => {
         // 排除在互认外：他夜里没有确认按钮、没有弹窗，只能等待——这正是
         // 规则口径（不参与、不确认）。「别人也看不见他」由下一拍三人互认的
         // 同伴集合断言（不含奥伯伦）覆盖。
-        await expect(pages[oberonSeat]!.getByTestId(TESTIDS.avalonNightInfo)).toHaveCount(0);
+        await expect(pages[oberonSeat]!.getByTestId(NIGHT_INFO_BUTTON)).toHaveCount(0);
         // PR-B G-5: a non-participant's bottom panel names what they
         // are waiting for instead of going blank.
         await waitForBottomActionMessage(pages[oberonSeat]!);
@@ -827,7 +831,7 @@ test.describe('Avalon full game', () => {
         }
         // 忠臣全程没有夜晚确认入口。
         const loyalSeat = goodSeats.find((seat) => seat !== merlinSeat && seat !== percivalSeat)!;
-        await expect(pages[loyalSeat]!.getByTestId(TESTIDS.avalonNightInfo)).toHaveCount(0);
+        await expect(pages[loyalSeat]!.getByTestId(NIGHT_INFO_BUTTON)).toHaveCount(0);
         // PR-B G-5: once step 1 settles, its confirmed participants
         // and the never-participating loyal seat both wait on step 2.
         await waitForBottomActionMessage(pages[morganaSeat]!);

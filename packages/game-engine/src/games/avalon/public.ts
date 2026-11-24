@@ -11,15 +11,16 @@ export {
   teamSizeReason,
 } from './domain/decision';
 export {
-  getAvalonNightStepBeginAudioKey,
-  getAvalonNightStepDef,
-  getAvalonNightStepEndAudioKey,
+  AVALON_NIGHT_STEP_DEFINITIONS,
+  AVALON_NIGHT_VIEW_ACTION_KEY,
+  describeAvalonStepConfirmation,
+  getAvalonNightParticipants,
+  hasViewedNightStep,
 } from './domain/nightSteps';
 export {
   buildAvalonNightInfo,
   getAvalonFailsNeeded,
   getAvalonLadyInitialHolderSeat,
-  getAvalonNightParticipants,
   getAvalonQuestSize,
   isAvalonBoardCompositionValid,
   nextAvalonLeaderSeat,

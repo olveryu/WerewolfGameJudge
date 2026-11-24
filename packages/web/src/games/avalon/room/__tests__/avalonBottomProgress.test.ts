@@ -13,6 +13,8 @@ import {
   getAvalonNightParticipants,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
+
 import { deriveAvalonBottomProgress } from '../avalonRoomAdapter';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
@@ -94,7 +96,7 @@ describe('deriveAvalonBottomProgress', () => {
           'host',
         );
       for (const seat of getAvalonNightParticipants(session.state.roles, step)) {
-        session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+        session.send(avalonViewNightCommand(session.state), session.seatUser(seat));
       }
       if (session.state.isAudioPlaying)
         session.send(

@@ -209,8 +209,9 @@ type AvalonPhase =
   | { readonly kind: 'lobby' }
   | {
       readonly kind: 'night';
-      readonly step: 'evilReveal' | 'merlinReveal' | 'percivalReveal';
-      readonly confirmedSeats: readonly number[];
+      // 平台步骤机制切片（docs/step-action-interface.md）：order 固定为
+      // evilReveal → merlinReveal → percivalReveal；records 记录各步已查看的座位。
+      readonly steps: StepSlice<'evilReveal' | 'merlinReveal' | 'percivalReveal'>;
     }
   | {
       readonly kind: 'nominate';
@@ -257,7 +258,7 @@ type AvalonPhase =
     };
 ```
 
-**night 各步骤参与者集合**：`evilReveal` = 全部坏人席位（不含奥伯伦：奥伯伦不参与互认、无夜晚确认入口）；`merlinReveal` = 梅林席位；`percivalReveal` = 派西维尔席位。`confirmedSeats` 只收参与者集合内的确认；非参与者发送 `night.confirm` 拒绝并中文提示。
+**night 各步骤参与者集合**：`evilReveal` = 全部坏人席位（不含奥伯伦：奥伯伦不参与互认、无夜晚确认入口）；`merlinReveal` = 梅林席位；`percivalReveal` = 派西维尔席位。当前步的 records 只收参与者集合内的查看；非参与者或重复查看的 `step.submit` 按过期步骤拒绝（`REASON_STEP_STALE`）。
 
 ### §4.2 关键 transition
 
@@ -266,7 +267,7 @@ stateDiagram-v2
     [*] --> lobby
     lobby --> viewing: roles.assign（房主；发牌/随机首任组队者/湖仙token）
     viewing --> night: game.begin（房主；全员查看齐后开始游戏，排开局播报）
-    night --> night: night.confirm（步骤内确认；三步走完→天亮）
+    night --> night: step.submit（步骤内查看；三步走完→天亮）
     night --> nominate: 天亮（第1轮）
     nominate --> vote: team.preselect → team.propose（组队者；先预选、再定最终队伍）
     vote --> voteResult: 全员投完，倒计时到期揭晓
@@ -388,7 +389,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `avalon.roles.assign`         | 房主                                                                                                                            | `lobby` / `ended`                                                | 发牌、随机首任组队者、进 `viewing` 查看阶段（不排音频、不进夜晚）；`ended` 时为再来一局（重新发牌）                                                             | 非房主："只有房主可以开始游戏"；座位未坐满："请先坐满所有座位。"                                            |
 | `avalon.game.begin`           | 房主                                                                                                                            | `viewing`                                                        | 开始游戏：全员查看齐（身份检查点）后进 `night` 并排开局播报 `night` + `evil_reveal`（有奥伯伦时为 `evil_reveal_except_oberon`）                                 | 非房主："只有房主可以开始游戏"；未齐："还有玩家未查看身份"                                                  |
-| `avalon.night.confirm`        | 当前 night 步骤参与者集合内的 seat（evilReveal=全部坏人（不含奥伯伦）；merlinReveal=梅林；percivalReveal=派西维尔），或其接管人 | `night`                                                          | 确认已查看信息；参与者全部确认后推进；非参与者发送拒绝并中文提示                                                                                                | 非参与者："你不在当前确认步骤内"                                                                            |
+| `avalon.step.submit`          | 当前 night 步骤参与者集合内的 seat（evilReveal=全部坏人（不含奥伯伦）；merlinReveal=梅林；percivalReveal=派西维尔），或其接管人 | `night`                                                          | 载荷为平台 `StepSubmission`（`stepId`、`serial`、`actionKey=viewNightInfo`）；记录该座位已查看；参与者全部查看且播报结束后推进                                  | 非参与者、重复查看或过期 serial：过期步骤（`REASON_STEP_STALE`）                                            |
 | `avalon.team.preselect`       | 组队者（或其接管人）                                                                                                            | `nominate`                                                       | 载荷 `seats`：把满员队伍记为预选，锁定记录、全房可见；之后提交的最终队伍不改动它；进入新 nominate 清零。服务端校验组队者、人数恰等 `requiredSize`、去重、已入座 | 非组队者："只有当前组队者可以组队"；人数不对："队员人数必须为 X 人"                                         |
 | `avalon.team.propose`         | 组队者（或其接管人）                                                                                                            | `nominate`                                                       | 载荷 `seats`：提交最终队伍进入投票；必须先预选（`preselectedSeats` 非空），否则拒绝；同一套校验（队员可含组队者自己；最终队伍可与预选不同）                     | 非组队者："只有当前组队者可以组队"；未预选："请先预选队伍，再确认最终队伍"；人数不对："队员人数必须为 X 人" |
 | `avalon.team.vote`            | 全部已入座 seat（机器人席位由房主代投）                                                                                         | `vote`                                                           | 赞成/反对，可改票（重投覆盖，D15）；全员投完武装 5 秒倒计时、到期自动结算，无手动结算入口（D18、D23）                                                           | 阶段非法："当前不在投票阶段"                                                                                |
@@ -433,7 +434,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
 - 房间：`RoomShell` 全阶段用 `seats` 内容变体（对齐狼人杀；2026-10-07 用户要求"全部"对齐后重构，不再用 `workspace`）；座位盘全程可见，`afterSeatBoard` 恒为 null（D20 落点总规则：阶段交互分布于座位盘点选 / 弹窗 / 底部动作区 / 底部进度行（D21）；常驻区只有 `beforeSeatBoard` 的板子信息卡与终局结算区）；未设置名字的玩家显示为"匿名玩家"（仓库统一规矩，对齐其他游戏）。
 - 板子信息卡（2026-10-07 对齐狼人杀 `BoardInfoCard`）：大厅 + 局内 `beforeSeatBoard` 显示本局角色配置（好人/坏人分组 chip），可折叠（局内默认折叠）；点角色 chip 弹窗看技能介绍；数据复用 engine `AVALON_BOARDS`（服务端唯一权威，客户端不双写）。
 - 查看身份（2026-10-07 对齐狼人杀 `RoleCardModal`）：局内底部常驻"查看身份"按钮，弹窗显示自己的角色名/阵营/技能介绍（`AlertModal` message 走法；展示名复用 `avalonRoleDisplay.ts`，与结算页统一为"忠臣/爪牙"）。
-- `night`（2026-10-07 改为狼人杀丘比特两步流程，用户原话"应该有个确认信息按钮，点击了才弹窗"）：座位盘保持可见；底部"确认信息"按钮（仅需确认的指令出现：坏人互认/梅林/派西维尔）；点击后 `AlertModal` 弹窗显示私密信息，弹窗内"确认信息"提交 `avalon.night.confirm`；音频播放时座位 `visuallyDisabled`（`state.isAudioPlaying`）。第一晚播报（见"第一晚播报"节）：房主设备按序播放，未播完时确认被服务端门控阻塞。
+- `night`（2026-10-07 改为狼人杀丘比特两步流程，用户原话"应该有个确认信息按钮，点击了才弹窗"）：座位盘保持可见；底部共享步骤按钮"查看夜间信息"（仅当前步参与者且未查看时出现：坏人互认/梅林/派西维尔）；点击后先确认"查看夜间信息？"（取消／查看），再弹窗显示私密信息（标题为步骤名），点"知道了"后提交 `avalon.step.submit`（2026-11-23 迁到平台步骤机制，B11）；音频播放时座位 `visuallyDisabled`（`state.isAudioPlaying`）。第一晚播报（见"第一晚播报"节）：房主设备按序播放，播报期间仍可查看，步骤在参与者全部查看且播报结束后推进。
 - `nominate`（2026-10-10 改为座位盘点选，D18；2026-10-13 落点搬迁，D20；2026-10-24 改为两段式：先预选、再定最终队伍；2026-10-24 改为 modal 选人，板子点选停用）：组队者点底部主按钮打开选人 modal（从底部弹起的名单：座位号·名字多选打勾，满员才能确认，取消不留痕）；确认时把完整集合随 `avalon.team.preselect` / `avalon.team.propose` 一次发出（D24，2026-10-30：服务端草稿 `draftSeats` / `updateDraft` 删除，选人过程只是 modal 本地状态，确认前板子不变化）；底部主按钮两段：未预选时为「预选队伍」（只负责打开 modal，modal 里确认即锁定预选、全房可见）；预选回声到后主按钮翻成「最终队伍」（打开时预选那套已勾好、标「预选」，只改差量，modal 里确认即提交进投票）；预选记录一旦锁定不再改动——nominate 期间座位盘只亮「预选」徽标，进入投票后最终队伍亮「队员」；组队者底部 message 为开 modal 的指引（预选前"点「预选队伍」打开选人，在里面选 N 名队员，确认后全房可见"，预选后"预选已确认，点「最终队伍」打开选人调整最终队伍"）；非组队者预选前底部显示"等待组队者组队（X 号座位），本轮需要 N 名队员"，预选后显示"队长已预选，正在定最终队伍。"；讨论在线下口头进行，App 不设发言机制；任务成败 tally 归对局记录摘要（D21）。
 - `vote`（大卡片 UI，D17；2026-10-10 改为弹窗化 + 自动结算，D18）：轮到投票时自动弹出投票弹窗（队伍名单 + 赞成/反对两张大卡片，参考实物投票卡：浅色赞成/深色反对），点选投票、可改票；可关弹窗去看座位盘，已投状态由座位盘逐座徽标呈现（D21），底部「去投票 / 修改投票」按钮可重开弹窗，本人票面与武装后的精确倒计时秒数在底部 message。全员投完武装 5 秒揭晓倒计时、到期自动结算（期间可改票不延长），无手动结算入口（D23）；公投模式同时亮票（每人投了什么公开），暗投模式只公布赞成/反对数量；赞成>反对通过，否则否决（含平票）。
 - `voteResult`（D27）：所有人看到结论及公投逐人票或暗投汇总，5 秒后自动进入下一阶段，无确认或关闭按钮。
@@ -465,7 +466,7 @@ Codec 必须用 `z.strictObject` 精确验证，不变量示例：`roles` 覆盖
   8. 派西维尔请闭眼。
   9. 请各位整理表情。三、二、一，天亮了，请睁眼。
 - 服务端权威队列（事件溯源）：开局播报由 `avalon.game.begun`（房主 begin）一次排 `[night, evil_reveal | evil_reveal_except_oberon]`，begin key 由引擎夜晚步定义表按发牌 roles 派生（有奥伯伦才用 except 版），结束音恒为 `evil_reveal`；房主重连重播当前步开场音走同一派生；发牌（`avalon.game.started`）不排任何音频（D19）；每步转场排 `[上一步 end, 下一步 begin]`；`percivalReveal` 完成后排 `[percival_reveal end, night_end]`。
-- 门控：`isAudioPlaying=true` 时 `avalon.night.confirm` 与 `avalon.game.returnToLobby` 被服务端拒绝（"播报尚未结束，请稍候"）；房主播完提交 `avalon.audio.ack`（仅房主）清空队列、释放门控。
+- 门控：`isAudioPlaying=true` 时 `avalon.game.returnToLobby` 被服务端拒绝（夜间查看不受门控）（"播报尚未结束，请稍候"）；房主播完提交 `avalon.audio.ack`（仅房主）清空队列、释放门控。
 - 客户端：`avalonAudioRegistry.ts`（key→mp3 严格映射，缺失 fail-fast；begin/end 分表，begin-only 的 except 版不配 end）+ `AvalonAudioPlayer` + `useAvalonAudioOrchestration`（房主按序播放，单段失败跳过，播完 ack；开局预加载 9 段）。配置页 `audioPreview` 试听"天黑请闭眼"。
 
 ## §8 机器人机制

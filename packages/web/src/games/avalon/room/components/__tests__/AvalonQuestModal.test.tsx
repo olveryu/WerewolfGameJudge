@@ -28,6 +28,7 @@ function questViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: null,

@@ -21,7 +21,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { act, renderHook } from '@testing-library/react';
 
 import type { DispatchOutcome } from '@/platform/realtime/types';
-import { buildAvalonTestState } from '@/test-utils/avalonState';
+import { avalonNightPhase, buildAvalonTestState } from '@/test-utils/avalonState';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -44,11 +44,7 @@ function queuedState(
   });
 }
 
-const FIRST_NIGHT_STEP: AvalonState['phase'] = {
-  kind: 'night',
-  step: 'evilReveal',
-  confirmedSeats: [],
-};
+const FIRST_NIGHT_STEP: AvalonState['phase'] = avalonNightPhase('evilReveal');
 
 /**
  * `mountedMidNarration`: the link's first ready snapshot already carries the

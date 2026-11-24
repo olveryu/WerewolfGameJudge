@@ -14,28 +14,6 @@ import {
   isAvalonGoodRole,
 } from '@game-judge/game-engine/games/avalon/public';
 
-export type AvalonNightInstruction =
-  | { readonly kind: 'evilPeers'; readonly peers: readonly number[] }
-  | { readonly kind: 'merlin'; readonly sees: readonly number[] }
-  | { readonly kind: 'percival'; readonly sees: readonly number[] }
-  | { readonly kind: 'confirmed' }
-  | { readonly kind: 'waiting' };
-
-/**
- * What the night card should show for this viewer (view model is already
- * cropped by the engine per the viewer's role; UI-level privacy, D6-Q1).
- */
-export function resolveNightInstruction(viewModel: AvalonViewModel): AvalonNightInstruction {
-  if (viewModel.nightStep === null) return { kind: 'waiting' };
-  if (viewModel.nightConfirmed) return { kind: 'confirmed' };
-  // evilPeers 非空恒成立：互认参与者是非奥伯伦坏人（奥伯伦无夜晚入口），
-  // 固定板子下每名参与者至少看得见一名同伴（发牌构成见 AVALON_BOARDS）。
-  if (viewModel.evilPeers !== null) return { kind: 'evilPeers', peers: viewModel.evilPeers };
-  if (viewModel.merlinSees !== null) return { kind: 'merlin', sees: viewModel.merlinSees };
-  if (viewModel.percivalSees !== null) return { kind: 'percival', sees: viewModel.percivalSees };
-  return { kind: 'waiting' };
-}
-
 export interface AvalonNominateInstruction {
   readonly isLeader: boolean;
   readonly leaderSeat: number;

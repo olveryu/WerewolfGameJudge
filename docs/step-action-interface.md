@@ -133,8 +133,10 @@ export interface DirectAction<TContext, TFacts, TResult> extends ActionBase<TCon
 
 export interface ViewAction<TContext> extends ActionBase<TContext> {
   readonly kind: 'view';
-  /** 内容弹窗的标题；手牌文字 = “查看” + title。 */
+  /** 手牌文字 = “查看” + title；也是内容弹窗的默认标题。 */
   readonly title: string;
+  /** 内容弹窗标题与 title 不同时填写（阿瓦隆：手牌“查看夜间信息”，弹窗仍是步骤名，B11）。 */
+  readonly contentTitle?: string;
   readonly content: (context: TContext) => string;
 }
 
