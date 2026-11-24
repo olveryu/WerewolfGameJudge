@@ -1,5 +1,6 @@
 /** Product-facing preview of a Werewolf role reveal effect, played full screen. */
 import { Suspense, useId } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
 import {
@@ -24,11 +25,15 @@ const PREVIEW_ROLES: readonly RevealRoleData[] = [
   toRevealRoleData('guard'),
 ];
 
-/** Plays `effectId` for a villager among six roles and reports completion. */
+/**
+ * Plays `effectId` for a villager among six roles and reports completion. Portalled to the body,
+ * like the room's reveal, so no stacking context on the page (a lifted picker cell, a badge, the
+ * header) can paint over it.
+ */
 export function WerewolfRevealEffectPreview({ effectId, onComplete }: RevealEffectPreviewProps) {
   const reducedMotion = usePrefersReducedMotion();
   const titleId = useId();
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -53,6 +58,7 @@ export function WerewolfRevealEffectPreview({ effectId, onComplete }: RevealEffe
           }}
         />
       </Suspense>
-    </div>
+    </div>,
+    document.body,
   );
 }

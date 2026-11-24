@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Container } from 'pixi.js';
 
@@ -76,5 +79,29 @@ describe('Werewolf product reveal preview', () => {
       }),
     );
     expect(onComplete).toHaveBeenCalledOnce();
+  });
+
+  it('plays on the body, outside the isolated page root, so no page layer can cover it', () => {
+    const presentation = werewolfProductUi.getRevealEffectPresentation('scratch');
+    if (presentation === null) throw new Error('Missing scratch presentation');
+    // The appearance page: a lifted, selected cell with its badge, inside the app root.
+    const root = document.createElement('div');
+    root.id = 'root';
+    document.body.append(root);
+    const cell = document.createElement('div');
+    cell.style.zIndex = '1';
+    cell.style.transform = 'translateY(-4px)';
+    root.append(cell);
+    render(<presentation.Preview effectId="scratch" onComplete={() => {}} />, { container: cell });
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.parentElement).toBe(document.body);
+    expect(root.contains(dialog)).toBe(false);
+    root.remove();
+  });
+
+  it('relies on the app root isolating page z-indexes below body-level portals', () => {
+    const globalCss = readFileSync(join(import.meta.dirname, '../../../../global.css'), 'utf8');
+    expect(globalCss).toMatch(/#root\s*\{[^}]*isolation:\s*isolate;/);
   });
 });

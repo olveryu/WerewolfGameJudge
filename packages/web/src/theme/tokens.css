@@ -141,6 +141,10 @@
   --layer-hand-raised: 100;
   --layer-hand-reason: 101;
   --layer-floating-control: 110;
+  /* Appearance page: a lifted (selected) picker cell, then the page's scene canvas over every
+   * cell, so a cell never hides the frame or flair drawn on its own avatar. */
+  --layer-appearance-cell-lifted: 1;
+  --layer-resident-scene: 2;
 }
 
 /* Admin aliases keep the console on the same light palette as the rest of the site. */
