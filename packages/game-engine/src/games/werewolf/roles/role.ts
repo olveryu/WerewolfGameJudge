@@ -29,6 +29,12 @@ export interface WerewolfRoleState {
     readonly actorSeat: number;
     readonly targetSeat: number;
   }[];
+  readonly previousCards: readonly {
+    readonly roleId: string;
+    readonly actorSeat: number;
+    readonly cardIndex: number;
+  }[];
+  readonly woundedSeats: readonly number[];
 }
 
 export interface RoleSelection extends TargetSelection {
@@ -38,6 +44,12 @@ export interface RoleSelection extends TargetSelection {
 
 export interface WerewolfNightFacts {
   readonly selections: readonly RoleSelection[];
+  readonly identityChanges: readonly WerewolfRoleIdentityChange[];
+  readonly cardSelections: readonly {
+    readonly roleId: string;
+    readonly actorSeat: number;
+    readonly cardIndex: number;
+  }[];
   readonly disabledAbilities: readonly { readonly roleId: string; readonly seat: number }[];
   readonly deathEffects: readonly DeathEffect[];
 }
@@ -54,7 +66,31 @@ export type WerewolfRoleStepResult =
       readonly chosenSeat: number;
       readonly landingSeat: number;
       readonly roleId: string;
+    }
+  | {
+      readonly kind: 'cardSelection';
+      readonly roleId: string;
     };
+
+export type WerewolfRoleIdentityChange =
+  | {
+      readonly kind: 'replaceCurrentRole';
+      readonly seat: number;
+      readonly roleId: string;
+    }
+  | {
+      readonly kind: 'grantBorrowedAbility';
+      readonly seat: number;
+      readonly roleId: string;
+    };
+
+export interface WerewolfBottomCard {
+  readonly index: number;
+  readonly label: string;
+  readonly unavailableReason: string | null;
+  readonly roleId: string;
+  readonly faction: WerewolfRoleFaction;
+}
 
 export interface WerewolfRoleStepContext extends StepContextBase<
   WerewolfRoleState,
@@ -65,6 +101,9 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly teamOfRole: (roleId: string) => WerewolfRoleTeam;
   readonly roleNameOf: (roleId: string) => string;
   readonly randomBoolean: () => boolean;
+  readonly canShootAtNight: (seat: number, roleId: string) => boolean;
+  readonly avengerFactionOf: (seat: number) => 'good' | 'wolf' | 'bonded';
+  readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
 }
 
 export interface WerewolfRoleResource {

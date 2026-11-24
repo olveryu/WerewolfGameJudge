@@ -11,11 +11,13 @@ import type {
 
 const EMPTY_FACTS: WerewolfNightFacts = {
   selections: [],
+  identityChanges: [],
+  cardSelections: [],
   disabledAbilities: [],
   deathEffects: [],
 };
 
-const EXPECTED_SINGLE_TARGET_ROLE_IDS = [
+const EXPECTED_ROLE_IDS = [
   'seer',
   'mirrorSeer',
   'drunkSeer',
@@ -35,41 +37,69 @@ const EXPECTED_SINGLE_TARGET_ROLE_IDS = [
   'slacker',
   'wildChild',
   'shadow',
+  'hunter',
+  'darkWolfKing',
+  'hiddenWolf',
+  'avenger',
+  'thief',
+  'treasureMaster',
+  'villager',
+  'idiot',
+  'knight',
+  'witcher',
+  'graveyardKeeper',
+  'dancer',
+  'sequencePrince',
+  'wolfKing',
+  'bloodMoon',
+  'spiritKnight',
+  'masquerade',
+  'warden',
+  'cursedFox',
+  'maskedMan',
 ] as const;
 
-describe('werewolf single-target role steps', () => {
-  it('declares every planned single-target role exactly once', () => {
-    expect(WEREWOLF_ROLE_DEFINITIONS.map((role) => role.id)).toEqual(
-      EXPECTED_SINGLE_TARGET_ROLE_IDS,
-    );
+describe('werewolf role definitions', () => {
+  it('declares every planned role exactly once', () => {
+    expect(WEREWOLF_ROLE_DEFINITIONS.map((role) => role.id)).toEqual(EXPECTED_ROLE_IDS);
     expect(new Set(WEREWOLF_ROLE_DEFINITIONS.map((role) => role.id)).size).toBe(
-      EXPECTED_SINGLE_TARGET_ROLE_IDS.length,
+      EXPECTED_ROLE_IDS.length,
     );
   });
 
-  it.each(WEREWOLF_ROLE_DEFINITIONS)('snapshots generated output for $id', (role) => {
-    const state = createState(role.id);
-    const initialRuntime = createRuntime(role, state);
-    const initial = presentStep(initialRuntime, state, 1);
-    const step = role.steps[0];
-    if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
-    const result = getCheckResult(role.id);
-    const completedRuntime = createRuntime(role, state, {
-      bySeat: {
-        1: {
-          submissions: [{ actionKey: step.id, seats: [2], cardIndex: null }],
-          result,
-          isResultAcknowledged: false,
+  it.each(WEREWOLF_ROLE_DEFINITIONS.filter((role) => role.steps.length > 0))(
+    'snapshots generated output for $id',
+    (role) => {
+      const state = createState(role.id);
+      const initialRuntime = createRuntime(role, state);
+      const initial = presentStep(initialRuntime, state, 1);
+      const step = role.steps[0];
+      if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
+      const action = step.actions[0];
+      const result = getCheckResult(role.id);
+      const completedRuntime = createRuntime(role, state, {
+        bySeat: {
+          1: {
+            submissions: [
+              {
+                actionKey: step.id,
+                seats: action?.kind === 'pickSeats' ? [2] : [],
+                cardIndex: action?.kind === 'pickCard' ? 0 : null,
+              },
+            ],
+            result,
+            isResultAcknowledged: false,
+          },
         },
-      },
-    });
+      });
 
-    expect({
-      initial,
-      submitted: presentStep(completedRuntime, state, 1),
-      review: buildStepReviewLines(completedRuntime, state),
-    }).toMatchSnapshot();
-  });
+      expect({
+        initial,
+        submitted: presentStep(completedRuntime, state, 1),
+        review: buildStepReviewLines(completedRuntime, state),
+      }).toMatchSnapshot();
+    },
+  );
 
   it('uses the post-swap landing to enforce a repeated-target restriction', () => {
     const guardRole = requireRole('guard');
@@ -199,6 +229,116 @@ describe('werewolf single-target role steps', () => {
       },
     ]);
   });
+
+  it('requires the thief to choose a wolf card when one is present', () => {
+    const role = requireRole('thief');
+    const step = role.steps[0];
+    if (step === undefined) throw new Error('[FAIL-FAST] Thief step is missing');
+    const action = step.actions[0];
+    if (action?.kind !== 'pickCard') throw new Error('[FAIL-FAST] Thief card action is missing');
+    const state = createState('thief');
+    const context = createRuntime(role, state).createContext(state, EMPTY_FACTS, 1, { bySeat: {} });
+
+    const cards = action.cards(context);
+    expect(cards[0]?.unavailableReason).not.toBeNull();
+    expect(cards[1]?.unavailableReason).toBeNull();
+    expect(action.resolve(context, 1)).toMatchObject({
+      facts: {
+        identityChanges: [{ kind: 'replaceCurrentRole', seat: 1, roleId: 'hiddenWolf' }],
+      },
+      result: { kind: 'cardSelection', roleId: 'hiddenWolf' },
+    });
+  });
+
+  it('allows the thief to choose either card when neither card is a wolf', () => {
+    const role = requireRole('thief');
+    const step = role.steps[0];
+    if (step === undefined) throw new Error('[FAIL-FAST] Thief step is missing');
+    const action = step.actions[0];
+    if (action?.kind !== 'pickCard') throw new Error('[FAIL-FAST] Thief card action is missing');
+    const state = createState('thief');
+    const context = createRuntime(role, state).createContext(state, EMPTY_FACTS, 1, { bySeat: {} });
+    const noWolfContext = {
+      ...context,
+      bottomCardsOf: () => [
+        {
+          index: 0,
+          label: 'Seer',
+          unavailableReason: null,
+          roleId: 'seer',
+          faction: 'god' as const,
+        },
+        {
+          index: 1,
+          label: 'Villager',
+          unavailableReason: null,
+          roleId: 'villager',
+          faction: 'villager' as const,
+        },
+      ],
+    };
+
+    expect(action.cards(noWolfContext)[0]?.unavailableReason).toBeNull();
+    expect(action.resolve(noWolfContext, 0).facts?.identityChanges).toEqual([
+      { kind: 'replaceCurrentRole', seat: 1, roleId: 'seer' },
+    ]);
+  });
+
+  it('grants the treasure master the selected card as a borrowed ability', () => {
+    const role = requireRole('treasureMaster');
+    const step = role.steps[0];
+    if (step === undefined) throw new Error('[FAIL-FAST] Treasure master step is missing');
+    const action = step.actions[0];
+    if (action?.kind !== 'pickCard') {
+      throw new Error('[FAIL-FAST] Treasure master card action is missing');
+    }
+    const state = createState('treasureMaster');
+    const context = createRuntime(role, state).createContext(state, EMPTY_FACTS, 1, { bySeat: {} });
+
+    expect(action.resolve(context, 0)).toMatchObject({
+      facts: {
+        identityChanges: [{ kind: 'grantBorrowedAbility', seat: 1, roleId: 'seer' }],
+        cardSelections: [{ roleId: 'treasureMaster', actorSeat: 1, cardIndex: 0 }],
+      },
+      result: { kind: 'cardSelection', roleId: 'seer' },
+    });
+  });
+
+  it('prevents the treasure master from choosing the same card on consecutive nights', () => {
+    const role = requireRole('treasureMaster');
+    const step = role.steps[0];
+    if (step === undefined) throw new Error('[FAIL-FAST] Treasure master step is missing');
+    const action = step.actions[0];
+    if (action?.kind !== 'pickCard') {
+      throw new Error('[FAIL-FAST] Treasure master card action is missing');
+    }
+    const state = createState('treasureMaster', {
+      previousCards: [{ roleId: 'treasureMaster', actorSeat: 1, cardIndex: 0 }],
+    });
+    const context = createRuntime(role, state).createContext(state, EMPTY_FACTS, 1, { bySeat: {} });
+
+    expect(action.cards(context)[0]?.unavailableReason).not.toBeNull();
+    expect(() => action.resolve(context, 0)).toThrow(
+      '[FAIL-FAST] treasureMasterChoose resolved with an unavailable card',
+    );
+  });
+
+  it('gives the masked man one bypass-proof shelter until wounded', () => {
+    const role = requireRole('maskedMan');
+    if (!('passiveDeathEffects' in role) || role.passiveDeathEffects === undefined) {
+      throw new Error('[FAIL-FAST] Masked man passive death effect is missing');
+    }
+    const passiveDeathEffects = role.passiveDeathEffects;
+    const state = createState('maskedMan');
+    const context = createRoleContext(state, 1);
+    const woundedState = createState('maskedMan', { woundedSeats: [1] });
+    const woundedContext = createRoleContext(woundedState, 1);
+
+    expect(passiveDeathEffects(context, 1)).toEqual([
+      { kind: 'shelter', source: 1, target: 1, bypassable: false },
+    ]);
+    expect(passiveDeathEffects(woundedContext, 1)).toEqual([]);
+  });
 });
 
 function createState(
@@ -219,6 +359,8 @@ function createState(
     usedAbilities: [],
     disabledAbilities: [],
     previousTargets: [],
+    previousCards: [],
+    woundedSeats: [],
     ...changes,
   };
 }
@@ -237,9 +379,6 @@ function createRuntime(
 > {
   const step = role.steps[0];
   if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
-  const roleById = new Map<string, (typeof WEREWOLF_ROLE_DEFINITIONS)[number]>(
-    WEREWOLF_ROLE_DEFINITIONS.map((entry) => [entry.id, entry] as const),
-  );
   const definitions: Record<string, (typeof role.steps)[number]> = { [step.id]: step };
   return {
     definitions,
@@ -251,33 +390,86 @@ function createRuntime(
     }),
     getFacts: () => facts,
     createContext: (currentState, currentFacts, seat, currentRecord) => ({
-      state: currentState,
-      facts: currentFacts,
-      seat,
-      record: currentRecord,
-      role: createWerewolfRoleContext(
-        currentState.identities,
-        currentState.location,
-        currentState.sight,
-      ),
-      teamOfRole: (roleId) => {
-        const found = roleById.get(roleId);
-        if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
-        return found.traits.team;
-      },
-      roleNameOf: (roleId) => {
-        const found = roleById.get(roleId);
-        if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
-        return found.card.name;
-      },
-      randomBoolean: () => true,
+      ...createRoleContext(currentState, seat, currentFacts, currentRecord),
     }),
     isAudioPlaying: () => false,
     seatedSeats: (currentState) => currentState.seatedSeats,
   };
 }
 
+function createRoleContext(
+  state: WerewolfRoleState,
+  seat: number | null,
+  facts: WerewolfNightFacts = EMPTY_FACTS,
+  record: StepRecord<WerewolfRoleStepResult> = { bySeat: {} },
+): WerewolfRoleStepContext {
+  const roleById = new Map<string, (typeof WEREWOLF_ROLE_DEFINITIONS)[number]>(
+    WEREWOLF_ROLE_DEFINITIONS.map((entry) => [entry.id, entry] as const),
+  );
+  return {
+    state,
+    facts,
+    seat,
+    record,
+    role: createWerewolfRoleContext(state.identities, state.location, state.sight),
+    teamOfRole: (roleId) => {
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.traits.team;
+    },
+    roleNameOf: (roleId) => {
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.card.name;
+    },
+    randomBoolean: () => true,
+    canShootAtNight: () => true,
+    avengerFactionOf: () => 'good',
+    bottomCardsOf: (actingSeat, roleId) => {
+      if (roleId === 'thief') {
+        return [
+          {
+            index: 0,
+            label: 'Seer',
+            unavailableReason: null,
+            roleId: 'seer',
+            faction: 'god',
+          },
+          {
+            index: 1,
+            label: 'Hidden Wolf',
+            unavailableReason: null,
+            roleId: 'hiddenWolf',
+            faction: 'wolf',
+          },
+        ];
+      }
+      if (roleId === 'treasureMaster') {
+        return [
+          {
+            index: 0,
+            label: 'Seer',
+            unavailableReason: null,
+            roleId: 'seer',
+            faction: 'god',
+          },
+          {
+            index: 1,
+            label: 'Villager',
+            unavailableReason: null,
+            roleId: 'villager',
+            faction: 'villager',
+          },
+        ];
+      }
+      throw new Error(`[FAIL-FAST] No bottom cards for ${roleId} at seat ${actingSeat}`);
+    },
+  };
+}
+
 function getCheckResult(roleId: string): WerewolfRoleStepResult | null {
+  if (roleId === 'thief') return { kind: 'cardSelection', roleId: 'hiddenWolf' };
+  if (roleId === 'treasureMaster') return { kind: 'cardSelection', roleId: 'seer' };
   if (['seer', 'mirrorSeer', 'drunkSeer'].includes(roleId)) {
     return { kind: 'factionCheck', chosenSeat: 2, landingSeat: 4, faction: 'good' };
   }

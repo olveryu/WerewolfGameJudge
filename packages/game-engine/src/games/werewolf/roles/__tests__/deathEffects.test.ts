@@ -129,6 +129,29 @@ describe('werewolf death effects', () => {
     ).toEqual([2, 3]);
   });
 
+  it('reports a shelter that prevents a death link from bypassing it', () => {
+    const result = resolveDeathEffects([
+      { kind: 'attack', cause: 'wolfKill', source: 0, target: 3 },
+      { kind: 'shelter', source: 2, target: 2, bypassable: false },
+      {
+        kind: 'link',
+        source: 2,
+        from: 3,
+        to: 2,
+        cause: 'dreamcatcherLink',
+        isMutual: false,
+        bypassShelter: true,
+      },
+    ]);
+
+    expect(result.deaths).toEqual([3]);
+    expect(result.trace).toContainEqual({
+      kind: 'shelter',
+      cause: 'dreamcatcherLink',
+      target: 2,
+    });
+  });
+
   it('does not add mutual-link causes to a seat already dead', () => {
     const result = resolveDeathEffects([
       { kind: 'attack', cause: 'poison', source: 0, target: 2 },

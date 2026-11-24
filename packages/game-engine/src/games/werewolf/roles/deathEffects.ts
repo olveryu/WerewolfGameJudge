@@ -17,7 +17,12 @@ export type DeathEffect =
       readonly against: readonly AttackCause[];
       readonly conflictGroup: string | null;
     }
-  | { readonly kind: 'shelter'; readonly source: number; readonly target: number }
+  | {
+      readonly kind: 'shelter';
+      readonly source: number;
+      readonly target: number;
+      readonly bypassable?: boolean;
+    }
   | {
       readonly kind: 'link';
       readonly source: number | null;
@@ -264,8 +269,11 @@ function resolveLinkDirection(
 ): boolean {
   if (processed.has(direction)) return false;
   processed.add(direction);
-  const sheltered = shelters.some((effect) => effect.target === to);
-  if (sheltered && link.bypassShelter !== true) return false;
+  const shelter = shelters.find((effect) => effect.target === to);
+  if (shelter !== undefined && (link.bypassShelter !== true || shelter.bypassable === false)) {
+    resolution.trace.push({ kind: 'shelter', cause: link.cause, target: to });
+    return false;
+  }
   const wasDead = resolution.deaths.has(to);
   if (wasDead && link.isMutual) return false;
   recordDeath(to, link.cause, resolution);

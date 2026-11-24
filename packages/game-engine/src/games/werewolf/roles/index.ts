@@ -7,6 +7,22 @@ import { gargoyle } from './gargoyle';
 import { guard } from './guard';
 import { mirrorSeer, mirrorSeerPresence } from './mirrorSeer';
 import { nightmare } from './nightmare';
+import {
+  bloodMoon,
+  cursedFox,
+  dancer,
+  graveyardKeeper,
+  idiot,
+  knight,
+  maskedMan,
+  masquerade,
+  sequencePrince,
+  spiritKnight,
+  villager,
+  warden,
+  witcher,
+  wolfKing,
+} from './passiveRoles';
 import { poisonerPresence } from './poisoner';
 import { poisoner } from './poisoner';
 import type { PresenceDeclaration } from './presence';
@@ -17,8 +33,9 @@ import { seer } from './seer';
 import { shadow } from './shadow';
 import { silenceElder } from './silenceElder';
 import { slacker } from './slacker';
-import { thiefPresence } from './thief';
-import { treasureMasterPresence } from './treasureMaster';
+import { thief, thiefPresence } from './thief';
+import { treasureMaster, treasureMasterPresence } from './treasureMaster';
+import { avenger, darkWolfKing, hiddenWolf, hunter } from './viewRoles';
 import { votebanElder } from './votebanElder';
 import { wildChild } from './wildChild';
 import { wolfQueen } from './wolfQueen';
@@ -57,8 +74,10 @@ export {
 } from './presence';
 export type {
   RoleSelection,
+  WerewolfBottomCard,
   WerewolfNightFacts,
   WerewolfRoleFaction,
+  WerewolfRoleIdentityChange,
   WerewolfRoleResource,
   WerewolfRoleState,
   WerewolfRoleStepContext,
@@ -88,6 +107,26 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   slacker,
   wildChild,
   shadow,
+  hunter,
+  darkWolfKing,
+  hiddenWolf,
+  avenger,
+  thief,
+  treasureMaster,
+  villager,
+  idiot,
+  knight,
+  witcher,
+  graveyardKeeper,
+  dancer,
+  sequencePrince,
+  wolfKing,
+  bloodMoon,
+  spiritKnight,
+  masquerade,
+  warden,
+  cursedFox,
+  maskedMan,
 ] as const;
 
 export const WEREWOLF_PRESENCE_DECLARATIONS = [

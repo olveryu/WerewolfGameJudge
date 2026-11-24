@@ -2,17 +2,24 @@ import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { StepDefinition } from '../../../platform/steps/step';
 import { resolveTargetSelection } from './location';
-import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import type {
+  WerewolfBottomCard,
+  WerewolfNightFacts,
+  WerewolfRoleStepContext,
+  WerewolfRoleStepResult,
+} from './role';
 
 const ROLE_STEP_COPY = defineCopy({
   locked: '你今晚无法使用技能',
   selfTargetDisallowed: '不能选择自己',
   repeatedTargetDisallowed: '不能连续两晚选择同一名玩家',
+  repeatedCardDisallowed: '不能连续两晚选择同一张底牌',
   actualLanding: '（实际为{seat}）',
   good: '好人',
   wolf: '狼人',
   factionCheckResult: '{seat}是{faction}',
   identityCheckResult: '{seat}是{role}',
+  wolfCardRequired: '底牌中有狼人时必须选择狼人',
 });
 
 export interface SingleTargetStepOptions {
@@ -162,6 +169,8 @@ export function createSingleTargetStep(
                 ...selection,
               },
             ],
+            identityChanges: [],
+            cardSelections: [],
             disabledAbilities: selectionEffects?.disabledAbilities ?? [],
             deathEffects: selectionEffects?.deathEffects ?? [],
           };
@@ -200,6 +209,114 @@ export function createSingleTargetStep(
       return options.reviewSuffix?.(context, chosenSeat) ?? null;
     },
   };
+}
+
+export interface CardSelectionStepOptions {
+  readonly id: string;
+  readonly roleId: string;
+  readonly roleName: string;
+  readonly actionName: string;
+  readonly prompt: string;
+  readonly resultTitle: string;
+  readonly identityChange: 'replaceCurrentRole' | 'grantBorrowedAbility';
+  readonly mustChooseWolfWhenAvailable?: boolean;
+  readonly cannotRepeatCard?: boolean;
+}
+
+export function createCardSelectionStep(
+  options: CardSelectionStepOptions,
+): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+  return {
+    id: options.id,
+    title: options.actionName,
+    audio: () => ({ begin: options.roleId, end: options.roleId }),
+    actors: (context) =>
+      context.state.seatedSeats.filter((seat) =>
+        context.role.activeRoleIdsOf(seat).includes(options.roleId),
+      ),
+    actions: [
+      {
+        kind: 'pickCard',
+        key: options.id,
+        name: options.actionName,
+        cards: (context) => {
+          const cards = context.bottomCardsOf(getActingSeat(context), options.roleId);
+          return cards.map((card) => ({
+            index: card.index,
+            label: card.label,
+            unavailableReason: getCardUnavailableReason(context, options, card, cards),
+          }));
+        },
+        hint: () => options.prompt,
+        phrase: (card) => card.label,
+        resolve: (context, cardIndex) => {
+          const seat = getActingSeat(context);
+          const cards = context.bottomCardsOf(seat, options.roleId);
+          const card = cards.find((candidate) => candidate.index === cardIndex);
+          if (card === undefined) {
+            throw new Error(`[FAIL-FAST] ${options.id} resolved with an unknown card`);
+          }
+          if (getCardUnavailableReason(context, options, card, cards) !== null) {
+            throw new Error(`[FAIL-FAST] ${options.id} resolved with an unavailable card`);
+          }
+          const identityChange =
+            options.identityChange === 'replaceCurrentRole'
+              ? { kind: 'replaceCurrentRole' as const, seat, roleId: card.roleId }
+              : { kind: 'grantBorrowedAbility' as const, seat, roleId: card.roleId };
+          return {
+            facts: {
+              selections: [],
+              identityChanges: [identityChange],
+              cardSelections: [{ roleId: options.roleId, actorSeat: seat, cardIndex }],
+              disabledAbilities: [],
+              deathEffects: [],
+            },
+            result: { kind: 'cardSelection', roleId: card.roleId },
+          };
+        },
+      },
+    ],
+    skippable: () => false,
+    reviewSubject: () => options.roleName,
+    renderResult: (context, result) => {
+      if (result.kind !== 'cardSelection') {
+        throw new Error(`[FAIL-FAST] ${options.id} received an incompatible result`);
+      }
+      return {
+        title: options.resultTitle,
+        text: context.roleNameOf(result.roleId),
+      };
+    },
+  };
+}
+
+function getCardUnavailableReason(
+  context: WerewolfRoleStepContext,
+  options: CardSelectionStepOptions,
+  card: WerewolfBottomCard,
+  cards: readonly WerewolfBottomCard[],
+): string | null {
+  const seat = getActingSeat(context);
+  if (card.unavailableReason !== null) return card.unavailableReason;
+  if (
+    options.mustChooseWolfWhenAvailable === true &&
+    cards.some((candidate) => candidate.faction === 'wolf') &&
+    card.faction !== 'wolf'
+  ) {
+    return ROLE_STEP_COPY.wolfCardRequired;
+  }
+  if (
+    options.cannotRepeatCard === true &&
+    context.state.previousCards.some(
+      (previous) =>
+        previous.roleId === options.roleId &&
+        previous.actorSeat === seat &&
+        previous.cardIndex === card.index,
+    )
+  ) {
+    return ROLE_STEP_COPY.repeatedCardDisallowed;
+  }
+  return null;
 }
 
 function getUnavailableReason(

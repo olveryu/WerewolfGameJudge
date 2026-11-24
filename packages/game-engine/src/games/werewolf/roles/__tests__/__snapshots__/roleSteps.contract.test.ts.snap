@@ -1,6 +1,58 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`werewolf single-target role steps > snapshots generated output for 'crow' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'avenger' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你属于好人阵营",
+          "title": "阵营信息",
+        },
+        "isAcknowledged": false,
+        "key": "avengerConfirm",
+        "kind": "view",
+        "label": "查看阵营信息",
+      },
+    ],
+    "deadlineMs": null,
+    "message": "请点击「查看阵营信息」",
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "avengerConfirm",
+    "title": "阵营确认",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "avengerConfirm",
+      "text": "复仇者阵营信息",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 1,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "avengerConfirm",
+    "title": "阵营确认",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'crow' 1`] = `
 {
   "initial": {
     "actions": [
@@ -76,7 +128,59 @@ exports[`werewolf single-target role steps > snapshots generated output for 'cro
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'dreamcatcher' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'darkWolfKing' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "狼王可以发动技能",
+          "title": "技能状态",
+        },
+        "isAcknowledged": false,
+        "key": "darkWolfKingConfirm",
+        "kind": "view",
+        "label": "查看技能状态",
+      },
+    ],
+    "deadlineMs": null,
+    "message": "请点击「查看技能状态」",
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "darkWolfKingConfirm",
+    "title": "技能发动确认",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "darkWolfKingConfirm",
+      "text": "狼王技能状态",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 1,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "darkWolfKingConfirm",
+    "title": "技能发动确认",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'dreamcatcher' 1`] = `
 {
   "initial": {
     "actions": [
@@ -157,7 +261,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'dre
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'drunkSeer' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'drunkSeer' 1`] = `
 {
   "initial": {
     "actions": [
@@ -236,7 +340,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'dru
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'eclipseWolfQueen' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'eclipseWolfQueen' 1`] = `
 {
   "initial": {
     "actions": [
@@ -312,7 +416,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'ecl
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'gargoyle' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'gargoyle' 1`] = `
 {
   "initial": {
     "actions": [
@@ -391,7 +495,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'gar
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'guard' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'guard' 1`] = `
 {
   "initial": {
     "actions": [
@@ -467,7 +571,111 @@ exports[`werewolf single-target role steps > snapshots generated output for 'gua
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'mirrorSeer' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'hiddenWolf' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你的狼同伴为：4号",
+          "title": "狼同伴信息",
+        },
+        "isAcknowledged": false,
+        "key": "hiddenWolfReveal",
+        "kind": "view",
+        "label": "查看狼同伴信息",
+      },
+    ],
+    "deadlineMs": null,
+    "message": "请点击「查看狼同伴信息」",
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "hiddenWolfReveal",
+    "title": "狼同伴确认",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "hiddenWolfReveal",
+      "text": "隐狼狼同伴信息",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 1,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "hiddenWolfReveal",
+    "title": "狼同伴确认",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'hunter' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "猎人可以发动技能",
+          "title": "技能状态",
+        },
+        "isAcknowledged": false,
+        "key": "hunterConfirm",
+        "kind": "view",
+        "label": "查看技能状态",
+      },
+    ],
+    "deadlineMs": null,
+    "message": "请点击「查看技能状态」",
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "hunterConfirm",
+    "title": "技能发动确认",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "hunterConfirm",
+      "text": "猎人技能状态",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 1,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "hunterConfirm",
+    "title": "技能发动确认",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'mirrorSeer' 1`] = `
 {
   "initial": {
     "actions": [
@@ -546,7 +754,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'mir
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'nightmare' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'nightmare' 1`] = `
 {
   "initial": {
     "actions": [
@@ -622,7 +830,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'nig
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'poisoner' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'poisoner' 1`] = `
 {
   "initial": {
     "actions": [
@@ -698,7 +906,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'poi
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'psychic' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'psychic' 1`] = `
 {
   "initial": {
     "actions": [
@@ -777,7 +985,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'psy
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'pureWhite' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 1`] = `
 {
   "initial": {
     "actions": [
@@ -856,7 +1064,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'pur
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'seer' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'seer' 1`] = `
 {
   "initial": {
     "actions": [
@@ -940,7 +1148,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'see
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'shadow' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'shadow' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1008,7 +1216,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'sha
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'silenceElder' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'silenceElder' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1084,7 +1292,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'sil
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'slacker' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'slacker' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1152,7 +1360,133 @@ exports[`werewolf single-target role steps > snapshots generated output for 'sla
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'votebanElder' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'thief' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "cards": [
+          {
+            "index": 0,
+            "label": "Seer",
+            "unavailableReason": "底牌中有狼人时必须选择狼人",
+          },
+          {
+            "index": 1,
+            "label": "Hidden Wolf",
+            "unavailableReason": null,
+          },
+        ],
+        "hint": "请选择一张底牌作为你的身份",
+        "key": "thiefChoose",
+        "kind": "pickCard",
+        "label": "盗取",
+      },
+    ],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "thiefChoose",
+    "title": "盗取",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "thiefChoose",
+      "text": "盗贼Seer",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": {
+      "text": "隐狼",
+      "title": "选择的身份",
+    },
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "thiefChoose",
+    "title": "盗取",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'treasureMaster' 1`] = `
+{
+  "initial": {
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "cards": [
+          {
+            "index": 0,
+            "label": "Seer",
+            "unavailableReason": null,
+          },
+          {
+            "index": 1,
+            "label": "Villager",
+            "unavailableReason": null,
+          },
+        ],
+        "hint": "请选择一张底牌获得该角色的技能",
+        "key": "treasureMasterChoose",
+        "kind": "pickCard",
+        "label": "盗宝",
+      },
+    ],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": null,
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "treasureMasterChoose",
+    "title": "盗宝",
+  },
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "treasureMasterChoose",
+      "text": "盗宝大师Seer",
+    },
+  ],
+  "submitted": {
+    "actions": [],
+    "deadlineMs": null,
+    "message": null,
+    "pendingResult": {
+      "text": "预言家",
+      "title": "获得的技能",
+    },
+    "progress": {
+      "done": 0,
+      "total": 1,
+    },
+    "serial": 1,
+    "stepId": "treasureMasterChoose",
+    "title": "盗宝",
+  },
+}
+`;
+
+exports[`werewolf role definitions > snapshots generated output for 'votebanElder' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1228,7 +1562,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'vot
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'wildChild' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'wildChild' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1296,7 +1630,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'wil
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'wolfQueen' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'wolfQueen' 1`] = `
 {
   "initial": {
     "actions": [
@@ -1377,7 +1711,7 @@ exports[`werewolf single-target role steps > snapshots generated output for 'wol
 }
 `;
 
-exports[`werewolf single-target role steps > snapshots generated output for 'wolfWitch' 1`] = `
+exports[`werewolf role definitions > snapshots generated output for 'wolfWitch' 1`] = `
 {
   "initial": {
     "actions": [
