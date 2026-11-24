@@ -16,7 +16,9 @@
  *   context is lost and redraws once it is back (see `webglContextWatch.ts`). A context the
  *   browser does not give back within `CONTEXT_RESTORE_DEADLINE_MS` of visible time is
  *   abandoned: the stage builds a new application (canvas and context) and moves the whole
- *   scene graph onto it, so every mounted decoration, entrance and overlay draws again.
+ *   scene graph onto it, so every mounted decoration, entrance and overlay draws again. Until
+ *   the new application exists the old canvas stays watched, so a restore that arrives during
+ *   or after a failed rebuild still resumes it; a failed rebuild is retried with backoff.
  * - SVG artwork is rasterised into textures (see `svgTexture.ts`), shared the same way and
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
@@ -115,13 +117,30 @@ const DEFAULT_DASH_VARIANTS = 12;
 const opaqueSampler: MorphSampler = () => ({ opacity: 1 });
 
 /**
- * How long a lost context may stay lost, counted only while the page is visible, before the stage
- * stops waiting for `webglcontextrestored` and rebuilds on a new canvas. WebKit retries a restore
- * once a second (`secondsBetweenRestoreAttempts` in `WebGLRenderingContextBase.cpp`) on timers
- * that are suspended while the page is hidden, and never restores a context it judged guilty of
- * a GPU reset; three seconds of visible time is three restore attempts.
+ * How long a lost context may stay lost before the stage stops waiting for
+ * `webglcontextrestored` and rebuilds on a new canvas. WebKit retries a restore once a second
+ * (`secondsBetweenRestoreAttempts` in `WebGLRenderingContextBase.cpp`), so three seconds is three
+ * restore attempts. Some losses are never restored: when a page holds too many contexts WebKit
+ * drops the oldest with a simulated loss that is not restorable (WebKit changeset 291477). The
+ * stage itself counts only visible time (`document.hidden`), so a backgrounded page gets its
+ * full wait once it shows again.
  */
 export const CONTEXT_RESTORE_DEADLINE_MS = 3000;
+
+/**
+ * A failed rebuild (no new WebGL context could be created) is retried after the previous wait
+ * times this factor of visible time: 3 s, then 6, 12, 24 and 48 s. Context creation fails while
+ * the GPU is still out of memory or the context limit is still reached; both clear on their own
+ * once other contexts are released, which takes seconds to tens of seconds, not milliseconds.
+ */
+const REBUILD_BACKOFF_FACTOR = 2;
+
+/**
+ * Rebuild attempts per loss before the stage stops creating contexts (about 93 s of visible time
+ * in total). Past that the device is not freeing GPU resources, each further attempt only adds a
+ * failure report, and the old canvas stays watched, so a late restore still brings the scene back.
+ */
+export const MAX_REBUILD_ATTEMPTS = 5;
 
 /** Ref-counted geometry keyed by its drawing source (art function or sampler) and a variant key. */
 class ContextCache {
@@ -807,9 +826,11 @@ class SceneStage implements EntranceHost {
   private readonly world = new Container();
   /** True between `webglcontextlost` and its restore or rebuild: nothing can be drawn. */
   private contextLost = false;
-  /** Pending rebuild after `CONTEXT_RESTORE_DEADLINE_MS` of visible lost time. */
+  /** Pending rebuild after `CONTEXT_RESTORE_DEADLINE_MS` (or a retry's backoff) of visible lost time. */
   private restoreDeadline: ReturnType<typeof setTimeout> | null = null;
   private rebuilding = false;
+  /** Failed rebuilds since the context was lost; reset when it is restored or rebuilt. */
+  private failedRebuilds = 0;
   private stopWatchingContext: () => void;
 
   constructor(
@@ -843,12 +864,14 @@ class SceneStage implements EntranceHost {
     return watchWebglContext(application.canvas, {
       onLost: () => {
         this.contextLost = true;
+        this.failedRebuilds = 0;
         sceneLog.warn('WebGL context lost; scene paused', this.contextReport());
         this.syncTicker();
         this.syncRestoreDeadline();
       },
       onRestored: () => {
         this.contextLost = false;
+        this.failedRebuilds = 0;
         this.syncRestoreDeadline();
         sceneLog.info('WebGL context restored; scene redrawn', this.contextReport());
         this.redraw();
@@ -863,45 +886,72 @@ class SceneStage implements EntranceHost {
   }
 
   /**
-   * Counts lost time only while the page is visible: browsers suspend restore attempts while it
-   * is hidden, so a backgrounded page is restored (or rebuilt) after it shows again.
+   * Arms the next rebuild while the context is lost, no rebuild is running, attempts remain and
+   * the page is visible; hiding the page drops the timer, so only visible time counts and the
+   * whole wait starts over when it shows again.
    */
   private syncRestoreDeadline(): void {
-    const waiting = this.contextLost && !this.rebuilding && !document.hidden;
+    const waiting =
+      this.contextLost &&
+      !this.rebuilding &&
+      this.failedRebuilds < MAX_REBUILD_ATTEMPTS &&
+      !document.hidden;
     if (!waiting) {
       if (this.restoreDeadline !== null) clearTimeout(this.restoreDeadline);
       this.restoreDeadline = null;
       return;
     }
-    this.restoreDeadline ??= setTimeout(() => {
-      this.restoreDeadline = null;
-      void this.rebuild();
-    }, CONTEXT_RESTORE_DEADLINE_MS);
+    this.restoreDeadline ??= setTimeout(
+      () => {
+        this.restoreDeadline = null;
+        void this.rebuild();
+      },
+      CONTEXT_RESTORE_DEADLINE_MS * REBUILD_BACKOFF_FACTOR ** this.failedRebuilds,
+    );
   }
 
   /**
    * Abandons the lost application for a new one: the world, frame cap, canvas placement and
    * every mounted decoration carry over; the old canvas, its context watch and its renderer (with
-   * its GPU copies of shared geometry and textures) are destroyed. A restore event the old canvas
-   * fires after this point is not observed.
+   * its GPU copies of shared geometry and textures) are destroyed. The old canvas stays watched
+   * until the new application exists: if its context comes back meanwhile the new application is
+   * discarded, and if creating it fails a retry is armed and a later restore still resumes it.
+   * A failed `init` leaves nothing to destroy: PixiJS assigns `renderer` (and so the canvas and
+   * context) only after it succeeds.
    */
   private async rebuild(): Promise<void> {
     const lost = this.application;
     this.rebuilding = true;
-    this.stopWatchingContext();
-    sceneLog.warn(
-      `WebGL context not restored within ${CONTEXT_RESTORE_DEADLINE_MS}ms; rebuilding the scene`,
-      this.contextReport(),
-    );
+    sceneLog.warn('WebGL context not restored; rebuilding the scene', {
+      ...this.contextReport(),
+      attempt: this.failedRebuilds + 1,
+    });
     let next: Application;
     try {
       next = await this.createApplication();
     } catch (error) {
       this.rebuilding = false;
-      // WebGL is required: without a new context nothing can be drawn until a reload.
-      sceneLog.error('Scene rebuild failed; decorations stay hidden', error);
+      this.failedRebuilds += 1;
+      if (this.failedRebuilds < MAX_REBUILD_ATTEMPTS) {
+        sceneLog.warn('Scene rebuild failed; retrying', { attempt: this.failedRebuilds }, error);
+      } else {
+        // Nothing more is created; the old canvas is still watched for a restore.
+        sceneLog.error(
+          `Scene rebuild failed ${MAX_REBUILD_ATTEMPTS} times; decorations stay hidden until the context is restored or the page reloads`,
+          error,
+        );
+      }
+      this.syncRestoreDeadline();
       return;
     }
+    this.rebuilding = false;
+    if (!this.contextLost) {
+      // The old context came back while the new one was being created; keep drawing on it.
+      next.destroy({ removeView: true });
+      sceneLog.info('WebGL context restored during the rebuild; new context discarded');
+      return;
+    }
+    this.stopWatchingContext();
     lost.ticker.remove(this.tick);
     next.ticker.maxFPS = lost.ticker.maxFPS;
     lost.stage.removeChild(this.world);
@@ -910,7 +960,7 @@ class SceneStage implements EntranceHost {
     this.application = next;
     this.stopWatchingContext = this.bind(next);
     this.contextLost = false;
-    this.rebuilding = false;
+    this.failedRebuilds = 0;
     this.placeCanvas();
     sceneLog.info('Scene rebuilt on a new WebGL context', this.contextReport());
     this.redraw();

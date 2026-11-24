@@ -19,8 +19,11 @@ interface FakeApp {
 
 const pixiFake = vi.hoisted(() => ({
   apps: [] as FakeApp[],
-  /** When set, the next `init` rejects with it (WebGL unavailable). */
-  initError: null as Error | null,
+  /** How many of the next `init` calls reject (no WebGL context can be created). */
+  initFailures: 0,
+  initCalls: 0,
+  /** When set, `init` waits for it, so a test can act while a rebuild is in flight. */
+  initGate: null as Promise<void> | null,
   resizeCallbacks: [] as Array<() => void>,
 }));
 
@@ -35,6 +38,7 @@ vi.mock('pixi.js', async (importOriginal) => {
     readonly resize = vi.fn();
     readonly destroy = vi.fn(() => {
       this.canvas.remove();
+      pixiFake.apps = pixiFake.apps.filter((app) => app !== this);
     });
     readonly ticker: FakeApp['ticker'] = {
       started: false,
@@ -57,9 +61,12 @@ vi.mock('pixi.js', async (importOriginal) => {
       });
     }
     async init(): Promise<void> {
-      const error = pixiFake.initError;
-      pixiFake.initError = null;
-      if (error) throw error;
+      pixiFake.initCalls += 1;
+      if (pixiFake.initGate) await pixiFake.initGate;
+      if (pixiFake.initFailures > 0) {
+        pixiFake.initFailures -= 1;
+        throw new Error('WebGL unavailable');
+      }
       pixiFake.apps.push(this);
     }
   }
@@ -123,6 +130,8 @@ describe('scene stage WebGL context loss', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    pixiFake.initFailures = 0;
+    pixiFake.initGate = null;
     for (const app of pixiFake.apps) {
       app.render.mockClear();
       app.ticker.start.mockClear();
@@ -292,19 +301,112 @@ describe('scene stage WebGL context loss', () => {
     release();
   });
 
-  it('keeps the scene paused when no new WebGL context can be created', async () => {
+  it('retries a failed rebuild after a backoff and rebuilds once a context can be created', async () => {
     const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
-    const { release } = await mountedStage();
+    const { stage, host, root, release } = await mountedStage();
+    stage.setOverlayAnimating(root, false);
     const lost = current();
-    pixiFake.initError = new Error('WebGL unavailable');
+    pixiFake.initFailures = 1;
+    const calls = pixiFake.initCalls;
 
     lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
     await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS);
     await flush();
-
+    expect(pixiFake.initCalls).toBe(calls + 1);
     expect(current()).toBe(lost);
     expect(lost.destroy).not.toHaveBeenCalled();
+
+    // The retry waits twice as long.
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS * 2 - 1);
+    expect(pixiFake.initCalls).toBe(calls + 1);
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+
+    const next = current();
+    expect(next).not.toBe(lost);
+    expect(lost.destroy).toHaveBeenCalledWith({ removeView: true }, { children: false });
+    expect(host.contains(next.canvas)).toBe(true);
+    expect(next.render).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+    release();
+  });
+
+  it('resumes the old canvas when its context comes back after a failed rebuild', async () => {
+    const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
+    const { release } = await mountedStage();
+    const lost = current();
+    pixiFake.initFailures = 1;
+    const calls = pixiFake.initCalls;
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS);
+    await flush();
+    expect(pixiFake.initCalls).toBe(calls + 1);
     expect(lost.ticker.started).toBe(false);
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(lost.ticker.started).toBe(true);
+    // The armed retry is dropped: nothing more is created.
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS * 100);
+    expect(pixiFake.initCalls).toBe(calls + 1);
+    expect(current()).toBe(lost);
+    release();
+  });
+
+  it('stops creating contexts after the last failed attempt but still resumes on a late restore', async () => {
+    const { CONTEXT_RESTORE_DEADLINE_MS, MAX_REBUILD_ATTEMPTS } = await import('@/scene/stage');
+    const { release } = await mountedStage();
+    const lost = current();
+    pixiFake.initFailures = MAX_REBUILD_ATTEMPTS;
+    const calls = pixiFake.initCalls;
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    for (let attempt = 0; attempt < MAX_REBUILD_ATTEMPTS; attempt += 1) {
+      await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS * 2 ** attempt);
+      await flush();
+      expect(pixiFake.initCalls).toBe(calls + attempt + 1);
+    }
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS * 100);
+    expect(pixiFake.initCalls).toBe(calls + MAX_REBUILD_ATTEMPTS);
+    expect(current()).toBe(lost);
+    expect(lost.ticker.started).toBe(false);
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(lost.ticker.started).toBe(true);
+    release();
+  });
+
+  it('discards the new context when the old one is restored while the rebuild is in flight', async () => {
+    const { CONTEXT_RESTORE_DEADLINE_MS } = await import('@/scene/stage');
+    const { host, release } = await mountedStage();
+    const lost = current();
+    let open = () => {};
+    pixiFake.initGate = new Promise((resolve) => {
+      open = resolve;
+    });
+
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS);
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(lost.ticker.started).toBe(true);
+    const created = pixiFake.apps.length;
+    open();
+    await flush();
+
+    // The finished application was created and immediately destroyed.
+    expect(pixiFake.apps).toHaveLength(created);
+    expect(current()).toBe(lost);
+    expect(host.contains(lost.canvas)).toBe(true);
+    expect(lost.destroy).not.toHaveBeenCalled();
+    expect(lost.ticker.callbacks.size).toBe(1);
+    // The old canvas is still the watched one.
+    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    expect(lost.ticker.started).toBe(false);
+    lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(lost.ticker.started).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
     release();
   });
 });
