@@ -1379,11 +1379,12 @@ function webgl1ContextOf(canvas: HTMLCanvasElement): CreatedWebglContext | null 
  * The order, last attached first, is the order PixiJS's own `AbstractRenderer.destroy` uses (it
  * reverses the destroy runner before emitting), so each system is torn down before the systems
  * attached ahead of it, as in a normal teardown. On a half-built 8.23 renderer no system's
- * `destroy` depends on that order (read in the source: the two cross-system reads are the context
- * system's `destroy` taking the view's canvas, which the view's `destroy` leaves in place, and the
- * stencil system's `destroy` removing itself from the render-target system's
- * `onRenderTargetChange` runner, which the render-target system's `destroy` leaves in place), so
- * no test pins it.
+ * `destroy` depends on that order (read in the source: the two direct cross-system reads are the
+ * context system's `destroy` taking the view's canvas, which the view's `destroy` leaves in place,
+ * and the stencil system's `destroy` removing itself from the render-target system's
+ * `onRenderTargetChange` runner, which the render-target system's `destroy` leaves in place; the
+ * render-target system's `destroy` also reads `renderer.gl` through its adaptor, which nothing
+ * clears, over a target hash that is empty until the first render), so no test pins it.
  *
  * Render pipes are not destroyed: a pipe whose adaptor never got a context throws in its
  * `destroy` (`GlSmoothGraphicsAdaptor.destroy`), and in 8.23 no pipe registers module-level state
