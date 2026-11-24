@@ -325,10 +325,10 @@ describe('createAvalonRoomShellModel', () => {
       AVALON_NIGHT_VIEW_ACTION_KEY,
       'viewRole',
     ]);
-    expect(during.playerActions.message).toBe('请点击「查看夜间信息」');
+    expect(during.playerActions.message).toBe('请点击「查看坏人互认」');
     const viewNight = findStageAction(during.playerActions, AVALON_NIGHT_VIEW_ACTION_KEY);
     expect(viewNight).toMatchObject({
-      label: '查看夜间信息',
+      label: '查看坏人互认',
       state: { kind: 'ready' },
       testID: TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY),
     });
@@ -341,7 +341,7 @@ describe('createAvalonRoomShellModel', () => {
     if (viewNight?.state.kind !== 'ready') throw new Error('expected a ready view action');
     const { onPress } = viewNight.state;
     act(() => onPress());
-    expect(alertStore.getSnapshot()).toMatchObject({ title: '查看夜间信息？' });
+    expect(alertStore.getSnapshot()).toMatchObject({ title: '查看坏人互认？' });
     act(() => {
       void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
     });
@@ -851,7 +851,7 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
       nightActions: interaction.actions,
       nightMessage: interaction.message,
     });
-    expect(pendingShell.message).toBe('请点击「查看夜间信息」');
+    expect(pendingShell.message).toBe('请点击「查看坏人互认」');
     expect(findStageAction(pendingShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeDefined();
     running.send(avalonViewNightCommand(running.state), seatUser(pending));
     const viewed = renderNightInteraction(running.state, pending).interaction;

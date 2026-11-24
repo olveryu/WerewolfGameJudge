@@ -31,7 +31,6 @@ import {
 } from '../state/types';
 
 const COPY = defineCopy({
-  nightInfo: '夜间信息',
   evilRevealTitle: '坏人互认',
   merlinRevealTitle: '梅林的视野',
   percivalRevealTitle: '派西维尔的视野',
@@ -158,9 +157,8 @@ function defineRevealStep(input: {
       {
         kind: 'view',
         key: AVALON_NIGHT_VIEW_ACTION_KEY,
-        name: COPY.nightInfo,
-        title: COPY.nightInfo,
-        contentTitle: input.title,
+        name: input.title,
+        title: input.title,
         content: input.content,
       },
     ],

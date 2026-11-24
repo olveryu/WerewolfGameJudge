@@ -458,7 +458,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
   if (phase.kind === 'night') {
-    // 晚上：共享步骤机制的「查看夜间信息」手牌（先问 → 内容 → 知道了）。
+    // 晚上：共享步骤机制的「查看{步骤名}」手牌（先问 → 内容 → 知道了）。
     // 查看与播报并行：音频播放中也保持可用（引擎完成评估与查看、ack 的
     // 到达顺序无关，见 E3 §5b）。
     if (input.effectiveSeat !== null) {

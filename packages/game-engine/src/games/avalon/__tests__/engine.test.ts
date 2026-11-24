@@ -570,7 +570,7 @@ describe('Avalon engine', () => {
     }
   });
 
-  it('presents each reveal as viewing the night information with its own content title', () => {
+  it('presents each reveal as viewing its own step information', () => {
     const session = game({ numberOfPlayers: 7 });
     session.startGame();
     const morgana = session.seatOfRole('morgana');
@@ -581,12 +581,12 @@ describe('Avalon engine', () => {
       stepId: 'evilReveal',
       title: '坏人互认',
       isActor: true,
-      message: '请点击「查看夜间信息」',
+      message: '请点击「查看坏人互认」',
       actions: [
         {
           kind: 'view',
           key: 'viewNightInfo',
-          label: '查看夜间信息',
+          label: '查看坏人互认',
           content: {
             title: '坏人互认',
             text: `你看到的坏人同伴：${assassin + 1}号·${assassinName}`,

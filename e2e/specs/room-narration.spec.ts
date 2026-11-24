@@ -120,7 +120,7 @@ for (const gameId of ['werewolf', 'avalon'] as const) {
           await page
             .getByTestId(TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY))
             .click();
-          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看夜间信息？');
+          await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看坏人互认？');
           await page.getByTestId(TESTIDS.alertButton(1)).click();
           await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('坏人互认');
           await page.getByTestId(TESTIDS.alertButton(0)).click();

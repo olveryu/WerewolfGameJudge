@@ -264,7 +264,7 @@ function parseSeatNumbers(message: string): number[] {
 const NIGHT_INFO_BUTTON = TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY);
 
 /**
- * Drive one night participant: bottom 查看夜间信息 → confirm → assert what
+ * Drive one night participant: bottom 查看{步骤名} → confirm → assert what
  * they see → 知道了. The button is available while the host narration plays
  * (confirmation and narration run in parallel; the step settles once
  * every participant has confirmed and the host ack has landed, in
@@ -280,7 +280,7 @@ async function confirmNightInfo(
   await infoButton.click();
   const modal = page.getByTestId(TESTIDS.alertModal);
   await expect(modal).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText('查看夜间信息？');
+  await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText(`查看${expectedTitle}？`);
   await expect(page.getByTestId(TESTIDS.alertButton(1))).toHaveText('查看');
   await page.getByTestId(TESTIDS.alertButton(1)).click();
   await expect(page.getByTestId(TESTIDS.alertTitle)).toHaveText(expectedTitle);
