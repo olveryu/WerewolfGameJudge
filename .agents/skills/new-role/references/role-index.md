@@ -1,11 +1,13 @@
-# Role index — regenerated from `ROLE_SPECS`
+# Role catalog index — based on `ROLE_SPECS`
 
 Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`.
 Count: 48 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
-Regenerate from `specs.ts` before use (`ROLE_SPECS` is the source).
+This index describes catalog metadata used by existing consumers. Runtime
+night behavior is declared in `packages/game-engine/src/games/werewolf/roles/`;
+do not infer the executable step definition from this table.
 
-| Role id            | Display name | Short name | Faction  | Team  | Night steps                                                |
+| Role id            | Display name | Short name | Faction  | Team  | Catalog night steps                                        |
 | ------------------ | ------------ | ---------- | -------- | ----- | ---------------------------------------------------------- |
 | `villager`         | 平民         | 民         | Villager | Good  | —                                                          |
 | `mirrorSeer`       | 灯影预言家   | 灯         | Villager | Good  | `mirrorSeerCheck`                                          |
@@ -56,10 +58,9 @@ Regenerate from `specs.ts` before use (`ROLE_SPECS` is the source).
 | `treasureMaster`   | 盗宝大师     | 盗         | Special  | Third | `treasureMasterChoose`                                     |
 | `cursedFox`        | 咒狐         | 狐         | Special  | Third | —                                                          |
 
-## Roles with no night steps
+## Roles with no catalog night-step metadata
 
-These roles declare no `nightSteps` entry (or an empty list) and therefore contribute
-no step to `NIGHT_STEPS`, derived from the spec file:
+These roles declare no `nightSteps` entry (or an empty list) in the catalog:
 
 - `villager` (平民)
 - `idiot` (愚者)
@@ -76,7 +77,7 @@ no step to `NIGHT_STEPS`, derived from the spec file:
 - `warden` (典狱长)
 - `cursedFox` (咒狐)
 
-## Notes verified against the spec file
+## Notes verified against the catalog
 
 - `shortName` values are all one character, but they are not unique: `gargoyle` and
   `awakenedGargoyle` both use `石`. The contract check is non-empty only

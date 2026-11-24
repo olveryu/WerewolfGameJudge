@@ -26,8 +26,8 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/role-index.md` — current 47-role index, regenerated
-   from `ROLE_SPECS`, with faction and night steps per role.
+1. `references/role-index.md` — current 48-role catalog index from
+   `ROLE_SPECS`; runtime night behavior is declared in `roles/`.
 2. `references/preset-rules.md` — schema, categories, seat-count
    rule, bottom cards, contract checks, count surfaces.
 3. `references/board-test.md` — the web board UI tests, the Night-1
@@ -38,9 +38,9 @@ Do not use when:
 ### 1. Collect and verify the board
 
 Get the board name, category, and full role list from the requester.
-Verify every role id in `references/role-index.md` (or in `specs.ts`
-directly). A missing role stops the work: add the role first, do not
-invent an id. Agree the category using the enum meanings in
+Verify every role id in `references/role-index.md` (or in
+`ROLE_SPECS` directly). A missing role stops the work: add the role
+first, do not invent an id. Agree the category using the enum meanings in
 `references/preset-rules.md`.
 
 ### 2. Check the design

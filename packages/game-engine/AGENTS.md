@@ -39,10 +39,12 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 - Shared seat commands and reason codes live in `platform/protocol/` (`commands.ts`, `reasons.ts`), pinned by `commandVocabulary.contract.test.ts` and `reasonCodes.contract.test.ts`.
 - The realtime wire protocol is v2: client sends `SYNC` only; server sends `SYNC_RESULT`, `STATE_UPDATE`, `INBOX_HINT` (online/offline presence was removed 2026-11-07; no `PRESENCE` frame exists). Parsers are fail-fast strict schemas; violations are protocol errors. Close codes are defined in `platform/realtime/closeCodes.ts`.
 
-## Models: one source, derived registries
+## Werewolf role catalog and night runtime
 
-- Werewolf role models live in `domain/models/`. Each game owns its models. (Only werewolf has a `domain/models/` directory.)
-- `ROLE_SPECS` is the single source for what a werewolf role is and does. `SCHEMAS` is built from it (`buildSchemas`), and `NIGHT_STEPS` is derived from it plus the night-step order (`buildNightSteps`). Edits go in the spec; the registries are derived.
+- Werewolf's catalog data remains in `domain/models/roles/spec/` and powers role selection, templates, and existing projections. `ROLE_SPECS`, `SCHEMAS`, and `NIGHT_STEPS` still serve those consumers; they are not the runtime implementation of night actions.
+- Night behavior lives in one module per role under `games/werewolf/roles/`, declared with `defineRole` from `roles/role.ts`. `WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` registers those definitions; the shared wolf attack is declared separately in `roles/wolfKill.ts` and `WEREWOLF_SHARED_STEPS`.
+- `roles/nightPlan.ts` builds the runtime step registry from the role and shared-step definitions. The central execution order remains `NIGHT_STEP_ORDER` in `domain/models/roles/spec/nightStepIds.ts`; every runtime step id must be declared there and in its role definition.
+- When changing night behavior, update the role module, runtime registry/order, and the catalog metadata still consumed by existing surfaces. `roles/__tests__/roleSteps.contract.test.ts` covers the runtime role set and generated step behavior.
 
 ## Randomness, logging, assertions
 
