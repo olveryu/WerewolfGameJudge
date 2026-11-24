@@ -17,6 +17,7 @@ import {
   type __GAME_PASCAL__State,
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createRoomShellModel, type RoomShellModelInput } from '@/features/room/model/createRoomShellModel';
@@ -81,7 +82,6 @@ import {
 //#cap identityViewing
 import { TESTIDS } from '@/testids';
 //#end
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** 为共享资料卡控件返回公开的席位身份。 */
 const get__GAME_PASCAL__ProfileTarget = (
@@ -194,20 +194,21 @@ function build__GAME_PASCAL__RestartAction(input: __GAME_PASCAL__HostManagementI
   const { state } = input;
   const wasEnded = state.phase.kind === 'ended';
   return buildResetToLobbyAction({
-    onPress: () => showDestructiveAlert(
-      '重新开始？',
-      wasEnded
+    onPress: () => confirmAction({
+      label: '重新开始？',
+      body: wasEnded
         ? input.review?.isPending
           ? '你尚未查看本局复盘。重新开始将保留座位和配置，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
           : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
         : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
-      '重新开始',
-      () => void input.submit(
+      tone: 'danger',
+      confirmText: '重新开始',
+      onConfirm: () => void input.submit(
         '重新开始',
         { type: '__GAME_ID__.game.restart', gameSequence: state.gameSequence, wasEnded },
         { actionKey: HOST_ACTION_KEYS.restart },
       ),
-    ),
+    }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });
@@ -244,11 +245,11 @@ export function create__GAME_PASCAL__HostManagement(
       );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.assignTitle,
-          '所有座位已满，将为每位玩家分配身份',
-          submitAssign,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.assignTitle,
+          body: '所有座位已满，将为每位玩家分配身份',
+          onConfirm: submitAssign,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -273,7 +274,12 @@ export function create__GAME_PASCAL__HostManagement(
         { actionKey: HOST_ACTION_KEYS.startGame },
       );
     const startAction = buildStartGameAction({
-      onPress: () => showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, '将开始本局对局', submitStart),
+      onPress: () =>
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: '将开始本局对局',
+          onConfirm: submitStart,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -304,7 +310,11 @@ export function create__GAME_PASCAL__HostManagement(
       );
     const beginAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(HOST_FLOW_CONFIRM.startTitle, allViewedConfirmBody('身份', '将开始对局'), submitBegin),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: allViewedConfirmBody('身份', '将开始对局'),
+          onConfirm: submitBegin,
+        }),
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,

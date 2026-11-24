@@ -392,7 +392,7 @@ async function pickTeam(
   await expect(submit).toBeEnabled({ timeout: 10_000 });
   await waitForBottomActionMessage(leaderPage);
   await expect(leaderPage.getByTestId(TESTIDS.actionMessage)).toHaveText(
-    '预选已确认，点「最终队伍」打开选人调整最终队伍。',
+    '请点击「最终队伍」。可调整预选的队伍',
     { timeout: 10_000 },
   );
   await waitForBottomActionMessage(observerPage);

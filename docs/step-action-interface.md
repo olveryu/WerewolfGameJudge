@@ -537,7 +537,7 @@ export interface StepInteraction {
 - `pendingResult` 非空时自动弹出结果，按钮“知道了”，点了提交确认。刷新后仍会出现，直到确认。
 - 选座草稿跨刷新保留，键为步骤、serial 和动作 key。
 - 确认弹窗打开期间如果 `presentation` 的 `stepId` 或 `serial` 变了，关闭弹窗并提示 A17 那一句，不提交。
-- 用现有的 `useSeatPicking`、`resolveSeatPickTap`、`showConfirmAlert`、`showDismissAlert`，不新造一套。
+- 用现有的 `useSeatPicking`、`resolveSeatPickTap`、共享入口 `confirmAction` / `confirmView`（§9）和 `showDismissAlert`，不新造一套。
 
 检查：客户端步骤渲染目录和狼人杀房间夜间代码里不许出现角色 id 字面量（AST 检查，名单取自引擎的角色 id 列表）。
 
