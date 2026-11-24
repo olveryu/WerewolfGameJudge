@@ -1,9 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Container } from 'pixi.js';
 
+import { createClientProductUi } from '@/features/product/model/ClientProductUi';
 import { RevealCardFace } from '@/features/room/components/RoleRevealEffects/common/RevealCardFace';
 import {
   RevealScene,
@@ -11,6 +14,7 @@ import {
 } from '@/features/room/components/RoleRevealEffects/runtime';
 import { ALIGNMENT_THEMES } from '@/features/room/components/RoleRevealEffects/themes';
 import type { RevealEffectProps } from '@/features/room/components/RoleRevealEffects/types';
+import { loadGameProductUiContributions } from '@/games/productUiCatalog';
 import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { TESTIDS } from '@/testids';
@@ -81,24 +85,33 @@ describe('Werewolf product reveal preview', () => {
     expect(onComplete).toHaveBeenCalledOnce();
   });
 
-  it('plays on the body, outside the isolated page root, so no page layer can cover it', () => {
-    const presentation = werewolfProductUi.getRevealEffectPresentation('scratch');
-    if (presentation === null) throw new Error('Missing scratch presentation');
-    // The appearance page: a lifted, selected cell with its badge, inside the app root.
-    const root = document.createElement('div');
-    root.id = 'root';
-    document.body.append(root);
-    const cell = document.createElement('div');
-    cell.style.zIndex = '1';
-    cell.style.transform = 'translateY(-4px)';
-    root.append(cell);
-    render(<presentation.Preview effectId="scratch" onComplete={() => {}} />, { container: cell });
+  it.each(ROLE_REVEAL_EFFECT_IDS)(
+    'plays %s in the shared reveal dialog above every page layer, dismissible with Escape',
+    async (effectId) => {
+      const productUi = createClientProductUi(await loadGameProductUiContributions());
+      const { Preview } = productUi.getRevealEffectPresentation(effectId);
+      // The appearance page: a lifted, selected cell with its badge, inside the app root.
+      const root = document.createElement('div');
+      root.id = 'root';
+      document.body.append(root);
+      const cell = document.createElement('div');
+      cell.style.zIndex = '1';
+      cell.style.transform = 'translateY(-4px)';
+      root.append(cell);
+      const onComplete = vi.fn();
+      render(<Preview effectId={effectId} onComplete={onComplete} />, { container: cell });
 
-    const dialog = screen.getByRole('dialog');
-    expect(dialog.parentElement).toBe(document.body);
-    expect(root.contains(dialog)).toBe(false);
-    root.remove();
-  });
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveAttribute('data-testid', 'role-reveal-modal');
+      expect(root.contains(dialog)).toBe(false);
+      expect(document.body.contains(dialog)).toBe(true);
+      await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+
+      await userEvent.keyboard('{Escape}');
+      expect(onComplete).toHaveBeenCalledOnce();
+      root.remove();
+    },
+  );
 
   it('relies on the app root isolating page z-indexes below body-level portals', () => {
     const globalCss = readFileSync(join(import.meta.dirname, '../../../../global.css'), 'utf8');

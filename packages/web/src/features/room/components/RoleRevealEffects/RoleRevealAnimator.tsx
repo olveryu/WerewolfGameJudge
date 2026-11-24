@@ -32,6 +32,7 @@ export function RoleRevealAnimator({
   testIDPrefix = 'role-reveal',
   allRoles,
   remainingCards,
+  dismissible = false,
 }: RoleRevealAnimatorProps) {
   const systemReducedMotion = usePrefersReducedMotion();
   const effectProps: RevealEffectProps = {
@@ -43,7 +44,14 @@ export function RoleRevealAnimator({
     remainingCards,
   };
   return (
-    <Dialog.Root open closeOnInteractOutside={false} closeOnEscape={false}>
+    <Dialog.Root
+      open
+      closeOnInteractOutside={false}
+      closeOnEscape={dismissible}
+      onOpenChange={({ open }) => {
+        if (!open) onComplete();
+      }}
+    >
       <Portal>
         <Dialog.Content data-testid={`${testIDPrefix}-modal`} style={REVEAL_ROOT_STYLE}>
           <div style={REVEAL_TITLE_ROW_STYLE}>

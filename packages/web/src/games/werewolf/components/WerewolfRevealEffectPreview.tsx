@@ -1,17 +1,7 @@
 /** Product-facing preview of a Werewolf role reveal effect, played full screen. */
-import { Suspense, useId } from 'react';
-import { createPortal } from 'react-dom';
-
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
-import {
-  REVEAL_ROOT_STYLE,
-  REVEAL_TITLE_ROW_STYLE,
-  REVEAL_TITLE_STYLE,
-  revealTitle,
-} from '@/features/room/components/RoleRevealEffects/common/shell';
-import RevealEffectStage from '@/features/room/components/RoleRevealEffects/RevealEffectStage';
+import { RoleRevealAnimator } from '@/features/room/components/RoleRevealEffects/RoleRevealAnimator';
 import type { RevealRoleData } from '@/features/room/model/RevealRoleData';
-import { usePrefersReducedMotion } from '@/scene/usePrefersReducedMotion';
 
 import { toRevealRoleData } from './WerewolfRoleCardAdapter';
 
@@ -26,39 +16,18 @@ const PREVIEW_ROLES: readonly RevealRoleData[] = [
 ];
 
 /**
- * Plays `effectId` for a villager among six roles and reports completion. Portalled to the body,
- * like the room's reveal, so no stacking context on the page (a lifted picker cell, a badge, the
- * header) can paint over it.
+ * Plays `effectId` for a villager among six roles through the room's own reveal dialog, so the
+ * preview stacks above the page, traps focus and locks scroll exactly as the real reveal does.
+ * Unlike the room's reveal it can be dismissed with Escape, which also reports completion.
  */
 export function WerewolfRevealEffectPreview({ effectId, onComplete }: RevealEffectPreviewProps) {
-  const reducedMotion = usePrefersReducedMotion();
-  const titleId = useId();
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      data-testid="role-reveal-modal"
-      style={REVEAL_ROOT_STYLE}
-    >
-      <div style={REVEAL_TITLE_ROW_STYLE}>
-        <h2 id={titleId} style={REVEAL_TITLE_STYLE}>
-          {revealTitle(effectId)}
-        </h2>
-      </div>
-      <Suspense fallback={null}>
-        <RevealEffectStage
-          effectType={effectId}
-          effectProps={{
-            role: PREVIEW_ROLE,
-            allRoles: PREVIEW_ROLES,
-            reducedMotion,
-            testIDPrefix: 'role-reveal',
-            onComplete,
-          }}
-        />
-      </Suspense>
-    </div>,
-    document.body,
+  return (
+    <RoleRevealAnimator
+      effectType={effectId}
+      role={PREVIEW_ROLE}
+      allRoles={PREVIEW_ROLES}
+      onComplete={onComplete}
+      dismissible
+    />
   );
 }
