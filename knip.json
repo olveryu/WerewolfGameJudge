@@ -8,7 +8,11 @@
       "ignoreDependencies": ["@sentry/cli", "serve"]
     },
     "packages/game-engine": {
-      "entry": ["src/platform/steps/index.ts!", "type-tests/**/*.ts!"],
+      "entry": [
+        "src/games/werewolf/roles/index.ts!",
+        "src/platform/steps/index.ts!",
+        "type-tests/**/*.ts!"
+      ],
       "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
