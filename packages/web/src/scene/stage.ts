@@ -11,6 +11,9 @@
  *   motion. Display objects and geometry are built when a decoration mounts or its tile size
  *   changes; the per-frame path only writes transforms and alphas. Geometry is shared through
  *   a ref-counted cache, so seats showing the same decoration at the same size share it.
+ * - Every texture is backed by a 2D canvas (no GPU-only render textures), so when the browser
+ *   drops the WebGL context PixiJS re-uploads them all on restore; the stage pauses while the
+ *   context is lost and redraws once it is back (see `webglContextWatch.ts`).
  * - SVG artwork is rasterised into textures (see `svgTexture.ts`), shared the same way and
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
@@ -72,6 +75,8 @@ import {
   MountedEntrance,
 } from '@/scene/stageEntrance';
 import { rasterizeSvg } from '@/scene/svgTexture';
+import { watchWebglContext } from '@/scene/webglContextWatch';
+import { log } from '@/utils/logger';
 
 /** Frame caps offered by the settings page (decision D3). */
 export type SceneFrameRate = 60 | 30;
@@ -99,6 +104,7 @@ const RESIDENT_Z_INDEX = 1;
 
 /** Radius of the shared white dot texture; dots are tinted and scaled from it. */
 const DOT_TEXTURE_RADIUS = 32;
+const sceneLog = log.extend('Scene');
 const MAX_RESOLUTION = 2;
 const DEG_TO_RAD = Math.PI / 180;
 const DEFAULT_DASH_VARIANTS = 12;
@@ -782,6 +788,8 @@ class SceneStage implements EntranceHost {
   private host: HTMLElement | null = null;
   private overlay: StageOverlay | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  /** True between `webglcontextlost` and `webglcontextrestored`: nothing can be drawn. */
+  private contextLost = false;
 
   constructor(
     private readonly application: Application,
@@ -795,6 +803,30 @@ class SceneStage implements EntranceHost {
       this.overlay?.frame(timeMs);
     });
     document.addEventListener('visibilitychange', () => this.syncTicker());
+    // PixiJS registered its own listeners during `init`, so on restore its GPU state (textures,
+    // buffers, shaders) is already reset for re-upload when this redraw runs.
+    watchWebglContext(application.canvas, {
+      onLost: () => {
+        this.contextLost = true;
+        sceneLog.warn('WebGL context lost; scene paused', this.contextReport());
+        this.syncTicker();
+      },
+      onRestored: () => {
+        this.contextLost = false;
+        sceneLog.info('WebGL context restored; scene redrawn', this.contextReport());
+        this.syncTicker();
+        // A stopped ticker draws nothing by itself: put the current still frame back.
+        if (!this.application.ticker.started && !document.hidden) this.application.render();
+      },
+    });
+  }
+
+  private contextReport(): Record<string, number> {
+    return {
+      decorations: this.decorations.size,
+      entrances: this.entrances.size,
+      hosts: this.attachedHosts.size,
+    };
   }
 
   get resolution(): number {
@@ -1001,14 +1033,15 @@ class SceneStage implements EntranceHost {
   private syncTicker(): void {
     const hasSeatWork =
       this.host !== null && (this.decorations.size > 0 || this.animatingEntrances.size > 0);
-    const shouldRun = (hasSeatWork || this.overlay?.animating === true) && !document.hidden;
+    const shouldRun =
+      (hasSeatWork || this.overlay?.animating === true) && !document.hidden && !this.contextLost;
     const ticker = this.application.ticker;
     if (shouldRun && !ticker.started) ticker.start();
     if (!shouldRun && ticker.started) {
       ticker.stop();
       // A stopped ticker keeps its last frame on the canvas: draw the stage as it is now, so a
       // decoration unmounted since that frame (its tile scrolled out of view) does not linger.
-      if (!document.hidden) this.application.render();
+      if (!document.hidden && !this.contextLost) this.application.render();
     }
   }
 
@@ -1061,6 +1094,35 @@ export function sharedSceneStage(): Promise<SceneStage> {
  *
  * @returns the stage; rejects when WebGL is unavailable
  */
+/**
+ * The white disc every dot sprite draws, painted on a 2D canvas rather than rendered on the GPU:
+ * a canvas-backed source survives WebGL context loss (PixiJS re-uploads it), a render texture
+ * would come back empty.
+ */
+function createDotTexture(resolution: number): Texture {
+  const size = Math.ceil(DOT_TEXTURE_RADIUS * 2 * resolution);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Canvas 2D is unavailable for the dot texture');
+  }
+  context.fillStyle = '#fff';
+  context.beginPath();
+  context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  context.fill();
+  return new Texture({
+    source: new ImageSource({
+      resource: canvas,
+      resolution,
+      alphaMode: 'premultiply-alpha-on-upload',
+      // Mipmapped: most dots are drawn at a few pixels, far below the texture size.
+      autoGenerateMipmaps: true,
+    }),
+  });
+}
+
 async function createSceneStage(): Promise<SceneStage> {
   const application = new Application();
   await application.init({
@@ -1077,13 +1139,7 @@ async function createSceneStage(): Promise<SceneStage> {
   canvas.setAttribute('aria-hidden', 'true');
   canvas.classList.add('scene-canvas');
 
-  const dot = new Graphics().circle(0, 0, DOT_TEXTURE_RADIUS).fill(0xffffff);
-  // Mipmapped: most dots are drawn at a few pixels, far below the texture size.
-  const dotTexture = application.renderer.generateTexture({
-    target: dot,
-    textureSourceOptions: { autoGenerateMipmaps: true },
-  });
-  dot.destroy();
+  const dotTexture = createDotTexture(application.renderer.resolution);
 
   return new SceneStage(application, dotTexture);
 }
