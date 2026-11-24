@@ -1,0 +1,100 @@
+import { formatSeat } from '../../../platform/room/formatSeat';
+import { defineCopy } from '../../../platform/steps';
+import type { StepDefinition } from '../../../platform/steps/step';
+import type { WerewolfNightFacts, WerewolfRoleStepContext, WerewolfRoleStepResult } from './role';
+import { defineRole } from './role';
+import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+
+const COPY = defineCopy({
+  name: '种狼',
+  shortName: '种',
+  emoji: '🌱🐺',
+  description:
+    '首夜在狼人袭击后可感染袭击目标；不能感染狼人目标；若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人；被转化者当夜原技能失效',
+  action: '感染',
+  infection: '感染{seat}',
+  noTarget: '本夜没有可感染的狼人袭击目标',
+  revealTitle: '感染信息',
+  infected: '你已被种狼感染并转化为普通狼人',
+  notInfected: '你未被感染',
+});
+
+const infectStep: StepDefinition<
+  string,
+  WerewolfRoleStepContext,
+  WerewolfNightFacts,
+  WerewolfRoleStepResult
+> = {
+  id: 'seedWolfInfect',
+  title: COPY.action,
+  audio: () => ({ begin: 'seedWolf', end: 'seedWolf' }),
+  actors: (context) =>
+    context.state.nightNumber === 1
+      ? context.state.seatedSeats.filter((seat) =>
+          context.role.activeRoleIdsOf(seat).includes('seedWolf'),
+        )
+      : [],
+  situationHints: (context) => (getInfectionTarget(context) === null ? [COPY.noTarget] : []),
+  actions: [
+    {
+      kind: 'direct',
+      key: 'seedWolfInfect',
+      name: COPY.action,
+      target: getInfectionTarget,
+      phrase: (seat) => `${COPY.action}${formatSeat(seat)}`,
+      availability: (context) =>
+        getInfectionTarget(context) === null
+          ? { kind: 'unavailable', reason: COPY.noTarget }
+          : { kind: 'available' },
+      resolve: (context) => {
+        const targetSeat = getInfectionTarget(context);
+        if (targetSeat === null) {
+          throw new Error('[FAIL-FAST] Seed wolf infected without an eligible wolf target');
+        }
+        return {
+          facts: {
+            wolfInfections: [{ actorSeat: getActingSeat(context), targetSeat }],
+          },
+        };
+      },
+    },
+  ],
+  skippable: () => true,
+  lock: (context) => getRoleAbilityLockReason(context, 'seedWolf'),
+  reviewSubject: () => COPY.name,
+};
+
+const infectRevealStep = createGroupConfirmStep({
+  id: 'seedWolfInfectReveal',
+  roleName: COPY.name,
+  title: COPY.revealTitle,
+  content: (context) =>
+    context.facts.wolfInfections?.some((infection) => infection.targetSeat === context.seat) &&
+    context.seat !== null &&
+    context.role.roleOf(context.seat) === 'wolf'
+      ? COPY.infected
+      : COPY.notInfected,
+});
+
+export const seedWolf = defineRole({
+  id: 'seedWolf',
+  card: {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: COPY.emoji,
+    description: COPY.description,
+  },
+  traits: {
+    faction: 'wolf',
+    team: 'wolf',
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
+  },
+  nightSchedule: 'firstNight',
+  steps: [infectStep, infectRevealStep],
+});
+
+function getInfectionTarget(context: WerewolfRoleStepContext): number | null {
+  const targetSeat = context.resolvedWolfKillTarget;
+  if (targetSeat === null) return null;
+  return context.factionOfRole(context.role.roleOf(targetSeat)) === 'wolf' ? null : targetSeat;
+}

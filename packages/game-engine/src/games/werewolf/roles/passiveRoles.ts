@@ -182,6 +182,7 @@ export const wolfKing = createPassiveRole(
   {
     faction: 'wolf',
     team: 'wolf',
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
 );
 export const bloodMoon = createPassiveRole(
@@ -195,6 +196,7 @@ export const bloodMoon = createPassiveRole(
   {
     faction: 'wolf',
     team: 'wolf',
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
 );
 export const spiritKnight = createPassiveRole(
@@ -205,7 +207,12 @@ export const spiritKnight = createPassiveRole(
     COPY.spiritKnightEmoji,
     COPY.spiritKnightDescription,
   ),
-  { faction: 'wolf', team: 'wolf', immunities: ['wolfKill'] },
+  {
+    faction: 'wolf',
+    team: 'wolf',
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
+    immunities: ['wolfKill'],
+  },
   (_context: WerewolfRoleStepContext, seat) => [{ kind: 'reflect', seat, against: ['poison'] }],
 );
 export const masquerade = createPassiveRole(
@@ -229,6 +236,7 @@ export const warden = createPassiveRole(
   {
     faction: 'wolf',
     team: 'wolf',
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
   },
 );
 export const cursedFox = createPassiveRole(

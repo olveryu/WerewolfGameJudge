@@ -28,6 +28,7 @@ export interface SingleTargetStepOptions {
   readonly roleName: string;
   readonly audioKey?: string;
   readonly actionName: string;
+  readonly phrase?: (seats: readonly number[]) => string;
   readonly skippable: boolean;
   readonly canTargetSelf: boolean;
   readonly cannotRepeatTarget?: boolean;
@@ -41,7 +42,18 @@ export interface SingleTargetStepOptions {
   readonly selectionEffects?: (
     context: WerewolfRoleStepContext,
     selection: { readonly chosenSeat: number; readonly landingSeat: number },
-  ) => Pick<WerewolfNightFacts, 'disabledAbilities' | 'deathEffects'>;
+  ) => Pick<WerewolfNightFacts, 'disabledAbilities' | 'deathEffects'> &
+    Partial<
+      Pick<
+        WerewolfNightFacts,
+        | 'identityChanges'
+        | 'locationSwaps'
+        | 'resourceUses'
+        | 'factionChanges'
+        | 'wolfInfections'
+        | 'wolfGirlConfessions'
+      >
+    >;
   readonly result?: (
     context: WerewolfRoleStepContext,
     selection: { readonly chosenSeat: number; readonly landingSeat: number },
@@ -58,6 +70,20 @@ export function getActingSeat(context: WerewolfRoleStepContext): number {
     throw new Error('[FAIL-FAST] A role action resolved without an acting seat');
   }
   return context.seat;
+}
+
+export function getRoleAbilityLockReason(
+  context: WerewolfRoleStepContext,
+  roleId: string,
+  lockedReason: string = ROLE_STEP_COPY.locked,
+): string | null {
+  if (context.seat === null) return null;
+  return context.facts.disabledAbilities.some(
+    (ability) =>
+      ability.seat === context.seat && (ability.roleId === roleId || ability.roleId === '*'),
+  )
+    ? lockedReason
+    : null;
 }
 
 export function createFactionCheckResult(
@@ -150,6 +176,7 @@ export function createSingleTargetStep(
         key: options.id,
         name: options.actionName,
         count: { min: 1, max: 1 },
+        ...(options.phrase === undefined ? {} : { phrase: options.phrase }),
         seats: (context) =>
           context.state.seatedSeats.map((seat) => ({
             seat,
@@ -169,10 +196,25 @@ export function createSingleTargetStep(
                 ...selection,
               },
             ],
-            identityChanges: [],
+            identityChanges: selectionEffects?.identityChanges ?? [],
             cardSelections: [],
             disabledAbilities: selectionEffects?.disabledAbilities ?? [],
             deathEffects: selectionEffects?.deathEffects ?? [],
+            ...(selectionEffects?.locationSwaps === undefined
+              ? {}
+              : { locationSwaps: selectionEffects.locationSwaps }),
+            ...(selectionEffects?.resourceUses === undefined
+              ? {}
+              : { resourceUses: selectionEffects.resourceUses }),
+            ...(selectionEffects?.factionChanges === undefined
+              ? {}
+              : { factionChanges: selectionEffects.factionChanges }),
+            ...(selectionEffects?.wolfInfections === undefined
+              ? {}
+              : { wolfInfections: selectionEffects.wolfInfections }),
+            ...(selectionEffects?.wolfGirlConfessions === undefined
+              ? {}
+              : { wolfGirlConfessions: selectionEffects.wolfGirlConfessions }),
           };
           const result = options.result?.(context, selection);
           return {
@@ -183,15 +225,7 @@ export function createSingleTargetStep(
       },
     ],
     skippable: () => options.skippable,
-    lock: (context) =>
-      context.seat !== null &&
-      context.facts.disabledAbilities.some(
-        (ability) =>
-          ability.seat === context.seat &&
-          (ability.roleId === options.roleId || ability.roleId === '*'),
-      )
-        ? ROLE_STEP_COPY.locked
-        : null,
+    lock: (context) => getRoleAbilityLockReason(context, options.roleId),
     ...(options.situationHints === undefined ? {} : { situationHints: options.situationHints }),
     ...(options.ruleHints === undefined ? {} : { ruleHints: options.ruleHints }),
     ...(options.renderResult === undefined ? {} : { renderResult: options.renderResult }),
@@ -208,6 +242,35 @@ export function createSingleTargetStep(
       }
       return options.reviewSuffix?.(context, chosenSeat) ?? null;
     },
+  };
+}
+
+export interface GroupConfirmStepOptions {
+  readonly id: string;
+  readonly roleName: string;
+  readonly title: string;
+  readonly content: (context: WerewolfRoleStepContext) => string;
+}
+
+export function createGroupConfirmStep(
+  options: GroupConfirmStepOptions,
+): StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult> {
+  return {
+    id: options.id,
+    title: options.title,
+    audio: () => ({ begin: options.id, end: options.id }),
+    actors: (context) => context.state.seatedSeats,
+    actions: [
+      {
+        kind: 'view',
+        key: options.id,
+        name: options.title,
+        title: options.title,
+        content: options.content,
+      },
+    ],
+    skippable: () => false,
+    reviewSubject: () => options.roleName,
   };
 }
 

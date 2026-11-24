@@ -1,13 +1,25 @@
-import type { StepRuntime } from '../../../../platform/steps';
-import type { StepRecord } from '../../../../platform/steps';
-import { buildStepReviewLines, presentStep } from '../../../../platform/steps';
-import { createWerewolfRoleContext, WEREWOLF_ROLE_DEFINITIONS } from '..';
+import type { StepDefinition, StepRecord, StepRuntime } from '../../../../platform/steps';
+import {
+  buildStepReviewLines,
+  getStepOverrideViolations,
+  presentStep,
+  STEP_OVERRIDE_ALLOWLIST,
+} from '../../../../platform/steps';
+import {
+  createWerewolfRoleContext,
+  resolveNightPresenceFacts,
+  WEREWOLF_PRESENCE_DECLARATIONS,
+  WEREWOLF_ROLE_DEFINITIONS,
+  WEREWOLF_SHARED_STEPS,
+} from '..';
 import type {
   WerewolfNightFacts,
+  WerewolfRoleDefinition,
   WerewolfRoleState,
   WerewolfRoleStepContext,
   WerewolfRoleStepResult,
 } from '../role';
+import { wolfKillStep } from '../wolfKill';
 
 const EMPTY_FACTS: WerewolfNightFacts = {
   selections: [],
@@ -17,10 +29,14 @@ const EMPTY_FACTS: WerewolfNightFacts = {
   deathEffects: [],
 };
 
+const ROLE_DEFINITIONS: readonly WerewolfRoleDefinition[] = WEREWOLF_ROLE_DEFINITIONS;
+
 const EXPECTED_ROLE_IDS = [
   'seer',
   'mirrorSeer',
   'drunkSeer',
+  'witch',
+  'magician',
   'psychic',
   'gargoyle',
   'pureWhite',
@@ -40,6 +56,11 @@ const EXPECTED_ROLE_IDS = [
   'hunter',
   'darkWolfKing',
   'hiddenWolf',
+  'wolf',
+  'seedWolf',
+  'awakenedGargoyle',
+  'wolfRobot',
+  'wolfGirl',
   'avenger',
   'thief',
   'treasureMaster',
@@ -57,6 +78,8 @@ const EXPECTED_ROLE_IDS = [
   'warden',
   'cursedFox',
   'maskedMan',
+  'piper',
+  'cupid',
 ] as const;
 
 describe('werewolf role definitions', () => {
@@ -67,31 +90,73 @@ describe('werewolf role definitions', () => {
     );
   });
 
-  it.each(WEREWOLF_ROLE_DEFINITIONS.filter((role) => role.steps.length > 0))(
-    'snapshots generated output for $id',
-    (role) => {
+  it('declares the shared wolf attack step exactly once', () => {
+    expect(WEREWOLF_SHARED_STEPS.map((step) => step.id)).toEqual(['wolfKill']);
+  });
+
+  it('declares every wolf-vote participant and excludes solo wolf roles', () => {
+    const votingRoles = ROLE_DEFINITIONS.filter(
+      (role) => role.traits.recognition?.participatesInWolfVote === true,
+    ).map((role) => role.id);
+
+    expect(votingRoles).toEqual([
+      'wolfWitch',
+      'wolfQueen',
+      'nightmare',
+      'eclipseWolfQueen',
+      'darkWolfKing',
+      'wolf',
+      'seedWolf',
+      'awakenedGargoyle',
+      'wolfGirl',
+      'wolfKing',
+      'bloodMoon',
+      'spiritKnight',
+      'warden',
+    ]);
+  });
+
+  it('uses only the two approved step progression overrides', () => {
+    const steps = [
+      ...WEREWOLF_SHARED_STEPS,
+      ...WEREWOLF_ROLE_DEFINITIONS.flatMap((role) => role.steps),
+    ];
+
+    expect(getStepOverrideViolations(steps, STEP_OVERRIDE_ALLOWLIST)).toEqual([]);
+  });
+
+  it.each(WEREWOLF_ROLE_DEFINITIONS.flatMap((role) => role.steps.map((step) => ({ role, step }))))(
+    'snapshots generated output for $role.id $step.id',
+    ({ role, step }) => {
       const state = createState(role.id);
-      const initialRuntime = createRuntime(role, state);
+      const initialRuntime = createRuntime(role, state, { bySeat: {} }, EMPTY_FACTS, step.id);
       const initial = presentStep(initialRuntime, state, 1);
-      const step = role.steps[0];
-      if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
       const action = step.actions[0];
       const result = getCheckResult(role.id);
-      const completedRuntime = createRuntime(role, state, {
-        bySeat: {
-          1: {
-            submissions: [
-              {
-                actionKey: step.id,
-                seats: action?.kind === 'pickSeats' ? [2] : [],
-                cardIndex: action?.kind === 'pickCard' ? 0 : null,
-              },
-            ],
-            result,
-            isResultAcknowledged: false,
+      const completedRuntime = createRuntime(
+        role,
+        state,
+        {
+          bySeat: {
+            1: {
+              submissions: [
+                {
+                  actionKey: action?.key ?? step.id,
+                  seats:
+                    action?.kind === 'pickSeats'
+                      ? Array.from({ length: action.count.min }, (_unused, index) => index + 2)
+                      : [],
+                  cardIndex: action?.kind === 'pickCard' ? 0 : null,
+                },
+              ],
+              result,
+              isResultAcknowledged: false,
+            },
           },
         },
-      });
+        EMPTY_FACTS,
+        step.id,
+      );
 
       expect({
         initial,
@@ -100,6 +165,26 @@ describe('werewolf role definitions', () => {
       }).toMatchSnapshot();
     },
   );
+
+  it('snapshots generated output for the shared wolf attack step', () => {
+    const state = createState('wolf');
+    const initialRuntime = createRuntimeForStep(wolfKillStep, state);
+    const completedRuntime = createRuntimeForStep(wolfKillStep, state, {
+      bySeat: {
+        1: {
+          submissions: [{ actionKey: 'wolfKill', seats: [2], cardIndex: null }],
+          result: null,
+          isResultAcknowledged: false,
+        },
+      },
+    });
+
+    expect({
+      initial: presentStep(initialRuntime, state, 1),
+      submitted: presentStep(completedRuntime, state, 1),
+      review: buildStepReviewLines(completedRuntime, state),
+    }).toMatchSnapshot();
+  });
 
   it('uses the post-swap landing to enforce a repeated-target restriction', () => {
     const guardRole = requireRole('guard');
@@ -112,6 +197,456 @@ describe('werewolf role definitions', () => {
 
     expect(action.seats.find((option) => option.seat === 2)?.unavailableReason).not.toBeNull();
     expect(action.seats.find((option) => option.seat === 4)?.unavailableReason).toBeNull();
+  });
+
+  it('revises wolf votes until the majority countdown is ready', () => {
+    const step = wolfKillStep;
+    const completion = step.completion;
+    if (completion === undefined) throw new Error('[FAIL-FAST] Wolf vote completion is missing');
+    const state = createState('wolf', {
+      identities: {
+        1: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
+        2: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        3: { dealtRole: 'cupid', currentRole: 'cupid', borrowedAbilityRole: null },
+        4: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
+      },
+    });
+    const context = createRoleContext(state, null);
+    const voteAction = step.actions[0];
+    if (voteAction?.kind !== 'pickSeats') {
+      throw new Error('[FAIL-FAST] Wolf vote action is missing');
+    }
+    const disagreeing = {
+      ...context,
+      record: {
+        bySeat: {
+          1: {
+            submissions: [{ actionKey: 'wolfKill', seats: [3], cardIndex: null }],
+            result: null,
+            isResultAcknowledged: false,
+          },
+          2: {
+            submissions: [{ actionKey: 'wolfKill', seats: [4], cardIndex: null }],
+            result: null,
+            isResultAcknowledged: false,
+          },
+        },
+      },
+    };
+    const aligned = {
+      ...disagreeing,
+      record: {
+        ...disagreeing.record,
+        bySeat: {
+          ...disagreeing.record.bySeat,
+          2: {
+            submissions: [{ actionKey: 'wolfKill', seats: [3], cardIndex: null }],
+            result: null,
+            isResultAcknowledged: false,
+          },
+        },
+      },
+    };
+
+    expect(context.nightPresence.doesWolfVoteRequireUnanimity).toBe(true);
+    expect(
+      voteAction.seats(createRoleContext(state, 1)).find((option) => option.seat === 2),
+    ).toEqual({
+      seat: 2,
+      unavailableReason: '该角色免疫狼人袭击',
+    });
+    expect(completion(disagreeing)).toEqual({ kind: 'pending' });
+    expect(completion(aligned)).toEqual({ kind: 'armCountdown' });
+    expect(step.actions[0]?.commit).toBe('revisable');
+  });
+
+  it('skips the wolf vote on night one when a poisoner is present', () => {
+    const step = wolfKillStep;
+    const completion = step.completion;
+    if (completion === undefined) throw new Error('[FAIL-FAST] Wolf vote completion is missing');
+    const state = createState('poisoner', {
+      nightNumber: 1,
+      identities: {
+        1: { dealtRole: 'poisoner', currentRole: 'poisoner', borrowedAbilityRole: null },
+        2: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
+        3: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
+        4: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+      },
+    });
+    const context = createRoleContext(state, null);
+
+    expect(step.actors(context)).toEqual([]);
+    expect(completion(context)).toEqual({ kind: 'complete' });
+  });
+
+  it('does not make a mechanical wolf a voter through a borrowed wolf ability', () => {
+    const step = wolfKillStep;
+    const state = createState('wolfRobot', {
+      identities: {
+        1: { dealtRole: 'wolfRobot', currentRole: 'wolfRobot', borrowedAbilityRole: 'wolf' },
+        2: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        4: { dealtRole: 'dreamcatcher', currentRole: 'dreamcatcher', borrowedAbilityRole: null },
+      },
+    });
+
+    expect(step.actors(createRoleContext(state, null))).toEqual([3]);
+  });
+
+  it('lets unblocked wolves vote when another wolf is night-locked', () => {
+    const state = createState('wolf', {
+      identities: {
+        1: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
+        2: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        3: { dealtRole: 'cupid', currentRole: 'cupid', borrowedAbilityRole: null },
+        4: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
+      },
+    });
+    const facts: WerewolfNightFacts = {
+      ...EMPTY_FACTS,
+      disabledAbilities: [{ roleId: 'wolfQueen', seat: 2 }],
+    };
+    const context = createRoleContext(state, null, facts);
+    const voteContext = {
+      ...context,
+      record: {
+        bySeat: {
+          1: {
+            submissions: [{ actionKey: 'wolfKill', seats: [3], cardIndex: null }],
+            result: null,
+            isResultAcknowledged: false,
+          },
+        },
+      },
+    };
+
+    expect(wolfKillStep.actors(context)).toEqual([1, 2]);
+    expect(wolfKillStep.lock?.({ ...context, seat: 2 })).toBe('被噩梦之影恐惧，本夜无法袭击');
+    expect(wolfKillStep.completion?.(voteContext)).toEqual({ kind: 'armCountdown' });
+  });
+
+  it('applies witch resources, self-save rules, and wolf-attack protection', () => {
+    const role = requireRole('witch');
+    const step = role.steps[0];
+    if (step === undefined) throw new Error('[FAIL-FAST] Witch action is missing');
+    const antidote = step.actions.find((action) => action.key === 'antidote');
+    const poison = step.actions.find((action) => action.key === 'poison');
+    if (antidote?.kind !== 'direct' || poison?.kind !== 'pickSeats') {
+      throw new Error('[FAIL-FAST] Witch actions are missing');
+    }
+    const state = createState('witch');
+    const context = {
+      ...createRoleContext(state, 1),
+      resolvedWolfKillTarget: 2,
+    };
+    const selfAttackContext = {
+      ...context,
+      resolvedWolfKillTarget: 1,
+    };
+    const selfHealContext = {
+      ...selfAttackContext,
+      state: { ...selfAttackContext.state, rules: { witchCanSelfHeal: true } },
+    };
+
+    expect(antidote.availability?.(selfAttackContext)).toEqual({
+      kind: 'unavailable',
+      reason: '本局规则不允许自救',
+    });
+    expect(antidote.availability?.(selfHealContext)).toEqual({ kind: 'available' });
+    expect(antidote.resolve(context).facts).toMatchObject({
+      resourceUses: [{ roleId: 'witch', seat: 1, resource: 'antidote' }],
+      deathEffects: [
+        {
+          kind: 'protect',
+          source: 1,
+          target: 2,
+          against: ['wolfKill'],
+          conflictGroup: 'wolfSave',
+        },
+      ],
+    });
+    expect(poison.resolve(context, [2]).facts).toMatchObject({
+      resourceUses: [{ roleId: 'witch', seat: 1, resource: 'poison' }],
+      deathEffects: [{ kind: 'attack', cause: 'poison', source: 1, target: 4 }],
+    });
+  });
+
+  it('records magician swaps without applying a prior location swap', () => {
+    const role = requireRole('magician');
+    const step = role.steps[0];
+    const action = step?.actions[0];
+    if (action?.kind !== 'pickSeats') {
+      throw new Error('[FAIL-FAST] Magician swap action is missing');
+    }
+    const state = createState('magician');
+    const context = createRoleContext(state, 1);
+
+    expect(action.resolve(context, [2, 3]).facts).toMatchObject({
+      locationSwaps: [{ first: 2, second: 3 }],
+      selections: [
+        { roleId: 'magician', actorSeat: 1, chosenSeat: 2, landingSeat: 2 },
+        { roleId: 'magician', actorSeat: 1, chosenSeat: 3, landingSeat: 3 },
+      ],
+    });
+  });
+
+  it('requires a mechanical wolf that learned hunter to view its skill status', () => {
+    const role = requireRole('wolfRobot');
+    const step = role.steps[0];
+    if (step === undefined || !('isSeatSettled' in step)) {
+      throw new Error('[FAIL-FAST] Wolf robot settlement override is missing');
+    }
+    const isSeatSettled = step.isSeatSettled;
+    if (isSeatSettled === undefined) {
+      throw new Error('[FAIL-FAST] Wolf robot settlement override is missing');
+    }
+    const view = step.actions.find((action) => action.kind === 'view');
+    if (view?.kind !== 'view') throw new Error('[FAIL-FAST] Hunter status view is missing');
+    const state = createState('wolfRobot');
+    const learningState = createState('wolfRobot', {
+      identities: {
+        1: { dealtRole: 'wolfRobot', currentRole: 'wolfRobot', borrowedAbilityRole: null },
+        2: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        4: { dealtRole: 'hunter', currentRole: 'hunter', borrowedAbilityRole: null },
+      },
+      sight: { roleOverridesBySeat: { 4: 'seer' } },
+    });
+    const learningAction = step.actions.find((action) => action.key === 'wolfRobotLearn');
+    if (learningAction?.kind !== 'pickSeats') {
+      throw new Error('[FAIL-FAST] Wolf robot learning action is missing');
+    }
+    const learningResult = learningAction.resolve(createRoleContext(learningState, 1), [2]);
+    const pendingInfectionLearningResult = learningAction.resolve(
+      createRoleContext(learningState, 1, {
+        ...EMPTY_FACTS,
+        wolfInfections: [{ actorSeat: 3, targetSeat: 4 }],
+      }),
+      [2],
+    );
+    const infectedLearningState = createState('wolfRobot', {
+      ...learningState,
+      identities: {
+        ...learningState.identities,
+        4: { dealtRole: 'hunter', currentRole: 'wolf', borrowedAbilityRole: null },
+      },
+    });
+    const infectedLearningResult = learningAction.resolve(
+      createRoleContext(infectedLearningState, 1),
+      [2],
+    );
+    const learningResultValue = 'result' in learningResult ? learningResult.result : undefined;
+    const pendingInfectionLearningResultValue =
+      'result' in pendingInfectionLearningResult
+        ? pendingInfectionLearningResult.result
+        : undefined;
+    const infectedLearningResultValue =
+      'result' in infectedLearningResult ? infectedLearningResult.result : undefined;
+    if (
+      learningResultValue === undefined ||
+      pendingInfectionLearningResultValue === undefined ||
+      infectedLearningResultValue === undefined
+    ) {
+      throw new Error('[FAIL-FAST] Wolf robot identity result is missing');
+    }
+    const learnedHunter = {
+      submissions: [{ actionKey: 'wolfRobotLearn', seats: [2], cardIndex: null }],
+      result: { kind: 'identityCheck' as const, chosenSeat: 2, landingSeat: 2, roleId: 'hunter' },
+      isResultAcknowledged: true,
+    };
+    const context = createRoleContext(state, 1, EMPTY_FACTS, {
+      bySeat: { 1: learnedHunter },
+    });
+
+    expect(learningResultValue).toEqual({
+      kind: 'identityCheck',
+      chosenSeat: 2,
+      landingSeat: 4,
+      roleId: 'hunter',
+    });
+    expect(pendingInfectionLearningResultValue).toMatchObject({
+      kind: 'identityCheck',
+      landingSeat: 4,
+      roleId: 'hunter',
+    });
+    expect(infectedLearningResultValue).toMatchObject({
+      kind: 'identityCheck',
+      landingSeat: 4,
+      roleId: 'wolf',
+    });
+    expect(learningResult.facts?.identityChanges).toEqual([
+      { kind: 'grantBorrowedAbility', seat: 1, roleId: 'hunter' },
+    ]);
+    expect(learningResult.facts?.disabledAbilities).toEqual([{ roleId: 'hunter', seat: 1 }]);
+    expect(view.availability?.(context)).toEqual({ kind: 'available' });
+    expect(isSeatSettled(context, learnedHunter)).toBe(false);
+    expect(
+      isSeatSettled(context, {
+        ...learnedHunter,
+        submissions: [
+          ...learnedHunter.submissions,
+          { actionKey: 'wolfRobotHunterStatus', seats: [], cardIndex: null },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('locks borrowed role actions on the night they are learned', () => {
+    const roleIds = ['witch', 'magician', 'cupid', 'piper', 'awakenedGargoyle', 'seedWolf'];
+    const state = createState('wolfRobot');
+
+    for (const roleId of roleIds) {
+      const step = requireRole(roleId).steps[0];
+      if (step === undefined || step.lock === undefined) {
+        throw new Error(`[FAIL-FAST] ${roleId} borrowed ability lock is missing`);
+      }
+      const context = createRoleContext(state, 1, {
+        ...EMPTY_FACTS,
+        disabledAbilities: [{ roleId, seat: 1 }],
+      });
+
+      expect(step.lock(context)).toBe(
+        roleId === 'witch' ? '被噩梦之影恐惧，本夜无法使用技能' : '你今晚无法使用技能',
+      );
+    }
+  });
+
+  it('creates Cupid links before the magician swap and reveals the partner privately', () => {
+    const role = requireRole('cupid');
+    const chooseStep = role.steps[0];
+    const revealStep = role.steps[1];
+    const action = chooseStep?.actions[0];
+    const reveal = revealStep?.actions[0];
+    if (action?.kind !== 'pickSeats' || reveal?.kind !== 'view') {
+      throw new Error('[FAIL-FAST] Cupid actions are missing');
+    }
+    const state = createState('cupid');
+    const context = createRoleContext(state, 1);
+    const facts = action.resolve(context, [1, 2]).facts;
+    if (facts === undefined) throw new Error('[FAIL-FAST] Cupid facts are missing');
+    const revealContext = createRoleContext(state, 1, { ...EMPTY_FACTS, ...facts });
+
+    expect(facts.selections).toEqual([
+      { roleId: 'cupid', actorSeat: 1, chosenSeat: 1, landingSeat: 1 },
+      { roleId: 'cupid', actorSeat: 1, chosenSeat: 2, landingSeat: 2 },
+    ]);
+    expect(facts.deathEffects).toEqual([
+      {
+        kind: 'link',
+        source: 1,
+        from: 1,
+        to: 2,
+        cause: 'coupleLink',
+        isMutual: true,
+      },
+    ]);
+    expect(reveal.content(revealContext)).toBe('你是情侣之一，你的另一半是：3号');
+  });
+
+  it('records Piper selections at the magician-swapped landing seats', () => {
+    const role = requireRole('piper');
+    const chooseStep = role.steps[0];
+    const revealStep = role.steps[1];
+    const action = chooseStep?.actions[0];
+    const reveal = revealStep?.actions[0];
+    if (action?.kind !== 'pickSeats' || reveal?.kind !== 'view') {
+      throw new Error('[FAIL-FAST] Piper actions are missing');
+    }
+    const state = createState('piper');
+    const context = createRoleContext(state, 1);
+    const facts = action.resolve(context, [2, 3]).facts;
+    if (facts === undefined) throw new Error('[FAIL-FAST] Piper facts are missing');
+    const revealContext = createRoleContext(state, 4, { ...EMPTY_FACTS, ...facts });
+
+    expect(facts.selections?.map((selection) => selection.landingSeat)).toEqual([4, 3]);
+    expect(reveal.content(revealContext)).toBe('你已被吹笛者催眠，当前被催眠的座位：4号、5号');
+  });
+
+  it('converts only an adjacent non-wolf target chosen by the awakened gargoyle', () => {
+    const role = requireRole('awakenedGargoyle');
+    const step = role.steps[0];
+    const action = step?.actions[0];
+    if (action?.kind !== 'pickSeats') {
+      throw new Error('[FAIL-FAST] Awakened gargoyle action is missing');
+    }
+    const state = createState('awakenedGargoyle');
+    const context = {
+      ...createRoleContext(state, 1),
+      isAdjacentToWolfFaction: (seat: number) => seat === 4,
+    };
+    const result = action.resolve(context, [2]);
+
+    expect(action.seats(context).find((option) => option.seat === 2)?.unavailableReason).toBeNull();
+    expect(result.facts?.factionChanges).toEqual([{ seat: 4, faction: 'wolf' }]);
+  });
+
+  it('infects only the resolved non-wolf attack target and reports it to that seat', () => {
+    const role = requireRole('seedWolf');
+    const step = role.steps[0];
+    const revealStep = role.steps[1];
+    const action = step?.actions[0];
+    const reveal = revealStep?.actions[0];
+    if (action?.kind !== 'direct' || reveal?.kind !== 'view') {
+      throw new Error('[FAIL-FAST] Seed wolf actions are missing');
+    }
+    const state = createState('seedWolf');
+    const context = {
+      ...createRoleContext(state, 1),
+      resolvedWolfKillTarget: 2,
+    };
+    const facts = action.resolve(context).facts;
+    if (facts === undefined) throw new Error('[FAIL-FAST] Seed wolf facts are missing');
+
+    expect(action.availability?.(context)).toEqual({ kind: 'available' });
+    expect(facts.wolfInfections).toEqual([{ actorSeat: 1, targetSeat: 2 }]);
+    expect(reveal.content(createRoleContext(state, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
+      '你未被感染',
+    );
+    const infectedState = createState('seedWolf', {
+      identities: {
+        1: { dealtRole: 'seedWolf', currentRole: 'seedWolf', borrowedAbilityRole: null },
+        2: { dealtRole: 'seer', currentRole: 'wolf', borrowedAbilityRole: null },
+        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        4: { dealtRole: 'dreamcatcher', currentRole: 'dreamcatcher', borrowedAbilityRole: null },
+      },
+    });
+    expect(reveal.content(createRoleContext(infectedState, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
+      '你已被种狼感染并转化为普通狼人',
+    );
+    expect(action.availability?.({ ...context, resolvedWolfKillTarget: 3 })).toMatchObject({
+      kind: 'unavailable',
+    });
+  });
+
+  it('records Wolf Girl confessions at the landing seat and blocks wolf-faction targets', () => {
+    const role = requireRole('wolfGirl');
+    const step = role.steps[0];
+    const revealStep = role.steps[1];
+    const action = step?.actions[0];
+    const reveal = revealStep?.actions[0];
+    if (action?.kind !== 'pickSeats' || reveal?.kind !== 'view') {
+      throw new Error('[FAIL-FAST] Wolf Girl actions are missing');
+    }
+    const state = createState('wolfGirl', {
+      identities: {
+        1: { dealtRole: 'wolfGirl', currentRole: 'wolfGirl', borrowedAbilityRole: null },
+        2: { dealtRole: 'seer', currentRole: 'seer', borrowedAbilityRole: null },
+        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
+        4: { dealtRole: 'villager', currentRole: 'villager', borrowedAbilityRole: null },
+      },
+    });
+    const context = createRoleContext(state, 1);
+    const result = action.resolve(context, [2]);
+    const facts = result.facts;
+    if (facts === undefined) throw new Error('[FAIL-FAST] Wolf Girl facts are missing');
+
+    expect(action.seats(context).find((option) => option.seat === 3)?.unavailableReason).toBe(
+      '不能选择狼人阵营的玩家',
+    );
+    expect(facts.wolfGirlConfessions).toEqual([{ actorSeat: 1, targetSeat: 4 }]);
+    expect(reveal.content(createRoleContext(state, 4, { ...EMPTY_FACTS, ...facts }))).toBe(
+      '你被表白了，狼女孩是：2号',
+    );
   });
 
   it('keeps wolf-witch faction restrictions on the selected seat', () => {
@@ -356,17 +891,37 @@ function createState(
     sight: { roleOverridesBySeat: {} },
     seatedSeats: [1, 2, 3, 4],
     nightNumber: 2,
+    rules: { witchCanSelfHeal: false },
     usedAbilities: [],
     disabledAbilities: [],
     previousTargets: [],
     previousCards: [],
     woundedSeats: [],
+    usedResources: [],
     ...changes,
   };
 }
 
 function createRuntime(
   role: (typeof WEREWOLF_ROLE_DEFINITIONS)[number],
+  state: WerewolfRoleState,
+  record: StepRecord<WerewolfRoleStepResult> = { bySeat: {} },
+  facts: WerewolfNightFacts = EMPTY_FACTS,
+  stepId: string | undefined = role.steps[0]?.id,
+): StepRuntime<
+  string,
+  WerewolfRoleState,
+  WerewolfRoleStepContext,
+  WerewolfNightFacts,
+  WerewolfRoleStepResult
+> {
+  const step = role.steps.find((entry) => entry.id === stepId);
+  if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
+  return createRuntimeForStep(step, state, record, facts);
+}
+
+function createRuntimeForStep(
+  step: StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult>,
   state: WerewolfRoleState,
   record: StepRecord<WerewolfRoleStepResult> = { bySeat: {} },
   facts: WerewolfNightFacts = EMPTY_FACTS,
@@ -377,9 +932,10 @@ function createRuntime(
   WerewolfNightFacts,
   WerewolfRoleStepResult
 > {
-  const step = role.steps[0];
-  if (step === undefined) throw new Error(`[FAIL-FAST] ${role.id} has no step`);
-  const definitions: Record<string, (typeof role.steps)[number]> = { [step.id]: step };
+  const definitions: Record<
+    string,
+    StepDefinition<string, WerewolfRoleStepContext, WerewolfNightFacts, WerewolfRoleStepResult>
+  > = { [step.id]: step };
   return {
     definitions,
     getSlice: () => ({
@@ -403,8 +959,8 @@ function createRoleContext(
   facts: WerewolfNightFacts = EMPTY_FACTS,
   record: StepRecord<WerewolfRoleStepResult> = { bySeat: {} },
 ): WerewolfRoleStepContext {
-  const roleById = new Map<string, (typeof WEREWOLF_ROLE_DEFINITIONS)[number]>(
-    WEREWOLF_ROLE_DEFINITIONS.map((entry) => [entry.id, entry] as const),
+  const roleById = new Map<string, WerewolfRoleDefinition>(
+    ROLE_DEFINITIONS.map((entry) => [entry.id, entry] as const),
   );
   return {
     state,
@@ -417,12 +973,38 @@ function createRoleContext(
       if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
       return found.traits.team;
     },
+    factionOfRole: (roleId) => {
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.traits.faction;
+    },
+    doesRoleVoteWithWolves: (roleId) => {
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.traits.recognition?.participatesInWolfVote === true;
+    },
+    isImmuneToAttack: (seat, cause) => {
+      const roleId = createWerewolfRoleContext(
+        state.identities,
+        state.location,
+        state.sight,
+      ).roleOf(seat);
+      const found = roleById.get(roleId);
+      if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
+      return found.traits.immunities?.includes(cause) === true;
+    },
+    isAdjacentToWolfFaction: () => false,
     roleNameOf: (roleId) => {
       const found = roleById.get(roleId);
       if (found === undefined) throw new Error(`[FAIL-FAST] Unknown test role: ${roleId}`);
       return found.card.name;
     },
     randomBoolean: () => true,
+    nightPresence: resolveNightPresenceFacts(
+      Object.values(state.identities).map((identity) => identity.currentRole),
+      WEREWOLF_PRESENCE_DECLARATIONS,
+    ),
+    resolvedWolfKillTarget: null,
     canShootAtNight: () => true,
     avengerFactionOf: () => 'good',
     bottomCardsOf: (actingSeat, roleId) => {
@@ -475,6 +1057,9 @@ function getCheckResult(roleId: string): WerewolfRoleStepResult | null {
   }
   if (['psychic', 'gargoyle', 'pureWhite', 'wolfWitch'].includes(roleId)) {
     return { kind: 'identityCheck', chosenSeat: 2, landingSeat: 4, roleId: 'dreamcatcher' };
+  }
+  if (roleId === 'wolfRobot') {
+    return { kind: 'identityCheck', chosenSeat: 2, landingSeat: 4, roleId: 'hunter' };
   }
   return null;
 }

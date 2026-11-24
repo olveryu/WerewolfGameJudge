@@ -1,10 +1,12 @@
+import { awakenedGargoyle } from './awakenedGargoyle';
 import { crow } from './crow';
-import { cupidPresence } from './cupid';
+import { cupid, cupidPresence } from './cupid';
 import { dreamcatcher } from './dreamcatcher';
 import { drunkSeer, drunkSeerPresence } from './drunkSeer';
 import { eclipseWolfQueen } from './eclipseWolfQueen';
 import { gargoyle } from './gargoyle';
 import { guard } from './guard';
+import { magician } from './magician';
 import { mirrorSeer, mirrorSeerPresence } from './mirrorSeer';
 import { nightmare } from './nightmare';
 import {
@@ -23,11 +25,13 @@ import {
   witcher,
   wolfKing,
 } from './passiveRoles';
+import { piper } from './piper';
 import { poisonerPresence } from './poisoner';
 import { poisoner } from './poisoner';
 import type { PresenceDeclaration } from './presence';
 import { psychic } from './psychic';
 import { pureWhite } from './pureWhite';
+import { seedWolf } from './seedWolf';
 import { seerPresence } from './seer';
 import { seer } from './seer';
 import { shadow } from './shadow';
@@ -38,7 +42,12 @@ import { treasureMaster, treasureMasterPresence } from './treasureMaster';
 import { avenger, darkWolfKing, hiddenWolf, hunter } from './viewRoles';
 import { votebanElder } from './votebanElder';
 import { wildChild } from './wildChild';
+import { witch } from './witch';
+import { wolf } from './wolf';
+import { wolfGirl } from './wolfGirl';
+import { wolfKillStep } from './wolfKill';
 import { wolfQueen } from './wolfQueen';
+import { wolfRobot } from './wolfRobot';
 import { wolfWitch } from './wolfWitch';
 
 export { createWerewolfRoleContext, type WerewolfRoleContext } from './context';
@@ -91,6 +100,8 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   seer,
   mirrorSeer,
   drunkSeer,
+  witch,
+  magician,
   psychic,
   gargoyle,
   pureWhite,
@@ -110,6 +121,11 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   hunter,
   darkWolfKing,
   hiddenWolf,
+  wolf,
+  seedWolf,
+  awakenedGargoyle,
+  wolfRobot,
+  wolfGirl,
   avenger,
   thief,
   treasureMaster,
@@ -127,7 +143,11 @@ export const WEREWOLF_ROLE_DEFINITIONS = [
   warden,
   cursedFox,
   maskedMan,
+  piper,
+  cupid,
 ] as const;
+
+export const WEREWOLF_SHARED_STEPS = [wolfKillStep] as const;
 
 export const WEREWOLF_PRESENCE_DECLARATIONS = [
   ...poisonerPresence,

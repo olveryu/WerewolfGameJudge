@@ -2,8 +2,8 @@ import type { StepContextBase, StepDefinition } from '../../../platform/steps';
 import type { WerewolfRoleContext } from './context';
 import type { AttackCause, DeathEffect } from './deathEffects';
 import type { IdentityLayer } from './identity';
-import type { LocationLayer, TargetSelection } from './location';
-import type { PresenceDeclaration } from './presence';
+import type { LocationLayer, SeatSwap, TargetSelection } from './location';
+import type { NightPresenceFacts, PresenceDeclaration } from './presence';
 import type { SightLayer } from './sight';
 
 export type WerewolfRoleFaction = 'god' | 'villager' | 'wolf' | 'special';
@@ -22,6 +22,7 @@ export interface WerewolfRoleState {
   readonly sight: SightLayer<string>;
   readonly seatedSeats: readonly number[];
   readonly nightNumber: number;
+  readonly rules: { readonly witchCanSelfHeal: boolean };
   readonly usedAbilities: readonly { readonly roleId: string; readonly seat: number }[];
   readonly disabledAbilities: readonly { readonly roleId: string; readonly seat: number }[];
   readonly previousTargets: readonly {
@@ -35,6 +36,11 @@ export interface WerewolfRoleState {
     readonly cardIndex: number;
   }[];
   readonly woundedSeats: readonly number[];
+  readonly usedResources: readonly {
+    readonly roleId: string;
+    readonly seat: number;
+    readonly resource: string;
+  }[];
 }
 
 export interface RoleSelection extends TargetSelection {
@@ -52,6 +58,26 @@ export interface WerewolfNightFacts {
   }[];
   readonly disabledAbilities: readonly { readonly roleId: string; readonly seat: number }[];
   readonly deathEffects: readonly DeathEffect[];
+  readonly wolfVotes?: readonly {
+    readonly actorSeat: number;
+    readonly chosenSeat: number | null;
+    readonly landingSeat: number | null;
+  }[];
+  readonly locationSwaps?: readonly SeatSwap[];
+  readonly resourceUses?: readonly {
+    readonly roleId: string;
+    readonly seat: number;
+    readonly resource: string;
+  }[];
+  readonly factionChanges?: readonly {
+    readonly seat: number;
+    readonly faction: WerewolfRoleFaction;
+  }[];
+  readonly wolfInfections?: readonly { readonly actorSeat: number; readonly targetSeat: number }[];
+  readonly wolfGirlConfessions?: readonly {
+    readonly actorSeat: number;
+    readonly targetSeat: number;
+  }[];
 }
 
 export type WerewolfRoleStepResult =
@@ -99,8 +125,14 @@ export interface WerewolfRoleStepContext extends StepContextBase<
 > {
   readonly role: WerewolfRoleContext<string>;
   readonly teamOfRole: (roleId: string) => WerewolfRoleTeam;
+  readonly factionOfRole: (roleId: string) => WerewolfRoleFaction;
+  readonly doesRoleVoteWithWolves: (roleId: string) => boolean;
+  readonly isImmuneToAttack: (seat: number, cause: AttackCause) => boolean;
+  readonly isAdjacentToWolfFaction: (seat: number) => boolean;
   readonly roleNameOf: (roleId: string) => string;
   readonly randomBoolean: () => boolean;
+  readonly nightPresence: NightPresenceFacts<string>;
+  readonly resolvedWolfKillTarget: number | null;
   readonly canShootAtNight: (seat: number, roleId: string) => boolean;
   readonly avengerFactionOf: (seat: number) => 'good' | 'wolf' | 'bonded';
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
