@@ -1,9 +1,12 @@
 /**
- * Scene stage: the single PixiJS application behind every animated decoration
+ * Scene stage: the single PixiJS renderer behind every animated decoration
  * (docs/web-client-rewrite.md §5.3).
  *
  * - One WebGL context for the whole app, created on first use. WebGL is required: when it is
  *   unavailable `init` rejects and the caller surfaces the failure; there is no degraded mode.
+ * - The stage drives a PixiJS `WebGLRenderer` itself rather than through `Application`: it owns
+ *   the frame ticker and sizes the canvas to its host, so it holds every renderer it creates,
+ *   including one whose `init` fails (see `createSceneRenderer`).
  * - The ticker runs only while decorations are mounted on an attached host, or an overlay (the
  *   role reveal) borrows the canvas, and the page is visible; otherwise no frames are produced.
  *   Its frame cap is the user's 60 / 30 setting.
@@ -15,10 +18,10 @@
  *   drops the WebGL context PixiJS re-uploads them all on restore; the stage pauses while the
  *   context is lost and redraws once it is back (see `webglContextWatch.ts`). A context the
  *   browser does not give back within `CONTEXT_RESTORE_DEADLINE_MS` of visible time is
- *   abandoned: the stage builds a new application (canvas and context) and moves the whole
- *   scene graph onto it, so every mounted decoration, entrance and overlay draws again. Until
- *   the new application exists the old canvas stays watched, so a restore that arrives during
- *   or after a failed rebuild still resumes it; a failed rebuild is retried with backoff.
+ *   abandoned: the stage builds a new renderer (canvas and context) and moves the whole scene
+ *   graph onto it, so every mounted decoration, entrance and overlay draws again. Until the new
+ *   renderer exists the old canvas stays watched, so a restore that arrives during or after a
+ *   failed rebuild still resumes it; a failed rebuild is retried with backoff.
  * - SVG artwork is rasterised into textures (see `svgTexture.ts`), shared the same way and
  *   destroyed with their last user, so leaving the room frees them. A decoration stays hidden
  *   until all of its textures are ready; a failed rasterisation goes to the mount's `onError`.
@@ -26,16 +29,16 @@
 import 'pixi.js/browser';
 
 import {
-  Application,
   Color,
   Container,
-  getCanvasTexture,
   Graphics,
   GraphicsContext,
   hasCachedCanvasTexture,
   ImageSource,
   Sprite,
   Texture,
+  Ticker,
+  WebGLRenderer,
 } from 'pixi.js';
 
 import type {
@@ -808,6 +811,17 @@ interface StageOverlay {
   animating: boolean;
 }
 
+/** What the stage currently draws with; a rebuild replaces all of it at once. */
+interface SceneSurface {
+  readonly renderer: WebGLRenderer;
+  /**
+   * The root each frame starts from, holding the world. A render group keeps the instructions
+   * one renderer built for it, so every renderer gets its own root.
+   */
+  readonly root: Container;
+  readonly stopWatchingContext: () => void;
+}
+
 class SceneStage implements EntranceHost {
   private readonly decorations = new Set<MountedDecoration>();
   private readonly entrances = new Set<MountedEntrance>();
@@ -825,9 +839,15 @@ class SceneStage implements EntranceHost {
   private resizeObserver: ResizeObserver | null = null;
   /**
    * Everything the stage draws (the seat layer, then any overlay root). It belongs to the stage,
-   * not the application, so a rebuilt application takes it over unchanged.
+   * not the renderer, so a rebuilt renderer takes it over unchanged.
    */
   private readonly world = new Container();
+  /**
+   * The frame loop: samples the scene, then draws it. It belongs to the stage for its whole life,
+   * so its frame cap and running state carry over a rebuild; only what it draws with changes.
+   */
+  private readonly ticker = new Ticker();
+  private surface: SceneSurface;
   /** True between `webglcontextlost` and its restore or rebuild: nothing can be drawn. */
   private contextLost = false;
   /** Pending rebuild after `CONTEXT_RESTORE_DEADLINE_MS` (or a retry's backoff) of visible lost time. */
@@ -838,16 +858,16 @@ class SceneStage implements EntranceHost {
    * one place that resets it; while the context is drawable it is never read.
    */
   private failedRebuilds = 0;
-  private stopWatchingContext: () => void;
 
   constructor(
-    private application: Application,
+    renderer: WebGLRenderer,
     private readonly dotTexture: Texture,
-    /** Builds the replacement application when a lost context is not restored. */
-    private readonly createApplication: () => Promise<Application>,
+    /** Builds the replacement renderer when a lost context is not restored. */
+    private readonly createRenderer: () => Promise<WebGLRenderer>,
   ) {
     this.world.addChild(this.seatLayer);
-    this.stopWatchingContext = this.bind(application);
+    this.surface = this.adopt(renderer);
+    this.ticker.add(this.tick);
     document.addEventListener('visibilitychange', () => {
       this.syncTicker();
       this.syncRestoreDeadline();
@@ -855,20 +875,26 @@ class SceneStage implements EntranceHost {
   }
 
   private readonly tick = () => {
-    const timeMs = this.application.ticker.lastTime;
+    const timeMs = this.ticker.lastTime;
     for (const entrance of this.animatingEntrances) entrance.update(timeMs);
     for (const decoration of this.decorations) decoration.update(timeMs);
     this.overlay?.frame(timeMs);
+    this.render();
   };
 
-  /** Makes `application` draw the world; returns the stop for its context watch. */
-  private bind(application: Application): () => void {
-    application.stage.addChild(this.world);
-    application.ticker.add(this.tick);
+  /** Draws the world with the current renderer. */
+  private render(): void {
+    this.surface.renderer.render({ container: this.surface.root });
+  }
+
+  /** Makes `renderer` draw the world and watches its context. */
+  private adopt(renderer: WebGLRenderer): SceneSurface {
+    const root = new Container();
+    root.addChild(this.world);
     // PixiJS registered its own listeners during `init`: its loss handler prevents the default (so
     // the browser may restore the context) and its restore handler resets GPU state (textures,
     // buffers, shaders) for re-upload before this redraw runs.
-    return watchWebglContext(application.canvas, {
+    const stopWatchingContext = watchWebglContext(renderer.canvas, {
       onLost: () => {
         this.contextLost = true;
         this.failedRebuilds = 0;
@@ -883,12 +909,25 @@ class SceneStage implements EntranceHost {
         this.redraw();
       },
     });
+    return { renderer, root, stopWatchingContext };
+  }
+
+  /**
+   * Destroys `surface`, keeping the world: the context watch first (its canvas goes), then the
+   * root, whose render group holds instructions built by this renderer, then the renderer with
+   * its canvas and every GPU copy it made.
+   */
+  private release(surface: SceneSurface): void {
+    surface.stopWatchingContext();
+    surface.root.removeChild(this.world);
+    surface.root.destroy();
+    surface.renderer.destroy({ removeView: true });
   }
 
   /** Resumes the ticker, or puts the current still frame back when it stays stopped. */
   private redraw(): void {
     this.syncTicker();
-    if (!this.application.ticker.started && !document.hidden) this.application.render();
+    if (!this.ticker.started && !document.hidden) this.render();
   }
 
   /**
@@ -917,23 +956,22 @@ class SceneStage implements EntranceHost {
   }
 
   /**
-   * Abandons the lost application for a new one: the world, frame cap, canvas placement and
-   * every mounted decoration carry over; the old canvas, its context watch and its renderer (with
-   * its GPU copies of shared geometry and textures) are destroyed. The old canvas stays watched
-   * until the new application exists: if its context comes back meanwhile the new application is
-   * discarded, and if creating it fails a retry is armed and a later restore still resumes it.
-   * `createSceneApplication` cleans up after its own failures (see there).
+   * Abandons the lost renderer for a new one: the world, the ticker (with its frame cap), the canvas
+   * placement and every mounted decoration carry over; the old canvas, its context watch, its root
+   * and its renderer (with its GPU copies of shared geometry and textures) are destroyed. The old
+   * canvas stays watched until the new renderer exists: if its context comes back meanwhile the new
+   * renderer is discarded, and if creating it fails a retry is armed and a later restore still
+   * resumes it. `createSceneRenderer` cleans up after its own failures (see there).
    */
   private async rebuild(): Promise<void> {
-    const lost = this.application;
     this.rebuilding = true;
     sceneLog.warn('WebGL context not restored; rebuilding the scene', {
       ...this.contextReport(),
       attempt: this.failedRebuilds + 1,
     });
-    let next: Application;
+    let next: WebGLRenderer;
     try {
-      next = await this.createApplication();
+      next = await this.createRenderer();
     } catch (error) {
       this.rebuilding = false;
       this.failedRebuilds += 1;
@@ -956,18 +994,12 @@ class SceneStage implements EntranceHost {
       sceneLog.info('WebGL context restored during the rebuild; new context discarded');
       return;
     }
-    this.stopWatchingContext();
-    lost.ticker.remove(this.tick);
-    next.ticker.maxFPS = lost.ticker.maxFPS;
-    lost.stage.removeChild(this.world);
-    // The world is the stage's; only the old renderer, ticker and canvas go.
-    lost.destroy({ removeView: true }, { children: false });
-    this.application = next;
-    this.stopWatchingContext = this.bind(next);
+    this.release(this.surface);
+    this.surface = this.adopt(next);
     this.contextLost = false;
+    // Fitting the new canvas to its host draws the moved scene, and starts the ticker if it runs.
     this.placeCanvas();
     sceneLog.info('Scene rebuilt on a new WebGL context', this.contextReport());
-    this.redraw();
   }
 
   private contextReport(): Record<string, number> {
@@ -979,7 +1011,7 @@ class SceneStage implements EntranceHost {
   }
 
   get resolution(): number {
-    return this.application.renderer.resolution;
+    return this.surface.renderer.resolution;
   }
 
   /**
@@ -1075,9 +1107,9 @@ class SceneStage implements EntranceHost {
     overlay.animating = animating;
     this.syncTicker();
     if (!animating) {
-      overlay.frame(this.application.ticker.lastTime);
+      overlay.frame(this.ticker.lastTime);
       // A lost context draws nothing; the restore handler puts this still frame back.
-      if (!this.contextLost) this.application.render();
+      if (!this.contextLost) this.render();
     }
   }
 
@@ -1088,24 +1120,32 @@ class SceneStage implements EntranceHost {
     this.host = this.topHost();
     for (const [host, layer] of this.hostLayers) layer.visible = host === this.host;
     const target = this.overlay?.host ?? this.host;
+    const { canvas } = this.surface.renderer;
     if (target) {
-      target.append(this.application.canvas);
-      this.application.resizeTo = target;
-      this.resizeObserver = new ResizeObserver(() => {
-        this.application.resize();
-        // A stopped ticker renders nothing on its own; redraw the still frame at the new size
-        // (unless the context is lost: the restore handler redraws at whatever size it is then).
-        if (!this.application.ticker.started && !this.contextLost) this.application.render();
-      });
-      this.resizeObserver.observe(target);
+      target.append(canvas);
+      this.fitCanvas(target);
+      // Every change of the target's size, including one a window resize causes, is reported here.
+      const observer = new ResizeObserver(() => this.fitCanvas(target));
+      observer.observe(target);
+      this.resizeObserver = observer;
     } else {
-      this.application.canvas.remove();
+      canvas.remove();
     }
     this.syncTicker();
   }
 
+  /**
+   * Sizes the canvas to `target`. Resizing clears the canvas, so the frame is drawn again at once
+   * rather than on the next tick (a stopped ticker would leave it blank); a lost context draws
+   * nothing, and its restore handler redraws at whatever size the canvas has then.
+   */
+  private fitCanvas(target: HTMLElement): void {
+    this.surface.renderer.resize(target.clientWidth, target.clientHeight);
+    if (!this.contextLost) this.render();
+  }
+
   setFrameRate(frameRate: SceneFrameRate): void {
-    this.application.ticker.maxFPS = frameRate;
+    this.ticker.maxFPS = frameRate;
   }
 
   /**
@@ -1117,7 +1157,7 @@ class SceneStage implements EntranceHost {
     host: HTMLElement,
     onError: (error: Error) => void,
   ): DecorationHandle {
-    const resolution = this.application.renderer.resolution;
+    const resolution = this.surface.renderer.resolution;
     const createNode = (node: DecorationNode): SceneNode =>
       this.createNode(node, spec.id, {
         leases: new Leases(this.contexts),
@@ -1186,13 +1226,13 @@ class SceneStage implements EntranceHost {
       this.host !== null && (this.decorations.size > 0 || this.animatingEntrances.size > 0);
     const shouldRun =
       (hasSeatWork || this.overlay?.animating === true) && !document.hidden && !this.contextLost;
-    const ticker = this.application.ticker;
+    const { ticker } = this;
     if (shouldRun && !ticker.started) ticker.start();
     if (!shouldRun && ticker.started) {
       ticker.stop();
       // A stopped ticker keeps its last frame on the canvas: draw the stage as it is now, so a
       // decoration unmounted since that frame (its tile scrolled out of view) does not linger.
-      if (!document.hidden && !this.contextLost) this.application.render();
+      if (!document.hidden && !this.contextLost) this.render();
     }
   }
 
@@ -1275,7 +1315,7 @@ const ANTIALIAS = true;
 
 /**
  * The attributes PixiJS 8 (`GlContextSystem.init`) creates its context with for the options
- * `createSceneApplication` passes: `alpha` because the background alpha is below 1,
+ * `createSceneRenderer` passes: `alpha` because the background alpha is below 1,
  * `premultipliedAlpha` and `preserveDrawingBuffer` at their defaults, `antialias` as passed (no
  * back buffer is used), a stencil buffer always, and the default power preference.
  */
@@ -1288,66 +1328,103 @@ const WEBGL_CONTEXT_ATTRIBUTES: WebGLContextAttributes = {
   powerPreference: 'default',
 };
 
-/**
- * Creates `canvas`'s WebGL context the way PixiJS would: WebGL 2, else WebGL 1.
- *
- * @returns the context, which PixiJS then picks up from the canvas
- * @throws when no context can be created or it is created already lost
- */
-function createWebglContext(
-  canvas: HTMLCanvasElement,
-): WebGL2RenderingContext | WebGLRenderingContext {
-  const context =
-    canvas.getContext('webgl2', WEBGL_CONTEXT_ATTRIBUTES) ??
-    canvas.getContext('webgl', WEBGL_CONTEXT_ATTRIBUTES);
-  if (!context) throw new Error('No WebGL context could be created');
-  if (context.isContextLost()) throw new Error('The new WebGL context was created lost');
-  return context;
+interface CreatedWebglContext {
+  readonly context: WebGL2RenderingContext | WebGLRenderingContext;
+  readonly version: 1 | 2;
 }
 
 /**
- * Creates the PixiJS application (canvas and WebGL context) the stage draws with, at startup and
- * for every rebuild.
+ * Creates `canvas`'s WebGL context the way PixiJS would: WebGL 2, else WebGL 1.
  *
- * The context is created before PixiJS is touched. PixiJS's renderer `init` runs its systems in
- * order and creates the context midway: by then the scheduler has joined the global
- * `Ticker.system` and the view has cached a texture for the canvas, and `Application` assigns its
- * `renderer` only after `init` resolves, so a renderer whose context creation fails could never be
- * destroyed. Creating the context first means the usual failure (none can be created, as while
- * the GPU is out of memory) leaves no PixiJS object behind. PixiJS then reads the same context
- * back from the canvas: `getContext` returns a canvas's existing context for its own type (and
- * null for the other WebGL version, which PixiJS falls through).
- *
- * If `init` still fails with a live context (it was lost during `init`), the GPU context and the
- * canvas texture cached for our canvas are released; the half-built renderer itself is out of
- * reach.
- *
- * @returns the application; rejects when WebGL is unavailable
+ * @returns the context and its version
+ * @throws when no context can be created or it is created already lost
  */
-async function createSceneApplication(): Promise<Application> {
+function createWebglContext(canvas: HTMLCanvasElement): CreatedWebglContext {
+  const created = webgl2ContextOf(canvas) ?? webgl1ContextOf(canvas);
+  if (!created) throw new Error('No WebGL context could be created');
+  if (created.context.isContextLost()) throw new Error('The new WebGL context was created lost');
+  return created;
+}
+
+function webgl2ContextOf(canvas: HTMLCanvasElement): CreatedWebglContext | null {
+  const context = canvas.getContext('webgl2', WEBGL_CONTEXT_ATTRIBUTES);
+  return context ? { context, version: 2 } : null;
+}
+
+function webgl1ContextOf(canvas: HTMLCanvasElement): CreatedWebglContext | null {
+  const context = canvas.getContext('webgl', WEBGL_CONTEXT_ATTRIBUTES);
+  return context ? { context, version: 1 } : null;
+}
+
+/**
+ * Releases what a renderer whose `init` rejected holds outside itself, so that nothing global
+ * references it any more. What exists by then (PixiJS 8.23 source; checked in Chromium with a
+ * renderer made to fail inside its context system): every system is attached, since
+ * `AbstractRenderer.init` adds them all before running any system's `init` and, with
+ * `skipExtensionImports`, nothing before that can reject; the event system's constructor has
+ * claimed the global `EventsTicker`, which listens on the global `Ticker.system`; the scheduler has
+ * joined `Ticker.system`, carrying the garbage collectors' repeating tasks; and the view, if its
+ * `init` ran (it caches the canvas texture), has registered the screen size with the global texture
+ * and canvas pools. The scheduler's and the event system's `destroy` work whether or not their
+ * `init` ran; the view's needs its `init`, hence the check. The renderer's own `destroy` is not
+ * used: its runner destroys the render pipes before the systems, with nothing catching a throw,
+ * and a pipe whose adaptor never got a context throws (`GlSmoothGraphicsAdaptor.destroy`), so the
+ * scheduler would never be reached.
+ */
+function releaseUnfinishedRenderer(
+  renderer: WebGLRenderer,
+  canvas: HTMLCanvasElement,
+  context: CreatedWebglContext['context'],
+): void {
+  renderer.scheduler.destroy();
+  renderer.events.destroy();
+  if (hasCachedCanvasTexture(canvas)) renderer.view.destroy();
+  context.getExtension('WEBGL_lose_context')?.loseContext();
+}
+
+/**
+ * Creates the renderer (canvas and WebGL context) the stage draws with, at startup and for every
+ * rebuild. Both paths share this function, including its cleanup.
+ *
+ * The renderer is constructed first (its constructor only sets up runners), then the context,
+ * before PixiJS's `init` runs: the usual failure, no context at all (as while the GPU is out of
+ * memory), then leaves nothing of PixiJS registered anywhere. PixiJS takes the context over from
+ * the canvas: `preferWebGLVersion` is the version just created, so PixiJS asks the canvas for that
+ * same type, and `getContext` returns a canvas's existing context of its own type. PixiJS's
+ * `context` option is not used because it is typed for WebGL 2 only, and a WebGL 1 context could
+ * only be passed with a type assertion; passing it for WebGL 2 alone would split the handover into
+ * two paths.
+ *
+ * If `init` rejects anyway (for example because the context was lost during it and a call on the
+ * lost context throws), `releaseUnfinishedRenderer` frees it. A loss during `init` does not always
+ * reject: in Chromium a context lost before PixiJS's limits check makes its
+ * `checkMaxIfStatementsInShader` loop without end, since every call on a lost context returns
+ * null. That is PixiJS's own defect and is outside what this function can catch.
+ *
+ * @returns the renderer; rejects when WebGL is unavailable
+ */
+async function createSceneRenderer(): Promise<WebGLRenderer> {
+  const renderer = new WebGLRenderer();
   const canvas = document.createElement('canvas');
-  const context = createWebglContext(canvas);
-  const application = new Application();
+  const { context, version } = createWebglContext(canvas);
   try {
-    await application.init({
+    await renderer.init({
       canvas,
-      // WebGL only: an array preference makes PixiJS throw instead of falling back to another
-      // renderer when WebGL is unavailable.
-      preference: ['webgl'],
+      preferWebGLVersion: version,
+      // `pixi.js/browser`, imported at the top of this module, is what PixiJS would load here.
+      skipExtensionImports: true,
       backgroundAlpha: BACKGROUND_ALPHA,
       antialias: ANTIALIAS,
       resolution: Math.min(window.devicePixelRatio, MAX_RESOLUTION),
       autoDensity: true,
-      autoStart: false,
     });
   } catch (error) {
-    context.getExtension('WEBGL_lose_context')?.loseContext();
-    if (hasCachedCanvasTexture(canvas)) getCanvasTexture(canvas).destroy(true);
+    releaseUnfinishedRenderer(renderer, canvas, context);
     throw error;
   }
   canvas.setAttribute('aria-hidden', 'true');
   canvas.classList.add('scene-canvas');
-  return application;
+  return renderer;
 }
 
 /**
@@ -1356,7 +1433,7 @@ async function createSceneApplication(): Promise<Application> {
  * @returns the stage; rejects when WebGL is unavailable
  */
 async function createSceneStage(): Promise<SceneStage> {
-  const application = await createSceneApplication();
-  const dotTexture = createDotTexture(application.renderer.resolution);
-  return new SceneStage(application, dotTexture, createSceneApplication);
+  const renderer = await createSceneRenderer();
+  const dotTexture = createDotTexture(renderer.resolution);
+  return new SceneStage(renderer, dotTexture, createSceneRenderer);
 }
