@@ -3,6 +3,7 @@ import {
   type GameState,
   GameStatus,
   getRoleDisplayName,
+  getWerewolfDaytimeAnnouncements,
   getWerewolfNightReview,
   getWerewolfViewModel,
   parseWerewolfState,
@@ -133,6 +134,45 @@ function driveNight(context: GameContext, choices: Choices): void {
 }
 
 describe('spec-driven night through production commands', () => {
+  it('projects declared daytime information from settled actions, including skipped skills', () => {
+    const context = createGame(['wolf', 'villager', 'silenceElder', 'votebanElder', 'crow']);
+    const target = context.findSeatByRole('villager');
+    expect(target).toBeGreaterThanOrEqual(0);
+    driveNight(context, {
+      silenceElderSilence: { actionKey: 'silenceElderSilence', seats: [target] },
+      crowCurse: { actionKey: 'crowCurse', seats: [target] },
+    });
+
+    expect(getWerewolfDaytimeAnnouncements(context.getGameState())).toEqual([
+      expect.objectContaining({
+        key: 'silenceElder',
+        timing: 'daySpeech',
+        message: `${target + 1}号被禁言`,
+      }),
+      expect.objectContaining({
+        key: 'votebanElder',
+        timing: 'daySpeech',
+        message: '昨夜没有禁票',
+      }),
+      expect.objectContaining({
+        key: 'crow',
+        timing: 'exileVote',
+        message: `${target + 1}号被诅咒（放逐+1票）`,
+      }),
+    ]);
+  });
+
+  it('announces the actual landing seat after a magician swap', () => {
+    const context = createGame(['magician', 'crow', 'wolf', 'villager', 'villager']);
+    driveNight(context, {
+      magicianSwap: { actionKey: 'magicianSwap', seats: [3, 4] },
+      crowCurse: { actionKey: 'crowCurse', seats: [3] },
+    });
+    expect(getWerewolfDaytimeAnnouncements(context.getGameState())).toEqual([
+      expect.objectContaining({ key: 'crow', message: '5号被诅咒（放逐+1票）' }),
+    ]);
+  });
+
   it('finishes an empty night plan with a valid persisted state', () => {
     const context = createGame(['villager', 'villager', 'villager']);
     const state = context.getGameState();
@@ -140,6 +180,7 @@ describe('spec-driven night through production commands', () => {
     expect(state.status).toBe(GameStatus.Ended);
     expect(state.nightState?.slice.order).toEqual([]);
     expect(state.lastNightDeaths).toEqual([]);
+    expect(getWerewolfDaytimeAnnouncements(state)).toEqual([]);
     expect(parseWerewolfState(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
 

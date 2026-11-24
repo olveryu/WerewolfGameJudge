@@ -1,7 +1,8 @@
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { readAlertText } from '../helpers/alerts';
+import { TESTIDS } from '../../packages/web/src/testids';
+import { pressAlertButton, readAlertText } from '../helpers/alerts';
 import {
   clickNightButton,
   clickSeatAndConfirm,
@@ -14,6 +15,7 @@ import {
   waitForRoleTurn,
 } from '../helpers/night-driver';
 import { withSetup } from '../helpers/night-setup';
+import { RoomPage } from '../pages/RoomPage';
 
 /**
  * Werewolf Night E2E — Special roles: redirect, disguise & curse.
@@ -28,6 +30,17 @@ import { withSetup } from '../helpers/night-setup';
  */
 
 test.setTimeout(180_000);
+
+/** Opens the host's 昨夜信息 sub-hand and returns its crow announcement card. */
+async function openCurseAnnouncement(hostPage: Page): Promise<Locator> {
+  const panel = await new RoomPage(hostPage).openHostManagement();
+  const entry = panel.getByTestId(TESTIDS.lastNightInfoButton);
+  await expect(entry).toBeEnabled({ timeout: 30_000 });
+  await entry.click();
+  const curse = hostPage.getByTestId(TESTIDS.werewolfAnnouncementButton('crow'));
+  await expect(curse).toBeVisible();
+  return curse;
+}
 /**
  * Night Roles E2E - EclipseWolfQueen (Eclipse Wolf Queen) shelter redirect coverage.
  *
@@ -364,6 +377,44 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
 
         // Finish night
         await waitForNightEnd(pages, 90_000);
+
+        await test.step('Host can inspect the curse before confirming the death announcement', async () => {
+          const hostPage = pages[0]!;
+          await dismissAlert(hostPage);
+          const roomPage = new RoomPage(hostPage);
+          const panel = await roomPage.openHostManagement();
+          await expect(panel.getByTestId(TESTIDS.shareReviewButton)).toBeDisabled();
+          const curse = await openCurseAnnouncement(hostPage);
+          await expect(curse).toContainText('放逐投票时公布');
+          await expect(curse).not.toContainText(formatSeat(curseTarget));
+          await curse.click();
+          await pressAlertButton(hostPage, {
+            title: '查看乌鸦信息？',
+            buttonIndex: 0,
+            buttonLabel: '取消',
+          });
+          await expect(curse).not.toBeVisible();
+          await (await openCurseAnnouncement(hostPage)).click();
+          await pressAlertButton(hostPage, {
+            title: '查看乌鸦信息？',
+            buttonIndex: 1,
+            buttonLabel: '查看',
+          });
+          expect(await readAlertText(hostPage, 10_000, '乌鸦信息')).toContain(
+            `${formatSeat(curseTarget)}被诅咒`,
+          );
+          await dismissAlert(hostPage);
+          await expect(curse).not.toBeVisible();
+          await expect(
+            (await roomPage.openHostManagement()).getByTestId(TESTIDS.shareReviewButton),
+          ).toBeDisabled();
+
+          expect(await viewLastNightInfo(hostPage)).toContain(formatSeat(killTarget));
+          await dismissAlert(hostPage);
+          await expect(
+            (await roomPage.openHostManagement()).getByTestId(TESTIDS.shareReviewButton),
+          ).toBeEnabled();
+        });
       },
     );
   });
@@ -409,6 +460,19 @@ test.describe('Werewolf Night — Special Roles: Hidden Wolf & Crow', () => {
 
         // Finish night
         await waitForNightEnd(pages, 90_000);
+
+        await test.step('Host sees an empty curse announcement', async () => {
+          const hostPage = pages[0]!;
+          await dismissAlert(hostPage);
+          await (await openCurseAnnouncement(hostPage)).click();
+          await pressAlertButton(hostPage, {
+            title: '查看乌鸦信息？',
+            buttonIndex: 1,
+            buttonLabel: '查看',
+          });
+          expect(await readAlertText(hostPage, 10_000, '乌鸦信息')).toContain('昨夜没有诅咒');
+          await dismissAlert(hostPage);
+        });
       },
     );
   });

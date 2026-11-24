@@ -13,6 +13,7 @@ import type {
   GameState,
   RoleId,
   SchemaId,
+  WerewolfDaytimeAnnouncement,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -540,6 +541,9 @@ interface WerewolfRoomShellModelInput extends Pick<
   readonly review: RoomReviewEntry | null;
   readonly onGrantReviewAccess: () => void;
   readonly onLastNightInfo: () => void;
+  readonly onLastNightDeaths: () => void;
+  readonly announcements: readonly WerewolfDaytimeAnnouncement[];
+  readonly onAnnouncement: (announcement: WerewolfDaytimeAnnouncement) => void;
   readonly onSelectMvp: () => void;
 }
 
@@ -598,6 +602,9 @@ export function createWerewolfRoomShellModel(input: WerewolfRoomShellModelInput)
       review: input.review,
       onGrantReviewAccess: input.onGrantReviewAccess,
       onLastNightInfo: input.onLastNightInfo,
+      onLastNightDeaths: input.onLastNightDeaths,
+      announcements: input.announcements,
+      onAnnouncement: input.onAnnouncement,
     });
 
   const controlledBot = controlledSeat === null ? null : state.roster[controlledSeat];

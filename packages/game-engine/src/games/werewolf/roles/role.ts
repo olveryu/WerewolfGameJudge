@@ -157,6 +157,15 @@ export interface WerewolfRoleResource {
   readonly refreshPerNight: boolean;
 }
 
+export type WerewolfAnnouncementTiming = 'dawn' | 'daySpeech' | 'exileVote';
+
+export interface WerewolfAnnouncementDeclaration {
+  readonly timing: WerewolfAnnouncementTiming;
+  readonly title: string;
+  readonly targetMessage: string;
+  readonly emptyMessage: string;
+}
+
 export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly id: TId;
   readonly card: WerewolfRoleCard;
@@ -177,6 +186,7 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly nightSchedule?: 'firstNight' | 'everyNight';
   readonly oneUseOnSuccess?: boolean;
   readonly resources?: readonly WerewolfRoleResource[];
+  readonly announcement?: WerewolfAnnouncementDeclaration;
   readonly passiveDeathEffects?: (
     context: WerewolfRoleStepContext,
     seat: number,

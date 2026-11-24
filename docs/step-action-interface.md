@@ -570,7 +570,7 @@ export function confirmView(input: {
 }): void;
 ```
 
-游戏代码里直接调用 `showConfirmAlert`、`showDestructiveAlert` 的地方改为调用这两个入口；再加一条检查，禁止 `packages/web/src/games/` 下直接调用底层弹窗函数。检查是 `packages/web/src/__tests__/roomDialogEntry.contract.test.ts`：禁止 `showAlert`、`showAlertWithGeneration`、`showConfirmAlert`、`showDestructiveAlert`；单按钮的报错和通知（`showErrorAlert`、`showDismissAlert`、`showPrompt`）照常允许（BQ8）。例外登记在检查的白名单里并写明原因，目前只有狼人杀“昨夜信息”内容弹窗（两个按钮，BQ5）。带对象的标题（“处决3号？”）由调用方把对象拼进 `label`。步骤渲染内部也走同一入口。
+游戏代码里直接调用 `showConfirmAlert`、`showDestructiveAlert` 的地方改为调用这两个入口；再加一条检查，禁止 `packages/web/src/games/` 下直接调用底层弹窗函数。检查是 `packages/web/src/__tests__/roomDialogEntry.contract.test.ts`：禁止 `showAlert`、`showAlertWithGeneration`、`showConfirmAlert`、`showDestructiveAlert`；单按钮的报错和通知（`showErrorAlert`、`showDismissAlert`、`showPrompt`）照常允许（BQ8）。狼人杀“昨夜信息”原来的 BQ5 例外已由 B.10 子手牌取代，无需白名单。带对象的标题（“处决3号？”）由调用方把对象拼进 `label`。步骤渲染内部也走同一入口。
 
 ## 9a. 身份、落点、所见（I5、I8、I12）
 

@@ -8,6 +8,7 @@ const WEB_SOURCE = join(import.meta.dirname, '../../../..');
 const STEP_DIRECTORY = join(WEB_SOURCE, 'features/room/steps');
 const WEREWOLF_NIGHT_HOOK = join(import.meta.dirname, '../hooks/useWerewolfNightInteraction.ts');
 const WEREWOLF_ROOM_SCREEN = join(import.meta.dirname, '../WerewolfRoomScreen.tsx');
+const WEREWOLF_ROOM_DIRECTORY = join(import.meta.dirname, '..');
 const NIGHT_COMPOSITION = [
   {
     file: join(import.meta.dirname, '../werewolfRoomAdapter.ts'),
@@ -39,9 +40,14 @@ describe('Werewolf night client architecture', () => {
     const roleIds = new Set(Object.keys(ROLE_SPECS));
     const violations: string[] = [];
     const sources = [
-      ...[WEREWOLF_NIGHT_HOOK, WEREWOLF_ROOM_SCREEN, ...productionStepFiles(STEP_DIRECTORY)].map(
-        (file) => ({ file, functions: null }),
-      ),
+      ...[
+        WEREWOLF_NIGHT_HOOK,
+        WEREWOLF_ROOM_SCREEN,
+        ...productionStepFiles(STEP_DIRECTORY),
+        ...productionStepFiles(WEREWOLF_ROOM_DIRECTORY).filter(
+          (file) => !NIGHT_COMPOSITION.some((entry) => entry.file === file),
+        ),
+      ].map((file) => ({ file, functions: null })),
       ...NIGHT_COMPOSITION,
     ];
     for (const { file, functions } of sources) {
@@ -49,7 +55,12 @@ describe('Werewolf night client architecture', () => {
       const visit = (node: ts.Node): void => {
         const roleId = ts.isStringLiteralLike(node)
           ? node.text
-          : ts.isPropertyAccessExpression(node)
+          : ts.isPropertyAccessExpression(node) &&
+              !(
+                node.name.text === 'wolf' &&
+                ts.isIdentifier(node.expression) &&
+                (node.expression.text === 'buckets' || node.expression.text === 'items')
+              )
             ? node.name.text
             : null;
         if (roleId !== null && roleIds.has(roleId)) {

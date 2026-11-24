@@ -40,6 +40,64 @@ function input(): RoomHandInput {
 }
 
 describe('buildRoomHand', () => {
+  it('returns to the main hand when a host group action is pressed', () => {
+    const base = input();
+    const open = vi.fn();
+    const back = vi.fn();
+    const returnToMain = vi.fn();
+    const hostManagement = {
+      task: null,
+      actions: [
+        host('information', { kind: 'ready', onPress: press }),
+        host('deaths', { kind: 'ready', onPress: open }),
+        host('other', { kind: 'ready', onPress: open }),
+      ],
+      group: { actionKey: 'information', actionKeys: ['deaths', 'other'] },
+    };
+    const hostHand = buildRoomHand({
+      ...base,
+      face: { kind: 'host' },
+      hostManagement,
+    });
+    expect(hostHand.cards.map((card) => card.id)).toEqual([
+      'host-management:back',
+      'host-management:information',
+    ]);
+    const groupHand = buildRoomHand({
+      ...base,
+      face: { kind: 'host-group', key: 'information' },
+      hostManagement,
+      navigation: { ...base.navigation, back, returnToMain },
+    });
+    expect(groupHand.cards.map((card) => card.id)).toEqual([
+      'host-group:information:back',
+      'host-group:information:deaths',
+      'host-group:information:other',
+    ]);
+    const child = groupHand.cards[1];
+    if (child?.state.kind !== 'ready') throw new Error('Expected ready host group action');
+    child.state.onPress();
+    expect(open).toHaveBeenCalledOnce();
+    expect(returnToMain).toHaveBeenCalledOnce();
+  });
+
+  it('rejects a host group with a missing child action', () => {
+    const base = input();
+    expect(() =>
+      buildRoomHand({
+        ...base,
+        hostManagement: {
+          task: null,
+          actions: [
+            host('information', { kind: 'ready', onPress: press }),
+            host('deaths', { kind: 'ready', onPress: press }),
+          ],
+          group: { actionKey: 'information', actionKeys: ['deaths', 'missing'] },
+        },
+      }),
+    ).toThrow('Room phase "playing" has no host group action "missing"');
+  });
+
   it('orders actions by category and availability while preserving ties', () => {
     const base = input();
     const hand = buildRoomHand({

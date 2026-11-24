@@ -691,11 +691,11 @@ const ROLE_SPEC_DEFINITIONS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可禁言一名玩家，使其次日发言阶段只能用肢体动作表达；不能连续两晚禁言同一人；禁言信息与死讯同时公布',
+      '每晚可禁言一名玩家，使其次日警下发言阶段只能用肢体动作表达；不能连续两晚禁言同一人；禁言信息在警下发言时公布',
     structuredDescription: {
-      skill: '每晚可禁言一名玩家，使其次日发言阶段只能用肢体动作表达',
+      skill: '每晚可禁言一名玩家，使其次日警下发言阶段只能用肢体动作表达',
       restriction: '不能连续两晚禁言同一人',
-      special: '禁言信息与死讯同时公布',
+      special: '禁言信息在警下发言时公布',
     },
     tags: ['control'],
     abilities: [
@@ -734,11 +734,11 @@ const ROLE_SPEC_DEFINITIONS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可禁票一名玩家，使其次日放逐环节不能投票；不能连续两晚禁票同一人；禁票信息与死讯同时公布',
+      '每晚可禁票一名玩家，使其次日放逐环节不能投票；不能连续两晚禁票同一人；禁票信息在警下发言时公布',
     structuredDescription: {
       skill: '每晚可禁票一名玩家，使其次日放逐环节不能投票',
       restriction: '不能连续两晚禁票同一人',
-      special: '禁票信息与死讯同时公布',
+      special: '禁票信息在警下发言时公布',
     },
     tags: ['control'],
     abilities: [

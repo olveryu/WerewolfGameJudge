@@ -630,8 +630,9 @@ export async function waitForNightEnd(
 
 /**
  * After night ends, open 昨夜信息 through host management, confirm the
- * 查看昨夜信息？ dialog with 查看, assert the 昨夜信息 title, and return the
- * night-result message. The alert stays open.
+ * confirmation dialog with 查看, assert the 昨夜信息 title, and return the
+ * death message. When other information exists, enter the death card first.
+ * The alert stays open.
  *
  * The action is disabled while the night-end narration plays (audio
  * playback lock), so wait for the lock to lift before clicking: the
@@ -645,8 +646,13 @@ export async function viewLastNightInfo(hostPage: Page): Promise<string> {
   await expect(action).toBeEnabled({ timeout: AUDIO_ACK_WAIT_MS });
   await action.click();
   await expect(panel).not.toBeVisible();
+  const deathAction = hostPage.getByTestId(TESTIDS.lastNightDeathsButton);
+  const confirmationTitle = hostPage.getByTestId(TESTIDS.alertTitle);
+  await expect(deathAction.or(confirmationTitle)).toBeVisible({ timeout: CONFIRM_TIMEOUT_MS });
+  const grouped = await deathAction.isVisible();
+  if (grouped) await deathAction.click();
   await pressAlertButton(hostPage, {
-    title: '查看昨夜信息？',
+    title: grouped ? '查看昨夜死讯？' : '查看昨夜信息？',
     buttonIndex: 1,
     buttonLabel: '查看',
     timeout: CONFIRM_TIMEOUT_MS,

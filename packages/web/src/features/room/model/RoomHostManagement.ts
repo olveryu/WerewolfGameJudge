@@ -46,6 +46,11 @@ export interface RoomHostManagementModel {
   readonly hasPendingDecision?: boolean;
   /** The complete host action inventory. */
   readonly actions: readonly RoomHostAction[];
+  /** One host action can open a sub-hand of other inventory actions. */
+  readonly group?: {
+    readonly actionKey: string;
+    readonly actionKeys: readonly string[];
+  };
 }
 
 /** Label for the persistent host-management entry. Referenced by hints; do not hardcode. */

@@ -44,6 +44,9 @@ function createInput(overrides: Record<string, unknown> = {}) {
     review: { isEnabled: true as const, onPress: vi.fn() },
     onGrantReviewAccess: vi.fn(),
     onLastNightInfo: vi.fn(),
+    onLastNightDeaths: vi.fn(),
+    announcements: [],
+    onAnnouncement: vi.fn(),
     ...overrides,
   };
 }
@@ -51,6 +54,34 @@ function createInput(overrides: Record<string, unknown> = {}) {
 function actionLabels(model: NonNullable<ReturnType<typeof createWerewolfHostManagement>>) {
   return model.actions.map((action) => action.label);
 }
+
+it('groups death and later announcements without requiring death acknowledgement for the latter', () => {
+  const onAnnouncement = vi.fn();
+  const announcement = {
+    key: 'crow',
+    title: '乌鸦信息',
+    timing: 'exileVote' as const,
+    timingLabel: '放逐投票时公布',
+    message: '昨夜没有诅咒',
+  };
+  const model = createWerewolfHostManagement(
+    createInput({
+      roomStatus: GameStatus.Day,
+      announcements: [announcement],
+      onAnnouncement,
+    }),
+  );
+  expect(model.group).toEqual({
+    actionKey: 'last-night-info',
+    actionKeys: ['last-night-deaths', 'last-night-announcement:crow'],
+  });
+  const action = model.actions.find((entry) => entry.key === 'last-night-announcement:crow');
+  expect(action?.label).toBe('查看乌鸦信息（放逐投票时公布）');
+  if (action?.state.kind !== 'ready') throw new Error('Announcement must be available');
+  action.state.onPress();
+  expect(onAnnouncement).toHaveBeenCalledWith(announcement);
+  expect(model.actions.find((entry) => entry.key === 'grant-review')?.state.kind).toBe('blocked');
+});
 
 it('prioritizes the host identity and never offers start in plague mode', () => {
   const assigned = createInput({

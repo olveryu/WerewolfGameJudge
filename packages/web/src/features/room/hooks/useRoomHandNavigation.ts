@@ -2,7 +2,12 @@ import { useState } from 'react';
 
 import type { RoomHandFace } from '../model/RoomHand';
 
-type HandFace = 'main' | 'manual' | 'host' | { readonly kind: 'group'; readonly key: string };
+type HandFace =
+  | 'main'
+  | 'manual'
+  | 'host'
+  | { readonly kind: 'group'; readonly key: string }
+  | { readonly kind: 'host-group'; readonly key: string };
 type MenuFace = 'closed' | 'menu' | 'menu-manual';
 
 interface NavigationState {
@@ -31,9 +36,11 @@ function mainHandState(current: NavigationState): NavigationState {
       ? 'room-entry:manual'
       : current.hand === 'host'
         ? 'room-entry:host'
-        : typeof current.hand === 'object'
-          ? `group:${current.hand.key}`
-          : null;
+        : typeof current.hand === 'object' && current.hand.kind === 'host-group'
+          ? 'room-entry:host'
+          : typeof current.hand === 'object'
+            ? `group:${current.hand.key}`
+            : null;
   return { ...current, hand: 'main', menu: 'closed', focus };
 }
 
@@ -49,6 +56,7 @@ export function useRoomHandNavigation(input: {
   readonly hasManual: boolean;
   readonly hasHost: boolean;
   readonly groupKey: string | null;
+  readonly hostGroupKey?: string | null;
 }) {
   const [state, setState] = useState<NavigationState>({
     hand: 'main',
@@ -65,6 +73,13 @@ export function useRoomHandNavigation(input: {
   if (
     input.selection === null &&
     ((hand === 'manual' && !input.hasManual) || (hand === 'host' && !input.hasHost))
+  ) {
+    hand = 'main';
+  }
+  if (
+    typeof hand === 'object' &&
+    hand.kind === 'host-group' &&
+    (input.surface !== 'hand' || !input.hasHost || hand.key !== input.hostGroupKey)
   ) {
     hand = 'main';
   }
@@ -90,7 +105,7 @@ export function useRoomHandNavigation(input: {
       ? { kind: menu }
       : input.selection !== null
         ? { kind: 'main' }
-        : typeof hand === 'object' && hand.key !== input.groupKey
+        : typeof hand === 'object' && hand.kind === 'group' && hand.key !== input.groupKey
           ? { kind: 'main' }
           : typeof hand === 'object'
             ? hand
@@ -108,6 +123,13 @@ export function useRoomHandNavigation(input: {
       ...current,
       hand: 'host',
       focus: 'host-management:back',
+    }));
+  };
+  const openHostGroup = (key: string) => {
+    setState((current) => ({
+      ...current,
+      hand: { kind: 'host-group', key },
+      focus: `host-group:${key}:back`,
     }));
   };
   const openGroup = (key: string) => {
@@ -128,6 +150,13 @@ export function useRoomHandNavigation(input: {
     setState((current) => {
       if (current.menu === 'menu-manual') {
         return { ...current, menu: 'menu', focus: 'stage-menu:manual' };
+      }
+      if (typeof current.hand === 'object' && current.hand.kind === 'host-group') {
+        return {
+          ...current,
+          hand: 'host',
+          focus: `host-management:${current.hand.key}`,
+        };
       }
       if (current.menu === 'closed' && current.hand === 'main') {
         throw new Error('Cannot return from the main room hand');
@@ -155,6 +184,7 @@ export function useRoomHandNavigation(input: {
     focus: state.focus,
     openManual,
     openHost,
+    openHostGroup,
     openGroup,
     openMenu,
     back,

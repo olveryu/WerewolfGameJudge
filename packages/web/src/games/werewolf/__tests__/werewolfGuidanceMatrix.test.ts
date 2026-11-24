@@ -201,6 +201,9 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     review,
     onGrantReviewAccess: vi.fn(),
     onLastNightInfo: vi.fn(),
+    onLastNightDeaths: vi.fn(),
+    announcements: [],
+    onAnnouncement: vi.fn(),
     onSelectMvp: vi.fn(),
   });
   return { message: model.playerActions.message };

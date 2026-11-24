@@ -186,5 +186,9 @@ export {
   type WerewolfPublicStats,
 } from './publicStats';
 export { WEREWOLF_STEP_AUDIO_DECLARATIONS, type WerewolfStepAudioDeclaration } from './roles';
+export {
+  getWerewolfDaytimeAnnouncements,
+  type WerewolfDaytimeAnnouncement,
+} from './roles/daytimeAnnouncements';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
 export { parseWerewolfState } from './state/parseState';

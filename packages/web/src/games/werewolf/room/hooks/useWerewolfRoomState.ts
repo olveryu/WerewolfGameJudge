@@ -12,6 +12,7 @@ import {
   type GameState,
   GameStatus,
   getPlayerCount,
+  getWerewolfDaytimeAnnouncements,
   getWerewolfUserSeat,
   getWerewolfViewModel,
   readArmedDeadline,
@@ -143,33 +144,10 @@ const resolveWerewolfSeatTapIntent = createRoomSeatTapIntentResolver<GameState>(
 );
 
 function buildLastNightInfo(state: GameState): string {
-  const parts: string[] = [];
   const deaths = state.lastNightDeaths ?? [];
-  parts.push(
-    deaths.length === 0
-      ? '昨夜平安夜'
-      : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`,
-  );
-  const results = state.currentNightResults ?? {};
-  const selections = state.nightState?.facts.selections;
-  const silencedSeat =
-    selections?.find((selection) => selection.roleId === 'silenceElder')?.landingSeat ??
-    results.silencedSeat;
-  const votebannedSeat =
-    selections?.find((selection) => selection.roleId === 'votebanElder')?.landingSeat ??
-    results.votebannedSeat;
-  if (silencedSeat != null) parts.push(`${formatSeat(silencedSeat)}被禁言`);
-  if (votebannedSeat != null) parts.push(`${formatSeat(votebannedSeat)}被禁票`);
-  return parts.join('\n');
-}
-
-function buildCurseInfo(state: GameState): string | null {
-  if (!state.templateRoles.includes('crow')) return null;
-  const cursedSeat =
-    state.nightState?.facts.selections.find((selection) => selection.roleId === 'crow')
-      ?.landingSeat ?? state.currentNightResults?.cursedSeat;
-  if (cursedSeat == null) return '乌鸦未诅咒任何人';
-  return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;
+  return deaths.length === 0
+    ? '昨夜平安夜'
+    : `昨夜死亡: ${deaths.map((seat) => formatSeat(seat)).join(', ')}`;
 }
 
 export function useWerewolfRoomState(
@@ -332,7 +310,6 @@ export function useWerewolfRoomState(
   const modals = useRoomModals({
     gameSequence: state.gameSequence,
     getLastNightInfo: () => buildLastNightInfo(state),
-    getCurseInfo: () => buildCurseInfo(state),
     grantReviewAccess: (allowedSeats) =>
       submit('授权查看复盘', { type: 'werewolf.review.share', allowedSeats }, { actionKey: null }),
     isGameEnded: status === GameStatus.Ended,
@@ -460,7 +437,13 @@ export function useWerewolfRoomState(
     },
     review: review.entry,
     onGrantReviewAccess: modals.openGrant,
-    onLastNightInfo: modals.showLastNightInfo,
+    onLastNightInfo: () => modals.showLastNightInfo(),
+    onLastNightDeaths: () => modals.showLastNightInfo('查看昨夜死讯'),
+    announcements:
+      isHost && (status === GameStatus.Day || status === GameStatus.Ended)
+        ? getWerewolfDaytimeAnnouncements(state)
+        : [],
+    onAnnouncement: modals.showAnnouncement,
     onSelectMvp: hostFlow.openMvpSelection,
   });
 

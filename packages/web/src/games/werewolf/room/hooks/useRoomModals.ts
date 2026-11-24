@@ -2,16 +2,16 @@
  * useRoomModals — the Werewolf room's own dialogs around the shared review.
  *
  * Owns: the seat picker through which the host grants seats access to the
- * review （授权玩家查看）, and the last-night-info confirm → info → curse
- * chain. The review itself — its confirmation, dialog and image share — is
+ * review （授权玩家查看） and the last-night information dialogs.
+ * The review itself — its confirmation, dialog and image share — is
  * the shared `useRoomReview`; identity viewing is the shared
  * `useRoleViewing`; skill preview is screen-local state.
  */
 
+import type { WerewolfDaytimeAnnouncement } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useState } from 'react';
 
 import { confirmView } from '@/features/room/confirm';
-import { type AlertButton, DISMISS_BUTTON, showAlert } from '@/utils/alert';
 import { showDismissAlert } from '@/utils/alertPresets';
 
 interface UseRoomModalsDeps {
@@ -19,8 +19,6 @@ interface UseRoomModalsDeps {
   readonly gameSequence: number;
   /** Get last-night info text */
   readonly getLastNightInfo: () => string;
-  /** Get crow curse info; null if no crow */
-  readonly getCurseInfo: () => string | null;
   /** Grants the seats access to the review; resolves true when committed. */
   readonly grantReviewAccess: (allowedSeats: readonly number[]) => Promise<boolean>;
   /**
@@ -42,13 +40,13 @@ interface RoomModalsState {
   readonly openGrant: () => void;
   readonly closeGrant: () => void;
   readonly grantSeatsAccess: (allowedSeats: readonly number[]) => Promise<void>;
-  readonly showLastNightInfo: () => void;
+  readonly showLastNightInfo: (label?: string) => void;
+  readonly showAnnouncement: (announcement: WerewolfDaytimeAnnouncement) => void;
 }
 
 export function useRoomModals({
   gameSequence,
   getLastNightInfo,
-  getCurseInfo,
   grantReviewAccess,
   isGameEnded,
   onLastNightInfoConfirmed,
@@ -72,29 +70,34 @@ export function useRoomModals({
     [gameSequence, grantReviewAccess],
   );
 
-  const showLastNightInfo = useCallback(() => {
-    confirmView({
-      label: '查看昨夜信息',
-      body: isGameEnded ? undefined : '昨夜信息可能影响警长竞选。',
-      onView: () => {
-        const info = getLastNightInfo();
-        const curseInfo = getCurseInfo();
-        const buttons: AlertButton[] = [
-          { ...DISMISS_BUTTON, onPress: async () => void (await onLastNightInfoConfirmed()) },
-        ];
-        if (curseInfo != null) {
-          buttons.unshift({
-            text: '查看诅咒',
-            onPress: async () => {
-              if (await onLastNightInfoConfirmed()) showDismissAlert('乌鸦诅咒', curseInfo);
-            },
+  const showLastNightInfo = useCallback(
+    (label = '查看昨夜信息') => {
+      confirmView({
+        label,
+        body: isGameEnded ? undefined : '昨夜信息可能影响警长竞选。',
+        onView: () => {
+          showDismissAlert('昨夜信息', getLastNightInfo(), async () => {
+            await onLastNightInfoConfirmed();
           });
-        }
-        // Two-button content dialog (查看诅咒 / 知道了): allowlisted in roomDialogEntry.contract (BQ5).
-        showAlert('昨夜信息', info, buttons);
-      },
-    });
-  }, [getLastNightInfo, getCurseInfo, isGameEnded, onLastNightInfoConfirmed]);
+        },
+      });
+    },
+    [getLastNightInfo, isGameEnded, onLastNightInfoConfirmed],
+  );
 
-  return { isGrantVisible, openGrant, closeGrant, grantSeatsAccess, showLastNightInfo };
+  const showAnnouncement = useCallback((announcement: WerewolfDaytimeAnnouncement) => {
+    confirmView({
+      label: `查看${announcement.title}`,
+      onView: () => showDismissAlert(announcement.title, announcement.message),
+    });
+  }, []);
+
+  return {
+    isGrantVisible,
+    openGrant,
+    closeGrant,
+    grantSeatsAccess,
+    showLastNightInfo,
+    showAnnouncement,
+  };
 }

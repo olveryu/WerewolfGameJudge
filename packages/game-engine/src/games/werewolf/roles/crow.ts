@@ -7,6 +7,9 @@ const COPY = defineCopy({
   shortName: '鸦',
   description: '每晚可诅咒一名玩家，被诅咒者在次日白天放逐投票时额外增加一票',
   action: '诅咒',
+  announcementTitle: '乌鸦信息',
+  announcementTarget: '{seat}被诅咒（放逐+1票）',
+  announcementEmpty: '昨夜没有诅咒',
 });
 
 export const crow = defineRole({
@@ -18,6 +21,12 @@ export const crow = defineRole({
     description: COPY.description,
   },
   traits: { faction: 'god', team: 'good' },
+  announcement: {
+    timing: 'exileVote',
+    title: COPY.announcementTitle,
+    targetMessage: COPY.announcementTarget,
+    emptyMessage: COPY.announcementEmpty,
+  },
   steps: [
     createSingleTargetStep({
       id: 'crowCurse',
