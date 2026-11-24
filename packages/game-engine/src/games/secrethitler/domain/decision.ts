@@ -4,11 +4,13 @@ import type { AudioEffect } from '../../../platform/audio';
 import { commit, type Decision } from '../../../platform/engine';
 import type { GameCompletionPayload } from '../../../platform/engine/completionEffect';
 import { type RosterChange } from '../../../platform/room/seating';
+import type { StepEvent } from '../../../platform/steps';
 import type { SecrethitlerCompletionPayload } from '../publicStats';
 import type {
   SecrethitlerEndReason,
   SecrethitlerGameplayPatch,
   SecrethitlerHumanSeat,
+  SecrethitlerNightStep,
   SecrethitlerPolicy,
   SecrethitlerState,
   SecrethitlerWinner,
@@ -34,8 +36,6 @@ export const SECRETHITLER_REASONS = {
   notHostAckAudio: 'secrethitler_not_host_ack_audio',
   unknownAudioBatch: 'secrethitler_unknown_audio_batch',
   occupied: 'secrethitler_occupied_seat_out_of_range',
-  nightStep: 'secrethitler_night_step_invalid',
-  nightParticipant: 'secrethitler_not_night_participant',
   notPresident: 'secrethitler_not_current_president',
   notLiving: 'secrethitler_not_living_player',
   nomination: 'secrethitler_chancellor_ineligible',
@@ -64,6 +64,10 @@ export type SecrethitlerEvent =
   | {
       readonly type: 'secrethitler.gameplay.updated';
       readonly patch: Partial<SecrethitlerGameplayPatch>;
+    }
+  | {
+      readonly type: 'secrethitler.night.step';
+      readonly event: StepEvent<SecrethitlerNightStep, Readonly<Record<string, never>>, never>;
     }
   | { readonly type: 'secrethitler.role.viewed'; readonly seat: number }
   | { readonly type: 'secrethitler.review.completed'; readonly userId: string }

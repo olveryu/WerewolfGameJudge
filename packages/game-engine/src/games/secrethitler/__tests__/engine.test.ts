@@ -3,8 +3,10 @@
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../../platform/protocol/reasons';
 import { isBotSeat } from '../../../platform/room/seating';
+import { REASON_STEP_STALE } from '../../../platform/steps';
 import type { SecrethitlerCommand } from '../commands/types';
 import { SECRETHITLER_REASONS } from '../domain/decision';
+import { SECRETHITLER_NIGHT_VIEW_ACTION_KEY } from '../domain/nightSteps';
 import { getSecrethitlerNightParticipants } from '../domain/rules';
 import { getSecrethitlerViewModel } from '../domain/visibility';
 import { secrethitlerEngine } from '../engine';
@@ -49,6 +51,20 @@ function game(
 
   if (fillBots && humanCount < numberOfPlayers) send({ type: 'room.seat.fillBots' });
   return { session, send, seatUser, actorForSeat };
+}
+
+function nightViewCommand(state: SecrethitlerState): SecrethitlerCommand {
+  if (state.phase.kind !== 'night' || state.phase.steps.current === null)
+    throw new Error('Expected the current first-night step');
+  return {
+    type: 'secrethitler.step.submit',
+    gameSequence: state.gameSequence,
+    submission: {
+      stepId: state.phase.steps.current.stepId,
+      serial: state.phase.steps.current.serial,
+      actionKey: SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
+    },
+  };
 }
 
 describe('Secrethitler host conveniences', () => {
@@ -161,8 +177,8 @@ describe('Secrethitler host conveniences', () => {
   });
 
   it.each([true, false])(
-    'keeps bulk bot confirmation behind both night gates (confirm first: %s)',
-    (confirmFirst) => {
+    'keeps bulk bot acknowledgement behind both night gates (bots first: %s)',
+    (botsFirst) => {
       const current = game(7, 0);
       assignAndViewAll(current);
       current.send({ type: 'secrethitler.game.begin' });
@@ -171,9 +187,9 @@ describe('Secrethitler host conveniences', () => {
         SECRETHITLER_REASONS.notHostMarkBots,
         'other',
       );
-      if (!confirmFirst) acknowledgeAudio(current);
+      if (!botsFirst) acknowledgeAudio(current);
       current.send({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' });
-      if (confirmFirst) {
+      if (botsFirst) {
         expect(current.session.state.phase.kind).toBe('night');
         expect(
           current.session.decide({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' }),
@@ -196,15 +212,21 @@ describe('Secrethitler host conveniences', () => {
     },
   );
 
-  it('bulk night confirmation never marks a human or a nonparticipating bot', () => {
+  it('bulk night viewing never marks a human or a nonparticipating bot', () => {
     const current = game(10, 2);
     assignAndViewAll(current);
     current.send({ type: 'secrethitler.game.begin' });
-    const bots = getSecrethitlerNightParticipants(current.session.state).filter(
+    const botParticipants = getSecrethitlerNightParticipants(current.session.state).filter(
       (seat) => seat >= 2,
     );
     current.send({ type: 'secrethitler.bots.markAllBotsGroupConfirmed' });
-    expect(current.session.state.phase).toEqual({ kind: 'night', step: 1, confirmedSeats: bots });
+    const phase = current.session.state.phase;
+    if (phase.kind !== 'night') throw new Error('Expected first-night phase');
+    expect(
+      Object.keys(phase.steps.records.fascistRecognition?.bySeat ?? {})
+        .map(Number)
+        .sort((left, right) => left - right),
+    ).toEqual(botParticipants.sort((left, right) => left - right));
   });
 });
 
@@ -240,11 +262,7 @@ function enterElection(current: ReturnType<typeof game>): void {
 function finishNight(current: ReturnType<typeof game>): void {
   for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
     const actor = current.actorForSeat(seat);
-    current.send(
-      { type: 'secrethitler.night.confirm', step: 1 },
-      actor.userId,
-      actor.controlledSeat,
-    );
+    current.send(nightViewCommand(current.session.state), actor.userId, actor.controlledSeat);
   }
   acknowledgeAudio(current);
   acknowledgeAudio(current);
@@ -441,19 +459,19 @@ function driveToPolicyCount(
 
 describe('Secret Hitler setup, role knowledge, and first night', () => {
   it.each([5, 6, 7, 8, 9, 10])(
-    'waits for both narration and private confirmations in either arrival order for %i players',
+    'waits for both narration and private viewing in either arrival order for %i players',
     (count) => {
-      for (const confirmFirst of [true, false]) {
+      for (const viewFirst of [true, false]) {
         const current = game(count);
         assignAndViewAll(current);
         current.send({ type: 'secrethitler.game.begin' });
         const revealBatch = current.session.state.audioBatchId;
-        if (!confirmFirst) acknowledgeAudio(current);
+        if (!viewFirst) acknowledgeAudio(current);
         for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
           expect(current.session.state.phase.kind).toBe('night');
-          current.send({ type: 'secrethitler.night.confirm', step: 1 }, current.seatUser(seat));
+          current.send(nightViewCommand(current.session.state), current.seatUser(seat));
         }
-        if (confirmFirst) {
+        if (viewFirst) {
           expect(current.session.state.phase.kind).toBe('night');
           expect(current.session.state.pendingAudioEffects[1]?.audioKey).toBe(
             count <= 6 ? 'evil_reveal_5_6' : 'fascist_reveal_7_10',
@@ -537,7 +555,14 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
     const current = game(5);
     assignAndViewAll(current);
     current.send({ type: 'secrethitler.game.begin' });
-    expect(current.session.state.phase).toEqual({ kind: 'night', step: 1, confirmedSeats: [] });
+    expect(current.session.state.phase).toMatchObject({
+      kind: 'night',
+      steps: {
+        order: ['fascistRecognition'],
+        current: { stepId: 'fascistRecognition', serial: 0 },
+        records: {},
+      },
+    });
     expect(current.session.state.pendingAudioEffects).toEqual([
       { audioKey: 'night_start' },
       { audioKey: 'evil_reveal_5_6' },
@@ -562,15 +587,21 @@ describe('Secret Hitler setup, role knowledge, and first night', () => {
     );
     expect(getSecrethitlerViewModel(current.session.state, null).knownFascistSeats).toEqual([]);
     acknowledgeAudio(current);
-    expect(current.session.state.phase).toEqual({ kind: 'night', step: 1, confirmedSeats: [] });
-    expect(
-      current.session.decide(
-        { type: 'secrethitler.night.confirm', step: 1 },
-        current.seatUser(liberalSeat),
-      ),
-    ).toEqual({ kind: 'reject', reason: SECRETHITLER_REASONS.nightParticipant });
-    for (const seat of getSecrethitlerNightParticipants(current.session.state)) {
-      current.send({ type: 'secrethitler.night.confirm', step: 1 }, current.seatUser(seat));
+    expect(current.session.state.phase.kind).toBe('night');
+    const participants = getSecrethitlerNightParticipants(current.session.state);
+    const firstParticipant = participants[0];
+    if (firstParticipant === undefined) throw new Error('Missing first-night participant');
+    const firstView = nightViewCommand(current.session.state);
+    current.session.expectReject(
+      { ...firstView, gameSequence: current.session.state.gameSequence + 1 },
+      REASON_STEP_STALE,
+      current.seatUser(firstParticipant),
+    );
+    current.session.expectReject(firstView, REASON_STEP_STALE, current.seatUser(liberalSeat));
+    current.send(firstView, current.seatUser(firstParticipant));
+    current.session.expectReject(firstView, REASON_STEP_STALE, current.seatUser(firstParticipant));
+    for (const seat of participants.filter((participant) => participant !== firstParticipant)) {
+      current.send(nightViewCommand(current.session.state), current.seatUser(seat));
     }
     expect(current.session.state.pendingAudioEffects).toEqual([
       { audioKey: 'evil_close', isEndAudio: true },

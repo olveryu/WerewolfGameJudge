@@ -421,7 +421,8 @@ describe('platform step runtime', () => {
           kind: 'view',
           key: 'view',
           name: 'view',
-          title: 'Partner',
+          title: 'Night information',
+          contentTitle: 'Fascist recognition',
           content: () => 'private',
         },
       ],
@@ -433,10 +434,26 @@ describe('platform step runtime', () => {
     expect(presentStep(viewRuntime, state, 0)?.actions).toContainEqual(
       expect.objectContaining({
         kind: 'view',
-        content: { title: 'Partner', text: 'private' },
+        label: '查看Night information',
+        content: { title: 'Fascist recognition', text: 'private' },
         isAcknowledged: false,
       }),
     );
+    const defaultTitleDefinition: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
+      ...viewDefinition,
+      actions: [
+        {
+          kind: 'view',
+          key: 'view',
+          name: 'view',
+          title: 'Partner',
+          content: () => 'private',
+        },
+      ],
+    };
+    expect(
+      presentStep(runtimeWithDefinition(defaultTitleDefinition), state, 0)?.actions,
+    ).toContainEqual(expect.objectContaining({ content: { title: 'Partner', text: 'private' } }));
     expect(
       decideStepSubmission(viewRuntime, state, 0, {
         stepId: 'pick',

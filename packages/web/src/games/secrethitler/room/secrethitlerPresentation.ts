@@ -5,6 +5,7 @@ import type {
   SecrethitlerViewModel,
   SecrethitlerVoteMode,
 } from '@game-judge/game-engine/games/secrethitler/public';
+import { hasViewedSecrethitlerNightStep } from '@game-judge/game-engine/games/secrethitler/public';
 
 export const SECRETHITLER_PHASE_LABELS: Readonly<Record<SecrethitlerPhaseKind, string>> = {
   lobby: '等待入座',
@@ -41,8 +42,7 @@ export function formatSecrethitlerVoteMode(voteMode: SecrethitlerVoteMode): stri
 }
 
 /** Public first-night progress label, never a private identity or seat. */
-export function getSecrethitlerNightStepLabel(step: number): string {
-  if (step !== 1) throw new Error(`Unknown Secret Hitler night step ${step}`);
+export function getSecrethitlerNightStepLabel(): string {
   return '坏人互认';
 }
 
@@ -52,13 +52,16 @@ function nightInstruction(
 ): { readonly message: string; readonly action: string | null } {
   if (state.phase.kind !== 'night') throw new Error('Night instruction requires night phase');
   if (view.mySeat === null) return { message: '等待首夜互认完成', action: null };
+  const viewAction = view.step?.actions.find((action) => action.kind === 'view');
+  const hasViewed = hasViewedSecrethitlerNightStep(state, view.mySeat);
+  const canView = view.step?.isActor === true && viewAction?.availability.kind === 'available';
   return {
-    message: !view.canConfirmNight
-      ? '请保持闭眼，等待本步玩家确认'
-      : view.hasConfirmedNight
-        ? '信息已确认，等待本步其他玩家确认'
-        : '请点击「确认信息」，私下查看并确认互认信息',
-    action: view.canConfirmNight && !view.hasConfirmedNight ? '确认信息' : null,
+    message: !canView
+      ? hasViewed
+        ? '信息已查看，等待本步其他玩家查看'
+        : '请保持闭眼，等待本步玩家查看'
+      : '请点击「查看夜间信息」',
+    action: canView ? '查看夜间信息' : null,
   };
 }
 /** Formats an occupied seat using public profile data only. */

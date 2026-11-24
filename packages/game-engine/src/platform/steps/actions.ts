@@ -34,6 +34,7 @@ export interface DirectAction<TContext, TFacts, TResult> extends ActionBase<TCon
 export interface ViewAction<TContext> extends ActionBase<TContext> {
   readonly kind: 'view';
   readonly title: string;
+  readonly contentTitle?: string;
   readonly content: (context: TContext) => string;
   readonly reviewPhrase?: (context: TContext) => string | null;
 }

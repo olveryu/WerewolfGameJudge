@@ -62,6 +62,7 @@ import {
 } from '../secrethitlerRoomAdapter';
 import { getSecrethitlerRoomCommandFailureMessage } from '../secrethitlerRoomCommandFailureMessage';
 import { useSecrethitlerAudioOrchestration } from './useSecrethitlerAudioOrchestration';
+import { useSecrethitlerNightInteraction } from './useSecrethitlerNightInteraction';
 
 const SECRETHITLER_AUDIO_LOCK_EXEMPT_ACTION_KEYS: ReadonlySet<string> = new Set();
 /** 进房间一次预加载的全部公开图片：立绘 + 投票 4 张 + 法案牌 2 张。 */
@@ -126,6 +127,17 @@ export function useSecrethitlerRoomState(
     gameName: 'Secrethitler',
   });
   const { controlledSeat, effectiveSeat } = bots;
+  const viewModel = isLobby ? null : getSecrethitlerViewModel(state, effectiveSeat);
+  const nightInteraction = useSecrethitlerNightInteraction({
+    state,
+    viewModel,
+    userId: user.id,
+    roomId: room.roomId,
+    effectiveSeat,
+    controlledSeat,
+    submit,
+    hasPendingCommand: isSubmitting || entryController.connection.pendingDurableCount > 0,
+  });
   const privateActions = useSecrethitlerPrivateActions(
     state,
     submit,
@@ -258,10 +270,11 @@ export function useSecrethitlerRoomState(
     review: review.entry,
     openIdentity: privateActions.roleViewing.open,
     openAction: privateActions.openAction,
+    nightActions: nightInteraction.actions,
+    nightMessage: nightInteraction.message,
     isSelecting: privateActions.isSelecting,
     isSubmitting,
   });
-  const viewModel = isLobby ? null : getSecrethitlerViewModel(state, effectiveSeat);
   return {
     state,
     shellModel,
@@ -295,7 +308,7 @@ function useSecrethitlerPrivateActions(
 ) {
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [dismissedVoteKey, setDismissedVoteKey] = useState<string | null>(null);
-  const currentActionKey = `${state.gameSequence}:${state.phase.kind}:${state.phase.kind === 'night' ? state.phase.step : state.history.governments.length}:${effectiveSeat}`;
+  const currentActionKey = `${state.gameSequence}:${state.phase.kind}:${state.phase.kind === 'night' ? (state.phase.steps.current?.stepId ?? 'no-step') : state.history.governments.length}:${effectiveSeat}`;
   const mustResolveHand =
     (state.phase.kind === 'legislativePresident' && effectiveSeat === state.phase.presidentSeat) ||
     (state.phase.kind === 'legislativeChancellor' && effectiveSeat === state.phase.chancellorSeat);
@@ -385,10 +398,7 @@ function useSecrethitlerPrivateActions(
         setActionKey(null);
         return;
       }
-      if (
-        state.phase.kind === 'night' ||
-        (state.phase.kind === 'executive' && state.phase.power === 'policyPeek')
-      ) {
+      if (state.phase.kind === 'executive' && state.phase.power === 'policyPeek') {
         showConfirmAlert(
           '查看信息？',
           '确定私下查看信息吗？',

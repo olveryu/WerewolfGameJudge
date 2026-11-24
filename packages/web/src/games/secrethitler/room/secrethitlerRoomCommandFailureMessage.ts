@@ -8,6 +8,7 @@ import {
   SECRETHITLER_REASONS,
   type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
+import { REASON_STEP_STALE } from '@game-judge/game-engine/platform/steps';
 
 import {
   createRoomCommandFailureMessage,
@@ -24,8 +25,7 @@ export const getSecrethitlerRoomCommandFailureMessage =
     [SECRETHITLER_REASONS.notHostStart]: '只有房主可以开始游戏',
     [SECRETHITLER_REASONS.full]: ROOM_COMMAND_FAILURE_SEATS_NOT_FULL,
     [SECRETHITLER_REASONS.occupied]: ROOM_COMMAND_FAILURE_OCCUPIED_OUT_OF_RANGE,
-    [SECRETHITLER_REASONS.nightStep]: '首夜步骤已更新，请按当前提示操作',
-    [SECRETHITLER_REASONS.nightParticipant]: '当前没有需要你确认的互认信息',
+    [REASON_STEP_STALE]: '当前行动步骤已变化，请重新选择',
     [SECRETHITLER_REASONS.notPresident]: '只有当前总统可以执行此操作',
     [SECRETHITLER_REASONS.notLiving]: '当前不能由你的座位执行此操作',
     [SECRETHITLER_REASONS.nomination]: '该玩家不符合总理任期限制，请重新选择',

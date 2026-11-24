@@ -17,6 +17,12 @@ import {
 } from '../../platform/room/identityViewing';
 import { resolveReviewCompletion } from '../../platform/room/reviewCompletion';
 import { isBotSeat, isRoomFull } from '../../platform/room/seating';
+import type { StepSubmission } from '../../platform/steps';
+import {
+  decideStepSubmission,
+  planBotAcknowledgements,
+  REASON_STEP_STALE,
+} from '../../platform/steps';
 import type { SecrethitlerCommand } from './commands/types';
 import {
   commitSecrethitler,
@@ -26,11 +32,9 @@ import {
   type SecrethitlerEvent,
 } from './domain/decision';
 import { evolveSecrethitlerState } from './domain/evolve';
-import {
-  beginSecrethitlerNight,
-  decideSecrethitlerGameplay,
-  evaluateSecrethitlerNightCompletion,
-} from './domain/gameplay';
+import { beginSecrethitlerNight, decideSecrethitlerGameplay } from './domain/gameplay';
+import { evaluateSecrethitlerNightProgress } from './domain/nightProgression';
+import { createSecrethitlerNightRuntime } from './domain/nightSteps';
 import {
   chooseSecrethitlerFirstPresident,
   createSecrethitlerPolicyDeck,
@@ -201,22 +205,40 @@ function markAllBotsGroupConfirmed(
   if (hostRejection !== null) return hostRejection;
   const phase = state.phase;
   if (phase.kind !== 'night') return reject(SECRETHITLER_REASONS.phase);
-  const bots = getSecrethitlerNightParticipants(state).filter((seat) =>
-    isBotSeat(state.roster, seat),
-  );
-  if (bots.length === 0) return reject(SECRETHITLER_REASONS.noBotSeats);
-  const unconfirmed = bots.filter((seat) => !phase.confirmedSeats.includes(seat));
-  return commitSecrethitler(
-    unconfirmed.length === 0
+  const currentStep = phase.steps.current;
+  const bots =
+    currentStep === null
       ? []
-      : [
-          {
-            type: 'secrethitler.gameplay.updated',
-            patch: {
-              phase: { ...phase, confirmedSeats: [...phase.confirmedSeats, ...unconfirmed] },
-            },
-          },
-        ],
+      : getSecrethitlerNightParticipants(state).filter((seat) => isBotSeat(state.roster, seat));
+  if (bots.length === 0) return reject(SECRETHITLER_REASONS.noBotSeats);
+  return commitSecrethitler(
+    planBotAcknowledgements(createSecrethitlerNightRuntime(), state, bots).map((event) => ({
+      type: 'secrethitler.night.step',
+      event,
+    })),
+  );
+}
+
+/** Records an authorized first-night view through the shared step mechanism. */
+function submitNightStep(
+  state: SecrethitlerState,
+  gameSequence: number,
+  submission: StepSubmission,
+  context: CommandContext,
+): SecrethitlerDecision {
+  if (state.phase.kind !== 'night' || state.gameSequence !== gameSequence)
+    return reject(REASON_STEP_STALE);
+  const resolved = resolveActingSeat(state, state.config.numberOfPlayers, context);
+  if (resolved.kind === 'rejected') return reject(resolved.reason);
+  const decision = decideStepSubmission(
+    createSecrethitlerNightRuntime(),
+    state,
+    resolved.value,
+    submission,
+  );
+  if (decision.kind === 'reject') return reject(decision.reason);
+  return commitSecrethitler(
+    decision.events.map((event) => ({ type: 'secrethitler.night.step', event })),
   );
 }
 
@@ -288,6 +310,8 @@ function decideCommand(
       return markRoleViewed(state, context);
     case 'secrethitler.audio.ack':
       return ackAudio(state, command.audioBatchId, context);
+    case 'secrethitler.step.submit':
+      return submitNightStep(state, command.gameSequence, command.submission, context);
   }
   return decideSecrethitlerGameplay(state, command, context) ?? reject(SECRETHITLER_REASONS.phase);
 }
@@ -302,12 +326,12 @@ export function decideSecrethitlerCommand(
   if (
     decision.kind !== 'commit' ||
     (command.type !== 'secrethitler.audio.ack' &&
-      command.type !== 'secrethitler.night.confirm' &&
+      command.type !== 'secrethitler.step.submit' &&
       command.type !== 'secrethitler.bots.markAllBotsGroupConfirmed')
   )
     return decision;
   const intermediate = decision.events.reduce(evolveSecrethitlerState, state);
-  const progression = evaluateSecrethitlerNightCompletion(intermediate);
+  const progression = evaluateSecrethitlerNightProgress(intermediate, context.nowMs);
   return progression.length === 0
     ? decision
     : commitSecrethitler([...decision.events, ...progression], decision.effects);

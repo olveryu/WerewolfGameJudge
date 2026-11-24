@@ -133,8 +133,10 @@ export interface DirectAction<TContext, TFacts, TResult> extends ActionBase<TCon
 
 export interface ViewAction<TContext> extends ActionBase<TContext> {
   readonly kind: 'view';
-  /** 内容弹窗的标题；手牌文字 = “查看” + title。 */
+  /** 生成手牌文字的标题；手牌文字 = “查看” + title。 */
   readonly title: string;
+  /** 内容弹窗标题；省略时沿用 title。 */
+  readonly contentTitle?: string;
   readonly content: (context: TContext) => string;
 }
 
@@ -419,7 +421,7 @@ export type PresentedAction =
 
 各游戏的接法：
 
-- 命令：每个游戏一条 `<game>.step.submit`，载荷是 `StepSubmission`。狼人杀现有的 `werewolf.action.submit`、`werewolf.reveal.ack`、`werewolf.groupConfirm.ack`、`werewolf.wolfRobot.ackHunterStatus` 合并为它；阿瓦隆的 `avalon.night.confirm`、秘密希特勒的 `secrethitler.night.confirm` 换成它。房主的“标记机器人已确认”命令（`werewolf.groupConfirm.ackBots`、`avalon.bots.markAllBotsGroupConfirmed`、`secrethitler.bots.markAllBotsGroupConfirmed`）保留，内部调用 `planBotAcknowledgements`。
+- 命令：每个游戏一条 `<game>.step.submit`，载荷是 `StepSubmission`。狼人杀现有的 `werewolf.action.submit`、`werewolf.reveal.ack`、`werewolf.groupConfirm.ack`、`werewolf.wolfRobot.ackHunterStatus` 合并为它；阿瓦隆和秘密希特勒的夜间确认命令已迁移为它。房主的“标记机器人已确认”命令（`werewolf.groupConfirm.ackBots`、`avalon.bots.markAllBotsGroupConfirmed`、`secrethitler.bots.markAllBotsGroupConfirmed`）保留，内部调用 `planBotAcknowledgements`。
 - 事件：游戏把 `StepEvent` 包进自己的事件类型，`evolve` 里交给 `evolveStepSlice`，并把 `facts` 合并进自己的夜间事实。
 - 行动座位：由游戏用平台已有的 `resolveActingSeat` 解析（含房主接管机器人）后传入。
 - 视图：各游戏的 `get<Game>ViewModel` 增加一个 `step: StepPresentation | null` 字段，取代狼人杀现在的 `night` 里那十几个字段。

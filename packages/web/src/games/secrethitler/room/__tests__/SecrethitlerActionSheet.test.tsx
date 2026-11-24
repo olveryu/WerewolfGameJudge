@@ -2,22 +2,36 @@ import {
   getSecrethitlerViewModel,
   type SecrethitlerState,
 } from '@game-judge/game-engine/games/secrethitler/public';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 
 import {
   buildSecrethitlerPhaseStates,
   sendSecrethitlerSeatCommand,
 } from '@/test-utils/secrethitlerState';
+import { alertStore, dismissAlert } from '@/utils/alert';
 import * as alertPresets from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
   secrethitlerPolicyLiberalImage,
 } from '../../assets/secrethitlerPolicyImages';
+import { useSecrethitlerNightInteraction } from '../hooks/useSecrethitlerNightInteraction';
 import { SecrethitlerActionSheet } from '../SecrethitlerActionSheet';
 
 const states = buildSecrethitlerPhaseStates();
-afterEach(() => vi.restoreAllMocks());
+async function pressAlertButton(index: number): Promise<void> {
+  const button = alertStore.getSnapshot()?.buttons[index];
+  if (button === undefined) throw new Error(`Missing alert button ${index}`);
+  await act(async () => {
+    await button.onPress?.();
+  });
+}
+
+afterEach(() => {
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
+  vi.restoreAllMocks();
+});
 function fixture(phase: SecrethitlerState['phase']['kind']) {
   const state = states.get(phase);
   if (state === undefined) throw new Error(`Missing ${phase}`);
@@ -89,30 +103,45 @@ it('starts final nomination with the preselection and preserves a failed submiss
   expect(secondRow).toHaveAttribute('aria-checked', 'true');
 });
 
-it('keeps 7–10 player Hitler and spectators out of the private recognition sheet', () => {
-  let state = fixture('night');
-  // The phase collector saves the opening night; advance to the recognition cue.
-  const identities = Object.entries(state.identities);
-  const hitler = identities.find(([, identity]) => identity === 'hitler');
-  if (hitler === undefined) throw new Error('Missing Hitler');
-  state = { ...state, phase: { kind: 'night', step: 1, confirmedSeats: [] } };
-  const rendered = render(<SecrethitlerActionSheet screen={props(state, Number(hitler[0]))} />);
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  rendered.rerender(<SecrethitlerActionSheet screen={props(state, null)} />);
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  const fascist = identities.find(([, identity]) => identity === 'fascist');
-  if (fascist === undefined) throw new Error('Missing fascist');
-  const input = props(state, Number(fascist[0]));
-  rendered.rerender(<SecrethitlerActionSheet screen={input} />);
-  expect(screen.getByText(new RegExp(`${Number(hitler[0]) + 1} 号.*希特勒`))).toBeInTheDocument();
-  fireEvent.keyDown(document, { key: 'Escape' });
-  expect(input.closeAction).not.toHaveBeenCalled();
-  expect(screen.queryByRole('button', { name: '关闭' })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: '知道了' }));
-  expect(input.submit).toHaveBeenCalledWith(
-    '确认信息',
-    { type: 'secrethitler.night.confirm', step: 1 },
-    { actionKey: null, controlledSeat: Number(fascist[0]) },
+it('views first-night information through the shared confirmation and acknowledgement flow', async () => {
+  const state = fixture('night');
+  const viewerSeat = Object.entries(state.identities).find(
+    ([, identity]) => identity === 'fascist',
+  )?.[0];
+  if (viewerSeat === undefined) throw new Error('Missing fascist');
+  const seat = Number(viewerSeat);
+  const submit = vi.fn(async () => true);
+  const { result } = renderHook(() =>
+    useSecrethitlerNightInteraction({
+      state,
+      viewModel: getSecrethitlerViewModel(state, seat),
+      userId: 'player',
+      roomId: 'room',
+      effectiveSeat: seat,
+      controlledSeat: null,
+      submit,
+      hasPendingCommand: false,
+    }),
+  );
+  const viewAction = result.current.actions[0];
+  if (viewAction?.state.kind !== 'ready') throw new Error('Expected available night view');
+  expect(viewAction.label).toBe('查看夜间信息');
+  const pressView = viewAction.state.onPress;
+  act(() => pressView());
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '查看夜间信息？' });
+  await pressAlertButton(1);
+  const contentAlert = alertStore.getSnapshot();
+  expect(contentAlert?.title).toBe('坏人互认');
+  expect(contentAlert?.message).toContain('仅你获准查看');
+  expect(submit).not.toHaveBeenCalled();
+  await pressAlertButton(0);
+  expect(submit).toHaveBeenCalledWith(
+    '查看夜间信息',
+    expect.objectContaining({
+      type: 'secrethitler.step.submit',
+      gameSequence: state.gameSequence,
+    }),
+    expect.objectContaining({ controlledSeat: null, durable: true }),
   );
 });
 

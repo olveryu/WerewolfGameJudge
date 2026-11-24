@@ -18,6 +18,7 @@ import {
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 import * as alertPresets from '@/utils/alertPresets';
 
 import {
@@ -570,7 +571,7 @@ it.each([
   },
 );
 
-it('asks before showing private night recognition information', () => {
+it('shows private night recognition through the shared view action', () => {
   const night = buildSecrethitlerPhaseStates().get('night');
   if (night === undefined) throw new Error('Missing night fixture');
   const fascistSeat = Object.entries(night.identities).find(([, role]) => role === 'fascist')?.[0];
@@ -582,9 +583,6 @@ it('asks before showing private night recognition information', () => {
     isAudioPlaying: false,
     identities: { ...night.identities, 0: 'fascist', [fascistSeat]: originalRole },
   };
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const identity = testIdentity('secrethitler');
   const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
     readyLinkSnapshot(identity, createRoomSnapshot(state, 1)),
@@ -613,19 +611,15 @@ it('asks before showing private night recognition information', () => {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  fireEvent.click(screen.getByRole('button', { name: '确认信息' }));
-  const confirmationCall = confirmation.mock.calls[0];
-  expect(confirmationCall?.[0]).toBe('查看信息？');
-  expect(confirmationCall?.[1]).toEqual(expect.any(String));
-  expect(confirmationCall?.[2]).toEqual(expect.any(Function));
-  expect(confirmationCall?.[3]?.confirmText).toBe('查看');
-  expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
-  expect(screen.queryByRole('dialog', { name: '确认信息' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '查看夜间信息' }));
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '查看夜间信息？' });
   act(() => {
-    void confirmation.mock.calls[0]?.[2]();
+    void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
   });
-  expect(screen.getByRole('dialog', { name: '确认信息' })).toBeVisible();
-  confirmation.mockRestore();
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '坏人互认' });
+  expect(alertStore.getSnapshot()?.message).toContain('仅你获准查看');
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
 });
 
 it('shows public composition in the room dialog without revealing seat identities', async () => {

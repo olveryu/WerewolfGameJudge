@@ -8,6 +8,7 @@ import {
   getSecrethitlerUserSeat,
   getSecrethitlerViewingParticipants,
   getSecrethitlerViewModel,
+  hasViewedSecrethitlerNightStep,
   isBotSeat,
   type SecrethitlerCommand,
   type SecrethitlerState,
@@ -110,7 +111,12 @@ export function createSecrethitlerSeatDataSource(
     resolveShowReadyBadge: (seat) =>
       state.phase.kind === 'viewing' && state.roleViewedSeats.includes(seat),
     resolveHighlight: (seat) =>
-      !view.hasConfirmedNight && view.knownFascistSeats.includes(seat) ? 'danger' : undefined,
+      state.phase.kind === 'night' &&
+      view.mySeat !== null &&
+      !hasViewedSecrethitlerNightStep(state, view.mySeat) &&
+      view.knownFascistSeats.includes(seat)
+        ? 'danger'
+        : undefined,
     resolveIndicators: (seat) => ({
       markers: [
         ...(view.presidentSeat === seat
@@ -155,6 +161,8 @@ export interface SecrethitlerRoomShellModelInput extends Omit<
   readonly review: RoomReviewEntry | null;
   readonly openIdentity: () => void;
   readonly openAction: () => void;
+  readonly nightActions: readonly RoomPlayerAction[];
+  readonly nightMessage: string | null;
   readonly isSelecting: boolean;
   readonly isSubmitting: boolean;
 }
@@ -338,7 +346,7 @@ function createSecrethitlerHostTools(
     if (
       phase.kind === 'night' &&
       getSecrethitlerNightParticipants(state).some(
-        (seat) => isBotSeat(state.roster, seat) && !phase.confirmedSeats.includes(seat),
+        (seat) => isBotSeat(state.roster, seat) && !hasViewedSecrethitlerNightStep(state, seat),
       )
     )
       actions.push(
@@ -395,7 +403,7 @@ export function createSecrethitlerRoomShellModel(
             !state.roleViewedSeats.includes(effectiveSeat),
         });
   const actionButton: RoomPlayerAction | null =
-    instruction.action === null
+    instruction.action === null || state.phase.kind === 'night'
       ? null
       : {
           key: SECRETHITLER_GAME_ACTION_KEY,
@@ -418,7 +426,7 @@ export function createSecrethitlerRoomShellModel(
     isAudioPlaying: state.isAudioPlaying,
     seatSource,
     phase: state.phase.kind,
-    step: state.phase.kind === 'night' ? String(state.phase.step) : null,
+    step: state.phase.kind === 'night' ? (state.phase.steps.current?.stepId ?? null) : null,
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -435,18 +443,21 @@ export function createSecrethitlerRoomShellModel(
           ? buildEndedWaitingMessage({ isEnded: true, viewer: input.viewer })
           : state.phase.kind === 'lobby'
             ? buildLobbyHostStartMessage({ isLobby: true, viewer: input.viewer })
-            : instruction.message,
+            : state.phase.kind === 'night'
+              ? (input.nightMessage ?? instruction.message)
+              : instruction.message,
       progress:
         state.phase.kind === 'night'
           ? {
               current: 1,
               total: 1,
-              label: getSecrethitlerNightStepLabel(state.phase.step),
+              label: getSecrethitlerNightStepLabel(),
             }
           : null,
       group: null,
       // 本局复盘对玩家与观战开放（次级档）；房主从任务卡进入。
       actions: [
+        ...input.nightActions,
         ...(actionButton === null ? [] : [actionButton]),
         ...(identityButton === null ? [] : [identityButton]),
         ...(input.review === null

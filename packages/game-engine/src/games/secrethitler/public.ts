@@ -14,6 +14,11 @@ export {
   type SecrethitlerEvent,
 } from './domain/decision';
 export {
+  describeSecrethitlerStepConfirmation,
+  hasViewedSecrethitlerNightStep,
+  SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
+} from './domain/nightSteps';
+export {
   getSecrethitlerNightParticipants,
   getSecrethitlerPolicyPower,
   getSecrethitlerRoleCounts,
@@ -47,12 +52,14 @@ export {
   SECRETHITLER_GAME_TYPE,
   SECRETHITLER_MAX_PLAYERS,
   SECRETHITLER_MIN_PLAYERS,
+  SECRETHITLER_NIGHT_STEP_IDS,
   SECRETHITLER_PHASES,
   SECRETHITLER_VOTE_MODES,
   type SecrethitlerConfig,
   type SecrethitlerEndReason,
   type SecrethitlerFaction,
   type SecrethitlerHumanSeat,
+  type SecrethitlerNightStep,
   type SecrethitlerPhase,
   type SecrethitlerPhaseKind,
   type SecrethitlerPolicy,

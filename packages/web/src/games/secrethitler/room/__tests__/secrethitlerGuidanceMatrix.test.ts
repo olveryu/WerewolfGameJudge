@@ -22,6 +22,7 @@ import { viewerFor } from '@/test-utils/roomViewer';
 import {
   buildSecrethitlerPhaseStates,
   buildSecrethitlerTestLobby,
+  secrethitlerNightViewCommand,
   sendSecrethitlerSeatCommand,
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
@@ -110,6 +111,8 @@ function roomShellModel(
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
     openIdentity: vi.fn(),
     openAction: vi.fn(),
+    nightActions: [],
+    nightMessage: null,
     isSelecting: false,
     isSubmitting: false,
   });
@@ -154,11 +157,12 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
           ).toBe(false);
         }
         if (getSecrethitlerNightParticipants(reveal).includes(viewerSeat)) {
-          const confirmed = sendSecrethitlerSeatCommand(reveal, viewerSeat, {
-            type: 'secrethitler.night.confirm',
-            step: 1,
-          });
-          expect(highlightedSeats(confirmed, audience, controlledSeat)).toEqual([]);
+          const acknowledged = sendSecrethitlerSeatCommand(
+            reveal,
+            viewerSeat,
+            secrethitlerNightViewCommand(reveal, viewerSeat),
+          );
+          expect(highlightedSeats(acknowledged, audience, controlledSeat)).toEqual([]);
         }
       }
       expect(highlightedSeats(reveal, 'spectator')).toEqual([]);
@@ -188,35 +192,34 @@ describe('SECRETHITLER_GUIDANCE_MATRIX', () => {
         action: null,
       });
       const model = roomShellModel(state, 'host');
-      expect(model.step).toBe('1');
+      expect(model.step).toBe('fascistRecognition');
       expect(model.playerActions.progress).toEqual({ current: 1, total: 1, label: '坏人互认' });
       const participants = getSecrethitlerNightParticipants(state);
       for (const seat of state.livingSeats) {
         const instruction = secrethitlerInstruction(state, getSecrethitlerViewModel(state, seat));
-        expect(instruction.action).toBe(participants.includes(seat) ? '确认信息' : null);
+        expect(instruction.action).toBe(participants.includes(seat) ? '查看夜间信息' : null);
         if (!participants.includes(seat)) expect(instruction.message).toContain('保持闭眼');
       }
       const first = participants[0];
       if (first === undefined) throw new Error('Missing first-night participant');
-      const confirmed = sendSecrethitlerSeatCommand(state, first, {
-        type: 'secrethitler.night.confirm',
-        step: 1,
-      });
-      const instruction = secrethitlerInstruction(
-        confirmed,
-        getSecrethitlerViewModel(confirmed, first),
+      const viewed = sendSecrethitlerSeatCommand(
+        state,
+        first,
+        secrethitlerNightViewCommand(state, first),
       );
+      const instruction = secrethitlerInstruction(viewed, getSecrethitlerViewModel(viewed, first));
       expect(instruction.action).toBeNull();
-      expect(instruction.message).toContain('等待本步其他玩家确认');
-      let allConfirmed = state;
+      expect(instruction.message).toContain('等待本步其他玩家查看');
+      let allViewed = state;
       for (const seat of participants)
-        allConfirmed = sendSecrethitlerSeatCommand(allConfirmed, seat, {
-          type: 'secrethitler.night.confirm',
-          step: 1,
-        });
-      const closing = sendSecrethitlerSeatCommand(allConfirmed, 0, {
+        allViewed = sendSecrethitlerSeatCommand(
+          allViewed,
+          seat,
+          secrethitlerNightViewCommand(allViewed, seat),
+        );
+      const closing = sendSecrethitlerSeatCommand(allViewed, 0, {
         type: 'secrethitler.audio.ack',
-        audioBatchId: allConfirmed.audioBatchId,
+        audioBatchId: allViewed.audioBatchId,
       });
       expect(closing.phase.kind).toBe('election');
       expect(closing.pendingAudioEffects.map((effect) => effect.audioKey)).toEqual([
