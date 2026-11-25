@@ -11,6 +11,8 @@ const COPY = defineCopy({
   skillText: '拥有一瓶毒药；可在夜间毒杀一名玩家',
   specialText: '被毒杀的角色无法开枪；有毒师在场时首夜狼人无法袭击',
   action: '毒杀',
+  wolfAttackLocked: '本局有毒师在场，首夜无法袭击',
+  wolfAttackReview: '狼队放弃袭击，毒师在场',
 });
 
 export const poisonerPresence = [
@@ -29,6 +31,7 @@ export const poisoner = defineRole({
   },
   traits: { faction: 'god', team: 'good' },
   presence: poisonerPresence[0],
+  wolfAttackLock: { reason: COPY.wolfAttackLocked, review: COPY.wolfAttackReview },
   resources: [{ kind: 'poison', uses: 1, refreshPerNight: false }],
   steps: [
     createSingleTargetStep({

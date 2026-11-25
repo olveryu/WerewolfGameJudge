@@ -12,8 +12,6 @@ const COPY = defineCopy({
   abstain: '放弃袭击',
   withdraw: '撤回袭击投票',
   blockedTarget: '该角色不能被狼人直接袭击',
-  nightmareLocked: '被噩梦之影恐惧，本夜无法袭击',
-  poisonerLocked: '本局有毒师在场，首夜无法袭击',
   actualLanding: '（实际为{seat}）',
   unanimousHint: '投票不一致将视为放弃袭击',
   majorityHint: '平票将随机刀人',
@@ -25,8 +23,6 @@ const COPY = defineCopy({
   reviewVote: '{actor}投{target}',
   reviewVoteSeparator: '、',
   reviewAbstained: '狼队放弃袭击',
-  reviewPoisoner: '狼队放弃袭击，毒师在场',
-  reviewNightmare: '狼队放弃袭击，被噩梦之影恐惧',
   voterSeparator: '、',
 });
 
@@ -112,11 +108,14 @@ export const wolfKillStep: WerewolfRoleStepDefinition = {
     const verdict = context.resolvedWolfKillVerdict;
     if (verdict === undefined) return [];
     if (verdict === null) {
-      if (context.nightPresence.isFirstNightWolfAttackDisabled) return [COPY.reviewPoisoner];
-      if (context.facts.disabledAbilities.some((ability) => ability.roleId === 'wolfKill')) {
-        return [COPY.reviewNightmare];
+      const stoppedBy =
+        context.nightPresence.firstNightWolfAttackDisabledBy ??
+        context.facts.disabledAbilities.find((ability) => ability.roleId === 'wolfKill')
+          ?.sourceRoleId;
+      if (stoppedBy === undefined) {
+        throw new Error('[FAIL-FAST] The wolf attack was disabled without a recorded reason');
       }
-      throw new Error('[FAIL-FAST] The wolf attack was disabled without a recorded reason');
+      return [context.wolfAttackLockOf(stoppedBy).review];
     }
     if (verdict.type === 'allAbstain') return [COPY.reviewAbstained];
     if (verdict.type === 'splitTied') {
@@ -216,16 +215,18 @@ function formatReviewVotes(context: WerewolfRoleStepContext): string {
     .join(COPY.reviewVoteSeparator);
 }
 
-function isWolfVoteDisabled(context: WerewolfRoleStepContext, seat: number): boolean {
+/** The role that keeps this seat from voting tonight, if any. */
+function getWolfVoteLockSource(context: WerewolfRoleStepContext, seat: number): string | null {
   const roleId = context.role.roleOf(seat);
-  return context.facts.disabledAbilities.some(
+  const lock = context.facts.disabledAbilities.find(
     (ability) =>
       ability.seat === seat &&
       (ability.roleId === '*' || ability.roleId === 'wolfKill' || ability.roleId === roleId),
   );
+  return lock?.sourceRoleId ?? context.nightPresence.firstNightWolfAttackDisabledBy;
 }
 
 function getWolfVoteLockReason(context: WerewolfRoleStepContext, seat: number): string | null {
-  if (isWolfVoteDisabled(context, seat)) return COPY.nightmareLocked;
-  return context.nightPresence.isFirstNightWolfAttackDisabled ? COPY.poisonerLocked : null;
+  const source = getWolfVoteLockSource(context, seat);
+  return source === null ? null : context.wolfAttackLockOf(source).reason;
 }

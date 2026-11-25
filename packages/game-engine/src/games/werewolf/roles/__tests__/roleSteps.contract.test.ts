@@ -308,8 +308,8 @@ describe('werewolf role definitions', () => {
       facts: {
         ...EMPTY_FACTS,
         disabledAbilities: [
-          { roleId: '*', seat: 2 },
-          { roleId: 'wolfKill', seat: 3 },
+          { roleId: '*', seat: 2, sourceRoleId: 'nightmare' },
+          { roleId: 'wolfKill', seat: 3, sourceRoleId: 'nightmare' },
         ],
       },
       reason: '被噩梦之影恐惧，本夜无法袭击',
@@ -396,7 +396,7 @@ describe('werewolf role definitions', () => {
     });
     const facts: WerewolfNightFacts = {
       ...EMPTY_FACTS,
-      disabledAbilities: [{ roleId: 'wolfQueen', seat: 2 }],
+      disabledAbilities: [{ roleId: 'wolfQueen', seat: 2, sourceRoleId: 'nightmare' }],
     };
     const context = createRoleContext(state, null, facts);
     const voteContext = {
@@ -1109,6 +1109,11 @@ function createRoleContext(
     resolvedWolfKillTarget: null,
     canShootAtNight: () => true,
     abilityLockReasonOf: (roleId) => requireRole(roleId).abilityLockReason ?? '',
+    wolfAttackLockOf: (roleId) => {
+      const lock = requireRole(roleId).wolfAttackLock;
+      if (lock === undefined) throw new Error(`[TEST] ${roleId} declares no wolf attack wording`);
+      return lock;
+    },
     bottomCardsOf: (actingSeat, roleId) => {
       if (roleId === 'thief') {
         return [

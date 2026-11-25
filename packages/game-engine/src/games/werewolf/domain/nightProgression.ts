@@ -134,7 +134,7 @@ function settleWolfKill(
   const night = requireWerewolfNightState(state);
   const presence = resolveNightPresenceFacts(state.templateRoles, WEREWOLF_PRESENCE_DECLARATIONS);
   const disabled =
-    presence.isFirstNightWolfAttackDisabled ||
+    presence.firstNightWolfAttackDisabledBy !== null ||
     night.facts.disabledAbilities.some((ability) => ability.roleId === 'wolfKill');
   if (disabled) return { target: null, verdict: null, attack: null };
   const votes = new Map(

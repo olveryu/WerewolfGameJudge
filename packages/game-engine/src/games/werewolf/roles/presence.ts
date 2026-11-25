@@ -10,7 +10,8 @@ export interface PresenceDeclaration<TRole extends string> {
 }
 
 export interface NightPresenceFacts<TRole extends string> {
-  readonly isFirstNightWolfAttackDisabled: boolean;
+  /** The role whose presence stops the wolves from attacking on the first night. */
+  readonly firstNightWolfAttackDisabledBy: TRole | null;
   readonly doesWolfVoteRequireUnanimity: boolean;
   readonly bottomCardRoles: readonly TRole[];
   readonly numberedAnnouncementRoles: Readonly<Record<string, readonly TRole[]>>;
@@ -21,7 +22,7 @@ export function resolveNightPresenceFacts<TRole extends string>(
   declarations: readonly PresenceDeclaration<TRole>[],
 ): NightPresenceFacts<TRole> {
   const present = new Set(presentRoles);
-  let isFirstNightWolfAttackDisabled = false;
+  let firstNightWolfAttackDisabledBy: TRole | null = null;
   let doesWolfVoteRequireUnanimity = false;
   const bottomCardRoles: TRole[] = [];
   const numberedAnnouncementRoles: Record<string, TRole[]> = {};
@@ -30,7 +31,7 @@ export function resolveNightPresenceFacts<TRole extends string>(
     if (!present.has(declaration.role)) continue;
     switch (declaration.effect.kind) {
       case 'disableFirstNightWolfAttack':
-        isFirstNightWolfAttackDisabled = true;
+        firstNightWolfAttackDisabledBy ??= declaration.role;
         break;
       case 'requireUnanimousWolfVote':
         doesWolfVoteRequireUnanimity = true;
@@ -48,7 +49,7 @@ export function resolveNightPresenceFacts<TRole extends string>(
   }
 
   return {
-    isFirstNightWolfAttackDisabled,
+    firstNightWolfAttackDisabledBy,
     doesWolfVoteRequireUnanimity,
     bottomCardRoles,
     numberedAnnouncementRoles,

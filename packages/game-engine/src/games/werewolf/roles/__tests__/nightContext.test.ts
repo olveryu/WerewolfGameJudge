@@ -85,14 +85,14 @@ describe('werewolf night context layers', () => {
     );
 
     expect(facts).toEqual({
-      isFirstNightWolfAttackDisabled: true,
+      firstNightWolfAttackDisabledBy: 'poisoner',
       doesWolfVoteRequireUnanimity: true,
       bottomCardRoles: ['thief'],
       numberedAnnouncementRoles: { seerFamily: ['seer', 'mirrorSeer', 'drunkSeer'] },
     });
     expect(
       resolveNightPresenceFacts(['wolf'], WEREWOLF_PRESENCE_DECLARATIONS)
-        .isFirstNightWolfAttackDisabled,
-    ).toBe(false);
+        .firstNightWolfAttackDisabledBy,
+    ).toBeNull();
   });
 });

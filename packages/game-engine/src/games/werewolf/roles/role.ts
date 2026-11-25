@@ -81,8 +81,8 @@ export interface WerewolfNightFacts {
   readonly disabledAbilities: readonly {
     readonly roleId: string;
     readonly seat: number;
-    /** The role that locked the seat; required when every skill of the seat is locked. */
-    readonly sourceRoleId?: string;
+    /** The role that put the lock on; it declares what the locked seat is told. */
+    readonly sourceRoleId: string;
   }[];
   readonly deathEffects: readonly DeathEffect[];
   readonly wolfVotes?: readonly {
@@ -145,6 +145,14 @@ export type WerewolfRoleIdentityChange =
       readonly roleId: string;
     };
 
+/** The two sentences for a wolf attack that a role has stopped. */
+export interface WerewolfWolfAttackLock {
+  /** Shown to a wolf that cannot vote. */
+  readonly reason: string;
+  /** The night report's sentence for the attack that did not happen. */
+  readonly review: string;
+}
+
 export interface WerewolfBottomCard {
   readonly index: number;
   readonly label: string;
@@ -172,6 +180,8 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly canShootAtNight: (seat: number, roleId: string) => boolean;
   /** What a seat is told when the given role has locked all its skills for the night. */
   readonly abilityLockReasonOf: (roleId: string) => string;
+  /** What is said when the given role has stopped the wolf attack. */
+  readonly wolfAttackLockOf: (roleId: string) => WerewolfWolfAttackLock;
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
 }
 
@@ -224,6 +234,8 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly oneUseOnSuccess?: boolean;
   /** What a seat is told when this role has locked all its skills for the night. */
   readonly abilityLockReason?: string;
+  /** What is said when this role has stopped the wolf attack. */
+  readonly wolfAttackLock?: WerewolfWolfAttackLock;
   readonly resources?: readonly WerewolfRoleResource[];
   readonly announcement?: WerewolfAnnouncementDeclaration;
   readonly personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration;

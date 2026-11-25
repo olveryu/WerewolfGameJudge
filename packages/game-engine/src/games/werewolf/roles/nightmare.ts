@@ -13,11 +13,14 @@ const COPY = defineCopy({
   action: '恐惧',
   blockedRole: '（{role}，技能无效）',
   locked: '被噩梦之影恐惧，本夜无法使用技能',
+  wolfAttackLocked: '被噩梦之影恐惧，本夜无法袭击',
+  wolfAttackReview: '狼队放弃袭击，被噩梦之影恐惧',
 });
 
 export const nightmare = defineRole({
   id: 'nightmare',
   abilityLockReason: COPY.locked,
+  wolfAttackLock: { reason: COPY.wolfAttackLocked, review: COPY.wolfAttackReview },
   card: {
     name: COPY.name,
     shortName: COPY.shortName,
@@ -56,7 +59,7 @@ export const nightmare = defineRole({
             ...(wolfVoteDisabled
               ? context.state.seatedSeats
                   .filter((seat) => context.doesRoleVoteWithWolves(context.role.roleOf(seat)))
-                  .map((seat) => ({ roleId: 'wolfKill', seat }))
+                  .map((seat) => ({ roleId: 'wolfKill', seat, sourceRoleId: 'nightmare' }))
               : []),
           ],
           deathEffects: [],

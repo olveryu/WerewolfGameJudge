@@ -143,6 +143,13 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       }
       return reason;
     },
+    wolfAttackLockOf: (roleId) => {
+      const lock = getWerewolfRoleDefinition(roleId).wolfAttackLock;
+      if (lock === undefined) {
+        throw new Error(`[FAIL-FAST] ${roleId} stops the wolf attack but declares no wording`);
+      }
+      return lock;
+    },
     bottomCardsOf: () => createBottomCards(input.bottomCards),
   };
   return context;

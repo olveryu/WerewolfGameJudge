@@ -83,7 +83,7 @@ const roleAbilityId = z.union([roleId, z.literal('*'), z.literal('wolfKill')]);
 const roleAbility = z.strictObject({
   roleId: roleAbilityId,
   seat,
-  sourceRoleId: roleId.optional(),
+  sourceRoleId: roleId,
 });
 const swap = z.strictObject({ first: seat, second: seat });
 const wolfVote = z.strictObject({

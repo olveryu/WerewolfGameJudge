@@ -93,11 +93,7 @@ export function getRoleAbilityLockReason(context: WerewolfRoleStepContext): stri
   const lock = context.facts.disabledAbilities.find(
     (ability) => ability.seat === context.seat && ability.roleId === '*',
   );
-  if (lock === undefined) return null;
-  if (lock.sourceRoleId === undefined) {
-    throw new Error('[FAIL-FAST] A seat-wide skill lock names no source role');
-  }
-  return context.abilityLockReasonOf(lock.sourceRoleId);
+  return lock === undefined ? null : context.abilityLockReasonOf(lock.sourceRoleId);
 }
 
 /**
