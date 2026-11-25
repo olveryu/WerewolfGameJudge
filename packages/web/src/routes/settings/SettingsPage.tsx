@@ -14,7 +14,8 @@ import {
 import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
-import { HAND_DRAWN_PORTRAITS } from '@/components/avatar/avatarSources';
+import { Avatar } from '@/components/avatar/Avatar';
+import { pickHandDrawnAvatarUrls } from '@/components/avatar/avatarSources';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -171,26 +172,19 @@ function GachaEntry() {
 
 /** Number of portraits shown in the anonymous-user preview strip. */
 const PREVIEW_STRIP_COUNT = 4;
-/** Evenly spaced portraits for the anonymous-user preview strip. */
-const PREVIEW_STRIP_PORTRAITS = (() => {
-  const step = Math.floor(HAND_DRAWN_PORTRAITS.length / PREVIEW_STRIP_COUNT);
-  return Array.from({ length: PREVIEW_STRIP_COUNT }, (_, index) => {
-    const portrait = HAND_DRAWN_PORTRAITS[index * step];
-    if (portrait === undefined) {
-      throw new Error(`[FAIL-FAST] Missing hand-drawn portrait at index ${index * step}`);
-    }
-    return portrait;
-  });
-})();
+/** Evenly spaced avatars for the anonymous-user preview strip. */
+const PREVIEW_STRIP_AVATAR_URLS = pickHandDrawnAvatarUrls(PREVIEW_STRIP_COUNT);
 
 /** Anonymous-user collection preview. */
 function AvatarTeaser() {
   const appearancePath = useAppearancePath();
   return (
     <div className="settings-teaser">
-      <div className="settings-teaser-strip">
-        {PREVIEW_STRIP_PORTRAITS.map((portrait) => (
-          <img key={portrait} className="settings-teaser-item" src={portrait} alt="" />
+      <div className="settings-teaser-strip" aria-hidden>
+        {PREVIEW_STRIP_AVATAR_URLS.map((url) => (
+          <span key={url} className="settings-teaser-item">
+            <Avatar userId={url} avatarUrl={url} size="fill" />
+          </span>
         ))}
         <span className="settings-teaser-lock">
           <IconLockClosed aria-hidden />
