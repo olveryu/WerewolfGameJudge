@@ -79,6 +79,15 @@ export function buildSpecNightReview(state: GameState): {
       );
     }
   }
+  for (const seat of night.roles.seatedSeats) {
+    for (const roleId of context.role.activeRoleIdsOf(seat)) {
+      const line = getWerewolfRoleDefinition(roleId).personalDaytimeView?.reviewLine(
+        seat,
+        resolution,
+      );
+      if (line != null) explanationLines.add(line);
+    }
+  }
   if (night.infection?.outcome === 'converted') {
     const { targetSeat } = night.infection;
     const formerRoleId = night.facts.conversions?.find(

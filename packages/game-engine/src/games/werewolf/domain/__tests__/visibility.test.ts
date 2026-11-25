@@ -207,6 +207,7 @@ function expectedWolfMeetingVm(
     stepSeatStatuses: {},
     canAcknowledgeStepBots: false,
     stepProgressKind: null,
+    personalDaytimeViews: [],
     night: {
       actionSchema: SCHEMAS.wolfKill,
       currentActionRole: 'wolf',

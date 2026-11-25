@@ -186,5 +186,6 @@ export {
 } from './roles/daytimeAnnouncements';
 export type { DeathReason } from './roles/deathEffects';
 export { isWerewolfStepId } from './roles/nightPlan';
+export type { WerewolfPersonalDaytimeView } from './roles/personalDaytimeViews';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
 export { parseWerewolfState } from './state/parseState';

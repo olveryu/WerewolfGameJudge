@@ -269,6 +269,11 @@ const AWAKENED_WOLF_ROBOT = [
   'guard',
 ] as const;
 
+const MASKED_TAIL = ['seer', 'witch', 'maskedMan'] as const;
+const MASKED_DREAM = [...VILLAGERS, ...WOLVES, 'wolf', ...MASKED_TAIL, 'dreamcatcher'] as const;
+const MASKED_CUPID = [...VILLAGERS, ...WOLVES, 'wolf', ...MASKED_TAIL, 'cupid'] as const;
+const MASKED_QUEEN = [...VILLAGERS, ...WOLVES, 'wolfQueen', ...MASKED_TAIL, 'guard'] as const;
+
 function scenarios(
   board: string,
   roles: readonly RoleId[],
@@ -587,6 +592,29 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     [
       'awakened gargoyle picks the wolf robot and converts nobody',
       { awakenedGargoyle: 7, wolf: 0, seer: 4 },
+    ],
+  ]),
+  ...scenarios('masked man', MASKED_DREAM, [
+    ['wounded by the wolf attack', { wolf: 10, seer: 4 }],
+    ['wounded by poison', { wolf: 0, witch: { save: null, poison: 10 }, seer: 4 }],
+    ['wounded when the dreamcatcher who dreamed him dies', { dreamcatcher: 10, wolf: 11, seer: 4 }],
+    ['saved by the antidote and not wounded', { wolf: 10, witch: { save: 10, poison: null } }],
+    ['untouched', { wolf: 0, seer: 4 }],
+  ]),
+  ...scenarios('masked man', MASKED_CUPID, [
+    [
+      'dies with his lover because a lover link does not wound',
+      { cupid: { targets: [0, 10] }, wolf: 0, seer: 4 },
+    ],
+    [
+      'wounded lover does not take his partner with him tonight',
+      { cupid: { targets: [0, 10] }, wolf: 10, seer: 4 },
+    ],
+  ]),
+  ...scenarios('masked man', MASKED_QUEEN, [
+    [
+      'dies when the charming wolf queen dies',
+      { wolfQueen: 10, wolf: 0, witch: { save: null, poison: 7 }, seer: 4 },
     ],
   ]),
 ];

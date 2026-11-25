@@ -8,7 +8,10 @@
  * `useRoleViewing`; skill preview is screen-local state.
  */
 
-import type { WerewolfDaytimeAnnouncement } from '@game-judge/game-engine/games/werewolf/public';
+import type {
+  WerewolfDaytimeAnnouncement,
+  WerewolfPersonalDaytimeView,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useState } from 'react';
 
 import { confirmView } from '@/features/room/confirm';
@@ -42,6 +45,7 @@ interface RoomModalsState {
   readonly grantSeatsAccess: (allowedSeats: readonly number[]) => Promise<void>;
   readonly showLastNightInfo: (label?: string) => void;
   readonly showAnnouncement: (announcement: WerewolfDaytimeAnnouncement) => void;
+  readonly showPersonalView: (view: WerewolfPersonalDaytimeView) => void;
 }
 
 export function useRoomModals({
@@ -92,6 +96,14 @@ export function useRoomModals({
     });
   }, []);
 
+  const showPersonalView = useCallback((view: WerewolfPersonalDaytimeView) => {
+    confirmView({
+      label: view.label,
+      body: view.prompt,
+      onView: () => showDismissAlert(view.title, view.text),
+    });
+  }, []);
+
   return {
     isGrantVisible,
     openGrant,
@@ -99,5 +111,6 @@ export function useRoomModals({
     grantSeatsAccess,
     showLastNightInfo,
     showAnnouncement,
+    showPersonalView,
   };
 }

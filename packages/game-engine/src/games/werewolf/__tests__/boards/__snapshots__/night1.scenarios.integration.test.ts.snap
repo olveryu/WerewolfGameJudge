@@ -1409,6 +1409,234 @@ exports[`Night-1 board scenarios through production commands > magician: swapped
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > masked man: dies when the charming wolf queen dies 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+    "8号 poison",
+    "11号 wolfQueenLink",
+  ],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7、8号）袭击1号",
+    "8号狼美人魅惑11号",
+    "10号女巫未用解药",
+    "10号女巫毒杀8号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "wolfQueenCharm",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "wolfKill 袭击 8号: 该角色不能被狼人直接袭击 [5号 6号 7号 8号]",
+    "wolfQueenCharm 魅惑 8号: 不能选择自己 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: dies with his lover because a lover link does not wound 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+    "11号 coupleLink",
+  ],
+  "review": [
+    "12号丘比特连接1号和11号为情侣",
+    "狼队（5、6、7、8号）袭击1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "cupidChooseLovers",
+    "cupidLoversReveal",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "cupidLoversReveal 你是情侣之一，你的另一半是：11号 [1号]",
+    "cupidLoversReveal 你不是情侣 [2号 3号 4号 5号 6号 7号 8号 9号 10号 12号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：1号 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: saved by the antidote and not wounded 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号摄梦人未摄梦",
+    "狼队（5、6、7、8号）袭击11号",
+    "10号女巫对11号用解药",
+    "10号女巫未毒杀",
+    "9号预言家未查验",
+  ],
+  "steps": [
+    "dreamcatcherDream",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "dreamcatcherDream 摄梦 12号: 不能选择自己 [12号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: untouched 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号摄梦人未摄梦",
+    "狼队（5、6、7、8号）袭击1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "dreamcatcherDream",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "dreamcatcherDream 摄梦 12号: 不能选择自己 [12号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: wounded by poison 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号摄梦人未摄梦",
+    "狼队（5、6、7、8号）袭击1号",
+    "10号女巫未用解药",
+    "10号女巫毒杀11号",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号蒙面人负伤，次日发言后出局",
+  ],
+  "steps": [
+    "dreamcatcherDream",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "dreamcatcherDream 摄梦 12号: 不能选择自己 [12号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: wounded by the wolf attack 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号摄梦人未摄梦",
+    "狼队（5、6、7、8号）袭击11号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号蒙面人负伤，次日发言后出局",
+  ],
+  "steps": [
+    "dreamcatcherDream",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "dreamcatcherDream 摄梦 12号: 不能选择自己 [12号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: wounded lover does not take his partner with him tonight 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "12号丘比特连接1号和11号为情侣",
+    "狼队（5、6、7、8号）袭击11号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号蒙面人负伤，次日发言后出局",
+  ],
+  "steps": [
+    "cupidChooseLovers",
+    "cupidLoversReveal",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [
+    "cupidLoversReveal 你是情侣之一，你的另一半是：11号 [1号]",
+    "cupidLoversReveal 你不是情侣 [2号 3号 4号 5号 6号 7号 8号 9号 10号 12号]",
+    "cupidLoversReveal 你是情侣之一，你的另一半是：1号 [11号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > masked man: wounded when the dreamcatcher who dreamed him dies 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "12号 wolfKill",
+  ],
+  "review": [
+    "12号摄梦人摄梦11号",
+    "狼队（5、6、7、8号）袭击12号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号蒙面人负伤，次日发言后出局",
+  ],
+  "steps": [
+    "dreamcatcherDream",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "dreamcatcherDream 摄梦 12号: 不能选择自己 [12号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > mirror and drunk seers: drunk checks during a complete night 1`] = `
 {
   "announcements": [],

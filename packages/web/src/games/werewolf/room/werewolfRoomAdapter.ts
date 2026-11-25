@@ -14,6 +14,7 @@ import type {
   RoleId,
   SchemaId,
   WerewolfDaytimeAnnouncement,
+  WerewolfPersonalDaytimeView,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -301,6 +302,7 @@ export function createWerewolfStepActionList(input: {
   readonly isAudioPlaying: boolean;
   readonly review: RoomReviewEntry | null;
   readonly onViewRole: () => void;
+  readonly onPersonalView: (view: WerewolfPersonalDaytimeView) => void;
 }): WerewolfPlayerActionList {
   const { viewModel, step, effectiveSeat } = input;
   const roleAction =
@@ -366,6 +368,17 @@ export function createWerewolfStepActionList(input: {
       return {
         actions: [
           ...roleAction,
+          ...viewModel.personalDaytimeViews.map((view) =>
+            buildViewIdentityButton(
+              { label: view.label, onPress: () => input.onPersonalView(view) },
+              {
+                key: `personalDaytimeView:${view.key}`,
+                audience: 'participant',
+                testID: TESTIDS.personalDaytimeViewButton(view.key),
+                isSubmitting: false,
+              },
+            ),
+          ),
           ...(audience === 'seated' ? [buildReviewBottomButton(input.review)] : []),
         ],
         group: null,

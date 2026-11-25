@@ -66,6 +66,11 @@ const deathEffect = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('immune'), seat, against: z.array(attackCause) }),
   z.strictObject({ kind: z.literal('reflect'), seat, against: z.array(attackCause) }),
   z.strictObject({
+    kind: z.literal('wound'),
+    seat,
+    against: z.array(z.union([attackCause, linkCause, z.literal('reflection')])),
+  }),
+  z.strictObject({
     kind: z.literal('void'),
     scope: z.union([
       z.strictObject({ source: seat }),

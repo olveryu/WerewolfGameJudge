@@ -1,5 +1,12 @@
-import { defineCopy } from '../../../platform/steps';
-import type { WerewolfRoleCard, WerewolfRoleDefinition, WerewolfRoleStepContext } from './role';
+import { formatSeat } from '../../../platform/room/formatSeat';
+import { defineCopy, renderCopy } from '../../../platform/steps';
+import type { DeathResolution } from './deathEffects';
+import type {
+  WerewolfPersonalDaytimeViewDeclaration,
+  WerewolfRoleCard,
+  WerewolfRoleDefinition,
+  WerewolfRoleStepContext,
+} from './role';
 import { defineRole } from './role';
 
 const COPY = defineCopy({
@@ -67,11 +74,24 @@ const COPY = defineCopy({
   maskedManShortName: '蒙',
   maskedManEmoji: '🥷',
   maskedManDescription:
-    '首次在夜晚受到致命伤害（狼人袭击/毒药/摄梦连带等）时负伤免死，转为负伤状态而非出局；进入负伤状态后，于下一次白天发言结束后强制出局',
+    '首次在夜晚因狼人袭击、毒杀或摄梦连带受到致命伤害时负伤免死，转为负伤状态而非出局；进入负伤状态后，于下一次白天自己发言结束后强制出局',
+  maskedManViewLabel: '查看负伤状态',
+  maskedManViewPrompt: '请在自己发言结束后再查看',
+  maskedManViewTitle: '负伤状态',
+  maskedManWounded: '你已负伤，请宣布出局',
+  maskedManNotWounded: '你没有负伤',
+  maskedManWoundedReview: '{seat}蒙面人负伤，次日发言后出局',
 });
 
 type PassiveRoleTraits = WerewolfRoleDefinition['traits'];
 type PassiveDeathEffect = NonNullable<WerewolfRoleDefinition['passiveDeathEffects']>;
+
+/** The masked man is only wounded by these; any other cause of death takes him at dawn. */
+const MASKED_MAN_WOUND_CAUSES = ['wolfKill', 'poison', 'dreamcatcherLink'] as const;
+
+function isWounded(seat: number, resolution: DeathResolution): boolean {
+  return resolution.trace.some((entry) => entry.kind === 'wound' && entry.target === seat);
+}
 
 function createRoleCard(
   name: string,
@@ -87,6 +107,7 @@ function createPassiveRole<const TId extends string>(
   card: WerewolfRoleCard,
   traits: PassiveRoleTraits,
   passiveDeathEffects?: PassiveDeathEffect,
+  personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration,
 ): WerewolfRoleDefinition<TId> {
   const definition = {
     id,
@@ -94,6 +115,7 @@ function createPassiveRole<const TId extends string>(
     traits,
     steps: [],
     ...(passiveDeathEffects === undefined ? {} : { passiveDeathEffects }),
+    ...(personalDaytimeView === undefined ? {} : { personalDaytimeView }),
   } satisfies WerewolfRoleDefinition<TId>;
   return defineRole(definition);
 }
@@ -270,5 +292,16 @@ export const maskedMan = createPassiveRole(
     faction: 'god',
     team: 'good',
   },
-  (_context, seat) => [{ kind: 'shelter', source: seat, target: seat, bypassable: false }],
+  (_context, seat) => [{ kind: 'wound', seat, against: MASKED_MAN_WOUND_CAUSES }],
+  {
+    label: COPY.maskedManViewLabel,
+    prompt: COPY.maskedManViewPrompt,
+    title: COPY.maskedManViewTitle,
+    content: (seat, resolution) =>
+      isWounded(seat, resolution) ? COPY.maskedManWounded : COPY.maskedManNotWounded,
+    reviewLine: (seat, resolution) =>
+      isWounded(seat, resolution)
+        ? renderCopy(COPY.maskedManWoundedReview, { seat: formatSeat(seat) })
+        : null,
+  },
 );

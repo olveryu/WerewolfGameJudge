@@ -378,6 +378,7 @@ export function useWerewolfRoomState(
     isAudioPlaying: state.isAudioPlaying,
     review: review.entry,
     onViewRole: roleViewing.open,
+    onPersonalView: modals.showPersonalView,
   });
   const playerActions = createWerewolfPlayerActions({
     state,

@@ -434,4 +434,76 @@ describe('spec-driven night through production commands', () => {
     });
     expect(parseWerewolfState(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
+
+  it('shows the wound status only to the masked man, and only after the deaths are published', () => {
+    const roles: RoleId[] = [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seer',
+      'witch',
+      'maskedMan',
+      'guard',
+    ];
+    const context = createGame(roles, new Map(roles.map((roleId, seat) => [seat, roleId])));
+    driveNight(context, { wolfKill: { actionKey: 'wolfKill', seats: [10] } });
+    const viewsOf = (seat: number) =>
+      getWerewolfViewModel(context.getGameState(), { seat, isHost: seat === 0 })
+        .personalDaytimeViews;
+
+    expect(context.getGameState().lastNightDeaths).toEqual([]);
+    expect(viewsOf(10)).toEqual([]);
+
+    context.dispatchAsSeatOrThrow(
+      0,
+      { type: 'werewolf.lastNightInfo.confirm', gameSequence: context.getGameState().gameSequence },
+      'publish the night deaths',
+    );
+
+    expect(viewsOf(10)).toEqual([
+      {
+        key: 'maskedMan',
+        label: '查看负伤状态',
+        prompt: '请在自己发言结束后再查看',
+        title: '负伤状态',
+        text: '你已负伤，请宣布出局',
+      },
+    ]);
+    expect(viewsOf(9)).toEqual([]);
+    expect(viewsOf(0)).toEqual([]);
+  });
+
+  it('gives an unharmed masked man the same card with a different answer', () => {
+    const roles: RoleId[] = [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seer',
+      'witch',
+      'maskedMan',
+      'guard',
+    ];
+    const context = createGame(roles, new Map(roles.map((roleId, seat) => [seat, roleId])));
+    driveNight(context, { wolfKill: { actionKey: 'wolfKill', seats: [0] } });
+    context.dispatchAsSeatOrThrow(
+      0,
+      { type: 'werewolf.lastNightInfo.confirm', gameSequence: context.getGameState().gameSequence },
+      'publish the night deaths',
+    );
+
+    expect(
+      getWerewolfViewModel(context.getGameState(), { seat: 10, isHost: false })
+        .personalDaytimeViews,
+    ).toMatchObject([{ label: '查看负伤状态', text: '你没有负伤' }]);
+  });
 });

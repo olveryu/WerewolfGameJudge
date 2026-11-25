@@ -156,6 +156,7 @@ export const TESTIDS = {
   restartButton: 'restart-button',
   lastNightInfoButton: 'last-night-info-button',
   lastNightDeathsButton: 'last-night-deaths-button',
+  personalDaytimeViewButton: (key: string) => `personal-daytime-view-${key}`,
   werewolfAnnouncementButton: (key: string) => `werewolf-announcement-${key}`,
   lastNightInfoBottomButton: 'last-night-info-bottom-button',
   nextRoundBottomButton: 'next-round-bottom-button',

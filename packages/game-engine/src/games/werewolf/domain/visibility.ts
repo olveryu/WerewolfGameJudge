@@ -32,6 +32,10 @@
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
 import type { StepPresentation } from '../../../platform/steps';
+import {
+  getWerewolfPersonalDaytimeViews,
+  type WerewolfPersonalDaytimeView,
+} from '../roles/personalDaytimeViews';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import {
   type ActionSchema,
@@ -207,6 +211,8 @@ export interface WerewolfViewModel {
   readonly stepSeatStatuses: Readonly<Record<number, WerewolfStepSeatStatus>>;
   readonly canAcknowledgeStepBots: boolean;
   readonly stepProgressKind: 'vote' | 'confirmation' | null;
+  /** Cards only this viewer may open on the day after the night. */
+  readonly personalDaytimeViews: readonly WerewolfPersonalDaytimeView[];
   readonly night: WerewolfNightView;
   readonly day: {
     /** Elected sheriff seat from the final election result; null until elected. */
@@ -721,6 +727,7 @@ export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): 
     stepSeatStatuses: specStep.seatStatuses,
     canAcknowledgeStepBots: specStep.canAcknowledgeBots,
     stepProgressKind: specStep.progressKind,
+    personalDaytimeViews: getWerewolfPersonalDaytimeViews(state, viewerSeat),
     night: {
       actionSchema: step?.schema ?? null,
       currentActionRole: step?.roleId ?? null,

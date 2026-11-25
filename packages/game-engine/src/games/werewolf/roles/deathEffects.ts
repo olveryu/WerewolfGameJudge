@@ -36,6 +36,8 @@ export type DeathEffect =
     }
   | { readonly kind: 'immune'; readonly seat: number; readonly against: readonly AttackCause[] }
   | { readonly kind: 'reflect'; readonly seat: number; readonly against: readonly AttackCause[] }
+  /** The seat survives these causes tonight and leaves the game later instead. */
+  | { readonly kind: 'wound'; readonly seat: number; readonly against: readonly DeathCause[] }
   | {
       readonly kind: 'void';
       readonly scope:
@@ -62,7 +64,8 @@ export type DeathTraceEntry =
       readonly from: number;
       readonly to: number;
     }
-  | { readonly kind: 'reflection'; readonly source: number; readonly target: number };
+  | { readonly kind: 'reflection'; readonly source: number; readonly target: number }
+  | { readonly kind: 'wound'; readonly cause: DeathCause; readonly target: number };
 
 export interface DeathResolution {
   readonly deaths: readonly number[];
@@ -108,6 +111,7 @@ export function resolveDeathEffects(effects: readonly DeathEffect[]): DeathResol
   }
   resolveAttacks(attacks, activeEffects, resolution);
   applyShelters(activeEffects, resolution);
+  applyWounds(activeEffects, resolution);
 
   const links = activeEffects
     .filter((effect): effect is LinkEffect => effect.kind === 'link')
@@ -221,6 +225,22 @@ function applyShelters(effects: readonly DeathEffect[], resolution: MutableResol
   }
 }
 
+function isWoundedBy(effects: readonly DeathEffect[], seat: number, cause: DeathCause): boolean {
+  return effects.some(
+    (effect) => effect.kind === 'wound' && effect.seat === seat && effect.against.includes(cause),
+  );
+}
+
+/** A seat whose every cause of death is one it only gets wounded by does not die tonight. */
+function applyWounds(effects: readonly DeathEffect[], resolution: MutableResolution): void {
+  for (const seat of [...resolution.deaths]) {
+    const causes = [...(resolution.causes.get(seat) ?? [])];
+    if (!causes.every((cause) => isWoundedBy(effects, seat, cause))) continue;
+    for (const cause of causes) resolution.trace.push({ kind: 'wound', cause, target: seat });
+    clearDeath(seat, resolution);
+  }
+}
+
 function resolveLinks(
   links: readonly LinkEffect[],
   effects: readonly DeathEffect[],
@@ -239,6 +259,7 @@ function resolveLinks(
             link.from,
             link.to,
             `${index}:forward`,
+            effects,
             shelters,
             processed,
             resolution,
@@ -251,6 +272,7 @@ function resolveLinks(
             link.to,
             link.from,
             `${index}:reverse`,
+            effects,
             shelters,
             processed,
             resolution,
@@ -265,6 +287,7 @@ function resolveLinkDirection(
   from: number,
   to: number,
   direction: string,
+  effects: readonly DeathEffect[],
   shelters: readonly Extract<DeathEffect, { readonly kind: 'shelter' }>[],
   processed: Set<string>,
   resolution: MutableResolution,
@@ -278,6 +301,10 @@ function resolveLinkDirection(
   }
   const wasDead = resolution.deaths.has(to);
   if (wasDead && link.isMutual) return false;
+  if (!wasDead && isWoundedBy(effects, to, link.cause)) {
+    resolution.trace.push({ kind: 'wound', cause: link.cause, target: to });
+    return false;
+  }
   recordDeath(to, link.cause, resolution);
   resolution.trace.push({ kind: 'link', cause: link.cause, from, to });
   return !wasDead;
@@ -330,6 +357,7 @@ function getEffectSource(effect: DeathEffect): number | null {
     case 'void':
     case 'immune':
     case 'reflect':
+    case 'wound':
       return null;
   }
 }

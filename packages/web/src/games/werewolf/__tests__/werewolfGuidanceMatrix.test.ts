@@ -135,6 +135,7 @@ function bottomFor(status: GameStatus, audience: RoomViewerAudience): { message:
     isAudioPlaying: false,
     review,
     onViewRole: vi.fn(),
+    onPersonalView: vi.fn(),
   });
   const playerActions = createWerewolfPlayerActions({
     state,

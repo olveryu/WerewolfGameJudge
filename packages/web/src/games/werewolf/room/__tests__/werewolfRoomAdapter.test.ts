@@ -66,6 +66,7 @@ function actionsFor(
     isAudioPlaying: options.isAudioPlaying ?? false,
     review: options.review === undefined ? REVIEW : options.review,
     onViewRole: vi.fn(),
+    onPersonalView: vi.fn(),
   });
 }
 
@@ -220,6 +221,42 @@ describe('Werewolf step actions', () => {
       '[FAIL-FAST] Werewolf Ended has no review entry',
     );
     expect(actionsFor(ended, null, false, { isAudioPlaying: true }).actions).toEqual([]);
+  });
+
+  it('adds the viewer’s personal daytime card between identity and review', () => {
+    const view = {
+      key: 'maskedMan',
+      label: '查看负伤状态',
+      prompt: '请在自己发言结束后再查看',
+      title: '负伤状态',
+      text: '你没有负伤',
+    };
+    const onPersonalView = vi.fn();
+    const ended = { ...activeNight, status: GameStatus.Ended };
+    const list = createWerewolfStepActionList({
+      viewModel: {
+        ...getWerewolfViewModel(ended, { seat: 1, isHost: false }),
+        personalDaytimeViews: [view],
+      },
+      step: EMPTY_STEP,
+      isHost: false,
+      effectiveSeat: 1,
+      isAudioPlaying: false,
+      review: REVIEW,
+      onViewRole: vi.fn(),
+      onPersonalView,
+    });
+
+    expect(list.actions.map((action) => action.key)).toEqual([
+      'viewRole',
+      'personalDaytimeView:maskedMan',
+      'review',
+    ]);
+    expect(list.actions[1]?.label).toBe('查看负伤状态');
+    const card = list.actions[1];
+    if (card?.state.kind !== 'ready') throw new Error('[FAIL-FAST] Personal card is not ready');
+    card.state.onPress();
+    expect(onPersonalView).toHaveBeenCalledWith(view);
   });
 });
 

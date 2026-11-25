@@ -2,7 +2,7 @@ import type { StepContextBase, StepDefinition } from '../../../platform/steps';
 import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
 import type { WerewolfStepAudio } from './audio';
 import type { WerewolfRoleContext } from './context';
-import type { AttackCause, DeathEffect } from './deathEffects';
+import type { AttackCause, DeathEffect, DeathResolution } from './deathEffects';
 import type { IdentityLayer } from './identity';
 import type { LocationLayer, SeatSwap, TargetSelection } from './location';
 import type { NightPresenceFacts, PresenceDeclaration } from './presence';
@@ -182,11 +182,26 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly oneUseOnSuccess?: boolean;
   readonly resources?: readonly WerewolfRoleResource[];
   readonly announcement?: WerewolfAnnouncementDeclaration;
+  readonly personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration;
   readonly passiveDeathEffects?: (
     context: WerewolfRoleStepContext,
     seat: number,
   ) => readonly DeathEffect[];
   readonly presence?: PresenceDeclaration<TId>;
+}
+
+/**
+ * Something only the holder of the role may look at on the following day, once the host has
+ * published the night's deaths. Every holder gets the card whether or not anything happened.
+ */
+export interface WerewolfPersonalDaytimeViewDeclaration {
+  readonly label: string;
+  /** Shown before the content; says when the holder is supposed to look. */
+  readonly prompt: string;
+  readonly title: string;
+  readonly content: (seat: number, resolution: DeathResolution) => string;
+  /** The night report sentence for this seat, or null when there is nothing to report. */
+  readonly reviewLine: (seat: number, resolution: DeathResolution) => string | null;
 }
 
 export function defineRole<const TRole extends WerewolfRoleDefinition>(role: TRole): TRole {
