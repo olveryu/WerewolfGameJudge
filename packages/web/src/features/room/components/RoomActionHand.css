@@ -4,6 +4,7 @@
   grid-template-columns: repeat(var(--hand-card-count), minmax(var(--size-min-touch-target), 1fr));
   width: min(100%, calc(var(--hand-card-count) * var(--size-hand-card-width)));
   margin-inline: auto;
+  margin-block-end: calc(-1 * var(--space-xxlarge));
   padding: var(--space-medium) var(--space-tight)
     calc(max(var(--space-small), env(safe-area-inset-bottom)) + var(--hand-max-drop));
 }
@@ -48,8 +49,8 @@
   gap: var(--space-small);
   width: 100%;
   min-block-size: var(--size-hand-card-visible);
-  height: auto;
-  padding: var(--space-small);
+  height: 100%;
+  padding: var(--space-small) var(--space-small) calc(var(--space-small) + var(--space-xxlarge));
   border: var(--border-width-thick) solid var(--hand-ink);
   border-radius: var(--radius-small);
   background: var(--hand-paper);
