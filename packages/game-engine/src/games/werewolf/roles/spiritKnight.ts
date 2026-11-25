@@ -5,9 +5,8 @@ import type { WerewolfRoleStepContext } from './role';
 const COPY = defineCopy({
   name: '恶灵骑士',
   shortName: '灵',
-  description:
-    '永久免疫所有夜间致死效果（包括攻击、连带和反伤）；被非狼人阵营角色查验或女巫毒杀时反伤，次日对方出局；不能自爆',
-  passiveText: '永久免疫所有夜间致死效果（包括攻击、连带和反伤）',
+  description: '永久免疫夜间伤害；被非狼人阵营角色查验或女巫毒杀时反伤，次日对方出局；不能自爆',
+  passiveText: '永久免疫夜间伤害',
   triggerText: '被非狼人阵营角色查验或女巫毒杀时反伤，次日对方出局',
   restrictionText: '不能自爆',
 });
