@@ -1,5 +1,4 @@
 import {
-  deriveDeathNotes,
   type GameState,
   GameStatus,
   getRoleDisplayName,
@@ -203,7 +202,7 @@ describe('spec-driven night through production commands', () => {
       landingSeat: 7,
     });
     const review = getWerewolfNightReview(state);
-    expect(review.stepLines).toEqual(
+    expect(review.lines).toEqual(
       expect.arrayContaining([
         {
           kind: 'explanation',
@@ -218,7 +217,7 @@ describe('spec-driven night through production commands', () => {
       ]),
     );
     expect(
-      review.stepLines?.filter((line) => line.kind === 'action' && line.roleId === 'wolf'),
+      review.lines?.filter((line) => line.kind === 'action' && line.roleId === 'wolf'),
     ).toEqual([]);
     expect(parseWerewolfState(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
@@ -226,7 +225,7 @@ describe('spec-driven night through production commands', () => {
   it('reports both unused witch potions separately', () => {
     const context = createGame('预女猎白');
     driveNight(context, {});
-    expect(getWerewolfNightReview(context.getGameState()).stepLines).toEqual(
+    expect(getWerewolfNightReview(context.getGameState()).lines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'action', roleId: 'witch', phrase: '未用解药' }),
         expect.objectContaining({ kind: 'action', roleId: 'witch', phrase: '未毒杀' }),
@@ -243,7 +242,7 @@ describe('spec-driven night through production commands', () => {
     ).toBe(false);
 
     driveNight(context, {});
-    expect(getWerewolfNightReview(context.getGameState()).stepLines).toEqual(
+    expect(getWerewolfNightReview(context.getGameState()).lines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'action', roleId: 'hunter', phrase: '可以发动' }),
       ]),
@@ -310,7 +309,7 @@ describe('spec-driven night through production commands', () => {
       shadowChooseMimic: { actionKey: 'shadowChooseMimic', seats: [8] },
       nightmareBlock: { actionKey: 'nightmareBlock', seats: [8] },
     });
-    expect(getWerewolfNightReview(context.getGameState()).stepLines).toEqual(
+    expect(getWerewolfNightReview(context.getGameState()).lines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           kind: 'action',
@@ -347,15 +346,13 @@ describe('spec-driven night through production commands', () => {
       witchAction: { actionKey: 'poison', seats: [6] },
     });
     const review = getWerewolfNightReview(context.getGameState());
-    expect(deriveDeathNotes(review).get(4)).toEqual({
-      kind: 'poisonedBy',
-      actorRoleId: 'poisoner',
-    });
-    expect(deriveDeathNotes(review).get(6)).toEqual({
-      kind: 'poisonedBy',
-      actorRoleId: 'witch',
-    });
-    expect(review.stepLines).toEqual(
+    expect(review.deaths).toEqual(
+      expect.arrayContaining([
+        { seat: 4, reason: 'poison', note: { kind: 'poisonedBy', actorRoleId: 'poisoner' } },
+        { seat: 6, reason: 'poison', note: { kind: 'poisonedBy', actorRoleId: 'witch' } },
+      ]),
+    );
+    expect(review.lines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'action', roleId: 'hunter', phrase: '不能发动' }),
       ]),
@@ -392,8 +389,8 @@ describe('spec-driven night through production commands', () => {
     const chosenRole = cardIndex == null ? undefined : state.bottomCards?.[cardIndex];
     if (chosenRole === undefined) throw new Error('[FAIL-FAST] Missing selected bottom card');
     const review = getWerewolfNightReview(state);
-    expect(review.actions).toContainEqual({ kind: 'bottomCards', roleIds: state.bottomCards });
-    expect(review.stepLines).toEqual(
+    expect(review.bottomCards).toEqual(state.bottomCards);
+    expect(review.lines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           kind: 'action',

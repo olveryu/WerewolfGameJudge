@@ -357,7 +357,7 @@ export function playScenarioNight(
     steps,
     unavailable: groupBySeats(unavailable),
     views: groupBySeats(views),
-    review: (review.stepLines ?? []).map((line) =>
+    review: review.lines.map((line) =>
       line.kind === 'action'
         ? `${formatSeat(line.seat)}${line.subject}${line.phrase}${line.result ?? ''}`
         : line.text,

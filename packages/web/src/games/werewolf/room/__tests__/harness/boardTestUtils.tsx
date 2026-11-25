@@ -49,6 +49,7 @@ import {
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
 
+import { playBoardNight } from './boardNightScenarios';
 import { TEST_USER_ID } from './testAuthContext';
 
 const OTHER_HOST_USER_ID = 'host-uid';
@@ -187,6 +188,25 @@ function buildWerewolfRoomMockState(options: WerewolfRoomMockOptions): GameState
       ? { confirmStatus: defaultConfirmStatus(options.currentActionRole) }
       : {};
   const status = gameStateOverrides.status ?? hookOverrides.roomStatus ?? GameStatus.Ongoing;
+  if (status === GameStatus.Day || status === GameStatus.Ended) {
+    // After the night the room reads the settled night, so play a real, uneventful one.
+    const settled = playBoardNight(
+      roles,
+      {},
+      new Map(roles.map((role, seat) => [seat, role])),
+      undefined,
+      true,
+    );
+    return {
+      ...settled,
+      roomCode: mockRoom.roomCode,
+      hostUserId: isHost ? TEST_USER_ID : OTHER_HOST_USER_ID,
+      status,
+      roster,
+      isAudioPlaying,
+      ...gameStateOverrides,
+    };
+  }
   const base = buildWerewolfTestState({
     roomCode: mockRoom.roomCode,
     hostUserId: isHost ? TEST_USER_ID : OTHER_HOST_USER_ID,

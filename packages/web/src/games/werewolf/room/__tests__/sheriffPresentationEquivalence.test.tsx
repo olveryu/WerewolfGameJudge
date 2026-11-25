@@ -16,7 +16,7 @@
  * test below pins the trophy / [当选] tag to the deciding round only.
  */
 
-import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   deriveSheriffSection,
   GameStatus,
@@ -26,6 +26,7 @@ import { render, screen } from '@testing-library/react';
 
 import type { ReviewBlock } from '@/features/room/review/types';
 import { toWerewolfReviewDocument } from '@/games/werewolf/review/toWerewolfReviewDocument';
+import { playBoardNight } from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { SheriffElectionPanel } from '@/games/werewolf/room/components/SheriffElectionPanel';
 import {
   createSheriffElectionPresentationFromSection,
@@ -33,8 +34,13 @@ import {
 } from '@/games/werewolf/room/day/sheriffElectionPresentation';
 import { createSheriffElectionViewModel } from '@/games/werewolf/room/day/sheriffElectionViewModel';
 import type { SheriffElectionPanelModel } from '@/games/werewolf/room/day/useSheriffElection';
-import { buildWerewolfTestState } from '@/test-utils/werewolfState';
 import { TESTIDS } from '@/testids';
+
+/** Ten seats: 1号 wolf, the rest villagers. */
+const TEN_SEAT_ROLES: readonly RoleId[] = [
+  'wolf',
+  ...Array.from({ length: 9 }, () => 'villager' as const),
+];
 
 const FIRST_ROUND: NonNullable<GameState['sheriffElection']>['completedRounds'][number] = {
   round: 'first',
@@ -58,23 +64,26 @@ function makeLocalState(
   election: NonNullable<GameState['sheriffElection']>,
   result?: GameState['sheriffElectionResult'],
 ) {
-  const players: GameState['players'] = {};
   const roster: Record<number, { seat: number; userId: string; profile: { displayName: string } }> =
     {};
-  for (let seat = 0; seat < 10; seat += 1) {
-    players[seat] = { seat, role: 'villager' };
+  for (let seat = 0; seat < TEN_SEAT_ROLES.length; seat += 1) {
     roster[seat] = { seat, userId: `user-${seat}`, profile: { displayName: `P${seat}` } };
   }
-  return buildWerewolfTestState({
+  // The review reads the settled night, so the ten seats play a real, uneventful one.
+  return {
+    ...playBoardNight(
+      TEN_SEAT_ROLES,
+      {},
+      new Map(TEN_SEAT_ROLES.map((roleId, seat) => [seat, roleId])),
+      undefined,
+      true,
+    ),
     status: GameStatus.Day,
-    templateRoles: Array.from({ length: 10 }, () => 'villager' as const),
-    players,
-    roleViewedSeats: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     roster,
     rules: { isSheriffElectionEnabled: true },
     sheriffElection: election,
     sheriffElectionResult: result,
-  });
+  };
 }
 
 function presentationOf(state: GameState) {

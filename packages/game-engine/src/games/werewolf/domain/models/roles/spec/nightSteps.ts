@@ -9,7 +9,7 @@
 import type { StepSpec } from './nightSteps.types';
 import type { NightStepId } from './plan';
 import { NIGHT_STEP_ORDER } from './plan';
-import { getAllRoleIds, getRoleSpec, type RoleId } from './specs';
+import { getAllRoleIds, getRoleSpec } from './specs';
 
 // =============================================================================
 // Derive NIGHT_STEPS from ROLE_SPECS
@@ -55,18 +55,4 @@ export const NIGHT_STEPS: readonly StepSpec[] = buildNightSteps();
 /** Get StepSpec by stepId */
 export function getStepSpec(stepId: string): StepSpec | undefined {
   return NIGHT_STEPS.find((s) => s.id === stepId);
-}
-
-/**
- * The one night step a single-step role owns. Roles with no step or more
- * than one are a programming error at the call site, not a runtime case.
- */
-export function getRoleStepId(roleId: RoleId): NightStepId {
-  const steps = NIGHT_STEPS.filter((step) => step.roleId === roleId);
-  if (steps.length !== 1) {
-    throw new Error(
-      `[nightSteps] Role ${roleId} owns ${steps.length} night steps; getRoleStepId needs exactly one`,
-    );
-  }
-  return steps[0]!.id;
 }

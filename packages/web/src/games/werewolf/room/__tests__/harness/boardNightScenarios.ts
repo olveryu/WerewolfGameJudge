@@ -231,6 +231,51 @@ export function createBoardNightState(
   throw new Error(`[TEST] ${boardName}: requested state was not reached`);
 }
 
+/** The skip or abstention a seat may take instead of acting, when the step offers one. */
+function passiveSubmission(state: GameState, seat: number): StepSubmission | null {
+  const view = getWerewolfViewModel(state, { seat, isHost: seat === 0 }).step;
+  const action = view?.actions.find(
+    (candidate) =>
+      candidate.availability.kind === 'available' &&
+      (candidate.key === STEP_SKIP_ACTION_KEY || candidate.key === 'wolfKillAbstain'),
+  );
+  return view == null || action === undefined
+    ? null
+    : { stepId: view.stepId, serial: view.serial, actionKey: action.key };
+}
+
+/**
+ * Play the whole night through real commands and return the settled state.
+ * A step without an entry in `choices` takes its default action, or is
+ * skipped wherever the step allows it when `isQuiet` is set.
+ */
+export function playBoardNight(
+  boardName: string | readonly RoleId[],
+  choices: Readonly<Partial<Record<string, BoardStepChoice>>> = {},
+  roleAssignment?: ReadonlyMap<number, RoleId>,
+  rules?: GameRuleOverrides,
+  isQuiet = false,
+): GameState {
+  const game = createEngineGame(boardName, roleAssignment, rules);
+  const scenarios = new Map<string, BoardNightScenario>();
+  for (let transition = 0; transition < MAX_TRANSITIONS; transition += 1) {
+    const state = game.getGameState();
+    if (state.status !== GameStatus.Ongoing) return state;
+    if (advanceAudioOrDeadline(game)) continue;
+    const actor = nextActor(state, scenarios);
+    if (actor === null) throw new Error(`[TEST] ${boardName}: no actor can advance`);
+    const choice = choices[actor.submission.stepId];
+    const isAcknowledgement = actor.submission.actionKey === STEP_RESULT_ACK_ACTION_KEY;
+    const submission = isAcknowledgement
+      ? actor.submission
+      : choice !== undefined
+        ? { stepId: actor.submission.stepId, serial: actor.submission.serial, ...choice }
+        : ((isQuiet ? passiveSubmission(state, actor.seat) : null) ?? actor.submission);
+    game.submitStepOrThrow(actor.seat, submission, `${boardName}: ${submission.actionKey}`);
+  }
+  throw new Error(`[TEST] ${boardName}: night exceeded ${MAX_TRANSITIONS} transitions`);
+}
+
 /** Mount an engine snapshot and pass the host's normal re-entry gate when present. */
 export async function mountBoardNightState(state: GameState, seat: number) {
   const mock = createWerewolfRoomMockFromState(state, seat);

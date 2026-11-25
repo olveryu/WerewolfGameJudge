@@ -115,26 +115,11 @@ export type {
   WerewolfNightStep,
 } from './domain/protocol/types';
 export {
-  buildActionEntries,
-  buildIdentityEntries,
-  deriveDeathNotes,
-  deriveNightReportStats,
-  deriveSheriffSection,
-  deriveWolfTargetSaveNote,
-  deriveWolfVerdict,
-  getNightReviewOutcome,
   getWerewolfNightReview,
-  type NightReportStats,
-  type NightReviewActionEntry,
-  nightReviewActorRoleId,
+  type NightReviewDeath,
   type NightReviewDeathNote,
   type NightReviewIdentityEntry,
-  type NightReviewOutcome,
-  type NightReviewSheriffRound,
-  type NightReviewSheriffSection,
-  type NightReviewWolfGiveUpReason,
-  type NightReviewWolfVerdict,
-  type NightReviewWolfVote,
+  type NightReviewLine,
   type WerewolfNightReview,
 } from './domain/review/nightReview';
 export {
@@ -145,6 +130,11 @@ export {
   type SheriffRoundRecord,
   type SheriffVoteProgress,
 } from './domain/review/sheriffElectionRecord';
+export {
+  deriveSheriffSection,
+  type NightReviewSheriffRound,
+  type NightReviewSheriffSection,
+} from './domain/review/sheriffSection';
 export { describeWerewolfStepConfirmation } from './domain/stepProjection';
 export {
   getWerewolfViewModel,
