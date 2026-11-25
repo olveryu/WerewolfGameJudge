@@ -1,11 +1,16 @@
 import { z } from 'zod';
 
 import type { StepSlice } from '../../../platform/steps';
-import type { ResolvedWolfKillVerdict, SeedWolfInfectionResult } from '../domain/protocol/types';
+import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
 import { isValidRoleId } from './catalog';
 import type { DeathEffect } from './deathEffects';
 import { isNightStepId } from './nightStepOrder';
-import type { WerewolfNightFacts, WerewolfRoleState, WerewolfRoleStepResult } from './role';
+import type {
+  WerewolfConversionOutcome,
+  WerewolfNightFacts,
+  WerewolfRoleState,
+  WerewolfRoleStepResult,
+} from './role';
 
 export interface WerewolfNightEmission {
   readonly stepId: string;
@@ -25,7 +30,8 @@ export interface WerewolfNightState {
     readonly verdict: ResolvedWolfKillVerdict | null;
     readonly attack: DeathEffect | null;
   } | null;
-  readonly infection: SeedWolfInfectionResult | null;
+  /** How tonight's conversion attempt ended; null until it is decided. */
+  readonly conversion: WerewolfConversionOutcome | null;
 }
 
 const seat = z.number().int().nonnegative();
@@ -110,11 +116,13 @@ const facts = z.strictObject({
       }),
     )
     .optional(),
-  wolfInfections: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
+  conversionAttempts: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   wolfGirlConfessions: z.array(z.strictObject({ actorSeat: seat, targetSeat: seat })).optional(),
   sightOverrides: z.array(z.strictObject({ seat, roleId })).optional(),
   reflections: z.array(z.strictObject({ seat })).optional(),
-  conversions: z.array(z.strictObject({ seat, formerRoleIds: z.array(roleId) })).optional(),
+  conversions: z
+    .array(z.strictObject({ seat, formerRoleIds: z.array(roleId), byRoleId: roleId }))
+    .optional(),
 });
 const roleState = z.strictObject({
   identities: z.record(
@@ -165,7 +173,7 @@ const verdict = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('splitTied') }),
   z.strictObject({ type: z.literal('allAbstain') }),
 ]);
-const infection = z.discriminatedUnion('outcome', [
+const conversion = z.discriminatedUnion('outcome', [
   z.strictObject({ outcome: z.literal('notUsed') }),
   z.strictObject({ outcome: z.literal('failed'), targetSeat: seat }),
   z.strictObject({ outcome: z.literal('converted'), targetSeat: seat }),
@@ -189,7 +197,7 @@ const nightStateSchema = z.strictObject({
       attack: deathEffect.nullable(),
     })
     .nullable(),
-  infection: infection.nullable(),
+  conversion: conversion.nullable(),
 }) satisfies z.ZodType<WerewolfNightState>;
 
 /** Reject malformed persisted night state instead of attempting a migration. */

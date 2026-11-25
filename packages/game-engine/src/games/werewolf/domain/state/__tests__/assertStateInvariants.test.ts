@@ -128,18 +128,29 @@ describe('assertWerewolfStateInvariants', () => {
         3: { seat: 3, role: 'villager' },
       },
     });
+    const night = settled.nightState!;
     return {
       ...settled,
       players: { ...settled.players, 2: { seat: 2, role: 'wolf' } },
-      nightState: { ...settled.nightState!, infection: { outcome: 'converted', targetSeat: 2 } },
+      nightState: {
+        ...night,
+        roles: {
+          ...night.roles,
+          identities: {
+            ...night.roles.identities,
+            2: { ...night.roles.identities[2]!, currentRole: 'wolf' },
+          },
+        },
+        conversion: { outcome: 'converted', targetSeat: 2 },
+      },
     };
   };
 
-  it('accepts one non-wolf role converted into a wolf by Seed Wolf', () => {
+  it('accepts one dealt role converted by the board’s converting role', () => {
     expect(() => assertWerewolfStateInvariants(convertedSeerState())).not.toThrow();
   });
 
-  it('rejects a converted Seed Wolf target that is not a wolf', () => {
+  it('rejects a converted seat that does not hold the role it was converted into', () => {
     const converted = convertedSeerState();
     expect(() =>
       assertWerewolfStateInvariants({

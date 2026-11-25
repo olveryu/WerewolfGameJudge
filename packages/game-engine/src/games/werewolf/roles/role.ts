@@ -100,7 +100,11 @@ export interface WerewolfNightFacts {
     readonly seat: number;
     readonly faction: WerewolfRoleFaction;
   }[];
-  readonly wolfInfections?: readonly { readonly actorSeat: number; readonly targetSeat: number }[];
+  /** Attempts to convert a player tonight; whether one succeeds is decided later. */
+  readonly conversionAttempts?: readonly {
+    readonly actorSeat: number;
+    readonly targetSeat: number;
+  }[];
   readonly wolfGirlConfessions?: readonly {
     readonly actorSeat: number;
     readonly targetSeat: number;
@@ -108,12 +112,19 @@ export interface WerewolfNightFacts {
   readonly sightOverrides?: readonly { readonly seat: number; readonly roleId: string }[];
   /** Seats on which a good-team action is turned back onto its actor. */
   readonly reflections?: readonly { readonly seat: number }[];
-  /** Seats converted this night, with the roles they held until then. */
+  /** Seats converted this night, with the roles they held until then and the role that did it. */
   readonly conversions?: readonly {
     readonly seat: number;
     readonly formerRoleIds: readonly string[];
+    readonly byRoleId: string;
   }[];
 }
+
+/** How a conversion attempt ended. */
+export type WerewolfConversionOutcome =
+  | { readonly outcome: 'notUsed' }
+  | { readonly outcome: 'failed'; readonly targetSeat: number }
+  | { readonly outcome: 'converted'; readonly targetSeat: number };
 
 export type WerewolfRoleStepResult =
   | {
@@ -236,6 +247,8 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   readonly abilityLockReason?: string;
   /** What is said when this role has stopped the wolf attack. */
   readonly wolfAttackLock?: WerewolfWolfAttackLock;
+  /** How this role turns another player into a different role. */
+  readonly conversion?: WerewolfConversionDeclaration;
   readonly resources?: readonly WerewolfRoleResource[];
   readonly announcement?: WerewolfAnnouncementDeclaration;
   readonly personalDaytimeView?: WerewolfPersonalDaytimeViewDeclaration;
@@ -258,6 +271,37 @@ export interface WerewolfPersonalDaytimeViewDeclaration {
   readonly content: (seat: number, resolution: DeathResolution) => string;
   /** The night report sentence for this seat, or null when there is nothing to report. */
   readonly reviewLine: (seat: number, resolution: DeathResolution) => string | null;
+}
+
+/**
+ * A role that can turn another player into a different role during the night. The outcome
+ * is decided later than the role's own step, once nothing can still change what it depends on.
+ */
+export interface WerewolfConversionDeclaration {
+  /** The role a converted player becomes. */
+  readonly becomesRoleId: string;
+  /** The step after which the outcome is decided; null when this night has none to decide. */
+  readonly settleAfterStepId: (
+    order: readonly string[],
+    definitions: Readonly<Record<string, WerewolfRoleStepDefinition>>,
+    context: WerewolfRoleStepContext,
+  ) => string | null;
+  /** The outcome, given what still stands tonight. */
+  readonly decide: (
+    facts: WerewolfNightFacts,
+    effects: readonly DeathEffect[],
+  ) => WerewolfConversionOutcome;
+  /** What a conversion changes besides the player's role. */
+  readonly effects: (targetSeat: number) => readonly DeathEffect[];
+  /** Shown to a converted player in the later steps of the role they held. */
+  readonly convertedLock: { readonly reason: string; readonly hint: string };
+  /** The night report's wording. */
+  readonly review: {
+    readonly converted: (seat: number, formerRoleName: string) => string;
+    readonly failed: (seat: number) => string;
+    /** Appended to what the converted player did earlier tonight and no longer counts. */
+    readonly voidedSuffix: string;
+  };
 }
 
 export function defineRole<const TRole extends WerewolfRoleDefinition>(role: TRole): TRole {

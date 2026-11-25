@@ -11,7 +11,9 @@ import {
   applyWerewolfRoleFacts,
   createWerewolfRoleState,
   EMPTY_WEREWOLF_NIGHT_FACTS,
+  getWerewolfBoardConversion,
   getWerewolfRoleDefinition,
+  getWerewolfStepOwnerRoleId,
   mergeWerewolfNightFacts,
   WEREWOLF_STEP_DEFINITIONS,
 } from '../../roles/nightPlan';
@@ -22,7 +24,6 @@ import {
 } from '../../roles/nightRuntime';
 import type { WerewolfNightState } from '../../roles/nightState';
 import type { WerewolfNightFacts } from '../../roles/role';
-import { getInfectionSettlementStepId } from '../../roles/seedWolf';
 import { isValidRoleId, type RoleId } from '../models';
 import type { GameState } from '../protocol/types';
 import { deriveSheriffSection, type NightReviewSheriffSection } from './sheriffSection';
@@ -82,9 +83,6 @@ const COPY = defineCopy({
   conflict: '{seat}同守同救，保护抵消',
   poisonImmune: '{seat}免疫毒药',
   reflection: '{target}反弹伤害，{source}出局',
-  infectionConverted: '{seat}{role}被种狼感染，转化为狼人',
-  conversionVoided: '（已转化，技能无效）',
-  infectionFailed: '{seat}感染失败',
   result: '（{title}：{text}）',
 });
 
@@ -123,8 +121,9 @@ export function getWerewolfNightReview(state: GameState): WerewolfNightReview {
       if (line != null) explanationLines.add(line);
     }
   }
-  if (night.infection?.outcome === 'converted') {
-    const { targetSeat } = night.infection;
+  const boardConversion = getWerewolfBoardConversion(state.templateRoles);
+  if (boardConversion !== null && night.conversion?.outcome === 'converted') {
+    const { targetSeat } = night.conversion;
     const formerRoleId = night.facts.conversions?.find(
       (conversion) => conversion.seat === targetSeat,
     )?.formerRoleIds[0];
@@ -132,15 +131,13 @@ export function getWerewolfNightReview(state: GameState): WerewolfNightReview {
       throw new Error(`[FAIL-FAST] Converted seat ${targetSeat} has no former role`);
     }
     explanationLines.add(
-      renderCopy(COPY.infectionConverted, {
-        seat: formatSeat(targetSeat),
-        role: getWerewolfRoleDefinition(formerRoleId).card.name,
-      }),
+      boardConversion.declaration.review.converted(
+        targetSeat,
+        getWerewolfRoleDefinition(formerRoleId).card.name,
+      ),
     );
-  } else if (night.infection?.outcome === 'failed') {
-    explanationLines.add(
-      renderCopy(COPY.infectionFailed, { seat: formatSeat(night.infection.targetSeat) }),
-    );
+  } else if (boardConversion !== null && night.conversion?.outcome === 'failed') {
+    explanationLines.add(boardConversion.declaration.review.failed(night.conversion.targetSeat));
   }
   const sheriff = deriveSheriffSection(state);
   return {
@@ -214,8 +211,13 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
   const lines: NightReviewLine[] = [];
   const runtime = createWerewolfStepRuntime(null);
   const convertedSeat =
-    night.infection?.outcome === 'converted' ? night.infection.targetSeat : null;
+    night.conversion?.outcome === 'converted' ? night.conversion.targetSeat : null;
   const conversion = night.facts.conversions?.find((entry) => entry.seat === convertedSeat);
+  const conversionRule =
+    conversion === undefined ? null : getWerewolfBoardConversion(state.templateRoles);
+  if (conversion !== undefined && conversionRule === null) {
+    throw new Error('[FAIL-FAST] A player was converted on a board with no converting role');
+  }
   let isConversionApplied = false;
   for (const stepId of night.slice.order) {
     const reviewNight = {
@@ -257,9 +259,9 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
         lines.push({
           kind: 'action',
           seat: line.seat,
-          roleId: stepId === 'wolfKill' ? 'wolf' : findStepRole(state.templateRoles, stepId),
+          roleId: findStepRole(state.templateRoles, stepId),
           subject,
-          phrase: `${line.text.slice(subject.length)}${isVoidedByConversion ? COPY.conversionVoided : ''}`,
+          phrase: `${line.text.slice(subject.length)}${isVoidedByConversion && conversionRule != null ? conversionRule.declaration.review.voidedSuffix : ''}`,
           result: renderedResult,
         });
       }
@@ -274,11 +276,12 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
     if (stepId === 'wolfKill' && night.wolfKill?.attack != null) {
       facts = mergeWerewolfNightFacts(facts, { deathEffects: [night.wolfKill.attack] });
     }
-    if (conversion !== undefined && !isConversionApplied) {
+    if (conversion !== undefined && conversionRule != null && !isConversionApplied) {
+      const { declaration } = conversionRule;
       const settledState = { ...state, nightState: { ...night, roles, facts } };
       const settledContext = runtime.createContext(settledState, facts, null, { bySeat: {} });
       if (
-        getInfectionSettlementStepId(
+        declaration.settleAfterStepId(
           night.slice.order,
           WEREWOLF_STEP_DEFINITIONS,
           settledContext,
@@ -286,10 +289,14 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
       ) {
         roles = {
           ...roles,
-          identities: replaceCurrentRole(roles.identities, conversion.seat, 'wolf'),
+          identities: replaceCurrentRole(
+            roles.identities,
+            conversion.seat,
+            declaration.becomesRoleId,
+          ),
         };
         facts = mergeWerewolfNightFacts(facts, {
-          deathEffects: [{ kind: 'void', scope: { cause: 'wolfKill', target: conversion.seat } }],
+          deathEffects: declaration.effects(conversion.seat),
           conversions: [conversion],
         });
         isConversionApplied = true;
@@ -300,9 +307,9 @@ function buildActionLines(state: GameState): readonly NightReviewLine[] {
 }
 
 function findStepRole(templateRoles: readonly RoleId[], stepId: string): RoleId {
-  const role = templateRoles.find((roleId) =>
-    getWerewolfRoleDefinition(roleId).steps.some((step) => step.id === stepId),
-  );
-  if (role === undefined) throw new Error(`[FAIL-FAST] Review step ${stepId} has no role`);
+  const role = getWerewolfStepOwnerRoleId(templateRoles, stepId);
+  if (role === null || !isValidRoleId(role)) {
+    throw new Error(`[FAIL-FAST] Review step ${stepId} has no role`);
+  }
   return role;
 }

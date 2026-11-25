@@ -17,12 +17,6 @@ import type { DeathReason } from '../../roles/deathEffects';
 import type { WerewolfNightState } from '../../roles/nightState';
 import type { GameRuleOverrides, GameStatus, RoleId } from '../models';
 
-/** Seed Wolf's final infection outcome, decided before the final group-confirm step. */
-export type SeedWolfInfectionResult =
-  | { readonly outcome: 'notUsed' }
-  | { readonly outcome: 'failed'; readonly targetSeat: number }
-  | { readonly outcome: 'converted'; readonly targetSeat: number };
-
 // =============================================================================
 // Player — wire protocol
 // =============================================================================
@@ -270,14 +264,6 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * UI rule: if effectiveSeat is in this list, show "detailed info" button.
    */
   nightReviewAllowedSeats?: readonly number[];
-
-  // --- Piper ---
-
-  // --- Awakened Gargoyle ---
-
-  // --- Wolf Girl ---
-
-  // --- Seed Wolf ---
 
   // --- Bottom-card actors ---
   /**

@@ -65,7 +65,6 @@ export interface SingleTargetStepOptions {
         | 'locationSwaps'
         | 'resourceUses'
         | 'factionChanges'
-        | 'wolfInfections'
         | 'wolfGirlConfessions'
       >
     >;
@@ -291,9 +290,6 @@ export function createSingleTargetStep(
             ...(selectionEffects?.factionChanges === undefined
               ? {}
               : { factionChanges: selectionEffects.factionChanges }),
-            ...(selectionEffects?.wolfInfections === undefined
-              ? {}
-              : { wolfInfections: selectionEffects.wolfInfections }),
             ...(selectionEffects?.wolfGirlConfessions === undefined
               ? {}
               : { wolfGirlConfessions: selectionEffects.wolfGirlConfessions }),

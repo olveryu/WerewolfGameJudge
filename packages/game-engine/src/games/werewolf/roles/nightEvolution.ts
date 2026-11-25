@@ -1,6 +1,6 @@
 import { evolveStepSlice, type StepEvent } from '../../../platform/steps';
 import type { RoleId } from '../domain/models';
-import type { GameState, SeedWolfInfectionResult } from '../domain/protocol/types';
+import type { GameState } from '../domain/protocol/types';
 import type { DeathEffect } from './deathEffects';
 import { getActiveRoleIds, getSeatIdentity, replaceCurrentRole } from './identity';
 import {
@@ -8,14 +8,19 @@ import {
   createWerewolfNightPlan,
   createWerewolfRoleState,
   EMPTY_WEREWOLF_NIGHT_FACTS,
+  getWerewolfBoardConversion,
   mergeWerewolfNightFacts,
   WEREWOLF_STEP_DEFINITIONS,
   type WerewolfNightDeal,
 } from './nightPlan';
 import { collectWerewolfDeathEffects, createWerewolfStepRuntime } from './nightRuntime';
 import type { WerewolfNightState } from './nightState';
-import type { WerewolfNightFacts, WerewolfRoleStepResult } from './role';
-import { getInfectionSettlementStepId, resolveSeedWolfInfection } from './seedWolf';
+import type {
+  WerewolfConversionDeclaration,
+  WerewolfConversionOutcome,
+  WerewolfNightFacts,
+  WerewolfRoleStepResult,
+} from './role';
 
 type WerewolfStepEvent = StepEvent<string, WerewolfNightFacts, WerewolfRoleStepResult>;
 
@@ -27,7 +32,7 @@ export type WerewolfNightEvent =
       readonly type: 'wolfKillSettled';
       readonly settlement: NonNullable<WerewolfNightState['wolfKill']>;
     }
-  | { readonly type: 'infectionSettled'; readonly outcome: SeedWolfInfectionResult };
+  | { readonly type: 'conversionSettled'; readonly outcome: WerewolfConversionOutcome };
 
 function createNightDeal(state: GameState): WerewolfNightDeal {
   const seats: { seat: number; role: RoleId }[] = [];
@@ -61,7 +66,7 @@ export function createWerewolfNightState(state: GameState): WerewolfNightState {
     facts: EMPTY_WEREWOLF_NIGHT_FACTS,
     emissions: [],
     wolfKill: null,
-    infection: null,
+    conversion: null,
   };
 }
 
@@ -87,8 +92,8 @@ export function evolveWerewolfNight(
         }),
       };
     }
-    case 'infectionSettled':
-      return finalizeInfection(state, night, event.outcome);
+    case 'conversionSettled':
+      return finalizeConversion(state, night, event.outcome);
   }
 }
 
@@ -143,18 +148,28 @@ function evolveStep(
   return { ...night, slice };
 }
 
+/** The converting role's rule on this board; a conversion cannot be settled without one. */
+function requireBoardConversion(state: GameState): {
+  readonly roleId: string;
+  readonly declaration: WerewolfConversionDeclaration;
+} {
+  const conversion = getWerewolfBoardConversion(state.templateRoles);
+  if (conversion === null) throw new Error('[FAIL-FAST] No role on this board can convert');
+  return conversion;
+}
+
 /**
- * Settle the infection. A converted player becomes a plain wolf at once: the attack on them
- * is cancelled and what they did earlier tonight is dropped, except for steps that declare
- * their effect stays in force.
+ * Settle the conversion. A converted player takes the new role at once and what they did
+ * earlier tonight is dropped, except for steps that declare their effect stays in force.
  */
-function finalizeInfection(
+function finalizeConversion(
   state: GameState,
   night: WerewolfNightState,
-  outcome: SeedWolfInfectionResult,
+  outcome: WerewolfConversionOutcome,
 ): WerewolfNightState {
-  if (night.infection !== null) throw new Error('[FAIL-FAST] Seed Wolf infection already settled');
-  if (outcome.outcome !== 'converted') return { ...night, infection: outcome };
+  if (night.conversion !== null) throw new Error('[FAIL-FAST] Conversion already settled');
+  if (outcome.outcome !== 'converted') return { ...night, conversion: outcome };
+  const { roleId: byRoleId, declaration } = requireBoardConversion(state);
   const target = outcome.targetSeat;
   let roles = createWerewolfRoleState(createNightDeal(state));
   let facts = EMPTY_WEREWOLF_NIGHT_FACTS;
@@ -168,55 +183,60 @@ function finalizeInfection(
     facts = mergeWerewolfNightFacts(facts, emission.facts);
   }
   const formerRoleIds = getActiveRoleIds(getSeatIdentity(roles.identities, target));
+  // The wolf attack was settled outside the emissions, so it is put back before the conversion's own effects.
   const effects: DeathEffect[] = [
     ...(night.wolfKill?.attack == null ? [] : [night.wolfKill.attack]),
-    { kind: 'void', scope: { cause: 'wolfKill', target } },
+    ...declaration.effects(target),
   ];
   return {
     ...night,
-    roles: { ...roles, identities: replaceCurrentRole(roles.identities, target, 'wolf') },
+    roles: {
+      ...roles,
+      identities: replaceCurrentRole(roles.identities, target, declaration.becomesRoleId),
+    },
     facts: mergeWerewolfNightFacts(facts, {
       deathEffects: effects,
-      conversions: [{ seat: target, formerRoleIds }],
+      conversions: [{ seat: target, formerRoleIds, byRoleId }],
     }),
     emissions,
-    infection: outcome,
+    conversion: outcome,
   };
 }
 
-/** Whether the infection must be decided now that `completedStepId` has finished. */
-export function isInfectionSettlementStep(state: GameState, completedStepId: string): boolean {
+/** The step after which tonight's conversion is decided; null when there is none to decide. */
+function getConversionSettlementStepId(state: GameState): string | null {
   const night = state.nightState;
-  if (night === null) throw new Error('[FAIL-FAST] Infection requires an initialized night');
-  if (night.infection !== null) return false;
+  if (night === null) throw new Error('[FAIL-FAST] Conversion requires an initialized night');
+  if (night.conversion !== null) return null;
+  const conversion = getWerewolfBoardConversion(state.templateRoles);
+  if (conversion === null) return null;
   const runtime = createWerewolfStepRuntime(null);
   const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
-  return (
-    getInfectionSettlementStepId(night.slice.order, WEREWOLF_STEP_DEFINITIONS, context) ===
-    completedStepId
+  return conversion.declaration.settleAfterStepId(
+    night.slice.order,
+    WEREWOLF_STEP_DEFINITIONS,
+    context,
   );
 }
 
-/** Whether this night has an infection step whose outcome nothing has settled yet. */
-export function isInfectionPending(state: GameState): boolean {
-  const night = state.nightState;
-  if (night === null || night.infection !== null) return false;
-  const runtime = createWerewolfStepRuntime(null);
-  const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
-  return (
-    getInfectionSettlementStepId(night.slice.order, WEREWOLF_STEP_DEFINITIONS, context) !== null
-  );
+/** Whether the conversion must be decided now that `completedStepId` has finished. */
+export function isConversionSettlementStep(state: GameState, completedStepId: string): boolean {
+  return getConversionSettlementStepId(state) === completedStepId;
 }
 
-/** Decide the infection outcome from the current effective attacks and protections. */
-export function decideWerewolfInfection(state: GameState): SeedWolfInfectionResult {
+/** Whether this night has a conversion whose outcome nothing has settled yet. */
+export function isConversionPending(state: GameState): boolean {
+  return getConversionSettlementStepId(state) !== null;
+}
+
+/** Decide the conversion outcome from the attacks and protections that still stand. */
+export function decideWerewolfConversion(state: GameState): WerewolfConversionOutcome {
   const night = state.nightState;
-  if (night === null) throw new Error('[FAIL-FAST] Infection requires an initialized night');
+  if (night === null) throw new Error('[FAIL-FAST] Conversion requires an initialized night');
   const runtime = createWerewolfStepRuntime(null);
   const context = runtime.createContext(state, night.facts, null, { bySeat: {} });
-  return (
-    resolveSeedWolfInfection(night.facts, collectWerewolfDeathEffects(context)) ?? {
-      outcome: 'notUsed',
-    }
+  return requireBoardConversion(state).declaration.decide(
+    night.facts,
+    collectWerewolfDeathEffects(context),
   );
 }

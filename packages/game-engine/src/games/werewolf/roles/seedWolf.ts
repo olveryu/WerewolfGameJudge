@@ -29,6 +29,9 @@ const COPY = defineCopy({
   infected: '你已被种狼感染并转化为普通狼人',
   notInfected: '你未被感染',
   convertedLocked: '已转化为狼人，本夜无法使用技能',
+  reviewConverted: '{seat}{role}被种狼感染，转化为狼人',
+  reviewFailed: '{seat}感染失败',
+  reviewVoided: '（已转化，技能无效）',
 });
 
 const infectStep: WerewolfRoleStepDefinition = {
@@ -63,7 +66,7 @@ const infectStep: WerewolfRoleStepDefinition = {
         }
         return {
           facts: {
-            wolfInfections: [
+            conversionAttempts: [
               { actorSeat: getActingSeat(context), targetSeat: context.role.landing(chosenSeat) },
             ],
           },
@@ -89,7 +92,7 @@ const infectRevealStep = createGroupConfirmStep({
   roleName: COPY.name,
   title: COPY.revealTitle,
   content: (context) =>
-    context.facts.wolfInfections?.some((infection) => infection.targetSeat === context.seat) &&
+    context.facts.conversionAttempts?.some((infection) => infection.targetSeat === context.seat) &&
     context.seat !== null &&
     context.role.roleOf(context.seat) === 'wolf'
       ? COPY.infected
@@ -117,6 +120,19 @@ export const seedWolf = defineRole({
   },
   nightSchedule: 'firstNight',
   steps: [infectStep, infectRevealStep],
+  conversion: {
+    becomesRoleId: 'wolf',
+    settleAfterStepId: getInfectionSettlementStepId,
+    decide: (facts, effects) => resolveSeedWolfInfection(facts, effects) ?? { outcome: 'notUsed' },
+    // A converted player is no longer the wolves' victim.
+    effects: (targetSeat) => [{ kind: 'void', scope: { cause: 'wolfKill', target: targetSeat } }],
+    convertedLock: { reason: COPY.convertedLocked, hint: COPY.infected },
+    review: {
+      converted: (seat, role) => renderCopy(COPY.reviewConverted, { seat: formatSeat(seat), role }),
+      failed: (seat) => renderCopy(COPY.reviewFailed, { seat: formatSeat(seat) }),
+      voidedSuffix: COPY.reviewVoided,
+    },
+  },
 });
 
 function getInfectionTarget(context: WerewolfRoleStepContext): number | null {
@@ -130,7 +146,7 @@ function getInfectionTarget(context: WerewolfRoleStepContext): number | null {
  * The step after which the infection is decided: the last later step whose actor can still
  * undo the wolf attack, or the infection step itself when nobody can.
  */
-export function getInfectionSettlementStepId(
+function getInfectionSettlementStepId(
   order: readonly string[],
   definitions: Readonly<Record<string, WerewolfRoleStepDefinition>>,
   context: WerewolfRoleStepContext,
@@ -143,39 +159,11 @@ export function getInfectionSettlementStepId(
   return rescueStepId ?? infectStep.id;
 }
 
-/** Keep a converted player in their former role's later steps, with every skill locked. */
-export function withConversionLock(
-  step: WerewolfRoleStepDefinition,
-  ownerRoleId: string,
-): WerewolfRoleStepDefinition {
-  if (step.audience === 'allSeats') return step;
-  const getConvertedActors = (context: WerewolfRoleStepContext): readonly number[] =>
-    (context.facts.conversions ?? [])
-      .filter((conversion) => conversion.formerRoleIds.includes(ownerRoleId))
-      .map((conversion) => conversion.seat);
-  const isConvertedActor = (context: WerewolfRoleStepContext): boolean =>
-    context.seat !== null && getConvertedActors(context).includes(context.seat);
-  return {
-    ...step,
-    actors: (context) => {
-      const actors = step.actors(context);
-      const converted = getConvertedActors(context).filter((seat) => !actors.includes(seat));
-      return converted.length === 0
-        ? actors
-        : [...actors, ...converted].sort((first, second) => first - second);
-    },
-    lock: (context) =>
-      isConvertedActor(context) ? COPY.convertedLocked : (step.lock?.(context) ?? null),
-    situationHints: (context) =>
-      isConvertedActor(context) ? [COPY.infected] : (step.situationHints?.(context) ?? []),
-  };
-}
-
-export function resolveSeedWolfInfection(
+function resolveSeedWolfInfection(
   facts: WerewolfNightFacts,
   effects: readonly DeathEffect[],
 ): { readonly outcome: 'converted' | 'failed'; readonly targetSeat: number } | null {
-  const infection = facts.wolfInfections?.[0];
+  const infection = facts.conversionAttempts?.[0];
   if (infection === undefined) return null;
   const causes = resolveDeathEffects(effects).causes[infection.targetSeat] ?? [];
   return {

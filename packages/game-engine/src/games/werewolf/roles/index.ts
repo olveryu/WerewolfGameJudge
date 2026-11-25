@@ -86,6 +86,7 @@ export type {
   RoleSelection,
   WerewolfBottomCard,
   WerewolfCheckReaction,
+  WerewolfConversionDeclaration,
   WerewolfNightFacts,
   WerewolfRoleFaction,
   WerewolfRoleIdentityChange,

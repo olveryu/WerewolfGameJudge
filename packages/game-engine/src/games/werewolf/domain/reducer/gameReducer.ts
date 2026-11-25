@@ -14,6 +14,7 @@ import { queueAudioBatch } from '../../../../platform/audio';
 import { buildRoomSeatProfile } from '../../../../platform/room/roster';
 import { findRosterSeatByUserId, isBotOccupant } from '../../../../platform/room/seating';
 import { evolveWerewolfNight } from '../../roles/nightEvolution';
+import { isValidRoleId } from '../models';
 import type { GameState } from '../protocol/types';
 import {
   handleAssignRoles,
@@ -57,19 +58,20 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, mvpUserId: action.mvpUserId };
     case 'WEREWOLF_NIGHT_EVENT': {
       const nightState = evolveWerewolfNight(state, action.event);
-      const outcome = action.event.type === 'infectionSettled' ? action.event.outcome : undefined;
-      const infectedPlayer =
-        outcome?.outcome === 'converted' ? state.players[outcome.targetSeat] : undefined;
-      if (outcome?.outcome === 'converted' && infectedPlayer == null) {
-        throw new Error('[FAIL-FAST] Seed Wolf infection target has no player');
+      if (
+        action.event.type !== 'conversionSettled' ||
+        action.event.outcome.outcome !== 'converted'
+      ) {
+        return { ...state, nightState };
       }
-      const players =
-        outcome?.outcome === 'converted' && infectedPlayer != null
-          ? {
-              ...state.players,
-              [outcome.targetSeat]: { ...infectedPlayer, role: 'wolf' as const },
-            }
-          : state.players;
+      // A converted player holds the new role from now on, on the card they are shown too.
+      const { targetSeat } = action.event.outcome;
+      const convertedPlayer = state.players[targetSeat];
+      const newRole = nightState.roles.identities[targetSeat]?.currentRole;
+      if (convertedPlayer == null || newRole === undefined || !isValidRoleId(newRole)) {
+        throw new Error(`[FAIL-FAST] Converted seat ${targetSeat} has no player or role`);
+      }
+      const players = { ...state.players, [targetSeat]: { ...convertedPlayer, role: newRole } };
       return { ...state, nightState, players };
     }
     case 'UPDATE_TEMPLATE':

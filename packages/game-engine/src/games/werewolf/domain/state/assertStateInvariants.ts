@@ -6,13 +6,11 @@
  */
 
 import { isBotOccupant } from '../../../../platform/room/seating';
-import { createWerewolfNightPlan } from '../../roles/nightPlan';
+import { createWerewolfNightPlan, getWerewolfBoardConversion } from '../../roles/nightPlan';
 import {
-  Faction,
   GameStatus,
   getBottomCardRoleId,
   getPlayerCount,
-  getRoleCard,
   getRoleDealPool,
   isValidBottomCardSet,
   isValidRoleId,
@@ -80,17 +78,19 @@ function assertAssignedRolesMatchDeal(
   expectedRoles: readonly RoleId[],
   description: string,
 ): void {
-  const infectionResult = state.nightState?.infection;
-  if (infectionResult?.outcome !== 'converted') {
+  const outcome = state.nightState?.conversion;
+  if (outcome?.outcome !== 'converted') {
     assertSameRoleMultiset(actualRoles, expectedRoles, description);
     return;
   }
 
-  if (!state.templateRoles.includes('seedWolf')) {
-    fail('converted Seed Wolf infection exists without seedWolf in templateRoles');
-  }
-  if (state.players[infectionResult.targetSeat]?.role !== 'wolf') {
-    fail(`converted Seed Wolf target seat ${infectionResult.targetSeat} is not a wolf`);
+  // One card of the deal has become the role the board's converting role turns players into.
+  const conversion = getWerewolfBoardConversion(state.templateRoles);
+  if (conversion === null) fail('a player was converted on a board with no converting role');
+  const { becomesRoleId } = conversion.declaration;
+  if (!isValidRoleId(becomesRoleId)) fail(`conversion produces unknown role ${becomesRoleId}`);
+  if (state.players[outcome.targetSeat]?.role !== becomesRoleId) {
+    fail(`converted seat ${outcome.targetSeat} does not hold ${becomesRoleId}`);
   }
 
   const actual = countRoles(actualRoles);
@@ -100,16 +100,13 @@ function assertAssignedRolesMatchDeal(
 
   for (const roleId of roleIds) {
     const difference = (actual.get(roleId) ?? 0) - (expected.get(roleId) ?? 0);
-    if (roleId === 'wolf') {
+    if (roleId === becomesRoleId) {
       if (difference !== 1) {
-        fail(`${description} do not contain exactly one converted wolf`);
+        fail(`${description} do not contain exactly one converted ${becomesRoleId}`);
       }
       continue;
     }
     if (difference === -1 && replacedRoleId === undefined) {
-      if (getRoleCard(roleId).faction === Faction.Wolf) {
-        fail(`Seed Wolf infection replaced wolf-faction role ${roleId}`);
-      }
       replacedRoleId = roleId;
       continue;
     }
@@ -118,9 +115,7 @@ function assertAssignedRolesMatchDeal(
     }
   }
 
-  if (replacedRoleId === undefined) {
-    fail('converted Seed Wolf infection did not replace a non-wolf role');
-  }
+  if (replacedRoleId === undefined) fail('the conversion did not replace any dealt role');
 }
 
 function assertRoleMultisetSubset(
@@ -474,9 +469,9 @@ function assertSpecNightState(state: GameState, night: NonNullable<GameState['ni
       fail(`night seat ${seat} has no valid dealt identity`);
     }
     const playerRole = state.players[seat]?.role;
-    const isInfected =
-      night.infection?.outcome === 'converted' && night.infection.targetSeat === seat;
-    if (playerRole !== (isInfected ? 'wolf' : identity.dealtRole)) {
+    const isConverted =
+      night.conversion?.outcome === 'converted' && night.conversion.targetSeat === seat;
+    if (playerRole !== (isConverted ? identity.currentRole : identity.dealtRole)) {
       fail(`night seat ${seat} disagrees with its dealt identity`);
     }
     return { seat, role: identity.dealtRole };

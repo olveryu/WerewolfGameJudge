@@ -518,7 +518,7 @@ describe('werewolf role definitions', () => {
     const pendingInfectionLearningResult = learningAction.resolve(
       createRoleContext(learningState, 1, {
         ...EMPTY_FACTS,
-        wolfInfections: [{ actorSeat: 3, targetSeat: 4 }],
+        conversionAttempts: [{ actorSeat: 3, targetSeat: 4 }],
       }),
       [2],
     );
@@ -712,7 +712,7 @@ describe('werewolf role definitions', () => {
         cardIndex: null,
       }),
     ).toBe('（实际为5号）');
-    expect(facts.wolfInfections).toEqual([{ actorSeat: 1, targetSeat: 4 }]);
+    expect(facts.conversionAttempts).toEqual([{ actorSeat: 1, targetSeat: 4 }]);
     expect(reveal.content(createRoleContext(state, 2, { ...EMPTY_FACTS, ...facts }))).toBe(
       '你未被感染',
     );

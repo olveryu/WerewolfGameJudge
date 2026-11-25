@@ -2,14 +2,15 @@ import type { RoleId } from '../domain/models';
 import {
   WEREWOLF_ROLE_DEFINITIONS,
   WEREWOLF_SHARED_STEPS,
+  type WerewolfConversionDeclaration,
   type WerewolfNightFacts,
   type WerewolfRoleDefinition,
   type WerewolfRoleState,
   type WerewolfRoleStepDefinition,
 } from '.';
+import { withConversionLock } from './conversion';
 import { grantBorrowedAbility, replaceCurrentRole } from './identity';
 import { NIGHT_STEP_ORDER } from './nightStepOrder';
-import { withConversionLock } from './seedWolf';
 
 export type WerewolfRoleStep = WerewolfRoleStepDefinition;
 
@@ -46,6 +47,28 @@ export function getWerewolfRoleDefinition(roleId: string): WerewolfRoleDefinitio
   return role;
 }
 
+function getWerewolfConversionDeclaration(roleId: string): WerewolfConversionDeclaration {
+  const declaration = getWerewolfRoleDefinition(roleId).conversion;
+  if (declaration === undefined) {
+    throw new Error(`[FAIL-FAST] ${roleId} converted a player but declares no conversion`);
+  }
+  return declaration;
+}
+
+/** The role on this board that can convert another player, with its rule; null when none can. */
+export function getWerewolfBoardConversion(
+  templateRoles: readonly string[],
+): { readonly roleId: string; readonly declaration: WerewolfConversionDeclaration } | null {
+  const converting = [...new Set(templateRoles)].flatMap((roleId) => {
+    const declaration = getWerewolfRoleDefinition(roleId).conversion;
+    return declaration === undefined ? [] : [{ roleId, declaration }];
+  });
+  if (converting.length > 1) {
+    throw new Error('[FAIL-FAST] A board holds more than one converting role');
+  }
+  return converting[0] ?? null;
+}
+
 function createWerewolfStepDefinitions(): Readonly<Record<string, WerewolfRoleStep>> {
   const definitions: Record<string, WerewolfRoleStep> = {};
   for (const role of WEREWOLF_ROLE_DEFINITIONS) {
@@ -53,7 +76,7 @@ function createWerewolfStepDefinitions(): Readonly<Record<string, WerewolfRoleSt
       if (definitions[step.id] !== undefined) {
         throw new Error(`[FAIL-FAST] Duplicate new step ${step.id}`);
       }
-      definitions[step.id] = withConversionLock(step, role.id);
+      definitions[step.id] = withConversionLock(step, role.id, getWerewolfConversionDeclaration);
     }
   }
   for (const step of WEREWOLF_SHARED_STEPS) {
@@ -156,7 +179,10 @@ export function mergeWerewolfNightFacts(
     locationSwaps: [...(previous.locationSwaps ?? []), ...(emitted.locationSwaps ?? [])],
     resourceUses: [...(previous.resourceUses ?? []), ...(emitted.resourceUses ?? [])],
     factionChanges: [...(previous.factionChanges ?? []), ...(emitted.factionChanges ?? [])],
-    wolfInfections: [...(previous.wolfInfections ?? []), ...(emitted.wolfInfections ?? [])],
+    conversionAttempts: [
+      ...(previous.conversionAttempts ?? []),
+      ...(emitted.conversionAttempts ?? []),
+    ],
     wolfGirlConfessions: [
       ...(previous.wolfGirlConfessions ?? []),
       ...(emitted.wolfGirlConfessions ?? []),

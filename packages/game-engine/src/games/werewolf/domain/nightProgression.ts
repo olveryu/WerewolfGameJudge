@@ -8,9 +8,9 @@ import type { DeathReason } from '../roles/deathEffects';
 import { resolveDeathEffects } from '../roles/deathEffects';
 import { resolveSelectedSeat } from '../roles/location';
 import {
-  decideWerewolfInfection,
-  isInfectionPending,
-  isInfectionSettlementStep,
+  decideWerewolfConversion,
+  isConversionPending,
+  isConversionSettlementStep,
   type WerewolfNightEvent,
 } from '../roles/nightEvolution';
 import { getWerewolfStepOwnerRoleId } from '../roles/nightPlan';
@@ -76,8 +76,11 @@ export function runWerewolfNightProgression(
       applyNightEvent({ type: 'wolfKillSettled', settlement });
     }
 
-    if (isInfectionSettlementStep(currentState, currentStepId)) {
-      applyNightEvent({ type: 'infectionSettled', outcome: decideWerewolfInfection(currentState) });
+    if (isConversionSettlementStep(currentState, currentStepId)) {
+      applyNightEvent({
+        type: 'conversionSettled',
+        outcome: decideWerewolfConversion(currentState),
+      });
     }
     applyNightEvent({ type: 'step', event: stepEvent });
     stepsAdvanced++;
@@ -199,10 +202,10 @@ function finishNight(state: GameState): readonly StateAction[] {
     applyAction({ type: 'WEREWOLF_NIGHT_EVENT', event: { type: 'wolfKillSettled', settlement } });
     night = requireWerewolfNightState(settledState);
   }
-  if (isInfectionPending(settledState)) {
+  if (isConversionPending(settledState)) {
     applyAction({
       type: 'WEREWOLF_NIGHT_EVENT',
-      event: { type: 'infectionSettled', outcome: decideWerewolfInfection(settledState) },
+      event: { type: 'conversionSettled', outcome: decideWerewolfConversion(settledState) },
     });
     night = requireWerewolfNightState(settledState);
   }
