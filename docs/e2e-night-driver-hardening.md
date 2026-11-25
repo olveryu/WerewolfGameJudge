@@ -355,3 +355,5 @@ CI run [45656841848](https://github.com/olveryu/WerewolfGameJudge/actions/runs/4
 - `readAlertText` 改为一次页面求值同时取标题和正文，并用 `expect(...).toPass()` 重试到有弹窗（传了期望标题时，到标题相符）为止。
 
 `contracts/e2eNightDriver.test.ts` 新增 5 项用例（弹窗读取 2 项，扫描 3 项：刚看到就消失、点击期间声明撤回、声明还在却点不到），用旧 helper 跑全部失败、用新 helper 全部通过。假页面按 trace 的行为写：对已消失的分组牌做会等待的读取时抛超时。
+
+**同一结构的另一处，没有失败证据，一并修掉（用户确认）。** 排查全部 E2E 代码后，按“查看”的 `pressAlertButton` 也是点完就返回，后面有 10 处紧跟着不指定标题的 `readAlertText`（`driveGroupConfirmAck` 1 处，`clickNightButton(..., { revealPrivateStatus: true })` 之后 9 处）。按“查看”时内容弹窗是在同一次点击处理里同步换上的，所以这条路径没有出过失败；但这依赖产品的实现细节，helper 自己没有保证。`pressAlertButton`（以及基于它的 `confirmAlert`）现在与 `pressConfirm` 用同一个做法：按下后等这张弹窗关闭或被替换再返回。它在全部游戏的 spec 里共 39 处调用，以完整 E2E 的结论为准。

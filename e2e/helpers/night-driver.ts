@@ -285,7 +285,7 @@ async function pressConfirm(page: Page): Promise<void> {
   const confirm = page.getByTestId(TESTIDS.alertButton(1));
   await expect(confirm).toHaveText('确定', { timeout: CONFIRM_TIMEOUT_MS });
   if (!(await pressCurrentAlertPrimary(page, CONFIRM_TIMEOUT_MS))) {
-    throw new Error('The confirmation was gone before 确定 could be pressed');
+    throw new Error('The confirmation was gone before 确定 was pressed');
   }
 }
 
@@ -901,9 +901,13 @@ export async function driveGroupConfirmAck(
     buttonLabel: '查看',
   });
   const message = await readAlertText(page, 5000);
-  const ackButton = page.getByTestId(TESTIDS.alertButton(0));
-  await expect(ackButton).toHaveText(ackButtonText);
-  await ackButton.click();
+  await expect(page.getByTestId(TESTIDS.alertButton(0))).toHaveText(ackButtonText);
+  // The acknowledgement is a command: wait until its alert has closed before returning.
+  if (!(await pressCurrentAlertPrimary(page, CONFIRM_TIMEOUT_MS))) {
+    throw new Error(
+      `The "${statusButtonText}" content was gone before ${ackButtonText} was pressed`,
+    );
+  }
   return message;
 }
 

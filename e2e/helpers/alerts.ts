@@ -10,6 +10,8 @@ import { errors, expect, type Locator, type Page } from '@playwright/test';
 import { TESTIDS } from '../../packages/web/src/testids';
 
 const ALERT_TITLE_TIMEOUT_MS = 3000;
+/** How long a pressed alert may stay open while its button's command is in flight. */
+const ALERT_CLOSE_TIMEOUT_MS = 10_000;
 
 /**
  * The open alert's primary button: the only button of a one-button alert, or the
@@ -29,8 +31,7 @@ export async function alertPrimaryButton(page: Page): Promise<Locator | null> {
 
 /**
  * Press the primary button of the alert that is open now, and wait until that alert has closed
- * or been replaced. An alert stays open while its button's command is in flight, so a caller
- * that only clicked would still be looking at it. A replacement alert is left for its caller.
+ * or been replaced.
  *
  * @returns false when no alert was open, or it was gone before its button could be pressed
  */
@@ -38,6 +39,25 @@ export async function pressCurrentAlertPrimary(
   page: Page,
   timeout = 5000,
   waitForClose = true,
+): Promise<boolean> {
+  return pressCapturedAlertButton(page, () => alertPrimaryButton(page), timeout, waitForClose);
+}
+
+/**
+ * Press one button of the alert that is open now, and wait until that alert has closed or been
+ * replaced. An alert stays open while its button's command is in flight, so a caller that only
+ * clicked would still be looking at it, and its next read could land on the pressed alert
+ * instead of on what follows. The alert is identified by its captured title node; a
+ * replacement alert is never pressed and is left for its caller.
+ *
+ * @param chooseButton picks the button to press from the open alert, or null when it has none
+ * @returns false when no alert was open, or it was gone before its button could be pressed
+ */
+async function pressCapturedAlertButton(
+  page: Page,
+  chooseButton: () => Promise<Locator | null>,
+  timeout: number,
+  waitForClose: boolean,
 ): Promise<boolean> {
   const modal = page.getByTestId(TESTIDS.alertModal);
   if (!(await modal.isVisible())) return false;
@@ -56,11 +76,10 @@ export async function pressCurrentAlertPrimary(
     if (title === undefined) throw new Error('The alert body did not settle after its exit');
   }
   try {
-    const primary = await alertPrimaryButton(page);
-    if (primary === null) throw new Error('The open alert has a title but no primary button');
-    const [button] = await primary.elementHandles();
-    if (button === undefined)
-      throw new Error('The alert primary button disappeared before capture');
+    const chosen = await chooseButton();
+    if (chosen === null) throw new Error('The open alert has a title but not the button to press');
+    const [button] = await chosen.elementHandles();
+    if (button === undefined) throw new Error('The alert button disappeared before capture');
     try {
       // Capture the button node: a live locator could click a newer alert after replacement.
       if (!(await title.evaluate((element) => element.isConnected))) return false;
@@ -81,7 +100,7 @@ export async function pressCurrentAlertPrimary(
       await expect
         .poll(() => title.evaluate((element) => element.isConnected), {
           timeout,
-          message: 'The alert stayed open after its primary button was pressed',
+          message: 'The alert stayed open after its button was pressed',
         })
         .toBe(false);
       await expect
@@ -151,7 +170,10 @@ export async function readAlertText(
   return `${seen.alert.title}\n${seen.alert.message}`;
 }
 
-/** Assert the open alert's title, then press the button at `buttonIndex` after asserting its label. */
+/**
+ * Assert the open alert's title and the label of the button at `buttonIndex`, press that button,
+ * and wait until the alert has closed or been replaced.
+ */
 export async function pressAlertButton(
   page: Page,
   opts: {
@@ -166,7 +188,15 @@ export async function pressAlertButton(
   });
   const button = page.getByTestId(TESTIDS.alertButton(opts.buttonIndex));
   await expect(button).toHaveText(opts.buttonLabel);
-  await button.click();
+  const isPressed = await pressCapturedAlertButton(
+    page,
+    () => Promise.resolve(button),
+    ALERT_CLOSE_TIMEOUT_MS,
+    true,
+  );
+  if (!isPressed) {
+    throw new Error(`The alert "${opts.title}" was gone before "${opts.buttonLabel}" was pressed`);
+  }
 }
 
 /** Confirm a two-button [取消, 确定] alert with the given title. */
