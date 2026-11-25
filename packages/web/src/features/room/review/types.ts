@@ -174,11 +174,11 @@ export interface RoomReviewDocument {
 export type RoomReviewSharing =
   { readonly isAllowed: true } | { readonly isAllowed: false; readonly reason: string };
 
-/** A confirmation shown before the dialog opens （a mid-game review warns about spoilers）. */
+/** An ask-before-viewing shown before the dialog opens （a mid-game review warns about spoilers）. */
 export interface RoomReviewConfirmation {
-  readonly title: string;
-  readonly message: string;
-  readonly confirmText: string;
+  /** The view action label; the question title is derived from it. */
+  readonly label: string;
+  readonly body: string;
 }
 
 export type RoomReviewAvailability =

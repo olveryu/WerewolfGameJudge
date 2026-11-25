@@ -1,103 +1,44 @@
 /**
- * Werewolf narration asset registry — strict mapping from game audio keys to clips.
+ * Werewolf narration assets discovered from their filenames.
  *
- * Owns role, step, and night narration for the Werewolf client slice. Product BGM
- * and platform playback stay outside this registry.
+ * Product BGM and platform playback stay outside this registry.
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type RoleId,
+  WEREWOLF_STEP_AUDIO_DECLARATIONS,
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import type { AudioClip } from '@/features/product/model/AudioClip';
 
-import avengerBegin from '../../../../../../assets/audio/avenger.mp3';
-import awakenedGargoyleBegin from '../../../../../../assets/audio/awakened_gargoyle.mp3';
-import awakenedGargoyleConvertRevealBegin from '../../../../../../assets/audio/awakened_gargoyle_convert_reveal.mp3';
-import crowBegin from '../../../../../../assets/audio/crow.mp3';
-import cupidBegin from '../../../../../../assets/audio/cupid.mp3';
-import cupidLoversRevealBegin from '../../../../../../assets/audio/cupid_lovers_reveal.mp3';
-import darkWolfKingBegin from '../../../../../../assets/audio/dark_wolf_king.mp3';
-import dreamcatcherBegin from '../../../../../../assets/audio/dreamcatcher.mp3';
-import eclipseWolfQueenBegin from '../../../../../../assets/audio/eclipse_wolf_queen.mp3';
-import gargoyleBegin from '../../../../../../assets/audio/gargoyle.mp3';
-import guardBegin from '../../../../../../assets/audio/guard.mp3';
-import hiddenWolfBegin from '../../../../../../assets/audio/hidden_wolf.mp3';
-import hunterBegin from '../../../../../../assets/audio/hunter.mp3';
-import magicianBegin from '../../../../../../assets/audio/magician.mp3';
-import nightBegin from '../../../../../../assets/audio/night.mp3';
-import nightEndBegin from '../../../../../../assets/audio/night_end.mp3';
-import nightmareBegin from '../../../../../../assets/audio/nightmare.mp3';
-import piperBegin from '../../../../../../assets/audio/piper.mp3';
-import piperHypnotizedRevealBegin from '../../../../../../assets/audio/piper_hypnotized_reveal.mp3';
-import poisonerBegin from '../../../../../../assets/audio/poisoner.mp3';
-import psychicBegin from '../../../../../../assets/audio/psychic.mp3';
-import pureWhiteBegin from '../../../../../../assets/audio/pure_white.mp3';
-import seedWolfBegin from '../../../../../../assets/audio/seed_wolf.mp3';
-import seedWolfInfectRevealBegin from '../../../../../../assets/audio/seed_wolf_infect_reveal.mp3';
-import seerBegin from '../../../../../../assets/audio/seer.mp3';
-import seer1Begin from '../../../../../../assets/audio/seer_1.mp3';
-import seer2Begin from '../../../../../../assets/audio/seer_2.mp3';
-import shadowBegin from '../../../../../../assets/audio/shadow.mp3';
-import silenceElderBegin from '../../../../../../assets/audio/silence_elder.mp3';
-import slackerBegin from '../../../../../../assets/audio/slacker.mp3';
-import thiefBegin from '../../../../../../assets/audio/thief.mp3';
-import treasureMasterBegin from '../../../../../../assets/audio/treasure_master.mp3';
-import votebanElderBegin from '../../../../../../assets/audio/voteban_elder.mp3';
-import wildChildBegin from '../../../../../../assets/audio/wild_child.mp3';
-import witchBegin from '../../../../../../assets/audio/witch.mp3';
-import wolfBegin from '../../../../../../assets/audio/wolf.mp3';
-import wolfGirlBegin from '../../../../../../assets/audio/wolf_girl.mp3';
-import wolfGirlConfessRevealBegin from '../../../../../../assets/audio/wolf_girl_confess_reveal.mp3';
-import wolfQueenBegin from '../../../../../../assets/audio/wolf_queen.mp3';
-import wolfRobotBegin from '../../../../../../assets/audio/wolf_robot.mp3';
-import wolfWitchBegin from '../../../../../../assets/audio/wolf_witch.mp3';
-import avengerEnd from '../../../../../../assets/audio_end/avenger.mp3';
-import awakenedGargoyleEnd from '../../../../../../assets/audio_end/awakened_gargoyle.mp3';
-import awakenedGargoyleConvertRevealEnd from '../../../../../../assets/audio_end/awakened_gargoyle_convert_reveal.mp3';
-import crowEnd from '../../../../../../assets/audio_end/crow.mp3';
-import cupidEnd from '../../../../../../assets/audio_end/cupid.mp3';
-import cupidLoversRevealEnd from '../../../../../../assets/audio_end/cupid_lovers_reveal.mp3';
-import darkWolfKingEnd from '../../../../../../assets/audio_end/dark_wolf_king.mp3';
-import dreamcatcherEnd from '../../../../../../assets/audio_end/dreamcatcher.mp3';
-import eclipseWolfQueenEnd from '../../../../../../assets/audio_end/eclipse_wolf_queen.mp3';
-import gargoyleEnd from '../../../../../../assets/audio_end/gargoyle.mp3';
-import guardEnd from '../../../../../../assets/audio_end/guard.mp3';
-import hiddenWolfEnd from '../../../../../../assets/audio_end/hidden_wolf.mp3';
-import hunterEnd from '../../../../../../assets/audio_end/hunter.mp3';
-import magicianEnd from '../../../../../../assets/audio_end/magician.mp3';
-import nightmareEnd from '../../../../../../assets/audio_end/nightmare.mp3';
-import piperEnd from '../../../../../../assets/audio_end/piper.mp3';
-import piperHypnotizedRevealEnd from '../../../../../../assets/audio_end/piper_hypnotized_reveal.mp3';
-import poisonerEnd from '../../../../../../assets/audio_end/poisoner.mp3';
-import psychicEnd from '../../../../../../assets/audio_end/psychic.mp3';
-import pureWhiteEnd from '../../../../../../assets/audio_end/pure_white.mp3';
-import seedWolfEnd from '../../../../../../assets/audio_end/seed_wolf.mp3';
-import seedWolfInfectRevealEnd from '../../../../../../assets/audio_end/seed_wolf_infect_reveal.mp3';
-import seerEnd from '../../../../../../assets/audio_end/seer.mp3';
-import seer1End from '../../../../../../assets/audio_end/seer_1.mp3';
-import seer2End from '../../../../../../assets/audio_end/seer_2.mp3';
-import shadowEnd from '../../../../../../assets/audio_end/shadow.mp3';
-import silenceElderEnd from '../../../../../../assets/audio_end/silence_elder.mp3';
-import slackerEnd from '../../../../../../assets/audio_end/slacker.mp3';
-import thiefEnd from '../../../../../../assets/audio_end/thief.mp3';
-import treasureMasterEnd from '../../../../../../assets/audio_end/treasure_master.mp3';
-import votebanElderEnd from '../../../../../../assets/audio_end/voteban_elder.mp3';
-import wildChildEnd from '../../../../../../assets/audio_end/wild_child.mp3';
-import witchEnd from '../../../../../../assets/audio_end/witch.mp3';
-import wolfEnd from '../../../../../../assets/audio_end/wolf.mp3';
-import wolfGirlEnd from '../../../../../../assets/audio_end/wolf_girl.mp3';
-import wolfGirlConfessRevealEnd from '../../../../../../assets/audio_end/wolf_girl_confess_reveal.mp3';
-import wolfQueenEnd from '../../../../../../assets/audio_end/wolf_queen.mp3';
-import wolfRobotEnd from '../../../../../../assets/audio_end/wolf_robot.mp3';
-import wolfWitchEnd from '../../../../../../assets/audio_end/wolf_witch.mp3';
+const beginningAudioFiles = import.meta.glob<string>('../../../../../../assets/audio/*.mp3', {
+  eager: true,
+  import: 'default',
+});
+const endingAudioFiles = import.meta.glob<string>('../../../../../../assets/audio_end/*.mp3', {
+  eager: true,
+  import: 'default',
+});
 
-// ---------------------------------------------------------------------------
-// Role audio registry
-// ---------------------------------------------------------------------------
+function indexAudioFiles(files: Readonly<Record<string, string>>): ReadonlyMap<string, string> {
+  return new Map(
+    Object.entries(files).map(([path, url]) => {
+      const filename = path.slice(path.lastIndexOf('/') + 1);
+      if (!filename.endsWith('.mp3')) {
+        throw new Error(`[FAIL-FAST] Unsupported Werewolf narration asset ${path}`);
+      }
+      return [filename.slice(0, -'.mp3'.length), url];
+    }),
+  );
+}
 
-/** Per-role audio pair: beginning narration + ending narration. */
-interface WerewolfRoleAudioEntry {
-  readonly begin: string;
-  readonly end: string;
+const BEGINNING_AUDIO_URLS = indexAudioFiles(beginningAudioFiles);
+const ENDING_AUDIO_URLS = indexAudioFiles(endingAudioFiles);
+const FIRST_ROLE_AUDIO = new Map<string, (typeof WEREWOLF_STEP_AUDIO_DECLARATIONS)[number]>();
+for (const declaration of WEREWOLF_STEP_AUDIO_DECLARATIONS) {
+  if (!FIRST_ROLE_AUDIO.has(declaration.roleId)) {
+    FIRST_ROLE_AUDIO.set(declaration.roleId, declaration);
+  }
 }
 
 /** Programming error raised when engine narration metadata has no client asset. */
@@ -111,349 +52,43 @@ export class MissingWerewolfAudioError extends Error {
   }
 }
 
-/**
- * Main registry — each role with night narration gets a single entry
- * containing both begin and end assets. To register a new role's audio,
- * add one entry here.
- */
-const ROLE_AUDIO_ENTRIES = [
-  [
-    'slacker',
-    {
-      begin: slackerBegin,
-      end: slackerEnd,
-    },
-  ],
-  [
-    'wildChild',
-    {
-      begin: wildChildBegin,
-      end: wildChildEnd,
-    },
-  ],
-  [
-    'wolfRobot',
-    {
-      begin: wolfRobotBegin,
-      end: wolfRobotEnd,
-    },
-  ],
-  [
-    'magician',
-    {
-      begin: magicianBegin,
-      end: magicianEnd,
-    },
-  ],
-  [
-    'dreamcatcher',
-    {
-      begin: dreamcatcherBegin,
-      end: dreamcatcherEnd,
-    },
-  ],
-  [
-    'gargoyle',
-    {
-      begin: gargoyleBegin,
-      end: gargoyleEnd,
-    },
-  ],
-  [
-    'awakenedGargoyle',
-    {
-      begin: awakenedGargoyleBegin,
-      end: awakenedGargoyleEnd,
-    },
-  ],
-  [
-    'nightmare',
-    {
-      begin: nightmareBegin,
-      end: nightmareEnd,
-    },
-  ],
-  [
-    'guard',
-    {
-      begin: guardBegin,
-      end: guardEnd,
-    },
-  ],
-  [
-    'wolf',
-    {
-      begin: wolfBegin,
-      end: wolfEnd,
-    },
-  ],
-  [
-    'seedWolf',
-    {
-      begin: seedWolfBegin,
-      end: seedWolfEnd,
-    },
-  ],
-  [
-    'wolfQueen',
-    {
-      begin: wolfQueenBegin,
-      end: wolfQueenEnd,
-    },
-  ],
-  [
-    'eclipseWolfQueen',
-    {
-      begin: eclipseWolfQueenBegin,
-      end: eclipseWolfQueenEnd,
-    },
-  ],
-  [
-    'witch',
-    {
-      begin: witchBegin,
-      end: witchEnd,
-    },
-  ],
-  [
-    'seer',
-    {
-      begin: seerBegin,
-      end: seerEnd,
-    },
-  ],
-  [
-    'mirrorSeer',
-    {
-      begin: seerBegin,
-      end: seerEnd,
-    },
-  ],
-  [
-    'drunkSeer',
-    {
-      begin: seerBegin,
-      end: seerEnd,
-    },
-  ],
-  [
-    'psychic',
-    {
-      begin: psychicBegin,
-      end: psychicEnd,
-    },
-  ],
-  [
-    'hunter',
-    {
-      begin: hunterBegin,
-      end: hunterEnd,
-    },
-  ],
-  [
-    'darkWolfKing',
-    {
-      begin: darkWolfKingBegin,
-      end: darkWolfKingEnd,
-    },
-  ],
-  [
-    'pureWhite',
-    {
-      begin: pureWhiteBegin,
-      end: pureWhiteEnd,
-    },
-  ],
-  [
-    'wolfWitch',
-    {
-      begin: wolfWitchBegin,
-      end: wolfWitchEnd,
-    },
-  ],
-  [
-    'silenceElder',
-    {
-      begin: silenceElderBegin,
-      end: silenceElderEnd,
-    },
-  ],
-  [
-    'votebanElder',
-    {
-      begin: votebanElderBegin,
-      end: votebanElderEnd,
-    },
-  ],
-  [
-    'piper',
-    {
-      begin: piperBegin,
-      end: piperEnd,
-    },
-  ],
-  [
-    'shadow',
-    {
-      begin: shadowBegin,
-      end: shadowEnd,
-    },
-  ],
-  [
-    'avenger',
-    {
-      begin: avengerBegin,
-      end: avengerEnd,
-    },
-  ],
-  [
-    'crow',
-    {
-      begin: crowBegin,
-      end: crowEnd,
-    },
-  ],
-  [
-    'hiddenWolf',
-    {
-      begin: hiddenWolfBegin,
-      end: hiddenWolfEnd,
-    },
-  ],
-  [
-    'wolfGirl',
-    {
-      begin: wolfGirlBegin,
-      end: wolfGirlEnd,
-    },
-  ],
-  [
-    'poisoner',
-    {
-      begin: poisonerBegin,
-      end: poisonerEnd,
-    },
-  ],
-  [
-    'treasureMaster',
-    {
-      begin: treasureMasterBegin,
-      end: treasureMasterEnd,
-    },
-  ],
-  [
-    'thief',
-    {
-      begin: thiefBegin,
-      end: thiefEnd,
-    },
-  ],
-  [
-    'cupid',
-    {
-      begin: cupidBegin,
-      end: cupidEnd,
-    },
-  ],
-] as const satisfies readonly (readonly [RoleId, WerewolfRoleAudioEntry])[];
-
-const ROLE_AUDIO = new Map<string, WerewolfRoleAudioEntry>(ROLE_AUDIO_ENTRIES);
-if (ROLE_AUDIO.size !== ROLE_AUDIO_ENTRIES.length) {
-  throw new Error('[FAIL-FAST] Duplicate Werewolf role audio registration');
+function audioFilenameKey(audioKey: string): string {
+  return audioKey.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
 
-// ---------------------------------------------------------------------------
-// Seer label audio (multi-seer disambiguation)
-// ---------------------------------------------------------------------------
+function resolveAudioUrl(audioKey: string, phase: 'beginning' | 'ending'): string {
+  const urls = phase === 'beginning' ? BEGINNING_AUDIO_URLS : ENDING_AUDIO_URLS;
+  const declaredRoleAudio = FIRST_ROLE_AUDIO.get(audioKey);
+  const declaredKey = declaredRoleAudio?.[phase === 'beginning' ? 'begin' : 'end'];
+  const url =
+    urls.get(audioFilenameKey(audioKey)) ??
+    (declaredKey === null || declaredKey === undefined
+      ? undefined
+      : urls.get(audioFilenameKey(declaredKey)));
+  if (url === undefined) throw new MissingWerewolfAudioError(phase, audioKey);
+  return url;
+}
 
-/** Multi-seer label audio (used when >=2 seer-like roles are in play). */
-const SEER_LABEL_AUDIO = new Map<string, string>([
-  ['seer_1', seer1Begin],
-  ['seer_2', seer2Begin],
-]);
+/** Resolve a beginning narration key using its snake_case asset filename. */
+export function resolveWerewolfBeginningAudio(audioKey: string): AudioClip {
+  return { key: `role_begin_${audioKey}`, url: resolveAudioUrl(audioKey, 'beginning') };
+}
 
-/** End-of-reveal audio map for multi-seer scenarios. */
-const SEER_LABEL_AUDIO_END = new Map<string, string>([
-  ['seer_1', seer1End],
-  ['seer_2', seer2End],
-]);
-
-// ---------------------------------------------------------------------------
-// Step-specific audio (non-RoleId keys, e.g. multi-step roles)
-// ---------------------------------------------------------------------------
-
-/**
- * Audio for night steps whose audioKey differs from their roleId.
- * Lookup order: role audio, numbered Seer labels, then step-specific audio.
- */
-const STEP_AUDIO = new Map<string, WerewolfRoleAudioEntry>([
-  [
-    'piperHypnotizedReveal',
-    {
-      begin: piperHypnotizedRevealBegin,
-      end: piperHypnotizedRevealEnd,
-    },
-  ],
-  [
-    'awakenedGargoyleConvertReveal',
-    {
-      begin: awakenedGargoyleConvertRevealBegin,
-      end: awakenedGargoyleConvertRevealEnd,
-    },
-  ],
-  [
-    'cupidLoversReveal',
-    {
-      begin: cupidLoversRevealBegin,
-      end: cupidLoversRevealEnd,
-    },
-  ],
-  [
-    'seedWolfInfectReveal',
-    {
-      begin: seedWolfInfectRevealBegin,
-      end: seedWolfInfectRevealEnd,
-    },
-  ],
-  [
-    'wolfGirlConfessReveal',
-    {
-      begin: wolfGirlConfessRevealBegin,
-      end: wolfGirlConfessRevealEnd,
-    },
-  ],
-]);
-
-// ---------------------------------------------------------------------------
-// Night flow audio
-// ---------------------------------------------------------------------------
+/** Resolve an ending narration key using its snake_case asset filename. */
+export function resolveWerewolfEndingAudio(audioKey: string): AudioClip {
+  return { key: `role_end_${audioKey}`, url: resolveAudioUrl(audioKey, 'ending') };
+}
 
 /** “天黑请闭眼” audio clip. */
-const NIGHT_AUDIO: AudioClip = { key: 'night', url: nightBegin };
+const NIGHT_AUDIO: AudioClip = {
+  key: 'night',
+  url: resolveAudioUrl('night', 'beginning'),
+};
 /** “天亮请睁眼” audio clip. */
-const NIGHT_END_AUDIO: AudioClip = { key: 'night_end', url: nightEndBegin };
-
-export function resolveWerewolfBeginningAudio(audioKey: string): AudioClip {
-  const url =
-    ROLE_AUDIO.get(audioKey)?.begin ??
-    SEER_LABEL_AUDIO.get(audioKey) ??
-    STEP_AUDIO.get(audioKey)?.begin;
-  if (url === undefined) {
-    throw new MissingWerewolfAudioError('beginning', audioKey);
-  }
-  return { key: `role_begin_${audioKey}`, url };
-}
-
-export function resolveWerewolfEndingAudio(audioKey: string): AudioClip {
-  const url =
-    ROLE_AUDIO.get(audioKey)?.end ??
-    SEER_LABEL_AUDIO_END.get(audioKey) ??
-    STEP_AUDIO.get(audioKey)?.end;
-  if (url === undefined) {
-    throw new MissingWerewolfAudioError('ending', audioKey);
-  }
-  return { key: `role_end_${audioKey}`, url };
-}
+const NIGHT_END_AUDIO: AudioClip = {
+  key: 'night_end',
+  url: resolveAudioUrl('night_end', 'beginning'),
+};
 
 export function getWerewolfNightAudio(): AudioClip {
   return NIGHT_AUDIO;
@@ -469,10 +104,16 @@ export function getWerewolfPreloadAudio(roles: readonly RoleId[]): readonly Audi
     [NIGHT_END_AUDIO.key, NIGHT_END_AUDIO],
   ]);
   for (const role of roles) {
-    const entry = ROLE_AUDIO.get(role);
-    if (entry === undefined) continue;
-    clips.set(`role_begin_${role}`, { key: `role_begin_${role}`, url: entry.begin });
-    clips.set(`role_end_${role}`, { key: `role_end_${role}`, url: entry.end });
+    const firstStepAudio = FIRST_ROLE_AUDIO.get(role);
+    if (firstStepAudio === undefined) continue;
+    if (firstStepAudio.begin !== null) {
+      const begin = resolveWerewolfBeginningAudio(firstStepAudio.begin);
+      clips.set(`role_begin_${role}`, { key: `role_begin_${role}`, url: begin.url });
+    }
+    if (firstStepAudio.end !== null) {
+      const end = resolveWerewolfEndingAudio(firstStepAudio.end);
+      clips.set(`role_end_${role}`, { key: `role_end_${role}`, url: end.url });
+    }
   }
   return [...clips.values()];
 }

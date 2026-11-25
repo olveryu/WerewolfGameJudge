@@ -2,9 +2,8 @@
 
 import type {
   GameState,
-  NightPlan,
+  NightStepId,
   RoleId,
-  SchemaId,
   WerewolfInternalCommand,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
@@ -21,7 +20,6 @@ export type TestCommandExecution = Partial<Pick<CommandExecutionContext, 'nowMs'
 export interface GameContext {
   readonly getGameState: () => GameState;
   readonly getRevision: () => number;
-  readonly getNightPlan: () => NightPlan;
   readonly dispatch: (
     command: WerewolfPublicCommand,
     actor?: TestCommandActor,
@@ -65,7 +63,7 @@ export interface GameContext {
     execution?: TestCommandExecution,
   ) => RoomCommandResult<GameState>;
   readonly acknowledgePendingAudioOrThrow: (context: string) => void;
-  readonly assertStep: (expectedStepId: SchemaId) => void;
+  readonly assertStep: (expectedStepId: NightStepId) => void;
   readonly findSeatByRole: (role: RoleId) => number;
   readonly getRoleAtSeat: (seat: number) => RoleId | null;
 }

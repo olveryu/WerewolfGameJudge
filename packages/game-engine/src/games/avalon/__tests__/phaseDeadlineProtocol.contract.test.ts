@@ -20,10 +20,10 @@ import {
 } from '../../../platform/room/__tests__/phaseDeadlineScenarios';
 import type { AvalonCommand } from '../commands/types';
 import { AVALON_REASONS, type AvalonDecision } from '../domain/decision';
-import { getAvalonNightParticipants } from '../domain/rules';
 import { avalonEngine } from '../engine';
 import { parseAvalonState } from '../state/parseState';
 import { type AvalonState, DEFAULT_AVALON_CONFIG } from '../state/types';
+import { currentNightActors, viewNight } from './avalonNightDriver';
 
 interface AvalonHarness {
   readonly state: () => AvalonState;
@@ -99,8 +99,8 @@ function armedHarness(): AvalonHarness {
   while (harness.state().phase.kind === 'night') {
     const phase = harness.state().phase;
     if (phase.kind !== 'night') throw new Error('Expected a night phase');
-    for (const seat of getAvalonNightParticipants(harness.state().roles, phase.step)) {
-      send({ type: 'avalon.night.confirm' }, asUser(seatUser(seat)));
+    for (const seat of currentNightActors(harness.state())) {
+      send(viewNight(harness.state()), asUser(seatUser(seat)));
     }
     ackAudio();
   }

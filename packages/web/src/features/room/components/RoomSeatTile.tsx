@@ -6,7 +6,7 @@
  * clips it to the tile's border box. A framed seat drops its border and background, and its
  * avatar fills the border box under the frame, as in the previous client.
  */
-import { memo, type RefObject, Suspense, useRef } from 'react';
+import { memo, type RefObject, Suspense, useId, useRef } from 'react';
 
 import { Avatar } from '@/components/avatar/Avatar';
 import { NameStyleText } from '@/components/nameStyles/NameStyleText';
@@ -104,6 +104,9 @@ function RoomSeatTileComponent({
   const tileRef = useRef<HTMLButtonElement>(null);
   const avatarRef = useRef<HTMLSpanElement>(null);
   const ghostHostRef = useRef<HTMLSpanElement>(null);
+  const unavailableReasonId = useId();
+  const unavailableReason =
+    model.isSelectionUnavailable === true ? model.disabledReason : undefined;
   const hasEntrance = residents !== null && residents.entranceId !== null;
 
   return (
@@ -119,6 +122,7 @@ function RoomSeatTileComponent({
         data-inert={isBoardDisabled || model.disabledReason !== undefined}
         aria-label={describeSeat(model)}
         aria-disabled={model.isSelectionUnavailable || undefined}
+        aria-describedby={unavailableReason === undefined ? undefined : unavailableReasonId}
         aria-pressed={
           indicators?.selection === undefined || indicators.selection === null
             ? undefined
@@ -202,6 +206,15 @@ function RoomSeatTileComponent({
           {model.secondaryLabel !== null && (
             <div className="seat-secondary-label" data-testid={TESTIDS.seatSecondaryLabel(seat)}>
               {model.secondaryLabel}
+            </div>
+          )}
+          {unavailableReason !== undefined && (
+            <div
+              id={unavailableReasonId}
+              className="seat-selection-reason"
+              data-testid={TESTIDS.seatSelectionReason(seat)}
+            >
+              {unavailableReason}
             </div>
           )}
         </>

@@ -6,12 +6,13 @@
 import './NotepadScreen.css';
 import '@/games/werewolf/components/faction.css';
 
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 import { useParams } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { confirmAction } from '@/features/room/confirm';
 import { useRoomLinkSnapshot } from '@/features/room/controllers/useRoomLinkSnapshot';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import { buildNotepadSummary } from '@/games/werewolf/components/AIChatBubble/notepadSummary';
@@ -22,7 +23,7 @@ import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/wer
 import { requestAIChatMessage, useAIChatAvailable } from '@/games/werewolf/services/aiChatBridge';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 import IconClipboardOutline from '~icons/ion/clipboard-outline';
 import IconSparklesOutline from '~icons/ion/sparkles-outline';
 import IconTrashOutline from '~icons/ion/trash-outline';
@@ -70,7 +71,7 @@ export function WerewolfNotepad({
     const myRole = mySeat !== null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
       mySeat !== null && myRole
-        ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole].displayName }
+        ? { seat: mySeat + 1, roleName: getRoleCard(myRole).displayName }
         : undefined;
 
     const summary = buildNotepadSummary(
@@ -84,12 +85,16 @@ export function WerewolfNotepad({
       return;
     }
 
-    showConfirmAlert('AI 分析', '将笔记发送给 AI 进行局势分析？', () => {
-      requestAIChatMessage({
-        fullText: summary,
-        displayText: '分析我的笔记',
-        maxTokens: 10000,
-      });
+    confirmAction({
+      label: '让 AI 分析笔记',
+      body: '笔记将发送给 AI。',
+      onConfirm: () => {
+        requestAIChatMessage({
+          fullText: summary,
+          displayText: '分析我的笔记',
+          maxTokens: 10000,
+        });
+      },
     });
   };
 

@@ -1,26 +1,19 @@
 /**
- * Avalon night completion evaluation: the one place that decides
- * whether the current night step advances. A step completes when its
- * whole participant set has confirmed AND the narration gate is open
- * (the host has acked the current audio batch); confirmation recording
- * and the audio ack are independent inputs, so their arrival order
- * does not matter — the decide exit re-evaluates after either one.
- *
- * A single evaluation pass always suffices (no werewolf-style loop):
- * every advance enqueues a fresh narration batch in the same decision,
- * which closes the audio gate again, and the stepped evolve clears the
- * confirmation set — a second pass over the advanced state provably
- * returns []. The final step lands in the nominate phase, which the
- * first check below rejects outright.
- *
- * No IO.
+ * Avalon night progression: the shared step mechanism decides whether
+ * the current reveal advances (every actor viewed AND the narration
+ * gate is open); this module only wraps its events for the Avalon
+ * event stream and queues the transition narration in the same
+ * decision. Viewing and the audio ack are independent inputs, so their
+ * arrival order does not matter — the decide exit re-evaluates after
+ * either one. A single pass suffices: every advance queues a fresh
+ * narration batch, which closes the audio gate again. No IO.
  */
 
-import { type AudioEffect, guardAudioPlayback, NIGHT_END_AUDIO_KEY } from '../../../platform/audio';
-import { AVALON_NIGHT_STEPS, type AvalonState } from '../state/types';
-import { AVALON_REASONS, type AvalonEvent } from './decision';
-import { getAvalonNightStepBeginAudioKey, getAvalonNightStepEndAudioKey } from './nightSteps';
-import { getAvalonNightParticipants } from './rules';
+import type { AudioEffect } from '../../../platform/audio';
+import { evaluateStepProgress } from '../../../platform/steps';
+import type { AvalonState } from '../state/types';
+import type { AvalonEvent } from './decision';
+import { createAvalonNightRuntime } from './nightSteps';
 
 /** 夜晚播报队列事件；入队纪律（空批 fail-fast＋整批拷贝＋批次 id）由 evolve 里的共享音频机器负责。 */
 export function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
@@ -31,37 +24,23 @@ export function queueAudio(effects: readonly AudioEffect[]): AvalonEvent {
 }
 
 /**
- * Returns the current step's progression events (stepped/completed
- * plus the transition narration batch) when the step is complete, or
- * [] when it is not — including the legal intermediate state where
- * every participant has confirmed but the narration is still playing.
+ * Returns the current step's progression events plus the transition
+ * narration batch when the step advances, or [] when it does not —
+ * including the legal intermediate state where every actor has viewed
+ * but the narration is still playing.
  *
  * @pre Pure read of state; callers pass the post-command intermediate
  * state (the command's own events already evolved).
  */
-export function evaluateAvalonNightCompletion(state: AvalonState): readonly AvalonEvent[] {
-  const phase = state.phase;
-  if (phase.kind !== 'night') return [];
-  // Progression is not a command rejection: while playback is
-  // running the shared gate guard's verdict simply means no events.
-  if (guardAudioPlayback(state, AVALON_REASONS.audioPlaying) !== null) return [];
-  const participants = getAvalonNightParticipants(state.roles, phase.step);
-  if (!participants.every((seat) => phase.confirmedSeats.includes(seat))) return [];
-  const nextStep = AVALON_NIGHT_STEPS[AVALON_NIGHT_STEPS.indexOf(phase.step) + 1];
-  if (nextStep === undefined) {
-    return [
-      { type: 'avalon.night.completed' },
-      queueAudio([
-        { audioKey: getAvalonNightStepEndAudioKey(phase.step, state.roles), isEndAudio: true },
-        { audioKey: NIGHT_END_AUDIO_KEY },
-      ]),
-    ];
-  }
-  return [
-    { type: 'avalon.night.stepped', step: nextStep },
-    queueAudio([
-      { audioKey: getAvalonNightStepEndAudioKey(phase.step, state.roles), isEndAudio: true },
-      { audioKey: getAvalonNightStepBeginAudioKey(nextStep, state.roles) },
-    ]),
-  ];
+export function evaluateAvalonNightProgress(
+  state: AvalonState,
+  nowMs: number,
+): readonly AvalonEvent[] {
+  if (state.phase.kind !== 'night') return [];
+  return evaluateStepProgress(createAvalonNightRuntime(), state, nowMs).flatMap(
+    (event): AvalonEvent[] =>
+      event.type === 'advanced'
+        ? [{ type: 'avalon.night.step', event }, queueAudio(event.audio)]
+        : [{ type: 'avalon.night.step', event }],
+  );
 }

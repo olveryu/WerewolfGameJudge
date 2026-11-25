@@ -807,6 +807,7 @@ interface StageOverlay {
   readonly host: HTMLElement;
   readonly root: Container;
   readonly frame: (timeMs: number) => void;
+  readonly onAvailabilityChange?: (available: boolean) => void;
   /** False while the overlay shows a still frame: the ticker may stop. */
   animating: boolean;
 }
@@ -891,25 +892,52 @@ class SceneStage implements EntranceHost {
   private adopt(renderer: WebGLRenderer): SceneSurface {
     const root = new Container();
     root.addChild(this.world);
+    let pixiRestoreCompleted = false;
+    // Pixi's systems have all joined this runner during init. A DOM restore event alone does not
+    // mean they finished: a system can throw and the browser still calls our DOM listener.
+    const restoreMarker = {
+      contextChange: () => {
+        pixiRestoreCompleted = true;
+      },
+    };
+    renderer.runners.contextChange.add(restoreMarker);
     // PixiJS registered its own listeners during `init`: its loss handler prevents the default (so
     // the browser may restore the context) and its restore handler resets GPU state (textures,
     // buffers, shaders) for re-upload before this redraw runs.
     const stopWatchingContext = watchWebglContext(renderer.canvas, {
       onLost: () => {
+        pixiRestoreCompleted = false;
         this.contextLost = true;
         this.failedRebuilds = 0;
         sceneLog.warn('WebGL context lost; scene paused', this.contextReport());
         this.syncTicker();
         this.syncRestoreDeadline();
+        this.overlay?.onAvailabilityChange?.(false);
       },
       onRestored: () => {
+        if (!pixiRestoreCompleted) {
+          sceneLog.error(
+            'PixiJS failed to restore WebGL state; scene remains paused',
+            this.contextReport(),
+          );
+          return;
+        }
+        pixiRestoreCompleted = false;
         this.contextLost = false;
         this.syncRestoreDeadline();
         sceneLog.info('WebGL context restored; scene redrawn', this.contextReport());
         this.redraw();
+        this.overlay?.onAvailabilityChange?.(true);
       },
     });
-    return { renderer, root, stopWatchingContext };
+    return {
+      renderer,
+      root,
+      stopWatchingContext: () => {
+        stopWatchingContext();
+        renderer.runners.contextChange.remove(restoreMarker);
+      },
+    };
   }
 
   /**
@@ -976,11 +1004,16 @@ class SceneStage implements EntranceHost {
       this.rebuilding = false;
       this.failedRebuilds += 1;
       if (this.failedRebuilds < MAX_REBUILD_ATTEMPTS) {
-        sceneLog.warn('Scene rebuild failed; retrying', { attempt: this.failedRebuilds }, error);
+        sceneLog.warn(
+          'Scene rebuild failed; retrying',
+          { attempt: this.failedRebuilds, ...errorReport(error) },
+          error,
+        );
       } else {
         // Nothing more is created; the old canvas is still watched for a restore.
         sceneLog.error(
           `Scene rebuild failed ${MAX_REBUILD_ATTEMPTS} times; decorations stay hidden until the context is restored or the page reloads`,
+          { attempt: this.failedRebuilds, ...errorReport(error) },
           error,
         );
       }
@@ -1000,6 +1033,7 @@ class SceneStage implements EntranceHost {
     // Fitting the new canvas to its host draws the moved scene, and starts the ticker if it runs.
     this.placeCanvas();
     sceneLog.info('Scene rebuilt on a new WebGL context', this.contextReport());
+    this.overlay?.onAvailabilityChange?.(true);
   }
 
   private contextReport(): Record<string, number> {
@@ -1073,17 +1107,24 @@ class SceneStage implements EntranceHost {
   /**
    * Lends the canvas to a full-screen overlay above the dialog backdrop: moves it into `host`,
    * hides the seat layer and calls `frame` with the ticker time every frame until the returned
-   * release runs, which hands the canvas back to the seat board. One overlay at a time.
+   * release runs, which hands the canvas back to the seat board. One overlay at a time. The
+   * optional availability callback lets interactive overlays offer an exit while rendering is lost.
    */
-  mountOverlay(host: HTMLElement, root: Container, frame: (timeMs: number) => void): () => void {
+  mountOverlay(
+    host: HTMLElement,
+    root: Container,
+    frame: (timeMs: number) => void,
+    onAvailabilityChange?: (available: boolean) => void,
+  ): () => void {
     if (this.overlay) {
       throw new Error('Scene stage already shows an overlay');
     }
-    const overlay: StageOverlay = { host, root, frame, animating: true };
+    const overlay: StageOverlay = { host, root, frame, onAvailabilityChange, animating: true };
     this.overlay = overlay;
     this.seatLayer.visible = false;
     this.world.addChild(root);
     this.placeCanvas();
+    if (this.contextLost) onAvailabilityChange?.(false);
     return () => {
       if (this.overlay !== overlay) {
         throw new Error('Scene stage overlay was already released');
@@ -1410,6 +1451,7 @@ function releaseUnfinishedRenderer(
         'A system of a failed renderer threw while being destroyed',
         {
           system: systemNameOf(renderer, system),
+          ...errorReport(error),
         },
         error,
       );
@@ -1417,6 +1459,12 @@ function releaseUnfinishedRenderer(
   }
   // A context already lost (the usual reason `init` failed) has nothing left to release.
   if (!context.isContextLost()) context.getExtension('WEBGL_lose_context')?.loseContext();
+}
+
+function errorReport(error: unknown): Record<string, string> {
+  return error instanceof Error
+    ? { errorName: error.name, errorMessage: error.message, errorStack: error.stack ?? '' }
+    : { errorMessage: String(error) };
 }
 
 function isDestroyable(item: unknown): item is { destroy(): void } {
@@ -1487,6 +1535,12 @@ async function createSceneRenderer(): Promise<WebGLRenderer> {
  */
 async function createSceneStage(): Promise<SceneStage> {
   const renderer = await createSceneRenderer();
-  const dotTexture = createDotTexture(renderer.resolution);
+  let dotTexture: Texture;
+  try {
+    dotTexture = createDotTexture(renderer.resolution);
+  } catch (error) {
+    renderer.destroy({ removeView: true });
+    throw error;
+  }
   return new SceneStage(renderer, dotTexture, createSceneRenderer);
 }

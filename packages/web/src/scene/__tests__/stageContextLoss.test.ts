@@ -15,7 +15,14 @@ interface FakeRenderer {
   readonly limits: { readonly destroy: () => void };
   /** A render pipe whose `destroy` throws without a context, like `GlSmoothGraphicsAdaptor`'s. */
   readonly renderPipes: { readonly smoothGraphics: { readonly destroy: ReturnType<typeof vi.fn> } };
-  readonly runners: { readonly destroy: { readonly items: readonly object[] } };
+  readonly runners: {
+    readonly destroy: { readonly items: readonly object[] };
+    readonly contextChange: {
+      readonly items: Set<{ contextChange(): void }>;
+      add(item: { contextChange(): void }): void;
+      remove(item: { contextChange(): void }): void;
+    };
+  };
   readonly render: ReturnType<typeof vi.fn>;
   readonly resize: ReturnType<typeof vi.fn>;
   readonly destroy: ReturnType<typeof vi.fn>;
@@ -63,6 +70,7 @@ const pixiFake = vi.hoisted(() => ({
    * context is lost again while PixiJS resets its GPU state.
    */
   pixiRestoreThrows: false,
+  canvas2dUnavailable: false,
   /** How many of the next context creations get no WebGL context at all (either version). */
   contextFailures: 0,
   /** When true, `getContext('webgl2')` returns null, as on a WebGL 1 only device. */
@@ -143,6 +151,15 @@ vi.mock('pixi.js', async (importOriginal) => {
     };
     // PixiJS adds the systems in attach order, then the pipes, to the `destroy` runner.
     readonly runners = {
+      contextChange: {
+        items: new Set<{ contextChange(): void }>(),
+        add(item: { contextChange(): void }) {
+          this.items.add(item);
+        },
+        remove(item: { contextChange(): void }) {
+          this.items.delete(item);
+        },
+      },
       destroy: {
         items: [
           this.view,
@@ -199,6 +216,7 @@ vi.mock('pixi.js', async (importOriginal) => {
         if (pixiFake.pixiRestoreThrows) {
           throw new Error('WebGL context lost during `checkMaxIfStatementsInShader`');
         }
+        for (const item of this.runners.contextChange.items) item.contextChange();
       });
       pixiFake.renderers.push(this);
     }
@@ -292,7 +310,9 @@ describe('scene stage WebGL context loss', () => {
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
       configurable: true,
       value(this: HTMLCanvasElement, type: string, attributes?: WebGLContextAttributes) {
-        if (type !== 'webgl2' && type !== 'webgl') return context2d;
+        if (type !== 'webgl2' && type !== 'webgl') {
+          return pixiFake.canvas2dUnavailable ? null : context2d;
+        }
         const existing = webglContexts.get(this);
         if (existing) return existing.type === type ? existing.context : null;
         pixiFake.webglRequests.push({ canvas: this, type, attributes });
@@ -328,6 +348,7 @@ describe('scene stage WebGL context loss', () => {
     pixiFake.lostOnCreate = false;
     pixiFake.initGate = null;
     pixiFake.pixiRestoreThrows = false;
+    pixiFake.canvas2dUnavailable = false;
     for (const renderer of pixiFake.created) {
       renderer.render.mockClear();
       renderer.resize.mockClear();
@@ -571,8 +592,15 @@ describe('scene stage WebGL context loss', () => {
     pixiFake.contextFailures = 1;
     const calls = pixiFake.initCalls;
     const requests = pixiFake.webglRequests.length;
+    const warning = vi.spyOn(console, 'warn');
 
     await loseForever(lost);
+    expect(warning).toHaveBeenCalledWith(
+      '[Scene] Scene rebuild failed; retrying',
+      expect.objectContaining({ errorMessage: 'No WebGL context could be created' }),
+      expect.any(Error),
+    );
+    warning.mockRestore();
     // Both WebGL versions were tried; PixiJS init was never reached.
     expect(pixiFake.webglRequests.slice(requests).map((request) => request.type)).toEqual([
       'webgl2',
@@ -801,12 +829,9 @@ describe('scene stage WebGL context loss', () => {
     // PixiJS's handler throws; the browser reports it and still runs the stage's watch.
     lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
     expect(reported).toHaveLength(1);
-    expect(ticker().started).toBe(true);
-    // The context the restore handed back is lost again, which pauses the scene once more.
-    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
     expect(ticker().started).toBe(false);
 
-    // With no further restore, the rebuild takes over.
+    // Even if no further loss event arrives, the rebuild takes over.
     await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS);
     await flush();
     const next = current();
@@ -827,7 +852,6 @@ describe('scene stage WebGL context loss', () => {
 
     lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
     lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
-    lost.canvas.dispatchEvent(contextEvent('webglcontextlost'));
     pixiFake.pixiRestoreThrows = false;
     await vi.advanceTimersByTimeAsync(CONTEXT_RESTORE_DEADLINE_MS - 1);
     lost.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
@@ -837,5 +861,32 @@ describe('scene stage WebGL context loss', () => {
     expect(current()).toBe(lost);
     window.removeEventListener('error', onError);
     release();
+  });
+
+  it('notifies an overlay mounted during a loss and when the scene recovers', async () => {
+    const { stage, release } = await mountedStage();
+    const renderer = current();
+    renderer.canvas.dispatchEvent(contextEvent('webglcontextlost'));
+    release();
+    const onAvailabilityChange = vi.fn();
+    const host = document.createElement('div');
+    const root = stage.createOverlayRoot();
+    const releaseOverlay = stage.mountOverlay(host, root, () => {}, onAvailabilityChange);
+    expect(onAvailabilityChange).toHaveBeenLastCalledWith(false);
+    renderer.canvas.dispatchEvent(contextEvent('webglcontextrestored'));
+    expect(onAvailabilityChange).toHaveBeenLastCalledWith(true);
+    releaseOverlay();
+  });
+
+  it('destroys the initialized renderer if the dot texture cannot be created', async () => {
+    vi.resetModules();
+    pixiFake.canvas2dUnavailable = true;
+    const { sharedSceneStage } = await import('@/scene/stage');
+    await expect(sharedSceneStage()).rejects.toThrow(
+      'Canvas 2D is unavailable for the dot texture',
+    );
+    const renderer = pixiFake.created.at(-1);
+    expect(renderer?.destroy).toHaveBeenCalledWith({ removeView: true });
+    expect(renderer?.touchHook).toBeNull();
   });
 });

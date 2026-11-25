@@ -3,12 +3,12 @@
  *
  * Pure function, no side effects. Maps GameState to GameContext,
  * containing only information the player should know (no cheating).
- * Reads gameState and ROLE_SPECS. Does not modify state or call services.
+ * Reads gameState and the role catalog. Does not modify state or call services.
  */
 
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import type { WerewolfViewModel } from '@game-judge/game-engine/games/werewolf/public';
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from '@/games/werewolf/services/AIChatService';
 
@@ -35,7 +35,7 @@ export function buildPlayerContext(
   // Role configuration (public info)
   if (state.templateRoles.length > 0) {
     context.boardRoleDetails = state.templateRoles.map((roleId) => {
-      const roleSpec = ROLE_SPECS[roleId];
+      const roleSpec = getRoleCard(roleId);
       return {
         name: roleSpec.displayName,
         description: roleSpec.description || '无描述',
@@ -48,7 +48,7 @@ export function buildPlayerContext(
     context.mySeat = viewModel.mySeat;
     if (viewModel.myRole) {
       context.myRole = viewModel.myRole;
-      context.myRoleName = ROLE_SPECS[viewModel.myRole].displayName;
+      context.myRoleName = getRoleCard(viewModel.myRole).displayName;
     }
   }
 

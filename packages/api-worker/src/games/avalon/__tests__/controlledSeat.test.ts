@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { avalonWorkerModule } from '../module';
+import { viewNightCommand } from './avalonNightCommand';
 
 const HOST = 'host-1';
 
@@ -65,7 +66,7 @@ function nightState(): AvalonState {
   );
   const started = commitState(botsMarked, { type: 'avalon.game.begin' }, HOST, null, 'begin');
   if (started.phase.kind !== 'night') throw new Error('Expected night phase');
-  // 音频门控：先 ack 掉开局播报，否则 night.confirm 会被"播报尚未结束"拦截，
+  // 音频门控：先 ack 掉开局播报，否则 夜间查看会被"播报尚未结束"拦截，
   // 盖掉 controlledSeat 门控的测试目标。
   let state = started;
   while (state.isAudioPlaying) {
@@ -83,25 +84,19 @@ function nightState(): AvalonState {
 describe('Avalon controlledSeat gate', () => {
   it('rejects a non-host takeover with REASON_NOT_HOST', () => {
     const state = nightState();
-    const decision = decide(
-      state,
-      { type: 'avalon.night.confirm' },
-      'intruder',
-      1,
-      'takeover-intruder',
-    );
+    const decision = decide(state, viewNightCommand(state), 'intruder', 1, 'takeover-intruder');
     expect(decision).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
   });
 
   it('rejects a host takeover of a real seat with REASON_CONTROLLED_SEAT_NOT_BOT', () => {
     const state = nightState();
-    const decision = decide(state, { type: 'avalon.night.confirm' }, HOST, 0, 'takeover-real-seat');
+    const decision = decide(state, viewNightCommand(state), HOST, 0, 'takeover-real-seat');
     expect(decision).toEqual({ kind: 'reject', reason: REASON_CONTROLLED_SEAT_NOT_BOT });
   });
 
   it('lets the host act through a taken-over bot seat', () => {
     const state = nightState();
-    const decision = decide(state, { type: 'avalon.night.confirm' }, HOST, 1, 'takeover-bot-seat');
+    const decision = decide(state, viewNightCommand(state), HOST, 1, 'takeover-bot-seat');
     if (decision.kind === 'reject') {
       // Seat 1 may simply not participate in the current night step; the gate
       // itself must not be the rejection reason.

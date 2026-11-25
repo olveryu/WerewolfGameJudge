@@ -18,6 +18,7 @@ import {
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 import * as alertPresets from '@/utils/alertPresets';
 
 import {
@@ -494,12 +495,12 @@ it('automatically opens the acting president hand when reconnecting', () => {
 });
 
 it.each([
-  ['investigate', '调查阵营', 'secrethitler.action.investigate'],
-  ['specialElection', '特别选举', 'secrethitler.action.specialElection'],
-  ['execute', '处决玩家', 'secrethitler.action.execute'],
+  ['investigate', '调查', 'secrethitler.action.investigate', '调查2号？', ''],
+  ['specialElection', '特别选举', 'secrethitler.action.specialElection', '指定2号为下任总统？', ''],
+  ['execute', '处决', 'secrethitler.action.execute', '处决2号？', '处决不可撤销。'],
 ] as const)(
   'picks the %s target on the seat board before confirming',
-  async (power, action, type) => {
+  async (power, action, type, title, body) => {
     const states = buildSecrethitlerPhaseStates();
     const base = states.get('executive');
     if (base === undefined) throw new Error('Missing president fixture');
@@ -511,9 +512,6 @@ it.each([
       investigatedSeats: [],
       phase: { kind: 'executive', presidentSeat: 0, returnToSeat: null, power, preview: [] },
     };
-    const confirmation = vi
-      .spyOn(alertPresets, 'showConfirmAlert')
-      .mockImplementation(() => undefined);
     const error = vi.spyOn(alertPresets, 'showErrorAlert').mockImplementation(() => undefined);
     const identity = testIdentity('secrethitler');
     const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
@@ -546,31 +544,35 @@ it.each([
     fireEvent.click(screen.getByRole('button', { name: action }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(0)));
-    expect(confirmation).not.toHaveBeenCalled();
+    expect(alertStore.getSnapshot()).toBeNull();
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(1)));
-    const confirmationCall = confirmation.mock.calls[0];
-    expect(confirmationCall?.[0]).toBe('确认选择？');
-    expect(confirmationCall?.[1]).toContain('2 号');
-    expect(confirmationCall?.[2]).toEqual(expect.any(Function));
-    expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
+    const confirmationAlert = alertStore.getSnapshot();
+    expect(confirmationAlert).toMatchObject({
+      title,
+      buttons: [{ text: '取消' }, { text: '确定' }],
+    });
+    expect(confirmationAlert?.message ?? '').toBe(body);
+    const confirm = confirmationAlert?.buttons[1]?.onPress;
+    if (confirm === undefined) throw new Error('Missing target confirmation');
     expect(session.dispatch).not.toHaveBeenCalled();
     session.dispatch.mockResolvedValueOnce({
       kind: 'undelivered',
       commandId: 'target',
       cause: 'network',
     });
-    await act(async () => confirmation.mock.calls[0]?.[2]());
+    await act(async () => confirm());
     expect(session.dispatch).toHaveBeenCalledWith({ type, targetSeatId: 1 }, expect.anything());
     fireEvent.click(screen.getByRole('button', { name: '取消选座' }));
-    await act(async () => confirmation.mock.calls[0]?.[2]());
+    await act(async () => confirm());
     expect(session.dispatch).toHaveBeenCalledOnce();
     expect(error).toHaveBeenCalledWith('选择已失效', '当前行动已改变，请重新选择。');
     error.mockRestore();
-    confirmation.mockRestore();
+    const remaining = alertStore.getSnapshot();
+    if (remaining !== null) dismissAlert(remaining.generation);
   },
 );
 
-it('asks before showing private night recognition information', () => {
+it('shows private night recognition through the shared view action', () => {
   const night = buildSecrethitlerPhaseStates().get('night');
   if (night === undefined) throw new Error('Missing night fixture');
   const fascistSeat = Object.entries(night.identities).find(([, role]) => role === 'fascist')?.[0];
@@ -582,9 +584,6 @@ it('asks before showing private night recognition information', () => {
     isAudioPlaying: false,
     identities: { ...night.identities, 0: 'fascist', [fascistSeat]: originalRole },
   };
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const identity = testIdentity('secrethitler');
   const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
     readyLinkSnapshot(identity, createRoomSnapshot(state, 1)),
@@ -613,19 +612,15 @@ it('asks before showing private night recognition information', () => {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  fireEvent.click(screen.getByRole('button', { name: '确认信息' }));
-  const confirmationCall = confirmation.mock.calls[0];
-  expect(confirmationCall?.[0]).toBe('查看信息？');
-  expect(confirmationCall?.[1]).toEqual(expect.any(String));
-  expect(confirmationCall?.[2]).toEqual(expect.any(Function));
-  expect(confirmationCall?.[3]?.confirmText).toBe('查看');
-  expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
-  expect(screen.queryByRole('dialog', { name: '确认信息' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '查看夜间信息' }));
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '查看夜间信息？' });
   act(() => {
-    void confirmation.mock.calls[0]?.[2]();
+    void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
   });
-  expect(screen.getByRole('dialog', { name: '确认信息' })).toBeVisible();
-  confirmation.mockRestore();
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '坏人互认' });
+  expect(alertStore.getSnapshot()?.message).toContain('仅你获准查看');
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
 });
 
 it('shows public composition in the room dialog without revealing seat identities', async () => {

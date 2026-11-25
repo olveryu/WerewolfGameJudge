@@ -2,6 +2,7 @@
 import {
   getSecrethitlerNightParticipants,
   getSecrethitlerViewModel,
+  SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
   type SecrethitlerCommand,
   secrethitlerEngine,
   type SecrethitlerPhaseKind,
@@ -101,7 +102,28 @@ export function sendSecrethitlerSeatCommand(
   );
 }
 
-/** Completes viewing, electronic narration and the authorized recognition confirmations. */
+/** Builds the current private-view submission for one eligible night participant. */
+export function secrethitlerNightViewCommand(
+  state: SecrethitlerState,
+  seat: number,
+): SecrethitlerCommand {
+  const step = getSecrethitlerViewModel(state, seat).step;
+  const action = step?.actions.find(
+    (candidate) =>
+      candidate.kind === 'view' &&
+      candidate.key === SECRETHITLER_NIGHT_VIEW_ACTION_KEY &&
+      candidate.availability.kind === 'available',
+  );
+  if (step === null || action === undefined)
+    throw new Error('Expected an available Secret Hitler night view action');
+  return {
+    type: 'secrethitler.step.submit',
+    gameSequence: state.gameSequence,
+    submission: { stepId: step.stepId, serial: step.serial, actionKey: action.key },
+  };
+}
+
+/** Completes identity viewing, electronic narration and authorized private night viewing. */
 export function startSecrethitlerTestGame(
   from: SecrethitlerState,
   onState: (state: SecrethitlerState) => void = () => undefined,
@@ -113,10 +135,7 @@ export function startSecrethitlerTestGame(
   state = driveSecrethitlerTestCommand(state, { type: 'secrethitler.game.begin' });
   onState(state);
   for (const seat of getSecrethitlerNightParticipants(state)) {
-    state = sendSecrethitlerSeatCommand(state, seat, {
-      type: 'secrethitler.night.confirm',
-      step: 1,
-    });
+    state = sendSecrethitlerSeatCommand(state, seat, secrethitlerNightViewCommand(state, seat));
   }
   state = driveSecrethitlerTestCommand(state, {
     type: 'secrethitler.audio.ack',

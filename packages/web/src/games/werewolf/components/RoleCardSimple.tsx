@@ -8,7 +8,7 @@
 import './RoleCardSimple.css';
 import './faction.css';
 
-import { ROLE_SPECS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { Button } from '@/components/Button';
 import { RoleCardDialog } from '@/features/room/components/RoleCard';
@@ -92,7 +92,7 @@ export function RoleCardSimple({
                   data-testid={TESTIDS.configVariantOption(id)}
                   onClick={() => onVariantSelect(id)}
                 >
-                  {ROLE_SPECS[id].displayName}
+                  {getRoleCard(id).displayName}
                 </button>
               ))}
             </div>

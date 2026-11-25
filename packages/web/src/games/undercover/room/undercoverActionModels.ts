@@ -3,6 +3,7 @@ import type {
   UndercoverPreparationFailure,
   UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
 import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
@@ -46,7 +47,7 @@ function resolveUndercoverBottomMessage(
   // 查看阶段本人（或被接管座位）未确认时提示去看词卡（展示契约
   // self-hint 态，本人提示只走底部这一处出口）。选人中的房主指示
   // 归主持任务卡，不在此处。
-  if (controls.shouldConfirm) return `请点击下方「${cardLabel}」，查看词语`;
+  if (controls.shouldConfirm) return `请点击「${cardLabel}」`;
   switch (state.phase) {
     case 'lobby':
       return buildLobbyHostStartMessage({ isLobby: true, viewer });
@@ -83,7 +84,9 @@ export function createUndercoverPlayerActions(
 ): RoomPlayerActionModel {
   const actions: RoomPlayerAction[] = [];
   const cardLabel =
-    controls.controlledSeat !== null ? `查看 ${controls.controlledSeat + 1} 号词卡` : '查看我的词';
+    controls.controlledSeat !== null
+      ? `查看${formatSeat(controls.controlledSeat)}词卡`
+      : '查看词卡';
   // 词卡只属于参赛座位
   // （含被接管座位）。取消选择是房主命令，住主持管理（任务卡的退出动作）。
   const viewCardAction = resolveViewIdentityAction({

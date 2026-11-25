@@ -7,14 +7,17 @@
  * The RoomShell itself is replaced by a probe that captures the model.
  */
 
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
   createWerewolfRoomMock,
+  createWerewolfRoomMockFromState,
   mountWerewolfRoom,
+  type WerewolfRoomMock,
   type WerewolfRoomMockOptions,
 } from '@/games/werewolf/room/__tests__/harness';
+import { createBoardNightState } from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { TESTIDS } from '@/testids';
 
 const shellProbe = vi.hoisted(() => ({ model: null as RoomShellModel | null }));
@@ -43,19 +46,45 @@ function seerStepRoom(overrides: Partial<WerewolfRoomMockOptions>): WerewolfRoom
 }
 
 async function captureModel(options: WerewolfRoomMockOptions): Promise<RoomShellModel> {
+  return captureMockModel(createWerewolfRoomMock(options));
+}
+
+async function captureMockModel(mock: WerewolfRoomMock): Promise<RoomShellModel> {
   shellProbe.model = null;
-  const view = await mountWerewolfRoom(createWerewolfRoomMock(options));
+  const view = await mountWerewolfRoom(mock);
   expect(view.getByTestId(TESTIDS.roomScreenRoot)).toBeInTheDocument();
   view.unmount();
   if (shellProbe.model === null) throw new Error('RoomShell model was not captured');
   return shellProbe.model;
 }
 
+const roles: readonly RoleId[] = [
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'wolf',
+  'wolf',
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'hunter',
+  'idiot',
+];
+const roleAssignment = new Map(roles.map((role, seat) => [seat, role]));
+const seerState = createBoardNightState(
+  '预女猎白',
+  (state) => state.nightState?.slice.current?.stepId === 'seerCheck',
+  { wolfKill: { actionKey: 'wolfKillAbstain' } },
+  roleAssignment,
+);
+
 describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
   it('assembles the baseline model during a night action that is not mine', async () => {
-    const model = await captureModel(seerStepRoom({}));
+    const model = await captureMockModel(createWerewolfRoomMockFromState(seerState, 3));
 
-    expect(model.roomCode).toBe('1234');
+    expect(model.roomCode).toBe(seerState.roomCode);
     expect(model.connection.status).toEqual({ kind: 'live' });
     expect(model.header.userAction).not.toBeNull();
     expect(model.header.userAction?.ticketCount).toBeNull();
@@ -69,16 +98,21 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
   });
 
   it('surfaces the action message when it is my action', async () => {
-    const model = await captureModel(seerStepRoom({ myRole: 'seer', mySeat: 0 }));
+    const model = await captureMockModel(createWerewolfRoomMockFromState(seerState, 8));
 
-    expect(model.playerActions.message).toBe('请选择要查验的玩家，如不使用请点击「不用技能」');
+    expect(model.playerActions.message).toContain('查验');
+    expect(model.playerActions.message).toContain('不用技能');
     expect(model.playerActions.actions).toEqual([
       expect.objectContaining({ key: 'viewRole', label: '查看身份' }),
     ]);
     expect(model.playerActions.group).toMatchObject({
-      label: '预言家行动',
+      label: '查验',
       isPending: true,
     });
+    expect(model.playerActions.group?.actions.map((action) => action.key)).toEqual([
+      'seerCheck',
+      '$skip',
+    ]);
   });
 
   it.each(['host', 'player', 'spectator'] as const)(
@@ -102,7 +136,7 @@ describe('WerewolfRoomScreen shell model assembly (characterization)', () => {
   );
 
   it('includes host management only for the host', async () => {
-    const model = await captureModel(seerStepRoom({ mySeat: 0, isHost: true }));
+    const model = await captureMockModel(createWerewolfRoomMockFromState(seerState, 0));
 
     expect(model.hostManagement).not.toBeNull();
   });

@@ -11,7 +11,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
-import { avalonTestSeatUser, playAvalonTestGame } from '@/test-utils/avalonState';
+import { avalonNightPhase, avalonTestSeatUser, playAvalonTestGame } from '@/test-utils/avalonState';
 import { createFakeRoomLink, readyLinkSnapshot } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
 import { TESTIDS } from '@/testids';
@@ -99,7 +99,7 @@ describe('AvalonRoomScreen review', () => {
       const state = playAvalonTestGame(0);
       const nightState: AvalonState = {
         ...state,
-        phase: { kind: 'night', step: 'merlinReveal', confirmedSeats: [] },
+        phase: avalonNightPhase('merlinReveal'),
       };
       renderRoom(nightState, avalonTestSeatUser(0));
       expect(screen.getByTestId(TESTIDS.bgmToggleButton)).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('AvalonRoomScreen review', () => {
       renderRoom(
         {
           ...state,
-          phase: { kind: 'night', step: 'merlinReveal', confirmedSeats: [] },
+          phase: avalonNightPhase('merlinReveal'),
         },
         avalonTestSeatUser(1),
       );

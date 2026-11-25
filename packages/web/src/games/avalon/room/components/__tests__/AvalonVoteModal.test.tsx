@@ -25,6 +25,7 @@ function voteViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMode
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: 2,

@@ -75,7 +75,15 @@ describe('Secrethitler public command schema', () => {
       { type: 'secrethitler.bots.markAllBotsViewed' },
       { type: 'secrethitler.bots.markAllBotsGroupConfirmed' },
       { type: 'secrethitler.role.viewed' },
-      { type: 'secrethitler.night.confirm', step: 1 },
+      {
+        type: 'secrethitler.step.submit',
+        gameSequence: 1,
+        submission: {
+          stepId: 'fascistRecognition',
+          serial: 0,
+          actionKey: 'viewNightInfo',
+        },
+      },
       { type: 'secrethitler.government.preselect', chancellorSeatId: 3 },
       { type: 'secrethitler.government.nominate', chancellorSeatId: 3 },
       { type: 'secrethitler.government.castVote', vote: 'ja' },

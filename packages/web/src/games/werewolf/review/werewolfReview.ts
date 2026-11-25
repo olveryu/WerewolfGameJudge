@@ -40,11 +40,10 @@ export const werewolfReview: RoomReviewContribution<GameState> = {
           ? { isAllowed: false, reason: '观众可查看，但不能保存／分享复盘' }
           : { isAllowed: true },
       confirmation: {
-        title: '查看本局复盘？',
-        message: isEnded
+        label: '查看本局复盘',
+        body: isEnded
           ? '本局复盘包含全员身份和行动记录，请确认是否继续。'
           : '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
-        confirmText: '确定查看',
       },
     };
   },

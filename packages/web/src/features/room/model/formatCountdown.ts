@@ -8,12 +8,13 @@ export function formatCountdownSeconds(totalSeconds: number): string {
 /** 全员提交后的结算状态句：投票与出牌两种提交共用一份措辞。 */
 export type SettleSubmissionKind = '投票' | '出牌';
 
-/** 「已全部投票，N 秒后揭晓」；倒计时为空或已到 0 时为「已全部投票，等待揭晓」。 */
+/** Format the pending reveal or settlement after every participant submits. */
 export function formatSettleCountdown(
   remainingSeconds: number | null,
   kind: SettleSubmissionKind,
+  outcome: '揭晓' | '结算' = '揭晓',
 ): string {
   return remainingSeconds !== null && remainingSeconds > 0
-    ? `已全部${kind}，${remainingSeconds} 秒后揭晓`
-    : `已全部${kind}，等待揭晓`;
+    ? `已全部${kind}，${remainingSeconds} 秒后${outcome}`
+    : `已全部${kind}，等待${outcome}`;
 }

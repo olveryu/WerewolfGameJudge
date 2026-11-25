@@ -10,14 +10,9 @@ import {
 describe('AvalonStrikeConfirmModal', () => {
   it('renders nothing without a confirmation', () => {
     const { queryByText } = render(
-      <AvalonStrikeConfirmModal
-        confirmation={null}
-        seatName="玩家3"
-        onConfirm={vi.fn()}
-        onClose={vi.fn()}
-      />,
+      <AvalonStrikeConfirmModal confirmation={null} onConfirm={vi.fn()} onClose={vi.fn()} />,
     );
-    expect(queryByText('指认梅林')).toBeNull();
+    expect(queryByText('指认3号为梅林？')).toBeNull();
   });
 
   it('confirms an accusation through the alert dialog', () => {
@@ -27,14 +22,12 @@ describe('AvalonStrikeConfirmModal', () => {
     const { getByText } = render(
       <AvalonStrikeConfirmModal
         confirmation={confirmation}
-        seatName="玩家3"
         onConfirm={onConfirm}
         onClose={onClose}
       />,
     );
-    expect(getByText('指认梅林')).toBeTruthy();
-    expect(getByText('确定指认【玩家3】为梅林？')).toBeTruthy();
-    fireEvent.click(getByText('确认指认'));
+    expect(getByText('指认3号为梅林？')).toBeTruthy();
+    fireEvent.click(getByText('确定'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     // 弹窗由房间状态驱动：确认只上报意图，关闭由调用方在 onConfirm 里清状态完成。
     expect(onClose).not.toHaveBeenCalled();
@@ -46,14 +39,13 @@ describe('AvalonStrikeConfirmModal', () => {
     const { getByText } = render(
       <AvalonStrikeConfirmModal
         confirmation={confirmation}
-        seatName="玩家3"
         onConfirm={onConfirm}
         onClose={vi.fn()}
       />,
     );
-    expect(getByText('提前刺杀')).toBeTruthy();
-    expect(getByText('确定提前刺杀【玩家3】？刺错则好人直接获胜')).toBeTruthy();
-    fireEvent.click(getByText('确认刺杀'));
+    expect(getByText('提前刺杀3号？')).toBeTruthy();
+    expect(getByText('刺错则好人直接获胜。')).toBeTruthy();
+    fireEvent.click(getByText('确定'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -62,7 +54,6 @@ describe('AvalonStrikeConfirmModal', () => {
     const { getByText } = render(
       <AvalonStrikeConfirmModal
         confirmation={{ seat: 2, mode: 'accuse' }}
-        seatName="玩家3"
         onConfirm={vi.fn()}
         onClose={onClose}
       />,

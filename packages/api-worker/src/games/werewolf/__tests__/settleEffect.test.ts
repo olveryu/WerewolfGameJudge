@@ -17,9 +17,11 @@ import {
   REASON_PHASE_NOT_EXPIRABLE,
   type WerewolfEffect,
   type WerewolfInternalCommand,
+  type WerewolfPublicCommand,
   type WerewolfSettleDueEffect,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,29 +61,110 @@ function baseState(): GameState {
   };
 }
 
-/** Ongoing wolfKill step, both wolves voted, settle countdown armed. */
+function dispatchPublicFixture(
+  state: GameState,
+  command: WerewolfPublicCommand,
+  userId: string,
+  nowMs: number,
+): GameState {
+  const decision = werewolfWorkerModule.decidePublic(state, command, {
+    actor: { kind: 'user', userId },
+    controlledSeat: null,
+    nowMs,
+    commandId: `fixture:${command.type}:${userId}`,
+    randomSeed: 'settle-effect-fixture',
+  });
+  if (decision.kind === 'reject') throw new Error(`Fixture command rejected: ${decision.reason}`);
+  if (decision.outcome.kind === 'domainRejected') {
+    throw new Error(`Fixture command rejected: ${decision.outcome.reason}`);
+  }
+  return decision.state;
+}
+
+function acknowledgeFixtureAudio(state: GameState, nowMs: number): GameState {
+  return dispatchPublicFixture(
+    state,
+    { type: 'werewolf.audio.ack', audioBatchId: state.audioBatchId },
+    'host',
+    nowMs,
+  );
+}
+
+/** Use the current commands to arm the real shared wolf-vote deadline. */
 function armedWolfVoteState(): GameState {
-  return {
-    ...baseState(),
-    status: GameStatus.Ongoing,
-    nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: DEADLINE_AT },
-    currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
-    actions: [
-      { schemaId: 'wolfKill', actorSeat: 0, targetSeat: 4, timestamp: 1000 },
-      { schemaId: 'wolfKill', actorSeat: 1, targetSeat: 4, timestamp: 1000 },
-    ],
-  };
+  let state = dispatchPublicFixture(
+    { ...baseState(), status: GameStatus.Ready },
+    { type: 'werewolf.game.begin' },
+    'host',
+    1000,
+  );
+  state = acknowledgeFixtureAudio(state, 1000);
+  const current = state.nightState?.slice.current;
+  if (current?.stepId !== 'wolfKill') throw new Error('Expected the wolf-vote step');
+  for (const userId of ['host', 'u1']) {
+    state = dispatchPublicFixture(
+      state,
+      {
+        type: 'werewolf.step.submit',
+        gameSequence: state.gameSequence,
+        submission: { ...current, actionKey: 'wolfKill', seats: [4] },
+      },
+      userId,
+      1000,
+    );
+  }
+  if (state.nightState?.slice.deadlineMs !== DEADLINE_AT) {
+    throw new Error('Expected an armed wolf-vote deadline');
+  }
+  return state;
+}
+
+function completedNightState(): GameState {
+  let state = armedWolfVoteState();
+  const settled = werewolfWorkerModule.decideInternal(
+    state,
+    { type: 'werewolf.phase.settleExpired' },
+    {
+      actor: { kind: 'system', effectId: 'fixture-settle' },
+      controlledSeat: null,
+      nowMs: DEADLINE_AT,
+      commandId: 'fixture:settle',
+      randomSeed: 'settle-effect-fixture',
+    },
+  );
+  if (settled.kind === 'reject') throw new Error(`Fixture settle rejected: ${settled.reason}`);
+  state = settled.state;
+  for (let transition = 0; transition < 10; transition += 1) {
+    if (state.isAudioPlaying) {
+      state = acknowledgeFixtureAudio(state, DEADLINE_AT);
+      continue;
+    }
+    if (state.status === GameStatus.Day) return state;
+    const current = state.nightState?.slice.current;
+    if (current?.stepId !== 'hunterConfirm' && current?.stepId !== 'seerCheck') {
+      throw new Error(`Unexpected fixture step: ${String(current?.stepId)}`);
+    }
+    state = dispatchPublicFixture(
+      state,
+      {
+        type: 'werewolf.step.submit',
+        gameSequence: state.gameSequence,
+        submission: {
+          ...current,
+          actionKey: current.stepId === 'hunterConfirm' ? 'hunterConfirm' : STEP_SKIP_ACTION_KEY,
+        },
+      },
+      current.stepId === 'hunterConfirm' ? 'u3' : 'u2',
+      DEADLINE_AT,
+    );
+  }
+  throw new Error('Fixture night did not reach the sheriff election');
 }
 
 /** Day sheriff first vote, every eligible ballot in, settle countdown armed. */
 function armedSheriffVoteState(): GameState {
   return {
-    ...baseState(),
-    status: GameStatus.Day,
-    nightStep: null,
-    currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
-    lastNightDeaths: [4],
-    rules: { isSheriffElectionEnabled: true },
+    ...completedNightState(),
     sheriffElection: {
       phase: 'firstVote',
       registeredSeats: [0, 1],
@@ -100,8 +183,8 @@ function settleEffectFor(
   overrides: Partial<WerewolfSettleDueEffect['payload']> = {},
 ): WerewolfEffect {
   const phase =
-    state.nightStep?.kind === 'inStep'
-      ? state.nightStep.stepId
+    state.nightState?.slice.current != null
+      ? state.nightState.slice.current.stepId
       : state.sheriffElection?.phase === 'firstVote' ||
           state.sheriffElection?.phase === 'runoffVote'
         ? state.sheriffElection.phase
@@ -191,7 +274,7 @@ describe('Werewolf settle effect', () => {
     const { context, box } = settleContext(state);
     await handleWerewolfEffect(settleEffectFor(state), context);
     expect(box.commands).toEqual([{ type: 'werewolf.phase.settleExpired' }]);
-    expect(box.current.nightStep).not.toEqual(state.nightStep);
+    expect(box.current.nightState?.slice.current).not.toEqual(state.nightState?.slice.current);
   });
 
   it('settles the armed sheriff vote through the internal system command', async () => {
@@ -358,9 +441,14 @@ describe('Werewolf settle effect', () => {
       expect(box.current).toBe(state);
     }
     // A deadline that was cleared (vote retracted) is stale too.
+    const nightState = state.nightState;
+    if (nightState === null) throw new Error('Expected the active night state');
     const cleared: GameState = {
       ...state,
-      nightStep: { kind: 'inStep', stepId: 'wolfKill' },
+      nightState: {
+        ...nightState,
+        slice: { ...nightState.slice, deadlineMs: null },
+      },
     };
     const { context, box } = settleContext(cleared);
     await handleWerewolfEffect(settleEffectFor(state), context);

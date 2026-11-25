@@ -5,6 +5,7 @@ import {
   type PhaseDeadlineSession,
 } from '../../../platform/room/__tests__/phaseDeadlineScenarios';
 import { SECRETHITLER_REASONS } from '../domain/decision';
+import { SECRETHITLER_NIGHT_VIEW_ACTION_KEY } from '../domain/nightSteps';
 import { getSecrethitlerNightParticipants } from '../domain/rules';
 import { secrethitlerEngine } from '../engine';
 import { parseSecrethitlerState } from '../state/parseState';
@@ -19,8 +20,24 @@ function armedVotingSession() {
   session.send({ type: 'secrethitler.roles.assign' });
   session.send({ type: 'secrethitler.bots.markAllBotsViewed' });
   session.send({ type: 'secrethitler.game.begin' });
-  for (const seat of getSecrethitlerNightParticipants(session.state))
-    session.send({ type: 'secrethitler.night.confirm', step: 1 }, 'host', seat);
+  for (const seat of getSecrethitlerNightParticipants(session.state)) {
+    const phase = session.state.phase;
+    if (phase.kind !== 'night' || phase.steps.current === null)
+      throw new Error('Expected the current first-night step');
+    session.send(
+      {
+        type: 'secrethitler.step.submit',
+        gameSequence: session.state.gameSequence,
+        submission: {
+          stepId: phase.steps.current.stepId,
+          serial: phase.steps.current.serial,
+          actionKey: SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
+        },
+      },
+      'host',
+      seat,
+    );
+  }
   while (session.state.isAudioPlaying)
     session.send({ type: 'secrethitler.audio.ack', audioBatchId: session.state.audioBatchId });
   const election = session.state.phase;

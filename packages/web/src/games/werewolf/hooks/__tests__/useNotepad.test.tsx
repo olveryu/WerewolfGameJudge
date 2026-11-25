@@ -22,7 +22,6 @@ function createGameState(
     hostUserId: 'host-user',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer'],
-    nightStep: { kind: 'inStep', stepId: 'wolfKill' },
     ...(restartNonce === undefined ? {} : { roleRevealRandomNonce: restartNonce }),
     ...(sheriffElection === undefined ? {} : { sheriffElection }),
   });

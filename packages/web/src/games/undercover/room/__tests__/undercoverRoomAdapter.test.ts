@@ -9,13 +9,13 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 import { act, renderHook } from '@testing-library/react';
 
+import { confirmAction, confirmView } from '@/features/room/confirm';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { playUndercoverTestRound } from '@/test-utils/undercoverState';
 import { TESTIDS } from '@/testids';
 import { dismissAlert } from '@/utils/alert';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { undercoverReview } from '../../review/undercoverReview';
@@ -32,18 +32,15 @@ import {
   createUndercoverSeatDataSource,
 } from '../undercoverRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(
-    (
-      _title: string,
-      _message: string,
-      _onConfirm: () => void | Promise<void>,
-      options?: { onShown?: (generation: number | null) => void },
-    ) => options?.onShown?.(17),
+vi.mock('@/features/room/confirm', () => ({
+  confirmAction: vi.fn((input: { onShown?: (generation: number | null) => void }) =>
+    input.onShown?.(17),
   ),
-  showDestructiveAlert: vi.fn(),
-  showErrorAlert: vi.fn(),
+  confirmView: vi.fn((input: { onShown?: (generation: number | null) => void }) =>
+    input.onShown?.(17),
+  ),
 }));
+vi.mock('@/utils/alertPresets', () => ({ showErrorAlert: vi.fn() }));
 vi.mock('@/utils/alert', () => ({ dismissAlert: vi.fn() }));
 
 /** Sets the page visibility and notifies listeners, as a browser does when the tab is hidden. */
@@ -190,8 +187,10 @@ it('conceals cards on control changes, backgrounding and remount', () => {
   );
   const revealCard = () => {
     act(() => result.current.openCard());
-    const reveal = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (reveal === undefined) throw new Error('Missing word-card view confirmation');
+    const confirmation = vi.mocked(confirmView).mock.calls.at(-1)?.[0];
+    if (confirmation === undefined) throw new Error('Missing word-card view confirmation');
+    expect(confirmation.label).toBe('查看词卡');
+    const reveal = confirmation.onView;
     act(() => void reveal());
   };
   expect(result.current.card).toBeNull();
@@ -387,7 +386,7 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(activeSelection.pendingActionKeys).toEqual([]);
   expect(activeSelection.task).toEqual({
     kind: 'message',
-    text: '点座位盘选择本次出局玩家',
+    text: '请选择要出局的玩家',
     escapeActionKey: 'cancel-selection',
   });
   act(() => result.current.cancelRevelation());
@@ -462,13 +461,17 @@ it('allows repeated words with one round-bound command after confirmation', asyn
       isSubmitting: false,
     }),
   );
-  vi.mocked(showConfirmAlert).mockClear();
+  vi.mocked(confirmAction).mockClear();
   act(() => result.current.allowRepeated());
   expect(session.dispatch).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+  const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
   if (confirmation === undefined) throw new Error('Expected confirmation');
+  expect(confirmation).toMatchObject({
+    label: '允许重复词对',
+    body: '当前分类没有未使用词对。只对下一局生效，之后各局仍按去重设置。',
+  });
   await act(async () => {
-    await confirmation[2]();
+    await confirmation.onConfirm();
   });
   expect(session.dispatch).toHaveBeenCalledTimes(1);
   expect(session.dispatch).toHaveBeenCalledWith(
@@ -731,7 +734,7 @@ it('clears the self-hint once every seat has viewed', () => {
       null,
     ),
   ).toMatchObject({
-    message: '请点击下方「查看我的词」，查看词语',
+    message: '请点击「查看词卡」',
   });
   const viewingBottom = createUndercoverPlayerActions(
     result.current,
@@ -742,7 +745,7 @@ it('clears the self-hint once every seat has viewed', () => {
   expect(viewingBottom.actions).toMatchObject([
     {
       key: 'card',
-      label: '查看我的词',
+      label: '查看词卡',
       testID: TESTIDS.roomViewIdentityButton,
       state: { kind: 'ready' },
       isPending: true,
@@ -826,17 +829,17 @@ describe('createUndercoverHostManagement task body', () => {
   });
 
   it('offers the round start once the room is full and gates its press with a confirm', () => {
-    vi.mocked(showConfirmAlert).mockClear();
+    vi.mocked(confirmAction).mockClear();
     const { model } = buildFor(lobbyState(true));
     const step = hostTaskBody(model);
     if (step?.kind !== 'action' || step.action.state.kind !== 'ready')
       throw new Error('expected a ready task action');
     step.action.state.onPress();
-    expect(showConfirmAlert).toHaveBeenCalledWith(
-      '分配角色？',
-      '将为每位玩家分配词卡',
-      expect.any(Function),
-    );
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '分配角色？',
+      body: '将为每位玩家分配词卡',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('blocks game start while cards are unviewed, then offers it once all are confirmed', () => {
@@ -890,12 +893,13 @@ describe('createUndercoverHostManagement task body', () => {
     const restart = body.actions[1];
     if (restart?.state.kind !== 'ready') throw new Error('Expected enabled restart');
     restart.state.onPress();
-    expect(showDestructiveAlert).toHaveBeenCalledWith(
-      '重新开始？',
-      expect.stringContaining('本局已结算'),
-      '重新开始',
-      expect.any(Function),
-    );
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '重新开始？',
+      body: expect.stringContaining('本局已结算') as unknown,
+      tone: 'danger',
+      confirmText: '重新开始',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('fails fast when an ended round reaches the host panel without its review', () => {

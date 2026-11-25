@@ -12,6 +12,7 @@ import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import { useEffect, useRef, useState } from 'react';
 
 import { NETWORK_ERROR } from '@/config/errorMessages';
+import { confirmAction } from '@/features/room/confirm';
 import {
   type AIChatStorageOwner,
   clearAIChatMessages,
@@ -22,7 +23,7 @@ import { type ChatMessage, streamChatMessage } from '@/games/werewolf/services/A
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import type { LinkSnapshot } from '@/platform/realtime/types';
-import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
 import { log } from '@/utils/logger';
@@ -342,11 +343,12 @@ export function useChatMessages(
   };
 
   const handleClearHistory = () => {
-    showDestructiveAlert(
-      '清除聊天记录',
-      '确定要清除所有聊天记录吗？此操作不可恢复。',
-      '清除',
-      () => {
+    confirmAction({
+      label: '清除聊天记录',
+      body: '此操作不可恢复。',
+      tone: 'danger',
+      confirmText: '清除',
+      onConfirm: () => {
         if (saveTimerRef.current) {
           clearTimeout(saveTimerRef.current);
           saveTimerRef.current = null;
@@ -354,7 +356,7 @@ export function useChatMessages(
         setMessages([]);
         clearAIChatMessages(owner);
       },
-    );
+    });
   };
 
   return {

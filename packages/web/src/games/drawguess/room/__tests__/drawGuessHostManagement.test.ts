@@ -12,20 +12,17 @@ import {
   type DrawGuessWordChoice,
 } from '@game-judge/game-engine/games/drawguess/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createDrawGuessHostManagement } from '../drawGuessRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDestructiveAlert: vi.fn(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
 type CommandContext = Parameters<typeof drawGuessEngine.decide>[2];
 
@@ -222,11 +219,15 @@ describe('createDrawGuessHostManagement', () => {
     if (action.state.kind !== 'ready') throw new Error('Expected enabled abort');
     action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
+    const confirmation = vi.mocked(confirmAction).mock.calls[0]?.[0];
     if (confirmation === undefined) throw new Error('Expected abort confirmation');
-    expect(confirmation[0]).toBe('重新开始？');
-    expect(confirmation[1]).toContain('不结算战绩与奖励');
-    await confirmation[3]();
+    expect(confirmation).toMatchObject({
+      label: '重新开始？',
+      tone: 'danger',
+      confirmText: '重新开始',
+    });
+    expect(confirmation.body).toContain('不结算战绩与奖励');
+    await confirmation.onConfirm();
     expect(submit).toHaveBeenCalledWith(
       '重新开始',
       {
@@ -272,11 +273,12 @@ describe('createDrawGuessHostManagement', () => {
     if (restart === undefined || restart.state.kind !== 'ready')
       throw new Error('expected enabled restart');
     restart.state.onPress();
-    const confirmation = vi.mocked(showDestructiveAlert).mock.calls[0];
+    const confirmation = vi.mocked(confirmAction).mock.calls[0]?.[0];
     if (confirmation === undefined) throw new Error('Expected restart confirmation');
-    expect(confirmation[1]).toContain('已结算的战绩和奖励保留');
-    expect(confirmation[1]).toContain('可能无法查看复盘');
-    await confirmation[3]();
+    expect(confirmation).toMatchObject({ label: '重新开始？', tone: 'danger' });
+    expect(confirmation.body).toContain('已结算的战绩和奖励保留');
+    expect(confirmation.body).toContain('可能无法查看复盘');
+    await confirmation.onConfirm();
     expect(submit).toHaveBeenCalledWith(
       '重新开始',
       {

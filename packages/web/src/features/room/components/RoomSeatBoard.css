@@ -85,6 +85,10 @@
   opacity: var(--opacity-disabled);
 }
 
+.seat-tile-button[aria-disabled='true'] {
+  opacity: var(--opacity-disabled);
+}
+
 .seat-tile-button[data-empty='true'] {
   border-style: dashed;
   border-color: var(--color-primary-a25);
@@ -416,6 +420,15 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.seat-selection-reason {
+  width: calc(100% - var(--space-tight));
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-small);
+  line-height: var(--line-caption-small);
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 @keyframes seat-join {

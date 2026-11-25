@@ -2,15 +2,22 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
+import { confirmAction } from '@/features/room/confirm';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
 import { TESTIDS } from '@/testids';
 
-const { showConfirmAlertMock } = vi.hoisted(() => ({
-  showConfirmAlertMock: vi.fn<(title: string, message: string, onConfirm: () => void) => void>(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
-vi.mock('@/utils/alertPresets', () => ({ showConfirmAlert: showConfirmAlertMock }));
+function confirmAIGuide(roleName: string): void {
+  expect(confirmAction).toHaveBeenCalledWith({
+    label: `让 AI 分析「${roleName}」的玩法`,
+    onConfirm: expect.any(Function) as unknown,
+  });
+  const confirm = vi.mocked(confirmAction).mock.calls[0]?.[0].onConfirm;
+  if (confirm === undefined) throw new Error('Expected the AI confirmation callback');
+  act(() => void confirm());
+}
 
 interface AIChatPayload {
   readonly fullText: string;
@@ -31,7 +38,7 @@ const defaultProps: {
 describe('RoleCardSimple', () => {
   afterEach(() => {
     act(() => setAIChatBridgeListener(null));
-    showConfirmAlertMock.mockClear();
+    vi.mocked(confirmAction).mockClear();
   });
 
   it('renders nothing when not visible', () => {
@@ -139,14 +146,7 @@ describe('RoleCardSimple', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 攻略' }));
 
-    expect(showConfirmAlertMock).toHaveBeenCalledWith(
-      'AI 攻略',
-      '让 AI 分析「狼人」的玩法？',
-      expect.any(Function),
-    );
-    const confirm = showConfirmAlertMock.mock.calls[0]?.[2];
-    if (confirm === undefined) throw new Error('Expected the AI confirmation callback');
-    act(confirm);
+    confirmAIGuide('狼人');
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith(
@@ -161,15 +161,7 @@ describe('RoleCardSimple', () => {
 
     expect(screen.getByRole('heading', { name: '预言家' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'AI 攻略' }));
-    expect(showConfirmAlertMock).toHaveBeenCalledWith(
-      'AI 攻略',
-      '让 AI 分析「预言家」的玩法？',
-      expect.any(Function),
-    );
-
-    const confirm = showConfirmAlertMock.mock.calls[0]?.[2];
-    if (confirm === undefined) throw new Error('Expected the AI confirmation callback');
-    act(confirm);
+    confirmAIGuide('预言家');
 
     const payload = listener.mock.calls[0]?.[0];
     expect(payload?.displayText).toBe('预言家 攻略');

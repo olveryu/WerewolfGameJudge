@@ -254,7 +254,9 @@ src/games/werewolf/
 
 与 v3 初稿的差异：`sheriffElectionRecord.ts` 进引擎 `domain/review/`（§6.3）；`review/toWerewolfReviewDocument.ts` 留给 review-share 设计；`policy/werewolfInteractionPolicy.ts` 不建——其三条不变量分别由 `NightInteractionModel.locks`（pending ack 排他）、`applyAudioPlaybackLock`（播报中锁）、`useWerewolfHostFlow`（host-only 对话框）承担，没有第四个归属。
 
-### 6.5 房间交互新模型
+### 6.5 房间交互旧模型（PR #333 基线，已被步骤机制取代）
+
+> **历史基线，不是现行实现说明。** 狼人杀夜间交互已按步骤与动作重设计切换到共享步骤机制；D14–D20、D22、D37 及现行接口见[步骤与动作重设计](step-action-redesign.md)和[步骤机制接口](step-action-interface.md)。本节保留 PR #333 时的 `NightInteractionModel` 方案，供追溯迁移历史，不要据此新增夜间交互分支。
 
 现状：点击 → `SeatTapPolicy` → `RoomInteractionPolicy` → `useInteractionDispatcher`(420) → `ActionIntent` → `useActionOrchestrator`(427) → `executors/`(885) → `useRoomActionDialogs`(237) → `useRoomActions`(560) → `proceedWithAction`；底栏另有 `bottomLayoutConfig`(445) → `resolveBottomLayout`(173) → `bottomActionBuilder`(323)。12 个 hook、12 个执行器、3 层 policy，命令式"弹框 → 回调里发命令"。六家没有这条链：底栏走 `RoomBottomActions` 声明式契约，交互是 adapter 里的数据。
 
@@ -328,7 +330,9 @@ type NightInteractionModel =
 - 身份两个事实：`actorRole = viewModel.myRole`（raw：服务端角色匹配、身份卡）与 `actorEffectiveRole = viewModel.myEffectiveRole`（底牌派生：schema 分支、hint 匹配、底栏文案）。现客户端把 raw 当派生用，盗贼选到魔术师时 `=== 'magician'` 判断错——新模型里 `resolveNightInteraction` 只读 `isActioner` 与 `actionSchema`，这个分支消失；`actorEffectiveRole` 只剩文案用途。补盗贼 / 宝藏大师选牌用例。
 - 查看身份：走平台 `useRoleViewing`（§5.3，协议取自狼人杀现有行为）。`remainingCards` 在 `open` 时按**确认前**的 `viewedSeatCount` 计算（本人的牌仍在桌上），所以旧客户端的 `+1` 补偿不再需要。
 
-### 6.9 行为契约：重建必须逐条保留的狼人杀行为
+### 6.9 旧行为契约（PR #333 基线；夜间交互已由步骤机制取代）
+
+> 下表记录 PR #333 重建前后的行为基线。其夜间动作流程被 D12–D20 有意改写，已不再是当前验收契约；现行夜间规则与接口见[步骤与动作重设计](step-action-redesign.md)及[步骤机制接口](step-action-interface.md)。其余房间与白天行为仅作迁移追溯，修改时仍须以当前代码和契约测试为准。
 
 四份逐文件清查（room/hooks 209 条、room/components + adapter 111 条、hooks/runtime/services 31 条、executors/policy 全部 schema kind 流程 + 30 条门控）归并为下表。每行是一个验收项：重建后的实现必须复现，e2e / 单测必须覆盖。"保留方式"指向新结构里的承载位置。
 

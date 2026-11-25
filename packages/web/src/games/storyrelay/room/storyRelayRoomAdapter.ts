@@ -8,6 +8,7 @@ import {
 } from '@game-judge/game-engine/games/storyrelay/public';
 
 import { formatDurationOption } from '@/components/GameSettings';
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -48,7 +49,6 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby values; every configurable field besides the card title's player count is shown. */
 export function createStoryRelayRoomSummarySettings(
@@ -191,11 +191,11 @@ export function createStoryRelayHostManagement(
       );
     const startAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.startTitle,
-          '将分配写作顺序并开始轮流讲故事',
-          submitStart,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: '将分配写作顺序并开始轮流讲故事',
+          onConfirm: submitStart,
+        }),
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
@@ -213,17 +213,19 @@ export function createStoryRelayHostManagement(
   const isTerminal = state.phase === 'ended';
   const restart = buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        state.phase === 'gallery' ||
+      confirmAction({
+        label: '重新开始？',
+        body:
+          state.phase === 'gallery' ||
           state.phase === 'ended' ||
           (state.phase === 'transition' &&
             state.completedAt !== null &&
             !state.revealSettlementPending)
-          ? '保留座位和配置，清除当前故事并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
-          : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        async () => {
+            ? '保留座位和配置，清除当前故事并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
+            : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
           await submit(
             '重新开始',
             {
@@ -233,7 +235,7 @@ export function createStoryRelayHostManagement(
             { actionKey: HOST_ACTION_KEYS.restart },
           );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });

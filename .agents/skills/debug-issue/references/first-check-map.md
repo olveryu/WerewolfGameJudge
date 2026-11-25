@@ -35,12 +35,12 @@ Common root causes: token refresh not happening, a cold-start race, a revision g
 
 ## Branch C — Game logic bug
 
-| First-check path                                                                                      | Investigation focus                                                             |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `packages/game-engine/src/games/<game>/`                                                              | Game-owned commands and logic; werewolf resolvers are under `domain/resolvers/` |
-| `packages/game-engine/src/games/werewolf/domain/models/roles/spec/`                                   | Step order and schema constraints                                               |
-| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/`                           | Worker game dispatch and persistence                                            |
-| `packages/web/src/features/room/controllers/useReadyRoomSession.ts`, `packages/web/src/games/<game>/` | Client snapshots and game-owned interpretation                                  |
+| First-check path                                                                                      | Investigation focus                                              |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `packages/game-engine/src/games/<game>/`                                                              | Game-owned commands and logic; werewolf roles are under `roles/` |
+| `packages/game-engine/src/games/werewolf/roles/`                                                      | Role cards, night steps, and the step order                      |
+| `packages/api-worker/src/app/GameRoom.ts`, `packages/api-worker/src/games/`                           | Worker game dispatch and persistence                             |
+| `packages/web/src/features/room/controllers/useReadyRoomSession.ts`, `packages/web/src/games/<game>/` | Client snapshots and game-owned interpretation                   |
 
 Common root causes: a resolver not handling a skip case, a step-order error, a write race in the worker.
 

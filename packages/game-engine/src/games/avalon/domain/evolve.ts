@@ -3,6 +3,7 @@
 import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio';
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 import { applyRosterChanges } from '../../../platform/room/seating';
+import { evolveStepSlice } from '../../../platform/steps';
 import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
@@ -16,6 +17,7 @@ import {
   isAvalonQuestRound,
 } from '../state/types';
 import type { AvalonEvent } from './decision';
+import { createAvalonNightSlice } from './nightSteps';
 import { getAvalonQuestSize, nextAvalonLeaderSeat } from './rules';
 
 /** Resets mutable game data while preserving room configuration and seats. */
@@ -112,15 +114,7 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       if (state.phase.kind !== 'viewing') return state;
       return {
         ...bumped,
-        phase: { kind: 'night', step: 'evilReveal', confirmedSeats: [] },
-      };
-    }
-    case 'avalon.night.confirmed': {
-      if (state.phase.kind !== 'night') return state;
-      if (state.phase.confirmedSeats.includes(event.seat)) return state;
-      return {
-        ...bumped,
-        phase: { ...state.phase, confirmedSeats: [...state.phase.confirmedSeats, event.seat] },
+        phase: { kind: 'night', steps: createAvalonNightSlice() },
       };
     }
     case 'avalon.role.viewed': {
@@ -131,20 +125,23 @@ export function evolveAvalonState(state: AvalonState, event: AvalonEvent): Avalo
       return state.reviewCompletedUserIds.includes(event.userId)
         ? state
         : { ...bumped, reviewCompletedUserIds: [...state.reviewCompletedUserIds, event.userId] };
-    case 'avalon.night.stepped': {
+    case 'avalon.night.step': {
       if (state.phase.kind !== 'night') return state;
-      return { ...bumped, phase: { kind: 'night', step: event.step, confirmedSeats: [] } };
-    }
-    case 'avalon.night.completed': {
-      if (state.phase.kind !== 'night') return state;
+      const stepEvent = event.event;
+      if (stepEvent.type === 'advanced' && stepEvent.next === null) {
+        return {
+          ...bumped,
+          phase: {
+            kind: 'nominate',
+            round: 1,
+            requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, 1),
+            preselectedSeats: [],
+          },
+        };
+      }
       return {
         ...bumped,
-        phase: {
-          kind: 'nominate',
-          round: 1,
-          requiredSize: getAvalonQuestSize(state.config.numberOfPlayers, 1),
-          preselectedSeats: [],
-        },
+        phase: { kind: 'night', steps: evolveStepSlice(state.phase.steps, stepEvent) },
       };
     }
     case 'avalon.audio.queued': {

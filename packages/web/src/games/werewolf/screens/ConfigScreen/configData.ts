@@ -2,7 +2,7 @@
  * ConfigScreen data-driven role layout
  *
  * Single source of truth for the ConfigScreen role selection UI.
- * Labels are derived from ROLE_SPECS.displayName at render time.
+ * Labels are derived from getRoleCard('displayName') at render time.
  *
  * Design:
  * - FactionGroup → Section[] → RoleSlot[]
@@ -16,7 +16,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 
 interface RoleSlot {
-  /** The base roleId (matches ROLE_SPECS key) */
+  /** The base roleId (a role id in the role catalog) */
   readonly roleId: RoleId;
   /**
    * How many selectable copies of this role.

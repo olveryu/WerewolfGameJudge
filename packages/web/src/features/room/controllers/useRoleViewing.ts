@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { confirmView } from '@/features/room/confirm';
 import { log } from '@/utils/logger';
 
 import { deriveRemainingRevealCards } from '../model/RevealRoleData';
@@ -138,10 +138,9 @@ export function useRoleViewing({
     // A second tap while the card is open or the confirmation is in flight
     // is the same request already being served; it is not an error.
     if (card !== null || isPending || isSubmitting) return;
-    showConfirmAlert(
-      '查看身份？',
-      '确定现在查看你的身份吗？',
-      () => {
+    confirmView({
+      label: '查看身份',
+      onView: () => {
         if (latestScope.current !== scopeKey) {
           toast.error('身份已变化，请重新查看。');
           return;
@@ -154,8 +153,7 @@ export function useRoleViewing({
           },
         }));
       },
-      { confirmText: '查看' },
-    );
+    });
   }, [
     card,
     effectiveSeat,

@@ -7,6 +7,7 @@
 
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
+import { confirmAction } from '@/features/room/confirm';
 import {
   AUDIO_PLAYBACK_LOCK_REASON,
   isAudioPlaybackLocked,
@@ -16,7 +17,6 @@ import type { RoomActionState, RoomPlayerAction } from '@/features/room/model/Ro
 import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
 import { REVIEW_TITLE } from '@/features/room/review/reviewCopy';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import type { SheriffElectionPanelModel, SheriffElectionPendingAction } from './useSheriffElection';
 
@@ -85,18 +85,16 @@ function getPersonalAction(input: SheriffElectionPlayerActionsInput): SheriffEle
       label: '报名上警',
       testID: TESTIDS.sheriffRegisterButton,
       pendingKind: 'register',
-      execute: () =>
-        showConfirmAlert('报名上警？', '确认报名参加本次警长竞选。', election.register),
+      execute: () => confirmAction({ label: '报名上警', onConfirm: election.register }),
     };
   }
   if (election.view.canCancelRegistration) {
     return {
       key: 'sheriff-cancel-registration',
-      label: '取消报名',
+      label: '撤回报名',
       testID: TESTIDS.sheriffCancelRegistrationButton,
       pendingKind: 'cancelRegistration',
-      execute: () =>
-        showConfirmAlert('取消报名？', '确认取消本次警长竞选报名。', election.cancelRegistration),
+      execute: () => confirmAction({ label: '撤回报名', onConfirm: election.cancelRegistration }),
     };
   }
   if (election.view.canWithdraw) {
@@ -106,7 +104,11 @@ function getPersonalAction(input: SheriffElectionPlayerActionsInput): SheriffEle
       testID: TESTIDS.sheriffWithdrawButton,
       pendingKind: 'withdraw',
       execute: () =>
-        showConfirmAlert('确认退水？', '退水后将退出本次警长竞选。', election.withdraw),
+        confirmAction({
+          label: '退水',
+          body: '退水后将退出本次警长竞选。',
+          onConfirm: election.withdraw,
+        }),
     };
   }
   if (election.view.canVote) {

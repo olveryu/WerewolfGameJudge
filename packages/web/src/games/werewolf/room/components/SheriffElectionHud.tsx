@@ -26,7 +26,7 @@ export function getHudSummary(model: SheriffElectionPanelModel, isHost = false):
     return '投票中';
   }
   if (view.phase === 'registration') {
-    if (view.canCancelRegistration) return '你已报名，可在底部取消报名';
+    if (view.canCancelRegistration) return '你已报名，可在底部撤回报名';
     if (isHost) return '请在主持管理中结束报名';
     if (view.canRegister) return '可在底部报名上警';
     return '等待房主结束报名';

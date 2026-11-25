@@ -112,7 +112,7 @@ export class FibRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.fibGuessSeatButton).click();
     await this.expectHostManagementClosed();
     await this.getSeatTile(seat).click();
-    await confirmAlert(this.page, `确定选择 ${seat + 1} 号座位是老实人？`);
+    await confirmAlert(this.page, `指认${seat + 1}号为老实人？`);
     await expect(this.page.getByTestId(TESTIDS.alertTitle)).not.toBeVisible();
   }
 

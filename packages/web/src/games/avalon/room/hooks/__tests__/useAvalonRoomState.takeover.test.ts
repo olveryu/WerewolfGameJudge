@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router';
 
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
 import { avalonReview } from '@/games/avalon/review/avalonReview';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { createFakeBgm } from '@/test-utils/fakeBgm';
 import { createFakeRoomLink, readyLinkSnapshot, testIdentity } from '@/test-utils/linkSnapshot';
 import { successfulRoomCommand } from '@/test-utils/roomCommand';
@@ -125,10 +126,10 @@ function buildNominateWithBots(): AvalonState {
   send({ type: 'avalon.game.begin' });
   if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   while (state.phase.kind === 'night') {
-    const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+    const participants = getAvalonNightParticipants(state.roles, state.phase.steps.current!.stepId);
     for (const seat of participants) {
-      if (isBotSeat(state.roster, seat)) send({ type: 'avalon.night.confirm' }, 'host', seat);
-      else send({ type: 'avalon.night.confirm' });
+      if (isBotSeat(state.roster, seat)) send(avalonViewNightCommand(state), 'host', seat);
+      else send(avalonViewNightCommand(state));
     }
     if (state.isAudioPlaying) send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId });
   }

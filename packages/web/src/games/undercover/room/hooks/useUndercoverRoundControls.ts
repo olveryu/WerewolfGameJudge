@@ -8,10 +8,10 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { confirmAction, confirmView } from '@/features/room/confirm';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 async function requestUndercoverRestart(
   state: UndercoverState,
@@ -174,10 +174,11 @@ export function useUndercoverRoundControls({
     });
   };
   const allowRepeated = () => {
-    showConfirmAlert(
-      '仅下一局允许重复词对？',
-      '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
-      async () => {
+    confirmAction({
+      label: '允许重复词对',
+      body: '当前分类没有未使用词对。只对下一局生效，之后各局仍按去重设置。',
+      onShown: trackConfirmationAlert,
+      onConfirm: async () => {
         if (state.phase !== 'preparationFailed' || state.failureCode !== 'inventoryExhausted')
           throw new Error('Allowing repeated words requires exhausted inventory');
         await submit(
@@ -189,8 +190,7 @@ export function useUndercoverRoundControls({
           { actionKey: 'allow-repeated' },
         );
       },
-      { onShown: trackConfirmationAlert },
-    );
+    });
   };
   return {
     isSubmitting,
@@ -201,18 +201,17 @@ export function useUndercoverRoundControls({
       card !== null && state.phase === 'viewing' && !state.round.confirmedSeats.includes(card.seat),
     openCard: () => {
       if (cardKey === null) throw new Error('No permitted Undercover word card');
-      showConfirmAlert(
-        '查看词卡？',
-        '确定现在查看你的词卡吗？',
-        () => {
+      confirmView({
+        label: '查看词卡',
+        onShown: trackConfirmationAlert,
+        onView: () => {
           if (latestCardKey.current !== cardKey) {
             toast.error('词卡已变化，请重新查看。');
             return;
           }
           setVisibleCardKey(cardKey);
         },
-        { confirmText: '查看', onShown: trackConfirmationAlert },
-      );
+      });
     },
     closeCard,
     confirmCard,

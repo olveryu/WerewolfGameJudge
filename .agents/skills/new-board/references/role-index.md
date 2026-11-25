@@ -1,9 +1,9 @@
-# Role index — regenerated from `ROLE_SPECS`
+# Role index — read from the role modules
 
-Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`.
+Source: the role modules in `packages/game-engine/src/games/werewolf/roles/`, served by `roles/catalog.ts`.
 Count: 48 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
-Re-generate from the spec file before use.
+Check a role's module before relying on a row.
 
 | Role id            | Display name | Short name | Faction  | Team  | Night steps                                                |
 | ------------------ | ------------ | ---------- | -------- | ----- | ---------------------------------------------------------- |
@@ -58,8 +58,8 @@ Re-generate from the spec file before use.
 
 ## Roles with no night steps
 
-These roles declare no `nightSteps` entry (or an empty list) and therefore contribute
-no step to `NIGHT_STEPS`. Derive this list from the spec file:
+These roles declare no step in their module and therefore contribute
+no step to the night. Derive this list from the role modules:
 
 - `villager` (平民)
 - `idiot` (愚者)

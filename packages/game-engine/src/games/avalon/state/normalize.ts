@@ -6,15 +6,16 @@ import {
   type StateInvariant,
 } from '../../../platform/protocol/stateInvariant';
 import { isBotOccupant } from '../../../platform/room/seating';
+import { getAvalonNightParticipants } from '../domain/nightSteps';
 import {
   buildAvalonNightInfo,
-  getAvalonNightParticipants,
   getAvalonQuestSize,
   isAvalonBoardCompositionValid,
 } from '../domain/rules';
 import {
   AVALON_LADY_MIN_PLAYERS,
   AVALON_LADY_ROUNDS,
+  AVALON_NIGHT_STEPS,
   AVALON_QUEST_COUNT,
   type AvalonBallot,
   type AvalonHumanSeat,
@@ -270,12 +271,24 @@ export function normalizeAvalonState(state: AvalonState): AvalonState {
       return state;
     }
     case 'night': {
-      const participants = getAvalonNightParticipants(state.roles, state.phase.step);
+      const steps = state.phase.steps;
+      const current = steps.current;
       invariant(
-        state.phase.confirmedSeats.every((seat) => isSeat(seat) && participants.includes(seat)) &&
-          new Set(state.phase.confirmedSeats).size === state.phase.confirmedSeats.length,
-        'night confirmed seats',
+        steps.order.length === AVALON_NIGHT_STEPS.length &&
+          steps.order.every((step, index) => step === AVALON_NIGHT_STEPS[index]) &&
+          current !== null &&
+          current.serial === steps.order.indexOf(current.stepId) &&
+          steps.deadlineMs === null,
+        'night step position',
       );
+      for (const step of AVALON_NIGHT_STEPS) {
+        const participants = getAvalonNightParticipants(state.roles, step);
+        const seats = Object.keys(steps.records[step]?.bySeat ?? {}).map(Number);
+        invariant(
+          seats.every((seat) => isSeat(seat) && participants.includes(seat)),
+          'night step records',
+        );
+      }
       return state;
     }
     case 'nominate': {

@@ -16,7 +16,7 @@ import { roomScreenLog } from '@/utils/logger';
 /**
  * Where a committed domain rejection is presented: by this submission
  * (`alert`), or by the game from the rejection the engine committed into
- * state (`state`, e.g. werewolf `actionRejected`), so it shows once.
+ * state (`state`), so it shows once.
  */
 export type DomainRejectionPresentation = 'alert' | 'state';
 

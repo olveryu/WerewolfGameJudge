@@ -25,6 +25,7 @@ export type RoomHandFace =
   | { readonly kind: 'main' }
   | { readonly kind: 'manual' }
   | { readonly kind: 'host' }
+  | { readonly kind: 'host-group'; readonly key: string }
   | { readonly kind: 'group'; readonly key: string }
   | { readonly kind: 'menu' }
   | { readonly kind: 'menu-manual' };
@@ -148,7 +149,7 @@ export function isSubmissionOwnedBy(
   );
 }
 
-/** Every sub-hand action returns to the main hand. */
+/** Every sub-hand action returns to the main hand before running. */
 function returningToMain(card: RoomHandCard, navigation: RoomHandNavigation): RoomHandCard {
   if (card.state.kind !== 'ready') return card;
   const { onPress } = card.state;
@@ -335,12 +336,16 @@ function buildHostCards(input: RoomHandInput): RoomHandCard[] {
           ? [task.body.escape]
           : [];
   const taskKeys = new Set(taskActions.map((action) => action.key));
+  const groupedKeys = new Set(model.group?.actionKeys ?? []);
   const pendingKeys = model.pendingActionKeys ?? [];
   const orderedActions = [
     ...pendingKeys.flatMap((key) => model.actions.filter((action) => action.key === key)),
     ...taskActions.filter((action) => !pendingKeys.includes(action.key)),
     ...model.actions.filter(
-      (action) => !pendingKeys.includes(action.key) && !taskKeys.has(action.key),
+      (action) =>
+        !groupedKeys.has(action.key) &&
+        !pendingKeys.includes(action.key) &&
+        !taskKeys.has(action.key),
     ),
   ];
   return [
@@ -370,7 +375,34 @@ function buildHostCards(input: RoomHandInput): RoomHandCard[] {
                 ? `${TESTIDS.roomHostTaskCard}-${action.key}`
                 : undefined)),
       });
-      return returningToMain(card, input.navigation);
+      return action.key === model.group?.actionKey ? card : returningToMain(card, input.navigation);
+    }),
+  ];
+}
+
+function buildHostGroupCards(input: RoomHandInput, key: string): RoomHandCard[] {
+  const model = input.hostManagement;
+  const group = model?.group;
+  if (model === null || group === undefined || group.actionKey !== key) {
+    throw new Error(`Room phase "${input.phase}" has no host group "${key}"`);
+  }
+  return [
+    navigationCard(
+      `host-group:${key}:back`,
+      '返回',
+      'back',
+      'arrow-back',
+      input.navigation.back,
+      TESTIDS.roomHostGroupBackButton,
+    ),
+    ...group.actionKeys.map((actionKey) => {
+      const action = model.actions.find((entry) => entry.key === actionKey);
+      if (action === undefined)
+        throw new Error(`Host group references missing action "${actionKey}"`);
+      return returningToMain(
+        actionCard(`host-group:${key}:${action.key}`, action),
+        input.navigation,
+      );
     }),
   ];
 }
@@ -464,19 +496,44 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
       );
     }
   }
+  const hostGroup = input.hostManagement?.group;
+  if (hostGroup !== undefined) {
+    const actions = input.hostManagement?.actions ?? [];
+    if (!actions.some((action) => action.key === hostGroup.actionKey)) {
+      throw new Error(
+        `Room phase "${input.phase}" has no host group entry "${hostGroup.actionKey}"`,
+      );
+    }
+    if (
+      hostGroup.actionKeys.length < 2 ||
+      new Set(hostGroup.actionKeys).size !== hostGroup.actionKeys.length ||
+      hostGroup.actionKeys.includes(hostGroup.actionKey)
+    ) {
+      throw new Error(
+        `Room phase "${input.phase}" has invalid host group "${hostGroup.actionKey}"`,
+      );
+    }
+    for (const key of hostGroup.actionKeys) {
+      if (!actions.some((action) => action.key === key)) {
+        throw new Error(`Room phase "${input.phase}" has no host group action "${key}"`);
+      }
+    }
+  }
   const face = input.selectionMode === undefined ? input.face : ({ kind: 'main' } as const);
   const faceCards =
     face.kind === 'main'
       ? buildMainCards(input)
       : face.kind === 'host'
         ? buildHostCards(input)
-        : face.kind === 'menu'
-          ? buildMenuCards(input)
-          : face.kind === 'group'
-            ? group !== null && group.key === face.key
-              ? buildGroupCards(input, group)
-              : buildMainCards(input)
-            : buildManualCards(input, face.kind === 'menu-manual');
+        : face.kind === 'host-group'
+          ? buildHostGroupCards(input, face.key)
+          : face.kind === 'menu'
+            ? buildMenuCards(input)
+            : face.kind === 'group'
+              ? group !== null && group.key === face.key
+                ? buildGroupCards(input, group)
+                : buildMainCards(input)
+              : buildManualCards(input, face.kind === 'menu-manual');
   const cards =
     face.kind === 'main' && input.selectionMode === undefined
       ? faceCards.map((card) => launchingFrom(card, input.navigation))
@@ -524,11 +581,14 @@ export function buildRoomHand(input: RoomHandInput): RoomHand {
         ? '行动手牌'
         : face.kind === 'host'
           ? HOST_MANAGEMENT_LABEL
-          : face.kind === 'menu'
-            ? '菜单'
-            : face.kind === 'group' && group?.key === face.key
-              ? group.label
-              : '手册',
+          : face.kind === 'host-group'
+            ? (input.hostManagement?.actions.find((action) => action.key === face.key)?.label ??
+              HOST_MANAGEMENT_LABEL)
+            : face.kind === 'menu'
+              ? '菜单'
+              : face.kind === 'group' && group?.key === face.key
+                ? group.label
+                : '手册',
     cards: resolvedCards.toSorted(
       (left, right) =>
         CATEGORY_ORDER[left.category] - CATEGORY_ORDER[right.category] ||

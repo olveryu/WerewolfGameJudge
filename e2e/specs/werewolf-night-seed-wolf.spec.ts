@@ -68,7 +68,11 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
             waitForRoleTurn(pages[seedWolfPageIndex]!, 'seedWolfInfect', pages));
 
           await dismissAlert(pages[seedWolfPageIndex]!);
-          await clickNightButton(pages[seedWolfPageIndex]!, 'confirm', '感染');
+          await clickNightButton(
+            pages[seedWolfPageIndex]!,
+            'confirm',
+            `感染${infectionTargetSeat + 1}号`,
+          );
 
           const confirmation = await readAlertText(pages[seedWolfPageIndex]!);
           expect(confirmation).toContain(`${infectionTargetSeat + 1}号`);
@@ -90,14 +94,14 @@ test.describe('Werewolf Night — Seed Wolf (种狼)', () => {
 
         await test.step('every player acknowledges the final infection result', async () => {
           await test.step('Final infection reveal should become active', () =>
-            waitForGroupConfirmStep(pages, '感染状态'));
+            waitForGroupConfirmStep(pages, 'seedWolfInfectReveal', '查看感染信息'));
 
           let convertedMessageCount = 0;
           for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
             const player = roleMap.get(pageIndex);
             if (!player) throw new Error(`Missing captured role for page ${pageIndex}`);
 
-            const message = await driveGroupConfirmAck(pages[pageIndex]!, '感染状态', '知道了');
+            const message = await driveGroupConfirmAck(pages[pageIndex]!, '查看感染信息', '知道了');
             if (player.seat === infectionTargetSeat) {
               expect(message).toContain('你已被种狼感染并转化为普通狼人');
               convertedMessageCount++;

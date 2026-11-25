@@ -14,7 +14,10 @@ import {
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
   getAvalonViewModel,
+  hasViewedNightStep,
 } from '@game-judge/game-engine/games/avalon/public';
+
+import { avalonCurrentNightStep, avalonViewNightCommand } from '@/test-utils/avalonState';
 
 import { getAvalonRoleDisplayName } from '../../model/avalonRoleDisplay';
 import { createAvalonSeatDataSource } from '../avalonRoomAdapter';
@@ -101,7 +104,7 @@ function questPhaseSession() {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
-      send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      send(avalonViewNightCommand(state), seatUser(seat));
     }
     if (state.isAudioPlaying)
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
@@ -274,14 +277,13 @@ describe('createAvalonSeatDataSource — night badges', () => {
         ? (['evilReveal'] as const)
         : (['evilReveal', 'merlinReveal'] as const);
     for (const step of precedingSteps) {
-      const phase = session.state.phase;
-      if (phase.kind !== 'night' || phase.step !== step) {
+      if (avalonCurrentNightStep(session.state) !== step) {
         throw new Error(`expected ${step} night step`);
       }
       const participants = getAvalonNightParticipants(session.state.roles, step);
       for (const seat of participants) {
-        if (!phase.confirmedSeats.includes(seat)) {
-          session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+        if (!hasViewedNightStep(session.state, step, seat)) {
+          session.send(avalonViewNightCommand(session.state), session.seatUser(seat));
         }
       }
       if (session.state.isAudioPlaying) {
@@ -291,7 +293,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
         );
       }
     }
-    if (session.state.phase.kind !== 'night' || session.state.phase.step !== targetStep) {
+    if (avalonCurrentNightStep(session.state) !== targetStep) {
       throw new Error(`expected ${targetStep} night step`);
     }
   }
@@ -379,7 +381,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     if (firstEvil === undefined || secondEvil === undefined) {
       throw new Error('expected two evil seats');
     }
-    session.send({ type: 'avalon.night.confirm' }, session.seatUser(firstEvil));
+    session.send(avalonViewNightCommand(session.state), session.seatUser(firstEvil));
 
     // A fellow evil participant sees the confirmed badge on the confirmer.
     const evilView = createAvalonSeatDataSource({
@@ -411,7 +413,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     }
     expect(nightRevealHighlight(session, viewerSeat, targetSeat)).toBe('danger');
     expect(nightRevealHighlight(session, viewerSeat, viewerSeat)).toBe('none');
-    session.send({ type: 'avalon.night.confirm' }, session.seatUser(viewerSeat));
+    session.send(avalonViewNightCommand(session.state), session.seatUser(viewerSeat));
     expect(nightRevealHighlight(session, viewerSeat, targetSeat)).toBe('none');
     expect(nightRevealHighlight(session, targetSeat, viewerSeat)).toBe('danger');
 
@@ -482,7 +484,7 @@ describe('createAvalonSeatDataSource — night badges', () => {
     if (otherSeat === undefined) throw new Error('expected another seat');
     expect(nightRevealHighlight(session, otherSeat, percivalView.percivalSees[0]!)).toBe('none');
 
-    session.send({ type: 'avalon.night.confirm' }, session.seatUser(percivalSeat));
+    session.send(avalonViewNightCommand(session.state), session.seatUser(percivalSeat));
     for (const candidateSeat of percivalView.percivalSees) {
       expect(nightRevealHighlight(session, percivalSeat, candidateSeat)).toBe('none');
     }
@@ -538,7 +540,7 @@ describe('createAvalonSeatDataSource — nominate picked badge', () => {
     for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
       if (state.phase.kind !== 'night') break;
       for (const seat of getAvalonNightParticipants(state.roles, step)) {
-        send({ type: 'avalon.night.confirm' }, seatUser(seat));
+        send(avalonViewNightCommand(state), seatUser(seat));
       }
       if (state.isAudioPlaying)
         send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
@@ -688,7 +690,7 @@ describe('createAvalonSeatDataSource — leader badge phase gate', () => {
     for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
       if (session.state.phase.kind !== 'night') break;
       for (const seat of getAvalonNightParticipants(session.state.roles, step)) {
-        session.send({ type: 'avalon.night.confirm' }, session.seatUser(seat));
+        session.send(avalonViewNightCommand(session.state), session.seatUser(seat));
       }
       if (session.state.isAudioPlaying)
         session.send(

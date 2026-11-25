@@ -62,6 +62,7 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './platform/room/getBotDisplayName',
   './platform/room/roster',
   './platform/room/settleCountdown',
+  './platform/steps',
   './product/growth',
   './product/rewards',
   './product/wordSupply',

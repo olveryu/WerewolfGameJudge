@@ -4,6 +4,7 @@
 
 import {
   AVALON_BOARDS,
+  AVALON_NIGHT_STEP_DEFINITIONS,
   AVALON_NIGHT_STEPS,
   type AvalonNightStep,
   type AvalonPhaseKind,
@@ -16,10 +17,12 @@ import {
   getAvalonUserSeat,
   getAvalonViewingParticipants,
   getAvalonViewModel,
+  hasViewedNightStep,
   isAvalonPlayerCount,
   isBotSeat,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { applyAudioPlaybackLock } from '@/features/room/model/audioPlaybackLock';
@@ -80,7 +83,6 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { getAvalonRoleDisplayName } from '../model/avalonRoleDisplay';
 import { getAvalonRoleMeta } from '../model/avalonRoleMeta';
@@ -88,7 +90,6 @@ import {
   formatAvalonQuestLabel,
   resolveAssassinInstruction,
   resolveLadyInstruction,
-  resolveNightInstruction,
   resolveNominateInstruction,
   resolveQuestInstruction,
   resolveVoteInstruction,
@@ -192,8 +193,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
   const nightPhase = state.phase.kind === 'night' ? state.phase : null;
   const ownSeat = getAvalonUserSeat(state, userId) ?? undefined;
   const viewerSeat = controlledSeat ?? ownSeat;
+  const nightStep = nightPhase?.steps.current?.stepId ?? null;
   const stepParticipants =
-    nightPhase === null ? [] : getAvalonNightParticipants(state.roles, nightPhase.step);
+    nightStep === null ? [] : getAvalonNightParticipants(state.roles, nightStep);
   const viewerIsStepParticipant = viewerSeat !== undefined && stepParticipants.includes(viewerSeat);
   const nightView =
     nightPhase !== null && viewerSeat !== undefined ? getAvalonViewModel(state, viewerSeat) : null;
@@ -223,7 +225,7 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
         : undefined,
     resolveIndicators: (seat) => {
       const nightConfirmed =
-        nightPhase !== null && viewerIsStepParticipant && nightPhase.confirmedSeats.includes(seat);
+        nightStep !== null && viewerIsStepParticipant && hasViewedNightStep(state, nightStep, seat);
       const progressLabel = nightConfirmed ? '已确认' : null;
       return avalonSeatIndicators(state, seat, progressLabel);
     },
@@ -231,9 +233,9 @@ export function createAvalonSeatDataSource(input: AvalonSeatSourceInput): RoomSe
 }
 
 const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
-  evilReveal: '坏人互认',
-  merlinReveal: '梅林的视野',
-  percivalReveal: '派西维尔的视野',
+  evilReveal: AVALON_NIGHT_STEP_DEFINITIONS.evilReveal.title,
+  merlinReveal: AVALON_NIGHT_STEP_DEFINITIONS.merlinReveal.title,
+  percivalReveal: AVALON_NIGHT_STEP_DEFINITIONS.percivalReveal.title,
 };
 
 /**
@@ -242,8 +244,9 @@ const AVALON_NIGHT_STEP_LABELS: Readonly<Record<AvalonNightStep, string>> = {
  * 可见），进度行不计数。非夜晚阶段为 null。
  */
 export function deriveAvalonBottomProgress(state: AvalonState): NightStepProgress | null {
-  if (state.phase.kind !== 'night') return null;
-  return resolveStepProgress(AVALON_NIGHT_STEPS, state.phase.step, AVALON_NIGHT_STEP_LABELS);
+  const step = state.phase.kind === 'night' ? state.phase.steps.current?.stepId : undefined;
+  if (step === undefined) return null;
+  return resolveStepProgress(AVALON_NIGHT_STEPS, step, AVALON_NIGHT_STEP_LABELS);
 }
 
 /** 最新一次任务结算的结论句；尚无任务结算时为 null。 */
@@ -391,7 +394,10 @@ export interface AvalonBottomActionsInput {
   /** 投票/出牌结算倒计时剩余秒数（screen 的 tick 派生）；未武装为 null。 */
   readonly settleCountdownSeconds: number | null;
   readonly onViewRolePress: () => void;
-  readonly onNightInfoPress: () => void;
+  /** 夜间查看手牌（共享步骤机制产出）；非本步执行者或已查看时为空。 */
+  readonly nightActions: readonly RoomPlayerAction[];
+  /** 本步执行者的步骤引导句；非执行者为 null。 */
+  readonly nightMessage: string | null;
   readonly onOpenVotePress: () => void;
   readonly onOpenQuestPress: () => void;
   readonly onPreselectTeamPress: () => void;
@@ -406,7 +412,7 @@ export interface AvalonBottomActionsInput {
 
 /**
  * 阿瓦隆底部动作区：全游戏个人动作与个人指令的唯一落点（落点总规则）——
- * 查看身份局内常驻；夜晚信息步两步确认（按钮 → 弹窗）；白天各阶段的主按钮
+ * 查看身份局内常驻；夜晚信息步走共享步骤手牌（先问 → 内容 → 知道了）；白天各阶段的主按钮
  * （预选队伍 / 最终队伍 / 去投票 / 去出牌 / 查看查验请求）与个人状态走 message；
  * 夜晚步进走底部细进度行、公开阶段状态归摘要条、逐座状态归座位盘、
  * 一次性信息归弹窗。
@@ -447,36 +453,21 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
   if (phase.kind === 'viewing') {
     // 查看阶段本人未看时提示去看（展示契约 self-hint 态，只走这一处出口）。
     if (input.effectiveSeat !== null && !state.roleViewedSeats.includes(input.effectiveSeat)) {
-      message = '请点击下方「查看身份」，查看你的角色';
+      message = '请点击「查看身份」';
     }
     return { message, progress: null, actions: [...primary, ...secondary, ...ghost], group: null };
   }
   if (phase.kind === 'night') {
-    // 晚上：两步确认（底部按钮 → 弹窗），对齐狼人杀丘比特。
+    // 晚上：共享步骤机制的「查看{步骤名}」手牌（先问 → 内容 → 知道了）。
+    // 查看与播报并行：音频播放中也保持可用（引擎完成评估与查看、ack 的
+    // 到达顺序无关，见 E3 §5b）。
     if (input.effectiveSeat !== null) {
-      const vm = getAvalonViewModel(state, input.effectiveSeat);
-      const instruction = resolveNightInstruction(vm);
-      if (instruction.kind === 'waiting' || instruction.kind === 'confirmed') {
-        // 非本步参与者与已确认者：等本步其余参与者确认（步名归进度行，
-        // 此处只给等待对象，不复述步名）。
+      if (input.nightActions.length > 0) {
+        primary.push(...input.nightActions);
+        message = input.nightMessage;
+      } else {
+        // 非本步执行者与已查看者：等本步其余执行者（步名归进度行，此处不复述）。
         message = '等待本步玩家确认';
-      }
-      if (
-        instruction.kind === 'evilPeers' ||
-        instruction.kind === 'merlin' ||
-        instruction.kind === 'percival'
-      ) {
-        // 确认与播报并行：音频播放中也保持可用（引擎完成评估与确认、
-        // ack 的到达顺序无关，见 E3 §5b）；不再换成禁用占位等播报结束。
-        primary.push({
-          key: 'nightInfo',
-          label: '确认信息',
-          audience: 'participant',
-          category: 'player',
-          isPending: true,
-          state: { kind: 'ready', onPress: input.onNightInfoPress },
-          testID: TESTIDS.avalonNightInfo,
-        });
       }
     }
     return {
@@ -501,8 +492,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
         state: { kind: 'ready', onPress: input.onCancelEarlyStrikePress },
         testID: TESTIDS.avalonEarlyStrike,
       });
-      message =
-        '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。';
+      message = '请选择要提前刺杀的玩家。刺中梅林坏人直接获胜，刺错好人直接获胜';
       return {
         message,
         progress: null,
@@ -529,7 +519,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const preselected = vm.preselectedSeats !== null && vm.preselectedSeats.length > 0;
       if (instruction.isLeader) {
         if (!preselected) {
-          message = `点「预选队伍」打开选人，在里面选 ${instruction.requiredSize} 名队员，确认后全房可见。`;
+          message = `请点击「预选队伍」。需要 ${instruction.requiredSize} 名队员，确认后全房可见`;
           if (!input.isSubmitting) {
             primary.push({
               key: 'preselectTeam',
@@ -552,7 +542,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
             });
           }
         } else {
-          message = '预选已确认，点「最终队伍」打开选人调整最终队伍。';
+          message = '请点击「最终队伍」。可调整预选的队伍';
           if (!input.isSubmitting) {
             primary.push({
               key: 'proposeTeam',
@@ -647,8 +637,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const instruction = resolveLadyInstruction(vm);
       switch (instruction.kind) {
         case 'holderPick':
-          message =
-            '点座位盘点选一名没当过湖仙的玩家进行查验（只能看到其阵营：好 / 坏），点选后会再次确认。';
+          message = '请选择要查验的玩家。只能看到阵营：好人或坏人';
           break;
         case 'watching':
           // 旁观者看公开进程：谁在查验谁（或还在选对象）。查验结果是
@@ -668,7 +657,7 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
       const instruction = resolveAssassinInstruction(vm);
       message =
         instruction.kind === 'assassinPick'
-          ? '点座位盘点选一名玩家指认其为梅林（除自己外任意座位），点选后会再次确认。指认正确坏人获胜，指认错误好人直接获胜。'
+          ? '请选择要指认为梅林的玩家。指认正确坏人获胜，指认错误好人直接获胜'
           : instruction.kind === 'evilWait'
             ? '坏人商量时间（线下口头），等待刺客指认。'
             : '坏人正在商量刺杀目标…';
@@ -711,7 +700,8 @@ export interface AvalonRoomShellModelInput extends Omit<
   readonly isLobby: boolean;
   readonly effectiveSeat: number | null;
   readonly onViewRolePress: () => void;
-  readonly onNightInfoPress: () => void;
+  readonly nightActions: readonly RoomPlayerAction[];
+  readonly nightMessage: string | null;
   readonly isSubmitting: boolean;
   readonly settleCountdownSeconds: number | null;
   readonly onOpenVotePress: () => void;
@@ -751,15 +741,17 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAct
   const { state } = input;
   return buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        state.phase.kind === 'ended'
-          ? input.review?.isPending
-            ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-            : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-          : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        async () => {
+      confirmAction({
+        label: '重新开始？',
+        body:
+          state.phase.kind === 'ended'
+            ? input.review?.isPending
+              ? '你尚未查看本局复盘。重新开始将保留座位和配置、清除本局，之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+              : '保留座位和配置，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+            : '保留座位和配置，清除本局并回到准备。本局中止，不结算完成奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
           await input.submit(
             '重新开始',
             {
@@ -770,7 +762,7 @@ function buildAvalonRestartAction(input: AvalonHostManagementInput): RoomHostAct
             { actionKey: HOST_ACTION_KEYS.restart },
           );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });
@@ -790,22 +782,26 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
     actions.push(
       buildMarkBotsViewedAction({
         onPress: () =>
-          showConfirmAlert('标记机器人已查看？', '将标记所有未查看身份的机器人。', () => {
-            void input.submit(
-              '标记机器人已查看',
-              { type: 'avalon.bots.markAllBotsViewed' },
-              { actionKey: HOST_ACTION_KEYS.markBotsViewed },
-            );
+          confirmAction({
+            label: '标记机器人已查看？',
+            body: '将标记所有未查看身份的机器人。',
+            onConfirm: () => {
+              void input.submit(
+                '标记机器人已查看',
+                { type: 'avalon.bots.markAllBotsViewed' },
+                { actionKey: HOST_ACTION_KEYS.markBotsViewed },
+              );
+            },
           }),
         isEnabled: !input.isSubmitting,
         isLoading: input.isSubmitting,
       }),
     );
-  const phase = state.phase;
+  const nightStep = state.phase.kind === 'night' ? state.phase.steps.current?.stepId : undefined;
   if (
-    phase.kind === 'night' &&
-    getAvalonNightParticipants(state.roles, phase.step).some(
-      (seat) => isBotSeat(state.roster, seat) && !phase.confirmedSeats.includes(seat),
+    nightStep !== undefined &&
+    getAvalonNightParticipants(state.roles, nightStep).some(
+      (seat) => isBotSeat(state.roster, seat) && !hasViewedNightStep(state, nightStep, seat),
     )
   )
     actions.push(
@@ -819,14 +815,18 @@ function createAvalonHostTools(input: AvalonHostManagementInput): RoomHostAction
         },
         input.isSubmitting,
         () =>
-          showConfirmAlert('标记机器人已确认？', '将为本阶段的机器人确认信息。', () => {
-            void input.submit(
-              '标记机器人已确认',
-              {
-                type: 'avalon.bots.markAllBotsGroupConfirmed',
-              },
-              { actionKey: 'mark-bots-confirmed' },
-            );
+          confirmAction({
+            label: '标记机器人已确认？',
+            body: '将为本阶段的机器人确认信息。',
+            onConfirm: () => {
+              void input.submit(
+                '标记机器人已确认',
+                {
+                  type: 'avalon.bots.markAllBotsGroupConfirmed',
+                },
+                { actionKey: 'mark-bots-confirmed' },
+              );
+            },
           }),
       ),
     );
@@ -880,11 +880,11 @@ export function createAvalonHostManagement(
       );
     const assignAction = buildAssignRolesAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.assignTitle,
-          '所有座位已满，将洗牌并分配角色',
-          submitAssign,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.assignTitle,
+          body: '所有座位已满，将洗牌并分配角色',
+          onConfirm: submitAssign,
+        }),
       isEnabled: !input.isSubmitting && canStart,
       disabledReason: startDisabledReason,
       isLoading: input.isSubmitting,
@@ -913,11 +913,11 @@ export function createAvalonHostManagement(
       );
     const beginAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.startTitle,
-          allViewedConfirmBody('身份', '开始后将进入夜晚阶段'),
-          submitBegin,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: allViewedConfirmBody('身份', '开始后将进入夜晚阶段'),
+          onConfirm: submitBegin,
+        }),
       isEnabled: beginGate.isEnabled,
       disabledReason: beginGate.disabledReason,
       isLoading: input.isSubmitting,
@@ -966,7 +966,7 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
     // The step anchor: only the night phase carries a step (its three
     // confirmation steps, verbatim from the phase). Every other phase
     // kind is already the finest-grained state, so no step there.
-    step: state.phase.kind === 'night' ? state.phase.step : null,
+    step: state.phase.kind === 'night' ? (state.phase.steps.current?.stepId ?? null) : null,
     seatConfirmation: createRoomSeatConfirmationModel(input.seatController),
     profile: createRoomProfileCardModel({
       selection: input.profileSelection,
@@ -984,7 +984,8 @@ export function createAvalonRoomShellModel(input: AvalonRoomShellModelInput): Ro
       canTakeOverBots: input.capabilities.canTakeOverBots.isAllowed,
       settleCountdownSeconds: input.settleCountdownSeconds,
       onViewRolePress: input.onViewRolePress,
-      onNightInfoPress: input.onNightInfoPress,
+      nightActions: input.nightActions,
+      nightMessage: input.nightMessage,
       onOpenVotePress: input.onOpenVotePress,
       onOpenQuestPress: input.onOpenQuestPress,
       onPreselectTeamPress: input.onPreselectTeamPress,

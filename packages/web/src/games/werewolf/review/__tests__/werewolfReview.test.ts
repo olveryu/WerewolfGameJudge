@@ -22,14 +22,12 @@ const HOST: RoomViewer = { userId: 'host-1', isHost: true, seat: 0 };
 const SPECTATOR: RoomViewer = { userId: 'spectator-1', isHost: false, seat: null };
 const NOT_PERMITTED = { kind: 'notPermitted', reason: '房主尚未向你开放复盘' };
 const DAY_CONFIRMATION = {
-  title: '查看本局复盘？',
-  message: '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
-  confirmText: '确定查看',
+  label: '查看本局复盘',
+  body: '本局复盘包含全员身份和行动记录，查看后可能影响警长竞选，请确认是否继续。',
 };
 const ENDED_CONFIRMATION = {
-  title: '查看本局复盘？',
-  message: '本局复盘包含全员身份和行动记录，请确认是否继续。',
-  confirmText: '确定查看',
+  label: '查看本局复盘',
+  body: '本局复盘包含全员身份和行动记录，请确认是否继续。',
 };
 
 function seatedViewer(seat: number): RoomViewer {
@@ -146,8 +144,8 @@ describe('werewolfReview', () => {
     expect(day.confirmation).toEqual(DAY_CONFIRMATION);
     expect(ended.confirmation).toEqual(ENDED_CONFIRMATION);
     expect(day.confirmation).not.toEqual(ended.confirmation);
-    expect(day.confirmation?.message).toContain('警长竞选');
-    expect(ended.confirmation?.message).not.toContain('警长竞选');
+    expect(day.confirmation?.body).toContain('警长竞选');
+    expect(ended.confirmation?.body).not.toContain('警长竞选');
     expect(ended.document).toEqual(documentFor(endedState));
   });
 

@@ -1,0 +1,15 @@
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+
+/** What one role does in a scenario: a seat, a skip (`null`), or a role-specific shape. */
+export type NightAction =
+  | number
+  | null
+  | { readonly save: number | null; readonly poison: number | null }
+  | { readonly targets: readonly number[] }
+  | { readonly confirmed: boolean }
+  | { readonly cardIndex: number }
+  /** The pack vote, wolf by wolf: each voter's seat mapped to its target, or `null` to abstain. */
+  | { readonly votesBySeat: Readonly<Record<number, number | null>> };
+
+/** Role-keyed choices for one night; `wolf` is the shared pack vote. */
+export type NightActions = Partial<Record<RoleId, NightAction>>;

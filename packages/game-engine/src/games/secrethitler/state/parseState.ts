@@ -9,17 +9,21 @@ import {
   parseChoice,
   parseInteger,
   parseNonEmptyString,
+  parseNullable,
   parseObject,
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
 import { parseRoomRoster } from '../../../platform/room/roster';
+import type { SeatRecord, StepRecord, StepSlice } from '../../../platform/steps';
 import { normalizeSecrethitlerState } from './normalize';
 import {
   isValidSecrethitlerConfig,
   SECRETHITLER_GAME_TYPE,
+  SECRETHITLER_NIGHT_STEP_IDS,
   SECRETHITLER_PHASES,
   SECRETHITLER_VOTE_MODES,
   type SecrethitlerConfig,
+  type SecrethitlerNightStep,
   type SecrethitlerPhase,
   type SecrethitlerPolicy,
   type SecrethitlerRole,
@@ -109,6 +113,72 @@ function voteMap(value: unknown, path: string): Readonly<Record<number, Secrethi
     ]);
   }
   return result;
+}
+
+function nightSeatRecord(value: unknown, path: string): SeatRecord<never> {
+  const raw = parseObject(value, path);
+  if (raw.result !== null) failDecode(`${path}.result`, 'null');
+  return finishObject(
+    raw,
+    {
+      submissions: parseArray(raw.submissions, `${path}.submissions`, (item, itemPath) => {
+        const submission = parseObject(item, itemPath);
+        return finishObject(
+          submission,
+          {
+            actionKey: parseNonEmptyString(submission.actionKey, `${itemPath}.actionKey`),
+            seats: parseArray(submission.seats, `${itemPath}.seats`, parseSeat),
+            cardIndex: parseNullable(submission.cardIndex, `${itemPath}.cardIndex`, parseSeat),
+          },
+          itemPath,
+        );
+      }),
+      result: null,
+      isResultAcknowledged: parseBoolean(raw.isResultAcknowledged, `${path}.isResultAcknowledged`),
+    },
+    path,
+  );
+}
+
+function nightSlice(value: unknown, path: string): StepSlice<SecrethitlerNightStep, never> {
+  const raw = parseObject(value, path);
+  const rawRecords = parseObject(raw.records, `${path}.records`);
+  const records: Partial<Record<SecrethitlerNightStep, StepRecord<never>>> = {};
+  for (const [key, item] of Object.entries(rawRecords)) {
+    const stepId = parseChoice(key, `${path}.records.${key}`, SECRETHITLER_NIGHT_STEP_IDS);
+    const record = parseObject(item, `${path}.records.${key}`);
+    const rawBySeat = parseObject(record.bySeat, `${path}.records.${key}.bySeat`);
+    const bySeat: Partial<Record<number, SeatRecord<never>>> = {};
+    for (const [seatKey, seatValue] of Object.entries(rawBySeat)) {
+      if (!/^(0|[1-9]\d*)$/.test(seatKey))
+        failDecode(`${path}.records.${key}.bySeat.${seatKey}`, 'a canonical seat key');
+      bySeat[parseSeat(Number(seatKey), `${path}.records.${key}.bySeat.${seatKey}`)] =
+        nightSeatRecord(seatValue, `${path}.records.${key}.bySeat.${seatKey}`);
+    }
+    records[stepId] = finishObject(record, { bySeat }, `${path}.records.${key}`);
+  }
+  return finishObject(
+    raw,
+    {
+      order: parseArray(raw.order, `${path}.order`, (item, itemPath) =>
+        parseChoice(item, itemPath, SECRETHITLER_NIGHT_STEP_IDS),
+      ),
+      current: parseNullable(raw.current, `${path}.current`, (item, itemPath) => {
+        const current = parseObject(item, itemPath);
+        return finishObject(
+          current,
+          {
+            stepId: parseChoice(current.stepId, `${itemPath}.stepId`, SECRETHITLER_NIGHT_STEP_IDS),
+            serial: parseInteger(current.serial, `${itemPath}.serial`),
+          },
+          itemPath,
+        );
+      }),
+      records,
+      deadlineMs: parseNullable(raw.deadlineMs, `${path}.deadlineMs`, parseInteger),
+    },
+    path,
+  );
 }
 
 function history(value: unknown, path: string): SecrethitlerState['history'] {
@@ -216,8 +286,7 @@ function phase(value: unknown, path: string): SecrethitlerPhase {
         raw,
         {
           kind: 'night' as const,
-          step: parseInteger(raw.step, `${path}.step`),
-          confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
+          steps: nightSlice(raw.steps, `${path}.steps`),
         },
         path,
       );

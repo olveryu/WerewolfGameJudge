@@ -6,22 +6,18 @@ import { AvalonLadyResultModal } from '../AvalonLadyResultModal';
 describe('AvalonLadyCheckConfirmModal', () => {
   it('renders nothing without a target', () => {
     const { queryByText } = render(
-      <AvalonLadyCheckConfirmModal targetName={null} onConfirm={vi.fn()} onClose={vi.fn()} />,
+      <AvalonLadyCheckConfirmModal targetSeat={null} onConfirm={vi.fn()} onClose={vi.fn()} />,
     );
-    expect(queryByText('湖中仙女查验')).toBeNull();
+    expect(queryByText(/^查验/)).toBeNull();
   });
 
   it('names the target and confirms the check', () => {
     const onConfirm = vi.fn();
     const { getByText } = render(
-      <AvalonLadyCheckConfirmModal
-        targetName="3 号 · 玩家3"
-        onConfirm={onConfirm}
-        onClose={vi.fn()}
-      />,
+      <AvalonLadyCheckConfirmModal targetSeat={2} onConfirm={onConfirm} onClose={vi.fn()} />,
     );
-    expect(getByText(/确定查验【3 号 · 玩家3】的阵营/)).toBeTruthy();
-    fireEvent.click(getByText('确认查验'));
+    expect(getByText('查验3号？')).toBeTruthy();
+    fireEvent.click(getByText('确定'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });

@@ -57,7 +57,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
     // profile rides inside each human occupant, so it resets with it.
     roster: {},
     status: GameStatus.Unseated,
-    nightStep: null,
+    nightState: null,
     isAudioPlaying: false,
   };
 }
@@ -99,63 +99,22 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     startingParticipants: undefined,
     mvpUserId: undefined,
     status: GameStatus.Seated,
-    nightStep: null, // consistent with buildInitialGameState
+    nightState: null,
     isAudioPlaying: false,
     // Batch ids stay monotonic across restarts so a late ack for the previous game can never clear.
     audioBatchId: state.audioBatchId,
     gameSequence: state.gameSequence + 1,
-    actions: [],
-    currentNightResults: undefined,
-    resolvedWolfKillTarget: undefined,
-    resolvedWolfKillVerdict: undefined,
-    resolvedNightEffects: [],
     lastNightDeaths: undefined,
     lastNightInfoConfirmed: undefined,
     reviewCompletedUserIds: undefined,
     deathReasons: undefined,
     sheriffElection: undefined,
     sheriffElectionResult: undefined,
-    witchContext: undefined,
-    seerReveal: undefined,
-    mirrorSeerReveal: undefined,
-    drunkSeerReveal: undefined,
-    psychicReveal: undefined,
-    gargoyleReveal: undefined,
-    pureWhiteReveal: undefined,
-    wolfWitchReveal: undefined,
-    wolfRobotReveal: undefined,
-    wolfRobotContext: undefined,
-    wolfRobotHunterStatusViewed: undefined,
-    confirmStatus: undefined,
-    actionRejected: undefined,
-    nightmareBlockedSeat: undefined,
-    wolfKillOverride: undefined,
-    pendingRevealAcks: [],
     pendingAudioEffects: [],
-    ui: undefined,
     nightReviewAllowedSeats: undefined,
     seerLabelMap: undefined,
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    convertedSeat: undefined,
-    conversionRevealAcks: [],
-    wolfGirlConfessedSeat: undefined,
-    wolfGirlConfessionRevealAcks: [],
-    seedWolfInfectionResult: undefined,
-    seedWolfDeferredReveal: undefined,
-    seedWolfInfectionRevealAcks: [],
 
-    // Treasure Master
     bottomCards: undefined,
-    treasureMasterSeat: undefined,
-
-    // Thief
-    thiefSeat: undefined,
-
-    // Cupid
-    loverSeats: undefined,
-    cupidSeat: undefined,
-    cupidLoversRevealAcks: [],
 
     // boardNominations: preserved, not cleared on restart
     boardNominations: state.boardNominations,
@@ -292,8 +251,7 @@ export function handleUpdatePlayerProfile(
 
 /** Assign roles (write assignments into players, status transitions to Assigned). */
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
-  const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat } =
-    action.payload;
+  const { assignments, seerLabelMap, bottomCards } = action.payload;
   const newPlayers = { ...state.players };
 
   for (const [seatStr, role] of Object.entries(assignments)) {
@@ -311,9 +269,6 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
     status: GameStatus.Assigned,
     seerLabelMap,
     bottomCards,
-    treasureMasterSeat,
-    thiefSeat,
-    cupidSeat,
   };
 }
 

@@ -14,10 +14,10 @@ import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RoomDialog } from '@/features/room/components/RoomDialog';
+import { confirmAction } from '@/features/room/confirm';
 import { roomPath } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomLink } from '@/platform/realtime/types';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconTrashOutline from '~icons/ion/trash-outline';
 
 import { GameConfigForm } from './GameConfigForm';
@@ -124,7 +124,12 @@ function createGameConfigScreen<
     if (dialog !== undefined) {
       const requestClose = () => {
         if (state.isSubmitting) return;
-        if (state.isDirty) showConfirmAlert('放弃修改？', '还没有保存此次修改。', dialog.onClose);
+        if (state.isDirty)
+          confirmAction({
+            label: '放弃修改？',
+            body: '还没有保存此次修改。',
+            onConfirm: dialog.onClose,
+          });
         else dialog.onClose();
       };
       return (
