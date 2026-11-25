@@ -3,6 +3,7 @@ import { defineCopy, renderCopy } from '../../../platform/steps';
 import type { SeatSubmissionForReview } from '../../../platform/steps/step';
 import { defineWerewolfStepAudio } from './audio';
 import type { DeathEffect } from './deathEffects';
+import { resolveTargetSelection } from './location';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
 import { getActingSeat, getRoleAbilityLockReason, resolveRoleTarget } from './roleSteps';
@@ -66,7 +67,8 @@ const witchActionStep: WerewolfRoleStepDefinition = {
         const deathEffect: DeathEffect = {
           kind: 'protect',
           source: seat,
-          target: resolveRoleTarget(context, target).landingSeat,
+          // The antidote answers the attack itself, so a time-rift shelter does not turn it back.
+          target: resolveTargetSelection(target, context.state.location).landingSeat,
           against: ['wolfKill'],
           conflictGroup: 'wolfSave',
         };

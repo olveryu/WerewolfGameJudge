@@ -415,6 +415,58 @@ exports[`Night-1 board scenarios through production commands > drunk seer: rando
 }
 `;
 
+exports[`Night-1 board scenarios through production commands > eclipse wolf queen: antidote saves the sheltered victim 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "8号蚀时狼妃放逐1号到时间裂隙",
+    "11号守卫未守护",
+    "狼队（5、6、7、8号）袭击1号",
+    "10号女巫对1号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "eclipseWolfQueenShelter",
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > eclipse wolf queen: guard is turned back while the antidote saves the sheltered victim 1`] = `
+{
+  "announcements": [],
+  "deaths": [],
+  "review": [
+    "8号蚀时狼妃放逐1号到时间裂隙",
+    "11号守卫守护1号",
+    "狼队（5、6、7、8号）袭击1号",
+    "10号女巫对1号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+  ],
+  "steps": [
+    "eclipseWolfQueenShelter",
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
 exports[`Night-1 board scenarios through production commands > eclipse wolf queen: redirect guard 1`] = `
 {
   "announcements": [],
@@ -485,6 +537,35 @@ exports[`Night-1 board scenarios through production commands > eclipse wolf quee
     "10号女巫未用解药",
     "10号女巫未毒杀",
     "9号预言家查验5号（查验结果：9号是好人）",
+  ],
+  "steps": [
+    "eclipseWolfQueenShelter",
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "seerCheck",
+  ],
+  "unavailable": [
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+  ],
+  "views": [],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > eclipse wolf queen: sheltered guard guards himself and is also saved 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "11号 wolfKill",
+  ],
+  "review": [
+    "8号蚀时狼妃放逐11号到时间裂隙",
+    "11号守卫守护11号",
+    "狼队（5、6、7、8号）袭击11号",
+    "10号女巫对11号用解药",
+    "10号女巫未毒杀",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "11号同守同救，保护抵消",
   ],
   "steps": [
     "eclipseWolfQueenShelter",

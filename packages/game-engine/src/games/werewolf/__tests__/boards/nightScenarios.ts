@@ -286,6 +286,18 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     ],
     ['skip shelter', { eclipseWolfQueen: null, guard: 0, wolf: 0, seer: 4 }],
     ['wolf ignores shelter', { eclipseWolfQueen: 0, wolf: 0, seer: 4 }],
+    [
+      'antidote saves the sheltered victim',
+      { eclipseWolfQueen: 0, wolf: 0, witch: { save: 0, poison: null }, seer: 4 },
+    ],
+    [
+      'guard is turned back while the antidote saves the sheltered victim',
+      { eclipseWolfQueen: 0, guard: 0, wolf: 0, witch: { save: 0, poison: null }, seer: 4 },
+    ],
+    [
+      'sheltered guard guards himself and is also saved',
+      { eclipseWolfQueen: 10, guard: 10, wolf: 10, witch: { save: 10, poison: null }, seer: 4 },
+    ],
   ]),
   ...scenarios('gargoyle', GARGOYLE, [
     ['villager', { gargoyle: 0, wolf: 1, seer: 4 }],
