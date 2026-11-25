@@ -22,6 +22,8 @@ export const psychic = defineRole({
     shortName: COPY.shortName,
     emoji: '👁️',
     description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['check'],
   },
   traits: { faction: 'god', team: 'good' },
   steps: [

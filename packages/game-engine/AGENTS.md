@@ -41,10 +41,9 @@ Scope: `packages/game-engine/**` only. Client rules live in `packages/web/AGENTS
 
 ## Werewolf role catalog and night runtime
 
-- Werewolf's catalog data remains in `domain/models/roles/spec/` and powers role selection, templates, and existing projections. `ROLE_SPECS`, `SCHEMAS`, and `NIGHT_STEPS` still serve those consumers; they are not the runtime implementation of night actions.
-- Night behavior lives in one module per role under `games/werewolf/roles/`, declared with `defineRole` from `roles/role.ts`. `WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` registers those definitions; the shared wolf attack is declared separately in `roles/wolfKill.ts` and `WEREWOLF_SHARED_STEPS`.
-- `roles/nightPlan.ts` builds the runtime step registry from the role and shared-step definitions. The central execution order remains `NIGHT_STEP_ORDER` in `domain/models/roles/spec/nightStepIds.ts`; every runtime step id must be declared there and in its role definition.
-- When changing night behavior, update the role module, runtime registry/order, and the catalog metadata still consumed by existing surfaces. `roles/__tests__/roleSteps.contract.test.ts` covers the runtime role set and generated step behavior.
+- A role is declared once, in its own module under `games/werewolf/roles/`, with `defineRole` from `roles/role.ts`: its card (name, icon, description sections, tags), its traits (faction, team, wolf recognition, immunities), and its night steps. `roles/catalog.ts` reads role selection, templates, and display data from those modules (`getRoleCard`, `getAllRoleIds`, `Faction`, `Team`); there is no second role table. `WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` registers those definitions; the shared wolf attack is declared separately in `roles/wolfKill.ts` and `WEREWOLF_SHARED_STEPS`.
+- `roles/nightPlan.ts` builds the runtime step registry from the role and shared-step definitions. The central execution order is `NIGHT_STEP_ORDER` in `roles/nightStepOrder.ts`; every step id must be declared there and in its role definition.
+- When changing a role, update its module and, for a new step, the step order. `roles/__tests__/roleSteps.contract.test.ts` covers the runtime role set and generated step behavior.
 
 ## Randomness, logging, assertions
 

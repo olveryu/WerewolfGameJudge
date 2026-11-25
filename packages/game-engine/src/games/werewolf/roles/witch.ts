@@ -19,6 +19,9 @@ const COPY = defineCopy({
   emoji: '🧙‍♀️',
   description:
     '拥有一瓶解药和一瓶毒药；每晚可救活被狼人袭击的玩家或毒杀一名玩家；每瓶药限用一次；不能自救；被毒杀的角色无法开枪',
+  skillText: '拥有一瓶解药和一瓶毒药；每晚可救活被狼人袭击的玩家或毒杀一名玩家',
+  restrictionText: '每瓶药限用一次；不能自救',
+  specialText: '被毒杀的角色无法开枪',
   stepTitle: '女巫行动',
   antidote: '用解药',
   antidoteOn: '对{seat}用解药',
@@ -157,6 +160,12 @@ export const witch = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['protect', 'kill'],
   },
   traits: { faction: 'god', team: 'good' },
   nightSchedule: 'everyNight',

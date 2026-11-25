@@ -1,7 +1,7 @@
 /** Schema-independent domain effects emitted by the Werewolf engine. */
 
 import type { RoleId } from '../domain/models';
-import type { NightStepId } from '../domain/models/roles/spec/nightStepIds';
+import type { NightStepId } from '../roles/nightStepOrder';
 
 /**
  * The phase an armed deadline belongs to: a night step id while the

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import ts from 'typescript';
 
-import { ROLE_SPECS } from '../../../games/werewolf/domain/models/roles/spec';
+import { getAllRoleIds } from '../../../games/werewolf/roles/catalog';
 import { NIGHT_END_AUDIO_KEY } from '../../audio';
 import {
   buildStepReviewLines,
@@ -560,7 +560,7 @@ describe('step copy contract', () => {
   });
 
   it('keeps Werewolf role identifiers out of the night rendering code', () => {
-    const roleIds = new Set(Object.keys(ROLE_SPECS));
+    const roleIds = new Set<string>(getAllRoleIds());
     const violations: string[] = [];
     for (const filePath of clientNightFiles()) {
       const sourceFile = readTypeScriptSource(filePath);

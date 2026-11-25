@@ -14,6 +14,11 @@ const COPY = defineCopy({
   emoji: '👧🐺',
   description:
     '首夜必须表白一名非狼队玩家；表白时可见狼队友号码，不知被表白者是神是民；白天发言环节与投票放逐后均可自爆带走被表白者；投票放逐后自爆则本轮投票作废、直接入夜；自爆后两人均无遗言；不能表白狼队玩家；被表白者查验为好人；被表白的平民成为狼伴侣，不入狼队；狼伴侣与狼人同一胜利条件；狼伴侣知晓狼女孩号码；被表白的神牌仅知自己被表白，仍帮好人玩；仅被自爆带走的猎人无法开枪',
+  skillText:
+    '首夜必须表白一名非狼队玩家；表白时可见狼队友号码，不知被表白者是神是民；白天发言环节与投票放逐后均可自爆带走被表白者；投票放逐后自爆则本轮投票作废、直接入夜；自爆后两人均无遗言',
+  restrictionText: '不能表白狼队玩家',
+  specialText:
+    '被表白者查验为好人；被表白的平民成为狼伴侣，不入狼队；狼伴侣与狼人同一胜利条件；狼伴侣知晓狼女孩号码；被表白的神牌仅知自己被表白，仍帮好人玩；仅被自爆带走的猎人无法开枪',
   action: '表白',
   confess: '向{seat}表白',
   revealTitle: '表白信息',
@@ -66,6 +71,12 @@ export const wolfGirl = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['link'],
   },
   traits: {
     faction: 'wolf',

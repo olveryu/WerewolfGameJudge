@@ -23,6 +23,8 @@ export const magician = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['control'],
   },
   traits: { faction: 'god', team: 'good' },
   nightSchedule: 'everyNight',

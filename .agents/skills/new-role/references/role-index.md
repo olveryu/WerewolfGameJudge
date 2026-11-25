@@ -1,11 +1,10 @@
-# Role catalog index — based on `ROLE_SPECS`
+# Role catalog index — read from the role modules
 
-Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`.
+Source: the role modules in `packages/game-engine/src/games/werewolf/roles/`, served by `roles/catalog.ts`.
 Count: 48 roles. Faction values are the `Faction` enum (`Wolf` / `God` / `Villager` / `Special`);
 team values are the `Team` enum (`Wolf` / `Good` / `Third`).
-This index describes catalog metadata used by existing consumers. Runtime
-night behavior is declared in `packages/game-engine/src/games/werewolf/roles/`;
-do not infer the executable step definition from this table.
+This index lists each role's card and the night steps it owns. Read the
+role's module for the step's behavior; do not infer it from this table.
 
 | Role id            | Display name | Short name | Faction  | Team  | Catalog night steps                                        |
 | ------------------ | ------------ | ---------- | -------- | ----- | ---------------------------------------------------------- |

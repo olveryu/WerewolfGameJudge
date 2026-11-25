@@ -1,7 +1,7 @@
 /** React controller for the game-owned Werewolf notepad. */
 
 import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import { ROLE_SPECS, Team } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard, Team } from '@game-judge/game-engine/games/werewolf/public';
 import { getDisplaySeatNumber } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useEffect, useState } from 'react';
 
@@ -114,7 +114,7 @@ function createRoleTags(gameState: GameState | null): readonly RoleTagInfo[] {
   for (const roleId of gameState.templateRoles) {
     if (seen.has(roleId)) continue;
     seen.add(roleId);
-    const spec = ROLE_SPECS[roleId];
+    const spec = getRoleCard(roleId);
     const info: RoleTagInfo = {
       roleId,
       shortName: spec.shortName,

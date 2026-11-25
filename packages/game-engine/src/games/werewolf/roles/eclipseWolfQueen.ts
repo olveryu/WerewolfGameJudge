@@ -8,6 +8,9 @@ const COPY = defineCopy({
   shortName: '蚀',
   description:
     '每晚率先睁眼选择一名玩家放逐到时间裂隙；当晚神职对被放逐者释放的技能反弹至施法者自身；不能连续两晚放逐同一人；技能成功触发后永久失去技能',
+  skillText: '每晚率先睁眼选择一名玩家放逐到时间裂隙',
+  triggerText: '当晚神职对被放逐者释放的技能反弹至施法者自身',
+  restrictionText: '不能连续两晚放逐同一人；技能成功触发后永久失去技能',
   action: '放逐',
   exile: '放逐{seat}到时间裂隙',
 });
@@ -19,6 +22,12 @@ export const eclipseWolfQueen = defineRole({
     shortName: COPY.shortName,
     emoji: '🌘🐺',
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      trigger: COPY.triggerText,
+      restriction: COPY.restrictionText,
+    },
+    tags: ['control'],
   },
   traits: {
     faction: 'wolf',

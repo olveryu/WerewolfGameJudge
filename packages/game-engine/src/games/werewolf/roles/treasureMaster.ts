@@ -9,6 +9,13 @@ const COPY = defineCopy({
   emoji: '💎',
   description:
     '首夜查看三张底牌；每晚从神职牌和平民牌中选一张获得该角色完整技能；永久狼人阵营；不与狼队见面、不共享信息；被查验时以当夜选择的身份为准；其他狼人全部出局后选蒙面人，白天被投票放逐且负伤免死未触发过，可触发免死；触发免死后于当夜袭击两名不同玩家，袭击结束后立即出局；不能连续两晚选同一张；所有底牌技能仅当夜生效，未触发则失效；底牌固定为一张普通狼人牌、一张神职牌、一张平民牌（不含技能狼）；其他狼人全部出局后可主导袭击',
+  skillText: '首夜查看三张底牌；每晚从神职牌和平民牌中选一张获得该角色完整技能',
+  passiveText: '永久狼人阵营；不与狼队见面、不共享信息；被查验时以当夜选择的身份为准',
+  triggerText:
+    '其他狼人全部出局后选蒙面人，白天被投票放逐且负伤免死未触发过，可触发免死；触发免死后于当夜袭击两名不同玩家，袭击结束后立即出局',
+  restrictionText: '不能连续两晚选同一张；所有底牌技能仅当夜生效，未触发则失效',
+  specialText:
+    '底牌固定为一张普通狼人牌、一张神职牌、一张平民牌（不含技能狼）；其他狼人全部出局后可主导袭击',
   action: '选择底牌',
   hint: '你的阵营：狼人阵营',
   resultTitle: '获得的技能',
@@ -20,7 +27,20 @@ export const treasureMasterPresence = [
 
 export const treasureMaster = defineRole({
   id: 'treasureMaster',
-  card: COPY,
+  card: {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: COPY.emoji,
+    description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      passive: COPY.passiveText,
+      trigger: COPY.triggerText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['transform'],
+  },
   traits: { faction: 'special', team: 'third' },
   presence: treasureMasterPresence[0],
   nightSchedule: 'everyNight',

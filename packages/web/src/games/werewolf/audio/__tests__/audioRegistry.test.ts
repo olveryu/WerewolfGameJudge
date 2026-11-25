@@ -1,7 +1,4 @@
-import {
-  NIGHT_STEPS,
-  WEREWOLF_STEP_AUDIO_DECLARATIONS,
-} from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STEP_AUDIO_DECLARATIONS } from '@game-judge/game-engine/games/werewolf/public';
 
 import {
   getWerewolfPreloadAudio,
@@ -11,13 +8,6 @@ import {
 } from '@/games/werewolf/audio/audioRegistry';
 
 describe('Werewolf audio registry', () => {
-  it('resolves every beginning and ending key emitted by the engine night plan', () => {
-    for (const step of NIGHT_STEPS) {
-      expect(() => resolveWerewolfBeginningAudio(step.audioKey)).not.toThrow();
-      expect(() => resolveWerewolfEndingAudio(step.audioEndKey ?? step.audioKey)).not.toThrow();
-    }
-  });
-
   it('resolves every audio key declared by a role or shared step', () => {
     for (const declaration of WEREWOLF_STEP_AUDIO_DECLARATIONS) {
       const { begin, end } = declaration;

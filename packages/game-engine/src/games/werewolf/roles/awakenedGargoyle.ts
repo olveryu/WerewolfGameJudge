@@ -17,6 +17,9 @@ const COPY = defineCopy({
   emoji: '🗿🔥',
   description:
     '首夜必须选择一名与狼人阵营相邻的玩家转化至狼人阵营；被转化者天亮前知晓转变；被转化者不入狼队，保留自身技能；被转化者不能自爆；其他狼人全部出局后失去原技能并主导袭击',
+  skillText: '首夜必须选择一名与狼人阵营相邻的玩家转化至狼人阵营',
+  specialText:
+    '被转化者天亮前知晓转变；被转化者不入狼队，保留自身技能；被转化者不能自爆；其他狼人全部出局后失去原技能并主导袭击',
   action: '转化',
   prompt: '请选择狼人阵营相邻的一名神民角色进行转化',
   selfDisallowed: '不能选择自己',
@@ -111,6 +114,8 @@ export const awakenedGargoyle = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: { skill: COPY.skillText, special: COPY.specialText },
+    tags: ['transform'],
   },
   traits: {
     faction: 'wolf',

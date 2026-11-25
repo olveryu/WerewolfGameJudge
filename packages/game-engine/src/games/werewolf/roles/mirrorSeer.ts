@@ -11,6 +11,8 @@ const COPY = defineCopy({
   name: '灯影预言家',
   shortName: '灯',
   description: '每晚可查验一名玩家的阵营，但结果与真实阵营相反；自身不知真实身份，以预言家身份示人',
+  skillText: '每晚可查验一名玩家的阵营，但结果与真实阵营相反',
+  passiveText: '自身不知真实身份，以预言家身份示人',
   action: '查验',
   resultTitle: '查验结果',
 });
@@ -26,6 +28,8 @@ export const mirrorSeer = defineRole({
     shortName: COPY.shortName,
     emoji: '🪞',
     description: COPY.description,
+    sections: { skill: COPY.skillText, passive: COPY.passiveText },
+    tags: ['check'],
   },
   traits: { faction: 'villager', team: 'good', displayAs: 'seer' },
   presence: mirrorSeerPresence[0],

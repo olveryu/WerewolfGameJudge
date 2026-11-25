@@ -1,6 +1,6 @@
 ---
 name: new-role
-description: 'Add a werewolf role end to end: define its runtime role module, register its catalog metadata and night-step ids, wire tests, narration, badge, and avatar assets, then verify engine and client surfaces.'
+description: 'Add a werewolf role end to end: define its role module with its card and night steps, register it and its night-step ids, wire tests, narration, badge, and avatar assets, then verify engine and client surfaces.'
 ---
 
 # New role
@@ -24,8 +24,8 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/role-index.md` — the current catalog based on `ROLE_SPECS`;
-   it is not the runtime source for night behavior.
+1. `references/role-index.md` — the current role list, read from the
+   role modules through `roles/catalog.ts`.
 2. `references/role-definition.md` — runtime role and step definitions.
 3. `references/night-step-order.md` — the centralized night execution order.
 4. `references/audio-badge-avatar.md` — narration, badge, and avatar surfaces.
@@ -54,12 +54,14 @@ runtime behavior out of the legacy schema and resolver registries.
   in `roles/index.ts`. Put genuinely shared behavior, such as the wolf
   attack step, in the shared-step declaration rather than duplicating it.
 - Add each new step id to `NIGHT_STEP_IDS` in
-  `domain/models/roles/spec/nightStepIds.ts` at its execution position.
+  `roles/nightStepOrder.ts` at its execution position.
   The runtime plan is built in `roles/nightPlan.ts`.
-- Add the role's catalog metadata to `ROLE_SPEC_DEFINITIONS` in
-  `domain/models/roles/spec/specs.ts`. `ROLE_SPECS` still feeds role
-  selection, templates, and existing projections; it is not the source
-  of executable night behavior. Keep the two registrations consistent.
+- Give the role its full card in the same module: name, short name,
+  icon, description, the description `sections`, and `tags`. The flat
+  description must equal the sections joined in render order;
+  `roles/__tests__/roleCards.contract.test.ts` enforces it. Role
+  selection, templates, and display read the card through
+  `roles/catalog.ts`; there is no second place to register a role.
 - Update role-id expectations and generated-step snapshots in
   `roles/__tests__/roleSteps.contract.test.ts` and the relevant catalog
   contracts. Add focused behavior tests for rules not already covered.
@@ -98,9 +100,9 @@ corepack pnpm --filter @game-judge/web run typecheck
 
 ## Pitfalls
 
-1. Treating `ROLE_SPECS` as the runtime behavior source. It remains
-   necessary for existing catalog consumers, but night execution comes
-   from `WEREWOLF_ROLE_DEFINITIONS` and the shared-step declarations.
+1. Looking for a second role table. A role's display data and its night
+   behavior both come from its module in `WEREWOLF_ROLE_DEFINITIONS`
+   and the shared-step declarations.
 2. Forgetting to add runtime step ids to `NIGHT_STEP_IDS`; role
    definitions do not determine their own execution order.
 3. Inferring team from faction. Set both explicitly; for example,

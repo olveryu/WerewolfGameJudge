@@ -12,18 +12,18 @@ import {
   isInfectionSettlementStep,
   type WerewolfNightEvent,
 } from '../roles/nightEvolution';
-import { getWerewolfRoleDefinition } from '../roles/nightPlan';
+import { getWerewolfStepOwnerRoleId } from '../roles/nightPlan';
 import {
   collectWerewolfDeathEffects,
   createWerewolfStepRuntime,
   requireWerewolfNightState,
 } from '../roles/nightRuntime';
+import { isNightStepId } from '../roles/nightStepOrder';
 import { resolveNightPresenceFacts } from '../roles/presence';
 import type { WerewolfNightFacts, WerewolfRoleStepResult } from '../roles/role';
 import { createAudioQueueAction } from './audioQueue';
 import type { HandlerExecutionContext } from './handlers/types';
 import type { InlineProgressionResult } from './inlineProgression';
-import { isValidSchemaId } from './models/roles/spec/schemas';
 import type { GameState, ResolvedWolfKillVerdict } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
@@ -58,7 +58,7 @@ export function runWerewolfNightProgression(
     const stepEvent = evaluateCurrentStep(currentState, execution);
     if (stepEvent === null) break;
     if (stepEvent.type === 'deadlineArmed') {
-      if (!isValidSchemaId(night.slice.current.stepId)) {
+      if (!isNightStepId(night.slice.current.stepId)) {
         throw new Error(`[FAIL-FAST] Invalid night deadline step ${night.slice.current.stepId}`);
       }
       effects.push(
@@ -236,9 +236,7 @@ export function resolveNightStepAudioKey(
   stepId: string,
   audioKey: string,
 ): string {
-  const roleId = state.templateRoles.find((role) =>
-    getWerewolfRoleDefinition(role).steps.some((step) => step.id === stepId),
-  );
-  const label = roleId === undefined ? undefined : state.seerLabelMap?.[roleId];
+  const roleId = getWerewolfStepOwnerRoleId(state.templateRoles, stepId);
+  const label = roleId === null ? undefined : state.seerLabelMap?.[roleId];
   return label === undefined ? audioKey : `seer_${label}`;
 }

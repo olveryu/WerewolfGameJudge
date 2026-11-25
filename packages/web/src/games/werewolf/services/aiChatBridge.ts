@@ -6,7 +6,7 @@
  * it is mounted, so entry points show only while there is a chat to receive the request.
  */
 
-import { getRoleSpec, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { useSyncExternalStore } from 'react';
 
 import { confirmAction } from '@/features/room/confirm';
@@ -62,7 +62,7 @@ export function requestAIChatMessage(payload: AIChatBridgePayload): void {
 /** After user confirms, request AI to analyze a role's playstyle. */
 export function askAIAboutRole(roleId: RoleId, onClose: () => void): void {
   const prompt = buildRolePlayGuidePrompt(roleId);
-  const roleName = getRoleSpec(roleId).displayName;
+  const roleName = getRoleCard(roleId).displayName;
   confirmAction({
     label: `让 AI 分析「${roleName}」的玩法`,
     onConfirm: () => {

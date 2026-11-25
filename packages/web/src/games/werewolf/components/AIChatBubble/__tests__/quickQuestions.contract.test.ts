@@ -1,7 +1,7 @@
 /**
  * quickQuestions.contract.test - ROLE_QUESTIONS covers every role
  *
- * Every RoleId in ROLE_SPECS has a question list in ROLE_QUESTIONS, so a new role is never
+ * Every RoleId in the role catalog has a question list in ROLE_QUESTIONS, so a new role is never
  * silently skipped by the AI assistant's suggested questions. ROLE_QUESTIONS is private, so the
  * keys are read from the source.
  */
@@ -24,11 +24,11 @@ describe('ROLE_QUESTIONS coverage contract', () => {
     [...roleQuestionsBlock.matchAll(/^\s{2}(\w+):\s*\[/gm)].map((match) => match[1]),
   );
 
-  it('ROLE_QUESTIONS covers every role in ROLE_SPECS', () => {
+  it('ROLE_QUESTIONS covers every role in the role catalog', () => {
     expect(allRoleIds.filter((id) => !blockKeys.has(id))).toEqual([]);
   });
 
-  it('ROLE_QUESTIONS contains no stale entries absent from ROLE_SPECS', () => {
+  it('ROLE_QUESTIONS contains no stale entries absent from the role catalog', () => {
     const roleIdSet = new Set<string | undefined>(allRoleIds);
     expect([...blockKeys].filter((id) => !roleIdSet.has(id))).toEqual([]);
   });

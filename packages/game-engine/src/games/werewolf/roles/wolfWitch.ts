@@ -12,6 +12,8 @@ const COPY = defineCopy({
   shortName: '巫',
   description:
     '每晚可查验一名非狼人阵营玩家的身份，获知其具体角色名称；从第二夜起，查验到纯白之女则其出局',
+  skillText: '每晚可查验一名非狼人阵营玩家的身份，获知其具体角色名称',
+  triggerText: '从第二夜起，查验到纯白之女则其出局',
   action: '查验',
   resultTitle: '查验结果',
 });
@@ -23,6 +25,8 @@ export const wolfWitch = defineRole({
     shortName: COPY.shortName,
     emoji: '🧙🐺',
     description: COPY.description,
+    sections: { skill: COPY.skillText, trigger: COPY.triggerText },
+    tags: ['check', 'kill'],
   },
   traits: {
     faction: 'wolf',

@@ -19,6 +19,8 @@ export const crow = defineRole({
     shortName: COPY.shortName,
     emoji: '🐦‍⬛',
     description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['control'],
   },
   traits: { faction: 'god', team: 'good' },
   announcement: {

@@ -20,8 +20,8 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Faction,
+  getRoleCard,
   getRoleDisplayName,
-  ROLE_SPECS,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
@@ -68,7 +68,7 @@ function tagInline(text: string, tone: ReviewTone): ReviewInline {
 
 /** The one faction-tone rule: a role's faction names its tone in running text. */
 function factionTone(roleId: RoleId): ReviewTone {
-  switch (ROLE_SPECS[roleId].faction) {
+  switch (getRoleCard(roleId).faction) {
     case Faction.Wolf:
       return 'evil';
     case Faction.God:

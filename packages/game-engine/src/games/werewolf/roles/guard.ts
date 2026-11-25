@@ -7,6 +7,9 @@ const COPY = defineCopy({
   shortName: '守',
   description:
     '每晚可守护一名玩家使其免受狼人袭击；不能连续两晚守护同一人；守护无法防御女巫毒药；同时被守护和解药救活的玩家仍然出局',
+  skillText: '每晚可守护一名玩家使其免受狼人袭击',
+  restrictionText: '不能连续两晚守护同一人；守护无法防御女巫毒药',
+  specialText: '同时被守护和解药救活的玩家仍然出局',
   action: '守护',
 });
 
@@ -17,6 +20,12 @@ export const guard = defineRole({
     shortName: COPY.shortName,
     emoji: '🛡️',
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['protect'],
   },
   traits: { faction: 'god', team: 'good' },
   steps: [

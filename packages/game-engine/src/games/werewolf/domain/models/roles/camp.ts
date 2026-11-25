@@ -8,8 +8,7 @@
  * Pure type + ordering constant + mapping. No side effects or platform deps.
  */
 
-import { getRoleSpec, type RoleId } from './spec';
-import { Faction } from './spec/types';
+import { Faction, getRoleCard, type RoleId } from '../../../roles/catalog';
 
 /** The 4 camp buckets a player can belong to in a finished game. */
 export type CampBucket = 'wolf' | 'god' | 'villager' | 'third';
@@ -25,7 +24,7 @@ export const CAMP_ORDER: readonly CampBucket[] = ['wolf', 'god', 'villager', 'th
  * (slacker / cupid / thief / etc.), consistent with FACTION_SECTIONS.
  */
 export function getRoleCamp(roleId: RoleId): CampBucket {
-  const faction = getRoleSpec(roleId).faction;
+  const faction = getRoleCard(roleId).faction;
   switch (faction) {
     case Faction.Wolf:
       return 'wolf';

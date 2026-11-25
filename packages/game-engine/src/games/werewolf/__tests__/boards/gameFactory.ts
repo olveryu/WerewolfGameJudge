@@ -1,16 +1,15 @@
 /** Production-command Werewolf fixture builder for cross-package board tests. */
 
 import {
-  buildNightPlan,
   createTemplateFromRoles,
   type GameState,
   GameStatus,
   getBottomCardCount,
   getPlayerCount,
   isBotOccupant,
+  type NightStepId,
   PRESET_TEMPLATES,
   type RoleId,
-  type SchemaId,
   type WerewolfCommand,
   werewolfEngine,
   type WerewolfInternalCommand,
@@ -161,8 +160,6 @@ export function createGame(
 
   const getGameState = (): GameState => internal.state;
   const getRevision = (): number => internal.revision;
-  const getNightPlan = () =>
-    buildNightPlan(internal.state.templateRoles, internal.state.seerLabelMap);
   const nextExecution = (
     execution: TestCommandExecution = {},
   ): { commandId: string; nowMs: number; randomSeed: string } => {
@@ -299,7 +296,7 @@ export function createGame(
     );
   };
 
-  const assertStep = (expectedStepId: SchemaId): void => {
+  const assertStep = (expectedStepId: NightStepId): void => {
     const currentStepId = internal.state.nightState?.slice.current?.stepId;
     if (currentStepId !== expectedStepId) {
       throw new Error(`Step mismatch: expected ${expectedStepId}, got ${String(currentStepId)}`);
@@ -318,7 +315,6 @@ export function createGame(
   const context: GameContext = {
     getGameState,
     getRevision,
-    getNightPlan,
     dispatch,
     dispatchAsSeat,
     dispatchOrThrow,

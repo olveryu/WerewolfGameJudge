@@ -1,6 +1,6 @@
 ---
 name: new-board
-description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in ROLE_SPECS, add the entry with its category and role list, update the cited preset counts, add its web board UI test and register it in the board UI coverage contract, record its Night-1 scenario snapshot and add a scenario for each new role interaction, then verify with the engine template contract, the Night-1 scenarios, and the board UI coverage contract. Use when adding a preset board; never for a new role or game.'
+description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in the role catalog, add the entry with its category and role list, update the cited preset counts, add its web board UI test and register it in the board UI coverage contract, record its Night-1 scenario snapshot and add a scenario for each new role interaction, then verify with the engine template contract, the Night-1 scenarios, and the board UI coverage contract. Use when adding a preset board; never for a new role or game.'
 ---
 
 # New board
@@ -26,8 +26,8 @@ Do not use when:
 
 ## Must-read references
 
-1. `references/role-index.md` — current 48-role catalog index from
-   `ROLE_SPECS`; runtime night behavior is declared in `roles/`.
+1. `references/role-index.md` — current 48-role catalog index; every
+   role is declared in its module under `roles/`.
 2. `references/preset-rules.md` — schema, categories, seat-count
    rule, bottom cards, contract checks, count surfaces.
 3. `references/board-test.md` — the web board UI tests, the Night-1
@@ -39,7 +39,7 @@ Do not use when:
 
 Get the board name, category, and full role list from the requester.
 Verify every role id in `references/role-index.md` (or in
-`ROLE_SPECS` directly). A missing role stops the work: add the role
+`WEREWOLF_ROLE_DEFINITIONS` in `roles/index.ts` directly). A missing role stops the work: add the role
 first, do not invent an id. Agree the category using the enum meanings in
 `references/preset-rules.md`.
 

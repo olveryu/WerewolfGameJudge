@@ -1,4 +1,4 @@
-import { GameStatus } from '../domain/models';
+import { GameStatus } from '../domain/models/GameStatus';
 import type { GameState } from '../domain/protocol/types';
 import { resolveDeathEffects } from './deathEffects';
 import { getActiveRoleIds } from './identity';

@@ -11,7 +11,7 @@ import {
   getBottomCardRoleId,
   getValidBottomCardDeals,
 } from './BottomCards';
-import { Faction, ROLE_SPECS, type RoleId } from './roles';
+import { Faction, getRoleCard, type RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template categories (for grouped display in TemplatePicker)
@@ -70,8 +70,8 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   for (const roleId of roles) {
     const count = (roleCounts.get(roleId) ?? 0) + 1;
     roleCounts.set(roleId, count);
-    if (count > 1 && roleId !== 'wolf' && ROLE_SPECS[roleId].nightSteps?.length) {
-      return `${ROLE_SPECS[roleId].displayName}不能重复选择`;
+    if (count > 1 && roleId !== 'wolf' && getRoleCard(roleId).nightStepIds.length > 0) {
+      return `${getRoleCard(roleId).displayName}不能重复选择`;
     }
   }
 
@@ -81,8 +81,8 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   if (roles.includes('treasureMaster')) {
     const otherRoles = roles.filter((roleId) => roleId !== 'treasureMaster');
     const hasRegularWolf = otherRoles.includes('wolf');
-    const hasGod = otherRoles.some((r) => ROLE_SPECS[r].faction === Faction.God);
-    const hasVillager = otherRoles.some((r) => ROLE_SPECS[r].faction === Faction.Villager);
+    const hasGod = otherRoles.some((r) => getRoleCard(r).faction === Faction.God);
+    const hasVillager = otherRoles.some((r) => getRoleCard(r).faction === Faction.Villager);
     if (!hasRegularWolf) {
       return '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）';
     }
@@ -161,7 +161,7 @@ export const WEREWOLF_RULES_SCHEMA: GameConfigSchema<WerewolfRules> = {
 /**
  * GameTemplate - defines the player composition for a game.
  *
- * Night action order is derived dynamically from roles via buildNightPlan(roles).
+ * Night action order is derived dynamically from roles by the night plan in roles/nightPlan.ts.
  */
 export interface GameTemplate {
   name: string;
@@ -175,7 +175,7 @@ export interface GameTemplate {
 export function getRoleDealPool(roles: readonly RoleId[], rules?: GameRuleOverrides): RoleId[] {
   if (rules?.isPlagueMode !== true) return [...roles];
   return roles.map((roleId) =>
-    ROLE_SPECS[roleId].faction === Faction.Wolf || roleId === 'treasureMaster'
+    getRoleCard(roleId).faction === Faction.Wolf || roleId === 'treasureMaster'
       ? 'villager'
       : roleId,
   );

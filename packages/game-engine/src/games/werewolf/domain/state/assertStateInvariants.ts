@@ -12,8 +12,8 @@ import {
   GameStatus,
   getBottomCardRoleId,
   getPlayerCount,
+  getRoleCard,
   getRoleDealPool,
-  getRoleSpec,
   isValidBottomCardSet,
   isValidRoleId,
   type RoleId,
@@ -107,7 +107,7 @@ function assertAssignedRolesMatchDeal(
       continue;
     }
     if (difference === -1 && replacedRoleId === undefined) {
-      if (getRoleSpec(roleId).faction === Faction.Wolf) {
+      if (getRoleCard(roleId).faction === Faction.Wolf) {
         fail(`Seed Wolf infection replaced wolf-faction role ${roleId}`);
       }
       replacedRoleId = roleId;

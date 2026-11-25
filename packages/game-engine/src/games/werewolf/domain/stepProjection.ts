@@ -7,7 +7,7 @@ import {
   type StepPresentation,
   type StepSubmission,
 } from '../../../platform/steps';
-import { getWerewolfRoleDefinition } from '../roles/nightPlan';
+import { getWerewolfRoleDefinition, getWerewolfStepOwnerRoleId } from '../roles/nightPlan';
 import {
   createWerewolfStepRuntime,
   planWerewolfGroupBotAcknowledgements,
@@ -18,6 +18,7 @@ import type { GameState } from './protocol/types';
 const COPY = defineCopy({
   wolfAbstained: '放弃袭击',
   wolfAttack: '袭击{seat}',
+  numberedRole: '{number}号{name}',
 });
 
 export type WerewolfStepSeatStatus =
@@ -32,6 +33,33 @@ export interface WerewolfStepView {
 }
 
 /** Project only the current viewer's actions and the status they may see. */
+/** Where the night stands: the current step's position and the role it is announced as. */
+export interface WerewolfNightProgress {
+  readonly current: number;
+  readonly total: number;
+  readonly label: string;
+}
+
+/** The night's progress while a step is live; null outside the night. */
+export function getWerewolfNightProgress(state: GameState): WerewolfNightProgress | null {
+  const night = state.nightState;
+  const current = night?.slice.current ?? null;
+  if (state.status !== GameStatus.Ongoing || night === null || current === null) return null;
+  const ownerRoleId = getWerewolfStepOwnerRoleId(state.templateRoles, current.stepId);
+  if (ownerRoleId === null) {
+    throw new Error(`[FAIL-FAST] Night step ${current.stepId} has no role on this board`);
+  }
+  const owner = getWerewolfRoleDefinition(ownerRoleId);
+  // A disguised role is announced under the name it is disguised as.
+  const name = getWerewolfRoleDefinition(owner.traits.displayAs ?? ownerRoleId).card.name;
+  const number = state.seerLabelMap?.[ownerRoleId];
+  return {
+    current: current.serial,
+    total: night.slice.order.length,
+    label: number === undefined ? name : renderCopy(COPY.numberedRole, { number, name }),
+  };
+}
+
 export function projectWerewolfStep(
   state: GameState,
   viewerSeat: number | null,

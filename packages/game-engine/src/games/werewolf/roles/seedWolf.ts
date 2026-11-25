@@ -16,6 +16,10 @@ const COPY = defineCopy({
   emoji: '🌱🐺',
   description:
     '首夜在狼人袭击后可感染袭击目标；不能感染狼人目标；若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人；被转化者当夜原技能失效',
+  skillText: '首夜在狼人袭击后可感染袭击目标',
+  restrictionText: '不能感染狼人目标',
+  specialText:
+    '若目标最终因狼人袭击出局，则取消该次袭击并将其转化为普通狼人；被转化者当夜原技能失效',
   action: '感染',
   infection: '感染{seat}',
   attacked: '{seat}被狼人袭击',
@@ -99,6 +103,12 @@ export const seedWolf = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['transform'],
   },
   traits: {
     faction: 'wolf',

@@ -8,6 +8,8 @@ const COPY = defineCopy({
   shortName: '蒙',
   description:
     '首次在夜晚因狼人袭击、毒杀或摄梦连带受到致命伤害时负伤免死，转为负伤状态而非出局；进入负伤状态后，于下一次白天自己发言结束后强制出局',
+  triggerText: '首次在夜晚因狼人袭击、毒杀或摄梦连带受到致命伤害时负伤免死，转为负伤状态而非出局',
+  restrictionText: '进入负伤状态后，于下一次白天自己发言结束后强制出局',
   viewLabel: '查看负伤状态',
   viewPrompt: '请在自己发言结束后再查看',
   viewTitle: '负伤状态',
@@ -25,7 +27,14 @@ function isWounded(seat: number, resolution: DeathResolution): boolean {
 
 export const maskedMan = createPassiveRole(
   'maskedMan',
-  { name: COPY.name, shortName: COPY.shortName, emoji: '🥷', description: COPY.description },
+  {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '🥷',
+    description: COPY.description,
+    sections: { trigger: COPY.triggerText, restriction: COPY.restrictionText },
+    tags: ['immune'],
+  },
   {
     faction: 'god',
     team: 'good',

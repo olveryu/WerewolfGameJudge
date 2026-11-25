@@ -10,65 +10,27 @@ export type {
   WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from './commands/types';
-export { resolveSeerAudioKey } from './domain/audioKeyOverride';
-export {
-  makeActionMagicianSwap,
-  makeActionTarget,
-  makeActionWitch,
-  type RoleAction,
-} from './domain/models/actions/RoleAction';
-export {
-  makeWitchNone,
-  makeWitchPoison,
-  makeWitchSave,
-  type WitchAction,
-} from './domain/models/actions/WitchAction';
 export { getBottomCardCount } from './domain/models/BottomCards';
 export { GameStatus } from './domain/models/GameStatus';
 export {
-  type ActionSchema,
-  buildNightPlan,
   CAMP_ORDER,
   type CampBucket,
-  canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   Faction,
   getAllRoleIds,
   getRoleCamp,
+  getRoleCard,
   getRoleDisplayAs,
   getRoleDisplayName,
-  getRoleEmoji,
-  getRoleSpec,
   getRoleStructuredDescription,
-  getSchema,
-  getWolfKillImmuneRoleIds,
   isValidRoleId,
   isWolfRole,
-  type NightPlan,
-  type RevealKind,
-  ROLE_SPECS,
   type RoleAbilityTag,
+  type RoleCard,
+  type RoleDescription,
   type RoleId,
-  type SchemaId,
-  SCHEMAS,
   Team,
 } from './domain/models/roles';
-export {
-  BLOCKED_UI_DEFAULTS,
-  type CompoundSchema,
-  type InlineSubStepSchema,
-  NIGHT_STEPS,
-  TargetConstraint,
-} from './domain/models/roles/spec';
-export { isNightStepId } from './domain/models/roles/spec/nightStepIds';
-export { getStepSpec } from './domain/models/roles/spec/nightSteps';
-export type { RoleDescription, RoleSpec } from './domain/models/roles/spec/roleSpec.types';
-export {
-  type ChooseSeatSchema,
-  type ConfirmSchema,
-  WOLF_KILL_OVERRIDE_TEXTS,
-} from './domain/models/roles/spec/schema.types';
-export { getAllSchemaIds, isValidSchemaId } from './domain/models/roles/spec/schemas';
 export {
   createCustomTemplate,
   createTemplateFromRoles,
@@ -90,12 +52,7 @@ export {
   REASON_DEADLINE_NOT_REACHED,
   REASON_PHASE_NOT_EXPIRABLE,
 } from './domain/phaseExpiry';
-export {
-  buildSeatRoleMap,
-  findSeatByRole,
-  forEachSeatedPlayer,
-  getWerewolfUserSeat,
-} from './domain/playerHelpers';
+export { findSeatByRole, getWerewolfUserSeat } from './domain/playerHelpers';
 export type {
   BoardNomination,
   GameState,
@@ -127,7 +84,11 @@ export {
   type NightReviewSheriffRound,
   type NightReviewSheriffSection,
 } from './domain/review/sheriffSection';
-export { describeWerewolfStepConfirmation } from './domain/stepProjection';
+export {
+  describeWerewolfStepConfirmation,
+  getWerewolfNightProgress,
+  type WerewolfNightProgress,
+} from './domain/stepProjection';
 export {
   getWerewolfViewModel,
   type WerewolfSeatView,
@@ -162,6 +123,7 @@ export {
 } from './roles/daytimeAnnouncements';
 export type { DeathReason } from './roles/deathEffects';
 export { isWerewolfStepId } from './roles/nightPlan';
+export { isNightStepId, NIGHT_STEP_ORDER, type NightStepId } from './roles/nightStepOrder';
 export type { WerewolfPersonalDaytimeView } from './roles/personalDaytimeViews';
 export { WEREWOLF_STATE_CODEC } from './state/codec';
 export { parseWerewolfState } from './state/parseState';

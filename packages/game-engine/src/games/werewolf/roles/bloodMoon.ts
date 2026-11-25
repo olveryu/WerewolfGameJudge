@@ -6,11 +6,20 @@ const COPY = defineCopy({
   shortName: '血',
   description:
     '自爆后的当晚所有好人阵营的技能被封印；若为最后一个被放逐的狼人，可存活至下一个白天天亮后才出局',
+  triggerText: '自爆后的当晚所有好人阵营的技能被封印',
+  specialText: '若为最后一个被放逐的狼人，可存活至下一个白天天亮后才出局',
 });
 
 export const bloodMoon = createPassiveRole(
   'bloodMoon',
-  { name: COPY.name, shortName: COPY.shortName, emoji: '🩸', description: COPY.description },
+  {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '🩸',
+    description: COPY.description,
+    sections: { trigger: COPY.triggerText, special: COPY.specialText },
+    tags: ['control'],
+  },
   {
     faction: 'wolf',
     team: 'wolf',

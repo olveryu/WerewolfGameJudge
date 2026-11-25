@@ -15,17 +15,6 @@ import type { GameState } from './protocol/types';
 
 type Players = GameState['players'];
 
-/** Builds a seat -> RoleId map (only seats with assigned roles) */
-export function buildSeatRoleMap(players: Players): Map<number, RoleId> {
-  const map = new Map<number, RoleId>();
-  for (const [seatStr, player] of Object.entries(players)) {
-    if (player?.role) {
-      map.set(Number.parseInt(seatStr, 10), player.role);
-    }
-  }
-  return map;
-}
-
 /** Finds the seat holding the given role (returns null if not found) */
 export function findSeatByRole(players: Players, roleId: RoleId): number | null {
   for (const [seatStr, player] of Object.entries(players)) {
@@ -34,18 +23,6 @@ export function findSeatByRole(players: Players, roleId: RoleId): number | null 
     }
   }
   return null;
-}
-
-/** Iterates over all non-empty seats, calling callback(seat, player) */
-export function forEachSeatedPlayer(
-  players: Players,
-  callback: (seat: number, player: NonNullable<Players[number]>) => void,
-): void {
-  for (const [seatStr, player] of Object.entries(players)) {
-    if (player !== null) {
-      callback(Number.parseInt(seatStr, 10), player);
-    }
-  }
 }
 
 /**

@@ -8,6 +8,8 @@ const COPY = defineCopy({
   shortName: '毒',
   description:
     '拥有一瓶毒药；可在夜间毒杀一名玩家；被毒杀的角色无法开枪；有毒师在场时首夜狼人无法袭击',
+  skillText: '拥有一瓶毒药；可在夜间毒杀一名玩家',
+  specialText: '被毒杀的角色无法开枪；有毒师在场时首夜狼人无法袭击',
   action: '毒杀',
 });
 
@@ -22,6 +24,8 @@ export const poisoner = defineRole({
     shortName: COPY.shortName,
     emoji: '☠️',
     description: COPY.description,
+    sections: { skill: COPY.skillText, special: COPY.specialText },
+    tags: ['kill'],
   },
   traits: { faction: 'god', team: 'good' },
   presence: poisonerPresence[0],

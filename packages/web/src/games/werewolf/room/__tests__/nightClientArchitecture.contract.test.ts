@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { getAllRoleIds } from '@game-judge/game-engine/games/werewolf/public';
 import ts from 'typescript';
 
 const WEB_SOURCE = join(import.meta.dirname, '../../../..');
@@ -14,7 +14,6 @@ const NIGHT_COMPOSITION = [
     file: join(import.meta.dirname, '../werewolfRoomAdapter.ts'),
     functions: [
       'createWerewolfSeatDataSource',
-      'resolveStepRoleName',
       'deriveWerewolfBottomProgress',
       'createWerewolfStepActionList',
       'createWerewolfPlayerActions',
@@ -37,7 +36,7 @@ function productionStepFiles(directory: string): string[] {
 
 describe('Werewolf night client architecture', () => {
   it('renders step presentations without mentioning concrete role IDs', () => {
-    const roleIds = new Set(Object.keys(ROLE_SPECS));
+    const roleIds = new Set<string>(getAllRoleIds());
     const violations: string[] = [];
     const sources = [
       ...[

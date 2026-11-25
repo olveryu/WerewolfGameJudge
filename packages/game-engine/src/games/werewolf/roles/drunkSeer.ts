@@ -12,6 +12,8 @@ const COPY = defineCopy({
   shortName: '酒',
   description:
     '每晚可查验一名玩家的阵营，但结果随机（50%正确/50%错误）；自身不知真实身份，以预言家身份示人',
+  skillText: '每晚可查验一名玩家的阵营，但结果随机（50%正确/50%错误）',
+  passiveText: '自身不知真实身份，以预言家身份示人',
   action: '查验',
   resultTitle: '查验结果',
 });
@@ -25,8 +27,10 @@ export const drunkSeer = defineRole({
   card: {
     name: COPY.name,
     shortName: COPY.shortName,
-    emoji: '🍷',
+    emoji: '🍺🔮',
     description: COPY.description,
+    sections: { skill: COPY.skillText, passive: COPY.passiveText },
+    tags: ['check'],
   },
   traits: { faction: 'villager', team: 'good', displayAs: 'seer' },
   presence: drunkSeerPresence[0],

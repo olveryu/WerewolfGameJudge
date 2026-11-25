@@ -19,6 +19,12 @@ const COPY = defineCopy({
   emoji: '🤖🐺',
   description:
     '首夜可学习一名玩家的技能并获知其身份；学习到的技能当夜不能使用，次夜可用；学习其他角色时正常继承其技能；与其他狼人互不相认；不能自爆；若学习到守卫，从次夜起可守护一名玩家；机械狼人守护的玩家被毒杀时，毒药反弹至施法者自身；若学习到狼人，可额外袭击一名玩家，限用一次；其他狼人全部出局后可主导袭击',
+  skillText:
+    '首夜可学习一名玩家的技能并获知其身份；学习到的技能当夜不能使用，次夜可用；学习其他角色时正常继承其技能',
+  passiveText: '与其他狼人互不相认',
+  restrictionText: '不能自爆',
+  specialText:
+    '若学习到守卫，从次夜起可守护一名玩家；机械狼人守护的玩家被毒杀时，毒药反弹至施法者自身；若学习到狼人，可额外袭击一名玩家，限用一次；其他狼人全部出局后可主导袭击',
   stepTitle: '学习',
   prompt: '请选择要学习的玩家',
   selfDisallowed: '不能选择自己',
@@ -130,6 +136,13 @@ export const wolfRobot = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      passive: COPY.passiveText,
+      restriction: COPY.restrictionText,
+      special: COPY.specialText,
+    },
+    tags: ['check', 'transform'],
   },
   traits: {
     faction: 'wolf',

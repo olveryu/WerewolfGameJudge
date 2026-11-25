@@ -9,6 +9,13 @@ const COPY = defineCopy({
 
 export const knight = createPassiveRole(
   'knight',
-  { name: COPY.name, shortName: COPY.shortName, emoji: '🗡️', description: COPY.description },
+  {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '🗡️',
+    description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['kill'],
+  },
   { faction: 'god', team: 'good' },
 );

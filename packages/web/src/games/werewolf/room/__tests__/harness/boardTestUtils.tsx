@@ -12,13 +12,13 @@
 
 import type {
   GameState,
+  NightStepId,
   RoleId,
-  SchemaId,
   WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
   GameStatus,
-  isValidSchemaId,
+  isNightStepId,
   werewolfEngine,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
@@ -74,7 +74,7 @@ function successfulWerewolfCommand(
 
 export interface WerewolfRoomMockOptions {
   /** Schema ID for the current step. */
-  schemaId: SchemaId;
+  schemaId: NightStepId;
   /** The step's acting role; must be on the board (placed on a villager seat when absent). */
   currentActionRole: RoleId;
   /** The viewer's role. */
@@ -249,7 +249,7 @@ export function createWerewolfRoomMockFromState(
     roster: { ...state.roster, [viewerSeat]: { ...occupant, userId: TEST_USER_ID } },
   };
   const stepId = state.nightState?.slice.current?.stepId;
-  if (stepId === undefined || !isValidSchemaId(stepId)) {
+  if (stepId === undefined || !isNightStepId(stepId)) {
     throw new Error('[TEST] Vertical slice state must be inside a night step');
   }
   const role = state.players[viewerSeat]?.role;
@@ -405,6 +405,10 @@ export function mountRoomFor(options: WerewolfRoomMockOptions): Promise<RenderRe
 // Step fixtures shared by the board files: the viewer is the step's actor.
 
 /** The viewer holds `role` on `seat` and acts in `schemaId`. */
-export function actorStep(schemaId: SchemaId, role: RoleId, seat: number): WerewolfRoomMockOptions {
+export function actorStep(
+  schemaId: NightStepId,
+  role: RoleId,
+  seat: number,
+): WerewolfRoomMockOptions {
   return { schemaId, currentActionRole: role, myRole: role, mySeat: seat };
 }

@@ -11,6 +11,9 @@ const COPY = defineCopy({
   shortName: '石',
   description:
     '每晚可查验一名玩家的身份，获知其具体角色名称；与其他狼人互不相认；其他狼人全部出局后可主导袭击',
+  skillText: '每晚可查验一名玩家的身份，获知其具体角色名称',
+  passiveText: '与其他狼人互不相认',
+  specialText: '其他狼人全部出局后可主导袭击',
   action: '查验',
   resultTitle: '查验结果',
 });
@@ -22,6 +25,8 @@ export const gargoyle = defineRole({
     shortName: COPY.shortName,
     emoji: '🗿',
     description: COPY.description,
+    sections: { skill: COPY.skillText, passive: COPY.passiveText, special: COPY.specialText },
+    tags: ['check'],
   },
   traits: {
     faction: 'wolf',

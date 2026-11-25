@@ -1,5 +1,4 @@
 import type { RoleId } from '../domain/models';
-import { NIGHT_STEP_ORDER } from '../domain/models/roles/spec/nightStepIds';
 import {
   WEREWOLF_ROLE_DEFINITIONS,
   WEREWOLF_SHARED_STEPS,
@@ -9,6 +8,7 @@ import {
   type WerewolfRoleStepDefinition,
 } from '.';
 import { grantBorrowedAbility, replaceCurrentRole } from './identity';
+import { NIGHT_STEP_ORDER } from './nightStepOrder';
 import { withConversionLock } from './seedWolf';
 
 export type WerewolfRoleStep = WerewolfRoleStepDefinition;
@@ -24,6 +24,9 @@ export interface PlannedWerewolfStep {
   readonly roleId: RoleId;
   readonly stepId: string;
 }
+
+/** The wolves' shared step is announced and labelled as the plain wolf's. */
+const SHARED_STEP_OWNER_ROLE_ID = 'wolf' satisfies RoleId;
 
 export const EMPTY_WEREWOLF_NIGHT_FACTS: WerewolfNightFacts = {
   selections: [],
@@ -84,6 +87,19 @@ export function createWerewolfRoleState(deal: WerewolfNightDeal): WerewolfRoleSt
   };
 }
 
+/** The role on this board that owns `stepId`; the shared wolf step belongs to the wolves. */
+export function getWerewolfStepOwnerRoleId(
+  templateRoles: readonly string[],
+  stepId: string,
+): string | null {
+  if (WEREWOLF_SHARED_STEPS.some((step) => step.id === stepId)) return SHARED_STEP_OWNER_ROLE_ID;
+  return (
+    templateRoles.find((role) =>
+      getWerewolfRoleDefinition(role).steps.some((step) => step.id === stepId),
+    ) ?? null
+  );
+}
+
 export function createWerewolfNightPlan(deal: WerewolfNightDeal): readonly PlannedWerewolfStep[] {
   const stepsById = new Map<string, PlannedWerewolfStep>();
   for (const roleId of new Set(deal.templateRoles)) {
@@ -98,7 +114,9 @@ export function createWerewolfNightPlan(deal: WerewolfNightDeal): readonly Plann
         getWerewolfRoleDefinition(roleId).traits.recognition?.participatesInWolfVote === true,
     )
   ) {
-    stepsById.set('wolfKill', { roleId: 'wolf', stepId: 'wolfKill' });
+    for (const step of WEREWOLF_SHARED_STEPS) {
+      stepsById.set(step.id, { roleId: SHARED_STEP_OWNER_ROLE_ID, stepId: step.id });
+    }
   }
   const ordered = NIGHT_STEP_ORDER.flatMap((stepId) => {
     const step = stepsById.get(stepId);

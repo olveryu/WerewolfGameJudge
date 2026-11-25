@@ -12,11 +12,44 @@ export type WerewolfRoleFaction = 'god' | 'villager' | 'wolf' | 'special';
 export type WerewolfRoleTeam = 'good' | 'wolf' | 'third';
 export type WerewolfCheckReaction = 'targetDeath' | 'reflect';
 
+/** What a role can do, as the encyclopedia filters it. */
+export type RoleAbilityTag =
+  | 'check'
+  | 'protect'
+  | 'kill'
+  | 'control'
+  | 'link'
+  | 'immune'
+  | 'transform'
+  | 'survive'
+  | 'follow'
+  | 'confirm'
+  | 'none';
+
+/** A role's description split into the sections its card shows. */
+export interface RoleDescription {
+  /** What the player chooses to do, its direct outcome, and the resources it owns. */
+  readonly skill?: string;
+  /** Always-on properties: immunities, wolf recognition, how it reads when checked. */
+  readonly passive?: string;
+  /** "When X happens, Y" events the player does not start as a regular action. */
+  readonly trigger?: string;
+  /** Limits on the role's own ability: use counts, forbidden targets, activation conditions. */
+  readonly restriction?: string;
+  /** Interactions with other roles, board-level rules, and edge cases. */
+  readonly special?: string;
+  /** A non-standard victory condition. */
+  readonly winCondition?: string;
+}
+
 export interface WerewolfRoleCard {
   readonly name: string;
   readonly shortName: string;
   readonly emoji: string;
+  readonly englishName?: string;
   readonly description: string;
+  readonly sections: RoleDescription;
+  readonly tags?: readonly RoleAbilityTag[];
 }
 
 export interface WerewolfRoleState {

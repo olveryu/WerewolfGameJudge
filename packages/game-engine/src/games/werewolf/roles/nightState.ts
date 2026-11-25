@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 import type { StepSlice } from '../../../platform/steps';
-import { isValidRoleId } from '../domain/models';
-import { isNightStepId } from '../domain/models/roles/spec/nightStepIds';
 import type { ResolvedWolfKillVerdict, SeedWolfInfectionResult } from '../domain/protocol/types';
+import { isValidRoleId } from './catalog';
 import type { DeathEffect } from './deathEffects';
+import { isNightStepId } from './nightStepOrder';
 import type { WerewolfNightFacts, WerewolfRoleState, WerewolfRoleStepResult } from './role';
 
 export interface WerewolfNightEmission {

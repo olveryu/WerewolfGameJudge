@@ -9,7 +9,14 @@ const COPY = defineCopy({
 
 export const graveyardKeeper = createPassiveRole(
   'graveyardKeeper',
-  { name: COPY.name, shortName: COPY.shortName, emoji: '⚰️', description: COPY.description },
+  {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '⚰️',
+    description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['check'],
+  },
   {
     faction: 'god',
     team: 'good',

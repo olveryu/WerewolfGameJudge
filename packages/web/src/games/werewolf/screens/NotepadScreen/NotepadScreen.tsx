@@ -6,7 +6,7 @@
 import './NotepadScreen.css';
 import '@/games/werewolf/components/faction.css';
 
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 import { useParams } from 'react-router';
 
 import { IconButton } from '@/components/IconButton';
@@ -71,7 +71,7 @@ export function WerewolfNotepad({
     const myRole = mySeat !== null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
       mySeat !== null && myRole
-        ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole].displayName }
+        ? { seat: mySeat + 1, roleName: getRoleCard(myRole).displayName }
         : undefined;
 
     const summary = buildNotepadSummary(

@@ -38,12 +38,11 @@ and audio.
 - Register role modules in `roles/index.ts` in
   `WEREWOLF_ROLE_DEFINITIONS`; genuinely shared steps are registered in
   `WEREWOLF_SHARED_STEPS`.
-- Declare step execution order in
-  `domain/models/roles/spec/nightStepIds.ts`. `roles/nightPlan.ts`
+- Declare step execution order in `roles/nightStepOrder.ts`. `roles/nightPlan.ts`
   assembles the runtime plan from the definitions and this order.
-- Keep `ROLE_SPECS` metadata in sync for existing catalog, selection,
-  template, and projection consumers. It does not replace the runtime
-  role definition.
+- The role's card (name, icon, description sections, tags) lives in the
+  same module; `roles/catalog.ts` serves it to role selection,
+  templates, and display.
 
 `roles/__tests__/roleSteps.contract.test.ts` checks the role registry,
 generated step output, and representative night behavior. Update its

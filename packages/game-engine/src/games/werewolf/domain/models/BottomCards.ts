@@ -5,7 +5,7 @@
  * random source, state mutation, or resolver dependency.
  */
 
-import { Faction, getRoleSpec, type RoleId } from './roles';
+import { Faction, getRoleCard, type RoleId } from './roles';
 
 export type BottomCardRoleId = 'treasureMaster' | 'thief';
 
@@ -51,13 +51,13 @@ export function isValidBottomCardSet(
   if (cards.length !== getBottomCardCountForRole(actorRoleId)) return false;
   if (cards.includes(actorRoleId) || cards.includes('cupid')) return false;
 
-  const wolfCount = cards.filter((roleId) => getRoleSpec(roleId).faction === Faction.Wolf).length;
+  const wolfCount = cards.filter((roleId) => getRoleCard(roleId).faction === Faction.Wolf).length;
 
   if (actorRoleId === 'thief') return wolfCount <= 1;
 
-  const godCount = cards.filter((roleId) => getRoleSpec(roleId).faction === Faction.God).length;
+  const godCount = cards.filter((roleId) => getRoleCard(roleId).faction === Faction.God).length;
   const villagerCount = cards.filter(
-    (roleId) => getRoleSpec(roleId).faction === Faction.Villager,
+    (roleId) => getRoleCard(roleId).faction === Faction.Villager,
   ).length;
   return wolfCount === 1 && godCount === 1 && villagerCount === 1 && cards.includes('wolf');
 }

@@ -1,4 +1,4 @@
-import { getAllSchemaIds, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_STEP_ORDER, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { openNightActionGroup } from '@/games/werewolf/room/__tests__/harness';
 import {
@@ -77,7 +77,7 @@ const scenarios = [
 ];
 
 describe('WerewolfRoomScreen shared-step smoke (one per night step)', () => {
-  it.each(getAllSchemaIds())('renders the engine presentation for %s', async (stepId) => {
+  it.each(NIGHT_STEP_ORDER)('renders the engine presentation for %s', async (stepId) => {
     const scenario = scenarios.find(
       (candidate) => candidate.presentation.stepId === stepId && candidate.action !== null,
     );

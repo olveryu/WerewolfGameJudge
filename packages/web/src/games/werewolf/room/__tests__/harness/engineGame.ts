@@ -11,9 +11,9 @@ import {
   getBottomCardCount,
   getPlayerCount,
   isBotOccupant,
+  type NightStepId,
   PRESET_TEMPLATES,
   type RoleId,
-  type SchemaId,
   type WerewolfCommand,
   werewolfEngine,
   type WerewolfInternalCommand,
@@ -58,7 +58,7 @@ export interface EngineGame {
     execution?: CommandExecution,
   ): void;
   acknowledgePendingAudioOrThrow(context: string): void;
-  assertStep(expectedStepId: SchemaId): void;
+  assertStep(expectedStepId: NightStepId): void;
 }
 
 /**

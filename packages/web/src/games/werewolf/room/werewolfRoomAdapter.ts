@@ -12,20 +12,17 @@
 import type {
   GameState,
   RoleId,
-  SchemaId,
   WerewolfDaytimeAnnouncement,
   WerewolfPersonalDaytimeView,
   WerewolfViewModel,
 } from '@game-judge/game-engine/games/werewolf/public';
 import {
-  buildNightPlan,
   Faction,
   GameStatus,
   getPlayerCount,
-  getRoleDisplayAs,
+  getRoleCard,
   getRoleDisplayName,
-  getRoleSpec,
-  isValidSchemaId,
+  getWerewolfNightProgress,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { getBotDisplayName } from '@game-judge/game-engine/platform/room/getBotDisplayName';
 import { isBotOccupant } from '@game-judge/game-engine/platform/room/seating/roster';
@@ -37,7 +34,7 @@ import {
   createRoomShellModel,
   type RoomShellModelInput,
 } from '@/features/room/model/createRoomShellModel';
-import { type NightStepProgress, resolveStepProgress } from '@/features/room/model/nightProgress';
+import { type NightStepProgress } from '@/features/room/model/nightProgress';
 import type { RoomPlayerAction, RoomPlayerActionGroup } from '@/features/room/model/RoomAction';
 import {
   createRoomSetupCapabilities,
@@ -255,36 +252,9 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
 // Night progress
 // =============================================================================
 
-function resolveStepRoleName(
-  step: ReturnType<typeof buildNightPlan>['steps'][number],
-  seerLabelMap: GameState['seerLabelMap'],
-): string {
-  let roleName = step.displayName;
-  const displayAs = getRoleDisplayAs(step.roleId);
-  if (displayAs) roleName = getRoleSpec(displayAs)?.displayName ?? roleName;
-  const label = seerLabelMap?.[step.roleId];
-  return label === undefined ? roleName : `${label}号${roleName}`;
-}
-
 /** The night progress bar: only while a step is live. */
 export function deriveWerewolfBottomProgress(state: GameState): NightStepProgress | null {
-  const currentStepId = state.nightState?.slice.current?.stepId;
-  if (state.status !== GameStatus.Ongoing || currentStepId === undefined) return null;
-  if (!isValidSchemaId(currentStepId)) {
-    throw new Error(`[FAIL-FAST] Unknown night step ${currentStepId}`);
-  }
-  const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-  const labels: Partial<Record<SchemaId, string>> = {};
-  for (const step of plan.steps)
-    labels[step.stepId] = resolveStepRoleName(step, state.seerLabelMap);
-  const progress = resolveStepProgress(
-    plan.steps.map((step) => step.stepId),
-    currentStepId,
-    labels,
-  );
-  return progress === null
-    ? null
-    : { current: progress.current, total: progress.total, label: progress.label };
+  return getWerewolfNightProgress(state);
 }
 
 // =============================================================================
@@ -467,7 +437,7 @@ function groupRoleItems(roles: readonly RoleId[]): RoleItems {
       villagerCount += 1;
       continue;
     }
-    const spec = getRoleSpec(role);
+    const spec = getRoleCard(role);
     if (spec === undefined) throw new Error(`[FAIL-FAST] Unknown role in template: ${role}`);
     const bucket =
       spec.faction === Faction.Wolf

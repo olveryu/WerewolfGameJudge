@@ -126,7 +126,7 @@ watch result.
 
 1. Writing `NIGHT_STEP_ORDER_INTERNAL` or pasting an old step order
    — the constant does not exist; the order lives in
-   `nightStepIds.ts`.
+   `roles/nightStepOrder.ts`.
 2. Filling seats with automated players: the two existing bot steps
    (`drawguess.spec.ts`, `avalon.spec.ts`) exist; new specs use
    independent contexts per seat.

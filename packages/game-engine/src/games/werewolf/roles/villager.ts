@@ -9,7 +9,14 @@ const COPY = defineCopy({
 
 export const villager = createPassiveRole(
   'villager',
-  { name: COPY.name, shortName: COPY.shortName, emoji: '👤', description: COPY.description },
+  {
+    name: COPY.name,
+    shortName: COPY.shortName,
+    emoji: '👤',
+    description: COPY.description,
+    sections: { passive: COPY.description },
+    tags: ['none'],
+  },
   {
     faction: 'villager',
     team: 'good',

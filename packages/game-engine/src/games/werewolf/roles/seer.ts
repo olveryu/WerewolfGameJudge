@@ -27,6 +27,8 @@ export const seer = defineRole({
     shortName: COPY.shortName,
     emoji: '🔮',
     description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['check'],
   },
   traits: { faction: 'god', team: 'good' },
   presence: seerPresence[0],

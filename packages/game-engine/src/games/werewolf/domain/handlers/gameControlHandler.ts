@@ -13,6 +13,8 @@
 
 import { guardAudioPlayback } from '../../../../platform/audio';
 import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
+import { WEREWOLF_PRESENCE_DECLARATIONS } from '../../roles';
+import { resolveNightPresenceFacts } from '../../roles/presence';
 import type {
   AbortGameIntent,
   AssignRolesIntent,
@@ -31,7 +33,6 @@ import {
   getValidBottomCardDeals,
   type RoleId,
 } from '../models';
-import { getRoleSpec } from '../models/roles/spec';
 import type { GameState } from '../protocol/types';
 import type {
   AssignRolesAction,
@@ -121,24 +122,24 @@ function decideRoleDeal(state: GameState, execution: HandlerExecutionContext): H
     }
   }
 
-  // When multiple seerFamily-tagged roles coexist, randomly assign numbered labels
-  // Note: must use all roles (including deck) to determine seer family
+  // Roles that announce under the same name are numbered when two or more are on the board.
+  // All roles count, including the bottom cards.
   const allRoles = bottomCards ? [...seatedRoles, ...bottomCards] : seatedRoles;
-  const seerLikeRoles = [
-    ...new Set(
-      allRoles.filter((r) => {
-        if (r === 'seer') return true;
-        return getRoleSpec(r).groups?.includes('seerFamily') === true;
-      }),
-    ),
-  ];
-  let seerLabelMap: Readonly<Record<string, number>> | undefined;
-  if (seerLikeRoles.length >= 2) {
+  const numberedFamilies = Object.values(
+    resolveNightPresenceFacts(allRoles, WEREWOLF_PRESENCE_DECLARATIONS).numberedAnnouncementRoles,
+  );
+  let seerLabelMap: Record<string, number> | undefined;
+  for (const family of numberedFamilies) {
+    const members = [...new Set(allRoles.filter((role) => family.includes(role)))];
+    if (members.length < 2) continue;
     const labels = shuffleArray(
-      Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1),
+      Array.from({ length: members.length }, (_, i) => i + 1),
       rng,
     );
-    seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]!]));
+    seerLabelMap = {
+      ...seerLabelMap,
+      ...Object.fromEntries(members.map((role, i) => [role, labels[i]!])),
+    };
   }
 
   // Only produce ASSIGN_ROLES action (not START_NIGHT)

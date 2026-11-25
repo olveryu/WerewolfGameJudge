@@ -15,6 +15,8 @@ export const wolf = defineRole({
     shortName: COPY.shortName,
     emoji: COPY.emoji,
     description: COPY.description,
+    sections: { skill: COPY.description },
+    tags: ['kill'],
   },
   traits: {
     faction: 'wolf',

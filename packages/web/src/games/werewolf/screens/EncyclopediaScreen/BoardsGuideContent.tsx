@@ -6,7 +6,7 @@ import '@/features/encyclopedia/Encyclopedia.css';
 import './BoardsGuideContent.css';
 
 import {
-  getRoleSpec,
+  getRoleCard,
   PRESET_TEMPLATES,
   type PresetTemplate,
   TEMPLATE_CATEGORY_LABELS,
@@ -66,7 +66,7 @@ function matchesSearchQuery(template: PresetTemplate, query: string): boolean {
   const lowerQuery = query.toLowerCase();
   if (template.name.toLowerCase().includes(lowerQuery)) return true;
   return template.roles.some((roleId) =>
-    getRoleSpec(roleId).displayName.toLowerCase().includes(lowerQuery),
+    getRoleCard(roleId).displayName.toLowerCase().includes(lowerQuery),
   );
 }
 

@@ -18,9 +18,9 @@ import {
   type PhaseExpiryActorChannel,
 } from '../../../platform/room/phaseDeadline';
 import type { WerewolfDeadlinePhase, WerewolfEffect } from '../effects/types';
+import { isNightStepId } from '../roles/nightStepOrder';
 import { runInlineProgression } from './inlineProgression';
 import { GameStatus } from './models/GameStatus';
-import { isNightStepId } from './models/roles/spec/nightStepIds';
 import type { GameState } from './protocol/types';
 import type { StateAction } from './reducer/types';
 

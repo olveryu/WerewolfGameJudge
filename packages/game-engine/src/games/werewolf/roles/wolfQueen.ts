@@ -7,6 +7,9 @@ const COPY = defineCopy({
   shortName: '美',
   description:
     '每晚可魅惑一名玩家；被魅惑者不知情；出局时被魅惑者随之殉情出局；不能自爆；不能袭击自身',
+  skillText: '每晚可魅惑一名玩家；被魅惑者不知情',
+  triggerText: '出局时被魅惑者随之殉情出局',
+  restrictionText: '不能自爆；不能袭击自身',
   action: '魅惑',
 });
 
@@ -17,6 +20,12 @@ export const wolfQueen = defineRole({
     shortName: COPY.shortName,
     emoji: '👸🐺',
     description: COPY.description,
+    sections: {
+      skill: COPY.skillText,
+      trigger: COPY.triggerText,
+      restriction: COPY.restrictionText,
+    },
+    tags: ['control', 'link'],
   },
   traits: {
     faction: 'wolf',

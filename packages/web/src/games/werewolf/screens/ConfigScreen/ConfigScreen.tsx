@@ -2,7 +2,7 @@
  * ConfigScreen — werewolf role configuration (render-only); the Rules step that follows owns
  * create/save, except nominate mode, which submits the board here.
  *
- * The role list is data-driven from FACTION_GROUPS + ROLE_SPECS; all state and callbacks come
+ * The role list is data-driven from FACTION_GROUPS + the role catalog; all state and callbacks come
  * from useConfigScreenState.
  */
 import '@/components/GameSettings.css';
@@ -11,7 +11,7 @@ import '@/games/werewolf/components/faction.css';
 import './ConfigScreen.css';
 
 import { Tabs } from '@ark-ui/react/tabs';
-import { type Faction, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { type Faction, getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 import { Fragment, type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/Button';
@@ -139,7 +139,7 @@ export function ConfigScreen({
                   {bulkSlot !== undefined ? (
                     <RoleStepper
                       roleId={bulkSlot.roleId}
-                      label={ROLE_SPECS[bulkSlot.roleId].displayName}
+                      label={getRoleCard(bulkSlot.roleId).displayName}
                       count={state.getBulkCount(bulkSlot.roleId, bulkSlot.count ?? 1)}
                       maxCount={bulkSlot.count ?? 1}
                       onCountChange={state.handleBulkCountChange}

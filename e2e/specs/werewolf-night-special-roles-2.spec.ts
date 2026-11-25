@@ -259,7 +259,7 @@ test.describe('Werewolf Night — Special Roles: Eclipse Wolf Queen Redirect', (
 /**
  * Night Roles E2E — HiddenWolf + Crow coverage.
  *
- * NIGHT_STEPS order: crowCurse -> wolfKill -> hiddenWolfReveal -> seerCheck
+ * Night step order: crowCurse -> wolfKill -> hiddenWolfReveal -> seerCheck
  *
  * Tests:
  * - Seer checks hiddenWolf -> reveals good (core mechanic)

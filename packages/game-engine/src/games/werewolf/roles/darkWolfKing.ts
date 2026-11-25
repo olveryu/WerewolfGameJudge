@@ -10,6 +10,8 @@ const COPY = defineCopy({
   name: '狼王',
   shortName: '王',
   description: '出局时可开枪带走一名玩家；仅被狼人袭击或投票放逐出局时可发动',
+  triggerText: '出局时可开枪带走一名玩家',
+  restrictionText: '仅被狼人袭击或投票放逐出局时可发动',
   stepTitle: '技能发动确认',
   viewTitle: '技能状态',
 });
@@ -21,6 +23,8 @@ export const darkWolfKing = defineRole({
     shortName: COPY.shortName,
     emoji: '🖤🐺',
     description: COPY.description,
+    sections: { trigger: COPY.triggerText, restriction: COPY.restrictionText },
+    tags: ['kill'],
   },
   traits: {
     faction: 'wolf',
