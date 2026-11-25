@@ -45,8 +45,11 @@ Create `packages/game-engine/src/games/werewolf/roles/<roleId>.ts`
 using `defineRole` from `roles/role.ts`. Follow
 `references/role-definition.md` and a nearby role with similar behavior.
 Declare step actions and resolution in the role definition; use shared
-step helpers from `roles/roleSteps.ts` when they fit. Keep role-specific
-runtime behavior out of the legacy schema and resolver registries.
+step helpers from `roles/roleSteps.ts` when they fit. If the role needs
+the night flow, the report, or another role's step to behave
+differently, declare that on the role and have the flow read the
+declaration; do not name the role in flow code
+(`roles/__tests__/roleOwnership.contract.test.ts` fails on it).
 
 ### 3. Register the role and its steps
 
@@ -85,7 +88,24 @@ current client audio registry. Add badge configuration and, when art is
 provided, the avatar id, rarity, and web portrait. Use the existing
 asset-generation scripts and their documented options.
 
-### 6. Verify
+### 6. Play every situation and report the list's diff
+
+List the situations the role introduces before writing scenarios:
+each action used and skipped, each reason a card or seat is
+unavailable, the actor feared, the actor converted, the target
+swapped, the role as a bottom card, and the step on a night with and
+without a wolf attack. Add a played night for each to
+`__tests__/boards/nightScenarios.ts` and regenerate the list
+(`references/role-definition.md`). No check can tell that a situation
+is missing; one nobody plays never reaches review.
+
+Then report every changed line of
+`__snapshots__/night-steps.catalogue.txt` to the user. A new or
+reworded sentence, or a rule the user has not decided, needs the
+user's confirmation before it is committed. Ask one question at a
+time, with a recommendation.
+
+### 7. Verify
 
 Run the engine tests and build, including the role-step contract and
 relevant Night-1 integration coverage. Run the web tests and typecheck
@@ -106,11 +126,19 @@ corepack pnpm --filter @game-judge/web run typecheck
 1. Looking for a second role table. A role's display data and its night
    behavior both come from its module in `WEREWOLF_ROLE_DEFINITIONS`
    and the shared-step declarations.
-2. Forgetting to add runtime step ids to `NIGHT_STEP_IDS`; role
-   definitions do not determine their own execution order.
+2. Forgetting to add runtime step ids to `NIGHT_STEP_ORDER` in
+   `roles/nightStepOrder.ts`; role definitions do not determine their
+   own execution order.
 3. Inferring team from faction. Set both explicitly; for example,
    `hiddenWolf` has faction `Wolf` and team `Good`.
 4. Assuming `shortName` values must be unique. Existing roles can share
    a short name; follow the current catalog contract.
 5. Leaving audio declarations without matching narration and client
    clips; validate them with the current audio registry contract.
+6. Regenerating the step-by-step list with `-u` and committing it
+   unread. The test only knows the text changed, not whether the change
+   is right; the diff is what the user reviews.
+7. Writing the reason a card is unavailable where the actor cannot see
+   it. A hand card prints no reason: put it in the status line. When
+   every skill is locked the mechanism writes that line from the lock;
+   a step that greys its own cards writes it with `renderBlockedPrompt`.

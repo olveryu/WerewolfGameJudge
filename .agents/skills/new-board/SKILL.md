@@ -107,6 +107,12 @@ plays, add role-keyed scenarios for it to `nightScenarios.ts` in the
 same directory (details in `references/board-test.md`). The suite
 fails when a declared night step is reached by no scenario.
 
+Report every changed line of
+`__snapshots__/night-steps.catalogue.txt` to the user. A new board
+normally changes only the counts; a new or changed sentence is a
+user-facing change and needs the user's confirmation before it is
+committed.
+
 ### 7. Verify
 
 Run the acceptance commands. If the board introduces a role

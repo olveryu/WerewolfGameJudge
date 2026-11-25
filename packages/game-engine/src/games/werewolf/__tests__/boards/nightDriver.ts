@@ -57,6 +57,8 @@ export interface StepSighting {
   readonly title: string;
   readonly status: string | null;
   readonly hand: readonly string[];
+  /** The same hand as data: each card's printed name and whether it can be pressed. */
+  readonly cards: readonly { readonly label: string; readonly isAvailable: boolean }[];
 }
 
 /** One submission as the actor experienced it. */
@@ -508,6 +510,10 @@ export function playScenarioNight(
             title: view.title,
             status: view.message,
             hand: describeHand(view),
+            cards: view.actions.map((action) => ({
+              label: action.label,
+              isAvailable: action.availability.kind === 'available',
+            })),
           });
           if (isFollowUp) return;
           if (view.message !== null) appendSeat(status, `${stepId} ${view.message}`, seat);

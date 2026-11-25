@@ -4,6 +4,8 @@ import path from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { formatSeat } from '../../../../platform/room/formatSeat';
+import { renderBlockedPrompt } from '../../../../platform/steps';
 import { NIGHT_CASES } from './nightCases';
 import { collectShownText, renderStepCatalogue } from './stepCatalogue';
 
@@ -92,5 +94,28 @@ describe('Night-1 step-by-step list', () => {
 
     // Exactly the listed exceptions: a new unreached sentence fails, and so does a stale exception.
     expect(unreached.sort()).toEqual(Object.keys(SHOWN_ELSEWHERE).sort());
+  });
+
+  // A greyed card prints no reason, so the status line has to carry it.
+  it('explains every greyed card in the status line and names the one card left to press', () => {
+    const violations: string[] = [];
+    for (const nightCase of NIGHT_CASES) {
+      for (const sighting of nightCase.play().sightings) {
+        if (sighting.cards.every((card) => card.isAvailable)) continue;
+        const where = `${nightCase.name} > ${sighting.stepId} > ${formatSeat(sighting.seat)}`;
+        const available = sighting.cards.filter((card) => card.isAvailable);
+        const [onlyCard] = available;
+        if (sighting.status === null) {
+          violations.push(`${where}: a card is greyed out and the status line is empty`);
+        } else if (
+          available.length === 1 &&
+          onlyCard !== undefined &&
+          !sighting.status.endsWith(renderBlockedPrompt('', onlyCard.label))
+        ) {
+          violations.push(`${where}: "${sighting.status}" does not point at 「${onlyCard.label}」`);
+        }
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });
