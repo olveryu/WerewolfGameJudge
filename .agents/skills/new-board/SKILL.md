@@ -1,6 +1,6 @@
 ---
 name: new-board
-description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in the role catalog, add the entry with its category and role list, update the cited preset counts, add its web board UI test and register it in the board UI coverage contract, record its Night-1 scenario snapshot and add a scenario for each new role interaction, then verify with the engine template contract, the Night-1 scenarios, and the board UI coverage contract. Use when adding a preset board; never for a new role or game.'
+description: 'Add a werewolf preset board within first-night, dawn, and sheriff-election scope: verify roles, register the preset, update counts, add board UI and Night-1 coverage, then verify. Later-night rules do not expand automation. Use for a preset, never a new role or game.'
 ---
 
 # New board
@@ -8,6 +8,16 @@ description: 'Add a preset board to PRESET_TEMPLATES: verify every role id in th
 Add one preset board to `PRESET_TEMPLATES`. A board is a name, a
 category, and a role list — the player count is derived, and the
 contract tests check the rest. User-facing output is in Chinese.
+
+## Product scope
+
+Werewolf automates the first night, dawn, and sheriff election only;
+later nights and subsequent daytime play belong to the in-person host.
+A board's complete rules can mention later abilities without requiring
+multi-night state or UI. Add only in-scope scenarios and interactions.
+Do not ask whether to support multiple nights merely because the board
+includes a second-night ability. Only an explicit user request reopens
+scope; clarify actual first-night rule ambiguities instead.
 
 ## When to use
 

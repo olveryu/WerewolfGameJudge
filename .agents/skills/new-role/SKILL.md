@@ -1,6 +1,6 @@
 ---
 name: new-role
-description: 'Add a werewolf role end to end: define its role module with its card and night steps, register it and its night-step ids, wire tests, narration, badge, and avatar assets, then verify engine and client surfaces.'
+description: 'Add a werewolf role within first-night, dawn, and sheriff-election scope: define its role module and full card, register first-night steps, wire tests and assets, then verify. Later-night rules stay in descriptions unless the user explicitly expands scope.'
 ---
 
 # New role
@@ -9,6 +9,18 @@ Add a werewolf role across the engine runtime, existing role catalog,
 client surfaces, and assets. Night behavior is declared in role modules;
 the role catalog remains a separate source for existing selection and
 presentation consumers.
+
+## Product scope
+
+Werewolf automates the first night, dawn, and sheriff election only.
+Later nights and subsequent daytime play belong to the in-person host.
+Keep complete rules in role descriptions, but implement only effects
+that occur within this scope. A second-night-only active ability has no
+first-night action or placeholder confirmation step. Do not add round
+counters, multi-night resources, or full-game settlement to support it.
+Do not ask whether to expand to multiple nights merely because the
+role text mentions them; only an explicit user request reopens scope.
+Ask about ambiguous first-night interactions instead.
 
 ## When to use
 
@@ -90,7 +102,7 @@ asset-generation scripts and their documented options.
 
 ### 6. Play every situation and report the list's diff
 
-List the situations the role introduces before writing scenarios:
+List the in-scope first-night situations the role introduces before writing scenarios:
 each action used and skipped, each reason a card or seat is
 unavailable, the actor feared, the actor converted, the target
 swapped, the role as a bottom card, and the step on a night with and
