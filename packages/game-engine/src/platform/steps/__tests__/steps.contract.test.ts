@@ -539,24 +539,42 @@ describe('platform step runtime', () => {
 
 describe('step copy contract', () => {
   it('keeps every Chinese string literal inside a defineCopy table', () => {
-    const violations: string[] = [];
+    const gamesDirectory = path.resolve(__dirname, '../../../games');
     const sourceDirectories = [
       path.resolve(__dirname, '..'),
-      path.resolve(__dirname, '../../../games/werewolf/roles'),
+      path.join(gamesDirectory, 'werewolf'),
+      path.join(gamesDirectory, 'avalon'),
+      path.join(gamesDirectory, 'secrethitler'),
     ];
+    // Files whose Chinese text is not night copy; each entry says what it is instead.
+    const exemptions: Readonly<Record<string, string>> = {
+      'werewolf/domain/models/Template.ts':
+        'preset board names, board validation messages, and room rule options',
+      'avalon/state/types.ts': 'room rule options shown on the config screen',
+      'secrethitler/state/types.ts': 'room rule options shown on the config screen',
+    };
+    const violations: string[] = [];
+    const exemptFilesWithChinese = new Set<string>();
     const files = [...sourceDirectories.flatMap(collectProductionFiles), ...clientNightFiles()];
     for (const filePath of files) {
+      const exemptKey = path.relative(gamesDirectory, filePath).split(path.sep).join('/');
       const sourceFile = readTypeScriptSource(filePath);
       const visit = (node: ts.Node): void => {
         if (hasChineseText(node) && !isInsideDefineCopy(node)) {
-          const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-          violations.push(`${filePath}:${line}`);
+          if (Object.hasOwn(exemptions, exemptKey)) {
+            exemptFilesWithChinese.add(exemptKey);
+          } else {
+            const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+            violations.push(`${filePath}:${line + 1}`);
+          }
         }
         ts.forEachChild(node, visit);
       };
       visit(sourceFile);
     }
     expect(violations).toEqual([]);
+    // An exemption that no longer applies must be removed.
+    expect([...exemptFilesWithChinese].sort()).toEqual(Object.keys(exemptions).sort());
   });
 
   it('keeps Werewolf role identifiers out of the night rendering code', () => {

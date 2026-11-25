@@ -27,6 +27,9 @@ const COPY = defineCopy({
   privacyNotice: '仅你获准查看，请勿向全桌展示屏幕。',
   seatWithIdentity: '{seat} · {name} · {identity}',
   seatSeparator: '\n',
+  hitler: '希特勒',
+  fascist: '法西斯',
+  liberal: '自由派',
 });
 
 export const SECRETHITLER_NIGHT_VIEW_ACTION_KEY = 'viewNightInfo';
@@ -63,8 +66,8 @@ function requireViewerSeat(context: SecrethitlerNightStepContext): number {
 function getIdentityName(state: SecrethitlerState, seat: number): string {
   const identity = state.identities[seat];
   if (identity === undefined) throw new Error('[FAIL-FAST] Night participant has no identity');
-  if (identity === 'hitler') return '希特勒';
-  return identity === 'fascist' ? '法西斯' : '自由派';
+  if (identity === 'hitler') return COPY.hitler;
+  return identity === 'fascist' ? COPY.fascist : COPY.liberal;
 }
 
 function renderRecognition(context: SecrethitlerNightStepContext): string {

@@ -17,7 +17,7 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
-import type { StepPresentation } from '../../../platform/steps';
+import { defineCopy, type StepPresentation } from '../../../platform/steps';
 import {
   getWerewolfPersonalDaytimeViews,
   type WerewolfPersonalDaytimeView,
@@ -26,6 +26,8 @@ import { createTemplateFromRoles, type GameStatus, type GameTemplate, type RoleI
 import { getWerewolfUserSeat } from './playerHelpers';
 import type { GameState } from './protocol/types';
 import { projectWerewolfStep, type WerewolfStepSeatStatus } from './stepProjection';
+
+const COPY = defineCopy({ fallbackName: '玩家' });
 
 export interface WerewolfViewer {
   /** The seat the viewer acts as: own seat, or a bot seat the host controls. */
@@ -92,9 +94,8 @@ function buildSeatViews(
     const identity = buildSeatIdentityView(state.roster, seat, getBotDisplayName);
     return {
       seat,
-      // Fallback matches the client seat board (`|| '玩家'`): an empty-string
-      // profile name falls back too (bot names are never empty).
-      displayName: identity.displayName || '玩家',
+      // An empty-string profile name falls back too (bot names are never empty).
+      displayName: identity.displayName || COPY.fallbackName,
       isBot: identity.isBot,
       visibleRole:
         seat === viewer.seat || (viewer.isHost && identity.isBot) ? (player.role ?? null) : null,
