@@ -9,7 +9,7 @@ import { defineRole } from './role';
 import {
   describeTargetLanding,
   getActingSeat,
-  getRoleAbilityLockReason,
+  getRoleAbilityLock,
   resolveRoleTarget,
 } from './roleSteps';
 
@@ -28,6 +28,7 @@ const COPY = defineCopy({
   poison: '毒杀',
   poisoned: '毒杀{seat}',
   selfAttacked: '你被狼人袭击',
+  selfAttackedCannotSave: '你被狼人袭击，本局规则不允许自救',
   attacked: '{seat}被狼人袭击',
   peacefulNight: '昨夜平安夜',
   selfSaveDisallowed: '本局规则不允许自救',
@@ -54,7 +55,11 @@ const witchActionStep: WerewolfRoleStepDefinition = {
   situationHints: (context) => {
     const target = context.resolvedWolfKillTarget;
     if (target === null) return [COPY.peacefulNight];
-    if (target === context.seat) return [COPY.selfAttacked];
+    if (target === context.seat) {
+      return [
+        context.state.rules.witchCanSelfHeal ? COPY.selfAttacked : COPY.selfAttackedCannotSave,
+      ];
+    }
     return [renderCopy(COPY.attacked, { seat: formatSeat(target) })];
   },
   actions: [
@@ -64,10 +69,10 @@ const witchActionStep: WerewolfRoleStepDefinition = {
       name: COPY.antidote,
       reviewWhenUnused: true,
       target: (context) => context.resolvedWolfKillTarget,
+      hideWithoutTarget: true,
       phrase: (seat) => renderCopy(COPY.antidoteOn, { seat: formatSeat(seat) }),
       availability: (context) => {
         const seat = getActingSeat(context);
-        if (context.resolvedWolfKillTarget === null) return { kind: 'hidden' };
         return context.resolvedWolfKillTarget === seat && !context.state.rules.witchCanSelfHeal
           ? { kind: 'unavailable', reason: COPY.selfSaveDisallowed }
           : { kind: 'available' };
@@ -125,7 +130,7 @@ const witchActionStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {
     if (submission.actionKey !== 'poison' && submission.actionKey !== 'antidote') return null;

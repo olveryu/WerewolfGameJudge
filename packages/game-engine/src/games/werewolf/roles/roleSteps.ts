@@ -1,4 +1,5 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
+import type { StepLock } from '../../../platform/steps';
 import { defineCopy, renderCopy } from '../../../platform/steps';
 import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection, type TargetSelection } from './location';
@@ -86,12 +87,12 @@ export function getActingSeat(context: WerewolfRoleStepContext): number {
 }
 
 /** Why the acting seat cannot use any skill tonight, or null when it can. */
-export function getRoleAbilityLockReason(context: WerewolfRoleStepContext): string | null {
+export function getRoleAbilityLock(context: WerewolfRoleStepContext): StepLock | null {
   if (context.seat === null) return null;
   const lock = context.facts.disabledAbilities.find(
     (ability) => ability.seat === context.seat && ability.roleId === '*',
   );
-  return lock === undefined ? null : context.abilityLockReasonOf(lock.sourceRoleId);
+  return lock === undefined ? null : context.abilityLockOf(lock.sourceRoleId);
 }
 
 /**
@@ -307,7 +308,7 @@ export function createSingleTargetStep(
       },
     ],
     skippable: () => options.skippable,
-    lock: getRoleAbilityLockReason,
+    lock: getRoleAbilityLock,
     ...(options.situationHints === undefined ? {} : { situationHints: options.situationHints }),
     ...(options.ruleHints === undefined ? {} : { ruleHints: options.ruleHints }),
     ...(options.renderResult === undefined ? {} : { renderResult: options.renderResult }),

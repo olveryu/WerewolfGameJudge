@@ -1,4 +1,4 @@
-import type { StepContextBase, StepDefinition } from '../../../platform/steps';
+import type { StepContextBase, StepDefinition, StepLock } from '../../../platform/steps';
 import type { ResolvedWolfKillVerdict } from '../domain/protocol/types';
 import type { WerewolfStepAudio } from './audio';
 import type { WerewolfRoleContext } from './context';
@@ -180,7 +180,7 @@ export interface WerewolfRoleStepContext extends StepContextBase<
   readonly resolvedWolfKillVerdict?: ResolvedWolfKillVerdict | null;
   readonly canShootAtNight: (seat: number, roleId: string) => boolean;
   /** What a seat is told when the given role has locked all its skills for the night. */
-  readonly abilityLockReasonOf: (roleId: string) => string;
+  readonly abilityLockOf: (roleId: string) => StepLock;
   /** What is said when the given role has stopped the wolf attack. */
   readonly wolfAttackLockOf: (roleId: string) => WerewolfWolfAttackLock;
   readonly bottomCardsOf: (seat: number, roleId: string) => readonly WerewolfBottomCard[];
@@ -228,7 +228,7 @@ export interface WerewolfRoleDefinition<TId extends string = string> {
   };
   readonly steps: readonly WerewolfRoleStepDefinition[];
   /** What a seat is told when this role has locked all its skills for the night. */
-  readonly abilityLockReason?: string;
+  readonly abilityLock?: StepLock;
   /** What is said when this role has stopped the wolf attack. */
   readonly wolfAttackLock?: WerewolfWolfAttackLock;
   /** How this role turns another player into a different role. */
@@ -277,7 +277,7 @@ export interface WerewolfConversionDeclaration {
   /** What a conversion changes besides the player's role. */
   readonly effects: (targetSeat: number) => readonly DeathEffect[];
   /** Shown to a converted player in the later steps of the role they held. */
-  readonly convertedLock: { readonly reason: string; readonly hint: string };
+  readonly convertedLock: StepLock;
   /** The night report's wording. */
   readonly review: {
     readonly converted: (seat: number, formerRoleName: string) => string;

@@ -11,5 +11,12 @@ export function getAvailability<TContext, TFacts, TResult>(
   if (lockReason !== null && action.staysWhenLocked !== true) {
     return { kind: 'unavailable', reason: lockReason };
   }
+  if (
+    action.kind === 'direct' &&
+    action.hideWithoutTarget === true &&
+    (action.target?.(context) ?? null) === null
+  ) {
+    return { kind: 'hidden' };
+  }
   return declaredAvailability ?? { kind: 'available' };
 }

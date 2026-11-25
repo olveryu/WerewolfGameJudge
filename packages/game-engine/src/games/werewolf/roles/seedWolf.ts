@@ -1,5 +1,5 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
-import { defineCopy, renderCopy } from '../../../platform/steps';
+import { defineCopy, renderBlockedPrompt, renderCopy, STEP_COPY } from '../../../platform/steps';
 import { defineWerewolfStepAudio } from './audio';
 import { type DeathEffect, resolveDeathEffects } from './deathEffects';
 import type {
@@ -8,7 +8,7 @@ import type {
   WerewolfRoleStepDefinition,
 } from './role';
 import { defineRole } from './role';
-import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+import { createGroupConfirmStep, getActingSeat, getRoleAbilityLock } from './roleSteps';
 
 const COPY = defineCopy({
   name: '种狼',
@@ -45,7 +45,7 @@ const infectStep: WerewolfRoleStepDefinition = {
   situationHints: (context) => {
     const target = getInfectionTarget(context);
     return target === null
-      ? [COPY.noTarget]
+      ? [renderBlockedPrompt(COPY.noTarget, STEP_COPY.skip)]
       : [renderCopy(COPY.attacked, { seat: formatSeat(target) })];
   },
   actions: [
@@ -75,7 +75,7 @@ const infectStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeat = submission.seats[0];
@@ -125,7 +125,7 @@ export const seedWolf = defineRole({
     decide: (facts, effects) => resolveSeedWolfInfection(facts, effects) ?? { outcome: 'notUsed' },
     // A converted player is no longer the wolves' victim.
     effects: (targetSeat) => [{ kind: 'void', scope: { cause: 'wolfKill', target: targetSeat } }],
-    convertedLock: { reason: COPY.convertedLocked, hint: COPY.infected },
+    convertedLock: { reason: COPY.convertedLocked, status: COPY.infected },
     review: {
       converted: (seat, role) => renderCopy(COPY.reviewConverted, { seat: formatSeat(seat), role }),
       failed: (seat) => renderCopy(COPY.reviewFailed, { seat: formatSeat(seat) }),

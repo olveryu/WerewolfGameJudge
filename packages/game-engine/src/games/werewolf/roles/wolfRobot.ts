@@ -11,7 +11,7 @@ import type {
   WerewolfRoleStepResult,
 } from './role';
 import { defineRole } from './role';
-import { getActingSeat, getRoleAbilityLockReason, renderIdentityCheckResult } from './roleSteps';
+import { getActingSeat, getRoleAbilityLock, renderIdentityCheckResult } from './roleSteps';
 
 const COPY = defineCopy({
   name: '机械狼人',
@@ -99,7 +99,7 @@ const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   renderResult: (context, result) => renderIdentityCheckResult(context, result, COPY.resultTitle),
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission: SeatSubmissionForReview) => {

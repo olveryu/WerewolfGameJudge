@@ -4,7 +4,7 @@ import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type { WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
-import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+import { createGroupConfirmStep, getActingSeat, getRoleAbilityLock } from './roleSteps';
 
 const COPY = defineCopy({
   name: '吹笛者',
@@ -69,7 +69,7 @@ const hypnotizeStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => true,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeats = submission.seats;

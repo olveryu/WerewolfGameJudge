@@ -220,7 +220,7 @@ describe('platform step runtime', () => {
     const locked = runtimeWithDefinition({
       ...definition,
       skippable: () => false,
-      lock: () => 'locked',
+      lock: () => ({ reason: 'locked', status: 'you are locked' }),
     });
     expect(() =>
       describeStepConfirmation(required, state, 0, { actionKey: STEP_SKIP_ACTION_KEY }),
@@ -228,6 +228,45 @@ describe('platform step runtime', () => {
     expect(describeStepConfirmation(locked, state, 0, { actionKey: STEP_SKIP_ACTION_KEY })).toEqual(
       { title: '不用技能？', body: null, tone: 'default' },
     );
+  });
+
+  it('tells a locked actor why and which card is left, without aiming a card or hinting', () => {
+    const aimed: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
+      ...definition,
+      actions: [
+        {
+          kind: 'direct',
+          key: 'rescue',
+          name: 'rescue',
+          target: (context) => context.facts.selectedSeat,
+          hideWithoutTarget: true,
+          resolve: () => ({ facts: { selectedSeat: null } }),
+        },
+      ],
+      situationHints: () => ['seat 2 was attacked'],
+      ruleHints: () => ['a rule'],
+    };
+    const lock = () => ({ reason: 'locked', status: 'you are locked' });
+    const withTarget = { ...createState(), facts: { selectedSeat: 1 } };
+
+    const open = presentStep(runtimeWithDefinition(aimed), withTarget, 0);
+    expect(open?.actions.map((action) => action.label)).toEqual(['rescue2号', '不用技能']);
+    expect(presentStep(runtimeWithDefinition(aimed), createState(), 0)?.actions).toEqual([
+      expect.objectContaining({ key: STEP_SKIP_ACTION_KEY }),
+    ]);
+
+    // Locked, the hand is the same whether or not a target exists.
+    for (const state of [withTarget, createState()]) {
+      const locked = presentStep(runtimeWithDefinition({ ...aimed, lock }), state, 0);
+      expect(locked?.message).toBe('you are locked，请点击「不用技能」');
+      expect(locked?.actions).toEqual([
+        expect.objectContaining({
+          label: 'rescue',
+          availability: { kind: 'unavailable', reason: 'locked' },
+        }),
+        expect.objectContaining({ key: STEP_SKIP_ACTION_KEY }),
+      ]);
+    }
   });
 
   it('replaces grouped revisable choices and keeps withdrawn choices withdrawn', () => {

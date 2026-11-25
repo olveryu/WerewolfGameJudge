@@ -7,7 +7,7 @@ import { defineRole } from './role';
 import {
   createGroupConfirmStep,
   getActingSeat,
-  getRoleAbilityLockReason,
+  getRoleAbilityLock,
   getWolfTeammateRestriction,
 } from './roleSteps';
 
@@ -83,7 +83,7 @@ const convertStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => false,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeat = submission.seats[0];

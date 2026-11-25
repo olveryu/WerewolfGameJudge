@@ -1,6 +1,6 @@
 import { defineWerewolfStepAudio } from './audio';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
-import { getRoleAbilityLockReason } from './roleSteps';
+import { getRoleAbilityLock } from './roleSteps';
 
 interface ViewStepOptions {
   readonly id: string;
@@ -32,7 +32,7 @@ export function createViewStep(options: ViewStepOptions): WerewolfRoleStepDefini
       },
     ],
     skippable: () => false,
-    lock: getRoleAbilityLockReason,
+    lock: getRoleAbilityLock,
     reviewSubject: () => options.roleName,
   };
 }

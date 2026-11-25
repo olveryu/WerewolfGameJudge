@@ -40,13 +40,7 @@ export function withConversionLock(
       const conversion = getOwnConversion(context);
       return conversion === undefined
         ? (step.lock?.(context) ?? null)
-        : declarationOf(conversion.byRoleId).convertedLock.reason;
-    },
-    situationHints: (context) => {
-      const conversion = getOwnConversion(context);
-      return conversion === undefined
-        ? (step.situationHints?.(context) ?? [])
-        : [declarationOf(conversion.byRoleId).convertedLock.hint];
+        : declarationOf(conversion.byRoleId).convertedLock;
     },
   };
 }

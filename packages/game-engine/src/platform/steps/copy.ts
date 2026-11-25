@@ -9,6 +9,7 @@ export const STEP_COPY = defineCopy({
   chooseExact: '请选择{name}名要{action}的玩家',
   chooseRange: '请选择{name}名要{action}的玩家',
   clickAction: '请点击「{action}」',
+  blockedPrompt: '{reason}，请点击「{action}」',
   skippablePrompt: '{prompt}，如不使用请点击「{skip}」',
   confirmationTitle: '{phrase}？',
   reviewNotDone: '未{name}',
@@ -20,6 +21,14 @@ export const STEP_COPY = defineCopy({
 
 /** The one sentence shown when a submission no longer matches the current step. */
 export const STEP_STALE_MESSAGE = STEP_COPY.staleStep;
+
+/**
+ * The whole status line of an actor whose skill cards are all greyed out: why, and the one
+ * card left to press. It replaces the step's other hints.
+ */
+export function renderBlockedPrompt(reason: string, actionLabel: string): string {
+  return renderCopy(STEP_COPY.blockedPrompt, { reason, action: actionLabel });
+}
 
 export type CopyParams = Readonly<Record<string, string | number>>;
 

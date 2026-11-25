@@ -4,7 +4,7 @@ import { defineWerewolfStepAudio } from './audio';
 import { resolveTargetSelection } from './location';
 import type { WerewolfNightFacts } from './role';
 import { defineRole } from './role';
-import { getRoleAbilityLockReason } from './roleSteps';
+import { getRoleAbilityLock } from './roleSteps';
 
 const COPY = defineCopy({
   name: '魔术师',
@@ -83,7 +83,7 @@ export const magician = defineRole({
         },
       ],
       skippable: () => true,
-      lock: getRoleAbilityLockReason,
+      lock: getRoleAbilityLock,
       reviewSubject: () => COPY.name,
     },
   ],

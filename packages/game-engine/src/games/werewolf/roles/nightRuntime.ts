@@ -136,12 +136,12 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       const causes = resolveDeathEffects(collectWerewolfDeathEffects(context)).causes[targetSeat];
       return causes === undefined || causes.every((cause) => cause === 'wolfKill');
     },
-    abilityLockReasonOf: (roleId) => {
-      const reason = getWerewolfRoleDefinition(roleId).abilityLockReason;
-      if (reason === undefined) {
-        throw new Error(`[FAIL-FAST] ${roleId} locks skills but declares no reason`);
+    abilityLockOf: (roleId) => {
+      const lock = getWerewolfRoleDefinition(roleId).abilityLock;
+      if (lock === undefined) {
+        throw new Error(`[FAIL-FAST] ${roleId} locks skills but declares no wording`);
       }
-      return reason;
+      return lock;
     },
     wolfAttackLockOf: (roleId) => {
       const lock = getWerewolfRoleDefinition(roleId).wolfAttackLock;

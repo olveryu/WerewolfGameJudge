@@ -25,6 +25,11 @@ export interface PickSeatsAction<TContext, TFacts, TResult> extends ActionBase<T
 export interface DirectAction<TContext, TFacts, TResult> extends ActionBase<TContext> {
   readonly kind: 'direct';
   readonly target?: (context: TContext) => number | null;
+  /**
+   * Leave the card out of the hand while there is no target. A locked actor still gets the
+   * card, greyed out and unaimed, so the hand does not tell them whether a target exists.
+   */
+  readonly hideWithoutTarget?: boolean;
   readonly phrase?: (seat: number) => string;
   readonly consequence?: (context: TContext) => string | null;
   readonly tone?: 'default' | 'danger';

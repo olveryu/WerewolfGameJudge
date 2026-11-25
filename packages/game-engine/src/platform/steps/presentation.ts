@@ -2,10 +2,10 @@ import { type AudioEffect, NIGHT_END_AUDIO_KEY } from '../audio/audioQueue';
 import { formatSeat } from '../room/formatSeat';
 import type { AnyStepAction } from './actions';
 import { getAvailability } from './availability';
-import { renderCopy, STEP_COPY } from './copy';
+import { renderBlockedPrompt, renderCopy, STEP_COPY } from './copy';
 import { createStepContext, type StepRuntime } from './runtime';
 import { getSeatSettled, hasFinalSubmission } from './settled';
-import type { StepDefinition } from './step';
+import type { StepDefinition, StepLock } from './step';
 import { REASON_STEP_STALE, STEP_SKIP_ACTION_KEY } from './step';
 import type {
   PresentedAction,
@@ -29,7 +29,7 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
   const actorsContext = createStepContext(runtime, state, null, record);
   const actors = definition.actors(actorsContext);
   const isActor = viewerSeat !== null && actors.includes(viewerSeat);
-  const lockReason = isActor ? (definition.lock?.(context) ?? null) : null;
+  const lock = isActor ? (definition.lock?.(context) ?? null) : null;
   const hasPendingResult =
     actorRecord?.result !== null &&
     actorRecord?.result !== undefined &&
@@ -46,18 +46,19 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
     viewerSeat !== null &&
     pendingResult === null &&
     (actorRecord === undefined || !getSeatSettled(definition, context, actorRecord))
-      ? presentActions(definition, context, actorRecord, lockReason)
+      ? presentActions(definition, context, actorRecord, lock?.reason ?? null)
       : [];
-  const generatedPrompt = isActor ? buildActionPrompt(definition, context, actions) : null;
-  const message = isActor
-    ? buildMessage(
-        definition.situationHints?.(context) ?? [],
-        generatedPrompt,
-        definition.ruleHints?.(context) ?? [],
-        // Only mention the skip card when it is in the hand.
-        actions.some((action) => action.key === STEP_SKIP_ACTION_KEY),
-      )
-    : null;
+  const message = !isActor
+    ? null
+    : lock === null
+      ? buildMessage(
+          definition.situationHints?.(context) ?? [],
+          buildActionPrompt(definition, context, actions),
+          definition.ruleHints?.(context) ?? [],
+          // Only mention the skip card when it is in the hand.
+          actions.some((action) => action.key === STEP_SKIP_ACTION_KEY),
+        )
+      : buildLockedMessage(lock, actions);
   const progress = getStepProgress(runtime, state, definition, record);
   return {
     stepId: definition.id,
@@ -102,7 +103,9 @@ function presentActions<TContext, TFacts, TResult>(
       ];
     }
     if (action.kind === 'direct') {
-      const target = action.target?.(context) ?? null;
+      // A locked actor is not told where the card would have been aimed.
+      const isLocked = lockReason !== null && action.staysWhenLocked !== true;
+      const target = isLocked ? null : (action.target?.(context) ?? null);
       return [
         {
           kind: action.kind,
@@ -185,6 +188,15 @@ function buildActionPrompt<TStepId extends string, TContext, TFacts, TResult>(
     return renderCopy(STEP_COPY.clickAction, { action: presentedAction.label });
   }
   return null;
+}
+
+/** A locked actor is told why and which card is left; the step's own hints are withheld. */
+function buildLockedMessage(lock: StepLock, actions: readonly PresentedAction[]): string {
+  const available = actions.filter((action) => action.availability.kind === 'available');
+  const [onlyAction] = available;
+  return available.length === 1 && onlyAction !== undefined
+    ? renderBlockedPrompt(lock.status, onlyAction.label)
+    : lock.status;
 }
 
 function buildMessage(

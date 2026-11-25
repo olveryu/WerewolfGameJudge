@@ -13,13 +13,14 @@ const COPY = defineCopy({
   action: '恐惧',
   blockedRole: '（{role}，技能无效）',
   locked: '被噩梦之影恐惧，本夜无法使用技能',
+  lockedStatus: '你被噩梦之影恐惧，本夜无法使用技能',
   wolfAttackLocked: '被噩梦之影恐惧，本夜无法袭击',
   wolfAttackReview: '狼队放弃袭击，被噩梦之影恐惧',
 });
 
 export const nightmare = defineRole({
   id: 'nightmare',
-  abilityLockReason: COPY.locked,
+  abilityLock: { reason: COPY.locked, status: COPY.lockedStatus },
   wolfAttackLock: { reason: COPY.wolfAttackLocked, review: COPY.wolfAttackReview },
   card: {
     name: COPY.name,

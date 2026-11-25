@@ -5,7 +5,7 @@ import { resolveTargetSelection } from './location';
 import type { PresenceDeclaration } from './presence';
 import type { WerewolfRoleStepDefinition } from './role';
 import { defineRole } from './role';
-import { createGroupConfirmStep, getActingSeat, getRoleAbilityLockReason } from './roleSteps';
+import { createGroupConfirmStep, getActingSeat, getRoleAbilityLock } from './roleSteps';
 
 export const cupidPresence = [
   { role: 'cupid', effect: { kind: 'requireUnanimousWolfVote' } },
@@ -92,7 +92,7 @@ const chooseLoversStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => false,
-  lock: getRoleAbilityLockReason,
+  lock: getRoleAbilityLock,
   reviewSubject: () => COPY.name,
 };
 

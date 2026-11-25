@@ -1043,7 +1043,11 @@ function createRoleContext(
     ),
     resolvedWolfKillTarget: null,
     canShootAtNight: () => true,
-    abilityLockReasonOf: (roleId) => requireRole(roleId).abilityLockReason ?? '',
+    abilityLockOf: (roleId) => {
+      const lock = requireRole(roleId).abilityLock;
+      if (lock === undefined) throw new Error(`[TEST] ${roleId} declares no skill lock wording`);
+      return lock;
+    },
     wolfAttackLockOf: (roleId) => {
       const lock = requireRole(roleId).wolfAttackLock;
       if (lock === undefined) throw new Error(`[TEST] ${roleId} declares no wolf attack wording`);

@@ -1,5 +1,5 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
-import { defineCopy, renderCopy } from '../../../platform/steps';
+import { defineCopy, renderBlockedPrompt, renderCopy } from '../../../platform/steps';
 import { defineWerewolfStepAudio } from './audio';
 import type { WerewolfRoleStepContext, WerewolfRoleStepDefinition } from './role';
 import { getActingSeat } from './roleSteps';
@@ -95,9 +95,17 @@ export const wolfKillStep: WerewolfRoleStepDefinition = {
     },
   ],
   skippable: () => false,
-  ruleHints: (context) => [
-    context.nightPresence.doesWolfVoteRequireUnanimity ? COPY.unanimousHint : COPY.majorityHint,
-  ],
+  // A pack that cannot attack is told why and to give up; how votes are counted no longer matters.
+  situationHints: (context) => {
+    const reason = getWolfVoteLockReason(context, getActingSeat(context));
+    return reason === null ? [] : [renderBlockedPrompt(reason, COPY.abstain)];
+  },
+  ruleHints: (context) => {
+    if (getWolfVoteLockReason(context, getActingSeat(context)) !== null) return [];
+    return [
+      context.nightPresence.doesWolfVoteRequireUnanimity ? COPY.unanimousHint : COPY.majorityHint,
+    ];
+  },
   reviewSubject: () => COPY.name,
   reviewSuffix: (context, submission) => {
     const chosenSeat = submission.seats[0];

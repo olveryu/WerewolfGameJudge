@@ -11,6 +11,12 @@ export interface StepContextBase<TState, TFacts, TResult> {
   readonly record: StepRecord<TResult>;
 }
 
+/** Why a seat's skills are all disabled: the reason on each greyed card and the status line. */
+export interface StepLock {
+  readonly reason: string;
+  readonly status: string;
+}
+
 export interface StepDefinition<TStepId extends string, TContext, TFacts, TResult> {
   readonly id: TStepId;
   readonly title: string;
@@ -24,7 +30,8 @@ export interface StepDefinition<TStepId extends string, TContext, TFacts, TResul
   readonly progressActors?: (context: TContext) => readonly number[];
   readonly actions: readonly AnyStepAction<TContext, TFacts, TResult>[];
   readonly skippable: (context: TContext) => boolean;
-  readonly lock?: (context: TContext) => string | null;
+  /** Every skill of the acting seat is disabled tonight; the seat can only skip. */
+  readonly lock?: (context: TContext) => StepLock | null;
   readonly situationHints?: (context: TContext) => readonly string[];
   readonly ruleHints?: (context: TContext) => readonly string[];
   readonly renderResult?: (

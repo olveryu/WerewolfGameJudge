@@ -256,7 +256,7 @@ test.describe('Werewolf Night — Protection / Immunity', () => {
 
         // The attack and the unavailable antidote are visible without an interrupting prompt.
         await expect(pages[witchIdx]!.getByTestId(TESTIDS.actionMessage)).toContainText(
-          '你被狼人袭击',
+          '你被狼人袭击，本局规则不允许自救',
         );
         await expectUnavailableNightAction(pages[witchIdx]!, 'antidote', '本局规则不允许自救');
         await expect(pages[witchIdx]!.getByTestId(TESTIDS.alertModal)).not.toBeVisible();

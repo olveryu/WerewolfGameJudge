@@ -84,7 +84,11 @@ describe('Werewolf witch antidote', () => {
     async (witchCanSelfHeal) => {
       const { mock, view } = await mountBoardNightState(witchState(9, witchCanSelfHeal), 9);
       expect(harness.events()).toEqual([]);
-      expect(view.getByTestId(TESTIDS.actionMessage)).toHaveTextContent('你被狼人袭击');
+      const message = view.getByTestId(TESTIDS.actionMessage);
+      expect(message).toHaveTextContent('你被狼人袭击');
+      // The status line carries the reason; the greyed card does not print it.
+      if (witchCanSelfHeal) expect(message).not.toHaveTextContent('不允许自救');
+      else expect(message).toHaveTextContent('你被狼人袭击，本局规则不允许自救');
       await pressStepAction(view, 'antidote');
       if (!witchCanSelfHeal) {
         const save = view.getByTestId(TESTIDS.stepInteractionButton('antidote'));

@@ -532,6 +532,8 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     ['block guard', { nightmare: 11, wolf: 0, seer: 4 }],
     ['block seer', { nightmare: 8, wolf: 0, seer: null }],
     ['block witch', { nightmare: 9, wolf: 0, seer: 4 }],
+    // The feared witch must see the same hand whether or not anybody was attacked.
+    ['block witch when the wolves give up the attack', { nightmare: 9, wolf: null, seer: 4 }],
     ['skip fear and attack normally', { nightmare: null, wolf: 0, seer: 4 }],
   ]),
   ...scenarios('piper', PIPER, [['hypnotize two seats', { piper: { targets: [3, 5] } }]]),

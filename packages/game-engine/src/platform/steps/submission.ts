@@ -63,7 +63,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
     if (hasFinalSubmission(definition, actorRecord)) return rejectStale();
     return decideSkip(
       definition.skippable(context),
-      definition.lock?.(context) ?? null,
+      definition.lock?.(context)?.reason ?? null,
       slice.current.stepId,
       actorSeat,
     );
@@ -77,7 +77,7 @@ export function decideStepSubmission<TStepId extends string, TState, TContext, T
     return rejectStale();
   }
   const replacesActionKeys = getReplacedActionKeys(definition.actions, action);
-  const availability = getAvailability(action, context, definition.lock?.(context) ?? null);
+  const availability = getAvailability(action, context, definition.lock?.(context)?.reason ?? null);
   if (availability.kind !== 'available') return rejectStale();
 
   if (action.kind === 'view') {
