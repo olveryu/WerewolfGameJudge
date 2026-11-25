@@ -6,6 +6,9 @@ import {
   type StateInvariant,
 } from '../../../platform/protocol/stateInvariant';
 import { isBotOccupant } from '../../../platform/room/seating';
+//#cap sharedSteps
+import { __GAME_UPPER___NIGHT_STEP_IDS } from './types';
+//#end
 import {
   isValid__GAME_PASCAL__Config,
 //#cap identityViewing
@@ -30,6 +33,28 @@ export function normalize__GAME_PASCAL__State(
     'phase revision',
   );
   invariant(Number.isSafeInteger(state.gameSequence) && state.gameSequence >= 0, 'game sequence');
+//#cap sharedSteps
+  if (state.phase.kind === 'night') {
+    const { steps } = state.phase;
+    invariant(
+      steps.order.length === __GAME_UPPER___NIGHT_STEP_IDS.length &&
+        steps.order.every((id, index) => id === __GAME_UPPER___NIGHT_STEP_IDS[index]),
+      'night execution order',
+    );
+    invariant(steps.current === null || (
+      __GAME_UPPER___NIGHT_STEP_IDS.some((id) => id === steps.current?.stepId) &&
+      Number.isSafeInteger(steps.current.serial) && steps.current.serial > 0
+    ), 'night position');
+    invariant(steps.deadlineMs === null || (Number.isSafeInteger(steps.deadlineMs) && steps.deadlineMs >= 0), 'night deadline');
+    invariant(Object.keys(steps.records).every((key) => __GAME_UPPER___NIGHT_STEP_IDS.some((id) => id === key)), 'night record ids');
+    for (const id of __GAME_UPPER___NIGHT_STEP_IDS) {
+      for (const [seat, record] of Object.entries(steps.records[id]?.bySeat ?? {})) {
+        invariant(isSeat(Number(seat)) && state.roster[Number(seat)] !== undefined, 'night record seat');
+        invariant(record !== undefined && record.result === null, 'night result');
+      }
+    }
+  }
+//#end
 //#cap identityViewing
   invariant(
     new Set(state.reviewCompletedUserIds).size === state.reviewCompletedUserIds.length &&

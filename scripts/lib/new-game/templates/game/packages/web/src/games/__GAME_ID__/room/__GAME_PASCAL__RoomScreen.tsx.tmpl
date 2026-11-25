@@ -22,6 +22,9 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { type RoomInformation, RoomInformationDialog } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
+//#cap sharedSteps
+import { StepCardPicker } from '@/features/room/steps/StepCardPicker';
+//#end
 //#cap audioOrchestration
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
@@ -110,6 +113,9 @@ function __GAME_PASCAL__RoomContent(
     <RoomShell
       model={screen.shellModel}
       phaseLabel={
+//#cap sharedSteps
+        screen.state.phase.kind === 'night' ? '夜晚' :
+//#end
         isLobby
           ? '待开局'
 //#cap identityViewing
@@ -188,6 +194,9 @@ function __GAME_PASCAL__RoomContent(
 //#end
 //#cap !identityViewing
         isLobby
+//#cap sharedSteps
+          || screen.state.phase.kind === 'night'
+//#end
           ? {
               kind: 'seats',
               contextHeader: null,
@@ -218,6 +227,9 @@ function __GAME_PASCAL__RoomContent(
 //#end
       gameOverlays={
         <>
+//#cap sharedSteps
+          {screen.stepInteraction.cardPicker !== null && <StepCardPicker {...screen.stepInteraction.cardPicker} />}
+//#end
           <RoomInformationDialog
             information={information}
             guideTitle="__GAME_DISPLAY_NAME__玩法"

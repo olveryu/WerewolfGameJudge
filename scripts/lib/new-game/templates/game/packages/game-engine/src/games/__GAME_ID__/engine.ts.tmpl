@@ -33,6 +33,14 @@ import {
 } from '../../platform/room/phaseDeadline';
 //#end
 import { getHumanSeatMap, isRoomFull } from '../../platform/room/seating';
+//#cap sharedSteps
+//#cap !identityViewing
+import { resolveActingSeat } from '../../platform/room/actingSeat';
+//#end
+import { decideStepSubmission, evaluateStepProgress, REASON_STEP_STALE } from '../../platform/steps';
+import { create__GAME_PASCAL__NightRuntime, __GAME_UPPER___NIGHT_DEFINITIONS } from './domain/nightSteps';
+import { __GAME_UPPER___NIGHT_STEP_IDS } from './state/types';
+//#end
 import type { __GAME_PASCAL__Command } from './commands/types';
 import {
   commit__GAME_PASCAL__,
@@ -189,7 +197,9 @@ function startGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
   const gameSequence = state.gameSequence + 1;
   return commit__GAME_PASCAL__(
     [{ type: '__GAME_ID__.game.started', deadlineAt, gameSequence }],
+//#cap !sharedSteps
     [settleDueEffect(gameSequence, deadlineAt)],
+//#end
   );
 //#end
 //#cap !stageDeadline
@@ -229,7 +239,9 @@ function beginGame(state: __GAME_PASCAL__State, context: CommandContext): __GAME
   const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
   return commit__GAME_PASCAL__(
     [{ type: '__GAME_ID__.game.begun', deadlineAt }],
+//#cap !sharedSteps
     [settleDueEffect(state.gameSequence, deadlineAt)],
+//#end
   );
 //#end
 }
@@ -395,6 +407,16 @@ function decideCommand(
   context: CommandContext,
 ): __GAME_PASCAL__Decision {
   switch (command.type) {
+//#cap sharedSteps
+    case '__GAME_ID__.step.submit': {
+      if (state.phase.kind !== 'night' || state.gameSequence !== command.gameSequence) return reject(REASON_STEP_STALE);
+      const actor = resolveActingSeat(state, state.config.numberOfPlayers, context);
+      if (actor.kind === 'rejected') return reject(actor.reason);
+      const decision = decideStepSubmission(create__GAME_PASCAL__NightRuntime(), state, actor.value, command.submission);
+      if (decision.kind === 'reject') return reject(decision.reason);
+      return commit__GAME_PASCAL__(decision.events.map((event) => ({ type: '__GAME_ID__.night.step', event })));
+    }
+//#end
     case 'room.seat.take':
     case 'room.seat.leave':
     case 'room.seat.kick':
@@ -473,7 +495,39 @@ export function decide__GAME_PASCAL__Command(
   command: __GAME_PASCAL__Command,
   context: CommandContext,
 ): __GAME_PASCAL__Decision {
+//#cap sharedSteps
+  const decision = decideCommand(state, command, context);
+  if (decision.kind !== 'commit') return decision;
+  const intermediate = decision.events.reduce(evolve__GAME_PASCAL__State, state);
+  if (intermediate.phase.kind !== 'night') return decision;
+  if (command.type === '__GAME_ID__.game.begin') {
+    const first = __GAME_UPPER___NIGHT_STEP_IDS[0];
+    if (first === undefined) throw new Error('[FAIL-FAST] Night has no initial step');
+    const runtime = create__GAME_PASCAL__NightRuntime();
+    const currentContext = runtime.createContext(intermediate, {}, null, { bySeat: {} });
+    const { begin } = __GAME_UPPER___NIGHT_DEFINITIONS[first].audio(currentContext);
+    if (begin === null) return decision;
+    return commit__GAME_PASCAL__([...decision.events, { type: '__GAME_ID__.audio.queued', effects: [{ audioKey: begin }] }], decision.effects);
+  }
+  if (intermediate.phase.steps.current === null && !intermediate.isAudioPlaying) {
+//#cap stageDeadline
+    const deadlineAt = context.nowMs + __GAME_UPPER___STAGE_DURATION_MS;
+    return commit__GAME_PASCAL__([...decision.events, { type: '__GAME_ID__.night.finished', deadlineAt }], [...decision.effects, settleDueEffect(intermediate.gameSequence, deadlineAt)]);
+//#end
+//#cap !stageDeadline
+    return commit__GAME_PASCAL__([...decision.events, { type: '__GAME_ID__.night.finished', deadlineAt: null }], decision.effects);
+//#end
+  }
+  const events = evaluateStepProgress(create__GAME_PASCAL__NightRuntime(), intermediate, context.nowMs)
+    .flatMap((event): __GAME_PASCAL__Event[] => [
+      { type: '__GAME_ID__.night.step', event },
+      ...(event.type === 'advanced' ? [{ type: '__GAME_ID__.audio.queued' as const, effects: event.audio }] : []),
+    ]);
+  return commit__GAME_PASCAL__([...decision.events, ...events], decision.effects);
+//#end
+//#cap !sharedSteps
   return decideCommand(state, command, context);
+//#end
 }
 
 /** Projects domain phases into the shared room lifecycle. */

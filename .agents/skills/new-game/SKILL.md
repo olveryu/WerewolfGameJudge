@@ -95,10 +95,17 @@ night (`none|narrated`), guided narration (`none|narrated`), stage deadline
 The generator derives capabilities and required behavior tests from this
 profile. Private identities automatically require per-seat identity viewing,
 bulk bot identity handling and reveal animation; narrated night actions
-automatically require `nightPhase` and audio orchestration; other guided
+automatically require `nightPhase`, shared engine steps, shared client
+interaction, audio orchestration, and reviewed-catalogue coverage; other guided
 narration requires audio orchestration without inventing a night phase.
 Every profile must declare all five fields. Do not select or edit derived
 capabilities directly.
+
+Narrated-night generation registers its catalogue and documentation entry,
+but never generates an approved baseline. Replace the TODO step and add formal
+command scenarios; empty scenarios and unfinished copy deliberately fail the
+catalogue tests. Review differences through `catalogue:check`, get confirmation,
+then explicitly run `catalogue:update --reviewed <gameId>-night`.
 
 ### 4. Run the generator, once
 

@@ -7,6 +7,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { verifyCatalogue } from '../../../../../../scripts/lib/catalogues/verify.mjs';
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { formatSeat } from '../../../platform/room/formatSeat';
 import {
@@ -99,8 +100,9 @@ const NIGHTS = Array.from(
 );
 
 describe('Secret Hitler night step-by-step list', () => {
-  it('matches the generated list of what the night shows at every player count', async () => {
-    await expect(
+  it('matches the generated list of what the night shows at every player count', () => {
+    verifyCatalogue(
+      'secrethitler-night',
       renderViewNightCatalogue({
         heading: '秘密希特勒首夜逐步骤清单',
         generatedBy: 'secrethitler/__tests__/nightCatalogue.integration.test.ts',
@@ -109,7 +111,7 @@ describe('Secret Hitler night step-by-step list', () => {
         nights: NIGHTS,
         normalize,
       }),
-    ).toMatchFileSnapshot('./__snapshots__/night-steps.catalogue.txt');
+    );
   });
 
   it('shows every sentence written for the night at some player count', () => {

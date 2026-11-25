@@ -38,6 +38,9 @@ export function buildIntegrationReport({
   const audioNote = capabilities.audioOrchestration
     ? ' 补齐 registry/player、每个夜晚/引导阶段的提示映射和打包音频；验证阶段顺序、行动者、播报门禁、重播、音乐及失败恢复。'
     : ' 本特征声明没有夜晚或其他引导播报；若设计变更，先更新特征声明再生成对应音频接线。';
+  const catalogueNote = capabilities.nightPhase
+    ? ` 共享步骤、客户端交互和清单登记已接通，但 TODO 示例不是批准玩法。补齐 \`nightScenarios.ts\` 的正式命令场景及步骤/文案覆盖，缺场景或未完成文案必须失败；按 [清单审批流程](docs/catalogues/README.md) 报告差异，确认后显式运行 \`catalogue:update --reviewed ${gameId}-night\`。不自动创建基准、不用 \`-u\` 批准。`
+    : '';
   const wordSupplyMode = features.wordSupply;
   const requiredTestRows = resolveFeatureTestRequirements(features, {
     gameId,
@@ -93,7 +96,7 @@ ${edited}
 ## 还差的人工步骤（按顺序）
 
 1. **设计定稿**：完成 \`docs/${gameId}-game-design.md\` 的 11 项需求表并取得批准。占位人数、展示名、副标题和图标不是最终设计。限制开局、参与、身份分配或目录可见性时，注明规则来源、合同依据或用户确认；奖励/战绩门槛不是玩法门槛。特征声明为：${formatFeatureSummary(features)}。${identityNote}
-2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。在 engine \`__tests__/engine.test.ts\` 为每个批准的状态转移、边界和拒绝路径补行为断言；示例命令的 \`notImplemented\` 测试必须保留到玩法真正实现，不能以骨架通过冒充完成。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${audioNote}
+2. **玩法实现**：在 engine、worker、web 的 \`${gameId}\` 目录处理所有 \`TODO(gameplay)\`。在 engine \`__tests__/engine.test.ts\` 为每个批准的状态转移、边界和拒绝路径补行为断言；示例命令的 \`notImplemented\` 测试必须保留到玩法真正实现，不能以骨架通过冒充完成。按 [骨架与接线清单](.agents/skills/new-game/references/skeleton-and-wiring.md) 复用房间组件，验证阶段操作、隐私投影、房主控件、素材预加载、身份/机器人变体与终局界面。${audioNote}${catalogueNote}
 3. **本局复盘填空**：实现 \`packages/web/src/games/${gameId}/review/to${names.pascal}ReviewDocument.ts\` 和 \`review/${names.camel}Review.ts\`，补齐 \`review/__tests__/${names.camel}Review.test.ts\`。只用 \`packages/web/src/features/room/review/types.ts\` 的封闭 block vocabulary；需要新表达时先扩展平台。按批准玩法断言终局事实、参与者/身份/成绩归属、轮次标识、阶段可用性和观战者内容，不要只保留生成器的通用名单示例。局面 fixture \`${names.upper}_REVIEW_ROUNDS\` 已注册，玩法变化时同步维护。
 4. **奖励与战绩口径确认**：明确批准 flat / levelRoll 和奖励数值；统计确定局/轮单位、事实归属、分母/零分母、时间精度、历史缺口、迁移和可见性/缓存策略。completed-games 只是基线；不需要额外指标也必须记录批准理由。每个批准指标都要在 engine \`__tests__/publicStats.test.ts\` 和 Worker \`__tests__/publicUserStats.test.ts\` 覆盖来源、单位、边界/零分母及所有权；只验证同步清单或 DTO 形状不算语义验收。保持冻结真人名单、作者过滤顺序及严格 legacy/v2 兼容；详见 [统计接线](.agents/skills/new-game/references/skeleton-and-wiring.md#statistics-and-settlement)。
 5. **审 migration**：手工核对 \`packages/api-worker/migrations/${migrationName}\` 的约束、外键、索引/触发器和复制成本。注册 migration 来源与新增累计表见 [注册清单](.agents/skills/new-game/references/registration-checklist.md)；机械派生不代替 schema 审查。

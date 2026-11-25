@@ -30,6 +30,7 @@ import {
 } from '@/games/werewolf/room/day/useSheriffElection';
 import { alertStore, dismissAlert } from '@/utils/alert';
 
+import { verifyCatalogue } from '../../../../../../../../scripts/lib/catalogues/verify.mjs';
 import { playBoardNightGame } from '../../__tests__/harness/boardNightScenarios';
 import type { EngineGame } from '../../__tests__/harness/engineGame';
 
@@ -589,10 +590,8 @@ function collectWrittenFragments(relativePath: string): string[] {
 const SIGHTINGS = playElections();
 
 describe('sheriff election step-by-step list', () => {
-  it('matches the generated list of what every viewer sees in every phase', async () => {
-    await expect(renderCatalogue(SIGHTINGS)).toMatchFileSnapshot(
-      './__snapshots__/sheriff-election.catalogue.txt',
-    );
+  it('matches the generated list of what every viewer sees in every phase', () => {
+    verifyCatalogue('werewolf-sheriff', renderCatalogue(SIGHTINGS));
   });
 
   it('reaches every phase of the election', () => {

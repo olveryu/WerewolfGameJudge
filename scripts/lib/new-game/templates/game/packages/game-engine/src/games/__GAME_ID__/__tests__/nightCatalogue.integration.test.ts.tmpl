@@ -1,0 +1,38 @@
+import path from 'node:path';
+
+import { describe, expect, it } from 'vitest';
+
+import { verifyCatalogue } from '../../../../../../scripts/lib/catalogues/verify.mjs';
+import { collectCopy, collectPlayedText, findUnshownCopy, renderViewNightCatalogue } from '../../../platform/steps/__tests__/catalogueKit';
+import { __GAME_UPPER___NIGHT_STEP_IDS } from '../state/types';
+import { __GAME_UPPER___NIGHT_SCENARIOS } from './nightScenarios';
+
+function playedNights() {
+  if (__GAME_UPPER___NIGHT_SCENARIOS.length === 0) {
+    throw new Error('[GAMEPLAY INCOMPLETE] __GAME_ID__: add approved played night scenarios; the generator example is not a catalogue.');
+  }
+  const nights = __GAME_UPPER___NIGHT_SCENARIOS.map((play) => play());
+  if (nights.some((night) => night.sightings.length === 0)) throw new Error('[GAMEPLAY INCOMPLETE] A night scenario showed no steps');
+  if (collectPlayedText(nights).includes('TODO(gameplay)')) throw new Error('[GAMEPLAY INCOMPLETE] Replace all scaffold night copy before reviewing a catalogue');
+  return nights;
+}
+
+describe('__GAME_PASCAL__ reviewed night catalogue', () => {
+  it('matches the approved catalogue from played night scenarios', () => {
+    verifyCatalogue('__GAME_ID__-night', renderViewNightCatalogue({
+      heading: '__GAME_DISPLAY_NAME__夜晚逐步骤清单',
+      generatedBy: '__GAME_ID__/__tests__/nightCatalogue.integration.test.ts',
+      unit: '个场景',
+      stepOrder: __GAME_UPPER___NIGHT_STEP_IDS,
+      nights: playedNights(),
+      normalize: (text) => text,
+    }));
+  });
+
+  it('reaches every declared step and every written night sentence', () => {
+    const nights = playedNights();
+    const reached = [...new Set(nights.flatMap((night) => night.sightings.map(({ stepId }) => stepId)))].sort();
+    expect(reached).toEqual([...__GAME_UPPER___NIGHT_STEP_IDS].sort());
+    expect(findUnshownCopy(collectCopy(path.resolve(__dirname, '../domain/nightSteps.ts')), collectPlayedText(nights))).toEqual([]);
+  });
+});

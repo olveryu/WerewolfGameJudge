@@ -14,6 +14,9 @@ import { describe, expect, it } from 'vitest';
 import { createEngineSession } from '../../../platform/engine/__tests__/engineSession';
 import { describeIdentityViewingProtocol } from '../../../platform/room/__tests__/identityViewingScenarios';
 import { isBotSeat } from '../../../platform/room/seating';
+//#cap sharedSteps
+import { finishScaffoldNight } from './nightDriver';
+//#end
 import type { __GAME_PASCAL__Command } from '../commands/types';
 import { __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
@@ -82,6 +85,9 @@ describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared s
       send({ type: '__GAME_ID__.role.viewed' }, 'host', seat);
     }
     send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session);
+//#end
     expect(session.state.phase.kind).toBe('playing');
   });
 
@@ -96,6 +102,9 @@ describe('Identity Viewing Protocol — __GAME_ID__ confirm through the shared s
     }
     send({ type: '__GAME_ID__.role.viewed' }, 'host');
     send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session);
+//#end
     const decision = session.decide({ type: '__GAME_ID__.role.viewed' }, seatUser(1));
     expect(decision.kind).toBe('commit');
     if (decision.kind === 'commit') expect(decision.events).toEqual([]);

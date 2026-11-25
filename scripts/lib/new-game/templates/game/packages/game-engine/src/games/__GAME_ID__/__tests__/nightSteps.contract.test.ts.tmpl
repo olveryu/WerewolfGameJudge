@@ -1,0 +1,43 @@
+import { REASON_STEP_STALE } from '../../../platform/steps';
+import { present__GAME_PASCAL__Night } from '../domain/nightSteps';
+import { __GAME_CAMEL__Engine } from '../engine';
+import { parse__GAME_PASCAL__State } from '../state/parseState';
+import { createScaffoldNight, finishScaffoldNight } from './nightDriver';
+
+describe('__GAME_PASCAL__ shared night-step scaffold (not gameplay acceptance)', () => {
+  it('records a view once, hides private actions from spectators and waits for narration', () => {
+    const session = createScaffoldNight();
+    const view = present__GAME_PASCAL__Night(session.state, 0);
+    if (view === null) throw new Error('[TEST] Missing initial night presentation');
+    expect(present__GAME_PASCAL__Night(session.state, null)?.actions).toEqual([]);
+    const action = view.actions[0];
+    if (action === undefined) throw new Error('[TEST] Missing scaffold view action');
+    const command = {
+      type: '__GAME_ID__.step.submit',
+      gameSequence: session.state.gameSequence,
+      submission: { stepId: view.stepId, serial: view.serial, actionKey: action.key },
+    } as const;
+    session.send(command);
+    expect(present__GAME_PASCAL__Night(session.state, 0)?.actions).toEqual([]);
+    session.expectReject(command, REASON_STEP_STALE);
+    session.expectReject({ ...command, gameSequence: session.state.gameSequence + 1 }, REASON_STEP_STALE);
+    expect(session.state.phase.kind).toBe('night');
+    finishScaffoldNight(session);
+    expect(session.state.phase.kind).toBe('playing');
+    expect(session.state.isAudioPlaying).toBe(false);
+  });
+
+  it('rejects malformed persisted step positions rather than repairing them', () => {
+    const session = createScaffoldNight();
+    if (session.state.phase.kind !== 'night') throw new Error('[TEST] Missing night phase');
+    const phase = session.state.phase;
+    expect(() => parse__GAME_PASCAL__State({
+      ...session.state,
+      phase: { ...phase, steps: { ...phase.steps, current: { stepId: 'unknown', serial: 1 } } },
+    })).toThrow();
+    expect(() => __GAME_CAMEL__Engine.normalize({
+      ...session.state,
+      phase: { ...phase, steps: { ...phase.steps, current: { stepId: 'todoNight', serial: 0 } } },
+    })).toThrow();
+  });
+});

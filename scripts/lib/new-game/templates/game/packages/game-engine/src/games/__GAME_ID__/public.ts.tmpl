@@ -1,4 +1,8 @@
 /** Public pure __GAME_PASCAL__ API for transport, persistence and the client game module. */
+//#cap sharedSteps
+export { present__GAME_PASCAL__Night, describe__GAME_PASCAL__NightConfirmation } from './domain/nightSteps';
+export { __GAME_UPPER___NIGHT_STEP_IDS, type __GAME_PASCAL__NightStepId } from './state/types';
+//#end
 
 //#cap audioOrchestration
 export type { AudioEffect } from '../../platform/audio';

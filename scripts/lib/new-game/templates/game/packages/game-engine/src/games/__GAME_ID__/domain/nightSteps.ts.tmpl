@@ -1,0 +1,85 @@
+/** Shared night-step wiring. The example is not an approved game rule or catalogue scenario. */
+
+import {
+  defineCopy,
+  describeStepConfirmation,
+  presentStep,
+  type StepContextBase,
+  type StepDefinition,
+  type StepRuntime,
+  type StepSlice,
+  type StepSubmission,
+} from '../../../platform/steps';
+import { formatSeat } from '../../../platform/room/formatSeat';
+import {
+  __GAME_UPPER___NIGHT_STEP_IDS,
+  type __GAME_PASCAL__NightStepId,
+  type __GAME_PASCAL__State,
+} from '../state/types';
+
+export type __GAME_PASCAL__NightFacts = Readonly<Record<string, never>>;
+export type __GAME_PASCAL__NightResult = never;
+type NightContext = StepContextBase<__GAME_PASCAL__State, __GAME_PASCAL__NightFacts, __GAME_PASCAL__NightResult>;
+type NightDefinition = StepDefinition<__GAME_PASCAL__NightStepId, NightContext, __GAME_PASCAL__NightFacts, __GAME_PASCAL__NightResult>;
+type NightRuntime = StepRuntime<__GAME_PASCAL__NightStepId, __GAME_PASCAL__State, NightContext, __GAME_PASCAL__NightFacts, __GAME_PASCAL__NightResult>;
+
+const occupiedSeats = (state: __GAME_PASCAL__State) => Object.keys(state.roster).map(Number);
+
+// TODO(gameplay): replace this explicit example with approved actions, actors, copy and narration.
+const COPY = defineCopy({
+  exampleTitle: 'TODO(gameplay):夜晚示例',
+  exampleContent: 'TODO(gameplay):请先实现已批准的夜晚规则与私有信息。',
+});
+
+export const __GAME_UPPER___NIGHT_DEFINITIONS: Readonly<Record<__GAME_PASCAL__NightStepId, NightDefinition>> = {
+  todoNight: {
+    id: 'todoNight',
+    title: COPY.exampleTitle,
+    audio: () => ({ begin: '__GAME_ID__.TODO_NIGHT_BEGIN', end: '__GAME_ID__.TODO_NIGHT_END' }),
+    actors: ({ state }) => occupiedSeats(state),
+    actions: [{
+      kind: 'view',
+      key: 'viewExample',
+      name: COPY.exampleTitle,
+      title: COPY.exampleTitle,
+      content: ({ seat }) => {
+        if (seat === null) throw new Error('[FAIL-FAST] __GAME_PASCAL__ night content needs an actor');
+        return COPY.exampleContent;
+      },
+    }],
+    skippable: () => false,
+    reviewSubject: (_context, seat) => formatSeat(seat),
+  },
+};
+
+/** Start a fresh authoritative step slice; never store a second per-step completion flag. */
+export function create__GAME_PASCAL__NightSlice(): StepSlice<__GAME_PASCAL__NightStepId, __GAME_PASCAL__NightResult> {
+  const first = __GAME_UPPER___NIGHT_STEP_IDS[0];
+  if (first === undefined) throw new Error('[FAIL-FAST] __GAME_PASCAL__ night has no declared steps');
+  return { order: __GAME_UPPER___NIGHT_STEP_IDS, current: { stepId: first, serial: 1 }, records: {}, deadlineMs: null };
+}
+
+/** Bind game state to the shared mechanism without implementing parallel submission rules. */
+export function create__GAME_PASCAL__NightRuntime(): NightRuntime {
+  return {
+    definitions: __GAME_UPPER___NIGHT_DEFINITIONS,
+    getSlice: (state) => {
+      if (state.phase.kind !== 'night') throw new Error('[FAIL-FAST] __GAME_PASCAL__ night runtime used outside night');
+      return state.phase.steps;
+    },
+    getFacts: () => ({}),
+    createContext: (state, facts, seat, record) => ({ state, facts, seat, record }),
+    isAudioPlaying: (state) => state.isAudioPlaying,
+    seatedSeats: occupiedSeats,
+  };
+}
+
+/** The actor-specific presentation; spectators and other actors receive no private action content. */
+export function present__GAME_PASCAL__Night(state: __GAME_PASCAL__State, seat: number | null) {
+  return state.phase.kind === 'night' ? presentStep(create__GAME_PASCAL__NightRuntime(), state, seat) : null;
+}
+
+/** Confirmation copy comes from the same definition that handles the submission. */
+export function describe__GAME_PASCAL__NightConfirmation(state: __GAME_PASCAL__State, seat: number, submission: StepSubmission) {
+  return describeStepConfirmation(create__GAME_PASCAL__NightRuntime(), state, seat, submission);
+}
