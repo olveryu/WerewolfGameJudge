@@ -29,11 +29,9 @@ const convertStep: WerewolfRoleStepDefinition = {
   title: COPY.action,
   audio: defineWerewolfStepAudio('awakenedGargoyle'),
   actors: (context) =>
-    context.state.nightNumber === 1
-      ? context.state.seatedSeats.filter((seat) =>
-          context.role.activeRoleIdsOf(seat).includes('awakenedGargoyle'),
-        )
-      : [],
+    context.state.seatedSeats.filter((seat) =>
+      context.role.activeRoleIdsOf(seat).includes('awakenedGargoyle'),
+    ),
   actions: [
     {
       kind: 'pickSeats',

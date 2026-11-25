@@ -3,7 +3,6 @@ import { defineRole } from './role';
 import {
   createIdentityCheckResult,
   createSingleTargetStep,
-  getActingSeat,
   renderIdentityCheckResult,
 } from './roleSteps';
 
@@ -43,21 +42,6 @@ export const wolfWitch = defineRole({
       result: createIdentityCheckResult,
       renderResult: (context, result) =>
         renderIdentityCheckResult(context, result, COPY.resultTitle),
-      selectionEffects: (context, selection) => ({
-        disabledAbilities: [],
-        deathEffects:
-          context.state.nightNumber > 1 &&
-          context.role.seenRole(selection.landingSeat) === 'pureWhite'
-            ? [
-                {
-                  kind: 'attack',
-                  cause: 'checkDeath',
-                  source: getActingSeat(context),
-                  target: selection.landingSeat,
-                },
-              ]
-            : [],
-      }),
     }),
   ],
 });

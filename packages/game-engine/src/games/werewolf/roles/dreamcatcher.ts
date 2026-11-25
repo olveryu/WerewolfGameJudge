@@ -29,12 +29,6 @@ export const dreamcatcher = defineRole({
       canTargetSelf: false,
       selectionEffects: (context, selection) => {
         const actorSeat = getActingSeat(context);
-        const targetWasDreamedLastNight = context.state.previousTargets.some(
-          (target) =>
-            target.roleId === 'dreamcatcher' &&
-            target.actorSeat === actorSeat &&
-            target.targetSeat === selection.landingSeat,
-        );
         return {
           disabledAbilities: [],
           deathEffects: [
@@ -47,22 +41,7 @@ export const dreamcatcher = defineRole({
               isMutual: false,
               bypassShelter: true,
             },
-            ...(targetWasDreamedLastNight
-              ? [
-                  {
-                    kind: 'attack' as const,
-                    cause: 'checkDeath' as const,
-                    source: actorSeat,
-                    target: selection.landingSeat,
-                  },
-                ]
-              : [
-                  {
-                    kind: 'shelter' as const,
-                    source: actorSeat,
-                    target: selection.landingSeat,
-                  },
-                ]),
+            { kind: 'shelter', source: actorSeat, target: selection.landingSeat },
           ],
         };
       },

@@ -40,11 +40,9 @@ const wolfRobotLearnStep: WerewolfRoleStepDefinition = {
   title: COPY.stepTitle,
   audio: defineWerewolfStepAudio('wolfRobot'),
   actors: (context) =>
-    context.state.nightNumber === 1
-      ? context.state.seatedSeats.filter((seat) =>
-          context.role.activeRoleIdsOf(seat).includes('wolfRobot'),
-        )
-      : [],
+    context.state.seatedSeats.filter((seat) =>
+      context.role.activeRoleIdsOf(seat).includes('wolfRobot'),
+    ),
   actions: [
     {
       kind: 'pickSeats',

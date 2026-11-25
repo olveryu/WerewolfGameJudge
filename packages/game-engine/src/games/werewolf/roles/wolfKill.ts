@@ -225,7 +225,5 @@ function isWolfVoteDisabled(context: WerewolfRoleStepContext, seat: number): boo
 
 function getWolfVoteLockReason(context: WerewolfRoleStepContext, seat: number): string | null {
   if (isWolfVoteDisabled(context, seat)) return COPY.nightmareLocked;
-  return context.state.nightNumber === 1 && context.nightPresence.isFirstNightWolfAttackDisabled
-    ? COPY.poisonerLocked
-    : null;
+  return context.nightPresence.isFirstNightWolfAttackDisabled ? COPY.poisonerLocked : null;
 }

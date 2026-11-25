@@ -270,8 +270,5 @@ export const maskedMan = createPassiveRole(
     faction: 'god',
     team: 'good',
   },
-  (context, seat) =>
-    context.state.woundedSeats.includes(seat)
-      ? []
-      : [{ kind: 'shelter', source: seat, target: seat, bypassable: false }],
+  (_context, seat) => [{ kind: 'shelter', source: seat, target: seat, bypassable: false }],
 );

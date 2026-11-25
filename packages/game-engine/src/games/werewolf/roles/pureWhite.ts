@@ -4,7 +4,6 @@ import {
   createCheckEffects,
   createIdentityCheckResult,
   createSingleTargetStep,
-  getActingSeat,
   renderIdentityCheckResult,
 } from './roleSteps';
 
@@ -36,27 +35,7 @@ export const pureWhite = defineRole({
       result: createIdentityCheckResult,
       renderResult: (context, result) =>
         renderIdentityCheckResult(context, result, COPY.resultTitle),
-      selectionEffects: (context, selection) => {
-        const roleId = context.role.seenRole(selection.landingSeat);
-        const isNightKill = context.state.nightNumber > 1 && context.teamOfRole(roleId) === 'wolf';
-        const checkEffects = createCheckEffects(context, selection);
-        return {
-          disabledAbilities: [],
-          deathEffects: [
-            ...checkEffects.deathEffects,
-            ...(isNightKill && checkEffects.deathEffects.length === 0
-              ? [
-                  {
-                    kind: 'attack' as const,
-                    cause: 'checkDeath' as const,
-                    source: getActingSeat(context),
-                    target: selection.landingSeat,
-                  },
-                ]
-              : []),
-          ],
-        };
-      },
+      selectionEffects: createCheckEffects,
     }),
   ],
 });

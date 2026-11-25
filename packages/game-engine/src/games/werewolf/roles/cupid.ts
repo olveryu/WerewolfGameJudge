@@ -30,11 +30,9 @@ const chooseLoversStep: WerewolfRoleStepDefinition = {
   title: COPY.action,
   audio: defineWerewolfStepAudio('cupid'),
   actors: (context) =>
-    context.state.nightNumber === 1
-      ? context.state.seatedSeats.filter((seat) =>
-          context.role.activeRoleIdsOf(seat).includes('cupid'),
-        )
-      : [],
+    context.state.seatedSeats.filter((seat) =>
+      context.role.activeRoleIdsOf(seat).includes('cupid'),
+    ),
   actions: [
     {
       kind: 'pickSeats',

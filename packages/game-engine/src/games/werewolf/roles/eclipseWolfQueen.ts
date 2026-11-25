@@ -40,7 +40,6 @@ export const eclipseWolfQueen = defineRole({
       },
       skippable: true,
       canTargetSelf: true,
-      cannotRepeatTarget: true,
     }),
   ],
 });

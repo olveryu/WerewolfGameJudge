@@ -14,8 +14,6 @@ const ROLE_STEP_COPY = defineCopy({
   locked: '你今晚无法使用技能',
   nightmareLocked: '被噩梦之影恐惧，本夜无法使用技能',
   selfTargetDisallowed: '不能选择自己',
-  repeatedTargetDisallowed: '不能连续两晚选择同一名玩家',
-  repeatedCardDisallowed: '不能连续两晚选择同一张底牌',
   actualLanding: '（实际为{seat}）',
   good: '好人',
   wolf: '狼人',
@@ -48,7 +46,6 @@ export interface SingleTargetStepOptions {
   readonly phrase?: (seats: readonly number[]) => string;
   readonly skippable: boolean;
   readonly canTargetSelf: boolean;
-  readonly cannotRepeatTarget?: boolean;
   readonly actorAvailable?: (context: WerewolfRoleStepContext, seat: number) => boolean;
   readonly targetUnavailableReason?: (
     context: WerewolfRoleStepContext,
@@ -213,13 +210,11 @@ export function createSingleTargetStep(
     title: options.actionName,
     audio: defineWerewolfStepAudio(options.audioKey ?? options.roleId),
     actors: (context) =>
-      context.state.seatedSeats.filter((seat) => {
-        const hasRole = context.role.activeRoleIdsOf(seat).includes(options.roleId);
-        const isUsed = context.state.usedAbilities.some(
-          (ability) => ability.seat === seat && ability.roleId === options.roleId,
-        );
-        return hasRole && !isUsed && (options.actorAvailable?.(context, seat) ?? true);
-      }),
+      context.state.seatedSeats.filter(
+        (seat) =>
+          context.role.activeRoleIdsOf(seat).includes(options.roleId) &&
+          (options.actorAvailable?.(context, seat) ?? true),
+      ),
     actions: [
       {
         kind: 'pickSeats',
@@ -339,7 +334,6 @@ export interface CardSelectionStepOptions {
   readonly resultTitle: string;
   readonly identityChange: 'replaceCurrentRole' | 'grantBorrowedAbility';
   readonly mustChooseWolfWhenAvailable?: boolean;
-  readonly cannotRepeatCard?: boolean;
 }
 
 export function createCardSelectionStep(
@@ -423,7 +417,6 @@ function getCardUnavailableReason(
   card: WerewolfBottomCard,
   cards: readonly WerewolfBottomCard[],
 ): string | null {
-  const seat = getActingSeat(context);
   if (card.unavailableReason !== null) return card.unavailableReason;
   if (
     options.mustChooseWolfWhenAvailable === true &&
@@ -431,17 +424,6 @@ function getCardUnavailableReason(
     card.faction !== 'wolf'
   ) {
     return ROLE_STEP_COPY.wolfCardRequired;
-  }
-  if (
-    options.cannotRepeatCard === true &&
-    context.state.previousCards.some(
-      (previous) =>
-        previous.roleId === options.roleId &&
-        previous.actorSeat === seat &&
-        previous.cardIndex === card.index,
-    )
-  ) {
-    return ROLE_STEP_COPY.repeatedCardDisallowed;
   }
   return null;
 }
@@ -453,18 +435,6 @@ function getUnavailableReason(
 ): string | null {
   if (!options.canTargetSelf && targetSeat === context.seat) {
     return ROLE_STEP_COPY.selfTargetDisallowed;
-  }
-  if (
-    options.cannotRepeatTarget === true &&
-    context.seat !== null &&
-    context.state.previousTargets.some(
-      (target) =>
-        target.roleId === options.roleId &&
-        target.actorSeat === context.seat &&
-        target.targetSeat === context.role.landing(targetSeat),
-    )
-  ) {
-    return ROLE_STEP_COPY.repeatedTargetDisallowed;
   }
   const reason = options.targetUnavailableReason?.(context, targetSeat);
   if (reason !== undefined && reason !== null) return reason;

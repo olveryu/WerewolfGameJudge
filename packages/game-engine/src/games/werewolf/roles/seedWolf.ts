@@ -31,11 +31,9 @@ const infectStep: WerewolfRoleStepDefinition = {
   title: COPY.action,
   audio: defineWerewolfStepAudio('seedWolf'),
   actors: (context) =>
-    context.state.nightNumber === 1
-      ? context.state.seatedSeats.filter((seat) =>
-          context.role.activeRoleIdsOf(seat).includes('seedWolf'),
-        )
-      : [],
+    context.state.seatedSeats.filter((seat) =>
+      context.role.activeRoleIdsOf(seat).includes('seedWolf'),
+    ),
   situationHints: (context) => {
     const target = getInfectionTarget(context);
     return target === null

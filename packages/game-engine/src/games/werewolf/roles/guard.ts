@@ -27,7 +27,6 @@ export const guard = defineRole({
       actionName: COPY.action,
       skippable: true,
       canTargetSelf: true,
-      cannotRepeatTarget: true,
       selectionEffects: (_context, selection) => ({
         disabledAbilities: [],
         deathEffects: [

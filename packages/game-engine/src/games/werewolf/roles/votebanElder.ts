@@ -36,7 +36,6 @@ export const votebanElder = defineRole({
       actionName: COPY.action,
       skippable: true,
       canTargetSelf: true,
-      cannotRepeatTarget: true,
     }),
   ],
 });

@@ -12,7 +12,6 @@ import {
 } from '../../../../platform/steps';
 import {
   createWerewolfRoleContext,
-  resolveDeathEffects,
   resolveNightPresenceFacts,
   WEREWOLF_PRESENCE_DECLARATIONS,
   WEREWOLF_ROLE_DEFINITIONS,
@@ -192,19 +191,6 @@ describe('werewolf role definitions', () => {
     }).toMatchSnapshot();
   });
 
-  it('uses the post-swap landing to enforce a repeated-target restriction', () => {
-    const guardRole = requireRole('guard');
-    const state = createState('guard', {
-      previousTargets: [{ roleId: 'guard', actorSeat: 1, targetSeat: 4 }],
-    });
-    const presentation = presentStep(createRuntime(guardRole, state), state, 1);
-    const action = presentation?.actions.find((entry) => entry.kind === 'pickSeats');
-    if (action?.kind !== 'pickSeats') throw new Error('[FAIL-FAST] Guard action is missing');
-
-    expect(action.seats.find((option) => option.seat === 2)?.unavailableReason).not.toBeNull();
-    expect(action.seats.find((option) => option.seat === 4)?.unavailableReason).toBeNull();
-  });
-
   it('starts the countdown after all wolves vote, including a disagreement', () => {
     const step = wolfKillStep;
     const completion = step.completion;
@@ -332,7 +318,6 @@ describe('werewolf role definitions', () => {
     'lets every wolf see and acknowledge the $cause attack restriction',
     ({ role, facts, reason }) => {
       const state = createState(role, {
-        nightNumber: 1,
         identities: {
           1: { dealtRole: role, currentRole: role, borrowedAbilityRole: null },
           2: { dealtRole: 'wolf', currentRole: 'wolf', borrowedAbilityRole: null },
@@ -515,7 +500,7 @@ describe('werewolf role definitions', () => {
     }
     const view = step.actions.find((action) => action.kind === 'view');
     if (view?.kind !== 'view') throw new Error('[FAIL-FAST] Hunter status view is missing');
-    const state = createState('wolfRobot', { nightNumber: 1 });
+    const state = createState('wolfRobot');
     const learningState = createState('wolfRobot', {
       identities: {
         1: { dealtRole: 'wolfRobot', currentRole: 'wolfRobot', borrowedAbilityRole: null },
@@ -843,54 +828,16 @@ describe('werewolf role definitions', () => {
     ]);
   });
 
-  it('applies check-death only when the actual landing seat is a wolf', () => {
+  it('does not kill a checked wolf on the first night', () => {
     const state = createState('pureWhite');
     const result = resolveRoleTarget('pureWhite', state, 3);
 
-    expect(result.facts?.deathEffects).toEqual([
-      { kind: 'attack', cause: 'checkDeath', source: 1, target: 3 },
-    ]);
+    expect(result.facts?.deathEffects).toEqual([]);
   });
 
-  it('reflects a later-night pure-white check on the spirit knight once', () => {
-    const state = createState('pureWhite', {
-      identities: {
-        1: { dealtRole: 'pureWhite', currentRole: 'pureWhite', borrowedAbilityRole: null },
-        2: { dealtRole: 'spiritKnight', currentRole: 'spiritKnight', borrowedAbilityRole: null },
-      },
-      location: { swap: null },
-      seatedSeats: [1, 2],
-    });
-    const result = resolveRoleTarget('pureWhite', state, 2);
-    const spiritKnight: WerewolfRoleDefinition = requireRole('spiritKnight');
-    const immunities = spiritKnight.traits.immunities;
-    if (result.facts?.deathEffects === undefined || immunities === undefined) {
-      throw new Error('[FAIL-FAST] Missing pure-white check effects or spirit knight immunities');
-    }
-    const deaths = resolveDeathEffects([
-      ...result.facts.deathEffects,
-      { kind: 'immune', seat: 2, against: immunities },
-      ...(spiritKnight.passiveDeathEffects?.(createRoleContext(state, 2), 2) ?? []),
-    ]);
-
-    expect(deaths.deaths).toEqual([1]);
-    expect(deaths.trace.filter((entry) => entry.kind === 'reflection')).toEqual([
-      { kind: 'reflection', source: 1, target: 2 },
-    ]);
-  });
-
-  it('creates role-specific links and wolf-witch check-death at the landing seat', () => {
+  it('creates role-specific links at the landing seat', () => {
     const dream = resolveRoleTarget('dreamcatcher', createState('dreamcatcher'), 2);
     const charm = resolveRoleTarget('wolfQueen', createState('wolfQueen'), 2);
-    const wolfWitchState = createState('wolfWitch', {
-      identities: {
-        1: { dealtRole: 'wolfWitch', currentRole: 'wolfWitch', borrowedAbilityRole: null },
-        2: { dealtRole: 'pureWhite', currentRole: 'pureWhite', borrowedAbilityRole: null },
-        3: { dealtRole: 'wolfQueen', currentRole: 'wolfQueen', borrowedAbilityRole: null },
-        4: { dealtRole: 'dreamcatcher', currentRole: 'dreamcatcher', borrowedAbilityRole: null },
-      },
-    });
-    const wolfWitchResult = resolveRoleTarget('wolfWitch', wolfWitchState, 4);
 
     expect(dream.facts?.deathEffects?.map((effect) => effect.kind)).toEqual(['link', 'shelter']);
     expect(charm.facts?.deathEffects).toEqual([
@@ -902,9 +849,6 @@ describe('werewolf role definitions', () => {
         cause: 'wolfQueenLink',
         isMutual: false,
       },
-    ]);
-    expect(wolfWitchResult.facts?.deathEffects).toEqual([
-      { kind: 'attack', cause: 'checkDeath', source: 1, target: 2 },
     ]);
   });
 
@@ -1053,42 +997,6 @@ describe('werewolf role definitions', () => {
       result: { kind: 'cardSelection', roleId: 'seer' },
     });
   });
-
-  it('prevents the treasure master from choosing the same card on consecutive nights', () => {
-    const role = requireRole('treasureMaster');
-    const step = role.steps[0];
-    if (step === undefined) throw new Error('[FAIL-FAST] Treasure master step is missing');
-    const action = step.actions[0];
-    if (action?.kind !== 'pickCard') {
-      throw new Error('[FAIL-FAST] Treasure master card action is missing');
-    }
-    const state = createState('treasureMaster', {
-      previousCards: [{ roleId: 'treasureMaster', actorSeat: 1, cardIndex: 0 }],
-    });
-    const context = createRuntime(role, state).createContext(state, EMPTY_FACTS, 1, { bySeat: {} });
-
-    expect(action.cards(context)[0]?.unavailableReason).not.toBeNull();
-    expect(() => action.resolve(context, 0)).toThrow(
-      '[FAIL-FAST] treasureMasterChoose resolved with an unavailable card',
-    );
-  });
-
-  it('gives the masked man one bypass-proof shelter until wounded', () => {
-    const role = requireRole('maskedMan');
-    if (!('passiveDeathEffects' in role) || role.passiveDeathEffects === undefined) {
-      throw new Error('[FAIL-FAST] Masked man passive death effect is missing');
-    }
-    const passiveDeathEffects = role.passiveDeathEffects;
-    const state = createState('maskedMan');
-    const context = createRoleContext(state, 1);
-    const woundedState = createState('maskedMan', { woundedSeats: [1] });
-    const woundedContext = createRoleContext(woundedState, 1);
-
-    expect(passiveDeathEffects(context, 1)).toEqual([
-      { kind: 'shelter', source: 1, target: 1, bypassable: false },
-    ]);
-    expect(passiveDeathEffects(woundedContext, 1)).toEqual([]);
-  });
 });
 
 function createState(
@@ -1105,13 +1013,7 @@ function createState(
     location: { swap: { first: 2, second: 4 } },
     sight: { roleOverridesBySeat: {} },
     seatedSeats: [1, 2, 3, 4],
-    nightNumber: 2,
     rules: { witchCanSelfHeal: false },
-    usedAbilities: [],
-    disabledAbilities: [],
-    previousTargets: [],
-    previousCards: [],
-    woundedSeats: [],
     usedResources: [],
     ...changes,
   };

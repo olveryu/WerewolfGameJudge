@@ -29,7 +29,6 @@ const confessStep = createSingleTargetStep({
   },
   skippable: false,
   canTargetSelf: false,
-  actorAvailable: (context) => context.state.nightNumber === 1,
   targetUnavailableReason: (context, chosenSeat) => {
     const targetRole = context.role.roleOf(chosenSeat);
     return context.factionOfRole(targetRole) === 'wolf' ? COPY.wolfTargetDisallowed : null;

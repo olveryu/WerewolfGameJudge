@@ -32,7 +32,6 @@ export const nightmare = defineRole({
       actionName: COPY.action,
       skippable: true,
       canTargetSelf: true,
-      cannotRepeatTarget: true,
       reviewSuffix: (context, chosenSeat) =>
         renderCopy(COPY.blockedRole, {
           role: context.roleNameOf(context.role.roleOf(context.role.landing(chosenSeat))),

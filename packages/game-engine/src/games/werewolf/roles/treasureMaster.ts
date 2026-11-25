@@ -33,7 +33,6 @@ export const treasureMaster = defineRole({
       hint: () => COPY.hint,
       resultTitle: COPY.resultTitle,
       identityChange: 'grantBorrowedAbility',
-      cannotRepeatCard: true,
     }),
   ],
 });

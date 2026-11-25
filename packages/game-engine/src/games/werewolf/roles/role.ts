@@ -24,21 +24,7 @@ export interface WerewolfRoleState {
   readonly location: LocationLayer;
   readonly sight: SightLayer<string>;
   readonly seatedSeats: readonly number[];
-  readonly nightNumber: number;
   readonly rules: { readonly witchCanSelfHeal: boolean };
-  readonly usedAbilities: readonly { readonly roleId: string; readonly seat: number }[];
-  readonly disabledAbilities: readonly { readonly roleId: string; readonly seat: number }[];
-  readonly previousTargets: readonly {
-    readonly roleId: string;
-    readonly actorSeat: number;
-    readonly targetSeat: number;
-  }[];
-  readonly previousCards: readonly {
-    readonly roleId: string;
-    readonly actorSeat: number;
-    readonly cardIndex: number;
-  }[];
-  readonly woundedSeats: readonly number[];
   readonly usedResources: readonly {
     readonly roleId: string;
     readonly seat: number;

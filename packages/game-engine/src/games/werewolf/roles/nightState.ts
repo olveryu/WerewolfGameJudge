@@ -124,13 +124,7 @@ const roleState = z.strictObject({
   location: z.strictObject({ swap: swap.nullable() }),
   sight: z.strictObject({ roleOverridesBySeat: z.record(seatKey, roleId) }),
   seatedSeats: z.array(seat),
-  nightNumber: z.number().int().positive(),
   rules: z.strictObject({ witchCanSelfHeal: z.boolean() }),
-  usedAbilities: z.array(roleAbility),
-  disabledAbilities: z.array(roleAbility),
-  previousTargets: z.array(z.strictObject({ roleId, actorSeat: seat, targetSeat: seat })),
-  previousCards: z.array(z.strictObject({ roleId, actorSeat: seat, cardIndex: seat })),
-  woundedSeats: z.array(seat),
   usedResources: z.array(z.strictObject({ roleId, seat, resource: z.string().min(1) })),
 });
 const result = z.discriminatedUnion('kind', [

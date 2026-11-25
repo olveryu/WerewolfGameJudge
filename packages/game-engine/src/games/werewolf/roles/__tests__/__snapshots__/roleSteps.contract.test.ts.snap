@@ -57,29 +57,65 @@ exports[`werewolf role definitions > snapshots generated output for 'avenger' 'a
 exports[`werewolf role definitions > snapshots generated output for 'awakenedGargoyle' 'awakenedGargoyleConvert' 1`] = `
 {
   "initial": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "committed": null,
+        "key": "awakenedGargoyleConvert",
+        "kind": "pickSeats",
+        "label": "转化",
+        "max": 1,
+        "min": 1,
+        "seats": [
+          {
+            "seat": 1,
+            "unavailableReason": "不能选择自己",
+          },
+          {
+            "seat": 2,
+            "unavailableReason": "只能选择与狼人阵营相邻的玩家",
+          },
+          {
+            "seat": 3,
+            "unavailableReason": "不能选择狼人阵营的玩家",
+          },
+          {
+            "seat": 4,
+            "unavailableReason": "只能选择与狼人阵营相邻的玩家",
+          },
+        ],
+      },
+    ],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "请选择狼人阵营相邻的一名神民角色进行转化",
     "pendingResult": null,
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "awakenedGargoyleConvert",
     "title": "转化",
   },
-  "review": [],
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "awakenedGargoyleConvert",
+      "text": "觉醒石像鬼转化3号（实际为5号）",
+    },
+  ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "isActor": false,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
-      "done": 0,
-      "total": 0,
+      "done": 1,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "awakenedGargoyleConvert",
@@ -223,29 +259,65 @@ exports[`werewolf role definitions > snapshots generated output for 'crow' 'crow
 exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cupidChooseLovers' 1`] = `
 {
   "initial": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "committed": null,
+        "key": "cupidChooseLovers",
+        "kind": "pickSeats",
+        "label": "连接情侣",
+        "max": 2,
+        "min": 2,
+        "seats": [
+          {
+            "seat": 1,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 2,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 3,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 4,
+            "unavailableReason": null,
+          },
+        ],
+      },
+    ],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "请选择两名玩家成为情侣，可以选择自己",
     "pendingResult": null,
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "cupidChooseLovers",
     "title": "连接情侣",
   },
-  "review": [],
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "cupidChooseLovers",
+      "text": "丘比特连接3号和4号为情侣",
+    },
+  ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "isActor": false,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
-      "done": 0,
-      "total": 0,
+      "done": 1,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "cupidChooseLovers",
@@ -1483,29 +1555,53 @@ exports[`werewolf role definitions > snapshots generated output for 'pureWhite' 
 exports[`werewolf role definitions > snapshots generated output for 'seedWolf' 'seedWolfInfect' 1`] = `
 {
   "initial": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "unavailable",
+          "reason": "本夜没有可感染的狼人袭击目标",
+        },
+        "key": "seedWolfInfect",
+        "kind": "direct",
+        "label": "感染",
+      },
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "key": "$skip",
+        "kind": "direct",
+        "label": "不用技能",
+      },
+    ],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "本夜没有可感染的狼人袭击目标",
     "pendingResult": null,
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "seedWolfInfect",
     "title": "感染",
   },
-  "review": [],
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "seedWolfInfect",
+      "text": "种狼感染",
+    },
+  ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "本夜没有可感染的狼人袭击目标",
     "pendingResult": null,
     "progress": {
-      "done": 0,
-      "total": 0,
+      "done": 1,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "seedWolfInfect",
@@ -2236,29 +2332,65 @@ exports[`werewolf role definitions > snapshots generated output for 'witch' 'wit
 exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' 'wolfGirlConfess' 1`] = `
 {
   "initial": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "committed": null,
+        "key": "wolfGirlConfess",
+        "kind": "pickSeats",
+        "label": "表白",
+        "max": 1,
+        "min": 1,
+        "seats": [
+          {
+            "seat": 1,
+            "unavailableReason": "不能选择自己",
+          },
+          {
+            "seat": 2,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 3,
+            "unavailableReason": "不能选择狼人阵营的玩家",
+          },
+          {
+            "seat": 4,
+            "unavailableReason": null,
+          },
+        ],
+      },
+    ],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "请选择要表白的玩家",
     "pendingResult": null,
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "wolfGirlConfess",
     "title": "表白",
   },
-  "review": [],
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "wolfGirlConfess",
+      "text": "狼女孩向3号表白（实际为5号）",
+    },
+  ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "isActor": false,
+    "isActor": true,
     "message": null,
     "pendingResult": null,
     "progress": {
-      "done": 0,
-      "total": 0,
+      "done": 1,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "wolfGirlConfess",
@@ -2407,24 +2539,68 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfQueen' 
 exports[`werewolf role definitions > snapshots generated output for 'wolfRobot' 'wolfRobotLearn' 1`] = `
 {
   "initial": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "committed": null,
+        "key": "wolfRobotLearn",
+        "kind": "pickSeats",
+        "label": "学习",
+        "max": 1,
+        "min": 1,
+        "seats": [
+          {
+            "seat": 1,
+            "unavailableReason": "不能选择自己",
+          },
+          {
+            "seat": 2,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 3,
+            "unavailableReason": null,
+          },
+          {
+            "seat": 4,
+            "unavailableReason": null,
+          },
+        ],
+      },
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "key": "$skip",
+        "kind": "direct",
+        "label": "不用技能",
+      },
+    ],
     "deadlineMs": null,
-    "isActor": false,
-    "message": null,
+    "isActor": true,
+    "message": "请选择要学习的玩家，如不使用请点击「不用技能」",
     "pendingResult": null,
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "wolfRobotLearn",
     "title": "学习",
   },
-  "review": [],
+  "review": [
+    {
+      "seat": 1,
+      "stepId": "wolfRobotLearn",
+      "text": "机械狼人学习3号（实际为5号）",
+    },
+  ],
   "submitted": {
     "actions": [],
     "deadlineMs": null,
-    "isActor": false,
+    "isActor": true,
     "message": null,
     "pendingResult": {
       "text": "3号是猎人",
@@ -2432,7 +2608,7 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfRobot' 
     },
     "progress": {
       "done": 0,
-      "total": 0,
+      "total": 1,
     },
     "serial": 1,
     "stepId": "wolfRobotLearn",

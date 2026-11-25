@@ -86,13 +86,10 @@ const hypnotizedRevealStep = createGroupConfirmStep({
   content: (context) => {
     const viewerSeat = getActingSeat(context);
     const hypnotizedSeats = new Set(
-      context.state.previousTargets
-        .filter((target) => target.roleId === 'piper')
-        .map((target) => target.targetSeat),
+      context.facts.selections
+        .filter((selection) => selection.roleId === 'piper')
+        .map((selection) => selection.landingSeat),
     );
-    for (const selection of context.facts.selections) {
-      if (selection.roleId === 'piper') hypnotizedSeats.add(selection.landingSeat);
-    }
     if (!hypnotizedSeats.has(viewerSeat)) return COPY.notHypnotized;
     return COPY.hypnotized.replace(
       '{seats}',

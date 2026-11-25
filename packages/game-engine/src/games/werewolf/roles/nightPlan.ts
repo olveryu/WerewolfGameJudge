@@ -78,13 +78,7 @@ export function createWerewolfRoleState(deal: WerewolfNightDeal): WerewolfRoleSt
     location: { swap: null },
     sight: { roleOverridesBySeat: {} },
     seatedSeats: deal.seats.map((player) => player.seat).sort((a, b) => a - b),
-    nightNumber: 1,
     rules: { witchCanSelfHeal: deal.witchCanSelfHeal },
-    usedAbilities: [],
-    disabledAbilities: [],
-    previousTargets: [],
-    previousCards: [],
-    woundedSeats: [],
     usedResources: [],
   };
 }
