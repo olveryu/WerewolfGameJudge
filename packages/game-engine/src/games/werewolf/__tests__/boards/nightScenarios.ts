@@ -257,6 +257,18 @@ const SEED_WOLF_SIDE = [
   'guard',
 ] as const;
 
+const AWAKENED_WOLF_ROBOT = [
+  ...VILLAGERS,
+  'wolf',
+  'wolf',
+  'awakenedGargoyle',
+  'wolfRobot',
+  'seer',
+  'witch',
+  'hunter',
+  'guard',
+] as const;
+
 function scenarios(
   board: string,
   roles: readonly RoleId[],
@@ -569,6 +581,12 @@ export const NIGHT_SCENARIOS: readonly NightScenario[] = [
     [
       'later steps treat the convert as a wolf without marking the seat',
       { wolf: 0, seedWolf: { confirmed: true }, wolfRobot: 0, wolfWitch: 0, seer: 0 },
+    ],
+  ]),
+  ...scenarios('unseen wolf', AWAKENED_WOLF_ROBOT, [
+    [
+      'awakened gargoyle picks the wolf robot and converts nobody',
+      { awakenedGargoyle: 7, wolf: 0, seer: 4 },
     ],
   ]),
 ];

@@ -2727,7 +2727,7 @@ exports[`Night-1 board scenarios through production commands > seed wolf: later 
   "unavailable": [
     "wolfRobotLearn 学习 8号: 不能选择自己 [8号]",
     "seerCheck 查验 9号: 不能选择自己 [9号]",
-    "wolfWitchCheck 查验 5号 7号 8号: 不能选择狼人阵营玩家 [6号]",
+    "wolfWitchCheck 查验 5号 7号: 不能选择狼人阵营玩家 [6号]",
     "wolfWitchCheck 查验 6号: 不能选择自己 [6号]",
   ],
   "views": [
@@ -3463,7 +3463,7 @@ exports[`Night-1 board scenarios through production commands > step coverage: id
     "wolfKill 袭击 9号: 该角色不能被狼人直接袭击 [5号 7号 8号 9号]",
     "wolfQueenCharm 魅惑 9号: 不能选择自己 [9号]",
     "wolfWitchCheck 查验 5号: 不能选择自己 [5号]",
-    "wolfWitchCheck 查验 7号 8号 9号 11号: 不能选择狼人阵营玩家 [5号]",
+    "wolfWitchCheck 查验 7号 8号 9号: 不能选择狼人阵营玩家 [5号]",
     "gargoyleCheck 查验 11号: 不能选择自己 [11号]",
     "pureWhiteCheck 查验 4号: 不能选择自己 [4号]",
     "psychicCheck 通灵 12号: 不能选择自己 [12号]",
@@ -3701,6 +3701,46 @@ exports[`Night-1 board scenarios through production commands > treasure master: 
   "views": [
     "hunterConfirm 可以发动技能 [10号]",
     "darkWolfKingConfirm 可以发动技能 [9号]",
+  ],
+}
+`;
+
+exports[`Night-1 board scenarios through production commands > unseen wolf: awakened gargoyle picks the wolf robot and converts nobody 1`] = `
+{
+  "announcements": [],
+  "deaths": [
+    "1号 wolfKill",
+  ],
+  "review": [
+    "12号守卫未守护",
+    "狼队（5、6、7号）袭击1号",
+    "10号女巫未用解药",
+    "10号女巫未毒杀",
+    "11号猎人可以发动",
+    "8号机械狼人未学习",
+    "9号预言家查验5号（查验结果：5号是狼人）",
+    "7号觉醒石像鬼转化8号",
+  ],
+  "steps": [
+    "guardProtect",
+    "wolfKill",
+    "witchAction",
+    "hunterConfirm",
+    "wolfRobotLearn",
+    "seerCheck",
+    "awakenedGargoyleConvert",
+    "awakenedGargoyleConvertReveal",
+  ],
+  "unavailable": [
+    "wolfRobotLearn 学习 8号: 不能选择自己 [8号]",
+    "seerCheck 查验 9号: 不能选择自己 [9号]",
+    "awakenedGargoyleConvert 转化 1号 2号 3号 9号 10号 11号 12号: 只能选择与狼人阵营相邻的玩家 [7号]",
+    "awakenedGargoyleConvert 转化 5号 6号: 不能选择狼人阵营的玩家 [7号]",
+    "awakenedGargoyleConvert 转化 7号: 不能选择自己 [7号]",
+  ],
+  "views": [
+    "hunterConfirm 可以发动技能 [11号]",
+    "awakenedGargoyleConvertReveal 你未被转化 [1号 2号 3号 4号 5号 6号 7号 8号 9号 10号 11号 12号]",
   ],
 }
 `;

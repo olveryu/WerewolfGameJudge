@@ -95,10 +95,14 @@ export function getRoleAbilityLockReason(context: WerewolfRoleStepContext): stri
     : null;
 }
 
-/** A wolf the pack already knew before tonight's conversions; later converts stay unmarked. */
+/**
+ * A wolf the pack recognises: one that meets with it at the wolf vote. Wolves that stay
+ * unknown to the pack and players converted tonight are left unmarked, so a choice list
+ * never tells the actor more than they are entitled to know.
+ */
 export function isKnownWolfTeammate(context: WerewolfRoleStepContext, seat: number): boolean {
   return (
-    context.teamOfRole(context.role.roleOf(seat)) === 'wolf' &&
+    context.doesRoleVoteWithWolves(context.role.roleOf(seat)) &&
     !(context.facts.conversions ?? []).some((conversion) => conversion.seat === seat)
   );
 }

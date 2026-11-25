@@ -21,6 +21,7 @@ import type {
   WerewolfRoleStepContext,
   WerewolfRoleStepResult,
 } from './role';
+import { isKnownWolfTeammate } from './roleSteps';
 
 const COPY = defineCopy({ wolfBottomCardUnavailable: '不可选择狼人阵营底牌' });
 
@@ -120,10 +121,7 @@ function createWerewolfStepContext(input: WerewolfStepContextInput): WerewolfRol
       getWerewolfRoleDefinition(role.roleOf(targetSeat)).traits.wolfKillTargetForbidden === true,
     isAdjacentToWolfFaction: (targetSeat) =>
       state.seatedSeats.some((wolfSeat) => {
-        if (getWerewolfRoleDefinition(role.roleOf(wolfSeat)).traits.team !== 'wolf') return false;
-        if ((facts.conversions ?? []).some((conversion) => conversion.seat === wolfSeat)) {
-          return false;
-        }
+        if (!isKnownWolfTeammate(context, wolfSeat)) return false;
         const distance = Math.abs(targetSeat - wolfSeat);
         return distance === 1 || distance === state.seatedSeats.length - 1;
       }),
@@ -190,6 +188,7 @@ function getAvengerFaction(
   avengerSeat: number,
 ): 'good' | 'wolf' | 'bonded' {
   const shadow = facts.selections.find((selection) => selection.roleId === 'shadow');
+  // Rule: with no mimic target (the shadow card was left as a bottom card) the avenger is good.
   if (shadow === undefined) return 'good';
   if (shadow.landingSeat === avengerSeat) return 'bonded';
   const target = state.identities[shadow.landingSeat];

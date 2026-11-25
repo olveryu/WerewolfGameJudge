@@ -1,7 +1,12 @@
 import { formatSeat } from '../../../platform/room/formatSeat';
 import { defineCopy, renderCopy } from '../../../platform/steps';
 import { defineRole } from './role';
-import { createGroupConfirmStep, createSingleTargetStep, getActingSeat } from './roleSteps';
+import {
+  createGroupConfirmStep,
+  createSingleTargetStep,
+  getActingSeat,
+  isKnownWolfTeammate,
+} from './roleSteps';
 
 const COPY = defineCopy({
   name: '狼女孩',
@@ -29,10 +34,8 @@ const confessStep = createSingleTargetStep({
   },
   skippable: false,
   canTargetSelf: false,
-  targetUnavailableReason: (context, chosenSeat) => {
-    const targetRole = context.role.roleOf(chosenSeat);
-    return context.teamOfRole(targetRole) === 'wolf' ? COPY.wolfTargetDisallowed : null;
-  },
+  targetUnavailableReason: (context, chosenSeat) =>
+    isKnownWolfTeammate(context, chosenSeat) ? COPY.wolfTargetDisallowed : null,
   selectionEffects: (context, selection) => ({
     disabledAbilities: [],
     deathEffects: [],
