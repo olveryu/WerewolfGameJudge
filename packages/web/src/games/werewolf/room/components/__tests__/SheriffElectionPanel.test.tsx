@@ -145,14 +145,13 @@ describe('SheriffElectionPanel', () => {
     const model = createModel({
       phase: 'registration',
       phaseTitle: '报名上警',
-      phaseDescription: '报名截止后，请在「主持管理」中结束报名。',
+      phaseDescription: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
       canAdvance: true,
       advanceLabel: '结束报名',
     });
     render(<SheriffElectionPanel model={model} />);
 
     expect(screen.getByText('报名结束后显示公开竞选记录。')).toBeInTheDocument();
-    expect(screen.queryByText('报名截止后，请在「主持管理」中结束报名。')).toBeNull();
     expect(
       screen.queryByText('想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。'),
     ).toBeNull();

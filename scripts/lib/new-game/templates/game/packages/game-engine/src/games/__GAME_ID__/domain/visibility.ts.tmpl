@@ -10,6 +10,10 @@ import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
 //#end
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+//#cap sharedSteps
+import type { StepPresentation } from '../../../platform/steps';
+import { present__GAME_PASCAL__Night } from './nightSteps';
+//#end
 import {
 //#cap identityViewing
   get__GAME_PASCAL__ViewingParticipants,
@@ -30,6 +34,9 @@ export interface __GAME_PASCAL__SeatView {
 }
 
 export interface __GAME_PASCAL__ViewModel {
+//#cap sharedSteps
+  readonly step: StepPresentation | null;
+//#end
   readonly phase: __GAME_PASCAL__PhaseKind;
   readonly mySeat: number | null;
 //#cap identityViewing
@@ -86,6 +93,9 @@ export function get__GAME_PASCAL__ViewModel(
 //#end
   }
   return {
+//#cap sharedSteps
+    step: present__GAME_PASCAL__Night(state, viewerSeat),
+//#end
     phase: state.phase.kind,
     mySeat: viewerSeat,
 //#cap identityViewing

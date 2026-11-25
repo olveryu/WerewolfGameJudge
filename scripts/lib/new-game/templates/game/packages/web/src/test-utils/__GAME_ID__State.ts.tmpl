@@ -13,6 +13,9 @@ import {
 } from '@game-judge/game-engine/games/__GAME_ID__/public';
 
 import type { ReviewTestRounds } from './reviewTestRounds';
+//#cap sharedSteps
+import { finishScaffoldNight } from '../../../game-engine/src/games/__GAME_ID__/__tests__/nightDriver';
+//#end
 
 type CommandContext = Parameters<typeof __GAME_CAMEL__Engine.decide>[2];
 
@@ -66,7 +69,12 @@ export function build__GAME_PASCAL__TestLobby(): __GAME_PASCAL__State {
 }
 
 /** Starts a game from a full lobby or a finished game and plays it into its playing phase. */
+//#cap sharedSteps
+export function build__GAME_PASCAL__TestNight(from: __GAME_PASCAL__State): __GAME_PASCAL__State {
+//#end
+//#cap !sharedSteps
 export function start__GAME_PASCAL__TestGame(from: __GAME_PASCAL__State): __GAME_PASCAL__State {
+//#end
   let state = from;
 //#cap identityViewing
   state = drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.roles.assign' });
@@ -92,6 +100,21 @@ export function start__GAME_PASCAL__TestGame(from: __GAME_PASCAL__State): __GAME
 //#end
   return drive__GAME_PASCAL__TestCommand(state, { type: '__GAME_ID__.game.begin' });
 }
+
+//#cap sharedSteps
+/** Play the scaffold night through authorised actions and audio acknowledgements. */
+export function start__GAME_PASCAL__TestGame(from: __GAME_PASCAL__State): __GAME_PASCAL__State {
+  let state = build__GAME_PASCAL__TestNight(from);
+  finishScaffoldNight({
+    get state() { return state; },
+    send: (command, userId = 'host', controlledSeat = null) => {
+      state = drive__GAME_PASCAL__TestCommand(state, command, userId, controlledSeat);
+      return state;
+    },
+  });
+  return state;
+}
+//#end
 
 /** Ends a playing game through the engine's terminal seam. */
 export function end__GAME_PASCAL__TestGame(playing: __GAME_PASCAL__State): __GAME_PASCAL__State {

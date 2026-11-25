@@ -123,7 +123,7 @@ This app takes over the whole job: dealing identities, advancing phases, calling
 ## 🐺 Werewolf Spotlight (the flagship)
 
 - 🔊 **Fully voiced Night-1**: identity reveal, skill actions, and dawn announcements are narrated end to end, so the host plays with eyes closed too; BGM and sound effects included
-- 🎭 **48 roles · 27 preset boards**: gods, special wolves, and third-party roles in full; presets are all 12-player boards, custom boards supported — [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) · [Preset Boards](docs/PRESET_BOARDS.md)
+- 🎭 **48 roles · 27 preset boards**: gods, special wolves, and third-party roles in full; presets are all 12-player boards, custom boards supported — [Preset Boards](docs/PRESET_BOARDS.md)
 - 🤖 **AI rules assistant**: tap the AI bubble on any role card to ask about skills and strategy (Gemini 3.5 Flash Lite, proxied by the Worker)
 - ☀️ Daytime discussion, voting, and elimination stay at the table — the app handles Night-1, the part that actually needs a judge
 
@@ -173,7 +173,8 @@ accounts, progress and word edits are preserved. Initialization failures prevent
 server startup. Local state lives in this worktree's
 `packages/api-worker/.wrangler/state`; no remote database is touched.
 Occupied ports are skipped, and Vite connects to the Worker started by this run;
-open the Web URL printed at startup. A missing `JWT_SECRET` is generated and
+open the Web URL printed at startup. The Worker defaults to `127.0.0.1:8787` and
+uses an OS-assigned port when occupied. A missing `JWT_SECRET` is generated and
 persisted in the Worker's `.env.local` (or appended to an existing `.dev.vars`).
 Existing keys are preserved. Both servers stop when either exits.
 

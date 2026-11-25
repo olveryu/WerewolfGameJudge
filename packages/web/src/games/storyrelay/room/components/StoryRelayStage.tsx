@@ -65,10 +65,11 @@ function StoryRelayStageContent({
     throw new Error('[FAIL-FAST] Story Relay lobby must use the shared seat workspace');
   }
   const retrySettle = () => {
-    void submit('重新推进', {
-      type: 'storyrelay.phase.retrySettle',
-      phaseRevision: state.phaseRevision,
-    });
+    void submit(
+      '重新推进',
+      { type: 'storyrelay.phase.retrySettle', phaseRevision: state.phaseRevision },
+      { actionKey: null },
+    );
   };
   const [inputs] = useState(() => new Map<number, string>());
   const finalizer = useStoryRelayAutoSubmission(state, userId, session, inputs);

@@ -14,15 +14,22 @@ corepack pnpm new-game <gameId> --feature <key=value> ... [--production]
 
 Declare all five features exactly once; there are no implicit defaults:
 
-| Feature           | Allowed values                          | Derived behavior                                                                                    |
-| ----------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `identity`        | `none`, `private`                       | `private` enables identity viewing, bulk bot identity handling and reveal animation.                |
-| `night`           | `none`, `narrated`                      | `narrated` enables `nightPhase` and audio orchestration.                                            |
-| `guidedNarration` | `none`, `narrated`                      | `narrated` enables audio orchestration without implying a night phase.                              |
-| `stageDeadline`   | `none`, `enabled`                       | `enabled` adds the deadline protocol; identity-viewing games arm it when play begins.               |
-| `wordSupply`      | `none`, `in-game`, `background`, `both` | Any non-`none` mode enables `wordLibrary`; the report requires the matching manual workflow wiring. |
+| Feature           | Allowed values                          | Derived behavior                                                                                               |
+| ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `identity`        | `none`, `private`                       | `private` enables identity viewing, bulk bot identity handling and reveal animation.                           |
+| `night`           | `none`, `narrated`                      | `narrated` enables shared night steps, client interaction, narration, formal scenarios and catalogue coverage. |
+| `guidedNarration` | `none`, `narrated`                      | `narrated` enables audio orchestration without implying a night phase.                                         |
+| `stageDeadline`   | `none`, `enabled`                       | `enabled` adds the deadline protocol; identity-viewing games arm it when play begins.                          |
+| `wordSupply`      | `none`, `in-game`, `background`, `both` | Any non-`none` mode enables `wordLibrary`; the report requires the matching manual workflow wiring.            |
 
 Example profile:
+
+Narrated-night output includes an explicitly incomplete example step and an
+empty `nightScenarios.ts`. Its catalogue tests must fail until approved gameplay
+and formal scenarios replace them. The generator registers the catalogue and
+unified docs entry, not a baseline. The generator's own real-toolchain test
+proves this intentional failure separately from its scaffold wiring tests;
+normal game verification never excludes the catalogue.
 
 ```sh
 corepack pnpm new-game <gameId> \

@@ -30,6 +30,7 @@ function historyViewModel(roundHistory: readonly AvalonRoundRecordView[]): Avalo
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: true,
     unviewedRoleSeats: [],
     requiredSize: 2,

@@ -9,6 +9,7 @@
  * 挂载即打开：每次打开都是新实例，默认 tab 回到当前轮。
  */
 import './AvalonRecord.css';
+import '@/features/room/components/RoomRecord.css';
 
 import {
   type AvalonViewModel,
@@ -68,7 +69,7 @@ export function AvalonHistoryOverlay({
         </Button>
       }
     >
-      <div className="avalon-history-sheet">
+      <div className="room-record-sheet">
         <div className="avalon-history-header">
           <p
             className="avalon-history-score"
@@ -90,7 +91,7 @@ export function AvalonHistoryOverlay({
           ended={ended}
         />
         {rounds.length > 0 && (
-          <div className="avalon-history-tabs" role="tablist" aria-label="轮次">
+          <div className="room-record-tabs" role="tablist" aria-label="轮次">
             {rounds.map((record) => {
               const isActive = active !== undefined && record.round === active.round;
               return (
@@ -98,7 +99,7 @@ export function AvalonHistoryOverlay({
                   key={record.round}
                   type="button"
                   role="tab"
-                  className="avalon-history-tab"
+                  className="room-record-tab"
                   aria-selected={isActive}
                   data-testid={TESTIDS.avalonHistoryTab(record.round)}
                   onClick={() => setSelectedRound(record.round)}
@@ -111,7 +112,7 @@ export function AvalonHistoryOverlay({
         )}
         <div className="avalon-history-scroll" role={rounds.length > 0 ? 'tabpanel' : undefined}>
           {active === undefined ? (
-            <p className="avalon-history-empty">暂无对局记录。</p>
+            <p className="room-record-empty">暂无对局记录。</p>
           ) : (
             <AvalonRecordRound
               key={active.round}

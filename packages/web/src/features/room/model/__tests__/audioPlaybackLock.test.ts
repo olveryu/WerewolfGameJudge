@@ -3,32 +3,31 @@ import {
   AUDIO_PLAYBACK_LOCK_REASON,
   isAudioPlaybackLocked,
 } from '../audioPlaybackLock';
-import type { RoomHostManagementAction, RoomHostManagementModel } from '../RoomHostManagement';
+import type { RoomHostAction } from '../RoomAction';
+import type { RoomHostManagementModel } from '../RoomHostManagement';
 
-function enabledAction(key: string): RoomHostManagementAction {
+function enabledAction(key: string): RoomHostAction {
   return {
     key,
     label: key,
     icon: 'play-outline',
-    variant: 'primary',
-    isEnabled: true,
-    onPress: vi.fn(),
+    category: 'host',
+    state: { kind: 'ready', onPress: vi.fn() },
   };
 }
 
-function disabledAction(key: string, disabledReason: string | null): RoomHostManagementAction {
+function disabledAction(key: string, disabledReason: string | null): RoomHostAction {
   return {
     key,
     label: key,
     icon: 'play-outline',
-    variant: 'secondary',
-    isEnabled: false,
-    disabledReason,
+    category: 'host',
+    state: { kind: 'blocked', reason: disabledReason },
   };
 }
 
-function modelWith(actions: readonly RoomHostManagementAction[]): RoomHostManagementModel {
-  return { task: null, sections: [{ key: 'flow', title: '流程', actions }] };
+function modelWith(actions: readonly RoomHostAction[]): RoomHostManagementModel {
+  return { task: null, actions };
 }
 
 describe('isAudioPlaybackLocked', () => {
@@ -65,14 +64,13 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(),
     });
 
-    const locked = result.sections[0]!.actions[0]!;
+    const locked = result.actions[0]!;
     expect(locked).toMatchObject({
       key: 'abort-game',
-      isEnabled: false,
-      disabledReason: AUDIO_PLAYBACK_LOCK_REASON,
+      state: { kind: 'blocked', reason: AUDIO_PLAYBACK_LOCK_REASON },
     });
-    expect(locked).not.toHaveProperty('onPress');
-    expect(abort.isEnabled).toBe(true);
+    expect(locked.state).not.toHaveProperty('onPress');
+    expect(abort.state.kind).toBe('ready');
   });
 
   it('keeps exempt read-only actions enabled with their press handler', () => {
@@ -84,8 +82,8 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(['night-review']),
     });
 
-    expect(result.sections[0]!.actions[0]).toBe(review);
-    expect(result.sections[0]!.actions[1]).toMatchObject({ isEnabled: false });
+    expect(result.actions[0]).toBe(review);
+    expect(result.actions[1]).toMatchObject({ state: { kind: 'blocked' } });
   });
 
   it('keeps already-disabled actions and their own reason untouched', () => {
@@ -97,16 +95,13 @@ describe('applyAudioPlaybackLock', () => {
       exemptActionKeys: new Set(),
     });
 
-    expect(result.sections[0]!.actions[0]).toBe(gated);
+    expect(result.actions[0]).toBe(gated);
   });
 
   it('applies the lock across every section and preserves model fields', () => {
     const model: RoomHostManagementModel = {
       task: { kind: 'action', actionKey: 'next-round' },
-      sections: [
-        { key: 'flow', title: '流程', actions: [enabledAction('next-round')] },
-        { key: 'danger', title: '危险操作', actions: [enabledAction('abort-game')] },
-      ],
+      actions: [enabledAction('next-round'), enabledAction('abort-game')],
     };
 
     const result = applyAudioPlaybackLock(model, {
@@ -115,11 +110,7 @@ describe('applyAudioPlaybackLock', () => {
     });
 
     expect(result.task).toEqual({ kind: 'action', actionKey: 'next-round' });
-    expect(result.sections.map((section) => section.key)).toEqual(['flow', 'danger']);
-    for (const section of result.sections) {
-      for (const action of section.actions) {
-        expect(action.isEnabled).toBe(false);
-      }
-    }
+    expect(result.actions.map((action) => action.key)).toEqual(['next-round', 'abort-game']);
+    expect(result.actions.every((action) => action.state.kind === 'blocked')).toBe(true);
   });
 });

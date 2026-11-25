@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { WorkerEffectContext } from '../../../platform/gameModules/workerModule';
 import { avalonEffectSchema, handleAvalonEffect } from '../effects';
 import { avalonWorkerModule } from '../module';
+import { viewNightCommand } from './avalonNightCommand';
 
 const ROUND_ID = 'avalon:game:1';
 
@@ -156,15 +157,10 @@ function armedVoteState(): AvalonState {
   state = ackAudio(state);
   // Every participant of each night step confirms (engine passNight).
   while (state.phase.kind === 'night') {
-    const { step } = state.phase;
+    const step = state.phase.steps.current!.stepId;
     const participants = getAvalonNightParticipants(state.roles, step);
     for (const seat of participants) {
-      state = applyPublic(
-        state,
-        { type: 'avalon.night.confirm' },
-        seatUser(seat),
-        `night-${step}-${seat}`,
-      );
+      state = applyPublic(state, viewNightCommand(state), seatUser(seat), `night-${step}-${seat}`);
     }
     state = ackAudio(state);
   }

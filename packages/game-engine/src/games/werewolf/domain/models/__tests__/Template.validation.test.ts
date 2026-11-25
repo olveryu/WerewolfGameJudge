@@ -33,6 +33,17 @@ describe('validateTemplateRoles', () => {
     expect(validateTemplateRoles(roles)).toContain('只能选择一个');
   });
 
+  it.each([
+    [['treasureMaster', 'wolfQueen', 'seer', 'villager', 'villager'], '至少 1 名普通狼人'],
+    [['treasureMaster', 'wolf', 'villager', 'villager', 'villager'], '至少 1 名神职'],
+    [['treasureMaster', 'wolf', 'seer', 'wolf', 'wolf'], '至少 1 名村民'],
+  ] as const)(
+    'tells a treasure master board which card its deck is missing: %s',
+    (roles, missing) => {
+      expect(validateTemplateRoles([...roles])).toBe(`含盗宝大师时必须有${missing}（底牌需要）`);
+    },
+  );
+
   it('rejects duplicate singleton night actors but permits the shared wolf meeting role', () => {
     expect(validateTemplateRoles(['seer', 'seer', 'wolf', 'villager'])).toContain(
       '预言家不能重复选择',

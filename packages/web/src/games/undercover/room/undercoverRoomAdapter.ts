@@ -10,6 +10,7 @@ import {
   type UndercoverState,
 } from '@game-judge/game-engine/games/undercover/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import type { BoardInfoSection } from '@/features/room/model/BoardInfoSection';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
 import { createRoomSeatDataSource } from '@/features/room/model/createRoomSeatDataSource';
@@ -28,18 +29,17 @@ import {
   buildPendingAwareHostAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   createViewingBeginGate,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
   hostActionTask,
   hostMessageTask,
-  hostStartTask,
   projectViewingProgress,
   seatShortageReason,
   viewedProgressReason,
 } from '@/features/room/model/hostManagementActions';
+import type { RoomHostAction } from '@/features/room/model/RoomAction';
 import {
   createRoomSetupCapabilities,
   createShareRoomCapability,
@@ -50,9 +50,7 @@ import {
   type RoomSetupCapabilitiesInput,
 } from '@/features/room/model/RoomCapabilities';
 import type {
-  RoomHostManagementAction,
   RoomHostManagementModel,
-  RoomHostManagementSection,
   RoomHostTask,
 } from '@/features/room/model/RoomHostManagement';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
@@ -63,10 +61,9 @@ import {
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoundControls } from './hooks/useUndercoverRoundControls';
-import { createUndercoverBottomActions } from './undercoverActionModels';
+import { createUndercoverPlayerActions } from './undercoverActionModels';
 
 /** Resolve only public roster identity, never the secret role or word. */
 export const getUndercoverProfileTarget = (
@@ -198,7 +195,7 @@ export interface UndercoverRoomShellModelInput extends Omit<
   | 'step'
   | 'isAudioPlaying'
   | 'seatSource'
-  | 'bottomActions'
+  | 'playerActions'
   | 'buildHostManagement'
   | 'controlledSeat'
 > {
@@ -226,24 +223,26 @@ export function createUndercoverHostManagement(
   input: UndercoverHostManagementInput,
 ): RoomHostManagementModel {
   const { state, capabilities, controls } = input;
-  const actions: RoomHostManagementAction[] = [];
-  const roomActions: RoomHostManagementAction[] = [];
+  const actions: RoomHostAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   let task: RoomHostTask | null = null;
   let pendingActionKeys: readonly string[] = [];
   if (state.phase !== 'lobby')
     actions.push(
       buildResetToLobbyAction({
         onPress: () =>
-          showDestructiveAlert(
-            '重新开始？',
-            state.phase === 'ended'
-              ? input.review?.isPending
-                ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
-                : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
-              : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
-            '重新开始',
-            controls.restart,
-          ),
+          confirmAction({
+            label: '重新开始？',
+            body:
+              state.phase === 'ended'
+                ? input.review?.isPending
+                  ? '你尚未查看本局复盘。重新开始将保留座位、配置和已用词记录，清除本局；之后可能无法查看复盘，本局已结算，奖励不会撤销。'
+                  : '保留座位、配置和已用词记录，清除本局并回到准备。之后可能无法查看复盘；本局已结算，奖励不会撤销。'
+                : '保留座位、配置和已用词记录，清除本局并回到准备。本局中止，不结算完成奖励。',
+            tone: 'danger',
+            confirmText: '重新开始',
+            onConfirm: controls.restart,
+          }),
         isEnabled: !controls.isSubmitting,
         isLoading: controls.isSubmitting,
       }),
@@ -261,12 +260,16 @@ export function createUndercoverHostManagement(
           : seatShortageReason(state.config.numberOfPlayers, occupiedSeatCount);
       const startAction = buildAssignRolesAction({
         onPress: () =>
-          showConfirmAlert(HOST_FLOW_CONFIRM.assignTitle, '将为每位玩家分配词卡', controls.start),
+          confirmAction({
+            label: HOST_FLOW_CONFIRM.assignTitle,
+            body: '将为每位玩家分配词卡',
+            onConfirm: controls.start,
+          }),
         isEnabled: !controls.isSubmitting && occupiedSeatCount === state.config.numberOfPlayers,
         disabledReason: startDisabledReason,
       });
       actions.push(startAction);
-      task = hostStartTask(HOST_ACTION_KEYS.assignRoles);
+      task = hostActionTask(HOST_ACTION_KEYS.assignRoles);
       pendingActionKeys = [HOST_ACTION_KEYS.assignRoles];
       if (capabilities.canConfigureGame.isAllowed)
         roomActions.push(
@@ -286,8 +289,6 @@ export function createUndercoverHostManagement(
             onPress: capabilities.canClearSeats.execute,
           }),
         );
-      // 分享房间常驻大厅房间区，是座位不满时任务卡的补救。
-      roomActions.push(buildShareRoomAction(capabilities.canShareRoom));
       break;
     }
     case 'preparing':
@@ -310,11 +311,11 @@ export function createUndercoverHostManagement(
       });
       const beginAction = buildStartGameAction({
         onPress: () =>
-          showConfirmAlert(
-            HOST_FLOW_CONFIRM.startTitle,
-            allViewedConfirmBody('词卡', '将开始轮流发言'),
-            controls.begin,
-          ),
+          confirmAction({
+            label: HOST_FLOW_CONFIRM.startTitle,
+            body: allViewedConfirmBody('词卡', '将开始轮流发言'),
+            onConfirm: controls.begin,
+          }),
         isEnabled: beginGate.isEnabled,
         disabledReason: beginGate.disabledReason,
       });
@@ -326,21 +327,18 @@ export function createUndercoverHostManagement(
         actions.push(
           buildMarkBotsViewedAction({
             onPress: () =>
-              showConfirmAlert(
-                '标记机器人已查看？',
-                '将标记所有未查看词卡的机器人。',
-                controls.markAllBotsViewed,
-              ),
+              confirmAction({
+                label: '标记机器人已查看？',
+                body: '将标记所有未查看词卡的机器人。',
+                onConfirm: controls.markAllBotsViewed,
+              }),
             isEnabled: !controls.isSubmitting,
             isLoading: controls.isSubmitting,
           }),
         );
-      // The task is the start; until every seat viewed it is blocked by the
-      // sheet action's reason, with the bot scaffold as the remedy.
-      task = hostActionTask(
-        HOST_ACTION_KEYS.startGame,
-        hasUnviewedBot ? { remedyActionKey: HOST_ACTION_KEYS.markBotsViewed } : {},
-      );
+      // The task is the start; until every seat viewed it is blocked by
+      // the action's own state.
+      task = hostActionTask(HOST_ACTION_KEYS.startGame);
       const hostSeat = getUndercoverUserSeat(state, state.hostUserId);
       pendingActionKeys =
         hostSeat !== null && !state.round.confirmedSeats.includes(hostSeat)
@@ -356,7 +354,7 @@ export function createUndercoverHostManagement(
             key: 'retry',
             label: '重新准备',
             icon: 'refresh-outline',
-            variant: 'primary',
+            category: 'host',
             testID: TESTIDS.undercoverRetry,
           },
           controls.isSubmitting,
@@ -369,9 +367,9 @@ export function createUndercoverHostManagement(
           buildPendingAwareHostAction(
             {
               key: 'allow-repeated',
-              label: '本次允许重复词对',
+              label: '允许重复词对',
               icon: 'repeat-outline',
-              variant: 'secondary',
+              category: 'host',
               testID: TESTIDS.undercoverAllowRepeated,
             },
             controls.isSubmitting,
@@ -390,13 +388,15 @@ export function createUndercoverHostManagement(
               key: 'cancel-selection',
               label: '取消选择',
               icon: 'close-circle-outline',
-              variant: 'secondary',
+              category: 'host',
               testID: TESTIDS.undercoverCancelSelection,
             },
             controls.cancelSelection,
           ),
         );
-        task = hostMessageTask('点座位盘选择本次出局玩家', { actionKey: 'cancel-selection' });
+        task = hostMessageTask('请选择要出局的玩家', {
+          escapeActionKey: 'cancel-selection',
+        });
       } else {
         pendingActionKeys = ['select-player'];
         actions.push(
@@ -405,7 +405,7 @@ export function createUndercoverHostManagement(
               key: 'select-player',
               label: '选择出局玩家',
               icon: 'person-remove-outline',
-              variant: 'primary',
+              category: 'host',
               testID: TESTIDS.undercoverSelectPlayer,
             },
             controls.isSubmitting,
@@ -429,12 +429,9 @@ export function createUndercoverHostManagement(
       break;
     }
   }
-  const sections: RoomHostManagementSection[] = [{ key: 'game', title: '游戏', actions }];
-  if (roomActions.length > 0)
-    sections.push({ key: 'room', title: '房间管理', actions: roomActions });
   return {
     task,
-    sections,
+    actions: [...actions, ...roomActions],
     pendingActionKeys,
     ...(state.phase === 'preparationFailed' ? { hasPendingDecision: true } : {}),
   };
@@ -459,7 +456,7 @@ export function createUndercoverRoomShellModel(
     seatSource,
     phase: state.phase,
     step: null,
-    bottomActions: createUndercoverBottomActions(input.controls, state, input.viewer, input.review),
+    playerActions: createUndercoverPlayerActions(input.controls, state, input.viewer, input.review),
     buildHostManagement: () =>
       createUndercoverHostManagement({
         state,

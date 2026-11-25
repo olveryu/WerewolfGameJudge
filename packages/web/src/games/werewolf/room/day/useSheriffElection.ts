@@ -11,7 +11,8 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useState } from 'react';
 
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
+import { confirmAction } from '@/features/room/confirm';
+import type { WerewolfSubmit } from '@/games/werewolf/model/WerewolfRoomSession';
 
 import {
   createSheriffElectionViewModel,
@@ -51,7 +52,7 @@ interface UseSheriffElectionInput {
    * The room's single-flight submit, bound to the effective seat by the
    * caller; failures are presented by the submission itself.
    */
-  readonly submit: (label: string, command: WerewolfPublicCommand) => Promise<boolean>;
+  readonly submit: WerewolfSubmit;
 }
 
 export function useSheriffElection(
@@ -77,7 +78,15 @@ export function useSheriffElection(
     ): Promise<void> => {
       setPendingAction(action);
       try {
-        await submit(label, command);
+        const actionKey =
+          action.kind === 'vote'
+            ? null
+            : action.kind === 'cancelRegistration'
+              ? 'sheriff-cancel-registration'
+              : action.kind === 'endBySelfDestruct'
+                ? 'sheriff-self-destruct'
+                : `sheriff-${action.kind}`;
+        await submit(label, command, { actionKey });
       } finally {
         setPendingAction(null);
       }
@@ -91,7 +100,7 @@ export function useSheriffElection(
   );
   const cancelRegistration = useCallback(
     () =>
-      executeCommand({ kind: 'cancelRegistration' }, '取消报名', {
+      executeCommand({ kind: 'cancelRegistration' }, '撤回报名', {
         type: 'werewolf.sheriff.cancelRegistration',
       }),
     [executeCommand],
@@ -114,10 +123,14 @@ export function useSheriffElection(
   );
   const requestAdvance = useCallback(() => {
     if (view !== null && view.phase === 'registration') {
-      showConfirmAlert('结束报名？', '结束后，未报名的玩家不能再参选。', advance);
+      confirmAction({
+        label: '结束报名',
+        body: '结束后，未报名的玩家不能再参选。',
+        onConfirm: advance,
+      });
       return;
     }
-    showConfirmAlert('结束发言？', '确认后将推进警长竞选。', advance);
+    confirmAction({ label: '结束发言', body: '确认后将推进警长竞选。', onConfirm: advance });
   }, [advance, view]);
   const endBySelfDestruct = useCallback(
     () =>
@@ -127,12 +140,13 @@ export function useSheriffElection(
     [executeCommand],
   );
   const requestEndBySelfDestruct = useCallback(() => {
-    showDestructiveAlert(
-      '确认结束警长竞选？',
-      '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
-      '确认结束',
-      endBySelfDestruct,
-    );
+    confirmAction({
+      label: '自爆结束竞选',
+      body: '确认后，本次警长竞选将直接结束且不产生警长。单爆、双爆，以及单爆后是否在下一天退水并直接投票，请按本局规则线下决定；应用不判断或记录自爆次数。',
+      tone: 'danger',
+      confirmText: '结束竞选',
+      onConfirm: endBySelfDestruct,
+    });
   }, [endBySelfDestruct]);
 
   return useMemo(

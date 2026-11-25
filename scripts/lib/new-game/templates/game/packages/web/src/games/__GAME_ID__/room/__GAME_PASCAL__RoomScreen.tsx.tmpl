@@ -22,6 +22,9 @@ import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary'
 import { RoomGameSummary } from '@/features/room/components/RoomGameSummary';
 import { type RoomInformation, RoomInformationDialog } from '@/features/room/components/RoomInformationDialog';
 import { RoomShell } from '@/features/room/components/RoomShell';
+//#cap sharedSteps
+import { StepCardPicker } from '@/features/room/steps/StepCardPicker';
+//#end
 //#cap audioOrchestration
 import { RoomAudioResumeDialog } from '@/features/room/components/RoomAudioResumeDialog';
 import { RoomBgmToggle } from '@/features/room/components/RoomBgmToggle';
@@ -110,6 +113,9 @@ function __GAME_PASCAL__RoomContent(
     <RoomShell
       model={screen.shellModel}
       phaseLabel={
+//#cap sharedSteps
+        screen.state.phase.kind === 'night' ? '夜晚' :
+//#end
         isLobby
           ? '待开局'
 //#cap identityViewing
@@ -133,14 +139,27 @@ function __GAME_PASCAL__RoomContent(
             }
           : null
       }
+//#cap !identityViewing
+      actionSurface={screen.state.phase.kind === 'playing' ? 'menu' : 'hand'}
+//#end
+      directory={{
+        main: [],
+        manual: [{
+          key: 'guide',
+          label: '玩法',
+          category: 'resource',
+          icon: 'book-outline',
+          testID: TESTIDS.roomGuideButton('__GAME_ID__'),
+          opensDialog: true,
+          state: { kind: 'ready', onPress: openGuide },
+        }],
 //#cap identityViewing
-      configurationEntry={isPreGame ? null : { onOpen: openConfiguration }}
+        openConfiguration: isPreGame ? null : openConfiguration,
 //#end
 //#cap !identityViewing
-      stageMenu={screen.state.phase.kind === 'playing' ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null}
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
+        openConfiguration: isLobby ? null : openConfiguration,
 //#end
-      manualEntries={[{ label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('__GAME_ID__') }]}
+      }}
       content={
 //#cap identityViewing
         {
@@ -158,7 +177,6 @@ function __GAME_PASCAL__RoomContent(
 //#end
           bottomSummary: null,
           afterSeatBoard: null,
-          sideInspector: null,
           beforeSeatBoard: (
             <>
             {isPreGame && (
@@ -176,12 +194,14 @@ function __GAME_PASCAL__RoomContent(
 //#end
 //#cap !identityViewing
         isLobby
+//#cap sharedSteps
+          || screen.state.phase.kind === 'night'
+//#end
           ? {
               kind: 'seats',
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: (
                 <RoomGameSummary
                   title="__GAME_DISPLAY_NAME__"
@@ -207,6 +227,9 @@ function __GAME_PASCAL__RoomContent(
 //#end
       gameOverlays={
         <>
+//#cap sharedSteps
+          {screen.stepInteraction.cardPicker !== null && <StepCardPicker {...screen.stepInteraction.cardPicker} />}
+//#end
           <RoomInformationDialog
             information={information}
             guideTitle="__GAME_DISPLAY_NAME__玩法"
@@ -296,7 +319,9 @@ function __GAME_PASCAL__StageDeadlineControls({
         isOverdue={screen.isOverdue}
         isHost={screen.isHost}
         isRetrying={screen.isSubmitting}
-        onRetry={() => void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' })}
+        onRetry={() =>
+          void screen.submit('重新推进', { type: '__GAME_ID__.phase.retrySettle' }, { actionKey: null })
+        }
         waitingLabel="等待推进…"
       />
     </>

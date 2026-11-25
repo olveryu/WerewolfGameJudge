@@ -1,6 +1,6 @@
 {
   "name": "werewolfgamejudge",
-  "version": "2.9.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "test": "vitest run",
@@ -22,6 +22,8 @@
     "dev": "node scripts/setup-local-dev.mjs && node scripts/dev.mjs",
     "release": "bash scripts/release.sh",
     "new-game": "node scripts/new-game.mjs",
+    "catalogue:check": "node scripts/catalogues.mjs check",
+    "catalogue:update": "node scripts/catalogues.mjs update",
     "validate:agents": "node scripts/validate-agent-files.mjs",
     "badges:generate": "node scripts/generate-badges.mjs",
     "badges:validate": "node scripts/generate-badges.mjs --validate-only",
@@ -36,7 +38,10 @@
     "ignoredBuiltDependencies": [
       "esbuild",
       "workerd"
-    ]
+    ],
+    "patchedDependencies": {
+      "pixi.js@8.23.0": "patches/pixi.js@8.23.0.patch"
+    }
   },
   "engines": {
     "node": ">=22.13.0"

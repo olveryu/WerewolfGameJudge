@@ -14,7 +14,7 @@ import {
 } from '../secrethitlerVoteImages';
 
 describe('Secret Hitler room images', () => {
-  it('exposes one image per vote outcome and preloads all four', () => {
+  it('exposes and preloads the voting choices and government result images', () => {
     const images = new Set([
       secrethitlerVoteYesImage,
       secrethitlerVoteNoImage,

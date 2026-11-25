@@ -37,7 +37,7 @@
 | 特征 | 声明 | 生成器要求 |
 | ---- | ---- | ---------- |
 | 私有身份 | `identity=__GAME_FEATURE_IDENTITY__` | 有身份时自动启用身份查看与机器人身份处理，并生成隐私投影、查看门槛和房间操作测试。 |
-| 夜晚行动 | `night=__GAME_FEATURE_NIGHT__` | 有夜晚时必须有语音；自动启用夜晚阶段与音频编排，并生成引擎队列、客户端播放与确认测试。 |
+| 夜晚行动 | `night=__GAME_FEATURE_NIGHT__` | 有夜晚时必须有语音；自动接共享步骤、音频回执、私有动作、正式对局清单及覆盖检查，未完成的场景明确失败。 |
 | 其他引导播报 | `guidedNarration=__GAME_FEATURE_GUIDED_NARRATION__` | 有其他阶段播报时自动启用音频编排。 |
 | 阶段时限 | `stageDeadline=__GAME_FEATURE_STAGE_DEADLINE__` | 有阶段截止时生成超时协议与边界测试。 |
 | 词语供应 | `wordSupply=__GAME_FEATURE_WORD_SUPPLY__` | 非 `none` 时要求完成供应模式对应的 workflow/部署接线。 |
@@ -61,6 +61,16 @@
 ## 4. 核心玩法
 
 TODO(gameplay):按第 1 节定稿表展开：流程、阶段、行动、判定、信息边界。
+
+### 决定、执行与清单分开记录
+
+- 用户确认的规则和文案记录在本设计文档，不把实现假设写成决定。
+- 实施进度和验证证据记录在接入报告；生成的步骤不是已批准玩法。
+- 玩家实际看到的流程由正式命令场景生成，入口见 [玩家流程清单](catalogues/README.md)。
+//#cap sharedSteps
+- 填写 `nightScenarios.ts`，覆盖每个已批准步骤、动作与拒绝条件。空场景、TODO 文案或缺失基准必须失败。
+- 查看 `catalogue:check __GAME_ID__-night` 的逐行差异；确认后显式运行 `catalogue:update --reviewed __GAME_ID__-night`，不使用 `-u` 批准。
+//#end
 
 ## 5. 待裁决
 
@@ -86,7 +96,7 @@ TODO(gameplay):设计过程中出现分歧或拿不准的口径逐条登记，�
 - 奖励策略明确选择 flat / levelRoll 并确认数值；骨架的 flat 与三数不是已批准设计。
 - 每个玩法指标明确事实来源、操作归属（含房主接管机器人）、累加规则、单位、分子/
   分母/零分母、时间起点和精度；不累加平均值，不从缺失历史猜算零值。
-- 确定历史回填或不回填、未采集字段如何表达，升级 state/payload/D1 的版本与失败策略。
+- 确定历史回填或不回填、未采集字段如何表达，以及当前 state/payload 严格解析与 D1 迁移策略；游戏 state 不加版本或读时迁移。
   默认严格 legacy 仅保留原奖励，不补造统计；新 v2 必须提供完整且顺序一致的真人事实。
 - 确认即时或延迟可见；默认即时。延迟必须单独实现可见时间与缓存重验证，不复制狼人杀规则。
 - 将批准指标完整接通终局后的事实、公有 DTO/parser、Worker 原子计数、D1 schema/migration、

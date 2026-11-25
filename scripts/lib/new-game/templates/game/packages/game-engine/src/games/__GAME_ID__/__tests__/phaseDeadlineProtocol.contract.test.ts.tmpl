@@ -23,6 +23,9 @@ import { __GAME_UPPER___REASONS, type __GAME_PASCAL__Decision } from '../domain/
 import { __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
 import { DEFAULT___GAME_UPPER___CONFIG, type __GAME_PASCAL__State } from '../state/types';
+//#cap sharedSteps
+import { finishScaffoldNight } from './nightDriver';
+//#end
 
 interface __GAME_PASCAL__Harness {
   readonly state: () => __GAME_PASCAL__State;
@@ -88,6 +91,15 @@ function armedHarness(): __GAME_PASCAL__Harness {
   }
 //#end
   send({ type: '__GAME_ID__.game.begin' }, asUser('host'));
+//#cap sharedSteps
+  finishScaffoldNight({
+    get state() { return harness.state(); },
+    send: (command, userId = 'host', controlledSeat = null) => {
+      send(command, harness.userContext(userId, controlledSeat, 1000));
+      return harness.state();
+    },
+  });
+//#end
   if (harness.state().phase.kind !== 'playing') {
     throw new Error('Expected the playing stage with an armed deadline');
   }

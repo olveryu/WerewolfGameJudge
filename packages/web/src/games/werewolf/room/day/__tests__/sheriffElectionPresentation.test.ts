@@ -368,33 +368,6 @@ describe('presentation adapters', () => {
     );
   });
 
-  it('registration, host: the panel keeps the host instruction, the review keeps the generic line', () => {
-    const state = makeLocalState({
-      phase: 'registration',
-      registeredSeats: [1, 2],
-      withdrawnSeats: [],
-      completedRounds: [],
-    });
-    const hostView = createSheriffElectionViewModel({
-      gameState: state,
-      effectiveSeat: 0,
-      isHost: true,
-    });
-    if (hostView === null) throw new Error('expected a view model');
-    const section = deriveSheriffSection(state);
-    if (section === undefined) throw new Error('expected a section');
-    const hostRows = createSheriffElectionPresentationFromView(hostView).rows;
-    const reviewRows = createSheriffElectionPresentationFromSection(section).rows;
-    // D12, registered intentional difference: the host instruction
-    // belongs to the panel only; the archive never carries it.
-    expect(rowOf(hostRows, 'phase').description).toBe('报名截止后，请在「主持管理」中结束报名。');
-    expect(rowOf(reviewRows, 'phase').description).toBe(
-      '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
-    );
-    expect(rowKinds(hostRows)).toEqual(['phase']);
-    expect(rowKinds(reviewRows)).toEqual(['phase']);
-  });
-
   it('registration: view and section produce only the phase row', () => {
     const state = makeLocalState({
       phase: 'registration',

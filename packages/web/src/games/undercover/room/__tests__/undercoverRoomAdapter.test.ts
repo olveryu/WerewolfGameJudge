@@ -9,13 +9,13 @@ import {
 } from '@game-judge/game-engine/games/undercover/public';
 import { act, renderHook } from '@testing-library/react';
 
+import { confirmAction, confirmView } from '@/features/room/confirm';
 import { createBotTakeoverCapability } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
 import { hostTaskBody } from '@/test-utils/hostTask';
 import { playUndercoverTestRound } from '@/test-utils/undercoverState';
 import { TESTIDS } from '@/testids';
 import { dismissAlert } from '@/utils/alert';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import type { UndercoverRoomSession } from '../../model/UndercoverRoomSession';
 import { undercoverReview } from '../../review/undercoverReview';
@@ -23,7 +23,7 @@ import {
   type UndercoverRoundControls,
   useUndercoverRoundControls,
 } from '../hooks/useUndercoverRoundControls';
-import { createUndercoverBottomActions } from '../undercoverActionModels';
+import { createUndercoverPlayerActions } from '../undercoverActionModels';
 import {
   createUndercoverBoardInfoSections,
   createUndercoverHostManagement,
@@ -32,18 +32,15 @@ import {
   createUndercoverSeatDataSource,
 } from '../undercoverRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(
-    (
-      _title: string,
-      _message: string,
-      _onConfirm: () => void | Promise<void>,
-      options?: { onShown?: (generation: number | null) => void },
-    ) => options?.onShown?.(17),
+vi.mock('@/features/room/confirm', () => ({
+  confirmAction: vi.fn((input: { onShown?: (generation: number | null) => void }) =>
+    input.onShown?.(17),
   ),
-  showDestructiveAlert: vi.fn(),
-  showErrorAlert: vi.fn(),
+  confirmView: vi.fn((input: { onShown?: (generation: number | null) => void }) =>
+    input.onShown?.(17),
+  ),
 }));
+vi.mock('@/utils/alertPresets', () => ({ showErrorAlert: vi.fn() }));
 vi.mock('@/utils/alert', () => ({ dismissAlert: vi.fn() }));
 
 /** Sets the page visibility and notifies listeners, as a browser does when the tab is hidden. */
@@ -190,8 +187,10 @@ it('conceals cards on control changes, backgrounding and remount', () => {
   );
   const revealCard = () => {
     act(() => result.current.openCard());
-    const reveal = vi.mocked(showConfirmAlert).mock.calls.at(-1)?.[2];
-    if (reveal === undefined) throw new Error('Missing word-card view confirmation');
+    const confirmation = vi.mocked(confirmView).mock.calls.at(-1)?.[0];
+    if (confirmation === undefined) throw new Error('Missing word-card view confirmation');
+    expect(confirmation.label).toBe('查看词卡');
+    const reveal = confirmation.onView;
     act(() => void reveal());
   };
   expect(result.current.card).toBeNull();
@@ -297,7 +296,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
   expect(unseatedCapabilities.canFillBots.isAllowed).toBe(true);
   expect(
     createUndercoverHostManagement({ state, capabilities, controls: result.current, review: null })
-      ?.sections[0]?.actions,
+      ?.actions,
   ).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
   const confirmed = dispatch(state, {
     type: 'undercover.bots.markAllBotsViewed',
@@ -309,7 +308,7 @@ it('offers unseated host bot filling and bulk viewing only while bots remain unc
       capabilities,
       controls: result.current,
       review: null,
-    })?.sections[0]?.actions,
+    })?.actions,
   ).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mark-bots-viewed' })]));
 });
 
@@ -347,15 +346,14 @@ it('selects directly for confirmation, cancels without submission and invalidate
   // The bottom panel stays the host's own participant surface during
   // selection; the instruction and the cancel live on the host task card.
   expect(
-    createUndercoverBottomActions(
+    createUndercoverPlayerActions(
       result.current,
       state,
       { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
       null,
     ),
   ).toMatchObject({
-    kind: 'stacked',
-    layout: { primary: [], secondary: [], ghost: [] },
+    actions: [],
   });
   const capabilities = createUndercoverRoomCapabilities({
     state,
@@ -388,8 +386,8 @@ it('selects directly for confirmation, cancels without submission and invalidate
   expect(activeSelection.pendingActionKeys).toEqual([]);
   expect(activeSelection.task).toEqual({
     kind: 'message',
-    text: '点座位盘选择本次出局玩家',
-    actionKey: 'cancel-selection',
+    text: '请选择要出局的玩家',
+    escapeActionKey: 'cancel-selection',
   });
   act(() => result.current.cancelRevelation());
   expect(result.current.isSelecting).toBe(true);
@@ -463,13 +461,17 @@ it('allows repeated words with one round-bound command after confirmation', asyn
       isSubmitting: false,
     }),
   );
-  vi.mocked(showConfirmAlert).mockClear();
+  vi.mocked(confirmAction).mockClear();
   act(() => result.current.allowRepeated());
   expect(session.dispatch).not.toHaveBeenCalled();
-  const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+  const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
   if (confirmation === undefined) throw new Error('Expected confirmation');
+  expect(confirmation).toMatchObject({
+    label: '允许重复词对',
+    body: '当前分类没有未使用词对。只对下一局生效，之后各局仍按去重设置。',
+  });
   await act(async () => {
-    await confirmation[2]();
+    await confirmation.onConfirm();
   });
   expect(session.dispatch).toHaveBeenCalledTimes(1);
   expect(session.dispatch).toHaveBeenCalledWith(
@@ -569,6 +571,8 @@ describe('createUndercoverRoomShellModel', () => {
     const onBotSeatLongPress = vi.fn();
     const model = createUndercoverRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
       capabilities,
       onBack: vi.fn(),
@@ -600,8 +604,8 @@ describe('createUndercoverRoomShellModel', () => {
     expect(model.seats.source.count).toBe(6);
     expect(model.seats.onSeatPress).toBe(onSeatPress);
     expect(model.seats.onBotSeatLongPress).toBe(onBotSeatLongPress);
-    expect(model.bottomActions).toEqual(
-      createUndercoverBottomActions(
+    expect(model.playerActions).toEqual(
+      createUndercoverPlayerActions(
         controls,
         state,
         { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
@@ -639,17 +643,19 @@ describe('createUndercoverRoomShellModel', () => {
       controls: { ...controls, isSubmitting: true },
       review: null,
     });
-    const start = model?.sections[0]?.actions.find((action) => action.key === 'assign-roles');
+    const start = model.actions.find((action) => action.key === 'assign-roles');
     // Submitting marshal: disabled with no reason (the room IS full —
     // the lock, not a seat shortage, is what blocks it) and no handler.
-    expect(start).toMatchObject({ label: '分配角色', isEnabled: false, disabledReason: null });
-    expect(start).not.toHaveProperty('onPress');
+    expect(start).toMatchObject({ label: '分配角色', state: { kind: 'blocked', reason: null } });
+    expect(start?.state).not.toHaveProperty('onPress');
   });
 
   it('exposes the viewing phase on the shell model', () => {
     const state = createViewingState();
     const model = createUndercoverRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
       capabilities: createUndercoverRoomCapabilities({
         state,
@@ -721,45 +727,36 @@ it('clears the self-hint once every seat has viewed', () => {
   );
   // 本人未确认：底部只出一处提示，指向查看按钮（展示契约 self-hint 态）。
   expect(
-    createUndercoverBottomActions(
+    createUndercoverPlayerActions(
       result.current,
       viewing,
       { userId: 'host', isHost: true, seat: getUndercoverUserSeat(viewing, 'host') },
       null,
     ),
   ).toMatchObject({
-    message: '请点击下方「查看我的词」，查看词语',
+    message: '请点击「查看词卡」',
   });
-  // Tier contract: the word card is the viewing step's main action, so
-  // it sits in the primary tier — it is not a ghost-tier review tool
-  // even though its definition resolves through the shared view-action
-  // resolver. Size is the fixed cross-game md.
-  const viewingBottom = createUndercoverBottomActions(
+  const viewingBottom = createUndercoverPlayerActions(
     result.current,
     viewing,
     { userId: 'host', isHost: true, seat: getUndercoverUserSeat(viewing, 'host') },
     null,
   );
-  if (viewingBottom.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-  expect(viewingBottom.layout.primary).toMatchObject([
+  expect(viewingBottom.actions).toMatchObject([
     {
       key: 'card',
-      label: '查看我的词',
-      variant: 'primary',
-      size: 'md',
+      label: '查看词卡',
       testID: TESTIDS.roomViewIdentityButton,
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
     },
   ]);
-  expect(viewingBottom.layout.secondary).toEqual([]);
-  expect(viewingBottom.layout.ghost).toEqual([]);
   let state = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
   state = dispatch(state, { type: 'undercover.bots.markAllBotsViewed', roundId });
   expect(state.round!.confirmedSeats).toHaveLength(6);
   rerender({ currentState: state });
   expect(
-    createUndercoverBottomActions(
+    createUndercoverPlayerActions(
       result.current,
       state,
       { userId: 'host', isHost: true, seat: getUndercoverUserSeat(state, 'host') },
@@ -816,34 +813,33 @@ describe('createUndercoverHostManagement task body', () => {
     return state;
   };
 
-  it('blocks the round start in a non-full lobby with a seat-count reason and share remedy', () => {
-    const { model, shareRoom } = buildFor(lobbyState(false));
+  it('blocks the round start in a non-full lobby with a seat-count reason', () => {
+    const { model } = buildFor(lobbyState(false));
     const step = hostTaskBody(model);
     expect(step).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
-    if (step?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(step.reason).toBe('座位尚未坐满（还差 5 人）');
-    expect(step.remedy?.label).toBe('分享房间');
-    step.remedy?.onPress();
-    expect(shareRoom).toHaveBeenCalledTimes(1);
+    if (step?.kind !== 'action' || step.action.state.kind !== 'blocked')
+      throw new Error('expected a blocked task action');
+    expect(step.action.state.reason).toBe('座位尚未坐满（还差 5 人）');
     // The panel caption renders the same player-facing reason; the
     // bot-mentioning command-failure copy must never reach it.
-    const startAction = model?.sections[0]?.actions.find((action) => action.key === 'assign-roles');
-    if (startAction?.isEnabled !== false) throw new Error('expected a disabled panel start action');
-    expect(startAction.disabledReason).toBe('座位尚未坐满（还差 5 人）');
-    expect(startAction.disabledReason).not.toContain('机器人');
+    const startAction = model.actions.find((action) => action.key === 'assign-roles');
+    if (startAction?.state.kind !== 'blocked') throw new Error('expected a blocked start action');
+    expect(startAction.state.reason).toBe('座位尚未坐满（还差 5 人）');
+    expect(startAction.state.reason).not.toContain('机器人');
   });
 
   it('offers the round start once the room is full and gates its press with a confirm', () => {
-    vi.mocked(showConfirmAlert).mockClear();
+    vi.mocked(confirmAction).mockClear();
     const { model } = buildFor(lobbyState(true));
     const step = hostTaskBody(model);
-    if (step?.kind !== 'ready') throw new Error('expected a ready task body');
-    step.action.onPress();
-    expect(showConfirmAlert).toHaveBeenCalledWith(
-      '分配角色？',
-      '将为每位玩家分配词卡',
-      expect.any(Function),
-    );
+    if (step?.kind !== 'action' || step.action.state.kind !== 'ready')
+      throw new Error('expected a ready task action');
+    step.action.state.onPress();
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '分配角色？',
+      body: '将为每位玩家分配词卡',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('blocks game start while cards are unviewed, then offers it once all are confirmed', () => {
@@ -852,17 +848,17 @@ describe('createUndercoverHostManagement task body', () => {
     expect(blockedBuild.model.pendingActionKeys).toEqual([]);
     const blocked = hostTaskBody(blockedBuild.model);
     expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(blocked.reason).toBe('0/6 位玩家已查看词卡，等待剩余玩家');
-    // The bot scaffold is the remedy while a bot seat is unviewed.
-    expect(blocked.remedy?.label).toBe('标记机器人已查看');
+    if (blocked?.kind !== 'action' || blocked.action.state.kind !== 'blocked')
+      throw new Error('expected a blocked task action');
+    expect(blocked.action.state.reason).toBe('0/6 位玩家已查看词卡，等待剩余玩家');
 
     const roundId = viewing.round!.roundId;
     let confirmed = dispatch(viewing, { type: 'undercover.role.viewed', roundId });
     expect(buildFor(confirmed).model.pendingActionKeys).toEqual(['start-game']);
     confirmed = dispatch(confirmed, { type: 'undercover.bots.markAllBotsViewed', roundId });
     const ready = hostTaskBody(buildFor(confirmed).model);
-    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+      throw new Error('expected a ready task action');
   });
 
   it('opens the begin gate over the participant set, not the raw record count (B-4)', () => {
@@ -882,26 +878,28 @@ describe('createUndercoverHostManagement task body', () => {
       round: { ...confirmed.round, confirmedSeats: [0, 1, 2, 3, 4] },
     };
     const ready = hostTaskBody(buildFor(state).model);
-    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+      throw new Error('expected a ready task action');
     expect(ready).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
   });
 
   it('offers review and a destructive restart after a completed round', () => {
     const { model } = buildFor(createEndedState());
     expect(model.task).toEqual({ kind: 'choice', actionKeys: ['review', 'restart'] });
-    expect(model.sections[0]?.actions.map((action) => action.key)).toEqual(['review', 'restart']);
+    expect(model.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     const body = hostTaskBody(model);
     if (body?.kind !== 'choice') throw new Error('expected a choice task body');
     expect(body.actions.map((action) => action.label)).toEqual(['本局复盘', '重新开始']);
     const restart = body.actions[1];
-    if (restart === undefined || !restart.isEnabled) throw new Error('Expected enabled restart');
-    restart.onPress();
-    expect(showDestructiveAlert).toHaveBeenCalledWith(
-      '重新开始？',
-      expect.stringContaining('本局已结算'),
-      '重新开始',
-      expect.any(Function),
-    );
+    if (restart?.state.kind !== 'ready') throw new Error('Expected enabled restart');
+    restart.state.onPress();
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '重新开始？',
+      body: expect.stringContaining('本局已结算') as unknown,
+      tone: 'danger',
+      confirmText: '重新开始',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('fails fast when an ended round reaches the host panel without its review', () => {
@@ -911,7 +909,7 @@ describe('createUndercoverHostManagement task body', () => {
   });
 });
 
-describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () => {
+describe('createUndercoverPlayerActions phase messages (PR-B G-1/G-7/G-9)', () => {
   const idleControls: UndercoverRoundControls = {
     isSubmitting: false,
     controlledSeat: null,
@@ -958,7 +956,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
   it('shows the shared lobby wait to a seated non-host player only', () => {
     const state = createLobbyState();
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'u1', isHost: false, seat: 2 },
@@ -966,7 +964,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
       ).message,
     ).toBe('等待房主开始游戏');
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'host', isHost: true, seat: 0 },
@@ -974,7 +972,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
       ).message,
     ).toBeNull();
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'u1', isHost: false, seat: null },
@@ -990,7 +988,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     });
     expect(state.phase).toBe('preparing');
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'u1', isHost: false, seat: 2 },
@@ -1011,17 +1009,17 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     const player = { userId: 'u1', isHost: false, seat: 2 };
     const host = { userId: 'host', isHost: true, seat: 0 };
     expect(
-      createUndercoverBottomActions(idleControls, failed('selectionFailed'), player, null).message,
+      createUndercoverPlayerActions(idleControls, failed('selectionFailed'), player, null).message,
     ).toBe('词语准备失败，等待房主处理');
     expect(
-      createUndercoverBottomActions(idleControls, failed('inventoryEmpty'), player, null).message,
+      createUndercoverPlayerActions(idleControls, failed('inventoryEmpty'), player, null).message,
     ).toBe('暂无可用词语，等待房主处理');
     expect(
-      createUndercoverBottomActions(idleControls, failed('inventoryExhausted'), player, null)
+      createUndercoverPlayerActions(idleControls, failed('inventoryExhausted'), player, null)
         .message,
     ).toBe('该类别的新词已用完，等待房主处理');
     expect(
-      createUndercoverBottomActions(idleControls, failed('inventoryExhausted'), host, null).message,
+      createUndercoverPlayerActions(idleControls, failed('inventoryExhausted'), host, null).message,
     ).toBe('该类别的新词已用完');
   });
 
@@ -1031,7 +1029,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
     if (state.phase !== 'ongoing') throw new Error('Expected ongoing');
     const expected = `本轮从 ${state.round.speakingStartSeat + 1} 号起按座位顺序发言`;
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'u1', isHost: false, seat: 2 },
@@ -1039,7 +1037,7 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
       ).message,
     ).toBe(expected);
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         state,
         { userId: 'host', isHost: true, seat: 0 },
@@ -1055,32 +1053,30 @@ describe('createUndercoverBottomActions phase messages (PR-B G-1/G-7/G-9)', () =
       key: 'review',
       label: '本局复盘',
       audience: 'anyone',
-      variant: 'secondary',
       testID: TESTIDS.roomReviewOpenButton,
-      isEnabled: true,
+      state: { kind: 'ready' },
     };
     for (const viewer of [
       { userId: 'u1', isHost: false, seat: 2 },
       { userId: 'visitor', isHost: false, seat: null },
     ]) {
-      expect(createUndercoverBottomActions(idleControls, ended, viewer, review)).toMatchObject({
-        kind: 'stacked',
-        layout: { primary: [], secondary: [reviewButton], ghost: [] },
+      expect(createUndercoverPlayerActions(idleControls, ended, viewer, review)).toMatchObject({
+        actions: [reviewButton],
       });
     }
     expect(
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         ended,
         { userId: 'host', isHost: true, seat: 0 },
         review,
       ),
-    ).toMatchObject({ kind: 'stacked', layout: { primary: [], secondary: [], ghost: [] } });
+    ).toMatchObject({ actions: [] });
   });
 
   it('fails fast when an ended round reaches the bottom panel without its review', () => {
     expect(() =>
-      createUndercoverBottomActions(
+      createUndercoverPlayerActions(
         idleControls,
         createEndedState(),
         { userId: 'u1', isHost: false, seat: 2 },

@@ -95,11 +95,13 @@ describe('createDrawGuessRoomShellModel', () => {
   it('assembles the lobby shell from the hook projections', () => {
     const state = lobbyState(true);
     const caps = capabilities();
-    const hostManagement = { task: null, sections: [] };
+    const hostManagement = { task: null, actions: [] };
     const onSeatPress = vi.fn();
     const openReview = vi.fn();
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -137,11 +139,11 @@ describe('createDrawGuessRoomShellModel', () => {
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.hostManagement).toBe(hostManagement);
     expect(model.controlledSeat).toBeNull();
@@ -150,6 +152,8 @@ describe('createDrawGuessRoomShellModel', () => {
 
     const endedModel = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 1 },
       capabilities: caps,
       onBack: vi.fn(),
@@ -180,31 +184,30 @@ describe('createDrawGuessRoomShellModel', () => {
       review: { isEnabled: true, onPress: openReview },
     });
     expect(endedModel.phase).toBe('ended');
-    const endedBottom = endedModel.bottomActions;
-    if (endedBottom.kind !== 'stacked') throw new Error('expected the stacked bottom panel');
+    const endedBottom = endedModel.playerActions;
     expect(endedBottom.message).toBeNull();
-    expect(endedBottom.layout.primary).toEqual([]);
-    expect(endedBottom.layout.ghost).toEqual([]);
-    expect(endedBottom.layout.secondary).toHaveLength(1);
-    const [reviewButton] = endedBottom.layout.secondary;
+    expect(endedBottom.actions).toHaveLength(1);
+    const [reviewButton] = endedBottom.actions;
     expect(reviewButton).toMatchObject({
       key: 'review',
       label: '本局复盘',
       audience: 'anyone',
-      variant: 'secondary',
+      category: 'resource',
       testID: 'room-review-open',
-      isEnabled: true,
+      state: { kind: 'ready' },
     });
-    if (reviewButton === undefined || !reviewButton.isEnabled) {
+    if (reviewButton?.state.kind !== 'ready') {
       throw new Error('expected an enabled review button');
     }
-    expect(reviewButton.onPress).toBe(openReview);
+    expect(reviewButton.state.onPress).toBe(openReview);
   });
 
   it('shows 等待房主开始游戏 to a seated non-host and no hint without bots', () => {
     const state = lobbyState(false);
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'u1', isHost: false, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -234,11 +237,11 @@ describe('createDrawGuessRoomShellModel', () => {
       releaseBot: vi.fn(),
       review: null,
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: '等待房主开始游戏',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -299,6 +302,8 @@ describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
     if (state.phase.kind !== 'roundEnd') throw new Error('expected roundEnd phase');
     const model = createDrawGuessRoomShellModel({
       roomCode: '1234',
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer: { userId: 'host', isHost: true, seat: 0 },
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -324,15 +329,15 @@ describe('createDrawGuessRoomShellModel — roundEnd stage', () => {
       onProfileLeaveSeat: vi.fn(),
       share,
       isLobby: false,
-      buildHostManagement: () => ({ task: null, sections: [] }),
+      buildHostManagement: () => ({ task: null, actions: [] }),
       releaseBot: vi.fn(),
       review: null,
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
   });
 });
@@ -343,6 +348,8 @@ describe('createDrawGuessRoomShellModel — ended review entry', () => {
   function endedShell(viewer: RoomViewer, review: RoomReviewEntry | null) {
     return createDrawGuessRoomShellModel({
       roomCode: ended.roomCode,
+      isSubmitting: false,
+      pendingActionKey: null,
       viewer,
       capabilities: capabilities(),
       onBack: vi.fn(),
@@ -376,18 +383,16 @@ describe('createDrawGuessRoomShellModel — ended review entry', () => {
 
   it('offers the review to a spectator as well', () => {
     const model = endedShell(viewerFor('spectator'), { isEnabled: true, onPress: vi.fn() });
-    expect(model.bottomActions).toMatchObject({
-      kind: 'stacked',
+    expect(model.playerActions).toMatchObject({
       message: null,
-      layout: { primary: [], secondary: [{ key: 'review', audience: 'anyone' }], ghost: [] },
+      actions: [{ key: 'review', audience: 'anyone' }],
     });
   });
 
   it('gives the host no bottom review: the host task card holds it', () => {
     const model = endedShell(viewerFor('host'), { isEnabled: true, onPress: vi.fn() });
-    expect(model.bottomActions).toMatchObject({
-      kind: 'stacked',
-      layout: { primary: [], secondary: [], ghost: [] },
+    expect(model.playerActions).toMatchObject({
+      actions: [],
     });
   });
 

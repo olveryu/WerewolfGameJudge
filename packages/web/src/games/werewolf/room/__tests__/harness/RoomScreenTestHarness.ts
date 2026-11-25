@@ -17,7 +17,6 @@
  * - Only for the Vitest environment; must not be referenced from production code
  */
 
-import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { act, screen } from '@testing-library/react';
 
 import { TESTIDS } from '@/testids';
@@ -58,7 +57,6 @@ export type DialogType =
   | 'psychicReveal' // Psychic reveal result
   | 'gargoyleReveal' // Gargoyle reveal result
   | 'wolfRobotReveal' // WolfRobot learn result
-  | 'wolfRobotHunterStatus' // WolfRobot learned hunter status
   | 'mirrorSeerReveal' // MirrorSeer reveal result (inverted)
   | 'drunkSeerReveal' // DrunkSeer reveal result (random)
   | 'pureWhiteReveal' // PureWhite reveal result
@@ -66,8 +64,6 @@ export type DialogType =
 
   // Special dialogs
   | 'magicianFirst' // Magician first target selected
-  | 'confirmTrigger' // Hunter/DarkWolfKing confirm trigger
-  | 'seedWolfInfectionResult' // Personal result in the final all-player acknowledgement
 
   // Role info dialogs
   | 'roleCard' // View role card
@@ -148,17 +144,6 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
     type: 'gargoyleReveal',
     match: (t) => !t.endsWith('行动') && t.includes('石像鬼'),
   },
-  // wolfRobotHunterStatus: schema-driven title/message for wolfRobotLearn hunter gate.
-  {
-    type: 'wolfRobotHunterStatus',
-    match: (t, m) => {
-      const title = SCHEMAS.wolfRobotLearn.ui?.hunterGateDialogTitle;
-      const canShootText = SCHEMAS.wolfRobotLearn.ui?.hunterGateCanShootText;
-      const cannotShootText = SCHEMAS.wolfRobotLearn.ui?.hunterGateCannotShootText;
-      if (!title || !canShootText || !cannotShootText) return false;
-      return t === title && (m === canShootText || m === cannotShootText);
-    },
-  },
   {
     type: 'wolfRobotReveal',
     match: (t) =>
@@ -169,67 +154,12 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Seed Wolf final infection result
-  {
-    type: 'seedWolfInfectionResult',
-    match: (t, m) => {
-      const infectionRevealUi = SCHEMAS.seedWolfInfectReveal.ui;
-      return (
-        t === '感染信息' &&
-        (m === infectionRevealUi?.hypnotizedText || m === infectionRevealUi?.notHypnotizedText)
-      );
-    },
-  },
-
-  // Confirm trigger status dialogs: schema-driven confirmStatusUi.
-  {
-    type: 'confirmTrigger',
-    match: (t, m) => {
-      const hunterUi = SCHEMAS.hunterConfirm.ui?.confirmStatusUi;
-      const darkUi = SCHEMAS.darkWolfKingConfirm.ui?.confirmStatusUi;
-      const avengerUi = SCHEMAS.avengerConfirm.ui?.confirmStatusUi;
-      const hiddenWolfUi = SCHEMAS.hiddenWolfReveal.ui?.confirmStatusUi;
-      const seedWolfUi = SCHEMAS.seedWolfInfect.ui?.confirmStatusUi;
-
-      const isHunterConfirm =
-        hunterUi?.kind === 'shoot' &&
-        t === hunterUi.statusDialogTitle &&
-        (m === hunterUi.canText || m === hunterUi.cannotText);
-      const isDarkWolfKingConfirm =
-        darkUi?.kind === 'shoot' &&
-        t === darkUi.statusDialogTitle &&
-        (m === darkUi.canText || m === darkUi.cannotText);
-      const isAvengerConfirm =
-        avengerUi?.kind === 'faction' &&
-        t === avengerUi.statusDialogTitle &&
-        (m === avengerUi.goodText || m === avengerUi.wolfText || m === avengerUi.bondedText);
-      const isHiddenWolfConfirm =
-        hiddenWolfUi?.kind === 'wolfTeammates' && t === hiddenWolfUi.statusDialogTitle;
-      const isSeedWolfConfirm =
-        seedWolfUi?.kind === 'infection' && t === seedWolfUi.statusDialogTitle;
-
-      return (
-        isHunterConfirm ||
-        isDarkWolfKingConfirm ||
-        isAvengerConfirm ||
-        isHiddenWolfConfirm ||
-        isSeedWolfConfirm
-      );
-    },
-  },
-
   // Role card
   { type: 'roleCard', match: (t) => t.includes('你的身份是') },
 
   // Seat errors
   { type: 'seatError', match: (t) => t === '入座失败' },
   { type: 'seatDisabled', match: (t) => t === '不可选择' },
-
-  // Seed Wolf prompt includes “是否”, so classify its exact schema prompt before generic confirms.
-  {
-    type: 'actionPrompt',
-    match: (t, m) => t.endsWith('行动') && m === SCHEMAS.seedWolfInfect.ui?.prompt,
-  },
 
   // Skip confirmation
   { type: 'skipConfirm', match: (t) => t === '跳过本次行动？' },
@@ -379,6 +309,24 @@ export class RoomScreenTestHarness {
     return this.#pressButtonOnEvent(last, label);
   }
 
+  /**
+   * Start pressing a button on the last dialog without awaiting its callback, for asserting
+   * the in-flight UI while a held delivery is pending (an awaited `act` defers every render
+   * until the callback settles). Await the returned promise inside `act` after settling.
+   */
+  startPressingButton(label: string): Promise<void> {
+    const last = this.#events.at(-1);
+    if (!last) {
+      throw new Error(`[startPressingButton] No dialog recorded. Cannot press "${label}".`);
+    }
+    const button = this.#findButton(last, label);
+    let callback: Promise<void> | void = undefined;
+    act(() => {
+      callback = button.onPress?.();
+    });
+    return Promise.resolve(callback).then(() => dismissAlert(last.generation));
+  }
+
   /** Press a button by index on the last dialog. Throws on no dialog or out-of-range index. */
   pressButtonByIndex(index: number): Promise<void> {
     const last = this.#events.at(-1);
@@ -451,8 +399,7 @@ export class RoomScreenTestHarness {
     return event.buttons[0]!;
   }
 
-  /** Mirrors `AlertHost`: await the callback, then close the alert unless it rejected. */
-  async #pressButtonOnEvent(event: DialogEvent, label: string): Promise<void> {
+  #findButton(event: DialogEvent, label: string): DialogEvent['raw']['buttons'][number] {
     const button = event.raw.buttons.find((candidate) => candidate.text === label);
     if (button === undefined) {
       throw new Error(
@@ -461,6 +408,12 @@ export class RoomScreenTestHarness {
           `Message: "${event.message}"`,
       );
     }
+    return button;
+  }
+
+  /** Mirrors `AlertHost`: await the callback, then close the alert unless it rejected. */
+  async #pressButtonOnEvent(event: DialogEvent, label: string): Promise<void> {
+    const button = this.#findButton(event, label);
     await act(async () => {
       await button.onPress?.();
     });

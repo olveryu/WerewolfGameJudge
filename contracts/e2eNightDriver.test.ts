@@ -1,16 +1,15 @@
 /// <reference lib="dom" />
 
-import { errors, type Locator, type Page } from '@playwright/test';
+import { errors, type Page } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { alertPrimaryButton, dismissCurrentAlert } from '../e2e/helpers/alerts';
+import { alertPrimaryButton, pressCurrentAlertPrimary, readAlertText } from '../e2e/helpers/alerts';
 import {
   clickSeatAndConfirm,
   tryClickNightButton,
   waitForRoleTurn,
   waitForStepAndSettle,
 } from '../e2e/helpers/night-driver';
-import { RoomPage } from '../e2e/pages/RoomPage';
 import { TESTIDS } from '../packages/web/src/testids';
 
 vi.mock('../e2e/helpers/waits', () => ({ ensureConnected: vi.fn() }));
@@ -49,59 +48,6 @@ function roomPage() {
     }),
   } as unknown as Page;
   return { page, state, tick, click };
-}
-
-function nightPanelPage(key: string) {
-  const fixture = roomPage();
-  const state = Object.assign(fixture.state, {
-    step: 'wolfKill',
-    audio: false,
-    modal: false,
-    actionsOpen: false,
-    buttonAvailable: false,
-  });
-  const originalGetByTestId = fixture.page.getByTestId.bind(fixture.page);
-  const button = {
-    isVisible: vi.fn(async () => state.actionsOpen && state.buttonAvailable),
-    click: vi.fn(async () => {
-      state.actionsOpen = false;
-    }),
-  };
-  const panel = {
-    _apiName: 'Locator',
-    isVisible: async () => state.actionsOpen,
-    getByTestId: () => button,
-    _expect: async () => ({ matches: state.actionsOpen }),
-  } as unknown as Locator;
-  const entry = {
-    evaluateAll: async (
-      callback: (entries: { getAttribute: () => string }[], target: string) => boolean,
-      target: string,
-    ) =>
-      callback(
-        [{ getAttribute: () => (state.buttonAvailable ? TESTIDS.werewolfNightButton(key) : '') }],
-        target,
-      ),
-  };
-  fixture.page.getByTestId = vi.fn((testId: string) => {
-    if (testId === TESTIDS.werewolfNightButton(key)) return button;
-    if (testId === TESTIDS.roomHostManagementPanel) return panel;
-    if (testId === TESTIDS.roomMoreActionsButton || testId === TESTIDS.roomHostManagementButton)
-      return entry;
-    return originalGetByTestId(testId);
-  }) as unknown as Page['getByTestId'];
-  const openPanel = vi
-    .spyOn(RoomPage.prototype, 'openHostManagement')
-    .mockImplementation(async () => {
-      state.actionsOpen = true;
-      return panel;
-    });
-  const closePanel = vi
-    .spyOn(RoomPage.prototype, 'closeHostManagement')
-    .mockImplementation(async () => {
-      state.actionsOpen = false;
-    });
-  return { ...fixture, state, button, panel, openPanel, closePanel };
 }
 
 afterEach(() => {
@@ -208,49 +154,6 @@ describe('night driver readiness', () => {
   });
 });
 
-describe('night driver declared panel actions', () => {
-  it('never opens for an absent or audio-locked action, then discovers it when offered', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    const { page, state, button, openPanel } = nightPanelPage('wolfEmpty');
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
-    expect(openPanel).not.toHaveBeenCalled();
-
-    state.audio = true;
-    state.buttonAvailable = true;
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(false);
-    expect(openPanel).not.toHaveBeenCalled();
-
-    state.audio = false;
-    expect(await tryClickNightButton(page, 'wolfEmpty')).toBe(true);
-    expect(button.click).toHaveBeenCalledOnce();
-  });
-
-  it('logs a failed interaction only as obsolete when the action was withdrawn', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    const { page, state, button, openPanel } = nightPanelPage('skip');
-    state.buttonAvailable = true;
-    openPanel.mockImplementationOnce(async () => {
-      state.buttonAvailable = false;
-      state.step = 'seerCheck';
-      throw new errors.TimeoutError('entry detached');
-    });
-
-    expect(await tryClickNightButton(page, 'skip')).toBe(false);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('entry detached'));
-    expect(button.click).not.toHaveBeenCalled();
-  });
-
-  it('fails with the original error and anchors when the action is still offered', async () => {
-    const { page, state, openPanel } = nightPanelPage('skip');
-    state.buttonAvailable = true;
-    openPanel.mockRejectedValueOnce(new errors.TimeoutError('entry remains blocked'));
-
-    await expect(tryClickNightButton(page, 'skip')).rejects.toThrow(
-      /Panel action wolfKill\/skip failed: entry remains blocked\nP0=Ongoing\/wolfKill/,
-    );
-  });
-});
-
 describe('night driver alert identity', () => {
   it('has no primary button while the alert body is unmounted', async () => {
     const page = {
@@ -285,7 +188,7 @@ describe('night driver alert identity', () => {
         }),
       } as unknown as Page;
 
-      await dismissCurrentAlert(page);
+      await pressCurrentAlertPrimary(page);
 
       expect(button.click).toHaveBeenCalledTimes(1);
       expect(replacementClick).not.toHaveBeenCalled();
@@ -293,4 +196,141 @@ describe('night driver alert identity', () => {
       expect(button.dispose).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+interface FakeAlert {
+  readonly title: string;
+  readonly message: string | null;
+}
+
+/**
+ * A page whose alert changes after every read, the way a replacement arrives between two reads
+ * of a real page. `null` is the moment between two alerts, with no body mounted.
+ */
+function pageWithAlertSequence(sequence: readonly (FakeAlert | null)[]): Page {
+  let reads = 0;
+  const modalOf = (alert: FakeAlert) => ({
+    querySelector: (selector: string) => {
+      if (selector.includes(TESTIDS.alertTitle)) return { textContent: alert.title };
+      return alert.message === null ? null : { textContent: alert.message };
+    },
+  });
+  return {
+    getByTestId: () => ({
+      evaluateAll: async (
+        read: (modals: readonly unknown[], testIds: unknown) => unknown,
+        testIds: unknown,
+      ) => {
+        const alert = sequence[Math.min(reads, sequence.length - 1)];
+        reads += 1;
+        return read(alert == null ? [] : [modalOf(alert)], testIds);
+      },
+    }),
+  } as unknown as Page;
+}
+
+describe('night driver alert reading', () => {
+  const confirmation: FakeAlert = { title: '查验2号？', message: null };
+  const result: FakeAlert = { title: '查验结果', message: '2号是狼人' };
+
+  it('reads a title and its message from the same alert when a replacement arrives', async () => {
+    const page = pageWithAlertSequence([confirmation, result]);
+
+    // Each call is one read of the page: the first lands on the confirmation, the second on
+    // the result. Neither can return the result's title with the confirmation's empty message.
+    expect(await readAlertText(page)).toBe('查验2号？\n');
+    expect(await readAlertText(page)).toBe('查验结果\n2号是狼人');
+  });
+
+  it('waits past other alerts for the one that carries the expected title', async () => {
+    const page = pageWithAlertSequence([confirmation, null, result]);
+
+    expect(await readAlertText(page, 5000, '查验结果')).toBe('查验结果\n2号是狼人');
+  });
+});
+
+describe('night driver sweep', () => {
+  const groupCard = TESTIDS.werewolfNightButton('openActionGroup');
+  const foldedIds = `${TESTIDS.stepInteractionButton('wolfKill')} ${TESTIDS.stepInteractionButton('$skip')}`;
+
+  interface FoldedCard {
+    isOnHand: boolean;
+    readonly press: () => Promise<void>;
+    /** Runs after a visibility read, to move the step on between two reads. */
+    readonly onSeen?: () => void;
+  }
+
+  /** A wolf's hand during the wolf step, with the group card folding the skip action. */
+  function sweptPage(card: FoldedCard): Page {
+    return {
+      getByTestId: (testId: string) => ({
+        getAttribute: async (name: string) => {
+          if (testId !== groupCard) return name === 'data-step' ? 'wolfKill' : 'Ongoing';
+          if (card.isOnHand) return foldedIds;
+          // A waiting read of a card that has left the hand runs out its timeout.
+          throw new errors.TimeoutError('locator.getAttribute: Timeout 10000ms exceeded.');
+        },
+        count: async () => 0,
+        isVisible: async () => {
+          if (testId === TESTIDS.bottomActionPanel) return true;
+          if (testId !== groupCard) return false;
+          const wasOnHand = card.isOnHand;
+          card.onSeen?.();
+          return wasOnHand;
+        },
+        evaluateAll: async () => (testId === groupCard && card.isOnHand ? [foldedIds] : []),
+        click: card.press,
+      }),
+    } as unknown as Page;
+  }
+  const pressTimesOut = (): never => {
+    throw new errors.TimeoutError('locator.click: Timeout 1000ms exceeded.');
+  };
+
+  // The step moves on while a sweep is looking at another player's hand. The trace of the
+  // failure this pins shows the group card visible, then gone three milliseconds later.
+  it('reports a miss when the group card leaves the hand right after it was seen', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const card: FoldedCard = {
+      isOnHand: true,
+      press: vi.fn(async () => pressTimesOut()),
+      onSeen: () => {
+        card.isOnHand = false;
+      },
+    };
+
+    await expect(tryClickNightButton(sweptPage(card), 'skip')).resolves.toBe(false);
+    expect(card.press).not.toHaveBeenCalled();
+  });
+
+  it('reports a miss when the declaration is withdrawn while the card is being pressed', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const card: FoldedCard = {
+      isOnHand: true,
+      press: vi.fn(async () => {
+        card.isOnHand = false;
+        pressTimesOut();
+      }),
+    };
+
+    await expect(tryClickNightButton(sweptPage(card), 'skip')).resolves.toBe(false);
+    expect(card.press).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails with the press timeout when the card still declares the action', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const card: FoldedCard = {
+      isOnHand: true,
+      press: vi.fn(async () => {
+        vi.advanceTimersByTime(1000);
+        pressTimesOut();
+      }),
+    };
+
+    await expect(tryClickNightButton(sweptPage(card), 'skip')).rejects.toThrow(
+      'locator.click: Timeout 1000ms exceeded.',
+    );
+    expect(card.press).toHaveBeenCalledTimes(5);
+  });
 });

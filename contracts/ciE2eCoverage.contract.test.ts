@@ -89,6 +89,7 @@ describe('CI production deployment gates', () => {
       'lint',
       'test-root',
       'test-api-worker',
+      'catalogues',
       'e2e',
     ]);
   });

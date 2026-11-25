@@ -7,6 +7,10 @@ import { acknowledgeAudioQueue, queueAudioBatch } from '../../../platform/audio'
 import { markSeatViewed } from '../../../platform/room/identityViewing';
 //#end
 import { applyRosterChanges } from '../../../platform/room/seating';
+//#cap sharedSteps
+import { evolveStepSlice } from '../../../platform/steps';
+import { create__GAME_PASCAL__NightSlice } from './nightSteps';
+//#end
 import type { __GAME_PASCAL__State } from '../state/types';
 import type { __GAME_PASCAL__Event } from './decision';
 
@@ -58,7 +62,12 @@ export function evolve__GAME_PASCAL__State(
       return {
         ...reset__GAME_PASCAL__Game(state),
         phaseRevision: state.phaseRevision + 1,
+//#cap sharedSteps
+        phase: { kind: 'night', steps: create__GAME_PASCAL__NightSlice() },
+//#end
+//#cap !sharedSteps
         phase: { kind: 'playing', deadlineAt: event.deadlineAt },
+//#end
         gameSequence: event.gameSequence,
       };
 //#end
@@ -68,7 +77,12 @@ export function evolve__GAME_PASCAL__State(
       return {
         ...reset__GAME_PASCAL__Game(state),
         phaseRevision: state.phaseRevision + 1,
+//#cap sharedSteps
+        phase: { kind: 'night', steps: create__GAME_PASCAL__NightSlice() },
+//#end
+//#cap !sharedSteps
         phase: { kind: 'playing' },
+//#end
         gameSequence: event.gameSequence,
       };
 //#end
@@ -77,13 +91,23 @@ export function evolve__GAME_PASCAL__State(
 //#cap !stageDeadline
     case '__GAME_ID__.game.begun': {
       if (state.phase.kind !== 'viewing') return state;
+//#cap sharedSteps
+      return { ...bumped, phase: { kind: 'night', steps: create__GAME_PASCAL__NightSlice() } };
+//#end
+//#cap !sharedSteps
       return { ...bumped, phase: { kind: 'playing' } };
+//#end
     }
 //#end
 //#cap armDeadlineAtBegin
     case '__GAME_ID__.game.begun': {
       if (state.phase.kind !== 'viewing') return state;
+//#cap sharedSteps
+      return { ...bumped, phase: { kind: 'night', steps: create__GAME_PASCAL__NightSlice() } };
+//#end
+//#cap !sharedSteps
       return { ...bumped, phase: { kind: 'playing', deadlineAt: event.deadlineAt } };
+//#end
     }
 //#end
 //#end
@@ -110,6 +134,21 @@ export function evolve__GAME_PASCAL__State(
     }
 //#end
     // TODO(gameplay): 玩法事件在这里逐个落状态；阶段推进只许由事件驱动。
+//#cap sharedSteps
+    case '__GAME_ID__.night.step':
+      if (state.phase.kind !== 'night') throw new Error('[FAIL-FAST] Night event outside night');
+      return { ...bumped, phase: { kind: 'night', steps: evolveStepSlice(state.phase.steps, event.event) } };
+    case '__GAME_ID__.night.finished':
+      if (state.phase.kind !== 'night' || state.phase.steps.current !== null || state.isAudioPlaying) {
+        throw new Error('[FAIL-FAST] Night finished before actions and narration completed');
+      }
+//#cap stageDeadline
+      return { ...bumped, phase: { kind: 'playing', deadlineAt: event.deadlineAt } };
+//#end
+//#cap !stageDeadline
+      return { ...bumped, phase: { kind: 'playing' } };
+//#end
+//#end
     case '__GAME_ID__.game.ended': {
       if (state.phase.kind === 'ended') return state;
       return { ...bumped, phase: { kind: 'ended' }, xpSettled: true };

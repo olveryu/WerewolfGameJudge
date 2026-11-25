@@ -6,6 +6,9 @@ import type {
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 import type { __GAME_PASCAL__Config } from '../state/types';
+//#cap sharedSteps
+import type { StepSubmission } from '../../../platform/steps';
+//#end
 
 export type __GAME_PASCAL__PublicCommand =
   | RoomSeatCommand<RoomSeatProfile>
@@ -18,6 +21,9 @@ export type __GAME_PASCAL__PublicCommand =
   | { readonly type: '__GAME_ID__.roles.assign' }
 //#end
   | { readonly type: '__GAME_ID__.game.begin' }
+//#cap sharedSteps
+  | { readonly type: '__GAME_ID__.step.submit'; readonly gameSequence: number; readonly submission: StepSubmission }
+//#end
   | { readonly type: '__GAME_ID__.game.restart'; readonly gameSequence: number; readonly wasEnded: boolean }
 //#cap audioOrchestration
   | { readonly type: '__GAME_ID__.audio.ack'; readonly audioBatchId: number }

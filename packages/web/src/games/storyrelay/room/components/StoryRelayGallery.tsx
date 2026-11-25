@@ -13,9 +13,9 @@ import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlayb
 import { GalleryRevealText } from '@/features/room/components/GalleryRevealText';
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { confirmAction } from '@/features/room/confirm';
 import { useGalleryClock } from '@/features/room/hooks/useGalleryClock';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconImageOutline from '~icons/ion/image-outline';
 import IconPeopleOutline from '~icons/ion/people-outline';
 
@@ -48,7 +48,11 @@ export function StoryRelayGallery({
 }: {
   readonly state: StoryRelayState;
   readonly isHost: boolean;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: StoryRelayCommand,
+    options: { readonly actionKey: string | null },
+  ) => Promise<boolean>;
   readonly isSubmitting: boolean;
   /** Opens the shared review at one story's page. */
   readonly openReview: (pageKey: string) => void;
@@ -71,7 +75,7 @@ export function StoryRelayGallery({
   const chain = stories[chainIndex];
   if (chain === undefined) throw new Error('Story Relay gallery chain missing');
   const control = (type: StoryRelayGalleryCommandType) =>
-    void submit('控制故事回放', { type, phaseRevision: state.phaseRevision });
+    void submit('控制故事回放', { type, phaseRevision: state.phaseRevision }, { actionKey: null });
   // The current story is fully revealed once the last segment is showing.
   const isStoryEnd = playback !== null && playback.position % storyLength === storyLength - 1;
   // 房主自救（D3 follow-up）：画廊自动推进的结算逾期时，房主可重新推进。
@@ -128,8 +132,12 @@ export function StoryRelayGallery({
             control(playback.isPlaying ? 'storyrelay.gallery.pause' : 'storyrelay.gallery.resume')
           }
           onFinish={() =>
-            showConfirmAlert('全部揭晓', '立即公开剩余故事并结束回放？', () => {
-              control('storyrelay.gallery.finish');
+            confirmAction({
+              label: '全部揭晓',
+              body: '立即公开剩余故事并结束回放。',
+              onConfirm: () => {
+                control('storyrelay.gallery.finish');
+              },
             })
           }
         />

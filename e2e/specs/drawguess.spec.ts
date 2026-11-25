@@ -154,7 +154,7 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await expect(hostPage.getByTestId(TESTIDS.gameGuideScreenRoot('drawguess'))).toBeVisible();
       await expect(hostPage.getByTestId(TESTIDS.gameGuideHeading)).toHaveText('一人作画，其余人猜');
       await hostPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
-      await hostPage.getByTestId(TESTIDS.roomManualBackButton).click();
+      await expect(hostPage.getByTestId(TESTIDS.roomManualButton)).toBeFocused();
       await room.waitForReady();
     });
 
@@ -164,7 +164,6 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
 
     await test.step('start is gated until the room is full', async () => {
       const panel = await room.openHostManagement();
-      await expect(panel.getByTestId(TESTIDS.roomNextStepBlockedReason)).toHaveCount(0);
       const startButton = panel.getByTestId(TESTIDS.startGameButton);
       await expect(startButton).toBeDisabled();
       await expect(startButton).toHaveAccessibleDescription(
@@ -213,7 +212,6 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await expect(hostPage.getByTestId(TESTIDS.drawGuessDrawingCanvas)).toBeVisible();
       for (const page of fixture.pages)
         await expect(page.getByTestId(TESTIDS.roomScreenRoot)).not.toContainText('放弃本轮');
-      await expect(joinerPage.getByTestId(TESTIDS.roomHostManagementButton)).toHaveCount(0);
       const joinerRoom = new RoomPage(joinerPage);
       await joinerRoom.expectRoomActionAbsent(TESTIDS.restartButton);
       await joinerRoom.expectRoomActionAbsent(TESTIDS.startGameButton);
@@ -223,9 +221,11 @@ test('create, guess, cancel or confirm restart without losing seats', async ({ b
       await joinerPage.getByTestId(TESTIDS.roomStageMenuButton).click();
       const menu = joinerPage.getByTestId(TESTIDS.roomStageMenuPanel);
       await expect(menu.getByTestId(TESTIDS.restartButton)).toHaveCount(0);
-      await menu.getByTestId(TESTIDS.roomStageConfigurationButton).click();
+      await menu.getByTestId(TESTIDS.roomConfigurationButton).click();
+      // Opening the configuration closes the stage menu at once.
+      await expect(menu).toHaveCount(0);
       await joinerPage.getByTestId(TESTIDS.roomDialogCloseButton).click();
-      await menu.getByTestId(TESTIDS.roomStageMenuBackButton).click();
+      await expect(joinerPage.getByTestId(TESTIDS.roomStageMenuButton)).toBeFocused();
       await expect(guessInput).toHaveValue(word);
       const sendGuess = joinerPage.getByTestId(TESTIDS.drawGuessGuessSendButton);
       await expect(sendGuess).toHaveAccessibleName('发送猜词');

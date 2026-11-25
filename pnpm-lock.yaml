@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  pixi.js@8.23.0:
+    hash: dba56a9484fa862a68ad5e188de774de0505ebb1396b8a5fc4eab9d4d8d3b91f
+    path: patches/pixi.js@8.23.0.patch
+
 importers:
 
   .:
@@ -168,7 +173,7 @@ importers:
         version: 3.29.5
       pixi.js:
         specifier: ^8.23.0
-        version: 8.23.0
+        version: 8.23.0(patch_hash=dba56a9484fa862a68ad5e188de774de0505ebb1396b8a5fc4eab9d4d8d3b91f)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -14811,7 +14816,7 @@ snapshots:
     dependencies:
       pngjs: 3.4.0
 
-  pixi.js@8.23.0:
+  pixi.js@8.23.0(patch_hash=dba56a9484fa862a68ad5e188de774de0505ebb1396b8a5fc4eab9d4d8d3b91f):
     dependencies:
       '@types/earcut': 3.2.4
       '@webgpu/types': 0.1.74

@@ -12,11 +12,18 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
   cursor: pointer;
+}
+
+.config-template-pill:active {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
 }
 
 .config-template-pill svg {
@@ -45,6 +52,40 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+}
+
+/* Hint pill under the faction tabs: how to select, preview, and switch variants. */
+.config-hint {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-tight);
+  margin: var(--space-small) var(--space-screen-h) 0;
+  padding: var(--space-small) var(--space-medium);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-a8);
+  color: var(--color-primary);
+  font-size: var(--font-secondary);
+  line-height: var(--line-secondary);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+.config-hint-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-caption);
+  line-height: 1;
+  font-weight: var(--weight-bold);
 }
 
 .config-faction-tabs {
@@ -92,6 +133,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .config-card-divider {
@@ -132,44 +174,37 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-secondary);
   line-height: var(--line-secondary);
   font-weight: var(--weight-medium);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
   cursor: pointer;
+  /* Long-press opens the role info card: no text selection, no callout menu, and a press
+   * may still start a scroll (pointercancel abandons the long-press). */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .config-role-chip[data-selected='true'] .config-role-chip-body {
   border-color: var(--faction-color);
-  background: var(--faction-a15);
+  background: var(--faction-a30);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
+  box-shadow: var(--shadow-tabletop-key-light);
+  transform: translateY(calc(-1 * var(--space-micro)));
   font-weight: var(--weight-semibold);
 }
 
-.config-role-chip-badge {
-  position: absolute;
-  top: calc(var(--space-small) * -1);
-  right: calc(var(--space-tight) * -1);
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--faction-color);
-  color: var(--color-text-inverse);
-  font-size: var(--font-body);
-  line-height: 1;
-  font-weight: var(--weight-bold);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.config-role-chip-badge[aria-pressed='true'] {
-  background: var(--color-success);
+.config-role-chip-body:active {
+  box-shadow: var(--surface-button-pressed-offset) var(--faction-color);
+  transform: translateY(var(--space-micro));
 }
 
 /* Variant marker (option H): a swap-icon badge in the top-left corner, mirroring the
@@ -217,6 +252,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-full);
   background: var(--color-background);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .config-stepper-pill[data-active='true'] {
@@ -232,18 +268,26 @@
   padding: 0;
   border: none;
   border-radius: var(--radius-full);
-  background: none;
+  background: var(--color-surface);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--font-subtitle);
   line-height: var(--line-subtitle);
   font-weight: var(--weight-semibold);
   cursor: pointer;
 }
 
+.config-stepper-button:active:not(:disabled) {
+  box-shadow: var(--surface-button-pressed-offset) var(--faction-color);
+  transform: translateY(var(--space-micro));
+}
+
 .config-stepper-button:disabled {
   color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  box-shadow: none;
   cursor: default;
-  opacity: var(--opacity-disabled);
 }
 
 .config-stepper-count {

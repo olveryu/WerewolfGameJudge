@@ -2,8 +2,10 @@
   position: relative;
   display: flex;
   padding: var(--space-micro);
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
-  background: var(--gacha-text-a4);
+  background: var(--color-surface-hover);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .ticket-tabs-slider {
@@ -11,8 +13,10 @@
   inset-block: var(--space-micro);
   left: var(--space-micro);
   width: 49%;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--gacha-normal-tint-a12);
+  box-shadow: var(--shadow-tabletop-key-light);
   transition:
     transform 300ms ease-out,
     background-color 300ms ease-out;
@@ -39,14 +43,19 @@
   border: none;
   border-radius: var(--radius-medium);
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 200ms ease-out;
+  transition:
+    color 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .ticket-tab[aria-selected='true'] {
-  opacity: 1;
+  color: var(--color-text);
+}
+
+.ticket-tab:active {
+  transform: translateY(var(--space-micro));
 }
 
 .ticket-tab:focus-visible {
@@ -89,5 +98,11 @@
 }
 
 .ticket-tab[aria-selected='false'] .ticket-tab-count {
-  opacity: 0.7;
+  color: var(--color-text-secondary);
+}
+
+@media (hover: hover) {
+  .ticket-tab:hover {
+    color: var(--color-text);
+  }
 }

@@ -18,6 +18,7 @@ import { useAuthContext, type User } from '@/contexts/AuthContext';
 import type { DispatchOutcome, RoomLink } from '@/platform/realtime/types';
 
 import {
+  type RoomCommandSubmission,
   type RoomCommandSubmitOptions,
   useRoomCommandSubmission,
 } from './useRoomCommandSubmission';
@@ -32,6 +33,9 @@ export interface ReadyRoomSession<TState extends BaseGameState<string>, TCommand
   readonly session: RoomLink<TState, TCommand>;
   /** True while a `submit` is in flight; a second `submit` meanwhile throws. */
   readonly isSubmitting: boolean;
+  readonly pendingActionKey: string | null;
+  /** Submit a command operation through this session's shared single-flight channel. */
+  readonly submitOperation: RoomCommandSubmission<TState>['submit'];
   /**
    * Submit one public command through the shared single-flight lock:
    * a rejection shows the game's failure message, a transport error goes
@@ -42,7 +46,7 @@ export interface ReadyRoomSession<TState extends BaseGameState<string>, TCommand
   readonly submit: (
     label: string,
     command: TCommand,
-    options?: ReadyRoomSubmitOptions,
+    options: ReadyRoomSubmitOptions,
   ) => Promise<boolean>;
 }
 
@@ -59,7 +63,7 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
   const snapshot = useRoomLinkSnapshot(session);
   const submission = useRoomCommandSubmission(getFailureMessage);
   const submit = useCallback(
-    (label: string, command: TCommand, options: ReadyRoomSubmitOptions = {}) => {
+    (label: string, command: TCommand, options: ReadyRoomSubmitOptions) => {
       const { controlledSeat = null, durable = false, ...presentation } = options;
       return submission.submit(
         label,
@@ -82,6 +86,8 @@ export function useReadyRoomSession<TState extends BaseGameState<string>, TComma
     lastCommand: snapshot.lastCommand,
     session,
     isSubmitting: submission.isSubmitting,
+    pendingActionKey: submission.pendingActionKey,
+    submitOperation: submission.submit,
     submit,
   };
 }

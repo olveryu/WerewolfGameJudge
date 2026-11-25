@@ -9,44 +9,75 @@
  * - Bottom action buttons are NOT rendered when audio is playing
  */
 
-import { GameStatus, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type GameState,
+  GameStatus,
+  type RoleId,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { STEP_SKIP_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
 import { act, waitFor } from '@testing-library/react';
 
 import {
   actorStep,
   click,
-  createReactiveWerewolfRoomMock,
   createWerewolfRoomMock,
-  draftSeatSelection,
-  expectSeatSelectionUnavailable,
+  createWerewolfRoomMockFromState,
   mountRoomFor as mount,
   mountWerewolfRoom,
   recordAlerts,
-  requireBottomActionText,
-  requireEmptyVoteText,
   RoomScreenTestHarness,
   tapSeat,
   type WerewolfRoomMockOptions,
-  wolfKillStep,
 } from '@/games/werewolf/room/__tests__/harness';
+import {
+  createBoardNightState,
+  mountBoardNightState,
+  pressStepAction,
+} from '@/games/werewolf/room/__tests__/harness/boardNightScenarios';
 import { TESTIDS } from '@/testids';
 
 vi.mock('@/contexts/AuthContext', () => import('../harness/testAuthContext'));
 
-const WOLVES = new Map<number, RoleId>([
-  [4, 'wolf'],
-  [5, 'wolf'],
-  [6, 'wolf'],
-  [7, 'wolf'],
-]);
 const seerStep = (isAudioPlaying: boolean): WerewolfRoomMockOptions => ({
   ...actorStep('seerCheck', 'seer', 8),
   isAudioPlaying,
 });
-const WOLF_STEP_DURING_AUDIO: WerewolfRoomMockOptions = {
-  ...wolfKillStep('wolf', 4, WOLVES),
-  isAudioPlaying: true,
-};
+const roles: readonly RoleId[] = [
+  'villager',
+  'villager',
+  'villager',
+  'villager',
+  'wolf',
+  'wolf',
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'hunter',
+  'idiot',
+];
+const roleAssignment = new Map(roles.map((role, seat) => [seat, role]));
+const wolfState = createBoardNightState(
+  '预女猎白',
+  (state) => state.nightState?.slice.current?.stepId === 'wolfKill',
+  {},
+  roleAssignment,
+);
+const seerState = createBoardNightState(
+  '预女猎白',
+  (state) => state.nightState?.slice.current?.stepId === 'seerCheck',
+  { wolfKill: { actionKey: 'wolfKillAbstain' } },
+  roleAssignment,
+);
+
+function withAudio(state: GameState, isAudioPlaying: boolean): GameState {
+  return {
+    ...state,
+    isAudioPlaying,
+    pendingAudioEffects: isAudioPlaying ? [{ audioKey: 'seer' }] : [],
+  };
+}
 
 let harness: RoomScreenTestHarness;
 let detachAlerts: () => void;
@@ -146,12 +177,12 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
   describe('seat tap blocked during audio', () => {
     it('seer cannot draft a seat while audio plays', async () => {
-      const view = await mount(seerStep(true));
+      const { view } = await mountBoardNightState(withAudio(seerState, true), 8);
       harness.clear();
 
       await tapSeat(view, 1);
 
-      expectSeatSelectionUnavailable(view);
+      expect(view.queryByTestId(TESTIDS.stepInteractionButton('seerCheck'))).toBeNull();
       expect(view.getByTestId(TESTIDS.seatTilePressable(1))).not.toHaveAttribute(
         'aria-pressed',
         'true',
@@ -160,12 +191,12 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     });
 
     it('wolf cannot draft a seat while audio plays', async () => {
-      const view = await mount(WOLF_STEP_DURING_AUDIO);
+      const { view } = await mountBoardNightState(withAudio(wolfState, true), 4);
       harness.clear();
 
       await tapSeat(view, 1);
 
-      expectSeatSelectionUnavailable(view);
+      expect(view.queryByTestId(TESTIDS.stepInteractionButton('wolfKill'))).toBeNull();
       expect(view.getByTestId(TESTIDS.seatTilePressable(1))).not.toHaveAttribute(
         'aria-pressed',
         'true',
@@ -182,51 +213,58 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
     });
 
     it('closes the host hand on narration and restores the player hand afterward', async () => {
-      const reactive = createReactiveWerewolfRoomMock({ ...seerStep(false), isHost: true });
-      const view = await mountWerewolfRoom(reactive.mock);
-      await click(view.getByRole('button', { name: '继续游戏' }));
+      const { mock, view } = await mountBoardNightState(seerState, 0);
       await click(view.getByTestId(TESTIDS.roomMoreActionsButton));
       expect(view.getByTestId(TESTIDS.roomHostManagementPanel)).toBeInTheDocument();
 
-      act(() => reactive.simulateStateUpdate({ isAudioPlaying: true }));
+      act(() => mock.session.publishRoom(createRoomSnapshot(withAudio(mock.state, true), 2)));
       expect(view.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
       expect(view.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
 
-      act(() => reactive.simulateStateUpdate({ isAudioPlaying: false }));
+      act(() => mock.session.publishRoom(createRoomSnapshot(withAudio(mock.state, false), 3)));
       expect(view.getByTestId(TESTIDS.roomMoreActionsButton)).toBeInTheDocument();
       expect(view.queryByTestId(TESTIDS.roomHostManagementPanel)).not.toBeInTheDocument();
     });
 
     it('restores an open role hand after narration without losing its selection context', async () => {
-      const reactive = createReactiveWerewolfRoomMock(seerStep(false));
-      const view = await mountWerewolfRoom(reactive.mock);
+      const mock = createWerewolfRoomMockFromState(seerState, 8);
+      const view = await mountWerewolfRoom(mock);
       await click(view.getByTestId(TESTIDS.werewolfNightButton('openActionGroup')));
       expect(view.getByTestId(TESTIDS.werewolfNightButton('closeActionGroup'))).toBeVisible();
 
-      act(() => reactive.simulateStateUpdate({ isAudioPlaying: true }));
+      act(() => mock.session.publishRoom(createRoomSnapshot(withAudio(mock.state, true), 2)));
       expect(view.queryByTestId(TESTIDS.bottomActionPanel)).not.toBeInTheDocument();
 
-      act(() => reactive.simulateStateUpdate({ isAudioPlaying: false }));
+      act(() => mock.session.publishRoom(createRoomSnapshot(withAudio(mock.state, false), 3)));
       expect(view.getByTestId(TESTIDS.werewolfNightButton('closeActionGroup'))).toBeVisible();
     });
 
     it('seer skip button is not visible when isAudioPlaying=true', async () => {
-      const view = await mount(seerStep(true));
+      const { view } = await mountBoardNightState(withAudio(seerState, true), 8);
 
-      expect(view.queryByText(requireBottomActionText('seerCheck'))).not.toBeInTheDocument();
+      expect(
+        view.queryByTestId(TESTIDS.stepInteractionButton(STEP_SKIP_ACTION_KEY)),
+      ).not.toBeInTheDocument();
     });
 
     it('wolf empty knife button is not visible when isAudioPlaying=true', async () => {
-      const view = await mount(WOLF_STEP_DURING_AUDIO);
+      const { view } = await mountBoardNightState(withAudio(wolfState, true), 4);
 
-      expect(view.queryByText(requireEmptyVoteText())).not.toBeInTheDocument();
+      expect(
+        view.queryByTestId(TESTIDS.stepInteractionButton('wolfKillAbstain')),
+      ).not.toBeInTheDocument();
     });
   });
 
   describe('audio off → interactions work normally', () => {
     it('seer seat tap works when isAudioPlaying=false (control test)', async () => {
-      const view = await mount(seerStep(false));
-      await draftSeatSelection(view, 1);
+      const { view } = await mountBoardNightState(seerState, 8);
+      await pressStepAction(view, 'seerCheck');
+      await tapSeat(view, 1);
+      expect(view.getByTestId(TESTIDS.seatTilePressable(1))).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     });
   });
 });

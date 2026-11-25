@@ -1,4 +1,5 @@
 import { colors } from './colors';
+import { withAlpha } from './colorUtils';
 
 function luminance(hex: string): number {
   const channels = [1, 3, 5].map((offset) => {
@@ -34,5 +35,38 @@ describe('shared color contrast', () => {
       }
     }
     expect(contrast(colors.textInverse, colors.primary)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+/** Flattens an `rgb(r g b / a%)` tint over an opaque hex background into a hex colour. */
+function flatten(tint: string, background: string): string {
+  const match = /^rgb\((\d+) (\d+) (\d+) \/ (\d+)%\)$/.exec(tint);
+  if (match === null) throw new Error(`Unexpected tint: ${tint}`);
+  const alpha = Number(match[4]) / 100;
+  return `#${[1, 2, 3]
+    .map((index) => {
+      const top = Number(match[index]);
+      const bottom = Number.parseInt(background.slice(index * 2 - 1, index * 2 + 1), 16);
+      return Math.round(top * alpha + bottom * (1 - alpha))
+        .toString(16)
+        .padStart(2, '0');
+    })
+    .join('')}`;
+}
+
+describe('tinted chip text contrast', () => {
+  it('reads at AA on its own 12% tint over both shared surfaces, locked hues unchanged', () => {
+    expect(colors.villager).toBe('#1A9A4A');
+    expect(colors.third).toBe('#B87D08');
+    for (const [text, hue] of [
+      [colors.villagerText, colors.villager],
+      [colors.thirdText, colors.third],
+      [colors.warningText, colors.warning],
+    ] as const) {
+      for (const background of [colors.background, colors.surface]) {
+        const chip = flatten(withAlpha(hue, 0.12), background);
+        expect(contrast(text, chip)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });

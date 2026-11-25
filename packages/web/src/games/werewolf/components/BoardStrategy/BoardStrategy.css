@@ -114,12 +114,17 @@
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text-secondary);
+  box-shadow: var(--shadow-tabletop-key-light);
   font-size: var(--size-icon-sm);
   cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .board-strategy-accordion-header:active {
-  opacity: var(--opacity-pressed);
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
 }
 
 .board-strategy-accent {

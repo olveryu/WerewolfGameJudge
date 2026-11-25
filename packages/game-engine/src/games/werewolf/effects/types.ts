@@ -1,14 +1,14 @@
 /** Schema-independent domain effects emitted by the Werewolf engine. */
 
 import type { RoleId } from '../domain/models';
-import type { SchemaId } from '../domain/models/roles/spec/schemas';
+import type { NightStepId } from '../roles/nightStepOrder';
 
 /**
  * The phase an armed deadline belongs to: a night step id while the
  * night step's `stepDeadline` is armed, or a sheriff voting round
  * while the election's settle `deadline` is armed.
  */
-export type WerewolfDeadlinePhase = SchemaId | 'firstVote' | 'runoffVote' | 'sheriffResult';
+export type WerewolfDeadlinePhase = NightStepId | 'firstVote' | 'runoffVote' | 'sheriffResult';
 
 /**
  * Scheduled settlement of one armed deadline. The payload pins the

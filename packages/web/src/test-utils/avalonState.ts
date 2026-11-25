@@ -1,6 +1,8 @@
 /** Canonical Avalon states for client tests (AU-46): minimal, and played through the real engine. */
 
 import {
+  AVALON_NIGHT_STEPS,
+  AVALON_NIGHT_VIEW_ACTION_KEY,
   type AvalonCommand,
   avalonEngine,
   type AvalonNightStep,
@@ -30,6 +32,37 @@ export function buildAvalonTestState(overrides: Partial<AvalonState> = {}): Aval
     }),
     ...overrides,
   };
+}
+
+/** The client's view submission for the current night step of `state`. */
+export function avalonViewNightCommand(state: AvalonState): AvalonPublicCommand {
+  if (state.phase.kind !== 'night' || state.phase.steps.current === null) {
+    throw new Error('Expected an active Avalon night step');
+  }
+  const { stepId, serial } = state.phase.steps.current;
+  return {
+    type: 'avalon.step.submit',
+    gameSequence: state.gameSequence,
+    submission: { stepId, serial, actionKey: AVALON_NIGHT_VIEW_ACTION_KEY },
+  };
+}
+
+/** A night phase positioned at `step` with nobody having viewed yet. */
+export function avalonNightPhase(step: AvalonNightStep): AvalonState['phase'] {
+  return {
+    kind: 'night',
+    steps: {
+      order: [...AVALON_NIGHT_STEPS],
+      current: { stepId: step, serial: AVALON_NIGHT_STEPS.indexOf(step) },
+      records: {},
+      deadlineMs: null,
+    },
+  };
+}
+
+/** The current night step of `state`, or null outside the night. */
+export function avalonCurrentNightStep(state: AvalonState): AvalonNightStep | null {
+  return state.phase.kind === 'night' ? (state.phase.steps.current?.stepId ?? null) : null;
 }
 
 /** The user at each seat of `playAvalonTestGame`: the host at seat 0, `u<seat>` elsewhere. */
@@ -91,10 +124,7 @@ export function playAvalonTestGame(failedQuests: 0 | 1 | 2 | 3): AvalonState {
     const { isAudioPlaying, audioBatchId } = read();
     if (isAudioPlaying) asSeat({ type: 'avalon.audio.ack', audioBatchId }, 0);
   };
-  const nightStep = (): AvalonNightStep | null => {
-    const { phase } = read();
-    return phase.kind === 'night' ? phase.step : null;
-  };
+  const nightStep = (): AvalonNightStep | null => avalonCurrentNightStep(read());
   const seats = Array.from({ length: PLAYER_COUNT }, (_, seat) => seat);
 
   for (const seat of seats) {
@@ -106,7 +136,7 @@ export function playAvalonTestGame(failedQuests: 0 | 1 | 2 | 3): AvalonState {
   ackAudio();
   for (let step = nightStep(); step !== null; step = nightStep()) {
     for (const seat of getAvalonNightParticipants(read().roles, step)) {
-      asSeat({ type: 'avalon.night.confirm' }, seat);
+      asSeat(avalonViewNightCommand(read()), seat);
     }
     ackAudio();
   }

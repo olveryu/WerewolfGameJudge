@@ -47,6 +47,7 @@ fs.appendFileSync(process.env.CALL_LOG, JSON.stringify({
 }) + '\\n');
 if (command === process.env.FAILING_SCRIPT) process.exit(7);
 if (args[0] !== 'run') {
+  process.on('SIGTERM', () => process.exit(0));
   if (process.env.FAILING_SERVER) {
     setInterval(() => {
       const calls = fs.readFileSync(process.env.CALL_LOG, 'utf8').trim().split('\\n').map(JSON.parse);
@@ -160,10 +161,12 @@ it('skips occupied ports, matches the Vite API URL and reuses the generated auth
     const workerPort = Number(worker.args[worker.args.indexOf('--port') + 1]);
     const webPort = Number(web.args[web.args.indexOf('--port') + 1]);
     const inspectorPort = Number(worker.args[worker.args.indexOf('--inspector-port') + 1]);
-    expect(workerPort).toBeGreaterThan(8787);
+    expect(workerPort).toBeGreaterThan(0);
+    expect(workerPort).not.toBe(8787);
+    expect(worker.args[worker.args.indexOf('--ip') + 1]).toBe('127.0.0.1');
     expect(webPort).toBeGreaterThan(5174);
     expect(inspectorPort).toBeGreaterThan(9229);
-    expect(web.apiUrl).toBe(`http://localhost:${workerPort}`);
+    expect(web.apiUrl).toBe(`http://127.0.0.1:${workerPort}`);
     expect(web.args).toContain('--strictPort');
     const envPath = path.join(root, 'packages/api-worker/.env.local');
     const firstEnvironment = readFileSync(envPath, 'utf8');

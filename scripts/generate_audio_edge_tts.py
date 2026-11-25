@@ -100,6 +100,8 @@ TRAILING_SILENCE: dict[str, int] = {
 # in synthesized input while keeping the canonical role name in source text.
 TTS_PRONUNCIATION_SUBSTITUTIONS: dict[str, str] = {
     "种狼": "肿狼",
+    # 勒 is read lēi ("雷") by the TTS; 希特勒 is xī tè lè.
+    "希特勒": "希特乐",
 }
 
 # Keep text single-source-of-truth here.

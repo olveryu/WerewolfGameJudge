@@ -9,6 +9,8 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models
 import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
 
+import { withTestNightState } from '../../../__tests__/nightStateFixture';
+
 /**
  * List of all top-level fields of GameState (single source of truth)
  *
@@ -30,7 +32,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'startingParticipants',
   'mvpUserId',
   'roster',
-  'nightStep',
+  'nightState',
   'isAudioPlaying',
   'audioBatchId',
   'gameSequence',
@@ -39,12 +41,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'roleRevealRandomNonce',
 
   // Execution state
-  'actions',
-  'currentNightResults',
-  'resolvedWolfKillTarget',
-  'resolvedWolfKillVerdict',
-  'resolvedNightEffects',
-  'pendingRevealAcks',
   'lastNightDeaths',
   'lastNightInfoConfirmed',
   'reviewCompletedUserIds',
@@ -54,51 +50,8 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'sheriffElection',
   'sheriffElectionResult',
 
-  // Nightmare block
-  'nightmareBlockedSeat',
-  'wolfKillOverride',
-
-  // Piper
-  'hypnotizedSeats',
-  'piperRevealAcks',
-
-  // Awakened Gargoyle
-  'convertedSeat',
-  'conversionRevealAcks',
-
-  // Wolf Girl
-  'wolfGirlConfessedSeat',
-  'wolfGirlConfessionRevealAcks',
-
-  // Seed Wolf
-  'seedWolfInfectionResult',
-  'seedWolfDeferredReveal',
-  'seedWolfInfectionRevealAcks',
-
-  // Wolf Robot disguise context
-  'wolfRobotContext',
-
-  // Role-specific context
-  'witchContext',
-  'seerReveal',
-  'mirrorSeerReveal',
-  'drunkSeerReveal',
-  'psychicReveal',
-  'gargoyleReveal',
-  'pureWhiteReveal',
-  'wolfWitchReveal',
-  'wolfRobotReveal',
-  'wolfRobotHunterStatusViewed',
-  'confirmStatus',
-  'actionRejected',
-
   // Pending audio effect queue
   'pendingAudioEffects',
-
-  // Debug mode
-
-  // UI Hints
-  'ui',
 
   // Dual Seer label mapping
   'seerLabelMap',
@@ -106,17 +59,8 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Night review share permissions
   'nightReviewAllowedSeats',
 
-  // Treasure Master
+  // Bottom cards
   'bottomCards',
-  'treasureMasterSeat',
-
-  // Thief
-  'thiefSeat',
-
-  // Cupid
-  'loverSeats',
-  'cupidSeat',
-  'cupidLoversRevealAcks',
 
   // Board nominations
   'boardNominations',
@@ -127,7 +71,7 @@ describe('normalizeState contract', () => {
    * Create a full GameState containing all fields
    */
   const createFullState = (): GameState => {
-    return {
+    return withTestNightState({
       // Core required fields
       gameType: 'werewolf',
       roomCode: 'TEST',
@@ -152,62 +96,24 @@ describe('normalizeState contract', () => {
       roleRevealRandomNonce: 'nonce-123',
 
       // Night flow state (step deadline rides inside the live step)
-      nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: Date.now() + 5000 },
+      nightState: null,
 
       // Execution state
-      actions: [{ schemaId: 'wolfKill', actorSeat: 1, targetSeat: 2, timestamp: Date.now() }],
-      currentNightResults: { wolfVotesBySeat: { '1': 2 } },
-      resolvedNightEffects: [{ sourceSeat: 1, updates: { guardedSeat: 2 } }],
-      pendingRevealAcks: ['seer-1'],
       lastNightDeaths: [3],
 
       // Nightmare block
-      nightmareBlockedSeat: 5,
-      wolfKillOverride: {
-        source: 'nightmare',
-        ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
-      },
 
       // Piper
-      hypnotizedSeats: [3, 5],
-      piperRevealAcks: [3],
 
       // Awakened Gargoyle
-      convertedSeat: 2,
-      conversionRevealAcks: [0, 1],
 
       // Wolf Girl
-      wolfGirlConfessedSeat: 2,
-      wolfGirlConfessionRevealAcks: [0, 1],
 
       // Seed Wolf
-      seedWolfInfectionResult: { outcome: 'failed', targetSeat: 1 },
-      seedWolfDeferredReveal: {
-        actorSeat: 0,
-        schemaId: 'seerCheck',
-        targetSeat: 1,
-        reveal: { kind: 'factionCheck', checkResult: '狼人' },
-      },
 
       // Wolf Robot disguise context
-      wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },
 
       // Role-specific context
-      witchContext: { killedSeat: 2, canSave: true, canPoison: true },
-      seerReveal: { targetSeat: 3, result: '好人' },
-      psychicReveal: { targetSeat: 4, result: 'seer' },
-      gargoyleReveal: { targetSeat: 5, result: '好人阵营' },
-      pureWhiteReveal: { targetSeat: 7, result: '好人' },
-      wolfWitchReveal: { targetSeat: 8, result: '好人' },
-      wolfRobotReveal: { targetSeat: 6, result: 'seer', learnedRoleId: 'seer' },
-      wolfRobotHunterStatusViewed: true,
-      confirmStatus: { role: 'hunter', canShoot: true },
-      actionRejected: {
-        action: 'witchAction',
-        reason: 'already_used',
-        targetSeat: 1,
-        rejectionId: 'rej-1',
-      },
 
       // Pending audio effect queue
       pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],
@@ -218,11 +124,6 @@ describe('normalizeState contract', () => {
       nightReviewAllowedSeats: [0, 2],
 
       // Cupid
-      loverSeats: [1, 3] as readonly [number, number],
-      cupidSeat: 4,
-      cupidLoversRevealAcks: [1],
-
-      seedWolfInfectionRevealAcks: [0, 1],
 
       // Board nominations
       boardNominations: {
@@ -233,7 +134,7 @@ describe('normalizeState contract', () => {
           upvoters: ['user-2'],
         },
       },
-    };
+    });
   };
 
   it('should reject a missing pendingAudioEffects field', () => {
@@ -288,26 +189,22 @@ describe('normalizeState contract', () => {
       templateRoles: ['villager'],
       players: {},
       roleViewedSeats: [],
-      nightStep: null,
+      nightState: null,
       isAudioPlaying: false,
       audioBatchId: 0,
       gameSequence: 0,
       pendingAudioEffects: [],
-      actions: [],
-      pendingRevealAcks: [],
-      hypnotizedSeats: [],
-      piperRevealAcks: [],
-      conversionRevealAcks: [],
-      wolfGirlConfessionRevealAcks: [],
-      cupidLoversRevealAcks: [],
-      seedWolfInfectionRevealAcks: [],
       roster: {},
     };
 
     const normalized = normalizeState(minimalState);
 
     // Optional fields should remain undefined
-    expect(normalized.witchContext).toBeUndefined();
-    expect(normalized.seerReveal).toBeUndefined();
+    expect(normalized.rules).toBeUndefined();
+    expect(normalized.lastNightDeaths).toBeUndefined();
+    expect(normalized.deathReasons).toBeUndefined();
+    expect(normalized.sheriffElection).toBeUndefined();
+    expect(normalized.bottomCards).toBeUndefined();
+    expect(normalized.seerLabelMap).toBeUndefined();
   });
 });

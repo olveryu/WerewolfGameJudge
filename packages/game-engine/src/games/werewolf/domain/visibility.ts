@@ -2,71 +2,33 @@
  * Werewolf view-model projection — the single place where viewer-relative
  * cropping of the authoritative GameState lives (AU-39).
  *
- * Pure function of (state, viewer): no IO, no mutation. Everything the room
- * UI needs that is a *rule fact* (who acts now, which seats the actor may
- * pick, which bottom cards are legal, which rejection is mine, which reveal
- * I still owe) is derived here so no client computes rules. Interaction
- * state (drafts, pending confirmation, dialog visibility) is deliberately
- * NOT projected — it is the client's own.
+ * Pure function of (state, viewer): no IO, no mutation. The night is
+ * projected as the current step's presentation plus per-seat statuses;
+ * interaction state (drafts, pending confirmation, dialog visibility) is
+ * the client's own and is not projected.
  *
  * @remarks Cropping rules:
- * - myRole / myEffectiveRole: the viewer's own seat only; the effective role
- *   applies the bottom-card derivation (getBottomCardEffectiveRole) as-is.
- * - Wolf visibility (wolfPackSeats): participating wolves during a meeting
- *   that can see each other; the bottom-card wolf-vote exclusion keeps
- *   treasureMaster out of the pack but still lets them see it.
+ * - myRole: the viewer's own seat only.
+ * - wolfPackSeats: the wolves the viewer may recognize in the current step.
  * - Seat visibleRole: the viewer's own seat, plus every bot seat when the
  *   viewer is the host (the judge reads bots' cards on their behalf).
- * - night.isActioner: the rule half of the former client
- *   determineActionerState — groupConfirm until acked, matching effective
- *   role until the step's action is recorded (wolf roles stay actioners
- *   because a meeting allows revotes), participating wolves during a
- *   meeting.
- * - night.reveals: at most one entry (the current groupConfirm step). Each
- *   viewer learns only their own subject status; ackedSeats is public.
- * - night.pendingReveal / rejection / witchContext / wolfRobot /
- *   chooseCard / wolfVote: cropped to the viewer that owns them; everyone
- *   else sees null.
+ * - step: only what the current step shows this viewer.
  */
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
-import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
+import { defineCopy, type StepPresentation } from '../../../platform/steps';
 import {
-  type ActionSchema,
-  canRoleSeeWolves,
-  createTemplateFromRoles,
-  doesRoleParticipateInWolfVote,
-  GameStatus,
-  type GameTemplate,
-  getSchema,
-  getWolfKillImmuneRoleIds,
-  isWolfRole,
-  type RevealKind,
-  type RoleId,
-  type SchemaId,
-} from './models';
-import { TargetConstraint } from './models/roles/spec';
-import { resolveCurrentNightStep } from './nightStep';
-import {
-  getBottomCardEffectiveRole,
-  getWerewolfUserSeat,
-  isBottomCardWolfVoteExcluded,
-  resolveNightStepActor,
-} from './playerHelpers';
-import type { ConfirmStatus, GameState } from './protocol/types';
-import { type BottomCardChoice, evaluateBottomCardChoice } from './resolvers/bottomCardChoice';
-import {
-  CONSTRAINT_REJECT_NOT_SELF,
-  CONSTRAINT_REJECT_NOT_WOLF_FACTION,
-} from './resolvers/constraintValidator';
-import type { CurrentNightResults } from './resolvers/types';
+  getWerewolfPersonalDaytimeViews,
+  type WerewolfPersonalDaytimeView,
+} from '../roles/personalDaytimeViews';
+import { createTemplateFromRoles, type GameStatus, type GameTemplate, type RoleId } from './models';
+import { getWerewolfUserSeat } from './playerHelpers';
+import type { GameState } from './protocol/types';
+import { projectWerewolfStep, type WerewolfStepSeatStatus } from './stepProjection';
 
-// =============================================================================
-// View types
-// =============================================================================
+const COPY = defineCopy({ fallbackName: '玩家' });
 
-/** Who is looking at the room: their own seat (null while unseated) and whether they host. */
 export interface WerewolfViewer {
   /** The seat the viewer acts as: own seat, or a bot seat the host controls. */
   readonly seat: number | null;
@@ -80,120 +42,16 @@ export interface WerewolfSeatView {
   readonly isBot: boolean;
   /** The seat's role when this viewer is entitled to it (own seat; bot seats for the host); else null. */
   readonly visibleRole: RoleId | null;
-  /** The seat is a wolf the viewer may recognize during the wolf meeting. */
+  /** The seat is a wolf the viewer may recognize in the current step. */
   readonly isWolfPackPeer: boolean;
   /** Public identity-viewing record for this seat. */
   readonly hasViewedRole: boolean;
-  /**
-   * Why the actioner may not pick this seat in the current step; null when
-   * pickable or when the viewer is not the actioner. Only the NotSelf
-   * constraint is projected — faction-based constraints would leak roles.
-   */
-  readonly disabledReason: string | null;
-}
-
-/** The reveal acknowledgement the viewer still owes (state-driven re-entry after reload). */
-export interface WerewolfPendingReveal {
-  /** Schema of the recorded action that produced the reveal (the engine's ack key). */
-  readonly schemaId: SchemaId;
-  /** Reveal kind declared by that schema's ui — the key of the reveal data in state. */
-  readonly revealKind: RevealKind;
-  /** The checked seat. */
-  readonly targetSeat: number;
-  /** The check result: a faction label for factionCheck reveals, a role id otherwise. */
-  readonly result: string;
-  /** How `result` reads: a plain faction label, or a role id to name. */
-  readonly resultFormat: 'factionCheck' | 'roleName';
-  /** Dialog title prefix declared by the schema (e.g. 查验结果). */
-  readonly titlePrefix: string;
-}
-
-/** The engine's rejection of the viewer's own last action. */
-export interface WerewolfRejectionView {
-  readonly rejectionId: string;
-  readonly action: string;
-  readonly reason: string;
-}
-
-/** The wolf meeting as a participating wolf sees it. */
-export interface WerewolfWolfVoteView {
-  /** Seats that vote in this meeting (participating wolf roles, bottom-card exclusion applied). */
-  readonly voterSeats: readonly number[];
-  /** Every wolf's current vote by seat; -1 is an empty vote. */
-  readonly votes: Readonly<Record<string, number>>;
-  /** The viewer's own vote; null until cast. */
-  readonly myVote: number | null;
-  /** When the step settles after every wolf voted; null until armed. */
-  readonly deadlineAt: number | null;
-  /** Occupied seats whose role is immune to the wolf kill (the confirm notes it). */
-  readonly immuneSeats: readonly number[];
-}
-
-/** Wolf robot's learned identity and the hunter-status gate, for the wolf robot only. */
-export interface WerewolfWolfRobotView {
-  readonly targetSeat: number;
-  readonly learnedRoleId: RoleId;
-  readonly canShootAsHunter: boolean | null;
-  /** The learned-hunter status must be viewed before the night may progress. */
-  readonly isHunterStatusGatePending: boolean;
-}
-
-/** The current groupConfirm reveal, cropped to one viewer. */
-export interface WerewolfRevealView {
-  readonly stepId: SchemaId;
-  /** Seats that have acknowledged this reveal (public progress). */
-  readonly ackedSeats: readonly number[];
-  /** Whether the viewer has already acknowledged. */
-  readonly hasAcked: boolean;
-  /** Whether the viewer is a subject of this reveal (hypnotized / converted / lover). */
-  readonly isSubject: boolean;
-  /** cupidLoversReveal only: the other lover's seat, visible to lovers only. */
-  readonly partnerSeat: number | null;
-  /** piperHypnotizedReveal only: the full hypnotized list, visible to the hypnotized only. */
-  readonly subjectSeats: readonly number[] | null;
-  /** wolfGirlConfessReveal only: whether the viewer was confessed by the Wolf Girl. */
-  readonly isConfessed: boolean;
-  /**
-   * wolfGirlConfessReveal only: the Wolf Girl's seat, visible only to a confessed
-   * civilian viewer (original role `villager`). Null for every other viewer,
-   * including a confessed god or third-party player and the Wolf Girl herself.
-   */
-  readonly confessorSeat: number | null;
-}
-
-export interface WerewolfNightView {
-  /** The current step's action schema; null outside the night flow. */
-  readonly actionSchema: ActionSchema | null;
-  /** The role whose step this is; null outside the night flow. */
-  readonly currentActionRole: RoleId | null;
-  /** Whether the viewer is expected to act in the current step. */
-  readonly isActioner: boolean;
-  /** The step's confirm status, only for the viewer it belongs to. */
-  readonly confirmStatus: ConfirmStatus | null;
-  /** Zero or one reveal views (only the current groupConfirm step is live). */
-  readonly reveals: readonly WerewolfRevealView[];
-  /** The wolf meeting, only while the viewer may see it. */
-  readonly wolfVote: WerewolfWolfVoteView | null;
-  /** The reveal ack the viewer owes; null when none. */
-  readonly pendingReveal: WerewolfPendingReveal | null;
-  /** The engine's rejection addressed to the viewer; null when none. */
-  readonly rejection: WerewolfRejectionView | null;
-  /** The witch's turn context, only for the acting witch. */
-  readonly witchContext: GameState['witchContext'] | null;
-  /** The wolf robot's learned identity, only for the wolf robot. */
-  readonly wolfRobot: WerewolfWolfRobotView | null;
-  /** The bottom-card deck with legality, only for the acting chooser. */
-  readonly chooseCard: BottomCardChoice | null;
-  /** The current actor hint addressed to the viewer's effective role; null otherwise. */
-  readonly actorHint: NonNullable<NonNullable<GameState['ui']>['currentActorHint']> | null;
 }
 
 export interface WerewolfViewModel {
   readonly status: GameStatus;
   readonly mySeat: number | null;
   readonly myRole: RoleId | null;
-  /** Own role after the bottom-card derivation (thief / treasureMaster). */
-  readonly myEffectiveRole: RoleId | null;
   /** The configured board as a template (name, player count, roles, rules). */
   readonly template: GameTemplate;
   readonly seats: readonly WerewolfSeatView[];
@@ -201,7 +59,12 @@ export interface WerewolfViewModel {
   readonly wolfPackSeats: readonly number[] | null;
   /** Seats with a completed identity viewing (public, AU-19 basis). */
   readonly viewedSeats: readonly number[];
-  readonly night: WerewolfNightView;
+  readonly step: StepPresentation | null;
+  readonly stepSeatStatuses: Readonly<Record<number, WerewolfStepSeatStatus>>;
+  readonly canAcknowledgeStepBots: boolean;
+  readonly stepProgressKind: 'vote' | 'confirmation' | null;
+  /** Cards only this viewer may open on the day after the night. */
+  readonly personalDaytimeViews: readonly WerewolfPersonalDaytimeView[];
   readonly day: {
     /** Elected sheriff seat from the final election result; null until elected. */
     readonly sheriffSeat: number | null;
@@ -209,87 +72,6 @@ export interface WerewolfViewModel {
     readonly mvpSeat: number | null;
   };
 }
-
-// =============================================================================
-// Current step derivation (same source as the client: night plan + index)
-// =============================================================================
-
-interface CurrentStep {
-  readonly roleId: RoleId;
-  readonly schema: ActionSchema;
-}
-
-function resolveCurrentStep(state: GameState): CurrentStep | null {
-  if (state.status !== GameStatus.Ongoing) return null;
-  const current = resolveCurrentNightStep(state);
-  if (!current) return null;
-  return { roleId: current.step.roleId, schema: current.schema };
-}
-
-// =============================================================================
-// Wolf visibility (determineActionerState's showWolves, branch-for-branch)
-// =============================================================================
-
-function deriveShowWolves(args: {
-  readonly myRole: RoleId | null;
-  readonly currentActionRole: RoleId | null;
-  readonly schema: ActionSchema | null;
-  readonly results: CurrentNightResults | undefined;
-}): boolean {
-  const { myRole, currentActionRole, schema, results } = args;
-  if (!currentActionRole || !myRole) return false;
-
-  const effectiveRole = getBottomCardEffectiveRole(myRole, results);
-
-  // Wolf Girl confession: the actor sees the wolf pack on the seat board
-  // while choosing whom to confess to, so she can pick a non-wolf player.
-  // Display-only (via deriveWolfPackSeats); the step stays a chooseSeat
-  // step and the wolf vote still happens at wolfKill. Other viewers never
-  // see the pack on this step: the branch is keyed on the viewer's own
-  // effective role.
-  if (schema?.id === 'wolfGirlConfess' && effectiveRole === 'wolfGirl') {
-    return true;
-  }
-
-  const isWolfMeeting = schema?.kind === 'wolfVote' && schema.meeting?.canSeeEachOther === true;
-  if (!isWolfMeeting) return false;
-
-  // Matching-role branch: the bottom-card exclusion is not applied here.
-  if (effectiveRole === currentActionRole) {
-    return doesRoleParticipateInWolfVote(effectiveRole);
-  }
-
-  // Wolf-meeting branch for participating wolves of another role.
-  if (!isWolfRole(effectiveRole)) return false;
-  if (isBottomCardWolfVoteExcluded(myRole)) return false;
-  return doesRoleParticipateInWolfVote(effectiveRole);
-}
-
-function deriveWolfPackSeats(
-  state: GameState,
-  occupiedSeats: readonly number[],
-  showWolves: boolean,
-): readonly number[] | null {
-  if (!showWolves) return null;
-  const pack: number[] = [];
-  for (const seat of occupiedSeats) {
-    const player = state.players[seat]!;
-    if (!player.role) continue;
-    const effectiveRole = getBottomCardEffectiveRole(player.role, state.currentNightResults);
-    if (
-      isWolfRole(effectiveRole) &&
-      canRoleSeeWolves(effectiveRole) &&
-      !isBottomCardWolfVoteExcluded(player.role)
-    ) {
-      pack.push(seat);
-    }
-  }
-  return pack;
-}
-
-// =============================================================================
-// Seat views
-// =============================================================================
 
 function listOccupiedSeats(state: GameState): number[] {
   const seats: number[] = [];
@@ -299,423 +81,46 @@ function listOccupiedSeats(state: GameState): number[] {
   return seats.sort((a, b) => a - b);
 }
 
-function stepConstraints(step: CurrentStep | null): readonly TargetConstraint[] {
-  if (!step) return [];
-  const schema = step.schema;
-  if (schema.kind === 'chooseSeat' || schema.kind === 'swap' || schema.kind === 'multiChooseSeat') {
-    return schema.constraints;
-  }
-  return [];
-}
-
-function buildSeatViews(args: {
-  readonly state: GameState;
-  readonly occupiedSeats: readonly number[];
-  readonly viewer: WerewolfViewer;
-  readonly wolfPackSeats: readonly number[] | null;
-  readonly step: CurrentStep | null;
-  readonly isActioner: boolean;
-}): WerewolfSeatView[] {
-  const { state, occupiedSeats, viewer, wolfPackSeats, step, isActioner } = args;
-  // The wolf robot keeps its learn step open only for the hunter-status gate;
-  // once the reveal exists there is nothing left to pick.
-  const constraints =
-    isActioner && !(step?.schema.id === 'wolfRobotLearn' && state.wolfRobotReveal != null)
-      ? stepConstraints(step)
-      : [];
-  return occupiedSeats.map((seat) => {
+function buildSeatViews(
+  state: GameState,
+  viewer: WerewolfViewer,
+  wolfPackSeats: readonly number[] | null,
+): WerewolfSeatView[] {
+  return listOccupiedSeats(state).map((seat) => {
     const player = state.players[seat]!;
-    const occupant = state.roster[seat];
-    if (occupant == null) {
+    if (state.roster[seat] == null) {
       throw new Error(`[FAIL-FAST] Werewolf seat ${seat} has game data without an occupant`);
     }
-
     const identity = buildSeatIdentityView(state.roster, seat, getBotDisplayName);
-    const isOwnSeat = seat === viewer.seat;
-    const isWolfPackPeer = wolfPackSeats !== null && wolfPackSeats.includes(seat);
     return {
       seat,
-      // Fallback matches the client seat board (`|| '玩家'`): an empty-string
-      // profile name falls back too (bot names are never empty).
-      displayName: identity.displayName || '玩家',
+      // An empty-string profile name falls back too (bot names are never empty).
+      displayName: identity.displayName || COPY.fallbackName,
       isBot: identity.isBot,
-      visibleRole: isOwnSeat || (viewer.isHost && identity.isBot) ? (player.role ?? null) : null,
-      isWolfPackPeer,
+      visibleRole:
+        seat === viewer.seat || (viewer.isHost && identity.isBot) ? (player.role ?? null) : null,
+      isWolfPackPeer: wolfPackSeats !== null && wolfPackSeats.includes(seat),
       hasViewedRole: state.roleViewedSeats.includes(seat),
-      disabledReason: seatDisabledReason(constraints, isOwnSeat, isWolfPackPeer),
     };
   });
 }
 
-/** Only constraints the viewer can already judge are projected; the server validates the rest. */
-function seatDisabledReason(
-  constraints: readonly TargetConstraint[],
-  isOwnSeat: boolean,
-  isWolfPackPeer: boolean,
-): string | null {
-  if (isOwnSeat && constraints.includes(TargetConstraint.NotSelf)) {
-    return CONSTRAINT_REJECT_NOT_SELF;
-  }
-  if (isWolfPackPeer && constraints.includes(TargetConstraint.NotWolfFaction)) {
-    return CONSTRAINT_REJECT_NOT_WOLF_FACTION;
-  }
-  return null;
-}
-
-// =============================================================================
-// Actioner (the rule half of the former client determineActionerState)
-// =============================================================================
-
-function deriveIsActioner(args: {
-  readonly state: GameState;
-  readonly step: CurrentStep | null;
-  readonly viewerSeat: number | null;
-  readonly myRole: RoleId | null;
-  readonly myEffectiveRole: RoleId | null;
-}): boolean {
-  const { state, step, viewerSeat, myRole, myEffectiveRole } = args;
-  if (!step || viewerSeat === null || myRole === null || myEffectiveRole === null) return false;
-
-  if (step.schema.kind === 'groupConfirm') {
-    return !ackSeatsForStep(state, step.schema.id).includes(viewerSeat);
-  }
-
-  const isWolfMeeting =
-    step.schema.kind === 'wolfVote' && step.schema.meeting?.canSeeEachOther === true;
-
-  if (myEffectiveRole === step.roleId) {
-    if (isWolfMeeting && doesRoleParticipateInWolfVote(myEffectiveRole)) return true;
-    // Non-wolf roles are done once their step's action is recorded; wolf
-    // roles track votes instead and keep acting (revote).
-    if (
-      !isWolfRole(myEffectiveRole) &&
-      state.actions.some((action) => action.schemaId === step.schema.id)
-    ) {
-      return false;
-    }
-    return true;
-  }
-
-  if (isWolfMeeting && isWolfRole(myEffectiveRole)) {
-    if (isBottomCardWolfVoteExcluded(myRole)) return false;
-    return doesRoleParticipateInWolfVote(myEffectiveRole);
-  }
-
-  return false;
-}
-
-// =============================================================================
-// Viewer-owned night facts
-// =============================================================================
-
-function derivePendingReveal(
-  state: GameState,
-  viewerSeat: number | null,
-): WerewolfPendingReveal | null {
-  if (viewerSeat === null || state.pendingRevealAcks.length === 0) return null;
-  const action = state.actions.findLast((candidate) =>
-    state.pendingRevealAcks.includes(candidate.schemaId),
-  );
-  if (action === undefined || action.actorSeat !== viewerSeat) return null;
-  const schema = getSchema(action.schemaId);
-  const ui = schema.kind !== 'compound' ? schema.ui : undefined;
-  if (ui?.revealKind === undefined) return null;
-  const revealKind = ui.revealKind;
-  const reveal = readRevealSlot(state, revealKind);
-  if (reveal === undefined) {
-    throw new Error(`[FAIL-FAST] Pending ${revealKind} reveal has no result in state`);
-  }
-  if (ui.revealTitlePrefix === undefined) {
-    throw new Error(`[FAIL-FAST] Reveal schema ${action.schemaId} declares no revealTitlePrefix`);
-  }
-  return {
-    schemaId: action.schemaId,
-    revealKind,
-    targetSeat: reveal.targetSeat,
-    result: reveal.result,
-    resultFormat: ui.revealResultFormat ?? 'roleName',
-    titlePrefix: ui.revealTitlePrefix,
-  };
-}
-
-/** The state slot a reveal kind writes its result to. */
-function readRevealSlot(
-  state: GameState,
-  kind: RevealKind,
-): { readonly targetSeat: number; readonly result: string } | undefined {
-  switch (kind) {
-    case 'seer':
-      return state.seerReveal;
-    case 'psychic':
-      return state.psychicReveal;
-    case 'gargoyle':
-      return state.gargoyleReveal;
-    case 'wolfRobot':
-      return state.wolfRobotReveal;
-    case 'pureWhite':
-      return state.pureWhiteReveal;
-    case 'wolfWitch':
-      return state.wolfWitchReveal;
-    case 'mirrorSeer':
-      return state.mirrorSeerReveal;
-    case 'drunkSeer':
-      return state.drunkSeerReveal;
-  }
-}
-
-function deriveRejection(
-  state: GameState,
-  viewerSeat: number | null,
-): WerewolfRejectionView | null {
-  const rejected = state.actionRejected;
-  if (!rejected || viewerSeat === null || rejected.targetSeat !== viewerSeat) return null;
-  return { rejectionId: rejected.rejectionId, action: rejected.action, reason: rejected.reason };
-}
-
-function deriveWolfVote(
-  state: GameState,
-  occupiedSeats: readonly number[],
-  viewerSeat: number | null,
-  showWolves: boolean,
-): WerewolfWolfVoteView | null {
-  if (!showWolves) return null;
-  const votes = state.currentNightResults?.wolfVotesBySeat ?? {};
-  const myVote = viewerSeat === null ? undefined : votes[String(viewerSeat)];
-  const immuneRoleIds = getWolfKillImmuneRoleIds();
-  const voterSeats: number[] = [];
-  const immuneSeats: number[] = [];
-  for (const seat of occupiedSeats) {
-    const role = state.players[seat]!.role;
-    if (!role) continue;
-    const effectiveRole = getBottomCardEffectiveRole(role, state.currentNightResults);
-    if (doesRoleParticipateInWolfVote(effectiveRole) && !isBottomCardWolfVoteExcluded(role)) {
-      voterSeats.push(seat);
-    }
-    if (immuneRoleIds.includes(role)) immuneSeats.push(seat);
-  }
-  return {
-    voterSeats,
-    votes,
-    myVote: myVote ?? null,
-    deadlineAt: state.nightStep?.kind === 'inStep' ? (state.nightStep.stepDeadline ?? null) : null,
-    immuneSeats,
-  };
-}
-
-function deriveWolfRobot(
-  state: GameState,
-  myEffectiveRole: RoleId | null,
-): WerewolfWolfRobotView | null {
-  const reveal = state.wolfRobotReveal;
-  if (!reveal || myEffectiveRole !== 'wolfRobot') return null;
-  return {
-    targetSeat: reveal.targetSeat,
-    learnedRoleId: reveal.learnedRoleId,
-    canShootAsHunter: reveal.canShootAsHunter ?? null,
-    isHunterStatusGatePending: isWolfRobotHunterStatusGatePending(state),
-  };
-}
-
-function deriveChooseCard(
-  state: GameState,
-  step: CurrentStep | null,
-  isActioner: boolean,
-): BottomCardChoice | null {
-  if (!isActioner || step?.schema.kind !== 'chooseCard') return null;
-  const chooser = step.roleId;
-  if (chooser !== 'thief' && chooser !== 'treasureMaster') {
-    throw new Error(`[FAIL-FAST] chooseCard step owned by non-chooser role ${chooser}`);
-  }
-  const bottomCards = state.bottomCards;
-  if (!bottomCards) {
-    throw new Error('[FAIL-FAST] chooseCard step without bottom cards in state');
-  }
-  return evaluateBottomCardChoice(chooser, bottomCards);
-}
-
-function deriveActorHint(
-  state: GameState,
-  myEffectiveRole: RoleId | null,
-): WerewolfNightView['actorHint'] {
-  const hint = state.ui?.currentActorHint;
-  if (!hint || myEffectiveRole === null || !hint.targetRoleIds.includes(myEffectiveRole)) {
-    return null;
-  }
-  return hint;
-}
-
-// =============================================================================
-// Confirm status gating (the status belongs to exactly one actor seat)
-// =============================================================================
-
-function deriveConfirmStatus(
-  state: GameState,
-  step: CurrentStep | null,
-  viewerSeat: number | null,
-): ConfirmStatus | null {
-  const status = state.confirmStatus;
-  if (!status || !step || step.schema.kind !== 'confirm' || viewerSeat === null) return null;
-  if (step.roleId !== status.role) return null;
-  const actor = resolveNightStepActor(state, status.role);
-  return actor !== null && actor.seat === viewerSeat ? status : null;
-}
-
-// =============================================================================
-// Group confirm reveals (schema -> ack family is the single mapping)
-// =============================================================================
-
-function ackSeatsForStep(state: GameState, stepId: SchemaId): readonly number[] {
-  switch (stepId) {
-    case 'awakenedGargoyleConvertReveal':
-      return state.conversionRevealAcks;
-    case 'seedWolfInfectReveal':
-      return state.seedWolfInfectionRevealAcks;
-    case 'cupidLoversReveal':
-      return state.cupidLoversRevealAcks;
-    case 'piperHypnotizedReveal':
-      return state.piperRevealAcks;
-    case 'wolfGirlConfessReveal':
-      return state.wolfGirlConfessionRevealAcks;
-    default:
-      throw new Error(`Unknown groupConfirm step: ${stepId}`);
-  }
-}
-
-function buildRevealView(
-  state: GameState,
-  step: CurrentStep | null,
-  viewerSeat: number | null,
-): WerewolfRevealView | null {
-  if (!step || step.schema.kind !== 'groupConfirm') return null;
-  const stepId = step.schema.id;
-  const ackedSeats = ackSeatsForStep(state, stepId);
-
-  let isSubject = false;
-  let partnerSeat: number | null = null;
-  let subjectSeats: readonly number[] | null = null;
-  let isConfessed = false;
-  let confessorSeat: number | null = null;
-
-  if (viewerSeat !== null) {
-    switch (stepId) {
-      case 'piperHypnotizedReveal':
-        isSubject = state.hypnotizedSeats.includes(viewerSeat);
-        subjectSeats = isSubject ? state.hypnotizedSeats : null;
-        break;
-      case 'awakenedGargoyleConvertReveal':
-        isSubject = state.convertedSeat === viewerSeat;
-        break;
-      case 'wolfGirlConfessReveal': {
-        isConfessed = state.wolfGirlConfessedSeat === viewerSeat;
-        isSubject = isConfessed;
-        if (isConfessed) {
-          // Only a confessed civilian (original role `villager`) learns the
-          // Wolf Girl's seat. A confessed god or third-party player learns
-          // only that they were confessed. The viewer's original role is
-          // read from players, never from the confession record.
-          const viewerRole = state.players[viewerSeat]?.role;
-          if (viewerRole === 'villager') {
-            for (const [seatStr, player] of Object.entries(state.players)) {
-              if (player?.role === 'wolfGirl') {
-                confessorSeat = Number.parseInt(seatStr, 10);
-                break;
-              }
-            }
-          }
-        }
-        break;
-      }
-      case 'cupidLoversReveal': {
-        const lovers = state.loverSeats;
-        if (lovers && lovers.includes(viewerSeat)) {
-          isSubject = true;
-          partnerSeat = lovers[0] === viewerSeat ? lovers[1] : lovers[0];
-        }
-        break;
-      }
-      case 'seedWolfInfectReveal': {
-        const result = state.seedWolfInfectionResult;
-        isSubject = result?.outcome === 'converted' && result.targetSeat === viewerSeat;
-        break;
-      }
-      default:
-        throw new Error(`Unknown groupConfirm step: ${stepId}`);
-    }
-  }
-
-  return {
-    stepId,
-    ackedSeats,
-    hasAcked: viewerSeat !== null && ackedSeats.includes(viewerSeat),
-    isSubject,
-    partnerSeat,
-    subjectSeats,
-    isConfessed,
-    confessorSeat,
-  };
-}
-
-// =============================================================================
-// Entry point
-// =============================================================================
-
-/**
- * Builds the cropped view model for one viewer.
- * @param state Authoritative game state (single source of truth).
- * @param viewer The seat the viewer acts as (own seat, or a bot seat the host
- *   controls; null for spectators) and whether the viewer hosts the room.
- */
 export function getWerewolfViewModel(state: GameState, viewer: WerewolfViewer): WerewolfViewModel {
   const viewerSeat = viewer.seat;
-  const myPlayer = viewerSeat === null ? null : (state.players[viewerSeat] ?? null);
-  const myRole = myPlayer?.role ?? null;
-  const myEffectiveRole =
-    myRole === null ? null : getBottomCardEffectiveRole(myRole, state.currentNightResults);
-
-  const step = resolveCurrentStep(state);
-  const showWolves = deriveShowWolves({
-    myRole,
-    currentActionRole: step?.roleId ?? null,
-    schema: step?.schema ?? null,
-    results: state.currentNightResults,
-  });
-  const isActioner = deriveIsActioner({ state, step, viewerSeat, myRole, myEffectiveRole });
-
-  const occupiedSeats = listOccupiedSeats(state);
-  const wolfPackSeats = deriveWolfPackSeats(state, occupiedSeats, showWolves);
-  const reveal = buildRevealView(state, step, viewerSeat);
-
+  const step = projectWerewolfStep(state, viewerSeat, viewer.isHost);
   return {
     status: state.status,
     mySeat: viewerSeat,
-    myRole,
-    myEffectiveRole,
+    myRole: viewerSeat === null ? null : (state.players[viewerSeat]?.role ?? null),
     template: createTemplateFromRoles([...state.templateRoles]),
-    seats: buildSeatViews({ state, occupiedSeats, viewer, wolfPackSeats, step, isActioner }),
-    wolfPackSeats,
+    seats: buildSeatViews(state, viewer, step.wolfPackSeats),
+    wolfPackSeats: step.wolfPackSeats,
     viewedSeats: state.roleViewedSeats,
-    night: {
-      actionSchema: step?.schema ?? null,
-      currentActionRole: step?.roleId ?? null,
-      isActioner,
-      confirmStatus: deriveConfirmStatus(state, step, viewerSeat),
-      reveals: reveal ? [reveal] : [],
-      // The wolf-vote view stays meeting-only: showWolves is also true for
-      // the Wolf Girl confession display, which must not surface a vote view.
-      wolfVote: deriveWolfVote(
-        state,
-        occupiedSeats,
-        viewerSeat,
-        showWolves && step?.schema.kind === 'wolfVote',
-      ),
-      pendingReveal: derivePendingReveal(state, viewerSeat),
-      rejection: deriveRejection(state, viewerSeat),
-      witchContext:
-        isActioner && step?.schema.id === 'witchAction' ? (state.witchContext ?? null) : null,
-      wolfRobot: deriveWolfRobot(state, myEffectiveRole),
-      chooseCard: deriveChooseCard(state, step, isActioner),
-      actorHint: deriveActorHint(state, myEffectiveRole),
-    },
+    step: step.step,
+    stepSeatStatuses: step.seatStatuses,
+    canAcknowledgeStepBots: step.canAcknowledgeBots,
+    stepProgressKind: step.progressKind,
+    personalDaytimeViews: getWerewolfPersonalDaytimeViews(state, viewerSeat),
     day: {
       sheriffSeat:
         state.sheriffElectionResult?.kind === 'elected'

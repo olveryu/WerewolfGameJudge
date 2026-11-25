@@ -4,6 +4,7 @@ import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
 import { getPendingSeats } from '../../../platform/room/pendingSeats';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+import { presentStep, type StepPresentation } from '../../../platform/steps';
 import {
   type AvalonBallot,
   type AvalonEndReason,
@@ -22,7 +23,11 @@ import {
   isAvalonEvilRole,
   isAvalonOccupiedSeat,
 } from '../state/types';
-import { getAvalonNightParticipants } from './rules';
+import {
+  createAvalonNightRuntime,
+  getAvalonNightParticipants,
+  hasViewedNightStep,
+} from './nightSteps';
 
 export interface AvalonSeatView {
   readonly seat: number;
@@ -139,6 +144,8 @@ export interface AvalonViewModel {
   /** 派西维尔看到的梅林 + 莫甘娜；他人为 null。 */
   readonly percivalSees: readonly number[] | null;
   readonly nightConfirmed: boolean;
+  /** The viewer's projection of the current night step on the shared step mechanism. */
+  readonly step: StepPresentation | null;
   /** 身份查看协议：本人是否已查看自己的角色（揭示动画锚点）。 */
   readonly hasViewedRole: boolean;
   /** 尚未查看角色的座位（公开信息，与狼人杀 roster 口径一致）。 */
@@ -320,6 +327,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
   let merlinSees: readonly number[] | null = null;
   let percivalSees: readonly number[] | null = null;
   let nightConfirmed = false;
+  let step: StepPresentation | null = null;
   let requiredSize: number | null = null;
   let preselectedSeats: readonly number[] | null = null;
   let proposedSeats: readonly number[] | null = null;
@@ -332,17 +340,19 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
   let myPlay: AvalonPlay | null = null;
   let lady: AvalonLadyView | null = null;
 
-  if (phase.kind === 'night') {
-    nightStep = phase.step;
+  if (phase.kind === 'night' && phase.steps.current !== null) {
+    const currentStep = phase.steps.current.stepId;
+    nightStep = currentStep;
+    step = presentStep(createAvalonNightRuntime(), state, viewerSeat);
     if (viewerSeat !== null) {
-      nightConfirmed = phase.confirmedSeats.includes(viewerSeat);
-      const participants = getAvalonNightParticipants(state.roles, phase.step);
+      nightConfirmed = hasViewedNightStep(state, currentStep, viewerSeat);
+      const participants = getAvalonNightParticipants(state.roles, currentStep);
       if (participants.includes(viewerSeat) && myRole !== null) {
-        if (phase.step === 'evilReveal' && isAvalonEvilRole(myRole)) {
+        if (currentStep === 'evilReveal' && isAvalonEvilRole(myRole)) {
           evilPeers = state.nightInfo.evilPeers[viewerSeat] ?? [];
-        } else if (phase.step === 'merlinReveal' && myRole === 'merlin') {
+        } else if (currentStep === 'merlinReveal' && myRole === 'merlin') {
           merlinSees = state.nightInfo.merlinSees;
-        } else if (phase.step === 'percivalReveal' && myRole === 'percival') {
+        } else if (currentStep === 'percivalReveal' && myRole === 'percival') {
           percivalSees = state.nightInfo.percivalSees;
         }
       }
@@ -423,6 +433,7 @@ export function getAvalonViewModel(state: AvalonState, viewerSeat: number | null
     merlinSees,
     percivalSees,
     nightConfirmed,
+    step,
     hasViewedRole: viewerSeat !== null && state.roleViewedSeats.includes(viewerSeat),
     // Every seat whose record is missing, bots included: the host
     // clears bot entries with the scaffold action.

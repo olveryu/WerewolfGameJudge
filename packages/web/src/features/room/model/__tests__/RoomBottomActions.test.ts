@@ -8,7 +8,7 @@ import {
   buildViewIdentityButton,
   resolveViewIdentityAction,
   VIEW_IDENTITY_LABEL,
-} from '../RoomBottomActions';
+} from '../RoomPlayerActions';
 
 describe('buildLobbyHostStartMessage', () => {
   it('shows the hint to a seated non-host player in the lobby', () => {
@@ -101,7 +101,6 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     expect(
       buildViewIdentityButton(action, {
         key: 'viewRole',
-        variant: 'primary',
         audience: 'participant',
         testID: TESTIDS.roomViewIdentityButton,
         isSubmitting: false,
@@ -112,11 +111,8 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
       audience: 'participant',
       icon: 'eye-outline',
       category: 'resource',
-      variant: 'primary',
-      size: 'md',
       testID: TESTIDS.roomViewIdentityButton,
-      isEnabled: true,
-      onPress,
+      state: { kind: 'ready', onPress },
     });
   });
 
@@ -129,12 +125,10 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     if (action === null) throw new Error('expected a resolved action');
     const button = buildViewIdentityButton(action, {
       key: 'view-identity',
-      variant: 'secondary',
       audience: 'anyone',
       isSubmitting: false,
     });
     expect('testID' in button).toBe(false);
-    expect(button.variant).toBe('secondary');
     expect(button.audience).toBe('anyone');
   });
 
@@ -147,11 +141,9 @@ describe('resolveViewIdentityAction / buildViewIdentityButton', () => {
     if (action === null) throw new Error('expected a resolved action');
     const button = buildViewIdentityButton(action, {
       key: 'view-identity',
-      variant: 'primary',
       audience: 'participant',
       isSubmitting: true,
     });
-    expect(button.isEnabled).toBe(false);
-    expect('onPress' in button).toBe(false);
+    expect(button.state).toEqual({ kind: 'blocked', reason: null });
   });
 });

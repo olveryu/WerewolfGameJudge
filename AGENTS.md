@@ -6,6 +6,16 @@ Global rules for this repository. Area rules live in the nested files listed at 
 
 For every change request in this repository, use a separate Git worktree visible in the session's VS Code workspace and Changes view. Reuse it for that request's follow-ups; leave other chats and worktrees unchanged.
 
+Read instructions and skills from that request's current worktree. If a skill loader returns a file from another checkout, read the current worktree's file before following it; an old checkout is not evidence that main's guidance is outdated.
+
+## Werewolf product scope
+
+Werewolf automates only the first night, dawn, and sheriff election. Later nights and subsequent daytime play are handled by the in-person host; this is not a full-game werewolf moderator.
+
+Role cards and the encyclopedia may describe complete rules, including second-night abilities and whole-game limits. Those descriptions are not requests to implement later-night actions, round counters, persistent multi-night resources, or full-game settlement. A role whose active ability starts on the second night has no first-night action; do not invent a placeholder action.
+
+Adding or changing a werewolf role or board stays within this scope by default. Do not ask again whether to support multiple nights merely because supplied rules mention them. Discuss a scope expansion only when the user explicitly requests one; clarify actual first-night rule interactions instead. This boundary is specific to werewolf, not the other games.
+
 ## Design interviews
 
 During each grill-me interview, record the user's confirmed decisions in the relevant design document as they are made; update an existing document or create one if none fits. Before implementation, consolidate the conclusions and distinguish confirmed decisions, open questions, and implementation status; never present a proposal as the user's decision.
@@ -51,7 +61,7 @@ The application release version is authoritative in the root `package.json`; `pa
 | Full gate         | `pnpm run quality`                                                       | Full run; CI only                                                      |
 | E2E               | `pnpm run e2e`                                                           | Full run; CI only                                                      |
 | Single E2E spec   | `gh workflow run e2e-single-spec.yml --ref <branch> --field spec=<file>` | One spec at a time; verify the run with `gh api` (see `e2e/AGENTS.md`) |
-| Local dev         | `pnpm run dev`                                                           | Worker plus Vite, with `VITE_CF_API_URL=http://localhost:8787`         |
+| Local dev         | `pnpm run dev`                                                           | Worker plus Vite; Worker uses 127.0.0.1:8787 or an available port      |
 | Local migrations  | `pnpm --filter @game-judge/api-worker run db:migrate:local`              | Before first local run or after a new migration                        |
 | Local D1 seed     | `pnpm --filter @game-judge/api-worker run db:seed:local`                 | After local migrations; seeds the local development account            |
 | New game          | `pnpm new-game <gameId>`                                                 | Generator; see the new-game skill                                      |

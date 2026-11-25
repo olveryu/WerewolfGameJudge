@@ -319,3 +319,41 @@ root `typecheck` 脚本追加 `tsc -p e2e/tsconfig.json --noEmit`，现有 CI �
 修复使用 TanStack Query 的 typed `meta.authScope` 与查询过滤器：维护状态明确属于 `application`，身份变化只取消、删除会话查询；未标记的既有查询仍按会话处理，不能遗留旧用户数据。没有修改 E2E 断言、等待预算、维护错误处理或实际维护时的卸载行为。
 
 新增真实 `AuthProvider` + `MaintenanceGate` 的确定性集成测试：登录、换号、退出后首次轮询期间游戏保持挂载且保留草稿；身份变化取消私有请求但保留进行中的维护请求；真正开启维护仍卸载游戏。4 项用例在修复前全部失败，修复后与既有维护和路由测试共 17 项通过。
+
+### 12.6 追加：两处“先看一眼、再等着读”的竞态（2026-11-25）
+
+CI run [45656841848](https://github.com/olveryu/WerewolfGameJudge/actions/runs/45656841848)（`3587a20f8`）里两条用例首次失败、重试通过。两处都由 trace 核实，都在 driver 里，不是产品缺陷。
+
+**盗宝大师（`werewolf-night-special-roles.spec.ts`）。** 报错 `locator.getAttribute: Timeout 10000ms exceeded`，等的是手牌上的分组牌。trace 时间线（毫秒）：
+
+| 时间            | 观察                                                                  |
+| --------------- | --------------------------------------------------------------------- |
+| 259380 – 259386 | 扫描狼人页面，分组牌 `isVisible()` 为真                               |
+| 259389          | 读分组牌的 `data-player-action-ids`；此时狼人步骤已结束，分组牌已不在 |
+| 269391          | 这次读取没有短超时，等满 10 秒后抛错，夜晚流程失败                    |
+
+扫描本来就跑在“步骤随时会变”的页面上。`isVisible()` 不等待，紧跟着的 `getAttribute()` 却会等元素出现；元素在两次读取之间消失时，一次本该“这一轮没点到”的扫描变成了 10 秒超时。同一个函数下面一行读按钮 `aria-disabled` 是同样的写法。
+
+修复：扫描路径的每次读取都不等待。新增 `readAttributeNow`（对 test id 定位到的元素做一次 `evaluateAll`，元素不在就返回空），分组牌和按钮的属性都改用它。
+
+打开分组牌按 `e2e/helpers/README.md` 里原有的规则实现（这条规则此前只写在文档里）：分组牌声明了某个动作时，点开它是必做的；点不到只有在“声明已撤回”（分组牌不在了，或不再列出这个动作）时才算这一轮没点到，并记一条日志；声明还在却在 5 秒内点不到，带点击自己的超时错误失败。必做动作路径（`clickNightButton` 等）语义不变。
+
+**预言家查恶灵骑士（`werewolf-night-check-interactions.spec.ts`）。** 断言 `revealText` 含“2号”，实际读到 `"查验结果\n"`：标题对，正文是空的。trace 时间线：
+
+| 时间            | 观察                                                               |
+| --------------- | ------------------------------------------------------------------ |
+| 138371 – 138608 | 点击确认框“查验2号？”的“确定”                                      |
+| 138611 – 138612 | `readAlertText` 等“标题可见”，1 毫秒通过——看到的还是没退出的确认框 |
+| 138614          | 读正文元素个数，得 0——确认框没有正文                               |
+| 138621 – 138664 | 读标题文字，得“查验结果”——这期间结果框替换了确认框                 |
+
+确认框在命令往返期间按设计保持打开（确定按钮转圈）。`pressConfirm` 点完就返回，没有等这张确认框关闭；`readAlertText` 又把标题和正文分三次读，三次读取跨过了替换，把新弹窗的标题配上了旧弹窗的（空）正文。
+
+修复两处：
+
+- `pressConfirm` 按下“确定”后等**这一张**确认框关闭或被替换再返回，复用已有的“捕获弹窗节点”机制（原 `dismissCurrentAlert`，按它实际做的事改名为 `pressCurrentAlertPrimary`）。等不到就带原因失败，例如“The alert stayed open after its primary button was pressed”。
+- `readAlertText` 改为一次页面求值同时取标题和正文，并用 `expect(...).toPass()` 重试到有弹窗（传了期望标题时，到标题相符）为止。
+
+`contracts/e2eNightDriver.test.ts` 新增 5 项用例（弹窗读取 2 项，扫描 3 项：刚看到就消失、点击期间声明撤回、声明还在却点不到），用旧 helper 跑全部失败、用新 helper 全部通过。假页面按 trace 的行为写：对已消失的分组牌做会等待的读取时抛超时。
+
+**同一结构的另一处，没有失败证据，一并修掉（用户确认）。** 排查全部 E2E 代码后，按“查看”的 `pressAlertButton` 也是点完就返回，后面有 10 处紧跟着不指定标题的 `readAlertText`（`driveGroupConfirmAck` 1 处，`clickNightButton(..., { revealPrivateStatus: true })` 之后 9 处）。按“查看”时内容弹窗是在同一次点击处理里同步换上的，所以这条路径没有出过失败；但这依赖产品的实现细节，helper 自己没有保证。`pressAlertButton`（以及基于它的 `confirmAlert`）现在与 `pressConfirm` 用同一个做法：按下后等这张弹窗关闭或被替换再返回。它在全部游戏的 spec 里共 39 处调用，以完整 E2E 的结论为准。

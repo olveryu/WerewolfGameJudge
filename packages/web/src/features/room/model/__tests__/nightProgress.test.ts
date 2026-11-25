@@ -1,11 +1,7 @@
 /**
- * resolveStepProgress — the shared night/step progress derivation. Every nightPhase game routes
- * its night progress row through it; the source scan keeps a hand-rolled second derivation from
- * coming back in the ported games.
+ * resolveStepProgress — the night progress derivation for games that keep their own step list.
+ * Werewolf reads its progress from the engine, which owns the step position.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { resolveStepProgress } from '../nightProgress';
 
 const STEPS = ['evilReveal', 'merlinReveal', 'percivalReveal'] as const;
@@ -32,15 +28,5 @@ describe('resolveStepProgress', () => {
   it('returns null for a step outside the list or without a label', () => {
     expect(resolveStepProgress<string>(STEPS, 'unknown', LABELS)).toBeNull();
     expect(resolveStepProgress(STEPS, 'merlinReveal', { evilReveal: '坏人互认' })).toBeNull();
-  });
-});
-
-describe('night progress derivation is shared', () => {
-  it('the werewolf adapter derives through resolveStepProgress', () => {
-    const source = fs.readFileSync(
-      path.resolve(import.meta.dirname, '../../../../games/werewolf/room/werewolfRoomAdapter.ts'),
-      'utf8',
-    );
-    expect(source).toContain('resolveStepProgress(');
   });
 });

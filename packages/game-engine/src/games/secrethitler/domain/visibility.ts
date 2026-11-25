@@ -2,7 +2,9 @@
 
 import { getBotDisplayName } from '../../../platform/room/getBotDisplayName';
 import { listUnviewedSeats } from '../../../platform/room/identityViewing';
+import { getPendingSeats } from '../../../platform/room/pendingSeats';
 import { buildSeatIdentityView } from '../../../platform/room/seatIdentity';
+import type { StepPresentation } from '../../../platform/steps';
 import {
   getSecrethitlerViewingParticipants,
   isSecrethitlerOccupiedSeat,
@@ -13,11 +15,8 @@ import {
   type SecrethitlerVote,
   type SecrethitlerVoteMode,
 } from '../state/types';
-import {
-  getKnownFascistSeats,
-  getSecrethitlerNightParticipants,
-  tallySecrethitlerVotes,
-} from './rules';
+import { presentSecrethitlerNightStep } from './nightSteps';
+import { getKnownFascistSeats, tallySecrethitlerVotes } from './rules';
 
 export interface SecrethitlerSeatView {
   readonly seat: number;
@@ -46,7 +45,7 @@ export interface SecrethitlerHistoryView {
 
 export interface SecrethitlerViewModel {
   readonly phase: SecrethitlerPhaseKind;
-  readonly phaseStep: number | null;
+  readonly step: StepPresentation | null;
   readonly mySeat: number | null;
   readonly myIdentity: string | null;
   readonly seats: readonly SecrethitlerSeatView[];
@@ -57,6 +56,7 @@ export interface SecrethitlerViewModel {
   readonly chancellorSeat: number | null;
   readonly eligibleChancellorSeats: readonly number[];
   readonly myVote: SecrethitlerVote | null;
+  readonly pendingVoteSeats: readonly number[] | null;
   readonly myHand: readonly SecrethitlerPolicy[] | null;
   readonly policyPreview: readonly SecrethitlerPolicy[] | null;
   readonly knownFascistSeats: readonly number[];
@@ -64,8 +64,6 @@ export interface SecrethitlerViewModel {
     readonly seat: number;
     readonly identity: 'fascist' | 'hitler';
   }[];
-  readonly canConfirmNight: boolean;
-  readonly hasConfirmedNight: boolean;
   readonly canRequestVeto: boolean;
   readonly myInvestigation: {
     readonly targetSeat: number;
@@ -210,13 +208,13 @@ export function getSecrethitlerViewModel(
         }
       : null;
   const nightInfo =
-    state.phase.kind === 'night' && state.phase.step === 1 && viewerSeat !== null
+    state.phase.kind === 'night' && viewerSeat !== null
       ? getKnownFascistSeats(state, viewerSeat)
       : [];
-  const phaseStep = state.phase.kind === 'night' ? state.phase.step : null;
+  const step = presentSecrethitlerNightStep(state, viewerSeat);
   return {
     phase: state.phase.kind,
-    phaseStep,
+    step,
     mySeat: viewerSeat,
     myIdentity: viewerSeat === null ? null : (state.identities[viewerSeat] ?? null),
     seats,
@@ -230,6 +228,8 @@ export function getSecrethitlerViewModel(
     chancellorSeat: currentChancellor(state),
     eligibleChancellorSeats: allowedChancellors(state),
     myVote,
+    pendingVoteSeats:
+      state.phase.kind === 'voting' ? getPendingSeats(state.livingSeats, state.phase.votes) : null,
     myHand: ownHand(state, viewerSeat),
     policyPreview:
       state.phase.kind === 'executive' &&
@@ -244,15 +244,6 @@ export function getSecrethitlerViewModel(
         throw new Error('Invalid authorized fascist identity');
       return { seat, identity };
     }),
-    canConfirmNight:
-      state.phase.kind === 'night' &&
-      state.phase.step === 1 &&
-      viewerSeat !== null &&
-      getSecrethitlerNightParticipants(state).includes(viewerSeat),
-    hasConfirmedNight:
-      state.phase.kind === 'night' &&
-      viewerSeat !== null &&
-      state.phase.confirmedSeats.includes(viewerSeat),
     canRequestVeto:
       state.phase.kind === 'legislativeChancellor' &&
       viewerSeat === state.phase.chancellorSeat &&

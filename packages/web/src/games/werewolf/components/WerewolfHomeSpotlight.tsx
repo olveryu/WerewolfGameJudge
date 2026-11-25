@@ -5,7 +5,7 @@ import './WerewolfHomeSpotlight.css';
 import {
   Faction,
   getAllRoleIds,
-  getRoleSpec,
+  getRoleCard,
   isWolfRole,
   type RoleId,
 } from '@game-judge/game-engine/games/werewolf/public';
@@ -33,7 +33,7 @@ function getRoleAt(index: number): RoleId {
 
 function getFactionPresentation(roleId: RoleId) {
   if (isWolfRole(roleId)) return { faction: 'wolf', label: '狼人' } as const;
-  const { faction } = getRoleSpec(roleId);
+  const { faction } = getRoleCard(roleId);
   if (faction === Faction.God) return { faction: 'god', label: '神职' } as const;
   if (faction === Faction.Special) return { faction: 'third', label: '第三方' } as const;
   return { faction: 'villager', label: '村民' } as const;
@@ -58,7 +58,7 @@ export function WerewolfHomeSpotlight() {
   const isFlippingRef = useRef(false);
 
   const roleId = getRoleAt(roleIndex);
-  const role = getRoleSpec(roleId);
+  const role = getRoleCard(roleId);
   const faction = getFactionPresentation(roleId);
 
   useEffect(() => {

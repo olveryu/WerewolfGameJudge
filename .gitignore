@@ -3,6 +3,7 @@ playwright-report/
 test-results/
 coverage/
 .scene-baselines/
+.catalogue-reports/
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies

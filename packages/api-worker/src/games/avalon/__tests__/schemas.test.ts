@@ -67,7 +67,11 @@ describe('Avalon public command schema', () => {
       { type: 'avalon.game.restart', gameSequence: 1, wasEnded: false },
       { type: 'avalon.phase.retrySettle' },
       { type: 'avalon.bots.markAllBotsGroupConfirmed' },
-      { type: 'avalon.night.confirm' },
+      {
+        type: 'avalon.step.submit',
+        gameSequence: 1,
+        submission: { stepId: 'merlinReveal', serial: 1, actionKey: 'viewNightInfo' },
+      },
       { type: 'avalon.team.preselect', seats: [0, 1] },
       { type: 'avalon.team.propose', seats: [0, 1, 2] },
       { type: 'avalon.team.vote', vote: 'approve' },
@@ -94,6 +98,12 @@ describe('Avalon public command schema', () => {
       { type: 'avalon.game.restart', gameSequence: 1 },
       { type: 'avalon.game.restart', gameSequence: 1, wasEnded: 'false' },
       { type: 'avalon.game.restart', gameSequence: 1, wasEnded: false, extra: true },
+      { type: 'avalon.night.confirm' },
+      {
+        type: 'avalon.step.submit',
+        gameSequence: 1,
+        submission: { stepId: 'wolfReveal', serial: 0, actionKey: 'viewNightInfo' },
+      },
     ]) {
       expect(avalonPublicCommandSchema.safeParse(command).success).toBe(false);
     }

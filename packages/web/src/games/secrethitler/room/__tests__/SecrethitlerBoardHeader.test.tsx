@@ -6,7 +6,7 @@ import {
 } from '@game-judge/game-engine/games/secrethitler/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 
@@ -18,13 +18,19 @@ import {
   startSecrethitlerTestGame,
 } from '@/test-utils/secrethitlerState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 import * as alertPresets from '@/utils/alertPresets';
 
+import {
+  secrethitlerVoteFailImage,
+  secrethitlerVotePassImage,
+} from '../../assets/secrethitlerVoteImages';
 import { secrethitlerReview } from '../../review/secrethitlerReview';
 import { createSecrethitlerHostManagement } from '../secrethitlerRoomAdapter';
 import {
   SecrethitlerBoardHeader,
   SecrethitlerBoardInfo,
+  SecrethitlerCompactBoardHeader,
   SecrethitlerHistoryDialog,
   SecrethitlerInvestigationResult,
   SecrethitlerPublicResult,
@@ -41,6 +47,48 @@ vi.mock('@/features/gacha/queries/useGachaQuery', () => ({
   useGachaStatusQuery: () => ({ data: undefined }),
 }));
 vi.mock('@/features/room/services/recentRooms', () => ({ addRecentRoom: vi.fn() }));
+
+it('shows voting progress and keeps policy rules interactive until the result is revealed', () => {
+  const fixture = buildSecrethitlerPhaseStates().get('voting');
+  if (fixture === undefined || fixture.phase.kind !== 'voting')
+    throw new Error('Missing voting fixture');
+  const state = {
+    ...fixture,
+    phase: { ...fixture.phase, votes: { 0: 'ja', 1: 'nein' } },
+  } satisfies SecrethitlerState;
+  const { rerender } = render(
+    <SecrethitlerCompactBoardHeader
+      state={state}
+      view={getSecrethitlerViewModel(state, null)}
+      actionMessage={null}
+      remainingSeconds={null}
+    />,
+  );
+  expect(screen.getByText('政府投票中')).toBeInTheDocument();
+  expect(screen.getByText('已投 2/8')).toBeInTheDocument();
+  expect(screen.getByText('未投票：3号 4号 5号 6号 7号 8号')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /自由派政策第1张.*查看规则/ }));
+  expect(screen.getByRole('dialog', { name: '自由派政策 1' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: '关闭' }));
+
+  const complete = {
+    ...state,
+    phase: {
+      ...state.phase,
+      votes: { 0: 'ja', 1: 'nein', 2: 'ja', 3: 'ja', 4: 'ja', 5: 'ja', 6: 'ja', 7: 'ja' },
+    },
+  } satisfies SecrethitlerState;
+  rerender(
+    <SecrethitlerCompactBoardHeader
+      state={complete}
+      view={getSecrethitlerViewModel(complete, null)}
+      actionMessage={null}
+      remainingSeconds={4}
+    />,
+  );
+  expect(screen.getByText('已全部投票，4 秒后揭晓')).toBeInTheDocument();
+  expect(screen.queryByText(/未投票：/)).not.toBeInTheDocument();
+});
 
 it('shows public vote results without allowing dismissal or confirmation', () => {
   const state = buildSecrethitlerPhaseStates().get('publicResult');
@@ -60,9 +108,48 @@ it('shows public vote results without allowing dismissal or confirmation', () =>
     isSubmitting: false,
     submit,
   };
-  render(<SecrethitlerPublicResult screen={props} />);
+  const { rerender } = render(<SecrethitlerPublicResult screen={props} />);
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.getByText(/政府通过/)).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerSettledVoteBanner)).toHaveAttribute(
+    'src',
+    secrethitlerVotePassImage,
+  );
+  const voteResult = props.viewModel.publicVoteResult;
+  if (voteResult === null) throw new Error('Missing public vote result');
+  rerender(
+    <SecrethitlerPublicResult
+      screen={{
+        ...props,
+        viewModel: {
+          ...props.viewModel,
+          publicVoteResult: { ...voteResult, passed: false },
+        },
+      }}
+    />,
+  );
+  expect(screen.getByText(/政府未通过/)).toBeVisible();
+  expect(screen.getByTestId(TESTIDS.secrethitlerSettledVoteBanner)).toHaveAttribute(
+    'src',
+    secrethitlerVoteFailImage,
+  );
+  const legislative = buildSecrethitlerPhaseStates().get('legislativeChancellor');
+  if (legislative === undefined || legislative.phase.kind !== 'legislativeChancellor')
+    throw new Error('Missing legislative fixture');
+  rerender(
+    <SecrethitlerPublicResult
+      screen={{
+        ...props,
+        state: {
+          ...state,
+          phase: { ...state.phase, previous: legislative.phase, policy: 'liberal' },
+        },
+        viewModel: { ...props.viewModel, publicVoteResult: null },
+      }}
+    />,
+  );
+  expect(screen.getByText('施行自由派政策')).toBeVisible();
+  expect(screen.queryByTestId(TESTIDS.secrethitlerSettledVoteBanner)).not.toBeInTheDocument();
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.getByRole('dialog', { name: '公共结果' })).toBeVisible();
   expect(screen.queryByRole('button', { name: '知道了' })).not.toBeInTheDocument();
@@ -117,9 +204,13 @@ it('lets the overdue Secret Hitler host retry public-result settlement', () => {
   const rendered = render(<SecrethitlerPublicResult screen={props} />);
   try {
     fireEvent.click(screen.getByTestId(TESTIDS.stageSettleRescueRetryButton));
-    expect(submit).toHaveBeenCalledWith('重新推进', {
-      type: 'secrethitler.phase.retrySettle',
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新推进',
+      {
+        type: 'secrethitler.phase.retrySettle',
+      },
+      { actionKey: null },
+    );
   } finally {
     rendered.unmount();
     vi.useRealTimers();
@@ -146,7 +237,7 @@ it('shows a pending private investigation only to its president until explicit a
   expect(submit).toHaveBeenCalledWith(
     '确认调查结果',
     { type: 'secrethitler.action.acknowledgeInvestigation' },
-    { controlledSeat: seat },
+    { actionKey: null, controlledSeat: seat },
   );
   expect(screen.getByRole('dialog', { name: '私密调查结果' })).toBeVisible();
   rerender(
@@ -189,10 +280,8 @@ it('allows assigning roles when every occupied seat is a bot', () => {
       canShareRoom: denied,
     },
   });
-  const assignAction = panel.sections
-    .flatMap((section) => section.actions)
-    .find((action) => action.label === '分配角色');
-  expect(assignAction?.isEnabled).toBe(true);
+  const assignAction = panel.actions.find((action) => action.label === '分配角色');
+  expect(assignAction?.state.kind).toBe('ready');
 });
 
 it.each(['lobby', 'viewing'] as const)('hides the match summary during %s', (phase) => {
@@ -286,12 +375,8 @@ it('uses electronic first-night guidance without a reading script or manual prog
     },
   });
   expect(panel.task).toBeNull();
-  const actions = panel.sections.flatMap((section) => section.actions);
-  expect(actions.map((action) => action.label)).toEqual([
-    '重播当前语音',
-    '标记机器人已确认',
-    '重新开始',
-  ]);
+  const actions = panel.actions;
+  expect(actions.map((action) => action.label)).toEqual(['标记机器人已确认', '重新开始']);
 });
 
 it('keeps terminal details behind the shared record dialog and preserves results and labels', async () => {
@@ -311,15 +396,13 @@ it('keeps terminal details behind the shared record dialog and preserves results
   expect(screen.getByText('1 号 · 房主（你）')).toBeInTheDocument();
   expect(screen.getAllByText(/（机器人）/)).toHaveLength(6);
   expect(screen.getByText(/至少 5 名真人.*注册玩家获得 33 经验/)).toBeInTheDocument();
-  expect(screen.getByRole('progressbar', { name: '自由派政策' })).toHaveAttribute(
-    'value',
-    String(state.liberalPolicies),
-  );
-  expect(screen.getByRole('progressbar', { name: '法西斯政策' })).toHaveAttribute(
-    'value',
-    String(state.fascistPolicies),
-  );
+  expect(screen.getByRole('list', { name: '自由派政策轨道' })).toBeVisible();
+  expect(screen.getByRole('list', { name: '法西斯政策轨道' })).toBeVisible();
   expect(screen.getByText('公开对局记录')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: /自由派政策第1张.*查看规则/ }));
+  const policyDialog = screen.getByRole('dialog', { name: '自由派政策 1' });
+  await user.click(within(policyDialog).getByRole('button', { name: '关闭' }));
+  expect(screen.getByRole('dialog', { name: '对局记录' })).toBeVisible();
   await user.click(screen.getByRole('button', { name: '关闭详情' }));
   expect(onClose).toHaveBeenCalledOnce();
 });
@@ -412,12 +495,12 @@ it('automatically opens the acting president hand when reconnecting', () => {
 });
 
 it.each([
-  ['investigate', '调查阵营', 'secrethitler.action.investigate'],
-  ['specialElection', '特别选举', 'secrethitler.action.specialElection'],
-  ['execute', '处决玩家', 'secrethitler.action.execute'],
+  ['investigate', '调查', 'secrethitler.action.investigate', '调查2号？', ''],
+  ['specialElection', '特别选举', 'secrethitler.action.specialElection', '指定2号为下任总统？', ''],
+  ['execute', '处决', 'secrethitler.action.execute', '处决2号？', '处决不可撤销。'],
 ] as const)(
   'picks the %s target on the seat board before confirming',
-  async (power, action, type) => {
+  async (power, action, type, title, body) => {
     const states = buildSecrethitlerPhaseStates();
     const base = states.get('executive');
     if (base === undefined) throw new Error('Missing president fixture');
@@ -429,9 +512,6 @@ it.each([
       investigatedSeats: [],
       phase: { kind: 'executive', presidentSeat: 0, returnToSeat: null, power, preview: [] },
     };
-    const confirmation = vi
-      .spyOn(alertPresets, 'showConfirmAlert')
-      .mockImplementation(() => undefined);
     const error = vi.spyOn(alertPresets, 'showErrorAlert').mockImplementation(() => undefined);
     const identity = testIdentity('secrethitler');
     const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
@@ -464,31 +544,35 @@ it.each([
     fireEvent.click(screen.getByRole('button', { name: action }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(0)));
-    expect(confirmation).not.toHaveBeenCalled();
+    expect(alertStore.getSnapshot()).toBeNull();
     fireEvent.click(screen.getByTestId(TESTIDS.seatTilePressable(1)));
-    const confirmationCall = confirmation.mock.calls[0];
-    expect(confirmationCall?.[0]).toBe('确认选择？');
-    expect(confirmationCall?.[1]).toContain('2 号');
-    expect(confirmationCall?.[2]).toEqual(expect.any(Function));
-    expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
+    const confirmationAlert = alertStore.getSnapshot();
+    expect(confirmationAlert).toMatchObject({
+      title,
+      buttons: [{ text: '取消' }, { text: '确定' }],
+    });
+    expect(confirmationAlert?.message ?? '').toBe(body);
+    const confirm = confirmationAlert?.buttons[1]?.onPress;
+    if (confirm === undefined) throw new Error('Missing target confirmation');
     expect(session.dispatch).not.toHaveBeenCalled();
     session.dispatch.mockResolvedValueOnce({
       kind: 'undelivered',
       commandId: 'target',
       cause: 'network',
     });
-    await act(async () => confirmation.mock.calls[0]?.[2]());
+    await act(async () => confirm());
     expect(session.dispatch).toHaveBeenCalledWith({ type, targetSeatId: 1 }, expect.anything());
     fireEvent.click(screen.getByRole('button', { name: '取消选座' }));
-    await act(async () => confirmation.mock.calls[0]?.[2]());
+    await act(async () => confirm());
     expect(session.dispatch).toHaveBeenCalledOnce();
     expect(error).toHaveBeenCalledWith('选择已失效', '当前行动已改变，请重新选择。');
     error.mockRestore();
-    confirmation.mockRestore();
+    const remaining = alertStore.getSnapshot();
+    if (remaining !== null) dismissAlert(remaining.generation);
   },
 );
 
-it('asks before showing private night recognition information', () => {
+it('shows private night recognition through the shared view action', () => {
   const night = buildSecrethitlerPhaseStates().get('night');
   if (night === undefined) throw new Error('Missing night fixture');
   const fascistSeat = Object.entries(night.identities).find(([, role]) => role === 'fascist')?.[0];
@@ -500,9 +584,6 @@ it('asks before showing private night recognition information', () => {
     isAudioPlaying: false,
     identities: { ...night.identities, 0: 'fascist', [fascistSeat]: originalRole },
   };
-  const confirmation = vi
-    .spyOn(alertPresets, 'showConfirmAlert')
-    .mockImplementation(() => undefined);
   const identity = testIdentity('secrethitler');
   const session = createFakeRoomLink<SecrethitlerState, SecrethitlerCommand>(
     readyLinkSnapshot(identity, createRoomSnapshot(state, 1)),
@@ -531,19 +612,15 @@ it('asks before showing private night recognition information', () => {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  fireEvent.click(screen.getByRole('button', { name: '确认信息' }));
-  const confirmationCall = confirmation.mock.calls[0];
-  expect(confirmationCall?.[0]).toBe('查看信息？');
-  expect(confirmationCall?.[1]).toEqual(expect.any(String));
-  expect(confirmationCall?.[2]).toEqual(expect.any(Function));
-  expect(confirmationCall?.[3]?.confirmText).toBe('查看');
-  expect(confirmationCall?.[3]?.onShown).toEqual(expect.any(Function));
-  expect(screen.queryByRole('dialog', { name: '确认信息' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '查看夜间信息' }));
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '查看夜间信息？' });
   act(() => {
-    void confirmation.mock.calls[0]?.[2]();
+    void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
   });
-  expect(screen.getByRole('dialog', { name: '确认信息' })).toBeVisible();
-  confirmation.mockRestore();
+  expect(alertStore.getSnapshot()).toMatchObject({ title: '坏人互认' });
+  expect(alertStore.getSnapshot()?.message).toContain('仅你获准查看');
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
 });
 
 it('shows public composition in the room dialog without revealing seat identities', async () => {

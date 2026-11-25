@@ -167,6 +167,7 @@
   border: var(--border-width) solid var(--color-primary);
   border-radius: var(--radius-small);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .avalon-quest-card[data-kind='fail'] {
@@ -175,7 +176,8 @@
 
 .avalon-quest-card[data-empty='true'] {
   border-color: var(--color-border);
-  opacity: var(--opacity-disabled);
+  background: var(--color-surface-hover);
+  box-shadow: none;
 }
 
 .avalon-quest-card-count {
@@ -245,16 +247,6 @@
 }
 
 /* Proposals */
-.avalon-adopted-proposal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-small);
-  padding: var(--space-small);
-  border: var(--border-width-thick) solid var(--color-primary);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface);
-}
-
 .avalon-proposer-row,
 .avalon-team-row {
   display: flex;
@@ -389,10 +381,18 @@
   color: inherit;
   font: inherit;
   text-align: start;
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 button.avalon-rejected-header {
   cursor: pointer;
+}
+
+button.avalon-rejected-header:active {
+  background: var(--color-surface-hover);
+  transform: translateY(var(--space-micro));
 }
 
 .avalon-rejected-summary {
@@ -506,39 +506,10 @@ button.avalon-rejected-header {
   font-weight: var(--weight-bold);
 }
 
-.avalon-history-tabs {
-  display: flex;
-  gap: var(--space-tight);
-  padding: var(--space-tight);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-hover);
-}
-
-.avalon-history-tab {
-  flex: 1;
-  padding: var(--space-tight) var(--space-small);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-full);
-  background: none;
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
-  cursor: pointer;
-}
-
-.avalon-history-tab[aria-selected='true'] {
-  border-color: var(--color-border-light);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: var(--weight-semibold);
-}
-
-.avalon-history-sheet {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-small);
-  min-height: 0;
+@media (hover: hover) {
+  button.avalon-rejected-header:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 .avalon-history-scroll {
@@ -548,12 +519,4 @@ button.avalon-rejected-header {
   gap: var(--space-small);
   min-height: 0;
   padding-bottom: var(--space-small);
-}
-
-.avalon-history-empty {
-  margin: 0;
-  padding: var(--space-small);
-  color: var(--color-text-secondary);
-  font-size: var(--font-secondary);
-  line-height: var(--line-secondary);
 }

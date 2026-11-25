@@ -1,7 +1,7 @@
 /**
  * 谁是卧底（阶段 × 观看者）底部提示矩阵声明：逐格事实以
  * undercoverGuidanceMatrix.test.ts 用真实引擎流驱动
- * createUndercoverBottomActions 对账为准。格子语义为阶段入口态。
+ * createUndercoverPlayerActions 对账为准。格子语义为阶段入口态。
  */
 import type { UndercoverState } from '@game-judge/game-engine/games/undercover/public';
 

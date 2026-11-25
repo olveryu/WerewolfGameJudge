@@ -5,8 +5,17 @@
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-small);
   background-color: var(--color-surface);
+  box-shadow: var(--surface-drawing-shadow);
+}
+
+.drawing-canvas::after {
+  position: absolute;
+  inset: 0;
+  background-image: var(--surface-drawing-texture);
+  content: '';
+  pointer-events: none;
 }
 
 .drawing-canvas__layer {

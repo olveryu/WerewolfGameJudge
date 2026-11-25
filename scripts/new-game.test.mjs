@@ -7,7 +7,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -16,7 +16,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { afterAll, it } from 'vitest';
 
-import { editEngineContractsTest } from './lib/new-game/edits.mjs';
+import {
+  editEngineContractsTest,
+  editNightCatalogueIndex,
+  editNightCatalogueRegistry,
+} from './lib/new-game/edits.mjs';
 import {
   FILE_CAPABILITY_GATES,
   generateNewGame as generateNewGameWithProfile,
@@ -51,6 +55,17 @@ const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** Every shared file the generator edits; the fixture copies the real ones. */
 const SHARED_FILES = SHARED_EDITS.map(({ file }) => file);
 const fixtureRoots = new Set();
+it('requires narrated-night registration anchors and leaves non-night registrations unchanged', () => {
+  const context = { gameId: 'example', capabilities: { nightPhase: true } };
+  assert.throws(() => editNightCatalogueRegistry('no registry anchor', context), /anchor/);
+  assert.throws(() => editNightCatalogueIndex('no index anchor', context), /anchor/);
+  const withoutNight = { ...context, capabilities: { nightPhase: false } };
+  assert.equal(
+    editNightCatalogueRegistry('no registry anchor', withoutNight),
+    'no registry anchor',
+  );
+  assert.equal(editNightCatalogueIndex('no index anchor', withoutNight), 'no index anchor');
+});
 const DEFAULT_FEATURE_PROFILE = Object.freeze(
   Object.fromEntries(FEATURE_KEYS.map((key) => [key, FEATURE_VALUES[key][0]])),
 );
@@ -158,6 +173,17 @@ function typecheckFixture(root, project) {
  * the selections that enable the capability.
  */
 const CAPABILITY_FILE_ADDITIONS = [
+  {
+    capability: 'nightPhase',
+    files: ({ engine }) => [
+      `${engine}/domain/nightSteps.ts`,
+      `${engine}/state/nightCodec.ts`,
+      `${engine}/__tests__/nightDriver.ts`,
+      `${engine}/__tests__/nightScenarios.ts`,
+      `${engine}/__tests__/nightSteps.contract.test.ts`,
+      `${engine}/__tests__/nightCatalogue.integration.test.ts`,
+    ],
+  },
   {
     capability: 'stageDeadline',
     files: ({ engine }) => [`${engine}/__tests__/phaseDeadlineProtocol.contract.test.ts`],
@@ -767,7 +793,7 @@ for (const scenario of FEATURE_SCENARIOS) {
     // Every generated game wires the review end to end: the module declares the
     // contribution, the room state resolves it through the platform
     // hook, the screen mounts its overlay, and the adapter places the
-    // shared entry on the bottom tier and the host sheet without
+    // shared entry among player and host actions without
     // referencing removed terminal actions from the ended task.
     const clientModule = readFixture(root, 'packages/web/src/games/demoproto/module.ts');
     assert.ok(clientModule.includes('review: demoprotoReview,'), 'module declares the review');
@@ -786,11 +812,7 @@ for (const scenario of FEATURE_SCENARIOS) {
       root,
       'packages/web/src/games/demoproto/room/demoprotoRoomAdapter.ts',
     );
-    assert.ok(
-      adapterSource.includes(
-        `buildViewerReviewBottomButtons(input.review, 'secondary', input.viewer)`,
-      ),
-    );
+    assert.ok(adapterSource.includes(`buildViewerReviewBottomButtons(input.review, input.viewer)`));
     assert.ok(adapterSource.includes('buildReviewHostAction(input.review)'));
     assert.ok(!adapterSource.includes('hostReviewClosingTask()'));
     if (capabilities.identityViewing) {
@@ -1038,6 +1060,7 @@ it('night narration derives audio orchestration and renders its full wiring', ()
   };
   const withDerivedCapabilities = (features) => ({
     ...deriveCapabilities(features),
+    sharedSteps: features.night === 'narrated',
     armDeadlineAtBegin: false,
     stageDeadlineAtStart: false,
     businessStats: true,
@@ -1086,7 +1109,13 @@ it('night narration derives audio orchestration and renders its full wiring', ()
   ).files({ client: 'packages/web/src/games/demoproto', pascal: 'Demoproto' });
   assert.ok(on.has(hookFile), 'audio-on render includes the binding hook file');
   assert.ok(!off.has(hookFile), 'audio-off render excludes the binding hook file');
-  assert.deepEqual([...on.keys()].filter((file) => !off.has(file)).sort(), audioFiles.sort());
+  const nightFiles = CAPABILITY_FILE_ADDITIONS.find(
+    (addition) => addition.capability === 'nightPhase',
+  ).files({ engine: 'packages/game-engine/src/games/demoproto' });
+  assert.deepEqual(
+    [...on.keys()].filter((file) => !off.has(file)).sort(),
+    [...audioFiles, ...nightFiles].sort(),
+  );
   assert.deepEqual(
     [...off.keys()].filter((file) => !on.has(file)),
     [],
@@ -1491,7 +1520,7 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
           production: index === 0,
         });
         assert.equal(summary.formatted, true, `prettier must run for ${scenario.name}`);
-        return { gameId, summary };
+        return { gameId, summary, features: scenario.features };
       });
       const require = createRequire(path.join(root, 'package.json'));
       const createdFiles = generatedGames.flatMap(({ summary }) => summary.createdFiles);
@@ -1545,9 +1574,41 @@ it.skipIf(!fs.existsSync(path.join(REPO_ROOT, 'node_modules', 'prettier')))(
         'src/platform/__tests__/phaseDeadlineVariants.contract.test.ts',
         'src/platform/__tests__/gameRegistry.contract.test.ts',
       ];
+      const unimplementedCatalogues = generatedGames
+        .filter(({ features }) => features.night === 'narrated')
+        .map(({ gameId }) => `src/games/${gameId}/__tests__/nightCatalogue.integration.test.ts`);
+      const incomplete = spawnSync(
+        process.execPath,
+        [
+          resolveVitestBin(root, 'packages/game-engine'),
+          'run',
+          ...unimplementedCatalogues,
+          '--reporter=json',
+        ],
+        { cwd: path.join(root, 'packages/game-engine'), encoding: 'utf8' },
+      );
+      if (incomplete.error !== undefined) throw incomplete.error;
+      assert.equal(
+        incomplete.status,
+        1,
+        `Unimplemented catalogues must fail:\n${incomplete.stdout}\n${incomplete.stderr}`,
+      );
+      const catalogueResults = JSON.parse(incomplete.stdout);
+      assert.equal(catalogueResults.numFailedTests, unimplementedCatalogues.length * 2);
+      for (const result of catalogueResults.testResults) {
+        for (const assertion of result.assertionResults) {
+          assert.equal(assertion.status, 'failed');
+          assert.ok(assertion.failureMessages.join('\n').includes('[GAMEPLAY INCOMPLETE]'));
+        }
+      }
       execFileSync(
         process.execPath,
-        [resolveVitestBin(root, 'packages/game-engine'), 'run', ...engineTestPaths],
+        [
+          resolveVitestBin(root, 'packages/game-engine'),
+          'run',
+          ...engineTestPaths,
+          ...unimplementedCatalogues.flatMap((file) => ['--exclude', file]),
+        ],
         { cwd: path.join(root, 'packages/game-engine'), stdio: 'inherit' },
       );
       const workerTestPaths = generatedGames.map(({ gameId }) => `src/games/${gameId}`);

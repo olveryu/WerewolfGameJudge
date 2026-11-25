@@ -107,6 +107,28 @@ jobs:
             test-results-web-${{ matrix.shard }}.json
           if-no-files-found: ignore
 
+  catalogues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @game-judge/game-engine run build
+      - name: Generate catalogue candidates and reviewed-baseline differences
+        run: pnpm run catalogue:check
+      - name: Upload complete catalogue reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: catalogue-reports
+          path: .catalogue-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+
   # api-worker tests are slow (Miniflare + D1). Shard across 3 runners.
   test-api-worker:
     runs-on: ubuntu-latest
@@ -828,7 +850,7 @@ jobs:
     name: ci-gate
     runs-on: ubuntu-latest
     if: always()
-    needs: [quality, lint, test-root, test-api-worker, e2e]
+    needs: [quality, lint, test-root, test-api-worker, catalogues, e2e]
     steps:
       - name: Assert every required job succeeded
         env:
@@ -836,6 +858,7 @@ jobs:
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_ROOT_RESULT: ${{ needs.test-root.result }}
           TEST_API_WORKER_RESULT: ${{ needs.test-api-worker.result }}
+          CATALOGUES_RESULT: ${{ needs.catalogues.result }}
           E2E_RESULT: ${{ needs.e2e.result }}
         run: |
           failed=0
@@ -844,6 +867,7 @@ jobs:
             "lint=$LINT_RESULT" \
             "test-root=$TEST_ROOT_RESULT" \
             "test-api-worker=$TEST_API_WORKER_RESULT" \
+            "catalogues=$CATALOGUES_RESULT" \
             "e2e=$E2E_RESULT"; do
             echo "$pair"
             if [ "${pair#*=}" != "success" ]; then

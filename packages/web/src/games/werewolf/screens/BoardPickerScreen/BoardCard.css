@@ -4,6 +4,7 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
 .board-card[data-expanded='true'] {

@@ -226,6 +226,8 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
       : { isEnabled: true, onPress: vi.fn() };
   const model = createStoryRelayRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),
@@ -260,10 +262,10 @@ function bottomMessage(state: StoryRelayState, audience: RoomViewerAudience): st
     },
     isLobby: state.phase === 'lobby',
     review,
-    buildHostManagement: () => ({ task: null, sections: [] }),
+    buildHostManagement: () => ({ task: null, actions: [] }),
     releaseBot: vi.fn(),
   });
-  return model.bottomActions.message;
+  return model.playerActions.message;
 }
 
 describe('STORY_RELAY_GUIDANCE_MATRIX', () => {

@@ -280,8 +280,10 @@ then starts Worker and Vite. Either initialization failure stops startup.
 Wrangler stores local state in this worktree's `packages/api-worker/.wrangler/state`;
 no remote database or other worktree is initialized.
 
-Startup prefers Worker `8787`, Vite `5173` and inspector `9229`, skipping occupied
-ports without stopping their owners. Vite receives the selected Worker URL through
+Startup prefers Worker `127.0.0.1:8787` and uses an OS-assigned Worker port when
+occupied. Vite and inspector ports start at `5173` and `9229`, skipping occupied
+IPv4 and IPv6 loopback ports without stopping their owners.
+Vite receives the selected Worker URL through
 `VITE_CF_API_URL` and uses a strict port so a startup race fails rather than silently
 changing the Web origin. If either server exits, the other is stopped too.
 

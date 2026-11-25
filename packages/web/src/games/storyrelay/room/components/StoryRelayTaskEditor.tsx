@@ -121,7 +121,7 @@ export function StoryRelayTaskEditor({
         chainId: task.chainId,
         isReady: !isReady,
       },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     );
   };
   const previous = task.previousEntry;

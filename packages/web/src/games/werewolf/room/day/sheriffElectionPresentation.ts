@@ -51,15 +51,7 @@ interface SheriffElectionPresentationRoundInput {
  */
 export interface SheriffElectionPresentationInput {
   readonly phase: SheriffElectionState['phase'];
-  /**
-   * The phase description, supplied by the caller — never derived here.
-   * The panel passes its view model's description, which is the host
-   * variant (`报名截止后，请在「主持管理」中结束报名。`) for the host
-   * during registration; the review passes the generic description,
-   * because the archive is read-only and host instructions do not
-   * belong in it. This is the one registered intentional difference
-   * between the two surfaces.
-   */
+  /** The phase description, supplied by the caller — never derived here. */
   readonly phaseDescription: string;
   /** Null while registration identities are not yet public. */
   readonly records: SheriffCandidateRecords | null;
@@ -136,22 +128,6 @@ interface SheriffElectionPresentation {
  */
 function areSameSeats(first: readonly number[], second: readonly number[]): boolean {
   return first.length === second.length && first.every((seat, index) => seat === second[index]);
-}
-
-/**
- * Live-clock suffix for a completed vote's progress line, used by the
- * HUD — the one place the settle countdown is shown. While seconds
- * remain it is `，N秒后自动公布结果`; once the deadline is reached (0)
- * or the armed deadline has not arrived in the snapshot yet (null) it
- * falls back to `，即将自动公布结果` — never a literal 0. Callers
- * append it only once every eligible voter has submitted; while the
- * vote is still open there is no suffix at all.
- */
-export function getSettleCountdownSuffix(remainingSeconds: number | null): string {
-  if (remainingSeconds !== null && remainingSeconds > 0) {
-    return `，${remainingSeconds}秒后自动公布结果`;
-  }
-  return '，即将自动公布结果';
 }
 
 export function createSheriffElectionPresentation(

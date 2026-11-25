@@ -23,8 +23,6 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
-import { HOST_MANAGEMENT_LABEL } from '@/features/room/model/RoomHostManagement';
-
 interface SheriffCandidateOptionViewModel {
   readonly seat: number;
   readonly isSelected: boolean;
@@ -83,17 +81,15 @@ const SPEAKING_DIRECTION_LABELS = {
 
 /**
  * Panel phase copy, shared with the night report: the report renders the
- * panel's phase titles and descriptions (never the host variant — the
- * archive is read-only, host instructions do not belong in it).
+ * panel's phase titles and descriptions.
  */
 export const SHERIFF_ELECTION_PHASE_CONTENT: Record<
   SheriffElectionState['phase'],
-  { readonly title: string; readonly description: string; readonly hostDescription?: string }
+  { readonly title: string; readonly description: string }
 > = {
   registration: {
     title: '报名上警',
     description: '想竞选警长的玩家可在手机上报名，系统随后将随机确定发言顺序。',
-    hostDescription: `报名截止后，请在「${HOST_MANAGEMENT_LABEL}」中结束报名。`,
   },
   candidateSpeech: {
     title: '竞选发言',
@@ -314,9 +310,7 @@ export function createSheriffElectionViewModel(
     phaseDescription:
       election.phase === 'result' && election.next.kind === 'runoff'
         ? '首轮平票，接下来进行平票发言'
-        : input.isHost && phaseContent.hostDescription !== undefined
-          ? phaseContent.hostDescription
-          : phaseContent.description,
+        : phaseContent.description,
     candidateRecords,
     speakingInstruction,
     voteProgress: getSheriffVoteProgress(election),

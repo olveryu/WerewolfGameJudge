@@ -1,6 +1,6 @@
 # Night-step order — `NIGHT_STEP_ORDER`
 
-Source: `packages/game-engine/src/games/werewolf/domain/models/roles/spec/nightStepIds.ts`
+Source: `packages/game-engine/src/games/werewolf/roles/nightStepOrder.ts`
 (`NIGHT_STEP_IDS`, exported as `NIGHT_STEP_ORDER`; re-exported by `plan.ts`).
 There is no symbol named `NIGHT_STEP_ORDER_INTERNAL` anywhere in the engine package.
 Count: 39 step ids. Order below is the file order, which is the execution order.

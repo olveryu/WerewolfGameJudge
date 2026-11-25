@@ -29,20 +29,23 @@ import type { AvalonAudioRuntime } from '@/games/avalon/audio/AvalonAudioPlayer'
 import { AvalonStatsPanel } from '@/games/avalon/components/AvalonStatsPanel';
 import type { AvalonRoomSession } from '@/games/avalon/model/AvalonRoomSession';
 import { TESTIDS } from '@/testids';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
 
 import { toRevealRoleData } from '../components/AvalonRoleCardAdapter';
 import { AvalonGuide } from '../screens/AvalonGuideScreen';
 import { formatAvalonVoteMode } from './avalonRecordCopy';
-import { createAvalonCurrentStatus, createAvalonHistorySummary } from './avalonRoomAdapter';
+import {
+  AVALON_EARLY_STRIKE_ACTION_KEY,
+  createAvalonCurrentStatus,
+  createAvalonHistorySummary,
+} from './avalonRoomAdapter';
+import { createAvalonStatusContext } from './avalonStatusContext';
 import { AvalonBoardInfoContent } from './components/AvalonBoardInfoContent';
 import { AvalonHistoryOverlay } from './components/AvalonHistoryOverlay';
 import { AvalonHistorySummary } from './components/AvalonHistorySummary';
 import { AvalonLadyCheckConfirmModal } from './components/AvalonLadyCheckConfirmModal';
 import { AvalonLadyResultModal } from './components/AvalonLadyResultModal';
-import { AvalonNightConfirmModal } from './components/AvalonNightConfirmModal';
 import { AvalonQuestModal } from './components/AvalonQuestModal';
 import { AvalonQuestResultPanel } from './components/AvalonQuestResultPanel';
 import { AvalonRoomTracks } from './components/AvalonRoomTracks';
@@ -51,11 +54,7 @@ import { AvalonTeamPickModal } from './components/AvalonTeamPickModal';
 import { AvalonVoteModal } from './components/AvalonVoteModal';
 import { AvalonVoteResultPanel } from './components/AvalonVoteResultPanel';
 import { useAvalonRoomState } from './hooks/useAvalonRoomState';
-import {
-  formatAvalonQuestLabel,
-  resolveQuestInstruction,
-  resolveVoteInstruction,
-} from './policy/avalonInteractionPolicy';
+import { resolveQuestInstruction, resolveVoteInstruction } from './policy/avalonInteractionPolicy';
 
 type AvalonRoomScreenProps = GameRoomScreenProps<'avalon'> & {
   readonly session: AvalonRoomSession;
@@ -91,14 +90,7 @@ function AvalonRoomContent(
   const historySummary = createAvalonHistorySummary(screen.state);
   const currentStatus = createAvalonCurrentStatus(screen.state);
   const phase = screen.state.phase;
-  const statusContext =
-    phase.kind === 'nominate' || phase.kind === 'vote'
-      ? `${formatAvalonQuestLabel(phase.round)} · 第${Math.min((screen.state.roundHistory.find((record) => record.round === phase.round)?.proposals.length ?? 0) + 1, config.vetoLimit)}次提案`
-      : phase.kind === 'voteResult' || phase.kind === 'quest' || phase.kind === 'questResult'
-        ? formatAvalonQuestLabel(phase.round)
-        : phase.kind === 'lady'
-          ? formatAvalonQuestLabel(phase.afterRound)
-          : null;
+  const statusContext = createAvalonStatusContext(screen.state);
   if (historyVisible && (historySummary === null || viewModel === null)) {
     setHistoryVisible(false);
   }
@@ -112,6 +104,47 @@ function AvalonRoomContent(
           ? viewModel.pendingPlaySeats
           : null;
   const historyPendingLabel = viewModel?.phase === 'quest' ? '未出牌' : '未投票';
+  const isVotePending = phase.kind === 'vote' && historyPendingSeats !== null;
+  const isVoting = isVotePending && historyPendingSeats.length > 0;
+  const isQuest = phase.kind === 'quest' && historyPendingSeats !== null;
+  const isQuestPending = isQuest && historyPendingSeats.length > 0;
+  const historyContent =
+    historySummary === null || currentStatus === null || viewModel === null ? null : (
+      <AvalonHistorySummary
+        tracks={<AvalonRoomTracks view={viewModel} />}
+        latestResult={
+          phase.kind !== 'ended' &&
+          (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
+            screen.state.questHistory.length > 0)
+            ? historySummary
+            : null
+        }
+        pendingSeats={historyPendingSeats}
+        pendingLabel={historyPendingLabel}
+        compact={{
+          context:
+            isVotePending && statusContext !== null
+              ? `${statusContext}投票${isVoting ? '中' : ''}`
+              : isQuest && statusContext !== null
+                ? `${statusContext} · 任务执行中`
+                : statusContext === null
+                  ? currentStatus
+                  : `${statusContext} · ${currentStatus}`,
+          // 状态句唯一来源是 avalonRoomAdapter（投票/出牌进行中给不能提交者的说明、全员提交后
+          // 的结算倒计时句）；与阶段句重复时不再显示。
+          message:
+            screen.shellModel.playerActions.message === currentStatus
+              ? null
+              : screen.shellModel.playerActions.message,
+          progress: isVoting
+            ? `已投 ${getAvalonOccupiedSeatCount(screen.state) - historyPendingSeats.length}/${getAvalonOccupiedSeatCount(screen.state)}`
+            : isQuestPending && phase.kind === 'quest'
+              ? `已出牌 ${phase.teamSeats.length - historyPendingSeats.length}/${phase.teamSeats.length}`
+              : null,
+          isVoting,
+        }}
+      />
+    );
   // 刺杀二次确认住在 overlays 层：阶段切换不能把它吞掉。
   // 选人模式（strikePickMode）住在 hook：底部动作区的「刺杀」入口与此处共用。
   const { strikeConfirm, setStrikeConfirm, ladyCheckTarget, setLadyCheckTarget } =
@@ -127,20 +160,19 @@ function AvalonRoomContent(
     setStrikeConfirm(null);
     const controlledSeat = screen.controlledSeat;
     if (mode === 'accuse')
-      void screen.submit('指认', { type: 'avalon.assassin.accuse', seat }, { controlledSeat });
+      void screen.submit(
+        '指认',
+        { type: 'avalon.assassin.accuse', seat },
+        { controlledSeat, actionKey: null },
+      );
     else
       void screen.submit(
         '提前刺杀',
         { type: 'avalon.assassin.earlyStrike', seat },
-        { controlledSeat },
+        { controlledSeat, actionKey: null },
       );
     setStrikePickMode(false);
   };
-  const strikeName =
-    strikeConfirm === null || viewModel === null
-      ? ''
-      : (viewModel.seats.find((seatView) => seatView.seat === strikeConfirm.seat)?.displayName ??
-        `座位${strikeConfirm.seat + 1}`);
   // 结果确认是权威阶段，重连也必须显示，直到全员确认。
   const voteResult = viewModel?.lastVoteResult ?? null;
   // 投票/出牌弹窗：每轮自动弹一次（按轮次键去重），关后不重弹，底部按钮可重开。
@@ -227,38 +259,47 @@ function AvalonRoomContent(
             ? '已发牌'
             : screen.state.phase.kind === 'night'
               ? '夜晚'
-              : screen.state.phase.kind === 'ended'
-                ? '本局结束'
-                : (statusContext ?? '游戏进行中')
+              : (statusContext ?? '游戏进行中')
       }
       lobbyAction={
         isLobby
           ? { label: '分配角色', occupiedSeats: getAvalonOccupiedSeatCount(screen.state) }
           : null
       }
-      selectionMode={screen.strikePickMode ? 'player' : undefined}
-      mainEntries={
-        historySummary !== null && viewModel !== null
-          ? [
-              {
-                label: '对局记录',
-                testId: TESTIDS.avalonHistoryButton,
-                icon: <IconDocumentTextOutline aria-hidden />,
-                onOpen: () => setHistoryVisible(true),
-              },
-            ]
-          : []
+      selectionMode={
+        screen.strikePickMode
+          ? { kind: 'player', escapeActionKey: AVALON_EARLY_STRIKE_ACTION_KEY }
+          : undefined
       }
-      configurationEntry={
-        !isPreGame && viewModel !== null ? { onOpen: () => setInformation('configuration') } : null
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          onOpen: () => setInformation('guide'),
-          testId: TESTIDS.roomGuideButton('avalon'),
-        },
-      ]}
+      directory={{
+        main:
+          historySummary !== null && viewModel !== null
+            ? [
+                {
+                  key: 'history',
+                  label: '对局记录',
+                  category: 'resource',
+                  icon: 'document-text-outline',
+                  testID: TESTIDS.avalonHistoryButton,
+                  opensDialog: true,
+                  state: { kind: 'ready', onPress: () => setHistoryVisible(true) },
+                },
+              ]
+            : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('avalon'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setInformation('guide') },
+          },
+        ],
+        openConfiguration:
+          !isPreGame && viewModel !== null ? () => setInformation('configuration') : null,
+      }}
       content={
         isLobby || viewModel === null
           ? {
@@ -266,32 +307,15 @@ function AvalonRoomContent(
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: gameConfiguration,
             }
           : {
               kind: 'seats',
+              compactStatusContent: historyContent,
               contextHeader: null,
               informationLayout: historySummary !== null ? 'scroll-with-seats' : 'fixed',
-              summaryPresentation: 'after-message',
               // 白天及终局显示摘要与记录入口；查看身份和夜晚由阶段派生隐藏。
-              bottomSummary:
-                historySummary === null || currentStatus === null ? null : (
-                  <AvalonHistorySummary
-                    status={currentStatus}
-                    tracks={<AvalonRoomTracks view={viewModel} />}
-                    latestResult={
-                      screen.state.phase.kind !== 'ended' &&
-                      (screen.state.roundHistory.some((round) => round.proposals.length > 0) ||
-                        screen.state.questHistory.length > 0)
-                        ? historySummary
-                        : null
-                    }
-                    pendingSeats={historyPendingSeats}
-                    pendingLabel={historyPendingLabel}
-                  />
-                ),
-              sideInspector: null,
+              bottomSummary: historyContent,
               beforeSeatBoard: <>{isPreGame && gameConfiguration}</>,
               afterSeatBoard: null,
             }
@@ -339,7 +363,6 @@ function AvalonRoomContent(
               )}
               <AvalonStrikeConfirmModal
                 confirmation={strikeConfirm}
-                seatName={strikeName}
                 onConfirm={confirmStrike}
                 onClose={closeStrike}
               />
@@ -356,11 +379,16 @@ function AvalonRoomContent(
                       { type: 'avalon.team.vote', vote },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setVoteModalOpen(false)}
                 />
@@ -387,36 +415,22 @@ function AvalonRoomContent(
                       { type: 'avalon.quest.play', play },
                       {
                         controlledSeat: screen.controlledSeat,
+                        actionKey: null,
                       },
                     )
                   }
                   onRetry={() =>
-                    void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })
+                    void screen.submit(
+                      '重新推进',
+                      { type: 'avalon.phase.retrySettle' },
+                      { actionKey: null },
+                    )
                   }
                   onClose={() => setQuestModalOpen(false)}
                 />
               ) : null}
-              {isNight && screen.nightModalVisible ? (
-                <AvalonNightConfirmModal
-                  key={`${screen.state.gameSequence}:${viewModel.nightStep}:${screen.effectiveSeat}`}
-                  viewModel={viewModel}
-                  isSubmitting={screen.isSubmitting}
-                  onConfirm={() => {
-                    void screen
-                      .submit(
-                        '确认信息',
-                        { type: 'avalon.night.confirm' },
-                        { controlledSeat: screen.controlledSeat },
-                      )
-                      .then((success) => {
-                        if (success) screen.setNightModalVisible(false);
-                      });
-                  }}
-                  onClose={() => screen.setNightModalVisible(false)}
-                />
-              ) : null}
               <AvalonLadyCheckConfirmModal
-                targetName={ladyCheckTarget === null ? null : seatDisplayName(ladyCheckTarget)}
+                targetSeat={ladyCheckTarget}
                 onConfirm={() => {
                   if (ladyCheckTarget === null) return;
                   const seat = ladyCheckTarget;
@@ -424,7 +438,7 @@ function AvalonRoomContent(
                   void screen.submit(
                     '查验',
                     { type: 'avalon.lady.check', seat },
-                    { controlledSeat: screen.controlledSeat },
+                    { controlledSeat: screen.controlledSeat, actionKey: null },
                   );
                 }}
                 onClose={() => setLadyCheckTarget(null)}
@@ -439,7 +453,7 @@ function AvalonRoomContent(
                     void screen.submit(
                       '确认查验结果',
                       { type: 'avalon.lady.acknowledge' },
-                      { controlledSeat: screen.controlledSeat },
+                      { controlledSeat: screen.controlledSeat, actionKey: null },
                     )
                   }
                 />
@@ -484,7 +498,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
           {viewModel !== null &&
@@ -497,7 +517,13 @@ function AvalonRoomContent(
               isOverdue={screen.isOverdue}
               isHost={screen.isHost}
               isSubmitting={screen.isSubmitting}
-              onRetry={() => void screen.submit('重新推进', { type: 'avalon.phase.retrySettle' })}
+              onRetry={() =>
+                void screen.submit(
+                  '重新推进',
+                  { type: 'avalon.phase.retrySettle' },
+                  { actionKey: null },
+                )
+              }
             />
           ) : null}
         </>

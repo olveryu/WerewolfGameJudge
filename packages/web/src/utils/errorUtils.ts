@@ -5,6 +5,8 @@
  * No React / service / game state / Sentry dependencies.
  */
 
+import { REASON_STEP_STALE, STEP_STALE_MESSAGE } from '@game-judge/game-engine/platform/steps';
+
 import { ApiError } from '@/platform/http/ApiError';
 
 import { ROOM_CHASSIS_REASON_MESSAGES } from './roomChassisReasonMessages';
@@ -224,7 +226,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   userId_mismatch: '身份不匹配',
   // Game engine
   invalid_step: '步骤无效',
-  action_step_changed: '当前行动步骤已变化，请重新选择',
+  [REASON_STEP_STALE]: STEP_STALE_MESSAGE,
   step_mismatch: '步骤不匹配',
   role_mismatch: '角色不匹配',
   no_resolver: '当前操作暂不可用，请稍后重试',

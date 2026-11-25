@@ -9,6 +9,9 @@
 
 import {
   get__GAME_PASCAL__OccupiedSeatCount,
+//#cap sharedSteps
+  describe__GAME_PASCAL__NightConfirmation,
+//#end
   get__GAME_PASCAL__UserSeat,
   get__GAME_PASCAL__ViewModel,
   isBotSeat,
@@ -34,6 +37,9 @@ import { type RoomBgmControlState, useRoomBgmControl } from '@/features/room/aud
 import { useRoomPresentationController } from '@/features/room/controllers/useRoomPresentationController';
 import { useRoomSetupController } from '@/features/room/controllers/useRoomSetupController';
 import { useRoomImagePreload } from '@/features/room/hooks/useRoomImagePreload';
+//#cap sharedSteps
+import { useStepInteraction, type StepInteraction } from '@/features/room/steps/useStepInteraction';
+//#end
 //#cap stageDeadline
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
 //#end
@@ -86,6 +92,9 @@ import { use__GAME_PASCAL__AudioOrchestration } from './use__GAME_PASCAL__AudioO
  * 全部在本 hook 内组装，Screen 只消费本接口渲染。末尾 return 不许 spread。
  */
 export interface __GAME_PASCAL__RoomScreenState {
+//#cap sharedSteps
+  readonly stepInteraction: StepInteraction;
+//#end
   readonly state: __GAME_PASCAL__State;
   readonly shellModel: RoomShellModel;
 //#cap identityViewing
@@ -137,10 +146,8 @@ export function use__GAME_PASCAL__RoomState(
   },
 ): __GAME_PASCAL__RoomScreenState {
   const { session, room, entryController } = props;
-  const { user, state, revision, submit, isSubmitting } = useReadyRoomSession(
-    session,
-    get__GAME_PASCAL__RoomCommandFailureMessage,
-  );
+  const { user, state, revision, submit, submitOperation, isSubmitting, pendingActionKey } =
+    useReadyRoomSession(session, get__GAME_PASCAL__RoomCommandFailureMessage);
   // 房间图片预加载：立绘 + 本游戏其他房间图片同一份清单、一次调用
   // （共享 useRoomImagePreload；只传公开板子上的图片，绝不读秘密分配）。
   useRoomImagePreload(getBoardRolePortraits());
@@ -164,6 +171,7 @@ export function use__GAME_PASCAL__RoomState(
   const { seatController, profile, capabilities: setupCapabilities } = useRoomSetupController({
     session,
     user,
+    submitOperation,
     isSetup: isLobby,
     isHost,
     mySeat,
@@ -181,7 +189,11 @@ export function use__GAME_PASCAL__RoomState(
   const bgm = useRoomBgmControl(
     props.audio,
     isHost,
-    state.isAudioPlaying ? 'auto' : state.phase.kind === 'playing' ? 'manual' : 'off',
+    state.isAudioPlaying
+//#cap sharedSteps
+      || state.phase.kind === 'night'
+//#end
+      ? 'auto' : state.phase.kind === 'playing' ? 'manual' : 'off',
   );
   const orchestration = use__GAME_PASCAL__AudioOrchestration({ session, isHost, audio: props.audio });
   const audioResume = useRoomAudioResume({
@@ -197,8 +209,25 @@ export function use__GAME_PASCAL__RoomState(
   const deadlineAt = state.phase.kind === 'playing' ? state.phase.deadlineAt : null;
   const { remainingSeconds, isOverdue } = useStageDeadline({ deadlineAt });
 //#end
-//#cap !identityViewing
   const viewModel = get__GAME_PASCAL__ViewModel(state, effectiveSeat);
+//#cap sharedSteps
+  const stepInteraction = useStepInteraction({
+    presentation: viewModel.step,
+    draftIdentity: { userId: user.id, roomId: room.roomId },
+    describeConfirmation: (selection) => {
+      const position = state.phase.kind === 'night' ? state.phase.steps.current : null;
+      if (effectiveSeat === null || position === null) throw new Error('[FAIL-FAST] Night confirmation without an acting seat and step');
+      return describe__GAME_PASCAL__NightConfirmation(state, effectiveSeat, { ...position, ...selection });
+    },
+    submit: (submission) => submit('夜晚行动', {
+      type: '__GAME_ID__.step.submit', gameSequence: state.gameSequence, submission,
+    }, { controlledSeat, actionKey: submission.actionKey }),
+    isSuspended: false,
+    hasPendingCommand: isSubmitting,
+    progress: state.phase.kind === 'night' && viewModel.step !== null
+      ? { current: state.phase.steps.order.findIndex((id) => id === viewModel.step?.stepId) + 1, total: state.phase.steps.order.length, label: viewModel.step.title }
+      : null,
+  });
 //#end
 //#cap identityViewing
   // 身份查看协议：接管时查看并确认的是被接管座位。
@@ -212,7 +241,7 @@ export function use__GAME_PASCAL__RoomState(
     viewedSeatCount: state.roleViewedSeats.length,
     isSubmitting,
     submitViewed: () =>
-      submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat }),
+      submit('查看身份', { type: '__GAME_ID__.role.viewed' }, { controlledSeat, actionKey: null }),
   });
 //#end
   // 本局复盘：入口、弹窗与图片分享归平台，复盘文档由模块声明的 review 给出。
@@ -233,10 +262,11 @@ export function use__GAME_PASCAL__RoomState(
     isPending: hasPendingReview,
     onClosed: hasPendingReview
       ? () =>
-          submit('确认复盘', {
-            type: '__GAME_ID__.review.complete',
-            gameSequence: state.gameSequence,
-          })
+          submit(
+            '确认复盘',
+            { type: '__GAME_ID__.review.complete', gameSequence: state.gameSequence },
+            { actionKey: null },
+          )
       : null,
 //#end
   });
@@ -244,7 +274,7 @@ export function use__GAME_PASCAL__RoomState(
     ...setupCapabilities,
     canTakeOverBots: bots.capability,
   };
-  const onSeatPress = createRoomSeatPressHandler({
+  const defaultSeatPress = createRoomSeatPressHandler({
     isSetup: isLobby,
     state,
     currentSeat: mySeat,
@@ -252,6 +282,12 @@ export function use__GAME_PASCAL__RoomState(
     profile,
     seatController,
   });
+  const onSeatPress = (seat: number, disabledReason?: string) => {
+//#cap sharedSteps
+    if (stepInteraction.onSeatTap(seat)) return;
+//#end
+    defaultSeatPress(seat, disabledReason);
+  };
 //#cap audioOrchestration
   // 房主面板模型在离开本 hook 前过一遍播报锁（组合子在共享层一份）：
   // 播报期内非豁免动作翻禁用且点不动，两个渲染面（折叠控制台与展开
@@ -314,19 +350,23 @@ export function use__GAME_PASCAL__RoomState(
     onProfileLeaveSeat: profile.leaveSelf,
     share,
     isLobby,
+    isSubmitting,
+    pendingActionKey,
+//#cap sharedSteps
+    stepInteraction,
+//#end
 //#cap identityViewing
     effectiveSeat,
-    isSubmitting,
     onViewRolePress: roleViewing.open,
 //#end
     buildHostManagement,
     releaseBot: bots.release,
     review: review.entry,
   });
-//#cap identityViewing
-  const viewModel = isLobby ? null : get__GAME_PASCAL__ViewModel(state, effectiveSeat);
-//#end
   return {
+//#cap sharedSteps
+    stepInteraction,
+//#end
     state,
     shellModel,
     viewModel,

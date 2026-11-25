@@ -1,16 +1,14 @@
-import type {
-  SecrethitlerCommand,
-  SecrethitlerViewModel,
-} from '@game-judge/game-engine/games/secrethitler/public';
+import type { SecrethitlerCommand } from '@game-judge/game-engine/games/secrethitler/public';
 import type { ReactNode } from 'react';
 
 import { BottomSheet } from '@/components/BottomSheet';
 import { Button } from '@/components/Button';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { RoomPlayerPickModal } from '@/features/room/components/RoomPlayerPickModal';
+import { confirmAction } from '@/features/room/confirm';
 import { useStageDeadline } from '@/features/room/hooks/useStageDeadline';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   secrethitlerPolicyFascistImage,
@@ -20,11 +18,10 @@ import {
   secrethitlerVoteNoImage,
   secrethitlerVoteYesImage,
 } from '../assets/secrethitlerVoteImages';
-import { getSecrethitlerIdentityName } from '../components/SecrethitlerRoleCardAdapter';
 import type { SecrethitlerRoomScreenState } from './hooks/useSecrethitlerRoomState';
 import { secrethitlerInstruction, secrethitlerSeatLabel } from './secrethitlerPresentation';
 
-/** Private action surface; only the viewer-cropped hand and recognition information render. */
+/** Private action surface for the current government or presidential power. */
 export function SecrethitlerActionSheet({
   screen,
 }: {
@@ -38,6 +35,7 @@ export function SecrethitlerActionSheet({
   });
   const view = screen.viewModel;
   if (view === null) return null;
+  if (screen.state.phase.kind === 'night') return null;
   const instruction = secrethitlerInstruction(screen.state, view);
   if (instruction.action === null) return null;
   if (screen.state.phase.kind === 'election') {
@@ -78,7 +76,7 @@ export function SecrethitlerActionSheet({
                   : 'secrethitler.government.preselect',
                 chancellorSeatId,
               },
-              { controlledSeat: screen.controlledSeat },
+              { controlledSeat: screen.controlledSeat, actionKey: null },
             )
             .then((success) => {
               if (success) screen.closeAction();
@@ -99,15 +97,19 @@ export function SecrethitlerActionSheet({
     screen.state.phase.kind === 'legislativePresident' ||
     screen.state.phase.kind === 'legislativeChancellor';
   const mustAcknowledgeInformation =
-    screen.state.phase.kind === 'night' ||
-    (screen.state.phase.kind === 'executive' && screen.state.phase.power === 'policyPeek');
+    screen.state.phase.kind === 'executive' && screen.state.phase.power === 'policyPeek';
   const requireConfirmation = mustResolveHand || mustAcknowledgeInformation;
   const send = async (label: string, command: SecrethitlerCommand) => {
-    if (await screen.submit(label, command, { controlledSeat: screen.controlledSeat }))
+    if (
+      await screen.submit(label, command, {
+        controlledSeat: screen.controlledSeat,
+        actionKey: null,
+      })
+    )
       screen.closeAction();
   };
   const confirm = (label: string, command: SecrethitlerCommand) =>
-    showConfirmAlert(`${label}？`, `确定${label}吗？`, () => send(label, command));
+    confirmAction({ label, onConfirm: () => send(label, command) });
   const button = (label: string, command: SecrethitlerCommand, key = label) => (
     <Button
       key={key}
@@ -120,15 +122,6 @@ export function SecrethitlerActionSheet({
   );
   let content: ReactNode = null;
   switch (screen.state.phase.kind) {
-    case 'night':
-      content = (
-        <SecrethitlerNightRecognition
-          view={view}
-          isSubmitting={screen.isSubmitting}
-          onConfirm={() => void send('确认信息', { type: 'secrethitler.night.confirm', step: 1 })}
-        />
-      );
-      break;
     case 'voting':
       content = (
         <>
@@ -136,9 +129,7 @@ export function SecrethitlerActionSheet({
             当前选择：{view.myVote === null ? '尚未投票' : view.myVote === 'ja' ? '赞成' : '反对'}
             。揭晓前可修改。
           </p>
-          {remainingSeconds !== null && (
-            <p>{remainingSeconds > 0 ? `已全部投票，${remainingSeconds} 秒后揭晓` : '等待揭晓…'}</p>
-          )}
+          {remainingSeconds !== null && <p>{formatSettleCountdown(remainingSeconds, '投票')}</p>}
           <div className="choice-row">
             <ChoiceCard
               label="赞成"
@@ -278,35 +269,5 @@ export function SecrethitlerActionSheet({
         )}
       </div>
     </BottomSheet>
-  );
-}
-
-function SecrethitlerNightRecognition({
-  view,
-  isSubmitting,
-  onConfirm,
-}: {
-  readonly view: SecrethitlerViewModel;
-  readonly isSubmitting: boolean;
-  readonly onConfirm: () => void;
-}) {
-  return (
-    <>
-      <p>仅你获准查看，请勿向全桌展示屏幕。</p>
-      <ul>
-        {view.knownFascists.map(({ seat, identity }) => (
-          <li key={seat}>
-            {secrethitlerSeatLabel(view, seat)} · {getSecrethitlerIdentityName(identity)}
-          </li>
-        ))}
-      </ul>
-      {view.hasConfirmedNight ? (
-        <p>信息已确认</p>
-      ) : (
-        <Button variant="secondary" disabled={isSubmitting} onClick={onConfirm}>
-          知道了
-        </Button>
-      )}
-    </>
   );
 }

@@ -2,9 +2,9 @@
 
 import type { LinkStatus } from '@/platform/realtime/types';
 
-import type { RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomCapabilities } from './RoomCapabilities';
 import type { RoomHostManagementModel } from './RoomHostManagement';
+import type { RoomPlayerActionModel } from './RoomPlayerActions';
 import type { RoomProfileCardModel } from './RoomProfile';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
@@ -51,7 +51,7 @@ export interface RoomShellModel {
   /**
    * Who is looking at this shell. The one identity declaration the
    * shell's ownership checks read: host management exists only for
-   * `viewer.isHost`; bottom buttons declare their audience against it.
+   * `viewer.isHost`; player actions declare their audience against it.
    */
   readonly viewer: RoomViewer;
   /**
@@ -73,6 +73,10 @@ export interface RoomShellModel {
   readonly step: string | null;
   /** Authoritative narration status; presentation only, never an interaction gate. */
   readonly isAudioPlaying: boolean;
+  /** True while the room's single-flight command channel has a submission in flight. */
+  readonly isSubmitting: boolean;
+  /** Hand action key that owns the in-flight submission; null when a dialog or stage owns its feedback. */
+  readonly pendingActionKey: string | null;
   readonly capabilities: RoomCapabilities;
   readonly header: RoomHeaderModel;
   readonly connection: RoomConnectionViewModel;
@@ -80,7 +84,7 @@ export interface RoomShellModel {
   readonly seatConfirmation: RoomSeatConfirmationModel | null;
   readonly profile: RoomProfileCardModel | null;
   readonly share: RoomShareModel;
-  readonly bottomActions: RoomBottomActionModel;
+  readonly playerActions: RoomPlayerActionModel;
   /** Host management surface; always null for non-hosts, null for a host only when the phase offers nothing to manage. */
   readonly hostManagement: RoomHostManagementModel | null;
   readonly controlledSeat: RoomControlledSeatModel | null;

@@ -32,6 +32,8 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { exitRoomFlow } from '@/features/room/navigation/roomFlowNavigation';
 import type { RoomReviewContribution } from '@/features/room/review/types';
+import { StepCardPicker } from '@/features/room/steps/StepCardPicker';
+import { STEP_CANCEL_SELECTION_ACTION_KEY } from '@/features/room/steps/useStepInteraction';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { BoardStrategyContent } from '@/games/werewolf/components/BoardStrategy/BoardStrategyContent';
 import { BOARD_STRATEGY } from '@/games/werewolf/components/BoardStrategy/boardStrategyData';
@@ -42,22 +44,18 @@ import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen
 import { WerewolfEncyclopedia } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { WerewolfNotepad } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import { TESTIDS } from '@/testids';
-import IconBulbOutline from '~icons/ion/bulb-outline';
-import IconCreateOutline from '~icons/ion/create-outline';
-import IconDocumentTextOutline from '~icons/ion/document-text-outline';
-import IconEyeOutline from '~icons/ion/eye-outline';
+import IconMoonOutline from '~icons/ion/moon-outline';
 import IconMusicalNotes from '~icons/ion/musical-notes';
 import IconPause from '~icons/ion/pause';
+import IconTimeOutline from '~icons/ion/time-outline';
 
 import { BoardNominationModal } from './components/BoardNominationList';
-import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { MvpSelectionModal } from './components/MvpSelectionModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { SheriffElectionDialog } from './components/SheriffElectionDetailsSurfaces';
 import { SheriffElectionHud } from './components/SheriffElectionHud';
 import { SheriffElectionPanel } from './components/SheriffElectionPanel';
 import { WerewolfRoleCardModal } from './components/WerewolfRoleCardModal';
-import { getSheriffWaitingMessage } from './day/sheriffElectionDockModel';
 import { useWerewolfRoomState } from './hooks/useWerewolfRoomState';
 import { createWerewolfBoardInfoSections, isWerewolfSetup } from './werewolfRoomAdapter';
 
@@ -167,11 +165,19 @@ function WerewolfRoomContent(
       showRealIdentity
     />
   );
+  const sheriffHud =
+    sheriffElectionPanel === null ? null : (
+      <SheriffElectionHud
+        model={sheriffElectionPanel}
+        isHost={isHost}
+        isDay={status === GameStatus.Day}
+      />
+    );
 
   return (
     <RoomShell
       model={shellModel}
-      actionHandVisibility={shellModel.isAudioPlaying ? 'hidden' : 'visible'}
+      actionSurface={shellModel.isAudioPlaying ? 'hidden' : 'hand'}
       phaseLabel={
         isSetup
           ? '待开局'
@@ -186,76 +192,112 @@ function WerewolfRoomContent(
                   : '本局结束'
       }
       lobbyAction={isSetup ? { label: '分配角色', occupiedSeats: viewModel.seats.length } : null}
-      selectionMode={night.seatSelection !== null || night.isActionGroupOpen ? 'player' : undefined}
-      mainEntries={
-        isSetup
+      selectionMode={
+        night.seatSelection !== null
+          ? { kind: 'player', escapeActionKey: STEP_CANCEL_SELECTION_ACTION_KEY }
+          : undefined
+      }
+      directory={{
+        main: isSetup
           ? [
               {
+                key: 'nomination-editor',
                 label: nominationLabel,
-                icon: <IconCreateOutline aria-hidden />,
-                onOpen: () => setNominationEditorTitle(nominationLabel),
+                category: 'resource',
+                icon: 'create-outline',
+                opensDialog: true,
+                state: {
+                  kind: 'ready',
+                  onPress: () => setNominationEditorTitle(nominationLabel),
+                },
               },
               ...(nominationCount === 0
                 ? []
                 : [
                     {
+                      key: 'nomination-list',
                       label: `查看建议 (${nominationCount})`,
-                      icon: <IconEyeOutline aria-hidden />,
-                      onOpen: () => setIsNominationListOpen(true),
+                      category: 'resource' as const,
+                      icon: 'eye-outline' as const,
+                      opensDialog: true,
+                      state: {
+                        kind: 'ready' as const,
+                        onPress: () => setIsNominationListOpen(true),
+                      },
                     },
                   ]),
             ]
           : sheriffElectionPanel !== null
             ? [
                 {
+                  key: 'sheriff-details',
                   label: '警长详情',
-                  testId: TESTIDS.sheriffDetailsButton,
-                  icon: <IconDocumentTextOutline aria-hidden />,
-                  onOpen: openSheriffDetails,
+                  category: 'resource',
+                  icon: 'document-text-outline',
+                  testID: TESTIDS.sheriffDetailsButton,
+                  opensDialog: true,
+                  state: { kind: 'ready', onPress: openSheriffDetails },
                 },
               ]
-            : []
-      }
-      manualEntries={[
-        {
-          label: '玩法',
-          testId: TESTIDS.roomEncyclopediaButton,
-          onOpen: () => setIsGuideOpen(true),
-        },
-        ...(matchedStrategyName === null
-          ? []
-          : [
-              {
-                label: '攻略',
-                icon: <IconBulbOutline aria-hidden />,
-                onOpen: () => setStrategyBoardName(matchedStrategyName),
-              },
-            ]),
-        ...(canOpenNotepad
-          ? [
-              {
-                label: '笔记',
-                icon: <IconDocumentTextOutline aria-hidden />,
-                testId: TESTIDS.werewolfNotepadButton,
-                onOpen: () => setIsNotepadOpen(true),
-              },
-            ]
-          : []),
-      ]}
-      configurationEntry={
-        useConfigurationDialog && night.seatSelection === null
-          ? { onOpen: () => setIsConfigurationOpen(true) }
-          : null
-      }
+            : [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomEncyclopediaButton,
+            opensDialog: true,
+            state: { kind: 'ready', onPress: () => setIsGuideOpen(true) },
+          },
+          ...(matchedStrategyName === null
+            ? []
+            : [
+                {
+                  key: 'strategy',
+                  label: '攻略',
+                  category: 'resource' as const,
+                  icon: 'bulb-outline' as const,
+                  opensDialog: true,
+                  state: {
+                    kind: 'ready' as const,
+                    onPress: () => setStrategyBoardName(matchedStrategyName),
+                  },
+                },
+              ]),
+          ...(canOpenNotepad
+            ? [
+                {
+                  key: 'notepad',
+                  label: '笔记',
+                  category: 'resource' as const,
+                  icon: 'document-text-outline' as const,
+                  testID: TESTIDS.werewolfNotepadButton,
+                  opensDialog: true,
+                  state: {
+                    kind: 'ready' as const,
+                    onPress: () => setIsNotepadOpen(true),
+                  },
+                },
+              ]
+            : []),
+        ],
+        openConfiguration:
+          useConfigurationDialog && night.seatSelection === null
+            ? () => setIsConfigurationOpen(true)
+            : null,
+      }}
       content={{
         kind: 'seats',
-        summaryPresentation:
-          status === GameStatus.Day
-            ? 'status'
-            : sheriffElectionPanel !== null &&
-                shellModel.bottomActions.message === getSheriffWaitingMessage(sheriffElectionPanel)
-              ? 'replaces-message'
-              : undefined,
+        // 竞选面板只在白天接管底部行动（createWerewolfPlayerActions），HUD 进状态条的条件同源：
+        // 白天且有竞选；夜里开的报名只走 bottomSummary。
+        compactStatusContent: status === GameStatus.Day ? sheriffHud : null,
+        compactStatusIcon:
+          status === GameStatus.Ongoing ? (
+            <IconMoonOutline aria-hidden />
+          ) : (
+            <IconTimeOutline aria-hidden />
+          ),
         contextHeader:
           sheriffElectionPanel === null && remainingSeconds === null ? null : (
             <StageSettleRescue
@@ -263,18 +305,13 @@ function WerewolfRoomContent(
               isOverdue={isOverdue}
               isHost={isHost}
               isRetrying={isHostActionSubmitting}
-              onRetry={() => void submit('重新推进', { type: 'werewolf.phase.retrySettle' })}
+              onRetry={() =>
+                void submit('重新推进', { type: 'werewolf.phase.retrySettle' }, { actionKey: null })
+              }
               waitingLabel="等待推进…"
             />
           ),
-        bottomSummary:
-          sheriffElectionPanel === null ? null : (
-            <SheriffElectionHud
-              model={sheriffElectionPanel}
-              isHost={isHost}
-              isDay={status === GameStatus.Day}
-            />
-          ),
+        bottomSummary: sheriffHud,
         beforeSeatBoard: (
           <>
             {!useConfigurationDialog && (
@@ -289,7 +326,6 @@ function WerewolfRoomContent(
           </>
         ),
         afterSeatBoard: null,
-        sideInspector: null,
       }}
       leadingExtraActions={
         isHost &&
@@ -397,14 +433,7 @@ function WerewolfRoomContent(
             />
           )}
 
-          {night.chooseCardModal !== null && (
-            <ChooseBottomCardModal
-              choice={night.chooseCardModal.model.choice}
-              confirmText={night.chooseCardModal.model.confirmText}
-              onChoose={night.chooseCardModal.choose}
-              onClose={night.chooseCardModal.close}
-            />
-          )}
+          {night.cardPicker !== null && <StepCardPicker {...night.cardPicker} />}
 
           {isGuideOpen && (
             <RoomDialog

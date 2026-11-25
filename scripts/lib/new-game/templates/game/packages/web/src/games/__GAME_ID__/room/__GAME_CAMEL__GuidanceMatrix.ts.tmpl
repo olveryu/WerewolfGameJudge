@@ -14,6 +14,13 @@ import {
 } from '@/features/room/model/RoomGuidanceMatrix';
 
 export const __GAME_UPPER___GUIDANCE_MATRIX: RoomGuidanceMatrix<__GAME_PASCAL__PhaseKind> = {
+//#cap sharedSteps
+  night: {
+    host: GUIDANCE_MESSAGE,
+    seated: GUIDANCE_MESSAGE,
+    spectator: guidanceExempt('观战者无夜晚私有动作，阶段与进度由房间展示'),
+  },
+//#end
   lobby: {
 //#cap identityViewing
     host: guidanceExempt('房主由房主面板承载分配角色动作'),

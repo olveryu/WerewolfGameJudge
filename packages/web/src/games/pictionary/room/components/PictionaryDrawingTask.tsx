@@ -19,9 +19,9 @@ import {
   reduceDrawingDraft,
 } from '@/features/drawing/model/drawing';
 import { RoomTaskFrame } from '@/features/room/components/RoomTaskFrame';
+import { confirmAction } from '@/features/room/confirm';
 import { createPictionaryFillElement } from '@/games/pictionary/services/renderPictionaryDrawing';
 import { TESTIDS } from '@/testids';
-import { showDestructiveAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -81,9 +81,13 @@ export function PictionaryDrawingTask({
   };
 
   const clearDrawing = (): void => {
-    showDestructiveAlert('清空画布？', '所有绘画内容都会被删除。', '清空', () =>
-      updateDraft({ type: 'drawing.clear' }),
-    );
+    confirmAction({
+      label: '清空画布？',
+      body: '所有绘画内容都会被删除。',
+      tone: 'danger',
+      confirmText: '清空',
+      onConfirm: () => updateDraft({ type: 'drawing.clear' }),
+    });
   };
 
   const isReady = state.readySeats.includes(effectiveSeat);
@@ -96,7 +100,7 @@ export function PictionaryDrawingTask({
         { type: 'pictionary.task.ready.set', isReady: !isReady },
         effectiveSeat,
       ),
-      { controlledSeat, durable: true },
+      { controlledSeat, durable: true, actionKey: null },
     );
   };
 

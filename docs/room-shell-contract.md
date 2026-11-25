@@ -142,7 +142,7 @@ not expose game state, controllers or private projection inputs on the returned 
 - `RoomShellModelWithHeaderInput` accepts a complete header. Werewolf retains its precomputed
   ticket count and avatar callback instead of reconstructing gacha state.
 - Games supply authoritative `phase` and nullable `step`, the `viewer`, seat-source projections,
-  profile and confirmation models, bottom actions, a lazy `buildHostManagement`, and
+  profile and confirmation models, player actions, a lazy `buildHostManagement`, and
   bot-control projections. The factory does not infer phases, lock seats or decide
   permissions; it does enforce action ownership (see "Action Ownership" below).
 - The new-game adapter template uses the same factory and input contract as shipped games.
@@ -154,11 +154,11 @@ the authoritative room snapshot's playback flag; games without narration explici
 `false`. Never derive this shared status from the host device's local audio player or introduce
 another stored playback flag.
 
-`RoomShell` forwards the flag to `RoomBottomActionPanel`, which owns the narration text and its
-position for hosts, players and spectators, in both stacked and dock layouts. Narration remains
-visible without buttons, preserves progress, and does not replace game-owned guidance or step
-navigation. The text disappears when the authoritative flag clears. Games must not place the
-same narration text in their own message or an inert button.
+`RoomShell` passes the flag to `RoomActionStatus`, placing its narration text with the room
+status for hosts, players and spectators. Narration remains visible without buttons, preserves
+progress, and does not replace game-owned guidance or step navigation. The text disappears
+when the authoritative flag clears. Games must not place the same narration text in their own
+message or an inert button.
 
 The flag does not disable actions in the renderer. Games retain their existing interaction
 policies: Werewolf hides its night action guidance and actions during playback; Avalon allows
@@ -268,183 +268,98 @@ private results stay behind explicitly authorized actions and overlays.
 
 ### Room Action Hierarchy
 
-- Seat rooms that have not migrated to action hands use the shared bottom panel for status, progress, one focused player action and
-  an entry to the shared actions surface. That surface groups remaining player tools with
-  the host task and management sections. Hosting is an additional capability, not a
-  replacement for the user's player or spectator actions. `stage` content is the one
-  exception: its status lives in the information bar and its actions in the game's dock.
-- Werewolf presents all model-supplied player actions directly in its hand, in model order.
-  The host entry replaces the hand in place, keeping the task and management actions sourced
-  from the existing host model. Returning restores the player hand. Only a ready task or an
-  enabled choice that is not loading gets the task marker on the host entry.
-  The manual also replaces the hand in place; reading dialogs return to that sub-hand.
-  The encyclopedia route and the room dialog share the same guide segments and controls.
-  The manual offers the notepad during the day and after the game; both the room dialog and
-  the legacy page use the same editor and room/user/round storage scope.
-  The suggestion list opens from the main hand only before dealing and only when suggestions
-  exist. If roles are dealt while it is open, it stays open with mutations disabled.
-  The suggestion editor shares the old route's role fields, preset picker and submit logic.
-  Dealing disables submission in the room dialog without clearing the draft.
-  Incoming Werewolf night prompts do not cover the open information dialogs. Optional prompts
-  for those steps are skipped; a mandatory night reveal is offered after closing only if the
-  latest room state still requires it.
-  During night seat selection the existing focused controls take over.
-- A seat room may supply a public configuration entry in the bottom row. This opens a read-only
-  dialog and is not a player or host command. The game controls its availability; Werewolf
-  keeps the inline board before gameplay and leaves the selection controls alone during seat selection.
-- Waiting and narration are status messages, never inert primary buttons. A dock may have
-  no primary action. Real unavailable commands retain their disabled state and reason.
-- Emphasis follows intent, not array order: confirmation is primary; cancellation, optional
-  alternatives and repeated viewing are secondary. Equal game choices keep equal emphasis.
-- Identity viewing stays primary during the viewing step and secondary afterward. It remains
-  a labelled button, not a borderless action. Review tools use labelled icons. Games retain
-  their existing visibility and information permissions, including spectator permissions.
-- If exactly one player primary action is available, it occupies the focus slot. Multiple equal
-  player primaries move together to the shared actions surface instead of being reordered. When
-  no player focus action exists, the shared-surface entry fills the slot. The entry may summarize
-  the current host task, but host commands execute only from that opened surface. Dangerous
-  commands retain explicit danger semantics.
-- Room buttons share the existing capsule geometry and md sizing. Tool hit targets are at
-  least 44 logical pixels; secondary and tool rows wrap on narrow screens. Management sheets
-  use the same secondary fill as the bottom panel. Do not override geometry or color by role.
-- Server hint applicability is resolved once for the actor's effective role. Restricted-action
-  reasons render as status text; their confirmation buttons keep short action labels and the
-  original submission intent. Narration status preserves the authoritative progress row.
+Every action uses the shared `RoomAction` shape: a stable key, label, semantic category, explicit
+state (`ready`, `busy` or `blocked`) and optional icon/test ID. Player actions add an audience
+and pending marker. A player model has one ordered `actions` list, a nullable `group` for a
+multi-action sub-hand, status text and progress; non-group games set `group: null`.
+
+`buildRoomHand` projects the current model into cards. The main hand contains player actions,
+the group entry when present, then the stable-keyed directory entries for configuration, manual,
+game-specific tools, sharing and host management. The host hand and manual are in-place
+sub-hands with a leading return card. A group sub-hand contains its return card and its actions.
+The stage menu is a separate `actionSurface: 'menu'` projection of the same directory and
+authorized stage actions. Cards are ordered by category and state while preserving ties.
+
+`RoomActionStatus` is separate from the hand container. Seat content places status above the seat
+board as the shared `RoomCompactStatus` (phase context, one status line carrying
+`actionMessage`, optional progress), the only board status surface for every seats-content game;
+a game may replace it with its own `compactStatusContent` built on the same component, and
+`bottomSummary` renders beneath it. Other hand surfaces place status in the bottom panel. Stage content
+keeps its status in the HUD and requires the menu action surface. Dialog and game-workspace
+controls remain game-owned and are not moved into the hand.
 
 ### Action Ownership
 
-Who sees which button, and how the host learns what to do next, is a declared,
-machine-checked contract — not a per-game convention.
+Who sees which action and how the host learns what to do next is a declared,
+machine-checked contract.
 
 **Viewer identity.** `RoomShellModel.viewer` (`src/features/room/model/RoomViewer.ts`) is the
-one identity declaration: `{ userId, isHost, seat }`. `isHost` and `seat` stay separate axes —
-a host may be unseated (Avalon, Story Relay) or must be seated (Werewolf). Bot takeover is not
-identity; it widens the _effective seat_ (`resolveEffectiveSeat(viewer, controlledSeat)`).
-`resolveRoomViewerAudience` projects the two axes to the three-way audience every per-viewer
-contract matches on: `host` → `seated` → `spectator`. The guidance matrix, Werewolf's layout
-rules and every test fixture (`src/test-utils/roomViewer.ts: viewerFor`) use this projection;
-no game re-derives it.
+one identity declaration: `{ userId, isHost, seat }`. Bot takeover widens the effective seat
+through `resolveEffectiveSeat(viewer, controlledSeat)`; it does not change viewer identity.
+`resolveRoomViewerAudience` is the shared audience projection used by adapters and tests.
 
-**Two surfaces, two owners.**
+| Model            | Holds                                                                            | Audience                                                                       |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `playerActions`  | The viewer's own participant/spectator actions and an optional grouped sub-hand. | `participant` requires an effective seat; `anyone` is available to spectators. |
+| `hostManagement` | The host task and complete flat inventory of host actions.                       | Built lazily only for `viewer.isHost`; otherwise `null`.                       |
 
-| Surface                                 | Holds                                                                                                                                                                                       | Audience                                                                                                                                                                                                            |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hostManagement` (task card + sections) | **Every host command, and only host commands.** Start / assign / begin gates, bot scaffolds, abort / restart, closing, room setup, post-game tools, host-owned local modes and their exits. | `viewer.isHost` only. Built lazily by `buildHostManagement`; `createRoomShellModel` calls it for the host and sets `null` otherwise. Games never write `if (!isHost) return null`.                                  |
-| `bottomActions` (stacked / dock)        | The viewer's **own** actions as a participant or spectator.                                                                                                                                 | Every button declares `audience: 'participant' \| 'anyone'`. `participant` requires an effective seat; `anyone` is open to spectators. There is no host audience: a host command never renders on the bottom panel. |
-
-`createRoomShellModel` checks every bottom button against the viewer and throws on a violation;
-it also throws when a bottom button repeats an action the host task renders. A seated host
-keeps their own player action in the bottom focus slot and can open the shared surface to see
-the host task and remaining player tools. The renderer never reads role.
-
-Content-local host controls that belong to a game workspace (gallery playback, a drawer's
-give-up, board-nomination adopt, the BGM toggle) stay in that workspace; the flow commands
-(abort, next round) do not — see the Story Relay rule below.
+`createRoomShellModel` validates audiences for direct and grouped player actions and rejects
+actions duplicated by the host task. The renderer does not inspect roles. Commands owned by a
+game workspace remain in that workspace; host flow commands remain in `hostManagement`.
 
 #### Host Task
 
-The host's "what do I do now" has exactly one home: the **host task**, declared by the game on
-`RoomHostManagementModel.task` and rendered inside the shared actions surface.
+The host task is the declared "what to do now" entry in
+`RoomHostManagementModel.task`. `RoomHostManagementModel.actions` is the flat host-action
+inventory; every task reference resolves to one of these actions, so the task has no handler.
 
 ```ts
 interface RoomHostManagementModel {
-  /** The one thing the host should do now; null when nothing awaits the host. */
   readonly task: RoomHostTask | null;
-  /** The complete command inventory (the shared surface). Every host command's onPress lives here. */
-  readonly sections: readonly RoomHostManagementSection[];
+  readonly pendingActionKeys?: readonly string[];
+  readonly hasPendingDecision?: boolean;
+  readonly actions: readonly RoomHostAction[];
 }
 
-type RoomHostTask = {
-  /** Multi-step flow progress; omitted for a single step. At most one `current`. */
-  readonly steps?: readonly RoomHostTaskStep[];
-  /** Reminder rendered under the task (e.g. 记得把复盘分享给第一天出局的玩家). */
-  readonly note?: string;
-  /** A concrete remedy for a blocked action (e.g. 分享房间), referenced by key. */
-  readonly remedyActionKey?: string;
-} & (
-  | { readonly kind: 'action'; readonly actionKey: string }
-  | { readonly kind: 'choice'; readonly actionKeys: readonly string[] }
-  | { readonly kind: 'message'; readonly text: string; readonly actionKey?: string }
-);
-
-interface RoomHostTaskStep {
-  readonly key: string;
-  readonly label: string;
-  readonly state: 'complete' | 'current' | 'upcoming';
-  /** A completed step may be revisited through this sheet action. */
-  readonly actionKey?: string;
-}
+type RoomHostTask =
+  | {
+      readonly kind: 'action';
+      readonly actionKey: string;
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    }
+  | {
+      readonly kind: 'choice';
+      readonly actionKeys: readonly string[];
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    }
+  | {
+      readonly kind: 'message';
+      readonly text: string;
+      readonly escapeActionKey?: string;
+      readonly steps?: readonly RoomHostTaskStep[];
+      readonly note?: string;
+    };
 ```
 
-Rules:
+An action's `state` carries its availability and blocked reason; a message may reference one
+escape action; a choice references at least two actions. `resolveHostTaskView` validates these
+references, unique pending keys and step progress. The task header shows its message, note and
+steps above the host hand. Pending actions are ordered first and marked individually; a required
+alternative decision marks the host entry without marking every choice. Host commands stay in
+the host hand, never in the player's actions.
 
-- **A task has no `onPress`.** It references sheet actions by `key`; the renderer resolves the
-  action's handler, enabled state and disabled reason from the sheet. One command, one
-  execution path — guaranteed by the type shape, not by review.
-- `action`: do this one thing. If the referenced action is disabled, the task shows its label
-  and `disabledReason`, with the optional remedy button. The disabled command remains in its
-  management section, without repeating the reason.
-- `choice`: two or more equal options (再来一局 / 返回大厅). Rendered side by side with each
-  action's own variant. Never model equal choices as one primary and one buried option.
-- `message`: the host is waiting on others or following a board instruction
-  (正在等待 3 位玩家查看身份 / 点座位盘选择出局玩家). The optional `actionKey` is the
-  secondary escape (标记机器人已查看 / 取消选择).
-- `task === null`: nothing awaits the host; the shared surface shows the remaining management
-  sections.
-- Actions no longer carry `isPrimary`, `remedy` or `consoleBlockedReason`; the model no longer
-  carries `hasPendingAction`. All of that is the task.
-- `resolveHostTaskView` validates at assembly and throws on: an `actionKey` missing from the
-  sections, a `choice` with fewer than two keys, more than one `current` step.
+The `roomMoreActionsButton` opens host management in place. Host card IDs use the action's
+declared test ID, with task-specific fallbacks for escape, next-step and choice actions. The
+manual and grouped player actions use the same navigation model; entering a sub-hand focuses
+its return card, returning restores focus to its entry, and seat selection temporarily projects
+selection actions without changing the remembered hand. A group key is scoped to the game step;
+when that group disappears, the main hand is shown without discarding its key.
 
-**Host task card** — inside the shared actions surface, in every layout except `stage` content
-(below). The sheet (narrow) / side inspector (wide) opens on demand from the bottom panel's
-actions entry. The entry stays visible with a compact current-task hint; task details and
-commands are rendered only in the opened surface:
-
-```
-┌ 底部焦点卡 ──────────────────────────┐
-│ 状态 / 进度                            │
-│ [玩家当前操作]       [更多操作 · 待办] │
-└──────────────────────────────────────┘
-
-┌ 更多操作 ────────────────────────────┐
-│ 玩家操作                              │
-│ 当前待办                              │
-│ ✓昨夜信息 → ●授权 → 收尾              │  steps (only when present)
-│ 授权玩家查看                           │  action / choice / message
-│ 记得把复盘分享给第一天出局的玩家         │  note
-│ 其它主持命令                           │  sections
-└──────────────────────────────────────┘
-```
-
-The shared entry is `roomMoreActionsButton`; its accessible label includes the current task
-hint when one exists. Host task buttons use their declared action `testID` (falling back to
-task-scoped IDs when an action has none). `roomHostManagementButton` remains the separate
-header entry for `stage` content.
-
-**Phase × task across games** (the declared mapping; each game's host-management test pins it):
-
-| Phase                                   | Task                                                                                                                                                                                          |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Lobby / setup                           | `action: start-game \| assign-roles` (seat shortage → disabled reason + `remedyActionKey: share-room`)                                                                                        |
-| Identity viewing                        | `action: start-game` — blocked by the viewing-progress reason until every seat viewed; `remedyActionKey: mark-bots-viewed` while an unviewed bot seat exists                                  |
-| In play, host advance available         | `action: <game advance key>`                                                                                                                                                                  |
-| In play, waiting on players             | `message: <waiting sentence>`                                                                                                                                                                 |
-| Host-owned local mode (Undercover pick) | `message: 点座位盘选择出局玩家`, `actionKey: cancel-selection`                                                                                                                                |
-| Werewolf Day, info unconfirmed          | `choice` of available election moves, `grant-review` during any active election phase, and `last-night-info`, with steps. Votes offer grant/info only; vote counts stay in the HUD.           |
-| Werewolf Day, info confirmed            | Available election moves plus `grant-review` as `choice`; voting offers `action: grant-review`. Grants remain directly accessible until the election completes, when the task becomes `null`. |
-| Werewolf Ended                          | First `last-night-info`; afterward `choice: [grant-review, review, restart]`. Grant completes when `nightReviewAllowedSeats` is nonempty.                                                     |
-| Ended (identity games)                  | `choice: [review, restart]`; review may be pending, but does not block a confirmed restart.                                                                                                   |
-| Ended (stage games)                     | `null`; review and restart are host-management actions.                                                                                                                                       |
-| Pictionary / Story Relay gallery        | `null`; a confirmed restart is available and does not reverse already-settled rewards.                                                                                                        |
-
-The bottom panel carries **no** host commands or host-flow progress. Werewolf's bottom host
-rules keep only the participant actions (view identity); the shared-surface entry summarizes
-the current host task. In every game the review
-stays a bottom `anyone` tool for seats and spectators — a Werewolf seat the host has not granted
-sees it disabled with the reason — and reaches the host through the shared actions surface.
-The sheriff dock therefore
-has no trailing review tool for the host.
+`stage` content has no bottom panel. It requires the public stage menu; the host task is null
+and every host action in the menu declares `stageMenuRole`. The stage HUD renders status, while
+menu actions are projected from the same directory/action data as the main hand.
 
 #### Review （本局复盘）
 
@@ -465,25 +380,25 @@ page edge to edge with a share footer (`保存／分享图片`; multi-page docum
 tap reaches the system share sheet at once. Pinned by `src/__tests__/roomReview.contract.test.ts`
 (every game, every document) and the platform tests under `src/features/room/review/__tests__/`.
 
-`RoomShell` owns the shared header, connection/status ribbon, seat control banner, bottom actions, profile, invitation, and host-management surfaces. Game screens provide models and content, not another copy of those surfaces.
+`RoomShell` owns the shared header, connection/status ribbon, seat control banner, status,
+action hand, profile, invitation and host-management surface. Game screens provide models and
+content, not another copy of those surfaces.
 
 `content` is an explicit discriminated union:
 
-- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard`, `sideInspector`, and `bottomSummary` form the shared seat-board view. `bottomSummary` places a compact game-owned `RoomStatusSummary` inside the shared bottom action card, above progress, messages and buttons; it remains visible even when the action model is otherwise empty. Games own its phase visibility and detail action. Optional visual content is explicitly `null`.
+- `seats`: `contextHeader`, `beforeSeatBoard`, `afterSeatBoard` and `bottomSummary` form the shared seat-board view. The summary is rendered through the shared status component; games own its phase visibility and detail action. Optional visual content is explicitly `null`.
 - `workspace`: `element` supplies one game-owned workspace. Seat-board slots are not accepted and are not silently ignored.
 - `stage`: an in-play stage ([room-stage-layout-design.md](room-stage-layout-design.md)). `hud` (`RoomStageHudModel`) declares the information bar — game chips, the roster chip, the countdown and optional secondary chips — and `element` fills the remaining height, usually a `RoomTaskFrame` whose footer is the game's own dock. Optional `hudAction` is game-owned and rendered in the secondary information row; the shared shell does not interpret its behavior.
 
-Stage content changes three shell surfaces and nothing else:
+Stage content keeps its game-owned workspace and HUD while using the shared menu surface:
 
-- **Host entry in the header.** The host opens host management from a header button (`roomHostManagementButton`); there is no bottom panel and therefore no host task card. A stage shell model must have `hostManagement.task === null`, an empty `bottomActions` (no message, progress or button) and no narration; `assertRoomStageShellModel` throws otherwise.
+- **Stage menu in the header.** Every viewer can open the shared menu from `roomStageMenuButton`; there is no bottom panel. A stage model must have empty player actions, `hostManagement.task === null` and no narration; `assertRoomStageShellModel` throws otherwise.
 
-Stages opting into `stageMenu` replace the host-only header button with a menu
-for every viewer. It opens as an unframed hand at the room's bottom edge,
-outside the game element and without reflowing it, and reads the current
-`abortGame` action from the authorized host model, without duplicating its
-confirmation or command. The manual replaces the hand in place; guide and configuration
-details open over it;
-leaving the stage removes the menu and restores the room's bottom actions.
+`actionSurface: 'menu'` projects a directory-backed menu at the room's bottom edge, outside
+the game element. It uses the current authorized stage actions (for example `abortGame`)
+without duplicating their confirmation or command. Manual and configuration entries come from
+the same directory as the main hand; dialogs open over the menu. Leaving the stage removes the
+menu and restores the normal hand.
 The new-game skeleton follows this hand/manual split: identity games keep the public
 board in the pre-game seat view, while a non-identity game's playing workspace uses
 the stage menu. Its guide page and room dialog share one guide body. Game authors
@@ -493,7 +408,7 @@ the generated gameplay; the skeleton does not infer them.
 - **Takeover in the information bar.** An active bot takeover renders as the bar's 「代 N 号 · 退出」 chip (`controlledSeatBanner` / `controlledSeatReleaseButton`) instead of the banner. Taking a bot over starts from the roster sheet: bot rows that are not done carry 「接管」 while `canTakeOverBots` is allowed and no seat is controlled.
 - **Roster from the seat source.** `groupRoomStageRoster` groups occupied seats from `RoomSeatDataSource`: the declared acting seat, success-toned status badges as done, everything else pending. Games compute the chip summary from the same grouping and never pass a second seat list.
 
-Werewolf, FibKing and Undercover use `seats`. Pictionary, Story Relay and DrawGuess use `seats` in their lobbies, `stage` in active phases (DrawGuess word select, drawing and round end; Pictionary and Story Relay answering, transition and settling), and `workspace` for gallery and ended screens. Header actions, host-management panels and game overlays remain independent of this choice. Every content variant renders the wide-screen host inspector; narrow screens use the existing sheet.
+Werewolf, FibKing and Undercover use `seats`. Pictionary, Story Relay and DrawGuess use `seats` in their lobbies, `stage` in active phases (DrawGuess word select, drawing and round end; Pictionary and Story Relay answering, transition and settling), and `workspace` for gallery and ended screens. Header actions, host management and game overlays remain independent of this choice. The shared host hand is used in place of a sheet or wide-screen inspector.
 
 This contract changes no game rules, session lifetime, viewport breakpoints, seat layout, or overlay behavior. It removes the implicit `gameWorkspace === null` mode switch and the redundant lobby props previously passed during Pictionary gameplay.
 

@@ -5,6 +5,674 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [3.0.0] - 2026-11-25
+
+- docs(announcements): add v3.0.0 What's New entry
+- Merge pull request #497 from olveryu/fix/scene-decorations-webkit
+- feat(tooling): guard catalogue drift and wire generated night steps
+- fix(scene): handle failed context restoration and preserve reveal access
+- Merge pull request #498 from olveryu/agents/werewolf-spec-driven-night
+- fix(e2e): wait for a pressed alert to close in every alert press helper
+- fix(e2e): stop the night driver reading across a hand or alert change
+- refactor(werewolf): delete the host registration description no surface showed
+- docs: record the drift guards and what they cannot catch
+- test(werewolf): generate the sheriff election list from played elections
+- test(avalon,secrethitler): generate the night step-by-step lists
+- test(werewolf): list each step's name in the progress row and share the list kit
+- test(werewolf): guard role ownership and the greyed-card status line
+- docs: record the status-line and greyed-card decisions from stage five
+- refactor(web): never print a blocked reason on a hand card
+- feat(werewolf): say why in the status line when every skill is locked
+- docs: record stage five of the rework and bring the status rows up to date
+- fix(steps): keep a view card's content on the server until it can be opened
+- test(werewolf): generate the step-by-step list from played nights
+- feat(werewolf): record which step each night report sentence belongs to
+- refactor(werewolf): remove declarations that only apply after the first night
+- refactor(werewolf): pass the wolf step its audio name, not a role id
+- fix(werewolf): name the treasure master correctly in board messages
+- docs: correct the engine test count after the S2 follow-up
+- test(werewolf): cover wolves attacking a wolf with the seed wolf present
+- docs: record the finished S2 items of the PR 498 rework
+- refactor(werewolf): deal bottom cards from the roles' deck declarations
+- refactor(werewolf): let the seed wolf declare its conversion
+- refactor(werewolf): let nightmare and poisoner word the stopped wolf attack
+- docs: record stage four of the PR 498 rework
+- refactor(werewolf): move role-specific rules into the role files
+- test(game-engine): check copy tables across all three night games
+- refactor(werewolf): read every role from its role file
+- refactor(werewolf): give every role its own file
+- refactor(werewolf): keep the night only in nightState
+- refactor(werewolf): build the night report only from the step records
+- fix(steps): remove a viewed card from the hand like any other finished card
+- docs(design): record stage three of the pr 498 rework
+- refactor(werewolf): remove the unused source-scoped void effect
+- refactor(web): generate the shared step progress line outside the werewolf module
+- fix(werewolf): say in the report when the time rift turns a skill back
+- feat(steps): keep viewed information readable and drop finished cards from the hand
+- fix(steps): close the defects found in the pr 498 review
+- docs(design): record stage one and two of the pr 498 rework
+- feat(werewolf): wound the masked man instead of killing him at night
+- fix(werewolf): leave wolves unknown to the pack unmarked in choice lists
+- feat(werewolf): convert the seed wolf target as soon as nobody can save it
+- fix(werewolf): let the antidote save a victim sheltered in the time rift
+- fix(werewolf): align hidden wolf, wolf girl, treasure master and wolf robot with the rules
+- refactor(werewolf): remove multi-night state from the role layer
+- docs(skills): point the new-board skill at the night-1 scenario suite
+- docs(design): record the pr 498 review and confirmed rule corrections
+- docs(werewolf): record completed announcement implementation
+- docs: retire the night matrix and update rules and skills
+- refactor(werewolf): remove the old night engine
+- docs(scene): call the two destroy-order reads direct and name the adaptor's renderer.gl read
+- feat(werewolf): project daytime announcements from role declarations
+- docs(scene): name both cross-system destroy reads and the restore-test fidelity limits
+- test(scene): pin the touch hook, no-shader and restore-handler paths
+- docs: record daytime announcement decisions for werewolf
+- fix(web): migrate generator templates and avalon E2E to shared confirm entries
+- refactor(web): route game confirmations through the shared entry
+- fix(secrethitler): narrow the night view test command type
+- feat(secrethitler): run the night through the step mechanism
+- fix(avalon): label each night view button with its step name
+- feat(avalon): run the night through the step mechanism
+- feat(werewolf): collect narration audio by file name
+- feat(werewolf): switch the night to the step mechanism
+- fix(scene): destroy every system of a renderer whose init fails
+- fix(scene): patch PixiJS's shader-limit check so a lost context cannot freeze the page
+- fix(scene): drive WebGLRenderer directly and release a renderer whose init fails
+- fix(scene): create the WebGL context before PixiJS so a failed rebuild leaks nothing
+- fix(scene): keep the lost canvas watched and retry a failed rebuild
+- fix(web): play reveal-effect previews in the room's reveal dialog
+- fix(web): render the home account avatar as a plain link again
+- fix(scene): rebuild the stage when a lost WebGL context is never restored
+- test: isolate night parity and home rendering cases
+- test: allow time for night parity and home rendering
+- feat(web): add shared step rendering and confirmation entry
+- test(werewolf): compare the new night engine with the old one
+- fix(scene): draw nothing while the WebGL context is lost
+- fix(home): show the account entry as the plain avatar again
+- fix(appearance): keep the scene canvas and reveal preview above picker cells
+- feat(werewolf): add wolf kill, witch and the remaining special roles
+- fix(scene): recover the stage from WebGL context loss
+- feat(werewolf): add role files for view, card and passive roles
+- feat(werewolf): add role files for single-target roles
+- feat(werewolf): add role context layers and presence declarations
+- feat(werewolf): add the death effect resolver
+- feat(game-engine): add the step mechanism core
+- docs(design): align the step redesign with merged main
+- Merge remote-tracking branch 'origin/main' into agents/werewolf-spec-driven-night
+- docs(design): confirm the step interface and add the work plan
+- Merge pull request #496 from olveryu/fix/pr494-followups
+- docs(design): propose the step mechanism interface
+- docs(design): record checkpoint 1 copy review outcome
+- fix(web): bring tinted villager, third and shard balance chip text to AA
+- fix(secrethitler): keep the viewer's own ballot inside the vote dialog
+- fix(werewolf): keep the assistant bubble clear of and above the room hand
+- style(home): dim the disabled action card title with the secondary text token
+- test(werewolf): pin that the registration HUD reveals no registrant count or names
+- style(web): drop the duplicate tabletop key shadow alias
+- style(web): share the pressed-key edge geometry through one token
+- refactor(room): make the compact status the only board status for every seats game
+- refactor(werewolf): gate the sheriff HUD in the status bar by phase, not copy equality
+- fix(avalon): keep 本局结束 in the ended summary bar context
+- refactor(avalon): derive vote and quest status sentences once
+- docs(design): record step and action redesign decisions
+- refactor(web): let the compact status own the action status test id
+- refactor(web): share the settle countdown status sentence
+- web: add tactile tabletop styling across the app (#494)
+- fix(auth): preserve shared page through wechat login (#495)
+- fix(dev): avoid worker port conflicts in local startup (#493)
+- room: shared action hand and single action model across all games (#487)
+- fix(werewolf): drop role chip badge, tap to toggle, long-press for info (#491)
+- fix(secrethitler): pronounce 希特勒 correctly via 希特乐 homophone
+- feat(secrethitler): regenerate reveal narration from current script texts
+- feat(avatars): regenerate 66 role badges + redo 12 portraits juvenile
+- test(admin): wait for D1 analysis controls to mount
+- fix(avatars): use approved darkWolfKing portrait in PR #484
+- feat(avatars): regenerate 17 other-game portraits in locked S style
+- feat(avatars): redraw 33 werewolf portraits as juveniles in locked S style
+- feat(avatars): regenerate 52 werewolf portraits in locked S style
+- fix(avalon): retain configuration during forced selection
+- refactor(room): remove unused terminal task helpers
+- fix(pr-482): finish room storage and generator review fixes
+- refactor(worker): remove Durable Object storage version
+- Revert "refactor(worker): remove Durable Object storage version"
+- refactor(worker): remove Durable Object storage version
+- fix(pr-482): resolve adversarial review findings
+- fix(generator): align restart and identity room flows
+- feat(room): add Avalon and Secret Hitler information tracks
+- feat(secrethitler): add public chancellor preselection
+- feat(room): unify interactions and time public results
+- feat(room): redesign action hands and game status details
+- fix(werewolf): restore night confirmations and room interactions
+- fix(room): restore audio recovery and simplify seat selection
+- test(e2e): align scenarios with current room flows
+- fix(room): prevent duplicate review completion
+- feat(room): persist reviews and unify game restarts
+- refactor(fibking): remove obsolete reset commands
+- refactor(avalon): remove obsolete reset commands
+- feat(werewolf): unify restart and remove old reset commands
+- refactor(secrethitler): remove obsolete reset commands
+- docs(agents): avoid obsolete web client compatibility
+- feat(secrethitler): reset rounds with a single restart action
+- feat(avalon): reset rounds with a single restart action
+- feat(undercover): reset rounds with a single restart action
+- feat(fibking): reset rounds with a single restart action
+- feat(werewolf): persist last night info acknowledgement
+- fix(engine): align lifecycle contract with atomic restarts
+- test(e2e): match action names with pending badges
+- feat(werewolf): group role actions into nested hands
+- feat(room): redesign action hands and consolidate stage restarts
+- docs(web): clarify self-explanatory interface copy
+- fix(maintenance): preserve active games on status failures
+- test(room): align start and settings flows with hands
+- fix(room): complete settings dialogs and selection hands
+- fix(room): center card labels and clarify pending tasks
+- fix(generator): verify nested role preview behavior
+- fix(room): render action menus as overlapping cards
+- fix(room): indicate actionable host tasks with a bell
+- fix(generator): align room skeleton with action hands
+- docs(room): add hand and information design plans
+- fix(room): show stage menu as a bottom action hand
+- fix(storyrelay): omit abort once story reveal begins
+- test(drawguess): abort the restarted round through the stage menu
+- feat(pictionary): add the room menu through the gallery
+- feat(storyrelay): add the room menu through the reveal stage
+- feat(spotmatch): add live room menu without moving the board
+- feat(drawguess): keep the live stage mounted under a room menu
+- test(fibking): verify round results on the player hand
+- feat(secrethitler): move rules and setup into the room hand
+- feat(avalon): open room information from the action hand
+- feat(fibking): open room rules and setup from the action hand
+- feat(undercover): migrate room actions and information to hands
+- fix(werewolf): defer night reveals while reading room information
+- feat(werewolf): edit board suggestions without leaving the room
+- feat(werewolf): keep suggestions readable after dealing
+- refactor(web): remove unused notepad path builder
+- feat(werewolf): open the shared notepad from the room manual
+- feat(werewolf): open the room manual and reading dialogs
+- feat(werewolf): switch host management to an inline hand
+- feat(werewolf): show player actions in the room hand
+- feat(werewolf): open public board configuration from room actions
+- fix(lint): recognize browser globals in mockups
+- feat(room): prototype action hands and information dialogs
+- feat(werewolf): unify night seat selection and confirmation
+- Merge pull request #480 from olveryu/fix/secrethitler-art-wiring
+- test(web): cover the liberal branch of the Secret Hitler policy art mapping
+- fix(web): show each Secret Hitler policy as its own card, no selection dimming
+- chore(werewolf): align role actions and streamline tests (#479)
+- feat(web): wire Secret Hitler art set and shared ChoiceCard into room and home
+- fix(e2e): retry transient night actions after audio unlock (#478)
+- fix(room): compact board role composition labels
+- feat(games): add secret ballots and complete room rule summaries (#477)
+- feat(room): consolidate bottom actions into focus card (#476)
+- refactor(new-game): derive generator checks from game features (#475)
+- test(e2e): align room summary title expectations
+- feat(secrethitler): align narration, host controls, and generator tests
+- feat(secrethitler): align night flow, shared room UI and game scaffolding
+- feat(secrethitler): add game and align identity room scaffolding
+- test(ci): fix generator and layout test failures
+- refactor(werewolf): unify narration playback preparation
+- feat(new-game): wire room image and audio preload into skill and templates (#469)
+- refactor(web): generalize room image preload and wire avalon vote art (#469)
+- feat(avalon): scheme B vote/quest card art with prompt images (#469)
+- fix(avalon): mark night role locations on seats
+- feat(home): replace 3 more game art images with centered 3:2 versions
+- feat(home): replace 3 game art images with centered 3:2 versions
+- Merge pull request #470 from olveryu/fix/revert-bright-theme
+- style(theme): restore original palette
+- style(theme): brighten palette and game art for all 8 games (#468)
+- feat(spotmatch): add real-time matching game (#467)
+- fix(ci): reuse published assets when the CDN version already exists (#466)
+- fix(web): picking a variant no longer adds the role to the board (#465)
+- generator: remove Demo game and make capabilities selectable (#464)
+- Merge pull request #462 from olveryu/feature/modern-web-guidance
+- fix(web): keep drawguess config test in game module
+- chore(skills): replace design skill and modernize javascript apis
+- Merge pull request #463 from olveryu/agents/feecb346-6850-44b1-a8dc-22ca0741e993
+- fix(drawguess): support 20 players and stabilize admin test
+- Merge pull request #461 from olveryu/fix/config-variant-icon
+- feat(web): variant mark becomes a swap icon badge
+- Merge pull request #460 from olveryu/fix/admin-title-switcher
+- fix(admin): open page switcher from the page title on mobile
+- fix(web): regenerate avalon cover at 3:2 to fill picker thumbs
+- fix(admin): clarify d1 usage and stabilize word-library filters (#456)
+- docs: rename storyrelay display name to 轮流讲故事 (#458)
+- feat(web): tabbed create-game picker with drawing-game family card (#457)
+- feat(web): config variant chips wear a 变 mark, drop long press and thick border (#455)
+- Merge pull request #454 from olveryu/fix/config-role-chip-v
+- feat(web): config role chips open the info card, badge toggles the board
+- fix(web): restore pill radius on config role chips
+- Merge pull request #453 from olveryu/agents/aa72218d-8644-4336-9c08-181ac6e2a23c
+- fix(word-library): merge main and preserve unified categories
+- Merge pull request #448 from olveryu/fix/word-library-rebuild
+- fix(drawguess): reconcile reaction feedback with main
+- feat(word-library): unify category and admin review workflows
+- fix(words): protect supply submissions and empty-page navigation
+- fix(words): align bulk dismiss with drawer; drop dead auto-supply I/O; test publish gate
+- fix(words): replay 0051 with review-table fixture; drop FTS5 search table
+- fix(words): single-queue QA fixes + optional reasons + pass-rate tile + drop batches list
+- docs(words): add clean single-queue scheme without implementation details
+- feat(words): replace batch panel with a single review queue
+- feat(words): unify word library on submissions, drop candidate tables
+- revert(words): remove migration 0085 candidate review/publish states and fixup
+- fix(words): restore 0082 candidate list indexes in 0085; fix review comments
+- feat(words): supply generates only; manual candidate review and publish
+- feat(words): candidate manual review/publish states (migration 0085)
+- test(words): one word per model call for undercover and drawguess
+- feat(words): take up to 5 approved candidates per publish pack
+- feat(words): generate one word per model call for undercover and drawguess
+- fix(admin): correct word library review workflows
+- docs(api-worker): sync library-items comment with title-or-category search
+- fix(admin): keep the action notice visible when the card stream empties
+- fix(admin): redirect legacy ?section=agents to the agents workspace
+- fix(api-worker): search library items by title or category
+- fix(admin): drop ordinary type assertions from library status filter
+- refactor(api-worker): remove 04:00 automatic word-supply schedule
+- refactor(api-worker): remove automatic-supply admin endpoints
+- refactor(admin): delete section-split word library pages
+- feat(admin): move agent authorization to /admin/agents/:game
+- feat(admin): rewrite unified word library page
+- feat(admin): add merged library-items client and card stream
+- feat(admin): add merged library-items endpoint for unified word library
+- chore(gitignore): ignore log files
+- Merge pull request #452 from olveryu/feature/drawguess-hud-production
+- feat(drawguess): show reaction receipts in review
+- Merge pull request #451 from olveryu/feature/drawguess-hud-production
+- feat(drawguess): show per-game reaction receipts
+- fix(drawguess): remove reaction totals from footer
+- feat(drawguess): add animated reactions and live ranking
+- Merge pull request #450 from olveryu/feature/drawguess-hud-production
+- fix(words): make migration-test cleanup FK-safe for the 0085 system agent
+- docs(words): fix same stale checkpoint-failure claim in fibking doc
+- docs(words): fix five QA-flagged doc facts and sync undercover prompt verbatim
+- docs(words): clean stale auto-supply and candidate-pipeline descriptions
+- fix(words): protect supply submissions and empty-page navigation
+- feat(drawguess): add animated reactions and live ranking
+- fix(words): align bulk dismiss with drawer; drop dead auto-supply I/O; test publish gate
+- fix(words): replay 0051 with review-table fixture; drop FTS5 search table
+- fix(words): single-queue QA fixes + optional reasons + pass-rate tile + drop batches list
+- docs(words): add clean single-queue scheme without implementation details
+- feat(words): replace batch panel with a single review queue
+- feat(words): unify word library on submissions, drop candidate tables
+- revert(words): remove migration 0085 candidate review/publish states and fixup
+- chore(api-worker): merge main into word library branch
+- Merge pull request #449 from olveryu/fix/room-action-panel-clearance
+- fix(words): restore 0082 candidate list indexes in 0085; fix review comments
+- feat(words): supply generates only; manual candidate review and publish
+- Merge remote-tracking branch 'origin/main' into fix/room-action-panel-clearance
+- feat(words): candidate manual review/publish states (migration 0085)
+- test(words): one word per model call for undercover and drawguess
+- feat(words): take up to 5 approved candidates per publish pack
+- docs(api-worker): correct migration count to 83 files through 0084
+- style(web): align player pages with directory design
+- feat(words): generate one word per model call for undercover and drawguess
+- fix(admin): correct word library review workflows
+- docs(api-worker): sync library-items comment with title-or-category search
+- docs(api-worker): drop forward-only migration rule
+- fix(admin): keep the action notice visible when the card stream empties
+- fix(admin): redirect legacy ?section=agents to the agents workspace
+- fix(api-worker): search library items by title or category
+- fix(admin): drop ordinary type assertions from library status filter
+- refactor(api-worker): remove 04:00 automatic word-supply schedule
+- docs(api-worker): reduce repeated D1 migration writes
+- refactor(api-worker): remove automatic-supply admin endpoints
+- refactor(admin): delete section-split word library pages
+- feat(admin): move agent authorization to /admin/agents/:game
+- feat(admin): rewrite unified word library page
+- feat(admin): add merged library-items client and card stream
+- feat(admin): add merged library-items endpoint for unified word library
+- Merge pull request #447 from olveryu/fix/room-action-panel-clearance
+- Merge pull request #446 from olveryu/feat/word-unified-library
+- fix(api-worker): make candidate audit mutations atomic
+- test(word-library): bring codec fixtures up to the byOperation budget shape
+- fix(home): remove game start title from home page
+- fix(room): remove unnecessary padding adjustment for bottom action panel
+- test(word-library): pin the 0084 action CHECK whitelist
+- feat(word-library): add unendorse to withdraw an approval
+- fix(room): prevent panel actions from being obscured
+- docs(agents): document local development seed
+- fix(word-library): reset candidate pager state when the list changes
+- fix(word-library): replace source assertion with a type guard
+- feat(word-library): unified library, endorsement gate, supply approval queue
+- Merge pull request #444 from olveryu/design/editorial-refresh
+- fix(api-worker): compare extraction fixture URLs exactly
+- fix(api-worker): isolate word review evidence failures
+- style(web): refresh shared palette and home layout
+- fix(werewolf): clarify witch self-save status (#443)
+- fix(word-review): tolerate longer model explanations
+- Fix/ended review access (#442)
+- Improve word-supply prompts and reduce editorial batch sizes (#441)
+- fix(werewolf): restore ended review authorization flow (#440)
+- fix(admin): allow independent human approval for word submissions (#439)
+- fix(admin): restore shared header back button layout (#438)
+- Fix admin workspace responsiveness and interactions (#436)
+- fix(relay): register gallery reveal deadline arithmetic
+- feat(relay): synchronize text reveal and drawing stroke playback
+- Merge pull request #434 from olveryu/fix/admin-responsive
+- fix(admin): improve responsive layouts
+- Merge pull request #432 from olveryu/feature/submission-force-review
+- Merge pull request #433 from olveryu/revert-pr-429
+- Revert "Merge pull request #429 from olveryu/feature/ui-ux-pro-max"
+- chore(admin): merge latest main before delivery
+- feat(admin): improve external review and agent authorization controls
+- Merge pull request #431 from olveryu/fix/ai-http-diagnostics
+- Merge pull request #429 from olveryu/feature/ui-ux-pro-max
+- fix(ai): preserve safe Gemini HTTP error diagnostics
+- test(pictionary): allow wrapped custom color entry
+- Merge pull request #430 from olveryu/feature/admin-header-return
+- fix(admin): preserve workspace exit navigation
+- chore(web): merge main and resolve admin UI conflicts
+- Merge pull request #427 from olveryu/feature/agent-word-submissions
+- Merge pull request #428 from olveryu/fix/spectator-review-visibility
+- fix(word-submissions): align review fixture with upstream Gemini contract
+- fix(web): improve interface accessibility and interaction feedback
+- fix(werewolf-review): allow spectators to view reviews
+- fix(new-game): isolate migration numbering test inputs
+- feat(word-supply): add agent submissions with human-reviewed publication
+- fix(word-supply): validate generated candidates individually (#426)
+- Merge pull request #425 from olveryu/fix/word-provider-diagnostics
+- fix(ai): unify safe Gemini failure diagnostics
+- Merge pull request #423 from olveryu/feature/multigame-profile-stats
+- test(undercover): use eligible roster for reward replay
+- test(demo): cover completion human threshold
+- Merge pull request #424 from olveryu/fix/admin-room-expand
+- fix(avalon): reconcile vote result settlement with statistics
+- fix(admin): expand room details on row click
+- feat(stats): add game profiles and drawguess reactions
+- Merge pull request #422 from olveryu/fix/avalon-vote-result-ack
+- style(avalon): redesign vote result confirmation
+- Merge pull request #421 from olveryu/fix/word-supply-inventory-priority
+- Merge pull request #420 from olveryu/fix/responsive-ops-workspace
+- fix(api-worker): prioritize word supply by inventory
+- fix(admin): correct back navigation and responsive recovery summary
+- fix(avalon): require all players to acknowledge vote results
+- Merge pull request #419 from olveryu/chore/migrate-cloudflare-vitest-plugin
+- Merge pull request #416 from Redonkatonkk/codex/fix-auth-410-412
+- fix(ci): keep fork failure digests in job summaries
+- chore(api-worker): migrate cloudflare vitest plugin
+- Merge pull request #418 from olveryu/fix/guest-auth-copy
+- test(auth): include password attempt budget in architecture contract
+- fix(web): update guest account benefit copy
+- Merge pull request #417 from Redonkatonkk/codex/fix-deaths-http-413-415
+- fix(api-worker): reserve password attempts atomically
+- fix(core): handle death chains, duplicate roles and response body cancellation
+- fix(auth): enforce reset expiry and preserve merge limits and shards
+- Merge pull request #409 from olveryu/preview/d1-admin-mock
+- Merge pull request #408 from olveryu/fix/admin-exit-entry-page
+- feat(admin): add D1 usage analysis
+- fix(web): replace admin navigation history entries
+- fix(admin): return to the entry page when leaving the workspace
+- docs(api-worker): weigh d1 index read and write costs
+- Merge pull request #407 from olveryu/fix/admin-room-host-details
+- Merge pull request #406 from olveryu/fix/d1-word-supply-reads
+- test(word-supply): guard d1 indexes and read budgets
+- fix(admin): keep room hosts visible and make long names readable
+- perf(word-supply): reduce d1 reads before editorial supply
+- Merge pull request #405 from olveryu/fix/avalon-abort-bgm-e2e
+- fix(web): preserve admin back history and align avalon abort assertion
+- Merge pull request #404 from olveryu/fix/review-access-night-music-renovate
+- chore(merge): resolve conflicts with main
+- fix(room): gate werewolf review and night music controls
+- Merge pull request #403 from olveryu/chore/update-build-test-observability
+- style: migrate formatting to prettier 3.10
+- chore(api-worker): migrate sentry cloudflare to v11
+- chore(deps): update web build toolchain
+- Merge pull request #402 from olveryu/feat/admin-console-redesign
+- fix(admin): isolate supply controls and prevent stale refresh overwrites
+- chore(admin): merge main and resolve documentation index conflict
+- feat(admin): apply approved responsive console and supply controls
+- fix(auth): preserve application queries across identity changes
+- fix(e2e): resolve web types and enforce standalone typechecking
+- docs(e2e): record hardening implementation and staged CI evidence
+- test(e2e): return void from required night actions and waits
+- test(e2e): drop redundant assertions in flow and reconnect specs
+- test(e2e): drop redundant assertions in check and reveal specs
+- test(e2e): drop redundant assertions in protection and kill specs
+- test(e2e): drop redundant night driver assertions in shard-one specs
+- test(e2e): match the witch information prompt title from its schema
+- test(e2e): poll failed uploads independently of the pictionary retry notice
+- test(e2e): wait for expected step prompt titles before reading their messages
+- test(e2e): prove seat interaction preconditions before notice and negative assertions
+- test(e2e): leave replaced alerts untouched when a captured button detaches
+- docs(e2e): document state-based readiness and captured alert dismissal
+- test(e2e): harden night readiness, seat confirmation and alert identity
+- docs(e2e): add the night driver hardening plan
+- fix(admin): preserve independent maintenance controls in redesigned console
+- feat(admin): redesign console and reduce D1 reporting reads
+- feat(maintenance): add D1-independent maintenance mode with scheduled recovery
+- feat(maintenance): add D1-independent maintenance mode with scheduled recovery
+- feat(tests): enhance word supply workflow tests and add mock model implementation
+- fix(ci): stream migration output without buffer overflow
+- feat(word-supply): expand and balance game word categories
+- fix(deps): retain Prettier version compatible with repository formatting
+- chore(deps): update compatible workspace dependencies
+- ci(frontend): publish assets alongside test jobs
+- fix(web): restore room UI and enable review sharing
+- feat(web): redesign the settings and appearance pages
+- fix(web): restore the compact player profile card
+- fix(web): fit the identity card, single-draw result and AI chat on short screens
+- fix(web): keep scene decorations aligned through scrolling and layout shifts
+- feat(api-worker): share one random never-repeat word draw across fibking, undercover, drawguess (#394)
+- Merge pull request #391 from olveryu/fix/preload-role-portraits
+- fix(web): merge main and preserve disabled session replay
+- Merge pull request #392 from olveryu/fix/web-ui-layout-regressions
+- Merge pull request #393 from olveryu/fix/disable-sentry-session-replay
+- fix(web): restore room UI layouts and profile close control
+- perf(web): eagerly load app code and preload public role portraits
+- fix(web): disable Sentry Session Replay
+- Merge pull request #390 from olveryu/fix/role-description-bullets
+- fix(web): show bullets for a role description with one multi-clause field
+- fix(werewolf): rewrite role descriptions as one rule per bullet in a fixed field order
+- Merge pull request #389 from olveryu/fix/scene-bench-out-of-entry
+- Merge pull request #388 from olveryu/fix/loading-screen-parity
+- build(web): raise Vite's chunk size warning limit above the entry chunk
+- perf(web): keep the scene bench and PixiJS out of the start-up entry
+- fix(web): restore loading screen text and sweep bar from the RN client
+- Merge pull request #385 from olveryu/fix/no-lazy-routes
+- Merge pull request #387 from olveryu/fix/slacker-description
+- Merge pull request #386 from olveryu/fix/role-card-parity
+- fix(werewolf): guard learned by wolfRobot is not once-only; only the extra attack is
+- fix(werewolf): rewrite wolfRobot learn rules in house description style
+- fix(e2e): retry outside-press dismissal until the Ark UI dialog closes
+- refactor(web): drop lazy-route leftovers after making every route static
+- fix(werewolf): wolfRobot learn guard reflects poison, learn wolf adds one knife
+- fix(werewolf): move wolfRobot learn cases from skill to special
+- fix(werewolf): correct slacker and wolfRobot skill copy
+- fix(web): restore the role card layout from the RN client
+- perf(web): make all routes static imports to remove first-visit chunk downloads
+- Merge pull request #382 from olveryu/fix/websocket-commands
+- fix(e2e): install the command-frame gate before the host page loads
+- fix(e2e): register the command-frame gate route on the browser context
+- test(e2e): temporarily observe host commands in room-narration to diagnose the missing audio ack
+- fix(e2e): give the room-narration ack gate 120s to see the audio ack
+- fix(e2e): forward gated frames to the server, not back to the page
+- test(e2e): drop the realtime-command-transport spec, verify with existing specs
+- fix(e2e): wait for the link to drop before voting offline
+- fix(e2e): return an already-recorded COMMAND_RESULT instead of waiting for a future one
+- fix(e2e): make gate release idempotent and arm the ack wait before going offline
+- test(e2e): observe room commands as WebSocket frames, not HTTP posts
+- feat(client): send room commands over WebSocket instead of HTTP POST
+- feat(worker): dispatch room commands over WebSocket with per-socket backpressure
+- feat(engine): add COMMAND and COMMAND_RESULT frames to realtime protocol (v3)
+- fix(web): land unlocks navigation synchronously to stop flaky profile test (#384)
+- Merge pull request #383 from olveryu/fix/declare-deploy-clis
+- fix(ci): declare sentry-cli and miniprogram-ci as devDependencies
+- Merge pull request #381 from olveryu/refactor/web-only-client
+- perf(web): load the loading and share-card app icon from the CDN
+- feat(web): restore the boot splash with byte-weighted progress and network hints
+- feat(web): restore the pulsing app icon on the loading screen
+- test(e2e): cap the night runner wolf empty vote against the step prompt race
+- fix(werewolf): disable visible wolf seats for not-wolf-faction targets
+- test(web): pass the host to the fake scene stage mounts
+- Revert "feat(web): restore the on-screen debug log console"
+- feat(web): restore the on-screen debug log console
+- feat(web): draw frame and flair on the settings avatar
+- feat(web): draw frame and flair on the profile card avatar
+- feat(web): show the equipped cosmetics on the player profile card
+- fix(e2e): read the night-info message and the wolf girl confess prompt
+- test(e2e): ban non-test-id locators and derive any-seat patterns from TESTIDS
+- feat(web): give the demo guide and generated rules screens their root test id
+- test(e2e): drive fibking spec by test id
+- feat(web): register settings back and guide section title test ids
+- fix(e2e): seed the announcement receipt instead of racing an auto-dismisser
+- feat(web): export the prefixed localStorage item name for app storage keys
+- test(e2e): drive pictionary spec by test id
+- feat(web): register drawing toolbar, pictionary and review image test ids
+- test(e2e): drive drawguess spec by test id
+- feat(web): register drawguess, guide-heading and summary-title test ids
+- fix(e2e): dispatch announcement close past a stacked login dialog
+- test(e2e): drive storyrelay spec by test id
+- feat(web): register storyrelay and shared gallery test ids
+- test(e2e): drive undercover spec by test id
+- feat(web): register undercover, guide and seat-label test ids
+- fix(e2e): drop accessible-name check from announcement auto-dismisser
+- test(e2e): drive avalon spec by test id
+- feat(web): register avalon, host-tool, stepper and music test ids
+- test(e2e): drive werewolf and resilience specs by test id
+- feat(web): key werewolf night buttons and narration label by test id
+- test(e2e): locate shared home, room and role-card elements by test id
+- feat(web): expose test ids on shared home, room and role-card elements
+- test(e2e): locate the pictionary stage chips and prompt card by test id
+- fix(web): keep the stage countdown on the first HUD row
+- fix(web): show no drawguess countdown while words are dealt
+- refactor(web): delete the answering top bar
+- feat(web): move story relay writing phases onto the room stage
+- feat(web): move pictionary relay phases onto the room stage
+- feat(web): move drawguess in-play phases onto the room stage
+- feat(web): add room stage shell content with info bar and roster sheet
+- fix(web): let the drawguess canvas yield to the drawer toolbar, not the guess log
+- fix(e2e): host opens endgame review via host management, record D26
+- fix(e2e): pin lady marker to nominate alongside leader badge, record D25
+- fix(e2e): avalon lady marker hidden in viewing phase
+- feat: list drawguess right after avalon in the game order
+- fix(web): give the drawguess canvas the full width on narrow screens
+- feat(drawguess): allow up to 15 players
+- fix(web): drop the nested settings section under the drawguess estimate
+- fix(web): give the host one review entry, on the host task card
+- fix(drawguess): always keep at least one pinyin initial hidden
+- fix(web): show the Avalon Lady badge only in day phases
+- fix(web): restore the surface header with a bottom border
+- fix(web): require VITE_CF_API_URL per Vite mode instead of a silent default
+- fix(scripts): anchor the new-game client module edit on the cached loads
+- fix(web): read admin room participants through a query with a retry
+- fix(web): keep every Pictionary submission failure, not just the first
+- refactor(web): share one cacheLoad for lazy loads that retry on failure
+- docs: align review-share and scene docs with the web client
+- fix(web): serve PWA icons outside the immutable assets path
+- fix(web): compress avatars from the picked File with createImageBitmap
+- fix(web): drop Skia quirks from reveal art and let effects own layers
+- fix(web): load admin reports and feedback history through queries
+- fix(web): make BgmPlayer the single source of BGM state
+- fix(web): handle drawguess stroke dispatch outcomes
+- chore: remove stale Expo env files and ignore entries
+- docs: archive the RN loopMotion design; describe the Vite web build
+- ci: build packages/web with the CDN base; require every E2E spec
+- feat(web): port the admin portal
+- feat(web): port the gacha and shard exchange pages
+- feat(web): appearance and unlocks pages; lazy-load start-up dialogs
+- feat(web): home announcements, feedback, install entry and settings parity
+- feat(web): port the music settings page
+- feat(web): port the avalon client
+- feat(web): port the drawguess client
+- feat(web): port pictionary with a Canvas 2D drawing board
+- feat(web): port the storyrelay client
+- feat(web): port the fibking client
+- perf(web): keep classic zod out of the start-up bundle
+- feat(web): port the undercover client
+- feat(web): role reveal animations on the shared PixiJS stage
+- feat(web): seat pets and seat entry animations on the scene layer
+- feat(web): render all avatar frames on the scene layer
+- feat(web): scene layer seat decorations with all flairs and name styles
+- ci: run the migrated werewolf, resilience and room E2E specs
+- feat(web): port werewolf AI chat, camp distribution and home spotlight
+- fix(web): expose alert test ids on the room audio resume dialog
+- feat(web): port werewolf notepad
+- test: port werewolf board UI tests and restore Night-1 engine suite
+- feat(web): port werewolf room and register the werewolf module
+- feat(web): port werewolf guide and shared encyclopedia
+- feat(web): port werewolf config flow
+- feat(web): port audio service with narration and background music
+- test(worker): wait for the replay alarm instead of racing it
+- fix(engine): typecheck engine tests and type-tests in the package
+- docs(agents): point agent rules and skills at the web client
+- feat(generator): generate web client games mirroring the web Demo
+- refactor!: remove the React Native client
+- feat(web): keep the room link across room subpages; room-aware settings
+- fix(web): gate config on login and settle login requests by identity
+- feat(web): room shell, Demo room, config and guide pages
+- feat(web): port room logic, review export and share services
+- feat(web): show the wechat login entry while the mini-program claim is pending
+- feat(web): move start-up logic from inline html scripts into the entry
+- feat(web): add the settings page with display and frame-rate options
+- feat(web): add home, login dialog, game picker and avatars
+- docs(web): record implementation adjustments from p0 and early p1
+- feat(web): add the app shell with auth, services, tokens and alerts
+- refactor(web): port the platform layer and its vitest suites
+- feat(web): add the pixijs scene layer spike with a 12-seat benchmark
+- build(web): enforce per-route gzip bundle budgets after vite build
+- feat(web): scaffold the web-only react client package
+- docs(web): add the web-only client rewrite design
+- fix(werewolf): remove the sheriff vote note from the host task card (#378)
+- Merge pull request #380 from olveryu/fix/d1-cleanup-indexes
+- test(scripts): strip post-demo migrations in the demo-regeneration fixture
+- perf(api-worker): index the daily cleanup scans on users and refresh_tokens
+- feat(storyrelay, pictionary): unify the final step, gallery autoplay, album shell and answering top bar (#379)
+- feat(room): pending seats on the top surface and sheriff settle countdown (#377)
+- Merge pull request #375 from olveryu/fix/remove-presence
+- style(docs): reflow two markdown tables after presence wording change
+- refactor(werewolf): converge sheriff election presentation onto one projection (#376)
+- docs(room): clear remaining stale presence references per QA round 2
+- fix(new-game): match shipped demo shell-model fixture to template output
+- fix(new-game): drop presence fixtures from generated shell-model test
+- chore(e2e): rename stale presence comments to seat readiness
+- refactor(room): delete online/offline presence end to end
+- fix(werewolf): resequence Ended flow to last-night info → grant → closing (#374)
+- Merge pull request #373 from olveryu/fix/werewolf-night-review-override-abstain
+- fix(werewolf): show abstaining wolves under a kill override as one give-up line
+- feat(room): unify end-of-round review and image sharing across all games
+- Merge pull request #371 from olveryu/fix/wolf-girl-skill-description
+- Merge pull request #370 from olveryu/fix/deploy-commit-subject-quotes
+- docs(werewolf): add vote-phase self-destruct and no-last-words to wolf girl description
+- fix(ci): strip double quotes from deploy commit subject
+- Revert "Merge pull request #366 from olveryu/fix/keyboard-single-source"
+- Revert "fix(room): reset visualViewport pan and stop double-subtracting offsetTop (#367)"
+- Revert "Merge pull request #365 from olveryu/fix/impeccable-ui-audit" (#368)
+- fix(room): reset visualViewport pan and stop double-subtracting offsetTop (#367)
+- Merge pull request #365 from olveryu/fix/impeccable-ui-audit
+- Merge pull request #366 from olveryu/fix/keyboard-single-source
+- refactor(room): single shared visualViewport source, footer-pinned task inputs
+- fix(ui): keep withdrawn sheriff seat numbers legible
+- docs: record text-token, gradient and URL-ownership rules
+- fix(navigation): keep the browser URL on screens that reopen from it
+- fix(room): keep the AI chat bubble above the room's bottom panel
+- fix(ui): meet WCAG AA contrast and clear impeccable audit findings
+- D3: delete client phase.expire in all five games; re-judge P3 E2E specs to zero-expire-ever (#363)
+- Merge pull request #364 from olveryu/fix/night-review-timeline
+- feat(werewolf): timeline text-list night review key actions
+- feat(werewolf): netease-style pictorial night review key actions (#362)
+- Merge pull request #361 from olveryu/fix/phase-expiry-p3-e2e-pictionary
+- docs: correct stale expire-channel wording after D1' (#360)
+- test(e2e): pin pictionary expire discipline — single-shot per phase identity, zero-acceleration advance
+- feat(client): host-or-seated expire gates for relay games (D1') (#359)
+- feat(engine): restore host-or-seated expire gate for relay games (D1') (#358)
+- test(storyrelay): pin gallery auto-expire arming; use shared settle helper
+- Merge pull request #356 from olveryu/fix/phase-expiry-p2-client
+- test(new-game): assert rendered stage hook carries takeover gate and attemptKey
+- feat(client): single-shot stage-deadline discipline, template gate, docs (P2)
+- Merge pull request #354 from olveryu/fix/phase-expiry-p1-storyrelay
+- feat(storyrelay): arm server-side settle effects for stage deadlines (P1)
+- feat(drawguess): server-side scheduled settle with pinned arming (P1)
+- feat(pictionary): scheduled stage-deadline settlement (phase-expiry P1)
+- Merge pull request #352 from olveryu/fix/wolfkill-override-feedback
+- test(werewolf): expect the kill-disabled hint, not the vote dialog, under the nightmare override
+- test(room): fix import formatting and cover the choice-card audio reason
+- fix(engine): set the UI hint when START_NIGHT opens the first step
+- test(e2e): cover the poisoner override seat-tap hint and settle countdown
+- fix(werewolf): use the step prompt text for the kill-disabled tap message
+- fix(room): show the audio playback lock reason once at the panel level
+- fix(werewolf): keep the wolf settle countdown visible under override and audio lock
+- fix(werewolf): show kill-disabled hint on wolf seat tap instead of a dead confirm
+- feat(platform): extend settle pin and single-shot stage deadline discipline (P0)
+
 ## [2.9.0] - 2026-11-03
 
 - docs(announcements): add v2.9.0 What's New entry

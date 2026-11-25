@@ -78,13 +78,22 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
       model={screen.shellModel}
       phaseLabel={isLobby ? '待开局' : null}
       lobbyAction={isLobby ? { label: '开始游戏', occupiedSeats: screen.occupiedSeatCount } : null}
-      stageMenu={
-        hasStageMenu ? { onOpenGuide: openGuide, onOpenConfiguration: openConfiguration } : null
-      }
-      configurationEntry={isLobby ? null : { onOpen: openConfiguration }}
-      manualEntries={[
-        { label: '玩法', onOpen: openGuide, testId: TESTIDS.roomGuideButton('pictionary') },
-      ]}
+      actionSurface={hasStageMenu ? 'menu' : 'hand'}
+      directory={{
+        main: [],
+        manual: [
+          {
+            key: 'guide',
+            label: '玩法',
+            category: 'resource',
+            icon: 'book-outline',
+            testID: TESTIDS.roomGuideButton('pictionary'),
+            opensDialog: true,
+            state: { kind: 'ready', onPress: openGuide },
+          },
+        ],
+        openConfiguration: isLobby ? null : openConfiguration,
+      }}
       content={
         isLobby
           ? {
@@ -92,7 +101,6 @@ function PictionaryRoomContent({ entryController, ...props }: PictionaryRoomCont
               contextHeader: null,
               bottomSummary: null,
               afterSeatBoard: null,
-              sideInspector: null,
               beforeSeatBoard: <PictionaryRoomSummary config={config} guide={null} />,
             }
           : screen.stageHud !== null

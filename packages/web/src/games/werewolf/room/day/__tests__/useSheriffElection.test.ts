@@ -8,17 +8,13 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react';
 import type { Mock } from 'vitest';
 
+import { confirmAction } from '@/features/room/confirm';
 import { useSheriffElection } from '@/games/werewolf/room/day/useSheriffElection';
 import { buildWerewolfTestState } from '@/test-utils/werewolfState';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDestructiveAlert: vi.fn(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
-const mockShowConfirmAlert = vi.mocked(showConfirmAlert);
-const mockShowDestructiveAlert = vi.mocked(showDestructiveAlert);
+const mockConfirmAction = vi.mocked(confirmAction);
 
 function dayState(sheriffElection: GameState['sheriffElection']): GameState {
   return buildWerewolfTestState({
@@ -33,7 +29,6 @@ function dayState(sheriffElection: GameState['sheriffElection']): GameState {
       0: { seat: 0, userId: 'host-1', profile: { displayName: 'Host' } },
       1: { seat: 1, userId: 'user-1', profile: { displayName: 'Player' } },
     },
-    currentNightResults: {},
     lastNightDeaths: [],
     sheriffElection,
   });
@@ -102,10 +97,14 @@ describe('useSheriffElection', () => {
       votePromise = result.current!.vote(0);
     });
     expect(result.current?.pendingAction).toEqual({ kind: 'vote', targetSeat: 0 });
-    expect(submit).toHaveBeenCalledWith('竞选投票', {
-      type: 'werewolf.sheriff.vote',
-      targetSeat: 0,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '竞选投票',
+      {
+        type: 'werewolf.sheriff.vote',
+        targetSeat: 0,
+      },
+      { actionKey: null },
+    );
 
     deferred.resolve(true);
     await act(async () => votePromise);
@@ -119,7 +118,7 @@ describe('useSheriffElection', () => {
     await act(() => result.current!.withdraw());
     expect(submit.mock.calls.map(([label, command]) => [label, command.type])).toEqual([
       ['报名上警', 'werewolf.sheriff.register'],
-      ['取消报名', 'werewolf.sheriff.cancelRegistration'],
+      ['撤回报名', 'werewolf.sheriff.cancelRegistration'],
       ['退水', 'werewolf.sheriff.withdraw'],
     ]);
   });
@@ -127,15 +126,21 @@ describe('useSheriffElection', () => {
   it('asks before closing registration and dispatches only on confirm', async () => {
     const { result, submit } = renderElection(dayState(REGISTRATION));
     act(() => result.current!.requestAdvance());
-    expect(mockShowConfirmAlert).toHaveBeenCalledWith(
-      '结束报名？',
-      '结束后，未报名的玩家不能再参选。',
-      expect.any(Function),
-    );
+    expect(mockConfirmAction).toHaveBeenCalledWith({
+      label: '结束报名',
+      body: '结束后，未报名的玩家不能再参选。',
+      onConfirm: expect.any(Function) as unknown,
+    });
     expect(submit).not.toHaveBeenCalled();
-    const [, , onConfirm] = mockShowConfirmAlert.mock.calls[0]!;
+    const { onConfirm } = mockConfirmAction.mock.calls[0]![0];
     await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
+    expect(submit).toHaveBeenCalledWith(
+      '推进竞选',
+      { type: 'werewolf.sheriff.advance' },
+      {
+        actionKey: 'sheriff-advance',
+      },
+    );
   });
 
   it('asks before ending candidate speeches', async () => {
@@ -151,14 +156,20 @@ describe('useSheriffElection', () => {
     );
     act(() => result.current!.requestAdvance());
     expect(submit).not.toHaveBeenCalled();
-    expect(mockShowConfirmAlert).toHaveBeenCalledWith(
-      '结束发言？',
-      '确认后将推进警长竞选。',
-      expect.any(Function),
-    );
-    const [, , onConfirm] = mockShowConfirmAlert.mock.calls[0]!;
+    expect(mockConfirmAction).toHaveBeenCalledWith({
+      label: '结束发言',
+      body: '确认后将推进警长竞选。',
+      onConfirm: expect.any(Function) as unknown,
+    });
+    const { onConfirm } = mockConfirmAction.mock.calls[0]![0];
     await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('推进竞选', { type: 'werewolf.sheriff.advance' });
+    expect(submit).toHaveBeenCalledWith(
+      '推进竞选',
+      { type: 'werewolf.sheriff.advance' },
+      {
+        actionKey: 'sheriff-advance',
+      },
+    );
   });
 
   it('explains table rules before ending the election by self-destruct', async () => {
@@ -173,17 +184,22 @@ describe('useSheriffElection', () => {
       }),
     );
     act(() => result.current!.requestEndBySelfDestruct());
-    expect(mockShowDestructiveAlert).toHaveBeenCalledWith(
-      '确认结束警长竞选？',
-      expect.stringContaining('应用不判断或记录自爆次数'),
-      '确认结束',
-      expect.any(Function),
-    );
-    const [, , , onConfirm] = mockShowDestructiveAlert.mock.calls[0]!;
-    await act(async () => onConfirm());
-    expect(submit).toHaveBeenCalledWith('自爆结束竞选', {
-      type: 'werewolf.sheriff.endBySelfDestruct',
+    expect(mockConfirmAction).toHaveBeenCalledWith({
+      label: '自爆结束竞选',
+      body: expect.stringContaining('应用不判断或记录自爆次数') as unknown,
+      tone: 'danger',
+      confirmText: '结束竞选',
+      onConfirm: expect.any(Function) as unknown,
     });
+    const { onConfirm } = mockConfirmAction.mock.calls[0]![0];
+    await act(async () => onConfirm());
+    expect(submit).toHaveBeenCalledWith(
+      '自爆结束竞选',
+      {
+        type: 'werewolf.sheriff.endBySelfDestruct',
+      },
+      { actionKey: 'sheriff-self-destruct' },
+    );
   });
 
   it('releases the pending action even when the submit throws', async () => {

@@ -20,6 +20,7 @@ import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 
 import { AVALON_GUIDANCE_MATRIX } from '../avalonGuidanceMatrix';
 import { type AvalonRoomShellModelInput, createAvalonRoomShellModel } from '../avalonRoomAdapter';
@@ -34,7 +35,6 @@ const phaseKind = (s: Session): AvalonState['phase']['kind'] => s.state.phase.ki
 interface Session {
   readonly state: AvalonState;
   send(command: AvalonPublicCommand, userId?: string): void;
-  trySend(command: AvalonPublicCommand, userId?: string): boolean;
   /** 全员投完/出完后把时钟推到 deadline，以系统身份发内部结算——唯一关轮路径（手动结算、公开 expire 均已删）。 */
   settle(): void;
 }
@@ -86,9 +86,6 @@ function session(playerCount: 5 | 9): Session {
     send(command, userId = 'host') {
       if (!apply(command, userId)) throw new Error(`rejected: ${command.type}`);
     },
-    trySend(command, userId = 'host') {
-      return apply(command, userId);
-    },
     settle() {
       const phase = state.phase;
       if ((phase.kind !== 'vote' && phase.kind !== 'quest') || phase.deadlineAt === null) {
@@ -132,7 +129,7 @@ function completeNight(s: Session) {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (s.state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(s.state.roles, step)) {
-      s.send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      s.send(avalonViewNightCommand(s.state), seatUser(seat));
     }
     if (s.state.isAudioPlaying)
       s.send({ type: 'avalon.audio.ack', audioBatchId: s.state.audioBatchId }, 'host');
@@ -216,6 +213,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
   const isLobby = state.phase.kind === 'lobby';
   const base: AvalonRoomShellModelInput = {
     roomCode: '1234',
+    pendingActionKey: null,
     capabilities: capabilities(),
     onBack: vi.fn(),
     onTitlePress: vi.fn(),
@@ -251,7 +249,8 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
     viewer: { userId: 'host', isHost: true, seat: 0 },
     effectiveSeat: 0,
     onViewRolePress: vi.fn(),
-    onNightInfoPress: vi.fn(),
+    nightActions: [],
+    nightMessage: null,
     isSubmitting: false,
     settleCountdownSeconds: null,
     onOpenVotePress: vi.fn(),
@@ -286,7 +285,7 @@ function bottomMessage(state: AvalonState, viewer: Viewer, seatedSeat = 2): stri
               canTakeOverBots: createBotTakeoverCapability(false, vi.fn()),
             },
           };
-  return createAvalonRoomShellModel({ ...base, ...overrides }).bottomActions.message;
+  return createAvalonRoomShellModel({ ...base, ...overrides }).playerActions.message;
 }
 
 function expectCell(phase: keyof typeof AVALON_GUIDANCE_MATRIX, state: AvalonState) {
@@ -332,12 +331,9 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
   it('night: waiting viewers are told whose confirmation is pending', () => {
     const s = session(5);
     beginNight(s);
-    // A participant who has not confirmed yet legitimately has no
-    // message (their confirm action is the guidance); confirm the two
-    // probed seats first so the probe reads the waiting state the cell
-    // declares. Non-participants reject the confirm and already wait.
-    s.trySend({ type: 'avalon.night.confirm' }, seatUser(0));
-    s.trySend({ type: 'avalon.night.confirm' }, seatUser(2));
+    // The probe carries no step actions (the view action and its prompt
+    // come from the step hook), so every probed seat reads the waiting
+    // state the cell declares.
     if (s.state.isAudioPlaying)
       s.send({ type: 'avalon.audio.ack', audioBatchId: s.state.audioBatchId }, 'host');
     expect(s.state.phase.kind).toBe('night');
@@ -351,7 +347,7 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     expectCell('nominate', s.state);
   });
 
-  it('vote: everyone sees the public cast count and pending seats', () => {
+  it('vote: voters get no sentence while voting, outsiders are told why they cannot vote', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -363,12 +359,13 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     }
     proposeTeam(s, team);
     expectCell('vote', s.state);
-    // Post-ballot the seated cell keeps the public sentence with the new count.
+    // The cast count lives in the summary bar's progress; the sentence is per viewer.
     s.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(2));
-    expect(bottomMessage(s.state, 'seated')).toContain('已投 1/5');
+    expect(bottomMessage(s.state, 'seated')).toBeNull();
+    expect(bottomMessage(s.state, 'spectator')).toBe('你不在座位上，无法投票。');
   });
 
-  it('quest: everyone sees the public played count and pending seats', () => {
+  it('quest: members get no sentence while playing, non-members wait for the team', () => {
     const s = session(5);
     beginNight(s);
     completeNight(s);
@@ -376,8 +373,9 @@ describe('AVALON_GUIDANCE_MATRIX', () => {
     proposeTeam(s, [0, 2]);
     approveTeam(s);
     expectCell('quest', s.state);
-    // A non-member seated viewer sees the same public sentence.
-    expect(bottomMessage(s.state, 'seated', 3)).toContain('已出牌 0/2');
+    // The played count lives in the summary bar's progress; non-members are told to wait.
+    expect(bottomMessage(s.state, 'seated')).toBeNull();
+    expect(bottomMessage(s.state, 'seated', 3)).toBe('等待队员出牌…');
   });
 
   it('lady: holder, target and bystanders all read the public progress', () => {

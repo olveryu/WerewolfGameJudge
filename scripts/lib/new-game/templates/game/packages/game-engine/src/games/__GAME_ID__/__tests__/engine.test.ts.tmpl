@@ -33,6 +33,9 @@ import { get__GAME_PASCAL__ViewModel } from '../domain/visibility';
 //#end
 import { end__GAME_PASCAL__Game, __GAME_CAMEL__Engine } from '../engine';
 import { parse__GAME_PASCAL__State } from '../state/parseState';
+//#cap sharedSteps
+import { finishScaffoldNight } from './nightDriver';
+//#end
 import {
   DEFAULT___GAME_UPPER___CONFIG,
   type __GAME_PASCAL__Config,
@@ -99,6 +102,9 @@ function viewAllAndBegin(session: ReturnType<typeof game>): void {
 //#end
   }
   session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+  finishScaffoldNight(session.session);
+//#end
 }
 
 //#end
@@ -250,6 +256,9 @@ describe('__GAME_PASCAL__ identity viewing checkpoint', () => {
     }
 //#end
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     expect(session.state.phase.kind).toBe('playing');
   });
 
@@ -359,6 +368,9 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     const startedAt = session.session.now();
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     expect(session.state.phase).toEqual({
       kind: 'playing',
       deadlineAt: startedAt + __GAME_UPPER___STAGE_DURATION_MS,
@@ -377,6 +389,9 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
   it('rejects settle before the deadline, then settles exactly once at the deadline', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     const early = __GAME_CAMEL__Engine.decide(
       session.state,
       { type: '__GAME_ID__.phase.settleExpired' },
@@ -401,6 +416,9 @@ describe('__GAME_PASCAL__ stage deadline settlement', () => {
   it('rejects the internal settle channel for a user actor', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     session.session.advance(__GAME_UPPER___STAGE_DURATION_MS);
     const internalAsUser = session.decideAs({ type: '__GAME_ID__.phase.settleExpired' }, 'u1');
     expect(internalAsUser.kind).toBe('reject');
@@ -597,6 +615,9 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
   it('rejects the example gameplay command as not implemented (no fake green)', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     const decision = session.decideAs({ type: '__GAME_ID__.gameplay.example' });
     expect(decision.kind).toBe('reject');
     if (decision.kind === 'reject')
@@ -606,6 +627,9 @@ describe('__GAME_PASCAL__ gameplay seam', () => {
   it('ends through the terminal seam with exactly one completion effect', () => {
     const session = game({ numberOfPlayers: 4 }, 4);
     session.send({ type: '__GAME_ID__.game.begin' });
+//#cap sharedSteps
+    finishScaffoldNight(session.session);
+//#end
     const decision = end__GAME_PASCAL__Game(session.state, session.session.context('host'));
     expect(decision.kind).toBe('commit');
     if (decision.kind !== 'commit') return;

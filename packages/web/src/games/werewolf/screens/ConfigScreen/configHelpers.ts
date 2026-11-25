@@ -9,9 +9,9 @@ import {
   Faction,
   findMatchingPresetName,
   getPlayerCount,
+  getRoleCard,
   isValidRoleId,
   type PresetTemplate,
-  ROLE_SPECS,
   type RoleId,
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
@@ -148,7 +148,7 @@ export const expandSlotToChipEntries = (
 ): { key: string; label: string; hasVariants: boolean }[] => {
   const count = slot.count ?? 1;
   const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
-  const label = ROLE_SPECS[activeRoleId].displayName;
+  const label = getRoleCard(activeRoleId).displayName;
   const hasVariants = slot.variants !== undefined && slot.variants.length > 0;
 
   return Array.from({ length: count }, (_, i) => ({
@@ -191,7 +191,7 @@ function byFactionPriority(a: TemplateRoleItem, b: TemplateRoleItem): number {
 }
 
 function toRoleItem(roleId: RoleId, count: number): TemplateRoleItem {
-  const spec = ROLE_SPECS[roleId];
+  const spec = getRoleCard(roleId);
   return { roleId, displayName: spec.displayName, count, faction: spec.faction };
 }
 
@@ -208,7 +208,7 @@ function countRoles(roles: readonly RoleId[], skipGeneric: boolean): Map<RoleId,
 export const computeFactionStats = (roles: readonly RoleId[]): FactionStats => {
   const stats: FactionStats = { wolfCount: 0, godCount: 0, villagerCount: 0, thirdCount: 0 };
   for (const roleId of roles) {
-    switch (ROLE_SPECS[roleId].faction) {
+    switch (getRoleCard(roleId).faction) {
       case Faction.Wolf:
         stats.wolfCount++;
         break;
@@ -350,6 +350,6 @@ export const filterTemplates = (
   return templates.filter(
     (template) =>
       template.name.toLowerCase().includes(q) ||
-      template.roles.some((roleId) => ROLE_SPECS[roleId].displayName.toLowerCase().includes(q)),
+      template.roles.some((roleId) => getRoleCard(roleId).displayName.toLowerCase().includes(q)),
   );
 };

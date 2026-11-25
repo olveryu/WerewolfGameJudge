@@ -8,14 +8,14 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { confirmAction, confirmView } from '@/features/room/confirm';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useScopedAlert } from '@/features/room/hooks/useScopedAlert';
 import { useSeatPicking } from '@/features/room/hooks/useSeatPicking';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 async function requestUndercoverRestart(
   state: UndercoverState,
-  submit: (label: string, command: UndercoverPublicCommand) => Promise<boolean>,
+  submit: ReadyRoomSession<UndercoverState, UndercoverPublicCommand>['submit'],
   closeCard: () => void,
   clearSelection: () => void,
 ) {
@@ -26,11 +26,15 @@ async function requestUndercoverRestart(
       : state.round.roundId;
   closeCard();
   if (
-    await submit('重新开始', {
-      type: 'undercover.game.restart',
-      roundId,
-      wasEnded: state.phase === 'ended',
-    })
+    await submit(
+      '重新开始',
+      {
+        type: 'undercover.game.restart',
+        roundId,
+        wasEnded: state.phase === 'ended',
+      },
+      { actionKey: 'restart' },
+    )
   )
     clearSelection();
 }
@@ -149,7 +153,7 @@ export function useUndercoverRoundControls({
     void submit(
       '确认词卡',
       { type: 'undercover.role.viewed', roundId: state.round.roundId },
-      { controlledSeat },
+      { controlledSeat, actionKey: null },
     ).then((success) => {
       if (success && latestCardKey.current === cardKey) closeCard();
     });
@@ -157,28 +161,36 @@ export function useUndercoverRoundControls({
   const reveal = () => {
     if (state.phase !== 'ongoing' || selectedSeat === null)
       throw new Error('Reveal requires a selected live seat');
-    void submit('揭晓并出局', {
-      type: 'undercover.round.reveal',
-      roundId: state.round.roundId,
-      seat: selectedSeat,
-    }).then((success) => {
+    void submit(
+      '揭晓并出局',
+      {
+        type: 'undercover.round.reveal',
+        roundId: state.round.roundId,
+        seat: selectedSeat,
+      },
+      { actionKey: null },
+    ).then((success) => {
       if (success) exitSelection();
     });
   };
   const allowRepeated = () => {
-    showConfirmAlert(
-      '仅下一局允许重复词对？',
-      '当前分类没有未使用词对。本次授权不会改变之后各局的去重设置。',
-      async () => {
+    confirmAction({
+      label: '允许重复词对',
+      body: '当前分类没有未使用词对。只对下一局生效，之后各局仍按去重设置。',
+      onShown: trackConfirmationAlert,
+      onConfirm: async () => {
         if (state.phase !== 'preparationFailed' || state.failureCode !== 'inventoryExhausted')
           throw new Error('Allowing repeated words requires exhausted inventory');
-        await submit('允许重复词对', {
-          type: 'undercover.round.allowRepeated',
-          roundId: state.pendingRound.roundId,
-        });
+        await submit(
+          '允许重复词对',
+          {
+            type: 'undercover.round.allowRepeated',
+            roundId: state.pendingRound.roundId,
+          },
+          { actionKey: 'allow-repeated' },
+        );
       },
-      { onShown: trackConfirmationAlert },
-    );
+    });
   };
   return {
     isSubmitting,
@@ -189,31 +201,38 @@ export function useUndercoverRoundControls({
       card !== null && state.phase === 'viewing' && !state.round.confirmedSeats.includes(card.seat),
     openCard: () => {
       if (cardKey === null) throw new Error('No permitted Undercover word card');
-      showConfirmAlert(
-        '查看词卡？',
-        '确定现在查看你的词卡吗？',
-        () => {
+      confirmView({
+        label: '查看词卡',
+        onShown: trackConfirmationAlert,
+        onView: () => {
           if (latestCardKey.current !== cardKey) {
             toast.error('词卡已变化，请重新查看。');
             return;
           }
           setVisibleCardKey(cardKey);
         },
-        { confirmText: '查看', onShown: trackConfirmationAlert },
-      );
+      });
     },
     closeCard,
     confirmCard,
     markAllBotsViewed: () => {
       if (state.phase !== 'viewing') throw new Error('Bot confirmation requires viewing phase');
-      void submit('标记机器人已查看', {
-        type: 'undercover.bots.markAllBotsViewed',
-        roundId: state.round.roundId,
-      });
+      void submit(
+        '标记机器人已查看',
+        {
+          type: 'undercover.bots.markAllBotsViewed',
+          roundId: state.round.roundId,
+        },
+        { actionKey: 'mark-bots-viewed' },
+      );
     },
     begin: () => {
       if (state.phase !== 'viewing') throw new Error('Begin requires the viewing phase');
-      void submit('开始游戏', { type: 'undercover.game.begin', roundId: state.round.roundId });
+      void submit(
+        '开始游戏',
+        { type: 'undercover.game.begin', roundId: state.round.roundId },
+        { actionKey: 'start-game' },
+      );
     },
     isSelecting,
     selectedSeat,
@@ -234,11 +253,15 @@ export function useUndercoverRoundControls({
     },
     cancelSelection: exitSelection,
     start: () => {
-      void submit('分配角色', { type: 'undercover.roles.assign', shouldAllowRepeated: false });
+      void submit(
+        '分配角色',
+        { type: 'undercover.roles.assign', shouldAllowRepeated: false },
+        { actionKey: 'assign-roles' },
+      );
     },
     retry: () => {
       if (roundId === undefined) throw new Error('Retry requires a pending round');
-      void submit('重新准备', { type: 'undercover.round.retry', roundId });
+      void submit('重新准备', { type: 'undercover.round.retry', roundId }, { actionKey: 'retry' });
     },
     restart: () => requestUndercoverRestart(state, submit, closeCard, exitSelection),
     allowRepeated,

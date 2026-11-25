@@ -17,45 +17,22 @@ import {
 } from '../../../platform/protocol/runtimeDecoder';
 import { buildRoomSeatProfile, type RosterEntry } from '../../../platform/room/roster';
 import type { BotSeatOccupant } from '../../../platform/room/seating';
-import type { DeathReason } from '../domain/DeathCalculator';
 import { GameStatus } from '../domain/models/GameStatus';
 import { isValidRoleId, type RoleId } from '../domain/models/roles';
-import type { WolfKillOverride } from '../domain/models/roles/spec/schema.types';
-import { isValidSchemaId } from '../domain/models/roles/spec/schemas';
-import { Team } from '../domain/models/roles/spec/types';
 import type { GameRuleOverrides } from '../domain/models/Template';
 import type {
   BoardNomination,
-  ConfirmStatus,
   GameState,
   Player,
-  ProtocolAction,
-  ResolvedNightEffect,
-  ResolvedWolfKillVerdict,
-  SeedWolfDeferredReveal,
-  SeedWolfInfectionResult,
   SheriffElectionResult,
   SheriffElectionRoundResult,
   SheriffElectionState,
   SheriffSpeakingDirection,
   WerewolfHumanSeat,
-  WerewolfNightStep,
 } from '../domain/protocol/types';
-import type { CurrentNightResults, ResolverReveal } from '../domain/resolvers/types';
 import { type Complete, normalizeState } from '../domain/state/normalize';
-
-function parseSeatOrNoTarget(value: unknown, path: string): number {
-  const parsed = parseInteger(value, path);
-  if (parsed < -1) return fail(path, 'a seat number or -1');
-  return parsed;
-}
-
-function parseSeatPair(value: unknown, path: string): readonly [number, number] {
-  if (!Array.isArray(value) || value.length !== 2) {
-    return fail(path, 'a two-seat tuple');
-  }
-  return [parseSeat(value[0], `${path}[0]`), parseSeat(value[1], `${path}[1]`)];
-}
+import type { DeathReason } from '../roles/deathEffects';
+import { parseWerewolfNightState } from '../roles/nightState';
 
 function parseRoleId(value: unknown, path: string): RoleId {
   if (typeof value !== 'string' || !isValidRoleId(value)) {
@@ -71,13 +48,6 @@ function parseRoleIds(value: unknown, path: string): RoleId[] {
 function parseSheriffSpeakingDirection(value: unknown, path: string): SheriffSpeakingDirection {
   if (value === 'clockwise' || value === 'counterclockwise') return value;
   return fail(path, 'clockwise or counterclockwise');
-}
-
-function parseSchemaId(value: unknown, path: string): ProtocolAction['schemaId'] {
-  if (typeof value !== 'string' || !isValidSchemaId(value)) {
-    return fail(path, 'a registered schema ID');
-  }
-  return value;
 }
 
 function parseGameStatus(value: unknown, path: string): GameStatus {
@@ -105,19 +75,6 @@ function parseGameSequence(value: unknown, path: string): number {
   const parsed = parseInteger(value, path);
   if (parsed < 0) return fail(path, 'a non-negative integer');
   return parsed;
-}
-
-function parseTeam(value: unknown, path: string): Team {
-  switch (value) {
-    case Team.Wolf:
-      return Team.Wolf;
-    case Team.Good:
-      return Team.Good;
-    case Team.Third:
-      return Team.Third;
-    default:
-      return fail(path, 'a valid team');
-  }
 }
 
 function parseRules(value: unknown, path: string): GameRuleOverrides {
@@ -221,101 +178,6 @@ function parseSeatRoster(
   return roster;
 }
 
-function parseProtocolAction(value: unknown, path: string): ProtocolAction {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      schemaId: parseSchemaId(raw.schemaId, `${path}.schemaId`),
-      actorSeat: parseSeat(raw.actorSeat, `${path}.actorSeat`),
-      targetSeat: parseOptional(raw.targetSeat, `${path}.targetSeat`, parseSeat),
-      timestamp: parseInteger(raw.timestamp, `${path}.timestamp`),
-    },
-    path,
-  );
-}
-
-function parseWolfKillOverride(value: unknown, path: string): WolfKillOverride {
-  const raw = parseObject(value, path);
-  const source = (() => {
-    if (raw.source === 'nightmare' || raw.source === 'poisoner') return raw.source;
-    return fail(`${path}.source`, 'nightmare or poisoner');
-  })();
-  const uiRaw = parseObject(raw.ui, `${path}.ui`);
-  const ui = finishObject(
-    uiRaw,
-    {
-      promptTitle: parseString(uiRaw.promptTitle, `${path}.ui.promptTitle`),
-      promptMessage: parseString(uiRaw.promptMessage, `${path}.ui.promptMessage`),
-      emptyVoteText: parseString(uiRaw.emptyVoteText, `${path}.ui.emptyVoteText`),
-      rejectMessage: parseString(uiRaw.rejectMessage, `${path}.ui.rejectMessage`),
-    },
-    `${path}.ui`,
-  );
-  return finishObject(raw, { source, ui }, path);
-}
-
-function parseCurrentNightResults(value: unknown, path: string): CurrentNightResults {
-  const raw = parseObject(value, path);
-  const parsed = {
-    wolfVotesBySeat: parseOptional(
-      raw.wolfVotesBySeat,
-      `${path}.wolfVotesBySeat`,
-      parseSeatNumberRecord,
-    ),
-    blockedSeat: parseOptional(raw.blockedSeat, `${path}.blockedSeat`, parseSeat),
-    wolfKillOverride: parseOptional(
-      raw.wolfKillOverride,
-      `${path}.wolfKillOverride`,
-      parseWolfKillOverride,
-    ),
-    guardedSeat: parseOptional(raw.guardedSeat, `${path}.guardedSeat`, parseSeat),
-    savedSeat: parseOptional(raw.savedSeat, `${path}.savedSeat`, parseSeat),
-    poisonedSeat: parseOptional(raw.poisonedSeat, `${path}.poisonedSeat`, parseSeat),
-    dreamingSeat: parseOptional(raw.dreamingSeat, `${path}.dreamingSeat`, parseSeat),
-    charmedSeat: parseOptional(raw.charmedSeat, `${path}.charmedSeat`, parseSeat),
-    swappedSeats: parseOptional(raw.swappedSeats, `${path}.swappedSeats`, parseSeatPair),
-    silencedSeat: parseOptional(raw.silencedSeat, `${path}.silencedSeat`, parseSeat),
-    votebannedSeat: parseOptional(raw.votebannedSeat, `${path}.votebannedSeat`, parseSeat),
-    cursedSeat: parseOptional(raw.cursedSeat, `${path}.cursedSeat`, parseSeat),
-    shelteredSeat: parseOptional(raw.shelteredSeat, `${path}.shelteredSeat`, parseSeat),
-    hypnotizedSeats: parseOptional(raw.hypnotizedSeats, `${path}.hypnotizedSeats`, (seats, p) =>
-      parseArray(seats, p, parseSeat),
-    ),
-    convertedSeat: parseOptional(raw.convertedSeat, `${path}.convertedSeat`, parseSeat),
-    wolfGirlConfessedSeat: parseOptional(
-      raw.wolfGirlConfessedSeat,
-      `${path}.wolfGirlConfessedSeat`,
-      parseSeat,
-    ),
-    seedWolfInfectionTarget: parseOptional(
-      raw.seedWolfInfectionTarget,
-      `${path}.seedWolfInfectionTarget`,
-      parseSeat,
-    ),
-    shadowMimicTarget: parseOptional(raw.shadowMimicTarget, `${path}.shadowMimicTarget`, parseSeat),
-    avengerFaction: parseOptional(raw.avengerFaction, `${path}.avengerFaction`, parseTeam),
-    treasureMasterChosenCard: parseOptional(
-      raw.treasureMasterChosenCard,
-      `${path}.treasureMasterChosenCard`,
-      parseRoleId,
-    ),
-    thiefChosenCard: parseOptional(raw.thiefChosenCard, `${path}.thiefChosenCard`, parseRoleId),
-    loverSeats: parseOptional(raw.loverSeats, `${path}.loverSeats`, parseSeatPair),
-  } satisfies Complete<CurrentNightResults>;
-  return finishObject(raw, parsed, path);
-}
-
-function parseSeatNumberRecord(value: unknown, path: string): Readonly<Record<string, number>> {
-  const raw = parseObject(value, path);
-  const result: Record<string, number> = {};
-  for (const [key, target] of Object.entries(raw)) {
-    parseSeatKey(key, `${path}.${key}`);
-    result[key] = parseSeatOrNoTarget(target, `${path}.${key}`);
-  }
-  return result;
-}
-
 function parseDeathReason(value: unknown, path: string): DeathReason {
   switch (value) {
     case 'wolfKill':
@@ -326,7 +188,6 @@ function parseDeathReason(value: unknown, path: string): DeathReason {
     case 'coupleLink':
     case 'dreamcatcherLink':
     case 'reflection':
-    case 'magicianSwap':
       return value;
     default:
       return fail(path, 'a valid death reason');
@@ -343,307 +204,6 @@ function parseDeathReasons(value: unknown, path: string): Readonly<Record<number
   return result;
 }
 
-function parseTargetFactionReveal(
-  value: unknown,
-  path: string,
-): { targetSeat: number; result: '好人' | '狼人' } {
-  const raw = parseObject(value, path);
-  const result = (() => {
-    if (raw.result === '好人' || raw.result === '狼人') return raw.result;
-    return fail(`${path}.result`, '好人 or 狼人');
-  })();
-  return finishObject(
-    raw,
-    { targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`), result },
-    path,
-  );
-}
-
-function parseTargetStringReveal(
-  value: unknown,
-  path: string,
-): { targetSeat: number; result: string } {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      result: parseString(raw.result, `${path}.result`),
-    },
-    path,
-  );
-}
-
-function parseWolfRobotReveal(
-  value: unknown,
-  path: string,
-): NonNullable<GameState['wolfRobotReveal']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      result: parseString(raw.result, `${path}.result`),
-      learnedRoleId: parseRoleId(raw.learnedRoleId, `${path}.learnedRoleId`),
-      canShootAsHunter: parseOptional(
-        raw.canShootAsHunter,
-        `${path}.canShootAsHunter`,
-        parseBoolean,
-      ),
-    },
-    path,
-  );
-}
-
-function parseWolfRobotContext(
-  value: unknown,
-  path: string,
-): NonNullable<GameState['wolfRobotContext']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      learnedSeat: parseSeat(raw.learnedSeat, `${path}.learnedSeat`),
-      disguisedRole: parseRoleId(raw.disguisedRole, `${path}.disguisedRole`),
-    },
-    path,
-  );
-}
-
-function parseWitchContext(value: unknown, path: string): NonNullable<GameState['witchContext']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      killedSeat: parseSeatOrNoTarget(raw.killedSeat, `${path}.killedSeat`),
-      canSave: parseBoolean(raw.canSave, `${path}.canSave`),
-      canPoison: parseBoolean(raw.canPoison, `${path}.canPoison`),
-    },
-    path,
-  );
-}
-
-function parseResolvedWolfKillVerdict(value: unknown, path: string): ResolvedWolfKillVerdict {
-  const raw = parseObject(value, path);
-  switch (raw.type) {
-    case 'sharedTarget':
-    case 'splitKilled':
-    case 'tiePicked':
-      return finishObject(
-        raw,
-        { type: raw.type, targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`) },
-        path,
-      );
-    case 'splitTied':
-    case 'allAbstain':
-      return finishObject(raw, { type: raw.type }, path);
-    default:
-      return fail(path, 'a valid wolf-kill verdict');
-  }
-}
-
-function parseConfirmStatus(value: unknown, path: string): ConfirmStatus {
-  const raw = parseObject(value, path);
-  if (raw.role === 'hunter' || raw.role === 'darkWolfKing') {
-    return finishObject(
-      raw,
-      {
-        role: raw.role,
-        canShoot: parseBoolean(raw.canShoot, `${path}.canShoot`),
-      },
-      path,
-    );
-  }
-  if (raw.role === 'avenger') {
-    return finishObject(
-      raw,
-      {
-        role: 'avenger',
-        faction: parseTeam(raw.faction, `${path}.faction`),
-      },
-      path,
-    );
-  }
-  if (raw.role === 'hiddenWolf') {
-    return finishObject(
-      raw,
-      {
-        role: 'hiddenWolf',
-        wolfTeammates: parseArray(raw.wolfTeammates, `${path}.wolfTeammates`, parseSeat),
-      },
-      path,
-    );
-  }
-  if (raw.role === 'seedWolf') {
-    if (raw.availability === 'available') {
-      return finishObject(
-        raw,
-        {
-          role: 'seedWolf',
-          availability: raw.availability,
-          targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-        },
-        path,
-      );
-    }
-    if (raw.availability === 'unavailable') {
-      if (raw.reason !== 'noTarget' && raw.reason !== 'wolfTarget') {
-        return fail(`${path}.reason`, 'noTarget or wolfTarget');
-      }
-      return finishObject(
-        raw,
-        { role: 'seedWolf', availability: raw.availability, reason: raw.reason },
-        path,
-      );
-    }
-    return fail(`${path}.availability`, 'available or unavailable');
-  }
-  return fail(`${path}.role`, 'a supported confirmation role');
-}
-
-function parseResolverReveal(value: unknown, path: string): ResolverReveal {
-  const raw = parseObject(value, path);
-  if (raw.kind === 'factionCheck') {
-    const checkResult = (() => {
-      if (raw.checkResult === '好人' || raw.checkResult === '狼人') return raw.checkResult;
-      return fail(`${path}.checkResult`, '好人 or 狼人');
-    })();
-    return finishObject(raw, { kind: raw.kind, checkResult }, path);
-  }
-  if (raw.kind === 'identityCheck') {
-    return finishObject(
-      raw,
-      { kind: raw.kind, roleId: parseRoleId(raw.roleId, `${path}.roleId`) },
-      path,
-    );
-  }
-  if (raw.kind === 'wolfRobotLearn') {
-    return finishObject(
-      raw,
-      {
-        kind: raw.kind,
-        learnedRoleId: parseRoleId(raw.learnedRoleId, `${path}.learnedRoleId`),
-        canShootAsHunter: parseOptional(
-          raw.canShootAsHunter,
-          `${path}.canShootAsHunter`,
-          parseBoolean,
-        ),
-      },
-      path,
-    );
-  }
-  return fail(`${path}.kind`, 'a supported resolver reveal');
-}
-
-function parseSeedWolfDeferredReveal(value: unknown, path: string): SeedWolfDeferredReveal {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      actorSeat: parseSeat(raw.actorSeat, `${path}.actorSeat`),
-      schemaId: parseSchemaId(raw.schemaId, `${path}.schemaId`),
-      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      reveal: parseResolverReveal(raw.reveal, `${path}.reveal`),
-    },
-    path,
-  );
-}
-
-function parseResolvedNightEffect(value: unknown, path: string): ResolvedNightEffect {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      sourceSeat: parseSeat(raw.sourceSeat, `${path}.sourceSeat`),
-      updates: parseOptional(raw.updates, `${path}.updates`, parseCurrentNightResults),
-      seerReveal: parseOptional(raw.seerReveal, `${path}.seerReveal`, parseTargetFactionReveal),
-      mirrorSeerReveal: parseOptional(
-        raw.mirrorSeerReveal,
-        `${path}.mirrorSeerReveal`,
-        parseTargetFactionReveal,
-      ),
-      drunkSeerReveal: parseOptional(
-        raw.drunkSeerReveal,
-        `${path}.drunkSeerReveal`,
-        parseTargetFactionReveal,
-      ),
-      psychicReveal: parseOptional(
-        raw.psychicReveal,
-        `${path}.psychicReveal`,
-        parseTargetStringReveal,
-      ),
-      gargoyleReveal: parseOptional(
-        raw.gargoyleReveal,
-        `${path}.gargoyleReveal`,
-        parseTargetStringReveal,
-      ),
-      pureWhiteReveal: parseOptional(
-        raw.pureWhiteReveal,
-        `${path}.pureWhiteReveal`,
-        parseTargetStringReveal,
-      ),
-      wolfWitchReveal: parseOptional(
-        raw.wolfWitchReveal,
-        `${path}.wolfWitchReveal`,
-        parseTargetStringReveal,
-      ),
-      wolfRobotReveal: parseOptional(
-        raw.wolfRobotReveal,
-        `${path}.wolfRobotReveal`,
-        parseWolfRobotReveal,
-      ),
-      wolfRobotContext: parseOptional(
-        raw.wolfRobotContext,
-        `${path}.wolfRobotContext`,
-        parseWolfRobotContext,
-      ),
-      wolfRobotHunterStatusViewed: parseOptional(
-        raw.wolfRobotHunterStatusViewed,
-        `${path}.wolfRobotHunterStatusViewed`,
-        parseBoolean,
-      ),
-      seedWolfDeferredReveal: parseOptional(
-        raw.seedWolfDeferredReveal,
-        `${path}.seedWolfDeferredReveal`,
-        parseSeedWolfDeferredReveal,
-      ),
-    },
-    path,
-  );
-}
-
-function parseSeedWolfInfectionResult(value: unknown, path: string): SeedWolfInfectionResult {
-  const raw = parseObject(value, path);
-  if (raw.outcome === 'notUsed') {
-    return finishObject(raw, { outcome: raw.outcome }, path);
-  }
-  if (raw.outcome === 'failed' || raw.outcome === 'converted') {
-    return finishObject(
-      raw,
-      { outcome: raw.outcome, targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`) },
-      path,
-    );
-  }
-  return fail(`${path}.outcome`, 'notUsed, failed, or converted');
-}
-
-function parseActionRejected(
-  value: unknown,
-  path: string,
-): NonNullable<GameState['actionRejected']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      action: parseString(raw.action, `${path}.action`),
-      reason: parseString(raw.reason, `${path}.reason`),
-      targetSeat: parseSeat(raw.targetSeat, `${path}.targetSeat`),
-      rejectionId: parseNonEmptyString(raw.rejectionId, `${path}.rejectionId`),
-    },
-    path,
-  );
-}
-
 function parseAudioEffect(value: unknown, path: string): AudioEffect {
   const raw = parseObject(value, path);
   return finishObject(
@@ -651,69 +211,6 @@ function parseAudioEffect(value: unknown, path: string): AudioEffect {
     {
       audioKey: parseNonEmptyString(raw.audioKey, `${path}.audioKey`),
       isEndAudio: parseOptional(raw.isEndAudio, `${path}.isEndAudio`, parseBoolean),
-    },
-    path,
-  );
-}
-
-function parseUi(value: unknown, path: string): NonNullable<GameState['ui']> {
-  const raw = parseObject(value, path);
-  return finishObject(
-    raw,
-    {
-      currentActorHint: parseOptional(
-        raw.currentActorHint,
-        `${path}.currentActorHint`,
-        (hint, hintPath) => parseNullable(hint, hintPath, parseCurrentActorHint),
-      ),
-    },
-    path,
-  );
-}
-
-function parseCurrentActorHint(
-  value: unknown,
-  path: string,
-): NonNullable<NonNullable<GameState['ui']>['currentActorHint']> {
-  const raw = parseObject(value, path);
-  const kind = (() => {
-    switch (raw.kind) {
-      case 'blocked_by_nightmare':
-      case 'wolf_kill_disabled':
-      case 'wolf_unanimity_required':
-      case 'wolf_tie_random':
-        return raw.kind;
-      default:
-        return fail(`${path}.kind`, 'a supported actor hint kind');
-    }
-  })();
-  const bottomAction = parseOptional(raw.bottomAction, `${path}.bottomAction`, (action, p) => {
-    if (action === 'skipOnly' || action === 'wolfEmptyOnly') return action;
-    return fail(p, 'skipOnly or wolfEmptyOnly');
-  });
-  const promptOverride = parseOptional(
-    raw.promptOverride,
-    `${path}.promptOverride`,
-    (override, overridePath) => {
-      const overrideRaw = parseObject(override, overridePath);
-      return finishObject(
-        overrideRaw,
-        {
-          title: parseOptional(overrideRaw.title, `${overridePath}.title`, parseString),
-          text: parseOptional(overrideRaw.text, `${overridePath}.text`, parseString),
-        },
-        overridePath,
-      );
-    },
-  );
-  return finishObject(
-    raw,
-    {
-      kind,
-      targetRoleIds: parseRoleIds(raw.targetRoleIds, `${path}.targetRoleIds`),
-      message: parseString(raw.message, `${path}.message`),
-      bottomAction,
-      promptOverride,
     },
     path,
   );
@@ -944,27 +441,6 @@ function parseSheriffElectionResult(value: unknown, path: string): SheriffElecti
   return fail(`${path}.kind`, 'elected or noSheriff');
 }
 
-/** Decode unknown JSON and reject state that does not match the current Werewolf state shape. */
-function parseNightStep(value: unknown, path: string): WerewolfNightStep | null {
-  if (value === null) return null;
-  const raw = parseObject(value, path);
-  if (raw.kind === 'inStep') {
-    return finishObject(
-      raw,
-      {
-        kind: 'inStep' as const,
-        stepId: parseSchemaId(raw.stepId, `${path}.stepId`),
-        stepDeadline: parseOptional(raw.stepDeadline, `${path}.stepDeadline`, parseInteger),
-      },
-      path,
-    );
-  }
-  if (raw.kind === 'exhausted') {
-    return finishObject(raw, { kind: 'exhausted' as const }, path);
-  }
-  throw new Error(`${path}.kind: unsupported night step kind`);
-}
-
 export function parseWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   const parsed = {
@@ -999,7 +475,7 @@ export function parseWerewolfState(value: unknown): GameState {
         }),
     ),
     roster: parseSeatRoster(raw.roster, 'GameState.roster'),
-    nightStep: parseNightStep(raw.nightStep, 'GameState.nightStep'),
+    nightState: parseNullable(raw.nightState, 'GameState.nightState', parseWerewolfNightState),
     isAudioPlaying: parseBoolean(raw.isAudioPlaying, 'GameState.isAudioPlaying'),
     audioBatchId: parseAudioBatchId(raw.audioBatchId, 'GameState.audioBatchId'),
     gameSequence: parseGameSequence(raw.gameSequence, 'GameState.gameSequence'),
@@ -1007,32 +483,6 @@ export function parseWerewolfState(value: unknown): GameState {
       raw.roleRevealRandomNonce,
       'GameState.roleRevealRandomNonce',
       parseString,
-    ),
-    actions: parseArray(raw.actions, 'GameState.actions', parseProtocolAction),
-    currentNightResults: parseOptional(
-      raw.currentNightResults,
-      'GameState.currentNightResults',
-      parseCurrentNightResults,
-    ),
-    resolvedWolfKillTarget: parseOptional(
-      raw.resolvedWolfKillTarget,
-      'GameState.resolvedWolfKillTarget',
-      (value, path) => (value === null ? null : parseSeat(value, path)),
-    ),
-    resolvedWolfKillVerdict: parseOptional(
-      raw.resolvedWolfKillVerdict,
-      'GameState.resolvedWolfKillVerdict',
-      (value, path) => (value === null ? null : parseResolvedWolfKillVerdict(value, path)),
-    ),
-    resolvedNightEffects: parseOptional(
-      raw.resolvedNightEffects,
-      'GameState.resolvedNightEffects',
-      (effects, p) => parseArray(effects, p, parseResolvedNightEffect),
-    ),
-    pendingRevealAcks: parseArray(
-      raw.pendingRevealAcks,
-      'GameState.pendingRevealAcks',
-      parseNonEmptyString,
     ),
     lastNightDeaths: parseOptional(raw.lastNightDeaths, 'GameState.lastNightDeaths', (items, p) =>
       parseArray(items, p, parseSeat),
@@ -1058,75 +508,11 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.sheriffElectionResult',
       parseSheriffElectionResult,
     ),
-    nightmareBlockedSeat: parseOptional(
-      raw.nightmareBlockedSeat,
-      'GameState.nightmareBlockedSeat',
-      parseSeat,
-    ),
-    wolfKillOverride: parseOptional(
-      raw.wolfKillOverride,
-      'GameState.wolfKillOverride',
-      parseWolfKillOverride,
-    ),
-    wolfRobotContext: parseOptional(
-      raw.wolfRobotContext,
-      'GameState.wolfRobotContext',
-      parseWolfRobotContext,
-    ),
-    witchContext: parseOptional(raw.witchContext, 'GameState.witchContext', parseWitchContext),
-    seerReveal: parseOptional(raw.seerReveal, 'GameState.seerReveal', parseTargetFactionReveal),
-    mirrorSeerReveal: parseOptional(
-      raw.mirrorSeerReveal,
-      'GameState.mirrorSeerReveal',
-      parseTargetFactionReveal,
-    ),
-    drunkSeerReveal: parseOptional(
-      raw.drunkSeerReveal,
-      'GameState.drunkSeerReveal',
-      parseTargetFactionReveal,
-    ),
-    psychicReveal: parseOptional(
-      raw.psychicReveal,
-      'GameState.psychicReveal',
-      parseTargetStringReveal,
-    ),
-    gargoyleReveal: parseOptional(
-      raw.gargoyleReveal,
-      'GameState.gargoyleReveal',
-      parseTargetStringReveal,
-    ),
-    pureWhiteReveal: parseOptional(
-      raw.pureWhiteReveal,
-      'GameState.pureWhiteReveal',
-      parseTargetStringReveal,
-    ),
-    wolfWitchReveal: parseOptional(
-      raw.wolfWitchReveal,
-      'GameState.wolfWitchReveal',
-      parseTargetStringReveal,
-    ),
-    wolfRobotReveal: parseOptional(
-      raw.wolfRobotReveal,
-      'GameState.wolfRobotReveal',
-      parseWolfRobotReveal,
-    ),
-    wolfRobotHunterStatusViewed: parseOptional(
-      raw.wolfRobotHunterStatusViewed,
-      'GameState.wolfRobotHunterStatusViewed',
-      parseBoolean,
-    ),
-    confirmStatus: parseOptional(raw.confirmStatus, 'GameState.confirmStatus', parseConfirmStatus),
-    actionRejected: parseOptional(
-      raw.actionRejected,
-      'GameState.actionRejected',
-      parseActionRejected,
-    ),
     pendingAudioEffects: parseArray(
       raw.pendingAudioEffects,
       'GameState.pendingAudioEffects',
       parseAudioEffect,
     ),
-    ui: parseOptional(raw.ui, 'GameState.ui', parseUi),
     seerLabelMap: parseOptional(
       raw.seerLabelMap,
       'GameState.seerLabelMap',
@@ -1137,53 +523,7 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.nightReviewAllowedSeats',
       (seats, p) => parseArray(seats, p, parseSeat),
     ),
-    hypnotizedSeats: parseArray(raw.hypnotizedSeats, 'GameState.hypnotizedSeats', parseSeat),
-    piperRevealAcks: parseArray(raw.piperRevealAcks, 'GameState.piperRevealAcks', parseSeat),
-    convertedSeat: parseOptional(raw.convertedSeat, 'GameState.convertedSeat', parseSeat),
-    conversionRevealAcks: parseArray(
-      raw.conversionRevealAcks,
-      'GameState.conversionRevealAcks',
-      parseSeat,
-    ),
-    wolfGirlConfessedSeat: parseOptional(
-      raw.wolfGirlConfessedSeat,
-      'GameState.wolfGirlConfessedSeat',
-      parseSeat,
-    ),
-    wolfGirlConfessionRevealAcks: parseArray(
-      raw.wolfGirlConfessionRevealAcks,
-      'GameState.wolfGirlConfessionRevealAcks',
-      parseSeat,
-    ),
-    seedWolfInfectionResult: parseOptional(
-      raw.seedWolfInfectionResult,
-      'GameState.seedWolfInfectionResult',
-      parseSeedWolfInfectionResult,
-    ),
-    seedWolfDeferredReveal: parseOptional(
-      raw.seedWolfDeferredReveal,
-      'GameState.seedWolfDeferredReveal',
-      parseSeedWolfDeferredReveal,
-    ),
-    seedWolfInfectionRevealAcks: parseArray(
-      raw.seedWolfInfectionRevealAcks,
-      'GameState.seedWolfInfectionRevealAcks',
-      parseSeat,
-    ),
     bottomCards: parseOptional(raw.bottomCards, 'GameState.bottomCards', parseRoleIds),
-    treasureMasterSeat: parseOptional(
-      raw.treasureMasterSeat,
-      'GameState.treasureMasterSeat',
-      parseSeat,
-    ),
-    thiefSeat: parseOptional(raw.thiefSeat, 'GameState.thiefSeat', parseSeat),
-    loverSeats: parseOptional(raw.loverSeats, 'GameState.loverSeats', parseSeatPair),
-    cupidSeat: parseOptional(raw.cupidSeat, 'GameState.cupidSeat', parseSeat),
-    cupidLoversRevealAcks: parseArray(
-      raw.cupidLoversRevealAcks,
-      'GameState.cupidLoversRevealAcks',
-      parseSeat,
-    ),
     boardNominations: parseOptional(
       raw.boardNominations,
       'GameState.boardNominations',

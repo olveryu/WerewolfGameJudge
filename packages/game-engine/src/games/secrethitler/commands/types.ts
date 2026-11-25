@@ -5,6 +5,7 @@ import type {
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { StepSubmission } from '../../../platform/steps';
 import type { SecrethitlerConfig } from '../state/types';
 
 export type SecrethitlerPublicCommand =
@@ -24,8 +25,11 @@ export type SecrethitlerPublicCommand =
   | { readonly type: 'secrethitler.bots.markAllBotsGroupConfirmed' }
   | { readonly type: 'secrethitler.audio.ack'; readonly audioBatchId: number }
   | { readonly type: 'secrethitler.role.viewed' }
-  | { readonly type: 'secrethitler.night.replay'; readonly step: number }
-  | { readonly type: 'secrethitler.night.confirm'; readonly step: number }
+  | {
+      readonly type: 'secrethitler.step.submit';
+      readonly gameSequence: number;
+      readonly submission: StepSubmission;
+    }
   | { readonly type: 'secrethitler.government.preselect'; readonly chancellorSeatId: number }
   | { readonly type: 'secrethitler.government.nominate'; readonly chancellorSeatId: number }
   | { readonly type: 'secrethitler.government.castVote'; readonly vote: 'ja' | 'nein' }

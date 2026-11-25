@@ -14,6 +14,7 @@ import {
   parseSeat,
 } from '../../../platform/protocol/runtimeDecoder';
 import { parseRoomRoster } from '../../../platform/room/roster';
+import type { SeatRecord, StepRecord, StepSlice } from '../../../platform/steps';
 import { normalizeAvalonState } from './normalize';
 import {
   AVALON_BALLOTS,
@@ -31,6 +32,7 @@ import {
   type AvalonLadyCheckRecord,
   type AvalonLastVoteResult,
   type AvalonNightInfo,
+  type AvalonNightStep,
   type AvalonPhase,
   type AvalonPlay,
   type AvalonProposalRecord,
@@ -214,6 +216,68 @@ function lastVoteResult(value: unknown, path: string): AvalonLastVoteResult {
   );
 }
 
+function nightSeatRecord(value: unknown, path: string): SeatRecord<never> {
+  const raw = parseObject(value, path);
+  if (raw.result !== null) failDecode(`${path}.result`, 'null');
+  return finishObject(
+    raw,
+    {
+      submissions: parseArray(raw.submissions, `${path}.submissions`, (item, itemPath) => {
+        const submission = parseObject(item, itemPath);
+        return finishObject(
+          submission,
+          {
+            actionKey: parseNonEmptyString(submission.actionKey, `${itemPath}.actionKey`),
+            seats: parseArray(submission.seats, `${itemPath}.seats`, parseSeat),
+            cardIndex: parseNullable(submission.cardIndex, `${itemPath}.cardIndex`, parseSeat),
+          },
+          itemPath,
+        );
+      }),
+      result: null,
+      isResultAcknowledged: parseBoolean(raw.isResultAcknowledged, `${path}.isResultAcknowledged`),
+    },
+    path,
+  );
+}
+
+function nightSlice(value: unknown, path: string): StepSlice<AvalonNightStep, never> {
+  const raw = parseObject(value, path);
+  const rawRecords = parseObject(raw.records, `${path}.records`);
+  const records: Partial<Record<AvalonNightStep, StepRecord<never>>> = {};
+  for (const [key, item] of Object.entries(rawRecords)) {
+    const stepId = parseChoice(key, `${path}.records.${key}`, AVALON_NIGHT_STEPS);
+    const record = parseObject(item, `${path}.records.${key}`);
+    records[stepId] = finishObject(
+      record,
+      { bySeat: seatRecord(record.bySeat, `${path}.records.${key}.bySeat`, nightSeatRecord) },
+      `${path}.records.${key}`,
+    );
+  }
+  return finishObject(
+    raw,
+    {
+      order: parseArray(raw.order, `${path}.order`, (item, itemPath) =>
+        parseChoice(item, itemPath, AVALON_NIGHT_STEPS),
+      ),
+      current: parseNullable(raw.current, `${path}.current`, (item, itemPath) => {
+        const current = parseObject(item, itemPath);
+        return finishObject(
+          current,
+          {
+            stepId: parseChoice(current.stepId, `${itemPath}.stepId`, AVALON_NIGHT_STEPS),
+            serial: parseInteger(current.serial, `${itemPath}.serial`),
+          },
+          itemPath,
+        );
+      }),
+      records,
+      deadlineMs: parseNullable(raw.deadlineMs, `${path}.deadlineMs`, parseInteger),
+    },
+    path,
+  );
+}
+
 function phase(value: unknown, path: string): AvalonPhase {
   const raw = parseObject(value, path);
   const kind = parseChoice(raw.kind, `${path}.kind`, AVALON_PHASES);
@@ -225,11 +289,7 @@ function phase(value: unknown, path: string): AvalonPhase {
     case 'night':
       return finishObject(
         raw,
-        {
-          kind: 'night' as const,
-          step: parseChoice(raw.step, `${path}.step`, AVALON_NIGHT_STEPS),
-          confirmedSeats: parseArray(raw.confirmedSeats, `${path}.confirmedSeats`, parseSeat),
-        },
+        { kind: 'night' as const, steps: nightSlice(raw.steps, `${path}.steps`) },
         path,
       );
     case 'nominate':

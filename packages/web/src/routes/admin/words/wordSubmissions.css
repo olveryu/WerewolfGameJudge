@@ -104,7 +104,6 @@
   border-color: var(--admin-border);
   background: var(--admin-subtle);
   cursor: not-allowed;
-  opacity: var(--opacity-disabled);
 }
 .admin-submission-empty {
   padding: var(--space-xxlarge) var(--space-large);
@@ -247,6 +246,7 @@
   border: 1px solid var(--admin-border);
   border-radius: var(--radius-small);
   background: var(--admin-panel);
+  box-shadow: var(--shadow-tabletop-panel);
   padding: var(--space-medium);
 }
 .admin-library-card-content {

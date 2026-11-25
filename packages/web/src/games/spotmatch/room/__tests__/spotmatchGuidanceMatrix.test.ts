@@ -22,7 +22,7 @@ import {
 import type { RoomViewerAudience } from '@/features/room/model/RoomViewer';
 import { viewerFor } from '@/test-utils/roomViewer';
 import { endSpotmatchTestGame } from '@/test-utils/spotmatchState';
-import * as alertPresets from '@/utils/alertPresets';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import { SPOTMATCH_GUIDANCE_MATRIX } from '../spotmatchGuidanceMatrix';
 import {
@@ -137,6 +137,8 @@ function bottomMessage(state: SpotmatchState, audience: RoomViewerAudience): str
   const viewer = viewerFor(audience);
   const model = createSpotmatchRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),
@@ -171,11 +173,11 @@ function bottomMessage(state: SpotmatchState, audience: RoomViewerAudience): str
       shareImage: vi.fn(async () => undefined),
     },
     isLobby: state.phase.kind === 'lobby',
-    buildHostManagement: () => ({ task: null, sections: [] }),
+    buildHostManagement: () => ({ task: null, actions: [] }),
     releaseBot: vi.fn(),
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
-  return model.bottomActions.message;
+  return model.playerActions.message;
 }
 
 describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
@@ -191,14 +193,13 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       review: null,
     });
     expect(host.pendingActionKeys).toEqual(['start-game']);
-    expect(host.sections[0]?.actions[0]?.isEnabled).toBe(false);
+    expect(host.actions[0]?.state.kind).toBe('blocked');
   });
   it.each(['playing', 'ended'] as const)(
     'offers one confirmed restart in %s without marking review as a task',
     async (phase) => {
       const state = stateFor(phase);
       const submit = vi.fn(async () => true);
-      const confirm = vi.spyOn(alertPresets, 'showDestructiveAlert').mockImplementation(() => {});
       const host = createSpotmatchHostManagement({
         state,
         capabilities: capabilities(),
@@ -208,24 +209,38 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
         review: phase === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
       });
       expect(host.task).toBeNull();
-      const actions = host.sections.flatMap((section) => section.actions);
+      const actions = host.actions;
       expect(actions.filter((action) => action.key === 'restart')).toHaveLength(1);
       expect(
         actions.some((action) => ['next-round', 'return-lobby', 'abort-game'].includes(action.key)),
       ).toBe(false);
       const restart = actions.find((action) => action.key === 'restart');
-      if (restart === undefined || !restart.isEnabled) throw new Error('Restart is not enabled');
-      restart.onPress();
+      if (restart?.state.kind !== 'ready') throw new Error('Restart is not enabled');
+      restart.state.onPress();
       expect(submit).not.toHaveBeenCalled();
-      const handler = confirm.mock.calls[0]?.[3];
-      if (handler === undefined) throw new Error('Missing restart confirmation');
-      await handler();
-      expect(submit).toHaveBeenCalledWith('重新开始', {
-        type: 'spotmatch.game.restart',
-        gameSequence: state.gameSequence,
-        expectedPhase: phase,
+      const confirmation = alertStore.getSnapshot();
+      expect(confirmation).toMatchObject({
+        title: '重新开始？',
+        message:
+          phase === 'ended'
+            ? '保留座位和配置，清除本局结果并回到准备。已结算的战绩和奖励保留；之后可能无法查看复盘。'
+            : '保留座位和配置，清除本局牌面与进度并回到准备。本局中止，不结算战绩与奖励。',
+        buttons: [{ text: '取消' }, { text: '重新开始', style: 'destructive' }],
       });
-      confirm.mockRestore();
+      const handler = confirmation?.buttons[1]?.onPress;
+      if (confirmation === null || handler === undefined)
+        throw new Error('Missing restart confirmation');
+      dismissAlert(confirmation.generation);
+      await handler();
+      expect(submit).toHaveBeenCalledWith(
+        '重新开始',
+        {
+          type: 'spotmatch.game.restart',
+          gameSequence: state.gameSequence,
+          expectedPhase: phase,
+        },
+        { actionKey: 'restart' },
+      );
     },
   );
 
@@ -238,12 +253,10 @@ describe('SPOTMATCH_GUIDANCE_MATRIX', () => {
       submit: vi.fn(async () => true),
       review: null,
     });
-    const restart = host.sections
-      .flatMap((section) => section.actions)
-      .find(({ key }) => key === 'restart');
+    const restart = host.actions.find(({ key }) => key === 'restart');
 
     expect(host.pendingActionKeys).toEqual([]);
-    expect(restart).toMatchObject({ isEnabled: false, isLoading: false });
+    expect(restart).toMatchObject({ state: { kind: 'blocked', reason: null } });
   });
 
   it('covers exactly the engine phase list, each exempt cell with a reason', () => {

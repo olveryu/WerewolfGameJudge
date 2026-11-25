@@ -6,7 +6,7 @@
   max-height: 80vh;
   border-radius: var(--radius-large);
   background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
 .nomination-dialog-header {
@@ -46,6 +46,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-card);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .nomination-card-header {
@@ -59,6 +60,14 @@
   color: var(--color-text-secondary);
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    transform 100ms ease-out;
+}
+
+.nomination-card-header:active {
+  background: var(--color-surface-hover);
+  transform: translateY(var(--space-micro));
 }
 
 .nomination-card-title {
@@ -136,11 +145,16 @@
   border: none;
   border-radius: var(--radius-small);
   background: var(--color-text-secondary-a12);
+  background-image: var(--surface-button-texture);
   color: var(--color-text-secondary);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
+  transition:
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .nomination-action[data-tone='primary'] {
@@ -156,4 +170,16 @@
 .nomination-action[data-tone='danger'] {
   background: var(--color-error-a12);
   color: var(--color-error);
+}
+
+.nomination-action:active:not(:disabled) {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .nomination-action:hover:not(:disabled),
+  .nomination-card-header:hover:not(:disabled) {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }

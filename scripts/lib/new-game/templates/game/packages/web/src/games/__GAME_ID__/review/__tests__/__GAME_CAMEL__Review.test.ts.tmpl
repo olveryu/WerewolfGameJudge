@@ -7,6 +7,9 @@ import { __GAME_UPPER___PHASES } from '@game-judge/game-engine/games/__GAME_ID__
 import type { ReviewRosterRow } from '@/features/room/review/types';
 import {
   build__GAME_PASCAL__TestLobby,
+//#cap sharedSteps
+  build__GAME_PASCAL__TestNight,
+//#end
 //#cap identityViewing
   drive__GAME_PASCAL__TestCommand,
 //#end
@@ -87,12 +90,16 @@ describe('to__GAME_PASCAL__ReviewDocument', () => {
 describe('__GAME_CAMEL__Review', () => {
   it('has nothing to review in any phase before the end', () => {
     const lobby = build__GAME_PASCAL__TestLobby();
+    const beforeEnd = [
+      lobby,
 //#cap identityViewing
-    const beforeEnd = [lobby, drive__GAME_PASCAL__TestCommand(lobby, { type: '__GAME_ID__.roles.assign' }), start__GAME_PASCAL__TestGame(lobby)];
+      drive__GAME_PASCAL__TestCommand(lobby, { type: '__GAME_ID__.roles.assign' }),
 //#end
-//#cap !identityViewing
-    const beforeEnd = [lobby, start__GAME_PASCAL__TestGame(lobby)];
+//#cap sharedSteps
+      build__GAME_PASCAL__TestNight(lobby),
 //#end
+      start__GAME_PASCAL__TestGame(lobby),
+    ];
     expect(beforeEnd.map((state) => state.phase.kind)).toEqual(
       __GAME_UPPER___PHASES.filter((phase) => phase !== 'ended'),
     );

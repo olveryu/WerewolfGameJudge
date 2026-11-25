@@ -116,6 +116,10 @@
       "types": "./src/platform/room/settleCountdown.ts",
       "default": "./dist/platform/room/settleCountdown.js"
     },
+    "./platform/steps": {
+      "types": "./src/platform/steps/index.ts",
+      "default": "./dist/platform/steps/index.js"
+    },
     "./platform/identifiers": {
       "types": "./src/platform/identifiers/index.ts",
       "default": "./dist/platform/identifiers/index.js"

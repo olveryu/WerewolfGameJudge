@@ -152,4 +152,27 @@ describe('RoomSeatBoard scene layer', () => {
 
     expect(screen.queryByText('42')).not.toBeInTheDocument();
   });
+
+  it('displays and describes why an unavailable selection cannot be activated', () => {
+    const onSeatPress = vi.fn();
+    const unavailableSeat = {
+      ...seat(0, {}),
+      isSelectionUnavailable: true,
+      disabledReason: '不能选择自己',
+    };
+    render(
+      <RoomSeatBoard
+        model={{ ...board([unavailableSeat]), onSeatPress }}
+        header={null}
+        footer={null}
+      />,
+    );
+
+    const button = screen.getByTestId(TESTIDS.seatTilePressable(0));
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).toHaveAccessibleDescription('不能选择自己');
+    expect(screen.getByTestId(TESTIDS.seatSelectionReason(0))).toHaveTextContent('不能选择自己');
+    fireEvent.click(button);
+    expect(onSeatPress).not.toHaveBeenCalled();
+  });
 });

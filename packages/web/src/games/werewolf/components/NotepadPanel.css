@@ -22,10 +22,12 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  background-image: var(--surface-panel-texture);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .notepad-card[data-faction] {
-  background: var(--faction-a12);
+  background-color: var(--faction-a12);
 }
 
 .notepad-card-header {
@@ -41,9 +43,13 @@
   min-height: var(--size-button-sm);
   padding: 0;
   border: none;
-  background: none;
+  background: transparent;
   color: var(--color-text);
   cursor: pointer;
+}
+
+.notepad-seat-button:active {
+  opacity: var(--opacity-pressed);
 }
 
 .notepad-seat-number {
@@ -93,9 +99,21 @@ button.notepad-hand-tag {
 }
 
 .notepad-hand-tag[data-active='true'] {
+  border-color: var(--color-primary-light);
   background: var(--color-primary-a15);
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
+}
+
+button.notepad-hand-tag:active {
+  opacity: var(--opacity-pressed);
+}
+
+@media (hover: hover) {
+  button.notepad-hand-tag:hover,
+  .notepad-seat-button:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Auto-growing note: a hidden copy of the text sizes the shared grid cell. */
@@ -130,6 +148,7 @@ button.notepad-hand-tag {
   resize: none;
   background: var(--color-background-a85);
   color: var(--color-text);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .notepad-note > textarea::placeholder {
@@ -147,19 +166,37 @@ button.notepad-hand-tag {
   min-width: var(--size-button-md);
   min-height: var(--size-button-md);
   padding: 0 var(--space-small);
-  border: none;
+  border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-medium);
   background: var(--color-background);
+  background-image: var(--surface-button-texture);
   color: var(--faction-color);
   font-size: var(--font-body);
   line-height: var(--line-body);
+  box-shadow: var(--shadow-tabletop-key-light);
   cursor: pointer;
+  transition:
+    background-color 100ms ease-out,
+    box-shadow 100ms ease-out,
+    transform 100ms ease-out;
 }
 
 .notepad-role-option[aria-pressed='true'] {
+  border-color: var(--color-primary-light);
   background: var(--faction-a15);
   color: var(--color-text);
   font-weight: var(--weight-bold);
+}
+
+.notepad-role-option:active {
+  box-shadow: var(--surface-button-shadow-pressed);
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .notepad-role-option:hover {
+    transform: translateY(calc(-1 * var(--space-micro)));
+  }
 }
 
 .icon-button.notepad-role-clear {

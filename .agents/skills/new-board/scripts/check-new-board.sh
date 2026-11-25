@@ -1,5 +1,5 @@
 #!/bin/sh
-# Read-only preset-count, board UI test map, and Night-1 coverage list checks. Run from the repo root:
+# Read-only preset-count, board UI test map, and Night-1 snapshot checks. Run from the repo root:
 #   sh .agents/skills/new-board/scripts/check-new-board.sh [repo-root]
 set -eu
 ROOT="${1:-$(cd "$(dirname "$0")/../../../.." && pwd)}"
@@ -38,13 +38,14 @@ if missing_files:
     print(f"FAIL: mapped board UI test files missing: {missing_files}"); fail = True
 if count_match is None or int(count_match.group(1)) != len(names):
     print(f"FAIL: getAll12PBoards preset count != {len(names)}"); fail = True
-# Night-1 engine coverage contract: registered boards must be current presets.
-night1 = (root / "packages/game-engine/src/games/werewolf/__tests__/boards/night1.boards.coverage.contract.test.ts").read_text()
-required_start = night1.index("REQUIRED_12P_TEMPLATES")
-required = re.findall(r"'([^']+)'", night1[required_start:night1.index("] as const", required_start)])
-print(f"night-1 coverage list: {len(required)} of {len(names)} presets")
-if set(required) - set(names):
-    print(f"FAIL: REQUIRED_12P_TEMPLATES names not in PRESET_TEMPLATES: {sorted(set(required) - set(names))}"); fail = True
+# Night-1 scenarios: every preset has a recorded ordinary-night snapshot.
+snapshot = (root / "packages/game-engine/src/games/werewolf/__tests__/boards/__snapshots__/night1.scenarios.integration.test.ts.snap").read_text()
+recorded = set(re.findall(r"> (\S+) preset: ordinary night 1`", snapshot))
+print(f"night-1 preset snapshots: {len(recorded & set(names))} of {len(names)} presets")
+if set(names) - recorded:
+    print(f"FAIL: presets without a recorded Night-1 snapshot: {sorted(set(names) - recorded)}"); fail = True
+if recorded - set(names):
+    print(f"FAIL: Night-1 snapshots for unknown presets: {sorted(recorded - set(names))}"); fail = True
 if any(s != 12 for s in seats.values()):
     print(f"NOTE: non-12-seat presets present: {{k: v for k, v in seats.items() if v != 12}}")
 sys.exit(1 if fail else 0)

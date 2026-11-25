@@ -13,7 +13,7 @@
   padding: var(--space-tight) var(--space-small);
   border-radius: var(--radius-full);
   background: var(--color-warning-a12);
-  color: var(--color-warning);
+  color: var(--color-warning-text);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-semibold);
@@ -92,14 +92,14 @@
   gap: var(--space-micro);
   min-width: 0;
   padding: var(--space-small) var(--space-tight);
-  border: var(--border-width) solid;
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-card);
 }
 
-/* The preview dims through its own opacity (stage-drawn decorations ignore CSS opacity). */
-.shard-cell[data-owned='true'] > :not(.reward-preview) {
-  opacity: 0.5;
+.shard-cell[data-owned='true'] {
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .shard-cell-dot {
@@ -131,22 +131,15 @@
 }
 
 .shard-cell-exchange {
-  padding: var(--space-tight) var(--space-small);
-  border: 0;
-  border-radius: var(--radius-small);
-  background: var(--color-warning-a12);
-  color: var(--color-warning);
-  font: inherit;
+  width: 100%;
+  min-height: var(--size-min-touch-target);
+  padding-inline: var(--space-tight);
   font-size: var(--font-caption-small);
   line-height: var(--line-caption-small);
-  font-weight: var(--weight-bold);
-  cursor: pointer;
 }
 
-.shard-cell-exchange:disabled {
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-  opacity: 0.4;
+.shard-cell-exchange-icon {
+  color: var(--color-warning);
 }
 
 .shard-cell-deficit {

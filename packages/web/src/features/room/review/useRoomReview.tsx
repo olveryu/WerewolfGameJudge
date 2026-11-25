@@ -21,7 +21,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import { showConfirmAlert } from '@/utils/alertPresets';
+import { confirmView } from '@/features/room/confirm';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -207,9 +207,7 @@ export function useRoomReview<TState>(input: UseRoomReviewInput<TState>): RoomRe
         show();
         return;
       }
-      showConfirmAlert(confirmation.title, confirmation.message, show, {
-        confirmText: confirmation.confirmText,
-      });
+      confirmView({ label: confirmation.label, body: confirmation.body, onView: show });
     },
     [availability, onOpened, onClosed],
   );

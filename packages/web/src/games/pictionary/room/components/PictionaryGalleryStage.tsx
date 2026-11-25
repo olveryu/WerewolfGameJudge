@@ -15,6 +15,7 @@ import { GalleryAlbumStage } from '@/features/room/components/GalleryAlbumStage'
 import { GalleryPlaybackControls } from '@/features/room/components/GalleryPlaybackControls';
 import { GalleryPagerControls } from '@/features/room/components/RoomControls';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { confirmAction } from '@/features/room/confirm';
 import type { ReadyRoomSession } from '@/features/room/controllers/useReadyRoomSession';
 import { useGalleryClock } from '@/features/room/hooks/useGalleryClock';
 import { getPictionarySeatDisplayName } from '@/games/pictionary/model/pictionarySelectors';
@@ -24,7 +25,6 @@ import {
   pictionaryReplayOptions,
 } from '@/games/pictionary/services/pictionaryReplayTransport';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 import IconPeopleOutline from '~icons/ion/people-outline';
 import IconShareOutline from '~icons/ion/share-outline';
 
@@ -76,7 +76,7 @@ export function PictionaryGalleryStage({
   }
   // 画廊导航是房主命令：不带接管座位、durable（跨重连重放到服务端裁决）。
   const galleryCommand = (label: string, input: PictionaryCommandInput) =>
-    submit(label, createPictionaryCommand(state, input, null), { durable: true });
+    submit(label, createPictionaryCommand(state, input, null), { durable: true, actionKey: null });
   // 房主自救：画廊自动推进的结算逾期时，房主可重新推进。
   const rescue = (
     <StageSettleRescue
@@ -120,8 +120,12 @@ export function PictionaryGalleryStage({
           })
         }
         onFinish={() =>
-          showConfirmAlert('全部揭晓？', '立即公开全部画册并结束同步回放。', () => {
-            void galleryCommand('全部揭晓', { type: 'pictionary.gallery.finish' });
+          confirmAction({
+            label: '全部揭晓？',
+            body: '立即公开全部画册并结束同步回放。',
+            onConfirm: () => {
+              void galleryCommand('全部揭晓', { type: 'pictionary.gallery.finish' });
+            },
           })
         }
         advanceTestId={TESTIDS.pictionaryGalleryAdvanceButton}

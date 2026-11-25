@@ -1,23 +1,15 @@
 /**
- * Board Dialog Coverage Definitions
- *
- * Dynamically generates required inline status and dialog coverage by board composition.
- *
- * Coverage is split into TWO layers:
- * 1. UI-TRIGGERABLE: Inline prompts and dialogs that UI tests MUST cover
- * 2. SERVER-DATA-REQUIRED: Reveal dialogs requiring server broadcast data (covered by integration tests)
+ * Preset board definitions used by the board UI coverage contract.
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { DialogType } from './RoomScreenTestHarness';
-
 // =============================================================================
 // Board Configuration
 // =============================================================================
 
-export interface BoardConfig {
+interface BoardConfig {
   name: string;
   roles: RoleId[];
 }
@@ -40,136 +32,6 @@ export function getAll12PBoards(): BoardConfig[] {
   }
 
   return boards;
-}
-
-/**
- * Get a specific board by name
- */
-export function getBoardByName(name: string): BoardConfig | undefined {
-  const template = PRESET_TEMPLATES.find((t) => t.name === name);
-  if (!template) return undefined;
-  return { name: template.name, roles: template.roles };
-}
-
-// =============================================================================
-// Role → Dialog Type Mapping (Two Layers)
-// =============================================================================
-
-/**
- * Base UI coverage types that ALL boards must cover.
- */
-const BASE_UI_DIALOG_TYPES: DialogType[] = ['actionPrompt', 'wolfVoteEmpty'];
-
-/**
- * UI-triggerable role-specific dialogs. Seat drafts are verified through the
- * board controls and do not produce dialog events.
- */
-const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
-  witch: ['witchSavePrompt', 'witchNoKill'],
-
-  seer: ['skipConfirm'],
-  magician: ['skipConfirm'],
-  nightmare: ['actionRejected', 'skipConfirm'],
-  guard: ['skipConfirm'],
-
-  // Hunter: confirm trigger (requires pressing '发动状态' button)
-  hunter: ['confirmTrigger'],
-
-  // DarkWolfKing: confirm trigger (requires pressing '发动状态' button)
-  darkWolfKing: ['confirmTrigger'],
-
-  wolfRobot: ['wolfRobotHunterStatus', 'skipConfirm'],
-  wolfQueen: ['skipConfirm'],
-  dreamcatcher: ['skipConfirm'],
-  gargoyle: ['skipConfirm'],
-  psychic: ['skipConfirm'],
-  mirrorSeer: ['skipConfirm'],
-  pureWhite: ['skipConfirm'],
-  wolfWitch: ['skipConfirm'],
-
-  // Avenger: confirm trigger (displays faction)
-  avenger: ['confirmTrigger'],
-
-  piper: ['skipConfirm'],
-  eclipseWolfQueen: ['skipConfirm'],
-
-  // HiddenWolf: confirm trigger (displays wolf teammates)
-  hiddenWolf: ['confirmTrigger'],
-
-  // SeedWolf: infection decision, optional skip, and final personal result acknowledgement
-  seedWolf: ['confirmTrigger', 'skipConfirm', 'seedWolfInfectionResult'],
-};
-
-/**
- * SERVER-DATA-REQUIRED dialog types
- * These require server broadcast data and are covered by integration tests
- */
-const ROLE_SERVER_DATA_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
-  // Reveals require server to provide result data
-  seer: ['seerReveal'],
-  psychic: ['psychicReveal'],
-  gargoyle: ['gargoyleReveal'],
-  wolfRobot: ['wolfRobotReveal'],
-  mirrorSeer: ['mirrorSeerReveal'],
-  drunkSeer: ['drunkSeerReveal'],
-  pureWhite: ['pureWhiteReveal'],
-  wolfWitch: ['wolfWitchReveal'],
-};
-
-// =============================================================================
-// Required Dialog Type Generation (Two Layers)
-// =============================================================================
-
-/**
- * Generate UI-TRIGGERABLE required dialog types for a board
- * These MUST be covered by UI tests
- */
-export function getRequiredUiDialogTypes(board: BoardConfig): DialogType[] {
-  const types = new Set<DialogType>(BASE_UI_DIALOG_TYPES);
-
-  for (const role of board.roles) {
-    const roleRequirements = ROLE_UI_DIALOG_REQUIREMENTS[role];
-    if (roleRequirements) {
-      for (const type of roleRequirements) {
-        types.add(type);
-      }
-    }
-  }
-
-  return [...types];
-}
-
-/**
- * Generate SERVER-DATA-REQUIRED dialog types for a board
- * These are covered by integration tests
- */
-export function getRequiredServerDataDialogTypes(board: BoardConfig): DialogType[] {
-  const types = new Set<DialogType>();
-
-  for (const role of board.roles) {
-    const roleRequirements = ROLE_SERVER_DATA_DIALOG_REQUIREMENTS[role];
-    if (roleRequirements) {
-      for (const type of roleRequirements) {
-        types.add(type);
-      }
-    }
-  }
-
-  return [...types];
-}
-
-/**
- * Check if a board contains a specific role
- */
-export function boardHasRole(board: BoardConfig, role: RoleId): boolean {
-  return board.roles.includes(role);
-}
-
-/**
- * Check if a board contains nightmare (requires additional branch coverage)
- */
-export function boardHasNightmare(board: BoardConfig): boolean {
-  return boardHasRole(board, 'nightmare');
 }
 
 // =============================================================================

@@ -30,6 +30,7 @@ import type { GameState } from '../domain/protocol/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { werewolfEngine } from '../engine';
 import { parseWerewolfState } from '../state/parseState';
+import { withTestNightState } from './nightStateFixture';
 
 const TEMPLATE: GameTemplate = {
   name: 'phase-deadline',
@@ -41,7 +42,7 @@ const WOLF_VOTE_DEADLINE_AT = 6_000;
 
 /** Ongoing wolfKill step, the only wolf has voted, the settle countdown is armed. */
 function armedWolfVoteState(): GameState {
-  return {
+  const state = withTestNightState({
     ...buildInitialGameState('1234', 'host', TEMPLATE),
     status: GameStatus.Ongoing,
     players: {
@@ -57,10 +58,24 @@ function armedWolfVoteState(): GameState {
       3: { seat: 3, userId: 'user-3', profile: { displayName: 'User 3' } },
     },
     roleViewedSeats: [0, 1, 2, 3],
-    nightStep: { kind: 'inStep', stepId: 'wolfKill', stepDeadline: WOLF_VOTE_DEADLINE_AT },
-    currentNightResults: { wolfVotesBySeat: { '0': 3 } },
-    actions: [{ schemaId: 'wolfKill', actorSeat: 0, targetSeat: 3, timestamp: 1_000 }],
-  };
+  });
+  const decision = werewolfEngine.decide(
+    state,
+    {
+      type: 'werewolf.step.submit',
+      gameSequence: state.gameSequence,
+      submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [3] },
+    },
+    {
+      actor: { kind: 'user', userId: 'host' },
+      controlledSeat: null,
+      nowMs: 1_000,
+      commandId: 'arm-wolf-vote',
+      randomSeed: 'phase-deadline',
+    },
+  );
+  if (decision.kind === 'reject') throw new Error(`[FAIL-FAST] Wolf vote: ${decision.reason}`);
+  return applyDecision(werewolfEngine, state, decision, parseWerewolfState);
 }
 
 function makeSession(): PhaseDeadlineSession {
@@ -98,12 +113,11 @@ function makeSession(): PhaseDeadlineSession {
       throw new Error('Werewolf expire commands carry no revision');
     },
     deadlineAt: () => {
-      if (state.nightStep?.kind !== 'inStep' || state.nightStep.stepDeadline === undefined) {
-        throw new Error('Expected an armed wolf-vote countdown');
-      }
-      return state.nightStep.stepDeadline;
+      const deadline = state.nightState?.slice.deadlineMs;
+      if (deadline == null) throw new Error('Expected an armed wolf-vote countdown');
+      return deadline;
     },
-    hasAdvanced: () => state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== armedStepId,
+    hasAdvanced: () => state.nightState?.slice.current?.stepId !== armedStepId,
   };
 }
 
@@ -150,8 +164,7 @@ describe('werewolf.phase.retrySettle (host self-rescue)', () => {
   };
   const retry = (userId: string, controlledSeat: number | null, nowMs: number) =>
     attempt({ type: 'werewolf.phase.retrySettle' }, userContext(userId, controlledSeat, nowMs));
-  const hasAdvanced = () =>
-    state.nightStep?.kind !== 'inStep' || state.nightStep.stepId !== 'wolfKill';
+  const hasAdvanced = () => state.nightState?.slice.current?.stepId !== 'wolfKill';
 
   beforeEach(() => {
     state = armedWolfVoteState();

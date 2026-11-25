@@ -67,8 +67,7 @@ export class FibRoomPage extends RoomPage {
   async returnFromRules(): Promise<void> {
     await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
     await expect(this.page.getByTestId(TESTIDS.fibRulesScreenRoot)).not.toBeVisible();
-    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
-    await expect(this.page.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
+    await expect(this.page.getByTestId(TESTIDS.roomManualButton)).toBeFocused();
   }
 
   async openShare(): Promise<void> {
@@ -95,7 +94,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.assignRolesButton).click();
     await this.confirmHostActionDialog('分配角色？');
-    await this.closeHostManagement();
+    await this.expectHostManagementClosed();
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
@@ -113,7 +112,7 @@ export class FibRoomPage extends RoomPage {
     await this.page.getByTestId(TESTIDS.fibGuessSeatButton).click();
     await this.expectHostManagementClosed();
     await this.getSeatTile(seat).click();
-    await confirmAlert(this.page, `确定选择 ${seat + 1} 号座位是老实人？`);
+    await confirmAlert(this.page, `指认${seat + 1}号为老实人？`);
     await expect(this.page.getByTestId(TESTIDS.alertTitle)).not.toBeVisible();
   }
 
@@ -156,7 +155,7 @@ export class FibRoomPage extends RoomPage {
     await this.openHostManagement();
     await this.page.getByTestId(TESTIDS.fibRevealRoundButton).click();
     await this.confirmHostActionDialog('公布答案？');
-    await this.closeHostManagement();
+    await this.expectHostManagementClosed();
     await expect(this.page.getByTestId(TESTIDS.fibViewResultButton)).toBeVisible({
       timeout: 15_000,
     });
@@ -169,7 +168,7 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.fibPreparationStatus)).toBeVisible({
       timeout: 15_000,
     });
-    await this.closeHostManagement();
+    await this.expectHostManagementClosed();
     await this.expectFocusedRoomActionVisible(TESTIDS.roomViewIdentityButton, '查看身份');
   }
 
@@ -189,10 +188,6 @@ export class FibRoomPage extends RoomPage {
     await expect(this.page.getByTestId(TESTIDS.roomClearSeatsButton)).toBeVisible();
     await this.closeHostManagement();
     await expect(this.page.getByTestId(TESTIDS.roomShareButton)).toBeVisible();
-  }
-
-  private async expectHostManagementClosed(): Promise<void> {
-    await expect(this.page.getByTestId(TESTIDS.roomHostManagementPanel)).not.toBeVisible();
   }
 
   private async readOpenIdentity(): Promise<FibIdentity> {

@@ -14,7 +14,7 @@ import type {
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   isValidRoleId,
-  isValidSchemaId,
+  isWerewolfStepId,
   readArmedDeadline,
   REASON_DEADLINE_NOT_REACHED,
   REASON_PHASE_NOT_EXPIRABLE,
@@ -41,7 +41,7 @@ const deadlinePhaseSchema = z.custom<WerewolfDeadlinePhase>(
     (value === 'firstVote' ||
       value === 'runoffVote' ||
       value === 'sheriffResult' ||
-      isValidSchemaId(value)),
+      isWerewolfStepId(value)),
 );
 
 export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.discriminatedUnion('type', [

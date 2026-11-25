@@ -106,6 +106,7 @@ function endedViewModel(overrides: Partial<AvalonViewModel> = {}): AvalonViewMod
     merlinSees: null,
     percivalSees: null,
     nightConfirmed: false,
+    step: null,
     hasViewedRole: false,
     unviewedRoleSeats: [],
     requiredSize: null,

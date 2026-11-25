@@ -92,7 +92,7 @@ function PictionaryStageContent({
     void submit(
       '重新推进',
       createPictionaryCommand(state, { type: 'pictionary.phase.retrySettle' }, null),
-      { durable: true },
+      { durable: true, actionKey: null },
     );
   };
   return (

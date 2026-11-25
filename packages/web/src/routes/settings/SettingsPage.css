@@ -22,6 +22,7 @@
   border: var(--border-width) solid var(--color-border-light);
   border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-tabletop-panel);
 }
 
 .settings-card-title {
@@ -220,12 +221,18 @@
 }
 
 .settings-entry:active:not(:disabled) {
-  opacity: var(--opacity-pressed);
+  background: var(--color-surface-hover);
+  box-shadow: var(--shadow-tabletop-inset);
+  transform: translateY(var(--space-micro));
 }
 
 .settings-entry:disabled {
   cursor: default;
-  opacity: var(--opacity-disabled);
+  color: var(--color-text-secondary);
+}
+
+.settings-entry:disabled .settings-entry-icon {
+  color: var(--color-text-muted);
 }
 
 .settings-entry-icon {

@@ -1,6 +1,7 @@
 /* Faction palette for werewolf surfaces: `data-faction` sets the color and its tints. */
 [data-faction='wolf'] {
   --faction-color: var(--color-wolf);
+  --faction-text: var(--color-wolf);
   --faction-a6: var(--color-wolf-a6);
   --faction-a12: var(--color-wolf-a12);
   --faction-a15: var(--color-wolf-a15);
@@ -10,6 +11,7 @@
 
 [data-faction='god'] {
   --faction-color: var(--color-god);
+  --faction-text: var(--color-god);
   --faction-a6: var(--color-god-a6);
   --faction-a12: var(--color-god-a12);
   --faction-a15: var(--color-god-a15);
@@ -19,6 +21,7 @@
 
 [data-faction='villager'] {
   --faction-color: var(--color-villager);
+  --faction-text: var(--color-villager-text);
   --faction-a6: var(--color-villager-a6);
   --faction-a12: var(--color-villager-a12);
   --faction-a15: var(--color-villager-a15);
@@ -28,6 +31,7 @@
 
 [data-faction='third'] {
   --faction-color: var(--color-third);
+  --faction-text: var(--color-third-text);
   --faction-a6: var(--color-third-a6);
   --faction-a12: var(--color-third-a12);
   --faction-a15: var(--color-third-a15);
@@ -48,7 +52,7 @@
   padding: var(--space-micro) var(--space-small);
   border-radius: var(--radius-full);
   background: var(--faction-a12);
-  color: var(--faction-color);
+  color: var(--faction-text);
   font-size: var(--font-caption);
   line-height: var(--line-caption);
   font-weight: var(--weight-semibold);

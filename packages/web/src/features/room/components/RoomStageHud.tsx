@@ -142,7 +142,7 @@ function RosterRow({
       </span>
       {takeOver !== null && (
         <Button
-          variant="secondary"
+          variant="soft"
           size="sm"
           onClick={takeOver}
           aria-label={`接管 ${entry.seat + 1} 号位（${entry.displayName}）`}

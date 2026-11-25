@@ -1,9 +1,12 @@
 import './HomePage.css';
+import '@/components/HeaderSurface.css';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
 import { Avatar } from '@/components/avatar/Avatar';
+import { Button } from '@/components/Button';
+import { IconButton } from '@/components/IconButton';
 import { ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext, type User } from '@/contexts/AuthContext';
@@ -141,22 +144,19 @@ export function HomePage() {
 
   return (
     <main data-testid={TESTIDS.homeScreenRoot}>
-      <header className="home-top-bar">
+      <header className="home-top-bar page-header-surface">
         <h1 className="home-title">
           <button type="button" onClick={tapTitle}>
             狼人面杀电子裁判助手
           </button>
         </h1>
         <div className="home-top-actions">
-          <button
-            type="button"
-            className="home-guide"
-            aria-label="游戏图鉴"
+          <IconButton
+            label="游戏图鉴"
+            icon={<IconBookOutline aria-hidden />}
             data-testid={TESTIDS.homeGuideButton}
             onClick={openGuide}
-          >
-            <IconBookOutline aria-hidden />
-          </button>
+          />
           <Link
             to="/settings"
             className="home-account"
@@ -191,9 +191,9 @@ export function HomePage() {
               <strong>网络异常</strong>
               <span>登录失败，请检查网络后重试</span>
             </span>
-            <button type="button" className="home-auth-error-retry" onClick={retryAuth}>
+            <Button variant="danger" onClick={retryAuth}>
               重试
-            </button>
+            </Button>
           </div>
         )}
 

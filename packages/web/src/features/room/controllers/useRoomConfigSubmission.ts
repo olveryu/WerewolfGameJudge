@@ -35,12 +35,14 @@ export function useRoomConfigSubmission<TState extends BaseGameState<string>>(
   const submit = () => {
     const { params, navigate } = input;
     if (params.mode === 'edit') {
-      void submission.submit('保存设置', input.updateConfig).then((success) => {
-        if (success) {
-          if (input.onEditSaved === undefined) returnToActiveRoom(navigate, params.roomCode);
-          else input.onEditSaved();
-        }
-      });
+      void submission
+        .submit('保存设置', input.updateConfig, { actionKey: null })
+        .then((success) => {
+          if (success) {
+            if (input.onEditSaved === undefined) returnToActiveRoom(navigate, params.roomCode);
+            else input.onEditSaved();
+          }
+        });
       return;
     }
     void creation

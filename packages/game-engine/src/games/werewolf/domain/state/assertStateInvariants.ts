@@ -6,18 +6,18 @@
  */
 
 import { isBotOccupant } from '../../../../platform/room/seating';
+import { createWerewolfNightPlan, getWerewolfBoardConversion } from '../../roles/nightPlan';
 import {
-  Faction,
   GameStatus,
   getBottomCardRoleId,
   getPlayerCount,
   getRoleDealPool,
-  getRoleSpec,
+  isBottomCardRoleRemovedInPlagueMode,
   isValidBottomCardSet,
+  isValidRoleId,
   type RoleId,
   validateTemplateRoles,
 } from '../models';
-import { buildNightPlan } from '../models/roles/spec/plan';
 import type {
   GameState,
   SheriffElectionRoundResult,
@@ -26,45 +26,6 @@ import type {
 
 function fail(message: string): never {
   throw new Error(`[FAIL-FAST] Invalid Werewolf state: ${message}`);
-}
-
-function assertNoBottomCardRuntimeState(state: GameState): void {
-  if (state.bottomCards !== undefined) fail('bottomCards exist without an active bottom-card deal');
-  if (state.treasureMasterSeat !== undefined) {
-    fail('treasureMasterSeat exists without an active treasure-master deal');
-  }
-  if (state.thiefSeat !== undefined) fail('thiefSeat exists without an active thief deal');
-  if (state.currentNightResults?.treasureMasterChosenCard !== undefined) {
-    fail('treasureMasterChosenCard exists without an active treasure-master deal');
-  }
-  if (state.currentNightResults?.thiefChosenCard !== undefined) {
-    fail('thiefChosenCard exists without an active thief deal');
-  }
-}
-
-function assertBottomCardActor(
-  state: GameState,
-  actorSeat: number | undefined,
-  actorRoleId: 'treasureMaster' | 'thief',
-): number {
-  if (actorSeat === undefined) fail(`${actorRoleId} deal has no actor seat`);
-  const actor = state.players[actorSeat];
-  if (actor === undefined || actor === null)
-    fail(`${actorRoleId} actor seat ${actorSeat} is empty`);
-  if (actor.role !== actorRoleId) {
-    fail(`${actorRoleId} actor seat ${actorSeat} contains ${actor.role ?? 'no role'}`);
-  }
-  return actorSeat;
-}
-
-function assertChosenCardBelongsToDeck(
-  chosenRoleId: RoleId,
-  bottomCards: readonly RoleId[],
-  actorRoleId: 'treasureMaster' | 'thief',
-): void {
-  if (!bottomCards.includes(chosenRoleId)) {
-    fail(`${actorRoleId} chose ${chosenRoleId}, which is not in bottomCards`);
-  }
 }
 
 function countRoles(roles: readonly RoleId[]): Map<RoleId, number> {
@@ -94,17 +55,19 @@ function assertAssignedRolesMatchDeal(
   expectedRoles: readonly RoleId[],
   description: string,
 ): void {
-  const infectionResult = state.seedWolfInfectionResult;
-  if (infectionResult?.outcome !== 'converted') {
+  const outcome = state.nightState?.conversion;
+  if (outcome?.outcome !== 'converted') {
     assertSameRoleMultiset(actualRoles, expectedRoles, description);
     return;
   }
 
-  if (!state.templateRoles.includes('seedWolf')) {
-    fail('converted Seed Wolf infection exists without seedWolf in templateRoles');
-  }
-  if (state.players[infectionResult.targetSeat]?.role !== 'wolf') {
-    fail(`converted Seed Wolf target seat ${infectionResult.targetSeat} is not a wolf`);
+  // One card of the deal has become the role the board's converting role turns players into.
+  const conversion = getWerewolfBoardConversion(state.templateRoles);
+  if (conversion === null) fail('a player was converted on a board with no converting role');
+  const { becomesRoleId } = conversion.declaration;
+  if (!isValidRoleId(becomesRoleId)) fail(`conversion produces unknown role ${becomesRoleId}`);
+  if (state.players[outcome.targetSeat]?.role !== becomesRoleId) {
+    fail(`converted seat ${outcome.targetSeat} does not hold ${becomesRoleId}`);
   }
 
   const actual = countRoles(actualRoles);
@@ -114,16 +77,13 @@ function assertAssignedRolesMatchDeal(
 
   for (const roleId of roleIds) {
     const difference = (actual.get(roleId) ?? 0) - (expected.get(roleId) ?? 0);
-    if (roleId === 'wolf') {
+    if (roleId === becomesRoleId) {
       if (difference !== 1) {
-        fail(`${description} do not contain exactly one converted wolf`);
+        fail(`${description} do not contain exactly one converted ${becomesRoleId}`);
       }
       continue;
     }
     if (difference === -1 && replacedRoleId === undefined) {
-      if (getRoleSpec(roleId).faction === Faction.Wolf) {
-        fail(`Seed Wolf infection replaced wolf-faction role ${roleId}`);
-      }
       replacedRoleId = roleId;
       continue;
     }
@@ -132,9 +92,7 @@ function assertAssignedRolesMatchDeal(
     }
   }
 
-  if (replacedRoleId === undefined) {
-    fail('converted Seed Wolf infection did not replace a non-wolf role');
-  }
+  if (replacedRoleId === undefined) fail('the conversion did not replace any dealt role');
 }
 
 function assertRoleMultisetSubset(
@@ -456,25 +414,69 @@ function assertRosterAlignment(state: GameState): void {
 }
 
 /**
- * The night-step window: `nightStep` is non-null exactly while a night is
- * running (`Ongoing`). Inside `Ongoing` the state is either parked on a
- * plan step — the stored stepId must be a member of the plan derived from
- * `templateRoles` + `seerLabelMap` — or exhausted (only `END_NIGHT` may
- * proceed). A deadline only ever exists inside the live step variant.
+ * The night window: `nightState` exists exactly from the moment the night
+ * starts (`Ongoing`, `Day`, `Ended`), and must agree with the deal.
  */
 function assertWerewolfStepWindow(state: GameState): void {
-  if (state.status === GameStatus.Ongoing) {
-    const nightStep = state.nightStep;
-    if (nightStep === null) fail('Ongoing state has no nightStep');
-    if (nightStep.kind === 'inStep') {
-      const plan = buildNightPlan(state.templateRoles, state.seerLabelMap);
-      if (!plan.steps.some((s) => s.stepId === nightStep.stepId)) {
-        fail(`night step ${nightStep.stepId} is not in the night plan`);
-      }
+  const night = state.nightState;
+  const hasNight =
+    state.status === GameStatus.Ongoing ||
+    state.status === GameStatus.Day ||
+    state.status === GameStatus.Ended;
+  if (hasNight !== (night !== null)) {
+    fail(hasNight ? `${state.status} state has no nightState` : 'nightState exists before night');
+  }
+  if (night !== null) assertSpecNightState(state, night);
+}
+
+function assertSpecNightState(state: GameState, night: NonNullable<GameState['nightState']>): void {
+  const seatedSeats = Object.keys(state.players)
+    .map(Number)
+    .filter((seat) => state.players[seat] != null)
+    .sort((first, second) => first - second);
+  if (
+    seatedSeats.length !== night.roles.seatedSeats.length ||
+    seatedSeats.some((seat, index) => seat !== night.roles.seatedSeats[index])
+  ) {
+    fail('night roles do not match the seated players');
+  }
+  const deal = seatedSeats.map((seat) => {
+    const identity = night.roles.identities[seat];
+    if (identity === undefined || !isValidRoleId(identity.dealtRole)) {
+      fail(`night seat ${seat} has no valid dealt identity`);
     }
+    const playerRole = state.players[seat]?.role;
+    const isConverted =
+      night.conversion?.outcome === 'converted' && night.conversion.targetSeat === seat;
+    if (playerRole !== (isConverted ? identity.currentRole : identity.dealtRole)) {
+      fail(`night seat ${seat} disagrees with its dealt identity`);
+    }
+    return { seat, role: identity.dealtRole };
+  });
+  const order = createWerewolfNightPlan({
+    seats: deal,
+    templateRoles: state.templateRoles,
+    seerLabelMap: state.seerLabelMap ?? {},
+    witchCanSelfHeal: night.roles.rules.witchCanSelfHeal,
+  }).map((step) => step.stepId);
+  if (
+    order.length !== night.slice.order.length ||
+    order.some((step, index) => step !== night.slice.order[index])
+  ) {
+    fail('night step order does not match the deal');
+  }
+  const current = night.slice.current;
+  if (current !== null && current.serial !== order.indexOf(current.stepId) + 1) {
+    fail('night step serial does not match its position');
+  }
+  if (state.status !== GameStatus.Ongoing) {
+    if (current !== null || night.slice.deadlineMs !== null)
+      fail('completed night is still active');
     return;
   }
-  if (state.nightStep !== null) fail(`nightStep exists during ${state.status}`);
+  if (current === null && night.slice.deadlineMs !== null) {
+    fail('finished night still has a deadline');
+  }
 }
 
 /** Reject semantic state combinations that the command pipeline cannot produce. */
@@ -485,19 +487,6 @@ export function assertWerewolfStateInvariants(state: GameState): void {
   assertRosterAlignment(state);
   assertSheriffElection(state);
 
-  const hasNightResults = state.currentNightResults !== undefined;
-  const isNightState =
-    state.status === GameStatus.Ongoing ||
-    state.status === GameStatus.Day ||
-    state.status === GameStatus.Ended;
-  if (isNightState !== hasNightResults) {
-    fail(
-      isNightState
-        ? `${state.status} state has no currentNightResults`
-        : `${state.status} state contains currentNightResults`,
-    );
-  }
-
   assertWerewolfStepWindow(state);
 
   const bottomCardRoleId = getBottomCardRoleId(state.templateRoles);
@@ -507,16 +496,21 @@ export function assertWerewolfStateInvariants(state: GameState): void {
     state.status === GameStatus.Ongoing ||
     state.status === GameStatus.Day ||
     state.status === GameStatus.Ended;
-  const isTreasureMasterDisabledByPlague =
-    bottomCardRoleId === 'treasureMaster' && state.rules?.isPlagueMode === true;
+  // Plague mode deals some bottom-card actors as a villager and sets no deck aside for them.
+  const isDeckRemovedByPlague =
+    bottomCardRoleId !== null &&
+    state.rules?.isPlagueMode === true &&
+    isBottomCardRoleRemovedInPlagueMode(bottomCardRoleId);
 
   const assignedRoles = isAssignedState ? getAssignedRoles(state) : null;
   const roleDealPool = isAssignedState ? getRoleDealPool(state.templateRoles, state.rules) : null;
 
-  if (bottomCardRoleId === null || !isAssignedState || isTreasureMasterDisabledByPlague) {
-    assertNoBottomCardRuntimeState(state);
+  if (bottomCardRoleId === null || !isAssignedState || isDeckRemovedByPlague) {
+    if (state.bottomCards !== undefined) {
+      fail('bottomCards exist without an active bottom-card deal');
+    }
     if (assignedRoles !== null && roleDealPool !== null) {
-      if (isTreasureMasterDisabledByPlague) {
+      if (isDeckRemovedByPlague) {
         assertRoleMultisetSubset(assignedRoles, roleDealPool, 'assigned roles');
       } else {
         assertAssignedRolesMatchDeal(state, assignedRoles, roleDealPool, 'assigned roles');
@@ -539,34 +533,4 @@ export function assertWerewolfStateInvariants(state: GameState): void {
     roleDealPool,
     'assigned roles and bottomCards',
   );
-
-  if (bottomCardRoleId === 'treasureMaster') {
-    assertBottomCardActor(state, state.treasureMasterSeat, bottomCardRoleId);
-    if (state.thiefSeat !== undefined) fail('treasure-master deal also contains thiefSeat');
-    if (state.currentNightResults?.thiefChosenCard !== undefined) {
-      fail('treasure-master deal also contains thiefChosenCard');
-    }
-
-    const chosenRoleId = state.currentNightResults?.treasureMasterChosenCard;
-    if (chosenRoleId === undefined) return;
-    assertChosenCardBelongsToDeck(chosenRoleId, bottomCards, bottomCardRoleId);
-    if (getRoleSpec(chosenRoleId).faction === Faction.Wolf) {
-      fail('treasureMasterChosenCard is a wolf-faction card');
-    }
-    return;
-  }
-
-  assertBottomCardActor(state, state.thiefSeat, bottomCardRoleId);
-  if (state.treasureMasterSeat !== undefined) fail('thief deal also contains treasureMasterSeat');
-  if (state.currentNightResults?.treasureMasterChosenCard !== undefined) {
-    fail('thief deal also contains treasureMasterChosenCard');
-  }
-
-  const chosenRoleId = state.currentNightResults?.thiefChosenCard;
-  if (chosenRoleId === undefined) return;
-  assertChosenCardBelongsToDeck(chosenRoleId, bottomCards, bottomCardRoleId);
-  const hasWolfCard = bottomCards.some((roleId) => getRoleSpec(roleId).faction === Faction.Wolf);
-  if (hasWolfCard && getRoleSpec(chosenRoleId).faction !== Faction.Wolf) {
-    fail('thiefChosenCard must be the wolf-faction card present in bottomCards');
-  }
 }

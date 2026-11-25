@@ -1,5 +1,6 @@
 import {
   getSecrethitlerNightParticipants,
+  SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
   type SecrethitlerInternalCommand,
   type SecrethitlerPublicCommand,
   type SecrethitlerState,
@@ -36,8 +37,23 @@ function armedVote(): SecrethitlerState {
   send({ type: 'secrethitler.roles.assign' });
   for (const seat of state.livingSeats) send({ type: 'secrethitler.role.viewed' }, seat);
   send({ type: 'secrethitler.game.begin' });
-  for (const seat of getSecrethitlerNightParticipants(state))
-    send({ type: 'secrethitler.night.confirm', step: 1 }, seat);
+  for (const seat of getSecrethitlerNightParticipants(state)) {
+    const phase = state.phase;
+    if (phase.kind !== 'night' || phase.steps.current === null)
+      throw new Error('Expected the current first-night step');
+    send(
+      {
+        type: 'secrethitler.step.submit',
+        gameSequence: state.gameSequence,
+        submission: {
+          stepId: phase.steps.current.stepId,
+          serial: phase.steps.current.serial,
+          actionKey: SECRETHITLER_NIGHT_VIEW_ACTION_KEY,
+        },
+      },
+      seat,
+    );
+  }
   while (state.isAudioPlaying)
     send({ type: 'secrethitler.audio.ack', audioBatchId: state.audioBatchId });
   const election = state.phase;

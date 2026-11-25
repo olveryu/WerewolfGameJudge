@@ -68,12 +68,33 @@ export const FEATURE_TEST_REQUIREMENTS = Object.freeze({
         'is pending and opens the identity card for a seated player in viewing',
         'tracks the effective seat, including a bot controlled by the host',
         'hides identity in the lobby and from spectators, and locks it while submitting',
-        'wires bulk viewing and removes its remedy after all bots are marked',
+        'wires bulk viewing and removes it after all bots are marked',
         'marks terminal review pending without blocking confirmed restart',
       ]),
     }),
   ]),
   night: Object.freeze([
+    Object.freeze({
+      template: 'packages/game-engine/src/games/__GAME_ID__/__tests__/nightSteps.contract.test.ts',
+      testCases: Object.freeze([
+        'records a view once, hides private actions from spectators and waits for narration',
+        'rejects malformed persisted step positions rather than repairing them',
+      ]),
+    }),
+    Object.freeze({
+      template:
+        'packages/game-engine/src/games/__GAME_ID__/__tests__/nightCatalogue.integration.test.ts',
+      testCases: Object.freeze([
+        'matches the approved catalogue from played night scenarios',
+        'reaches every declared step and every written night sentence',
+      ]),
+    }),
+    Object.freeze({
+      template: GUIDANCE_TEST,
+      testCases: Object.freeze([
+        'binds the shared night hand and removes a viewed action after its authorised acknowledgement',
+      ]),
+    }),
     Object.freeze({ template: ENGINE_TEST, testCases: AUDIO_ENGINE_TEST_CASES }),
     Object.freeze({
       template:

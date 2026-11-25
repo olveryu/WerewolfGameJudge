@@ -8,6 +8,7 @@ import {
 } from '@game-judge/game-engine/games/storyrelay/public';
 
 import { formatDurationOption } from '@/components/GameSettings';
+import { confirmAction } from '@/features/room/confirm';
 import type { RoomProfileSelection } from '@/features/room/controllers/useRoomProfileController';
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { createControlledSeatModel } from '@/features/room/model/createControlledSeatModel';
@@ -24,18 +25,17 @@ import {
   buildFillBotsAction,
   buildResetToLobbyAction,
   buildRoomConfigAction,
-  buildShareRoomAction,
   buildStartGameAction,
   HOST_ACTION_KEYS,
   HOST_FLOW_CONFIRM,
-  hostStartTask,
+  hostActionTask,
   seatShortageReason,
 } from '@/features/room/model/hostManagementActions';
-import type { RoomBottomButton } from '@/features/room/model/RoomBottomActions';
-import { buildLobbyHostStartMessage } from '@/features/room/model/RoomBottomActions';
+import type { RoomPlayerAction } from '@/features/room/model/RoomAction';
+import type { RoomHostAction } from '@/features/room/model/RoomAction';
 import type { RoomCapabilities, RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import type { RoomHostManagementModel } from '@/features/room/model/RoomHostManagement';
-import type { RoomHostManagementAction } from '@/features/room/model/RoomHostManagement';
+import { buildLobbyHostStartMessage } from '@/features/room/model/RoomPlayerActions';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type {
   RoomSeatDataSource,
@@ -49,7 +49,6 @@ import {
   buildViewerReviewBottomButtons,
   type RoomReviewEntry,
 } from '@/features/room/review/roomReviewActions';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 /** Public lobby values; every configurable field besides the card title's player count is shown. */
 export function createStoryRelayRoomSummarySettings(
@@ -121,12 +120,12 @@ function createStoryRelayReviewButtons(
   state: StoryRelayState,
   review: RoomReviewEntry | null,
   viewer: RoomViewer,
-): readonly RoomBottomButton[] {
+): readonly RoomPlayerAction[] {
   if (state.phase !== 'ended') return [];
   if (review === null) {
     throw new Error(`[FAIL-FAST] Story Relay ${state.phase} has no review entry`);
   }
-  return buildViewerReviewBottomButtons(review, 'secondary', viewer);
+  return buildViewerReviewBottomButtons(review, viewer);
 }
 
 export interface StoryRelayRoomShellModelInput extends Omit<
@@ -137,7 +136,7 @@ export interface StoryRelayRoomShellModelInput extends Omit<
   | 'seatSource'
   | 'seatConfirmation'
   | 'profile'
-  | 'bottomActions'
+  | 'playerActions'
   | 'controlledSeat'
 > {
   readonly state: StoryRelayState;
@@ -158,10 +157,14 @@ export interface StoryRelayHostManagementInput {
   readonly state: StoryRelayState;
   readonly capabilities: Pick<
     RoomCapabilities,
-    'canConfigureGame' | 'canFillBots' | 'canClearSeats' | 'canShareRoom'
+    'canConfigureGame' | 'canFillBots' | 'canClearSeats'
   >;
   readonly isSubmitting: boolean;
-  readonly submit: (label: string, command: StoryRelayCommand) => Promise<boolean>;
+  readonly submit: (
+    label: string,
+    command: StoryRelayCommand,
+    options: { readonly actionKey: string | null },
+  ) => Promise<boolean>;
   /** The shared review entry; present once the round ended. */
   readonly review: RoomReviewEntry | null;
 }
@@ -172,7 +175,7 @@ export function createStoryRelayHostManagement(
 ): RoomHostManagementModel {
   const { state, capabilities } = input;
   const submit = input.submit;
-  const roomActions: RoomHostManagementAction[] = [];
+  const roomActions: RoomHostAction[] = [];
   if (capabilities.canConfigureGame.isAllowed)
     roomActions.push(buildRoomConfigAction({ onPress: capabilities.canConfigureGame.execute }));
   if (capabilities.canFillBots.isAllowed)
@@ -180,14 +183,19 @@ export function createStoryRelayHostManagement(
   if (capabilities.canClearSeats.isAllowed)
     roomActions.push(buildClearSeatsAction({ onPress: capabilities.canClearSeats.execute }));
   if (state.phase === 'lobby') {
-    const submitStart = () => void submit('开始游戏', { type: 'storyrelay.game.begin' });
+    const submitStart = () =>
+      void submit(
+        '开始游戏',
+        { type: 'storyrelay.game.begin' },
+        { actionKey: HOST_ACTION_KEYS.startGame },
+      );
     const startAction = buildStartGameAction({
       onPress: () =>
-        showConfirmAlert(
-          HOST_FLOW_CONFIRM.startTitle,
-          '将分配写作顺序并开始轮流讲故事',
-          submitStart,
-        ),
+        confirmAction({
+          label: HOST_FLOW_CONFIRM.startTitle,
+          body: '将分配写作顺序并开始轮流讲故事',
+          onConfirm: submitStart,
+        }),
       isEnabled:
         !input.isSubmitting &&
         getStoryRelayOccupiedSeatCount(state) === state.config.numberOfPlayers,
@@ -197,42 +205,37 @@ export function createStoryRelayHostManagement(
       isLoading: input.isSubmitting,
     });
     return {
-      task: hostStartTask(HOST_ACTION_KEYS.startGame),
+      task: hostActionTask(HOST_ACTION_KEYS.startGame),
       pendingActionKeys: [HOST_ACTION_KEYS.startGame],
-      sections: [
-        {
-          key: 'game',
-          title: '游戏',
-          actions: [startAction],
-        },
-        {
-          key: 'room',
-          title: '房间管理',
-          actions: [...roomActions, buildShareRoomAction(capabilities.canShareRoom)],
-        },
-      ],
+      actions: [startAction, ...roomActions],
     };
   }
   const isTerminal = state.phase === 'ended';
   const restart = buildResetToLobbyAction({
     onPress: () =>
-      showDestructiveAlert(
-        '重新开始？',
-        state.phase === 'gallery' ||
+      confirmAction({
+        label: '重新开始？',
+        body:
+          state.phase === 'gallery' ||
           state.phase === 'ended' ||
           (state.phase === 'transition' &&
             state.completedAt !== null &&
             !state.revealSettlementPending)
-          ? '保留座位和配置，清除当前故事并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
-          : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
-        '重新开始',
-        async () => {
-          await submit('重新开始', {
-            type: 'storyrelay.game.restart',
-            phaseRevision: state.phaseRevision,
-          });
+            ? '保留座位和配置，清除当前故事并回到准备。本局已结算，请先保存需要保留的内容；之后可能无法查看复盘。'
+            : '保留座位和配置，清除当前故事并回到准备。本局中止，不结算完成奖励。',
+        tone: 'danger',
+        confirmText: '重新开始',
+        onConfirm: async () => {
+          await submit(
+            '重新开始',
+            {
+              type: 'storyrelay.game.restart',
+              phaseRevision: state.phaseRevision,
+            },
+            { actionKey: HOST_ACTION_KEYS.restart },
+          );
         },
-      ),
+      }),
     isEnabled: !input.isSubmitting,
     isLoading: input.isSubmitting,
   });
@@ -243,25 +246,13 @@ export function createStoryRelayHostManagement(
     return {
       task: null,
       pendingActionKeys: [],
-      sections: [
-        {
-          key: 'current-flow',
-          title: '当前流程',
-          actions: [buildReviewHostAction(input.review), restart],
-        },
-      ],
+      actions: [buildReviewHostAction(input.review), restart],
     };
   }
   return {
     task: null,
     pendingActionKeys: [],
-    sections: [
-      {
-        key: 'danger',
-        title: '危险操作',
-        actions: [restart],
-      },
-    ],
+    actions: [restart],
   };
 }
 
@@ -290,16 +281,12 @@ export function createStoryRelayRoomShellModel(
       onLeaveSeat: input.onProfileLeaveSeat,
       gameDetails: input.gameDetails,
     }),
-    bottomActions: {
-      kind: 'stacked',
+    playerActions: {
       message: buildLobbyHostStartMessage({ isLobby: input.isLobby, viewer: input.viewer }),
       // The relay steps report their progress in the stage information bar.
       progress: null,
-      layout: {
-        primary: [],
-        secondary: createStoryRelayReviewButtons(state, input.review, input.viewer),
-        ghost: [],
-      },
+      group: null,
+      actions: createStoryRelayReviewButtons(state, input.review, input.viewer),
     },
     controlledSeat: createControlledSeatModel({
       controlledSeat: input.controlledSeat,

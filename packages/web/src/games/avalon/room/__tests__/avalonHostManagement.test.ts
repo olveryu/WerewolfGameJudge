@@ -15,20 +15,18 @@ import {
   parseAvalonState,
 } from '@game-judge/game-engine/games/avalon/public';
 
+import { confirmAction } from '@/features/room/confirm';
 import {
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
 import type { RoomReviewEntry } from '@/features/room/review/roomReviewActions';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { hostTaskBody } from '@/test-utils/hostTask';
-import { showConfirmAlert, showDestructiveAlert } from '@/utils/alertPresets';
 
 import { createAvalonHostManagement } from '../avalonRoomAdapter';
 
-vi.mock('@/utils/alertPresets', () => ({
-  showConfirmAlert: vi.fn(),
-  showDestructiveAlert: vi.fn(),
-}));
+vi.mock('@/features/room/confirm', () => ({ confirmAction: vi.fn() }));
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -172,8 +170,11 @@ function session() {
       send({ type: 'avalon.game.begin' });
       ackAudio();
       while (state.phase.kind === 'night') {
-        const participants = getAvalonNightParticipants(state.roles, state.phase.step);
-        for (const seat of participants) sendAsSeat({ type: 'avalon.night.confirm' }, seat);
+        const participants = getAvalonNightParticipants(
+          state.roles,
+          state.phase.steps.current!.stepId,
+        );
+        for (const seat of participants) sendAsSeat(avalonViewNightCommand(state), seat);
         ackAudio();
       }
     },
@@ -240,29 +241,28 @@ describe('createAvalonHostManagement', () => {
     game.send({ type: 'avalon.role.viewed' });
     const management = build(game.state, false);
     expect(management.pendingActionKeys).toEqual(['start-game']);
-    expect(management.sections[0]?.actions[0]?.isEnabled).toBe(false);
+    expect(management.actions[0]?.state.kind).toBe('blocked');
   });
 
   it('pins the lobby panel: start reason counts the missing seats, room trio present', () => {
     const game = session();
     game.seatHost();
     const model = build(game.state, true);
-    expect(model?.sections[0]?.actions[0]).toMatchObject({
+    expect(model?.actions[0]).toMatchObject({
       key: 'assign-roles',
       label: '分配角色',
       testID: 'assign-roles-button',
-      isEnabled: false,
-      disabledReason: '座位尚未坐满（还差 5 人）',
+      state: { kind: 'blocked', reason: '座位尚未坐满（还差 5 人）' },
     });
-    expect(model?.sections[1]?.actions.map((action) => action.key)).toEqual([
+    expect(model?.actions.slice(1).map((action) => action.key)).toEqual([
       'configure-game',
       'fill-bots',
       'clear-seats',
-      'share-room',
+      'music-settings',
     ]);
     game.fill();
-    expect(build(game.state, true)?.sections[0]?.actions[0]).toMatchObject({
-      isEnabled: true,
+    expect(build(game.state, true)?.actions[0]).toMatchObject({
+      state: { kind: 'ready' },
     });
   });
 
@@ -270,18 +270,16 @@ describe('createAvalonHostManagement', () => {
     const game = session();
     game.seatHost();
     game.fill();
-    const action = build(game.state, true, true)?.sections[0]?.actions[0];
+    const action = build(game.state, true, true)?.actions[0];
     // Submitting marshal: the action keeps its loading state but drops
     // its press handler, disabled with no reason (the room IS full —
     // the lock, not a seat shortage, is what blocks it).
     expect(action).toMatchObject({
       key: 'assign-roles',
       label: '分配角色',
-      isEnabled: false,
-      disabledReason: null,
-      isLoading: true,
+      state: { kind: 'busy' },
     });
-    expect(action).not.toHaveProperty('onPress');
+    expect(action?.state).not.toHaveProperty('onPress');
   });
 
   it('keeps abort available during nomination without empty management sections', () => {
@@ -291,8 +289,8 @@ describe('createAvalonHostManagement', () => {
     game.startToNominate();
     expect(game.state.phase.kind).toBe('nominate');
     const model = build(game.state, false);
-    expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
-    expect(model?.sections[0]?.actions[0]).toMatchObject({ key: 'restart', isEnabled: true });
+    expect(model?.actions.map((action) => action.key)).toEqual(['restart']);
+    expect(model?.actions[0]).toMatchObject({ key: 'restart', state: { kind: 'ready' } });
     expect(hostTaskBody(model)).toBeNull();
   });
 
@@ -305,26 +303,33 @@ describe('createAvalonHostManagement', () => {
     const model = build(game.state, false);
     // Viewing panel: begin waits for the checkpoint (only the host has
     // viewed), the scaffold action fills the bot records.
-    expect(model?.sections.map((entry) => entry.key)).toEqual(['game', 'tools', 'danger']);
-    expect(model?.sections[0]?.actions[0]).toMatchObject({
-      key: 'start-game',
-      label: '开始游戏',
-      isEnabled: false,
-      disabledReason: '1/6 位玩家已查看身份，等待剩余玩家',
-    });
-    const section = model?.sections.find((entry) => entry.key === 'tools');
-    expect(section?.actions.map((action) => action.key)).toEqual([
+    expect(model?.actions.map((action) => action.key)).toEqual([
+      'start-game',
       'music-settings',
       'mark-bots-viewed',
+      'restart',
     ]);
-    expect(section?.actions[1]).toMatchObject({ label: '标记机器人已查看', variant: 'secondary' });
+    expect(model?.actions[0]).toMatchObject({
+      key: 'start-game',
+      label: '开始游戏',
+      state: { kind: 'blocked', reason: '1/6 位玩家已查看身份，等待剩余玩家' },
+    });
+    expect(model?.actions[2]).toMatchObject({
+      label: '标记机器人已查看',
+      category: 'host',
+    });
 
     game.send({ type: 'avalon.bots.markAllBotsViewed' });
     const after = build(game.state, false);
-    expect(
-      after?.sections.find((entry) => entry.key === 'tools')?.actions.map((action) => action.key),
-    ).toEqual(['music-settings']);
-    expect(after?.sections[0]?.actions[0]).toMatchObject({ key: 'start-game', isEnabled: true });
+    expect(after?.actions.map((action) => action.key)).toEqual([
+      'start-game',
+      'music-settings',
+      'restart',
+    ]);
+    expect(after?.actions[0]).toMatchObject({
+      key: 'start-game',
+      state: { kind: 'ready' },
+    });
   });
 
   it('keeps abort available in vote and quest without restoring manual settlement', () => {
@@ -339,28 +344,26 @@ describe('createAvalonHostManagement', () => {
     game.sendAsSeat({ type: 'avalon.team.propose', seats: team }, game.state.leaderSeat);
     expect(game.state.phase.kind).toBe('vote');
     const voteModel = build(game.state, false);
-    expect(
-      voteModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
-    ).toEqual(['restart']);
+    expect(voteModel?.actions.map((action) => action.key)).toEqual(['restart']);
     for (let seat = 0; seat < PLAYER_COUNT; seat += 1)
       game.sendAsSeat({ type: 'avalon.team.vote', vote: 'approve' }, seat);
     game.settle();
     expect(game.state.phase.kind).toBe('quest');
     const questModel = build(game.state, false);
-    expect(
-      questModel?.sections.flatMap((section) => section.actions.map((action) => action.key)),
-    ).toEqual(['restart']);
+    expect(questModel?.actions.map((action) => action.key)).toEqual(['restart']);
   });
 
   describe('task body', () => {
-    it('blocks role assignment in the lobby with the missing-seat count and a share remedy', () => {
+    it('blocks role assignment in the lobby with the missing-seat count', () => {
       const game = session();
       game.seatHost();
       const primary = hostTaskBody(build(game.state, true));
       expect(primary).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
-      if (primary?.kind !== 'blocked') throw new Error('expected a blocked task body');
-      expect(primary.reason).toBe('座位尚未坐满（还差 5 人）');
-      expect(primary.remedy?.label).toBe('分享房间');
+      if (primary?.kind !== 'action') throw new Error('expected an action task body');
+      expect(primary.action.state).toEqual({
+        kind: 'blocked',
+        reason: '座位尚未坐满（还差 5 人）',
+      });
     });
 
     it('offers role assignment once the room is full', () => {
@@ -369,7 +372,8 @@ describe('createAvalonHostManagement', () => {
       game.fill();
       const primary = hostTaskBody(build(game.state, true));
       expect(primary).toMatchObject({ action: { key: 'assign-roles', label: '分配角色' } });
-      if (primary?.kind !== 'ready') throw new Error('expected a ready task body');
+      if (primary?.kind !== 'action' || primary.action.state.kind !== 'ready')
+        throw new Error('expected a ready action task body');
     });
 
     it('blocks game start while players have not viewed, then offers it once all have', () => {
@@ -379,14 +383,16 @@ describe('createAvalonHostManagement', () => {
       game.startWithUnmarkedBots();
       const blocked = hostTaskBody(build(game.state, false));
       expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-      if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
-      expect(blocked.reason).toBe('1/6 位玩家已查看身份，等待剩余玩家');
-      // The bot scaffold is the remedy while a bot seat is unviewed.
-      expect(blocked.remedy?.label).toBe('标记机器人已查看');
+      if (blocked?.kind !== 'action') throw new Error('expected an action task body');
+      expect(blocked.action.state).toEqual({
+        kind: 'blocked',
+        reason: '1/6 位玩家已查看身份，等待剩余玩家',
+      });
 
       game.send({ type: 'avalon.bots.markAllBotsViewed' });
       const ready = hostTaskBody(build(game.state, false));
-      if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+      if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+        throw new Error('expected a ready action task body');
     });
 
     it('has no task body in the nomination phase', () => {
@@ -413,18 +419,16 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.isAudioPlaying).toBe(true);
     const locked = build(game.state, false);
     expect(locked).not.toBeNull();
-    for (const section of locked.sections) {
-      for (const action of section.actions) {
-        expect(action.isEnabled).toBe(false);
-        expect(action).not.toHaveProperty('onPress');
-      }
+    for (const action of locked.actions) {
+      expect(action.state.kind).toBe('blocked');
+      expect(action.state).not.toHaveProperty('onPress');
     }
 
     game.ackAudio();
     expect(game.state.isAudioPlaying).toBe(false);
     const idle = build(game.state, false);
-    expect(idle?.sections.map((section) => section.key)).toEqual(
-      locked.sections.map((section) => section.key),
+    expect(idle?.actions.map((action) => action.key)).toEqual(
+      locked.actions.map((action) => action.key),
     );
   });
 
@@ -433,22 +437,28 @@ describe('createAvalonHostManagement', () => {
     game.seatHost();
     game.fill();
     game.startToNominate();
-    const action = build(game.state, false)
-      ?.sections.flatMap((section) => section.actions)
-      .find((entry) => entry.key === 'restart');
-    if (!action?.isEnabled) throw new Error('expected enabled restart');
-    action.onPress();
+    const action = build(game.state, false)?.actions.find((entry) => entry.key === 'restart');
+    if (action?.state.kind !== 'ready') throw new Error('expected enabled restart');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showDestructiveAlert).mock.calls.at(-1);
+    const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
     if (confirmation === undefined) throw new Error('expected restart confirmation');
-    expect(confirmation[1]).toContain('不结算完成奖励');
-    const confirm = confirmation[3];
-    await confirm();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'avalon.game.restart',
-      gameSequence: game.state.gameSequence,
-      wasEnded: false,
+    expect(confirmation).toMatchObject({
+      label: '重新开始？',
+      tone: 'danger',
+      confirmText: '重新开始',
     });
+    expect(confirmation.body).toContain('不结算完成奖励');
+    await confirmation.onConfirm();
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'avalon.game.restart',
+        gameSequence: game.state.gameSequence,
+        wasEnded: false,
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('exposes bot confirmation after narration and submits the host command without takeover', () => {
@@ -459,19 +469,26 @@ describe('createAvalonHostManagement', () => {
     game.send({ type: 'avalon.bots.markAllBotsViewed' });
     game.send({ type: 'avalon.game.begin' });
     game.ackAudio();
-    const action = build(game.state, false)
-      ?.sections.flatMap((section) => section.actions)
-      .find((entry) => entry.key === 'mark-bots-confirmed');
-    if (!action?.isEnabled) throw new Error('expected enabled bot confirmation');
-    action.onPress();
+    const action = build(game.state, false)?.actions.find(
+      (entry) => entry.key === 'mark-bots-confirmed',
+    );
+    if (action?.state.kind !== 'ready') throw new Error('expected enabled bot confirmation');
+    action.state.onPress();
     expect(submit).not.toHaveBeenCalled();
-    const confirmation = vi.mocked(showConfirmAlert).mock.calls.at(-1);
+    const confirmation = vi.mocked(confirmAction).mock.calls.at(-1)?.[0];
     if (confirmation === undefined) throw new Error('expected bot confirmation dialog');
-    expect(confirmation[0]).toBe('标记机器人已确认？');
-    void confirmation[2]();
-    expect(submit).toHaveBeenCalledWith('标记机器人已确认', {
-      type: 'avalon.bots.markAllBotsGroupConfirmed',
+    expect(confirmation).toMatchObject({
+      label: '标记机器人已确认？',
+      body: '将为本阶段的机器人确认信息。',
     });
+    void confirmation.onConfirm();
+    expect(submit).toHaveBeenCalledWith(
+      '标记机器人已确认',
+      {
+        type: 'avalon.bots.markAllBotsGroupConfirmed',
+      },
+      { actionKey: 'mark-bots-confirmed' },
+    );
   });
 
   it('does not offer bot confirmations at the automatic vote result', () => {
@@ -489,9 +506,9 @@ describe('createAvalonHostManagement', () => {
     }
     game.settle(false);
     expect(game.state.phase).toMatchObject({ kind: 'voteResult' });
-    const action = build(game.state, false)
-      ?.sections.flatMap((section) => section.actions)
-      .find((entry) => entry.key === 'mark-bots-confirmed');
+    const action = build(game.state, false)?.actions.find(
+      (entry) => entry.key === 'mark-bots-confirmed',
+    );
     expect(action).toBeUndefined();
   });
 
@@ -503,11 +520,9 @@ describe('createAvalonHostManagement', () => {
     game.playToEnded();
     expect(game.state.phase.kind).toBe('ended');
     const model = build(game.state, false);
-    const actions = model?.sections[0]?.actions ?? [];
+    const actions = model?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
-    expect(
-      model?.sections.flatMap((section) => section.actions.map((action) => action.key)),
-    ).not.toContain('music-settings');
+    expect(model?.actions.map((action) => action.key)).not.toContain('music-settings');
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
       'restart-button',
@@ -517,14 +532,16 @@ describe('createAvalonHostManagement', () => {
     if (task?.kind !== 'choice') throw new Error('expected a choice task body');
     expect(task.actions.map((action) => action.key)).toEqual(['review', 'restart']);
     const restart = actions[1];
-    if (restart === undefined || !restart.isEnabled) throw new Error('expected enabled restart');
-    restart.onPress();
-    expect(showDestructiveAlert).toHaveBeenCalledWith(
-      '重新开始？',
-      expect.stringContaining('本局已结算'),
-      '重新开始',
-      expect.any(Function),
-    );
+    if (restart === undefined || restart.state.kind !== 'ready')
+      throw new Error('expected enabled restart');
+    restart.state.onPress();
+    expect(confirmAction).toHaveBeenCalledWith({
+      label: '重新开始？',
+      body: expect.stringContaining('本局已结算') as unknown,
+      tone: 'danger',
+      confirmText: '重新开始',
+      onConfirm: expect.any(Function) as unknown,
+    });
   });
 
   it('routes the host review action through the shared review entry', () => {
@@ -536,9 +553,13 @@ describe('createAvalonHostManagement', () => {
     expect(game.state.phase.kind).toBe('ended');
     const openReview = vi.fn();
     const model = build(game.state, false, false, { isEnabled: true, onPress: openReview });
-    const review = model?.sections[0]?.actions.find((action) => action.key === 'review');
-    expect(review).toMatchObject({ label: '本局复盘', variant: 'secondary', isEnabled: true });
-    if (review && review.isEnabled) review.onPress();
+    const review = model?.actions.find((action) => action.key === 'review');
+    expect(review).toMatchObject({
+      label: '本局复盘',
+      category: 'resource',
+      state: { kind: 'ready' },
+    });
+    if (review?.state.kind === 'ready') review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
   });
 

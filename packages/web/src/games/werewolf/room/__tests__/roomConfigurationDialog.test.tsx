@@ -1,22 +1,45 @@
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { act, within } from '@testing-library/react';
+import { GameStatus, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { STEP_RESULT_ACK_ACTION_KEY } from '@game-judge/game-engine/platform/steps';
+import { act, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { TESTIDS } from '@/testids';
 
 import {
   actorStep,
-  cancelSeatSelection,
   click,
   createReactiveWerewolfRoomMock,
+  createWerewolfRoomMockFromState,
   mountRoomFor,
   mountWerewolfRoom,
   recordAlerts,
   RoomScreenTestHarness,
-  startSeatSelection,
 } from './harness';
+import {
+  collectBoardNightScenarios,
+  pressStepAction,
+  requireBoardNightScenario,
+} from './harness/boardNightScenarios';
 
 vi.mock('@/contexts/AuthContext', () => import('./harness/testAuthContext'));
+
+const nightRoles: readonly RoleId[] = ['wolf', 'seer', 'psychic', 'villager'];
+const nightScenarios = collectBoardNightScenarios(
+  nightRoles,
+  new Map(nightRoles.map((role, seat) => [seat, role])),
+);
+const seerState = requireBoardNightScenario(nightScenarios, 'seerCheck', 'seerCheck').state;
+const pendingSeerState = requireBoardNightScenario(
+  nightScenarios,
+  'seerCheck',
+  STEP_RESULT_ACK_ACTION_KEY,
+).state;
+const nextStepState = requireBoardNightScenario(
+  nightScenarios,
+  'psychicCheck',
+  'psychicCheck',
+).state;
 
 describe('Werewolf room configuration', () => {
   it.each([
@@ -43,33 +66,34 @@ describe('Werewolf room configuration', () => {
       const harness = new RoomScreenTestHarness();
       const detach = recordAlerts(harness);
       try {
-        const step = actorStep('seerCheck', 'seer', 0);
-        const reactive = createReactiveWerewolfRoomMock(step);
-        const view = await mountWerewolfRoom(reactive.mock);
+        const mock = createWerewolfRoomMockFromState(seerState, 1);
+        const view = await mountWerewolfRoom(mock);
         await click(view.getByRole('button', { name: '本局配置' }));
         const board = within(await view.findByRole('dialog', { name: '本局配置' }));
-        const pending = {
-          seerReveal: { targetSeat: 1, result: '好人' as const },
-          gameStateOverrides: {
-            pendingRevealAcks: ['seerCheck' as const],
-            actions: [
-              { schemaId: 'seerCheck' as const, actorSeat: 0, targetSeat: 1, timestamp: 1 },
-            ],
-          },
-        };
-        act(() => reactive.simulateStateUpdate(pending));
+        act(() =>
+          mock.session.publishRoom(
+            createRoomSnapshot(
+              { ...pendingSeerState, roster: mock.state.roster, hostUserId: mock.state.hostUserId },
+              2,
+            ),
+          ),
+        );
         expect(harness.hasSeen('seerReveal')).toBe(false);
         if (!stillPending) {
           act(() =>
-            reactive.simulateStateUpdate({
-              seerReveal: null,
-              gameStateOverrides: { status: GameStatus.Day },
-            }),
+            mock.session.publishRoom(
+              createRoomSnapshot(
+                { ...nextStepState, roster: mock.state.roster, hostUserId: mock.state.hostUserId },
+                3,
+              ),
+            ),
           );
         }
         await click(board.getByRole('button', { name: '关闭详情' }));
-        expect(harness.eventsOfType('seerReveal')).toHaveLength(stillPending ? 1 : 0);
-        expect(reactive.mock.dispatch).not.toHaveBeenCalled();
+        await waitFor(() =>
+          expect(harness.eventsOfType('seerReveal')).toHaveLength(stillPending ? 1 : 0),
+        );
+        expect(mock.dispatch).not.toHaveBeenCalled();
       } finally {
         detach();
       }
@@ -135,6 +159,7 @@ describe('Werewolf room configuration', () => {
       await user.clear(notes);
       await user.type(notes, '2号投给3号');
       await click(dialog.getByRole('button', { name: '关闭详情' }));
+      await click(view.getByRole('button', { name: '手册' }));
       await click(view.getByRole('button', { name: '笔记' }));
       expect(
         within(await view.findByRole('dialog', { name: '笔记' })).getByRole('textbox', {
@@ -144,7 +169,7 @@ describe('Werewolf room configuration', () => {
     },
   );
 
-  it('reads the shared encyclopedia in the room and returns to the manual', async () => {
+  it('reads the shared encyclopedia in the room and returns to the main hand', async () => {
     const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
     await click(view.getByRole('button', { name: '手册' }));
     expect(view.queryByRole('button', { name: '笔记' })).not.toBeInTheDocument();
@@ -153,7 +178,7 @@ describe('Werewolf room configuration', () => {
     expect(dialog.getByText('胜负目标')).toBeVisible();
     expect(dialog.getByRole('tab', { name: /角色/ })).toBeVisible();
     await click(dialog.getByRole('button', { name: '关闭详情' }));
-    expect(view.getByRole('group', { name: '手册' })).toBeVisible();
+    expect(view.getByRole('group', { name: '行动手牌' })).toBeVisible();
     expect(view.getByTestId(TESTIDS.roomScreenRoot)).toBeVisible();
   });
 
@@ -176,21 +201,19 @@ describe('Werewolf room configuration', () => {
   });
 
   it('keeps the existing selection panel free of the configuration entry', async () => {
-    const view = await mountRoomFor(actorStep('seerCheck', 'seer', 0));
+    const view = await mountWerewolfRoom(createWerewolfRoomMockFromState(seerState, 1));
     const hand = within(view.getByRole('group', { name: '行动手牌' }));
-    expect(hand.getByRole('button', { name: '预言家行动' })).toHaveAccessibleDescription(
-      '有待处理操作',
-    );
+    expect(
+      hand.getByTestId(TESTIDS.werewolfNightButton('openActionGroup')),
+    ).toHaveAccessibleDescription('有待处理操作');
     expect(hand.getByRole('button', { name: '本局配置' })).toBeVisible();
-    await startSeatSelection(view);
+    await pressStepAction(view, 'seerCheck');
     const selectionHand = within(view.getByRole('group', { name: '行动手牌' }));
     expect(selectionHand.queryByRole('button', { name: '确认选择' })).not.toBeInTheDocument();
     expect(selectionHand.getByRole('button', { name: '取消选座' })).toBeVisible();
     expect(selectionHand.queryByRole('button', { name: '查看身份' })).not.toBeInTheDocument();
     expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
-    await cancelSeatSelection(view);
-    expect(view.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
-    await click(view.getByRole('button', { name: '返回' }));
+    await click(selectionHand.getByRole('button', { name: '取消选座' }));
     expect(view.getByRole('button', { name: '本局配置' })).toBeVisible();
   });
 
@@ -200,13 +223,13 @@ describe('Werewolf room configuration', () => {
     const bottom = within(view.getByTestId(TESTIDS.bottomActionPanel));
     await click(bottom.getByTestId(TESTIDS.roomMoreActionsButton));
 
-    expect(bottom.getByRole('region', { name: '主持管理' })).toBeVisible();
+    expect(bottom.getByRole('group', { name: '主持管理' })).toBeVisible();
     expect(bottom.queryByRole('button', { name: '本局配置' })).not.toBeInTheDocument();
     const back = bottom.getByRole('button', { name: '返回' });
     expect(back).toHaveFocus();
     await click(back);
 
-    expect(bottom.queryByRole('region', { name: '主持管理' })).not.toBeInTheDocument();
+    expect(bottom.queryByRole('group', { name: '主持管理' })).not.toBeInTheDocument();
     expect(bottom.getByRole('button', { name: '本局配置' })).toBeVisible();
     expect(bottom.getByTestId(TESTIDS.roomMoreActionsButton)).toHaveFocus();
   });

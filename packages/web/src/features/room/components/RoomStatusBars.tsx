@@ -107,15 +107,16 @@ export function ControlledSeatBanner({ model }: { readonly model: RoomControlled
         <IconGameControllerOutline aria-hidden />
         {` 正在操控 ${model.seat + 1} 号位（${model.displayName}）`}
       </span>
-      <button
+      <Button
         type="button"
+        variant="soft"
         className="controlled-seat-banner-release"
         onClick={model.onRelease}
         data-testid={TESTIDS.controlledSeatReleaseButton}
         aria-label="退出机器人接管"
       >
         退出接管
-      </button>
+      </Button>
     </div>
   );
 }

@@ -4,28 +4,35 @@
  * bots (takeover hint live) and a started night (view-role action live).
  */
 import {
+  AVALON_NIGHT_VIEW_ACTION_KEY,
   type AvalonCommand,
   avalonEngine,
   type AvalonPublicCommand,
   type AvalonState,
   DEFAULT_AVALON_CONFIG,
   getAvalonNightParticipants,
+  getAvalonViewModel,
+  hasViewedNightStep,
 } from '@game-judge/game-engine/games/avalon/public';
+import { act, renderHook } from '@testing-library/react';
 
 import type { RoomSeatController } from '@/features/room/controllers/useRoomSeatController';
-import type { RoomBottomStackModel } from '@/features/room/model/RoomBottomActions';
 import {
   createBotTakeoverCapability,
   createRoomSetupCapabilities,
   type RoomCapabilities,
 } from '@/features/room/model/RoomCapabilities';
+import type { RoomPlayerActionModel } from '@/features/room/model/RoomPlayerActions';
+import { avalonViewNightCommand } from '@/test-utils/avalonState';
 import { TESTIDS } from '@/testids';
+import { alertStore, dismissAlert } from '@/utils/alert';
 
 import {
   type AvalonRoomShellModelInput,
   createAvalonRoomShellModel,
   deriveAvalonBottomProgress,
 } from '../avalonRoomAdapter';
+import { useAvalonNightInteraction } from '../hooks/useAvalonNightInteraction';
 
 type CommandContext = Parameters<typeof avalonEngine.decide>[2];
 
@@ -137,6 +144,7 @@ const share = {
 function baseInput(state: AvalonState): AvalonRoomShellModelInput {
   return {
     roomCode: '1234',
+    pendingActionKey: null,
     capabilities: capabilities(),
     onBack: vi.fn(),
     onTitlePress: vi.fn(),
@@ -164,7 +172,8 @@ function baseInput(state: AvalonState): AvalonRoomShellModelInput {
     viewer: { userId: 'host', isHost: true, seat: 0 },
     effectiveSeat: 0,
     onViewRolePress: vi.fn(),
-    onNightInfoPress: vi.fn(),
+    nightActions: [],
+    nightMessage: null,
     isSubmitting: false,
     settleCountdownSeconds: null,
     onOpenVotePress: vi.fn(),
@@ -192,11 +201,11 @@ describe('createAvalonRoomShellModel', () => {
     expect(model.seatConfirmation).toBeNull();
     expect(model.profile).toBeNull();
     expect(model.share).toBe(share);
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: null,
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -229,11 +238,11 @@ describe('createAvalonRoomShellModel', () => {
       viewer: { userId: 'u2', isHost: false, seat: 2 },
       effectiveSeat: 2,
     });
-    expect(model.bottomActions).toEqual({
-      kind: 'stacked',
+    expect(model.playerActions).toEqual({
       message: '等待房主分配角色',
       progress: null,
-      layout: { primary: [], secondary: [], ghost: [] },
+      actions: [],
+      group: null,
     });
     expect(model.controlledSeat).toBeNull();
   });
@@ -249,23 +258,16 @@ describe('createAvalonRoomShellModel', () => {
       effectiveSeat: 2,
     };
     const before = createAvalonRoomShellModel(input);
-    expect(before.bottomActions.kind).toBe('stacked');
-    if (before.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    expect(before.bottomActions.message).toBe('请点击下方「查看身份」，查看你的角色');
-    expect(
-      before.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
-    ).toMatchObject({
+    expect(before.playerActions.message).toBe('请点击「查看身份」');
+    expect(before.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: true,
       category: 'resource',
     });
 
     running.send({ type: 'avalon.role.viewed' }, 'u2');
     const after = createAvalonRoomShellModel({ ...input, state: running.state });
-    if (after.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    expect(after.bottomActions.message).toBeNull();
-    expect(
-      after.bottomActions.layout.primary.find((action) => action.key === 'viewRole'),
-    ).toMatchObject({
+    expect(after.playerActions.message).toBeNull();
+    expect(after.playerActions.actions.find((action) => action.key === 'viewRole')).toMatchObject({
       isPending: false,
     });
   });
@@ -279,91 +281,83 @@ describe('createAvalonRoomShellModel', () => {
       isLobby: false,
       onViewRolePress,
     });
-    expect(model.bottomActions.kind).toBe('stacked');
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    // 2026 规则：查看阶段的查看身份是 primary，其余阶段是 secondary，永不进 ghost。
-    expect(model.bottomActions.layout.secondary).toEqual([]);
-    expect(model.bottomActions.layout.ghost).toEqual([]);
-    const viewRole = model.bottomActions.layout.primary.find((action) => action.key === 'viewRole');
+    const viewRole = model.playerActions.actions.find((action) => action.key === 'viewRole');
     expect(viewRole).toMatchObject({
       label: '查看身份',
-      variant: 'primary',
-      size: 'md',
-      isEnabled: true,
+      category: 'resource',
+      state: { kind: 'ready' },
       testID: TESTIDS.roomViewIdentityButton,
     });
-    if (viewRole && viewRole.isEnabled) viewRole.onPress();
+    if (viewRole?.state.kind === 'ready') viewRole.state.onPress();
     expect(onViewRolePress).toHaveBeenCalledTimes(1);
   });
 
-  it('pins the night info action: confirm stays available while audio plays', () => {
+  it('forwards the night step actions and keeps them live while audio plays', () => {
     const running = session(5);
     running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
       running.send({ type: 'avalon.role.viewed' }, seat === 0 ? 'host' : `u${seat}`);
     }
     running.send({ type: 'avalon.game.begin' });
-    const evilSeat = Number(
-      Object.entries(running.state.roles).find(([, roleId]) =>
-        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
-      )?.[0],
+    const evilSeat = evilSeats(running).find((seat) =>
+      getAvalonNightParticipants(running.state.roles, 'evilReveal').includes(seat),
     );
-    const onNightInfoPress = vi.fn();
+    if (evilSeat === undefined) throw new Error('expected an evilReveal participant');
+    // Viewing runs parallel to the narration: right after the start,
+    // while the audio is still playing, the hand already holds the
+    // enabled view action (no disabled audio-waiting placeholder).
+    expect(running.state.isAudioPlaying).toBe(true);
+    const { interaction, submit } = renderNightInteraction(running.state, evilSeat);
     const nightInput = {
       ...baseInput(running.state),
       isLobby: false,
       viewer: {
-        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
+        userId: seatUser(evilSeat),
         isHost: evilSeat === 0,
         seat: evilSeat,
       },
       effectiveSeat: evilSeat,
-      onNightInfoPress,
+      nightActions: interaction.actions,
+      nightMessage: interaction.message,
     };
-    // Confirmation runs parallel to the narration: right after the
-    // start, while the audio is still playing, the action is already
-    // the enabled confirm step (no disabled audio-waiting placeholder).
-    expect(running.state.isAudioPlaying).toBe(true);
     const during = createAvalonRoomShellModel(nightInput);
-    if (during.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const duringInfo = during.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
-    // Tier regression pin (the reported bug): at night the stage
-    // action 确认信息 sits in the primary tier while the persistent
-    // 查看身份 sits in the secondary tier — different rows, never one row.
-    expect(during.bottomActions.layout.primary.map((action) => action.key)).toEqual(['nightInfo']);
-    expect(during.bottomActions.layout.secondary.map((action) => action.key)).toEqual(['viewRole']);
-    expect(during.bottomActions.layout.ghost).toEqual([]);
-    expect(duringInfo).toMatchObject({
-      label: '确认信息',
-      isEnabled: true,
-      testID: 'avalon-night-info',
+    expect(during.playerActions.actions.map((action) => action.key)).toEqual([
+      AVALON_NIGHT_VIEW_ACTION_KEY,
+      'viewRole',
+    ]);
+    expect(during.playerActions.message).toBe('请点击「查看坏人互认」');
+    const viewNight = findStageAction(during.playerActions, AVALON_NIGHT_VIEW_ACTION_KEY);
+    expect(viewNight).toMatchObject({
+      label: '查看坏人互认',
+      state: { kind: 'ready' },
+      testID: TESTIDS.stepInteractionButton(AVALON_NIGHT_VIEW_ACTION_KEY),
     });
-    if (duringInfo && duringInfo.isEnabled) duringInfo.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
     // The night step progress rides the bottom model during the night.
-    expect(during.bottomActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
-    expect(during.bottomActions.progress).not.toBeNull();
-    // Drain the queued narration; the confirm action stays the same.
-    let guard = 0;
-    while (running.state.isAudioPlaying && guard < 10) {
-      running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId });
-      guard += 1;
-    }
-    expect(running.state.isAudioPlaying).toBe(false);
-    const after = createAvalonRoomShellModel({ ...nightInput, state: running.state });
-    if (after.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const nightInfo = after.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
-    expect(nightInfo).toMatchObject({
-      label: '确认信息',
-      isEnabled: true,
-      testID: 'avalon-night-info',
+    expect(during.playerActions.progress).toEqual(deriveAvalonBottomProgress(running.state));
+    expect(during.playerActions.progress).not.toBeNull();
+
+    // 先问 → 内容 → 知道了: the content keeps its step title and sentence,
+    // and only 知道了 submits the view for the current step.
+    if (viewNight?.state.kind !== 'ready') throw new Error('expected a ready view action');
+    const { onPress } = viewNight.state;
+    act(() => onPress());
+    expect(alertStore.getSnapshot()).toMatchObject({ title: '查看坏人互认？' });
+    act(() => {
+      void alertStore.getSnapshot()?.buttons[1]?.onPress?.();
     });
-    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(2);
+    expect(alertStore.getSnapshot()).toMatchObject({ title: '坏人互认' });
+    expect(alertStore.getSnapshot()?.message).toMatch(/^你看到的坏人同伴：/);
+    expect(submit).not.toHaveBeenCalled();
+    const acknowledge = alertStore.getSnapshot()?.buttons[0];
+    expect(acknowledge?.text).toBe('知道了');
+    act(() => {
+      void acknowledge?.onPress?.();
+    });
+    expect(submit).toHaveBeenCalledWith(
+      '查看夜间信息',
+      avalonViewNightCommand(running.state),
+      expect.objectContaining({ controlledSeat: null, durable: true }),
+    );
 
     for (const state of [nightInput.state, running.state]) {
       for (const mySeat of [0, 1, null]) {
@@ -382,7 +376,7 @@ describe('createAvalonRoomShellModel', () => {
     }
   });
 
-  it('lets a night participant confirm while the narration is still queued', () => {
+  it('records a night view sent while the narration is still queued', () => {
     const running = session(5);
     running.send({ type: 'avalon.roles.assign' });
     for (let seat = 0; seat < 5; seat += 1) {
@@ -392,41 +386,16 @@ describe('createAvalonRoomShellModel', () => {
     // The opening narration is queued and playing; nobody has acked yet.
     expect(running.state.isAudioPlaying).toBe(true);
     expect(running.state.pendingAudioEffects.length).toBeGreaterThan(0);
-    const evilSeat = Number(
-      Object.entries(running.state.roles).find(([, roleId]) =>
-        ['morgana', 'assassin', 'mordred', 'oberon', 'minion'].includes(roleId),
-      )?.[0],
+    const evilSeat = evilSeats(running).find((seat) =>
+      getAvalonNightParticipants(running.state.roles, 'evilReveal').includes(seat),
     );
-    const onNightInfoPress = vi.fn();
-    const model = createAvalonRoomShellModel({
-      ...baseInput(running.state),
-      isLobby: false,
-      viewer: {
-        userId: evilSeat === 0 ? 'host' : `u${evilSeat}`,
-        isHost: evilSeat === 0,
-        seat: evilSeat,
-      },
-      effectiveSeat: evilSeat,
-      onNightInfoPress,
-    });
-    if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-    const nightInfo = model.bottomActions.layout.primary.find(
-      (action) => action.key === 'nightInfo',
-    );
-    expect(nightInfo).toMatchObject({
-      label: '确认信息',
-      isEnabled: true,
-      testID: 'avalon-night-info',
-    });
-    if (nightInfo && nightInfo.isEnabled) nightInfo.onPress();
-    expect(onNightInfoPress).toHaveBeenCalledTimes(1);
-    // The confirm command itself dispatches and is recorded while the
-    // audio gate is still open; the step settles only once the host ack
-    // also lands (confirm-first and ack-first are equivalent by design).
-    running.send({ type: 'avalon.night.confirm' }, seatUser(evilSeat));
+    if (evilSeat === undefined) throw new Error('expected an evilReveal participant');
+    // The view dispatches and is recorded while the audio gate is still
+    // open; the step settles only once the host ack also lands
+    // (view-first and ack-first are equivalent by design).
+    running.send(avalonViewNightCommand(running.state), seatUser(evilSeat));
     expect(running.state.isAudioPlaying).toBe(true);
-    if (running.state.phase.kind !== 'night') throw new Error('expected night phase');
-    expect(running.state.phase.confirmedSeats).toContain(evilSeat);
+    expect(hasViewedNightStep(running.state, 'evilReveal', evilSeat)).toBe(true);
   });
 });
 
@@ -445,7 +414,7 @@ function daytimeSession() {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (running.state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(running.state.roles, step)) {
-      running.send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      running.send(avalonViewNightCommand(running.state), seatUser(seat));
     }
     if (running.state.isAudioPlaying)
       running.send({ type: 'avalon.audio.ack', audioBatchId: running.state.audioBatchId }, 'host');
@@ -504,7 +473,7 @@ function ninePlayerDaytimeSession(): RunningSession {
   for (const step of ['evilReveal', 'merlinReveal', 'percivalReveal'] as const) {
     if (state.phase.kind !== 'night') break;
     for (const seat of getAvalonNightParticipants(state.roles, step)) {
-      send({ type: 'avalon.night.confirm' }, seatUser(seat));
+      send(avalonViewNightCommand(state), seatUser(seat));
     }
     if (state.isAudioPlaying)
       send({ type: 'avalon.audio.ack', audioBatchId: state.audioBatchId }, 'host');
@@ -546,20 +515,35 @@ function shellFor(
     effectiveSeat: seat,
     ...overrides,
   });
-  if (model.bottomActions.kind !== 'stacked') throw new Error('expected stacked bottom actions');
-  return model.bottomActions;
+  return model.playerActions;
 }
 
-/** Finds a stage action by key across the stage tiers (primary + secondary). */
-function findStageAction(bottom: RoomBottomStackModel, key: string) {
-  return [...bottom.layout.primary, ...bottom.layout.secondary].find(
-    (action) => action.key === key,
+afterEach(() => {
+  const alert = alertStore.getSnapshot();
+  if (alert !== null) dismissAlert(alert.generation);
+});
+
+/** Renders the real night step hook for `seat` and returns its interaction. */
+function renderNightInteraction(state: AvalonState, seat: number) {
+  const submit = vi.fn().mockResolvedValue(true);
+  const { result } = renderHook(() =>
+    useAvalonNightInteraction({
+      state,
+      viewModel: getAvalonViewModel(state, seat),
+      userId: seatUser(seat),
+      roomId: 'room-1',
+      effectiveSeat: seat,
+      controlledSeat: null,
+      submit,
+      hasPendingCommand: false,
+    }),
   );
+  return { interaction: result.current, submit };
 }
 
-/** Finds a stage action by key in one exact tier (tier-ownership pins). */
-function findTierAction(bottom: RoomBottomStackModel, tier: 'primary' | 'secondary', key: string) {
-  return bottom.layout[tier].find((action) => action.key === key);
+/** Finds a player action by its stable key. */
+function findStageAction(bottom: RoomPlayerActionModel, key: string) {
+  return bottom.actions.find((action) => action.key === key);
 }
 
 function roleSeat(running: RunningSession, roleId: string): number {
@@ -621,20 +605,18 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onPreselectTeamPress = vi.fn();
     const onProposeTeamPress = vi.fn();
     const empty = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(empty.message).toContain('点「预选队伍」打开选人');
+    expect(empty.message).toBe('请点击「预选队伍」。需要 2 名队员，确认后全房可见');
     // 未预选时主按钮是「预选队伍」，只负责打开 modal（满员门在 modal
     // 确认按钮上），草稿为空也不禁用；最终队伍按钮在预选回声到之前不存在。
     const preselect = findStageAction(empty, 'preselectTeam');
     expect(preselect).toMatchObject({
       label: '预选队伍',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-nominate-preselect',
     });
-    expect(findTierAction(empty, 'primary', 'preselectTeam')).toBe(preselect);
-    expect(findTierAction(empty, 'secondary', 'preselectTeam')).toBeUndefined();
     expect(findStageAction(empty, 'proposeTeam')).toBeUndefined();
-    if (preselect && preselect.isEnabled) preselect.onPress();
+    if (preselect?.state.kind === 'ready') preselect.state.onPress();
     expect(onPreselectTeamPress).toHaveBeenCalledTimes(1);
     // 预选回声到后主按钮翻成「最终队伍」，预选按钮消失（这笔是造回声用的
     // 引擎前置，不是按钮门禁）。
@@ -643,17 +625,16 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       seatUser(leader),
     );
     const preselected = shellFor(running, leader, { onPreselectTeamPress, onProposeTeamPress });
-    expect(preselected.message).toContain('预选已确认');
+    expect(preselected.message).toBe('请点击「最终队伍」。可调整预选的队伍');
     expect(findStageAction(preselected, 'preselectTeam')).toBeUndefined();
     const final = findStageAction(preselected, 'proposeTeam');
     expect(final).toMatchObject({
       label: '最终队伍',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-nominate-submit',
     });
-    expect(findTierAction(preselected, 'primary', 'proposeTeam')).toBe(final);
-    if (final && final.isEnabled) final.onPress();
+    if (final?.state.kind === 'ready') final.state.onPress();
     expect(onProposeTeamPress).toHaveBeenCalledTimes(1);
   });
 
@@ -682,10 +663,13 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const onEarlyStrikePress = vi.fn();
     const assassinBottom = shellFor(running, assassin, { onEarlyStrikePress });
     const strike = findStageAction(assassinBottom, 'earlyStrike');
-    expect(strike).toMatchObject({ label: '刺杀', isEnabled: true, testID: 'avalon-early-strike' });
-    expect(findTierAction(assassinBottom, 'secondary', 'earlyStrike')).toBe(strike);
-    expect(strike).toMatchObject({ variant: 'secondary' });
-    if (strike && strike.isEnabled) strike.onPress();
+    expect(strike).toMatchObject({
+      label: '刺杀',
+      state: { kind: 'ready' },
+      testID: 'avalon-early-strike',
+    });
+    expect(strike).toMatchObject({ category: 'player', state: { kind: 'ready' } });
+    if (strike?.state.kind === 'ready') strike.state.onPress();
     expect(onEarlyStrikePress).toHaveBeenCalledTimes(1);
     const merlinBottom = shellFor(running, roleSeat(running, 'merlin'));
     expect(findStageAction(merlinBottom, 'earlyStrike')).toBeUndefined();
@@ -696,28 +680,19 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const assassin = roleSeat(running, 'assassin');
     const onCancelEarlyStrikePress = vi.fn();
     const bottom = shellFor(running, assassin, { strikePickMode: true, onCancelEarlyStrikePress });
-    expect(bottom.message).toBe(
-      '点座位盘点选一名玩家进行提前刺杀（除自己外任意座位），点选后会再次确认。刺中梅林坏人直接获胜，刺错好人直接获胜。',
-    );
-    // 独占底部区：只剩局内常驻「查看身份」与取消入口，阶段主按钮（如提交队伍）不出现。
-    // 层级归属：查看身份与取消刺杀同在 secondary 层，primary 为空。
-    expect(bottom.layout.ghost).toEqual([]);
-    expect(bottom.layout.secondary.map((action) => action.key)).toEqual([
-      'viewRole',
-      'earlyStrike',
-    ]);
-    expect(bottom.layout.primary).toEqual([]);
+    expect(bottom.message).toBe('请选择要提前刺杀的玩家。刺中梅林坏人直接获胜，刺错好人直接获胜');
+    expect(bottom.actions.map((action) => action.key)).toEqual(['viewRole', 'earlyStrike']);
     const cancel = findStageAction(bottom, 'earlyStrike');
     expect(cancel).toMatchObject({
       label: '取消刺杀',
-      isEnabled: true,
+      state: { kind: 'ready' },
       testID: 'avalon-early-strike',
     });
-    if (cancel && cancel.isEnabled) cancel.onPress();
+    if (cancel?.state.kind === 'ready') cancel.state.onPress();
     expect(onCancelEarlyStrikePress).toHaveBeenCalledTimes(1);
   });
 
-  it('vote: voters get the open button, the public count and pending seats in the message, then the armed countdown', () => {
+  it('vote: voters get the open button and no sentence until the armed countdown', () => {
     const running = daytimeSession();
     const leader = running.state.leaderSeat;
     const team = [leader, (leader + 1) % 5];
@@ -729,12 +704,11 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     const open = findStageAction(before, 'openVote');
     expect(open).toMatchObject({
       label: '去投票',
-      isEnabled: true,
+      state: { kind: 'ready' },
       isPending: true,
       testID: 'avalon-vote-open',
     });
-    expect(findTierAction(before, 'primary', 'openVote')).toBe(open);
-    if (open && open.isEnabled) open.onPress();
+    if (open?.state.kind === 'ready') open.state.onPress();
     expect(onOpenVotePress).toHaveBeenCalledTimes(1);
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(voter));
     const cast = shellFor(running, voter);
@@ -742,7 +716,8 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
       label: '修改投票',
       isPending: false,
     });
-    expect(cast.message).toBe('已投 1/5');
+    // The cast count is the summary bar's progress, not the voter's sentence.
+    expect(cast.message).toBeNull();
     for (let seat = 0; seat < 5; seat += 1) {
       if (seat !== voter)
         running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(seat));
@@ -752,8 +727,10 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     }
     const armed = shellFor(running, voter, { settleCountdownSeconds: 4 });
     expect(armed.message).toBe('已全部投票，4 秒后揭晓');
-    // At 0 the countdown line is gone (the rescue takes over); the voter sees no message.
-    expect(shellFor(running, voter, { settleCountdownSeconds: 0 }).message).toBeNull();
+    // At 0 the sentence waits for the reveal.
+    expect(shellFor(running, voter, { settleCountdownSeconds: 0 }).message).toBe(
+      '已全部投票，等待揭晓',
+    );
   });
 
   it('quest: only team members get the play button, and no card content ever leaks', () => {
@@ -772,31 +749,30 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (outsider === undefined) throw new Error('expected a non-team seat');
     const outsiderBottom = shellFor(running, outsider);
     expect(findStageAction(outsiderBottom, 'openQuest')).toBeUndefined();
-    expect(outsiderBottom.message).toBe('已出牌 0/2');
+    expect(outsiderBottom.message).toBe('等待队员出牌…');
     const memberBottom = shellFor(running, evil);
     expect(findStageAction(memberBottom, 'openQuest')).toMatchObject({
       label: '去出牌',
       isPending: true,
       testID: 'avalon-quest-open',
     });
-    expect(findTierAction(memberBottom, 'primary', 'openQuest')).toBeDefined();
-    expect(findTierAction(memberBottom, 'secondary', 'openQuest')).toBeUndefined();
     running.send({ type: 'avalon.quest.play', play: 'fail' }, seatUser(evil));
     const played = shellFor(running, evil);
     expect(findStageAction(played, 'openQuest')).toMatchObject({
       label: '修改出牌',
       isPending: false,
     });
-    expect(played.message).toBe('已出牌 1/2');
-    expect(played.message).not.toContain('失败');
+    expect(played.message).toBeNull();
     running.send({ type: 'avalon.quest.play', play: 'success' }, seatUser(leader));
     if (running.state.phase.kind !== 'quest' || running.state.phase.deadlineAt === null) {
       throw new Error('expected the armed quest phase');
     }
     const armed = shellFor(running, evil, { settleCountdownSeconds: 3 });
     expect(armed.message).toBe('已全部出牌，3 秒后揭晓');
-    // At 0 the countdown line is gone (the rescue takes over).
-    expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBeNull();
+    // At 0 the sentence waits for the reveal.
+    expect(shellFor(running, evil, { settleCountdownSeconds: 0 }).message).toBe(
+      '已全部出牌，等待揭晓',
+    );
   });
 
   it('lady: holder sees the result, target waits, and the result remains private', () => {
@@ -806,8 +782,7 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     if (running.state.phase.kind !== 'lady') throw new Error('expected the lady phase');
     const { holderSeat, examinedSeats } = running.state.phase;
     const holderBottom = shellFor(running, holderSeat);
-    expect(holderBottom.message).toContain('点座位盘点选');
-    expect(holderBottom.message).toContain('查验');
+    expect(holderBottom.message).toBe('请选择要查验的玩家。只能看到阵营：好人或坏人');
     const seats = Array.from({ length: 9 }, (_, seat) => seat);
     const target = seats.find((seat) => seat !== holderSeat && !examinedSeats.includes(seat));
     if (target === undefined) throw new Error('no eligible lady target');
@@ -832,7 +807,9 @@ describe('createAvalonRoomShellModel — daytime bottom actions', () => {
     completeLadyIfPresent(running);
     if (running.state.phase.kind !== 'assassin') throw new Error('expected the assassin phase');
     const assassin = roleSeat(running, 'assassin');
-    expect(shellFor(running, assassin).message).toContain('指认其为梅林');
+    expect(shellFor(running, assassin).message).toBe(
+      '请选择要指认为梅林的玩家。指认正确坏人获胜，指认错误好人直接获胜',
+    );
     const otherEvil = evilSeats(running).find((seat) => seat !== assassin);
     if (otherEvil === undefined) throw new Error('expected a second evil seat');
     expect(shellFor(running, otherEvil).message).toBe('坏人商量时间（线下口头），等待刺客指认。');
@@ -868,17 +845,25 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     expect(shellFor(running, nonParticipant).message).toBe('等待本步玩家确认');
     const pending = participants[0];
     if (pending === undefined) throw new Error('expected a participant seat');
-    const pendingShell = shellFor(running, pending);
-    expect(pendingShell.message).toBeNull();
-    expect(findStageAction(pendingShell, 'nightInfo')).toMatchObject({ isPending: true });
-    expect(findTierAction(pendingShell, 'primary', 'nightInfo')).toBeDefined();
-    running.send({ type: 'avalon.night.confirm' }, seatUser(pending));
-    const confirmedShell = shellFor(running, pending);
+    const { interaction } = renderNightInteraction(running.state, pending);
+    const pendingShell = shellFor(running, pending, {
+      nightActions: interaction.actions,
+      nightMessage: interaction.message,
+    });
+    expect(pendingShell.message).toBe('请点击「查看坏人互认」');
+    expect(findStageAction(pendingShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeDefined();
+    running.send(avalonViewNightCommand(running.state), seatUser(pending));
+    const viewed = renderNightInteraction(running.state, pending).interaction;
+    expect(viewed.actions).toEqual([]);
+    const confirmedShell = shellFor(running, pending, {
+      nightActions: viewed.actions,
+      nightMessage: viewed.message,
+    });
     expect(confirmedShell.message).toBe('等待本步玩家确认');
-    expect(findStageAction(confirmedShell, 'nightInfo')).toBeUndefined();
+    expect(findStageAction(confirmedShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeUndefined();
   });
 
-  it('vote: every seat sees the cast count and pending seats, whether or not they voted', () => {
+  it('vote: seated voters get no sentence whether or not they voted', () => {
     const running = daytimeSession();
     if (running.state.phase.kind !== 'nominate') throw new Error('expected nominate phase');
     const leader = running.state.leaderSeat;
@@ -891,8 +876,8 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     running.send({ type: 'avalon.team.propose', seats: team }, seatUser(leader));
     if (currentPhase(running).kind !== 'vote') throw new Error('expected vote phase');
     running.send({ type: 'avalon.team.vote', vote: 'approve' }, seatUser(1));
-    expect(shellFor(running, 1).message).toBe('已投 1/5');
-    expect(shellFor(running, 2).message).toBe('已投 1/5');
+    expect(shellFor(running, 1).message).toBeNull();
+    expect(shellFor(running, 2).message).toBeNull();
   });
 
   it('lady: bystanders read the public process before and after the target is chosen', () => {
@@ -985,17 +970,17 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     if (running.state.phase.kind !== 'ended') throw new Error('expected ended phase');
     const openReview = vi.fn();
     const hostBottom = shellFor(running, 0, { review: { isEnabled: true, onPress: openReview } });
-    expect(findTierAction(hostBottom, 'secondary', 'review')).toBeUndefined();
+    expect(hostBottom.actions.find((action) => action.key === 'review')).toBeUndefined();
     const bottom = shellFor(running, 2, { review: { isEnabled: true, onPress: openReview } });
-    const review = findTierAction(bottom, 'secondary', 'review');
+    const review = findStageAction(bottom, 'review');
     expect(review).toMatchObject({
       label: '本局复盘',
       audience: 'anyone',
-      variant: 'secondary',
-      isEnabled: true,
+      category: 'resource',
+      state: { kind: 'ready' },
       testID: 'room-review-open',
     });
-    if (review && review.isEnabled) review.onPress();
+    if (review?.state.kind === 'ready') review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
     expect(() => shellFor(running, 2)).toThrow('[FAIL-FAST] Avalon ended has no review entry');
   });

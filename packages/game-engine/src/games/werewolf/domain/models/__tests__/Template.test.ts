@@ -1,12 +1,10 @@
-import {
-  buildNightPlan,
-  type RoleId,
-} from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { type RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   createCustomTemplate,
   createTemplateFromRoles,
   PRESET_TEMPLATES,
 } from '@game-judge/game-engine/games/werewolf/domain/models/Template';
+import { createWerewolfNightPlan } from '@game-judge/game-engine/games/werewolf/roles/nightPlan';
 
 import { getBottomCardCountForRole } from '../BottomCards';
 
@@ -15,8 +13,12 @@ import { getBottomCardCountForRole } from '../BottomCards';
  * Phase 5: actionOrder is no longer stored in template, it's derived dynamically
  */
 function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
-  const nightPlan = buildNightPlan(roles);
-  return nightPlan.steps.map((step) => step.roleId);
+  return createWerewolfNightPlan({
+    seats: [],
+    templateRoles: roles,
+    seerLabelMap: {},
+    witchCanSelfHeal: true,
+  }).map((step) => step.roleId);
 }
 
 describe('Template - createTemplateFromRoles', () => {
@@ -51,8 +53,8 @@ describe('Template - createTemplateFromRoles', () => {
     const roles: RoleId[] = ['seer', 'wolf', 'witch', 'guard', 'hunter'];
     const actionOrder = getActionOrderFromRoles(roles);
 
-    // Verify order matches NightPlan-derived order (NIGHT_STEPS)
-    // NIGHT_STEPS order: guardProtect -> wolfKill -> witchAction -> hunterConfirm -> seerCheck
+    // Verify order matches NightPlan-derived order (NIGHT_STEP_ORDER)
+    // NIGHT_STEP_ORDER: guardProtect -> wolfKill -> witchAction -> hunterConfirm -> seerCheck
     expect(actionOrder).toEqual(['guard', 'wolf', 'witch', 'hunter', 'seer']);
   });
 

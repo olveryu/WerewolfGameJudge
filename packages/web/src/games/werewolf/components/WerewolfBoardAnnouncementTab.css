@@ -113,4 +113,15 @@
   font-weight: var(--weight-medium);
   line-height: var(--line-caption);
   cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.board-announcements-toggle:active {
+  transform: translateY(var(--space-micro));
+}
+
+@media (hover: hover) {
+  .board-announcements-toggle:hover {
+    text-decoration: underline;
+  }
 }

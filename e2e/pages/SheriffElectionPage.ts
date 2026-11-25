@@ -18,10 +18,10 @@ export class SheriffElectionPage {
   async waitForPhase(phaseTitle: string): Promise<void> {
     const hudPhase =
       phaseTitle === '报名上警'
-        ? '报名进行中'
+        ? '白天 · 警长竞选 · 报名进行中'
         : phaseTitle === '竞选结束'
-          ? /当选警长|本局没有警长/
-          : phaseTitle;
+          ? /^(?:白天 · )?警长竞选 · (?:\d+号 当选警长|本局没有警长)$/
+          : `白天 · 警长竞选 · ${phaseTitle}${phaseTitle.endsWith('投票') ? '中' : ''}`;
     await expect(this.page.getByTestId(TESTIDS.sheriffElectionHudPhase)).toHaveText(hudPhase, {
       timeout: 15_000,
     });
@@ -56,7 +56,7 @@ export class SheriffElectionPage {
   /** Assert the Host's personal registration action and distinct phase-advance command. */
   async expectHostRegistrationActions(personalAction: 'register' | 'cancel'): Promise<void> {
     await this.closeDetails();
-    const personalLabel = personalAction === 'register' ? '报名上警' : '取消报名';
+    const personalLabel = personalAction === 'register' ? '报名上警' : '撤回报名';
     const personalButton = this.page.getByTestId(
       personalAction === 'register'
         ? TESTIDS.sheriffRegisterButton
@@ -103,7 +103,7 @@ export class SheriffElectionPage {
     await expect(advanceButton).toBeEnabled();
     await expect(grantButton).toHaveAccessibleName('授权玩家查看');
     await expect(grantButton).toBeEnabled();
-    await expect(infoButton).toHaveAccessibleName('昨夜信息');
+    await expect(infoButton).toHaveAccessibleName('查看昨夜信息');
     for (const button of [advanceButton, grantButton, infoButton]) {
       const bounds = await button.boundingBox();
       if (bounds === null) throw new Error('Host action must have layout bounds');
@@ -177,7 +177,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const button = this.page.getByTestId(TESTIDS.sheriffWithdrawButton);
     await button.click();
-    await confirmAlert(this.page, '确认退水？');
+    await confirmAlert(this.page, '退水？');
     await expect(button).not.toBeVisible({ timeout: 15_000 });
   }
 
@@ -185,9 +185,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const room = new RoomPage(this.page);
     await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束发言？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await room.expectHostManagementClosed();
   }
 
   /** Close registration; the advance action asks the Host to confirm first. */
@@ -195,9 +193,7 @@ export class SheriffElectionPage {
     await this.closeDetails();
     const room = new RoomPage(this.page);
     await room.clickHostManagementActionAndConfirm(TESTIDS.sheriffAdvanceButton, '结束报名？');
-    if (await this.page.getByTestId(TESTIDS.roomHostManagementPanel).isVisible()) {
-      await room.closeHostManagement();
-    }
+    await room.expectHostManagementClosed();
   }
 
   async voteFor(candidateSeat: number): Promise<void> {
@@ -351,7 +347,7 @@ export class SheriffElectionPage {
   async expectNoteDraftAndClose(text: string): Promise<void> {
     await expect(this.page.getByTestId(TESTIDS.werewolfNotepadVoteNotes)).toHaveValue(text);
     await this.page.getByTestId(TESTIDS.roomDialogCloseButton).click();
-    await this.page.getByTestId(TESTIDS.roomManualBackButton).click();
+    await expect(this.page.getByTestId(TESTIDS.roomManualButton)).toBeFocused();
   }
 
   async expectCanVote(canVote: boolean): Promise<void> {

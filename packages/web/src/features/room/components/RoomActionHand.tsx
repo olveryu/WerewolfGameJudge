@@ -1,56 +1,35 @@
 import './RoomActionHand.css';
 
-import {
-  type CSSProperties,
-  type KeyboardEventHandler,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 
+import type { RoomHand } from '@/features/room/model/RoomHand';
 import { TESTIDS } from '@/testids';
+
+import { RoomHandCardButton } from './RoomHandCardButton';
 
 type HandStyle = CSSProperties & {
   '--hand-card-count': number;
+  '--hand-max-drop': string;
 };
-
 type CardStyle = CSSProperties & {
   '--hand-card-angle': string;
   '--hand-card-drop': string;
   '--hand-card-order': number;
 };
 
-export type RoomHandCardCategory = 'back' | 'player' | 'neutral' | 'host' | 'resource' | 'danger';
-
-export interface RoomHandCard {
-  readonly id: string;
-  readonly category: RoomHandCardCategory;
-  readonly unavailable?: boolean;
-  readonly content: ReactNode;
-}
-
-const CARD_CATEGORY_ORDER: Readonly<Record<RoomHandCardCategory, number>> = {
-  back: 0,
-  player: 1,
-  neutral: 2,
-  resource: 3,
-  host: 4,
-  danger: 5,
-};
-
-/** Arranges independent action targets over the overlapping card faces. */
+/** Renders the projected hand and owns blocked-action feedback and focus restoration. */
 export function RoomActionHand({
-  cards,
-  label,
-  className,
-  onKeyDown,
+  hand,
+  focusCardId,
+  onFocusTargetSettled,
+  onBack,
   testId,
 }: {
-  readonly cards: readonly RoomHandCard[];
-  readonly label: string;
-  readonly className?: string;
-  readonly onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
+  readonly hand: RoomHand;
+  readonly focusCardId: string | null;
+  /** Clears the one-shot focus target once it is focused or absent from this hand. */
+  readonly onFocusTargetSettled: () => void;
+  readonly onBack: () => void;
   readonly testId?: string;
 }) {
   const [reason, setReason] = useState('');
@@ -61,28 +40,41 @@ export function RoomActionHand({
     },
     [],
   );
-  const orderedCards = [...cards].toSorted(
-    (left, right) =>
-      CARD_CATEGORY_ORDER[left.category] - CARD_CATEGORY_ORDER[right.category] ||
-      Number(left.unavailable === true) - Number(right.unavailable === true),
+  const focusCard = useCallback(
+    (cardId: string) => (button: HTMLButtonElement | null) => {
+      if (button === null) return;
+      const isNavigationTarget = cardId === focusCardId;
+      if (!isNavigationTarget) return;
+      button.focus({ preventScroll: true });
+      onFocusTargetSettled();
+    },
+    [focusCardId, onFocusTargetSettled],
   );
-  const style: HandStyle = { '--hand-card-count': orderedCards.length };
+  // An entry that left with the phase gets no focus later, when a card with its id returns.
+  const isFocusTargetAbsent =
+    focusCardId !== null && !hand.cards.some((card) => card.id === focusCardId);
+  const fanAnglePerCard = hand.cards.length > 1 ? 12 / (hand.cards.length - 1) : 0;
+  const fanDropPerDistance = 4;
+  useEffect(() => {
+    if (isFocusTargetAbsent) onFocusTargetSettled();
+  }, [isFocusTargetAbsent, onFocusTargetSettled]);
+  const style: HandStyle = {
+    '--hand-card-count': hand.cards.length,
+    '--hand-max-drop': `${Math.max(0, (hand.cards.length - 1) / 2) * fanDropPerDistance}px`,
+  };
   return (
     <div
-      className={['room-action-hand', className].filter(Boolean).join(' ')}
+      className="room-action-hand"
       role="group"
-      aria-label={label}
+      aria-label={hand.label}
       data-testid={testId}
-      onKeyDown={onKeyDown}
-      onClickCapture={(event) => {
-        if (!(event.target instanceof Element)) return;
-        const button = event.target.closest('button[aria-disabled="true"]');
-        if (button === null || !event.currentTarget.contains(button)) return;
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || hand.face.kind === 'main') {
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
-        if (timer.current !== null) clearTimeout(timer.current);
-        setReason(button.getAttribute('data-disabled-reason') ?? '当前暂不可用');
-        timer.current = setTimeout(() => setReason(''), 5000);
+        onBack();
       }}
       style={style}
     >
@@ -93,16 +85,24 @@ export function RoomActionHand({
       >
         {reason}
       </div>
-      {orderedCards.map((card, index) => {
-        const distance = index - (orderedCards.length - 1) / 2;
+      {hand.cards.map((card, index) => {
+        const distance = index - (hand.cards.length - 1) / 2;
         const cardStyle: CardStyle = {
-          '--hand-card-angle': `${distance * 1.5}deg`,
-          '--hand-card-drop': `${Math.abs(distance) * 4}px`,
+          '--hand-card-angle': `${distance * fanAnglePerCard}deg`,
+          '--hand-card-drop': `${Math.abs(distance) * fanDropPerDistance}px`,
           '--hand-card-order': index + 1,
         };
         return (
           <div className="room-action-card-cell" style={cardStyle} key={card.id}>
-            {card.content}
+            <RoomHandCardButton
+              ref={focusCard(card.id)}
+              card={card}
+              onBlocked={(message) => {
+                if (timer.current !== null) clearTimeout(timer.current);
+                setReason(message);
+                timer.current = setTimeout(() => setReason(''), 5000);
+              }}
+            />
           </div>
         );
       })}

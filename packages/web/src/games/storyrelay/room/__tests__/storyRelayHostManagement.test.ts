@@ -162,22 +162,15 @@ describe('createStoryRelayHostManagement', () => {
     game.seatHost();
     const model = build(game.state, true);
     expect(model?.pendingActionKeys).toEqual(['start-game']);
-    const start = model?.sections[0]?.actions[0];
+    const start = model?.actions[0];
     expect(start).toMatchObject({
       key: 'start-game',
       testID: 'start-game-button',
-      isEnabled: false,
-      disabledReason: '座位尚未坐满（还差 3 人）',
+      state: { kind: 'blocked', reason: '座位尚未坐满（还差 3 人）' },
     });
-    expect(model?.sections[1]?.actions.map((action) => action.key)).toEqual([
-      'configure-game',
-      'fill-bots',
-      'clear-seats',
-      'share-room',
-    ]);
     game.send({ type: 'room.seat.fillBots' });
-    expect(build(game.state, true)?.sections[0]?.actions[0]).toMatchObject({
-      isEnabled: true,
+    expect(build(game.state, true)?.actions[0]).toMatchObject({
+      state: { kind: 'ready' },
     });
   });
 
@@ -186,13 +179,16 @@ describe('createStoryRelayHostManagement', () => {
     game.seatHost();
     const blocked = hostTaskBody(build(game.state, true));
     expect(blocked).toMatchObject({ action: { key: 'start-game', label: '开始游戏' } });
-    if (blocked?.kind !== 'blocked') throw new Error('expected a blocked task body');
-    expect(blocked.reason).toBe('座位尚未坐满（还差 3 人）');
-    expect(blocked.remedy?.label).toBe('分享房间');
+    if (blocked?.kind !== 'action') throw new Error('expected an action task body');
+    expect(blocked.action.state).toEqual({
+      kind: 'blocked',
+      reason: '座位尚未坐满（还差 3 人）',
+    });
 
     game.send({ type: 'room.seat.fillBots' });
     const ready = hostTaskBody(build(game.state, true));
-    if (ready?.kind !== 'ready') throw new Error('expected a ready task body');
+    if (ready?.kind !== 'action' || ready.action.state.kind !== 'ready')
+      throw new Error('expected a ready action task body');
   });
 
   it('offers a confirmed restart during writing without an advancement task', async () => {
@@ -202,20 +198,28 @@ describe('createStoryRelayHostManagement', () => {
     expect(game.state.phase).toBe('answering');
     const model = build(game.state, false);
     expect(model.task).toBeNull();
-    expect(model.sections.map((section) => section.key)).toEqual(['danger']);
-    const action = model.sections[0]!.actions[0]!;
-    expect(action).toMatchObject({ key: 'restart', variant: 'danger', isEnabled: true });
-    if (!action.isEnabled) throw new Error('expected an enabled restart');
+    expect(model.actions.map((action) => action.key)).toEqual(['restart']);
+    const action = model.actions[0]!;
+    expect(action).toMatchObject({
+      key: 'restart',
+      category: 'danger',
+      state: { kind: 'ready' },
+    });
+    if (action.state.kind !== 'ready') throw new Error('expected an enabled restart');
     submit.mockClear();
-    action.onPress();
+    action.state.onPress();
     const confirmation = alertStore.getSnapshot();
     expect(confirmation?.message).toContain('不结算完成奖励');
     expect(submit).not.toHaveBeenCalled();
     await confirmation?.buttons.find((button) => button.text === '重新开始')?.onPress?.();
-    expect(submit).toHaveBeenCalledWith('重新开始', {
-      type: 'storyrelay.game.restart',
-      phaseRevision: game.state.phaseRevision,
-    });
+    expect(submit).toHaveBeenCalledWith(
+      '重新开始',
+      {
+        type: 'storyrelay.game.restart',
+        phaseRevision: game.state.phaseRevision,
+      },
+      { actionKey: 'restart' },
+    );
   });
 
   it('keeps only the abort action outside answering while the round can abort', () => {
@@ -225,7 +229,7 @@ describe('createStoryRelayHostManagement', () => {
     game.finishStep();
     expect(game.state.phase).toBe('transition');
     const model = build(game.state, false);
-    expect(model?.sections.map((section) => section.key)).toEqual(['danger']);
+    expect(model?.actions.map((action) => action.key)).toEqual(['restart']);
   });
 
   it('warns that restarting the final transition does not settle rewards', () => {
@@ -237,9 +241,9 @@ describe('createStoryRelayHostManagement', () => {
       if (step < 3) game.settle();
     }
     expect(game.state.completedAt).not.toBeNull();
-    const action = build(game.state, false).sections[0]?.actions[0];
-    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
-    action.onPress();
+    const action = build(game.state, false).actions[0];
+    if (action?.state.kind !== 'ready') throw new Error('expected an enabled restart');
+    action.state.onPress();
     expect(alertStore.getSnapshot()?.message).toContain('不结算完成奖励');
   });
 
@@ -251,9 +255,9 @@ describe('createStoryRelayHostManagement', () => {
     expect(game.state.phase).toBe('gallery');
     const model = build(game.state, false);
     expect(model.task).toBeNull();
-    const action = model.sections[0]?.actions[0];
-    if (action?.isEnabled !== true) throw new Error('expected an enabled restart');
-    action.onPress();
+    const action = model.actions[0];
+    if (action?.state.kind !== 'ready') throw new Error('expected an enabled restart');
+    action.state.onPress();
     expect(alertStore.getSnapshot()?.message).toContain('本局已结算');
   });
 
@@ -266,7 +270,7 @@ describe('createStoryRelayHostManagement', () => {
     expect(game.state.phase).toBe('ended');
     const openReview = vi.fn();
     const model = build(game.state, false, { isEnabled: true, onPress: openReview });
-    const actions = model?.sections[0]?.actions ?? [];
+    const actions = model?.actions ?? [];
     expect(actions.map((action) => action.key)).toEqual(['review', 'restart']);
     expect(actions.map((action) => action.testID)).toEqual([
       'room-review-host-action',
@@ -274,8 +278,8 @@ describe('createStoryRelayHostManagement', () => {
     ]);
     expect(model.task).toBeNull();
     const [review] = actions;
-    if (review?.isEnabled !== true) throw new Error('expected an enabled review action');
-    review.onPress();
+    if (review?.state.kind !== 'ready') throw new Error('expected an enabled review action');
+    review.state.onPress();
     expect(openReview).toHaveBeenCalledTimes(1);
   });
 

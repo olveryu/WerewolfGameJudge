@@ -22,9 +22,10 @@
 
 .pity-bar-track {
   flex: 1;
-  height: 4px;
+  height: var(--space-small);
   border-radius: var(--radius-full);
   background: var(--gacha-text-a6);
+  box-shadow: var(--shadow-tabletop-inset);
 }
 
 .pity-bar-fill {

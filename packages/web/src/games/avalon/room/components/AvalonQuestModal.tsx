@@ -12,8 +12,9 @@ import { CenterDialog } from '@/components/CenterDialog';
 import { ChoiceCard } from '@/components/ChoiceCard';
 import { PendingSeatsRow } from '@/features/room/components/PendingSeatsRow';
 import { StageSettleRescue } from '@/features/room/components/StageSettleRescue';
+import { confirmAction } from '@/features/room/confirm';
+import { formatSettleCountdown } from '@/features/room/model/formatCountdown';
 import { TESTIDS } from '@/testids';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 import { avalonVoteFailImage, avalonVoteSuccessImage } from '../../assets/avalonVoteImages';
 import { formatAvalonSeatName } from '../../model/avalonSeatName';
@@ -47,7 +48,7 @@ export function AvalonQuestModal({
   const instruction = resolveQuestInstruction(viewModel);
   const teamSeats = viewModel.teamSeats ?? [];
   const confirmPlay = (play: AvalonPlay) =>
-    showConfirmAlert('确认出牌？', `确定打出「${PLAY_COPY[play]}」吗？`, () => onPlay(play));
+    confirmAction({ label: `打出${PLAY_COPY[play]}`, onConfirm: () => onPlay(play) });
   return (
     <CenterDialog
       open
@@ -66,7 +67,7 @@ export function AvalonQuestModal({
       </div>
       {remainingSeconds !== null && remainingSeconds > 0 && (
         <p className="avalon-stage-countdown" data-testid={TESTIDS.avalonQuestCountdown}>
-          已全部出牌，{remainingSeconds} 秒后揭晓
+          {formatSettleCountdown(remainingSeconds, '出牌')}
         </p>
       )}
       {viewModel.pendingPlaySeats !== null && viewModel.pendingPlaySeats.length > 0 && (

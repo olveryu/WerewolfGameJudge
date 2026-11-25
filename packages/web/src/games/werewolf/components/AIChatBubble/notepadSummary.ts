@@ -6,7 +6,7 @@
  * Does not call services, does not mutate state.
  */
 
-import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleCard } from '@game-judge/game-engine/games/werewolf/public';
 
 import type {
   NotepadSheriffCandidateStatus,
@@ -62,7 +62,7 @@ export function buildNotepadSummary(
 
     // Role guess
     if (roleGuess) {
-      label += `（猜测：${ROLE_SPECS[roleGuess].displayName}）`;
+      label += `（猜测：${getRoleCard(roleGuess).displayName}）`;
     }
 
     // Sheriff-election status

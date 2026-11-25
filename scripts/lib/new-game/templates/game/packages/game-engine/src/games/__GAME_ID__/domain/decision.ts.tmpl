@@ -1,6 +1,11 @@
 /** __GAME_PASCAL__ decision outcomes and permission gates; no IO. */
 
 import { commit, type Decision } from '../../../platform/engine';
+//#cap sharedSteps
+import type { StepEvent } from '../../../platform/steps';
+import type { __GAME_PASCAL__NightStepId } from '../state/types';
+import type { __GAME_PASCAL__NightFacts, __GAME_PASCAL__NightResult } from './nightSteps';
+//#end
 //#cap audioOrchestration
 import type { AudioEffect } from '../../../platform/audio';
 //#end
@@ -43,6 +48,10 @@ export const __GAME_UPPER___REASONS = {
 } as const;
 
 export type __GAME_PASCAL__Event =
+//#cap sharedSteps
+  | { readonly type: '__GAME_ID__.night.step'; readonly event: StepEvent<__GAME_PASCAL__NightStepId, __GAME_PASCAL__NightFacts, __GAME_PASCAL__NightResult> }
+  | { readonly type: '__GAME_ID__.night.finished'; readonly deadlineAt: number | null }
+//#end
   | {
       readonly type: '__GAME_ID__.seats.changed';
       readonly changes: readonly RosterChange<__GAME_PASCAL__HumanSeat>[];

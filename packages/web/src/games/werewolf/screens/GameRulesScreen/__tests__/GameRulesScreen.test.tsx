@@ -115,8 +115,9 @@ describe('GameRulesScreen', () => {
     });
 
     fireEvent.click(ruleSwitch('isPlagueMode'));
-    const buttons = vi.mocked(showAlertWithGeneration).mock.lastCall?.[2];
-    const confirm = buttons?.find((button) => button.text === '确认开启');
+    const alertCall = vi.mocked(showAlertWithGeneration).mock.lastCall;
+    expect(alertCall?.[0]).toBe('开启黑死病模式？');
+    const confirm = alertCall?.[2]?.find((button) => button.text === '开启');
     if (confirm?.onPress === undefined) throw new Error('Missing plague confirm button');
     void confirm.onPress();
 

@@ -221,6 +221,8 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
   const viewer = viewerFor(audience);
   const model = createDrawGuessRoomShellModel({
     roomCode: '1234',
+    isSubmitting: false,
+    pendingActionKey: null,
     viewer,
     capabilities: capabilities(),
     onBack: vi.fn(),
@@ -259,7 +261,7 @@ function bottomMessage(state: DrawGuessState, audience: RoomViewerAudience): str
     // The review exists exactly once the game has ended.
     review: state.phase.kind === 'ended' ? { isEnabled: true, onPress: vi.fn() } : null,
   });
-  return model.bottomActions.message;
+  return model.playerActions.message;
 }
 
 describe('DRAWGUESS_GUIDANCE_MATRIX', () => {

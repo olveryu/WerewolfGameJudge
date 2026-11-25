@@ -56,7 +56,17 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
     selection: { roleRevealRandomNonce: 'round-1', mvpUserId: 'user-1' },
   },
   'werewolf.bots.markAllBotsViewed': { type: 'werewolf.bots.markAllBotsViewed' },
-  'werewolf.action.submit': { type: 'werewolf.action.submit', input: { kind: 'skip' } },
+  'werewolf.step.submit': {
+    type: 'werewolf.step.submit',
+    gameSequence: 0,
+    submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [1] },
+  },
+  'werewolf.step.ackBots': {
+    type: 'werewolf.step.ackBots',
+    gameSequence: 0,
+    stepId: 'cupidLoversReveal',
+    serial: 1,
+  },
   'werewolf.role.viewed': { type: 'werewolf.role.viewed' },
   'werewolf.config.update': {
     type: 'werewolf.config.update',
@@ -83,10 +93,6 @@ const VALID_PUBLIC_COMMAND_BY_TYPE = {
   },
   'werewolf.audio.ack': { type: 'werewolf.audio.ack', audioBatchId: 0 },
   'werewolf.phase.retrySettle': { type: 'werewolf.phase.retrySettle' },
-  'werewolf.reveal.ack': { type: 'werewolf.reveal.ack' },
-  'werewolf.wolfRobot.ackHunterStatus': { type: 'werewolf.wolfRobot.ackHunterStatus' },
-  'werewolf.groupConfirm.ack': { type: 'werewolf.groupConfirm.ack' },
-  'werewolf.groupConfirm.ackBots': { type: 'werewolf.groupConfirm.ackBots' },
 } as const satisfies {
   readonly [Type in WerewolfPublicCommand['type']]: Extract<
     WerewolfPublicCommand,
@@ -254,6 +260,23 @@ describe('Worker game catalog', () => {
     }
   });
 
+  it('rejects malformed or unknown Werewolf step identities', () => {
+    const submission = {
+      type: 'werewolf.step.submit',
+      gameSequence: 0,
+      submission: { stepId: 'wolfKill', serial: 1, actionKey: 'wolfKill', seats: [1] },
+    };
+    for (const command of [
+      { ...submission, submission: { ...submission.submission, stepId: 'unknown' } },
+      { ...submission, submission: { ...submission.submission, serial: -1 } },
+      { ...submission, submission: { ...submission.submission, seats: [-1] } },
+      { ...submission, submission: { ...submission.submission, extra: true } },
+      { type: 'werewolf.step.ackBots', gameSequence: 0, stepId: 'unknown', serial: 1 },
+    ]) {
+      expect(werewolfPublicCommandSchema.safeParse(command).success).toBe(false);
+    }
+  });
+
   it('accepts review completion only with a valid game identity and no supplied user', () => {
     const cases = [
       { schema: werewolfPublicCommandSchema, type: 'werewolf.review.complete', gameSequence: 1 },
@@ -335,34 +358,7 @@ describe('Worker game catalog', () => {
     expect(() =>
       werewolfPublicCommandSchema.parse({
         type: 'werewolf.action.submit',
-        input: { kind: 'confirm', confirmed: false },
-      }),
-    ).toThrow();
-    expect(
-      werewolfPublicCommandSchema.parse({
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 2 },
-        expectedStep: {
-          currentStepId: 'seerCheck',
-          roleRevealRandomNonce: null,
-        },
-      }),
-    ).toEqual({
-      type: 'werewolf.action.submit',
-      input: { kind: 'target', target: 2 },
-      expectedStep: {
-        currentStepId: 'seerCheck',
-        roleRevealRandomNonce: null,
-      },
-    });
-    expect(() =>
-      werewolfPublicCommandSchema.parse({
-        type: 'werewolf.action.submit',
-        input: { kind: 'target', target: 2 },
-        expectedStep: {
-          currentStepId: 'unknown-step',
-          roleRevealRandomNonce: null,
-        },
+        input: { kind: 'skip' },
       }),
     ).toThrow();
     expect(() =>
