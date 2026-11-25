@@ -30,9 +30,11 @@ const WEREWOLF_BOARD_VERSION_BY_NAME: Readonly<Record<string, string>> = {
   隐狼乌鸦: 'v2.5.0',
   种狼骑士: 'v2.7.0',
   狼女孩: 'v2.9.0',
+  猩红蜂舞: 'v3.0.0',
 };
 
 export const WEREWOLF_BOARD_VERSIONS_DESC = [
+  'v3.0.0',
   'v2.9.0',
   'v2.7.0',
   'v2.5.0',
