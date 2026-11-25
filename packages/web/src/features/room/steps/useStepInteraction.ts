@@ -648,6 +648,8 @@ function projectActions(input: {
       icon: getActionIcon(action),
       opensDialog: action.kind !== 'pickSeats',
       ...(unavailableReason === null ? {} : { showBlockedReason: true }),
+      // An acknowledged view is only there to be read again; it no longer asks for attention.
+      ...(action.kind === 'view' && action.isAcknowledged ? { isPending: false } : {}),
       testID: TESTIDS.stepInteractionButton(action.key),
       state,
     };

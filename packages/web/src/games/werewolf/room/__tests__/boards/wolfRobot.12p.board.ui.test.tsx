@@ -4,7 +4,6 @@ import { waitFor } from '@testing-library/react';
 import {
   createWerewolfRoomMockFromState,
   mountWerewolfRoom,
-  openNightActionGroup,
   recordAlerts,
   RoomScreenTestHarness,
 } from '@/games/werewolf/room/__tests__/harness';
@@ -69,11 +68,8 @@ describe('WerewolfRoomScreen UI: 机械狼人通灵师', () => {
     try {
       const mock = createWerewolfRoomMockFromState(state, 7);
       const view = await mountWerewolfRoom(mock);
-      await openNightActionGroup(view);
-      expect(view.getByTestId(TESTIDS.stepInteractionButton('wolfRobotLearn'))).toHaveAttribute(
-        'aria-disabled',
-        'true',
-      );
+      expect(view.queryByTestId(TESTIDS.stepInteractionButton('wolfRobotLearn'))).toBeNull();
+      expect(view.queryByTestId(TESTIDS.stepInteractionButton('$skip'))).toBeNull();
       await pressStepAction(view, 'wolfRobotHunterStatus');
       expect(harness.getLastEvent()?.buttons).toEqual(['取消', '查看']);
       await harness.pressLastPrimary();

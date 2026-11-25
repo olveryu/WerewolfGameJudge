@@ -41,14 +41,17 @@ export function presentStep<TStepId extends string, TState, TContext, TFacts, TR
     hasPendingResult && definition.renderResult !== undefined
       ? definition.renderResult(context, actorRecord.result)
       : null;
-  const actions =
-    isActor &&
-    viewerSeat !== null &&
-    pendingResult === null &&
-    (actorRecord === undefined || !getSeatSettled(definition, context, actorRecord))
+  const isSettled = actorRecord !== undefined && getSeatSettled(definition, context, actorRecord);
+  const presentedActions =
+    isActor && viewerSeat !== null && pendingResult === null
       ? presentActions(definition, context, actorRecord, lockReason)
       : [];
-  const generatedPrompt = isActor ? buildActionPrompt(definition, context, actions) : null;
+  // A settled seat has nothing left to do; what it already viewed stays readable.
+  const actions = isSettled
+    ? presentedActions.filter((action) => action.kind === 'view' && action.isAcknowledged)
+    : presentedActions;
+  const generatedPrompt =
+    isActor && !isSettled ? buildActionPrompt(definition, context, actions) : null;
   const message = isActor
     ? buildMessage(
         definition.situationHints?.(context) ?? [],
@@ -78,12 +81,12 @@ function presentActions<TContext, TFacts, TResult>(
   lockReason: string | null,
 ): readonly PresentedAction[] {
   const actions = definition.actions.flatMap((action): readonly PresentedAction[] => {
-    const alreadySubmitted =
+    const isDone =
       actorRecord?.submissions.some((entry) => entry.actionKey === action.key) === true &&
       action.commit !== 'revisable';
-    const availability = alreadySubmitted
-      ? { kind: 'unavailable' as const, reason: STEP_COPY.alreadySubmitted }
-      : getAvailability(action, context, lockReason);
+    // A finished action leaves the hand; a view stays so its content can be read again.
+    if (isDone && action.kind !== 'view') return [];
+    const availability = getAvailability(action, context, lockReason);
     if (availability.kind === 'hidden') return [];
     if (action.kind === 'pickSeats') {
       const prior = actorRecord?.submissions.find((entry) => entry.actionKey === action.key);

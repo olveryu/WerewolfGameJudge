@@ -39,7 +39,21 @@ exports[`werewolf role definitions > snapshots generated output for 'avenger' 'a
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你属于好人阵营",
+          "title": "阵营",
+        },
+        "isAcknowledged": true,
+        "key": "avengerConfirm",
+        "kind": "view",
+        "label": "查看阵营",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -165,7 +179,21 @@ exports[`werewolf role definitions > snapshots generated output for 'awakenedGar
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你未被转化",
+          "title": "转化信息",
+        },
+        "isAcknowledged": true,
+        "key": "awakenedGargoyleConvertReveal",
+        "kind": "view",
+        "label": "查看转化信息",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -370,7 +398,21 @@ exports[`werewolf role definitions > snapshots generated output for 'cupid' 'cup
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你不是情侣",
+          "title": "情侣信息",
+        },
+        "isAcknowledged": true,
+        "key": "cupidLoversReveal",
+        "kind": "view",
+        "label": "查看情侣信息",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -425,7 +467,21 @@ exports[`werewolf role definitions > snapshots generated output for 'darkWolfKin
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "可以发动技能",
+          "title": "技能状态",
+        },
+        "isAcknowledged": true,
+        "key": "darkWolfKingConfirm",
+        "kind": "view",
+        "label": "查看技能状态",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -887,7 +943,21 @@ exports[`werewolf role definitions > snapshots generated output for 'hiddenWolf'
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你的狼同伴为：4号",
+          "title": "狼同伴",
+        },
+        "isAcknowledged": true,
+        "key": "hiddenWolfReveal",
+        "kind": "view",
+        "label": "查看狼同伴",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -942,7 +1012,21 @@ exports[`werewolf role definitions > snapshots generated output for 'hunter' 'hu
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "可以发动技能",
+          "title": "技能状态",
+        },
+        "isAcknowledged": true,
+        "key": "hunterConfirm",
+        "kind": "view",
+        "label": "查看技能状态",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -1316,7 +1400,21 @@ exports[`werewolf role definitions > snapshots generated output for 'piper' 'pip
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你未被催眠",
+          "title": "催眠信息",
+        },
+        "isAcknowledged": true,
+        "key": "piperHypnotizedReveal",
+        "kind": "view",
+        "label": "查看催眠信息",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -1673,7 +1771,21 @@ exports[`werewolf role definitions > snapshots generated output for 'seedWolf' '
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你未被感染",
+          "title": "感染信息",
+        },
+        "isAcknowledged": true,
+        "key": "seedWolfInfectReveal",
+        "kind": "view",
+        "label": "查看感染信息",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,
@@ -2475,7 +2587,21 @@ exports[`werewolf role definitions > snapshots generated output for 'wolfGirl' '
     },
   ],
   "submitted": {
-    "actions": [],
+    "actions": [
+      {
+        "availability": {
+          "kind": "available",
+        },
+        "content": {
+          "text": "你未被表白",
+          "title": "表白信息",
+        },
+        "isAcknowledged": true,
+        "key": "wolfGirlConfessReveal",
+        "kind": "view",
+        "label": "查看表白信息",
+      },
+    ],
     "deadlineMs": null,
     "isActor": true,
     "message": null,

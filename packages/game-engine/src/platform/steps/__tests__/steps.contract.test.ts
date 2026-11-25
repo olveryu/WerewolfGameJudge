@@ -145,6 +145,7 @@ describe('platform step runtime', () => {
       title: 'Result',
       text: 'good',
     });
+    expect(presentStep(runtime, submittedState, 0)?.actions).toEqual([]);
     expect(buildStepReviewLines(runtime, submittedState)).toEqual([
       { stepId: 'pick', seat: 0, text: 'Player0inspect2号', isDone: true },
     ]);
@@ -463,6 +464,37 @@ describe('platform step runtime', () => {
     ).toMatchObject({
       kind: 'accept',
       events: [{ type: 'resultAcknowledged', actionKey: 'view' }],
+    });
+  });
+
+  it('keeps an acknowledged view readable without accepting it twice', () => {
+    const viewDefinition: StepDefinition<TestStepId, TestContext, TestFacts, string> = {
+      ...definition,
+      actions: [
+        { kind: 'view', key: 'view', name: 'view', title: 'Partner', content: () => 'private' },
+      ],
+      skippable: () => false,
+    };
+    const viewRuntime = runtimeWithDefinition(viewDefinition);
+    const state = createState();
+    const submission = { stepId: 'pick' as const, serial: 4, actionKey: 'view' };
+    const decision = decideStepSubmission(viewRuntime, state, 0, submission);
+    if (decision.kind !== 'accept') throw new Error('[FAIL-FAST] View was not accepted');
+    const acknowledgedState = decision.events.reduce(
+      (current, event) => ({ ...current, step: evolveStepSlice(current.step, event) }),
+      state,
+    );
+
+    expect(presentStep(viewRuntime, acknowledgedState, 0)?.actions).toEqual([
+      expect.objectContaining({
+        key: 'view',
+        availability: { kind: 'available' },
+        isAcknowledged: true,
+      }),
+    ]);
+    expect(decideStepSubmission(viewRuntime, acknowledgedState, 0, submission)).toEqual({
+      kind: 'reject',
+      reason: 'REASON_STEP_STALE',
     });
   });
 

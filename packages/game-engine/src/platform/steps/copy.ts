@@ -14,7 +14,6 @@ export const STEP_COPY = defineCopy({
   reviewNotDone: '未{name}',
   viewAction: '查看{title}',
   seatListSeparator: '、',
-  alreadySubmitted: '已提交',
   hintSeparator: '。',
   staleStep: '当前行动步骤已变化，请重新选择',
 });

@@ -854,13 +854,13 @@ describe('createAvalonRoomShellModel — PR-B waiting messages', () => {
     expect(findStageAction(pendingShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeDefined();
     running.send(avalonViewNightCommand(running.state), seatUser(pending));
     const viewed = renderNightInteraction(running.state, pending).interaction;
-    expect(viewed.actions).toEqual([]);
+    expect(viewed.actions).toMatchObject([{ key: AVALON_NIGHT_VIEW_ACTION_KEY, isPending: false }]);
     const confirmedShell = shellFor(running, pending, {
       nightActions: viewed.actions,
       nightMessage: viewed.message,
     });
     expect(confirmedShell.message).toBe('等待本步玩家确认');
-    expect(findStageAction(confirmedShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeUndefined();
+    expect(findStageAction(confirmedShell, AVALON_NIGHT_VIEW_ACTION_KEY)).toBeDefined();
   });
 
   it('vote: seated voters get no sentence whether or not they voted', () => {

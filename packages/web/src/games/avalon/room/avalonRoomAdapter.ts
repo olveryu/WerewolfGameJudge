@@ -462,13 +462,12 @@ function createAvalonPlayerActions(input: AvalonBottomActionsInput): RoomPlayerA
     // 查看与播报并行：音频播放中也保持可用（引擎完成评估与查看、ack 的
     // 到达顺序无关，见 E3 §5b）。
     if (input.effectiveSeat !== null) {
-      if (input.nightActions.length > 0) {
-        primary.push(...input.nightActions);
-        message = input.nightMessage;
-      } else {
-        // 非本步执行者与已查看者：等本步其余执行者（步名归进度行，此处不复述）。
-        message = '等待本步玩家确认';
-      }
+      // 已查看的手牌留着供再次查看（isPending 为 false），不算待办。
+      primary.push(...input.nightActions);
+      message = input.nightActions.some((action) => action.isPending !== false)
+        ? input.nightMessage
+        : // 非本步执行者与已查看者：等本步其余执行者（步名归进度行，此处不复述）。
+          '等待本步玩家确认';
     }
     return {
       message,
