@@ -11,7 +11,12 @@ Use `defineRole` from `role.ts` to declare the role's:
 - stable role id and `card` display metadata;
 - `traits`, including explicit faction and team;
 - runtime `steps`;
-- optional night schedule, resources, announcement, and passive death effects.
+- optional night schedule, resources, announcement, and passive death effects;
+- optional declarations for rules that reach beyond the role's own step:
+  `abilityLockReason` and `wolfAttackLock` (what is said when the role
+  locks skills or stops the wolf attack), `conversion` (turning another
+  player into a different role), `personalDaytimeView`, and a presence
+  declaration (`roles/presence.ts`) such as a bottom-card deck.
 
 The type contract is `WerewolfRoleDefinition`. Step declarations use
 `WerewolfRoleStepDefinition`, based on the shared platform
