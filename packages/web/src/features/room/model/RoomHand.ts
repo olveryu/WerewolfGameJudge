@@ -40,7 +40,6 @@ export interface RoomHandCard {
   readonly state: RoomActionState;
   readonly isPending: boolean;
   readonly opensDialog: boolean;
-  readonly showBlockedReason?: boolean;
   readonly testID: string | undefined;
   readonly containedActionTestIDs: readonly string[];
 }
@@ -108,7 +107,6 @@ function actionCard(
     state: action.state,
     isPending: options.isPending ?? false,
     opensDialog: action.opensDialog ?? false,
-    ...(action.showBlockedReason === true ? { showBlockedReason: true } : {}),
     testID: options.testID ?? action.testID,
     containedActionTestIDs: options.containedActionTestIDs ?? [],
   };

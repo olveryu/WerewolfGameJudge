@@ -649,7 +649,6 @@ function projectActions(input: {
       category: 'player',
       icon: getActionIcon(action),
       opensDialog: action.kind !== 'pickSeats',
-      ...(unavailableReason === null ? {} : { showBlockedReason: true }),
       testID: TESTIDS.stepInteractionButton(action.key),
       state,
     };

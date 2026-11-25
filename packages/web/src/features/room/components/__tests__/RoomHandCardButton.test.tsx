@@ -64,16 +64,4 @@ describe('RoomHandCardButton', () => {
     await user.click(screen.getByRole('button', { name: '行动' }));
     expect(press).toHaveBeenCalledOnce();
   });
-
-  it('shows an action-provided blocked reason on the card', () => {
-    render(
-      <RoomHandCardButton
-        card={{ ...card({ kind: 'blocked', reason: '本夜无法袭击' }), showBlockedReason: true }}
-        onBlocked={blocked}
-      />,
-    );
-    const button = screen.getByRole('button', { name: '行动' });
-    expect(button).toHaveAccessibleDescription('本夜无法袭击');
-    expect(screen.getByText('本夜无法袭击')).toBeVisible();
-  });
 });

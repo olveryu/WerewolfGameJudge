@@ -166,7 +166,6 @@ describe('useStepInteraction', () => {
     };
     const { result, submit } = renderStepInteraction(action);
     expect(result.current.actions[0]?.state).toEqual({ kind: 'blocked', reason: '本夜无法行动' });
-    expect(result.current.actions[0]?.showBlockedReason).toBe(true);
     expect(submit).not.toHaveBeenCalled();
   });
 
